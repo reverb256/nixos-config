@@ -1,0 +1,35 @@
+{
+  "outputStyle": "Explanatory",
+  "mcpServers": {
+    "web-search": {
+      "url": "http://localhost:3000",
+      "enabled": true,
+      "timeout": 30000,
+      "auth": {
+        "type": "none"
+      }
+    }
+  },
+  "statusLine": {
+    "enabled": true,
+    "tools": ["web-search", "web-fetch"],
+    "showToolStatus": true
+  },
+  "webSearch": {
+    "enabled": true,
+    "defaultMaxResults": 10,
+    "timeout": 10000,
+    "allowedDomains": ["*"],
+    "blockedDomains": ["clickbait.com", "malware.com"]
+  },
+  "hooks": {
+    "enabled": true,
+    "webSearchHook": "/home/j_kro/.claude/hooks/web-search-hook.sh",
+    "statusLineHook": "/home/j_kro/.claude/hooks/status-line-hook.sh"
+  },
+  "api": {
+    "timeout": 3000000,
+    "retryAttempts": 3,
+    "fallbackProviders": ["openrouter", "openai", "zhipu"]
+  }
+}

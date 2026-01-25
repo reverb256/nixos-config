@@ -1,0 +1,330 @@
+# Gaming Module - SteamVR, WiVRn, Lighthouse Tracking, and Motion Tracking
+# Enhanced with GameMode, NVENC, Smart Mining Management, and Performance Scheduling
+# Complete VR setup for Quest Pro with 4 Tundra trackers
+# NVIDIA RTX 3090 optimizations for multiple resolution targets
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
+with lib; {
+  # ============================================================================
+  # GAMEMODE - CPU/GPU Optimizations
+  # ============================================================================
+
+  programs.gamemode = {
+    enable = true;
+    settings = {
+      general = {
+        desiredgov = "performance"; # Use performance governor when entering GameMode
+        inhibit_screensaver = true; # Disable screensaver during games
+        require_display = true; # Require display to be active
+        # GameMode integration with systemd slices
+        use_systemd = true;
+
+        # Additional GameMode optimizations
+        softrealtime = "auto"; # Use SCHED_ISO when available
+        renice = 15; # Increase priority for gaming processes
+        ioprio = 0; # Highest I/O priority
+      };
+      gpu = {
+        # NVIDIA Ampere (RTX 3090) specific settings
+        nv_powermizer_mode = 1; # Prefer Maximum Performance
+        nv_core_clock_mhz_offset = 150; # Slight overclock (+150MHz)
+        nv_memory_transfer_rate_offset = 500; # Ampere memory overclock (+500MHz)
+        nv_gpu_utilization = "1"; # Enable GPU utilization monitoring
+
+        # Ampere-specific optimizations
+        nv_preclocked_graphics_clock = "1"; # Enable preclocked graphics clock
+        nv_preclocked_memory_clock = "1"; # Enable preclocked memory clock
+        nv_preclocked_video_clock = "1"; # Enable preclocked video clock
+
+        # DLSS and RTX optimizations for Ampere (RTX 3090)
+        nv_dlss = "1"; # Enable DLSS if supported by game
+        nv_reflex = "1"; # Enable NVIDIA Reflex for competitive gaming
+        nv_api = "1"; # Enable NVIDIA API
+      };
+
+      # Custom scripts for GameMode events
+      custom = {
+        start = "/run/current-system/sw/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'";
+        end = "/run/current-system/sw/bin/notify-send 'GameMode deactivated' 'Normal performance restored'";
+      };
+    };
+  };
+
+  # ============================================================================
+  # SYSTEMD SLICES - Workload isolation for gaming
+  # ============================================================================
+  systemd.slices."gaming.slice" = {
+    description = "Gaming applications slice";
+    sliceConfig = {
+      MemoryHigh = "90%"; # High memory priority for games
+      CPUQuota = "95%"; # High CPU priority for games
+      CPUAccounting = "yes";
+      MemoryAccounting = "yes";
+      TasksAccounting = "yes";
+      TasksMax = 20000;
+    };
+  };
+
+  # ============================================================================
+  # KERNEL PARAMETERS - High-priority gaming optimizations
+  # ============================================================================
+  boot.kernelParams = [
+    # Wine gaming performance
+    "fsync.enable=1"
+
+    # NVIDIA optimizations
+    "nvidia-drm.modeset=1"
+    "threadirqs"
+
+    # Ryzen 5950X optimizations
+    "amd_pstate=active"
+    "mitigations=off"
+    "transparent_hugepage=madvise"
+    "numa_balancing=disable"
+    "nowatchdog"
+
+    # PCIe and I/O optimizations
+    "pcie_aspm=off"
+    "elevator=none"
+
+    # High-priority gaming optimizations
+    "isolcpus=managed_applications" # CPU isolation for gaming
+    "nohz_full=1-15" # Disable tick on application cores
+    "rcu_nocbs=1-15" # RCU offload for low latency
+  ];
+
+  # ============================================================================
+  # STEAM - Full VR Support with NVENC Optimizations
+  # ============================================================================
+  programs.steam = {
+    enable = true;
+    extraCompatPackages = with pkgs;
+      [
+        proton-ge-bin
+      ]
+      ++ [
+        inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
+      ];
+  };
+
+  # ============================================================================
+  # ANIME GAME LAUNCHERS
+  # ============================================================================
+  programs.anime-game-launcher.enable = true;
+  programs.honkers-railway-launcher.enable = true;
+  programs.sleepy-launcher.enable = true;
+
+  # ============================================================================
+  # WI VRN - Wireless VR Streaming for Quest Pro
+  # ============================================================================
+  services.wivrn = {
+    enable = true;
+    openFirewall = true;
+    defaultRuntime = true;
+    config.enable = true;
+    config.json = {
+      # Quest Pro specific optimizations for 90Hz target
+      device = {
+        name = "Quest Pro";
+        type = "quest_pro";
+        # High resolution for Quest Pro at 90Hz
+        resolution = "1800x1920"; # Native Quest Pro resolution per eye
+        refresh_rate = 90;
+      };
+
+      # Streaming optimizations for RTX 3090 at 90Hz
+      stream = {
+        codec = "hevc"; # HEVC for better compression at 90Hz
+        targetBitrate = 150; # Optimized bitrate for RTX 3090 at 90Hz (Mbps)
+        spatial = true; # Enable spatial encoding
+        temporal = true; # Enable temporal encoding
+        encoder = "nvenc"; # Use NVIDIA NVENC for hardware acceleration
+        postprocess = true; # Enable post-processing
+      };
+
+      # Network optimizations for 90Hz streaming
+      network = {
+        port = 9757;
+        portRange = [9757 9760];
+        udp = true;
+        tcp = true;
+      };
+
+      # Quest Pro display settings
+      display = {
+        forceColorSpace = "sRGB";
+        forceColorRange = "Full";
+      };
+    };
+  };
+
+  # ============================================================================
+  # NVIDIA VR OPTIMIZATIONS - NVENC, Low Latency, VR Ready
+  # ============================================================================
+  hardware.graphics.enable = true;
+
+  boot.extraModprobeConfig = ''
+    # NVIDIA VR optimizations for RTX 3090
+    options nvidia "NVreg_RegistryDwords=RMIntrLockingMode=1;NVreg_EnableResizableBar=1;NVreg_EnableGpuFirmware=1"
+    options nvidia-uvm "uvm_perf_prefetch_enable=1"
+    # Disable CPU frequency scaling for consistent VR performance
+    options cpufreq_performance ignore_cpu_freq=1
+     # Audio stability - prevent crackling during gaming
+     options snd_hda_intel power_save=0
+     options snd_hda_intel power_save_controller=N
+     # Conservative audio buffer settings
+     options snd_hda_intel bdl_pos_adj=0  # Disable buffer position adjustments
+    # USB optimization for VR devices
+    options usbcore autosuspend=-1
+  '';
+
+  # ============================================================================
+  # PACKAGES - VR Applications and Tools
+  # ============================================================================
+  environment.systemPackages = with pkgs; [
+    # VR runtimes and tools
+    wivrn
+    openxr-loader
+
+    # SteamVR support
+    steam-run
+
+    # Performance monitoring and optimization tools
+    gamescope
+    mangohud
+    goverlay
+    nvtopPackages.full
+
+    # proton-cachyos temporarily disabled
+    gamemode
+    scx.full
+
+    # Enhanced Claude Code environment
+    inputs.claude-native.packages."x86_64-linux".default
+  ];
+
+  # ============================================================================
+  # UDEV RULES - VR Device Permissions
+  # ============================================================================
+
+  services.udev.extraRules = ''
+    # Quest Pro USB rules
+    SUBSYSTEM=="usb", ATTR{idVendor}=="2833", ATTR{idProduct}=="0181", MODE="0666", GROUP="plugdev"
+
+    # Lighthouse base station rules
+    SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", GROUP="plugdev"
+    SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", GROUP="plugdev"
+
+    # Tundra tracker rules
+    SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666", GROUP="plugdev"
+
+     # HTC Vive/Valkyrie controllers
+     SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", ATTR{idProduct}=="2c87", MODE="0666", GROUP="plugdev"
+
+     # DualSense (PS5) controllers - USB access only, let Wine handle hidraw
+     SUBSYSTEM=="usb", ATTR{idVendor}=="054c", ATTR{idProduct}=="0ce6", MODE="0666", GROUP="plugdev"
+     SUBSYSTEM=="usb", ATTR{idVendor}=="054c", ATTR{idProduct}=="0df2", MODE="0666", GROUP="plugdev"
+
+     # Valve Index controllers
+    SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", GROUP="plugdev"
+  '';
+
+  # ============================================================================
+  # KERNEL MODULES - VR Device Support
+  # ============================================================================
+
+  boot.kernelModules = [
+    # Required for USB VR devices
+    "usbhid"
+    "uvcvideo"
+    # Required for NVIDIA VR support
+    "nvidia-uvm"
+    # Required for WiVRn networking
+    "wireguard"
+    # Required for motion tracking
+    "hid-sensor-hub"
+  ];
+
+  # ============================================================================
+  # GAMESCOPE CONFIGURATION - Microcompositor for Gaming
+  # ============================================================================
+
+  programs.gamescope = {
+    enable = true;
+    capSysNice = true; # Allow gamescope to renice itself
+
+    # Environment variables for gamescope
+    env = {
+      # Vulkan and NVIDIA optimizations
+      __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
+      __GL_SHADER_DISK_CACHE_SIZE = "1073741824";
+      __GL_SHADER_DISK_CACHE_PATH = "/tmp/nvidia-shader-cache";
+
+      # Ampere optimizations
+      __GLX_FORCE_MONO = "0";
+      __GL_ALLOW_FXAA_USAGE = "1";
+
+      # HDR support
+      ENABLE_HDR_WSI = "11";
+      DXVK_HDR = "1";
+    };
+
+    # Gamescope configuration - VRR DISABLED, everything else enabled
+    args = [
+      # NVIDIA Backend (Better compatibility for RTX 3090)
+      "--backend sdl"
+
+      # Performance optimizations
+      "--immediate-flips" # Lowest latency flips
+      "--rt" # Real-time priority
+
+      # HDR enabled (display can handle it, just not VRR)
+      "--hdr-enabled"
+      "--hdr-itm-enable" # Inverse tone mapping for better HDR
+
+      # Steam integration
+      "--steam"
+      "--xwayland-count 2"
+
+      # Full capabilities maintained
+      "--force-composition-pipeline=auto"
+      "--prefer-output=auto"
+      "--expose-wayland" # Wayland support
+    ];
+  };
+
+  # ============================================================================
+  # ASSERTIONS - VR Configuration Validation
+  # ============================================================================
+
+  # Enable Avahi for device discovery
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    publish = {
+      enable = true;
+      addresses = true;
+      workstation = true;
+    };
+  };
+
+  assertions = [
+    {
+      assertion = config.programs.steam.enable;
+      message = "Steam must be enabled for VR support";
+    }
+    {
+      assertion = config.services.wivrn.enable;
+      message = "WiVRn must be enabled for VR support";
+    }
+    {
+      assertion = config.hardware.nvidia.package != null;
+      message = "NVIDIA drivers are required for optimal VR performance";
+    }
+  ];
+}
