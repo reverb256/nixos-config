@@ -1,0 +1,108 @@
+# ============================================================================
+# NIXOS-SPECIFIC
+# ============================================================================
+
+# Build output symlinks (created by nixos-rebuild)
+result
+result-*
+
+# Virtual machine images
+*.qcow2
+*.img
+*.vmdk
+
+# ============================================================================
+# FLAKE CONFIGURATION
+# ============================================================================
+
+# flake.lock: KEEP COMMITTED for reproducible builds!
+# Only exclude if you deliberately want non-reproducible flakes
+# flake.lock
+
+# ============================================================================
+# BUILD ARTIFACTS
+# ============================================================================
+
+.nix-build-*
+.nix-shell-env*
+
+# ============================================================================
+# NIX DEVELOPMENT (direnv, nix-direnv)
+# ============================================================================
+
+.direnv/
+.envrc
+.envrc.*
+.nix-gc-roots/
+shell.nix
+
+# ============================================================================
+# EDITOR/IDE TEMP FILES
+# ============================================================================
+
+# Emacs
+*~
+\#*\#
+
+# Vim
+*.swp
+*.swo
+*.sw*
+.un~
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# ============================================================================
+# SECURITY: KEYS AND SECRETS
+# ============================================================================
+
+# SSH keys (unlikely to be in /etc/nixos, but safe to exclude)
+ssh_host_*
+id_rsa*
+id_ed25519*
+id_ecdsa*
+
+# GPG/Age encryption keys
+*.asc
+*.gpg
+*.age
+
+# Secret Nix files
+secrets.nix
+*secrets*.nix
+
+# ============================================================================
+# TEMPORARY/BACKUP FILES
+# ============================================================================
+
+# Log files
+*.log
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Home Manager backup extension
+*.backup
+
+# ============================================================================
+# OTHER
+# ============================================================================
+
+# Core dumps
+core
+
+# Python cache (if using nix-shell with Python)
+__pycache__/
+*.py[cod]
+*$py.class
