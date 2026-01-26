@@ -1,13 +1,15 @@
-# Zephyr Host Configuration
-# 10.1.1.110 - Master Workstation (32 cores, RTX 3090)
+# Zephyr Host Configuration - Steam + Wayland Optimized
+# 10.1.1.110 - Master Workstation (32 cores, RTX 3090) - Steam Compatible
 {...}: {
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
-    # Gaming features
-    ../../modules/gaming.nix
+    # Steam-compatible desktop and gaming
+    ../../modules/desktop-wayland-steam.nix
+    ../../modules/steam-wayland-robust.nix
     # OpenAgents Control
     ../../modules/openagents-control.nix
+    # Remove gaming.nix - too aggressive for Steam compatibility
   ];
 
   # Host identification
@@ -48,53 +50,58 @@
    # ============================================================================
    # BOOTLOADER - systemd-boot
    # ============================================================================
-
+ 
   boot.loader = {
     systemd-boot.enable = true;
     efi.canTouchEfiVariables = true;
   };
 
   # ============================================================================
-  # HIGH-PERFORMANCE KERNEL PARAMETERS (made Wayland-compatible)
+  # STEAM-COMPATIBLE KERNEL PARAMETERS (Conservative for Wayland)
   # ============================================================================
-
+  
   boot.kernelParams = [
-    # Wine gaming performance
+    # Steam-specific optimizations
     "fsync.enable=1"
-
-    # NVIDIA optimizations (desktop.nix adds nvidia-drm.modeset=1)
-    "nvidia-drm.modeset=1"
+    
+    # NVIDIA Wayland support (desktop module handles nvidia-drm.modeset=1)
     "threadirqs"
     
-    # NEW: Enhanced NVIDIA RTX 3090 optimizations
+    # Enhanced NVIDIA RTX 3090 optimizations (Steam-compatible)
     "nvidia.NVreg_RegistryDwords=PerfLevelSrc=0x2222"
     "nvidia.NVreg_UsePageAttributeTable=1" # Better memory management
     "nvidia.NVreg_EnableResizableBar=1" # Resizable BAR for RTX 3090
-
-    # Ryzen 5950X optimizations (made compatible with Wayland)
+    "nvidia-uvm/uvm_disable_huge_pages=1" # Fix SteamVR compatibility
+    
+    # Conservative CPU optimizations (removed aggressive Steam-breaking params)
     "amd_pstate=active"
     "mitigations=off"
     "transparent_hugepage=madvise"
     "numa_balancing=disable"
     "nowatchdog"
-
-    # PCIe and I/O optimizations (removed aggressive options that interfere with wayland)
+    
+    # Safe I/O optimizations
     "elevator=none"
-
-    # High-priority gaming optimizations (disabled for Wayland compatibility)
-    # "isolcpus=managed_applications" # CPU isolation - INTERFERES WITH WAYLAND COMPOSITOR
-    # "nohz_full=1-15" # Disable tick on application cores - INTERFERES WITH WAYLAND COMPOSITOR
-    # "rcu_nocbs=1-15" # RCU offload - INTERFERES WITH WAYLAND COMPOSITOR
+    
+    # REMOVED: These break Steam process management
+    # "isolcpus=managed_applications" - INTERFERES WITH STEAM
+    # "nohz_full=1-15" - BREAKS STEAM PROCESS MANAGEMENT  
+    # "rcu_nocbs=1-15" - BREAKS STEAM PROCESS MANAGEMENT
   ];
 
   # ============================================================================
-  # MINING CONFIGURATION (Zephyr: 32 cores, RTX 3090)
+  # MINING CONFIGURATION (Steam-aware - pauses during gaming)
   # ============================================================================
+  
+  # Note: Smart mining pause is handled by steam-wayland-robust.nix
+  # It will automatically pause mining when Steam/VR games are detected
   services.mining.enable = true;
   services.mining.xmrig.enable = true;
   services.mining.xmrig.threads = 16;
   services.mining.xmrig.pool = "xtm-rx-us.kryptex.network:8038";
   services.mining.xmrig.wallet = "krxXVNVMM7.zephyr";
+  
+  # Steam-optimized lolminer configuration
   services.mining.lolminer.enable = true;
   services.mining.lolminer.nvidia.enable = true;
   services.mining.lolminer.nvidia.devices = "0";
@@ -105,7 +112,7 @@
   # ============================================================================
   # NETWORKING (Static IP)
   # ============================================================================
-
+ 
   # Configure NetworkManager for ethernet with static IP
   networking.networkmanager.ensureProfiles = {
     profiles."Wired connection 1" = {
@@ -130,7 +137,7 @@
   # ============================================================================
   # LOCAL HOSTS ENTRIES
   # ============================================================================
-
+ 
   networking.hosts = {
     "10.1.1.110" = ["zephyr"];
     "10.1.1.120" = ["nexus"];
@@ -147,9 +154,9 @@
   };
 
   # ============================================================================
-  # FIREWALL (VR ports for WiVRn streaming)
+  # FIREWALL (VR ports for WiVRn streaming - Steam-compatible)
   # ============================================================================
-
+ 
   networking.firewall = {
     allowedTCPPorts = [9757]; # WiVRn TCP
     allowedUDPPorts = [
