@@ -91,7 +91,7 @@
       deployment = {
         targetHost = targetHost;
         targetUser = "j_kro";
-        buildOnReplacement = true;
+        buildOnTarget = true;
         ssh.keys = ["~/.ssh/id_ed25519"];
         tags = ["default"]; # Default tag for colmena apply
       };
@@ -163,7 +163,7 @@
         deployment = {
           targetHost = "10.1.1.110";
           targetUser = "j_kro";
-          buildOnReplacement = true;
+          buildOnTarget = true;
           ssh.keys = ["~/.ssh/id_ed25519"];
           tags = ["default"];
         };
