@@ -129,19 +129,15 @@
     # NixOS system definitions
     nixosSystems = {
       zephyr = mkNixosSystem {
-        name = "zephyr";
         modules = [./hosts/zephyr/configuration.nix];
       };
       nexus = mkNixosSystem {
-        name = "nexus";
         modules = [./hosts/nexus/configuration.nix];
       };
       forge = mkNixosSystem {
-        name = "forge";
         modules = [./hosts/forge/configuration.nix];
       };
       sentry = mkNixosSystem {
-        name = "sentry";
         modules = [./hosts/sentry/configuration.nix];
       };
     };

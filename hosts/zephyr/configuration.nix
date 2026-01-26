@@ -1,6 +1,6 @@
 # Zephyr Host Configuration
 # 10.1.1.110 - Master Workstation (32 cores, RTX 3090)
-{ ...}: {
+{...}: {
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
@@ -11,9 +11,41 @@
   # Host identification
   networking.hostName = "zephyr";
 
-  # ============================================================================
-  # BOOTLOADER - systemd-boot
-  # ============================================================================
+   # ============================================================================
+   # HOME MANAGER CONFIGURATION
+   # ============================================================================
+   
+   home-manager = {
+     useGlobalPkgs = true;
+     useUserPackages = true;
+     users.j_kro = { pkgs, ... }: {
+       imports = [
+         ../../modules/fish-starship.nix
+       ];
+       
+       home = {
+         username = "j_kro";
+         homeDirectory = "/home/j_kro";
+         stateVersion = "26.05";
+       };
+       
+         programs = {
+           home-manager.enable = true;
+           fish = {
+             enable = true;
+           };
+         };
+       
+       xdg = {
+         enable = true;
+         userDirs.enable = true;
+       };
+     };
+   };
+   
+   # ============================================================================
+   # BOOTLOADER - systemd-boot
+   # ============================================================================
 
   boot.loader = {
     systemd-boot.enable = true;
@@ -21,7 +53,7 @@
   };
 
   # ============================================================================
-  # HIGH-PERFORMANCE KERNEL PARAMETERS (from master branch)
+  # HIGH-PERFORMANCE KERNEL PARAMETERS (made Wayland-compatible)
   # ============================================================================
 
   boot.kernelParams = [
@@ -32,21 +64,20 @@
     "nvidia-drm.modeset=1"
     "threadirqs"
 
-    # Ryzen 5950X optimizations
+    # Ryzen 5950X optimizations (made compatible with Wayland)
     "amd_pstate=active"
     "mitigations=off"
     "transparent_hugepage=madvise"
     "numa_balancing=disable"
     "nowatchdog"
 
-    # PCIe and I/O optimizations
-    "pcie_aspm=off"
+    # PCIe and I/O optimizations (removed aggressive options that interfere with wayland)
     "elevator=none"
 
-    # High-priority gaming optimizations
-    "isolcpus=managed_applications" # CPU isolation for gaming
-    "nohz_full=1-15" # Disable tick on application cores
-    "rcu_nocbs=1-15" # RCU offload for low latency
+    # High-priority gaming optimizations (disabled for Wayland compatibility)
+    # "isolcpus=managed_applications" # CPU isolation - INTERFERES WITH WAYLAND COMPOSITOR
+    # "nohz_full=1-15" # Disable tick on application cores - INTERFERES WITH WAYLAND COMPOSITOR
+    # "rcu_nocbs=1-15" # RCU offload - INTERFERES WITH WAYLAND COMPOSITOR
   ];
 
   # ============================================================================

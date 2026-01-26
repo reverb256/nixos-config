@@ -1,9 +1,6 @@
 # System Module
 # Extracted from configuration.nix - System-level configurations
-{
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   # ============================================================================
   # TIMEZONE AND LOCALE
   # ============================================================================

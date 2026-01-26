@@ -1,6 +1,6 @@
 # Sentry Host Configuration
 # 10.1.1.140 - Monitoring Server (8 cores, RX 5600 XT)
-{ ...}: {
+{...}: {
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix

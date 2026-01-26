@@ -1,13 +1,15 @@
-# Nexus Host Configuration
-# 10.1.1.120 - Build Server (24 cores, 2x RTX 3060 Ti)
-{...}: {
+# Zephyr Host Configuration
+# 10.1.1.110 - Master Workstation (32 cores, RTX 3090)
+{ ...}: {
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
+    # Gaming features
+    ../../modules/gaming.nix
   ];
 
   # Host identification
-  networking.hostName = "nexus";
+  networking.hostName = "zephyr";
 
   # ============================================================================
   # BOOTLOADER - systemd-boot
@@ -19,60 +21,73 @@
   };
 
   # ============================================================================
-  # DESKTOP ENVIRONMENT - KDE Plasma 6
+  # HIGH-PERFORMANCE KERNEL PARAMETERS (from master branch)
   # ============================================================================
 
-  services = {
-    xserver.enable = true;
-    xserver.videoDrivers = ["nvidia"];
-    displayManager = {
-      sddm.enable = true;
-      autoLogin = {
-        enable = true;
-        user = "j_kro";
-      };
-    };
-    desktopManager.plasma6.enable = true;
-  };
+  boot.kernelParams = [
+    # Wine gaming performance
+    "fsync.enable=1"
+
+    # NVIDIA optimizations (desktop.nix adds nvidia-drm.modeset=1)
+    "nvidia-drm.modeset=1"
+    "threadirqs"
+
+    # Ryzen 5950X optimizations
+    "amd_pstate=active"
+    "mitigations=off"
+    "transparent_hugepage=madvise"
+    "numa_balancing=disable"
+    "nowatchdog"
+
+    # PCIe and I/O optimizations
+    "pcie_aspm=off"
+    "elevator=none"
+
+    # High-priority gaming optimizations
+    "isolcpus=managed_applications" # CPU isolation for gaming
+    "nohz_full=1-15" # Disable tick on application cores
+    "rcu_nocbs=1-15" # RCU offload for low latency
+  ];
 
   # ============================================================================
-  # MINING CONFIGURATION (Nexus: 24 cores, 2x RTX 3060 Ti)
+  # MINING CONFIGURATION (Zephyr: 32 cores, RTX 3090)
   # ============================================================================
   services.mining.enable = true;
   services.mining.xmrig.enable = true;
-  services.mining.xmrig.threads = 12;
+  services.mining.xmrig.threads = 16;
+  services.mining.xmrig.pool = "xtm-rx-us.kryptex.network:8038";
+  services.mining.xmrig.wallet = "krxXVNVMM7.zephyr";
   services.mining.lolminer.enable = true;
   services.mining.lolminer.nvidia.enable = true;
-  services.mining.lolminer.nvidia.devices = "0,1";
+  services.mining.lolminer.nvidia.devices = "0";
   services.mining.lolminer.algorithm = "CR29";
   services.mining.lolminer.pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
-  services.mining.lolminer.wallet = "krxXVNVMM7.nexus";
+  services.mining.lolminer.wallet = "krxXVNVMM7.zephyr";
 
   # ============================================================================
-  # NETWORKING (Static IP via NetworkManager - required for desktop environment)
+  # NETWORKING (Static IP)
   # ============================================================================
 
-  # Configure NetworkManager for static IP (desktop environment requires NetworkManager)
-  networking.networkmanager = {
-    enable = true;
-    unmanaged = []; # Let NetworkManager manage all interfaces
-    ensureProfiles.profiles."enp7s0" = {
+  # Configure NetworkManager for ethernet with static IP
+  networking.networkmanager.ensureProfiles = {
+    profiles."Wired connection 1" = {
       connection = {
-        id = "enp7s0";
+        id = "Wired connection 1";
         type = "ethernet";
-        interface-name = "enp7s0";
+        interface-name = "enp38s0";
+        autoconnect = true;
       };
       ipv4 = {
         method = "manual";
-        address1 = "10.1.1.120/24";
+        address1 = "10.1.1.110/24";
         gateway = "10.1.1.1";
-        dns = "127.0.0.1,::1"; # Use local Unbound DNS
+        dns = "127.0.0.1,::1";
+      };
+      ipv6 = {
+        method = "auto";
       };
     };
   };
-
-  networking.dhcpcd.enable = false;
-  networking.useDHCP = false;
 
   # ============================================================================
   # LOCAL HOSTS ENTRIES
@@ -86,11 +101,17 @@
   };
 
   # ============================================================================
-  # FIREWALL (Base config - no extra ports)
+  # FIREWALL (VR ports for WiVRn streaming)
   # ============================================================================
 
   networking.firewall = {
-    allowedTCPPorts = [];
-    allowedUDPPorts = [];
+    allowedTCPPorts = [9757]; # WiVRn TCP
+    allowedUDPPorts = [
+      9757 # WiVRn UDP
+      9758 # WiVRn control
+      9759 # Lighthouse tracking
+      27031 # SteamVR
+      27036 # SteamVR discovery
+    ];
   };
 }

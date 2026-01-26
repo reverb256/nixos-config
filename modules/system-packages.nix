@@ -100,10 +100,23 @@
       wine
       winetricks
 
-      # Development tools
-      bun
-      neovim
-      nodejs # Required for language servers
+       # User profile packages (from nix profile)
+       alejandra
+       btop
+       colmena
+       deadnix
+       fd
+       fzf
+       gemini-cli
+       neovim
+       nodejs_22
+       opencode
+       qwen-code
+       ripgrep
+       statix
+       tmux
+       vesktop
+       lmstudio
 
       # Language servers and development tools (from nix profile)
       basedpyright # Python type checker
@@ -146,9 +159,14 @@
       gst_all_1.gst-plugins-bad
       gst_all_1.gst-libav
 
-      # Video processing for yt-dlp and media playback
-      ffmpeg
-      yt-dlp
+       # Video encoding and GPU acceleration packages
+       nvidia-vaapi-driver
+       vdpauinfo
+       nvtopPackages.full
+
+       # Video processing for yt-dlp and media playback
+       ffmpeg
+       yt-dlp
 
       # Anime Game Launchers (enabled via programs.anime-game-launcher in host config)
     ];
