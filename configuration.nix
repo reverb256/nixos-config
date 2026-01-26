@@ -93,8 +93,8 @@
     ./modules/storage.nix
     # ./modules/gaming.nix # This is now imported per-host
 
-    # MCP server integration - TEMPORARILY DISABLED
-    # ./modules/mcp-server.nix
+    # Nix cache server
+    ./modules/nix-cache-server.nix
 
     # Hardware configuration handled per-node
   ];
