@@ -271,6 +271,13 @@ with lib; {
     
     # FFmpeg with NVENC support for streaming
     pkgs.ffmpeg-full
+    
+    # ANIME GAME LAUNCHERS - ezKEa/aagl-gtk-on-nix overlay
+    inputs.aagl-gtk-on-nix.packages."x86_64-linux".anime-game-launcher
+    inputs.aagl-gtk-on-nix.packages."x86_64-linux".honkers-railway-launcher
+    inputs.aagl-gtk-on-nix.packages."x86_64-linux".sleepy-launcher
+    inputs.aagl-gtk-on-nix.packages."x86_64-linux".honkers-launcher
+    inputs.aagl-gtk-on-nix.packages."x86_64-linux".wavey-launcher
    ];
 
   # ============================================================================
