@@ -386,17 +386,20 @@
 
     # OpenVR paths for Steam integration with WiVRn
 
-    configFile."openvr/openvrpaths.vrpath".text = let
-      steam = "$HOME/.local/share/Steam";
-    in
-      builtins.toJSON {
-        version = 1;
-        jsonid = "vrpathreg";
-        external_drivers = null;
-        config = ["${steam}/config"];
-        log = ["${steam}/logs"];
-        "runtime" = ["$HOME/.local/share/openxr/1"];
-      };
+    configFile."openvr/openvrpaths.vrpath" = {
+      force = true;
+      text = let
+        steam = "$HOME/.local/share/Steam";
+      in
+        builtins.toJSON {
+          version = 1;
+          jsonid = "vrpathreg";
+          external_drivers = null;
+          config = ["${steam}/config"];
+          log = ["${steam}/logs"];
+          "runtime" = ["$HOME/.local/share/openxr/1"];
+        };
+    };
 
     # WiVRn as default OpenXR runtime (primary VR runtime)
     configFile."openxr/1/active_runtime.json" = {

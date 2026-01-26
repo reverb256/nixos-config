@@ -1,9 +1,6 @@
 # Base Module - Common system settings for ALL hosts
 # Timezone, locale, fonts, system optimizations
-{
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   # ============================================================================
   # TIMEZONE AND LOCALE (Shared across all hosts)
   # ============================================================================

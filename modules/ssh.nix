@@ -1,8 +1,5 @@
 # Common SSH Configuration
-{
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   services.openssh = {
     enable = true;
     settings = {

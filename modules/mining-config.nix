@@ -1,6 +1,6 @@
 # Mining Service Configuration Module
 # Extracted from configuration.nix - Centralized mining service setup
-{ ...}: {
+{...}: {
   # Mining service configuration
   services.mining = {
     enable = true;

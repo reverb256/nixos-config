@@ -16,11 +16,10 @@
       # Path additions
       PATH = "$HOME/.local/bin:$PATH";
 
-      # NVIDIA environment variables
-      __NV_PRIME_RENDER_OFFLOAD = "1";
-      __GL_SYNC_TO_VBLANK = "0";
-      __GL_SHADER_DISK_CACHE = "1";
-      __GL_SHADER_DISK_CACHE_PATH = "/tmp/nvidia-shader-cache";
+       # NVIDIA environment variables
+       __GL_SYNC_TO_VBLANK = "0";
+       __GL_SHADER_DISK_CACHE = "1";
+       __GL_SHADER_DISK_CACHE_PATH = "/tmp/nvidia-shader-cache";
 
       # DLSS and ray tracing optimizations
       NVDX_GL_COMPUTE_SHADER_STORAGE_IMAGE_EXTENDED = "1";
@@ -30,16 +29,22 @@
       NVDX_INTEROP_FLIPABLE = "0";
       NVDX_INTEROP_BYTE_ADDRESSABLE = "1";
 
-      # VR optimizations
-      NVDX_INTEROP_DX_INTEROP2 = "1";
-      # Temporary workaround: use software Vulkan until NVIDIA ICD is fixed
-      VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json";
+       # VR optimizations
+       NVDX_INTEROP_DX_INTEROP2 = "1";
 
-      # NVENC specific optimizations
-      NVDX_Capture_Vulkan_Enable = "1";
-      NVDX_Capture_Enable = "1";
-      NVDX_Encoder_Enable = "1";
-      NVDX_Vulkan_Enable = "1";
+       # CUDA and NVENC optimizations
+       CUDA_VISIBLE_DEVICES = "all";
+
+       # RTX 3090 specific encoding optimizations
+       NV_ENC_ENABLE_PRESET_P7 = "1"; # High quality preset for streaming
+       NV_ENC_ENABLE_PRESET_P1 = "1"; # Low latency preset for gaming
+
+       # NVENC specific optimizations
+       NVDX_Capture_Vulkan_Enable = "1";
+       NVDX_Capture_Enable = "1";
+       NVDX_Encoder_Enable = "1";
+       NVDX_Vulkan_Enable = "1";
+       __EGL_VENDOR_LIBRARY_FILENAMES = "/usr/share/glvnd/egl_vendor.d/10_nvidia.json";
 
       # Gaming and Wayland
       GBM_BACKEND = "nvidia-drm";

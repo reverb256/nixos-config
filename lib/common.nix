@@ -1,8 +1,5 @@
 # lib/common.nix
-{
-  inputs,
-  ...
-}: [
+{inputs, ...}: [
   # Common Configuration
   ./../configuration.nix
 

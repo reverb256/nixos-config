@@ -1,9 +1,6 @@
 # Desktop Module - KDE Plasma 6 with Wayland ONLY
 # All hosts get the same desktop environment
-{
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   # ============================================================================
   # X SERVER (Required for display, but we force Wayland)
   # ============================================================================
