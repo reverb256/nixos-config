@@ -6,6 +6,8 @@
     ./hardware-configuration.nix
     # Gaming features
     ../../modules/gaming.nix
+    # OpenAgents Control
+    ../../modules/openagents-control.nix
   ];
 
   # Host identification
@@ -134,6 +136,14 @@
     "10.1.1.120" = ["nexus"];
     "10.1.1.130" = ["forge"];
     "10.1.1.140" = ["sentry"];
+  };
+
+  # OpenAgents Control Configuration
+  services.openagents-control = {
+    enable = true;
+    installProfile = "advanced";  # Choose: essential, developer, business, full, or advanced
+    installDir = "/home/j_kro/.config/opencode";
+    autoUpdate = false;  # Temporarily disabled to fix service startup issue
   };
 
   # ============================================================================

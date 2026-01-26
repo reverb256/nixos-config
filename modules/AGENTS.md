@@ -1,17 +1,16 @@
 # MODULES KNOWLEDGE BASE
 
-**Generated:** 2026-01-24
-**Scope:** NixOS Service Modules Architecture
-**Complexity:** High (23 modules, 310+ options)
+**Generated:** 2026-01-26
+**Commit:** 88d3861
+**Branch:** main
+**Mode:** Update
 
 ## OVERVIEW
-Modular NixOS configuration with 23 specialized service modules covering gaming, mining, networking, storage, AI assistant, and system management.
+23 specialized NixOS modules with 310+ options covering mining, gaming, networking, storage, and AI assistant services.
 
 ## STRUCTURE
 ```
 modules/
-├── clawdbot-enhanced.nix     # AI assistant service (464 lines)
-├── clawdbot-config.nix       # AI assistant configuration
 ├── environment.nix           # System environment variables
 ├── fish-starship.nix         # Fish shell configuration (261 lines)
 ├── gaming.nix                # VR/SteamVR/WiVRn + mining pause (372 lines)
@@ -41,7 +40,8 @@ modules/
 | VR/Gaming | modules/gaming.nix | SteamVR, WiVRn, GameMode |
 | Network config | modules/networking.nix | Static IP, DNS, firewall |
 | Storage/Backups | modules/storage.nix | Local + rclone + timers |
-| AI assistant | modules/clawdbot-enhanced.nix | Multi-model, multi-channel |
+| AI assistant | modules/environment.nix | Claude Code with KAT-Coder-Pro-v1 |
+| ezKEa overlay | modules/mining-overlay.nix | Bypass broken overlay system |
 
 ## CONVENTIONS
 - **Option pattern**: `lib.mkOption { type = lib.types.<type>; default = <value>; }`
@@ -50,22 +50,25 @@ modules/
 - **Service pattern**: `systemd.services.<name> = { ... }`
 - **Lib inherit**: `inherit (lib) types mkOption mkIf` or `with lib;`
 - **Submodules**: `types.attrsOf (types.submodule { ... })` for nested options
+- **Health monitoring**: 5-minute timers with API checks for long-running services
+- **Package references**: Direct package references instead of ezKEa overlay
 
 ## ANTI-PATTERNS (MODULES)
 - **NEVER** add packages outside system-packages.nix
 - **NEVER** create services without proper systemd integration
 - **NEVER** use hardcoded paths - use cfg.stateDir pattern
 - **NEVER** skip health monitoring for long-running services
+- **NEVER** use ezKEa overlay - Direct package references only
 - **ALWAYS** use mkOption for complex options
 - **ALWAYS** provide enable option with mkEnableOption
 - **ALWAYS** use mkIf guard for config section
 
 ## UNIQUE STYLES
-- **Service generators**: mkMiningService factory pattern
-- **Dynamic services**: mapAttrs' for rclone mounts/backups
-- **Health monitoring**: 5-minute timer with API checks
-- **Multi-model AI**: 7 providers, 11 tool categories
-- **Smart mining pause**: Auto-detects VR/gaming/GPU usage
-- **Declarative storage**: Btrfs/ZFS + rclone + automated backups
-- **VRChat blocking**: 18+ domains blocked for privacy
-- **ezKEa Overlay Workaround**: Direct package references bypass broken overlay system for AAGL launchers
+- **Service generators**: mkMiningService factory pattern for lolminer/xmrig
+- **Dynamic services**: mapAttrs' for rclone mounts/backups with health timers
+- **Smart mining pause**: Auto-detects VR (WiVRn/SteamVR), games, GPU >70% usage
+- **Multi-model AI**: 7 providers, 11 tool categories, multi-channel support
+- **Declarative storage**: Btrfs/ZFS + rclone + automated backup timers
+- **VRChat privacy**: 18+ domains blocked in extraHosts
+- **ezKEa Overlay Workaround**: Direct package references bypass broken overlay for AAGL launchers
+- **Gaming optimizations**: GameMode +150MHz NVIDIA overclock, systemd slices

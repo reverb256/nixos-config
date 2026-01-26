@@ -59,8 +59,6 @@
       inputs.nix-gaming.nixosModules.platformOptimizations
       inputs.agenix.nixosModules.default
 
-      # Colmena Deployment Options (prevents errors in nixos-rebuild)
-      inputs.colmena.nixosModules.deploymentOptions
 
       # Home Manager
       inputs.home-manager.nixosModules.home-manager
@@ -145,63 +143,6 @@
     # Shared overlays
     overlays.default = import ./modules/mining-overlay.nix;
 
-    # Colmena output
-    # Colmena output
-    colmena = {
-      meta = {
-        nixpkgs = import inputs.nixpkgs {
-          system = "x86_64-linux";
-          overlays = [self.overlays.default];
-          config.allowUnfree = true;
-        };
-        specialArgs = {inherit inputs;};
-      };
-
-      # Define Colmena nodes directly in the colmena output
-      zephyr = {
-        imports = commonModules ++ [./hosts/zephyr/configuration.nix];
-        deployment = {
-          targetHost = "10.1.1.110";
-          targetUser = "j_kro";
-          buildOnTarget = true;
-          keys = ["~/.ssh/id_ed25519"];
-          tags = ["default"];
-        };
-      };
-
-      nexus = {
-        imports = commonModules ++ [./hosts/nexus/configuration.nix];
-        deployment = {
-          targetHost = "10.1.1.120";
-          targetUser = "j_kro";
-          buildOnTarget = true;
-          keys = ["~/.ssh/id_ed25519"];
-          tags = ["default"];
-        };
-      };
-
-      forge = {
-        imports = commonModules ++ [./hosts/forge/configuration.nix];
-        deployment = {
-          targetHost = "10.1.1.130";
-          targetUser = "j_kro";
-          buildOnTarget = true;
-          keys = ["~/.ssh/id_ed25519"];
-          tags = ["default"];
-        };
-      };
-
-      sentry = {
-        imports = commonModules ++ [./hosts/sentry/configuration.nix];
-        deployment = {
-          targetHost = "10.1.1.140";
-          targetUser = "j_kro";
-          buildOnTarget = true;
-          keys = ["~/.ssh/id_ed25519"];
-          tags = ["default"];
-        };
-      };
-    };
 
     # NixOS configurations (for direct use with nixos-rebuild)
     nixosConfigurations = nixosSystems;
