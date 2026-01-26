@@ -23,7 +23,7 @@ echo "⚡ Running: nixos-rebuild switch --flake .#zephyr"
 echo "🔄 This may take several minutes depending on cache hits..."
 echo ""
 
-cd /etc/nixos-colmena
+cd /etc/nixos
 nixos-rebuild switch --flake .#zephyr --impure
 
 echo ""

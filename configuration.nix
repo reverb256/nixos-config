@@ -35,25 +35,7 @@
       max-jobs = 8; # Parallel derivations (use ~1/2 of threads)
       cores = 16; # Cores per derivation (use ~1/2 of cores)
 
-       # 8-tier binary caching + CUDA cache for maximum redundancy and performance
-       substituters = [
-         "https://cache.nixos.org"
-         "https://nix-community.cachix.org"
-         "https://ezkea.cachix.org"
-         "https://nixpkgs-wayland.cachix.org"
-         "https://nix-gaming.cachix.org"
-         "https://cache.nixos-cuda.org"  # CUDA binary cache (fastest for GPU packages)
-         "https://cache.iog.io"          # Input Output Global (reliable)
-       ];
-       trusted-public-keys = [
-         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-         "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
-         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-         "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
-         "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-         "cache.iog.io-1:3qt3qqlXhyl2HGK8UE1Eh12NEmoyK8mx81uDWDAKPn4="
-       ];
+       # Moved caching configuration to nix-config.nix to prevent duplication
     };
   };
 
@@ -75,20 +57,20 @@
 
     # Nix daemon service configuration
     services.nix-daemon.serviceConfig.Slice = "nix.slice";
-
-    # ============================================================================
-    # POLKIT RULES - Fix gamemode permission issues
-    # ============================================================================
-    security.polkit.extraConfig = ''
-      polkit.addRule(function(action, subject) {
-        if (action.id == "org.freedesktop.policykit.exec" && 
-            (action.lookup("program") == "/nix/store/8qf4gd46bf9nq7iiq27kjiac5wya3gd5-gamemode-1.8.2/libexec/cpugovctl" ||
-             action.lookup("program") == "/nix/store/8qf4gd46bf9nq7iiq27kjiac5wya3gd5-gamemode-1.8.2/libexec/procsysctl")) {
-          return polkit.Result.YES;
-        }
-      });
-    '';
   };
+
+  # ============================================================================
+  # POLKIT RULES - Fix gamemode permission issues
+  # ============================================================================
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+      if (action.id == "org.freedesktop.policykit.exec" &&
+          (action.lookup("program") == "/nix/store/8qf4gd46bf9nq7iiq27kjiac5wya3gd5-gamemode-1.8.2/libexec/cpugovctl" ||
+           action.lookup("program") == "/nix/store/8qf4gd46bf9nq7iiq27kjiac5wya3gd5-gamemode-1.8.2/libexec/procsysctl")) {
+        return polkit.Result.YES;
+      }
+    });
+  '';
 
   imports = [
     # Custom modules
@@ -106,8 +88,8 @@
     ./modules/storage.nix
     ./modules/gaming.nix # This is now imported per-host
 
-    # Nix cache server
-    ./modules/nix-cache-server.nix
+    # Nix cache server - Disabled to prevent signature issues
+    # ./modules/nix-cache-server.nix
 
     # Hardware configuration handled per-node
   ];
@@ -225,6 +207,17 @@
     LC_PAPER = "en_CA.UTF-8";
     LC_TELEPHONE = "en_CA.UTF-8";
     LC_TIME = "en_CA.UTF-8";
+  };
+
+  # ============================================================================
+  # AUTO-UPGRADE CONFIGURATION
+  # ============================================================================
+  system.autoUpgrade = {
+    enable = true;
+    # Weekly updates (default is daily)
+    dates = "weekly";  # Can be set to "daily", "weekly", or a cron-like schedule
+    # Use the same channel as specified in your flake
+    channel = "https://nixos.org/channels/nixos-unstable";
   };
 
   # ============================================================================

@@ -5,7 +5,7 @@
 ---
 name: nixos-manager
 description: Manage NixOS configurations, packages, and system services
-metadata: {"clawdbot":{"requires":{"bins":["nixos-rebuild"],"os":["linux"],"emoji":"🔧"}}
+metadata: {"requires":{"bins":["nixos-rebuild"],"os":["linux"],"emoji":"🔧"}}
 ---
 
 ## Capabilities

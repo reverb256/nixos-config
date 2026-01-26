@@ -1,83 +1,60 @@
-# HOSTS KNOWLEDGE BASE
+# PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-01-24
-**Scope:** Multi-Host Cluster Configuration  
-**Complexity:** Medium (4 hosts, distributed builds)
+**Generated:** 2026-01-26
+**Commit:** 88d3861
+**Branch:** main
+**Mode:** Update
 
 ## OVERVIEW
-Distributed NixOS build cluster with 4 hosts: zephyr (master), nexus (build/backup), forge (compute), sentry (monitoring). Total 51 cores across cluster.
-
-## STRUCTURE
-```
-hosts/
-├── forge/
-│   ├── default.nix                # GPU compute node (6 cores, 4 GPUs)
-│   └── hardware-configuration.nix  # Auto-generated hardware config
-├── nexus/
-│   ├── default.nix                # Build/backup server (24 cores, 2x RTX 3060 Ti)
-│   └── hardware-configuration.nix  # Auto-generated hardware config
-├── sentry/
-│   ├── default.nix                # Monitoring node (8 cores, RX 5600 XT)
-│   └── hardware-configuration.nix  # Auto-generated hardware config
-└── zephyr/
-    ├── default.nix                # Master workstation (32 cores, RTX 3090)
-    └── hardware-configuration.nix  # Auto-generated hardware config
-```
+4-node distributed build cluster (zephyr, nexus, forge, sentry) with 51-core total capacity for NixOS development and deployment.
 
 ## WHERE TO LOOK
-| Task | Location | Notes |
-|------|----------|-------|
-| Master config | hosts/zephyr/default.nix | 32 cores, RTX 3090, VR ports |
-| Build/backup | hosts/nexus/default.nix | 24 cores, 2x RTX 3060 Ti |
-| Compute/GPU | hosts/forge/default.nix | 6 cores, 4 GPUs (2x NVIDIA + 2x AMD) |
-| Monitoring | hosts/sentry/default.nix | 8 cores, AMD GPU only |
-| Build pool | machines.nix | 51-core distributed build config |
-| Hardware specs | hosts/*/hardware-configuration.nix | Auto-generated, DO NOT EDIT |
-
-## HOST CONFIGS
-
-### ZEPHYR (Master) - 10.1.1.110
-- **CPU:** 32 cores (Ryzen 9 5950X)
-- **GPU:** RTX 3090 (24GB)
-- **Role:** Desktop workstation + VR gaming + build coordination
-- **Features:** High-performance kernel params, gaming sysctl, VR firewall ports
-- **Networking:** NetworkManager static IP, VR ports (9757-9760, 27031, 27036)
-
-### NEXUS (Build/Backup) - 10.1.1.120
-- **CPU:** 24 cores (Ryzen 9 3900X)
-- **GPU:** 2x RTX 3060 Ti (8GB each)
-- **Role:** Distributed builds + backup storage
-- **Features:** NVIDIA proprietary drivers, minimal firewall
-- **Networking:** NetworkManager static IP, no extra ports
-
-### FORGE (GPU Compute) - 10.1.1.130
-- **CPU:** 6 cores
-- **GPU:** 2x RTX 4060 + 2x RX 5700 XT (4 GPUs total)
-- **Role:** GPU compute cluster + mining
-- **Features:** AMD/NVIDIA dual drivers, ROCm support, mining focus
-- **Networking:** NetworkManager static IP, AMD GPU kernel params
-
-### SENTRY (Monitoring) - 10.1.1.140
-- **CPU:** 8 cores (Ryzen 7 1700)
-- **GPU:** RX 5600 XT (display only)
-- **Role:** Monitoring + alerting + light builds
-- **Features:** AMDGPU open source, minimal firewall
-- **Networking:** systemd-networkd static IP (no NetworkManager)
+| Node | Location | Role | Cores |
+|------|----------|------|-------|
+| zephyr | hosts/zephyr/ | Master build node | 32 |
+| nexus | hosts/nexus/ | Backup/storage node | 8 |
+| forge | hosts/forge/ | Build worker | 3 |
+| sentry | hosts/sentry/ | Monitoring node | 8 |
 
 ## CONVENTIONS
-- **Static IPs:** 10.1.1.110-140 range with gateway 10.1.1.1
-- **Hardware configs:** Auto-generated, never edited manually
-- **Bootloader:** All hosts use systemd-boot with EFI
-- **Desktop:** All hosts run KDE Plasma 6 with auto-login for j_kro
-- **DNS:** All hosts use local Unbound DNS (127.0.0.1,::1)
-- **Host entries:** Each host maintains full cluster hosts file
-- **Distributed builds:** Configured in machines.nix (51 cores total)
+- **Distributed builds**: 51 cores across 4 hosts (zephyr:32, nexus:8, forge:3, sentry:8)
+- **Node-specific configs**: Each host has dedicated configuration.nix and hardware-configuration.nix
+- **Colmena deployment**: Multi-host management via flake.nix host definitions
+- **Build coordination**: Centralized builders config in machines.nix
+- **Hardware separation**: Each node optimized for specific workloads (build, storage, monitoring)
 
 ## ANTI-PATTERNS
-- **NEVER edit** hardware-configuration.nix files (auto-generated)
-- **NEVER use different networking approaches** without specific reason
-- **NEVER duplicate host entries** - maintain consistency across all hosts
-- **NEVER hardcode interfaces** - use appropriate interface names per host
-- **NEVER mix NetworkManager and systemd-networkd** unless required
-- **ALWAYS update machines.nix** when changing build capacity
-- **ALWAYS test distributed builds** after host configuration changes
+- **NEVER modify hardware-configuration.nix** - Auto-generated per host
+- **NEVER hardcode host-specific settings** in main configuration.nix
+- **NEVER assume hardware consistency** across nodes
+- **NEVER bypass Colmena deployment** for host-specific changes
+- **NEVER mix node roles** - Keep build/storage/monitoring separate
+
+## UNIQUE STYLES
+- **Wayland-compatible config**: zephyr has separate Wayland-compatible configuration
+- **Node-specific optimizations**: Each host tuned for its role
+- **Centralized management**: Single flake.nix controls all 4 nodes
+- **Distributed workload**: Automatic load balancing across 51 cores
+- **Hardware diversity**: Different CPU configurations per node
+
+## COMMANDS
+```bash
+# Multi-host deployment
+just cluster-deploy      # Deploy to all 4 nodes
+just deploy-zephyr       # Deploy to master node
+just deploy-nexus        # Deploy to backup node
+just deploy-forge        # Deploy to build worker
+just deploy-sentry       # Deploy to monitoring node
+
+# Cluster management
+just cluster-info        # Show node status and core count
+just cluster-resources   # Monitor distributed build pool
+```
+
+## NOTES
+- **Node isolation**: Each host maintains separate hardware configuration
+- **Build coordination**: machines.nix defines distributed build pool
+- **Rollback support**: Colmena handles multi-host rollback scenarios
+- **Monitoring**: Sentry node provides cluster-wide metrics
+- **Backup strategy**: Nexus handles automated backup duties
+- **Hardware diversity**: Different CPU configurations optimized per role
