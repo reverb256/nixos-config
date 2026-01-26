@@ -48,6 +48,11 @@
     NVD_BACKEND = "direct";
     __NV_PRIME_RENDER_OFFLOAD = "1";
     __NV_PRIME_RENDER_OFFLOAD_PROVIDER = "nvidia";
+
+    # NVIDIA Wayland hardware acceleration (Fixes KDE Plasma fallback issues)
+    GBM_BACKEND = "nvidia-drm";
+    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+    __EGL_VENDOR_LIBRARY_FILENAMES = "nvidia";
     
     # Steam-specific variables (Fixes VRChat launch issues)
     STEAM_FRAME_FORCE_CLOSE = "1";       # Fixes Wayland window issues
