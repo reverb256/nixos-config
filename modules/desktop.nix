@@ -40,6 +40,13 @@
     XDG_SESSION_TYPE = "wayland";
     # Qt Wayland decorations
     QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
+    
+    # NEW: Enhanced NVIDIA Wayland support
+    "WLR_DRM_NO_MODIFIERS" = "1";
+    "NVD_BACKEND" = "direct";
+    "__NV_PRIME_RENDER_OFFLOAD" = "1";
+    "__NV_PRIME_RENDER_OFFLOAD_PROVIDER" = "nvidia";
+    
     # Disable X11 apps trying to use X
     # (they will fail gracefully or use xwayland)
   };
@@ -106,6 +113,15 @@
   # ============================================================================
 
   hardware.nvidia.modesetting.enable = true;
+  
+  # NEW: Enhanced NVIDIA settings for RTX 3090 + Wayland
+  hardware.nvidia.powerManagement.enable = true;
+  hardware.nvidia.settings = {
+    "AllowFlipping" = "1";
+    "TripleBuffer" = "1";
+    "RegistryDwords" = "PerfLevelSrc=0x2222";
+    "InteractiveTimeout" = "0";
+  };
 
   # ============================================================================
   # KERNEL MODULES FOR DISPLAY

@@ -22,7 +22,7 @@
       # Distributed build configuration temporarily disabled to resolve cache issues
       # builders-use-substitutes = true;
 
-      # 5-tier binary caching + CUDA cache + local cache server
+      # 5-tier binary caching + CUDA cache
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
@@ -30,7 +30,6 @@
         "https://nixpkgs-wayland.cachix.org"
         "https://nix-gaming.cachix.org"
         "https://cuda-maintainers.cachix.org"
-        "http://localhost:3000" # Local cache server
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
@@ -44,6 +43,6 @@
     };
   };
 
-  # Enable local Nix cache server
-  services.nix-cache-server.enable = true;
+  # Disable local Nix cache server
+  services.nix-cache-server.enable = false;
 }
