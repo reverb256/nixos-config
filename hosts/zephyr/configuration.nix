@@ -63,6 +63,11 @@
     # NVIDIA optimizations (desktop.nix adds nvidia-drm.modeset=1)
     "nvidia-drm.modeset=1"
     "threadirqs"
+    
+    # NEW: Enhanced NVIDIA RTX 3090 optimizations
+    "nvidia.NVreg_RegistryDwords=PerfLevelSrc=0x2222"
+    "nvidia.NVreg_UsePageAttributeTable=1" # Better memory management
+    "nvidia.NVreg_EnableResizableBar=1" # Resizable BAR for RTX 3090
 
     # Ryzen 5950X optimizations (made compatible with Wayland)
     "amd_pstate=active"
