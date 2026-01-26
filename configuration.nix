@@ -9,20 +9,6 @@
     package = pkgs.linuxPackages_zen.nvidiaPackages.stable;
     modesetting.enable = true;
     open = false;
-    
-    # NEW: Power management for RTX 3090
-    powerManagement = {
-      enable = true;
-      minPerfLevel = 0;
-    };
-    
-    # NEW: RTX 3090 specific settings
-    settings = {
-      "AllowFlipping" = "1";
-      "TripleBuffer" = "1";
-      "RegistryDwords" = "PerfLevelSrc=0x2222";
-      "InteractiveTimeout" = "0"; # Don't downclock when idle
-    };
   };
     nixpkgs.config.allowUnfree = true;
     nixpkgs.config.cudaSupport = true;
