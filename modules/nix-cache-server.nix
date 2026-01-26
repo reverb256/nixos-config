@@ -53,7 +53,7 @@ with lib; {
     ];
 
     # Create cache server script
-    environment.etc."nix-cache-server.py" = {
+    environment.etc."usr/local/bin/nix-cache-server.py" = {
       source = pkgs.writeTextFile {
         name = "nix-cache-server.py";
         executable = true;
