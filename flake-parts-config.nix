@@ -36,6 +36,7 @@
         inputs.ezkea.nixosModules.default
         inputs.agenix.nixosModules.default
         inputs.home-manager.nixosModules.home-manager
+        ./secrets/age-secrets.nix
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
@@ -56,6 +57,7 @@
         inputs.ezkea.nixosModules.default
         inputs.agenix.nixosModules.default
         inputs.home-manager.nixosModules.home-manager
+        ./secrets/age-secrets.nix
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
@@ -78,6 +80,7 @@
         inputs.ezkea.nixosModules.default
         inputs.agenix.nixosModules.default
         inputs.home-manager.nixosModules.home-manager
+        ./secrets/age-secrets.nix
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
@@ -98,6 +101,7 @@
         inputs.ezkea.nixosModules.default
         inputs.agenix.nixosModules.default
         inputs.home-manager.nixosModules.home-manager
+        ./secrets/age-secrets.nix
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;

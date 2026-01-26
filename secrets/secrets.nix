@@ -9,8 +9,8 @@ let
   ];
 in {
   # Claude Code API Key (KAT/StreamLake)
-  "claude-api-key.age".publicKeys = allHosts;
+  "claude-api-key".publicKeys = allHosts;
 
   # Hugging Face API Token
-  "hf-token.age".publicKeys = allHosts;
+  "hf-token".publicKeys = allHosts;
 }

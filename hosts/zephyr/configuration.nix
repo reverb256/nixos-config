@@ -5,7 +5,7 @@
     # Host-specific hardware
     ./hardware-configuration.nix
     # Steam-compatible desktop and gaming
-    ../../modules/desktop-wayland-steam.nix
+    ../../modules/desktop.nix
     ../../modules/steam-wayland-robust.nix
     # OpenAgents Control
     ../../modules/openagents-control.nix

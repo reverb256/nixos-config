@@ -1,18 +1,24 @@
-# Age-encrypted secrets for NixOS
-# Public key for zephyr host
+{ config, lib, pkgs, ... }:
 {
-  # Host public keys for all systems
-  "zephyr-host" = "age175jstqazl7sj20xzuhc4l9qn0xt0ag0nvh2paxkk6veav95se4ysjua4e5";
-  "nexus-host" = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEldBvJIZYJKHw8pt0/Bx3xhJK4rSrhno0NyHgTtWAaV";
-  "forge-host" = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFf1b4QFWOV8OI2zC3N6rlE2sHHRzcPGfS7wr/VSoanr";
-  "sentry-host" = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK7IznKNG8BJVrPv1dnJBrbFhcmzTKaYSAzVdrXV7Fn";
-
-  # List of all secret files to encrypt with agenix
-  secrets = {
+  age.secrets = {
     # Claude Code API Key (KAT/StreamLake)
-    "claude-api-key.age".publicKeys = ["zephyr-host" "nexus-host" "forge-host" "sentry-host"];
+    "claude-api-key.age" = {
+      publicKeys = [
+        "age175jstqazl7sj20xzuhc4l9qn0xt0ag0nvh2paxkk6veav95se4ysjua4e5" # zephyr
+        "age19r77h4d3d93fla0ptc4zu3yvdxhvykdusd23c5wmrmzut55rn96qk0kc3n" # nexus
+        "age1chus24x5vg85993trehnms4gndw9e7qm0m3z5q65997c8az7rf6svffh4w" # forge
+        "age14duc9p3yrmelfjd94tfkzgenpfcfarucn3ax6ygl0w4erh9p0ddqr674ly" # sentry
+      ];
+    };
 
     # Hugging Face API Token
-    "hf-token.age".publicKeys = ["zephyr-host" "nexus-host" "forge-host" "sentry-host"];
+    "hf-token.age" = {
+      publicKeys = [
+        "age175jstqazl7sj20xzuhc4l9qn0xt0ag0nvh2paxkk6veav95se4ysjua4e5" # zephyr
+        "age19r77h4d3d93fla0ptc4zu3yvdxhvykdusd23c5wmrmzut55rn96qk0kc3n" # nexus
+        "age1chus24x5vg85993trehnms4gndw9e7qm0m3z5q65997c8az7rf6svffh4w" # forge
+        "age14duc9p3yrmelfjd94tfkzgenpfcfarucn3ax6ygl0w4erh9p0ddqr674ly" # sentry
+      ];
+    };
   };
 }
