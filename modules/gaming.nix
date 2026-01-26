@@ -133,8 +133,26 @@ with lib; {
         name = "Quest Pro";
         type = "quest_pro";
         # High resolution for Quest Pro at 90Hz
-        resolution = "1800x1920"; # Native Quest Pro resolution per eye
+        resolution = "2160x2160"; # Max Quest Pro resolution per eye
         refresh_rate = 90;
+        # RTX 3090 NVENC optimization
+        encoder = {
+          backend = "nvenc";
+          preset = "p7"; # High quality preset
+          tune = "ll"; # Low latency for VR
+          rc = "vbr"; # Variable bitrate
+          bitrate = 100000; # 100Mbps for Quest Pro
+          max_bitrate = 120000;
+          min_bitrate = 80000;
+          # NVENC specific optimizations for RTX 3090
+          nvenc = {
+            quality = "hq";
+            enable_psy = true;
+            rc_lookahead = 32;
+            spatial_aq = true;
+            temporal_aq = true;
+          };
+        };
       };
 
       # Streaming optimizations for RTX 3090 at 90Hz
@@ -153,6 +171,12 @@ with lib; {
         portRange = [9757 9760];
         udp = true;
         tcp = true;
+        # RTSP streaming support
+        rtsp = {
+          enabled = true;
+          port = 7889;
+          path = "/wivrn";
+        };
       };
 
       # Quest Pro display settings
@@ -160,7 +184,40 @@ with lib; {
         forceColorSpace = "sRGB";
         forceColorRange = "Full";
       };
+
+      # SteamVR lighthouse driver support for Tundra trackers
+      # Enable SteamVR tracked devices support (lighthouse base stations)
+      "steamvr-enabled" = true;
+      
+      # Lighthouse discovery wait time (ms) - allow devices to be discovered
+      "lh-discover-wait-ms" = 5000;
+      
+      # Enable lighthouse tracking for external devices
+      "lighthouse-enabled" = true;
+      
+      # Base station configuration for 2.0 base stations
+      "lighthouse-base-stations" = 2;
+      
+      # Tundra tracker support via lighthouse
+      "tundra-trackers-enabled" = true;
+      
+      # Discovery timeout for lighthouse devices
+      "lighthouse-discovery-timeout" = 10000;
     };
+  };
+
+  # ============================================================================
+  # FIREWALL - VR Device and Lighthouse Support
+  # ============================================================================
+  networking.firewall = {
+    allowedTCPPorts = [9757]; # WiVRn
+    allowedUDPPorts = [
+      9757  # WiVRn
+      5353  # Avahi/mDNS for device discovery
+      9947  # Lighthouse base stations
+      27036 # SteamVR discovery
+      27031 # SteamVR
+    ];
   };
 
   # ============================================================================
@@ -194,6 +251,9 @@ with lib; {
     # SteamVR support
     steam-run
 
+    # Motion tracking calibration tools
+    motoc
+
     # Performance monitoring and optimization tools
     gamescope
     mangohud
@@ -206,7 +266,34 @@ with lib; {
 
     # Enhanced Claude Code environment
     inputs.claude-native.packages."x86_64-linux".default
-  ];
+    
+    # FFmpeg with NVENC support for streaming
+    pkgs.ffmpeg-full
+    
+    # FFmpeg with NVENC support for streaming
+    pkgs.ffmpeg-full
+   ];
+
+  # ============================================================================
+  # STEAMVR RUNTIME - Lighthouse Tracking Support
+  # ============================================================================
+  
+  # SteamVR environment variables for lighthouse tracking
+  environment.sessionVariables = {
+    # Enable SteamVR lighthouse support
+    STEAMVR_LHR = "1";
+    STEAMVR_LHR_FORCE = "1";
+    
+    # WiVRn lighthouse integration
+    WIVRN_LH_SUPPORT = "1";
+    WIVRN_STEAMVR_ENABLED = "1";
+    
+    # Base station discovery
+    WIVRN_LH_DISCOVER_WAIT_MS = "5000";
+    
+    # Tundra tracker support
+    WIVRN_TUNDRA_ENABLED = "1";
+  };
 
   # ============================================================================
   # UDEV RULES - VR Device Permissions
@@ -220,8 +307,14 @@ with lib; {
     SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", GROUP="plugdev"
     SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", GROUP="plugdev"
 
-    # Tundra tracker rules
+    # Tundra tracker rules - Valve dongles for SteamVR tracking
+    SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", GROUP="plugdev"
+    
+    # Tundra tracker individual device rules (if connected directly)
     SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666", GROUP="plugdev"
+    
+    # Tundra tracker HID interface rules for motion tracking
+    SUBSYSTEM=="hidraw", ATTRS{idVendor}=="28de", ATTRS{idProduct}=="2102", MODE="0666", GROUP="plugdev"
 
      # HTC Vive/Valkyrie controllers
      SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", ATTR{idProduct}=="2c87", MODE="0666", GROUP="plugdev"
@@ -298,6 +391,31 @@ with lib; {
     ];
   };
 
+  # ============================================================================
+  # FACE & EYE TRACKING - VRChat Integration
+  # ============================================================================
+
+  # Note: OpenSeeFace needs to be installed manually
+  # Download from: https://github.com/FaceTracking/OSC-facetracking
+  # Configure OSC output to port 9000 for VRChat compatibility
+
+  # Custom Proton-GE-RTSP configuration for VRChat
+  programs.steam.package = pkgs.steam.override {
+    extraProfile = ''
+      # Fixes timezones on VRChat
+      unset TZ
+      # Allows Monado to be used
+      export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
+      # Optimized for NVENC
+      export PROTON_USE_WINED3D=0
+      export DXVK_ASYNC=1
+      # Custom Proton-GE-RTSP support
+      export PROTON_USE_DXVK=1
+    '';
+  };
+
+  # ============================================================================
+  # ASSERTIONS - VR Configuration Validation
   # ============================================================================
   # ASSERTIONS - VR Configuration Validation
   # ============================================================================
