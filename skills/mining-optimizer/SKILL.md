@@ -5,7 +5,7 @@
 ---
 name: mining-optimizer
 description: Intelligent mining control, gaming detection, and resource optimization
-metadata: {"clawdbot":{"requires":{"bins":["nvidia-smi","procps"],"os":["linux"],"emoji":"⛏️"}}
+metadata: {"requires":{"bins":["nvidia-smi","procps"],"os":["linux"],"emoji":"⛏️"}}
 ---
 
 ## Capabilities

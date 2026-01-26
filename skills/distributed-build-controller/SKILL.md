@@ -5,7 +5,7 @@
 ---
 name: distributed-build-controller
 description: Manage distributed build cluster, node monitoring, and build orchestration
-metadata: {"clawdbot":{"requires":{"bins":["just"],"os":["linux"],"emoji":"🏗"}}
+metadata: {"requires":{"bins":["just"],"os":["linux"],"emoji":"🏗"}}
 ---
 
 ## Capabilities

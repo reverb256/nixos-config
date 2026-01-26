@@ -127,6 +127,11 @@
       ANTHROPIC_AUTH_TOKEN_FILE = config.age.secrets.claude-api-key.path;
       API_TIMEOUT_MS = "3000000";
       ANTHROPIC_BASE_URL = "https://vanchin.streamlake.ai/api/gateway/coding/kat-coder-pro-v1/claude-code-proxy";
+      ANTHROPIC_MODEL = "kat-coder-pro-v1";
+      ANTHROPIC_SMALL_FAST_MODEL = "kat-coder-pro-v1";
+      ANTHROPIC_DEFAULT_SONNET_MODEL = "kat-coder-pro-v1";
+      ANTHROPIC_DEFAULT_OPUS_MODEL = "kat-coder-pro-v1";
+      ANTHROPIC_DEFAULT_HAIKU_MODEL = "kat-coder-pro-v1";
 
       # MCP Server Configuration
       MCP_SERVER_URL = "http://localhost:3000";

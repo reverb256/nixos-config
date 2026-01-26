@@ -42,6 +42,11 @@
     ANTHROPIC_AUTH_TOKEN_FILE = "/run/agenix/claude-api-key";
     OPENROUTER_API_KEY_FILE = "/run/agenix/openrouter-api-key";
     OPENAI_API_KEY_FILE = "/run/agenix/openai-api-key";
+
+    # OpenCode environment variables
+    OPENCODE_MCP_SCHEMA_FIX = "1";
+    OPENCODE_TOOL_STRUCTURED_OUTPUT = "1";
+    OPENCODE_PATH_FIX = "1";
   };
 
   # Zen Browser configuration - Enhanced privacy and productivity setup

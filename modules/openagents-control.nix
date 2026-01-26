@@ -185,8 +185,8 @@
     '';
 
     # Create systemd service for auto-update (if enabled)
-    systemd.services = lib.mkIf config.services.openagents-control.autoUpdate {
-      openagents-control-update = {
+    systemd = lib.mkIf config.services.openagents-control.autoUpdate {
+      services.openagents-control-update = {
         description = "OpenAgents Control Auto-Update Service";
         after = ["network-online.target"];
         wantedBy = ["multi-user.target"];
@@ -196,13 +196,16 @@
           ExecStart = "/etc/opencode-update.sh";
           User = "root";
         };
+      };
 
-        # Run update once per day
-        timer = {
-          description = "Daily OpenAgents Control Update";
+      timers.openagents-control-update = {
+        description = "Daily OpenAgents Control Update Timer";
+        after = ["network-online.target"];
+        wantedBy = ["timers.target"];
+
+        timerConfig = {
           OnCalendar = "daily";
           Persistent = true;
-          Unit = "openagents-control-update.service";
         };
       };
     };

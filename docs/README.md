@@ -53,7 +53,7 @@ Internet ── Router (10.1.1.1)
 - **Fish shell** with starship prompt (Omarchy-inspired)
 - **Neovim, Git, and development essentials**
 - **Container support** with Podman/Docker
-- **AI Assistant** - Enhanced Clawdbot with multi-model support
+- **AI Assistant** - Claude Code with KAT-Coder-Pro-v1 (StreamLake)
 - **Code formatting** with alejandra and statix linting
 
 ### **🌐 Cluster Management**
@@ -237,8 +237,6 @@ flake.nix                 # Main flake with Colmena hosts
 │   ├── forge/           # Build/Development server (16 cores)
 │   └── sentry/          # Monitoring server (8 cores)
 └── modules/              # Shared configuration modules (19 files)
-    ├── clawdbot-enhanced.nix # Clawdbot service definition
-    ├── clawdbot-config.nix   # Clawdbot service configuration
     ├── environment.nix       # System environment variables
     ├── fish-starship.nix     # Fish shell configuration
     ├── gaming.nix           # VR/Gaming setup
@@ -280,10 +278,10 @@ flake.nix                 # Main flake with Colmena hosts
 - Memory and CPU quota management
 - Performance optimization per service type
 
-#### **Clawdbot Modules**
-- **`modules/clawdbot-enhanced.nix`** - Service definition and options
-- **`modules/clawdbot-config.nix`** - Configuration parameters
-- Multi-agent system with web interface
+#### **AI Assistant Module**
+- **`modules/environment.nix`** - Claude Code configuration with multiple API providers
+- Multi-model system with KAT-Coder-Pro-v1 (StreamLake)
+- MCP server integration for web search capabilities
 - Model integrations (Anthropic, OpenRouter, Pollinations)
 
 #### **SSH Module (`modules/ssh.nix`)**

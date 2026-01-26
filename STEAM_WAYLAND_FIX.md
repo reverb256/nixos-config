@@ -12,20 +12,20 @@ Your current NixOS configuration has VRChat failing to launch on Steam due to:
 ### 1. Replace Current Desktop Configuration
 ```bash
 # Backup current desktop module
-sudo cp /etc/nixos-colmena/modules/desktop.nix /etc/nixos-colmena/modules/desktop.nix.backup
+sudo cp /etc/nixos/modules/desktop.nix /etc/nixos/modules/desktop.nix.backup
 
 # Replace with Wayland-optimized version
-sudo cp /etc/nixos-colmena/modules/desktop-wayland-steam.nix /etc/nixos-colmena/modules/desktop.nix
+sudo cp /etc/nixos/modules/desktop-wayland-steam.nix /etc/nixos/modules/desktop.nix
 ```
 
 ### 2. Add Steam-Wayland Module
 ```bash
 # Add the new module to your configuration
-echo 'import ./modules/steam-wayland-robust.nix' >> /etc/nixos-colmena/configuration.nix
+echo 'import ./modules/steam-wayland-robust.nix' >> /etc/nixos/configuration.nix
 ```
 
 ### 3. Update Host Configuration
-Edit `/etc/nixos-colmena/hosts/zephyr/configuration-wayland-compatible.nix`:
+Edit `/etc/nixos/hosts/zephyr/configuration-wayland-compatible.nix`:
 
 ```nix
 # Replace the entire file with this optimized version:
@@ -80,7 +80,7 @@ Edit `/etc/nixos-colmena/hosts/zephyr/configuration-wayland-compatible.nix`:
 ```
 
 ### 4. Update Main Configuration
-Edit `/etc/nixos-colmena/configuration.nix`:
+Edit `/etc/nixos/configuration.nix`:
 
 ```nix
 # Remove or comment out these aggressive settings:
@@ -125,7 +125,7 @@ boot.kernelParams = [
 
 ### 1. Build and Switch
 ```bash
-sudo nixos-rebuild switch -I nixos-config=/etc/nixos-colmena/configuration.nix
+sudo nixos-rebuild switch -I nixos-config=/etc/nixos/configuration.nix
 ```
 
 ### 2. Verify NVIDIA
