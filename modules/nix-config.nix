@@ -30,8 +30,7 @@
         "https://nixpkgs-wayland.cachix.org"
         "https://nix-gaming.cachix.org"
         "https://cuda-maintainers.cachix.org"
-        "https://reverb-os:0Pia23Zz0TnAP3m4ZSYzpFQkc6icPUpl+Is/AFeqofY="
-        "http://localhost:3000" # Local cache server for reverb-os
+        "http://localhost:3000" # Local cache server
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
@@ -40,10 +39,8 @@
         "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
         "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLkq5CX+/rkCWyvRCYg3Fs="
         "cuda-maintainers.cachix.org-1:0dq3bujKpuEPMCX6U4WylrUDZ9JyUG0VpVZa7CNfq5E="
-        "reverb-os:0Pia23Zz0TnAP3m4ZSYzpFQkc6icPUpl+Is/AFeqofY="
       ];
-      # Sign packages we build for distributed deployment
-      secret-key-files = "/etc/nixos/secrets/nix-cache-key.sec";
+      # Sign packages we build for distributed deployment - handled via agenix
     };
   };
 
