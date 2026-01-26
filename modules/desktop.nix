@@ -111,17 +111,8 @@
   # ============================================================================
   # NVIDIA MODESETTING (Required for Wayland on NVIDIA)
   # ============================================================================
-
-  hardware.nvidia.modesetting.enable = true;
   
-  # NEW: Enhanced NVIDIA settings for RTX 3090 + Wayland
-  hardware.nvidia.powerManagement.enable = true;
-  hardware.nvidia.settings = {
-    "AllowFlipping" = "1";
-    "TripleBuffer" = "1";
-    "RegistryDwords" = "PerfLevelSrc=0x2222";
-    "InteractiveTimeout" = "0";
-  };
+  hardware.nvidia.modesetting.enable = true;
 
   # ============================================================================
   # KERNEL MODULES FOR DISPLAY
