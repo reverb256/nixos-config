@@ -2,7 +2,7 @@
 
 ## Status: SECURITY FIXES COMPLETED ✅
 
-All critical security issues have been resolved as of January 17, 2026. This document is now for reference only.
+All critical security issues have been resolved as of January 26, 2026. This document is now for reference only.
 
 ### ✅ Previously Resolved Issues
 
@@ -11,7 +11,7 @@ All critical security issues have been resolved as of January 17, 2026. This doc
 **Resolution**: Now using secure secret management with agenix
 **Location**: `/etc/nixos/home.nix:190` uses `config.age.secrets.claude-api-key.path`
 
-#### 2. SSH Security ✅ FIXED  
+#### 2. SSH Security ✅ FIXED
 **Previous Issue**: Root SSH access configuration
 **Resolution**: SSH properly configured with key-based authentication
 **Location**: `/etc/nixos/configuration.nix:353` has `PermitRootLogin = "no"`
@@ -19,6 +19,21 @@ All critical security issues have been resolved as of January 17, 2026. This doc
 #### 3. Code Quality Issues ✅ FIXED
 **Previous Issues**: Dead code, inconsistent naming, large modules
 **Resolution**: Codebase cleaned up and modularized
+
+#### 4. NixOS Signature Verification Issues ✅ FIXED
+**Previous Issue**: "public key is not valid" error during builds
+**Resolution**: Removed problematic `fix-nix-warnings.sh` script and colmena deployment options that were creating invalid options.json
+**Location**: Removed `/etc/nixos/fix-nix-warnings.sh` and cleaned up flake.nix colmena deployment options
+
+#### 5. Broken Profile Links ✅ FIXED
+**Previous Issue**: Bootloader errors due to broken system profile symlinks
+**Resolution**: Removed broken `/nix/var/nix/profiles/system-359-link` and fixed profile chain
+**Location**: `/nix/var/nix/profiles/`
+
+#### 6. Obsolete Deployment Scripts ✅ FIXED
+**Previous Issue**: One-time use scripts cluttering the configuration
+**Resolution**: Removed obsolete `final-deploy.sh` script
+**Location**: `/etc/nixos/scripts/final-deploy.sh` (removed)
 
 ### 🔒 SSH Security Status ✅ SECURE
 

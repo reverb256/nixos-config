@@ -363,6 +363,11 @@ just health-check
 - ✅ **Wallet addresses configurable** - agenix integration ready
 - ✅ **Passwordless sudo maintained** - As requested for mining controls
 
+### **Recent Issue Fixes**
+- ✅ **NixOS signature verification issue** - Fixed "public key is not valid" error by removing problematic `fix-nix-warnings.sh` script and colmena deployment options
+- ✅ **Broken profile links** - Fixed bootloader errors caused by broken system profile symlinks
+- ✅ **One-time deployment scripts** - Removed obsolete `final-deploy.sh` script; now using direct `nixos-rebuild` command
+
 ### **SSH Configuration**
 - Key-only authentication enabled
 - Root login permitted (controlled environment)
