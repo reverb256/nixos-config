@@ -9,12 +9,12 @@ A comprehensive NixOS flake-based configuration for a high-performance distribut
 ## 🏗️ Architecture Overview
 
 ### **Cluster Nodes**
-| Host | IP Address | Role | CPU Cores | Memory | Purpose |
-|------|------------|------|-----------|--------|---------|
-| **zephyr** | 10.1.1.110 | Master Node | 16 cores (Ryzen 5950X) | 64GB | VR Gaming, Development, Build Coordination |
-| **nexus** | 10.1.1.120 | Build Node | 8 cores (Ryzen 7 1700) | 32GB | Distributed Builds, Backup Storage |
-| **forge** | 10.1.1.130 | Build Node | 16 cores (Ryzen 7 3700X) | 64GB | Heavy Builds, GPU Compute |
-| **sentry** | 10.1.1.140 | Build Node | 8 cores (Ryzen 7 1700) | 32GB | Monitoring, Light Builds |
+| Host | IP Address | Role | CPU Cores | Memory | GPU | Purpose |
+|------|------------|------|-----------|--------|-----|---------|
+| **zephyr** | 10.1.1.110 | Master Node | 32 cores (Ryzen 9 5950X) | 64GB | RTX 3090 | VR Gaming, Development, Build Coordination |
+| **nexus** | 10.1.1.120 | Build/Backup | 24 cores (Ryzen 9 3900X) | 32GB | 2x RTX 3060 Ti | Distributed Builds, Backup Storage |
+| **forge** | 10.1.1.130 | GPU Compute | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Compute, Mining |
+| **sentry** | 10.1.1.140 | Monitoring | 8 cores (Ryzen 7 1700) | 32GB | RX 5600 XT | Monitoring, Light Builds |
 
 **Total Build Capacity:** **51 cores** across 3 build hosts + master coordination
 
@@ -31,7 +31,7 @@ Internet ── Router (10.1.1.1)
 ## 🚀 Key Features
 
 ### **🏭 Distributed Build System**
-- **51-core cluster** with automatic load balancing
+- **51-core cluster** across zephyr (32), nexus (8), forge (3), sentry (8)
 - **Trusted user authentication** for restricted settings
 - **SSH-based remote building** with key authentication
 - **Binary cache integration** with multiple substituters
@@ -39,18 +39,21 @@ Internet ── Router (10.1.1.1)
 - **Builders configuration** active: `nix build --builders-use-substitutes`
 
 ### **🎮 VR Gaming & Mining**
-- **SteamVR/WiVRn support** with Quest Pro streaming
-- **Smart mining pause** during gaming/VR sessions
-- **GameMode integration** with NVIDIA overclocking
-- **GPU mining** (lolMiner) and CPU mining (XMRig)
-- **Performance monitoring** across all hosts
+- **SteamVR/WiVRn support** with Quest Pro streaming (100Mbps HEVC)
+- **WiVRn with Lighthouse tracking** for Tundra trackers (4 devices)
+- **Smart mining pause** during gaming/VR sessions (auto-detects VR applications)
+- **GameMode integration** with NVIDIA +150MHz overclock
+- **GPU mining** (lolMiner) and CPU mining (XMRig) with steam-run compatibility
+- **Performance monitoring** across all hosts with systemd slices
+- **VRChat analytics blocking** for privacy (18+ domains)
 - **KDE Plasma 6** with Wayland support and NVIDIA optimizations
 
 ### **🛠️ Development Environment**
 - **Home Manager integration** with 25+ development tools
-- **Fish shell** with starship prompt
+- **Fish shell** with starship prompt (Omarchy-inspired)
 - **Neovim, Git, and development essentials**
 - **Container support** with Podman/Docker
+- **AI Assistant** - Enhanced Clawdbot with multi-model support
 - **Code formatting** with alejandra and statix linting
 
 ### **🌐 Cluster Management**
@@ -59,6 +62,7 @@ Internet ── Router (10.1.1.1)
 - **Centralized monitoring** and resource tracking
 - **Emergency controls** for cluster-wide shutdown
 - **Automated backups** and maintenance
+- **Workload isolation** via systemd slices (nix, gaming, mining)
 
 ## 📋 Quick Start
 
@@ -133,23 +137,26 @@ just perf-monitor
 
 #### **Mining Operations**
 ```bash
-# Start GPU mining
+# Start GPU mining (auto-pauses during gaming/VR)
 just mining-start
 
-# Check mining status
+# Check mining status across cluster
 just mining-status
 
-# Stop mining (resumes automatically)
+# Stop mining (resumes automatically when gaming stops)
 just mining-stop
 ```
 
 #### **Gaming Mode**
 ```bash
-# Enable gaming optimizations
+# Enable gaming optimizations (GameMode + NVIDIA overclock)
 just gaming-start
 
-# Check system status
+# Check system status (GPU usage, VR applications, mining status)
 just perf-monitor
+
+# Manual gaming trigger (for testing)
+just gaming-trigger
 ```
 
 ### **Cluster Management**
@@ -322,7 +329,7 @@ nix build --builders-use-substitutes nixpkgs#hello
 
 ### **Performance Monitoring**
 ```bash
-# Real-time system metrics
+# Real-time system metrics (GPU usage, VR apps, mining)
 just perf-monitor
 
 # Cluster resource overview
@@ -330,15 +337,21 @@ just cluster-resources
 
 # Build performance tracking
 just build-stats
+
+# Gaming session monitoring
+just gaming-status
 ```
 
 ### **Service Status**
 ```bash
-# Mining services
+# Mining services (auto-pauses during VR/gaming)
 just mining-status
 
 # Cluster mining overview
 just cluster-mining-status
+
+# Gaming optimizations status
+just gaming-status
 
 # System health check
 just health-check
@@ -375,6 +388,7 @@ just health-check
 - ✅ **Enabled NVIDIA modesetting** for Plasma stability
 - ✅ **Added SDDM Wayland support** for proper session management
 - ✅ **Included essential KDE packages** (kdbusaddons, kdeconnect, systemmonitor)
+- ✅ **VR Application Integration** - Proper window management for WiVRn/SteamVR
 
 ### **Ready to Use**
 ```bash
@@ -384,6 +398,13 @@ sudo /etc/nixos/fix-plasma.sh
 # Log out and log back in for Wayland session
 # Verify: echo $QT_QPA_PLATFORM should output 'wayland'
 ```
+
+### **VR Gaming Integration**
+- ✅ **WiVRn Configuration** - Quest Pro streaming with 100Mbps HEVC
+- ✅ **SteamVR Integration** - Lighthouse tracking for Tundra trackers
+- ✅ **GameMode Integration** - NVIDIA +150MHz overclock for gaming
+- ✅ **Smart Mining Pause** - Auto-detects VR applications and pauses mining
+- ✅ **Performance Monitoring** - GPU usage, VR apps, mining status
 
 ## 🐛 Troubleshooting
 
@@ -403,14 +424,20 @@ just clean-failed
 
 #### **Mining Issues**
 ```bash
-# Check mining services
+# Check mining services (auto-paused during gaming?)
 just mining-status
 
 # Restart mining
 just mining-restart
 
-# Check GPU status
+# Check GPU status and usage
 nvidia-smi
+
+# Check if gaming/VR is active (pausing mining)
+just gaming-status
+
+# Force resume mining (if stuck paused)
+just mining-start
 ```
 
 #### **Network Issues**
@@ -436,6 +463,9 @@ systemctl restart plasma-workspace
 # Verify environment
 echo $QT_QPA_PLATFORM
 echo $XDG_CURRENT_DESKTOP
+
+# Check VR applications running
+ps aux | grep -E "(wivrn|steamvr|vrserver)"
 ```
 
 ### **Logs and Debugging**
@@ -485,12 +515,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ using NixOS and Colmena**
 
-**Last Updated:** January 19, 2026
-**Latest Commit:** [Latest - Cleanup Complete] - Complete Sprawl Cleanup & Module Consolidation
+**Last Updated:** January 26, 2026
+**Latest Commit:** [Latest - VR Gaming Configuration Complete]
 **Build Capacity:** 51 cores across distributed cluster (zephyr 32, nexus 8, forge 3, sentry 8)
+**VR Gaming Features:** ✅ Complete WiVRn + SteamVR setup with smart mining pause
 **Security Status:** ✅ All critical issues resolved
 **Code Quality:** ✅ Formatted & Linted (alejandra + statix)
-**KDE Plasma Status:** ✅ Window management fixed
+**KDE Plasma Status:** ✅ Window management fixed + VR integration
 **Configuration Lines:** Reduced from ~620 → ~200 (68% reduction)
 **Module Count:** Reduced from 31 → 19 (39% reduction)
 **Cluster Status:** ✅ 4-node distributed build cluster configured
