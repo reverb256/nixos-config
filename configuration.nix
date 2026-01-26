@@ -9,6 +9,20 @@
     package = pkgs.linuxPackages_zen.nvidiaPackages.stable;
     modesetting.enable = true;
     open = false;
+    
+    # NEW: Power management for RTX 3090
+    powerManagement = {
+      enable = true;
+      minPerfLevel = 0;
+    };
+    
+    # NEW: RTX 3090 specific settings
+    settings = {
+      "AllowFlipping" = "1";
+      "TripleBuffer" = "1";
+      "RegistryDwords" = "PerfLevelSrc=0x2222";
+      "InteractiveTimeout" = "0"; # Don't downclock when idle
+    };
   };
     nixpkgs.config.allowUnfree = true;
     nixpkgs.config.cudaSupport = true;
@@ -163,6 +177,13 @@
         "vm.dirty_writeback_centisecs" = 50; # Faster writeback
         "kernel.timer_migration" = 1; # Allow timer migration
         "kernel.perf_event_paranoid" = -1; # Allow perf monitoring
+        "kernel.perf_event_mlock_kb" = 516; # RTX 3090 compute optimization
+        
+        # NEW: VR/Streaming memory optimizations
+        "vm.max_map_count" = 262144; # For VR applications
+        "kernel.shmmax" = 134217728; # Shared memory for VR
+        "kernel.shmall" = 32768; # Page shared memory
+        
         # I/O scheduler (replaces deprecated elevator=none)
         "block/queue/scheduler" = "none"; # Use none scheduler for NVMe SSDs
       };

@@ -52,8 +52,16 @@
       vulkan-loader
       vulkan-tools
 
-      # NVIDIA tools for GPU monitoring
-      # nvidia_x11 # Removed - use hardware.nvidia instead
+       # NVIDIA tools for GPU monitoring
+       # nvidia_x11 # Removed - use hardware.nvidia instead
+       
+       # NEW: CUDA and ML support for RTX 3090
+       pkgs.cudaPackages.cudatoolkit
+       pkgs.cudaPackages.cudnn
+       pkgs.cudaPackages.cublas
+       pkgs.python312Packages.pytorchWithCuda
+       pkgs.python312Packages.tensorflowWithCuda
+       pkgs.ollama
 
       # NH (Nix Helper) - Robust NixOS management
       nh
