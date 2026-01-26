@@ -19,8 +19,8 @@ with lib; {
     settings = {
       general = {
         desiredgov = "performance"; # Use performance governor when entering GameMode
-        inhibit_screensaver = true; # Disable screensaver during games
-        require_display = true; # Require display to be active
+        # REMOVE: inhibit_screensaver = true; # INVALID - causes configuration errors
+        # REMOVE: require_display = true; # PROBLEMATIC with Wayland - causes hangs
         # GameMode integration with systemd slices
         use_systemd = true;
 

@@ -75,6 +75,19 @@
 
     # Nix daemon service configuration
     services.nix-daemon.serviceConfig.Slice = "nix.slice";
+
+    # ============================================================================
+    # POLKIT RULES - Fix gamemode permission issues
+    # ============================================================================
+    polkit.extraConfig = ''
+      polkit.addRule(function(action, subject) {
+        if (action.id == "org.freedesktop.policykit.exec" && 
+            (action.lookup("program") == "/nix/store/8qf4gd46bf9nq7iiq27kjiac5wya3gd5-gamemode-1.8.2/libexec/cpugovctl" ||
+             action.lookup("program") == "/nix/store/8qf4gd46bf9nq7iiq27kjiac5wya3gd5-gamemode-1.8.2/libexec/procsysctl")) {
+          return polkit.Result.YES;
+        }
+      });
+    '';
   };
 
   imports = [
@@ -91,7 +104,7 @@
     ./modules/networking-shared.nix
     ./modules/mining.nix
     ./modules/storage.nix
-    # ./modules/gaming.nix # This is now imported per-host
+    ./modules/gaming.nix # This is now imported per-host
 
     # Nix cache server
     ./modules/nix-cache-server.nix
