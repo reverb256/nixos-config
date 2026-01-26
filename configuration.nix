@@ -79,7 +79,7 @@
     # ============================================================================
     # POLKIT RULES - Fix gamemode permission issues
     # ============================================================================
-    polkit.extraConfig = ''
+    security.polkit.extraConfig = ''
       polkit.addRule(function(action, subject) {
         if (action.id == "org.freedesktop.policykit.exec" && 
             (action.lookup("program") == "/nix/store/8qf4gd46bf9nq7iiq27kjiac5wya3gd5-gamemode-1.8.2/libexec/cpugovctl" ||
