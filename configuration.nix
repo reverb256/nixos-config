@@ -77,6 +77,7 @@
     ./modules/base.nix
     ./modules/hardware.nix
     ./modules/desktop.nix
+    ./modules/steam-wayland-robust.nix
     ./modules/users.nix
     ./modules/nix-config.nix
     ./modules/system-packages.nix
@@ -86,7 +87,6 @@
     ./modules/networking-shared.nix
     ./modules/mining.nix
     ./modules/storage.nix
-    ./modules/gaming.nix # This is now imported per-host
 
     # Nix cache server - Disabled to prevent signature issues
     # ./modules/nix-cache-server.nix
@@ -257,10 +257,3 @@
       openFirewall = true;
     };
 
-    # ============================================================================
-    # NVIDIA DRIVERS AND HARDWARE SUPPORT
-    # ============================================================================
-    xserver.videoDrivers = ["nvidia"];
-  };
-   system.stateVersion = "26.05";
-}
