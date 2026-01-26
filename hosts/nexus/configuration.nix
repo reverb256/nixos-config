@@ -40,7 +40,7 @@
   # ============================================================================
   services.mining.enable = true;
   services.mining.xmrig.enable = true;
-  services.mining.xmrig.threads = 12;
+  services.mining.xmrig.threads = 16;
   services.mining.lolminer.enable = true;
   services.mining.lolminer.nvidia.enable = true;
   services.mining.lolminer.nvidia.devices = "0,1";

@@ -88,9 +88,11 @@
     ./modules/mining.nix
     ./modules/storage.nix
 
+
     # Nix cache server - Disabled to prevent signature issues
     # ./modules/nix-cache-server.nix
 
+    # Secret management with agenix
     # Hardware configuration handled per-node
   ];
 
@@ -185,6 +187,9 @@
   };
 
   # Phase 1: OOM daemon for memory pressure management
+    # Set state version to avoid warnings
+    system.stateVersion = "26.05";
+
   systemd.oomd = {
     enable = true;
     enableRootSlice = true;
@@ -225,7 +230,6 @@
   # ============================================================================
   services = {
     # X11/WAYLAND DESKTOP ENVIRONMENT
-    xserver.enable = true;
     displayManager = {
       sddm.enable = true;
       autoLogin = {
@@ -234,6 +238,7 @@
       };
     };
     desktopManager.plasma6.enable = true;
+    displayManager.defaultSession = "plasma";
 
     # ============================================================================
     # SOUND CONFIGURATION
@@ -256,4 +261,6 @@
       nssmdns4 = true;
       openFirewall = true;
     };
+  };
+}
 
