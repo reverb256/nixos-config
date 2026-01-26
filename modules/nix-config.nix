@@ -1,6 +1,6 @@
 # Nix Module
 # Extracted from configuration.nix - Nix configuration and optimization
-{...}: {
+{config, ...}: {
   # ============================================================================
   # NIX CONFIGURATION - Experimental features, build optimization, and caching
   # ============================================================================
@@ -22,7 +22,7 @@
       # Distributed build configuration temporarily disabled to resolve cache issues
       # builders-use-substitutes = true;
 
-      # 5-tier binary caching + CUDA cache
+      # 5-tier binary caching + CUDA cache + local cache server
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
@@ -31,13 +31,14 @@
         "https://nix-gaming.cachix.org"
         "https://cuda-maintainers.cachix.org"
         "https://reverb-os:0Pia23Zz0TnAP3m4ZSYzpFQkc6icPUpl+Is/AFeqofY="
+        "http://localhost:3000" # Local cache server for reverb-os
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
         "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
-        "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
+        "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLkq5CX+/rkCWyvRCYg3Fs="
         "cuda-maintainers.cachix.org-1:0dq3bujKpuEPMCX6U4WylrUDZ9JyUG0VpVZa7CNfq5E="
         "reverb-os:0Pia23Zz0TnAP3m4ZSYzpFQkc6icPUpl+Is/AFeqofY="
       ];
@@ -45,4 +46,7 @@
       secret-key-files = "/etc/nixos/secrets/nix-cache-key.sec";
     };
   };
+
+  # Enable local Nix cache server
+  services.nix-cache-server.enable = true;
 }
