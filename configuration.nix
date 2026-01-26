@@ -127,7 +127,7 @@
 
       # PCIe and I/O optimizations
       "pcie_aspm=off"
-      "elevator=none"
+      # "elevator=none" # Deprecated - use sysfs instead
 
       # High-priority gaming optimizations
       "isolcpus=managed_applications" # CPU isolation for gaming
@@ -220,186 +220,36 @@
     xserver.videoDrivers = ["nvidia"];
 
     # ============================================================================
-    # SYSTEM SERVICES
+    # SYSTEM TUNING - Optimizations for Ryzen 5950X and RTX 3090
     # ============================================================================
-    mysql = {
-      enable = true;
-      package = pkgs.mariadb;
-    };
-    redis.servers."".enable = true;
-    postgresql.enable = true;
+    boot.kernel.sysctl = {
+      # Network optimizations for gaming
+      "net.core.rmem_max" = 2500000;
+      "net.core.wmem_max" = 2500000;
 
-    # ============================================================================
-    # FLATPAK (DISABLED)
-    # ============================================================================
-    flatpak.enable = true;
-  };
+      # Memory management
+      "vm.swappiness" = 10;
+      "vm.vfs_cache_pressure" = 50;
 
-  # ============================================================================
-  # SYSTEMD SERVICES - Shader caching and other custom services
-  # ============================================================================
-  systemd.services = {
-    # NVIDIA shader cache service with proper dependencies
-    nvidia-shader-cache-manager = {
-      description = "NVIDIA Shader Cache Manager";
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = ''
-          #!/bin/bash
-          # Create shader cache directory
-          mkdir -p /var/cache/nvidia/shader
-          # Shader pre-caching disabled - glxinfo not available in current nixpkgs
-          echo "Shader cache directory created" > /var/cache/nvidia/shader/init.log
-        '';
-        RemainAfterExit = "yes";
-      };
-      wantedBy = ["graphical-session.target"];
-    };
-  };
+      # CPU scheduler optimizations
+      "kernel.sched_min_granularity_ns" = 10000000;
+      "kernel.sched_wakeup_granularity_ns" = 15000000;
+      "kernel.sched_migration_cost_ns" = 500000;
 
-  # ============================================================================
-  # HARDWARE CONFIGURATION
-  # ============================================================================
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true; # 32-bit support for Steam/VR
-  };
-
-  # ============================================================================
-  # VIRTUALIZATION SUPPORT
-  # ============================================================================
-  virtualisation.libvirtd.enable = true;
-
-  # ============================================================================
-  # PROGRAMS CONFIGURATION
-  # ============================================================================
-  programs = {
-    # ============================================================================
-    # DYNAMIC LINKER SUPPORT - nix-ld for mining binaries and browsers
-    # ============================================================================
-    nix-ld = {
-      enable = true;
-      libraries = with pkgs; [
-        # List by default
-        zlib
-        zstd
-        stdenv.cc.cc
-        curl
-        openssl
-        attr
-        libssh
-        bzip2
-        libxml2
-        acl
-        libsodium
-        util-linux
-        xz
-        systemd
-
-        # Browser-specific libraries for Chrome DevTools & Playwright MCP
-        xorg.libXcomposite
-        xorg.libXtst
-        xorg.libXrandr
-        xorg.libXext
-        xorg.libX11
-        xorg.libXfixes
-        libGL
-        libva
-        pipewire
-        xorg.libxcb
-        xorg.libXdamage
-        xorg.libxshmfence
-        xorg.libXxf86vm
-        libelf
-        glib
-        gtk3
-        pango
-        cairo
-        atk
-        gdk-pixbuf
-        fontconfig
-        freetype
-        dbus
-        alsa-lib
-        expat
-        nspr
-        nss
-        xorg.libXcursor
-        xorg.libXft
-        xorg.libXi
-        xorg.libXrender
-        xorg.libXtst
-      ];
-    };
-
-    # ============================================================================
-    # SHELL CONFIGURATION
-    # ============================================================================
-    fish = {
-      enable = true;
-      useBabelfish = true; # Translate shell aliases
-      vendor = {
-        completions.enable = true;
-        config.enable = true;
-        functions.enable = true;
-      };
-    };
-  };
-
-  # ============================================================================
-  # PHASE 1: SYSCTL OPTIMIZATIONS FOR GAMING
-  # ============================================================================
-
-  boot.kernel.sysctl = {
-    # Network optimizations for gaming
-    "net.core.rmem_max" = 2500000;
-    "net.core.wmem_max" = 2500000;
-
-    # Memory management
-    "vm.swappiness" = 10;
-    "vm.vfs_cache_pressure" = 50;
-
-    # CPU scheduler optimizations
-    "kernel.sched_min_granularity_ns" = 10000000;
-    "kernel.sched_wakeup_granularity_ns" = 15000000;
-    "kernel.sched_migration_cost_ns" = 500000;
-
-    # High-priority gaming sysctl optimizations
-    "kernel.sched_autogroup_enabled" = 0; # Disable autogroups for lower latency
-    "kernel.sched_child_runs_first" = 0; # Allow parent to run first
-    "kernel.sched_ttwu_protect" = 1; # Protect wakeups
-    "kernel.sched_min_runtime" = 5000000; # Minimum runtime per slice
-    "vm.dirty_ratio" = 5; # Reduce dirty page ratio
-    "vm.dirty_background_ratio" = 2; # Reduce dirty background ratio
-    "vm.dirty_expire_centisecs" = 100; # Faster dirty page expiration
-    "vm.dirty_writeback_centisecs" = 50; # Faster writeback
-    "kernel.timer_migration" = 1; # Allow timer migration
+      # High-priority gaming sysctl optimizations
+      "kernel.sched_autogroup_enabled" = 0; # Disable autogroups for lower latency
+      "kernel.sched_child_runs_first" = 0; # Allow parent to run first
+      "kernel.sched_ttwu_protect" = 1; # Protect wakeups
+      "kernel.sched_min_runtime" = 5000000; # Minimum runtime per slice
+      "vm.dirty_ratio" = 5; # Reduce dirty page ratio
+      "vm.dirty_background_ratio" = 2; # Reduce dirty background ratio
+      "vm.dirty_expire_centisecs" = 100; # Faster dirty page expiration
+      "vm.dirty_writeback_centisecs" = 50; # Faster writeback
+      "kernel.timer_migration" = 1; # Allow timer migration
     "kernel.perf_event_paranoid" = -1; # Allow perf monitoring
+    # I/O scheduler (replaces deprecated elevator=none)
+    "block/queue/scheduler" = "none"; # Use none scheduler for NVMe SSDs
   };
 
-  # ============================================================================
-  # MCP SERVER INTEGRATION - TEMPORARILY DISABLED
-  # ============================================================================
-
-  # ============================================================================
-  # SYSTEM ENVIRONMENT VARIABLES
-  # ============================================================================
-
-  environment.sessionVariables = {
-    EDITOR = "nvim";
-    BROWSER = "zen";
-    NIXOS_OZONE_WL = "1";
-    GBM_BACKEND = "nvidia-drm";
-    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-    WLR_NO_HARDWARE_CURSORS = "1";
-    WLR_EGL_NO_MODIFIERS = "1";
-    STEAM_RUNTIME = "1";
-
-    # Vulkan GPU detection for applications like LM Studio
-    VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
-
-     # CUDA environment for AI/ML applications (handled in environment.nix)
-  };
-
-  system.stateVersion = "26.05";
+system.stateVersion = "26.05";
 }
