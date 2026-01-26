@@ -83,7 +83,6 @@
       kdePackages.plasma-systemmonitor # System monitoring widget
 
       # AI tools and packages (from nix profile)
-      # claude-native.packages.${pkgs.system}.default # Claude Code from overlay - already in nix profile
       qwen-code
 
       # Local AI/ML tools - DISABLED due to ROCm build failures in nixpkgs-unstable

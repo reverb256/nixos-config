@@ -105,7 +105,6 @@ with lib; {
     enable = true;
     extraCompatPackages = with pkgs;
       [
-        proton-ge-bin
       ]
       ++ [
         inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
