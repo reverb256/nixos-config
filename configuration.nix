@@ -99,42 +99,74 @@
     # Hardware configuration handled per-node
   ];
 
-  # ============================================================================
-  # BOOT CONFIGURATION - Bootloader and root file system
-  # ============================================================================
-  boot = {
-    # Bootloader configuration
-    loader = {
-      systemd-boot.enable = true;
-      efi.canTouchEfiVariables = true;
+    # ============================================================================
+    # BOOT CONFIGURATION - Bootloader and root file system
+    # ============================================================================
+    boot = {
+      # Bootloader configuration
+      loader = {
+        systemd-boot.enable = true;
+        efi.canTouchEfiVariables = true;
+      };
+
+      # Phase 1: Foundation - High-performance kernel parameters
+      kernelParams = [
+        # Wine gaming performance
+        "fsync.enable=1"
+
+        # NVIDIA optimizations
+        "nvidia-drm.modeset=1"
+        "threadirqs"
+
+        # Ryzen 5950X optimizations
+        "amd_pstate=active"
+        "mitigations=off"
+        "transparent_hugepage=madvise"
+        "numa_balancing=disable"
+        "nowatchdog"
+
+        # PCIe and I/O optimizations
+        "pcie_aspm=off"
+        # "elevator=none" # Deprecated - use sysfs instead
+
+        # High-priority gaming optimizations
+        "isolcpus=managed_applications" # CPU isolation for gaming
+        "nohz_full=1-15" # Disable tick on application cores
+        "rcu_nocbs=1-15" # RCU offload for low latency
+      ];
+
+      # ============================================================================
+      # SYSTEM TUNING - Optimizations for Ryzen 5950X and RTX 3090
+      # ============================================================================
+      kernel.sysctl = {
+        # Network optimizations for gaming
+        "net.core.rmem_max" = 2500000;
+        "net.core.wmem_max" = 2500000;
+
+        # Memory management
+        "vm.swappiness" = 10;
+        "vm.vfs_cache_pressure" = 50;
+
+        # CPU scheduler optimizations
+        "kernel.sched_min_granularity_ns" = 10000000;
+        "kernel.sched_wakeup_granularity_ns" = 15000000;
+        "kernel.sched_migration_cost_ns" = 500000;
+
+        # High-priority gaming sysctl optimizations
+        "kernel.sched_autogroup_enabled" = 0; # Disable autogroups for lower latency
+        "kernel.sched_child_runs_first" = 0; # Allow parent to run first
+        "kernel.sched_ttwu_protect" = 1; # Protect wakeups
+        "kernel.sched_min_runtime" = 5000000; # Minimum runtime per slice
+        "vm.dirty_ratio" = 5; # Reduce dirty page ratio
+        "vm.dirty_background_ratio" = 2; # Reduce dirty background ratio
+        "vm.dirty_expire_centisecs" = 100; # Faster dirty page expiration
+        "vm.dirty_writeback_centisecs" = 50; # Faster writeback
+        "kernel.timer_migration" = 1; # Allow timer migration
+        "kernel.perf_event_paranoid" = -1; # Allow perf monitoring
+        # I/O scheduler (replaces deprecated elevator=none)
+        "block/queue/scheduler" = "none"; # Use none scheduler for NVMe SSDs
+      };
     };
-
-    # Phase 1: Foundation - High-performance kernel parameters
-    kernelParams = [
-      # Wine gaming performance
-      "fsync.enable=1"
-
-      # NVIDIA optimizations
-      "nvidia-drm.modeset=1"
-      "threadirqs"
-
-      # Ryzen 5950X optimizations
-      "amd_pstate=active"
-      "mitigations=off"
-      "transparent_hugepage=madvise"
-      "numa_balancing=disable"
-      "nowatchdog"
-
-      # PCIe and I/O optimizations
-      "pcie_aspm=off"
-      # "elevator=none" # Deprecated - use sysfs instead
-
-      # High-priority gaming optimizations
-      "isolcpus=managed_applications" # CPU isolation for gaming
-      "nohz_full=1-15" # Disable tick on application cores
-      "rcu_nocbs=1-15" # RCU offload for low latency
-    ];
-  };
 
   # ============================================================================
   # NETWORKING CONFIGURATION
@@ -212,44 +244,10 @@
       openFirewall = true;
     };
 
-    # SSH configured in modules/ssh.nix
-
     # ============================================================================
     # NVIDIA DRIVERS AND HARDWARE SUPPORT
     # ============================================================================
     xserver.videoDrivers = ["nvidia"];
-
-    # ============================================================================
-    # SYSTEM TUNING - Optimizations for Ryzen 5950X and RTX 3090
-    # ============================================================================
-    boot.kernel.sysctl = {
-      # Network optimizations for gaming
-      "net.core.rmem_max" = 2500000;
-      "net.core.wmem_max" = 2500000;
-
-      # Memory management
-      "vm.swappiness" = 10;
-      "vm.vfs_cache_pressure" = 50;
-
-      # CPU scheduler optimizations
-      "kernel.sched_min_granularity_ns" = 10000000;
-      "kernel.sched_wakeup_granularity_ns" = 15000000;
-      "kernel.sched_migration_cost_ns" = 500000;
-
-      # High-priority gaming sysctl optimizations
-      "kernel.sched_autogroup_enabled" = 0; # Disable autogroups for lower latency
-      "kernel.sched_child_runs_first" = 0; # Allow parent to run first
-      "kernel.sched_ttwu_protect" = 1; # Protect wakeups
-      "kernel.sched_min_runtime" = 5000000; # Minimum runtime per slice
-      "vm.dirty_ratio" = 5; # Reduce dirty page ratio
-      "vm.dirty_background_ratio" = 2; # Reduce dirty background ratio
-      "vm.dirty_expire_centisecs" = 100; # Faster dirty page expiration
-      "vm.dirty_writeback_centisecs" = 50; # Faster writeback
-      "kernel.timer_migration" = 1; # Allow timer migration
-    "kernel.perf_event_paranoid" = -1; # Allow perf monitoring
-    # I/O scheduler (replaces deprecated elevator=none)
-    "block/queue/scheduler" = "none"; # Use none scheduler for NVMe SSDs
   };
-
-system.stateVersion = "26.05";
+   system.stateVersion = "26.05";
 }

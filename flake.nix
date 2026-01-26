@@ -92,7 +92,7 @@
         targetHost = targetHost;
         targetUser = "j_kro";
         buildOnTarget = true;
-        ssh.keys = ["~/.ssh/id_ed25519"];
+        keys = ["~/.ssh/id_ed25519"];
         tags = ["default"]; # Default tag for colmena apply
       };
     };
@@ -164,7 +164,7 @@
           targetHost = "10.1.1.110";
           targetUser = "j_kro";
           buildOnTarget = true;
-          ssh.keys = ["~/.ssh/id_ed25519"];
+          keys = ["~/.ssh/id_ed25519"];
           tags = ["default"];
         };
       };
@@ -174,8 +174,8 @@
         deployment = {
           targetHost = "10.1.1.120";
           targetUser = "j_kro";
-          buildOnReplacement = true;
-          ssh.keys = ["~/.ssh/id_ed25519"];
+          buildOnTarget = true;
+          keys = ["~/.ssh/id_ed25519"];
           tags = ["default"];
         };
       };
@@ -185,8 +185,8 @@
         deployment = {
           targetHost = "10.1.1.130";
           targetUser = "j_kro";
-          buildOnReplacement = true;
-          ssh.keys = ["~/.ssh/id_ed25519"];
+          buildOnTarget = true;
+          keys = ["~/.ssh/id_ed25519"];
           tags = ["default"];
         };
       };
@@ -196,8 +196,8 @@
         deployment = {
           targetHost = "10.1.1.140";
           targetUser = "j_kro";
-          buildOnReplacement = true;
-          ssh.keys = ["~/.ssh/id_ed25519"];
+          buildOnTarget = true;
+          keys = ["~/.ssh/id_ed25519"];
           tags = ["default"];
         };
       };
