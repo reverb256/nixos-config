@@ -41,9 +41,9 @@
        # CUDA and NVENC optimizations
        CUDA_VISIBLE_DEVICES = "all";
        
-       # NEW: CUDA environment
-       "CUDA_HOME" = "/run/current-system/sw/lib";
-       "LD_LIBRARY_PATH" = "/run/current-system/sw/lib";
+        # NEW: CUDA environment
+        "CUDA_HOME" = "/run/current-system/sw/lib";
+        "LD_LIBRARY_PATH" = lib.mkForce "/run/current-system/sw/lib";
 
        # RTX 3090 specific encoding optimizations
        NV_ENC_ENABLE_PRESET_P7 = "1"; # High quality preset for streaming
