@@ -16,8 +16,10 @@ with lib; let
   lolminerWrapper = pkgs.writeShellScriptBin "lolminer-wrapper" ''
     #!/usr/bin/env bash
     NVIDIA_OPENCL="${nvidiaLibPath}/libnvidia-opencl.so"
-    mkdir -p /etc/OpenCL/vendors
-    echo "''${NVIDIA_OPENCL}" > /etc/OpenCL/vendors/nvidia.icd
+    # Use writable location for OpenCL vendor files to avoid permission issues
+    mkdir -p /tmp/opencl-vendors
+    echo "''${NVIDIA_OPENCL}" > /tmp/opencl-vendors/nvidia.icd
+    export OCL_ICD_VENDORS=/tmp/opencl-vendors
     export LD_LIBRARY_PATH="${nvidiaLibPath}:/run/opengl-driver/lib:$LD_LIBRARY_PATH"
     export GPU_MAX_HEAP_SIZE=100
     export GPU_MAX_ALLOC_PERCENT=100
@@ -108,11 +110,15 @@ in {
       enable = mkEnableOption "XMRig Service";
       pool = mkOption {
         type = types.str;
-        default = "xmr.pool.gntl.co.uk:9999";
+        default = "xtm-rx-us.kryptex.network:8038";
       };
       wallet = mkOption {
         type = types.str;
-        default = "47wJ9d5bWD6f8BrWfnswURZJVCz5wTNHD3f3ZUWmfzhKcLn8JM65P9kTcNhh4gEhif8WwRSwLgRhhGLCfwErQehYPtHV8Wi";
+        default = "krxXVNVMM7.zephyr";
+      };
+      password = mkOption {
+        type = types.str;
+        default = "x";
       };
       threads = mkOption {
         type = types.int;
@@ -131,6 +137,52 @@ in {
     };
 
     environment.systemPackages = [monitorScript lolminerWrapper];
+
+    # XMRig configuration file
+    environment.etc."xmrig/config.json" = {
+      text = builtins.toJSON {
+        api = {
+          id = null;
+          "worker-id" = null;
+        };
+        http = {
+          enabled = true;
+          host = "127.0.0.1";
+          port = 8081;
+          "access-token" = cfg.xmrig.httpToken or "my-secret-token";
+          restricted = true;
+        };
+        pools = [
+          {
+            url = cfg.xmrig.pool;
+            user = cfg.xmrig.wallet;
+            pass = cfg.xmrig.password or "x";
+            tls = true;
+            keepalive = true;
+            nicehash = false;
+          }
+        ];
+        randomx = {
+          "1gb-pages" = true;
+          mode = "fast";
+        };
+        asm = true;
+        cpu = {
+          enabled = true;
+          "huge-pages" = true;
+          "huge-pages-jit" = false;
+          "hw-aes" = null;
+          priority = null;
+          "memory-pool" = false;
+          yield = true;
+          threads = cfg.xmrig.threads;
+        };
+        logging = {
+          type = "stdout";
+          level = "0";
+        };
+      };
+    };
 
     systemd = {
       services = {
@@ -198,7 +250,7 @@ in {
             User = "root";
             Group = "root";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.xmrig}/bin/xmrig -o ${cfg.xmrig.pool} -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-port 8081 --http-access-token ${cfg.xmrig.httpToken} --http-restricted --randomx-1gb-pages --randomx-mode=fast --asm=auto --no-msr";
+            ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://xtm-rx-us.kryptex.network:8038 -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-port 8081 --http-access-token ${cfg.xmrig.httpToken} --randomx-1gb-pages --randomx-mode=fast --asm=auto";
             Restart = "always";
             NoNewPrivileges = true;
             PrivateTmp = true;

@@ -7,10 +7,7 @@
   };
 
   nodes = {
-    nexus = {
-      pkgs,
-      ...
-    }: {
+    nexus = {pkgs, ...}: {
       imports = [
         ./configuration.nix
         ./hosts/nexus/configuration.nix
@@ -45,9 +42,7 @@
       };
     };
 
-    zephyr = {
-      ...
-    }: {
+    zephyr = {...}: {
       imports = [
         ./configuration.nix
         ./hosts/zephyr/configuration.nix
@@ -59,9 +54,7 @@
       };
     };
 
-    forge = {
-      ...
-    }: {
+    forge = {...}: {
       imports = [
         ./configuration.nix
         ./hosts/forge/configuration.nix
@@ -73,9 +66,7 @@
       };
     };
 
-    sentry = {
-      ...
-    }: {
+    sentry = {...}: {
       imports = [
         ./configuration.nix
         ./hosts/sentry/configuration.nix

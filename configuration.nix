@@ -10,8 +10,8 @@
     modesetting.enable = true;
     open = false;
   };
-  nixpkgs.config.allowUnfree = true;
-  nixpkgs.config.cudaSupport = false;
+    nixpkgs.config.allowUnfree = true;
+    nixpkgs.config.cudaSupport = true;
 
   # ============================================================================
   # BLUETOOTH SUPPORT
@@ -35,23 +35,25 @@
       max-jobs = 8; # Parallel derivations (use ~1/2 of threads)
       cores = 16; # Cores per derivation (use ~1/2 of cores)
 
-      # 5-tier binary caching + CUDA cache
-      substituters = [
-        "https://cache.nixos.org"
-        "https://nix-community.cachix.org"
-        "https://ezkea.cachix.org"
-        "https://nixpkgs-wayland.cachix.org"
-        "https://nix-gaming.cachix.org"
-        "https://cuda-maintainers.cachix.org"
-      ];
-      trusted-public-keys = [
-        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-        "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-        "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
-        "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-        "cuda-maintainers.cachix.org-1:0dq3bujKpuEPMCX6U4WylrUDZ9JyUG0VpVZa7CNfq5E="
-      ];
+       # 8-tier binary caching + CUDA cache for maximum redundancy and performance
+       substituters = [
+         "https://cache.nixos.org"
+         "https://nix-community.cachix.org"
+         "https://ezkea.cachix.org"
+         "https://nixpkgs-wayland.cachix.org"
+         "https://nix-gaming.cachix.org"
+         "https://cache.nixos-cuda.org"  # CUDA binary cache (fastest for GPU packages)
+         "https://cache.iog.io"          # Input Output Global (reliable)
+       ];
+       trusted-public-keys = [
+         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+         "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
+         "nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA="
+         "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
+         "cache.iog.io-1:3qt3qqlXhyl2HGK8UE1Eh12NEmoyK8mx81uDWDAKPn4="
+       ];
     };
   };
 
@@ -392,6 +394,11 @@
     WLR_NO_HARDWARE_CURSORS = "1";
     WLR_EGL_NO_MODIFIERS = "1";
     STEAM_RUNTIME = "1";
+
+    # Vulkan GPU detection for applications like LM Studio
+    VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+
+     # CUDA environment for AI/ML applications (handled in environment.nix)
   };
 
   system.stateVersion = "26.05";
