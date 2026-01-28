@@ -4,7 +4,7 @@
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
-    # Import gaming module (contains anime-game-launcher)
+    # Import gaming module
     ../modules/gaming.nix
   ];
 

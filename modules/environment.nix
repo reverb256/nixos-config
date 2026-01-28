@@ -14,18 +14,44 @@
       LESS = "-R --mouse --wheel-lines=3";
 
       # Path additions
-      PATH = "$HOME/.local/bin:$PATH";
+      PATH = "$HOME/.local/bin:/usr/local/cuda/bin:/usr/local/cuda/nsight-compute/bin:/usr/local/cuda/nsight-systems/bin:$PATH";
 
       # NVIDIA environment variables
       __GL_SYNC_TO_VBLANK = "0";
       __GL_SHADER_DISK_CACHE = "1";
       __GL_SHADER_DISK_CACHE_PATH = "/tmp/nvidia-shader-cache";
 
-      # NEW: Enhanced NVIDIA Wayland support
+      # CRITICAL: Enhanced NVIDIA Wayland support (required for hardware acceleration)
       "WLR_DRM_NO_MODIFIERS" = "1";
-      "NVD_BACKEND" = "direct";
+      "WLR_NO_HARDWARE_CURSORS" = "1";
+      "WLR_EGL_NO_MODIFIERS" = "1";
+      "__EGL_VENDOR_LIBRARY_FILENAMES" = "/usr/share/glvnd/egl_vendor.d/10_nvidia.json";
+
+      # CRITICAL: NVIDIA Wayland hardware acceleration variables
+      "GBM_BACKEND" = "nvidia-drm";
+      "__GLX_VENDOR_LIBRARY_NAME" = "nvidia";
+
+      # CRITICAL: Additional NVIDIA Wayland variables for hardware acceleration
+      "EGL_BACKEND" = "nvidia";
+      "VULKAN_ICD_FILENAMES" = "/usr/share/vulkan/icd.d/nvidia_icd.json";
+      "__GL_VK_ENABLE_VENDOR_FALLBACKS" = "1";
+      "__VK_LAYER_NV_optimus" = "NVIDIA_only";
+
+      # Enhanced NVIDIA Wayland variables for RTX 3090
+      "LIBGL_ALWAYS_INDIRECT" = "0";
+      "LIBGL_ALWAYS_SOFTWARE" = "0";
+
+      # NVIDIA Optimus support
       "__NV_PRIME_RENDER_OFFLOAD" = "1";
-      "__NV_PRIME_RENDER_OFFLOAD_PROVIDER" = "nvidia";
+      "__NV_PRIME_RENDER_OFFLOAD_PROVIDER" = "NVIDIA-G0";
+
+      # Force hardware acceleration for Qt applications
+      "QT_QUICK_BACKEND" = "native";
+
+      # Force Wayland platform for Qt applications
+      "QT_QPA_PLATFORM" = "wayland";
+      "GDK_BACKEND" = "wayland";
+      "XDG_SESSION_TYPE" = "wayland";
 
       # DLSS and ray tracing optimizations
       NVDX_GL_COMPUTE_SHADER_STORAGE_IMAGE_EXTENDED = "1";
@@ -41,9 +67,14 @@
       # CUDA and NVENC optimizations
       CUDA_VISIBLE_DEVICES = "all";
 
-      # NEW: CUDA environment
+       # NEW: CUDA environment
       "CUDA_HOME" = "/run/current-system/sw/lib";
-      "LD_LIBRARY_PATH" = lib.mkForce "/run/current-system/sw/lib";
+      "LD_LIBRARY_PATH" = lib.mkForce "/run/current-system/sw/lib:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/lib:/usr/local/cuda/targets/x86_64-linux/lib";
+      
+      # NVIDIA environment variables for games and containers
+      "NVIDIA_VISIBLE_DEVICES" = "all";
+      "NVIDIA_DRIVER_CAPABILITIES" = "compute,utility,graphics";
+      "NVIDIA_LIBRARY_PATH" = "/nix/store/7l19w2xp7hly8amzyz9xfkgm7kw3gr0w-nvidia-x11-590.48.01-6.18.5/lib";
 
       # RTX 3090 specific encoding optimizations
       NV_ENC_ENABLE_PRESET_P7 = "1"; # High quality preset for streaming
@@ -54,13 +85,13 @@
       NVDX_Capture_Enable = "1";
       NVDX_Encoder_Enable = "1";
       NVDX_Vulkan_Enable = "1";
-      __EGL_VENDOR_LIBRARY_FILENAMES = "/usr/share/glvnd/egl_vendor.d/10_nvidia.json";
+
+      # Additional CUDA and Vulkan environment variables for LMStudio
+      CUDA_LAUNCH_BLOCKING = "1"; # Synchronize CUDA calls for debugging
+      CUDA_CACHE_DISABLE = "0"; # Enable CUDA kernel cache
+      # __NV_PRIME_RENDER_OFFLOAD and __VK_LAYER_NV_optimus already defined above
 
       # Gaming and Wayland
-      GBM_BACKEND = "nvidia-drm";
-      __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-      WLR_NO_HARDWARE_CURSORS = "1";
-      WLR_EGL_NO_MODIFIERS = "1";
       STEAM_RUNTIME = "1";
       NIXOS_OZONE_WL = "1";
 
@@ -121,6 +152,15 @@
       WINEDLLOVERRIDES = "mscoree,mshtml="; # Disable problematic DLLs
       __GL_VDPAU_CAPTURE_CLIENT_BUFFER = "0"; # Fix NVIDIA capture issues
       __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1"; # Improve shader cache performance
+
+      # Wayland portal services for complete functionality (avoid duplicates)
+      # XDG_CURRENT_DESKTOP and XDG_SESSION_DESKTOP already defined above
+      XDG_DESKTOP_SESSION_ID = "1";
+      # DESKTOP_SESSION and KDE_FULL_SESSION already defined above
+
+      # Additional portal environment variables
+      XDG_SESSION_CLASS = "user";
+      XDG_SESSION_ID = "1";
     }
     // lib.optionalAttrs ((builtins.hasAttr "age" config) && (config.age.secrets ? "claude-api-key")) {
       # Enhanced Claude Code with MCP support - Multiple API providers
@@ -142,5 +182,21 @@
       OPENROUTER_API_KEY_FILE = config.age.secrets.openrouter-api-key.path or "";
       OPENAI_API_KEY_FILE = config.age.secrets.openai-api-key.path or "";
       ZHIPU_API_KEY_FILE = config.age.secrets.zhipu-api-key.path or "";
+
+      # LMStudio specific environment variables for CUDA and Vulkan detection
+      LM_STUDIO_CUDA_VISIBLE_DEVICES = "all";
+      LM_STUDIO_VULKAN_DEVICE_SELECT = "nvidia";
+      LM_STUDIO_FORCE_VULKAN = "1";
+      LM_STUDIO_FORCE_CUDA = "1";
+
+      # NVIDIA sandbox environment variables for containerized apps
+      NVIDIA_VISIBLE_DEVICES = "all";
+      NVIDIA_DRIVER_CAPABILITIES = "compute,utility,graphics";
+      CUDA_HOME = "/run/opengl-driver";
+      LD_LIBRARY_PATH = "/run/opengl-driver/lib:/run/current-system/sw/lib:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/lib:/usr/local/cuda/targets/x86_64-linux/lib";
+
+      # NVIDIA library paths for containerized applications (LM Studio fix)
+      __NVIDIA_NVLINK = "/run/opengl-driver/lib/libnvidia-ml.so.1:/run/opengl-driver/lib/libcuda.so.1";
+      NVIDIA_REQUIRE_CUDA = "cuda>=12.0";
     };
 }

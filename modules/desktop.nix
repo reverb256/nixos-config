@@ -1,6 +1,6 @@
 # Desktop Module - Steam + Wayland Compatible (REPLACES original desktop.nix)
 # Enhanced with Steam-specific environment variables and NVIDIA optimizations
-{pkgs, ...}: {
+{pkgs, lib, ...}: {
   # ============================================================================
   # X SERVER (Required for Steam compatibility)
   # ============================================================================
@@ -46,7 +46,7 @@
     WLR_DRM_NO_MODIFIERS = "1";
     NVD_BACKEND = "direct";
     __NV_PRIME_RENDER_OFFLOAD = "1";
-    __NV_PRIME_RENDER_OFFLOAD_PROVIDER = "nvidia";
+    __NV_PRIME_RENDER_OFFLOAD_PROVIDER = "NVIDIA-G0";
 
     # NVIDIA Wayland hardware acceleration (Fixes KDE Plasma fallback issues)
     GBM_BACKEND = "nvidia-drm";
@@ -70,6 +70,17 @@
 
     # Audio stability for Steam
     PULSE_LATENCY_MSEC = "60";
+    
+    # NVIDIA GPU support for Steam games
+    NVIDIA_VISIBLE_DEVICES = "all";
+    NVIDIA_DRIVER_CAPABILITIES = "compute,utility,graphics";
+    CUDA_HOME = lib.mkForce "/run/opengl-driver";
+    NVIDIA_LIBRARY_PATH = "/nix/store/7l19w2xp7hly8amzyz9xfkgm7kw3gr0w-nvidia-x11-590.48.01-6.18.5/lib";
+    __VK_LAYER_NV_optimus = "NVIDIA_only";
+    
+    # Steam runtime socket support
+    XDG_RUNTIME_DIR = "/run/user/1000";
+    STEAM_RUNTIME_PREFER_HOST_LIBRARIES = "0";
   };
 
   # ============================================================================
