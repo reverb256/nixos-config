@@ -255,7 +255,7 @@
   # SERVICES CONFIGURATION
   # ============================================================================
   services = {
-    # PURE WAYLAND DESKTOP ENVIRONMENT
+    # STABLE DESKTOP ENVIRONMENT (Better for NVIDIA + Steam compatibility)
     displayManager = {
       sddm.enable = true;
       sddm.wayland.enable = true;
@@ -263,8 +263,8 @@
         enable = true;
         user = "j_kro";
       };
-      # Force Wayland session for hardware acceleration
-      defaultSession = "plasma"; # This will use Wayland when sddm.wayland.enable = true
+      # Use default plasma session which handles Wayland/X11 properly
+      defaultSession = "plasma";
     };
     desktopManager.plasma6.enable = true;
 

@@ -8,12 +8,6 @@
   services.desktopManager.plasma6.enable = true;
   # Enable XWayland for backward compatibility with X11 games/apps
 
-  # ============================================================================
-  # AUTO-LOGIN
-  # ============================================================================
-
-  services.displayManager.autoLogin.enable = true;
-  services.displayManager.autoLogin.user = "j_kro";
 
   # ============================================================================
   # KDE ESSENTIAL PACKAGES (Steam-compatible)
