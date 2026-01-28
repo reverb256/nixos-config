@@ -76,15 +76,22 @@
       echo ""
 
       # Download and run installer
-      if ! curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/install.sh -o /tmp/openagents-install.sh; then
+      TEMP_DIR=$(mktemp -d)
+      INSTALL_SCRIPT="$TEMP_DIR/openagents-install.sh"
+
+      if ! curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/install.sh -o "$INSTALL_SCRIPT"; then
         echo "Error: Failed to download installer"
+        rm -rf "$TEMP_DIR"
         exit 1
       fi
 
-      chmod +x /tmp/openagents-install.sh
+      chmod +x "$INSTALL_SCRIPT"
 
       # Run installer with selected profile
-      bash /tmp/openagents-install.sh ''${config.services.openagents-control.installProfile} --install-dir "$INSTALL_DIR"
+      bash "$INSTALL_SCRIPT" ''${config.services.openagents-control.installProfile} --install-dir "$INSTALL_DIR"
+
+      # Clean up
+      rm -rf "$TEMP_DIR"
 
       echo ""
       echo "OpenAgents Control installation complete!"
@@ -113,15 +120,22 @@
       echo ""
 
       # Download and run installer to update
-      if ! curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/install.sh -o /tmp/openagents-install.sh; then
+      TEMP_DIR=$(mktemp -d)
+      INSTALL_SCRIPT="$TEMP_DIR/openagents-install.sh"
+
+      if ! curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/install.sh -o "$INSTALL_SCRIPT"; then
         echo "Error: Failed to download installer"
+        rm -rf "$TEMP_DIR"
         exit 1
       fi
 
-      chmod +x /tmp/openagents-install.sh
+      chmod +x "$INSTALL_SCRIPT"
 
       # Run installer with current profile to update
-      bash /tmp/openagents-install.sh ''${config.services.openagents-control.installProfile} --install-dir "$INSTALL_DIR"
+      bash "$INSTALL_SCRIPT" ''${config.services.openagents-control.installProfile} --install-dir "$INSTALL_DIR"
+
+      # Clean up
+      rm -rf "$TEMP_DIR"
 
       echo ""
       echo "OpenAgents Control update complete!"
