@@ -5,7 +5,7 @@
     # Host-specific hardware
     ./hardware-configuration.nix
     # Import gaming module
-    ../modules/gaming.nix
+    ../../modules/gaming.nix
   ];
 
   # Host identification

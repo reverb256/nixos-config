@@ -95,33 +95,6 @@ with lib; {
     };
   };
 
-  # ============================================================================
-  # KERNEL PARAMETERS - High-priority gaming optimizations
-  # ============================================================================
-  boot.kernelParams = [
-    # Wine gaming performance
-    "fsync.enable=1"
-
-    # NVIDIA optimizations
-    "nvidia-drm.modeset=1"
-    "threadirqs"
-
-    # Ryzen 5950X optimizations
-    "amd_pstate=active"
-    "mitigations=off"
-    "transparent_hugepage=madvise"
-    "numa_balancing=disable"
-    "nowatchdog"
-
-    # PCIe and I/O optimizations
-    "pcie_aspm=off"
-    "elevator=none"
-
-    # High-priority gaming optimizations
-    "isolcpus=managed_applications" # CPU isolation for gaming
-    "nohz_full=1-15" # Disable tick on application cores
-    "rcu_nocbs=1-15" # RCU offload for low latency
-  ];
 
   # ============================================================================
   # STEAM - Full VR Support with NVENC Optimizations
@@ -314,25 +287,6 @@ with lib; {
     # Note: Launchers are managed via programs.* options above, not system packages
   ];
 
-  # ============================================================================
-  # STEAMVR RUNTIME - Lighthouse Tracking Support
-  # ============================================================================
-
-    # SteamVR environment variables for lighthouse tracking
-    environment.sessionVariables = {
-      # WiVRn lighthouse integration
-      WIVRN_LH_SUPPORT = "1";
-      WIVRN_STEAMVR_ENABLED = "1";
-
-      # Base station discovery
-      WIVRN_LH_DISCOVER_WAIT_MS = "5000";
-
-      # Tundra tracker support
-      WIVRN_TUNDRA_ENABLED = "1";
-
-      # FIX: Pressure-vessel EGL issues for Steam games (force override)
-      __VK_LAYER_NV_optimus = "NVIDIA_only";
-    };
 
   # ============================================================================
   # UDEV RULES - VR Device Permissions

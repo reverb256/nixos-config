@@ -50,15 +50,6 @@
       jq
     ];
 
-    # Set environment variables for MCP and tool fixes
-    environment.sessionVariables = {
-      # Fix MCP schema errors
-      OPENCODE_MCP_SCHEMA_FIX = "1";
-      # Fix tool output formatting
-      OPENCODE_TOOL_STRUCTURED_OUTPUT = "1";
-      # Set proper PATH for OpenCode tools
-      OPENCODE_PATH_FIX = "1";
-    };
 
     # Create wrapper scripts for OpenAgents Control management
     environment.etc."opencode-installer.sh".text = ''

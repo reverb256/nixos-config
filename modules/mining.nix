@@ -7,20 +7,16 @@
 with lib; let
   cfg = config.services.mining;
 
-  # Get NVIDIA paths from kernel
-  nvidiaStable = pkgs.linuxPackages_zen.nvidiaPackages.beta;
-  nvidiaLibPath = "${nvidiaStable}/lib";
-  nvidiaSmipath = "${nvidiaStable.bin}/bin/nvidia-smi";
-
   # Wrapper for NVIDIA OpenCL inside steam-run
   lolminerWrapper = pkgs.writeShellScriptBin "lolminer-wrapper" ''
     #!/usr/bin/env bash
-    NVIDIA_OPENCL="${nvidiaLibPath}/libnvidia-opencl.so"
+    # Use the system's configured OpenGL driver paths
+    NVIDIA_OPENCL="/run/opengl-driver/lib/libnvidia-opencl.so"
     # Use writable location for OpenCL vendor files to avoid permission issues
     mkdir -p /tmp/opencl-vendors
     echo "''${NVIDIA_OPENCL}" > /tmp/opencl-vendors/nvidia.icd
     export OCL_ICD_VENDORS=/tmp/opencl-vendors
-    export LD_LIBRARY_PATH="${nvidiaLibPath}:/run/opengl-driver/lib:$LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH="/run/opengl-driver/lib:$LD_LIBRARY_PATH"
     export GPU_MAX_HEAP_SIZE=100
     export GPU_MAX_ALLOC_PERCENT=100
     exec ${pkgs.lolminer}/bin/lolMiner "$@"
@@ -196,11 +192,11 @@ in {
             Group = "mining";
             Slice = "mining.slice";
             ExecStartPre = [
-              "${pkgs.bash}/bin/bash -c '${nvidiaSmipath} -pm 1 || true'"
-              "${pkgs.bash}/bin/bash -c '${nvidiaSmipath} -pl ${toString cfg.lolminer.nvidia.powerLimit} || true'"
+              "${pkgs.bash}/bin/bash -c '${pkgs.nvidia-vaapi-driver}/bin/nvidia-smi -pm 1 || true'"
+              "${pkgs.bash}/bin/bash -c '${pkgs.nvidia-vaapi-driver}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true'"
             ];
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
-            ExecStopPost = "${pkgs.bash}/bin/bash -c '${nvidiaSmipath} -pl 350 || true'";
+            ExecStopPost = "${pkgs.bash}/bin/bash -c '${pkgs.nvidia-vaapi-driver}/bin/nvidia-smi -pl 350 || true'";
             Restart = "always";
             RestartSec = "30s";
             Environment = ["PATH=/run/current-system/sw/bin:$PATH"];
