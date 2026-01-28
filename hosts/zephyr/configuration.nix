@@ -145,6 +145,9 @@
     "10.1.1.140" = ["sentry"];
   };
 
+  # USER GROUPS - Essential for Steam controller and uinput access
+  users.users.j_kro.extraGroups = ["plugdev"];
+
   # OpenAgents Control Configuration
   services.openagents-control = {
     enable = true;
