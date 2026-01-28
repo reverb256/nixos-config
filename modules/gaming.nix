@@ -440,4 +440,9 @@ with lib; {
       message = "NVIDIA drivers are required for optimal VR performance";
     }
   ];
+
+  # Ensure nvidia shader cache directory exists
+  systemd.tmpfiles.rules = [
+    "d /var/cache/nvidia-shader-cache 0755 root root - -"
+  ];
 }
