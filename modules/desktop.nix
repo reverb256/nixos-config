@@ -92,19 +92,8 @@
   # KERNEL MODULES FOR DISPLAY
   # ============================================================================
 
-  boot.kernelModules = [
-    "nvidia"
-    "nvidia_modeset"
-    "nvidia_uvm"
-    "nvidia_drm"
-  ];
-
   # ============================================================================
   # KERNEL PARAMETERS FOR NVIDIA WAYLAND (Conservative)
   # ============================================================================
 
-  boot.kernelParams = [
-    "nvidia-drm.modeset=1"
-    "nvidia-drm.fbdev=1"
-  ];
 }

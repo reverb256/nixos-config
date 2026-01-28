@@ -31,26 +31,4 @@
     };
   };
   
-  # Steam runtime environment
-  environment.sessionVariables = {
-    # Steam runtime environment
-    STEAM_RUNTIME = "1";
-    STEAM_RUNTIME_PREFER_HOST_LIBRARIES = "0";
-    STEAM_RUNTIME_FORCE_HOST = "0";
-    
-    # Steam socket paths
-    XDG_RUNTIME_DIR = "/run/user/${toString 1000}";
-    
-    # Steam Proton environment
-    PROTON_USE_WINED3D = "0";
-    DXVK_ASYNC = "1";
-    WINE_FULLSCREEN_FORCE_DESKTOP = "1";
-    
-    # Steam VR environment
-    STEAM_LINUX_RUNTIME_VULKAN = "1";
-    STEAM_LINUX_RUNTIME_NVAPI = "1";
-    
-    # Tmux socket path
-    TMUX_TMPDIR = "/run/user/${toString 1000}/tmux";
-  };
 }

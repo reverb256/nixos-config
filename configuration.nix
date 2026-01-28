@@ -92,6 +92,8 @@
     ./modules
     # NVIDIA sandbox configuration
     ./modules/nvidia-sandbox.nix
+    # Flatpak support
+    ./modules/flatpak.nix
   ];
 
   # XDG Desktop Portal for KDE integration

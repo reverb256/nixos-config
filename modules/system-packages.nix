@@ -91,11 +91,12 @@
       xdg-desktop-portal
       kdePackages.xdg-desktop-portal-kde
 
-      # Flatpak and sandbox support
-      flatpak
+       # Flatpak and sandbox support
+       flatpak
 
-      # AI tools and packages (from nix profile)
-      qwen-code
+       # AI tools and packages (from nix profile)
+       qwen-code
+       opencode
 
       # Local AI/ML tools - DISABLED due to ROCm build failures in nixpkgs-unstable
       # pkgs.python3Packages.vllm # High-performance LLM inference engine - BROKEN with ROCm
