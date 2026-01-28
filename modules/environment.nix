@@ -35,21 +35,9 @@
       DESKTOP_SESSION = "plasma";
       KDE_FULL_SESSION = "true";
 
-      # Locale settings for Wine/AAGL compatibility (fixes keyboard input issues)
-      LANG = lib.mkForce "en_CA.UTF-8";
-      LC_ALL = lib.mkForce "en_CA.UTF-8";
-      LC_CTYPE = lib.mkForce "en_CA.UTF-8"; # Force CTYPE for input handling
-      LC_NUMERIC = lib.mkForce "en_CA.UTF-8";
-      LC_TIME = lib.mkForce "en_CA.UTF-8";
-      LC_COLLATE = lib.mkForce "en_CA.UTF-8";
-      LC_MONETARY = lib.mkForce "en_CA.UTF-8";
-      LC_MESSAGES = lib.mkForce "en_CA.UTF-8";
-      LC_PAPER = lib.mkForce "en_CA.UTF-8";
-      LC_NAME = lib.mkForce "en_CA.UTF-8";
-      LC_ADDRESS = lib.mkForce "en_CA.UTF-8";
-      LC_TELEPHONE = lib.mkForce "en_CA.UTF-8";
-      LC_MEASUREMENT = lib.mkForce "en_CA.UTF-8";
-      LC_IDENTIFICATION = lib.mkForce "en_CA.UTF-8";
+      # Locale settings for Wine/AAGL compatibility (modern NixOS approach)
+      # Use NixOS's built-in locale management instead of manual force overrides
+      # This allows the system to handle locale properly while maintaining compatibility
 
       # DualSense controller environment variables - DISABLED to prevent keyboard input conflicts
       SDL_JOYSTICK_HIDAPI_PS5 = "0"; # Disabled to prevent keyboard input conflicts with Wine
