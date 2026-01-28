@@ -17,6 +17,7 @@
 
       # Steam and gaming
       steam-run # Required for running dynamically linked executables
+      pkgsi686Linux.glibc # 32-bit glibc for Steam compatibility
 
       # OpenCL support for AMD GPUs
       ocl-icd # OpenCL ICD loader
@@ -52,18 +53,22 @@
       vulkan-loader
       vulkan-tools
 
-       # NVIDIA tools for GPU monitoring
-       # nvidia_x11 # Removed - use hardware.nvidia instead
-       
-         # NEW: CUDA and ML support for RTX 3090
-         pkgs.cudaPackages.cudatoolkit
-         pkgs.cudaPackages.cudnn
-         pkgs.cudaPackages.libcufft
-         pkgs.cudaPackages.libcusparse
-         pkgs.cudaPackages.libcutensor
-         pkgs.python312Packages.torchWithCuda
-         pkgs.python312Packages.tensorflowWithCuda
-        pkgs.ollama
+      # NVIDIA tools for GPU monitoring
+      # nvidia_x11 # Removed - use hardware.nvidia instead
+
+      # NEW: CUDA and ML support for RTX 3090
+      pkgs.cudaPackages.cudatoolkit
+      pkgs.cudaPackages.cudnn
+      pkgs.cudaPackages.libcufft
+      pkgs.cudaPackages.libcusparse
+      pkgs.cudaPackages.libcutensor
+      pkgs.python312Packages.torchWithCuda
+      pkgs.python312Packages.tensorflowWithCuda
+      pkgs.ollama
+      # Additional CUDA libraries for LMStudio
+      pkgs.cudaPackages.libcurand
+      pkgs.cudaPackages.libcusolver
+      pkgs.cudaPackages.libnvjpeg
 
       # NH (Nix Helper) - Robust NixOS management
       nh
@@ -81,6 +86,13 @@
       kdePackages.kdbusaddons # DBus integration for KDE
       kdePackages.kdeconnect-kde # KDE device integration
       kdePackages.plasma-systemmonitor # System monitoring widget
+
+      # Wayland portal services (CRITICAL for LMStudio and app functionality)
+      xdg-desktop-portal
+      kdePackages.xdg-desktop-portal-kde
+
+      # Flatpak and sandbox support
+      flatpak
 
       # AI tools and packages (from nix profile)
       qwen-code
@@ -103,29 +115,30 @@
       vulkan-loader
       vulkan-tools
       vulkan-validation-layers
+      vulkan-headers
 
       # DXVK for DirectX to Vulkan translation (needed for AAGL games)
       dxvk
       wine
       winetricks
 
-       # User profile packages (from nix profile)
-       alejandra
-       btop
-       colmena
-       deadnix
-       fd
-       fzf
-       gemini-cli
-       neovim
-       nodejs_22
-       opencode
-       qwen-code
-       ripgrep
-       statix
-       tmux
-       vesktop
-       lmstudio
+      # User profile packages (from nix profile)
+      alejandra
+      btop
+      colmena
+      deadnix
+      fd
+      fzf
+      gemini-cli
+      neovim
+      nodejs_22
+      opencode
+      qwen-code
+      ripgrep
+      statix
+      tmux
+      vesktop
+      lmstudio
 
       # Language servers and development tools (from nix profile)
       basedpyright # Python type checker
@@ -168,14 +181,14 @@
       gst_all_1.gst-plugins-bad
       gst_all_1.gst-libav
 
-       # Video encoding and GPU acceleration packages
-       nvidia-vaapi-driver
-       vdpauinfo
-       nvtopPackages.full
+      # Video encoding and GPU acceleration packages
+      nvidia-vaapi-driver
+      vdpauinfo
+      nvtopPackages.full
 
-       # Video processing for yt-dlp and media playback
-       ffmpeg
-       yt-dlp
+      # Video processing for yt-dlp and media playback
+      ffmpeg
+      yt-dlp
 
       # Anime Game Launchers (enabled via programs.anime-game-launcher in host config)
     ];

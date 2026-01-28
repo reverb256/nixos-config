@@ -59,7 +59,6 @@
       inputs.nix-gaming.nixosModules.platformOptimizations
       inputs.agenix.nixosModules.default
 
-
       # Home Manager
       inputs.home-manager.nixosModules.home-manager
       {
@@ -143,9 +142,11 @@
     # Shared overlays
     overlays.default = import ./modules/mining-overlay.nix;
 
-
     # NixOS configurations (for direct use with nixos-rebuild)
     nixosConfigurations = nixosSystems;
+
+    # Formatter for nix fmt
+    formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
 
     packages.x86_64-linux.claude = inputs.claude-native.packages.x86_64-linux.default;
   };
