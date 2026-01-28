@@ -31,57 +31,6 @@
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
 
-  # ============================================================================
-  # WAYLAND ENVIRONMENT VARIABLES (Steam-compatible)
-  # ============================================================================
-
-  environment.sessionVariables = {
-    # Wayland preferences
-    QT_QPA_PLATFORM = "wayland";
-    GDK_BACKEND = "wayland";
-    XDG_SESSION_TYPE = "wayland";
-    QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
-
-    # NVIDIA Wayland support
-    WLR_DRM_NO_MODIFIERS = "1";
-    NVD_BACKEND = "direct";
-    __NV_PRIME_RENDER_OFFLOAD = "1";
-    __NV_PRIME_RENDER_OFFLOAD_PROVIDER = "NVIDIA-G0";
-
-    # NVIDIA Wayland hardware acceleration (Fixes KDE Plasma fallback issues)
-    GBM_BACKEND = "nvidia-drm";
-    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-
-    # Steam-specific variables (Fixes VRChat launch issues)
-    STEAM_FRAME_FORCE_CLOSE = "1"; # Fixes Wayland window issues
-    STEAM_LINUX_RUNTIME = "1"; # Enables Steam runtime
-    STEAM_USE_NVAPI = "1"; # NVIDIA API support
-    STEAM_DEBUG = "0"; # Disable debug logging
-
-    # Proton variables for Steam games
-    PROTON_USE_WINED3D = "0"; # Use Vulkan instead of OpenGL
-    DXVK_ASYNC = "1"; # Async shader compilation
-    WINE_FULLSCREEN_FORCE_DESKTOP = "1"; # Fix fullscreen issues
-
-    # NVIDIA-specific Steam optimizations
-    __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
-    __GL_SHADER_DISK_CACHE_SIZE = "1073741824";
-    __GL_SHADER_DISK_CACHE_PATH = "/tmp/nvidia-shader-cache";
-
-    # Audio stability for Steam
-    PULSE_LATENCY_MSEC = "60";
-    
-    # NVIDIA GPU support for Steam games
-    NVIDIA_VISIBLE_DEVICES = "all";
-    NVIDIA_DRIVER_CAPABILITIES = "compute,utility,graphics";
-    CUDA_HOME = lib.mkForce "/run/opengl-driver";
-    NVIDIA_LIBRARY_PATH = "/nix/store/7l19w2xp7hly8amzyz9xfkgm7kw3gr0w-nvidia-x11-590.48.01-6.18.5/lib";
-    __VK_LAYER_NV_optimus = "NVIDIA_only";
-    
-    # Steam runtime socket support
-    XDG_RUNTIME_DIR = "/run/user/1000";
-    STEAM_RUNTIME_PREFER_HOST_LIBRARIES = "0";
-  };
 
   # ============================================================================
   # KDE ESSENTIAL PACKAGES (Steam-compatible)
@@ -126,17 +75,6 @@
     fzf
   ];
 
-  # ============================================================================
-  # PIPEWIRE (Wayland-native audio with Steam compatibility)
-  # ============================================================================
-
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    jack.enable = true;
-  };
 
   # ============================================================================
   # KDE WALLET
