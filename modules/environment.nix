@@ -20,7 +20,7 @@
       NIXOS_OZONE_WL = "1";
 
       # DXVK for DirectX to Vulkan translation (AAGL games)
-      DXVK_CONFIG_FILE = "/home/j_kro/.config/dxvk/dxvk.conf";
+      DXVK_CONFIG_FILE = "$HOME/.config/dxvk/dxvk.conf";
       DXVK_LOG_LEVEL = "none";
       DXVK_HUD = "0";
 

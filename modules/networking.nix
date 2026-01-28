@@ -143,18 +143,6 @@ with lib; {
   };
 
   # ============================================================================
-  # AUDIO SUPPORT (PipeWire - already in desktop.nix, duplicated here for safety)
-  # ============================================================================
-
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    jack.enable = true;
-  };
-
-  # ============================================================================
   # TAILSCALE VPN
   # ============================================================================
 

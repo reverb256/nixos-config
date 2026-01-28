@@ -152,7 +152,7 @@
   services.openagents-control = {
     enable = true;
     installProfile = "advanced"; # Choose: essential, developer, business, full, or advanced
-    installDir = "/home/j_kro/.config/opencode";
+    installDir = "$HOME/.config/opencode";
     autoUpdate = false; # Temporarily disabled to fix service startup issue
   };
 

@@ -81,49 +81,14 @@ with lib; let
       };
     };
 
-    # Add Nix daemon crash recovery service
-    systemd.services.nix-daemon-recovery = {
-      description = "Nix Daemon Crash Recovery";
+    # Use systemd's built-in restart policies instead of manual recovery scripts
+    systemd.services.nix-daemon = {
       serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "${pkgs.writeShellScriptBin "nix-recovery" ''
-          #!/bin/bash
-          echo "$(date): Checking Nix daemon status..."
-
-          if ! systemctl is-active --quiet nix-daemon.socket; then
-            echo "$(date): Nix daemon socket inactive, restarting..."
-            systemctl restart nix-daemon.socket
-
-            # Clean up any hanging downloads
-            echo "$(date): Cleaning up hanging downloads..."
-            rm -f /tmp/nix-download-*
-
-            # Clear Nix daemon cache if corrupted
-            if [ -d "/nix/var/nix/daemon-socket" ]; then
-              rm -rf /nix/var/nix/daemon-socket/*
-            fi
-          fi
-
-          # Verify daemon health
-          if nix store ping --store https://cache.nixos.org; then
-            echo "$(date): Nix daemon recovered successfully"
-          else
-            echo "$(date): Nix daemon recovery failed, manual intervention required"
-            systemctl status nix-daemon.service
-          fi
-        ''}/bin/nix-recovery";
+        Restart = "on-failure";
+        RestartSec = 5;
+        StartLimitBurst = 5;
+        StartLimitIntervalSec = 60;
       };
-      wantedBy = ["multi-user.target"];
-    };
-
-    # Add timer for Nix daemon recovery
-    systemd.timers.nix-daemon-recovery = {
-      description = "Nix Daemon Recovery Timer";
-      timerConfig = {
-        OnBootSec = 300;
-        OnUnitActiveSec = "1h";
-      };
-      wantedBy = ["timers.target"];
     };
 
     # Add boot performance timer
