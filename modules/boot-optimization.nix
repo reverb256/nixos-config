@@ -10,8 +10,8 @@ with lib; let
   # Optimize boot performance
   bootOptimizations = {
     # CRITICAL: Disable tmpfiles-clean at boot (6.486s -> 0s)
-    # Disable the timer that runs tmpfiles-clean during boot
-    systemd.timers.systemd-tmpfiles-clean.timerConfig.OnBootSec = mkForce "never";
+    # Use modern NixOS option instead of force override
+    systemd.tmpfiles.cleanOnBoot = false;
 
     # Network optimization for distributed builds
     networking.networkmanager.enable = mkDefault true;
