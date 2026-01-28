@@ -18,7 +18,7 @@
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      nvidia-vaapi-driver  # Provides proper NVIDIA OpenCL ICD
+      nvidia-vaapi-driver # Provides proper NVIDIA OpenCL ICD
     ];
   };
   nixpkgs.config.allowUnfree = true;
@@ -107,7 +107,7 @@
   # XDG Desktop Portal for KDE integration
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.kdePackages.xdg-desktop-portal-kde ];
+    extraPortals = [pkgs.kdePackages.xdg-desktop-portal-kde];
   };
 
   # ============================================================================
@@ -255,15 +255,16 @@
   # SERVICES CONFIGURATION
   # ============================================================================
   services = {
-    # X11/WAYLAND DESKTOP ENVIRONMENT
+    # PURE WAYLAND DESKTOP ENVIRONMENT
     displayManager = {
       sddm.enable = true;
+      sddm.wayland.enable = true;
       autoLogin = {
         enable = true;
         user = "j_kro";
       };
       # Force Wayland session for hardware acceleration
-      defaultSession = "plasma";
+      defaultSession = "plasma"; # This will use Wayland when sddm.wayland.enable = true
     };
     desktopManager.plasma6.enable = true;
 

@@ -8,7 +8,7 @@
     enable = true;
     libraries = with pkgs; [
       stdenv.cc.cc.lib
-      libstdc++
+      "libstdc++"
       zlib
       libxcb
       libX11
