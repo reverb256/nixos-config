@@ -1,28 +1,12 @@
-# Desktop Module - Steam + Wayland Compatible (REPLACES original desktop.nix)
-# Enhanced with Steam-specific environment variables and NVIDIA optimizations
+# Desktop Module - Pure Wayland with XWayland Fallback
+# Optimized for Steam and gaming with Wayland-first approach
 {pkgs, lib, ...}: {
   # ============================================================================
-  # X SERVER (Required for Steam compatibility)
-  # ============================================================================
-
-  services.xserver.enable = true;
-  services.xserver.videoDrivers = ["nvidia"];
-
-  # ============================================================================
-  # SDDM - Wayland with X11 fallback for Steam
-  # ============================================================================
-
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true;
-
-  # Allow fallback to X11 for Steam
-  services.displayManager.defaultSession = "plasma";
-
-  # ============================================================================
-  # KDE PLASMA 6 (Wayland-native with X11 compatibility)
+  # KDE PLASMA 6 (Pure Wayland with XWayland fallback for legacy apps)
   # ============================================================================
 
   services.desktopManager.plasma6.enable = true;
+  # Enable XWayland for backward compatibility with X11 games/apps
 
   # ============================================================================
   # AUTO-LOGIN
@@ -30,7 +14,6 @@
 
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "j_kro";
-
 
   # ============================================================================
   # KDE ESSENTIAL PACKAGES (Steam-compatible)
@@ -75,7 +58,6 @@
     fzf
   ];
 
-
   # ============================================================================
   # KDE WALLET
   # ============================================================================
@@ -87,13 +69,4 @@
   # ============================================================================
 
   hardware.nvidia.modesetting.enable = true;
-
-  # ============================================================================
-  # KERNEL MODULES FOR DISPLAY
-  # ============================================================================
-
-  # ============================================================================
-  # KERNEL PARAMETERS FOR NVIDIA WAYLAND (Conservative)
-  # ============================================================================
-
 }
