@@ -24,9 +24,25 @@
   # DESKTOP ENVIRONMENT - KDE Plasma 6
   # ============================================================================
 
+  # NVIDIA configuration for RTX 3060 Ti (use proprietary drivers with ZEN kernel)
+  hardware.nvidia = {
+    package = pkgs.linuxPackages_zen.nvidiaPackages.production;
+    modesetting.enable = true;
+    open = false;
+    nvidiaSettings = true;
+    powerManagement.enable = true;
+  };
+
+  hardware.opengl = {
+    enable = true;
+    extraPackages = with pkgs; [
+      nvidia-vaapi-driver # Provides proper NVIDIA OpenCL ICD
+    ];
+  };
+
   services = {
     xserver.enable = true;
-    xserver.videoDrivers = ["nvidia"];
+    # xserver.videoDrivers no longer needed - handled by hardware.nvidia
     displayManager = {
       sddm.enable = true;
       autoLogin = {

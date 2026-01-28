@@ -6,7 +6,7 @@
   config,
   lib,
   pkgs,
-  inputs,
+  inputs ? null,
   ...
 }:
 with lib; {
@@ -104,28 +104,28 @@ with lib; {
     extraCompatPackages = with pkgs;
       [
       ]
-      ++ [
+      ++ (if inputs != null then [
         inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
-      ];
+      ] else []);
   };
 
   # ============================================================================
   # ANIME GAME LAUNCHERS (Simplified ezKEa Setup)
   # ============================================================================
   # Only the 4 games you need - direct ezKEa package references
-  programs.anime-game-launcher = {
+  programs.anime-game-launcher = lib.mkIf (inputs != null) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.anime-game-launcher;
   };
-  programs.honkers-railway-launcher = {
+  programs.honkers-railway-launcher = lib.mkIf (inputs != null) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.honkers-railway-launcher;
   };
-  programs.wavey-launcher = {
+  programs.wavey-launcher = lib.mkIf (inputs != null) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.wavey-launcher;
   };
-  programs.sleepy-launcher = {
+  programs.sleepy-launcher = lib.mkIf (inputs != null) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.sleepy-launcher;
   };

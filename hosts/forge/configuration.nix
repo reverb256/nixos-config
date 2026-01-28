@@ -39,20 +39,54 @@
   };
 
   # ============================================================================
-  # GPU DRIVERS (AMD & NVIDIA)
+  # GPU DRIVERS (AMD & NVIDIA) - Consistent with main configuration
   # ============================================================================
-  hardware.amdgpu.opencl.enable = true;
-  hardware.opengl.enable = true;
-  services.xserver.videoDrivers = ["amdgpu" "nvidia"];
+  hardware.amdgpu = {
+    opencl.enable = true;
+    radeonSI.enable = true;
+  };
+
+  # NVIDIA configuration for RTX 4060s (use proprietary drivers with ZEN kernel)
+  hardware.nvidia = {
+    package = pkgs.linuxPackages_zen.nvidiaPackages.production;
+    modesetting.enable = true;
+    open = false;
+    nvidiaSettings = true;
+    powerManagement.enable = true;
+  };
+
+  hardware.opengl = {
+    enable = true;
+    extraPackages = with pkgs; [
+      nvidia-vaapi-driver # Provides proper NVIDIA OpenCL ICD
+    ];
+  };
 
   # ============================================================================
   # KERNEL PARAMETERS
   # ============================================================================
 
-  # AMD GPU kernel parameters
+  # Combined AMD and NVIDIA GPU kernel parameters
   boot.kernelParams = [
+    # AMD GPU kernel parameters
     "amdgpu.noretry=0"
     "amdgpu.mcbp=1"
+
+    # NVIDIA Wayland optimizations for RTX 4060s
+    "nvidia-drm.modeset=1"
+    "nvidia_drm.fbdev=0" # Disable fbdev for better Wayland support
+    "nvidia.NVreg_EnableResizableBar=1"
+    "nvidia.NVreg_UsePageAttributeTable=1"
+    "nvidia-uvm/uvm_disable_huge_pages=1"
+    "threadirqs"
+
+    # Enhanced NVIDIA RTX 4060 optimizations (Zen kernel compatible)
+    "nvidia.NVreg_RegistryDwords=PerfLevelSrc=0x2222"
+    "nvidia.NVreg_UsePageAttributeTable=1" # Better memory management
+    "nvidia.NVreg_EnableResizableBar=1" # Resizable BAR for RTX 40xx series
+    "nvidia-uvm/uvm_disable_huge_pages=1" # Fix Wayland compatibility
+    # Additional NVIDIA parameters for Wayland stability
+    "nvidia.NVreg_RegistryDwords=PerfLevelSrc=0x2222;NVreg_UsePageAttributeTable=1;EnableResizableBar=1"
   ];
 
   environment.variables = {
