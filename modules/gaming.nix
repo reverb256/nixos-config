@@ -350,7 +350,7 @@ with lib; {
       # Vulkan and NVIDIA optimizations
       __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
       __GL_SHADER_DISK_CACHE_SIZE = "1073741824";
-      __GL_SHADER_DISK_CACHE_PATH = "/tmp/nvidia-shader-cache";
+      __GL_SHADER_DISK_CACHE_PATH = "/var/cache/nvidia-shader-cache";
 
       # Ampere optimizations
       __GLX_FORCE_MONO = "0";

@@ -7,33 +7,17 @@
 with lib; let
   cfg = config.services.mining;
 
-  # Wrapper for NVIDIA OpenCL inside steam-run
+  # Minimal wrapper for NVIDIA mining inside steam-run
   lolminerWrapper = pkgs.writeShellScriptBin "lolminer-wrapper" ''
     #!/usr/bin/env bash
-    # Use the system's configured OpenGL driver paths
-    NVIDIA_OPENCL="/run/opengl-driver/lib/libnvidia-opencl.so"
-    # Use writable location for OpenCL vendor files to avoid permission issues
-    mkdir -p /tmp/opencl-vendors
-    echo "''${NVIDIA_OPENCL}" > /tmp/opencl-vendors/nvidia.icd
-    export OCL_ICD_VENDORS=/tmp/opencl-vendors
-    export LD_LIBRARY_PATH="/run/opengl-driver/lib:$LD_LIBRARY_PATH"
-    export GPU_MAX_HEAP_SIZE=100
-    export GPU_MAX_ALLOC_PERCENT=100
+    # Just execute lolMiner directly - environment variables are set in systemd service
     exec ${pkgs.lolminer}/bin/lolMiner "$@"
   '';
 
-  # Wrapper for AMD OpenCL inside steam-run
+  # Minimal wrapper for AMD mining inside steam-run
   lolminerAmdWrapper = pkgs.writeShellScriptBin "lolminer-amd-wrapper" ''
     #!/usr/bin/env bash
-    # Set up ROCm/OpenCL for AMD GPUs inside steam-run
-    mkdir -p /etc/OpenCL/vendors
-    echo "/run/opengl-driver/lib/libamdocl-orca64.so" > /etc/OpenCL/vendors/amdocl64.icd 2>/dev/null || true
-    echo "/run/opengl-driver/lib/libamdocl64.so" > /etc/OpenCL/vendors/amdocl64.icd 2>/dev/null || true
-    export LD_LIBRARY_PATH="/run/opengl-driver/lib:/opt/rocm/hip/lib:/opt/rocm/lib:$LD_LIBRARY_PATH"
-    export ROCM_PATH=/opt/rocm
-    export HSA_OVERRIDE_GFX_VERSION=10.3.0
-    export GPU_MAX_HEAP_SIZE=100
-    export GPU_MAX_ALLOC_PERCENT=100
+    # Just execute lolMiner directly - environment variables are set in systemd service
     exec ${pkgs.lolminer}/bin/lolMiner "$@"
   '';
 
@@ -199,7 +183,10 @@ in {
             ExecStopPost = "${pkgs.bash}/bin/bash -c '${pkgs.nvidia-vaapi-driver}/bin/nvidia-smi -pl 350 || true'";
             Restart = "always";
             RestartSec = "30s";
-            Environment = ["PATH=/run/current-system/sw/bin:$PATH"];
+            Environment = [
+              "GPU_MAX_HEAP_SIZE=100"
+              "GPU_MAX_ALLOC_PERCENT=100"
+            ];
             NoNewPrivileges = false;
             PrivateTmp = true;
             PrivateDevices = false;
@@ -224,7 +211,9 @@ in {
             Restart = "always";
             RestartSec = "30s";
             Environment = [
-              "PATH=/run/current-system/sw/bin:$PATH"
+              "GPU_MAX_HEAP_SIZE=100"
+              "GPU_MAX_ALLOC_PERCENT=100"
+              "HSA_OVERRIDE_GFX_VERSION=10.3.0"
             ];
             NoNewPrivileges = false;
             PrivateTmp = true;

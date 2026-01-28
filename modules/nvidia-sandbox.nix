@@ -16,8 +16,6 @@
     "profile.d/nvidia-sandbox.sh".text = ''
       # NVIDIA Sandbox Environment Setup - AUTOMATIC
       # This is loaded automatically for all users and sessions
-
-      export LD_LIBRARY_PATH="/run/opengl-driver/lib:$LD_LIBRARY_PATH"
     '';
   };
 
