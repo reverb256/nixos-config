@@ -13,6 +13,14 @@
     nvidiaSettings = true;
     powerManagement.enable = true;
   };
+
+  # Enable proper OpenCL ICD registration for mining
+  hardware.graphics = {
+    enable = true;
+    extraPackages = with pkgs; [
+      nvidia-vaapi-driver  # Provides proper NVIDIA OpenCL ICD
+    ];
+  };
   nixpkgs.config.allowUnfree = true;
   nixpkgs.config.cudaSupport = true;
 

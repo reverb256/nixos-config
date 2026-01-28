@@ -25,7 +25,7 @@
 
       installDir = lib.mkOption {
         type = lib.types.str;
-        default = "/home/j_kro/.config/opencode";
+        default = "\${HOME}/.config/opencode";
         example = "~/.config/opencode";
         description = ''
           Installation directory for OpenAgents Control components.
@@ -44,7 +44,9 @@
   config = lib.mkIf config.services.openagents-control.enable {
     # Ensure required dependencies are installed
     environment.systemPackages = with pkgs; [
-      # Required for installer
+      # OpenCode CLI (required for OpenAgents Control)
+      opencode
+      # Required for installer scripts
       bash
       curl
       jq
@@ -56,7 +58,7 @@
       #!/usr/bin/env bash
       set -e
 
-      INSTALL_DIR="/home/j_kro/.config/opencode"
+      INSTALL_DIR="$HOME/.config/opencode"
 
       # Check if OpenAgents Control is already installed
       if [ -d "$INSTALL_DIR" ]; then
@@ -98,7 +100,7 @@
       #!/usr/bin/env bash
       set -e
 
-      INSTALL_DIR="/home/j_kro/.config/opencode"
+      INSTALL_DIR="$HOME/.config/opencode"
 
       if [ ! -d "$INSTALL_DIR" ]; then
         echo "Error: OpenAgents Control not installed at $INSTALL_DIR"
@@ -126,11 +128,11 @@
       echo "Installation directory: $INSTALL_DIR"
     '';
 
-    environment.etc."openable-enable.sh".text = ''
+    environment.etc."openagents-enable.sh".text = ''
       #!/usr/bin/env bash
       set -e
 
-      INSTALL_DIR="/home/j_kro/.config/opencode"
+      INSTALL_DIR="$HOME/.config/opencode"
 
       if [ ! -d "$INSTALL_DIR" ]; then
         echo "Error: OpenAgents Control not installed at $INSTALL_DIR"

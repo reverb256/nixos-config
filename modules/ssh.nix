@@ -53,7 +53,7 @@
       Host nexus
         HostName 10.1.1.120
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_rsa
+        IdentityFile ~/.ssh/id_rsa
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
         ControlMaster auto
@@ -64,7 +64,7 @@
       Host forge
         HostName 10.1.1.130
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_rsa
+        IdentityFile ~/.ssh/id_rsa
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
         ControlMaster auto
@@ -75,7 +75,7 @@
       Host sentry
         HostName 10.1.1.140
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_rsa
+        IdentityFile ~/.ssh/id_rsa
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
         ControlMaster auto
@@ -85,7 +85,7 @@
       # Cluster wildcard
       Host zephyr nexus forge sentry
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_rsa
+        IdentityFile ~/.ssh/id_rsa
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
         ControlMaster auto
