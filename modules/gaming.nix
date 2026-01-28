@@ -318,28 +318,21 @@ with lib; {
   # STEAMVR RUNTIME - Lighthouse Tracking Support
   # ============================================================================
 
-  # SteamVR environment variables for lighthouse tracking
-  environment.sessionVariables = {
-    # Enable SteamVR lighthouse support
-    STEAMVR_LHR = "1";
-    STEAMVR_LHR_FORCE = "1";
+    # SteamVR environment variables for lighthouse tracking
+    environment.sessionVariables = {
+      # WiVRn lighthouse integration
+      WIVRN_LH_SUPPORT = "1";
+      WIVRN_STEAMVR_ENABLED = "1";
 
-    # WiVRn lighthouse integration
-    WIVRN_LH_SUPPORT = "1";
-    WIVRN_STEAMVR_ENABLED = "1";
+      # Base station discovery
+      WIVRN_LH_DISCOVER_WAIT_MS = "5000";
 
-    # Base station discovery
-    WIVRN_LH_DISCOVER_WAIT_MS = "5000";
+      # Tundra tracker support
+      WIVRN_TUNDRA_ENABLED = "1";
 
-    # Tundra tracker support
-    WIVRN_TUNDRA_ENABLED = "1";
-
-    # FIX: Pressure-vessel EGL issues for Steam games (force override)
-    __EGL_VENDOR_LIBRARY_FILENAMES = lib.mkForce "/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json";
-    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-    __VK_LAYER_NV_optimus = "NVIDIA_only";
-    VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json";
-  };
+      # FIX: Pressure-vessel EGL issues for Steam games (force override)
+      __VK_LAYER_NV_optimus = "NVIDIA_only";
+    };
 
   # ============================================================================
   # UDEV RULES - VR Device Permissions
@@ -458,11 +451,6 @@ with lib; {
       # Custom Proton-GE-RTSP support
       export PROTON_USE_DXVK=1
       
-      # FIX: Pressure-vessel EGL issues for Steam games
-      export __EGL_VENDOR_LIBRARY_FILENAMES="/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json"
-      export __GLX_VENDOR_LIBRARY_NAME="nvidia"
-      export __VK_LAYER_NV_optimus="NVIDIA_only"
-      export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json"
     '';
   };
 
