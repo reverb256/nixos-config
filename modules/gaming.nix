@@ -110,8 +110,9 @@ with lib; {
   };
 
   # ============================================================================
-  # ANIME GAME LAUNCHERS
+  # ANIME GAME LAUNCHERS (Simplified ezKEa Setup)
   # ============================================================================
+  # Only the 4 games you need - direct ezKEa package references
   programs.anime-game-launcher = {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.anime-game-launcher;
