@@ -8,7 +8,7 @@ with lib; let
   cfg = config.services.mining;
 
   # Get NVIDIA paths from kernel
-  nvidiaStable = pkgs.linuxPackages_zen.nvidiaPackages.stable;
+  nvidiaStable = pkgs.linuxPackages_zen.nvidiaPackages.beta;
   nvidiaLibPath = "${nvidiaStable}/lib";
   nvidiaSmipath = "${nvidiaStable.bin}/bin/nvidia-smi";
 

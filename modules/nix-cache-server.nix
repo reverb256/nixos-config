@@ -1,6 +1,11 @@
 # Nix Cache Server Module
 # Provides a local Nix cache server for reverb-os and other caches
-{config, lib, pkgs, ...}:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib; {
   options.services.nix-cache-server = {
     enable = mkOption {
@@ -8,7 +13,7 @@ with lib; {
       default = false;
       description = "Enable local Nix cache server";
     };
-    
+
     port = mkOption {
       type = types.int;
       default = 3000;
@@ -22,7 +27,7 @@ with lib; {
       description = "Nix Cache Server";
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
-      
+
       serviceConfig = {
         Type = "simple";
         ExecStart = "${pkgs.python3}/bin/python3 /usr/local/bin/nix-cache-server.py";

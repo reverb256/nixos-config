@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   age.secrets = {
     # Claude Code API Key (KAT/StreamLake)
     "claude-api-key.age" = {

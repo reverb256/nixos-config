@@ -39,13 +39,13 @@ _setup:
 # Switch to new NixOS configuration on local machine
 switch: _setup
    @echo "Switching zephyr to new configuration..."
-   sudo colmena apply-local || true
+   sudo nixos-rebuild switch --flake .#zephyr || true
    @echo "Local switch complete!"
 
 # Build without switching (dry run validation)
 build: _setup
    @echo "Building zephyr configuration..."
-   colmena build-local || true
+   nixos-rebuild build --flake .#zephyr || true
    @echo "Build complete!"
 
 # Test configuration temporarily (reverts on reboot)
@@ -59,7 +59,7 @@ update: _setup
    @echo "Updating flake inputs..."
    nix flake update || true
    @echo "Switching to updated configuration..."
-   sudo colmena apply-local || true
+   sudo nixos-rebuild switch --flake .#zephyr || true
    @echo "Update complete!"
 
 # Update and set as boot default (no switch)

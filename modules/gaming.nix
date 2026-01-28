@@ -58,6 +58,27 @@ with lib; {
   # ============================================================================
   # SYSTEMD SLICES - Workload isolation for gaming
   # ============================================================================
+
+  # GameMode service configuration
+  systemd.services.gamemode = mkIf config.programs.gamemode.enable {
+    description = "GameMode service";
+    wantedBy = ["multi-user.target"];
+    after = ["syslog.target"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = "yes";
+      ExecStart = "${pkgs.gamemode}/bin/gamemoded --daemonize";
+      ExecStop = "${pkgs.gamemode}/bin/gamemoded --kill";
+      TimeoutStopSec = 10;
+      User = "root";
+      Group = "root";
+    };
+  };
+
+  # gamescope-session service for Wayland gaming (user service)
+  # Removed gamescope-session service as it's not needed for basic gaming setup
+  # Gamescope can be launched manually or through Steam's launch options
+
   systemd.slices."gaming.slice" = {
     description = "Gaming applications slice";
     sliceConfig = {
@@ -67,6 +88,10 @@ with lib; {
       MemoryAccounting = "yes";
       TasksAccounting = "yes";
       TasksMax = 20000;
+      # Critical for NVIDIA Wayland support
+      DeviceAllow = "char-226 rw";
+      BlockIOAccounting = "yes";
+      BlockIOWeight = 1000;
     };
   };
 
@@ -118,17 +143,9 @@ with lib; {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.anime-game-launcher;
   };
-  programs.anime-games-launcher = {
-    enable = true;
-    package = inputs.ezkea.packages.x86_64-linux.anime-games-launcher;
-  };
   programs.honkers-railway-launcher = {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.honkers-railway-launcher;
-  };
-  programs.honkers-launcher = {
-    enable = true;
-    package = inputs.ezkea.packages.x86_64-linux.honkers-launcher;
   };
   programs.wavey-launcher = {
     enable = true;
@@ -208,19 +225,19 @@ with lib; {
       # SteamVR lighthouse driver support for Tundra trackers
       # Enable SteamVR tracked devices support (lighthouse base stations)
       "steamvr-enabled" = true;
-      
+
       # Lighthouse discovery wait time (ms) - allow devices to be discovered
       "lh-discover-wait-ms" = 5000;
-      
+
       # Enable lighthouse tracking for external devices
       "lighthouse-enabled" = true;
-      
+
       # Base station configuration for 2.0 base stations
       "lighthouse-base-stations" = 2;
-      
+
       # Tundra tracker support via lighthouse
       "tundra-trackers-enabled" = true;
-      
+
       # Discovery timeout for lighthouse devices
       "lighthouse-discovery-timeout" = 10000;
     };
@@ -232,9 +249,9 @@ with lib; {
   networking.firewall = {
     allowedTCPPorts = [9757]; # WiVRn
     allowedUDPPorts = [
-      9757  # WiVRn
-      5353  # Avahi/mDNS for device discovery
-      9947  # Lighthouse base stations
+      9757 # WiVRn
+      5353 # Avahi/mDNS for device discovery
+      9947 # Lighthouse base stations
       27036 # SteamVR discovery
       27031 # SteamVR
     ];
@@ -286,40 +303,42 @@ with lib; {
 
     # Enhanced Claude Code environment
     inputs.claude-native.packages."x86_64-linux".default
-    
+
     # FFmpeg with NVENC support for streaming
     pkgs.ffmpeg-full
-    
+
     # FFmpeg with NVENC support for streaming
     pkgs.ffmpeg-full
-    
+
     # ANIME GAME LAUNCHERS - ezKEa/aagl-gtk-on-nix overlay
-    inputs.aagl-gtk-on-nix.packages."x86_64-linux".anime-game-launcher
-    inputs.aagl-gtk-on-nix.packages."x86_64-linux".honkers-railway-launcher
-    inputs.aagl-gtk-on-nix.packages."x86_64-linux".sleepy-launcher
-    inputs.aagl-gtk-on-nix.packages."x86_64-linux".honkers-launcher
-    inputs.aagl-gtk-on-nix.packages."x86_64-linux".wavey-launcher
-   ];
+    # Note: Launchers are managed via programs.* options above, not system packages
+  ];
 
   # ============================================================================
   # STEAMVR RUNTIME - Lighthouse Tracking Support
   # ============================================================================
-  
+
   # SteamVR environment variables for lighthouse tracking
   environment.sessionVariables = {
     # Enable SteamVR lighthouse support
     STEAMVR_LHR = "1";
     STEAMVR_LHR_FORCE = "1";
-    
+
     # WiVRn lighthouse integration
     WIVRN_LH_SUPPORT = "1";
     WIVRN_STEAMVR_ENABLED = "1";
-    
+
     # Base station discovery
     WIVRN_LH_DISCOVER_WAIT_MS = "5000";
-    
+
     # Tundra tracker support
     WIVRN_TUNDRA_ENABLED = "1";
+
+    # FIX: Pressure-vessel EGL issues for Steam games (force override)
+    __EGL_VENDOR_LIBRARY_FILENAMES = lib.mkForce "/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json";
+    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+    __VK_LAYER_NV_optimus = "NVIDIA_only";
+    VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json";
   };
 
   # ============================================================================
@@ -336,10 +355,10 @@ with lib; {
 
     # Tundra tracker rules - Valve dongles for SteamVR tracking
     SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", GROUP="plugdev"
-    
+
     # Tundra tracker individual device rules (if connected directly)
     SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666", GROUP="plugdev"
-    
+
     # Tundra tracker HID interface rules for motion tracking
     SUBSYSTEM=="hidraw", ATTRS{idVendor}=="28de", ATTRS{idProduct}=="2102", MODE="0666", GROUP="plugdev"
 
@@ -438,6 +457,12 @@ with lib; {
       export DXVK_ASYNC=1
       # Custom Proton-GE-RTSP support
       export PROTON_USE_DXVK=1
+      
+      # FIX: Pressure-vessel EGL issues for Steam games
+      export __EGL_VENDOR_LIBRARY_FILENAMES="/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json"
+      export __GLX_VENDOR_LIBRARY_NAME="nvidia"
+      export __VK_LAYER_NV_optimus="NVIDIA_only"
+      export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json"
     '';
   };
 

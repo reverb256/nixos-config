@@ -15,42 +15,42 @@
   # Host identification
   networking.hostName = "zephyr";
 
-   # ============================================================================
-   # HOME MANAGER CONFIGURATION
-   # ============================================================================
-   
-   home-manager = {
-     useGlobalPkgs = true;
-     useUserPackages = true;
-     users.j_kro = { pkgs, ... }: {
-       imports = [
-         ../../modules/fish-starship.nix
-       ];
-       
-       home = {
-         username = "j_kro";
-         homeDirectory = "/home/j_kro";
-         stateVersion = "26.05";
-       };
-       
-         programs = {
-           home-manager.enable = true;
-           fish = {
-             enable = true;
-           };
-         };
-       
-       xdg = {
-         enable = true;
-         userDirs.enable = true;
-       };
-     };
-   };
-   
-   # ============================================================================
-   # BOOTLOADER - systemd-boot
-   # ============================================================================
- 
+  # ============================================================================
+  # HOME MANAGER CONFIGURATION
+  # ============================================================================
+
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    users.j_kro = {pkgs, ...}: {
+      imports = [
+        ../../modules/fish-starship.nix
+      ];
+
+      home = {
+        username = "j_kro";
+        homeDirectory = "/home/j_kro";
+        stateVersion = "26.05";
+      };
+
+      programs = {
+        home-manager.enable = true;
+        fish = {
+          enable = true;
+        };
+      };
+
+      xdg = {
+        enable = true;
+        userDirs.enable = true;
+      };
+    };
+  };
+
+  # ============================================================================
+  # BOOTLOADER - systemd-boot
+  # ============================================================================
+
   boot.loader = {
     systemd-boot.enable = true;
     efi.canTouchEfiVariables = true;
@@ -59,40 +59,40 @@
   # ============================================================================
   # STEAM-COMPATIBLE KERNEL PARAMETERS (Conservative for Wayland)
   # ============================================================================
-  
+
   boot.kernelParams = [
     # Steam-specific optimizations
     "fsync.enable=1"
-    
+
     # NVIDIA Wayland support (desktop module handles nvidia-drm.modeset=1)
     "threadirqs"
-    
+
     # Enhanced NVIDIA RTX 3090 optimizations (Steam-compatible)
     "nvidia.NVreg_RegistryDwords=PerfLevelSrc=0x2222"
     "nvidia.NVreg_UsePageAttributeTable=1" # Better memory management
     "nvidia.NVreg_EnableResizableBar=1" # Resizable BAR for RTX 3090
     "nvidia-uvm/uvm_disable_huge_pages=1" # Fix SteamVR compatibility
-    
+
     # Conservative CPU optimizations (removed aggressive Steam-breaking params)
     "amd_pstate=active"
     "mitigations=off"
     "transparent_hugepage=madvise"
     "numa_balancing=disable"
     "nowatchdog"
-    
+
     # Safe I/O optimizations
     "elevator=none"
-    
+
     # REMOVED: These break Steam process management
     # "isolcpus=managed_applications" - INTERFERES WITH STEAM
-    # "nohz_full=1-15" - BREAKS STEAM PROCESS MANAGEMENT  
+    # "nohz_full=1-15" - BREAKS STEAM PROCESS MANAGEMENT
     # "rcu_nocbs=1-15" - BREAKS STEAM PROCESS MANAGEMENT
   ];
 
   # ============================================================================
   # MINING CONFIGURATION (Steam-aware - pauses during gaming)
   # ============================================================================
-  
+
   # Note: Smart mining pause is handled by steam-wayland-robust.nix
   # It will automatically pause mining when Steam/VR games are detected
   services.mining.enable = true;
@@ -100,7 +100,7 @@
   services.mining.xmrig.threads = 16;
   services.mining.xmrig.pool = "xtm-rx-us.kryptex.network:8038";
   services.mining.xmrig.wallet = "krxXVNVMM7.zephyr";
-  
+
   # Steam-optimized lolminer configuration
   services.mining.lolminer.enable = true;
   services.mining.lolminer.nvidia.enable = true;
@@ -112,7 +112,7 @@
   # ============================================================================
   # NETWORKING (Static IP)
   # ============================================================================
- 
+
   # Configure NetworkManager for ethernet with static IP
   networking.networkmanager.ensureProfiles = {
     profiles."Wired connection 1" = {
@@ -137,7 +137,7 @@
   # ============================================================================
   # LOCAL HOSTS ENTRIES
   # ============================================================================
- 
+
   networking.hosts = {
     "10.1.1.110" = ["zephyr"];
     "10.1.1.120" = ["nexus"];
@@ -148,15 +148,15 @@
   # OpenAgents Control Configuration
   services.openagents-control = {
     enable = true;
-    installProfile = "advanced";  # Choose: essential, developer, business, full, or advanced
+    installProfile = "advanced"; # Choose: essential, developer, business, full, or advanced
     installDir = "/home/j_kro/.config/opencode";
-    autoUpdate = false;  # Temporarily disabled to fix service startup issue
+    autoUpdate = false; # Temporarily disabled to fix service startup issue
   };
 
   # ============================================================================
   # FIREWALL (VR ports for WiVRn streaming - Steam-compatible)
   # ============================================================================
- 
+
   networking.firewall = {
     allowedTCPPorts = [9757]; # WiVRn TCP
     allowedUDPPorts = [
