@@ -6,7 +6,7 @@
 
   # NVIDIA configuration for RTX 3090 (use proprietary drivers with ZEN kernel)
   hardware.nvidia = {
-    package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
+    package = pkgs.linuxPackages_zen.nvidiaPackages.production;  # Use production as we know it exists
     modesetting.enable = true;
     open = false;
     # Enhanced DRM support for Wayland
@@ -21,6 +21,9 @@
       nvidia-vaapi-driver # Provides proper NVIDIA OpenCL ICD
     ];
   };
+
+  # Blacklist nouveau driver to ensure proper NVIDIA driver loads
+  boot.blacklistedKernelModules = [ "nouveau" ];
   nixpkgs.config.allowUnfree = true;
   nixpkgs.config.cudaSupport = true;
 
@@ -206,11 +209,8 @@
   powerManagement.cpuFreqGovernor = "performance";
 
   # Phase 1: Memory management optimizations
-  zramSwap = {
-    enable = true;
-    memoryPercent = 50;
-    algorithm = "zstd";
-  };
+  # Disable zramSwap since we have large physical swap
+  zramSwap.enable = false;
 
   # Phase 1: OOM daemon for memory pressure management
   # Set state version to avoid warnings
