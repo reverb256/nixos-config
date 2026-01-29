@@ -106,6 +106,12 @@
 
       # Kimi Code CLI - AI coding agent (from flake)
       # Note: Use 'nix run .#kimi' or install via 'nix profile install .#kimi'
+
+      # Kilo Code CLI - AI coding agent (via npm)
+      # Installed globally via npm install -g @kilocode/cli
+      (pkgs.writeShellScriptBin "kilo" ''
+        exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
+      '')
     ]
     ++ [
       # Gaming and VR tools
