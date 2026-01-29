@@ -94,6 +94,5 @@
       OPENROUTER_API_KEY_FILE = config.age.secrets.openrouter-api-key.path or "";
       OPENAI_API_KEY_FILE = config.age.secrets.openai-api-key.path or "";
       ZHIPU_API_KEY_FILE = config.age.secrets.zhipu-api-key.path or "";
-
     };
 }

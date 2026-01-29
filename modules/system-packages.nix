@@ -91,18 +91,21 @@
       xdg-desktop-portal
       kdePackages.xdg-desktop-portal-kde
 
-       # Flatpak and sandbox support
-       flatpak
+      # Flatpak and sandbox support
+      flatpak
 
-       # AI tools and packages (from nix profile)
-       qwen-code
-       opencode
+      # AI tools and packages (from nix profile)
+      qwen-code
+      opencode
 
       # Local AI/ML tools - DISABLED due to ROCm build failures in nixpkgs-unstable
       # pkgs.python3Packages.vllm # High-performance LLM inference engine - BROKEN with ROCm
 
       # OpenCode AI Agent packages (patched for bun version compatibility)
       # opencode only provides devShells, not packages
+
+      # Kimi Code CLI - AI coding agent (from flake)
+      # Note: Use 'nix run .#kimi' or install via 'nix profile install .#kimi'
     ]
     ++ [
       # Gaming and VR tools

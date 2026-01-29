@@ -1,13 +1,16 @@
 # Desktop Module - Pure Wayland with XWayland Fallback
 # Optimized for Steam and gaming with Wayland-first approach
-{pkgs, lib, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   # ============================================================================
   # KDE PLASMA 6 (Pure Wayland with XWayland fallback for legacy apps)
   # ============================================================================
 
   services.desktopManager.plasma6.enable = true;
   # Enable XWayland for backward compatibility with X11 games/apps
-
 
   # ============================================================================
   # KDE ESSENTIAL PACKAGES (Steam-compatible)

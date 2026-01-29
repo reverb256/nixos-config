@@ -176,11 +176,13 @@ in {
             Group = "mining";
             Slice = "mining.slice";
             ExecStartPre = [
-              "${pkgs.bash}/bin/bash -c '${pkgs.nvidia-vaapi-driver}/bin/nvidia-smi -pm 1 || true'"
-              "${pkgs.bash}/bin/bash -c '${pkgs.nvidia-vaapi-driver}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true'"
+              # Set persistent management and power limit for RTX 3090
+              "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.production}/bin/nvidia-smi -pm 1'"
+              # Set power limit to 250W as required for zephyr
+              "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.production}/bin/nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices}'"
             ];
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
-            ExecStopPost = "${pkgs.bash}/bin/bash -c '${pkgs.nvidia-vaapi-driver}/bin/nvidia-smi -pl 350 || true'";
+            ExecStopPost = "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.production}/bin/nvidia-smi -pl 350 --id=${cfg.lolminer.nvidia.devices} || true'"; # Reset power limit to 350W
             Restart = "always";
             RestartSec = "30s";
             Environment = [
