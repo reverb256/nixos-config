@@ -2,7 +2,10 @@
   pkgs,
   inputs ? null,
   ...
-}: {
+}: let
+  # Get gamemode package for polkit rules
+  gamemodePkg = pkgs.gamemode;
+in {
   # ============================================================================
   # KERNEL CONFIGURATION - Force ZEN kernel for gaming and mining performance
   # ============================================================================
@@ -34,46 +37,39 @@
   };
 
   # ============================================================================
-  # SYSTEMD SLICES - Workload isolation for builds
+  # SYSTEMD SLICES - Workload isolation for builds (defined in modules/systemd-slices.nix)
   # ============================================================================
-  systemd = {
-    slices = {
-      "nix.slice" = {
-        description = "Nix build processes slice";
-        sliceConfig = {
-          MemoryHigh = "80%";
-          CPUQuota = "80%";
-        };
-      };
-    };
-    services.nix-daemon.serviceConfig.Slice = "nix.slice";
-  };
+  # Note: Full slice configuration (nix.slice, gaming.slice, mining.slice) is in modules/systemd-slices.nix
 
   # ============================================================================
   # KERNEL MODULES FOR NVIDIA HARDWARE ACCELERATION
   # ============================================================================
+  # These modules need to be built by extraModulePackages in host config
   boot.kernelModules = [
     "nvidia"
     "nvidia_modeset"
     "nvidia_uvm"
     "nvidia_drm"
   ];
+  
+  # Early KMS for NVIDIA - load modules in initrd for smoother boot
+  boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_drm" ];
 
   # ============================================================================
   # POLKIT RULES - Fix gamemode permission issues
+  # Using pkgs.gamemode path instead of hardcoded store path
   # ============================================================================
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
       if (action.id == "org.freedesktop.policykit.exec" &&
-          (action.lookup("program") == "/nix/store/8qf4gd46bf9nq7iiq27kjiac5wya3gd5-gamemode-1.8.2/libexec/cpugovctl" ||
-           action.lookup("program") == "/nix/store/8qf4gd46bf9nq7iiq27kjiac5wya3gd5-gamemode-1.8.2/libexec/procsysctl")) {
+          (action.lookup("program") == "${gamemodePkg}/libexec/cpugovctl" ||
+           action.lookup("program") == "${gamemodePkg}/libexec/procsysctl")) {
         return polkit.Result.YES;
       }
     });
   '';
 
   imports = [
-    ./hardware-configuration.nix
     ./modules
     ./modules/nvidia-sandbox.nix
     ./modules/flatpak.nix

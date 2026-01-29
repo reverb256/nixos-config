@@ -6,78 +6,60 @@
     ../../modules/desktop.nix
     ../../modules/steam-wayland-robust.nix
     ../../modules/openagents-control.nix
+    ../../modules/nvidia-wayland.nix
   ];
 
   # Host identification
   networking.hostName = "zephyr";
 
   # ============================================================================
-  # NVIDIA CONFIGURATION - RTX 3090 (consolidated here, removed from main config)
+  # NVIDIA CONFIGURATION - RTX 3090 (Beta drivers for latest features)
   # ============================================================================
   hardware.nvidia = {
     package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
+    # Required for Wayland
     modesetting.enable = true;
-    open = false;
     nvidiaSettings = true;
     powerManagement.enable = true;
   };
 
-  hardware.graphics = {
+  # Enable NVIDIA Wayland optimizations (module handles most settings)
+  hardware.nvidia.wayland = {
     enable = true;
     enable32Bit = true;
-    extraPackages = with pkgs; [
-      nvidia-vaapi-driver
-    ];
+    openModules = false;  # Use proprietary modules for better stability with beta drivers
+    powerManagement = true;
+    sddmWayland = true;
   };
+
+  # CRITICAL: Build NVIDIA kernel modules (required even for pure Wayland)
+  boot.extraModulePackages = [ pkgs.linuxPackages_zen.nvidiaPackages.beta ];
+  
+  # Load NVIDIA modules early
+  boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_drm" ];
+
+  # Additional Zephyr-specific graphics packages
+  hardware.graphics.extraPackages = with pkgs; [
+    nvidia-vaapi-driver
+    libva
+    libva-utils
+    egl-wayland
+  ];
+
+  hardware.graphics.extraPackages32 = with pkgs.pkgsi686Linux; [
+    nvidia-vaapi-driver
+  ];
 
   # ============================================================================
   # DISPLAY MANAGER - SDDM with Wayland support
   # ============================================================================
   services.displayManager = {
     sddm.enable = true;
-    sddm.wayland.enable = true;
     defaultSession = "plasma";
     autoLogin = {
       enable = true;
       user = "j_kro";
     };
-  };
-
-  # ============================================================================
-  # HOME MANAGER CONFIGURATION
-  # ============================================================================
-  home-manager = {
-    useGlobalPkgs = true;
-    useUserPackages = true;
-    users.j_kro = {pkgs, ...}: {
-      imports = [
-        ../../modules/fish-starship.nix
-      ];
-
-      home = {
-        username = "j_kro";
-        homeDirectory = "/home/j_kro";
-        stateVersion = "26.05";
-      };
-
-      programs = {
-        home-manager.enable = true;
-        fish.enable = true;
-      };
-
-      xdg = {
-        enable = true;
-        userDirs.enable = true;
-      };
-    };
-  };
-
-  # ============================================================================
-  # BOOTLOADER
-  # ============================================================================
-  boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
   };
 
   # ============================================================================
@@ -158,5 +140,24 @@
       27031
       27036
     ];
+  };
+
+  # ============================================================================
+  # ZEPHYR-SPECIFIC ENVIRONMENT VARIABLES
+  # Additional variables beyond what nvidia-wayland.nix provides
+  # ============================================================================
+  environment.sessionVariables = {
+    # CUDA path for ML/AI workloads
+    CUDA_PATH = "${pkgs.cudaPackages.cudatoolkit}";
+
+    # Disable G-SYNC to prevent buffer issues
+    __GL_GSYNC_ALLOWED = "0";
+
+    # Disable VRR for stability (can re-enable later)
+    __GL_VRR_ALLOWED = "0";
+
+    # Additional variables for NVIDIA EGL and NVENC
+    NVD_BACKEND = "direct";
+    __NV_PRIME_RENDER_OFFLOAD = "1";
   };
 }

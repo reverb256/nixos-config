@@ -1,7 +1,10 @@
-{pkgs, ...}: {
+{pkgs, lib, inputs ? null, ...}: {
   # Centralized system packages for better maintainability
-  environment.systemPackages = with pkgs;
-    [
+  environment.systemPackages =
+    (lib.optionals (inputs != null && inputs ? kimi-cli) [
+      inputs.kimi-cli.packages.x86_64-linux.default
+    ])
+    ++ (with pkgs; [
       # System utilities
       ripgrep
       fd
@@ -15,7 +18,7 @@
       networkmanager
       btop # Modern process monitor (mentioned by user)
 
-      # Steam and gaming
+      # Steam support (steam package itself is in modules/gaming.nix)
       steam-run # Required for running dynamically linked executables
       pkgsi686Linux.glibc # 32-bit glibc for Steam compatibility
 
@@ -103,9 +106,6 @@
 
       # OpenCode AI Agent packages (patched for bun version compatibility)
       # opencode only provides devShells, not packages
-
-      # Kimi Code CLI - AI coding agent (from flake)
-      # Note: Use 'nix run .#kimi' or install via 'nix profile install .#kimi'
 
       # Kilo Code CLI - AI coding agent (via npm)
       # Installed globally via npm install -g @kilocode/cli
@@ -195,11 +195,21 @@
       nvidia-vaapi-driver
       vdpauinfo
       nvtopPackages.full
+      # Wayland display management tools
+      xorg.xrdb      # Runtime database utility for X resources
+      xorg.xrandr    # Display configuration tool
+      kanshi         # Automatic display configuration for Wayland
+      kdePackages.kscreen # KDE Display management
+      kdePackages.kio-extras # Extra I/O slaves for KDE
+      # NVIDIA EGL support for Wayland
+      egl-wayland # Essential for NVIDIA + Wayland (renamed from nvidia-egl-wayland)
+      # Additional Wayland utilities
+      wayland-utils    # Basic Wayland utilities
 
       # Video processing for yt-dlp and media playback
       ffmpeg
       yt-dlp
 
       # Anime Game Launchers (enabled via programs.anime-game-launcher in host config)
-    ];
+    ]);
 }

@@ -37,10 +37,6 @@
     gst_all_1.gst-libav
     ffmpeg
 
-    # Steam and gaming packages
-    steam
-    steam-run
-
     # Gaming utilities
     gamescope
     mangohud
@@ -60,10 +56,4 @@
   # ============================================================================
 
   security.pam.services.sddm.enableKwallet = true;
-
-  # ============================================================================
-  # NVIDIA MODESETTING
-  # ============================================================================
-
-  hardware.nvidia.modesetting.enable = true;
 }
