@@ -77,6 +77,7 @@
     ./modules
     ./modules/nvidia-sandbox.nix
     ./modules/flatpak.nix
+    ./secrets/agenix-secrets.nix
   ];
 
   # XDG Desktop Portal for KDE integration
@@ -128,16 +129,37 @@
     };
   };
 
+  # I/O Scheduler for NVMe SSDs - use kyber for better latency
+  services.udev.extraRules = ''
+    # NVMe SSDs - use kyber scheduler for better latency
+    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="kyber"
+    
+    # SATA SSDs - use mq-deadline
+    ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
+  '';
+
   # ============================================================================
   # POWER MANAGEMENT
   # ============================================================================
   powerManagement.cpuFreqGovernor = "performance";
-  zramSwap.enable = false;
 
-  systemd.oomd = {
+  # ============================================================================
+  # ZRAM - Compressed RAM swap for better performance
+  # ============================================================================
+  zramSwap = {
     enable = true;
-    enableRootSlice = true;
-    enableSystemSlice = true;
+    algorithm = "zstd";
+    memoryPercent = 50;  # Use 50% of RAM for zram
+    priority = 100;      # Higher priority than disk swap
+  };
+
+  # ============================================================================
+  # EARLYOOM - Better OOM handling than systemd-oomd for desktop systems
+  # ============================================================================
+  services.earlyoom = {
+    enable = true;
+    freeMemThreshold = 5;      # Kill when < 5% memory free
+    freeSwapThreshold = 10;    # Kill when < 10% swap free
   };
 
   # ============================================================================
