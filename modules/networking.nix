@@ -143,6 +143,33 @@ with lib; {
   };
 
   # ============================================================================
+  # FAIL2BAN - Intrusion prevention
+  # ============================================================================
+
+  services.fail2ban = {
+    enable = true;
+    daemonSettings = {
+      Definition = {
+        loglevel = "INFO";
+      };
+    };
+    jails = {
+      sshd = {
+        enabled = true;
+        settings = {
+          backend = "systemd";
+          port = "ssh";
+          filter = "sshd";
+          logpath = "/var/log/auth.log";
+          maxretry = 3;
+          findtime = "10m";
+          bantime = "1h";
+        };
+      };
+    };
+  };
+
+  # ============================================================================
   # TAILSCALE VPN
   # ============================================================================
 

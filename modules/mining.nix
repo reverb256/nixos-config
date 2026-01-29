@@ -104,9 +104,10 @@ in {
         type = types.int;
         default = 16;
       };
-      httpToken = mkOption {
-        type = types.str;
-        default = "my-secret-token";
+      httpTokenFile = mkOption {
+        type = types.path;
+        default = "/run/agenix/mining-api-token";
+        description = "Path to the file containing the HTTP API token";
       };
     };
   };
@@ -129,7 +130,7 @@ in {
           enabled = true;
           host = "127.0.0.1";
           port = 8081;
-          "access-token" = cfg.xmrig.httpToken or "my-secret-token";
+          "access-token-file" = cfg.xmrig.httpTokenFile;
           restricted = true;
         };
         pools = [
@@ -169,7 +170,8 @@ in {
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
           wantedBy = ["multi-user.target"];
-          after = ["NetworkManager.service" "nvidia-persistenced.service"];
+          after = ["NetworkManager.service" "nvidia-persistenced.service" "agenix.service"];
+          requires = ["agenix.service"];
 
           serviceConfig = {
             User = "root";
@@ -203,7 +205,8 @@ in {
         lolminer-amd = mkIf cfg.lolminer.amd.enable {
           description = "lolMiner AMD Mining Service";
           wantedBy = ["multi-user.target"];
-          after = ["NetworkManager.service"];
+          after = ["NetworkManager.service" "agenix.service"];
+          requires = ["agenix.service"];
 
           serviceConfig = {
             User = "root";
@@ -231,13 +234,14 @@ in {
         xmrig = mkIf cfg.xmrig.enable {
           description = "XMRig CPU Mining Service";
           wantedBy = ["multi-user.target"];
-          after = ["NetworkManager.service"];
+          after = ["NetworkManager.service" "agenix.service"];
+          requires = ["agenix.service"];
 
           serviceConfig = {
             User = "root";
             Group = "root";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://xtm-rx-us.kryptex.network:8038 -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-port 8081 --http-access-token ${cfg.xmrig.httpToken} --randomx-1gb-pages --randomx-mode=fast --asm=auto";
+            ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://xtm-rx-us.kryptex.network:8038 -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-port 8081 --http-access-token-file ${cfg.xmrig.httpTokenFile} --randomx-1gb-pages --randomx-mode=fast --asm=auto";
             Restart = "always";
             NoNewPrivileges = true;
             PrivateTmp = true;

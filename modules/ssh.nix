@@ -7,7 +7,7 @@
       PasswordAuthentication = true;
       KbdInteractiveAuthentication = true;
       PubkeyAuthentication = true;
-      PermitRootLogin = "yes";
+      PermitRootLogin = "no";
 
       # Modern Cryptographic Settings
       Ciphers = [
