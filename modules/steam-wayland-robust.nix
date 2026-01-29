@@ -121,10 +121,8 @@ with lib; {
         assertion = config.hardware.nvidia.package != null;
         message = "NVIDIA drivers are required for RTX 3090";
       }
-      {
-        assertion = config.services.xserver.enable;
-        message = "X11 must be enabled for Steam compatibility layer";
-      }
+      # REMOVED: X11 assertion - not required for pure Wayland setup
+      # Steam works fine on Wayland via XWayland
     ];
   };
 }

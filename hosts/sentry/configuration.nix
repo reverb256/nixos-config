@@ -4,34 +4,36 @@
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
+    # Import desktop module for Plasma 6
+    ../../modules/desktop.nix
+    # Import AMD GPU Wayland module
+    ../../modules/amdgpu-wayland.nix
   ];
 
   # Host identification
   networking.hostName = "sentry";
 
   # ============================================================================
-  # BOOTLOADER - systemd-boot
+  # DESKTOP ENVIRONMENT - KDE Plasma 6 with AMD GPU
   # ============================================================================
 
-  boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
+  services.xserver.enable = true;
+
+  # AMD GPU Wayland configuration
+  hardware.amdgpu.wayland = {
+    enable = true;
+    enable32Bit = true;
+    opencl = false;  # No GPU mining on Sentry
+    sddmWayland = true;
   };
 
-  # ============================================================================
-  # DESKTOP ENVIRONMENT - KDE Plasma 6
-  # ============================================================================
-
-  services = {
-    xserver.enable = true;
-    displayManager = {
-      sddm.enable = true;
-      autoLogin = {
-        enable = true;
-        user = "j_kro";
-      };
+  services.displayManager = {
+    sddm.enable = true;
+    defaultSession = "plasma";
+    autoLogin = {
+      enable = true;
+      user = "j_kro";
     };
-    desktopManager.plasma6.enable = true;
   };
 
   # Sentry-specific overrides - CPU mining only

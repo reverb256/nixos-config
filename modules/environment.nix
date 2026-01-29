@@ -14,7 +14,9 @@
       LESS = "-R --mouse --wheel-lines=3";
 
       # Path additions
-      PATH = "$HOME/.local/bin:/usr/local/cuda/bin:/usr/local/cuda/nsight-compute/bin:/usr/local/cuda/nsight-systems/bin:$PATH";
+      # Note: CUDA binaries are provided via environment.sessionVariables in host configs
+      # through hardware.nvidia.package, not via /usr/local/cuda
+      PATH = "$HOME/.local/bin:$PATH";
 
       # Gaming and Wayland
       NIXOS_OZONE_WL = "1";

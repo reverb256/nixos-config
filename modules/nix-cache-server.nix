@@ -19,6 +19,12 @@ with lib; {
       default = 3000;
       description = "Port for the Nix cache server";
     };
+
+    scriptPath = mkOption {
+      type = types.path;
+      default = "/etc/nix-cache-server.py";
+      description = "Path to the cache server script";
+    };
   };
 
   config = mkIf config.services.nix-cache-server.enable {
@@ -30,11 +36,11 @@ with lib; {
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${pkgs.python3}/bin/python3 /usr/local/bin/nix-cache-server.py";
+        ExecStart = "${pkgs.python3}/bin/python3 ${config.services.nix-cache-server.scriptPath}";
         Restart = "always";
         User = "nixbld";
         Group = "nixbld";
-        Environment = "PATH=${pkgs.coreutils}/bin:${pkgs.python3}/bin:/usr/bin:/bin";
+        Environment = "PATH=${pkgs.coreutils}/bin:${pkgs.python3}/bin";
       };
     };
 
@@ -57,8 +63,8 @@ with lib; {
       "d /var/cache/nix-cache 0755 nixbld nixbld -"
     ];
 
-    # Create cache server script
-    environment.etc."usr/local/bin/nix-cache-server.py" = {
+    # Create cache server script in /etc
+    environment.etc."nix-cache-server.py" = {
       source = pkgs.writeTextFile {
         name = "nix-cache-server.py";
         executable = true;

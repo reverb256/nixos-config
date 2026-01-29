@@ -154,7 +154,8 @@
       fi
 
       # Create opencode wrapper that points to installation directory
-      cat > /usr/local/bin/opencode-wrapper << 'EOF'
+      # Using /run/current-system/sw/bin for runtime compatibility
+      cat > /run/current-system/sw/bin/opencode-wrapper << 'EOF'
       #!/usr/bin/env bash
       export OPENCODE_INSTALL_DIR="$INSTALL_DIR"
 
@@ -179,10 +180,10 @@
       exec opencode "\\$@"
       'EOF'
 
-      chmod +x /usr/local/bin/opencode-wrapper
+      chmod +x /run/current-system/sw/bin/opencode-wrapper
 
       echo "OpenAgents Control enabled at: $INSTALL_DIR"
-      echo "Wrapper script created: /usr/local/bin/opencode-wrapper"
+      echo "Wrapper script created: /run/current-system/sw/bin/opencode-wrapper"
       echo ""
       echo "To use OpenCode agents with OpenAgents Control:"
       echo "  opencode-wrapper --agent openagent"
@@ -199,7 +200,7 @@
 
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "/etc/opencode-update.sh";
+          ExecStart = "${pkgs.bash}/bin/bash /etc/opencode-update.sh";
           User = "root";
         };
       };
