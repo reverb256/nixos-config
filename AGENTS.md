@@ -167,6 +167,82 @@ just dev-setup           # Full development pipeline
 ./test-detection.fish    # Project detection tests
 ```
 
+## CODE QUALITY STANDARDS
+
+### Linting Tools
+This codebase uses three primary linting tools:
+
+| Tool | Purpose | Command |
+|------|---------|---------|
+| **deadnix** | Find dead/unused code | `deadnix .` |
+| **statix** | Linting and best practices | `statix check .` |
+| **alejandra** | Code formatting | `alejandra .` |
+
+### Pre-commit Checklist
+Before committing, always run:
+```bash
+just format   # alejandra .
+just lint     # statix check .
+deadnix .     # Check for dead code
+```
+
+### Common Issues Found
+
+#### 1. Unused Lambda Patterns (deadnix)
+**Issue**: Unused parameters in function arguments
+```nix
+# BAD - unused parameters
+{ config, lib, pkgs, ... }: {  # config, lib not used
+  # ...
+}
+
+# GOOD - only declare what you use
+{ pkgs, ... }: {
+  # ...
+}
+```
+
+#### 2. Repeated Keys (statix W20)
+**Issue**: Repeating attribute keys instead of grouping
+```nix
+# BAD - repeated keys
+{
+  networking.hostName = "zephyr";
+  networking.networkmanager.enable = true;
+  networking.firewall.enable = true;
+}
+
+# GOOD - grouped keys
+{
+  networking = {
+    hostName = "zephyr";
+    networkmanager.enable = true;
+    firewall.enable = true;
+  };
+}
+```
+
+#### 3. Empty Patterns (statix W10)
+**Issue**: Using `{...}` when `_` is clearer
+```nix
+# BAD
+{ ... }: {
+  # no arguments used
+}
+
+# GOOD
+_: {
+  # explicitly no arguments
+}
+```
+
+### Project Statistics (Post-Audit)
+- **Total Files**: 65 nix files
+- **Lines of Code**: ~3,500 (after cleanup)
+- **Modules**: 23 specialized modules
+- **Hosts**: 4-node cluster
+- **Options**: 310+ configuration options
+
 ## NOTES
 - **This is a personal config**, not a library
 - **Modular architecture**: features in `modules/`, custom pkgs in `packages/`

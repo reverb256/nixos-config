@@ -11,5 +11,4 @@
     "d /run/user/%i/.cache/steam 0700 %i %i"
     "d /run/user/%i/tmux 0700 %i %i"
   ];
-  
 }

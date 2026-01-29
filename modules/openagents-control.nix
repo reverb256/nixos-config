@@ -52,7 +52,6 @@
       jq
     ];
 
-
     # Create wrapper scripts for OpenAgents Control management
     environment.etc."opencode-installer.sh".text = ''
       #!/usr/bin/env bash

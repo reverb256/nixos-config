@@ -43,9 +43,9 @@ in {
     environment.etc."nixos-auto-update.sh".source =
       pkgs.writeScript "nixos-auto-update.sh" ''
         #!/usr/bin/env bash
-              
+            
         set -euo pipefail
-              
+            
         FLAKE_PATH=''
       /etc/nixos ''
         LOG_FILE=/var/log/nixos-auto-update.log

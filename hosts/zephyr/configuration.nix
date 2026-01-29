@@ -1,24 +1,51 @@
 # Zephyr Host Configuration - Steam + Wayland Optimized
 # 10.1.1.110 - Master Workstation (32 cores, RTX 3090) - Steam Compatible
-{...}: {
+{pkgs, ...}: {
   imports = [
-    # Host-specific hardware
     ./hardware-configuration.nix
-    # Steam-compatible desktop and gaming
     ../../modules/desktop.nix
     ../../modules/steam-wayland-robust.nix
-    # OpenAgents Control
     ../../modules/openagents-control.nix
-    # Remove gaming.nix - too aggressive for Steam compatibility
   ];
 
   # Host identification
   networking.hostName = "zephyr";
 
   # ============================================================================
+  # NVIDIA CONFIGURATION - RTX 3090 (consolidated here, removed from main config)
+  # ============================================================================
+  hardware.nvidia = {
+    package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
+    modesetting.enable = true;
+    open = false;
+    nvidiaSettings = true;
+    powerManagement.enable = true;
+  };
+
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+    extraPackages = with pkgs; [
+      nvidia-vaapi-driver
+    ];
+  };
+
+  # ============================================================================
+  # DISPLAY MANAGER - SDDM with Wayland support
+  # ============================================================================
+  services.displayManager = {
+    sddm.enable = true;
+    sddm.wayland.enable = true;
+    defaultSession = "plasma";
+    autoLogin = {
+      enable = true;
+      user = "j_kro";
+    };
+  };
+
+  # ============================================================================
   # HOME MANAGER CONFIGURATION
   # ============================================================================
-
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
@@ -35,9 +62,7 @@
 
       programs = {
         home-manager.enable = true;
-        fish = {
-          enable = true;
-        };
+        fish.enable = true;
       };
 
       xdg = {
@@ -48,72 +73,39 @@
   };
 
   # ============================================================================
-  # BOOTLOADER - systemd-boot
+  # BOOTLOADER
   # ============================================================================
-
   boot.loader = {
     systemd-boot.enable = true;
     efi.canTouchEfiVariables = true;
   };
 
   # ============================================================================
-  # STEAM-COMPATIBLE KERNEL PARAMETERS (Conservative for Wayland)
+  # MINING CONFIGURATION
   # ============================================================================
-
-  boot.kernelParams = [
-    # Steam-specific optimizations
-    "fsync.enable=1"
-
-    # NVIDIA Wayland support (desktop module handles nvidia-drm.modeset=1)
-    "threadirqs"
-
-    # Enhanced NVIDIA RTX 3090 optimizations (Steam-compatible)
-    "nvidia.NVreg_RegistryDwords=PerfLevelSrc=0x2222"
-    "nvidia.NVreg_UsePageAttributeTable=1" # Better memory management
-    "nvidia.NVreg_EnableResizableBar=1" # Resizable BAR for RTX 3090
-    "nvidia-uvm/uvm_disable_huge_pages=1" # Fix SteamVR compatibility
-
-    # Conservative CPU optimizations (removed aggressive Steam-breaking params)
-    "amd_pstate=active"
-    "mitigations=off"
-    "transparent_hugepage=madvise"
-    "numa_balancing=disable"
-    "nowatchdog"
-
-    # Safe I/O optimizations
-    "elevator=none"
-
-    # REMOVED: These break Steam process management
-    # "isolcpus=managed_applications" - INTERFERES WITH STEAM
-    # "nohz_full=1-15" - BREAKS STEAM PROCESS MANAGEMENT
-    # "rcu_nocbs=1-15" - BREAKS STEAM PROCESS MANAGEMENT
-  ];
-
-  # ============================================================================
-  # MINING CONFIGURATION (Steam-aware - pauses during gaming)
-  # ============================================================================
-
-  # Note: Smart mining pause is handled by steam-wayland-robust.nix
-  # It will automatically pause mining when Steam/VR games are detected
-  services.mining.enable = true;
-  services.mining.xmrig.enable = true;
-  services.mining.xmrig.threads = 16;
-  services.mining.xmrig.pool = "xtm-rx-us.kryptex.network:8038";
-  services.mining.xmrig.wallet = "krxXVNVMM7.zephyr";
-
-  # Steam-optimized lolminer configuration
-  services.mining.lolminer.enable = true;
-  services.mining.lolminer.nvidia.enable = true;
-  services.mining.lolminer.nvidia.devices = "0";
-  services.mining.lolminer.algorithm = "CR29";
-  services.mining.lolminer.pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
-  services.mining.lolminer.wallet = "krxXVNVMM7.zephyr";
+  services.mining = {
+    enable = true;
+    xmrig = {
+      enable = true;
+      threads = 16;
+      pool = "xtm-rx-us.kryptex.network:8038";
+      wallet = "krxXVNVMM7.zephyr";
+    };
+    lolminer = {
+      enable = true;
+      algorithm = "CR29";
+      pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
+      wallet = "krxXVNVMM7.zephyr";
+      nvidia = {
+        enable = true;
+        devices = "0";
+      };
+    };
+  };
 
   # ============================================================================
   # NETWORKING (Static IP)
   # ============================================================================
-
-  # Configure NetworkManager for ethernet with static IP
   networking.networkmanager.ensureProfiles = {
     profiles."Wired connection 1" = {
       connection = {
@@ -128,15 +120,9 @@
         gateway = "10.1.1.1";
         dns = "127.0.0.1,::1";
       };
-      ipv6 = {
-        method = "auto";
-      };
+      ipv6.method = "auto";
     };
   };
-
-  # ============================================================================
-  # LOCAL HOSTS ENTRIES
-  # ============================================================================
 
   networking.hosts = {
     "10.1.1.110" = ["zephyr"];
@@ -145,29 +131,32 @@
     "10.1.1.140" = ["sentry"];
   };
 
-  # USER GROUPS - Essential for Steam controller and uinput access
+  # ============================================================================
+  # USER GROUPS
+  # ============================================================================
   users.users.j_kro.extraGroups = ["plugdev"];
 
-  # OpenAgents Control Configuration
+  # ============================================================================
+  # OPENAGENTS CONTROL
+  # ============================================================================
   services.openagents-control = {
     enable = true;
-    installProfile = "advanced"; # Choose: essential, developer, business, full, or advanced
+    installProfile = "advanced";
     installDir = "$HOME/.config/opencode";
-    autoUpdate = false; # Temporarily disabled to fix service startup issue
+    autoUpdate = false;
   };
 
   # ============================================================================
-  # FIREWALL (VR ports for WiVRn streaming - Steam-compatible)
+  # FIREWALL
   # ============================================================================
-
   networking.firewall = {
-    allowedTCPPorts = [9757]; # WiVRn TCP
+    allowedTCPPorts = [9757];
     allowedUDPPorts = [
-      9757 # WiVRn UDP
-      9758 # WiVRn control
-      9759 # Lighthouse tracking
-      27031 # SteamVR
-      27036 # SteamVR discovery
+      9757
+      9758
+      9759
+      27031
+      27036
     ];
   };
 }
