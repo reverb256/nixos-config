@@ -1,26 +1,28 @@
-{ config, lib, pkgs, ... }:
-
-with lib;
-
 {
-  imports = [ ./modules ];
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+with lib; {
+  imports = [./modules];
 
   options = {
     services.flatpak.polkit = {
       enable = mkEnableOption "Enable custom Flatpak polkit policies";
-      
+
       allowAppstreamOperations = mkOption {
         type = types.bool;
         default = true;
         description = "Allow regular users to perform AppStream operations without authentication";
       };
-      
+
       allowSystemOperations = mkOption {
         type = types.bool;
         default = false;
         description = "Allow regular users to perform system-wide operations without authentication";
       };
-      
+
       allowUserOperations = mkOption {
         type = types.bool;
         default = true;
@@ -39,7 +41,7 @@ with lib;
           }
         });
       '';
-      
+
       allowSystemOperations = ''
         polkit.addRule(function(action, subject) {
           if (action.id == "org.freedesktop.Flatpak.app-install" ||
@@ -54,7 +56,7 @@ with lib;
           }
         });
       '';
-      
+
       allowUserOperations = ''
         polkit.addRule(function(action, subject) {
           if (action.id == "org.freedesktop.Flatpak.app-update" ||
@@ -64,12 +66,13 @@ with lib;
           }
         });
       '';
-      
-      rules = concatStringsSep "\n" ([
+
+      rules = concatStringsSep "\n" [
         (mkIf config.services.flatpak.polkit.allowAppstreamOperations alwaysAllow)
         (mkIf config.services.flatpak.polkit.allowSystemOperations allowSystemOperations)
         (mkIf config.services.flatpak.polkit.allowUserOperations allowUserOperations)
-      ]);
-    in rules;
+      ];
+    in
+      rules;
   };
 }

@@ -95,7 +95,6 @@ with lib; {
     };
   };
 
-
   # ============================================================================
   # STEAM - Full VR Support with NVENC Optimizations
   # ============================================================================
@@ -104,28 +103,32 @@ with lib; {
     extraCompatPackages = with pkgs;
       [
       ]
-      ++ (if inputs != null then [
-        inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
-      ] else []);
+      ++ (
+        if inputs != null && inputs ? nixpkgs-xr
+        then [
+          inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
+        ]
+        else []
+      );
   };
 
   # ============================================================================
   # ANIME GAME LAUNCHERS (Simplified ezKEa Setup)
   # ============================================================================
   # Only the 4 games you need - direct ezKEa package references
-  programs.anime-game-launcher = lib.mkIf (inputs != null) {
+  programs.anime-game-launcher = lib.mkIf (inputs != null && inputs ? ezkea) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.anime-game-launcher;
   };
-  programs.honkers-railway-launcher = lib.mkIf (inputs != null) {
+  programs.honkers-railway-launcher = lib.mkIf (inputs != null && inputs ? ezkea) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.honkers-railway-launcher;
   };
-  programs.wavey-launcher = lib.mkIf (inputs != null) {
+  programs.wavey-launcher = lib.mkIf (inputs != null && inputs ? ezkea) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.wavey-launcher;
   };
-  programs.sleepy-launcher = lib.mkIf (inputs != null) {
+  programs.sleepy-launcher = lib.mkIf (inputs != null && inputs ? ezkea) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.sleepy-launcher;
   };
@@ -254,40 +257,39 @@ with lib; {
   # ============================================================================
   # PACKAGES - VR Applications and Tools
   # ============================================================================
-  environment.systemPackages = with pkgs; [
-    # VR runtimes and tools
-    wivrn
-    openxr-loader
+  environment.systemPackages = with pkgs;
+    [
+      # VR runtimes and tools
+      wivrn
+      openxr-loader
 
-    # SteamVR support
-    steam-run
+      # SteamVR support
+      steam-run
 
-    # Motion tracking calibration tools
-    motoc
+      # Motion tracking calibration tools
+      motoc
 
-    # Performance monitoring and optimization tools
-    gamescope
-    mangohud
-    goverlay
-    nvtopPackages.full
+      # Performance monitoring and optimization tools
+      gamescope
+      mangohud
+      goverlay
+      nvtopPackages.full
 
-    # proton-cachyos temporarily disabled
-    gamemode
-    scx.full
+      # proton-cachyos temporarily disabled
+      gamemode
+      scx.full
 
-    # Enhanced Claude Code environment
-    inputs.claude-native.packages."x86_64-linux".default
+      # FFmpeg with NVENC support for streaming
+      pkgs.ffmpeg-full
 
-    # FFmpeg with NVENC support for streaming
-    pkgs.ffmpeg-full
+      # Enhanced Claude Code environment (conditional)
+    ]
+    ++ lib.optionals (inputs != null && inputs ? claude-native) [
+      inputs.claude-native.packages."x86_64-linux".default
+    ];
 
-    # FFmpeg with NVENC support for streaming
-    pkgs.ffmpeg-full
-
-    # ANIME GAME LAUNCHERS - ezKEa/aagl-gtk-on-nix overlay
-    # Note: Launchers are managed via programs.* options above, not system packages
-  ];
-
+  # ANIME GAME LAUNCHERS - ezKEa/aagl-gtk-on-nix overlay
+  # Note: Launchers are managed via programs.* options above, not system packages
 
   # ============================================================================
   # UDEV RULES - VR Device Permissions
@@ -405,7 +407,7 @@ with lib; {
       export DXVK_ASYNC=1
       # Custom Proton-GE-RTSP support
       export PROTON_USE_DXVK=1
-      
+
     '';
   };
 

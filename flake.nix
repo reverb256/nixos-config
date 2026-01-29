@@ -40,11 +40,16 @@
     # Colmena - Multi-host deployment
     colmena.url = "github:zhaofengli/colmena";
     colmena.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Kimi Code CLI - AI coding agent
+    kimi-cli.url = "github:MoonshotAI/kimi-cli";
+    kimi-cli.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs @ {
     self,
     nixpkgs,
+    kimi-cli,
     ...
   }: let
     # Common modules shared across all hosts, inlined here for clarity
@@ -148,6 +153,9 @@
     # Formatter for nix fmt
     formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
 
-    packages.x86_64-linux.claude = inputs.claude-native.packages.x86_64-linux.default;
+    packages.x86_64-linux = {
+      claude = inputs.claude-native.packages.x86_64-linux.default;
+      kimi = inputs.kimi-cli.packages.x86_64-linux.default;
+    };
   };
 }
