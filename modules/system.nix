@@ -34,20 +34,7 @@
   # SYSTEM OPTIMIZATIONS
   # ============================================================================
 
-  # Phase 1: CPU governor for gaming performance
-  powerManagement.cpuFreqGovernor = "performance";
-
-  # Phase 1: Memory management optimizations
-  zramSwap = {
-    enable = true;
-    memoryPercent = 50;
-    algorithm = "zstd";
-  };
-
-  # Phase 1: OOM daemon for memory pressure management
-  systemd.oomd = {
-    enable = true;
-    enableRootSlice = true;
-    enableSystemSlice = true;
-  };
+  # Note: powerManagement.cpuFreqGovernor is set in configuration.nix
+  # Note: zramSwap is configured in configuration.nix
+  # Note: OOM handling uses services.earlyoom from configuration.nix
 }

@@ -5,8 +5,6 @@
   ...
 }:
 with lib; {
-  imports = [./modules];
-
   options = {
     services.flatpak.polkit = {
       enable = mkEnableOption "Enable custom Flatpak polkit policies";

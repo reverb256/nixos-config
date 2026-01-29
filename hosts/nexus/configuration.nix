@@ -1,56 +1,46 @@
 # Nexus Host Configuration
 # 10.1.1.120 - Build Server (24 cores, 2x RTX 3060 Ti)
-{...}: {
+{pkgs, ...}: {
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
+    # Import desktop module for Plasma 6
+    ../../modules/desktop.nix
     # Import gaming module
     ../../modules/gaming.nix
+    # Import NVIDIA Wayland module (best practices)
+    ../../modules/nvidia-wayland.nix
   ];
 
   # Host identification
   networking.hostName = "nexus";
 
   # ============================================================================
-  # BOOTLOADER - systemd-boot
+  # NVIDIA WAYLAND CONFIGURATION (RTX 3060 Ti)
   # ============================================================================
-
-  boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
-  };
-
-  # ============================================================================
-  # DESKTOP ENVIRONMENT - KDE Plasma 6
-  # ============================================================================
-
-  # NVIDIA configuration for RTX 3060 Ti (use proprietary drivers with ZEN kernel)
   hardware.nvidia = {
     package = pkgs.linuxPackages_zen.nvidiaPackages.production;
-    modesetting.enable = true;
-    open = false;
-    nvidiaSettings = true;
-    powerManagement.enable = true;
   };
 
-  hardware.opengl = {
+  # Enable NVIDIA Wayland optimizations
+  hardware.nvidia.wayland = {
     enable = true;
-    extraPackages = with pkgs; [
-      nvidia-vaapi-driver # Provides proper NVIDIA OpenCL ICD
-    ];
+    enable32Bit = true;
+    openModules = true;  # Use open-source modules for better Wayland support
+    powerManagement = true;
+    sddmWayland = true;
   };
 
-  services = {
-    xserver.enable = true;
-    # xserver.videoDrivers no longer needed - handled by hardware.nvidia
-    displayManager = {
-      sddm.enable = true;
-      autoLogin = {
-        enable = true;
-        user = "j_kro";
-      };
+  # Legacy X11 video driver setting (kept for compatibility)
+  services.xserver.videoDrivers = ["nvidia"];
+
+  services.displayManager = {
+    sddm.enable = true;
+    defaultSession = "plasma";
+    autoLogin = {
+      enable = true;
+      user = "j_kro";
     };
-    desktopManager.plasma6.enable = true;
   };
 
   # ============================================================================

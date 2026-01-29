@@ -79,7 +79,7 @@ in {
       };
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "/etc/nixos-auto-update.sh";
+        ExecStart = "${pkgs.bash}/bin/bash /etc/nixos-auto-update.sh";
         User = "root";
         StandardOutput = "journal";
         StandardError = "journal";
