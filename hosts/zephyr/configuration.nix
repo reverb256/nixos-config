@@ -118,10 +118,14 @@
   # ============================================================================
   # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
   # ============================================================================
-  programs.openclaw = {
-    enable = true;
-    model = "llama3.2:3b";
-  };
+  # DISABLED: OpenClaw nix-openclaw flake is severely broken in latest version
+  # - Missing generated config file: openclaw-config-options.nix
+  # - systemd unitName attribute missing
+  # - First-party plugins causing null pointer errors
+  # programs.openclaw = {
+  #   enable = true;
+  #   model = "llama3.2:3b";
+  # };
 
   services.ollama = {
     enable = true;
