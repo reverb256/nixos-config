@@ -81,9 +81,9 @@
   services.blueman.enable = true;
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
-  
+
   # Bluetooth audio profiles support
-  services.pulseaudio.enable = false;  # Use PipeWire's PulseAudio replacement
+  services.pulseaudio.enable = false; # Use PipeWire's PulseAudio replacement
 
   # ============================================================================
   # KDE WALLET

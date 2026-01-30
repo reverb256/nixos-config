@@ -7,8 +7,8 @@
 with lib; let
   cfg = config.services.mining;
 
-  # Use config.boot.kernelPackages.nvidiaPackages.beta for correct driver path
-  nvidiaPackage = config.boot.kernelPackages.nvidiaPackages.beta;
+  # Use config.boot.kernelPackages.nvidiaPackages.stable for correct driver path
+  nvidiaPackage = config.boot.kernelPackages.nvidiaPackages.stable;
 
   # Minimal wrapper for NVIDIA mining inside steam-run
   lolminerWrapper = pkgs.writeShellScriptBin "lolminer-wrapper" ''
@@ -124,7 +124,7 @@ in {
 
     # Create mining API token file (fallback when agenix is not available)
     systemd.tmpfiles.rules = [
-      "d /run/secrets 0750 root root -" 
+      "d /run/secrets 0750 root root -"
       "f /run/secrets/mining-api-token 0640 root root 'xmrig-api-token'"
     ];
 
@@ -179,21 +179,21 @@ in {
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
           wantedBy = ["multi-user.target"];
-          after = ["NetworkManager.service" "nvidia-persistenced.service"];
-          requires = ["nvidia-persistenced.service"];
+          after = ["NetworkManager.service"];
+          requires = [];
 
           serviceConfig = {
-            User = "root";
-            Group = "mining";
+            User = "j_kro";
+            Group = "users";
             Slice = "mining.slice";
             ExecStartPre = [
               # Set persistent management and power limit for RTX 3090
-              "${pkgs.bash}/bin/bash -c '${nvidiaPackage}/bin/nvidia-smi -pm 1'"
+              "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH nvidia-smi -pm 1'"
               # Set power limit to 250W as required for zephyr
-              "${pkgs.bash}/bin/bash -c '${nvidiaPackage}/bin/nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices}'"
+              "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices}'"
             ];
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
-            ExecStopPost = "${pkgs.bash}/bin/bash -c '${nvidiaPackage}/bin/nvidia-smi -pl 350 --id=${cfg.lolminer.nvidia.devices} || true'"; # Reset power limit to 350W
+            ExecStopPost = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH nvidia-smi -pl 350 --id=${cfg.lolminer.nvidia.devices} || true'"; # Reset power limit to 350W
             Restart = "always";
             RestartSec = "30s";
             Environment = [
@@ -217,8 +217,8 @@ in {
           after = ["NetworkManager.service"];
 
           serviceConfig = {
-            User = "root";
-            Group = "mining";
+            User = "j_kro";
+            Group = "users";
             Slice = "mining.slice";
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --mode b --tls 1";
             Restart = "always";
