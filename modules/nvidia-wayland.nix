@@ -90,7 +90,7 @@ in {
     # ============================================================================
     # DISPLAY MANAGER (SDDM with Wayland)
     # ============================================================================
-    services.displayManager.sddm.wayland.enable = cfg.sddmWayland;
+    services.displayManager.sddm.wayland.enable = lib.mkDefault cfg.sddmWayland;
 
     # ============================================================================
     # ENVIRONMENT VARIABLES (Critical for NVIDIA + Wayland)
