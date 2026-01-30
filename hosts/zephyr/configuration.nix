@@ -27,7 +27,7 @@
   hardware.nvidia.wayland = {
     enable = true;
     enable32Bit = true;
-    openModules = false;  # DISABLED - GSP firmware not loading, using proprietary modules for stability
+    openModules = true;  # Use open-source kernel modules with proprietary userspace (GSP firmware now included)
     powerManagement = true;
     sddmWayland = true;
   };

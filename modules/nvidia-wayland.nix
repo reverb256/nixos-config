@@ -59,6 +59,11 @@ in {
       # Can be disabled for proprietary modules on RTX 3090 for stability
       gsp.enable = cfg.openModules;
     };
+    
+    # Include NVIDIA firmware when using open modules (required for GSP)
+    hardware.firmware = lib.optionals cfg.openModules [
+      config.hardware.nvidia.package.firmware
+    ];
 
     # ============================================================================
     # GRAPHICS CONFIGURATION
