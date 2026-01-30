@@ -105,10 +105,10 @@
   };
 
   # Zen Browser configuration - Enhanced privacy and productivity setup
-  # Zen Browser - Now using binary cache (zen-browser.cachix.org)
-  # No more compilation required!
+  # Zen Browser - DISABLED: Compiling from source (2-4 hours)
+  # Re-enable when you have time: Set enable = true and run rebuild
   programs.zen-browser = {
-    enable = true;
+    enable = false;
 
     # Firefox-like policies and configuration
     policies = {
