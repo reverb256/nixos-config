@@ -115,14 +115,15 @@
   # ============================================================================
   # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
   # ============================================================================
-  programs.openclaw = {
-    enable = true;
-    model = "llama3.2:3b";
-  };
+  # DISABLED: OpenClaw module has upstream bugs (agent attribute missing)
+  # programs.openclaw = {
+  #   enable = true;
+  #   model = "llama3.2:3b";
+  # };
 
   services.ollama = {
     enable = true;
-    acceleration = "cuda";  # Use NVIDIA RTX 3090
+    package = pkgs.ollama-cuda;  # Use NVIDIA RTX 3090 CUDA acceleration
     environmentVariables = {
       OLLAMA_KEEP_ALIVE = "24h";
     };
