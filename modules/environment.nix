@@ -41,9 +41,10 @@
       # Use NixOS's built-in locale management instead of manual force overrides
       # This allows the system to handle locale properly while maintaining compatibility
 
-      # DualSense controller environment variables - DISABLED to prevent keyboard input conflicts
-      SDL_JOYSTICK_HIDAPI_PS5 = "0"; # Disabled to prevent keyboard input conflicts with Wine
-      SDL_JOYSTICK_HIDAPI_PS5_RUMBLE = "0"; # Disable rumble to prevent input conflicts
+      # DualSense controller environment variables - ENABLED for native DualSense support in AAGL
+      # Note: May cause conflicts with some Wine games, but required for native DualSense features
+      SDL_JOYSTICK_HIDAPI_PS5 = "1"; # Enable native DualSense HIDAPI driver (gyro, haptics, adaptive triggers)
+      SDL_JOYSTICK_HIDAPI_PS5_RUMBLE = "1"; # Enable rumble support
 
       # Wine hidraw support - ENABLED for proper keyboard input in Wine applications
       WINEHIDRAW = "1"; # Required for keyboard input in AAGL and other Wine apps
