@@ -9,18 +9,18 @@
 }: let
   cfg = config.services.moltbot;
 
-    # NPM wrapper for moltbot CLI - LOCAL ONLY
+  # NPM wrapper for moltbot CLI - LOCAL ONLY
   moltbotWrapper = pkgs.writeShellScriptBin "moltbot" ''
     export PATH="${pkgs.nodejs_22}/bin:$PATH"
     export CLAWDBOT_NIX_MODE="1"
     export CLAWDBOT_STATE_DIR="${cfg.stateDir}"
-    
+
     # Local inference configuration
     export CLAWDBOT_DEFAULT_PROVIDER="local"
     export OPENAI_BASE_URL="${cfg.localApiUrl}"
     # LM Studio accepts any non-empty API key for local inference
     export OPENAI_API_KEY="${cfg.localApiKey}"
-    
+
     exec ${pkgs.nodejs_22}/bin/npx -y moltbot@latest "$@"
   '';
 
@@ -29,13 +29,13 @@
     export PATH="${pkgs.nodejs_22}/bin:$PATH"
     export CLAWDBOT_NIX_MODE="1"
     export CLAWDBOT_STATE_DIR="${cfg.stateDir}"
-    
+
     # Local inference configuration
     export CLAWDBOT_DEFAULT_PROVIDER="local"
     export OPENAI_BASE_URL="${cfg.localApiUrl}"
     # LM Studio accepts any non-empty API key for local inference
     export OPENAI_API_KEY="${cfg.localApiKey}"
-    
+
     exec ${pkgs.nodejs_22}/bin/npx -y moltbot@latest gateway --port ${toString cfg.port} --verbose
   '';
 in {
@@ -92,31 +92,31 @@ in {
         This is primarily for documentation purposes.
 
         RECOMMENDED MODELS for RTX 3090 (24GB VRAM) with lolminer running (8GB reserved):
-        
+
         **PRIMARY RECOMMENDATION (January 2026):**
         - **GLM-4.7-Flash** - Q4_K_M, ~12-14GB VRAM, released Jan 19 2026
           HuggingFace: `THUDM/GLM-4.7-Flash`
           Best for: Mining + AI simultaneously, fast inference, coding
           VRAM headroom: 10-12GB free for mining
-        
+
         **ALTERNATIVES (December 2025 / January 2026 releases):**
         - **Nemotron-3-Nano (30B A3B)** - Q4_K_M, ~16-18GB VRAM, released Dec 15 2025
           Best for: AI assistants, function calling
           VRAM headroom: 6-8GB free (tight but works)
-          
+
         - **Qwen3-Coder-30B-A3B** - Q4_K_M, ~15-17GB VRAM, released Dec 3 2025
           Best for: Code generation, debugging
           VRAM headroom: 7-9GB free
-          
+
         - **MiniMax-M2.1-Lightweight** - Q4_K_M, ~12-14GB VRAM, released Dec 23 2025
           Best for: General tasks, efficiency
           VRAM headroom: 10-12GB free
-        
+
         **OLDER BUT RELIABLE:**
         - **Mistral-Small-3 (24B)** - Q4_K_M, ~14-15GB VRAM, 150 TPS, Apache 2.0
           HuggingFace: `mistralai/Mistral-Small-24B-Instruct-2501`
           Released: January 30, 2025
-          
+
         **FAST OPTIONS (low VRAM):**
         - **Llama-3.1-8B** - Q4_K_M, ~5GB VRAM, 110+ TPS
         - **gpt-oss-20b** - Q4_K_M, ~5GB VRAM, 62 TPS
@@ -138,11 +138,11 @@ in {
       description = "Group to run Moltbot services as";
     };
 
-    enableGateway = lib.mkEnableOption "Moltbot gateway systemd service" // {
-      default = true;
-    };
-
-
+    enableGateway =
+      lib.mkEnableOption "Moltbot gateway systemd service"
+      // {
+        default = true;
+      };
   };
 
   config = lib.mkIf cfg.enable {
@@ -174,19 +174,19 @@ in {
         ExecStop = "${pkgs.coreutils}/bin/pkill -f 'moltbot gateway'";
         Restart = "always";
         RestartSec = "10s";
-        
+
         # Security hardening
         NoNewPrivileges = false;
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = false;
         ReadWritePaths = [cfg.stateDir];
-        
+
         # Resource limits for RTX 3090 with 24GB VRAM
         # Gateway itself uses minimal resources; LM Studio handles model inference
         MemoryMax = "8G";
         CPUQuota = "100%";
-        
+
         # Environment
         Environment = [
           "CLAWDBOT_NIX_MODE=1"
@@ -244,7 +244,7 @@ in {
       ### Option 2: Custom OpenAI-Compatible Server
 
       For other CUDA-enabled inference servers (llama.cpp, TGI, etc.):
-      
+
       1. Start your inference server on desired port
       2. Configure Molt.bot:
          ```nix

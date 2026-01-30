@@ -64,8 +64,6 @@
 
       # Wine keyboard and input fixes
       WINEDLLOVERRIDES = "mscoree,mshtml="; # Disable problematic DLLs
-      __GL_VDPAU_CAPTURE_CLIENT_BUFFER = "0"; # Fix NVIDIA capture issues
-      __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1"; # Improve shader cache performance
 
       # Wayland portal services for complete functionality (avoid duplicates)
       # XDG_CURRENT_DESKTOP and XDG_SESSION_DESKTOP already defined above

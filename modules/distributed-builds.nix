@@ -57,13 +57,13 @@ in {
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ${sshOpts}
-      
+
     Host forge
       HostName 10.1.1.130
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
       ${sshOpts}
-      
+
     Host sentry
       HostName 10.1.1.140
       User j_kro

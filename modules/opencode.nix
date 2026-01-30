@@ -1,8 +1,11 @@
-{ config, lib, pkgs, ... }:
-let
-  cfg = config.services.opencode;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.services.opencode;
+in {
   options.services.opencode = {
     enable = lib.mkEnableOption "Enable OpenCode configuration";
 
@@ -33,7 +36,7 @@ in
     xdg.configFile."opencode/opencode.json" = {
       force = true;
       text = builtins.toJSON {
-        plugin = [ "oh-my-opencode" ];
+        plugin = ["oh-my-opencode"];
         "$schema" = "https://opencode.ai/config.json";
         model = cfg.defaultModel;
         provider = {
@@ -61,13 +64,13 @@ in
           };
         };
         agent = {
-          sisyphus = { model = cfg.defaultModel; };
-          librarian = { model = cfg.defaultModel; };
-          explore = { model = cfg.defaultModel; };
-          oracle = { model = cfg.defaultModel; };
-          "frontend-ui-ux-engineer" = { model = cfg.defaultModel; };
-          "document-writer" = { model = cfg.defaultModel; };
-          "multimodal-looker" = { model = cfg.defaultModel; };
+          sisyphus = {model = cfg.defaultModel;};
+          librarian = {model = cfg.defaultModel;};
+          explore = {model = cfg.defaultModel;};
+          oracle = {model = cfg.defaultModel;};
+          "frontend-ui-ux-engineer" = {model = cfg.defaultModel;};
+          "document-writer" = {model = cfg.defaultModel;};
+          "multimodal-looker" = {model = cfg.defaultModel;};
         };
       };
     };
@@ -77,13 +80,13 @@ in
       text = builtins.toJSON {
         "$schema" = "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json";
         agents = {
-          sisyphus = { model = cfg.defaultModel; };
-          librarian = { model = cfg.defaultModel; };
-          explore = { model = cfg.defaultModel; };
-          oracle = { model = cfg.defaultModel; };
-          "frontend-ui-ux-engineer" = { model = cfg.defaultModel; };
-          "document-writer" = { model = cfg.defaultModel; };
-          "multimodal-looker" = { model = cfg.defaultModel; };
+          sisyphus = {model = cfg.defaultModel;};
+          librarian = {model = cfg.defaultModel;};
+          explore = {model = cfg.defaultModel;};
+          oracle = {model = cfg.defaultModel;};
+          "frontend-ui-ux-engineer" = {model = cfg.defaultModel;};
+          "document-writer" = {model = cfg.defaultModel;};
+          "multimodal-looker" = {model = cfg.defaultModel;};
         };
       };
     };
