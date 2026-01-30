@@ -15,9 +15,12 @@
       # Allow j_kro to use restricted settings like builders-use-substitutes
       trusted-users = ["root" "j_kro"];
 
-      # Phase 1: CPU governor for gaming performance
-      max-jobs = 8; # Parallel derivations (use ~1/2 of threads)
-      cores = 16; # Cores per derivation (use ~1/2 of cores)
+      # Build resource management - avoid oversubscription
+      # Zephyr has 32 cores (16 physical + 16 hyperthread)
+      # Formula: max-jobs * cores = total cores used
+      # Setting: 4 jobs * 6 cores = 24 cores used, leaving 8 for desktop/mining
+      max-jobs = 4; # Parallel derivations (conservative for desktop use)
+      cores = 6; # Cores per derivation (leaves headroom for gaming/mining)
 
       # Distributed build configuration temporarily disabled to resolve cache issues
       # builders-use-substitutes = true;
