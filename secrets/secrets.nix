@@ -19,4 +19,9 @@ in {
 
   # Mining wallet addresses (encrypted)
   "mining-wallet".publicKeys = allHosts;
+
+  # Molt.bot API keys
+  "moltbot-openrouter-key".publicKeys = allHosts;
+  "moltbot-kilocode-key".publicKeys = allHosts;
+  "moltbot-anthropic-key".publicKeys = allHosts;
 }

@@ -1,6 +1,6 @@
 # Zephyr Host Configuration - Steam + Wayland Optimized
 # 10.1.1.110 - Master Workstation (32 cores, RTX 3090) - Steam Compatible
-{pkgs, lib, ...}: {
+{pkgs, lib, config, ...}: {
   imports = [
     ./hardware-configuration.nix
     ../../modules/desktop.nix
@@ -126,6 +126,20 @@
     installProfile = "advanced";
     installDir = "$HOME/.config/opencode";
     autoUpdate = false;
+  };
+
+  # ============================================================================
+  # MOLT.BOT AI AGENT (LOCAL ONLY)
+  # ============================================================================
+  services.moltbot = {
+    enable = true;
+    backend = "lmstudio";  # Options: lmstudio, vllm, ollama
+    localApiUrl = "http://localhost:1234/v1";  # LM Studio default
+    # For vLLM: localApiUrl = "http://localhost:8000/v1";
+    # For Ollama: localApiUrl = "http://localhost:11434/v1";
+    model = "gpt-oss-20b";  # Primary: gpt-oss-20b, Alternative: GLM-4.7-flash
+    port = 18789;
+    # enableLocalLLM = true;  # Set to true to enable built-in vLLM server
   };
 
   # ============================================================================
