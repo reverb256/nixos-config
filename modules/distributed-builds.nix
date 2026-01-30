@@ -18,9 +18,9 @@ in {
     # Building locally only until SSH keys are properly configured
     distributedBuilds = false;
 
-    # Build machines configuration
+    # Build machines - LOCAL ONLY (distributed builds disabled due to SSH issues)
     buildMachines = [
-      # Local machine (zephyr) - 32 cores, RTX 3090
+      # Local machine (zephyr) only - 32 cores, RTX 3090
       {
         hostName = "localhost";
         systems = ["x86_64-linux" "i686-linux"];
@@ -29,39 +29,8 @@ in {
         supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "cuda"];
         mandatoryFeatures = [];
       }
-      # Nexus - 24 cores, 2x RTX 3060 Ti
-      {
-        hostName = "nexus";
-        sshUser = "j_kro";
-        sshKey = "/home/j_kro/.ssh/id_rsa";
-        systems = ["x86_64-linux" "i686-linux"];
-        maxJobs = 6;
-        speedFactor = 3;
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "cuda"];
-        mandatoryFeatures = [];
-      }
-      # Forge - 6 cores, 2x RTX 4060 + 2x RX 5700 XT
-      {
-        hostName = "forge";
-        sshUser = "j_kro";
-        sshKey = "/home/j_kro/.ssh/id_rsa";
-        systems = ["x86_64-linux" "i686-linux"];
-        maxJobs = 3;
-        speedFactor = 1;
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "cuda"];
-        mandatoryFeatures = [];
-      }
-      # Sentry - 8 cores, RX 5600 XT
-      {
-        hostName = "sentry";
-        sshUser = "j_kro";
-        sshKey = "/home/j_kro/.ssh/id_rsa";
-        systems = ["x86_64-linux" "i686-linux"];
-        maxJobs = 4;
-        speedFactor = 2;
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm"];
-        mandatoryFeatures = [];
-      }
+      # Remote builders disabled - SSH authentication issues
+      # Nexus, Forge, Sentry removed until SSH keys are fixed
     ];
 
     # Settings for distributed builds
