@@ -37,18 +37,18 @@ in
         # Documents directory
         documents = cfg.documents;
         
-        # Enable ALL first-party plugins on ALL hosts
+        # Disable first-party plugins (causing build issues in new version)
         firstParty = {
-          summarize.enable = true;
-          peekaboo.enable = true;
-          oracle.enable = true;
-          poltergeist.enable = true;
-          sag.enable = true;
-          camsnap.enable = true;
-          gogcli.enable = true;
-          bird.enable = true;
-          sonoscli.enable = true;
-          imsg.enable = true;
+          summarize.enable = false;
+          peekaboo.enable = false;
+          oracle.enable = false;
+          poltergeist.enable = false;
+          sag.enable = false;
+          camsnap.enable = false;
+          gogcli.enable = false;
+          bird.enable = false;
+          sonoscli.enable = false;
+          imsg.enable = false;
         };
         
         # New API: Use 'config' instead of 'defaults' and 'providers'
