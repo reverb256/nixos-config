@@ -105,8 +105,10 @@
   };
 
   # Zen Browser configuration - Enhanced privacy and productivity setup
+  # TEMPORARILY DISABLED: Prevents long compilation times during rebuild
+  # To re-enable: Set enable = true and run rebuild
   programs.zen-browser = {
-    enable = true;
+    enable = false;
 
     # Firefox-like policies and configuration
     policies = {
