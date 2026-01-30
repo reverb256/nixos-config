@@ -18,14 +18,6 @@ in {
   nixpkgs.config.cudaSupport = true;
 
   # ============================================================================
-  # BLUETOOTH SUPPORT
-  # ============================================================================
-  hardware.bluetooth = {
-    enable = true;
-    powerOnBoot = true;
-  };
-
-  # ============================================================================
   # NIX CONFIGURATION - Experimental features, build optimization, and caching
   # ============================================================================
   nix = {
@@ -73,6 +65,7 @@ in {
     ./modules
     ./modules/nvidia-sandbox.nix
     ./modules/flatpak.nix
+    ./modules/distributed-builds.nix
     ./secrets/agenix-secrets.nix
   ];
 
