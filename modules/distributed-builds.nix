@@ -14,8 +14,9 @@ in {
   # DISTRIBUTED BUILD CONFIGURATION
   # ============================================================================
   nix = {
-    # ENABLED: SSH keys fixed, using distributed builds
-    distributedBuilds = true;
+    # DISABLED: SSH authentication issues with remote builders
+    # Building locally only until SSH keys are properly configured
+    distributedBuilds = false;
 
     # Build machines configuration
     buildMachines = [
