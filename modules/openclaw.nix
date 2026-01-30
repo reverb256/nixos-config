@@ -64,8 +64,10 @@ in
           model = "ollama/${cfg.model}";
         };
         
-        # Systemd user service - ENABLED (testing if bug is fixed in new version)
-        systemd.enable = true;
+        # Systemd user service - DISABLED (unitName bug still present in latest version)
+        # Error: attribute 'unitName' missing at config.nix:134:10
+        # Manual start only: run 'openclaw' command when needed
+        systemd.enable = false;
       };
     };
     
