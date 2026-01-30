@@ -148,8 +148,9 @@
 
       # ============================================================================
       # WEB BROWSER SUPPORT
+      # NOTE: firefoxpwa moved to home.nix to avoid Firefox compilation
       # ============================================================================
-      firefoxpwa
+      # firefoxpwa  # MOVED to home.nix - requires Firefox which compiles from source
 
       # ============================================================================
       # OPENCL SUPPORT
