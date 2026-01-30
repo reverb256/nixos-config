@@ -51,7 +51,7 @@
   hardware.nvidia.wayland = {
     enable = true;
     enable32Bit = true;
-    openModules = true;  # Use open-source kernel modules with proprietary userspace
+    openModules = true; # Use open-source kernel modules with proprietary userspace
     powerManagement = true;
     sddmWayland = true;
   };

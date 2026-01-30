@@ -23,7 +23,7 @@
   hardware.amdgpu.wayland = {
     enable = true;
     enable32Bit = true;
-    opencl = false;  # No GPU mining on Sentry
+    opencl = false; # No GPU mining on Sentry
     sddmWayland = true;
   };
 
