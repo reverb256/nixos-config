@@ -72,6 +72,10 @@
 
     # From nix profile (moved to declarative)
     gpu-viewer
+
+    # Firefox PWA - Progressive Web Apps support
+    # Moved from system-packages to avoid Firefox compilation during system updates
+    firefoxpwa
   ];
 
   # StreamLake Claude Code environment variables (enhanced with MCP)
