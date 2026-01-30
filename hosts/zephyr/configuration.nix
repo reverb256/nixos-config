@@ -116,7 +116,7 @@
   # ============================================================================
   # USER GROUPS
   # ============================================================================
-  users.users.j_kro.extraGroups = ["plugdev"];
+  users.users.j_kro.extraGroups = ["plugdev" "audio" "input"];
 
   # ============================================================================
   # OPENAGENTS CONTROL
@@ -136,7 +136,7 @@
     backend = "lmstudio";
     localApiUrl = "http://127.0.0.1:1234/v1";  # LM Studio OpenAI-compatible API
     localApiKey = "lm-studio-local";  # Any non-empty string works for LM Studio
-    model = "Qwen2.5-32B-Instruct";  # Load this in LM Studio first
+    model = "glm-4.7-flash";  # Primary: GLM-4.7-Flash (Jan 2026), Alternative: Nemotron-3-Nano
     port = 18789;
     stateDir = "/var/lib/moltbot";  # Absolute path for systemd
   };
