@@ -32,7 +32,7 @@ in {
       {
         hostName = "nexus";
         sshUser = "j_kro";
-        sshKey = "/home/j_kro/.ssh/id_ed25519";
+        sshKey = "/home/j_kro/.ssh/id_rsa";
         systems = ["x86_64-linux" "i686-linux"];
         maxJobs = 6;
         speedFactor = 3;
@@ -43,7 +43,7 @@ in {
       {
         hostName = "forge";
         sshUser = "j_kro";
-        sshKey = "/home/j_kro/.ssh/id_ed25519";
+        sshKey = "/home/j_kro/.ssh/id_rsa";
         systems = ["x86_64-linux" "i686-linux"];
         maxJobs = 3;
         speedFactor = 1;
@@ -54,7 +54,7 @@ in {
       {
         hostName = "sentry";
         sshUser = "j_kro";
-        sshKey = "/home/j_kro/.ssh/id_ed25519";
+        sshKey = "/home/j_kro/.ssh/id_rsa";
         systems = ["x86_64-linux" "i686-linux"];
         maxJobs = 4;
         speedFactor = 2;
