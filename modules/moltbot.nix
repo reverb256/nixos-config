@@ -86,18 +86,43 @@ in {
 
     model = lib.mkOption {
       type = lib.types.str;
-      default = "local-model";
+      default = "glm-4.7-flash";
       description = ''
         Model identifier for reference. LM Studio uses whatever model is currently loaded.
         This is primarily for documentation purposes.
 
-        Recommended models for RTX 3090 (24GB VRAM):
-        - Qwen2.5-32B-Instruct (Q4_K_M, ~16GB VRAM, excellent quality)
-        - Llama-3.3-70B-Instruct (Q4_K_M, ~18GB VRAM, best overall)
-        - Mixtral-8x22B-Instruct (Q4_K_M, ~20GB VRAM, MoE)
-        - Qwen2.5-14B-Instruct (Q4_K_M, ~8GB VRAM, fast)
+        RECOMMENDED MODELS for RTX 3090 (24GB VRAM) with lolminer running (8GB reserved):
+        
+        **PRIMARY RECOMMENDATION (January 2026):**
+        - **GLM-4.7-Flash** - Q4_K_M, ~12-14GB VRAM, released Jan 19 2026
+          HuggingFace: `THUDM/GLM-4.7-Flash`
+          Best for: Mining + AI simultaneously, fast inference, coding
+          VRAM headroom: 10-12GB free for mining
+        
+        **ALTERNATIVES (December 2025 / January 2026 releases):**
+        - **Nemotron-3-Nano (30B A3B)** - Q4_K_M, ~16-18GB VRAM, released Dec 15 2025
+          Best for: AI assistants, function calling
+          VRAM headroom: 6-8GB free (tight but works)
+          
+        - **Qwen3-Coder-30B-A3B** - Q4_K_M, ~15-17GB VRAM, released Dec 3 2025
+          Best for: Code generation, debugging
+          VRAM headroom: 7-9GB free
+          
+        - **MiniMax-M2.1-Lightweight** - Q4_K_M, ~12-14GB VRAM, released Dec 23 2025
+          Best for: General tasks, efficiency
+          VRAM headroom: 10-12GB free
+        
+        **OLDER BUT RELIABLE:**
+        - **Mistral-Small-3 (24B)** - Q4_K_M, ~14-15GB VRAM, 150 TPS, Apache 2.0
+          HuggingFace: `mistralai/Mistral-Small-24B-Instruct-2501`
+          Released: January 30, 2025
+          
+        **FAST OPTIONS (low VRAM):**
+        - **Llama-3.1-8B** - Q4_K_M, ~5GB VRAM, 110+ TPS
+        - **gpt-oss-20b** - Q4_K_M, ~5GB VRAM, 62 TPS
 
         Load model in LM Studio first, then start Molt.bot.
+        Monitor VRAM with `nvidia-smi` to ensure enough headroom for mining.
       '';
     };
 

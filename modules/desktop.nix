@@ -37,6 +37,19 @@
     gst_all_1.gst-libav
     ffmpeg
 
+    # Audio utilities and tools
+    pipewire
+    wireplumber
+    pavucontrol
+    pulsemixer
+    alsa-utils
+    alsa-tools
+    alsa-firmware
+
+    # Bluetooth tools
+    bluez
+    bluez-tools
+
     # Gaming utilities
     gamescope
     mangohud
@@ -68,6 +81,9 @@
   services.blueman.enable = true;
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
+  
+  # Bluetooth audio profiles support
+  services.pulseaudio.enable = false;  # Use PipeWire's PulseAudio replacement
 
   # ============================================================================
   # KDE WALLET
