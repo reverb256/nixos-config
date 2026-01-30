@@ -46,6 +46,11 @@
     # Kimi Code CLI - AI coding agent
     kimi-cli.url = "github:MoonshotAI/kimi-cli";
     kimi-cli.inputs.nixpkgs.follows = "nixpkgs";
+
+    # OpenClaw - Personal AI assistant
+    nix-openclaw.url = "github:openclaw/nix-openclaw";
+    nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
+    nix-openclaw.inputs.home-manager.follows = "home-manager";
   };
 
   outputs = inputs @ {

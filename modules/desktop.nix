@@ -42,9 +42,11 @@
     wireplumber
     pavucontrol
     pulsemixer
+    pulseaudio  # For pactl and PA compatibility tools
     alsa-utils
     alsa-tools
     alsa-firmware
+    rkit  # Real-time scheduling for low-latency audio
 
     # Bluetooth tools
     bluez
@@ -74,6 +76,9 @@
     pulse.enable = true;
     jack.enable = true;
   };
+
+  # Enable RTKit for real-time audio priority (reduces crackling/latency)
+  services.rtkit.enable = true;
 
   # ============================================================================
   # BLUETOOTH SUPPORT
