@@ -34,18 +34,10 @@ in {
   # Note: Full slice configuration (nix.slice, gaming.slice, mining.slice) is in modules/systemd-slices.nix
 
   # ============================================================================
-  # KERNEL MODULES FOR NVIDIA HARDWARE ACCELERATION
+  # KERNEL MODULES
   # ============================================================================
-  # These modules need to be built by extraModulePackages in host config
-  boot.kernelModules = [
-    "nvidia"
-    "nvidia_modeset"
-    "nvidia_uvm"
-    "nvidia_drm"
-  ];
-  
-  # Early KMS for NVIDIA - load modules in initrd for smoother boot
-  boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_drm" ];
+  # Note: NVIDIA modules are loaded automatically when services.xserver.videoDrivers = ["nvidia"]
+  # No need to manually specify them here
 
   # ============================================================================
   # POLKIT RULES - Fix gamemode permission issues
@@ -63,16 +55,23 @@ in {
 
   imports = [
     ./modules
-    ./modules/nvidia-sandbox.nix
     ./modules/flatpak.nix
     ./modules/distributed-builds.nix
     ./secrets/agenix-secrets.nix
   ];
 
-  # XDG Desktop Portal for KDE integration
+  # XDG Desktop Portal for KDE integration (with GTK fallback for Flatpak/Steam)
   xdg.portal = {
     enable = true;
-    extraPortals = [pkgs.kdePackages.xdg-desktop-portal-kde];
+    extraPortals = with pkgs; [
+      kdePackages.xdg-desktop-portal-kde # Primary KDE portal
+      xdg-desktop-portal-gtk # Fallback for GTK/Flatpak apps
+    ];
+    config = {
+      common = {
+        default = ["kde" "gtk"];
+      };
+    };
   };
 
   # ============================================================================
@@ -84,17 +83,10 @@ in {
       efi.canTouchEfiVariables = true;
     };
 
-    # Clean kernel parameters - consolidated from duplicate definitions
+    # Minimal kernel parameters
     kernelParams = [
       # Steam/Wine gaming
       "fsync.enable=1"
-
-      # NVIDIA Wayland support
-      "nvidia-drm.modeset=1"
-      "nvidia_drm.fbdev=1"
-      "nvidia.NVreg_RegistryDwords=PerfLevelSrc=0x2222;NVreg_UsePageAttributeTable=1;NVreg_EnableResizableBar=1"
-      "nvidia-uvm/uvm_disable_huge_pages=1"
-      "threadirqs"
 
       # CPU optimizations
       "amd_pstate=active"
@@ -103,10 +95,6 @@ in {
       "numa_balancing=disable"
       "nowatchdog"
       "pcie_aspm=off"
-
-      # Disable simpledrm to prevent black screen
-      "simpledrm.disable=1"
-      "initcall_blacklist=simpledrm_init"
     ];
 
     # System tuning
@@ -126,7 +114,7 @@ in {
   services.udev.extraRules = ''
     # NVMe SSDs - use kyber scheduler for better latency
     ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="kyber"
-    
+
     # SATA SSDs - use mq-deadline
     ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
   '';
@@ -142,8 +130,8 @@ in {
   zramSwap = {
     enable = true;
     algorithm = "zstd";
-    memoryPercent = 50;  # Use 50% of RAM for zram
-    priority = 100;      # Higher priority than disk swap
+    memoryPercent = 50; # Use 50% of RAM for zram
+    priority = 100; # Higher priority than disk swap
   };
 
   # ============================================================================
@@ -151,8 +139,8 @@ in {
   # ============================================================================
   services.earlyoom = {
     enable = true;
-    freeMemThreshold = 5;      # Kill when < 5% memory free
-    freeSwapThreshold = 10;    # Kill when < 10% swap free
+    freeMemThreshold = 5; # Kill when < 5% memory free
+    freeSwapThreshold = 10; # Kill when < 10% swap free
   };
 
   # ============================================================================

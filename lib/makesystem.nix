@@ -12,7 +12,7 @@
   hostname,
   system ? "x86_64-linux",
   extraModules ? [],
-  enableHomeManager ? true,  # NEW: Control home-manager inclusion
+  enableHomeManager ? true, # NEW: Control home-manager inclusion
 }:
 nixpkgs.lib.nixosSystem {
   inherit system;

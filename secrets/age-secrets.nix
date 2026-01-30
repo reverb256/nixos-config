@@ -14,6 +14,5 @@
     "mining-wallet" = {
       file = ./mining-wallet.age;
     };
-
   };
 }
