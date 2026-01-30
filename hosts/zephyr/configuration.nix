@@ -1,72 +1,52 @@
-# Zephyr Host Configuration - Steam + Wayland Optimized
-# 10.1.1.110 - Master Workstation (32 cores, RTX 3090) - Steam Compatible
-{pkgs, lib, config, ...}: {
+# Zephyr Host Configuration - MINIMAL NVIDIA + Wayland
+# 10.1.1.110 - Master Workstation (32 cores, RTX 3090)
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}: {
   imports = [
     ./hardware-configuration.nix
     ../../modules/desktop.nix
-    ../../modules/steam-wayland-robust.nix
-    ../../modules/openagents-control.nix
     ../../modules/nvidia-wayland.nix
+    # REMOVED: ../../modules/steam-wayland-robust.nix - using minimal Steam in home.nix
+    # REMOVED: ../../modules/openagents-control.nix - not needed for minimal config
   ];
 
   # Host identification
   networking.hostName = "zephyr";
 
   # ============================================================================
-  # NVIDIA CONFIGURATION - RTX 3090 (Beta drivers for latest features)
+  # MINIMAL NVIDIA CONFIGURATION - RTX 3090
   # ============================================================================
-  # CRITICAL: Use config.boot.kernelPackages to ensure driver matches kernel
-  # This prevents driver/kernel version mismatches
-  # Note: boot.kernelPackages is already set in configuration.nix
-  hardware.nvidia = {
-    package = config.boot.kernelPackages.nvidiaPackages.beta;
-    # Required for Wayland
-    modesetting.enable = true;
-    nvidiaSettings = true;
-    powerManagement.enable = true;
-  };
+  # Absolute minimum required for NVIDIA + Wayland + Plasma 6
+  # Based on https://wiki.nixos.org/wiki/NVIDIA
 
-  # Enable NVIDIA Wayland optimizations (module handles most settings)
+  # Enable NVIDIA driver (ZEN kernel optimized)
+  services.xserver.videoDrivers = ["nvidia"];
+
+  # Use ZEN-specific NVIDIA driver package for better performance
+  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
+
+  # NVIDIA Wayland support (via nvidia-wayland module)
   hardware.nvidia.wayland = {
     enable = true;
-    enable32Bit = true;
-    openModules = false;  # DISABLED: Use proprietary kernel modules for RTX 3090 stability (GSP firmware issues with open modules)
-    powerManagement = true;
+    openModules = true;
     sddmWayland = true;
   };
 
-  # CRITICAL: Enable NVIDIA driver for X11/Wayland
-  # This is required for the display server to use NVIDIA
-  services.xserver.videoDrivers = ["nvidia"];
-
-  # Load NVIDIA modules early
-  boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_drm" ];
-
-  # NVIDIA Persistence Daemon - Required for mining and compute workloads
-  hardware.nvidia.nvidiaPersistenced = true;
-
-  # Additional Zephyr-specific graphics packages
-  hardware.graphics.extraPackages = with pkgs; [
-    nvidia-vaapi-driver
-    libva
-    libva-utils
-    egl-wayland
-  ];
-
-  # NVIDIA user-space tools (nvidia-smi, nvidia-settings)
-  environment.systemPackages = with pkgs; [
-    # REMOVED: linuxPackages_zen.nvidiaPackages.beta - causes rebuilds
-    # REMOVED: nvtopPackages.full - causes rebuilds
-    # Using nvtop from system packages instead
-  ];
-
-  hardware.graphics.extraPackages32 = with pkgs.pkgsi686Linux; [
-    nvidia-vaapi-driver
-  ];
+  # ============================================================================
+  # MINIMAL STEAM CONFIGURATION
+  # ============================================================================
+  programs.steam.enable = true;
 
   # ============================================================================
   # DISPLAY MANAGER - SDDM with Wayland support
   # ============================================================================
+  # Required for SDDM (can be minimal, just for display manager)
+  services.xserver.enable = true;
+
   services.displayManager = {
     sddm.enable = true;
     defaultSession = "plasma";
@@ -135,27 +115,6 @@
   # ============================================================================
   # OPENAGENTS CONTROL
   # ============================================================================
-  services.openagents-control = {
-    enable = true;
-    installProfile = "advanced";
-    installDir = "$HOME/.config/opencode";
-    autoUpdate = false;
-  };
-
-  # ============================================================================
-  # MOLT.BOT AI AGENT (LOCAL ONLY)
-  # ============================================================================
-  services.moltbot = {
-    enable = true;
-    backend = "lmstudio";
-    localApiUrl = "http://127.0.0.1:1234/v1";  # LM Studio OpenAI-compatible API
-    localApiKey = "lm-studio-local";  # Any non-empty string works for LM Studio
-    model = "glm-4.7-flash";  # Primary: GLM-4.7-Flash (Jan 2026), Alternative: Nemotron-3-Nano
-    port = 18789;
-    stateDir = "/var/lib/moltbot";  # Absolute path for systemd
-  };
-
-  # ============================================================================
   # FIREWALL
   # ============================================================================
   networking.firewall = {
@@ -167,33 +126,5 @@
       27031
       27036
     ];
-  };
-
-  # ============================================================================
-  # ZEPHYR-SPECIFIC ENVIRONMENT VARIABLES
-  # Additional variables beyond what nvidia-wayland.nix provides
-  # ============================================================================
-  environment.sessionVariables = {
-    # REMOVED: CUDA_PATH - causes rebuilds on every CUDA update
-    # Use nix-shell -p cudaPackages.cuda_cudart for CUDA development instead
-
-    # REMOVED: LD_LIBRARY_PATH with CUDA - causes rebuilds
-    # CUDA applications should use nix-shell or proper Nix packaging instead
-
-    # Disable G-SYNC to prevent buffer issues
-    __GL_GSYNC_ALLOWED = "0";
-
-    # Disable VRR for stability (can re-enable later)
-    __GL_VRR_ALLOWED = "0";
-
-    # Additional variables for NVIDIA EGL and NVENC
-    NVD_BACKEND = "direct";
-    __NV_PRIME_RENDER_OFFLOAD = "1";
-    
-    # Force KWin to use EGL for better NVIDIA performance
-    KWIN_DRM_USE_EGL_STREAMS = "1";
-    
-    # Disable software rendering fallback
-    KWIN_DRM_NO_AMS = "1";
   };
 }
