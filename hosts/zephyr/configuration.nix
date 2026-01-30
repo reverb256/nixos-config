@@ -13,17 +13,11 @@
   networking.hostName = "zephyr";
 
   # ============================================================================
-  # KERNEL CONFIGURATION - Pin zen kernel to prevent unexpected updates
-  # ============================================================================
-  # Pinning the kernel package set ensures we control when updates happen
-  # This prevents automatic kernel updates that trigger NVIDIA driver rebuilds
-  boot.kernelPackages = pkgs.linuxPackages_zen;
-
-  # ============================================================================
   # NVIDIA CONFIGURATION - RTX 3090 (Beta drivers for latest features)
   # ============================================================================
   # CRITICAL: Use config.boot.kernelPackages to ensure driver matches kernel
   # This prevents driver/kernel version mismatches
+  # Note: boot.kernelPackages is already set in configuration.nix
   hardware.nvidia = {
     package = config.boot.kernelPackages.nvidiaPackages.beta;
     # Required for Wayland
