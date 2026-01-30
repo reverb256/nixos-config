@@ -47,7 +47,6 @@ switch-fast: _setup
    @echo "=== FAST SWITCH MODE ==="
    @echo "This switches the base system WITHOUT home-manager."
    @echo "Home-manager config will be temporarily disabled."
-   @read -p "Continue? (y/N) " -n 1 -r; echo; [[ $REPLY =~ ^[Yy]$ ]] || exit 1
    @echo ""
    @echo "Building and switching to zephyr-fast configuration..."
    sudo nixos-rebuild switch --flake .#zephyr-fast || true
