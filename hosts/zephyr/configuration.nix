@@ -13,10 +13,19 @@
   networking.hostName = "zephyr";
 
   # ============================================================================
+  # KERNEL CONFIGURATION - Pin zen kernel to prevent unexpected updates
+  # ============================================================================
+  # Pinning the kernel package set ensures we control when updates happen
+  # This prevents automatic kernel updates that trigger NVIDIA driver rebuilds
+  boot.kernelPackages = pkgs.linuxPackages_zen;
+
+  # ============================================================================
   # NVIDIA CONFIGURATION - RTX 3090 (Beta drivers for latest features)
   # ============================================================================
+  # CRITICAL: Use config.boot.kernelPackages to ensure driver matches kernel
+  # This prevents driver/kernel version mismatches
   hardware.nvidia = {
-    package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
+    package = config.boot.kernelPackages.nvidiaPackages.beta;
     # Required for Wayland
     modesetting.enable = true;
     nvidiaSettings = true;
@@ -27,19 +36,19 @@
   hardware.nvidia.wayland = {
     enable = true;
     enable32Bit = true;
-    openModules = true;  # Use open-source kernel modules with proprietary userspace (GSP firmware now included)
+    openModules = false;  # DISABLED: Use proprietary kernel modules for RTX 3090 stability (GSP firmware issues with open modules)
     powerManagement = true;
     sddmWayland = true;
   };
 
-  # CRITICAL: Build NVIDIA kernel modules (required even for pure Wayland)
-  boot.extraModulePackages = [ pkgs.linuxPackages_zen.nvidiaPackages.beta ];
+  # REMOVED: boot.extraModulePackages - causes rebuilds on every kernel update
+  # The NVIDIA driver is now handled entirely by services.xserver.videoDrivers
 
   # Load NVIDIA modules early
   boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_drm" ];
 
   # NVIDIA Persistence Daemon - Required for mining and compute workloads
-  hardware.nvidia.persistenced.enable = true;
+  hardware.nvidia.nvidiaPersistenced = true;
 
   # Additional Zephyr-specific graphics packages
   hardware.graphics.extraPackages = with pkgs; [
@@ -51,11 +60,9 @@
 
   # NVIDIA user-space tools (nvidia-smi, nvidia-settings)
   environment.systemPackages = with pkgs; [
-    # NVIDIA driver utilities
-    linuxPackages_zen.nvidiaPackages.beta
-    
-    # Additional monitoring tools
-    nvtopPackages.full
+    # REMOVED: linuxPackages_zen.nvidiaPackages.beta - causes rebuilds
+    # REMOVED: nvtopPackages.full - causes rebuilds
+    # Using nvtop from system packages instead
   ];
 
   hardware.graphics.extraPackages32 = with pkgs.pkgsi686Linux; [
@@ -172,13 +179,11 @@
   # Additional variables beyond what nvidia-wayland.nix provides
   # ============================================================================
   environment.sessionVariables = {
-    # CUDA path for ML/AI workloads - use cuda_cudart for actual library path
-    # Note: cudatoolkit is a wrapper, cuda_cudart contains the actual runtime libs
-    CUDA_PATH = "${pkgs.cudaPackages.cuda_cudart}";
+    # REMOVED: CUDA_PATH - causes rebuilds on every CUDA update
+    # Use nix-shell -p cudaPackages.cuda_cudart for CUDA development instead
 
-    # LD_LIBRARY_PATH for dynamically linked CUDA applications (LM Studio, AppImages)
-    # Uses lib.mkDefault to allow other modules to extend it
-    LD_LIBRARY_PATH = lib.mkDefault "/run/opengl-driver/lib:${pkgs.cudaPackages.cuda_cudart}/lib:${pkgs.cudaPackages.cudnn}/lib";
+    # REMOVED: LD_LIBRARY_PATH with CUDA - causes rebuilds
+    # CUDA applications should use nix-shell or proper Nix packaging instead
 
     # Disable G-SYNC to prevent buffer issues
     __GL_GSYNC_ALLOWED = "0";
