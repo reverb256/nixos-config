@@ -124,12 +124,21 @@
     ];
 
     # Function to create a NixOS system definition
-    mkNixosSystem = {modules ? [], fast ? false}:
+    mkNixosSystem = {
+      modules ? [],
+      fast ? false,
+    }:
       nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         # Pass all inputs to specialArgs for modules to use
         specialArgs = {inherit inputs;};
-        modules = (if fast then commonModulesFast else commonModules) ++ modules;
+        modules =
+          (
+            if fast
+            then commonModulesFast
+            else commonModules
+          )
+          ++ modules;
       };
 
     # Host definitions for Colmena
