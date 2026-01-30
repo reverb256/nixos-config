@@ -106,7 +106,7 @@ in {
       };
       httpTokenFile = mkOption {
         type = types.path;
-        default = "/run/agenix/mining-api-token";
+        default = "/run/secrets/mining-api-token";
         description = "Path to the file containing the HTTP API token";
       };
     };
@@ -118,6 +118,12 @@ in {
     };
 
     environment.systemPackages = [monitorScript lolminerWrapper];
+
+    # Create mining API token file (fallback when agenix is not available)
+    systemd.tmpfiles.rules = [
+      "d /run/secrets 0750 root root -" 
+      "f /run/secrets/mining-api-token 0640 root root 'xmrig-api-token'"
+    ];
 
     # XMRig configuration file
     environment.etc."xmrig/config.json" = {
@@ -170,8 +176,8 @@ in {
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
           wantedBy = ["multi-user.target"];
-          after = ["NetworkManager.service" "nvidia-persistenced.service" "agenix.service"];
-          requires = ["agenix.service"];
+          after = ["NetworkManager.service" "nvidia-persistenced.service"];
+          requires = ["nvidia-persistenced.service"];
 
           serviceConfig = {
             User = "root";
@@ -179,12 +185,12 @@ in {
             Slice = "mining.slice";
             ExecStartPre = [
               # Set persistent management and power limit for RTX 3090
-              "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.production}/bin/nvidia-smi -pm 1'"
+              "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.beta}/bin/nvidia-smi -pm 1'"
               # Set power limit to 250W as required for zephyr
-              "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.production}/bin/nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices}'"
+              "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.beta}/bin/nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices}'"
             ];
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
-            ExecStopPost = "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.production}/bin/nvidia-smi -pl 350 --id=${cfg.lolminer.nvidia.devices} || true'"; # Reset power limit to 350W
+            ExecStopPost = "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.beta}/bin/nvidia-smi -pl 350 --id=${cfg.lolminer.nvidia.devices} || true'"; # Reset power limit to 350W
             Restart = "always";
             RestartSec = "30s";
             Environment = [
@@ -205,8 +211,7 @@ in {
         lolminer-amd = mkIf cfg.lolminer.amd.enable {
           description = "lolMiner AMD Mining Service";
           wantedBy = ["multi-user.target"];
-          after = ["NetworkManager.service" "agenix.service"];
-          requires = ["agenix.service"];
+          after = ["NetworkManager.service"];
 
           serviceConfig = {
             User = "root";
@@ -234,8 +239,7 @@ in {
         xmrig = mkIf cfg.xmrig.enable {
           description = "XMRig CPU Mining Service";
           wantedBy = ["multi-user.target"];
-          after = ["NetworkManager.service" "agenix.service"];
-          requires = ["agenix.service"];
+          after = ["NetworkManager.service"];
 
           serviceConfig = {
             User = "root";
