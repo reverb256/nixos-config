@@ -51,17 +51,17 @@ in
           imsg.enable = true;
         };
         
-         # Configure Telegram provider - DISABLED (no token configured yet)
-        providers.telegram = {
-          enable = false;
-          # botTokenFile = cfg.telegramTokenFile;
-          # allowFrom = [ ]; # Must be non-empty when enabled
-        };
-        
-        # Configure default model for Ollama
-        defaults = {
+        # New API: Use 'config' instead of 'defaults' and 'providers'
+        config = {
+          # Configure Telegram provider - DISABLED (no token configured yet)
+          channels.telegram = {
+            enable = false;
+            # tokenFile = cfg.telegramTokenFile;
+            # allowFrom = [ 12345678 ]; # your Telegram user ID
+          };
+          
+          # Model configuration
           model = "ollama/${cfg.model}";
-          thinkingDefault = "medium";
         };
         
         # Systemd user service - ENABLED (testing if bug is fixed in new version)
