@@ -20,7 +20,7 @@
         "render"
         "plugdev"
       ];
-      shell = pkgs.fish;
+      shell = "/run/current-system/sw/bin/fish";
       packages = with pkgs; [
         just
         fzf

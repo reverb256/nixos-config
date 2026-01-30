@@ -65,10 +65,9 @@
     # Node.js for various tools
     nodejs_22
 
-    # ML/AI Tools (moved from system-packages to avoid long builds during system updates)
+    # ML/AI Tools - PyTorch/TensorFlow removed to avoid long compilation
+    # Use nix shell when needed: nix shell nixpkgs#python312Packages.torchWithCuda
     python312
-    python312Packages.torchWithCuda
-    python312Packages.tensorflowWithCuda
 
     # From nix profile (moved to declarative)
     gpu-viewer
