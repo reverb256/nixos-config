@@ -6,10 +6,7 @@
   lib,
   pkgs,
   ...
-}: let
-  # SSH options for connecting to build machines
-  sshOpts = "-o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new";
-in {
+}: {
   # ============================================================================
   # DISTRIBUTED BUILD CONFIGURATION
   # ============================================================================
@@ -56,19 +53,22 @@ in {
       HostName 10.1.1.120
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
-      ${sshOpts}
+      ConnectTimeout 5
+      StrictHostKeyChecking accept-new
 
     Host forge
       HostName 10.1.1.130
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
-      ${sshOpts}
+      ConnectTimeout 5
+      StrictHostKeyChecking accept-new
 
     Host sentry
       HostName 10.1.1.140
       User j_kro
       IdentityFile ~/.ssh/id_ed25519
-      ${sshOpts}
+      ConnectTimeout 5
+      StrictHostKeyChecking accept-new
   '';
 
   # ============================================================================

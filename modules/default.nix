@@ -10,6 +10,5 @@
     ./ssh.nix
     ./systemd-slices.nix
     ./nvidia-sandbox.nix
-    ./moltbot.nix
   ];
 }
