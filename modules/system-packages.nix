@@ -1,4 +1,9 @@
-{pkgs, lib, inputs ? null, ...}: {
+{
+  pkgs,
+  lib,
+  inputs ? null,
+  ...
+}: {
   # Centralized SYSTEM packages - only packages needed by system services
   # User packages belong in home.nix
   environment.systemPackages =
@@ -135,7 +140,7 @@
       wayland-utils
       ffmpeg
       # yt-dlp  # MOVED to home.nix - user media tool
-      
+
       # NOTE: nvidia-smi and nvidia-settings are provided by the NVIDIA driver package
       # which is configured per-host in hosts/<hostname>/configuration.nix
       # Example: hardware.nvidia.package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
