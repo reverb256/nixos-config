@@ -65,11 +65,11 @@ with lib; {
         });
       '';
 
-      rules = concatStringsSep "\n" [
-        (mkIf config.services.flatpak.polkit.allowAppstreamOperations alwaysAllow)
-        (mkIf config.services.flatpak.polkit.allowSystemOperations allowSystemOperations)
-        (mkIf config.services.flatpak.polkit.allowUserOperations allowUserOperations)
-      ];
+      rules = concatStringsSep "\n" (lib.filter (x: x != "") [
+        (optionalString config.services.flatpak.polkit.allowAppstreamOperations alwaysAllow)
+        (optionalString config.services.flatpak.polkit.allowSystemOperations allowSystemOperations)
+        (optionalString config.services.flatpak.polkit.allowUserOperations allowUserOperations)
+      ]);
     in
       rules;
   };
