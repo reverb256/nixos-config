@@ -10,9 +10,6 @@
     (lib.optionals (inputs != null && inputs ? kimi-cli) [
       inputs.kimi-cli.packages.x86_64-linux.default
     ])
-    ++ (lib.optionals (inputs != null && inputs ? nix-openclaw) [
-      inputs.nix-openclaw.packages.x86_64-linux.openclaw
-    ])
     ++ (with pkgs; [
       # ============================================================================
       # SYSTEM UTILITIES
