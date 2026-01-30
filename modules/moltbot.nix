@@ -9,7 +9,7 @@
 }: let
   cfg = config.services.moltbot;
 
-  # NPM wrapper for moltbot CLI - LOCAL ONLY
+    # NPM wrapper for moltbot CLI - LOCAL ONLY
   moltbotWrapper = pkgs.writeShellScriptBin "moltbot" ''
     export PATH="${pkgs.nodejs_22}/bin:$PATH"
     export CLAWDBOT_NIX_MODE="1"
@@ -18,7 +18,8 @@
     # Local inference configuration
     export CLAWDBOT_DEFAULT_PROVIDER="local"
     export OPENAI_BASE_URL="${cfg.localApiUrl}"
-    export OPENAI_API_KEY="local-inference"  # Dummy key for local inference
+    # LM Studio accepts any non-empty API key for local inference
+    export OPENAI_API_KEY="${cfg.localApiKey}"
     
     exec ${pkgs.nodejs_22}/bin/npx -y moltbot@latest "$@"
   '';
@@ -32,7 +33,8 @@
     # Local inference configuration
     export CLAWDBOT_DEFAULT_PROVIDER="local"
     export OPENAI_BASE_URL="${cfg.localApiUrl}"
-    export OPENAI_API_KEY="local-inference"  # Dummy key for local inference
+    # LM Studio accepts any non-empty API key for local inference
+    export OPENAI_API_KEY="${cfg.localApiKey}"
     
     exec ${pkgs.nodejs_22}/bin/npx -y moltbot@latest gateway --port ${toString cfg.port} --verbose
   '';
@@ -42,8 +44,8 @@ in {
 
     stateDir = lib.mkOption {
       type = lib.types.str;
-      default = "$HOME/.moltbot";
-      description = "Directory for mutable state (conversations, config, skills)";
+      default = "/var/lib/moltbot";
+      description = "Directory for mutable state (conversations, config, skills). Using absolute path for systemd compatibility.";
     };
 
     port = lib.mkOption {
@@ -54,12 +56,21 @@ in {
 
     localApiUrl = lib.mkOption {
       type = lib.types.str;
-      default = "http://localhost:1234/v1";
+      default = "http://127.0.0.1:1234/v1";
       description = ''
         Local inference API endpoint URL.
-        - LM Studio: http://localhost:1234/v1
-        - vLLM: http://localhost:8000/v1
-        - Ollama: http://localhost:11434/v1
+        - LM Studio default: http://127.0.0.1:1234/v1
+        - Custom servers: http://127.0.0.1:8000/v1
+        Note: Using 127.0.0.1 instead of localhost for IPv4 consistency
+      '';
+    };
+
+    localApiKey = lib.mkOption {
+      type = lib.types.str;
+      default = "lm-studio-local";
+      description = ''
+        API key for local inference. LM Studio accepts any non-empty string.
+        This is not a real secret since inference is local-only.
       '';
     };
 
@@ -75,16 +86,18 @@ in {
 
     model = lib.mkOption {
       type = lib.types.str;
-      default = "gpt-oss-20b";
+      default = "local-model";
       description = ''
-        Model name to use. For local inference, this is often ignored
-        by the backend (it uses whatever model is loaded).
-        
-        Recommended models for RTX 3090:
-        - gpt-oss-20b (~5GB, fast, good for coding)
-        - GLM-4.7-flash (~12GB, balanced performance)
-        - qwen2.5-72b (~18GB, best quality)
-        - llama-3.1-70b (~18GB, best quality)
+        Model identifier for reference. LM Studio uses whatever model is currently loaded.
+        This is primarily for documentation purposes.
+
+        Recommended models for RTX 3090 (24GB VRAM):
+        - Qwen2.5-32B-Instruct (Q4_K_M, ~16GB VRAM, excellent quality)
+        - Llama-3.3-70B-Instruct (Q4_K_M, ~18GB VRAM, best overall)
+        - Mixtral-8x22B-Instruct (Q4_K_M, ~20GB VRAM, MoE)
+        - Qwen2.5-14B-Instruct (Q4_K_M, ~8GB VRAM, fast)
+
+        Load model in LM Studio first, then start Molt.bot.
       '';
     };
 
@@ -144,9 +157,10 @@ in {
         ProtectHome = false;
         ReadWritePaths = [cfg.stateDir];
         
-        # Resource limits
-        MemoryMax = "4G";
-        CPUQuota = "200%";
+        # Resource limits for RTX 3090 with 24GB VRAM
+        # Gateway itself uses minimal resources; LM Studio handles model inference
+        MemoryMax = "8G";
+        CPUQuota = "100%";
         
         # Environment
         Environment = [
@@ -155,7 +169,7 @@ in {
           "NODE_ENV=production"
           "CLAWDBOT_DEFAULT_PROVIDER=local"
           "OPENAI_BASE_URL=${cfg.localApiUrl}"
-          "OPENAI_API_KEY=local-inference"
+          "OPENAI_API_KEY=${cfg.localApiKey}"
         ];
       };
 
@@ -181,19 +195,26 @@ in {
       ```
       ┌─────────────────┐     ┌──────────────────┐     ┌──────────────┐
       │  Molt.bot CLI   │────▶│  Local Inference │────▶│  RTX 3090    │
-      │  (Node.js)      │     │  (LM Studio/     │     │  24GB VRAM   │
-      └─────────────────┘     │   vLLM/Ollama)   │     └──────────────┘
-                              └──────────────────┘
+      │  (Node.js)      │     │  (LM Studio)     │     │  24GB VRAM   │
+      └─────────────────┘     └──────────────────┘     └──────────────┘
       ```
 
       ## Setup Instructions
 
-      ### Option 1: LM Studio (Easiest)
+      ### Option 1: LM Studio (Recommended)
 
+      **Installation:**
       1. Download LM Studio: https://lmstudio.ai/
-      2. Download a model (e.g., Qwen2.5-72B, Llama-3.1-70B, Mixtral-8x22B)
+      2. Download a model (see recommended models below)
       3. Start the local server: Developer tab → Start Server
-      4. Molt.bot will automatically connect to http://localhost:1234/v1
+      4. Molt.bot will automatically connect to http://127.0.0.1:1234/v1
+
+      **RTX 3090 Optimal Settings:**
+      - GPU Layers: 40 (maximize GPU utilization)
+      - Context Length: 4096 tokens
+      - Batch Size: 512
+      - Quantization: Q4_K_M for 32B models, Q5_K_M for 20B models
+      - Enable "Use GPU" and disable "Low VRAM" mode
 
       ### Option 2: Custom OpenAI-Compatible Server
 
@@ -225,17 +246,22 @@ in {
       moltbot onboard
       ```
 
-      ## Recommended Models for RTX 3090 (24GB)
+      ## Recommended Models for RTX 3090 (24GB VRAM)
 
-      **Primary Models:**
-      - **gpt-oss-20b** (~5GB, very fast, good for coding and general tasks)
-      - **GLM-4.7-flash** (~12GB, balanced performance and quality)
+      **Optimal for Molt.bot (Q4_K_M quantization):**
+      - **Qwen2.5-32B-Instruct** (~16GB VRAM, excellent quality)
+      - **Llama-3.3-70B-Instruct** (~18GB VRAM, best overall)
+      - **Mixtral-8x22B-Instruct** (~20GB VRAM, MoE architecture)
+      - **DeepSeek-V2.5** (~16GB VRAM, great for coding)
 
-      **Alternative High-Performance Models:**
-      - **Qwen2.5-72B-Instruct** (4-bit quantized, ~18GB, best overall quality)
-      - **Llama-3.1-70B-Instruct** (4-bit quantized, ~18GB, best overall quality)
-      - **Mixtral-8x22B-Instruct-v0.1** (4-bit quantized, ~20GB)
-      - **DeepSeek-Coder-V2-Lite-Instruct** (4-bit, ~12GB)
+      **Smaller/Faster Options:**
+      - **Qwen2.5-14B-Instruct** (~8GB VRAM, fast responses)
+      - **Llama-3.2-8B-Instruct** (~5GB VRAM, very fast)
+
+      **LM Studio Settings:**
+      - GPU Layers: 40 (maximize utilization)
+      - Context: 4096 tokens
+      - Quantization: Q4_K_M (best quality/performance balance)
 
       ## Configuration
 
@@ -248,26 +274,38 @@ in {
 
       ## Troubleshooting
 
-      ### Out of Memory
-      - Use 4-bit quantization (Q4_K_M)
-      - Reduce context length: `--max-model-len 4096`
-      - Lower GPU memory: `--gpu-memory-utilization 0.8`
+      ### LM Studio Connection Issues
+      - Verify server is running: `curl http://127.0.0.1:1234/v1/models`
+      - Check LM Studio Developer tab → Server is started
+      - Ensure port 1234 is not blocked by firewall
+      - Try restarting LM Studio if VRAM is stuck
+
+      ### Out of Memory (OOM)
+      - Reduce GPU layers in LM Studio (try 35 instead of 40)
+      - Use Q4_K_M quantization instead of Q5_K_M
+      - Reduce context length to 2048 tokens
+      - Close other GPU applications
+      - Monitor VRAM: `nvidia-smi` (should stay under 23GB)
 
       ### Slow Responses
-      - Enable FlashAttention: `--attention-backend flash_attn`
-      - Use tensor parallelism (if multiple GPUs)
-      - Check GPU utilization: `nvidia-smi`
+      - Increase batch size in LM Studio (512-1024)
+      - Ensure model is fully loaded on GPU (check GPU layers)
+      - Disable "Low VRAM" mode in LM Studio
+      - Check GPU utilization: `nvidia-smi dmon`
+      - Consider using a smaller model (14B instead of 32B)
 
-      ### Connection Refused
-      - Verify local inference server is running
-      - Check firewall: `sudo iptables -L | grep ${toString cfg.port}`
-      - Test API: `curl ${cfg.localApiUrl}/models`
+      ### CUDA/GPU Issues
+      - Verify NVIDIA drivers: `nvidia-smi`
+      - Check CUDA version: `nvcc --version`
+      - Ensure LM Studio detects GPU in settings
+      - Update to latest NVIDIA drivers (570+ recommended)
 
       ## Documentation
 
       - Molt.bot: https://molt.bot
       - LM Studio: https://lmstudio.ai/docs
-      - llama.cpp (CUDA): https://github.com/ggerganov/llama.cpp/blob/master/docs/build.md#cuda
+      - LM Studio Discord: https://discord.gg/aPQY5s6un4
+      - CUDA on NixOS: https://nixos.wiki/wiki/CUDA
     '';
   };
 }

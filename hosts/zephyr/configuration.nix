@@ -133,10 +133,12 @@
   # ============================================================================
   services.moltbot = {
     enable = true;
-    backend = "lmstudio";  # Options: lmstudio, custom
-    localApiUrl = "http://localhost:1234/v1";  # LM Studio default
-    model = "gpt-oss-20b";  # Primary: gpt-oss-20b, Alternative: GLM-4.7-flash
+    backend = "lmstudio";
+    localApiUrl = "http://127.0.0.1:1234/v1";  # LM Studio OpenAI-compatible API
+    localApiKey = "lm-studio-local";  # Any non-empty string works for LM Studio
+    model = "Qwen2.5-32B-Instruct";  # Load this in LM Studio first
     port = 18789;
+    stateDir = "/var/lib/moltbot";  # Absolute path for systemd
   };
 
   # ============================================================================
