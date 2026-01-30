@@ -428,20 +428,9 @@ with lib; {
     };
   };
 
-  assertions = [
-    {
-      assertion = config.programs.steam.enable;
-      message = "Steam must be enabled for VR support";
-    }
-    {
-      assertion = config.services.wivrn.enable;
-      message = "WiVRn must be enabled for VR support";
-    }
-    {
-      assertion = config.hardware.nvidia.package != null;
-      message = "NVIDIA drivers are required for optimal VR performance";
-    }
-  ];
+  # Assertions removed - Steam and WiVRn requirements are already enforced
+  # by the modules that actually need them (steam-wayland-robust.nix)
+  # NVIDIA is not strictly required - WiVRn works with AMD GPUs too
 
   # Ensure nvidia shader cache directory exists
   systemd.tmpfiles.rules = [

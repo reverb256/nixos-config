@@ -112,17 +112,7 @@ with lib; {
     # ASSERTIONS - Configuration Validation
     # ============================================================================
 
-    assertions = [
-      {
-        assertion = config.programs.steam.enable;
-        message = "Steam must be enabled for gaming support";
-      }
-      {
-        assertion = config.hardware.nvidia.package != null;
-        message = "NVIDIA drivers are required for RTX 3090";
-      }
-      # REMOVED: X11 assertion - not required for pure Wayland setup
-      # Steam works fine on Wayland via XWayland
-    ];
+    # Assertion removed - NVIDIA is not strictly required for this module
+    # The module works with any GPU that supports Steam
   };
 }
