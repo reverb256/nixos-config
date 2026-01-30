@@ -30,6 +30,14 @@ with lib; {
   };
 
   config = mkIf config.services.flatpak.polkit.enable {
+    # Ensure polkit agent helper is available
+    security.wrappers.polkit-agent-helper-1 = {
+      setuid = true;
+      owner = "root";
+      group = "root";
+      source = "${pkgs.polkit}/lib/polkit-1/polkit-agent-helper-1";
+    };
+
     security.polkit.extraConfig = let
       alwaysAllow = ''
         polkit.addRule(function(action, subject) {
