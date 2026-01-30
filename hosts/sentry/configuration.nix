@@ -68,6 +68,22 @@
   };
 
   # ============================================================================
+  # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
+  # ============================================================================
+  programs.openclaw = {
+    enable = true;
+    model = "qwen3:0.6b";  # Smallest model for CPU-only host
+  };
+
+  services.ollama = {
+    enable = true;
+    acceleration = "none";  # CPU-only (AMD RX 5600 XT not used for LLM)
+    environmentVariables = {
+      OLLAMA_KEEP_ALIVE = "24h";
+    };
+  };
+
+  # ============================================================================
   # FIREWALL (Base config - no extra ports)
   # ============================================================================
 

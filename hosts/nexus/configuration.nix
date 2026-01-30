@@ -94,6 +94,22 @@
   };
 
   # ============================================================================
+  # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
+  # ============================================================================
+  programs.openclaw = {
+    enable = true;
+    model = "qwen3:1.8b";
+  };
+
+  services.ollama = {
+    enable = true;
+    acceleration = "cuda";  # Use NVIDIA RTX 3060 Ti
+    environmentVariables = {
+      OLLAMA_KEEP_ALIVE = "24h";
+    };
+  };
+
+  # ============================================================================
   # FIREWALL (Base config - no extra ports)
   # ============================================================================
 
