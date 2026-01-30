@@ -79,7 +79,7 @@
       # CUDA AND ML LIBRARIES
       # System libraries for CUDA/ML workloads
       # These provide the runtime libraries, not user tools
-      # NOTE: PyTorch/TensorFlow moved to home-manager to avoid long builds
+      # NOTE: PyTorch/TensorFlow/ollama moved to home-manager to avoid long builds
       # ============================================================================
       pkgs.cudaPackages.cudatoolkit
       pkgs.cudaPackages.cudnn
@@ -88,7 +88,7 @@
       pkgs.cudaPackages.libcutensor
       # pkgs.python312Packages.torchWithCuda  # MOVED to home.nix
       # pkgs.python312Packages.tensorflowWithCuda  # MOVED to home.nix
-      pkgs.ollama
+      # pkgs.ollama  # MOVED to home.nix - user AI tool
       pkgs.cudaPackages.libcurand
       pkgs.cudaPackages.libcusolver
       pkgs.cudaPackages.libnvjpeg
@@ -134,7 +134,11 @@
       egl-wayland
       wayland-utils
       ffmpeg
-      yt-dlp
+      # yt-dlp  # MOVED to home.nix - user media tool
+      
+      # NOTE: nvidia-smi and nvidia-settings are provided by the NVIDIA driver package
+      # which is configured per-host in hosts/<hostname>/configuration.nix
+      # Example: hardware.nvidia.package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
 
       # ============================================================================
       # DISPLAY MANAGEMENT
@@ -142,7 +146,7 @@
       # ============================================================================
       xorg.xrdb
       xorg.xrandr
-      kanshi
+      # kanshi  # MOVED to home.nix - user display management tool
       kdePackages.kscreen
       kdePackages.kio-extras
 
@@ -160,10 +164,8 @@
 
       # ============================================================================
       # AI TOOLS (System-level)
-      # These provide system-wide AI capabilities
+      # NOTE: User AI tools moved to home.nix
       # ============================================================================
-      (pkgs.writeShellScriptBin "kilo" ''
-        exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
-      '')
+      # (kilo wrapper moved to home.nix - requires user nodejs)
     ]);
 }
