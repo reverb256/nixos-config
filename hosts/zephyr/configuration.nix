@@ -1,6 +1,6 @@
 # Zephyr Host Configuration - Steam + Wayland Optimized
 # 10.1.1.110 - Master Workstation (32 cores, RTX 3090) - Steam Compatible
-{pkgs, ...}: {
+{pkgs, lib, ...}: {
   imports = [
     ./hardware-configuration.nix
     ../../modules/desktop.nix
@@ -27,7 +27,7 @@
   hardware.nvidia.wayland = {
     enable = true;
     enable32Bit = true;
-    openModules = false;  # Use proprietary modules for better stability with beta drivers
+    openModules = true;  # Use open-source kernel modules with proprietary userspace
     powerManagement = true;
     sddmWayland = true;
   };
@@ -147,8 +147,13 @@
   # Additional variables beyond what nvidia-wayland.nix provides
   # ============================================================================
   environment.sessionVariables = {
-    # CUDA path for ML/AI workloads
-    CUDA_PATH = "${pkgs.cudaPackages.cudatoolkit}";
+    # CUDA path for ML/AI workloads - use cuda_cudart for actual library path
+    # Note: cudatoolkit is a wrapper, cuda_cudart contains the actual runtime libs
+    CUDA_PATH = "${pkgs.cudaPackages.cuda_cudart}";
+
+    # LD_LIBRARY_PATH for dynamically linked CUDA applications (LM Studio, AppImages)
+    # Uses lib.mkDefault to allow other modules to extend it
+    LD_LIBRARY_PATH = lib.mkDefault "/run/opengl-driver/lib:${pkgs.cudaPackages.cuda_cudart}/lib:${pkgs.cudaPackages.cudnn}/lib";
 
     # Disable G-SYNC to prevent buffer issues
     __GL_GSYNC_ALLOWED = "0";
