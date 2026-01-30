@@ -51,11 +51,11 @@ in
           imsg.enable = true;
         };
         
-        # Configure Telegram provider
+         # Configure Telegram provider - DISABLED (no token configured)
         providers.telegram = {
-          enable = true;
-          botTokenFile = cfg.telegramTokenFile;
-          allowFrom = [ ]; # Will be configured per-host
+          enable = false;
+          # botTokenFile = cfg.telegramTokenFile;
+          # allowFrom = [ ]; # Must be non-empty when enabled
         };
         
         # Configure default model for Ollama
@@ -64,8 +64,9 @@ in
           thinkingDefault = "medium";
         };
         
-        # Systemd user service (enabled by default)
-        systemd.enable = true;
+         # Systemd user service - DISABLED due to upstream module bug
+        # Error: attribute 'unitName' missing in nix-openclaw module
+        systemd.enable = false;
       };
     };
     
