@@ -15,10 +15,5 @@
       file = ./mining-wallet.age;
     };
 
-    # OpenClaw Telegram bot token
-    "openclaw-telegram-token" = {
-      file = ./openclaw-telegram-token.age;
-      mode = "0600";
-    };
   };
 }
