@@ -74,7 +74,12 @@ id_ecdsa*
 # GPG/Age encryption keys
 *.asc
 *.gpg
-*.age
+
+# Age encrypted secrets - these SHOULD be committed
+# *.age
+# But ignore unencrypted secrets
+secrets/*.key
+secrets/*.txt
 
 # Secret Nix files
 secrets.nix
