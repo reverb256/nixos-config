@@ -108,10 +108,9 @@
 
   config = {
     # Common Nix configuration for all hosts
+    # Note: max-jobs and cores are configured in modules/nix-config.nix per-host
     nix.settings = {
       experimental-features = ["nix-command" "flakes"];
-      max-jobs = 8;
-      cores = 16;
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
