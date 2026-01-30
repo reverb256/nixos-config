@@ -69,18 +69,16 @@
     # From nix profile (moved to declarative)
     gpu-viewer
 
-    # Firefox PWA - Progressive Web Apps support
-    # Moved from system-packages to avoid Firefox compilation during system updates
-    firefoxpwa
-
     # Media tools (moved from system-packages)
     yt-dlp
 
     # Display management (moved from system-packages)
     kanshi
 
-    # AI Tools (moved from system-packages)
-    ollama
+    # NOTE: firefoxpwa and ollama removed to avoid long compilation
+    # Install via nix profile when needed:
+    #   nix profile install nixpkgs#firefoxpwa
+    #   nix profile install nixpkgs#ollama
     
     # Kilo CLI wrapper
     (pkgs.writeShellScriptBin "kilo" ''
