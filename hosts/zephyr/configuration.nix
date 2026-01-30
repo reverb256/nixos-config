@@ -46,6 +46,15 @@
     egl-wayland
   ];
 
+  # NVIDIA user-space tools (nvidia-smi, nvidia-settings)
+  environment.systemPackages = with pkgs; [
+    # NVIDIA driver utilities
+    linuxPackages_zen.nvidiaPackages.beta
+    
+    # Additional monitoring tools
+    nvtopPackages.full
+  ];
+
   hardware.graphics.extraPackages32 = with pkgs.pkgsi686Linux; [
     nvidia-vaapi-driver
   ];
@@ -177,5 +186,11 @@
     # Additional variables for NVIDIA EGL and NVENC
     NVD_BACKEND = "direct";
     __NV_PRIME_RENDER_OFFLOAD = "1";
+    
+    # Force KWin to use EGL for better NVIDIA performance
+    KWIN_DRM_USE_EGL_STREAMS = "1";
+    
+    # Disable software rendering fallback
+    KWIN_DRM_NO_AMS = "1";
   };
 }
