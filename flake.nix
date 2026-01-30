@@ -101,13 +101,35 @@
       };
     };
 
+    # Common modules WITHOUT home-manager (for fast builds)
+    commonModulesFast = [
+      # Base Configuration
+      ./configuration.nix
+
+      # External Modules (without home-manager)
+      inputs.ezkea.nixosModules.default
+      inputs.determinate.nixosModules.default
+      inputs.nix-gaming.nixosModules.pipewireLowLatency
+      inputs.nix-gaming.nixosModules.platformOptimizations
+      inputs.agenix.nixosModules.default
+
+      # Common Overlays & Config
+      {
+        nixpkgs.overlays = [self.overlays.default];
+        nixpkgs.config.allowUnfree = true;
+        nixpkgs.config.permittedInsecurePackages = [
+          "electron-25.9.0"
+        ];
+      }
+    ];
+
     # Function to create a NixOS system definition
-    mkNixosSystem = {modules ? []}:
+    mkNixosSystem = {modules ? [], fast ? false}:
       nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         # Pass all inputs to specialArgs for modules to use
         specialArgs = {inherit inputs;};
-        modules = commonModules ++ modules; # Common modules are now inlined
+        modules = (if fast then commonModulesFast else commonModules) ++ modules;
       };
 
     # Host definitions for Colmena
@@ -134,6 +156,11 @@
     nixosSystems = {
       zephyr = mkNixosSystem {
         modules = [./hosts/zephyr/configuration.nix];
+      };
+      # Fast variant without home-manager for quick system updates
+      zephyr-fast = mkNixosSystem {
+        modules = [./hosts/zephyr/configuration.nix];
+        fast = true;
       };
       nexus = mkNixosSystem {
         modules = [./hosts/nexus/configuration.nix];

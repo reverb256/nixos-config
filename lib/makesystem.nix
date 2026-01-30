@@ -12,10 +12,11 @@
   hostname,
   system ? "x86_64-linux",
   extraModules ? [],
+  enableHomeManager ? true,  # NEW: Control home-manager inclusion
 }:
 nixpkgs.lib.nixosSystem {
   inherit system;
-  specialArgs = {inherit inputs;}; # Pass flake inputs to modules
+  specialArgs = {inherit inputs;};
   modules =
     [
       # Base configuration
@@ -38,7 +39,15 @@ nixpkgs.lib.nixosSystem {
       nix-gaming.nixosModules.pipewireLowLatency
       nix-gaming.nixosModules.platformOptimizations
 
-      # Home Manager
+      # Agenix for secrets management
+      agenix.nixosModules.default
+
+      # Host-specific configuration
+      ./../hosts/${hostname}/configuration.nix
+    ]
+    ++ extraModules
+    # Conditionally add home-manager
+    ++ (nixpkgs.lib.optionals enableHomeManager [
       home-manager.nixosModules.home-manager
       {
         home-manager.useGlobalPkgs = true;
@@ -46,12 +55,5 @@ nixpkgs.lib.nixosSystem {
         home-manager.users.j_kro = import ./../home.nix;
         home-manager.extraSpecialArgs = {inherit inputs;};
       }
-
-      # Agenix for secrets management
-      agenix.nixosModules.default
-
-      # Host-specific configuration
-      ./../hosts/${hostname}/configuration.nix
-    ]
-    ++ extraModules;
+    ]);
 }
