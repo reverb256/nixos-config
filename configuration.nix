@@ -91,7 +91,7 @@ in {
 
       # NVIDIA Wayland support
       "nvidia-drm.modeset=1"
-      "nvidia_drm.fbdev=0"
+      "nvidia_drm.fbdev=1"
       "nvidia.NVreg_RegistryDwords=PerfLevelSrc=0x2222;NVreg_UsePageAttributeTable=1;NVreg_EnableResizableBar=1"
       "nvidia-uvm/uvm_disable_huge_pages=1"
       "threadirqs"
@@ -103,6 +103,10 @@ in {
       "numa_balancing=disable"
       "nowatchdog"
       "pcie_aspm=off"
+
+      # Disable simpledrm to prevent black screen
+      "simpledrm.disable=1"
+      "initcall_blacklist=simpledrm_init"
     ];
 
     # System tuning
