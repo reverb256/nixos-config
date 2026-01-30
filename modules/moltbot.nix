@@ -64,13 +64,11 @@ in {
     };
 
     backend = lib.mkOption {
-      type = lib.types.enum ["lmstudio" "vllm" "ollama" "custom"];
+      type = lib.types.enum ["lmstudio" "custom"];
       default = "lmstudio";
       description = ''
         Local inference backend to use:
-        - lmstudio: LM Studio (default, easiest setup)
-        - vllm: vLLM for high-performance inference
-        - ollama: Ollama for easy model management
+        - lmstudio: LM Studio (default, easiest setup with CUDA support)
         - custom: Custom OpenAI-compatible endpoint
       '';
     };
@@ -106,9 +104,7 @@ in {
       default = true;
     };
 
-    enableLocalLLM = lib.mkEnableOption "Local LLM inference service (vLLM)" // {
-      default = false;
-    };
+
   };
 
   config = lib.mkIf cfg.enable {
@@ -164,39 +160,7 @@ in {
       };
 
       environment = {
-        PATH = lib.makeBinPath [pkgs.nodejs_22 pkgs.coreutils];
-      };
-    };
-
-    # Optional: vLLM local inference service
-    systemd.services.vllm-server = lib.mkIf cfg.enableLocalLLM {
-      description = "vLLM Local Inference Server";
-      wantedBy = ["multi-user.target"];
-      after = ["network-online.target"];
-      wants = ["network-online.target"];
-
-      serviceConfig = {
-        Type = "simple";
-        User = cfg.user;
-        Group = cfg.group;
-        ExecStart = "${pkgs.python3}/bin/python3 -m vllm.entrypoints.openai.api_server --model ${cfg.model} --tensor-parallel-size 1 --gpu-memory-utilization 0.9 --port 8000";
-        Restart = "always";
-        RestartSec = "30s";
-        
-        # GPU access
-        PrivateDevices = false;
-        
-        # Resource limits for RTX 3090
-        MemoryMax = "20G";
-        
-        Environment = [
-          "CUDA_VISIBLE_DEVICES=0"
-          "PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512"
-        ];
-      };
-
-      environment = {
-        PATH = lib.makeBinPath [pkgs.python3 pkgs.cudaPackages.cudatoolkit];
+        PATH = lib.mkForce (lib.makeBinPath [pkgs.nodejs_22 pkgs.coreutils]);
       };
     };
 
@@ -231,29 +195,19 @@ in {
       3. Start the local server: Developer tab → Start Server
       4. Molt.bot will automatically connect to http://localhost:1234/v1
 
-      ### Option 2: vLLM (Best Performance)
+      ### Option 2: Custom OpenAI-Compatible Server
 
-      1. Enable vLLM service in configuration:
+      For other CUDA-enabled inference servers (llama.cpp, TGI, etc.):
+      
+      1. Start your inference server on desired port
+      2. Configure Molt.bot:
          ```nix
          services.moltbot = {
            enable = true;
-           backend = "vllm";
+           backend = "custom";
            localApiUrl = "http://localhost:8000/v1";
-           enableLocalLLM = true;
-           model = "Qwen/Qwen2.5-72B-Instruct";
          };
          ```
-
-      2. Rebuild: `just switch`
-
-      3. vLLM will start automatically and load the model
-
-      ### Option 3: Ollama
-
-      1. Install Ollama: `nix shell nixpkgs#ollama`
-      2. Pull a model: `ollama pull qwen2.5:72b`
-      3. Start server: `ollama serve`
-      4. Set URL: `services.moltbot.localApiUrl = "http://localhost:11434/v1"`
 
       ## Quick Start
 
@@ -312,9 +266,8 @@ in {
       ## Documentation
 
       - Molt.bot: https://molt.bot
-      - vLLM: https://docs.vllm.ai/
       - LM Studio: https://lmstudio.ai/docs
-      - Ollama: https://github.com/ollama/ollama
+      - llama.cpp (CUDA): https://github.com/ggerganov/llama.cpp/blob/master/docs/build.md#cuda
     '';
   };
 }
