@@ -42,6 +42,28 @@ switch: _setup
    sudo nixos-rebuild switch --flake .#zephyr || true
    @echo "Local switch complete!"
 
+# Fast switch without home-manager (for quick system updates)
+switch-fast: _setup
+   @echo "=== FAST SWITCH MODE ==="
+   @echo "This switches the base system WITHOUT home-manager."
+   @echo "Home-manager config will be temporarily disabled."
+   @read -p "Continue? (y/N) " -n 1 -r; echo; [[ $REPLY =~ ^[Yy]$ ]] || exit 1
+   @echo ""
+   @echo "Building and switching to zephyr-fast configuration..."
+   sudo nixos-rebuild switch --flake .#zephyr-fast || true
+   @echo ""
+   @echo "=== FAST SWITCH COMPLETE ==="
+   @echo "Base system updated WITHOUT home-manager."
+   @echo ""
+   @echo "To restore home-manager, run: just switch"
+   @echo ""
+
+# Build only (no switch) - useful for checking compilation
+build-only: _setup
+   @echo "Building zephyr configuration (no switch)..."
+   nixos-rebuild build --flake .#zephyr || true
+   @echo "Build complete! Result: ./result"
+
 # Build without switching (dry run validation)
 build: _setup
    @echo "Building zephyr configuration..."
@@ -340,8 +362,10 @@ help:
    @echo "NixOS Management with Colmena"
    @echo ""
    @echo "LOCAL OPERATIONS:"
-   @echo "  switch              Switch local system"
+   @echo "  switch              Switch local system (with home-manager)"
+   @echo "  switch-fast         Fast switch WITHOUT home-manager"
    @echo "  build               Build local config (dry run)"
+   @echo "  build-only          Build without switching"
    @echo "  test                Test local config"
    @echo "  update              Update flake + switch"
    @echo "  clean               Clean old generations"
