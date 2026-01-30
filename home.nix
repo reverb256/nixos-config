@@ -59,9 +59,6 @@
     restic
     tailscale
 
-    # Terminal multiplexer and tools
-    fish
-
     # Node.js for various tools
     nodejs_22
 
@@ -75,6 +72,20 @@
     # Firefox PWA - Progressive Web Apps support
     # Moved from system-packages to avoid Firefox compilation during system updates
     firefoxpwa
+
+    # Media tools (moved from system-packages)
+    yt-dlp
+
+    # Display management (moved from system-packages)
+    kanshi
+
+    # AI Tools (moved from system-packages)
+    ollama
+    
+    # Kilo CLI wrapper
+    (pkgs.writeShellScriptBin "kilo" ''
+      exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
+    '')
   ];
 
   # StreamLake Claude Code environment variables (enhanced with MCP)
