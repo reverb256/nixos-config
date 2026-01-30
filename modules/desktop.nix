@@ -46,7 +46,7 @@
     alsa-utils
     alsa-tools
     alsa-firmware
-    rkit  # Real-time scheduling for low-latency audio
+    rtkit  # Real-time scheduling for low-latency audio
 
     # Bluetooth tools
     bluez
@@ -78,7 +78,7 @@
   };
 
   # Enable RTKit for real-time audio priority (reduces crackling/latency)
-  services.rtkit.enable = true;
+  security.rtkit.enable = true;
 
   # ============================================================================
   # BLUETOOTH SUPPORT
