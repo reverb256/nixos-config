@@ -31,7 +31,7 @@
         RestartSec = 5;
         User = "j_kro";
         Group = "j_kro";
-        ExecStart = "${pkgs.python3}/bin/python3 /home/j_kro/.claude/mcp-server.py";
+        ExecStart = "${pkgs.python3}/bin/python3 $HOME/.claude/mcp-server.py";
         Environment = [
           "HOME=/home/j_kro"
           "PATH=${pkgs.python3}/bin:${pkgs.nix}/bin"
@@ -39,8 +39,8 @@
         ExecStartPre = "${pkgs.writeShellScriptBin "mcp-setup" ''
           #!/bin/bash
           set -e
-          mkdir -p /home/j_kro/.claude
-          chown j_kro:j_kro /home/j_kro/.claude
+          mkdir -p $HOME/.claude
+          chown j_kro:j_kro $HOME/.claude
         ''}";
       };
     };

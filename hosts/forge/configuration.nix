@@ -8,51 +8,71 @@
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
+    # Import desktop module for Plasma 6
+    ../../modules/desktop.nix
+    # Import NVIDIA Wayland module (best practices)
+    ../../modules/nvidia-wayland.nix
   ];
 
   # Host identification
   networking.hostName = "forge";
 
   # ============================================================================
-  # BOOTLOADER - systemd-boot
-  # ============================================================================
-
-  boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
-  };
-
-  # ============================================================================
   # DESKTOP ENVIRONMENT - KDE Plasma 6
   # ============================================================================
 
-  services = {
-    xserver.enable = true;
-    displayManager = {
-      sddm.enable = true;
-      autoLogin = {
-        enable = true;
-        user = "j_kro";
-      };
+  services.xserver = {
+    enable = true;
+    videoDrivers = ["nvidia"];
+  };
+
+  services.displayManager = {
+    sddm.enable = true;
+    defaultSession = "plasma";
+    autoLogin = {
+      enable = true;
+      user = "j_kro";
     };
-    desktopManager.plasma6.enable = true;
   };
 
   # ============================================================================
-  # GPU DRIVERS (AMD & NVIDIA)
+  # GPU DRIVERS (AMD & NVIDIA) - Consistent with main configuration
   # ============================================================================
-  hardware.amdgpu.opencl.enable = true;
-  hardware.opengl.enable = true;
-  services.xserver.videoDrivers = ["amdgpu" "nvidia"];
+  hardware.amdgpu = {
+    opencl.enable = true;
+  };
+
+  # NVIDIA configuration for RTX 4060s (use proprietary beta drivers with ZEN kernel)
+  hardware.nvidia = {
+    package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
+  };
+
+  # Enable NVIDIA Wayland optimizations
+  hardware.nvidia.wayland = {
+    enable = true;
+    enable32Bit = true;
+    openModules = true;  # Use open-source kernel modules with proprietary userspace
+    powerManagement = true;
+    sddmWayland = true;
+  };
 
   # ============================================================================
   # KERNEL PARAMETERS
   # ============================================================================
 
-  # AMD GPU kernel parameters
+  # Combined AMD and NVIDIA GPU kernel parameters
   boot.kernelParams = [
+    # AMD GPU kernel parameters
     "amdgpu.noretry=0"
     "amdgpu.mcbp=1"
+
+    # Enhanced NVIDIA RTX 4060 optimizations (Zen kernel compatible)
+    # Note: Basic Wayland params are set by nvidia-wayland.nix module
+    "nvidia.NVreg_RegistryDwords=PerfLevelSrc=0x2222"
+    "nvidia.NVreg_UsePageAttributeTable=1" # Better memory management
+    "nvidia.NVreg_EnableResizableBar=1" # Resizable BAR for RTX 40xx series
+    "nvidia-uvm/uvm_disable_huge_pages=1" # Fix Wayland compatibility
+    "threadirqs"
   ];
 
   environment.variables = {
@@ -80,51 +100,6 @@
   services.mining.lolminer.amd.devices = "2,3";
   services.mining.lolminer.amd.powerLimit = 140;
   services.mining.lolminer.amd.apiPort = 4069;
-
-  # NOTE: AMD mining service is defined in mining module, not needed here
-  # systemd.services.lolminer-amd = {
-  #   description = "lolMiner AMD GPU Mining Service";
-  #   wantedBy = ["multi-user.target"];
-  #   after = ["NetworkManager.service"];
-  #
-  #   serviceConfig = {
-  #     User = "root";
-  #     Group = "mining";
-  #     Slice = "mining.slice";
-  #     ExecStartPre = [
-  #       # Set up AMD GPU power limits if supported
-  #       ''${pkgs.bash}/bin/bash -c '${pkgs.rocmPackages.rocm-smi}/bin/rocm-smi --setpoweroverdrive 140 || true'
-  #     ];
-  #     ExecStart = ''${pkgs.steam-run}/bin/steam-run ${pkgs.writeShellScriptBin "lolminer-amd-wrapper" ''
-  #       #!/usr/bin/env bash
-  #       # Set up OpenCL for AMD GPUs using ROCm
-  #       mkdir -p /etc/OpenCL/vendors
-  #
-  #       # Use ROCm OpenCL driver
-  #       echo "${pkgs.rocmPackages.clr}/lib/libamdocl64.so" > /etc/OpenCL/vendors/amdocl64.icd 2>/dev/null || true
-  #
-  #       # ROCm environment for Navi10 (RX 5700 XT)
-  #       export LD_LIBRARY_PATH="/opt/rocm/lib:/opt/rocm/hip/lib:/opt/rocm/lib:/run/opengl-driver/lib:/run/current-system/sw/lib:$LD_LIBRARY_PATH"
-  #       export HSA_OVERRIDE_GFX_VERSION=10.3.0
-  #       export ROC_ENABLE_PRE_VEGA=1
-  #       export GPU_MAX_HEAP_SIZE=100
-  #       export GPU_MAX_ALLOC_PERCENT=100
-  #       exec ${pkgs.lolminer}/bin/lolMiner "$@"
-  #     ''}/bin/lolminer-amd-wrapper --algo CR29 --pool stratum+ssl://xtm-c29-us.kryptex.network:8040 --user krxXVNVMM7.forge --devices 2,3 --apiport 4069 --mode b --tls 1';
-  #     ExecStopPost = ''${pkgs.bash}/bin/bash -c '${pkgs.rocmPackages.rocm-smi}/bin/rocm-smi --resetpoweroverdrive || true';
-  #     Restart = "always";
-  #     RestartSec = "30s";
-  #     Environment = ["PATH=/run/current-system/sw/bin:$PATH"];
-  #     NoNewPrivileges = false;
-  #     PrivateTmp = true;
-  #     PrivateDevices = false;
-  #     ProtectKernelTunables = false;
-  #     ProtectControlGroups = false;
-  #     ProtectHostname = false;
-  #     RestrictRealtime = true;
-  #     LimitMEMLOCK = "4G";
-  #   };
-  # };
 
   # ============================================================================
   # ROCm HIP symlink for OpenCL (fixes SIGSEGV crash)

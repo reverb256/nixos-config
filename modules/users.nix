@@ -18,6 +18,7 @@
         "dialout"
         "libinput"
         "render"
+        "plugdev"
       ];
       shell = pkgs.fish;
       packages = with pkgs; [

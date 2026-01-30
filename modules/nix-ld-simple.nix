@@ -1,6 +1,4 @@
-{ pkgs, ... }:
-
-{
+{pkgs, ...}: {
   # ============================================================================
   # DYNAMIC LINKER SUPPORT - nix-ld for mining binaries and browsers
   # ============================================================================
@@ -8,7 +6,7 @@
     enable = true;
     libraries = with pkgs; [
       stdenv.cc.cc.lib
-      libstdc++
+      "libstdc++"
       zlib
       libxcb
       libX11

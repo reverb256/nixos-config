@@ -78,6 +78,13 @@
       xorg.libXrandr
       xorg.libXrender
       xorg.libXtst
+
+      # CUDA libraries for LM Studio and ML applications
+      # These provide libcudart.so, libcudnn.so, etc. for dynamically linked binaries
+      cudaPackages.cuda_cudart
+      cudaPackages.cudnn
+      cudaPackages.libcublas
+      cudaPackages.libcufft
     ];
   };
 }
