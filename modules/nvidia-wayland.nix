@@ -149,8 +149,9 @@ in {
       # Enable NVIDIA DRM modeset (required for Wayland)
       "nvidia-drm.modeset=1"
 
-      # Disable fbdev for better Wayland support (optional, may help stability)
-      "nvidia_drm.fbdev=0"
+      # Enable fbdev for proper display initialization
+      # DISABLED: fbdev=0 causes black screen on boot
+      # "nvidia_drm.fbdev=0"
     ];
   };
 }
