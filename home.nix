@@ -105,10 +105,10 @@
   };
 
   # Zen Browser configuration - Enhanced privacy and productivity setup
-  # TEMPORARILY DISABLED: Prevents long compilation times during rebuild
-  # To re-enable: Set enable = true and run rebuild
+  # Zen Browser - Now using binary cache (zen-browser.cachix.org)
+  # No more compilation required!
   programs.zen-browser = {
-    enable = false;
+    enable = true;
 
     # Firefox-like policies and configuration
     policies = {
