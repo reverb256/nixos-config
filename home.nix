@@ -67,6 +67,7 @@
 
     # From nix profile (moved to declarative)
     gpu-viewer
+    cachix
 
     # Media tools (moved from system-packages)
     yt-dlp
