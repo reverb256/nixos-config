@@ -7,37 +7,17 @@
 with lib; let
   cfg = config.services.mining;
 
-  # Get NVIDIA paths from kernel
-  nvidiaStable = pkgs.linuxPackages_zen.nvidiaPackages.stable;
-  nvidiaLibPath = "${nvidiaStable}/lib";
-  nvidiaSmipath = "${nvidiaStable.bin}/bin/nvidia-smi";
-
-  # Wrapper for NVIDIA OpenCL inside steam-run
+  # Minimal wrapper for NVIDIA mining inside steam-run
   lolminerWrapper = pkgs.writeShellScriptBin "lolminer-wrapper" ''
     #!/usr/bin/env bash
-    NVIDIA_OPENCL="${nvidiaLibPath}/libnvidia-opencl.so"
-    # Use writable location for OpenCL vendor files to avoid permission issues
-    mkdir -p /tmp/opencl-vendors
-    echo "''${NVIDIA_OPENCL}" > /tmp/opencl-vendors/nvidia.icd
-    export OCL_ICD_VENDORS=/tmp/opencl-vendors
-    export LD_LIBRARY_PATH="${nvidiaLibPath}:/run/opengl-driver/lib:$LD_LIBRARY_PATH"
-    export GPU_MAX_HEAP_SIZE=100
-    export GPU_MAX_ALLOC_PERCENT=100
+    # Just execute lolMiner directly - environment variables are set in systemd service
     exec ${pkgs.lolminer}/bin/lolMiner "$@"
   '';
 
-  # Wrapper for AMD OpenCL inside steam-run
+  # Minimal wrapper for AMD mining inside steam-run
   lolminerAmdWrapper = pkgs.writeShellScriptBin "lolminer-amd-wrapper" ''
     #!/usr/bin/env bash
-    # Set up ROCm/OpenCL for AMD GPUs inside steam-run
-    mkdir -p /etc/OpenCL/vendors
-    echo "/run/opengl-driver/lib/libamdocl-orca64.so" > /etc/OpenCL/vendors/amdocl64.icd 2>/dev/null || true
-    echo "/run/opengl-driver/lib/libamdocl64.so" > /etc/OpenCL/vendors/amdocl64.icd 2>/dev/null || true
-    export LD_LIBRARY_PATH="/run/opengl-driver/lib:/opt/rocm/hip/lib:/opt/rocm/lib:$LD_LIBRARY_PATH"
-    export ROCM_PATH=/opt/rocm
-    export HSA_OVERRIDE_GFX_VERSION=10.3.0
-    export GPU_MAX_HEAP_SIZE=100
-    export GPU_MAX_ALLOC_PERCENT=100
+    # Just execute lolMiner directly - environment variables are set in systemd service
     exec ${pkgs.lolminer}/bin/lolMiner "$@"
   '';
 
@@ -124,9 +104,10 @@ in {
         type = types.int;
         default = 16;
       };
-      httpToken = mkOption {
-        type = types.str;
-        default = "my-secret-token";
+      httpTokenFile = mkOption {
+        type = types.path;
+        default = "/run/secrets/mining-api-token";
+        description = "Path to the file containing the HTTP API token";
       };
     };
   };
@@ -137,6 +118,12 @@ in {
     };
 
     environment.systemPackages = [monitorScript lolminerWrapper];
+
+    # Create mining API token file (fallback when agenix is not available)
+    systemd.tmpfiles.rules = [
+      "d /run/secrets 0750 root root -" 
+      "f /run/secrets/mining-api-token 0640 root root 'xmrig-api-token'"
+    ];
 
     # XMRig configuration file
     environment.etc."xmrig/config.json" = {
@@ -149,7 +136,7 @@ in {
           enabled = true;
           host = "127.0.0.1";
           port = 8081;
-          "access-token" = cfg.xmrig.httpToken or "my-secret-token";
+          "access-token-file" = cfg.xmrig.httpTokenFile;
           restricted = true;
         };
         pools = [
@@ -190,20 +177,26 @@ in {
           description = "lolMiner NVIDIA Mining Service";
           wantedBy = ["multi-user.target"];
           after = ["NetworkManager.service" "nvidia-persistenced.service"];
+          requires = ["nvidia-persistenced.service"];
 
           serviceConfig = {
             User = "root";
             Group = "mining";
             Slice = "mining.slice";
             ExecStartPre = [
-              "${pkgs.bash}/bin/bash -c '${nvidiaSmipath} -pm 1 || true'"
-              "${pkgs.bash}/bin/bash -c '${nvidiaSmipath} -pl ${toString cfg.lolminer.nvidia.powerLimit} || true'"
+              # Set persistent management and power limit for RTX 3090
+              "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.beta}/bin/nvidia-smi -pm 1'"
+              # Set power limit to 250W as required for zephyr
+              "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.beta}/bin/nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices}'"
             ];
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
-            ExecStopPost = "${pkgs.bash}/bin/bash -c '${nvidiaSmipath} -pl 350 || true'";
+            ExecStopPost = "${pkgs.bash}/bin/bash -c '${pkgs.linuxPackages_zen.nvidiaPackages.beta}/bin/nvidia-smi -pl 350 --id=${cfg.lolminer.nvidia.devices} || true'"; # Reset power limit to 350W
             Restart = "always";
             RestartSec = "30s";
-            Environment = ["PATH=/run/current-system/sw/bin:$PATH"];
+            Environment = [
+              "GPU_MAX_HEAP_SIZE=100"
+              "GPU_MAX_ALLOC_PERCENT=100"
+            ];
             NoNewPrivileges = false;
             PrivateTmp = true;
             PrivateDevices = false;
@@ -228,7 +221,9 @@ in {
             Restart = "always";
             RestartSec = "30s";
             Environment = [
-              "PATH=/run/current-system/sw/bin:$PATH"
+              "GPU_MAX_HEAP_SIZE=100"
+              "GPU_MAX_ALLOC_PERCENT=100"
+              "HSA_OVERRIDE_GFX_VERSION=10.3.0"
             ];
             NoNewPrivileges = false;
             PrivateTmp = true;
@@ -250,7 +245,7 @@ in {
             User = "root";
             Group = "root";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://xtm-rx-us.kryptex.network:8038 -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-port 8081 --http-access-token ${cfg.xmrig.httpToken} --randomx-1gb-pages --randomx-mode=fast --asm=auto";
+            ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://xtm-rx-us.kryptex.network:8038 -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-port 8081 --http-access-token-file ${cfg.xmrig.httpTokenFile} --randomx-1gb-pages --randomx-mode=fast --asm=auto";
             Restart = "always";
             NoNewPrivileges = true;
             PrivateTmp = true;

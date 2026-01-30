@@ -40,8 +40,7 @@ with lib; {
       Slice = "mining.slice";
       ExecStart = "${pkgs.lolminer}/bin/lolMiner --algo ${config.algorithm} --pool ${config.pool} --user ${config.user} --devices ${config.devices} --powerlimit ${toString config.powerLimit} --apiport ${toString config.apiPort} --mode b --tls 1";
       Restart = "always";
-      # Path to NVIDIA drivers
-      Environment = ["PATH=/run/current-system/sw/bin:$PATH" "LD_LIBRARY_PATH=/run/opengl-driver/lib:$LD_LIBRARY_PATH"];
+      Environment = [];
       RestartSec = "30s";
       # Use dedicated mining user for security
     };

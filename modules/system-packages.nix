@@ -1,7 +1,10 @@
-{pkgs, ...}: {
+{pkgs, lib, inputs ? null, ...}: {
   # Centralized system packages for better maintainability
-  environment.systemPackages = with pkgs;
-    [
+  environment.systemPackages =
+    (lib.optionals (inputs != null && inputs ? kimi-cli) [
+      inputs.kimi-cli.packages.x86_64-linux.default
+    ])
+    ++ (with pkgs; [
       # System utilities
       ripgrep
       fd
@@ -15,8 +18,9 @@
       networkmanager
       btop # Modern process monitor (mentioned by user)
 
-      # Steam and gaming
+      # Steam support (steam package itself is in modules/gaming.nix)
       steam-run # Required for running dynamically linked executables
+      pkgsi686Linux.glibc # 32-bit glibc for Steam compatibility
 
       # OpenCL support for AMD GPUs
       ocl-icd # OpenCL ICD loader
@@ -52,18 +56,22 @@
       vulkan-loader
       vulkan-tools
 
-       # NVIDIA tools for GPU monitoring
-       # nvidia_x11 # Removed - use hardware.nvidia instead
-       
-         # NEW: CUDA and ML support for RTX 3090
-         pkgs.cudaPackages.cudatoolkit
-         pkgs.cudaPackages.cudnn
-         pkgs.cudaPackages.libcufft
-         pkgs.cudaPackages.libcusparse
-         pkgs.cudaPackages.libcutensor
-         pkgs.python312Packages.torchWithCuda
-         pkgs.python312Packages.tensorflowWithCuda
-        pkgs.ollama
+      # NVIDIA tools for GPU monitoring
+      # nvidia_x11 # Removed - use hardware.nvidia instead
+
+      # NEW: CUDA and ML support for RTX 3090
+      pkgs.cudaPackages.cudatoolkit
+      pkgs.cudaPackages.cudnn
+      pkgs.cudaPackages.libcufft
+      pkgs.cudaPackages.libcusparse
+      pkgs.cudaPackages.libcutensor
+      pkgs.python312Packages.torchWithCuda
+      pkgs.python312Packages.tensorflowWithCuda
+      pkgs.ollama
+      # Additional CUDA libraries for LMStudio
+      pkgs.cudaPackages.libcurand
+      pkgs.cudaPackages.libcusolver
+      pkgs.cudaPackages.libnvjpeg
 
       # NH (Nix Helper) - Robust NixOS management
       nh
@@ -82,14 +90,28 @@
       kdePackages.kdeconnect-kde # KDE device integration
       kdePackages.plasma-systemmonitor # System monitoring widget
 
+      # Wayland portal services (CRITICAL for LMStudio and app functionality)
+      xdg-desktop-portal
+      kdePackages.xdg-desktop-portal-kde
+
+      # Flatpak and sandbox support
+      flatpak
+
       # AI tools and packages (from nix profile)
       qwen-code
+      opencode
 
       # Local AI/ML tools - DISABLED due to ROCm build failures in nixpkgs-unstable
       # pkgs.python3Packages.vllm # High-performance LLM inference engine - BROKEN with ROCm
 
       # OpenCode AI Agent packages (patched for bun version compatibility)
       # opencode only provides devShells, not packages
+
+      # Kilo Code CLI - AI coding agent (via npm)
+      # Installed globally via npm install -g @kilocode/cli
+      (pkgs.writeShellScriptBin "kilo" ''
+        exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
+      '')
     ]
     ++ [
       # Gaming and VR tools
@@ -103,29 +125,30 @@
       vulkan-loader
       vulkan-tools
       vulkan-validation-layers
+      vulkan-headers
 
       # DXVK for DirectX to Vulkan translation (needed for AAGL games)
       dxvk
       wine
       winetricks
 
-       # User profile packages (from nix profile)
-       alejandra
-       btop
-       colmena
-       deadnix
-       fd
-       fzf
-       gemini-cli
-       neovim
-       nodejs_22
-       opencode
-       qwen-code
-       ripgrep
-       statix
-       tmux
-       vesktop
-       lmstudio
+      # User profile packages (from nix profile)
+      alejandra
+      btop
+      colmena
+      deadnix
+      fd
+      fzf
+      gemini-cli
+      neovim
+      nodejs_22
+      opencode
+      qwen-code
+      ripgrep
+      statix
+      tmux
+      vesktop
+      lmstudio
 
       # Language servers and development tools (from nix profile)
       basedpyright # Python type checker
@@ -168,15 +191,25 @@
       gst_all_1.gst-plugins-bad
       gst_all_1.gst-libav
 
-       # Video encoding and GPU acceleration packages
-       nvidia-vaapi-driver
-       vdpauinfo
-       nvtopPackages.full
+      # Video encoding and GPU acceleration packages
+      nvidia-vaapi-driver
+      vdpauinfo
+      nvtopPackages.full
+      # Wayland display management tools
+      xorg.xrdb      # Runtime database utility for X resources
+      xorg.xrandr    # Display configuration tool
+      kanshi         # Automatic display configuration for Wayland
+      kdePackages.kscreen # KDE Display management
+      kdePackages.kio-extras # Extra I/O slaves for KDE
+      # NVIDIA EGL support for Wayland
+      egl-wayland # Essential for NVIDIA + Wayland (renamed from nvidia-egl-wayland)
+      # Additional Wayland utilities
+      wayland-utils    # Basic Wayland utilities
 
-       # Video processing for yt-dlp and media playback
-       ffmpeg
-       yt-dlp
+      # Video processing for yt-dlp and media playback
+      ffmpeg
+      yt-dlp
 
       # Anime Game Launchers (enabled via programs.anime-game-launcher in host config)
-    ];
+    ]);
 }

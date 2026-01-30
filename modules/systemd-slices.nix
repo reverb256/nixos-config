@@ -1,6 +1,6 @@
 # Systemd Slices Module
 # Extracted from configuration.nix - Workload isolation for gaming, mining, and builds
-_: {
+{lib, ...}: {
   # ============================================================================
   # SYSTEMD SLICES - Workload isolation for gaming, mining, and builds
   # ============================================================================

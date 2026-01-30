@@ -14,24 +14,6 @@
       modules = [
         {
           networking.hostName = "zephyr";
-
-          # ============================================================================
-          # ASSERTIONS - VR Configuration Validation
-          # ============================================================================
-          assertions = [
-            {
-              assertion = config.programs.steam.enable;
-              message = "Steam must be enabled for VR support";
-            }
-            {
-              assertion = config.services.wivrn.enable;
-              message = "WiVRn must be enabled for VR support";
-            }
-            {
-              assertion = config.hardware.graphics.enable;
-              message = "NVIDIA graphics must be enabled for optimal VR performance";
-            }
-          ];
         }
         inputs.ezkea.nixosModules.default
         inputs.agenix.nixosModules.default

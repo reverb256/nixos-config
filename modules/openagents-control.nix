@@ -25,7 +25,7 @@
 
       installDir = lib.mkOption {
         type = lib.types.str;
-        default = "/home/j_kro/.config/opencode";
+        default = "\${HOME}/.config/opencode";
         example = "~/.config/opencode";
         description = ''
           Installation directory for OpenAgents Control components.
@@ -44,28 +44,20 @@
   config = lib.mkIf config.services.openagents-control.enable {
     # Ensure required dependencies are installed
     environment.systemPackages = with pkgs; [
-      # Required for installer
+      # OpenCode CLI (required for OpenAgents Control)
+      opencode
+      # Required for installer scripts
       bash
       curl
       jq
     ];
-
-    # Set environment variables for MCP and tool fixes
-    environment.sessionVariables = {
-      # Fix MCP schema errors
-      OPENCODE_MCP_SCHEMA_FIX = "1";
-      # Fix tool output formatting
-      OPENCODE_TOOL_STRUCTURED_OUTPUT = "1";
-      # Set proper PATH for OpenCode tools
-      OPENCODE_PATH_FIX = "1";
-    };
 
     # Create wrapper scripts for OpenAgents Control management
     environment.etc."opencode-installer.sh".text = ''
       #!/usr/bin/env bash
       set -e
 
-      INSTALL_DIR="/home/j_kro/.config/opencode"
+      INSTALL_DIR="$HOME/.config/opencode"
 
       # Check if OpenAgents Control is already installed
       if [ -d "$INSTALL_DIR" ]; then
@@ -83,15 +75,22 @@
       echo ""
 
       # Download and run installer
-      if ! curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/install.sh -o /tmp/openagents-install.sh; then
+      TEMP_DIR=$(mktemp -d)
+      INSTALL_SCRIPT="$TEMP_DIR/openagents-install.sh"
+
+      if ! curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/install.sh -o "$INSTALL_SCRIPT"; then
         echo "Error: Failed to download installer"
+        rm -rf "$TEMP_DIR"
         exit 1
       fi
 
-      chmod +x /tmp/openagents-install.sh
+      chmod +x "$INSTALL_SCRIPT"
 
       # Run installer with selected profile
-      bash /tmp/openagents-install.sh ''${config.services.openagents-control.installProfile} --install-dir "$INSTALL_DIR"
+      bash "$INSTALL_SCRIPT" ''${config.services.openagents-control.installProfile} --install-dir "$INSTALL_DIR"
+
+      # Clean up
+      rm -rf "$TEMP_DIR"
 
       echo ""
       echo "OpenAgents Control installation complete!"
@@ -107,7 +106,7 @@
       #!/usr/bin/env bash
       set -e
 
-      INSTALL_DIR="/home/j_kro/.config/opencode"
+      INSTALL_DIR="$HOME/.config/opencode"
 
       if [ ! -d "$INSTALL_DIR" ]; then
         echo "Error: OpenAgents Control not installed at $INSTALL_DIR"
@@ -120,26 +119,33 @@
       echo ""
 
       # Download and run installer to update
-      if ! curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/install.sh -o /tmp/openagents-install.sh; then
+      TEMP_DIR=$(mktemp -d)
+      INSTALL_SCRIPT="$TEMP_DIR/openagents-install.sh"
+
+      if ! curl -fsSL https://raw.githubusercontent.com/darrenhinde/OpenAgentsControl/main/install.sh -o "$INSTALL_SCRIPT"; then
         echo "Error: Failed to download installer"
+        rm -rf "$TEMP_DIR"
         exit 1
       fi
 
-      chmod +x /tmp/openagents-install.sh
+      chmod +x "$INSTALL_SCRIPT"
 
       # Run installer with current profile to update
-      bash /tmp/openagents-install.sh ''${config.services.openagents-control.installProfile} --install-dir "$INSTALL_DIR"
+      bash "$INSTALL_SCRIPT" ''${config.services.openagents-control.installProfile} --install-dir "$INSTALL_DIR"
+
+      # Clean up
+      rm -rf "$TEMP_DIR"
 
       echo ""
       echo "OpenAgents Control update complete!"
       echo "Installation directory: $INSTALL_DIR"
     '';
 
-    environment.etc."openable-enable.sh".text = ''
+    environment.etc."openagents-enable.sh".text = ''
       #!/usr/bin/env bash
       set -e
 
-      INSTALL_DIR="/home/j_kro/.config/opencode"
+      INSTALL_DIR="$HOME/.config/opencode"
 
       if [ ! -d "$INSTALL_DIR" ]; then
         echo "Error: OpenAgents Control not installed at $INSTALL_DIR"
@@ -148,7 +154,8 @@
       fi
 
       # Create opencode wrapper that points to installation directory
-      cat > /usr/local/bin/opencode-wrapper << 'EOF'
+      # Using /run/current-system/sw/bin for runtime compatibility
+      cat > /run/current-system/sw/bin/opencode-wrapper << 'EOF'
       #!/usr/bin/env bash
       export OPENCODE_INSTALL_DIR="$INSTALL_DIR"
 
@@ -173,10 +180,10 @@
       exec opencode "\\$@"
       'EOF'
 
-      chmod +x /usr/local/bin/opencode-wrapper
+      chmod +x /run/current-system/sw/bin/opencode-wrapper
 
       echo "OpenAgents Control enabled at: $INSTALL_DIR"
-      echo "Wrapper script created: /usr/local/bin/opencode-wrapper"
+      echo "Wrapper script created: /run/current-system/sw/bin/opencode-wrapper"
       echo ""
       echo "To use OpenCode agents with OpenAgents Control:"
       echo "  opencode-wrapper --agent openagent"
@@ -193,7 +200,7 @@
 
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "/etc/opencode-update.sh";
+          ExecStart = "${pkgs.bash}/bin/bash /etc/opencode-update.sh";
           User = "root";
         };
       };
