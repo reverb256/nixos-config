@@ -490,10 +490,13 @@
 
   # Disable KDE Session Restore to prevent crash loops
   # https://discuss.kde.org/t/can-you-disable-session-restore-before-logging-into-user-account/28208
-  xdg.configFile."ksmserverrc".text = ''
-    [General]
-    sessionRestore=none
-  '';
+  xdg.configFile."ksmserverrc" = {
+    force = true;  # Allow overwriting existing file
+    text = ''
+      [General]
+      sessionRestore=none
+    '';
+  };
 
   # Kanshi - Dynamic display configuration for Wayland
   # Monitor Layout:
