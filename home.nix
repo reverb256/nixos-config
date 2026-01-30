@@ -3,9 +3,10 @@
   inputs,
   ...
 }: {
-  # Import Zen Browser (Home Manager module only - Clawdbot is system-level)
+  # Import Zen Browser and Nixcord (Home Manager modules)
   imports = [
     inputs.zen-browser.homeModules.default
+    inputs.nixcord.homeModules.nixcord
   ];
 
   # NH (Nix Helper) configuration for better UX
@@ -46,7 +47,6 @@
     nodePackages.typescript-language-server
 
     # User applications
-    vesktop
     lmstudio
     opencode
     qwen-code
@@ -105,10 +105,8 @@
   };
 
   # Zen Browser configuration - Enhanced privacy and productivity setup
-  # Zen Browser - DISABLED: Compiling from source (2-4 hours)
-  # Re-enable when you have time: Set enable = true and run rebuild
   programs.zen-browser = {
-    enable = false;
+    enable = true;
 
     # Firefox-like policies and configuration
     policies = {
@@ -313,11 +311,6 @@
       };
     };
 
-    # Vesktop (Discord client) declarative configuration
-    vesktop = {
-      enable = true;
-    };
-
     # Neovim configuration
     neovim = {
       enable = true;
@@ -470,25 +463,74 @@
   # Clawbot is now system-level - remove from Home Manager
   # Configuration moved to configuration.nix
 
-  # Services
-  systemd.user = {
-    # Auto-start Vesktop on login using systemd user service
-    services.vesktop-autostart = {
-      Unit = {
-        Description = "Vesktop Discord client";
-        PartOf = "graphical-session.target";
-      };
-      Service = {
-        ExecStart = "${pkgs.vesktop}/bin/vesktop";
-        Restart = "on-failure";
-        RestartSec = 5;
-      };
-      Install = {
-        WantedBy = ["graphical-session.target"];
-      };
+  # Minimal Nixcord (Discord client) configuration - uses Vesktop
+  programs.nixcord = {
+    enable = true;
+    discord.enable = false; # Disable Discord, use Vesktop instead
+    vesktop.enable = true; # Use Vesktop (Vencord + Wayland support)
+  };
+
+  # Autostart Vesktop on login
+  systemd.user.services.vesktop-autostart = {
+    Unit = {
+      Description = "Vesktop autostart";
+      After = ["graphical-session.target" "plasma-workspace.target"];
+      PartOf = ["graphical-session.target"];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install = {
+      WantedBy = ["default.target"];
     };
   };
 
-  # Vesktop - Discord client with Wayland support
-  # Note: Nixcord integration moved to system level in configuration.nix
+  # Disable KDE Session Restore to prevent crash loops
+  # https://discuss.kde.org/t/can-you-disable-session-restore-before-logging-into-user-account/28208
+  xdg.configFile."ksmserverrc".text = ''
+    [General]
+    sessionRestore=none
+  '';
+
+  # Kanshi - Dynamic display configuration for Wayland
+  # Monitor Layout:
+  # DP-2 (BenQ Zowie):    Top-left, primary gaming monitor
+  # DP-1 (ASUS):          Top-right
+  # DP-3 (Acer):          Bottom-right
+  # HDMI-A-1 (Samsung):   Far right (TV)
+  services.kanshi = {
+    enable = true;
+    settings = [
+      {
+        profile = {
+          name = "default";
+          outputs = [
+            {
+              criteria = "DP-2";
+              position = "0,0";
+              status = "enable";
+            }
+            {
+              criteria = "DP-1";
+              position = "1920,0";
+              status = "enable";
+            }
+            {
+              criteria = "DP-3";
+              position = "1920,1080";
+              status = "enable";
+            }
+            {
+              criteria = "HDMI-A-1";
+              position = "3840,0";
+              status = "enable";
+            }
+          ];
+        };
+      }
+    ];
+  };
 }
