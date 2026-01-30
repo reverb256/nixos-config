@@ -51,7 +51,7 @@ in
           imsg.enable = true;
         };
         
-         # Configure Telegram provider - DISABLED (no token configured)
+         # Configure Telegram provider - DISABLED (no token configured yet)
         providers.telegram = {
           enable = false;
           # botTokenFile = cfg.telegramTokenFile;
@@ -64,9 +64,8 @@ in
           thinkingDefault = "medium";
         };
         
-         # Systemd user service - DISABLED due to upstream module bug
-        # Error: attribute 'unitName' missing in nix-openclaw module
-        systemd.enable = false;
+        # Systemd user service - ENABLED (testing if bug is fixed in new version)
+        systemd.enable = true;
       };
     };
     
