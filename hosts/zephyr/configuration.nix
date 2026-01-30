@@ -48,7 +48,10 @@
   services.xserver.enable = true;
 
   services.displayManager = {
-    sddm.enable = true;
+    sddm = {
+      enable = true;
+      wayland.enable = false;  # WORKAROUND: Use X11 for greeter (Wayland greeter crashes on NVIDIA)
+    };
     defaultSession = "plasma";
     autoLogin = {
       enable = true;
