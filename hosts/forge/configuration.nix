@@ -42,16 +42,16 @@
     opencl.enable = true;
   };
 
-  # NVIDIA configuration for RTX 4060s (use proprietary drivers with ZEN kernel)
+  # NVIDIA configuration for RTX 4060s (use proprietary beta drivers with ZEN kernel)
   hardware.nvidia = {
-    package = pkgs.linuxPackages_zen.nvidiaPackages.production;
+    package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
   };
 
   # Enable NVIDIA Wayland optimizations
   hardware.nvidia.wayland = {
     enable = true;
     enable32Bit = true;
-    openModules = true;  # Use open-source modules for better Wayland support
+    openModules = true;  # Use open-source kernel modules with proprietary userspace
     powerManagement = true;
     sddmWayland = true;
   };
