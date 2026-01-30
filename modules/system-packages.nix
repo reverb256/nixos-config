@@ -1,65 +1,85 @@
 {pkgs, lib, inputs ? null, ...}: {
-  # Centralized system packages for better maintainability
+  # Centralized SYSTEM packages - only packages needed by system services
+  # User packages belong in home.nix
   environment.systemPackages =
     (lib.optionals (inputs != null && inputs ? kimi-cli) [
       inputs.kimi-cli.packages.x86_64-linux.default
     ])
     ++ (with pkgs; [
-      # System utilities
+      # ============================================================================
+      # SYSTEM UTILITIES
+      # Needed by system services, scripts, or all users
+      # ============================================================================
       ripgrep
       fd
-      fzf
-      parallel # GNU parallel for running commands simultaneously
-      htop # Traditional process monitor (complement to btop)
-      neofetch # System information tool
-      wget # Additional download tool
-
-      # Network management
-      networkmanager
-      btop # Modern process monitor (mentioned by user)
-
-      # Steam support (steam package itself is in modules/gaming.nix)
-      steam-run # Required for running dynamically linked executables
-      pkgsi686Linux.glibc # 32-bit glibc for Steam compatibility
-
-      # OpenCL support for AMD GPUs
-      ocl-icd # OpenCL ICD loader
-      libclc # OpenCL bitcode library for Mesa
-      # rocm-opencl-runtime # ROCm OpenCL runtime - BROKEN in nixpkgs-unstable
-      tmux # Terminal multiplexer
-
-      # Networking and file transfer
+      parallel
+      htop
+      neofetch
+      wget
       curl
-      jq # JSON processor for mining monitor
-      mosh # Mobile shell for roaming connections
-      nmap # Network scanner
-      netcat # Network utility
-      socat # Bidirectional data transfer
+      jq
+      mosh
+      nmap
+      netcat
+      socat
+      tmux
 
-      # Web browser PWA support
-      firefoxpwa # Progressive Web App support for Firefox-based browsers
+      # ============================================================================
+      # NETWORK MANAGEMENT
+      # System-level networking tools
+      # ============================================================================
+      networkmanager
+      networkmanagerapplet
 
-      # Version control and development
+      # ============================================================================
+      # VERSION CONTROL AND BUILD TOOLS
+      # Required for system operations
+      # ============================================================================
       git
       vim
-      just # Command runner (already in user packages)
+      just
 
-      # File system tools
-      btrfs-progs # Btrfs filesystem utilities
+      # ============================================================================
+      # FILE SYSTEM TOOLS
+      # ============================================================================
+      btrfs-progs
 
-      # Hardware detection and system info
-      pciutils # lspci and other PCI utilities
-      usbutils # lsusb and other USB utilities
-      lshw # Hardware lister
+      # ============================================================================
+      # HARDWARE DETECTION
+      # Used by system scripts and hardware configuration
+      # ============================================================================
+      pciutils
+      usbutils
+      lshw
 
-      # Vulkan support for gaming
+      # ============================================================================
+      # GAMING SUPPORT
+      # Steam and gaming libraries (configured in gaming.nix)
+      # ============================================================================
+      steam-run
+      pkgsi686Linux.glibc
+
+      # Vulkan support
       vulkan-loader
       vulkan-tools
 
-      # NVIDIA tools for GPU monitoring
-      # nvidia_x11 # Removed - use hardware.nvidia instead
+      # Gaming tools
+      gamescope
+      mangohud
+      goverlay
+      xrizer
+      opencomposite
+      vulkan-validation-layers
+      vulkan-headers
+      dxvk
+      wine
+      winetricks
 
-      # NEW: CUDA and ML support for RTX 3090
+      # ============================================================================
+      # CUDA AND ML LIBRARIES
+      # System libraries for CUDA/ML workloads
+      # These provide the runtime libraries, not user tools
+      # ============================================================================
       pkgs.cudaPackages.cudatoolkit
       pkgs.cudaPackages.cudnn
       pkgs.cudaPackages.libcufft
@@ -68,148 +88,80 @@
       pkgs.python312Packages.torchWithCuda
       pkgs.python312Packages.tensorflowWithCuda
       pkgs.ollama
-      # Additional CUDA libraries for LMStudio
       pkgs.cudaPackages.libcurand
       pkgs.cudaPackages.libcusolver
       pkgs.cudaPackages.libnvjpeg
 
-      # NH (Nix Helper) - Robust NixOS management
+      # ============================================================================
+      # SYSTEM MANAGEMENT TOOLS
+      # Required for system administration
+      # ============================================================================
       nh
-
-      # Colmena - Multi-host deployment tool
       colmena
-
-      # Desktop notifications for mining controls
-      libnotify
-      kdePackages.kdialog
-      networkmanagerapplet # GTK NetworkManager tray applet
-
-      # KDE Plasma integration (CRITICAL for window management)
-      kdePackages.xdg-desktop-portal-kde # Essential for window tracking
-      kdePackages.kdbusaddons # DBus integration for KDE
-      kdePackages.kdeconnect-kde # KDE device integration
-      kdePackages.plasma-systemmonitor # System monitoring widget
-
-      # Wayland portal services (CRITICAL for LMStudio and app functionality)
-      xdg-desktop-portal
-      kdePackages.xdg-desktop-portal-kde
-
-      # Flatpak and sandbox support
-      flatpak
-
-      # AI tools and packages (from nix profile)
-      qwen-code
-      opencode
-
-      # Local AI/ML tools - DISABLED due to ROCm build failures in nixpkgs-unstable
-      # pkgs.python3Packages.vllm # High-performance LLM inference engine - BROKEN with ROCm
-
-      # OpenCode AI Agent packages (patched for bun version compatibility)
-      # opencode only provides devShells, not packages
-
-      # Kilo Code CLI - AI coding agent (via npm)
-      # Installed globally via npm install -g @kilocode/cli
-      (pkgs.writeShellScriptBin "kilo" ''
-        exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
-      '')
-    ]
-    ++ [
-      # Gaming and VR tools
-      gamescope
-      mangohud
-      goverlay # Gamemode integration overlay
-      xrizer # OpenVR compatibility for Steam games
-      opencomposite # Alternative OpenVR compatibility
-
-      # Vulkan support packages
-      vulkan-loader
-      vulkan-tools
-      vulkan-validation-layers
-      vulkan-headers
-
-      # DXVK for DirectX to Vulkan translation (needed for AAGL games)
-      dxvk
-      wine
-      winetricks
-
-      # User profile packages (from nix profile)
-      alejandra
-      btop
-      colmena
-      deadnix
-      fd
-      fzf
-      gemini-cli
-      neovim
-      nodejs_22
-      opencode
-      qwen-code
-      ripgrep
-      statix
-      tmux
-      vesktop
-      lmstudio
-
-      # Language servers and development tools (from nix profile)
-      basedpyright # Python type checker
-      bash-language-server # Bash LSP
-      nodePackages.typescript-language-server # TypeScript LSP
-      nixd # Nix LSP
-
-      # Nix formatters and linters (from nix profile)
-      alejandra
-      deadnix
-      statix
-
-      # Cloud storage and networking
-      rclone
-      rclone-browser
-      restic
-      tailscale
-
-      # Terminal and shell tools (from nix profile)
-      fish
-      gh # GitHub CLI
-      gparted # Partition editor
-
-      # SSH utilities (from nix profile)
-      sshpass
-
-      # Shell prompt and configuration (from nix profile)
-      starship
-      zoxide
-      eza
-      mise
-
-      # Home Manager
       home-manager
 
-      # Multimedia support for audiotube and Qt applications
+      # ============================================================================
+      # DESKTOP ENVIRONMENT SUPPORT
+      # KDE Plasma and Wayland system packages
+      # ============================================================================
+      libnotify
+      kdePackages.kdialog
+      kdePackages.xdg-desktop-portal-kde
+      kdePackages.kdbusaddons
+      kdePackages.kdeconnect-kde
+      kdePackages.plasma-systemmonitor
+      xdg-desktop-portal
+      flatpak
+
+      # ============================================================================
+      # MULTIMEDIA SUPPORT
+      # System-wide multimedia libraries
+      # ============================================================================
       gst_all_1.gstreamer
       gst_all_1.gst-plugins-base
       gst_all_1.gst-plugins-good
       gst_all_1.gst-plugins-bad
       gst_all_1.gst-libav
 
-      # Video encoding and GPU acceleration packages
+      # ============================================================================
+      # VIDEO AND GPU ACCELERATION
+      # System video drivers and utilities
+      # ============================================================================
       nvidia-vaapi-driver
       vdpauinfo
       nvtopPackages.full
-      # Wayland display management tools
-      xorg.xrdb      # Runtime database utility for X resources
-      xorg.xrandr    # Display configuration tool
-      kanshi         # Automatic display configuration for Wayland
-      kdePackages.kscreen # KDE Display management
-      kdePackages.kio-extras # Extra I/O slaves for KDE
-      # NVIDIA EGL support for Wayland
-      egl-wayland # Essential for NVIDIA + Wayland (renamed from nvidia-egl-wayland)
-      # Additional Wayland utilities
-      wayland-utils    # Basic Wayland utilities
-
-      # Video processing for yt-dlp and media playback
+      egl-wayland
+      wayland-utils
       ffmpeg
       yt-dlp
 
-      # Anime Game Launchers (enabled via programs.anime-game-launcher in host config)
+      # ============================================================================
+      # DISPLAY MANAGEMENT
+      # System display configuration tools
+      # ============================================================================
+      xorg.xrdb
+      xorg.xrandr
+      kanshi
+      kdePackages.kscreen
+      kdePackages.kio-extras
+
+      # ============================================================================
+      # WEB BROWSER SUPPORT
+      # ============================================================================
+      firefoxpwa
+
+      # ============================================================================
+      # OPENCL SUPPORT
+      # ============================================================================
+      ocl-icd
+      libclc
+
+      # ============================================================================
+      # AI TOOLS (System-level)
+      # These provide system-wide AI capabilities
+      # ============================================================================
+      (pkgs.writeShellScriptBin "kilo" ''
+        exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
+      '')
     ]);
 }

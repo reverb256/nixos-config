@@ -26,6 +26,49 @@
     stateVersion = "26.05";
   };
 
+  # User packages - development tools, shell utilities, and applications
+  home.packages = with pkgs; [
+    # Shell tools (configured in programs section below)
+    btop
+    fzf
+    tmux
+    eza
+    zoxide
+    starship
+
+    # Development tools
+    alejandra
+    deadnix
+    statix
+    nixd
+    basedpyright
+    bash-language-server
+    nodePackages.typescript-language-server
+
+    # User applications
+    vesktop
+    lmstudio
+    opencode
+    qwen-code
+    gh
+    gparted
+
+    # Cloud and sync tools
+    rclone
+    rclone-browser
+    restic
+    tailscale
+
+    # Terminal multiplexer and tools
+    fish
+
+    # Node.js for various tools
+    nodejs_22
+
+    # From nix profile (moved to declarative)
+    gpu-viewer
+  ];
+
   # StreamLake Claude Code environment variables (enhanced with MCP)
   home.sessionVariables = {
     # MCP Server Configuration
