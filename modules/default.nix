@@ -11,5 +11,6 @@
     ./systemd-slices.nix
     ./nvidia-sandbox.nix
     ./openclaw.nix
+    ./flatpak-polkit.nix
   ];
 }
