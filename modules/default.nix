@@ -10,7 +10,7 @@
     ./ssh.nix
     ./systemd-slices.nix
     ./nvidia-sandbox.nix
-    ./openclaw.nix
+    # ./openclaw.nix  # DISABLED: nix-openclaw flake severely broken (hash mismatches, missing files, API changes)
     ./flatpak-polkit.nix
   ];
 }
