@@ -7,7 +7,7 @@
       PasswordAuthentication = true;
       KbdInteractiveAuthentication = true;
       PubkeyAuthentication = true;
-      PermitRootLogin = "yes";
+      PermitRootLogin = "no";
 
       # Modern Cryptographic Settings
       Ciphers = [
@@ -53,43 +53,43 @@
       Host nexus
         HostName 10.1.1.120
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_rsa
+        IdentityFile ~/.ssh/id_rsa
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
         ControlMaster auto
-        ControlPath /tmp/ssh-%h-%p
+        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
         ControlPersist 600
 
       # Forge - Build/Development node
       Host forge
         HostName 10.1.1.130
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_rsa
+        IdentityFile ~/.ssh/id_rsa
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
         ControlMaster auto
-        ControlPath /tmp/ssh-%h-%p
+        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
         ControlPersist 600
 
       # Sentry - Monitoring node
       Host sentry
         HostName 10.1.1.140
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_rsa
+        IdentityFile ~/.ssh/id_rsa
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
         ControlMaster auto
-        ControlPath /tmp/ssh-%h-%p
+        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
         ControlPersist 600
 
       # Cluster wildcard
       Host zephyr nexus forge sentry
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_rsa
+        IdentityFile ~/.ssh/id_rsa
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
         ControlMaster auto
-        ControlPath /tmp/ssh-%h-%p
+        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
         ControlPersist 600
     '';
   };
@@ -97,5 +97,10 @@
   # Add SSH key to authorized_keys for j_kro user
   users.users.j_kro.openssh.authorizedKeys.keys = [
     "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCUwUcRSasufZT4RoqzX/S15AVlXqk9ebf5npfy4ws9I8phm05v4Bh4udXVRP2679sISQM5HABvPazoFeK5/QvrE8Daz7jqufGvwZvuP+qXg3hNBd3b0c80P5HoNIOn8d3eUd5eKbZzU+23dc4GiowzyDM+5bMwiSNkwFNzf5a9tj1FHSSRKKlc7fltei9sgmLNMzGYdHQQOr/yVGPFFk6/Tb+Gz7ZNZ9AP7pi3eFkiYc+g8wujSUtl7jTvvzcXl7+f4tf+NphBQ1Db68e3R1e+e0iTEqUnbjedjUdOnVK/nkURXABOV9kNOuISuQ9e+5q8w8FHWgNaSJYeAyYNZLVG6hEJo/ptA8zBe4jUnKvFZ9avRjZvKXDQJTOeOH46Gz1mUlPx/6jEwgCOyNIu8/Udunk0XHIXhIDEhXl0KA6OUPs8Od8+KuZx+IuTyov+bSe68GYjwadPcNNDPFZrs8nJlqfYLA0epg0pHLl2K/FspQohGhQNHn9qwiNx94ljMKkQRz1jD1klk2m5WRHy4Mr8WNwFm266W23/Xc8OomF2zoUV+VcqtZX2kG4NB6QSOacERXq9FFS3/UXqZ29BA+k2RDuddjeYmgRX5wi+VznHvuCNpR0FuoZPYw95N0ZnOEimxB+L1IPDMn6rUCh76phroqgY+M0yt27M8XV8qsZFJw== j_kro@zephyr"
+  ];
+
+  # Ensure SSH sockets directory exists with proper permissions for user
+  systemd.tmpfiles.rules = [
+    "d /home/j_kro/.ssh/sockets 0700 j_kro j_kro -"
   ];
 }

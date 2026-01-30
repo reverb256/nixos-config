@@ -2,7 +2,9 @@
 # and may be overwritten by future invocations.  Please make changes
 # to /etc/nixos/configuration.nix instead.
 {
+  config,
   lib,
+  pkgs,
   modulesPath,
   ...
 }: {
@@ -10,7 +12,7 @@
     (modulesPath + "/installer/scan/not-detected.nix")
   ];
 
-  boot.initrd.availableKernelModules = ["nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "sd_mod"];
+  boot.initrd.availableKernelModules = ["nvme" "xhci_pci" "ahci" "usbhid"];
   boot.initrd.kernelModules = [];
   boot.kernelModules = ["kvm-amd"];
   boot.extraModulePackages = [];
@@ -40,9 +42,10 @@
   };
 
   swapDevices = [
-    {device = "/dev/disk/by-uuid/e41f2f97-013a-4c2c-8eb2-7214768fcf4d";}
     {device = "/dev/disk/by-uuid/f1fa3b38-f788-485b-8e56-58ecbe526091";}
+    {device = "/dev/disk/by-uuid/e41f2f97-013a-4c2c-8eb2-7214768fcf4d";}
   ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }

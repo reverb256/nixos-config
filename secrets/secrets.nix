@@ -13,4 +13,10 @@ in {
 
   # Hugging Face API Token
   "hf-token".publicKeys = allHosts;
+
+  # Mining API token for XMRig HTTP API
+  "mining-api-token".publicKeys = allHosts;
+
+  # Mining wallet addresses (encrypted)
+  "mining-wallet".publicKeys = allHosts;
 }

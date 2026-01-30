@@ -1,40 +1,46 @@
 # Nexus Host Configuration
 # 10.1.1.120 - Build Server (24 cores, 2x RTX 3060 Ti)
-{...}: {
+{pkgs, ...}: {
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
-    # Import gaming module (contains anime-game-launcher)
-    ../modules/gaming.nix
+    # Import desktop module for Plasma 6
+    ../../modules/desktop.nix
+    # Import gaming module
+    ../../modules/gaming.nix
+    # Import NVIDIA Wayland module (best practices)
+    ../../modules/nvidia-wayland.nix
   ];
 
   # Host identification
   networking.hostName = "nexus";
 
   # ============================================================================
-  # BOOTLOADER - systemd-boot
+  # NVIDIA WAYLAND CONFIGURATION (RTX 3060 Ti)
   # ============================================================================
-
-  boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
+  hardware.nvidia = {
+    package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
   };
 
-  # ============================================================================
-  # DESKTOP ENVIRONMENT - KDE Plasma 6
-  # ============================================================================
+  # Enable NVIDIA Wayland optimizations
+  hardware.nvidia.wayland = {
+    enable = true;
+    enable32Bit = true;
+    openModules = true;  # Use open-source kernel modules with proprietary userspace
+    powerManagement = true;
+    sddmWayland = true;
+  };
 
-  services = {
-    xserver.enable = true;
-    xserver.videoDrivers = ["nvidia"];
-    displayManager = {
-      sddm.enable = true;
-      autoLogin = {
-        enable = true;
-        user = "j_kro";
-      };
+  # Legacy X11 video driver setting (kept for compatibility)
+  services.xserver.videoDrivers = ["nvidia"];
+
+  services.displayManager = {
+    sddm.enable = true;
+    defaultSession = "plasma";
+    autoLogin = {
+      enable = true;
+      user = "j_kro";
     };
-    desktopManager.plasma6.enable = true;
   };
 
   # ============================================================================

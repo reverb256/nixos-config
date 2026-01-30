@@ -6,7 +6,7 @@
   config,
   lib,
   pkgs,
-  inputs,
+  inputs ? null,
   ...
 }:
 with lib; {
@@ -58,6 +58,27 @@ with lib; {
   # ============================================================================
   # SYSTEMD SLICES - Workload isolation for gaming
   # ============================================================================
+
+  # GameMode service configuration
+  systemd.services.gamemode = mkIf config.programs.gamemode.enable {
+    description = "GameMode service";
+    wantedBy = ["multi-user.target"];
+    after = ["syslog.target"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = "yes";
+      ExecStart = "${pkgs.gamemode}/bin/gamemoded --daemonize";
+      ExecStop = "${pkgs.gamemode}/bin/gamemoded --kill";
+      TimeoutStopSec = 10;
+      User = "root";
+      Group = "root";
+    };
+  };
+
+  # gamescope-session service for Wayland gaming (user service)
+  # Removed gamescope-session service as it's not needed for basic gaming setup
+  # Gamescope can be launched manually or through Steam's launch options
+
   systemd.slices."gaming.slice" = {
     description = "Gaming applications slice";
     sliceConfig = {
@@ -67,36 +88,12 @@ with lib; {
       MemoryAccounting = "yes";
       TasksAccounting = "yes";
       TasksMax = 20000;
+      # Critical for NVIDIA Wayland support
+      DeviceAllow = "char-226 rw";
+      BlockIOAccounting = "yes";
+      BlockIOWeight = 1000;
     };
   };
-
-  # ============================================================================
-  # KERNEL PARAMETERS - High-priority gaming optimizations
-  # ============================================================================
-  boot.kernelParams = [
-    # Wine gaming performance
-    "fsync.enable=1"
-
-    # NVIDIA optimizations
-    "nvidia-drm.modeset=1"
-    "threadirqs"
-
-    # Ryzen 5950X optimizations
-    "amd_pstate=active"
-    "mitigations=off"
-    "transparent_hugepage=madvise"
-    "numa_balancing=disable"
-    "nowatchdog"
-
-    # PCIe and I/O optimizations
-    "pcie_aspm=off"
-    "elevator=none"
-
-    # High-priority gaming optimizations
-    "isolcpus=managed_applications" # CPU isolation for gaming
-    "nohz_full=1-15" # Disable tick on application cores
-    "rcu_nocbs=1-15" # RCU offload for low latency
-  ];
 
   # ============================================================================
   # STEAM - Full VR Support with NVENC Optimizations
@@ -106,35 +103,32 @@ with lib; {
     extraCompatPackages = with pkgs;
       [
       ]
-      ++ [
-        inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
-      ];
+      ++ (
+        if inputs != null && inputs ? nixpkgs-xr
+        then [
+          inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
+        ]
+        else []
+      );
   };
 
   # ============================================================================
-  # ANIME GAME LAUNCHERS
+  # ANIME GAME LAUNCHERS (Simplified ezKEa Setup)
   # ============================================================================
-  programs.anime-game-launcher = {
+  # Only the 4 games you need - direct ezKEa package references
+  programs.anime-game-launcher = lib.mkIf (inputs != null && inputs ? ezkea) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.anime-game-launcher;
   };
-  programs.anime-games-launcher = {
-    enable = true;
-    package = inputs.ezkea.packages.x86_64-linux.anime-games-launcher;
-  };
-  programs.honkers-railway-launcher = {
+  programs.honkers-railway-launcher = lib.mkIf (inputs != null && inputs ? ezkea) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.honkers-railway-launcher;
   };
-  programs.honkers-launcher = {
-    enable = true;
-    package = inputs.ezkea.packages.x86_64-linux.honkers-launcher;
-  };
-  programs.wavey-launcher = {
+  programs.wavey-launcher = lib.mkIf (inputs != null && inputs ? ezkea) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.wavey-launcher;
   };
-  programs.sleepy-launcher = {
+  programs.sleepy-launcher = lib.mkIf (inputs != null && inputs ? ezkea) {
     enable = true;
     package = inputs.ezkea.packages.x86_64-linux.sleepy-launcher;
   };
@@ -208,19 +202,19 @@ with lib; {
       # SteamVR lighthouse driver support for Tundra trackers
       # Enable SteamVR tracked devices support (lighthouse base stations)
       "steamvr-enabled" = true;
-      
+
       # Lighthouse discovery wait time (ms) - allow devices to be discovered
       "lh-discover-wait-ms" = 5000;
-      
+
       # Enable lighthouse tracking for external devices
       "lighthouse-enabled" = true;
-      
+
       # Base station configuration for 2.0 base stations
       "lighthouse-base-stations" = 2;
-      
+
       # Tundra tracker support via lighthouse
       "tundra-trackers-enabled" = true;
-      
+
       # Discovery timeout for lighthouse devices
       "lighthouse-discovery-timeout" = 10000;
     };
@@ -232,9 +226,9 @@ with lib; {
   networking.firewall = {
     allowedTCPPorts = [9757]; # WiVRn
     allowedUDPPorts = [
-      9757  # WiVRn
-      5353  # Avahi/mDNS for device discovery
-      9947  # Lighthouse base stations
+      9757 # WiVRn
+      5353 # Avahi/mDNS for device discovery
+      9947 # Lighthouse base stations
       27036 # SteamVR discovery
       27031 # SteamVR
     ];
@@ -263,64 +257,39 @@ with lib; {
   # ============================================================================
   # PACKAGES - VR Applications and Tools
   # ============================================================================
-  environment.systemPackages = with pkgs; [
-    # VR runtimes and tools
-    wivrn
-    openxr-loader
+  environment.systemPackages = with pkgs;
+    [
+      # VR runtimes and tools
+      wivrn
+      openxr-loader
 
-    # SteamVR support
-    steam-run
+      # SteamVR support
+      steam-run
 
-    # Motion tracking calibration tools
-    motoc
+      # Motion tracking calibration tools
+      motoc
 
-    # Performance monitoring and optimization tools
-    gamescope
-    mangohud
-    goverlay
-    nvtopPackages.full
+      # Performance monitoring and optimization tools
+      gamescope
+      mangohud
+      goverlay
+      nvtopPackages.full
 
-    # proton-cachyos temporarily disabled
-    gamemode
-    scx.full
+      # proton-cachyos temporarily disabled
+      gamemode
+      scx.full
 
-    # Enhanced Claude Code environment
-    inputs.claude-native.packages."x86_64-linux".default
-    
-    # FFmpeg with NVENC support for streaming
-    pkgs.ffmpeg-full
-    
-    # FFmpeg with NVENC support for streaming
-    pkgs.ffmpeg-full
-    
-    # ANIME GAME LAUNCHERS - ezKEa/aagl-gtk-on-nix overlay
-    inputs.aagl-gtk-on-nix.packages."x86_64-linux".anime-game-launcher
-    inputs.aagl-gtk-on-nix.packages."x86_64-linux".honkers-railway-launcher
-    inputs.aagl-gtk-on-nix.packages."x86_64-linux".sleepy-launcher
-    inputs.aagl-gtk-on-nix.packages."x86_64-linux".honkers-launcher
-    inputs.aagl-gtk-on-nix.packages."x86_64-linux".wavey-launcher
-   ];
+      # FFmpeg with NVENC support for streaming
+      pkgs.ffmpeg-full
 
-  # ============================================================================
-  # STEAMVR RUNTIME - Lighthouse Tracking Support
-  # ============================================================================
-  
-  # SteamVR environment variables for lighthouse tracking
-  environment.sessionVariables = {
-    # Enable SteamVR lighthouse support
-    STEAMVR_LHR = "1";
-    STEAMVR_LHR_FORCE = "1";
-    
-    # WiVRn lighthouse integration
-    WIVRN_LH_SUPPORT = "1";
-    WIVRN_STEAMVR_ENABLED = "1";
-    
-    # Base station discovery
-    WIVRN_LH_DISCOVER_WAIT_MS = "5000";
-    
-    # Tundra tracker support
-    WIVRN_TUNDRA_ENABLED = "1";
-  };
+      # Enhanced Claude Code environment (conditional)
+    ]
+    ++ lib.optionals (inputs != null && inputs ? claude-native) [
+      inputs.claude-native.packages."x86_64-linux".default
+    ];
+
+  # ANIME GAME LAUNCHERS - ezKEa/aagl-gtk-on-nix overlay
+  # Note: Launchers are managed via programs.* options above, not system packages
 
   # ============================================================================
   # UDEV RULES - VR Device Permissions
@@ -336,10 +305,10 @@ with lib; {
 
     # Tundra tracker rules - Valve dongles for SteamVR tracking
     SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", GROUP="plugdev"
-    
+
     # Tundra tracker individual device rules (if connected directly)
     SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666", GROUP="plugdev"
-    
+
     # Tundra tracker HID interface rules for motion tracking
     SUBSYSTEM=="hidraw", ATTRS{idVendor}=="28de", ATTRS{idProduct}=="2102", MODE="0666", GROUP="plugdev"
 
@@ -383,7 +352,7 @@ with lib; {
       # Vulkan and NVIDIA optimizations
       __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
       __GL_SHADER_DISK_CACHE_SIZE = "1073741824";
-      __GL_SHADER_DISK_CACHE_PATH = "/tmp/nvidia-shader-cache";
+      __GL_SHADER_DISK_CACHE_PATH = "/var/cache/nvidia-shader-cache";
 
       # Ampere optimizations
       __GLX_FORCE_MONO = "0";
@@ -438,6 +407,7 @@ with lib; {
       export DXVK_ASYNC=1
       # Custom Proton-GE-RTSP support
       export PROTON_USE_DXVK=1
+
     '';
   };
 
@@ -458,18 +428,12 @@ with lib; {
     };
   };
 
-  assertions = [
-    {
-      assertion = config.programs.steam.enable;
-      message = "Steam must be enabled for VR support";
-    }
-    {
-      assertion = config.services.wivrn.enable;
-      message = "WiVRn must be enabled for VR support";
-    }
-    {
-      assertion = config.hardware.nvidia.package != null;
-      message = "NVIDIA drivers are required for optimal VR performance";
-    }
+  # Assertions removed - Steam and WiVRn requirements are already enforced
+  # by the modules that actually need them (steam-wayland-robust.nix)
+  # NVIDIA is not strictly required - WiVRn works with AMD GPUs too
+
+  # Ensure nvidia shader cache directory exists
+  systemd.tmpfiles.rules = [
+    "d /var/cache/nvidia-shader-cache 0755 root root - -"
   ];
 }
