@@ -118,11 +118,10 @@
   # ============================================================================
   # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
   # ============================================================================
-  # DISABLED: OpenClaw module has upstream bugs (agent attribute missing)
-  # programs.openclaw = {
-  #   enable = true;
-  #   model = "llama3.2:3b";
-  # };
+  programs.openclaw = {
+    enable = true;
+    model = "llama3.2:3b";
+  };
 
   services.ollama = {
     enable = true;
