@@ -113,6 +113,22 @@
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input"];
 
   # ============================================================================
+  # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
+  # ============================================================================
+  programs.openclaw = {
+    enable = true;
+    model = "llama3.2:3b";
+  };
+
+  services.ollama = {
+    enable = true;
+    acceleration = "cuda";  # Use NVIDIA RTX 3090
+    environmentVariables = {
+      OLLAMA_KEEP_ALIVE = "24h";
+    };
+  };
+
+  # ============================================================================
   # OPENAGENTS CONTROL
   # ============================================================================
   # FIREWALL
