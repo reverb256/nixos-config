@@ -47,7 +47,6 @@
     nodePackages.typescript-language-server
 
     # User applications
-    lmstudio
     opencode
     qwen-code
     gh
