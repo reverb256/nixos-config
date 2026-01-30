@@ -138,8 +138,8 @@ in {
       # Display management
       kanshi
 
-      # NVIDIA monitoring
-      nvtopPackages.full
+      # Note: nvtop is provided by system-packages.nix to avoid rebuilds
+      # nvtopPackages.full causes kernel-dependent rebuilds
     ];
 
     # ============================================================================
