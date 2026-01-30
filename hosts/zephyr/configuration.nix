@@ -27,16 +27,19 @@
   hardware.nvidia.wayland = {
     enable = true;
     enable32Bit = true;
-    openModules = true;  # Use open-source kernel modules with proprietary userspace
+    openModules = false;  # DISABLED - GSP firmware not loading, using proprietary modules for stability
     powerManagement = true;
     sddmWayland = true;
   };
 
   # CRITICAL: Build NVIDIA kernel modules (required even for pure Wayland)
   boot.extraModulePackages = [ pkgs.linuxPackages_zen.nvidiaPackages.beta ];
-  
+
   # Load NVIDIA modules early
   boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_drm" ];
+
+  # NVIDIA Persistence Daemon - Required for mining and compute workloads
+  hardware.nvidia.persistenced.enable = true;
 
   # Additional Zephyr-specific graphics packages
   hardware.graphics.extraPackages = with pkgs; [
