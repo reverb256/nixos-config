@@ -112,6 +112,9 @@ with lib; {
       );
   };
 
+  # Enable Steam hardware support for comprehensive controller udev rules
+  hardware.steam-hardware.enable = true;
+
   # ============================================================================
   # ANIME GAME LAUNCHERS (Simplified ezKEa Setup)
   # ============================================================================
@@ -315,9 +318,13 @@ with lib; {
      # HTC Vive/Valkyrie controllers
      SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", ATTR{idProduct}=="2c87", MODE="0666", GROUP="plugdev"
 
-     # DualSense (PS5) controllers - USB access only, let Wine handle hidraw
+     # DualSense (PS5) controllers - USB access
      SUBSYSTEM=="usb", ATTR{idVendor}=="054c", ATTR{idProduct}=="0ce6", MODE="0666", GROUP="plugdev"
      SUBSYSTEM=="usb", ATTR{idVendor}=="054c", ATTR{idProduct}=="0df2", MODE="0666", GROUP="plugdev"
+     
+     # DualSense (PS5) controllers - hidraw access for native support (gyro, haptics, adaptive triggers)
+     KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+     KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0df2", MODE="0660", GROUP="plugdev", TAG+="uaccess"
 
      # Valve Index controllers
     SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", GROUP="plugdev"
@@ -337,6 +344,8 @@ with lib; {
     "wireguard"
     # Required for motion tracking
     "hid-sensor-hub"
+    # Required for controller input (Steam Input, DualSense, etc.)
+    "uinput"
   ];
 
   # ============================================================================
