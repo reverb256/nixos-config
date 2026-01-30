@@ -488,13 +488,18 @@
     };
   };
 
-  # Disable KDE Session Restore to prevent crash loops
-  # https://discuss.kde.org/t/can-you-disable-session-restore-before-logging-into-user-account/28208
+  # Enable KDE Session Restore to remember open windows on login
   xdg.configFile."ksmserverrc" = {
     force = true;  # Allow overwriting existing file
     text = ''
       [General]
-      sessionRestore=none
+      sessionRestore=restoreSavedSession
+      
+      [LegacySession: saved at previous logout]
+      count=0
+      
+      [Session: saved at previous logout]
+      count=0
     '';
   };
 
