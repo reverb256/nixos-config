@@ -56,7 +56,7 @@
     goverlay
 
     # Desktop utilities
-    firefoxpwa
+    # firefoxpwa  # MOVED to home.nix - requires Firefox compilation
     btop
     htop
     eza
