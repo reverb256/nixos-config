@@ -75,11 +75,6 @@
     # Display management (moved from system-packages)
     kanshi
 
-    # NOTE: firefoxpwa and ollama removed to avoid long compilation
-    # Install via nix profile when needed:
-    #   nix profile install nixpkgs#firefoxpwa
-    #   nix profile install nixpkgs#ollama
-    
     # Kilo CLI wrapper
     (pkgs.writeShellScriptBin "kilo" ''
       exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
@@ -178,12 +173,6 @@
         "{d7742d87-e61d-4b78-b8a1-b469842139fa}" = {
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/vimium-ff/latest.xpi";
-        };
-
-        # Firefox PWA - Progressive Web Apps
-        "firefoxpwa@filips.si" = {
-          installation_mode = "force_installed";
-          install_url = "https://addons.mozilla.org/firefox/downloads/latest/firefoxpwa/latest.xpi";
         };
 
         # Plasma Browser Integration - KDE integration
