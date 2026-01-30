@@ -14,8 +14,9 @@ in {
   # DISTRIBUTED BUILD CONFIGURATION
   # ============================================================================
   nix = {
-    # Enable distributed builds
-    distributedBuilds = true;
+    # DISABLED: Distributed builds temporarily disabled due to SSH key issues
+    # distributedBuilds = true;
+    distributedBuilds = false;
 
     # Build machines configuration
     buildMachines = [
