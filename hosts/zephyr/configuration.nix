@@ -35,8 +35,9 @@
     sddmWayland = true;
   };
 
-  # REMOVED: boot.extraModulePackages - causes rebuilds on every kernel update
-  # The NVIDIA driver is now handled entirely by services.xserver.videoDrivers
+  # CRITICAL: Enable NVIDIA driver for X11/Wayland
+  # This is required for the display server to use NVIDIA
+  services.xserver.videoDrivers = ["nvidia"];
 
   # Load NVIDIA modules early
   boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_drm" ];
