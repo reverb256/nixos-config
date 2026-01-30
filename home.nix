@@ -65,6 +65,11 @@
     # Node.js for various tools
     nodejs_22
 
+    # ML/AI Tools (moved from system-packages to avoid long builds during system updates)
+    python312
+    python312Packages.torchWithCuda
+    python312Packages.tensorflowWithCuda
+
     # From nix profile (moved to declarative)
     gpu-viewer
   ];

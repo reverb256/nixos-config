@@ -79,14 +79,15 @@
       # CUDA AND ML LIBRARIES
       # System libraries for CUDA/ML workloads
       # These provide the runtime libraries, not user tools
+      # NOTE: PyTorch/TensorFlow moved to home-manager to avoid long builds
       # ============================================================================
       pkgs.cudaPackages.cudatoolkit
       pkgs.cudaPackages.cudnn
       pkgs.cudaPackages.libcufft
       pkgs.cudaPackages.libcusparse
       pkgs.cudaPackages.libcutensor
-      pkgs.python312Packages.torchWithCuda
-      pkgs.python312Packages.tensorflowWithCuda
+      # pkgs.python312Packages.torchWithCuda  # MOVED to home.nix
+      # pkgs.python312Packages.tensorflowWithCuda  # MOVED to home.nix
       pkgs.ollama
       pkgs.cudaPackages.libcurand
       pkgs.cudaPackages.libcusolver
