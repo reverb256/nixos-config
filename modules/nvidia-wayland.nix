@@ -55,8 +55,9 @@ in {
       powerManagement.enable = cfg.powerManagement;
       powerManagement.finegrained = false;
       
-      # Disable GSP firmware for better stability with RTX 3090
-      gsp.enable = false;
+      # GSP firmware - must be enabled when using open-source modules
+      # Can be disabled for proprietary modules on RTX 3090 for stability
+      gsp.enable = cfg.openModules;
     };
 
     # ============================================================================
