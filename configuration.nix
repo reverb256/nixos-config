@@ -18,13 +18,13 @@ in {
   nixpkgs.config.cudaSupport = true;
 
   # ============================================================================
-  # NIX CONFIGURATION - Experimental features, build optimization, and caching
+  # NIX CONFIGURATION - Experimental features only
+  # Build optimization settings are in modules/nix-config.nix
   # ============================================================================
   nix = {
     settings = {
       experimental-features = ["nix-command" "flakes"];
-      max-jobs = 8;
-      cores = 16;
+      # max-jobs and cores are configured in modules/nix-config.nix
     };
   };
 
