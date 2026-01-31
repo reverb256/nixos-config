@@ -20,16 +20,22 @@
   networking.hostName = "zephyr";
 
   # ============================================================================
-  # MINIMAL NVIDIA CONFIGURATION - RTX 3090
+  # NVIDIA CONFIGURATION - RTX 3090 Optimized for Gaming/Wayland/Plasma 6
   # ============================================================================
-  # Absolute minimum required for NVIDIA + Wayland + Plasma 6
-  # Based on https://wiki.nixos.org/wiki/NVIDIA
+  # Based on NixOS Wiki and NVIDIA best practices as of 2025
+  # Reference: https://wiki.nixos.org/wiki/NVIDIA
 
-  # Enable NVIDIA driver (ZEN kernel optimized)
+  # Enable NVIDIA driver
   services.xserver.videoDrivers = ["nvidia"];
 
-  # Use ZEN-specific NVIDIA driver package for better performance
-  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
+  # Use production driver (570-580 series) for stability
+  # Beta drivers (575) have VRAM and stability issues
+  # Production drivers have Explicit Sync support (555+) for Wayland
+  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.production;
+
+  # Use open-source kernel modules (recommended for RTX 3090 with driver 560+)
+  # Open modules are now production-ready and preferred for Turing+
+  hardware.nvidia.open = true;
 
   # NVIDIA Wayland support (via nvidia-wayland module)
   hardware.nvidia.wayland = {
