@@ -153,5 +153,22 @@ in {
       # DISABLED: fbdev=0 causes black screen on boot
       # "nvidia_drm.fbdev=0"
     ];
+
+    # ============================================================================
+    # EARLY NVIDIA LOADING - Fix race condition with simple-framebuffer
+    # Load NVIDIA modules in initramfs before simple-framebuffer claims displays
+    # ============================================================================
+    boot.initrd.kernelModules = [
+      "nvidia"
+      "nvidia_modeset"
+      "nvidia_drm"
+    ];
+
+    # Also ensure modules are available in initramfs
+    boot.initrd.availableKernelModules = [
+      "nvidia"
+      "nvidia_modeset"
+      "nvidia_drm"
+    ];
   };
 }
