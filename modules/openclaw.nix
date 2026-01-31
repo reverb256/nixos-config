@@ -243,7 +243,7 @@ let
     gateway = if cfg.isMaster then {
       port = cfg.gatewayPort;
       mode = "local";
-      bind = "loopback";
+      trustedProxies = ["10.1.1.0/24"];
       auth = { mode = "token"; token = "dbb9006cbbc79469bb412207e3dec142d3d17a7a47d14ca7"; };
       tailscale = { mode = "serve"; resetOnExit = false; };
     } else {
@@ -325,13 +325,19 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Create OpenClaw configuration file
+    # Create OpenClaw configuration file (master only)
     home-manager.users.j_kro = {
       home.file = {
-        ".openclaw/openclaw.json".source = openclawConfig;
-        ".npmrc".text = ''
-          prefix=~/.npm-packages
-        '';
+        ".openclaw/openclaw.json" = lib.mkIf cfg.isMaster {
+          source = openclawConfig;
+          force = true;
+        };
+        ".npmrc" = {
+          text = ''
+            prefix=~/.npm-packages
+          '';
+          force = true;
+        };
       };
       
       home.packages = [
