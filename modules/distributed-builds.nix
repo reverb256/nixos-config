@@ -11,20 +11,12 @@
   # DISTRIBUTED BUILD CONFIGURATION
   # ============================================================================
   nix = {
-    # ENABLED: Distributed builds across 4-node cluster (51 cores total)
+    # ENABLED: Distributed builds with REMOTE nodes only (no localhost SSH)
     distributedBuilds = true;
 
-    # Build machines - ALL 4 NODES (51 cores total)
+    # Build machines - REMOTE NODES ONLY (26 cores: nexus + forge + sentry)
+    # NOTE: localhost (zephyr) is excluded - builds locally without SSH overhead
     buildMachines = [
-      # Local machine (zephyr) - 32 cores, RTX 3090
-      {
-        hostName = "localhost";
-        systems = ["x86_64-linux" "i686-linux"];
-        maxJobs = 16;
-        speedFactor = 4;
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "cuda"];
-        mandatoryFeatures = [];
-      }
       # Nexus - 16 cores, RTX 3060 Ti
       {
         hostName = "nexus";

@@ -126,6 +126,11 @@ in {
       # Additional variables for NVIDIA EGL and NVENC
       NVD_BACKEND = "direct";
       __NV_PRIME_RENDER_OFFLOAD = "1";
+
+      # Explicit Sync workarounds for Plasma 6 + NVIDIA stability
+      # Fixes panel freeze when using dodge windows/auto-hide
+      KWIN_DRM_NO_AMS = "1";  # Disable explicit sync for stability
+      __GL_MaxFramesAllowed = "1";  # Reduce frame latency
     };
 
     # ============================================================================

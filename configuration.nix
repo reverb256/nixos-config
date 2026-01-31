@@ -146,12 +146,12 @@ in {
   };
 
   # ============================================================================
-  # EARLYOOM - Better OOM handling than systemd-oomd for desktop systems
+  # EARLYOOM - Lenient OOM handling to prevent session killing
   # ============================================================================
   services.earlyoom = {
     enable = true;
-    freeMemThreshold = 5; # Kill when < 5% memory free
-    freeSwapThreshold = 10; # Kill when < 10% swap free
+    freeMemThreshold = 2; # Only kill when < 2% memory free (very lenient)
+    freeSwapThreshold = 5; # Only kill when < 5% swap free
   };
 
   # ============================================================================
