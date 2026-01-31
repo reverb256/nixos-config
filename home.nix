@@ -510,42 +510,4 @@
   # Session restore is enabled via KDE System Settings instead
   # xdg.configFile."ksmserverrc" = { ... };
 
-  # Kanshi - Dynamic display configuration for Wayland
-  # Monitor Layout:
-  # DP-2 (BenQ Zowie):    Top-left, primary gaming monitor
-  # DP-1 (ASUS):          Top-right
-  # DP-3 (Acer):          Bottom-right
-  # HDMI-A-1 (Samsung):   Far right (TV)
-  services.kanshi = {
-    enable = true;
-    settings = [
-      {
-        profile = {
-          name = "default";
-          outputs = [
-            {
-              criteria = "DP-2";
-              position = "0,0";
-              status = "enable";
-            }
-            {
-              criteria = "DP-1";
-              position = "1920,0";
-              status = "enable";
-            }
-            {
-              criteria = "DP-3";
-              position = "1920,1080";
-              status = "enable";
-            }
-            {
-              criteria = "HDMI-A-1";
-              position = "3840,0";
-              status = "enable";
-            }
-          ];
-        };
-      }
-    ];
-  };
 }
