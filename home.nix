@@ -79,6 +79,12 @@
     (pkgs.writeShellScriptBin "kilo" ''
       exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
     '')
+
+    # OpenClaw - AI assistant (installed via npm)
+    # Run: openclaw onboard
+    (pkgs.writeShellScriptBin "openclaw" ''
+      exec ${pkgs.nodejs_22}/bin/npx openclaw "$@"
+    '')
   ];
 
   # StreamLake Claude Code environment variables (enhanced with MCP)
