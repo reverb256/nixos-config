@@ -6,14 +6,11 @@
   # ============================================================================
   nix = {
     settings = {
-      # Enable experimental Nix features
-      experimental-features = ["nix-command" "flakes"];
+       # GitHub API authentication (handled via git credential helper or gh)
 
-      # GitHub API authentication to avoid rate limits
-      # GitHub API authentication (handled via git credential helper or gh)
-
-# Allow j_kro and nixbuild to use restricted settings like builders-use-substitutes
-       trusted-users = ["root" "j_kro" "nixbuild"];
+       # Fix for 'input-addressed derivations' error
+       # Enable CA derivations and allow local building
+       experimental-features = ["nix-command" "flakes" "ca-derivations"];
 
       # Build resource management - avoid oversubscription
       # Zephyr has 32 cores (16 physical + 16 hyperthread)

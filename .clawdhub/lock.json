@@ -60,6 +60,18 @@
     "docker-compose-gen": {
       "version": "1.0.1",
       "installedAt": 1769828673131
+    },
+    "web-deploy-github": {
+      "version": "1.0.0",
+      "installedAt": 1769856009883
+    },
+    "prd": {
+      "version": "2.0.5",
+      "installedAt": 1769856020464
+    },
+    "crypto-wallet": {
+      "version": "1.0.1",
+      "installedAt": 1769856020521
     }
   }
 }
