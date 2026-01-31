@@ -10,6 +10,7 @@
   libxcb,
   libXext,
   steam-run,
+  nvidiaPackages,
 }:
 stdenv.mkDerivation rec {
   pname = "lolminer";
@@ -30,6 +31,8 @@ stdenv.mkDerivation rec {
     libxcb
     libXext
     steam-run
+    # NVIDIA libraries for GPU mining
+    nvidiaPackages.nvidia_x11
   ];
 
   unpackPhase = ''
@@ -41,13 +44,26 @@ stdenv.mkDerivation rec {
   installPhase = ''
     runHook preInstall
     mkdir -p $out/bin
+    mkdir -p $out/lib
     cp ./lolMiner $out/bin/
     chmod +x $out/bin/lolMiner
+    
+    # Create wrapper script that uses steam-run for proper NVIDIA library loading
+    cat > $out/bin/lolMiner << 'EOF'
+#!/bin/bash
+# Use steam-run to ensure proper NVIDIA library loading in NixOS
+exec ${steam-run}/bin/steam-run $out/bin/.lolMiner-wrapped "$@"
+EOF
+    chmod +x $out/bin/lolMiner
+    
+    # Use autoPatchelf to fix binary dependencies
+    ${autoPatchelfHook} $out/bin/.lolMiner-wrapped
+    
     runHook postInstall
   '';
 
   meta = with lib; {
-    description = "NVIDIA/AMD GPU miner";
+    description = "NVIDIA/AMD GPU miner with proper library loading";
     homepage = "https://lolminer.org";
     license = lib.licenses.unfree;
     platforms = lib.platforms.linux;

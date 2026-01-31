@@ -227,12 +227,12 @@
   # ============================================================================
   # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
   # ============================================================================
-  # Forge connects to zephyr (master) as a slave node
+  # Forge connects to zephyr (master) via Tailnet
   programs.openclaw = {
     enable = true;
     nodeName = "forge";
     isMaster = false;
-    masterHost = "10.1.1.110";
+    masterHost = "100.81.182.5";  # zephyr's Tailscale IP
     masterPort = 18789;
     masterToken = "dbb9006cbbc79469bb412207e3dec142d3d17a7a47d14ca7";
   };
