@@ -5,6 +5,16 @@
   # SYSTEMD SLICES - Workload isolation for gaming, mining, and builds
   # ============================================================================
   systemd = {
+    # Protect user session from OOM killer and resource exhaustion
+    services."user@1000.service".serviceConfig = {
+      # Prevent OOM killer from terminating the user session
+      OOMScoreAdjust = -1000;
+      # Ensure user session stays alive even under memory pressure
+      MemoryPressureWatch = "skip";
+      # Limit memory to prevent system-wide exhaustion
+      MemoryLimit = "24G";
+    };
+
     # Systemd slices for workload prioritization
     slices = {
       # Systemd slice for nix builds to prevent user responsiveness degradation
