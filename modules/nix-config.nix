@@ -16,7 +16,7 @@
       # Zephyr has 32 cores (16 physical + 16 hyperthread)
       # Formula: max-jobs * cores = total cores used
       # Setting: 4 jobs * 6 cores = 24 cores used, leaving 8 for desktop/mining
-      max-jobs = 4; # Parallel derivations (conservative for desktop use)
+      max-jobs = lib.mkDefault 4; # Parallel derivations (conservative for desktop use, overridable by distributed-builds)
       cores = 6; # Cores per derivation (leaves headroom for gaming/mining)
 
       # Distributed build configuration temporarily disabled to resolve cache issues
