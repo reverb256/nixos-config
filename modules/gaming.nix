@@ -282,6 +282,13 @@ with lib; {
       gamemode
       scx.full
 
+      # Proton/Wine dependencies for VRChat and other games
+      freetype
+      fontconfig
+      libpng
+      libjpeg
+      libtiff
+
       # FFmpeg with NVENC support for streaming
       pkgs.ffmpeg-full
 
@@ -416,7 +423,8 @@ with lib; {
       export DXVK_ASYNC=1
       # Custom Proton-GE-RTSP support
       export PROTON_USE_DXVK=1
-
+      # Fix for FreeType and font libraries in Proton
+      export LD_LIBRARY_PATH="${pkgs.freetype}/lib:${pkgs.fontconfig}/lib:${pkgs.libpng}/lib:${pkgs.libjpeg}/lib:${pkgs.libtiff}/lib:$LD_LIBRARY_PATH"
     '';
   };
 
