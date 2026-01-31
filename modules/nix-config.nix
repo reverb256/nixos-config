@@ -12,8 +12,8 @@
       # GitHub API authentication to avoid rate limits
       # GitHub API authentication (handled via git credential helper or gh)
 
-      # Allow j_kro to use restricted settings like builders-use-substitutes
-      trusted-users = ["root" "j_kro"];
+# Allow j_kro and nixbuild to use restricted settings like builders-use-substitutes
+       trusted-users = ["root" "j_kro" "nixbuild"];
 
       # Build resource management - avoid oversubscription
       # Zephyr has 32 cores (16 physical + 16 hyperthread)

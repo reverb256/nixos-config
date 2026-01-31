@@ -97,11 +97,11 @@
       modules ? [],
     }: {
       imports = commonModules ++ modules;
+      _module.args.inputs = inputs; # Pass inputs to modules
       deployment = {
         targetHost = targetHost;
         targetUser = "j_kro";
-        buildOnTarget = true;
-        keys = ["~/.ssh/id_ed25519"];
+        buildOnTarget = false; # Build on zephyr (single source of truth)
         tags = ["default"]; # Default tag for colmena apply
       };
     };
@@ -122,18 +122,22 @@
       zephyr = mkColmenaNode {
         name = "zephyr";
         targetHost = "10.1.1.110";
+        modules = [./hosts/zephyr/configuration.nix];
       };
       nexus = mkColmenaNode {
         name = "nexus";
         targetHost = "10.1.1.120";
+        modules = [./hosts/nexus/configuration.nix];
       };
       forge = mkColmenaNode {
         name = "forge";
         targetHost = "10.1.1.130";
+        modules = [./hosts/forge/configuration.nix];
       };
       sentry = mkColmenaNode {
         name = "sentry";
         targetHost = "10.1.1.140";
+        modules = [./hosts/sentry/configuration.nix];
       };
     };
 
@@ -160,7 +164,14 @@
     nixosConfigurations = nixosSystems;
 
     # Colmena deployment configuration
-    colmena = colmenaNodes;
+    colmena = {
+      meta = {
+        nixpkgs = import inputs.nixpkgs {
+          system = "x86_64-linux";
+          config.allowUnfree = true;
+        };
+      };
+    } // colmenaNodes;
 
     # Formatter for nix fmt
     formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;

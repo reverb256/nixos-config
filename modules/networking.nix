@@ -53,8 +53,23 @@ with lib; {
   '';
 
   # ============================================================================
-  # DNS RESOLVER (Unbound) - Same config for all hosts
+  # AVAHI (Device discovery - required for WiVRn)
   # ============================================================================
+
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    publish = {
+      enable = true;
+      addresses = true;
+      workstation = true;
+    };
+  };
+
+  # Ensure avahi runtime directory exists
+  systemd.tmpfiles.rules = [
+    "d /run/avahi-daemon 755 avahi avahi -"
+  ];
 
   services.unbound = {
     enable = true;
@@ -112,23 +127,11 @@ with lib; {
   networking.nameservers = ["127.0.0.1" "::1"];
 
   # ============================================================================
-  # AVAHI (Device discovery - required for WiVRn)
+  # FAIL2BAN CONFIGURATION
   # ============================================================================
-
-  services.avahi = {
-    enable = true;
-    nssmdns4 = true;
-    publish = {
-      enable = true;
-      addresses = true;
-      workstation = true;
-    };
+  services.fail2ban = {
+    enable = false; # Disabled completely
   };
-
-  # Ensure avahi runtime directory exists
-  systemd.tmpfiles.rules = [
-    "d /run/avahi-daemon 755 avahi avahi -"
-  ];
 
   # Ensure NetworkManager service is running
   systemd.services.NetworkManager = {
@@ -150,9 +153,9 @@ with lib; {
     # Additional ports can be added per-host in hosts/*/default.nix
   };
 
-# ============================================================================
-   # TAILSCALE VPN
-   # ============================================================================
+  # ============================================================================
+  # TAILSCALE VPN
+  # ============================================================================
 
   services.tailscale.enable = true;
 
