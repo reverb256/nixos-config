@@ -72,9 +72,14 @@
   # ============================================================================
   # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
   # ============================================================================
+  # Sentry connects to zephyr (master) as a slave node
   programs.openclaw = {
     enable = true;
     nodeName = "sentry";
+    isMaster = false;
+    masterHost = "10.1.1.110";
+    masterPort = 18789;
+    masterToken = "dbb9006cbbc79469bb412207e3dec142d3d17a7a47d14ca7";
   };
 
   services.ollama = {
