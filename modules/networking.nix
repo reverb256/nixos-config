@@ -82,6 +82,14 @@ with lib; {
         hide-version = true;
       };
 
+      # Stub zone for Tailscale Magic DNS
+      stub-zone = [
+        {
+          name = "tigris-ule.ts.net";
+          stub-addr = "100.100.100.100"; # Tailscale DNS server
+        }
+      ];
+
       # Forward all other queries to upstream DNS with TLS
       forward-zone = [
         {
