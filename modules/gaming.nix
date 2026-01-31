@@ -301,6 +301,12 @@ with lib; {
       # Motion tracking calibration tools
       motoc
 
+      # LVRA Wiki: Eye/Face tracking for Quest Pro via WiVRn
+      # Uses oscavmgr to route OSC data from Quest Pro tracking to VRChat
+      # Available through nixpkgs-xr overlay
+      (lib.mkIf (inputs != null && inputs ? nixpkgs-xr)
+        inputs.nixpkgs-xr.packages."x86_64-linux".oscavmgr)
+
       # Performance monitoring and optimization tools
       gamescope
       mangohud

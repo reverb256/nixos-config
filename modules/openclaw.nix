@@ -202,7 +202,12 @@ let
         fetch = { enabled = true; };
       };
       agentToAgent = { enabled = true; allow = ["sisyphus" "opencode"]; };
-      exec = { applyPatch = { enabled = false; }; };
+      exec = { 
+        applyPatch = { enabled = true; };
+        fullFilesystemAccess = true;  # Full access to filesystem
+        allowedPaths = ["/data/@projects" "/etc/nixos" "/home" "/tmp" "/var"];
+        dockerSandbox = false;  # Direct access for performance
+      };
     };
     messages = { ackReactionScope = if cfg.isMaster then "group-mentions" else "none"; };
     commands = { native = true; nativeSkills = true; bash = true; };

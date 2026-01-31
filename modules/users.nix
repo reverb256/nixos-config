@@ -73,6 +73,44 @@
     # Plugdev group for USB device access (used by gaming.nix udev rules)
     groups.plugdev = {};
 
+    # OpenClaw group for AI assistant
+    groups.lobster = {};
+
+    # ============================================================================
+    # LOBSTER USER - OpenClaw AI Assistant 🦞
+    # ============================================================================
+    users.lobster = {
+      isNormalUser = true;
+      description = "🦞 OpenClaw AI Assistant";
+      extraGroups = [
+        "wheel"
+        "lobster"
+        "docker"
+        "video"
+        "render"
+        "networkmanager"
+      ];
+      home = "/home/lobster";
+      createHome = true;
+      shell = "/run/current-system/sw/bin/fish";
+      openssh.authorizedKeys.keys = [
+        # Zephyr current key
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKxlZFnzslRkCM+6mEdPpgLDudCRHYdeEcJoAPLDmHvm j_kro@zephyr"
+        # Forge unified cluster key
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILLLCzj+9HECcMChcD92fW6nChnSX1VEBw8WPFwvlRJH j_kro@cluster"
+        # Sentry keys
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILGuU7xfwpno/Bcf9olU4WfdmlzWPCQUuaIPBzSK8kmH j_kro@zephyr"
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPY8U4+NjQh0XwLVYF2yVQHuIVoujWC8zjB8K7W6hNQx j_kro@sentry"
+        # Nexus cluster key
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFGFHqWyZE0fadxRlfCFf/hyahjiS9WzlIvLkYf0ZK9b j_kro@nixos-cluster"
+        # Root keys for cluster access
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFvsktMT9/yhSZryFJp688+SsYPwnZdyAWaUhRS9L4jM root@cluster"
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDCtXll62kA3CTH3NXDDtVt6W621actl6+cQPUg9YnDN root@nexus"
+        # Reverb256 CA
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILM8m4+tHYj152DRz2bXuv6PrSpC201yYN8Svb5DXEiC j_kroeker@reverb256.ca"
+      ];
+    };
+
     # ============================================================================
     # NIX BUILD USER FOR DISTRIBUTED BUILDS
     # ============================================================================
@@ -98,8 +136,18 @@
     # Passwordless sudo for wheel group (security risk - for mining controls)
     wheelNeedsPassword = false;
 
-    # Allow j_kro to control mining services without password (for desktop icons)
+    # Lobster (OpenClaw) gets FULL SYSTEM ACCESS - can run any command
     extraRules = [
+      {
+        users = ["lobster"];
+        commands = [
+          {
+            command = "ALL";
+            options = ["NOPASSWD" "SETENV"];
+          }
+        ];
+      }
+      # Allow j_kro to control mining services without password (for desktop icons)
       {
         users = ["j_kro"];
         commands = [
