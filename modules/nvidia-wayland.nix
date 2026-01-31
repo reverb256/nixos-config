@@ -170,5 +170,41 @@ in {
       "nvidia_modeset"
       "nvidia_drm"
     ];
+
+    # ============================================================================
+    # NVIDIA DEVICE NODE CREATION - Ensure device nodes exist after driver load
+    # Fixes udev race condition where device nodes aren't created during early boot
+    # ============================================================================
+    systemd.services.nvidia-device-nodes = {
+      description = "Create NVIDIA device nodes";
+      after = ["systemd-modules-load.service" "systemd-udev-trigger.service"];
+      wants = ["systemd-modules-load.service"];
+      wantedBy = ["multi-user.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = pkgs.writeShellScript "nvidia-device-nodes" ''
+          # Wait for NVIDIA driver to be fully loaded
+          if [ -d /proc/driver/nvidia ]; then
+            # Create control device if it doesn't exist
+            if [ ! -e /dev/nvidiactl ]; then
+              mknod -m 666 /dev/nvidiactl c 195 255 2>/dev/null || true
+            fi
+            
+            # Create GPU devices
+            if [ -d /proc/driver/nvidia/gpus ]; then
+              for gpu in /proc/driver/nvidia/gpus/*; do
+                if [ -d "$gpu" ]; then
+                  minor=$(grep -oP 'Minor:\s*\K[0-9]+' "$gpu/information" 2>/dev/null || true)
+                  if [ -n "$minor" ] && [ ! -e "/dev/nvidia$minor" ]; then
+                    mknod -m 666 "/dev/nvidia$minor" c 195 "$minor" 2>/dev/null || true
+                  fi
+                fi
+              done
+            fi
+          fi
+        '';
+      };
+    };
   };
 }
