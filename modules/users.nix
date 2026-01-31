@@ -149,7 +149,7 @@
   services.openssh = {
     enable = true;
     settings = {
-      PermitRootLogin = "yes";
+      PermitRootLogin = lib.mkForce "yes";
       PubkeyAuthentication = true;
       AuthorizedKeysFile = ".ssh/authorized_keys";
       PasswordAuthentication = lib.mkForce false;
