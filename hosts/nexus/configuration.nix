@@ -53,7 +53,7 @@
   services.mining.xmrig.threads = 16;
   services.mining.lolminer.enable = true;
   services.mining.lolminer.nvidia.enable = true;
-  services.mining.lolminer.nvidia.devices = "0,1";
+  services.mining.lolminer.nvidia.devices = "0";
   services.mining.lolminer.algorithm = "CR29";
   services.mining.lolminer.pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
   services.mining.lolminer.wallet = "krxXVNVMM7.nexus";

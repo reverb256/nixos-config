@@ -82,10 +82,11 @@
   };
 
   # ============================================================================
-  # MINING CONFIGURATION (GPU compute rig)
+  # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
   # ============================================================================
   services.mining.enable = true;
-  services.mining.xmrig.enable = false; # Disable CPU mining
+  services.mining.xmrig.enable = true;
+  services.mining.xmrig.threads = 6;
   services.mining.lolminer.enable = true;
   services.mining.lolminer.algorithm = "CR29";
   services.mining.lolminer.pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
