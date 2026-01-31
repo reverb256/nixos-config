@@ -11,7 +11,6 @@
     ../../modules/desktop.nix
     ../../modules/nvidia-wayland.nix
     ../../modules/openclaw.nix
-    ../../modules/docker.nix
     # REMOVED: ../../modules/steam-wayland-robust.nix - using minimal Steam in home.nix
     # REMOVED: ../../modules/openagents-control.nix - not needed for minimal config
   ];
@@ -115,12 +114,20 @@
   # ============================================================================
   # USER GROUPS
   # ============================================================================
-  users.users.j_kro.extraGroups = ["plugdev" "audio" "input"];
+  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker"];
 
   # ============================================================================
-  # DOCKER - For OpenClaw sandboxing
+  # VIRTUALISATION - Docker for OpenClaw sandboxing
   # ============================================================================
-  virtualisation.docker.enable = true;
+  virtualisation.docker = {
+    enable = true;
+    enableOnBoot = true;
+  };
+  
+  # Install docker-compose for container management
+  environment.systemPackages = with pkgs; [
+    docker-compose
+  ];
 
   # ============================================================================
   # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
