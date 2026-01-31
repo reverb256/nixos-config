@@ -49,6 +49,7 @@ Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-c
 - Hardcode secrets (use Agenix)
 - Add services to main config (create modules)
 - Break Colmena deployment (use `just cluster-deploy`)
+- **REPEAT FAILED COMMANDS** - If a command fails once, DO NOT run it again without modifying the approach or understanding why it failed
 
 ## Code Quality
 ```bash

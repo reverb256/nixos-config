@@ -253,6 +253,7 @@ let
     skills = { install = { nodeManager = "npm"; }; };
     plugins = if cfg.isMaster then {
       allow = [
+        "qwen-portal-auth"
         "whatsapp"
         "telegram"
         "discord"
@@ -260,8 +261,27 @@ let
         "signal"
         "googlechat"
         "nostr"
+        "web"
+        "email"
+        "calendar"
+        "memory"
+        "filesystem"
+        "browser"
+        "docker"
+        "kubernetes"
+        "aws"
+        "gcp"
+        "azure"
+        "github"
+        "gitlab"
+        "bitbucket"
+        "jira"
+        "trello"
+        "asana"
+        "linear"
       ];
       entries = {
+        "qwen-portal-auth" = { enabled = true; };
         "whatsapp" = { enabled = true; };
         "telegram" = { enabled = true; };
         "discord" = { enabled = true; };
@@ -269,6 +289,24 @@ let
         "signal" = { enabled = true; };
         "googlechat" = { enabled = true; };
         "nostr" = { enabled = true; };
+        "web" = { enabled = true; };
+        "email" = { enabled = true; };
+        "calendar" = { enabled = true; };
+        "memory" = { enabled = true; };
+        "filesystem" = { enabled = true; };
+        "browser" = { enabled = true; };
+        "docker" = { enabled = true; };
+        "kubernetes" = { enabled = true; };
+        "aws" = { enabled = true; };
+        "gcp" = { enabled = true; };
+        "azure" = { enabled = true; };
+        "github" = { enabled = true; };
+        "gitlab" = { enabled = true; };
+        "bitbucket" = { enabled = true; };
+        "jira" = { enabled = true; };
+        "trello" = { enabled = true; };
+        "asana" = { enabled = true; };
+        "linear" = { enabled = true; };
       };
     } else {
       allow = [];
