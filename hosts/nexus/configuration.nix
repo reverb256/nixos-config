@@ -21,7 +21,7 @@
   # NVIDIA WAYLAND CONFIGURATION (RTX 3060 Ti)
   # ============================================================================
   hardware.nvidia = {
-    package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
+    package = pkgs.linuxPackages_zen.nvidiaPackages.stable;
   };
 
   # Enable NVIDIA Wayland optimizations
