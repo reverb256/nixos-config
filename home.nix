@@ -75,9 +75,6 @@
     # Go - Required for many OpenClaw skills
     go
 
-    # Homebrew (Linuxbrew) - Package manager for tools not in nixpkgs
-    brew
-
     # Media tools (moved from system-packages)
     yt-dlp
 
