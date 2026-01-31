@@ -1,7 +1,7 @@
 # ============================================================================
 # USER MANAGEMENT - Accounts, groups, sudo rules, and permissions
 # ============================================================================
-{pkgs, ...}: {
+{pkgs, lib, ...}: {
   # ============================================================================
   # USER ACCOUNTS
   # ============================================================================
@@ -142,4 +142,75 @@
 
   # Ignore shell program check for j_kro user
   users.users.j_kro.ignoreShellProgramCheck = true;
+  
+  # ============================================================================
+  # SSH SERVER CONFIGURATION FOR ALL NODES
+  # ============================================================================
+  services.openssh = {
+    enable = true;
+    settings = {
+      PermitRootLogin = "yes";
+      PubkeyAuthentication = true;
+      AuthorizedKeysFile = ".ssh/authorized_keys";
+      PasswordAuthentication = lib.mkForce false;
+      ChallengeResponseAuthentication = lib.mkForce false;
+      UsePAM = true;
+      X11Forwarding = true;
+      AllowUsers = ["j_kro" "root"];
+      AllowGroups = ["wheel"];
+      # Cluster-wide SSH settings
+      StrictHostKeyChecking = "no";
+      UserKnownHostsFile = "/dev/null";
+      LogLevel = lib.mkForce "ERROR";
+    };
+  };
+  
+  # ============================================================================
+  # SSH CLIENT CONFIGURATION FOR CLUSTER NODES
+  # ============================================================================
+  environment.etc."ssh/config".text = ''
+    # SSH Configuration for NixOS Cluster
+    Host *
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
+        LogLevel ERROR
+
+    # Cluster nodes configuration
+    Host forge
+        HostName 100.116.190.124
+        User root
+        IdentityFile ~/.ssh/id_rsa
+        StrictHostKeyChecking no
+
+    Host nexus
+        HostName 100.86.158.18
+        User root
+        IdentityFile ~/.ssh/id_rsa
+        StrictHostKeyChecking no
+
+    Host sentry
+        HostName 100.82.210.39
+        User root
+        IdentityFile ~/.ssh/id_rsa
+        StrictHostKeyChecking no
+
+    # Legacy IP addresses
+    Host forge-legacy
+        HostName 10.1.1.130
+        User root
+        IdentityFile ~/.ssh/id_rsa
+        StrictHostKeyChecking no
+
+    Host nexus-legacy
+        HostName 10.1.1.120
+        User root
+        IdentityFile ~/.ssh/id_rsa
+        StrictHostKeyChecking no
+
+    Host sentry-legacy
+        HostName 10.1.1.140
+        User root
+        IdentityFile ~/.ssh/id_rsa
+        StrictHostKeyChecking no
+  '';
 }

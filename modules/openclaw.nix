@@ -253,7 +253,6 @@ let
     skills = { install = { nodeManager = "npm"; }; };
     plugins = if cfg.isMaster then {
       allow = [
-        "qwen-portal-auth"
         "whatsapp"
         "telegram"
         "discord"
@@ -263,12 +262,11 @@ let
         "nostr"
       ];
       entries = {
-        "qwen-portal-auth" = { enabled = true; };
         "whatsapp" = { enabled = true; };
         "telegram" = { enabled = true; };
         "discord" = { enabled = true; };
-        "slack" = { enabled = false; };
-        "signal" = { enabled = false; };
+        "slack" = { enabled = true; };
+        "signal" = { enabled = true; };
         "googlechat" = { enabled = true; };
         "nostr" = { enabled = true; };
       };
@@ -374,6 +372,11 @@ in
       _1password-cli
       himalaya
       spotify-player
+      gh  # GitHub CLI
+      yt-dlp  # YouTube downloader for summarize skill
+      ffmpeg  # Video processing for video-frames skill
+      tesseract  # OCR for slides
+      imagemagick  # Image processing
     ];
 
     # Open firewall for OpenClaw gateway on master node
