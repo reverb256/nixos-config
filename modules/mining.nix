@@ -183,8 +183,8 @@ in {
           requires = [];
 
           serviceConfig = {
-            User = "j_kro";
-            Group = "users";
+            User = "mining";
+            Group = "mining";
             Slice = "mining.slice";
             ExecStartPre = [
               # Set persistent management and power limit for RTX 3090

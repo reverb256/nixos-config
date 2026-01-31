@@ -242,18 +242,14 @@ let
     } else {};
     gateway = if cfg.isMaster then {
       port = cfg.gatewayPort;
+      bind = "loopback";
       mode = "local";
-      trustedProxies = ["10.1.1.0/24"];
       auth = { mode = "token"; token = "dbb9006cbbc79469bb412207e3dec142d3d17a7a47d14ca7"; };
       tailscale = { mode = "serve"; resetOnExit = false; };
     } else {
       port = cfg.gatewayPort;
-      mode = "client";
-      upstream = {
-        host = cfg.masterHost;
-        port = cfg.masterPort;
-        token = cfg.masterToken;
-      };
+      bind = "loopback";
+      mode = "local";
     };
     skills = { install = { nodeManager = "npm"; }; };
     plugins = if cfg.isMaster then {
@@ -307,8 +303,8 @@ in
     
     masterHost = lib.mkOption {
       type = lib.types.str;
-      default = "10.1.1.110";
-      description = "IP address of the master node (for slave nodes)";
+      default = "100.81.182.5";
+      description = "Tailscale IP address of the master node (for slave nodes)";
     };
     
     masterPort = lib.mkOption {
