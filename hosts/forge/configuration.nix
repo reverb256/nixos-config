@@ -37,12 +37,22 @@
     };
   };
 
-  # ============================================================================
-  # GPU DRIVERS (AMD & NVIDIA) - Consistent with main configuration
-  # ============================================================================
-  hardware.amdgpu = {
-    opencl.enable = true;
-  };
+# ============================================================================
+   # GPU DRIVERS (AMD & NVIDIA) - Consistent with main configuration
+   # ============================================================================
+   hardware.amdgpu = {
+     opencl.enable = true;
+   };
+
+   # Ensure AMDGPU kernel modules are loaded
+   boot.kernelModules = [
+     "amdgpu"
+   ];
+
+   # Add AMDGPU to initrd modules for early loading
+   boot.initrd.kernelModules = [
+     "amdgpu"
+   ];
 
   # NVIDIA configuration for RTX 4060s (use proprietary beta drivers with ZEN kernel)
   hardware.nvidia = {
@@ -77,9 +87,11 @@
     "threadirqs"
   ];
 
-  environment.variables = {
-    ROC_ENABLE_PRE_VEGA = "1";
-  };
+environment.variables = {
+      ROC_ENABLE_PRE_VEGA = "1";
+      LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
+      OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
+    };
 
   # ============================================================================
   # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
@@ -104,34 +116,61 @@
   services.mining.lolminer.amd.powerLimit = 140;
   services.mining.lolminer.amd.apiPort = 4069;
 
-  # ============================================================================
-  # ROCm HIP symlink for OpenCL (fixes SIGSEGV crash)
-  # ============================================================================
+# ============================================================================
+   # ROCm HIP symlink for OpenCL (fixes SIGSEGV crash)
+   # ============================================================================
 
-  systemd.tmpfiles.rules = let
-    rocmEnv = pkgs.symlinkJoin {
-      name = "rocm-combined";
-      paths = with pkgs.rocmPackages; [
-        clr
-        clr.icd
-        rocblas
-        hipblas
-        rpp
-      ];
-    };
-  in [
-    "L+ /opt/rocm - - - - ${rocmEnv}"
-    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-  ];
+   systemd.tmpfiles.rules = let
+     rocmEnv = pkgs.symlinkJoin {
+       name = "rocm-combined";
+       paths = with pkgs.rocmPackages; [
+         clr
+         clr.icd
+         rocblas
+         hipblas
+         rpp
+       ];
+     };
+   in [
+     "L+ /opt/rocm - - - - ${rocmEnv}"
+     "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+   ];
 
-  # Mesa OpenCL packages for AMD GPU mining
-  environment.systemPackages = with pkgs; [
-    mesa.opencl # Rusticl OpenCL implementation
-  ];
+# AMD GPU detection and health monitoring
+   systemd.services."amd-gpu-check" = {
+     description = "AMD GPU Detection and Health Check";
+     wantedBy = ["multi-user.target"];
+     after = ["basic.target"];
+     serviceConfig = {
+       Type = "oneshot";
+       ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
+       RemainAfterExit = true;
+     };
+   };
 
-  # ============================================================================
-  # nix-ld for improved library access in mining services
-  # ============================================================================
+   # AMD GPU info service for debugging
+   systemd.services."amd-gpu-info" = {
+     description = "AMD GPU Information Service";
+     wantedBy = ["multi-user.target"];
+     after = ["basic.target"];
+     serviceConfig = {
+       Type = "oneshot";
+       ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || lspci -v | grep -i amd > /tmp/amd-gpu-info.log 2>&1'";
+       RemainAfterExit = true;
+     };
+   };
+
+    # Mesa OpenCL packages for AMD GPU mining
+    environment.systemPackages = with pkgs; [
+      mesa.opencl # Rusticl OpenCL implementation
+      rocmPackages.rocm-smi # AMD GPU monitoring
+      rocmPackages.rocminfo # AMD GPU information
+      clinfo # OpenCL information
+    ];
+ 
+   # ============================================================================
+   # nix-ld for improved library access in mining services
+   # ============================================================================
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
     # AMD/ROCm libraries for GPU mining
@@ -180,6 +219,25 @@
     curl
     openssl
   ];
+
+  # ============================================================================
+  # SYSTEMD SLICES - Optimized for mining performance
+  # ============================================================================
+  systemd.slices.mining = {
+    description = "Mining Services Slice";
+    sliceConfig = {
+      CPUAccounting = true;
+      CPUQuota = "95%";  # Allow mining to use up to 95% of CPU when needed
+      MemoryAccounting = true;
+      MemoryHigh = "8G";  # High limit before throttling
+      MemoryMax = "12G";  # Hard limit before OOM
+      IOAccounting = true;
+      IOWeight = 10;      # Lower priority than system services
+      TasksAccounting = true;
+      TasksMax = 100;      # Limit concurrent mining tasks
+      BlockIOAccounting = true;
+    };
+  };
 
   # ============================================================================
   # NETWORKING (Static IP via NetworkManager - required for desktop environment)

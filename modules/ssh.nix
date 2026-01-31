@@ -3,11 +3,13 @@
   services.openssh = {
     enable = true;
     settings = {
-      # Authentication Settings - Allow password auth for j_kro and root
-      PasswordAuthentication = true;
-      KbdInteractiveAuthentication = true;
+      # Authentication Settings - Security hardened
+      PasswordAuthentication = false; # Disable password auth
+      KbdInteractiveAuthentication = false;
       PubkeyAuthentication = true;
       PermitRootLogin = "no";
+      PermitEmptyPasswords = false;
+      ChallengeResponseAuthentication = false;
 
       # Modern Cryptographic Settings
       Ciphers = [
@@ -34,13 +36,20 @@
         "umac-128-etm@openssh.com"
       ];
 
-      # Performance Settings
+      # Security and Performance Settings
       UseDns = false;
       LogLevel = "INFO";
+      AllowUsers = ["j_kro" "nixbuild"];
+      AllowGroups = ["wheel" "nixbuild"];
+      ClientAliveInterval = 60;
+      ClientAliveCountMax = 3;
+      MaxAuthTries = 3;
+      MaxSessions = 10;
     };
   };
 
-  # SSH client configuration for cluster access - create config file
+  # SSH client configuration for cluster access
+  # Note: Build machine configs are in distributed-builds.nix
   environment.etc."ssh/config" = {
     source = pkgs.writeText "ssh-config" ''
       # SSH client configuration for cluster access
@@ -48,56 +57,65 @@
       ControlPersist 600
       ServerAliveInterval 60
       ServerAliveCountMax 3
+      Compression yes
+      TCPKeepAlive yes
+      UserKnownHostsFile ~/.ssh/known_hosts
 
-      # Nexus - Build node
-      Host nexus
+      # Default settings for all hosts (j_kro user for manual access)
+      Host *
+        User j_kro
+        IdentityFile ~/.ssh/id_ed25519
+        IdentitiesOnly yes
+        StrictHostKeyChecking accept-new
+        ConnectTimeout 5
+
+      # Build machines - use nixbuild user (configured in distributed-builds.nix)
+      # These override the default user for distributed builds
+      Host nexus 10.1.1.120
+        HostName 10.1.1.120
+        User nixbuild
+        IdentityFile /home/j_kro/.ssh/id_nixbuild
+        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+
+      Host forge 10.1.1.130
+        HostName 10.1.1.130
+        User nixbuild
+        IdentityFile /home/j_kro/.ssh/id_nixbuild
+        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+
+      Host sentry 10.1.1.140
+        HostName 10.1.1.140
+        User nixbuild
+        IdentityFile /home/j_kro/.ssh/id_nixbuild
+        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+
+      # Short aliases for manual access (j_kro user)
+      Host n
         HostName 10.1.1.120
         User j_kro
-        IdentityFile ~/.ssh/id_rsa
-        StrictHostKeyChecking no
-        UserKnownHostsFile /dev/null
-        ControlMaster auto
+        IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
-        ControlPersist 600
 
-      # Forge - Build/Development node
-      Host forge
+      Host f
         HostName 10.1.1.130
         User j_kro
-        IdentityFile ~/.ssh/id_rsa
-        StrictHostKeyChecking no
-        UserKnownHostsFile /dev/null
-        ControlMaster auto
+        IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
-        ControlPersist 600
 
-      # Sentry - Monitoring node
-      Host sentry
+      Host s
         HostName 10.1.1.140
         User j_kro
-        IdentityFile ~/.ssh/id_rsa
-        StrictHostKeyChecking no
-        UserKnownHostsFile /dev/null
-        ControlMaster auto
+        IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
-        ControlPersist 600
-
-      # Cluster wildcard
-      Host zephyr nexus forge sentry
-        User j_kro
-        IdentityFile ~/.ssh/id_rsa
-        StrictHostKeyChecking no
-        UserKnownHostsFile /dev/null
-        ControlMaster auto
-        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
-        ControlPersist 600
     '';
   };
+
+  # SSH agent is enabled via programs.ssh.startAgent in distributed-builds.nix
 
   # SSH keys are defined in modules/users.nix
   # This prevents duplicate definition conflicts
 
-  # Ensure SSH sockets directory exists with proper permissions for user
+  # Ensure SSH sockets directory exists with proper permissions
   systemd.tmpfiles.rules = [
     "d /home/j_kro/.ssh/sockets 0700 j_kro j_kro -"
   ];

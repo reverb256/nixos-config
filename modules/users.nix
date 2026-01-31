@@ -1,7 +1,7 @@
 # ============================================================================
 # USER MANAGEMENT - Accounts, groups, sudo rules, and permissions
 # ============================================================================
-{pkgs, lib, ...}: {
+{pkgs, ...}: {
   # ============================================================================
   # USER ACCOUNTS
   # ============================================================================
@@ -28,9 +28,8 @@
         steam
       ];
       openssh.authorizedKeys.keys = [
-        # Zephyr keys (2 different keys from this host)
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM2sHH/zyVSvk4pZPr3dcMEiG8rtgnf+AbMNIqk5r6Qd j_kro@zephyr"
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHE2FZVCG9Wyk1LzjwFMI7usfyFmPCl+uLeq7hg/dB3S j_kro@zephyr"
+        # Zephyr current key (as of 2026-01-31)
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKxlZFnzslRkCM+6mEdPpgLDudCRHYdeEcJoAPLDmHvm j_kro@zephyr"
         # Forge unified cluster key
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILLLCzj+9HECcMChcD92fW6nChnSX1VEBw8WPFwvlRJH j_kro@cluster"
         # Sentry keys
@@ -41,8 +40,8 @@
         # Root keys for cluster access
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFvsktMT9/yhSZryFJp688+SsYPwnZdyAWaUhRS9L4jM root@cluster"
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDCtXll62kA3CTH3NXDDtVt6W621actl6+cQPUg9YnDN root@nexus"
-        # Distributed build key
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILIs8j7w+YBwwvG5P2wRvoojMGDPUZinUqcW/hBKb3Vl nix-distributed-build"
+        # Distributed build key (matches ~/.ssh/id_nixbuild.pub)
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBrQ6cTBLsgw8N2xKu6S3p7mlBiicKRL39QflEKaJvDl nix-distributed-build"
         # Reverb256 CA
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILM8m4+tHYj152DRz2bXuv6PrSpC201yYN8Svb5DXEiC j_kroeker@reverb256.ca"
       ];
@@ -54,11 +53,11 @@
       group = "mining";
       description = "Mining services user";
       extraGroups = [
-        "video"    # GPU access
-        "render"   # GPU rendering access
-        "dialout"  # Serial port access for mining devices
-        "input"    # Input device access
-        "plugdev"  # USB device access
+        "video" # GPU access
+        "render" # GPU rendering access
+        "dialout" # Serial port access for mining devices
+        "input" # Input device access
+        "plugdev" # USB device access
       ];
       home = "/var/lib/mining";
       createHome = true;
@@ -68,8 +67,28 @@
     # Mining group
     groups.mining = {};
 
+    # Nix build group for distributed builds
+    groups.nixbuild = {};
+
     # Plugdev group for USB device access (used by gaming.nix udev rules)
     groups.plugdev = {};
+
+    # ============================================================================
+    # NIX BUILD USER FOR DISTRIBUTED BUILDS
+    # ============================================================================
+    users.nixbuild = {
+      isSystemUser = true;
+      group = "nixbuild";
+      description = "Nix build user for distributed builds";
+      extraGroups = ["nixbuild"];
+      home = "/var/empty";
+      createHome = false;
+      shell = "/bin/bash";
+      openssh.authorizedKeys.keys = [
+        # Cluster-wide distributed build key
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBrQ6cTBLsgw8N2xKu6S3p7mlBiicKRL39QflEKaJvDl nix-distributed-build"
+      ];
+    };
   };
 
   # ============================================================================
@@ -142,75 +161,4 @@
 
   # Ignore shell program check for j_kro user
   users.users.j_kro.ignoreShellProgramCheck = true;
-  
-  # ============================================================================
-  # SSH SERVER CONFIGURATION FOR ALL NODES
-  # ============================================================================
-  services.openssh = {
-    enable = true;
-    settings = {
-      PermitRootLogin = lib.mkForce "yes";
-      PubkeyAuthentication = true;
-      AuthorizedKeysFile = ".ssh/authorized_keys";
-      PasswordAuthentication = lib.mkForce false;
-      ChallengeResponseAuthentication = lib.mkForce false;
-      UsePAM = true;
-      X11Forwarding = true;
-      AllowUsers = ["j_kro" "root"];
-      AllowGroups = ["wheel"];
-      # Cluster-wide SSH settings
-      StrictHostKeyChecking = "no";
-      UserKnownHostsFile = "/dev/null";
-      LogLevel = lib.mkForce "ERROR";
-    };
-  };
-  
-  # ============================================================================
-  # SSH CLIENT CONFIGURATION FOR CLUSTER NODES
-  # ============================================================================
-  environment.etc."ssh/config".text = ''
-    # SSH Configuration for NixOS Cluster
-    Host *
-        StrictHostKeyChecking no
-        UserKnownHostsFile /dev/null
-        LogLevel ERROR
-
-    # Cluster nodes configuration
-    Host forge
-        HostName 100.116.190.124
-        User root
-        IdentityFile ~/.ssh/id_rsa
-        StrictHostKeyChecking no
-
-    Host nexus
-        HostName 100.86.158.18
-        User root
-        IdentityFile ~/.ssh/id_rsa
-        StrictHostKeyChecking no
-
-    Host sentry
-        HostName 100.82.210.39
-        User root
-        IdentityFile ~/.ssh/id_rsa
-        StrictHostKeyChecking no
-
-    # Legacy IP addresses
-    Host forge-legacy
-        HostName 10.1.1.130
-        User root
-        IdentityFile ~/.ssh/id_rsa
-        StrictHostKeyChecking no
-
-    Host nexus-legacy
-        HostName 10.1.1.120
-        User root
-        IdentityFile ~/.ssh/id_rsa
-        StrictHostKeyChecking no
-
-    Host sentry-legacy
-        HostName 10.1.1.140
-        User root
-        IdentityFile ~/.ssh/id_rsa
-        StrictHostKeyChecking no
-  '';
 }

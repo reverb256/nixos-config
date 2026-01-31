@@ -26,6 +26,10 @@ in {
           baseURL = "https://vanchin.streamlake.ai/api/gateway/coding/v1";
           apiKey = null; # Set via secrets
         };
+        ollama = {
+          baseURL = "http://localhost:11434/v1";
+          apiKey = "ollama";
+        };
       };
       description = "OpenCode provider configurations";
     };
@@ -59,6 +63,33 @@ in {
             models = {
               "kat-coder-pro-v1" = {
                 name = "kat-coder-pro-v1";
+              };
+            };
+          };
+          ollama = {
+            npm = "@ai-sdk/openai-compatible";
+            options = {
+              baseURL = cfg.providers.ollama.baseURL;
+              apiKey = cfg.providers.ollama.apiKey or "ollama";
+            };
+            models = {
+              "qwen3-coder-30b" = {
+                name = "qwen3-coder:30b";
+              };
+              "glm-4.7-flash" = {
+                name = "glm-4.7-flash:latest";
+              };
+              "nemotron-3-nano" = {
+                name = "nemotron-3-nano:latest";
+              };
+              "gpt-oss-20b" = {
+                name = "gpt-oss:20b";
+              };
+              "mistral-small3.1" = {
+                name = "mistral-small3.1:latest";
+              };
+              "devstral-small-2" = {
+                name = "devstral-small-2:latest";
               };
             };
           };
