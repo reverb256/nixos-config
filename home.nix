@@ -488,20 +488,9 @@
     };
   };
 
-  # Enable KDE Session Restore to remember open windows on login
-  xdg.configFile."ksmserverrc" = {
-    force = true;  # Allow overwriting existing file
-    text = ''
-      [General]
-      sessionRestore=restoreSavedSession
-      
-      [LegacySession: saved at previous logout]
-      count=0
-      
-      [Session: saved at previous logout]
-      count=0
-    '';
-  };
+  # DISABLED: Let KDE manage ksmserverrc directly (home-manager symlink is read-only)
+  # Session restore is enabled via KDE System Settings instead
+  # xdg.configFile."ksmserverrc" = { ... };
 
   # Kanshi - Dynamic display configuration for Wayland
   # Monitor Layout:
