@@ -28,19 +28,13 @@
   # Enable NVIDIA driver
   services.xserver.videoDrivers = ["nvidia"];
 
-  # Use production driver (570-580 series) for stability
-  # Beta drivers (575) have VRAM and stability issues
-  # Production drivers have Explicit Sync support (555+) for Wayland
-  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.production;
-
-  # Use open-source kernel modules (recommended for RTX 3090 with driver 560+)
-  # Open modules are now production-ready and preferred for Turing+
-  hardware.nvidia.open = true;
+  # Use beta driver (should be cached, newer than stable)
+  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
 
   # NVIDIA Wayland support (via nvidia-wayland module)
   hardware.nvidia.wayland = {
     enable = true;
-    openModules = true;
+    openModules = true;  # Use open kernel modules with proprietary userspace (standard across all nodes)
     sddmWayland = true;
   };
 
@@ -50,15 +44,15 @@
   programs.steam.enable = true;
 
   # ============================================================================
-  # DISPLAY MANAGER - SDDM with Wayland support
+  # DISPLAY MANAGER - SDDM with PURE WAYLAND (NO X11)
   # ============================================================================
-  # Required for SDDM (can be minimal, just for display manager)
-  services.xserver.enable = true;
+  # DISABLE X11 completely - pure Wayland only
+  services.xserver.enable = false;
 
   services.displayManager = {
     sddm = {
       enable = true;
-      wayland.enable = false; # WORKAROUND: Use X11 for greeter (Wayland greeter crashes on NVIDIA)
+      wayland.enable = true;  # PURE WAYLAND - no X11 fallback
     };
     defaultSession = "plasma";
     autoLogin = {

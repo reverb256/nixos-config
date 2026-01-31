@@ -127,10 +127,11 @@ in {
       NVD_BACKEND = "direct";
       __NV_PRIME_RENDER_OFFLOAD = "1";
 
-      # Explicit Sync workarounds for Plasma 6 + NVIDIA stability
-      # Fixes panel freeze when using dodge windows/auto-hide
-      KWIN_DRM_NO_AMS = "1";  # Disable explicit sync for stability
-      __GL_MaxFramesAllowed = "1";  # Reduce frame latency
+      # OpenGL/Framebuffer stability fixes for RTX 3090 with beta drivers
+      # Force OpenGL ES backend to fix EGLImage/GL_INVALID_OPERATION errors
+      # Reference: KDE Bug 486460 - NVIDIA Wayland GL_INVALID_OPERATION
+      KWIN_COMPOSE = "O2ES";  # Use OpenGL ES backend (fixes NVIDIA beta driver issues)
+      __GL_SYNC_TO_VBLANK = "0";  # Disable sync to vblank
     };
 
     # ============================================================================
