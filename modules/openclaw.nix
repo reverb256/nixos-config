@@ -27,7 +27,7 @@ in
 
   config = lib.mkIf cfg.enable {
     # Install OpenClaw CLI tools via npm wrappers
-    home-manager.users.j_kro = { config, pkgs, ... }: {
+    home-manager.users.j_kro = {
       home.packages = [
         # OpenClaw CLI
         (pkgs.writeShellScriptBin "openclaw" ''
