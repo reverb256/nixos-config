@@ -53,10 +53,16 @@
       isSystemUser = true;
       group = "mining";
       description = "Mining services user";
-      extraGroups = ["video" "dialout" "input"];
+      extraGroups = [
+        "video"    # GPU access
+        "render"   # GPU rendering access
+        "dialout"  # Serial port access for mining devices
+        "input"    # Input device access
+        "plugdev"  # USB device access
+      ];
       home = "/var/lib/mining";
       createHome = true;
-      shell = "/bin/false";
+      shell = "/bin/bash";
     };
 
     # Mining group
