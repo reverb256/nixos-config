@@ -116,7 +116,8 @@
   # This prevents duplicate definition conflicts
 
   # Ensure SSH sockets directory exists with proper permissions
+  # Note: Using 'users' group instead of 'j_kro' group since the user belongs to 'users' group (gid=100)
   systemd.tmpfiles.rules = [
-    "d /home/j_kro/.ssh/sockets 0700 j_kro j_kro -"
+    "d /home/j_kro/.ssh/sockets 0700 j_kro users -"
   ];
 }

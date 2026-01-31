@@ -276,11 +276,11 @@ with lib; {
     options nvidia-uvm "uvm_perf_prefetch_enable=1"
     # Disable CPU frequency scaling for consistent VR performance
     options cpufreq_performance ignore_cpu_freq=1
-     # Audio stability - prevent crackling during gaming
-     options snd_hda_intel power_save=0
-     options snd_hda_intel power_save_controller=N
-     # Conservative audio buffer settings
-     options snd_hda_intel bdl_pos_adj=0  # Disable buffer position adjustments
+    # Audio stability - prevent crackling during gaming
+    options snd_hda_intel power_save=0
+    options snd_hda_intel power_save_controller=N
+    # Conservative audio buffer settings
+    options snd_hda_intel bdl_pos_adj=0  # Disable buffer position adjustments
     # USB optimization for VR devices
     options usbcore autosuspend=-1
   '';

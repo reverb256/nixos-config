@@ -141,6 +141,14 @@ with lib; {
     };
   };
 
+  # Optimize NetworkManager wait-online timeout to prevent boot delays
+  # Default is 30s, reducing to 10s for faster boot
+  systemd.services.NetworkManager-wait-online = {
+    serviceConfig = {
+      TimeoutStartSec = 10;
+    };
+  };
+
   # ============================================================================
   # FIREWALL (Base config - ports can be overridden per-host)
   # ============================================================================

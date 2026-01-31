@@ -95,4 +95,19 @@
   # ============================================================================
 
   security.pam.services.sddm.enableKwallet = true;
+
+  # ============================================================================
+  # ELECTRON/WAYLAND COMPATIBILITY - Fix electron app crashes
+  # ============================================================================
+  environment.sessionVariables = {
+    # Force XWayland for electron apps that crash on native Wayland
+    # This prevents "Failed to connect to Wayland display" errors
+    ELECTRON_OZONE_PLATFORM_HINT = "x11";
+    
+    # Alternative: Use Wayland for electron apps that support it
+    # ELECTRON_OZONE_PLATFORM_HINT = "auto";
+    
+    # Disable Wayland for problematic electron apps
+    NIXOS_OZONE_WL = "1";
+  };
 }
