@@ -12,7 +12,6 @@
 
 with lib; {
 
-  # ============================================================================
   # LVRA Wiki: OpenVR paths for xrizer (SteamVR compatibility)
   # https://lvra.gitlab.io/docs/distros/nixos/
   # Creates /etc/xdg/openvr/openvrpaths.vrpath for system-wide access
@@ -27,6 +26,9 @@ with lib; {
     ];
   };
 
+  # ============================================================================
+  # GAMEMODE - CPU/GPU Optimizations
+  # ============================================================================
   # ============================================================================
   # GAMEMODE - CPU/GPU Optimizations
   # ============================================================================
@@ -292,18 +294,19 @@ with lib; {
       wivrn
       openxr-loader
 
-      # SteamVR support
-      steam-run
+       # SteamVR support
+       steam-run
 
-      # LVRA Wiki: xrizer for SteamVR/OpenVR compatibility
-      xrizer
+       # LVRA Wiki: xrizer for SteamVR/OpenVR compatibility
+       # https://lvra.gitlab.io/docs/distros/nixos/
+       xrizer
 
-      # Motion tracking calibration tools
-      motoc
+       # Motion tracking calibration tools
+       motoc
 
       # LVRA Wiki: Eye/Face tracking for Quest Pro via WiVRn
       # Uses oscavmgr to route OSC data from Quest Pro tracking to VRChat
-      # Available through nixpkgs-xr overlay
+      # Available through nixpkgs-xr overlay (configured in flake.nix)
       (lib.mkIf (inputs != null && inputs ? nixpkgs-xr)
         inputs.nixpkgs-xr.packages."x86_64-linux".oscavmgr)
 
