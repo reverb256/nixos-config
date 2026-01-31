@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "retell-ai": {
+      "version": "1.0.0",
+      "installedAt": 1769823531622
+    },
+    "flowmind": {
+      "version": "1.0.0",
+      "installedAt": 1769823538552
+    },
+    "konteks": {
+      "version": "1.3.0",
+      "installedAt": 1769823550514
+    }
+  }
+}

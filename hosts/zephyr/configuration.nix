@@ -10,6 +10,7 @@
     ./hardware-configuration.nix
     ../../modules/desktop.nix
     ../../modules/nvidia-wayland.nix
+    ../../modules/openclaw.nix
     # REMOVED: ../../modules/steam-wayland-robust.nix - using minimal Steam in home.nix
     # REMOVED: ../../modules/openagents-control.nix - not needed for minimal config
   ];
@@ -121,11 +122,11 @@
   # DISABLED: OpenClaw nix-openclaw flake is severely broken in latest version
   # - Missing generated config file: openclaw-config-options.nix
   # - systemd unitName attribute missing
-  # - First-party plugins causing null pointer errors
-  # programs.openclaw = {
-  #   enable = true;
-  #   model = "llama3.2:3b";
-  # };
+  # OpenClaw AI Assistant - ENABLED for collaboration
+  programs.openclaw = {
+    enable = true;
+    nodeName = "zephyr";
+  };
 
   services.ollama = {
     enable = true;

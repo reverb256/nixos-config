@@ -10,6 +10,8 @@
     ../../modules/gaming.nix
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
+    # Import OpenClaw AI assistant
+    ../../modules/openclaw.nix
   ];
 
   # Host identification
@@ -98,7 +100,7 @@
   # ============================================================================
   programs.openclaw = {
     enable = true;
-    model = "qwen3:1.8b";
+    nodeName = "nexus";
   };
 
   services.ollama = {

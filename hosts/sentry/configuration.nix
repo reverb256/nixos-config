@@ -8,6 +8,8 @@
     ../../modules/desktop.nix
     # Import AMD GPU Wayland module
     ../../modules/amdgpu-wayland.nix
+    # Import OpenClaw AI assistant
+    ../../modules/openclaw.nix
   ];
 
   # Host identification
@@ -72,7 +74,7 @@
   # ============================================================================
   programs.openclaw = {
     enable = true;
-    model = "qwen3:0.6b";  # Smallest model for CPU-only host
+    nodeName = "sentry";
   };
 
   services.ollama = {
