@@ -6,13 +6,18 @@
   # ============================================================================
   systemd = {
     # Protect user session from OOM killer and resource exhaustion
-    services."user@1000.service".serviceConfig = {
-      # Prevent OOM killer from terminating the user session
-      OOMScoreAdjust = -1000;
-      # Ensure user session stays alive even under memory pressure
-      MemoryPressureWatch = "skip";
-      # Limit memory to prevent system-wide exhaustion
-      MemoryLimit = "24G";
+    services."user@1000.service" = {
+      serviceConfig = {
+        # Prevent OOM killer from terminating the user session
+        OOMScoreAdjust = -1000;
+        # Ensure user session stays alive even under memory pressure
+        MemoryPressureWatch = "skip";
+        # Limit memory to prevent system-wide exhaustion
+        MemoryLimit = "24G";
+      };
+      # CRITICAL: Prevent user session restart during nixos-rebuild
+      # Restarting this service kills ALL user processes across ALL TTYs
+      restartIfChanged = false;
     };
 
     # Systemd slices for workload prioritization
