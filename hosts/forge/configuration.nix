@@ -46,7 +46,7 @@
 
   # NVIDIA configuration for RTX 4060s (use proprietary beta drivers with ZEN kernel)
   hardware.nvidia = {
-    package = pkgs.linuxPackages_zen.nvidiaPackages.beta;
+    package = pkgs.linuxPackages_zen.nvidiaPackages.stable;
   };
 
   # Enable NVIDIA Wayland optimizations

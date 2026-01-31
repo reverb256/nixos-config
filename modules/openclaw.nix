@@ -242,10 +242,9 @@ let
     } else {};
     gateway = if cfg.isMaster then {
       port = cfg.gatewayPort;
-      bind = "loopback";
+      bind = "lan";
       mode = "local";
       auth = { mode = "token"; token = "dbb9006cbbc79469bb412207e3dec142d3d17a7a47d14ca7"; };
-      tailscale = { mode = "serve"; resetOnExit = false; };
     } else {
       port = cfg.gatewayPort;
       bind = "loopback";
