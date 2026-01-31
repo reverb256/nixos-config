@@ -91,6 +91,11 @@
     (pkgs.writeShellScriptBin "openclaw" ''
       exec ${pkgs.nodejs_22}/bin/npx openclaw "$@"
     '')
+
+    # ClawdHub - OpenClaw skill manager
+    (pkgs.writeShellScriptBin "clawdhub" ''
+      exec ${pkgs.nodejs_22}/bin/node ~/clawdhub-fix/node_modules/clawdhub/dist/cli.js "$@"
+    '')
   ];
 
   # StreamLake Claude Code environment variables (enhanced with MCP)
