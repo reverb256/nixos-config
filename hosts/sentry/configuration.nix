@@ -1,6 +1,6 @@
 # Sentry Host Configuration
 # 10.1.1.140 - Monitoring Server (8 cores, RX 5600 XT)
-{...}: {
+{pkgs, ...}: {
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
@@ -79,7 +79,7 @@
 
   services.ollama = {
     enable = true;
-    acceleration = "none";  # CPU-only (AMD RX 5600 XT not used for LLM)
+    package = pkgs.ollama-cpu;  # CPU-only (AMD RX 5600 XT not used for LLM)
     environmentVariables = {
       OLLAMA_KEEP_ALIVE = "24h";
     };
