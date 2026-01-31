@@ -56,7 +56,7 @@ in
       ];
       
       # Ensure npm packages can be installed
-      home.file".npmrc".text = ''
+      home.file.".npmrc".text = ''
         prefix=~/.npm-packages
       '';
     };
