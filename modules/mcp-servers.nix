@@ -103,6 +103,11 @@ in {
       # UV for Python-based MCP servers (if available)
       (lib.optionalString (lib.hasAttr "uv" pkgs) uv)
 
+      # Playwright for browser automation (browsers installed via activation script)
+    ] ++ lib.optionals cfg.servers.playwright.enable [
+      playwright
+    ] ++ [
+
       # MCP server wrappers
       (mkNpmMcpServer {
         name = "filesystem";
@@ -138,6 +143,21 @@ in {
         package = "chrome-devtools-mcp@latest";
       })
     ];
+
+    # Install Playwright browsers on system activation
+    system.activationScripts.playwright-browsers = lib.mkIf cfg.servers.playwright.enable {
+      text = ''
+        # Install Playwright browsers if not already present
+        export PLAYWRIGHT_BROWSERS_PATH=/var/lib/playwright-browsers
+        export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+        
+        if [ ! -d "$PLAYWRIGHT_BROWSERS_PATH" ]; then
+          echo "Installing Playwright browsers..."
+          mkdir -p $PLAYWRIGHT_BROWSERS_PATH
+          ${pkgs.nodejs_22}/bin/npx playwright install chromium --with-deps || true
+        fi
+      '';
+    };
 
     # Enable nix-ld for dynamically linked executables (needed for uvx)
     programs.nix-ld.enable = lib.mkDefault true;

@@ -110,6 +110,16 @@
           }
         ];
       }
+      # Allow mining user to run nvidia-smi without password for GPU management
+      {
+        users = ["mining"];
+        commands = [
+          {
+            command = "/run/current-system/sw/bin/nvidia-smi";
+            options = ["NOPASSWD"];
+          }
+        ];
+      }
     ];
   };
 
