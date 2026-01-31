@@ -9,7 +9,26 @@
   inputs ? null,
   ...
 }:
+
 with lib; {
+
+  # ============================================================================
+  # LVRA Wiki: OpenVR paths for xrizer (SteamVR compatibility)
+  # https://lvra.gitlab.io/docs/distros/nixos/
+  # Creates /etc/xdg/openvr/openvrpaths.vrpath for system-wide access
+  environment.etc."xdg/openvr/openvrpaths.vrpath".text = builtins.toJSON {
+    version = 1;
+    jsonid = "vrpathreg";
+    external_drivers = null;
+    config = [ "/home/j_kro/.local/share/Steam/config" ];
+    log = [ "/home/j_kro/.local/share/Steam/logs" ];
+    runtime = [
+      "${pkgs.xrizer}/lib/xrizer"
+    ];
+  };
+
+  # ============================================================================
+  # GAMEMODE - CPU/GPU Optimizations
   # ============================================================================
   # GAMEMODE - CPU/GPU Optimizations
   # ============================================================================
@@ -60,7 +79,7 @@ with lib; {
   # ============================================================================
 
   # GameMode service configuration
-  systemd.services.gamemode = mkIf config.programs.gamemode.enable {
+  systemd.services.gamemode = lib.mkIf config.programs.gamemode.enable {
     description = "GameMode service";
     wantedBy = ["multi-user.target"];
     after = ["syslog.target"];
@@ -100,6 +119,12 @@ with lib; {
   # ============================================================================
   programs.steam = {
     enable = true;
+    # Font packages for Steam and Proton (fixes FreeType/Wine issues)
+    fontPackages = with pkgs; [
+      noto-fonts
+      liberation_ttf
+      dejavu_fonts
+    ];
     extraCompatPackages = with pkgs;
       [
       ]
@@ -241,6 +266,7 @@ with lib; {
   # NVIDIA VR OPTIMIZATIONS - NVENC, Low Latency, VR Ready
   # ============================================================================
   hardware.graphics.enable = true;
+  hardware.graphics.enable32Bit = true;
 
   boot.extraModprobeConfig = ''
     # NVIDIA VR optimizations for RTX 3090
@@ -268,6 +294,9 @@ with lib; {
 
       # SteamVR support
       steam-run
+
+      # LVRA Wiki: xrizer for SteamVR/OpenVR compatibility
+      xrizer
 
       # Motion tracking calibration tools
       motoc
@@ -413,6 +442,13 @@ with lib; {
 
   # Custom Proton-GE-RTSP configuration for VRChat
   programs.steam.package = pkgs.steam.override {
+    extraLibraries = pkgs: with pkgs; [
+      freetype
+      fontconfig
+      libpng
+      libjpeg
+      libtiff
+    ];
     extraProfile = ''
       # Fixes timezones on VRChat
       unset TZ

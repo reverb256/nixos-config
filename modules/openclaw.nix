@@ -246,9 +246,11 @@ let
       mode = "local";
       auth = { mode = "token"; token = "dbb9006cbbc79469bb412207e3dec142d3d17a7a47d14ca7"; };
     } else {
-      port = cfg.gatewayPort;
-      bind = "loopback";
-      mode = "local";
+      mode = "remote";
+      remote = {
+        url = "ws://" + cfg.masterHost + ":" + toString cfg.masterPort;
+        token = cfg.masterToken;
+      };
     };
     skills = { install = { nodeManager = "npm"; }; };
     plugins = if cfg.isMaster then {
@@ -261,24 +263,6 @@ let
         "signal"
         "googlechat"
         "nostr"
-        "web"
-        "email"
-        "calendar"
-        "memory"
-        "filesystem"
-        "browser"
-        "docker"
-        "kubernetes"
-        "aws"
-        "gcp"
-        "azure"
-        "github"
-        "gitlab"
-        "bitbucket"
-        "jira"
-        "trello"
-        "asana"
-        "linear"
       ];
       entries = {
         "qwen-portal-auth" = { enabled = true; };
@@ -289,24 +273,6 @@ let
         "signal" = { enabled = true; };
         "googlechat" = { enabled = true; };
         "nostr" = { enabled = true; };
-        "web" = { enabled = true; };
-        "email" = { enabled = true; };
-        "calendar" = { enabled = true; };
-        "memory" = { enabled = true; };
-        "filesystem" = { enabled = true; };
-        "browser" = { enabled = true; };
-        "docker" = { enabled = true; };
-        "kubernetes" = { enabled = true; };
-        "aws" = { enabled = true; };
-        "gcp" = { enabled = true; };
-        "azure" = { enabled = true; };
-        "github" = { enabled = true; };
-        "gitlab" = { enabled = true; };
-        "bitbucket" = { enabled = true; };
-        "jira" = { enabled = true; };
-        "trello" = { enabled = true; };
-        "asana" = { enabled = true; };
-        "linear" = { enabled = true; };
       };
     } else {
       allow = [];
