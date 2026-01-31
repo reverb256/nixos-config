@@ -110,6 +110,8 @@
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDCtXll62kA3CTH3NXDDtVt6W621actl6+cQPUg9YnDN root@nexus"
         # Reverb256 CA
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILM8m4+tHYj152DRz2bXuv6PrSpC201yYN8Svb5DXEiC j_kroeker@reverb256.ca"
+        # OpenClaw cluster key for Reverb-OS
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFyCNsbhrGynnbLpS56JQDXJJ0QV1mgudaW6+2AvHjdu openclaw-cluster"
       ];
     };
 
