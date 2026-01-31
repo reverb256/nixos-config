@@ -12,6 +12,54 @@
     "konteks": {
       "version": "1.3.0",
       "installedAt": 1769823550514
+    },
+    "coding-agent": {
+      "version": "1.0.1",
+      "installedAt": 1769827556077
+    },
+    "agent-zero-bridge": {
+      "version": "1.0.0",
+      "installedAt": 1769827557540
+    },
+    "relay-to-agent": {
+      "version": "1.0.0",
+      "installedAt": 1769827563549
+    },
+    "agent-commerce-engine": {
+      "version": "1.2.4",
+      "installedAt": 1769827587723
+    },
+    "blockchain-attestation": {
+      "version": "1.0.0",
+      "installedAt": 1769827588457
+    },
+    "calendar": {
+      "version": "1.0.0",
+      "installedAt": 1769828488305
+    },
+    "clippy": {
+      "version": "1.2.0",
+      "installedAt": 1769828490818
+    },
+    "meeting-prep": {
+      "version": "1.0.0",
+      "installedAt": 1769828496702
+    },
+    "figma": {
+      "version": "2.1.0",
+      "installedAt": 1769828535728
+    },
+    "docker-essentials": {
+      "version": "1.0.0",
+      "installedAt": 1769828671243
+    },
+    "ai-dockerfile": {
+      "version": "1.0.1",
+      "installedAt": 1769828671253
+    },
+    "docker-compose-gen": {
+      "version": "1.0.1",
+      "installedAt": 1769828673131
     }
   }
 }
