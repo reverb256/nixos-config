@@ -157,8 +157,11 @@
       };
     };
   in {
-    # Shared overlays
-    overlays.default = import ./modules/mining-overlay.nix;
+     # Shared overlays
+     overlays.default = import ./modules/mining-overlay.nix;
+
+     # Add nixpkgs-xr overlay for VR/gaming packages
+     overlays.nixpkgs-xr = inputs.nixpkgs-xr.overlay;
 
     # NixOS configurations (for direct use with nixos-rebuild)
     nixosConfigurations = nixosSystems;
