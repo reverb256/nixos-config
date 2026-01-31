@@ -11,6 +11,7 @@
     ../../modules/desktop.nix
     ../../modules/nvidia-wayland.nix
     ../../modules/openclaw.nix
+    ../../modules/docker.nix
     # REMOVED: ../../modules/steam-wayland-robust.nix - using minimal Steam in home.nix
     # REMOVED: ../../modules/openagents-control.nix - not needed for minimal config
   ];
@@ -117,15 +118,22 @@
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input"];
 
   # ============================================================================
+  # DOCKER - For OpenClaw sandboxing
+  # ============================================================================
+  virtualisation.docker.enable = true;
+
+  # ============================================================================
   # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
   # ============================================================================
   # DISABLED: OpenClaw nix-openclaw flake is severely broken in latest version
   # - Missing generated config file: openclaw-config-options.nix
   # - systemd unitName attribute missing
-  # OpenClaw AI Assistant - ENABLED for collaboration
+  # OpenClaw AI Assistant - MASTER NODE (coordinator)
   programs.openclaw = {
     enable = true;
     nodeName = "zephyr";
+    isMaster = true;
+    gatewayPort = 18789;
   };
 
   services.ollama = {
