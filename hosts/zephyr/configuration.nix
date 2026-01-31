@@ -11,6 +11,7 @@
     ../../modules/desktop.nix
     ../../modules/nvidia-wayland.nix
     ../../modules/openclaw.nix
+    ../../modules/mcp-servers.nix
     # REMOVED: ../../modules/steam-wayland-robust.nix - using minimal Steam in home.nix
     # REMOVED: ../../modules/openagents-control.nix - not needed for minimal config
   ];
@@ -149,6 +150,14 @@
     environmentVariables = {
       OLLAMA_KEEP_ALIVE = "24h";
     };
+  };
+
+  # ============================================================================
+  # MCP SERVERS - Browser automation and AI assistant tools
+  # ============================================================================
+  services.mcp-servers = {
+    enable = true;
+    servers.playwright.enable = true;
   };
 
   # ============================================================================
