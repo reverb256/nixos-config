@@ -95,6 +95,13 @@ in {
       "numa_balancing=disable"
       "nowatchdog"
       "pcie_aspm=off"
+
+      # USB: Reduce timeout for faster boot when devices fail to enumerate
+      "usbcore.use_both_schemes=y"
+      "usbcore.autosuspend=-1"
+
+      # Disable simple-framebuffer to prevent monitor conflicts with NVIDIA
+      "simpledrm.disable=1"
     ];
 
     # System tuning
