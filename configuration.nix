@@ -80,8 +80,12 @@ in {
   boot = {
     loader = {
       systemd-boot.enable = true;
+      systemd-boot.configurationLimit = 10;  # Keep only last 10 boot entries
       efi.canTouchEfiVariables = true;
     };
+
+    # Limit system generations to prevent EFI partition filling up
+    loader.generationsDir.copyKernels = false;  # Don't copy kernels to /boot for each generation
 
     # Minimal kernel parameters
     kernelParams = [
