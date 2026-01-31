@@ -107,9 +107,7 @@
     };
 
     # Function to create a NixOS system definition
-    mkNixosSystem = {
-      modules ? [],
-    }:
+    mkNixosSystem = {modules ? []}:
       nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         # Pass all inputs to specialArgs for modules to use
@@ -157,24 +155,26 @@
       };
     };
   in {
-     # Shared overlays
-     overlays.default = import ./modules/mining-overlay.nix;
+    # Shared overlays
+    overlays.default = import ./modules/mining-overlay.nix;
 
-     # Add nixpkgs-xr overlay for VR/gaming packages
-     overlays.nixpkgs-xr = inputs.nixpkgs-xr.overlay;
+    # Add nixpkgs-xr overlay for VR/gaming packages
+    overlays.nixpkgs-xr = inputs.nixpkgs-xr.overlays.default;
 
     # NixOS configurations (for direct use with nixos-rebuild)
     nixosConfigurations = nixosSystems;
 
     # Colmena deployment configuration
-    colmena = {
-      meta = {
-        nixpkgs = import inputs.nixpkgs {
-          system = "x86_64-linux";
-          config.allowUnfree = true;
+    colmena =
+      {
+        meta = {
+          nixpkgs = import inputs.nixpkgs {
+            system = "x86_64-linux";
+            config.allowUnfree = true;
+          };
         };
-      };
-    } // colmenaNodes;
+      }
+      // colmenaNodes;
 
     # Formatter for nix fmt
     formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;

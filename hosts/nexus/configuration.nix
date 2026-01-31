@@ -46,6 +46,17 @@
   };
 
   # ============================================================================
+  # PREVENT PLASMA SESSION KILL DURING REBUILD
+  # ============================================================================
+  # Stop display-manager from restarting during nixos-rebuild switch
+  # This prevents Plasma 6 Wayland session termination on configuration changes
+  systemd.services.display-manager.restartIfChanged = false;
+  systemd.services.sddm.restartIfChanged = false;
+
+  # Prevent systemd-logind from killing user processes during session changes
+  services.logind.settings.Login.KillUserProcesses = false;
+
+  # ============================================================================
   # MINING CONFIGURATION (Nexus: 24 cores, 2x RTX 3060 Ti)
   # ============================================================================
   services.mining.enable = true;
@@ -103,14 +114,14 @@
     enable = true;
     nodeName = "nexus";
     isMaster = false;
-    masterHost = "100.81.182.5";  # zephyr's Tailscale IP
+    masterHost = "100.81.182.5"; # zephyr's Tailscale IP
     masterPort = 18789;
     masterToken = "dbb9006cbbc79469bb412207e3dec142d3d17a7a47d14ca7";
   };
 
   services.ollama = {
     enable = true;
-    package = pkgs.ollama-cuda;  # Use NVIDIA RTX 3060 Ti
+    package = pkgs.ollama-cuda; # Use NVIDIA RTX 3060 Ti
     environmentVariables = {
       OLLAMA_KEEP_ALIVE = "24h";
     };

@@ -52,7 +52,7 @@
   services.displayManager = {
     sddm = {
       enable = true;
-      wayland.enable = false;  # WORKAROUND: Use X11 for greeter (Wayland greeter crashes on NVIDIA)
+      wayland.enable = false; # WORKAROUND: Use X11 for greeter (Wayland greeter crashes on NVIDIA)
     };
     defaultSession = "plasma";
     autoLogin = {
@@ -60,6 +60,18 @@
       user = "j_kro";
     };
   };
+
+  # ============================================================================
+  # PREVENT PLASMA SESSION KILL DURING REBUILD
+  # ============================================================================
+  # Stop display-manager from restarting during nixos-rebuild switch
+  # This prevents Plasma 6 Wayland session termination on configuration changes
+  systemd.services.display-manager.restartIfChanged = false;
+  systemd.services.sddm.restartIfChanged = false;
+
+  # Prevent systemd-logind from killing user processes during session changes
+  # This is critical for Plasma 6 Wayland session persistence
+  services.logind.settings.Login.KillUserProcesses = false;
 
   # ============================================================================
   # MINING CONFIGURATION
@@ -124,7 +136,7 @@
     enable = true;
     enableOnBoot = true;
   };
-  
+
   # Install docker-compose for container management
   environment.systemPackages = with pkgs; [
     docker-compose
@@ -146,7 +158,7 @@
 
   services.ollama = {
     enable = true;
-    package = pkgs.ollama-cuda;  # Use NVIDIA RTX 3090 CUDA acceleration
+    package = pkgs.ollama-cuda; # Use NVIDIA RTX 3090 CUDA acceleration
     environmentVariables = {
       OLLAMA_KEEP_ALIVE = "24h";
     };
