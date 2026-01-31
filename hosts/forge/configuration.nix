@@ -234,7 +234,7 @@
 
   services.ollama = {
     enable = true;
-    acceleration = "cuda";  # Use NVIDIA RTX 4060
+    package = pkgs.ollama-cuda;  # Use NVIDIA RTX 4060
     environmentVariables = {
       OLLAMA_KEEP_ALIVE = "24h";
     };

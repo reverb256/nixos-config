@@ -105,7 +105,7 @@
 
   services.ollama = {
     enable = true;
-    acceleration = "cuda";  # Use NVIDIA RTX 3060 Ti
+    package = pkgs.ollama-cuda;  # Use NVIDIA RTX 3060 Ti
     environmentVariables = {
       OLLAMA_KEEP_ALIVE = "24h";
     };
