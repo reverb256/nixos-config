@@ -75,6 +75,16 @@
     # Go - Required for many OpenClaw skills
     go
 
+    # OpenClaw skill dependencies
+    _1password-cli      # 1Password CLI for 1password skill
+    himalaya            # Email CLI for himalaya skill
+    spotify-player      # Spotify TUI for spotify-player skill
+    # TODO: Package these for NixOS or install via npm:
+    # - bird (Twitter/X CLI)
+    # - blogwatcher (RSS feed monitor)
+    # - camsnap (RTSP camera capture)
+    # - summarize (URL/content summarizer)
+
     # Media tools (moved from system-packages)
     yt-dlp
 
