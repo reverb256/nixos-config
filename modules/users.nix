@@ -19,7 +19,6 @@
         "libinput"
         "render"
         "plugdev"
-        "nixbld" # Required for building with Nix daemon
       ];
       shell = "/run/current-system/sw/bin/fish";
       packages = with pkgs; [
