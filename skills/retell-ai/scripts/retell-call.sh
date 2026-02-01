@@ -12,13 +12,13 @@ set -euo pipefail
 
 # ─── Configuration ───────────────────────────────────────────────
 # Load API key from secrets
-SECRETS_FILE="${RETELL_SECRETS_FILE:-$HOME/.clawdbot/secrets/retell.env}"
+SECRETS_FILE="${RETELL_SECRETS_FILE:-$HOME/.openclaw/secrets/retell.env}"
 if [ -f "$SECRETS_FILE" ]; then
     source "$SECRETS_FILE"
 fi
 
 if [ -z "${RETELL_API_KEY:-}" ]; then
-    echo "❌ RETELL_API_KEY not set. Create ~/.clawdbot/secrets/retell.env with:"
+    echo "❌ RETELL_API_KEY not set. Create ~/.openclaw/secrets/retell.env with:"
     echo "   RETELL_API_KEY=your_key_here"
     exit 1
 fi

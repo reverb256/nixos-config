@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Agent Zero Client - For Clawdbot to call Agent Zero
+ * Agent Zero Client - For Openclaw to call Agent Zero
  * 
  * Usage:
  *   node a0_client.js <message>
@@ -15,7 +15,7 @@ const A0Client = require('./lib/a0_api');
 const { parseArgs } = require('./lib/cli');
 
 const HELP = `
-Agent Zero Client (Clawdbot → A0)
+Agent Zero Client (Openclaw → A0)
 
 Usage:
   node a0_client.js <message>

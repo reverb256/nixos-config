@@ -91,9 +91,6 @@
       pkgs.cudaPackages.libcufft
       pkgs.cudaPackages.libcusparse
       pkgs.cudaPackages.libcutensor
-      # pkgs.python312Packages.torchWithCuda  # MOVED to home.nix
-      # pkgs.python312Packages.tensorflowWithCuda  # MOVED to home.nix
-      # pkgs.ollama  # MOVED to home.nix - user AI tool
       pkgs.cudaPackages.libcurand
       pkgs.cudaPackages.libcusolver
       pkgs.cudaPackages.libnvjpeg

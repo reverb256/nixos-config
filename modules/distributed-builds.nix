@@ -11,40 +11,11 @@
   # DISTRIBUTED BUILD CONFIGURATION
   # ============================================================================
   nix = {
-    # ENABLED: Distributed builds with REMOTE nodes only (no localhost SSH)
-    distributedBuilds = true;
+    # DISABLED: Distributed builds causing signature/copying issues
+    distributedBuilds = false;
 
-    # Build machines - REMOTE NODES ONLY (26 cores: nexus + forge + sentry)
-    # NOTE: localhost (zephyr) is excluded - builds locally without SSH overhead
-    buildMachines = [
-      # Nexus - 16 cores, RTX 3060 Ti
-      {
-        hostName = "nexus";
-        systems = ["x86_64-linux" "i686-linux"];
-        maxJobs = 16;
-        speedFactor = 4;
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm"];
-        mandatoryFeatures = [];
-      }
-      # Forge - 6 cores, 2x RTX 4060 + 2x RX 5700 XT
-      {
-        hostName = "forge";
-        systems = ["x86_64-linux" "i686-linux"];
-        maxJobs = 6;
-        speedFactor = 3;
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm"];
-        mandatoryFeatures = [];
-      }
-      # Sentry - 4 cores, no GPU
-      {
-        hostName = "sentry";
-        systems = ["x86_64-linux" "i686-linux"];
-        maxJobs = 4;
-        speedFactor = 2;
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel"];
-        mandatoryFeatures = [];
-      }
-    ];
+    # Build machines - EMPTY (disabled)
+    buildMachines = [];
 
     # Settings for distributed builds
     settings = {

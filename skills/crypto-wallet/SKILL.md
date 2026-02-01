@@ -1,7 +1,7 @@
 ---
 name: crypto-wallet
 description: Multi-chain cryptocurrency wallet management. Check balances, send tokens, view transaction history across Ethereum, Solana, Bitcoin and more.
-metadata: {"clawdbot":{"emoji":"💰","requires":{"bins":["curl","jq"]}}}
+metadata: {"openclaw":{"emoji":"💰","requires":{"bins":["curl","jq"]}}}
 ---
 
 # Crypto Wallet 💰
