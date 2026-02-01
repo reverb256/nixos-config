@@ -1,0 +1,11 @@
+# Example .envrc for NixOS configuration
+# Copy to .envrc and customize as needed
+
+# Use the flake devShell (default)
+use flake
+
+# Or use a specific shell.nix
+# use nix
+
+# Or load environment variables
+# export MY_VAR=value
