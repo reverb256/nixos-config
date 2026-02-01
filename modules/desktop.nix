@@ -9,16 +9,58 @@
   # KDE PLASMA 6 (Pure Wayland with XWayland fallback for legacy apps)
   # ============================================================================
 
-  services.desktopManager.plasma6.enable = true;
-  # Enable XWayland for backward compatibility with X11 games/apps
+  services.desktopManager.plasma6 = {
+    enable = true;
+    # XWayland is automatically enabled by Plasma 6 for X11 app compatibility
+  };
+
+  # ============================================================================
+  # XDG DESKTOP PORTAL - DRY configuration for zephyr (KDE + future Hyprland)
+  # ============================================================================
+  # Portal packages are defined once in extraPortals and referenced where needed.
+  # This prevents duplication between portal config and system packages.
+  xdg.portal = {
+    enable = true;
+
+    # Portal implementations - DRY: defined once here only
+    extraPortals = with pkgs; [
+      kdePackages.xdg-desktop-portal-kde # Primary for KDE
+      xdg-desktop-portal-gtk # GTK app fallback
+      xdg-desktop-portal-hyprland # Future Hyprland support
+    ];
+
+    # Desktop-specific portal configurations
+    # Use common section for KDE to ensure proper portal selection
+    config = {
+      common = {
+        default = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.FileChooser" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.ScreenCast" = ["kde"];
+        "org.freedesktop.impl.portal.Screenshot" = ["kde"];
+        "org.freedesktop.impl.portal.RemoteDesktop" = ["kde"];
+        "org.freedesktop.impl.portal.Settings" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.Notification" = ["kde"];
+        "org.freedesktop.impl.portal.WindowManagement" = ["kde"];
+      };
+
+      hyprland = {
+        default = ["hyprland" "gtk" "kde"];
+        "org.freedesktop.impl.portal.FileChooser" = ["gtk" "kde"];
+        "org.freedesktop.impl.portal.ScreenCast" = ["hyprland"];
+        "org.freedesktop.impl.portal.Screenshot" = ["hyprland"];
+        "org.freedesktop.impl.portal.GlobalShortcuts" = ["hyprland"];
+      };
+    };
+
+    xdgOpenUsePortal = true;
+  };
 
   # ============================================================================
   # KDE ESSENTIAL PACKAGES (Steam-compatible)
   # ============================================================================
 
   environment.systemPackages = with pkgs; [
-    # KDE Wayland essentials
-    kdePackages.xdg-desktop-portal-kde
+    # KDE Wayland essentials (xdg-desktop-portal-kde is in xdg.portal.extraPortals above - DRY)
     kdePackages.kdbusaddons
     kdePackages.kdeconnect-kde
     kdePackages.plasma-systemmonitor
@@ -42,11 +84,11 @@
     wireplumber
     pavucontrol
     pulsemixer
-    pulseaudio  # For pactl and PA compatibility tools
+    pulseaudio # For pactl and PA compatibility tools
     alsa-utils
     alsa-tools
     alsa-firmware
-    rtkit  # Real-time scheduling for low-latency audio
+    rtkit # Real-time scheduling for low-latency audio
 
     # Bluetooth tools
     bluez
@@ -103,10 +145,10 @@
     # Force XWayland for electron apps that crash on native Wayland
     # This prevents "Failed to connect to Wayland display" errors
     ELECTRON_OZONE_PLATFORM_HINT = "x11";
-    
+
     # Alternative: Use Wayland for electron apps that support it
     # ELECTRON_OZONE_PLATFORM_HINT = "auto";
-    
+
     # Disable Wayland for problematic electron apps
     NIXOS_OZONE_WL = "1";
   };
