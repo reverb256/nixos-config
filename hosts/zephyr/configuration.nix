@@ -29,9 +29,8 @@
   # Enable NVIDIA driver
   services.xserver.videoDrivers = ["nvidia"];
 
-  # Use beta driver for latest features (DLSS updates, game optimizations)
-  # WARNING: May cause KWin crashes with Plasma 6 Wayland - monitor for stability issues
-  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
+  # Use stable driver - beta driver causing black screen issues
+  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
 
   # NVIDIA Wayland support (via nvidia-wayland module)
   hardware.nvidia.wayland = {
