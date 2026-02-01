@@ -56,8 +56,5 @@ in {
     # For signed caches, configure the signing key
     nix.settings.secret-key-files = lib.mkIf (cfg.privateKeyFile != null) [ cfg.privateKeyFile ];
     nix.settings.trusted-public-keys = lib.mkIf (cfg.publicKey != null) [ cfg.publicKey ];
-
-    # Required packages for S3 support
-    nix.package = pkgs.nixVersions.stable or pkgs.nix;
   };
 }
