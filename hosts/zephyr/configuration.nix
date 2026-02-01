@@ -10,9 +10,10 @@
     ./hardware-configuration.nix
     ../../modules/desktop.nix
     ../../modules/nvidia-wayland.nix
+    ../../modules/nix-ld.nix # Dynamic linker for mining, LM Studio, MCP servers
     ../../modules/openclaw.nix
     ../../modules/mcp-servers.nix
-    # REMOVED: ../../modules/steam-wayland-robust.nix - using minimal Steam in home.nix
+    ../../modules/steam-wayland-robust.nix # Full Steam + VR + gaming setup
     # REMOVED: ../../modules/openagents-control.nix - not needed for minimal config
   ];
 
@@ -28,31 +29,35 @@
   # Enable NVIDIA driver
   services.xserver.videoDrivers = ["nvidia"];
 
-  # Use beta driver (should be cached, newer than stable)
+  # Use beta driver for latest features (DLSS updates, game optimizations)
+  # WARNING: May cause KWin crashes with Plasma 6 Wayland - monitor for stability issues
   hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
 
   # NVIDIA Wayland support (via nvidia-wayland module)
   hardware.nvidia.wayland = {
     enable = true;
-    openModules = true;  # Use open kernel modules with proprietary userspace (standard across all nodes)
+    openModules = true; # Use open kernel modules with proprietary userspace (standard across all nodes)
     sddmWayland = true;
   };
 
   # ============================================================================
-  # MINIMAL STEAM CONFIGURATION
+  # STEAM + GAMING CONFIGURATION (via steam-wayland-robust module)
   # ============================================================================
-  programs.steam.enable = true;
+  services.steamWayland = {
+    enable = true;
+    protonVersion = "GE-Proton9-25";
+  };
 
   # ============================================================================
-  # DISPLAY MANAGER - SDDM with PURE WAYLAND (NO X11)
+  # DISPLAY MANAGER - SDDM with Wayland (Pure Wayland, no X11)
   # ============================================================================
-  # DISABLE X11 completely - pure Wayland only
-  services.xserver.enable = false;
-
+  # Modern NixOS: services.displayManager replaces services.xserver
+  # SDDM runs in Wayland mode, Plasma 6 uses native Wayland
+  # No services.xserver.enable needed for pure Wayland setups
   services.displayManager = {
     sddm = {
-      enable = true;
-      wayland.enable = true;  # PURE WAYLAND - no X11 fallback
+      enable = true; # REQUIRED: Actually enables SDDM service
+      wayland.enable = true; # SDDM runs in Wayland mode (not X11)
     };
     defaultSession = "plasma";
     autoLogin = {
