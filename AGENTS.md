@@ -232,6 +232,100 @@ services.openclaw.agents.my-agent = {
   environmentFile = config.age.secrets.openclaw-env.path;
 };
 
+### Lobster User Account
+The `lobster` system user is dedicated for OpenClaw bot operations:
+- **Home**: `/var/lib/lobster`
+- **Groups**: `lobster`, `rclone`
+- **Purpose**: Isolated AI agent execution
+- **Services**: openclaw, openclaw-storage
+
+## AIStor Object Storage for AI
+
+### Overview
+AIStor provides S3-compatible object storage optimized for AI/ML workloads. Deployed on **nexus** (largest storage node, 10.1.1.120).
+
+### AI Capabilities (What You Get)
+
+**Performance at Scale:**
+- Distributed architecture for parallel data access
+- Linear scaling from TBs to PBs
+- Optimized for model training and serving
+- High-throughput for LLM workloads
+
+**AI/ML Ecosystem Integration:**
+- Native PyTorch, Kubeflow, MLflow support
+- Works with any S3-compatible framework
+- RAG (Retrieval Augmented Generation) support
+- Vector database compatibility
+
+**Data Resilience:**
+- Erasure coding for fault tolerance
+- Data replication across nodes (if expanded)
+- Erasure coding protects against drive failures
+- 99.999999999% (11 nines) durability
+
+**Lifecycle Management:**
+- Automatic tiering of cold data
+- Object retention policies
+- Compliance with governance requirements
+- Automated cleanup policies
+
+### Free License (AIStor Free)
+- **Cost**: $0
+- **Deployment**: Single-node
+- **Storage**: Unlimited (disk-limited)
+- **API**: Full S3 compatibility
+- **MCP**: Tech preview (enterprise required for GA)
+
+### Current Setup
+- **Endpoint**: `http://10.1.1.120:9000`
+- **Console**: `http://10.1.1.120:9001`
+- **User**: `lobster` (OpenClaw bot account)
+- **Buckets**:
+  - `ai-models` - Trained models and checkpoints
+  - `training-data` - Datasets and corpora
+  - `experiments` - ML experiment artifacts
+  - `ai-logs` - Training logs and metrics
+  - `nix-cache` - Nix binary cache
+
+### Alternative Solutions (All Free)
+
+| Alternative | Best For | License | Notes |
+|-------------|----------|---------|-------|
+| **Garage** | Small deployments | AGPL-3.0 | Lightweight, Rust-based |
+| **SeaweedFS** | Large scale | Apache 2.0 | Distributed, scalable |
+| **RustFS** | Performance | Apache 2.0 | 2.3x faster than MinIO |
+| **Ceph+Rook** | Kubernetes | LGPL | Enterprise-grade |
+
+**Current**: AIStor Free (single-node on nexus)
+
+### Usage Examples
+
+```bash
+# Store model checkpoint
+mc cp model.pt aistor/ai-models/run-47/final.pt
+
+# Store dataset
+cd /path/to/dataset && mc cp -r . aistor/training-data/imagenet/
+
+# List experiments
+mc ls aistor/experiments/
+
+# Backup to cloud via rclone
+rclone sync aistor:ai-models gdrive:ai-models-backup
+```
+
+### OpenClaw Storage MCP
+
+Custom MCP implementation providing natural language interface:
+- **Port**: 18800
+- **User**: `lobster`
+- **Features**:
+  - Natural language: "Store model from training run 47"
+  - Direct AIStor S3 integration
+  - Rclone cloud backup coordination
+  - Zero license fees
+
 ## Free Tier Management
 
 ### Automated Compliance
