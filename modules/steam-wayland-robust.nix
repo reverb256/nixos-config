@@ -32,6 +32,10 @@ with lib; {
       extraCompatPackages = with pkgs; [
         proton-ge-bin
       ];
+
+      # Enable Gamescope session for better game compatibility
+      # This allows running games in an optimized micro-compositor
+      gamescopeSession.enable = true;
     };
 
     # ============================================================================
@@ -69,21 +73,16 @@ with lib; {
       gamescope
       mangohud
       goverlay
+      protonup-ng # Easy Proton-GE management (renamed from protonup)
 
-      # NVIDIA utilities
-      nvidia-x11
+      # NVIDIA VA-API driver for hardware video acceleration
       nvidia-vaapi-driver
 
       # Wayland gaming support
       wlroots
-      gamescope-session
-
-      # Audio for gaming
-      pulseaudio-full
 
       # Debugging tools
       vulkan-tools
-      nvidia-nsight
     ];
 
     # ============================================================================

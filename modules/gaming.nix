@@ -9,9 +9,7 @@
   inputs ? null,
   ...
 }:
-
 with lib; {
-
   # LVRA Wiki: OpenVR paths for xrizer (SteamVR compatibility)
   # https://lvra.gitlab.io/docs/distros/nixos/
   # Creates /etc/xdg/openvr/openvrpaths.vrpath for system-wide access
@@ -19,8 +17,8 @@ with lib; {
     version = 1;
     jsonid = "vrpathreg";
     external_drivers = null;
-    config = [ "/home/j_kro/.local/share/Steam/config" ];
-    log = [ "/home/j_kro/.local/share/Steam/logs" ];
+    config = ["/home/j_kro/.local/share/Steam/config"];
+    log = ["/home/j_kro/.local/share/Steam/logs"];
     runtime = [
       "${pkgs.xrizer}/lib/xrizer"
     ];
@@ -40,8 +38,6 @@ with lib; {
     settings = {
       general = {
         desiredgov = "performance"; # Use performance governor when entering GameMode
-        # REMOVE: inhibit_screensaver = true; # INVALID - causes configuration errors
-        # REMOVE: require_display = true; # PROBLEMATIC with Wayland - causes hangs
         # GameMode integration with systemd slices
         use_systemd = true;
 
@@ -294,15 +290,15 @@ with lib; {
       wivrn
       openxr-loader
 
-       # SteamVR support
-       steam-run
+      # SteamVR support
+      steam-run
 
-       # LVRA Wiki: xrizer for SteamVR/OpenVR compatibility
-       # https://lvra.gitlab.io/docs/distros/nixos/
-       xrizer
+      # LVRA Wiki: xrizer for SteamVR/OpenVR compatibility
+      # https://lvra.gitlab.io/docs/distros/nixos/
+      xrizer
 
-       # Motion tracking calibration tools
-       motoc
+      # Motion tracking calibration tools
+      motoc
 
       # LVRA Wiki: Eye/Face tracking for Quest Pro via WiVRn
       # Uses oscavmgr to route OSC data from Quest Pro tracking to VRChat
@@ -366,7 +362,7 @@ with lib; {
      # DualSense (PS5) controllers - USB access
      SUBSYSTEM=="usb", ATTR{idVendor}=="054c", ATTR{idProduct}=="0ce6", MODE="0666", GROUP="plugdev"
      SUBSYSTEM=="usb", ATTR{idVendor}=="054c", ATTR{idProduct}=="0df2", MODE="0666", GROUP="plugdev"
-     
+
      # DualSense (PS5) controllers - hidraw access for native support (gyro, haptics, adaptive triggers)
      KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", MODE="0660", GROUP="plugdev", TAG+="uaccess"
      KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0df2", MODE="0660", GROUP="plugdev", TAG+="uaccess"
@@ -451,13 +447,14 @@ with lib; {
 
   # Custom Proton-GE-RTSP configuration for VRChat
   programs.steam.package = pkgs.steam.override {
-    extraLibraries = pkgs: with pkgs; [
-      freetype
-      fontconfig
-      libpng
-      libjpeg
-      libtiff
-    ];
+    extraLibraries = pkgs:
+      with pkgs; [
+        freetype
+        fontconfig
+        libpng
+        libjpeg
+        libtiff
+      ];
     extraProfile = ''
       # Fixes timezones on VRChat
       unset TZ
