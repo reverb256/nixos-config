@@ -77,6 +77,31 @@ Configured in `modules/nix-config.nix` for faster builds:
 
 **Note**: The `cuda-maintainers` cache is essential for AI/ML workloads to avoid building PyTorch/TensorFlow from source.
 
+## CI/CD with Garnix
+
+**Garnix** provides free CI/CD for Nix flakes:
+- **Automatic builds** on every push to GitHub
+- **Binary cache** at `cache.garnix.io` (already configured)
+- **Build status** on GitHub PRs
+- **Dashboard** at https://garnix.io/builds
+
+### Configuration
+- `garnix.yaml` - CI configuration file
+- Connected to this repo - builds all flake outputs automatically
+
+### What Gets Built
+All flake outputs are built and cached:
+- `nixosConfigurations.zephyr`, `nexus`, `forge`, `sentry`
+- `packages.x86_64-linux.claude`, `kimi`
+- `colmena` deployment configs
+- Custom overlays
+
+### Setup
+1. Register at https://garnix.io (free tier)
+2. Connect your GitHub repository
+3. Push to GitHub - builds start automatically
+4. Use cached builds locally with the configured `cache.garnix.io`
+
 ## MCP Servers Configuration
 
 ### Available MCP Servers
@@ -158,6 +183,45 @@ services.openclaw.agents.my-agent = {
   enable = true;
   environmentFile = config.age.secrets.openclaw-env.path;
 };
+
+## Free Tier Management
+
+### Automated Compliance
+Enable automatic cleanup to stay within all free tier limits:
+
+```nix
+# In host configuration
+services.nixos-free-tier = {
+  enable = true;
+  interval = "weekly";      # Cleanup frequency
+  maxGenerations = 20;      # Keep last 20 generations
+  deleteOlderThan = "30d";  # Delete generations older than 30 days
+};
+```
+
+### Service Limits Overview
+
+| Service | Free Tier | We Use | Status |
+|---------|-----------|--------|--------|
+| **Garnix** | Unlimited public builds | CI/CD + cache | ✅ Safe |
+| **Cachix** | 5GB storage | Read-only (no push) | ✅ Safe |
+| **GitHub** | 2000 min/month Actions | Garnix (not GH Actions) | ✅ Safe |
+| **Nix Store** | Local disk only | Auto-cleanup weekly | ✅ Safe |
+
+### What Gets Cleaned Automatically
+- Old system generations (>30 days or >20 count)
+- Unused nix store paths
+- Home-manager old generations
+- Store optimisation (deduplication)
+
+### Manual Monitoring
+```bash
+# Check current usage
+./scripts/free-tier-monitor.sh
+
+# Force immediate cleanup
+sudo ./scripts/free-tier-cleanup.sh
+```
 ```
 
 ### Environment File Format
