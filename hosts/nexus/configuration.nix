@@ -10,6 +10,8 @@
     ../../modules/gaming.nix
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
+    # Import OpenClaw common configuration
+    ../../modules/openclaw-common.nix
   ];
 
   # Host identification
@@ -113,6 +115,18 @@
     environmentVariables = {
       OLLAMA_KEEP_ALIVE = "24h";
     };
+  };
+
+  # ============================================================================
+  # OPENCLAW - AI Agent Gateway
+  # ============================================================================
+  services.openclaw = {
+    enable = true;
+    common = {
+      enable = true; # Use common configuration for all nodes
+    };
+    # Let OpenClaw handle model configuration via its auth system
+    settings = {};
   };
 
   # ============================================================================
