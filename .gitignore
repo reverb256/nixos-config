@@ -31,8 +31,10 @@ result-*
 # ============================================================================
 
 .direnv/
-.envrc
-.envrc.*
+# .envrc is now tracked in this repo for direnv integration
+# .envrc
+# .envrc.*
+.envrc.local
 .nix-gc-roots/
 shell.nix
 

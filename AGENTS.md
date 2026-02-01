@@ -21,6 +21,7 @@ Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-c
 | Kilo Code | `~/.kilocode/cli/global/settings/mcp_settings.json` | MCP config |
 | OpenClaw | `modules/openclaw.nix` | AI agent orchestration |
 | OpenClaw Common | `modules/openclaw-common.nix` | Shared agent config |
+| Dev Environment | `.envrc` + `flake.nix` | direnv + nix-direnv |
 
 ## Structure
 ```
@@ -37,6 +38,53 @@ Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-c
 │   └── openclaw-common.nix # Shared agent configuration
 ├── secrets/              # Agenix encrypted secrets
 └── justfile             # 25+ automation commands
+```
+
+## Development Environment (direnv + nix-direnv)
+
+This repository includes automatic development environment setup using direnv.
+
+### Setup
+1. **Ensure direnv is enabled** (already in `home.nix`):
+   ```bash
+   programs.direnv.enable = true;
+   programs.direnv.nix-direnv.enable = true;
+   ```
+
+2. **Allow the .envrc** (one-time per clone):
+   ```bash
+   cd /etc/nixos
+   direnv allow
+   ```
+
+3. **Automatic loading** - When you `cd` into the directory, you'll get:
+   - All Nix tools (nixfmt, alejandra, deadnix, statix)
+   - Build tools (just, colmena)
+   - Secret management (age, sops)
+   - AIStor tools (minio-client)
+   - System utilities (jq, curl, git)
+
+### Available in DevShell
+```bash
+just              # Run just recipes (deploy, update, etc.)
+colmena           # Deploy to cluster nodes
+deadnix .         # Find dead Nix code
+statix check .    # Lint Nix files
+alejandra .       # Format Nix files
+mc                # MinIO client for AIStor
+nix fmt           # Format with nixfmt-tree
+```
+
+### How It Works
+- `.envrc` - tells direnv to use `use flake`
+- `flake.nix` devShell - defines all development packages
+- `nix-direnv` - caches the shell for instant loading
+
+### Customizing
+Copy `.envrc.example` to `.envrc.local` for personal overrides:
+```bash
+cp .envrc.example .envrc.local
+# Edit .envrc.local with your custom settings
 ```
 
 ## Conventions

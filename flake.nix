@@ -186,5 +186,60 @@
       claude = inputs.claude-native.packages.x86_64-linux.default;
       kimi = inputs.kimi-cli.packages.x86_64-linux.default;
     };
+
+    # Development shell with all NixOS tools
+    devShells.x86_64-linux.default = inputs.nixpkgs.legacyPackages.x86_64-linux.mkShell {
+      name = "nixos-config";
+      
+      packages = with inputs.nixpkgs.legacyPackages.x86_64-linux; [
+        # Nix tools
+        nixfmt-tree
+        alejandra
+        deadnix
+        statix
+        nixd
+        
+        # Git tools
+        git
+        gh
+        
+        # Build tools
+        just
+        colmena
+        
+        # Secrets management
+        age
+        ssh-to-age
+        sops
+        
+        # Cloud/Cache tools
+        minio-client
+        rclone
+        
+        # System tools
+        jq
+        yq
+        curl
+        wget
+        
+        # Documentation
+        mdsh
+      ];
+      
+      shellHook = ''
+        echo "🚀 NixOS Config Development Environment"
+        echo ""
+        echo "Available commands:"
+        echo "  just              - Run just recipes"
+        echo "  colmena           - Deploy to cluster"
+        echo "  deadnix .         - Find dead Nix code"
+        echo "  statix check .    - Lint Nix files"
+        echo "  alejandra .       - Format Nix files"
+        echo "  mc                - MinIO client"
+        echo ""
+        echo "Hosts: zephyr, nexus, forge, sentry"
+        echo "Cache: http://10.1.1.120:9000 (nexus AIStor)"
+      '';
+    };
   };
 }
