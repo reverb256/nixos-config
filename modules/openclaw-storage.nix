@@ -49,30 +49,60 @@ in {
 
     user = lib.mkOption {
       type = lib.types.str;
-      default = "openclaw";
-      description = "User to run the service";
+      default = "lobster";
+      description = "User to run the service (default: lobster - the OpenClaw bot user)";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    # Create openclaw user if needed
-    users.users = lib.mkIf (cfg.user == "openclaw") {
-      openclaw = {
+    assertions = [
+      {
+        assertion = cfg.aistorCredentialsFile != null;
+        message = "OpenClaw Storage: aistorCredentialsFile must be set (use agenix secrets)";
+      }
+    ];
+
+    # Create lobster user if needed (shared with openclaw.nix)
+    users.users = lib.mkIf (cfg.user == "lobster") {
+      lobster = {
         isSystemUser = true;
-        group = "openclaw";
-        description = "OpenClaw AI Storage Service";
-        home = "/var/lib/openclaw-storage";
+        group = "lobster";
+        description = "OpenClaw AI Agent Bot User (lobster)";
+        home = "/var/lib/lobster";
         createHome = true;
+        shell = pkgs.bash;
+        extraGroups = [ "rclone" ];  # Access to rclone config
       };
     };
 
-    users.groups = lib.mkIf (cfg.user == "openclaw") {
-      openclaw = {};
+    users.groups = lib.mkIf (cfg.user == "lobster") {
+      lobster = {};
     };
 
-    # Create state directory
+    # Create state directory (scoped under lobster home)
     systemd.tmpfiles.settings.openclaw-storage = {
-      "/var/lib/openclaw-storage" = {
+      "/var/lib/lobster/storage" = {
+        d = {
+          user = cfg.user;
+          group = cfg.user;
+          mode = "0750";
+        };
+      };
+      "/var/lib/lobster/storage/metrics" = {
+        d = {
+          user = cfg.user;
+          group = cfg.user;
+          mode = "0750";
+        };
+      };
+      "/var/lib/lobster/storage/artifacts" = {
+        d = {
+          user = cfg.user;
+          group = cfg.user;
+          mode = "0750";
+        };
+      };
+      "/var/lib/lobster/storage/cache" = {
         d = {
           user = cfg.user;
           group = cfg.user;
