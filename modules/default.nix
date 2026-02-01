@@ -11,5 +11,6 @@
     ./systemd-slices.nix
     ./flatpak-polkit.nix
     ./nix-config.nix # Binary caches and Nix settings
+    ./minio-cache.nix # S3 binary cache client support
   ];
 }

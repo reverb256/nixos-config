@@ -132,11 +132,36 @@
   };
 
   # ============================================================================
-  # FIREWALL (Base config - no extra ports)
+  # AISTOR / MINIO S3 CACHE SERVER
   # ============================================================================
+  services.minio = {
+    enable = true;
+    listenAddress = "10.1.1.120:9000";
+    consoleAddress = "10.1.1.120:9001";
+    region = "us-east-1";
+    # Data directory (use your large storage)
+    dataDir = "/var/lib/minio";
+    # Root credentials - set these via environment or secrets
+    # MINIO_ROOT_USER and MINIO_ROOT_PASSWORD
+  };
 
+  # Create data directory for MinIO/AIStor
+  systemd.tmpfiles.settings.minio = {
+    "/var/lib/minio" = {
+      d = {
+        user = "minio";
+        group = "minio";
+        mode = "0755";
+      };
+    };
+  };
+
+  # Open firewall for MinIO
   networking.firewall = {
-    allowedTCPPorts = [];
+    allowedTCPPorts = [
+      9000   # MinIO S3 API
+      9001   # MinIO Console
+    ];
     allowedUDPPorts = [];
   };
 }
