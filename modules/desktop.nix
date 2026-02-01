@@ -22,17 +22,16 @@
   xdg.portal = {
     enable = true;
 
-    # Portal implementations - DRY: defined once here only
+    # Portal implementations - KDE only (hyprland removed)
     extraPortals = with pkgs; [
       kdePackages.xdg-desktop-portal-kde # Primary for KDE
       xdg-desktop-portal-gtk # GTK app fallback
-      xdg-desktop-portal-hyprland # Future Hyprland support
     ];
 
     # Desktop-specific portal configurations
-    # Use common section for KDE to ensure proper portal selection
+    # Use kde section for proper portal selection (creates kde-portals.conf)
     config = {
-      common = {
+      kde = {
         default = ["kde" "gtk"];
         "org.freedesktop.impl.portal.FileChooser" = ["kde" "gtk"];
         "org.freedesktop.impl.portal.ScreenCast" = ["kde"];
@@ -41,14 +40,6 @@
         "org.freedesktop.impl.portal.Settings" = ["kde" "gtk"];
         "org.freedesktop.impl.portal.Notification" = ["kde"];
         "org.freedesktop.impl.portal.WindowManagement" = ["kde"];
-      };
-
-      hyprland = {
-        default = ["hyprland" "gtk" "kde"];
-        "org.freedesktop.impl.portal.FileChooser" = ["gtk" "kde"];
-        "org.freedesktop.impl.portal.ScreenCast" = ["hyprland"];
-        "org.freedesktop.impl.portal.Screenshot" = ["hyprland"];
-        "org.freedesktop.impl.portal.GlobalShortcuts" = ["hyprland"];
       };
     };
 
