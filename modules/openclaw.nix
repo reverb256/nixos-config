@@ -76,7 +76,7 @@ in {
         isSystemUser = true;
         group = cfg.group;
         description = "OpenClaw AI agent service user";
-        homeDir = cfg.stateDir;
+        home = cfg.stateDir;
         createHome = true;
       };
     };
@@ -166,14 +166,4 @@ in {
     ];
   };
 
-  meta = {
-    maintainers = with lib.maintainers; [ ];
-    description = "NixOS module for OpenClaw AI agent gateway";
-    longDescription = ''
-      This module provides a NixOS service for OpenClaw, an AI agent gateway
-      that connects messaging platforms (Telegram, Discord, etc.) with AI agents.
-      It includes systemd service management, user isolation, and proper
-      Nix mode integration for deterministic behavior.
-    '';
-  };
 }

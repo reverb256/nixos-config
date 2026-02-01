@@ -12,6 +12,8 @@
     ../../modules/desktop.nix
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
+    # Import OpenClaw AI agent orchestration
+    ../../modules/openclaw.nix
     # Import OpenClaw common configuration
     ../../modules/openclaw-common.nix
   ];
