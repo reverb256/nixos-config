@@ -132,7 +132,7 @@
   };
 
   # ============================================================================
-  # AISTOR / MINIO S3 CACHE SERVER
+  # AISTOR / MINIO S3 CACHE SERVER + AI DATA STORE
   # ============================================================================
   services.minio = {
     enable = true;
@@ -143,6 +143,21 @@
     dataDir = "/var/lib/minio";
     # Root credentials - set these via environment or secrets
     # MINIO_ROOT_USER and MINIO_ROOT_PASSWORD
+  };
+
+  # MCP Server environment (when AIStor MCP goes GA)
+  # Currently in tech preview - requires enterprise license for full features
+  # For now, use S3 API as bridge via aistor-ops.py script
+  environment.variables = {
+    # AIStor MCP endpoint (future use)
+    AISTOR_MCP_ENDPOINT = "http://10.1.1.120:9000";
+    # S3 API endpoint (current)
+    AISTOR_S3_ENDPOINT = "http://10.1.1.120:9000";
+    # Default buckets for AI ops
+    AISTOR_BUCKET_MODELS = "ai-models";
+    AISTOR_BUCKET_DATA = "training-data";
+    AISTOR_BUCKET_EXPERIMENTS = "experiments";
+    AISTOR_BUCKET_CACHE = "nix-cache";
   };
 
   # Create data directory for MinIO/AIStor
