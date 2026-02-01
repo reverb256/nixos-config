@@ -43,6 +43,8 @@
         "https://devenv.cachix.org"
         # Garnix - CI/CD builds (free for open source)
         "https://cache.garnix.io"
+        # Reverb OS - Your personal Cachix cache
+        "https://reverb-os.cachix.org"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
@@ -54,6 +56,7 @@
         "zen-browser.cachix.org-1:z/QLGrEkiBYF/7zoHX1Hpuv0B26QrmbVBSy9yDD2tSs="
         "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
         "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+        "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
       ];
 
       # TEMPORARY: Disable signature checks to fix NVIDIA driver issues
