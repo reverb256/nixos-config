@@ -13,6 +13,7 @@
     ../../modules/nix-ld.nix # Dynamic linker for mining, LM Studio, MCP servers
     ../../modules/mcp-servers.nix
     ../../modules/steam-wayland-robust.nix # Full Steam + VR + gaming setup
+    ../../modules/openclaw-common.nix # Common OpenClaw configuration
   ];
 
   # Host identification
@@ -164,7 +165,17 @@
   };
 
   # ============================================================================
-  # OPENAGENTS CONTROL
+  # OPENCLAW - AI Agent Gateway
+  # ============================================================================
+  services.openclaw = {
+    enable = true;
+    common = {
+      enable = true; # Use common configuration for all nodes
+    };
+    # Let OpenClaw handle model configuration via its auth system
+    settings = {};
+  };
+
   # ============================================================================
   # FIREWALL
   # ============================================================================

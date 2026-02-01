@@ -3,10 +3,11 @@
   inputs,
   ...
 }: {
-  # Import Zen Browser and Nixcord (Home Manager modules)
+  # Import Zen Browser, Nixcord, and OpenClaw (Home Manager modules)
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
+    inputs.nix-openclaw.homeManagerModules.openclaw
   ];
 
   # NH (Nix Helper) configuration for better UX
@@ -473,8 +474,19 @@
   # Claude Code KwaiKAT Model Development Tool Configuration
   # API key is loaded from system environment via modules/environment.nix
 
-  # Clawbot is now system-level - remove from Home Manager
-  # Configuration moved to configuration.nix
+  # OpenClaw Home Manager configuration
+  programs.openclaw = {
+    enable = true;
+    instances.default = {
+      config = {
+        # Let OpenClaw handle auth and model configuration
+        auth = {
+          type = "openclaw";
+        };
+        # No hardcoded models - use OpenClaw auth system
+      };
+    };
+  };
 
   # Minimal Nixcord (Discord client) configuration - uses Vesktop
   programs.nixcord = {

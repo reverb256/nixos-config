@@ -19,18 +19,22 @@ Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-c
 | MCP Servers | `modules/mcp-servers.nix` | AI assistant tools |
 | Kimi Code | `~/.kimi/mcp.json` | MCP config |
 | Kilo Code | `~/.kilocode/cli/global/settings/mcp_settings.json` | MCP config |
+| OpenClaw | `modules/openclaw.nix` | AI agent orchestration |
+| OpenClaw Common | `modules/openclaw-common.nix` | Shared agent config |
 
 ## Structure
 ```
 /etc/nixos/
-├── flake.nix              # 11 inputs, 4 host definitions
+├── flake.nix              # 12 inputs, 4 host definitions
 ├── configuration.nix      # Shared config (~167 lines)
 ├── hosts/                 # Per-host configs
 │   ├── zephyr/           # Main workstation (RTX 3090)
 │   ├── nexus/            # Backup server
 │   ├── forge/            # Build worker
 │   └── sentry/           # Monitoring
-├── modules/              # 23 modular configs
+├── modules/              # 25 modular configs
+│   ├── openclaw.nix      # AI agent orchestration
+│   └── openclaw-common.nix # Shared agent configuration
 ├── secrets/              # Agenix encrypted secrets
 └── justfile             # 25+ automation commands
 ```
@@ -129,6 +133,40 @@ services.mcp-servers.servers.brave-search.apiKey = "your-key-here"; # Optional
 3. **postgres server**: Disabled by default (requires DB connection)
    - Enable and configure connection string when needed
 
+## OpenClaw Configuration
+
+### Overview
+OpenClaw is an AI agent orchestration system integrated across all cluster hosts. It provides declarative agent management with built-in authentication and environment-based configuration.
+
+### Documentation
+- **Official**: https://github.com/openclaw/nix-openclaw
+- **Module**: `modules/openclaw.nix` - NixOS service configuration
+- **Common**: `modules/openclaw-common.nix` - Shared agent settings
+
+### Key Features
+- **Built-in Auth**: No hardcoded API keys in configuration
+- **Systemd Integration**: Native service management with proper isolation
+- **Agent Isolation**: Dedicated `openclaw` user/group for security
+- **Environment Files**: Secrets managed via `/etc/openclaw/` environment files
+- **Cluster-Wide**: Consistent configuration across all 4 hosts
+
+### Configuration Pattern
+```nix
+# In host configuration
+services.openclaw.enable = true;
+services.openclaw.agents.my-agent = {
+  enable = true;
+  environmentFile = config.age.secrets.openclaw-env.path;
+};
+```
+
+### Environment File Format
+```bash
+# /etc/openclaw/agent.env (managed via Agenix)
+OPENCLAW_API_KEY=secret_key_here
+OPENCLAW_MODEL=gpt-4
+```
+
 ## Critical Gaps (TODO)
 1. **Secrets**: Move all hardcoded tokens to Agenix
 2. **Backups**: No borgbackup/restic configured
@@ -172,6 +210,7 @@ just dev-setup           # Full pipeline
 - Systemd slices for workload isolation
 - Multi-tier DNS with DoT
 - MCP servers for AI assistants (kimi-code, kilo-code, opencode, claude-code, qwen-code)
+- OpenClaw AI agent orchestration (cluster-wide)
 
 ## Files
 - **65** nix files, **~6,935** total lines
@@ -179,4 +218,4 @@ just dev-setup           # Full pipeline
 - **4** hosts in cluster
 
 ---
-*Last updated: 2026-01-29 | Audit commit: MCP configuration added*
+*Last updated: 2026-02-01 | Audit commit: OpenClaw configuration added*

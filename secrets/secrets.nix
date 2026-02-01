@@ -19,4 +19,9 @@ in {
 
   # Mining wallet addresses (encrypted)
   "mining-wallet".publicKeys = allHosts;
+
+  # OpenClaw API Keys
+  "anthropic-api-key".publicKeys = allHosts;
+  "openai-api-key".publicKeys = allHosts;
+  "openclaw-env".publicKeys = allHosts;
 }

@@ -15,5 +15,18 @@
       file = ./mining-wallet.age;
     };
 
+    # OpenClaw API Keys
+    "anthropic-api-key" = {
+      file = ./anthropic-api-key.age;
+    };
+
+    "openai-api-key" = {
+      file = ./openai-api-key.age;
+    };
+
+    # OpenClaw environment file (contains all OpenClaw env vars)
+    "openclaw-env" = {
+      file = ./openclaw-env.age;
+    };
   };
 }
