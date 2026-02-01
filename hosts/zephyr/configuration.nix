@@ -2,8 +2,8 @@
 # 10.1.1.110 - Master Workstation (32 cores, RTX 3090)
 {
   pkgs,
-  lib,
   config,
+  inputs,
   ...
 }: {
   imports = [
@@ -15,6 +15,7 @@
     ../../modules/steam-wayland-robust.nix # Full Steam + VR + gaming setup
     ../../modules/openclaw.nix # OpenClaw AI agent orchestration
     ../../modules/openclaw-common.nix # Common OpenClaw configuration
+    inputs.nixpkgs-xr.nixosModules.nixpkgs-xr # XR/VR packages (uses nix-community cache)
   ];
 
   # Host identification

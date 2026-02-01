@@ -1,7 +1,6 @@
 # Nix Module
 # Extracted from configuration.nix - Nix configuration and optimization
 {
-  config,
   lib,
   ...
 }: {
@@ -22,9 +21,6 @@
       # Setting: 4 jobs * 6 cores = 24 cores used, leaving 8 for desktop/mining
       max-jobs = lib.mkDefault 4; # Parallel derivations (conservative for desktop use, overridable by distributed-builds)
       cores = 6; # Cores per derivation (leaves headroom for gaming/mining)
-
-      # Distributed build configuration temporarily disabled to resolve cache issues
-      # builders-use-substitutes = true;
 
       # Binary caches for faster builds (ALL FREE - $0 to download)
       # Ordered by priority: official > CUDA > community > specialized

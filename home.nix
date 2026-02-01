@@ -43,10 +43,6 @@
     deadnix
     statix
     nixd
-    # REMOVED language servers - use per-project devshells:
-    # - basedpyright
-    # - bash-language-server  
-    # - nodePackages.typescript-language-server
 
     # User applications
     opencode
@@ -59,12 +55,6 @@
     rclone-browser
     restic
     tailscale
-
-    # REMOVED: Language-specific packages - use 'nix shell' or devshells per project instead:
-    # - nodejs_22: use 'nix shell nixpkgs#nodejs_22' or per-project flake
-    # - bun: use 'nix shell nixpkgs#bun' per project  
-    # - go: use 'nix shell nixpkgs#go' per project
-    # - basedpyright, bash-language-server, typescript-language-server: use per-project devshells
 
     # From nix profile (moved to declarative)
     gpu-viewer
@@ -499,9 +489,5 @@
       WantedBy = ["default.target"];
     };
   };
-
-  # DISABLED: Let KDE manage ksmserverrc directly (home-manager symlink is read-only)
-  # Session restore is enabled via KDE System Settings instead
-  # xdg.configFile."ksmserverrc" = { ... };
 
 }
