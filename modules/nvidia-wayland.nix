@@ -127,11 +127,8 @@ in {
       NVD_BACKEND = "direct";
       __NV_PRIME_RENDER_OFFLOAD = "1";
 
-      # OpenGL/Framebuffer stability fixes for RTX 3090 with beta drivers
-      # Force OpenGL ES backend to fix EGLImage/GL_INVALID_OPERATION errors
-      # Reference: KDE Bug 486460 - NVIDIA Wayland GL_INVALID_OPERATION
-      KWIN_COMPOSE = "O2ES";  # Use OpenGL ES backend (fixes NVIDIA beta driver issues)
-      __GL_SYNC_TO_VBLANK = "0";  # Disable sync to vblank
+      # Disable sync to vblank for stability
+      __GL_SYNC_TO_VBLANK = "0";
     };
 
     # ============================================================================
@@ -154,10 +151,6 @@ in {
     boot.kernelParams = [
       # Enable NVIDIA DRM modeset (required for Wayland)
       "nvidia-drm.modeset=1"
-
-      # Enable fbdev for proper display initialization
-      # DISABLED: fbdev=0 causes black screen on boot
-      # "nvidia_drm.fbdev=0"
     ];
 
     # ============================================================================
@@ -196,7 +189,7 @@ in {
             if [ ! -e /dev/nvidiactl ]; then
               mknod -m 666 /dev/nvidiactl c 195 255 2>/dev/null || true
             fi
-            
+
             # Create GPU devices
             if [ -d /proc/driver/nvidia/gpus ]; then
               for gpu in /proc/driver/nvidia/gpus/*; do

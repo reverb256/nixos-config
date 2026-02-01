@@ -1,41 +1,41 @@
 #!/usr/bin/env node
 /**
- * Clawdbot Client - For Agent Zero to call Clawdbot
+ * Openclaw Client - For Agent Zero to call Openclaw
  * 
  * Usage:
- *   node clawdbot_client.js <message>
- *   node clawdbot_client.js message <text>
- *   node clawdbot_client.js notify <text>
- *   node clawdbot_client.js tool <name> <json>
+ *   node openclaw_client.js <message>
+ *   node openclaw_client.js message <text>
+ *   node openclaw_client.js notify <text>
+ *   node openclaw_client.js tool <name> <json>
  * 
  * Environment:
- *   CLAWDBOT_API_URL   - Gateway URL (default: http://127.0.0.1:18789)
- *   CLAWDBOT_API_TOKEN - Gateway auth token (required)
+ *   OPENCLAW_API_URL   - Gateway URL (default: http://127.0.0.1:18789)
+ *   OPENCLAW_API_TOKEN - Gateway auth token (required)
  *   DOCKER_CONTAINER   - Set to "true" if running inside Docker
  */
 
-const ClawdbotClient = require('./lib/clawdbot_api');
+const OpenclawClient = require('./lib/openclaw_api');
 const { parseArgs } = require('./lib/cli');
 
 const HELP = `
-Clawdbot Client (Agent Zero → Clawdbot)
+Openclaw Client (Agent Zero → Openclaw)
 
 Usage:
-  node clawdbot_client.js <message>
-  node clawdbot_client.js message <text>    - Send message, get response
-  node clawdbot_client.js notify <text>     - Send notification
-  node clawdbot_client.js tool <name> <json> - Invoke a Clawdbot tool
+  node openclaw_client.js <message>
+  node openclaw_client.js message <text>    - Send message, get response
+  node openclaw_client.js notify <text>     - Send notification
+  node openclaw_client.js tool <name> <json> - Invoke a Openclaw tool
 
 Environment:
-  CLAWDBOT_API_URL       - Gateway URL (default: http://127.0.0.1:18789)
-  CLAWDBOT_API_URL_DOCKER - URL when running in Docker (use host IP)
-  CLAWDBOT_API_TOKEN     - Gateway auth token (required)
+  OPENCLAW_API_URL       - Gateway URL (default: http://127.0.0.1:18789)
+  OPENCLAW_API_URL_DOCKER - URL when running in Docker (use host IP)
+  OPENCLAW_API_TOKEN     - Gateway auth token (required)
   DOCKER_CONTAINER       - Set to "true" if running inside Docker
 
 Examples:
-  node clawdbot_client.js "Task complete!"
-  node clawdbot_client.js notify "Progress: 50%"
-  node clawdbot_client.js tool sessions_list '{}'
+  node openclaw_client.js "Task complete!"
+  node openclaw_client.js notify "Progress: 50%"
+  node openclaw_client.js tool sessions_list '{}'
 `;
 
 async function main() {
@@ -53,7 +53,7 @@ async function main() {
         return;
     }
 
-    const client = new ClawdbotClient();
+    const client = new OpenclawClient();
 
     try {
         let result;

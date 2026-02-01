@@ -3,7 +3,7 @@ name: prd
 description: Create and manage Product Requirements Documents (PRDs). Use when: (1) Creating structured task lists with user stories, (2) Specifying features with acceptance criteria, (3) Planning feature implementation for AI agents or human developers.
 author: Benjamin Jesuiter <bjesuiter@gmail.com>
 metadata:
-  clawdbot:
+  openclaw:
     emoji: "📋"
     os: ["darwin", "linux"]
 ---

@@ -1,7 +1,7 @@
 # ============================================================================
-# NIXOS MANAGER SKILL FOR CLAWDBOT
+# NIXOS MANAGER SKILL FOR OPENCLAW
 # ============================================================================
-# Skill that allows Clawdbot to manage NixOS configurations safely
+# Skill that allows Openclaw to manage NixOS configurations safely
 ---
 name: nixos-manager
 description: Manage NixOS configurations, packages, and system services

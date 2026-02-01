@@ -1,5 +1,5 @@
 {
-  "name": "clawdbot-skill-blockchain-attestation",
+  "name": "openclaw-skill-blockchain-attestation",
   "version": "0.1.0",
   "private": true,
   "type": "module",

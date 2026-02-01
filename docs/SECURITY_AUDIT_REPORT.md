@@ -235,7 +235,7 @@ kernel.randomize_va_space = 2        ✅
 | **Redis** | 6379 | TCP | 127.0.0.1 | 🟢 SECURED |
 | **lolMiner API** | 8080 | TCP | 0.0.0.0 | 🔴 CRITICAL |
 | **XMRig API** | 8081 | TCP | 127.0.0.1 | 🟢 SECURED |
-| **Clawdbot** | 18789-18793 | TCP | 127.0.0.1 | 🟢 SECURED |
+| **Openclaw** | 18789-18793 | TCP | 127.0.0.1 | 🟢 SECURED |
 | **WiVRn** | 9757-9759 | UDP/TCP | 0.0.0.0 | 🟡 MEDIUM |
 | **SteamVR** | 27031, 27036 | UDP | 0.0.0.0 | 🟡 MEDIUM |
 

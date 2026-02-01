@@ -5,7 +5,7 @@ description: Delegate complex coding, research, or autonomous tasks to Agent Zer
 
 # Agent Zero Bridge
 
-Bidirectional communication between Clawdbot and [Agent Zero](https://github.com/frdel/agent-zero).
+Bidirectional communication between Openclaw and [Agent Zero](https://github.com/frdel/agent-zero).
 
 ## When to Use
 
@@ -20,15 +20,15 @@ Bidirectional communication between Clawdbot and [Agent Zero](https://github.com
 ### 1. Prerequisites
 - Node.js 18+ (for built-in fetch)
 - Agent Zero running (Docker recommended, port 50001)
-- Clawdbot Gateway with HTTP endpoints enabled
+- Openclaw Gateway with HTTP endpoints enabled
 
 ### 2. Install
 ```bash
-# Copy skill to Clawdbot skills directory
-cp -r <this-skill-folder> ~/.clawdbot/skills/agent-zero-bridge
+# Copy skill to Openclaw skills directory
+cp -r <this-skill-folder> ~/.openclaw/skills/agent-zero-bridge
 
 # Create config from template
-cd ~/.clawdbot/skills/agent-zero-bridge
+cd ~/.openclaw/skills/agent-zero-bridge
 cp .env.example .env
 ```
 
@@ -38,12 +38,12 @@ cp .env.example .env
 A0_API_URL=http://127.0.0.1:50001
 A0_API_KEY=your_agent_zero_token
 
-# Clawdbot Gateway
-CLAWDBOT_API_URL=http://127.0.0.1:18789
-CLAWDBOT_API_TOKEN=your_gateway_token
+# Openclaw Gateway
+OPENCLAW_API_URL=http://127.0.0.1:18789
+OPENCLAW_API_TOKEN=your_gateway_token
 
 # For Docker containers reaching host (use your machine's LAN IP)
-CLAWDBOT_API_URL_DOCKER=http://192.168.1.x:18789
+OPENCLAW_API_URL_DOCKER=http://192.168.1.x:18789
 ```
 
 ### 4. Get Agent Zero Token
@@ -56,8 +56,8 @@ token = base64.urlsafe_b64encode(hash_bytes).decode().replace("=", "")[:16]
 print(token)
 ```
 
-### 5. Enable Clawdbot Gateway Endpoints
-Add to `~/.clawdbot/clawdbot.json`:
+### 5. Enable Openclaw Gateway Endpoints
+Add to `~/.openclaw/openclaw.json`:
 ```json
 {
   "gateway": {
@@ -67,13 +67,13 @@ Add to `~/.clawdbot/clawdbot.json`:
   }
 }
 ```
-Then: `clawdbot gateway restart`
+Then: `openclaw gateway restart`
 
 ### 6. Deploy Client to Agent Zero Container
 ```bash
 docker exec <container> mkdir -p /a0/bridge/lib
 docker cp scripts/lib/. <container>:/a0/bridge/lib/
-docker cp scripts/clawdbot_client.js <container>:/a0/bridge/
+docker cp scripts/openclaw_client.js <container>:/a0/bridge/
 docker cp .env <container>:/a0/bridge/
 docker exec <container> sh -c 'echo "DOCKER_CONTAINER=true" >> /a0/bridge/.env'
 ```
@@ -100,17 +100,17 @@ node scripts/task_breakdown.js "Build e-commerce platform"
 # Creates notebook/tasks/projects/<name>.md with checkable steps
 ```
 
-### From Agent Zero → Clawdbot
+### From Agent Zero → Openclaw
 Inside A0 container:
 ```bash
 # Report progress
-node /a0/bridge/clawdbot_client.js notify "Working on step 3..."
+node /a0/bridge/openclaw_client.js notify "Working on step 3..."
 
 # Ask for input
-node /a0/bridge/clawdbot_client.js "Should I use PostgreSQL or SQLite?"
+node /a0/bridge/openclaw_client.js "Should I use PostgreSQL or SQLite?"
 
-# Invoke Clawdbot tool
-node /a0/bridge/clawdbot_client.js tool web_search '{"query":"Node.js best practices"}'
+# Invoke Openclaw tool
+node /a0/bridge/openclaw_client.js tool web_search '{"query":"Node.js best practices"}'
 ```
 
 ## Troubleshooting
@@ -118,5 +118,5 @@ node /a0/bridge/clawdbot_client.js tool web_search '{"query":"Node.js best pract
 | Error | Fix |
 |-------|-----|
 | 401 / API key error | Check A0_API_KEY matches Agent Zero's mcp_server_token |
-| Connection refused from Docker | Use host LAN IP in CLAWDBOT_API_URL_DOCKER, ensure gateway binds 0.0.0.0 |
+| Connection refused from Docker | Use host LAN IP in OPENCLAW_API_URL_DOCKER, ensure gateway binds 0.0.0.0 |
 | A0 500 errors | Check Agent Zero's LLM API key (Gemini/OpenAI) is valid |

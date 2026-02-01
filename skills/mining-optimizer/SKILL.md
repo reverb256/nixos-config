@@ -1,5 +1,5 @@
 # ============================================================================
-# MINING OPTIMIZER SKILL FOR CLAWDBOT
+# MINING OPTIMIZER SKILL FOR OPENCLAW
 # ============================================================================
 # Skill for intelligent mining operations and gaming VR detection
 ---

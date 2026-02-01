@@ -1,7 +1,7 @@
 ---
 name: clippy
 description: Microsoft 365 / Outlook CLI for calendar and email. Use when managing Outlook calendar (view, create, update, delete events, find meeting times, respond to invitations), sending/reading emails, or searching for people/rooms in the organization.
-metadata: {"clawdbot":{"requires":{"bins":["clippy"]}}}
+metadata: {"openclaw":{"requires":{"bins":["clippy"]}}}
 ---
 
 # Clippy - Microsoft 365 CLI
