@@ -13,6 +13,7 @@
     ../../modules/nix-ld.nix # Dynamic linker for mining, LM Studio, MCP servers
     ../../modules/mcp-servers.nix
     ../../modules/steam-wayland-robust.nix # Full Steam + VR + gaming setup
+    ../../modules/openclaw.nix # OpenClaw AI agent orchestration
     ../../modules/openclaw-common.nix # Common OpenClaw configuration
   ];
 
@@ -188,5 +189,18 @@
       27031
       27036
     ];
+  };
+
+  # ============================================================================
+  # MEMORY/SWAP SETTINGS - Prevent OOM during Nix builds
+  # ============================================================================
+  boot.kernel.sysctl = {
+    # Use swap more aggressively (default is 60, was set to 10)
+    # Higher value = more willing to use swap
+    "vm.swappiness" = 80;
+    
+    # Don't overcommit memory as aggressively
+    "vm.overcommit_memory" = 2;
+    "vm.overcommit_ratio" = 90;
   };
 }
