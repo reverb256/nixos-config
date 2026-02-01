@@ -11,10 +11,8 @@
     ../../modules/desktop.nix
     ../../modules/nvidia-wayland.nix
     ../../modules/nix-ld.nix # Dynamic linker for mining, LM Studio, MCP servers
-    ../../modules/openclaw.nix
     ../../modules/mcp-servers.nix
     ../../modules/steam-wayland-robust.nix # Full Steam + VR + gaming setup
-    # REMOVED: ../../modules/openagents-control.nix - not needed for minimal config
   ];
 
   # Host identification
@@ -134,7 +132,7 @@
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker"];
 
   # ============================================================================
-  # VIRTUALISATION - Docker for OpenClaw sandboxing
+  # VIRTUALISATION - Docker
   # ============================================================================
   virtualisation.docker = {
     enable = true;
@@ -147,19 +145,8 @@
   ];
 
   # ============================================================================
-  # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
+  # OLLAMA - Local LLMs
   # ============================================================================
-  # DISABLED: OpenClaw nix-openclaw flake is severely broken in latest version
-  # - Missing generated config file: openclaw-config-options.nix
-  # - systemd unitName attribute missing
-  # OpenClaw AI Assistant - MASTER NODE (coordinator)
-  programs.openclaw = {
-    enable = true;
-    nodeName = "zephyr";
-    isMaster = true;
-    gatewayPort = 18789;
-  };
-
   services.ollama = {
     enable = true;
     package = pkgs.ollama-cuda; # Use NVIDIA RTX 3090 CUDA acceleration
