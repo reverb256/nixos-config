@@ -30,5 +30,10 @@
     "minio-cache-credentials" = {
       file = ./minio-cache-credentials.age;
     };
+
+    # Cachix authentication token (for pushing to reverb-os cache)
+    "cachix-token" = {
+      file = ./cachix-token.age;
+    };
   };
 }
