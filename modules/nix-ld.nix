@@ -59,23 +59,11 @@
       libXcomposite
       libXdamage
       libXi
-      gtk3
-      pango
-      cairo
-      gdk-pixbuf
-      glib
-      gio
-      dbus
-      alsa-lib
-      freetype
-      fontconfig
       nspr
       nss
       xorg.libXcursor
       xorg.libXfixes
       xorg.libXft
-      xorg.libXi
-      xorg.libXrandr
       xorg.libXrender
       xorg.libXtst
 
