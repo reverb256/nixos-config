@@ -169,8 +169,14 @@
   # ============================================================================
   # OPENCLAW - AI Agent Gateway
   # ============================================================================
+  # OPENCLAW AI AGENT GATEWAY
+  # ============================================================================
   services.openclaw = {
     enable = true;
+    port = 18789; # Match user service configuration
+    restartAlways = true; # Match user service configuration
+    logDir = "/tmp/openclaw"; # Match user service logging
+    enableLegacyEnv = true; # Enable MOLTBOT_*/CLAWDBOT_* compatibility
     common = {
       enable = true; # Use common configuration for all nodes
     };
@@ -182,7 +188,10 @@
   # FIREWALL
   # ============================================================================
   networking.firewall = {
-    allowedTCPPorts = [9757];
+    allowedTCPPorts = [
+      9757
+      18789 # OpenClaw gateway
+    ];
     allowedUDPPorts = [
       9757
       9758
