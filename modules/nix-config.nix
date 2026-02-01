@@ -26,13 +26,12 @@
       # Distributed build configuration temporarily disabled to resolve cache issues
       # builders-use-substitutes = true;
 
-      # Binary caches for faster builds (ordered by priority)
-      # Documentation: AGENTS.md#binary-caches
+      # Binary caches for faster builds (ALL FREE - $0 to download)
+      # Ordered by priority: official > CUDA > community > specialized
       substituters = [
         # Official NixOS cache (primary)
         "https://cache.nixos.org"
         # CUDA packages (PyTorch, TensorFlow, LM Studio, etc.)
-        # Updated Nov 2025: cache moved from cuda-maintainers.cachix.org to cache.nixos-cuda.org
         "https://cache.nixos-cuda.org"
         # Nix-community packages (various tools)
         "https://nix-community.cachix.org"
@@ -42,8 +41,12 @@
         "https://nix-gaming.cachix.org"
         # Anime Games Launcher (AAGL)
         "https://ezkea.cachix.org"
-        # Zen Browser - Pre-built binaries (NO MORE COMPILATION!)
+        # Zen Browser - Pre-built binaries
         "https://zen-browser.cachix.org"
+        # Devenv - Development environment packages
+        "https://devenv.cachix.org"
+        # Garnix - CI/CD builds (free for open source)
+        "https://cache.garnix.io"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
@@ -53,6 +56,8 @@
         "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
         "zen-browser.cachix.org-1:z/QLGrEkiBYF/7zoHX1Hpuv0B26QrmbVBSy9yDD2tSs="
+        "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
+        "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
       ];
 
       # TEMPORARY: Disable signature checks to fix NVIDIA driver issues
