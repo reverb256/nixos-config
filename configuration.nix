@@ -112,7 +112,6 @@ in {
     kernel.sysctl = {
       "net.core.rmem_max" = 2500000;
       "net.core.wmem_max" = 2500000;
-      "vm.swappiness" = 10;
       "vm.vfs_cache_pressure" = 50;
       "kernel.sched_autogroup_enabled" = 0;
       "kernel.perf_event_paranoid" = -1;
