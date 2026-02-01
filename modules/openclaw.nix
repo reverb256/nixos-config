@@ -17,14 +17,14 @@ in {
 
     user = mkOption {
       type = types.str;
-      default = "openclaw";
-      description = "User to run OpenClaw service as";
+      default = "lobster";
+      description = "User to run OpenClaw service as (default: lobster)";
     };
 
     group = mkOption {
       type = types.str;
-      default = "openclaw";
-      description = "Group to run OpenClaw service as";
+      default = "lobster";
+      description = "Group to run OpenClaw service as (default: lobster)";
     };
 
     stateDir = mkOption {
@@ -96,18 +96,19 @@ in {
 
   config = mkIf cfg.enable {
     # Create user and group
-    users.users = mkIf (cfg.user == "openclaw") {
-      openclaw = {
+    users.users = mkIf (cfg.user == "lobster") {
+      lobster = {
         isSystemUser = true;
         group = cfg.group;
-        description = "OpenClaw AI agent service user";
+        description = "OpenClaw AI agent bot user (lobster)";
         home = cfg.stateDir;
         createHome = true;
+        shell = pkgs.bash;
       };
     };
 
-    users.groups = mkIf (cfg.group == "openclaw") {
-      openclaw = {};
+    users.groups = mkIf (cfg.group == "lobster") {
+      lobster = {};
     };
 
     # Create directories
