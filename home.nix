@@ -64,7 +64,7 @@
 
     # ML/AI Tools - PyTorch/TensorFlow removed to avoid long compilation
     # Use nix shell when needed: nix shell nixpkgs#python312Packages.torchWithCuda
-    python312
+    # REMOVED: python312 - conflicts with OpenClaw's Python, use nix shell instead
 
     # From nix profile (moved to declarative)
     gpu-viewer
@@ -475,17 +475,10 @@
   # API key is loaded from system environment via modules/environment.nix
 
   # OpenClaw Home Manager configuration
+  # Auth is handled by NixOS module (openclaw-common.nix)
   programs.openclaw = {
     enable = true;
-    instances.default = {
-      config = {
-        # Let OpenClaw handle auth and model configuration
-        auth = {
-          type = "openclaw";
-        };
-        # No hardcoded models - use OpenClaw auth system
-      };
-    };
+    instances.default = {};
   };
 
   # Minimal Nixcord (Discord client) configuration - uses Vesktop
