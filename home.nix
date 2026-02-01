@@ -38,14 +38,15 @@
     zoxide
     starship
 
-    # Development tools
+    # Nix development tools (keep global for NixOS management)
     alejandra
     deadnix
     statix
     nixd
-    basedpyright
-    bash-language-server
-    nodePackages.typescript-language-server
+    # REMOVED language servers - use per-project devshells:
+    # - basedpyright
+    # - bash-language-server  
+    # - nodePackages.typescript-language-server
 
     # User applications
     opencode
@@ -59,22 +60,15 @@
     restic
     tailscale
 
-    # Node.js for various tools
-    nodejs_22
-
-    # ML/AI Tools - PyTorch/TensorFlow removed to avoid long compilation
-    # Use nix shell when needed: nix shell nixpkgs#python312Packages.torchWithCuda
-    # REMOVED: python312 - conflicts with OpenClaw's Python, use nix shell instead
+    # REMOVED: Language-specific packages - use 'nix shell' or devshells per project instead:
+    # - nodejs_22: use 'nix shell nixpkgs#nodejs_22' or per-project flake
+    # - bun: use 'nix shell nixpkgs#bun' per project  
+    # - go: use 'nix shell nixpkgs#go' per project
+    # - basedpyright, bash-language-server, typescript-language-server: use per-project devshells
 
     # From nix profile (moved to declarative)
     gpu-viewer
     cachix
-
-    # Bun - Fast JavaScript runtime and package manager
-    bun
-
-    # Go
-    go
 
     # CLI tools
     _1password-cli      # 1Password CLI
