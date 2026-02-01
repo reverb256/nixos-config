@@ -15,6 +15,9 @@ let
     # No model configuration - let OpenClaw handle it
   };
 in {
+  # Import nix-config.nix to ensure binary caches are available on all nodes
+  imports = [ ./nix-config.nix ];
+
   options.services.openclaw.common = {
     enable = mkEnableOption "Common OpenClaw configuration for all nodes";
   };
@@ -22,7 +25,7 @@ in {
   config = mkIf (cfg.enable && cfg.common.enable) {
     # Override OpenClaw settings with common configuration
     services.openclaw.environmentFile = "/run/agenix/openclaw-env";
-    services.openclaw.settings = mkMerge [cfg.settings commonSettings];
+    services.openclaw.settings = commonSettings;
 
     # No local LLM services - using cloud providers only
     services.ollama = mkDefault {};
