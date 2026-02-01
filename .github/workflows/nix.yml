@@ -1,0 +1,34 @@
+name: Nix CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Check Nix flake
+        run: nix flake check
+
+      - name: Build zephyr configuration
+        run: nix build .#nixosConfigurations.zephyr.config.system.build.toplevel --no-link
+
+      - name: Build nexus configuration
+        run: nix build .#nixosConfigurations.nexus.config.system.build.toplevel --no-link
+
+      - name: Build forge configuration
+        run: nix build .#nixosConfigurations.forge.config.system.build.toplevel --no-link
+
+      - name: Build sentry configuration
+        run: nix build .#nixosConfigurations.sentry.config.system.build.toplevel --no-link
