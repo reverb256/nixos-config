@@ -14,8 +14,8 @@ Make AI-powered outbound phone calls via [Retell AI](https://www.retellai.com). 
 Store your Retell API key:
 
 ```bash
-mkdir -p ~/.clawdbot/secrets
-echo 'RETELL_API_KEY=your_key_here' > ~/.clawdbot/secrets/retell.env
+mkdir -p ~/.openclaw/secrets
+echo 'RETELL_API_KEY=your_key_here' > ~/.openclaw/secrets/retell.env
 ```
 
 ### 2. Configure the skill

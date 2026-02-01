@@ -1,19 +1,19 @@
 /**
- * Clawdbot API Client Library
+ * Openclaw API Client Library
  */
 
 const config = require('./config');
 
-class ClawdbotClient {
+class OpenclawClient {
     constructor(options = {}) {
         // Use Docker URL if running inside container, otherwise regular URL
         const isDocker = process.env.DOCKER_CONTAINER === 'true';
-        this.apiUrl = options.apiUrl || (isDocker ? config.clawdbot.apiUrlDocker : config.clawdbot.apiUrl);
-        this.apiToken = options.apiToken || config.clawdbot.apiToken;
-        this.defaultTimeout = options.timeout || config.clawdbot.defaultTimeout;
+        this.apiUrl = options.apiUrl || (isDocker ? config.openclaw.apiUrlDocker : config.openclaw.apiUrl);
+        this.apiToken = options.apiToken || config.openclaw.apiToken;
+        this.defaultTimeout = options.timeout || config.openclaw.defaultTimeout;
 
         if (!this.apiToken) {
-            console.warn("Warning: CLAWDBOT_API_TOKEN not set. Set it in .env or environment.");
+            console.warn("Warning: OPENCLAW_API_TOKEN not set. Set it in .env or environment.");
         }
     }
 
@@ -57,7 +57,7 @@ class ClawdbotClient {
     // Send message via OpenAI-compatible chat completions
     async sendMessage(message, options = {}) {
         const payload = {
-            model: "clawdbot:main",
+            model: "openclaw:main",
             messages: [
                 {
                     role: "user",
@@ -71,7 +71,7 @@ class ClawdbotClient {
         return data.choices?.[0]?.message?.content || "No response";
     }
 
-    // Invoke a Clawdbot tool directly
+    // Invoke a Openclaw tool directly
     async invokeTool(tool, args = {}, sessionKey = "main") {
         const payload = {
             tool,
@@ -97,4 +97,4 @@ class ClawdbotClient {
     }
 }
 
-module.exports = ClawdbotClient;
+module.exports = OpenclawClient;

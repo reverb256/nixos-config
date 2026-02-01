@@ -1,6 +1,6 @@
 {
   "schema": {
-    "name": "ClawdbotWorkProofV1",
+    "name": "OpenclawWorkProofV1",
     "string": "bytes32 taskHash, bytes32 outputHash, string agentId, string metadata",
     "revocable": true,
     "resolver": "0x0000000000000000000000000000000000000000"

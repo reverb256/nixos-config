@@ -1,7 +1,7 @@
 ---
 name: blockchain_attestation
 description: Create verifiable attestations of agent work using Ethereum Attestation Service (EAS), with Base as the default chain.
-metadata: {"clawdbot":{"emoji":"⛓️","homepage":"https://attest.org","requires":{"bins":["node"]},"primaryEnv":"EAS_PRIVATE_KEY"}}
+metadata: {"openclaw":{"emoji":"⛓️","homepage":"https://attest.org","requires":{"bins":["node"]},"primaryEnv":"EAS_PRIVATE_KEY"}}
 ---
 
 # Blockchain Attestation (EAS)
@@ -30,7 +30,7 @@ Required for onchain transactions and onchain reads:
 
 Optional:
 - `EAS_CHAIN` (`base` or `base_sepolia`, default is `base`)
-- `CLAWDBOT_AGENT_ID` (overrides the `agentId` field)
+- `OPENCLAW_AGENT_ID` (overrides the `agentId` field)
 
 ## One time setup
 
