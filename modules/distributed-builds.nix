@@ -2,7 +2,6 @@
 # Enables building across all 4 nodes in the cluster (51 cores total)
 # See AGENTS.md for cluster architecture details
 {
-  config,
   lib,
   pkgs,
   ...

@@ -8,6 +8,8 @@
     ../../modules/desktop.nix
     # Import AMD GPU Wayland module
     ../../modules/amdgpu-wayland.nix
+    # Import OpenClaw AI agent orchestration
+    ../../modules/openclaw.nix
     # Import OpenClaw common configuration
     ../../modules/openclaw-common.nix
   ];

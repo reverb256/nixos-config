@@ -82,7 +82,10 @@
 
       # Common Overlays & Config
       {
-        nixpkgs.overlays = [self.overlays.default];
+        nixpkgs.overlays = [
+          self.overlays.default
+          inputs.nix-openclaw.overlays.default
+        ];
         nixpkgs.config.allowUnfree = true;
         nixpkgs.config.permittedInsecurePackages = [
           "electron-25.9.0"
