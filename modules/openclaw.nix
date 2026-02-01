@@ -39,6 +39,25 @@ in {
       description = "Directory for OpenClaw configuration";
     };
 
+    port = mkOption {
+      type = types.int;
+      default = 18789;
+      description = "Port to run OpenClaw gateway on";
+    };
+
+    restartAlways = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Whether to restart the service always (instead of just on-failure)";
+    };
+
+    logDir = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = "Directory for OpenClaw log files (null for journald)";
+      example = "/tmp/openclaw";
+    };
+
     extraArgs = mkOption {
       type = types.listOf types.str;
       default = [];
@@ -51,6 +70,12 @@ in {
       default = null;
       description = "File containing environment variables for OpenClaw";
       example = "/run/agenix/openclaw-env";
+    };
+
+    enableLegacyEnv = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Enable legacy MOLTBOT_* and CLAWDBOT_* environment variables for backwards compatibility";
     };
 
     settings = mkOption {
@@ -101,7 +126,15 @@ in {
           mode = "0750";
         };
       };
-    };
+    } ++ (if cfg.logDir != null then {
+      "${cfg.logDir}" = {
+        d = {
+          user = cfg.user;
+          group = cfg.group;
+          mode = "0755";
+        };
+      };
+    } else {});
 
     # Generate configuration file
     environment.etc."openclaw/openclaw.json".source = 
@@ -118,27 +151,40 @@ in {
         Type = "simple";
         User = cfg.user;
         Group = cfg.group;
-        Restart = "on-failure";
-        RestartSec = "5s";
+        Restart = if cfg.restartAlways then "always" else "on-failure";
+        RestartSec = "1s";
 
         # Security hardening
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ cfg.stateDir ];
+        ReadWritePaths = [ cfg.stateDir ] ++ (if cfg.logDir != null then [ cfg.logDir ] else []);
         ReadOnlyPaths = [ cfg.configDir ];
+
+        # Logging (file-based or journald)
+        StandardOutput = if cfg.logDir != null then "append:${cfg.logDir}/openclaw-gateway.log" else "journal";
+        StandardError = if cfg.logDir != null then "append:${cfg.logDir}/openclaw-gateway.log" else "journal";
 
         # Environment
         Environment = [
           "OPENCLAW_NIX_MODE=1"
           "OPENCLAW_STATE_DIR=${cfg.stateDir}"
           "OPENCLAW_CONFIG_PATH=${cfg.configDir}/openclaw.json"
-        ];
+          "HOME=${cfg.stateDir}"
+        ] ++ (if cfg.enableLegacyEnv then [
+          # Legacy environment variables for backwards compatibility
+          "MOLTBOT_NIX_MODE=1"
+          "MOLTBOT_STATE_DIR=${cfg.stateDir}"
+          "MOLTBOT_CONFIG_PATH=${cfg.configDir}/openclaw.json"
+          "CLAWDBOT_NIX_MODE=1"
+          "CLAWDBOT_STATE_DIR=${cfg.stateDir}"
+          "CLAWDBOT_CONFIG_PATH=${cfg.configDir}/openclaw.json"
+        ] else []);
 
-        # Command
+        # Command with port
         ExecStart = escapeShellArgs (
-          [ "${cfg.package}/bin/openclaw-gateway" ] ++ cfg.extraArgs
+          [ "${cfg.package}/bin/openclaw-gateway" "gateway" "--port" (toString cfg.port) ] ++ cfg.extraArgs
         );
 
         # Load environment file if provided (for secrets)
@@ -156,6 +202,13 @@ in {
         mkdir -p ${cfg.stateDir}/workspace
         mkdir -p ${cfg.stateDir}/workspace/skills
         chown -R ${cfg.user}:${cfg.group} ${cfg.stateDir}/workspace
+
+        ${if cfg.logDir != null then ''
+          # Ensure log directory exists
+          mkdir -p ${cfg.logDir}
+          chown ${cfg.user}:${cfg.group} ${cfg.logDir}
+          chmod 0755 ${cfg.logDir}
+        '' else "# Using journald for logging (no log directory needed)"}
       '';
     };
 
