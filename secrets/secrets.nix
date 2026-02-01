@@ -24,4 +24,7 @@ in {
   "anthropic-api-key".publicKeys = allHosts;
   "openai-api-key".publicKeys = allHosts;
   "openclaw-env".publicKeys = allHosts;
+
+  # MinIO cache credentials for AIStor on nexus
+  "minio-cache-credentials".publicKeys = allHosts;
 }
