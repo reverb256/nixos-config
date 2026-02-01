@@ -10,5 +10,6 @@
     ./ssh.nix
     ./systemd-slices.nix
     ./flatpak-polkit.nix
+    ./nix-config.nix # Binary caches and Nix settings
   ];
 }
