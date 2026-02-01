@@ -73,15 +73,15 @@
     # Plugdev group for USB device access (used by gaming.nix udev rules)
     groups.plugdev = {};
 
-    # OpenClaw group for AI assistant
+    # Lobster group for AI assistant
     groups.lobster = {};
 
     # ============================================================================
-    # LOBSTER USER - OpenClaw AI Assistant 🦞
+    # LOBSTER USER - AI Assistant 🦞
     # ============================================================================
     users.lobster = {
       isNormalUser = true;
-      description = "🦞 OpenClaw AI Assistant";
+      description = "🦞 AI Assistant";
       extraGroups = [
         "wheel"
         "lobster"
@@ -109,8 +109,6 @@
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDCtXll62kA3CTH3NXDDtVt6W621actl6+cQPUg9YnDN root@nexus"
         # Reverb256 CA
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILM8m4+tHYj152DRz2bXuv6PrSpC201yYN8Svb5DXEiC j_kroeker@reverb256.ca"
-        # OpenClaw cluster key for Reverb-OS
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFyCNsbhrGynnbLpS56JQDXJJ0QV1mgudaW6+2AvHjdu openclaw-cluster"
       ];
     };
 
@@ -139,7 +137,7 @@
     # Passwordless sudo for wheel group (security risk - for mining controls)
     wheelNeedsPassword = false;
 
-    # Lobster (OpenClaw) gets FULL SYSTEM ACCESS - can run any command
+    # Lobster gets FULL SYSTEM ACCESS - can run any command
     extraRules = [
       {
         users = ["lobster"];

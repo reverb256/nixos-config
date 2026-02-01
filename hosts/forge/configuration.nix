@@ -12,8 +12,6 @@
     ../../modules/desktop.nix
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
-    # Import OpenClaw AI assistant
-    ../../modules/openclaw.nix
   ];
 
   # Host identification
@@ -295,18 +293,8 @@
   };
 
   # ============================================================================
-  # OPENCLAW + OLLAMA - AI Assistant with Local LLMs
+  # OLLAMA - Local LLMs
   # ============================================================================
-  # Forge connects to zephyr (master) via Tailnet
-  programs.openclaw = {
-    enable = true;
-    nodeName = "forge";
-    isMaster = false;
-    masterHost = "100.81.182.5"; # zephyr's Tailscale IP
-    masterPort = 18789;
-    masterToken = "dbb9006cbbc79469bb412207e3dec142d3d17a7a47d14ca7";
-  };
-
   services.ollama = {
     enable = true;
     package = pkgs.ollama-cuda; # Use NVIDIA RTX 4060
