@@ -56,7 +56,8 @@ in {
   imports = [
     ./modules
     ./modules/flatpak.nix
-    ./modules/distributed-builds.nix
+    # Graceful distributed builds: conservative (4 jobs) when alone, aggressive (21 jobs) with builders
+    ./modules/distributed-builds-graceful.nix
     ./secrets/agenix-secrets.nix
   ];
 
