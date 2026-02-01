@@ -226,5 +226,4 @@ sudo nixos-rebuild switch --flake .#zephyr
 ---
 
 **Last Updated**: January 31, 2026  
-**Branch**: feature/moltbot-integration  
 **Status**: ✅ Production Ready

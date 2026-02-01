@@ -49,7 +49,6 @@ options snd_hda_intel bdl_pos_adj=0  # Disable buffer position adjustments
 ### 3. Service Failures (MINOR)
 
 **Failed Services:**
-- `openclaw-gateway.service`: Exit code failure (but service may not be active)
 - `NetworkManager-wait-online.service`: 3.118s timeout (longest service startup)
 
 **Impact:** Network connectivity may be delayed, but system boots successfully.

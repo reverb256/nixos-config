@@ -295,7 +295,7 @@ Use this section to track implementation progress:
 - `README.md` - Project overview
 - `SECURITY_AUDIT.md` - Security considerations
 - `PERFORMANCE_OPTIMIZATION_PLAN.md` - Performance notes
-- `OPENCLAW_DOCUMENTATION.md` - Bot configuration
+
 
 ---
 

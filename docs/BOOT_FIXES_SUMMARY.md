@@ -62,13 +62,7 @@ systemd.services.nvidia-device-nodes = {
 };
 ```
 
-### 4. ✅ OpenClaw Gateway Service Failure (MEDIUM PRIORITY)
-**Issue:** `openclaw-gateway.service` exit code failure
-- **Root Cause:** Service from previous system generation, module currently disabled
-- **Status:** Legacy issue - will resolve on next boot with current configuration
-- **Action:** No changes needed (module disabled in `modules/default.nix`)
-
-### 5. ✅ NetworkManager Wait-Online Timeout (MEDIUM PRIORITY)
+### 4. ✅ NetworkManager Wait-Online Timeout (MEDIUM PRIORITY)
 **Issue:** NetworkManager-wait-online taking 3.118s (slowest boot service)
 - **File:** `modules/networking.nix`
 - **Fix:** Reduced timeout from default 30s to 10s

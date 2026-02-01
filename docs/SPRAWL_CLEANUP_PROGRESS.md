@@ -117,7 +117,6 @@
 **Status:** ✅ Completed
 **Files to modify:**
 - [x] `configuration.nix` - reduced from 618 to ~200 lines
-- [x] Moved Openclaw config to dedicated module
 - [x] Moved mining config to dedicated module
 - [x] Moved systemd slices to dedicated module
 - [x] Added cluster node configurations in `hosts/`

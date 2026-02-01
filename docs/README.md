@@ -493,12 +493,7 @@ just cluster-logs
 - **[Module Refactoring Plan](MODULE_REFACTOR_PLAN.md)** - Code organization and modularity improvements
 - **[Security Audit](SECURITY_AUDIT.md)** - Comprehensive security analysis and fixes
 
-### Openclaw Documentation
-- **[Openclaw Overview](OPENCLAW_DOCUMENTATION.md)** - Complete Openclaw documentation and roadmap
-- **[Openclaw Roadmap](OPENCLAW_ROADMAP.md)** - 12-week enhancement plan
-- **[Openclaw Implementation Plan](OPENCLAW_IMPLEMENTATION_PLAN.md)** - Detailed implementation tasks
-
- ### External Documentation
+### External Documentation
  - **[NixOS Manual](https://nixos.org/manual/nixos/stable/)** - Core NixOS documentation
  - **[Home Manager](https://nix-community.github.io/home-manager/)** - User environment management
  - **[Colmena](https://colmena.cli.rs/)** - Multi-host deployment

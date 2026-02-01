@@ -6,15 +6,12 @@
 **Mode:** Update
 
 ## OVERVIEW
-Comprehensive documentation and testing infrastructure for NixOS distributed build cluster with VR gaming, cryptocurrency mining, and AI assistant capabilities.
+Comprehensive documentation and testing infrastructure for NixOS distributed build cluster with VR gaming and cryptocurrency mining capabilities.
 
 ## STRUCTURE
 ```
 /etc/nixos/docs/
 ├── AGENTS.md                      # This file (documentation domain)
-├── OPENCLAW_DOCUMENTATION.md      # AI assistant documentation
-├── OPENCLAW_IMPLEMENTATION_PLAN.md # Openclaw implementation details
-├── OPENCLAW_ROADMAP.md            # 12-week enhancement plan
 ├── MODULE_REFACTOR_PLAN.md        # Code organization improvements
 ├── PERFORMANCE_OPTIMIZATION_PLAN.md # System performance enhancements
 ├── QUICK_FIXES.md                 # Immediate security fixes
@@ -30,7 +27,7 @@ Comprehensive documentation and testing infrastructure for NixOS distributed bui
 | Performance | docs/PERFORMANCE_OPTIMIZATION_PLAN.md | System optimization |
 | Security | docs/SECURITY_AUDIT.md | Security hardening |
 | Module refactoring | docs/MODULE_REFACTOR_PLAN.md | Code organization |
-| AI assistant | docs/OPENCLAW_* | Openclaw documentation |
+
 | Testing | build-and-test.sh | Master test orchestrator |
 | Shell tests | test-fish-syntax.fish | Fish functionality tests |
 | Detection tests | test-detection.fish | Project detection tests |
@@ -43,7 +40,7 @@ Comprehensive documentation and testing infrastructure for NixOS distributed bui
 - **Cluster**: 51-core distributed build pool across 4 hosts
 - **VR Gaming**: WiVRn + SteamVR with smart mining pause
 - **Mining**: Auto-pause during VR/gaming sessions
-- **AI Assistant**: Enhanced Openclaw with multi-model support
+
 
 ## ANTI-PATTERNS
 - **NEVER commit secrets** - Use agenix for sensitive configuration
