@@ -392,6 +392,8 @@ async def main():
         result = await workflows.model_serving_workflow(args.model_name, args.version)
     elif args.workflow == "backup":
         result = await workflows.backup_to_cloud(args.bucket, args.cloud)
+    else:
+        result = {"error": f"Unknown workflow: {args.workflow}"}
 
     print(json.dumps(result, indent=2))
 
