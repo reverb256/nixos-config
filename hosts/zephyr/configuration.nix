@@ -213,4 +213,17 @@
     "vm.overcommit_memory" = 2;
     "vm.overcommit_ratio" = 90;
   };
+
+  # ============================================================================
+  # PRIVATE S3 CACHE (AIStor on nexus)
+  # ============================================================================
+  services.nixos-minio-cache = {
+    enable = true;
+    endpoint = "http://10.1.1.120:9000";  # Nexus AIStor
+    bucket = "nix-cache";
+    credentialsFile = config.age.secrets.minio-cache-credentials.path;
+    # No signing needed for local cache
+    publicKey = null;
+    privateKeyFile = null;
+  };
 }

@@ -25,5 +25,10 @@
     "openclaw-env" = {
       file = ./openclaw-env.age;
     };
+
+    # MinIO cache credentials (AIStor on nexus)
+    "minio-cache-credentials" = {
+      file = ./minio-cache-credentials.age;
+    };
   };
 }
