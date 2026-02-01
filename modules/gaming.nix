@@ -323,8 +323,8 @@ with lib; {
       libjpeg
       libtiff
 
-      # FFmpeg with NVENC support for streaming
-      pkgs.ffmpeg-full
+      # FFmpeg with NVENC support for streaming (using ffmpeg instead of ffmpeg-full to avoid build issues)
+      pkgs.ffmpeg
 
       # Enhanced Claude Code environment (conditional)
     ]
