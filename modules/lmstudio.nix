@@ -91,13 +91,13 @@ EOF
 
     modelsDir = mkOption {
       type = types.str;
-      default = "/var/lib/lobster/.cache/lm-studio/models";
+      default = "/var/lib/openclaw/.cache/lm-studio/models";
       description = "Directory to store downloaded models";
     };
 
     dataDir = mkOption {
       type = types.str;
-      default = "/var/lib/lobster/.local/share/lm-studio";
+      default = "/var/lib/openclaw/.local/share/lm-studio";
       description = "LM Studio data directory (conversations, settings)";
     };
   };
@@ -156,8 +156,8 @@ EOF
           "ELECTRON_DISABLE_SANDBOX=1"
           "LMSTUDIO_DATA_DIR=${cfg.dataDir}"
           "LMSTUDIO_MODELS_DIR=${cfg.modelsDir}"
-          "HOME=/var/lib/lobster"
-          "XDG_CACHE_HOME=/var/lib/lobster/.cache"
+          "HOME=/var/lib/openclaw"
+          "XDG_CACHE_HOME=/var/lib/openclaw/.cache"
           "XDG_DATA_HOME=${cfg.dataDir}"
         ];
 
