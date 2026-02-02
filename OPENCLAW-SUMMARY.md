@@ -9,10 +9,13 @@ This branch (`feature/openclaw`) now contains a complete AI data storage and man
 ## 📦 What's Included
 
 ### 1. AIStor Server (Nexus)
-**File**: `hosts/nexus/configuration.nix`
+**Files**: `hosts/nexus/configuration.nix`, `modules/aistor-secrets.nix`
 
 - MinIO/AIStor server on 10.1.1.120:9000
 - Console access on 10.1.1.120:9001
+- **Declarative credential generation** via `services.aistor-secrets`
+  - Modes: `generate` (secure random), `demo` (minioadmin/minioadmin), `custom`
+  - Auto-generates credentials on first boot
 - 5 AI/ML optimized buckets:
   - `ai-models` - Model checkpoints with versioning
   - `training-data` - Datasets with metadata
@@ -27,7 +30,8 @@ This branch (`feature/openclaw`) now contains a complete AI data storage and man
 
 - Private S3 binary cache using AIStor
 - Reduces build times by caching to nexus
-- Encrypted credentials via agenix
+- **Uses generated credentials** from `services.aistor-secrets`
+- Encrypted credentials via agenix (optional/manual setup)
 - Automatic fallback if cache unavailable
 
 ### 3. OpenClaw Storage MCP
@@ -322,6 +326,7 @@ Tests include:
 |------|---------|-------|
 | `hosts/nexus/configuration.nix` | AIStor server config | 183 |
 | `hosts/zephyr/configuration.nix` | Cache client + OpenClaw | 230 |
+| `modules/aistor-secrets.nix` | Declarative credential generation | 70 |
 | `modules/openclaw-storage.nix` | Storage MCP module | 151 |
 | `modules/openclaw-storage-mcp.py` | Natural language interface | 349 |
 | `modules/openclaw-backups.nix` | Cloud backup module | 144 |
@@ -335,7 +340,7 @@ Tests include:
 | `RCLONE-BACKUPS.md` | Backup documentation | ~400 |
 | `AGENTS.md` | Project overview | ~300 |
 
-**Total**: ~3,300 lines of documentation and configuration
+**Total**: ~3,400 lines of documentation and configuration
 
 ---
 
