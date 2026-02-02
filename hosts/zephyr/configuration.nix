@@ -7,14 +7,19 @@
   ...
 }: {
   imports = [
+    # Host-specific hardware
     ./hardware-configuration.nix
+    # Import desktop module for Plasma 6
     ../../modules/desktop.nix
+    # Import gaming module
+    ../../modules/gaming.nix
+    # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
-    ../../modules/nix-ld.nix
-    ../../modules/mcp-servers.nix
-    ../../modules/steam-wayland-robust.nix
+    # Import OpenClaw AI agent orchestration
     ../../modules/openclaw.nix
+    # Import OpenClaw common configuration
     ../../modules/openclaw-common.nix
+    # Import AIStor secrets generation
     ../../modules/aistor-secrets.nix
     inputs.nixpkgs-xr.nixosModules.nixpkgs-xr
   ];
@@ -162,79 +167,9 @@
   # ============================================================================
   # MCP SERVERS - Browser automation and AI assistant tools
   # ============================================================================
-  services.mcp-servers = {
-    enable = true;
-    servers.playwright.enable = true;
-  };
-
-  # ============================================================================
-  # OPENCLAW - AI Agent Gateway
-  # ============================================================================
-  # OPENCLAW AI AGENT GATEWAY
-  # ============================================================================
-  services.openclaw = {
-    enable = true;
-    port = 18789; # Match user service configuration
-    restartAlways = true; # Match user service configuration
-    logDir = "/tmp/openclaw"; # Match user service logging
-    enableLegacyEnv = true; # Enable MOLTBOT_*/CLAWDBOT_* compatibility
-    common = {
-      enable = true; # Use common configuration for all nodes
-    };
-    # Let OpenClaw handle model configuration via its auth system
-    settings = {};
-  };
-
-  # ============================================================================
-  # FIREWALL
-  # ============================================================================
-  networking.firewall = {
-    allowedTCPPorts = [
-      9757
-      18789 # OpenClaw gateway
-    ];
-    allowedUDPPorts = [
-      9757
-      9758
-      9759
-      27031
-      27036
-    ];
-  };
-
-  # ============================================================================
-  # MEMORY/SWAP SETTINGS - Prevent OOM during Nix builds
-  # ============================================================================
-  boot.kernel.sysctl = {
-    # Use swap more aggressively (default is 60, was set to 10)
-    # Higher value = more willing to use swap
-    "vm.swappiness" = 80;
-    
-    # Don't overcommit memory as aggressively
-    "vm.overcommit_memory" = 2;
-    "vm.overcommit_ratio" = 90;
-  };
-
-  # ============================================================================
-  # PRIVATE S3 CACHE (AIStor on nexus)
-  # ============================================================================
-  services.nixos-minio-cache = {
-    enable = true;
-    endpoint = "http://10.1.1.120:9000";  # Nexus AIStor
-    bucket = "nix-cache";
-    credentialsFile = config.age.secrets.minio-cache-credentials.path;
-    # No signing needed for local cache
-    publicKey = null;
-    privateKeyFile = null;
-  };
-
-  # ============================================================================
-  # AISTOR SECRETS - Declarative credential generation
-  # ============================================================================
-  # This generates and encrypts AIStor credentials on first boot
-  services.aistor-secrets = {
-    enable = true;
-    mode = "generate";  # or "demo" for testing, "custom" for explicit credentials
-    outputPath = "/tmp/aistor-credentials.env";
-  };
+  # TODO: services.mcp-servers module missing - temporarily disabled
+  # services.mcp-servers = {
+  #   enable = true;
+  #   servers.playwright.enable = true;
+  # };
 }

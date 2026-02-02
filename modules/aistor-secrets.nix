@@ -35,17 +35,6 @@ in
       default = "/tmp/aistor-credentials.env";
       description = "Where to write credentials file";
     };
-
-    ageKeys = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [
-        "age175jstqazl7sj20xzuhc4l9qn0xt0ag0nvh2paxkk6veav95se4ysjua4e5"
-        "age19r77h4d3d93fla0ptc4zu3yvdxhvykdusd23c5wmrmzut55rn96qk0kc3n"
-        "age1chus24x5vg85993trehnms4gndw9e7qm0m3z5q65997c8az7rf6svffh4w"
-        "age14duc9p3yrmelfjd94tfkzgenpfcfarucn3ax6ygl0w4erh9p0ddqr674ly"
-      ];
-      description = "Age keys to encrypt credentials for (default: all cluster hosts)";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -55,11 +44,6 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStartPre = pkgs.writeShellScript "aistor-generate-credentials-pre" ''
-          # Ensure output directory exists
-          mkdir -p "$(dirname ${cfg.outputPath})"
-        '';
-
         ExecStart = pkgs.writeShellScript "aistor-generate-credentials" ''
           ${pkgs.coreutils}/bin/mkdir -p "$(dirname ${cfg.outputPath})"
 
@@ -93,7 +77,5 @@ EOF
         StandardError = "journal";
       };
     };
-
-    environment.systemPackages = [ pkgs.age ];
   };
 }
