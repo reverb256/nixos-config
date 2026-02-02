@@ -142,5 +142,8 @@
 
     # Disable Wayland for problematic electron apps
     NIXOS_OZONE_WL = "1";
+
+    # GTK apps should use portal for better KDE integration
+    GTK_USE_PORTAL = "1";
   };
 }
