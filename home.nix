@@ -61,9 +61,9 @@
     cachix
 
     # CLI tools
-    _1password-cli      # 1Password CLI
-    himalaya            # Email CLI
-    spotify-player      # Spotify TUI
+    _1password-cli # 1Password CLI
+    himalaya # Email CLI
+    spotify-player # Spotify TUI
 
     # Media tools (moved from system-packages)
     yt-dlp
@@ -75,8 +75,6 @@
     (pkgs.writeShellScriptBin "kilo" ''
       exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
     '')
-
-  
   ];
 
   # StreamLake Claude Code environment variables (enhanced with MCP)
@@ -472,22 +470,21 @@
     vesktop.enable = true; # Use Vesktop (Vencord + Wayland support)
   };
 
-  # Autostart Vesktop on login
-  systemd.user.services.vesktop-autostart = {
-    Unit = {
-      Description = "Vesktop autostart";
-      After = ["graphical-session.target" "plasma-workspace.target"];
-      PartOf = ["graphical-session.target"];
-    };
-    Service = {
-      Type = "simple";
-      ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
-      Restart = "on-failure";
-      RestartSec = 5;
-    };
-    Install = {
-      WantedBy = ["default.target"];
-    };
-  };
-
+  # Vesktop - Disabled autostart to prevent launches during system updates
+  # systemd.user.services.vesktop-autostart = {
+  #   Unit = {
+  #     Description = "Vesktop autostart";
+  #     After = ["graphical-session.target" "plasma-workspace.target"];
+  #     PartOf = ["graphical-session.target"];
+  #   };
+  #   Service = {
+  #     Type = "simple";
+  #     ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+  #     Restart = "on-failure";
+  #     RestartSec = 5;
+  #   };
+  #   Install = {
+  #     WantedBy = ["default.target"];
+  #   };
+  # };
 }

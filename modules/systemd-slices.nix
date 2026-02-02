@@ -44,20 +44,20 @@
         };
       };
 
-       # Mining slice - optimized for GPU mining (forge configuration)
-       "mining.slice" = {
-         description = "Mining processes slice";
-         sliceConfig = {
-           MemoryHigh = "8G"; # High limit before throttling
-           CPUQuota = "95%"; # Allow mining to use up to 95% CPU when needed
-           CPUAccounting = "yes";
-           MemoryAccounting = "yes";
-           TasksAccounting = "yes";
-           TasksMax = 10000;
-           BlockIOAccounting = "yes";
-           IOWeight = 10; # Lower priority than system services
-         };
-       };
+      # Mining slice - optimized for GPU mining (forge configuration)
+      "mining.slice" = {
+        description = "Mining processes slice";
+        sliceConfig = {
+          MemoryHigh = "8G"; # High limit before throttling
+          CPUQuota = "95%"; # Allow mining to use up to 95% CPU when needed
+          CPUAccounting = "yes";
+          MemoryAccounting = "yes";
+          TasksAccounting = "yes";
+          TasksMax = 10000;
+          BlockIOAccounting = "yes";
+          IOWeight = 10; # Lower priority than system services
+        };
+      };
     };
 
     # Nix daemon service configuration

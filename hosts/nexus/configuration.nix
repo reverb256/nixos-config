@@ -141,7 +141,7 @@
   # systemd service aistor-generate-credentials (runs at boot)
   #
   # For manual credential setup, see AISTOR-DEPLOY.md
-  
+
   services.minio = {
     enable = true;
     listenAddress = "10.1.1.120:9000";
@@ -183,8 +183,8 @@
   # Open firewall for MinIO
   networking.firewall = {
     allowedTCPPorts = [
-      9000   # MinIO S3 API
-      9001   # MinIO Console
+      9000 # MinIO S3 API
+      9001 # MinIO Console
     ];
     allowedUDPPorts = [];
   };

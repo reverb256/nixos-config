@@ -85,7 +85,7 @@ with lib; {
       Type = "oneshot";
       RemainAfterExit = "yes";
       ExecStart = "${pkgs.gamemode}/bin/gamemoded --daemonize";
-      ExecStop = "${pkgs.gamemode}/bin/gamemoded --kill";
+      ExecStop = "/bin/kill -TERM $MAINPID";
       TimeoutStopSec = 10;
       User = "root";
       Group = "root";
@@ -160,105 +160,39 @@ with lib; {
   };
 
   # ============================================================================
-  # WI VRN - Wireless VR Streaming for Quest Pro
+  # MONADO - OpenXR Runtime for VR
   # ============================================================================
-  services.wivrn = {
+  services.monado = {
     enable = true;
-    openFirewall = true;
     defaultRuntime = true;
-    config.enable = true;
-    config.json = {
-      # Quest Pro specific optimizations for 90Hz target
-      device = {
-        name = "Quest Pro";
-        type = "quest_pro";
-        # High resolution for Quest Pro at 90Hz
-        resolution = "2160x2160"; # Max Quest Pro resolution per eye
-        refresh_rate = 90;
-        # RTX 3090 NVENC optimization
-        encoder = {
-          backend = "nvenc";
-          preset = "p7"; # High quality preset
-          tune = "ll"; # Low latency for VR
-          rc = "vbr"; # Variable bitrate
-          bitrate = 100000; # 100Mbps for Quest Pro
-          max_bitrate = 120000;
-          min_bitrate = 80000;
-          # NVENC specific optimizations for RTX 3090
-          nvenc = {
-            quality = "hq";
-            enable_psy = true;
-            rc_lookahead = 32;
-            spatial_aq = true;
-            temporal_aq = true;
-          };
-        };
-      };
-
-      # Streaming optimizations for RTX 3090 at 90Hz
-      stream = {
-        codec = "hevc"; # HEVC for better compression at 90Hz
-        targetBitrate = 150; # Optimized bitrate for RTX 3090 at 90Hz (Mbps)
-        spatial = true; # Enable spatial encoding
-        temporal = true; # Enable temporal encoding
-        encoder = "nvenc"; # Use NVIDIA NVENC for hardware acceleration
-        postprocess = true; # Enable post-processing
-      };
-
-      # Network optimizations for 90Hz streaming
-      network = {
-        port = 9757;
-        portRange = [9757 9760];
-        udp = true;
-        tcp = true;
-        # RTSP streaming support
-        rtsp = {
-          enabled = true;
-          port = 7889;
-          path = "/wivrn";
-        };
-      };
-
-      # Quest Pro display settings
-      display = {
-        forceColorSpace = "sRGB";
-        forceColorRange = "Full";
-      };
-
-      # SteamVR lighthouse driver support for Tundra trackers
-      # Enable SteamVR tracked devices support (lighthouse base stations)
-      "steamvr-enabled" = true;
-
-      # Lighthouse discovery wait time (ms) - allow devices to be discovered
-      "lh-discover-wait-ms" = 5000;
-
-      # Enable lighthouse tracking for external devices
-      "lighthouse-enabled" = true;
-
-      # Base station configuration for 2.0 base stations
-      "lighthouse-base-stations" = 2;
-
-      # Tundra tracker support via lighthouse
-      "tundra-trackers-enabled" = true;
-
-      # Discovery timeout for lighthouse devices
-      "lighthouse-discovery-timeout" = 10000;
-    };
+  };
+  
+  # Monado environment variables
+  systemd.user.services.monado.environment = {
+    # SteamVR compatibility
+    STEAMVR_LH_ENABLE = "1";
+    # Compute compositor for better performance
+    XRT_COMPOSITOR_COMPUTE = "1";
+    # Disable hand tracking if not using controllers
+    WMR_HANDTRACKING = "0";
+    # Performance tuning
+    U_PACING_COMP_MIN_TIME_MS = "5";
+    # Auto-stop when apps close
+    IPC_EXIT_ON_DISCONNECT = "1";
   };
 
   # ============================================================================
   # FIREWALL - VR Device and Lighthouse Support
   # ============================================================================
   networking.firewall = {
-    allowedTCPPorts = [9757]; # WiVRn
-    allowedUDPPorts = [
-      9757 # WiVRn
-      5353 # Avahi/mDNS for device discovery
-      9947 # Lighthouse base stations
-      27036 # SteamVR discovery
-      27031 # SteamVR
-    ];
-  };
+     allowedTCPPorts = []; # Monado uses local sockets
+     allowedUDPPorts = [
+       5353 # Avahi/mDNS for device discovery
+       9947 # Lighthouse base stations
+       27036 # SteamVR discovery
+       27031 # SteamVR
+     ];
+   };
 
   # ============================================================================
   # NVIDIA VR OPTIMIZATIONS - NVENC, Low Latency, VR Ready
@@ -285,24 +219,23 @@ with lib; {
   # PACKAGES - VR Applications and Tools
   # ============================================================================
   environment.systemPackages = with pkgs;
-    [
-      # VR runtimes and tools
-      wivrn
-      openxr-loader
+     [
+       # VR runtimes and tools
+       monado
+       openxr-loader
+       opencomposite
 
-      # SteamVR support
-      steam-run
+       # SteamVR support
+       steam-run
 
-      # LVRA Wiki: xrizer for SteamVR/OpenVR compatibility
-      # https://lvra.gitlab.io/docs/distros/nixos/
-      xrizer
+       # LVRA Wiki: xrizer for SteamVR/OpenVR compatibility
+       # https://lvra.gitlab.io/docs/distros/nixos/
+       xrizer
 
       # Motion tracking calibration tools
       motoc
 
-      # LVRA Wiki: Eye/Face tracking for Quest Pro via WiVRn
-      # Uses oscavmgr to route OSC data from Quest Pro tracking to VRChat
-      # Available through nixpkgs-xr overlay (configured in flake.nix)
+      # Eye/Face tracking for Quest Pro (if available)
       (lib.mkIf (inputs != null && inputs ? nixpkgs-xr)
         inputs.nixpkgs-xr.packages."x86_64-linux".oscavmgr)
 
