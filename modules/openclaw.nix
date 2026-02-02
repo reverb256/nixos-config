@@ -13,8 +13,9 @@ in {
 
     package = mkOption {
       type = types.package;
-      default = inputs.nix-openclaw.packages.x86_64-linux.openclaw-gateway;
-      defaultText = "inputs.nix-openclaw.packages.x86_64-linux.openclaw-gateway";
+      # Use pkgs.openclaw-gateway to respect overlays (including workaround for hasown bug)
+      default = pkgs.openclaw-gateway or inputs.nix-openclaw.packages.x86_64-linux.openclaw-gateway;
+      defaultText = "pkgs.openclaw-gateway";
       description = "OpenClaw gateway package to use";
     };
 
@@ -230,7 +231,8 @@ in {
     # Add OpenClaw packages to system profile (for CLI tools)
     environment.systemPackages = with pkgs; [
       cfg.package
-      inputs.nix-openclaw.packages.x86_64-linux.openclaw-tools or cfg.package
+      # Use overlayed package if available, fallback to input
+      (pkgs.openclaw-tools or inputs.nix-openclaw.packages.x86_64-linux.openclaw-tools or cfg.package)
     ];
 
     # Health monitoring timer
