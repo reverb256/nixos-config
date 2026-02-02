@@ -16,8 +16,9 @@ with lib; let
   
   # Download URL for the AppImage (GUI frontend)
   lmstudioAppImageSrc = pkgs.fetchurl {
-    url = "https://lmstudio.ai/download/latest/linux/x64?format=AppImage";
-    hash = "sha256-d18e178cadef7d6798f19e6d41f33a297e26a1d285091cbc30da8252d18a46f0";
+    url = "https://lmstudio.ai/download/${lmstudioVersion}/linux/x64?format=AppImage";
+    # Nix will compute the hash from the error message
+    sha256 = lib.fakeHash;
   };
 in {
   options.services.lmstudio = {
