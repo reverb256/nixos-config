@@ -49,8 +49,8 @@
     kimi-cli.url = "github:MoonshotAI/kimi-cli";
     kimi-cli.inputs.nixpkgs.follows = "nixpkgs";
 
-    # OpenClaw - AI agent gateway (official Nix packaging)
-    nix-openclaw.url = "github:openclaw/nix-openclaw";
+    # OpenClaw - AI agent gateway (using our fork with hasown fix)
+    nix-openclaw.url = "github:reverb256/nix-openclaw";
     nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
     nix-openclaw.inputs.home-manager.follows = "home-manager";
 
@@ -91,6 +91,7 @@
       {
         nixpkgs.overlays = [
           self.overlays.default
+          # nix-openclaw first, then our workaround to override
           inputs.nix-openclaw.overlays.default
           (import ./modules/openclaw-workaround-overlay.nix)
         ];
