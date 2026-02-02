@@ -95,5 +95,9 @@
       OPENROUTER_API_KEY_FILE = config.age.secrets.openrouter-api-key.path or "";
       OPENAI_API_KEY_FILE = config.age.secrets.openai-api-key.path or "";
       ZHIPU_API_KEY_FILE = config.age.secrets.zhipu-api-key.path or "";
+    }
+    // lib.optionalAttrs ((builtins.hasAttr "age" config) && (config.age.secrets ? "cachix-token")) {
+      # Cachix authentication token for authenticated cache operations
+      CACHIX_AUTH_TOKEN_FILE = config.age.secrets.cachix-token.path;
     };
 }

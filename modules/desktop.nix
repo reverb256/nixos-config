@@ -1,9 +1,6 @@
 # Desktop Module - Pure Wayland with XWayland Fallback
 # Optimized for Steam and gaming with Wayland-first approach
-{
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   # ============================================================================
   # KDE PLASMA 6 (Pure Wayland with XWayland fallback for legacy apps)
   # ============================================================================

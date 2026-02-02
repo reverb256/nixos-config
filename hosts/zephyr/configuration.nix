@@ -21,6 +21,8 @@
     ../../modules/openclaw-common.nix
     # Import AIStor secrets generation
     ../../modules/aistor-secrets.nix
+    # Import nix-ld for dynamically linked executables (Proton/Steam support)
+    ../../modules/nix-ld.nix
     inputs.nixpkgs-xr.nixosModules.nixpkgs-xr
   ];
 
@@ -45,6 +47,42 @@
     openModules = true; # Use open kernel modules with proprietary userspace (standard across all nodes)
     sddmWayland = true;
   };
+
+  # CRITICAL: Kernel parameters for NVIDIA Wayland + Proton support
+  # nvidia_drm.modeset=1 - Required for Wayland support
+  # nvidia_drm.fbdev=1 - Required for proper display initialization
+  boot.kernelParams = [ 
+    "nvidia_drm.modeset=1"
+    "nvidia_drm.fbdev=1"
+    "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
+    
+    # === PERFORMANCE ENHANCING ===
+    # Disable split lock detection (prevents performance penalties)
+    "split_lock_detect=off"
+    
+    # Enable resizable BAR for better GPU performance
+    "nvidia.NVreg_EnableResizableBar=1"
+    
+    # Enable GPU firmware
+    "nvidia.NVreg_EnableGpuFirmware=1"
+    
+    # Threaded IRQs for better responsiveness
+    "threadirqs"
+    
+    # Full kernel preemption for better gaming responsiveness
+    "preempt=full"
+    
+    # Disable CPU idle deep states for lower latency (better for gaming)
+    "processor.max_cstate=1"
+    "intel_idle.max_cstate=1"
+    
+    # IOMMU for better device isolation (helps with GPU passthrough if ever needed)
+    "iommu=pt"
+  ];
+
+  # NVIDIA power management (helps with VRAM issues on 555+ drivers)
+  hardware.nvidia.powerManagement.enable = true;
+  hardware.nvidia.powerManagement.finegrained = false;
 
   # ============================================================================
   # STEAM + GAMING CONFIGURATION

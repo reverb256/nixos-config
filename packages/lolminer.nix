@@ -40,7 +40,7 @@ stdenv.mkDerivation rec {
     mkdir -p $out/bin
     cp ./lolMiner $out/bin/
     chmod +x $out/bin/lolMiner
-    
+
     runHook postInstall
   '';
 
