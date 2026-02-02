@@ -92,6 +92,7 @@
         nixpkgs.overlays = [
           self.overlays.default
           inputs.nix-openclaw.overlays.default
+          (import ./modules/openclaw-workaround-overlay.nix)
         ];
         nixpkgs.config.allowUnfree = true;
         nixpkgs.config.permittedInsecurePackages = [
@@ -170,6 +171,10 @@
 
     # Add nixpkgs-xr overlay for VR/gaming packages
     overlays.nixpkgs-xr = inputs.nixpkgs-xr.overlays.default;
+
+    # Workaround overlay for OpenClaw hasown dependency bug
+    # Fixes: https://github.com/openclaw/nix-openclaw/issues/45
+    overlays.openclaw-workaround = import ./modules/openclaw-workaround-overlay.nix;
 
     # NixOS configurations (for direct use with nixos-rebuild)
     nixosConfigurations = nixosSystems;

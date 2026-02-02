@@ -47,21 +47,24 @@ with lib; {
         ioprio = 0; # Highest I/O priority
       };
       gpu = {
+        # CRITICAL: This flag is required for GPU optimizations to work
+        apply_gpu_optimisations = "accept-responsibility";
+        
         # NVIDIA Ampere (RTX 3090) specific settings
         nv_powermizer_mode = 1; # Prefer Maximum Performance
         nv_core_clock_mhz_offset = 150; # Slight overclock (+150MHz)
-        nv_memory_transfer_rate_offset = 500; # Ampere memory overclock (+500MHz)
-        nv_gpu_utilization = "1"; # Enable GPU utilization monitoring
+        nv_mem_clock_mhz_offset = 500; # Fixed: Correct parameter name for memory overclock
+        # nv_gpu_utilization = "1"; # Removed: Not supported by gamemode
 
         # Ampere-specific optimizations
-        nv_preclocked_graphics_clock = "1"; # Enable preclocked graphics clock
-        nv_preclocked_memory_clock = "1"; # Enable preclocked memory clock
-        nv_preclocked_video_clock = "1"; # Enable preclocked video clock
+        # nv_preclocked_graphics_clock = "1"; # Removed: Not supported by gamemode
+        # nv_preclocked_memory_clock = "1"; # Removed: Not supported by gamemode
+        # nv_preclocked_video_clock = "1"; # Removed: Not supported by gamemode
 
-        # DLSS and RTX optimizations for Ampere (RTX 3090)
-        nv_dlss = "1"; # Enable DLSS if supported by game
-        nv_reflex = "1"; # Enable NVIDIA Reflex for competitive gaming
-        nv_api = "1"; # Enable NVIDIA API
+        # DLSS and RTX optimizations - these are game-level settings, not gamemode
+        # nv_dlss = "1"; # Removed: Not supported by gamemode
+        # nv_reflex = "1"; # Removed: Not supported by gamemode
+        # nv_api = "1"; # Removed: Not supported by gamemode
       };
 
       # Custom scripts for GameMode events
@@ -85,7 +88,7 @@ with lib; {
       Type = "oneshot";
       RemainAfterExit = "yes";
       ExecStart = "${pkgs.gamemode}/bin/gamemoded --daemonize";
-      ExecStop = "/bin/kill -TERM $MAINPID";
+      ExecStop = "${pkgs.coreutils}/bin/kill -TERM $MAINPID";
       TimeoutStopSec = 10;
       User = "root";
       Group = "root";
@@ -137,6 +140,11 @@ with lib; {
 
   # Enable Steam hardware support for comprehensive controller udev rules
   hardware.steam-hardware.enable = true;
+
+  # Enable Steam networking features (2026 standards)
+  programs.steam.remotePlay.openFirewall = true;
+  programs.steam.dedicatedServer.openFirewall = true;
+  programs.steam.localNetworkGameTransfers.openFirewall = true;
 
   # ============================================================================
   # ANIME GAME LAUNCHERS (Simplified ezKEa Setup)
@@ -241,7 +249,7 @@ with lib; {
   environment.systemPackages = with pkgs;
      [
        # VR runtimes and tools
-       monado
+       wivrn
        openxr-loader
        opencomposite
 
@@ -377,15 +385,15 @@ with lib; {
 
       # HDR enabled (display can handle it, just not VRR)
       "--hdr-enabled"
-      "--hdr-itm-enable" # Inverse tone mapping for better HDR
+      "--hdr-itm-enabled" # Inverse tone mapping for better HDR (fixed: added 'd')
 
       # Steam integration
       "--steam"
       "--xwayland-count 2"
 
       # Full capabilities maintained
-      "--force-composition-pipeline=auto"
-      "--prefer-output=auto"
+      "--force-composition" # Fixed: removed =auto (deprecated)
+      # "--prefer-output" # Commented out: auto value not valid
       "--expose-wayland" # Wayland support
     ];
   };

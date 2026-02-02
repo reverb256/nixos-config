@@ -96,7 +96,7 @@
   ];
 
   # ============================================================================
-  # PIPEWIRE AUDIO - Modern audio server for Wayland
+  # PIPEWIRE AUDIO - Modern audio server for Wayland (LOW LATENCY for gaming)
   # ============================================================================
   services.pipewire = {
     enable = true;
@@ -104,6 +104,13 @@
     alsa.support32Bit = true;
     pulse.enable = true;
     jack.enable = true;
+    
+    # Low-latency configuration for gaming (from nix-gaming)
+    lowLatency = {
+      enable = true;
+      quantum = 64;
+      rate = 48000;
+    };
   };
 
   # Enable RTKit for real-time audio priority (reduces crackling/latency)

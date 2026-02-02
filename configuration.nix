@@ -54,7 +54,8 @@ in {
     polkit.addRule(function(action, subject) {
       if (action.id == "org.freedesktop.policykit.exec" &&
           (action.lookup("program") == "${gamemodePkg}/libexec/cpugovctl" ||
-           action.lookup("program") == "${gamemodePkg}/libexec/procsysctl")) {
+           action.lookup("program") == "${gamemodePkg}/libexec/procsysctl" ||
+           action.lookup("program") == "${gamemodePkg}/libexec/gpuclockctl")) {  # Added gpuclockctl
         return polkit.Result.YES;
       }
     });
