@@ -1,8 +1,11 @@
-{ config, lib, pkgs, inputs, ... }:
-
-with lib;
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
+with lib; let
   cfg = config.services.openclaw;
 in {
   options.services.openclaw = {
@@ -62,7 +65,7 @@ in {
       type = types.listOf types.str;
       default = [];
       description = "Extra arguments to pass to OpenClaw gateway";
-      example = [ "--debug" "--port 8080" ];
+      example = ["--debug" "--port 8080"];
     };
 
     environmentFile = mkOption {
@@ -85,7 +88,7 @@ in {
       example = {
         telegram = {
           botTokenFile = "/run/agenix/telegram-bot-token";
-          allowFrom = [ 123456789 ];
+          allowFrom = [123456789];
         };
         anthropic = {
           apiKeyFile = "/run/agenix/anthropic-api-key";
@@ -112,29 +115,40 @@ in {
     };
 
     # Create directories
-    systemd.tmpfiles.rules = [
-      "d ${cfg.stateDir} 0750 ${cfg.user} ${cfg.group} -"
-      "d ${cfg.configDir} 0750 root ${cfg.group} -"
-    ] ++ (if cfg.logDir != null then [
-      "d ${cfg.logDir} 0755 ${cfg.user} ${cfg.group} -"
-    ] else []);
+    systemd.tmpfiles.rules =
+      [
+        "d ${cfg.stateDir} 0750 ${cfg.user} ${cfg.group} -"
+        "d ${cfg.configDir} 0750 root ${cfg.group} -"
+        "d ${cfg.stateDir}/workspace 0750 ${cfg.user} ${cfg.group} -"
+        "d ${cfg.stateDir}/workspace/skills 0750 ${cfg.user} ${cfg.group} -"
+      ]
+      ++ (
+        if cfg.logDir != null
+        then [
+          "d ${cfg.logDir} 0755 ${cfg.user} ${cfg.group} -"
+        ]
+        else []
+      );
 
     # Generate configuration file
-    environment.etc."openclaw/openclaw.json".source = 
+    environment.etc."openclaw/openclaw.json".source =
       pkgs.writeText "openclaw.json" (builtins.toJSON cfg.settings);
 
     # Systemd service
     systemd.services.openclaw = {
       description = "OpenClaw AI Agent Gateway";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "simple";
         User = cfg.user;
         Group = cfg.group;
-        Restart = if cfg.restartAlways then "always" else "on-failure";
+        Restart =
+          if cfg.restartAlways
+          then "always"
+          else "on-failure";
         RestartSec = "1s";
 
         # Security hardening
@@ -142,56 +156,72 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ cfg.stateDir ] ++ (if cfg.logDir != null then [ cfg.logDir ] else []);
-        ReadOnlyPaths = [ cfg.configDir ];
+        ReadWritePaths =
+          [cfg.stateDir]
+          ++ (
+            if cfg.logDir != null
+            then [cfg.logDir]
+            else []
+          );
+        ReadOnlyPaths = [cfg.configDir];
 
         # Logging (file-based or journald)
-        StandardOutput = if cfg.logDir != null then "append:${cfg.logDir}/openclaw-gateway.log" else "journal";
-        StandardError = if cfg.logDir != null then "append:${cfg.logDir}/openclaw-gateway.log" else "journal";
+        StandardOutput =
+          if cfg.logDir != null
+          then "append:${cfg.logDir}/openclaw-gateway.log"
+          else "journal";
+        StandardError =
+          if cfg.logDir != null
+          then "append:${cfg.logDir}/openclaw-gateway.log"
+          else "journal";
 
         # Environment
-        Environment = [
-          "OPENCLAW_NIX_MODE=1"
-          "OPENCLAW_STATE_DIR=${cfg.stateDir}"
-          "OPENCLAW_CONFIG_PATH=${cfg.configDir}/openclaw.json"
-          "HOME=${cfg.stateDir}"
-        ] ++ (if cfg.enableLegacyEnv then [
-          # Legacy environment variables for backwards compatibility
-          "MOLTBOT_NIX_MODE=1"
-          "MOLTBOT_STATE_DIR=${cfg.stateDir}"
-          "MOLTBOT_CONFIG_PATH=${cfg.configDir}/openclaw.json"
-          "CLAWDBOT_NIX_MODE=1"
-          "CLAWDBOT_STATE_DIR=${cfg.stateDir}"
-          "CLAWDBOT_CONFIG_PATH=${cfg.configDir}/openclaw.json"
-        ] else []);
+        Environment =
+          [
+            "OPENCLAW_NIX_MODE=1"
+            "OPENCLAW_STATE_DIR=${cfg.stateDir}"
+            "OPENCLAW_CONFIG_PATH=${cfg.configDir}/openclaw.json"
+            "HOME=${cfg.stateDir}"
+          ]
+          ++ (
+            if cfg.enableLegacyEnv
+            then [
+              # Legacy environment variables for backwards compatibility
+              "MOLTBOT_NIX_MODE=1"
+              "MOLTBOT_STATE_DIR=${cfg.stateDir}"
+              "MOLTBOT_CONFIG_PATH=${cfg.configDir}/openclaw.json"
+              "CLAWDBOT_NIX_MODE=1"
+              "CLAWDBOT_STATE_DIR=${cfg.stateDir}"
+              "CLAWDBOT_CONFIG_PATH=${cfg.configDir}/openclaw.json"
+            ]
+            else []
+          );
 
         # Command with port
         ExecStart = escapeShellArgs (
-          [ "${cfg.package}/bin/openclaw-gateway" "gateway" "--port" (toString cfg.port) ] ++ cfg.extraArgs
+          ["${cfg.package}/bin/openclaw" "gateway" "--port" (toString cfg.port)] ++ cfg.extraArgs
         );
 
         # Load environment file if provided (for secrets)
-        EnvironmentFile = mkIf (cfg.environmentFile != null) [ cfg.environmentFile ];
+        EnvironmentFile = mkIf (cfg.environmentFile != null) [cfg.environmentFile];
       };
 
       # Write the configuration file before starting
       preStart = ''
         # Ensure state directory exists with correct permissions
+        # Note: Directories are created by systemd.tmpfiles.rules with correct ownership
         mkdir -p ${cfg.stateDir}
-        chown ${cfg.user}:${cfg.group} ${cfg.stateDir}
-        chmod 0750 ${cfg.stateDir}
-
-        # Create workspace directory structure
         mkdir -p ${cfg.stateDir}/workspace
         mkdir -p ${cfg.stateDir}/workspace/skills
-        chown -R ${cfg.user}:${cfg.group} ${cfg.stateDir}/workspace
 
-        ${if cfg.logDir != null then ''
-          # Ensure log directory exists
-          mkdir -p ${cfg.logDir}
-          chown ${cfg.user}:${cfg.group} ${cfg.logDir}
-          chmod 0755 ${cfg.logDir}
-        '' else "# Using journald for logging (no log directory needed)"}
+        ${
+          if cfg.logDir != null
+          then ''
+            # Ensure log directory exists
+            mkdir -p ${cfg.logDir}
+          ''
+          else "# Using journald for logging (no log directory needed)"
+        }
       '';
     };
 
@@ -200,6 +230,33 @@ in {
       cfg.package
       inputs.nix-openclaw.packages.x86_64-linux.openclaw-tools or cfg.package
     ];
-  };
 
+    # Health monitoring timer
+    systemd.services.openclaw-health = {
+      description = "OpenClaw Gateway Health Check";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "openclaw-health-check" ''
+          set -e
+          # Check if OpenClaw gateway is responding
+          if ! ${pkgs.curl}/bin/curl -sf "http://127.0.0.1:${toString cfg.port}/health" >/dev/null 2>&1; then
+            echo "OpenClaw gateway health check failed"
+            # Try to restart the service if it's not responding
+            ${pkgs.systemd}/bin/systemctl restart openclaw.service || true
+            exit 1
+          fi
+          exit 0
+        '';
+      };
+    };
+
+    systemd.timers.openclaw-health = {
+      description = "Periodic health check for OpenClaw gateway";
+      wantedBy = ["timers.target"];
+      timerConfig = {
+        OnCalendar = "*:*:0/30"; # Every 30 seconds
+        Persistent = false;
+      };
+    };
+  };
 }
