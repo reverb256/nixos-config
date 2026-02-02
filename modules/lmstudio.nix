@@ -15,11 +15,8 @@ with lib; let
   lmstudioVersion = "0.4.1";
   
   # Download URL for the AppImage (GUI frontend)
-  lmstudioAppImageSrc = pkgs.fetchurl {
-    url = "https://lmstudio.ai/download/${lmstudioVersion}/linux/x64?format=AppImage";
-    # Nix will compute the hash from the error message
-    sha256 = lib.fakeHash;
-  };
+  # Using local file for faster iteration
+  lmstudioAppImageSrc = /home/j_kro/.local/share/lm-studio/LM-Studio-0.4.1.AppImage;
 in {
   options.services.lmstudio = {
     enable = mkEnableOption "LM Studio - Local LLM Interface (0.4.x)";
