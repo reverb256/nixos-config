@@ -13,10 +13,9 @@ in {
   age.secretsDir = "/run/agenix";
   age.secretsMountPoint = "/run/agenix.d";
 
-  # Use SSH host keys for age decryption (ssh-to-age)
-  # Agenix will automatically convert SSH keys to age keys
+  # Use age key file for decryption
+  # Age private key stored in /root/.config/sops/age/keys.txt
   age.identityPaths = [
-    "/etc/ssh/ssh_host_ed25519_key"
-    "/etc/ssh/ssh_host_rsa_key"
+    "/root/.config/sops/age/keys.txt"
   ];
 }
