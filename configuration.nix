@@ -5,7 +5,14 @@
 }: let
   # Get gamemode package for polkit rules
   gamemodePkg = pkgs.gamemode;
+  # System administrator username
+  sysadminUser = "j_kro";
 in {
+  # ============================================================================
+  # USERS AND GROUPS - Configure users and groups
+  # ============================================================================
+  users.users.${sysadminUser}.extraGroups = ["docker" "podman"]; # Add user to container groups
+
   # ============================================================================
   # KERNEL CONFIGURATION - Force ZEN kernel for gaming and mining performance
   # ============================================================================
@@ -55,7 +62,8 @@ in {
 
   imports = [
     ./modules
-    ./modules/flatpak.nix
+    # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
+    # ./modules/flatpak.nix
     # Graceful distributed builds: conservative (4 jobs) when alone, aggressive (21 jobs) with builders
     ./modules/distributed-builds-graceful.nix
     ./secrets/agenix-secrets.nix
@@ -75,18 +83,81 @@ in {
     };
   };
 
+  # Declarative Flatpak configuration using nix-flatpak module
+  services.flatpak = {
+    enable = true;
+    remotes = [
+      {
+        name = "flathub";
+        location = "https://flathub.org/repo/flathub.flatpakrepo";
+      }
+      {
+        name = "flathub-beta";
+        location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
+      }
+    ];
+    packages = [
+      # Keep existing system-wide Flatpak apps
+      # Note: nix-flatpak uses just the app ID, not "remote:app-id" format
+      "com.spotify.Client"
+      "io.github.kolunmi.Bazaar"
+      "org.gnome.Calculator"
+      "org.gnome.Fractal"
+      "org.telegram.desktop"
+      "org.kde.audiotube"
+    ];
+  };
+
+  # Steam configuration for gaming
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
+    extraCompatPackages = with pkgs; [
+      proton-ge-bin
+      gamescope
+      mangohud
+      goverlay
+    ];
+  };
+
+  # Podman configuration for container management
+  virtualisation.podman = {
+    enable = true;
+    # Disable Docker socket to avoid conflict (enable only if needed for Docker compatibility)
+    dockerSocket.enable = false;
+    defaultNetwork.settings.dnsname.enable = true; # Enable DNS for containers
+    autoPrune = {
+      enable = true;
+      dates = "weekly";
+    };
+  };
+
+  # Note: Docker is not explicitly enabled, avoiding conflict with podman's Docker socket
+  # virtualisation.docker.enable = false;  # Only enable if podman dockerSocket causes issues
+
+  # OCI Containers configuration for container management
+  virtualisation.oci-containers = {
+    backend = "podman"; # Use podman as backend
+
+    # Note: Specific containers managed via individual services when needed
+    # containers = {
+    #   # Example containers definitions would go here if needed
+    # };
+  };
+
   # ============================================================================
   # BOOT CONFIGURATION - Bootloader and root file system
   # ============================================================================
   boot = {
     loader = {
       systemd-boot.enable = true;
-      systemd-boot.configurationLimit = 10;  # Keep only last 10 boot entries
+      systemd-boot.configurationLimit = 10; # Keep only last 10 boot entries
       efi.canTouchEfiVariables = true;
     };
 
     # Limit system generations to prevent EFI partition filling up
-    loader.generationsDir.copyKernels = false;  # Don't copy kernels to /boot for each generation
+    loader.generationsDir.copyKernels = false; # Don't copy kernels to /boot for each generation
 
     # Minimal kernel parameters
     kernelParams = [
@@ -153,6 +224,40 @@ in {
     freeMemThreshold = 2; # Only kill when < 2% memory free (very lenient)
     freeSwapThreshold = 5; # Only kill when < 5% swap free
   };
+
+  # ============================================================================
+  # OPENCLAW - AI Agent Gateway
+  # ============================================================================
+  services.openclaw = {
+    enable = true;
+    port = 18789;
+    environmentFile = "/run/agenix/openclaw-env";
+    settings = {
+      # Core OpenClaw configuration with security focus
+      auth = {
+        type = "openclaw";
+      };
+      server = {
+        host = "127.0.0.1";  # Bind only to localhost for security
+        port = 18789;
+      };
+    };
+  };
+
+  # OpenClaw Storage Management Control Plane (runs with lobster user)
+  # Temporarily disabled until minio-cache-credentials are properly set up
+  # services.openclaw-storage = {
+  #   enable = true;
+  #   port = 18800;
+  #   aistorEndpoint = "http://10.1.1.120:9000"; # nexus (AIStor)
+  #   aistorCredentialsFile = "/run/agenix/minio-cache-credentials"; # Requires secret creation
+  #   # Use default buckets from module
+  # };
+
+  # OpenClaw automated backups to cloud storage - Temporarily disabled pending secret setup
+  # services.openclaw-backups = {
+  #   enable = true;
+  # };
 
   # ============================================================================
   # TIMEZONE AND LOCALE
