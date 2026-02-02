@@ -19,6 +19,8 @@
     ../../modules/openclaw.nix
     # Import OpenClaw common configuration
     ../../modules/openclaw-common.nix
+    # Import LM Studio - Desktop LLM Interface
+    ../../modules/lmstudio.nix
     # Import AIStor secrets generation
     ../../modules/aistor-secrets.nix
     # Import nix-ld for dynamically linked executables (Proton/Steam support)
@@ -204,6 +206,14 @@
     environmentVariables = {
       OLLAMA_KEEP_ALIVE = "24h";
     };
+  };
+
+  # ============================================================================
+  # LM STUDIO - Desktop LLM Interface (alternative to Ollama)
+  # ============================================================================
+  services.lmstudio = {
+    enable = true;
+    modelsDir = "/home/j_kro/.local/share/lm-studio/models";
   };
 
   # ============================================================================
