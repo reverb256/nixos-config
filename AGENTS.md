@@ -340,6 +340,21 @@ services.openclaw.nginx = {
 };
 ```
 
+### Architecture Note (2026-02-02 Refactor)
+
+**Problem:** The upstream nix-openclaw package has a missing `hasown` dependency (form-data@2.5.4 requires it, but it's not in the pnpm lockfile). This causes `Error: Cannot find module 'hasown'` when running OpenClaw.
+
+**Solution:** We use a workaround overlay (`modules/openclaw-workaround-overlay.nix`) that:
+1. Creates a minimal `hasown` stub package
+2. Patches the OpenClaw package to include it in node_modules
+3. Wraps the binary with proper NODE_PATH
+
+**Important:** The Home Manager module (`nix-openclaw.homeManagerModules.openclaw`) is deliberately NOT imported in `home.nix`. This prevents binary shadowing where the HM binary (without the workaround) would shadow the system binary (with the workaround).
+
+**CLI Access:** The `openclaw` command is provided by `environment.systemPackages` in the NixOS module, ensuring it uses the same overlayed package as the systemd service.
+
+**Upstream Issue:** https://github.com/openclaw/nix-openclaw/issues/45
+
 ### Required Secrets
 
 **File:** `secrets/age-secrets.nix`
@@ -657,4 +672,4 @@ just dev-setup           # Full pipeline
 - **4** hosts in cluster
 
 ---
-*Last updated: 2026-02-01 | Audit commit: OpenClaw security hardening complete*
+*Last updated: 2026-02-02 | Refactor: Removed HM module to fix hasown workaround*
