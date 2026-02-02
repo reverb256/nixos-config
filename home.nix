@@ -3,11 +3,15 @@
   inputs,
   ...
 }: {
-  # Import Zen Browser, Nixcord, and OpenClaw (Home Manager modules)
+  # Import Zen Browser and Nixcord (Home Manager modules)
+  # NOTE: OpenClaw service is handled by NixOS module (modules/openclaw.nix)
+  # We do NOT import nix-openclaw.homeManagerModules.openclaw here because:
+  # 1. It provides a binary that shadows the system package
+  # 2. The workaround overlay is applied to pkgs.openclaw-gateway (system level)
+  # 3. Both service and CLI should use the same overlayed package
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
-    inputs.nix-openclaw.homeManagerModules.openclaw
   ];
 
   # NH (Nix Helper) configuration for better UX
@@ -456,12 +460,9 @@
   # Claude Code KwaiKAT Model Development Tool Configuration
   # API key is loaded from system environment via modules/environment.nix
 
-  # OpenClaw Home Manager configuration
-  # Auth is handled by NixOS module (openclaw-common.nix)
-  programs.openclaw = {
-    enable = true;
-    instances.default = {};
-  };
+  # OpenClaw CLI is provided by the NixOS module (modules/openclaw.nix)
+  # which uses the overlayed package with hasown workaround
+  # The systemd service runs as 'lobster' user with full systemd hardening
 
   # Minimal Nixcord (Discord client) configuration - uses Vesktop
   programs.nixcord = {
