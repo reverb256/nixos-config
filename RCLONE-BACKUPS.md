@@ -20,7 +20,7 @@ Automated cloud backups for your AIStor data using rclone. Supports multiple clo
 
 ```bash
 # Run the setup script
-sudo -u lobster -i /etc/nixos/scripts/setup-rclone-cloud-backups.sh
+sudo -u lobster -i ~/@projects/infra/nixos/scripts/setup-rclone-cloud-backups.sh
 ```
 
 This will:
@@ -373,4 +373,4 @@ async def training_checkpoint_workflow(self, run_id, local_path, metrics):
 - [rclone S3 Backend](https://rclone.org/s3/)
 - [Backblaze B2 Pricing](https://www.backblaze.com/b2/cloud-storage-pricing.html)
 - [Wasabi Pricing](https://wasabi.com/cloud-storage-pricing/)
-- [OpenClaw AIStor Workflows](/etc/nixos/scripts/openclaw-aistor-workflows.py)
+- [OpenClaw AIStor Workflows](~/@projects/infra/nixos/scripts/openclaw-aistor-workflows.py)
