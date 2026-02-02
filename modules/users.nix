@@ -1,7 +1,11 @@
 # ============================================================================
 # USER MANAGEMENT - Accounts, groups, sudo rules, and permissions
 # ============================================================================
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  lib,
+  ...
+}:
 with lib; {
   # ============================================================================
   # USER ACCOUNTS
@@ -78,40 +82,12 @@ with lib; {
     groups.lobster = {};
 
     # ============================================================================
-    # LOBSTER USER - AI Assistant 🦞
+    # LOBSTER USER - AI Assistant Service 🦞
     # ============================================================================
-    users.lobster = mkForce {
-      isNormalUser = true;
-      description = "🦞 AI Assistant";
-      extraGroups = [
-        "wheel"
-        "lobster"
-        "docker"
-        "video"
-        "render"
-        "networkmanager"
-        "nixbld" # Required for Nix builds
-      ];
-      home = "/home/lobster";
-      createHome = true;
-      shell = "/run/current-system/sw/bin/fish";
-      openssh.authorizedKeys.keys = [
-        # Zephyr current key
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKxlZFnzslRkCM+6mEdPpgLDudCRHYdeEcJoAPLDmHvm j_kro@zephyr"
-        # Forge unified cluster key
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILLLCzj+9HECcMChcD92fW6nChnSX1VEBw8WPFwvlRJH j_kro@cluster"
-        # Sentry keys
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILGuU7xfwpno/Bcf9olU4WfdmlzWPCQUuaIPBzSK8kmH j_kro@zephyr"
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPY8U4+NjQh0XwLVYF2yVQHuIVoujWC8zjB8K7W6hNQx j_kro@sentry"
-        # Nexus cluster key
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFGFHqWyZE0fadxRlfCFf/hyahjiS9WzlIvLkYf0ZK9b j_kro@nixos-cluster"
-        # Root keys for cluster access
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFvsktMT9/yhSZryFJp688+SsYPwnZdyAWaUhRS9L4jM root@cluster"
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDCtXll62kA3CTH3NXDDtVt6W621actl6+cQPUg9YnDN root@nexus"
-        # Reverb256 CA
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILM8m4+tHYj152DRz2bXuv6PrSpC201yYN8Svb5DXEiC j_kroeker@reverb256.ca"
-      ];
-    };
+    # NOTE: This is a system service user, not a login user.
+    # The actual service user configuration is in modules/openclaw.nix
+    # We only define the group here and let the modules handle the user.
+    # This prevents conflicts between different module definitions.
 
     # ============================================================================
     # NIX BUILD USER FOR DISTRIBUTED BUILDS
@@ -138,17 +114,10 @@ with lib; {
     # Passwordless sudo for wheel group (security risk - for mining controls)
     wheelNeedsPassword = false;
 
-    # Lobster gets FULL SYSTEM ACCESS - can run any command
+    # NOTE: Lobster (AI service user) has NO sudo access by design.
+    # It runs as a restricted system user with only service permissions.
+    # See modules/openclaw.nix for the service configuration.
     extraRules = [
-      {
-        users = ["lobster"];
-        commands = [
-          {
-            command = "ALL";
-            options = ["NOPASSWD" "SETENV"];
-          }
-        ];
-      }
       # Allow j_kro to control mining services without password (for desktop icons)
       {
         users = ["j_kro"];

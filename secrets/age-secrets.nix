@@ -1,6 +1,4 @@
-{
-  ...
-}: {
+{...}: {
   age.secrets = {
     # Mining API token for XMRig HTTP API
     "mining-api-token" = {
@@ -27,8 +25,10 @@
     };
 
     # MinIO cache credentials for AIStor on nexus
-    # TODO: Uncomment after encrypting with real credentials:
-    # See AISTOR-DEPLOY.md for instructions
+    # IMPORTANT: You must create this secret file before enabling openclaw-storage
+    # Run: agenix -e minio-cache-credentials.age
+    # Format: MINIO_ACCESS_KEY=xxx
+    #         MINIO_SECRET_KEY=yyy
     # "minio-cache-credentials" = {
     #   file = ./minio-cache-credentials.age;
     # };
