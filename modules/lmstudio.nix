@@ -14,7 +14,7 @@ with lib; let
   lmstudioVersion = "0.3.23-3";
   lmstudioSrc = pkgs.fetchurl {
     url = "https://installers.lmstudio.ai/linux/x64/${lmstudioVersion}/LM-Studio-${lmstudioVersion}-x64.AppImage";
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    hash = "sha256-FG3CzD6UjuPYXImjTkKTozpTQVGk8JLqxhJxTS9qjuo=";
   };
   
   # Build LM Studio package from AppImage
