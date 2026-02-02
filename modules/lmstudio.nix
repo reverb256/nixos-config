@@ -97,8 +97,8 @@ in {
     };
 
     modelsDir = mkOption {
-      type = types.path;
-      default = "${config.xdg.dataHome}/lm-studio/models";
+      type = types.str;
+      default = "/home/j_kro/.local/share/lm-studio/models";
       description = "Directory to store downloaded models";
     };
   };
@@ -122,7 +122,6 @@ in {
 
     # Desktop entry
     environment.sessionVariables = {
-      XDG_DATA_HOME = config.xdg.dataHome;
       # Required for Electron
       ELECTRON_DISABLE_SANDBOX = "1";
     };
@@ -147,8 +146,8 @@ in {
         
         # Environment
         Environment = [
-          "HF_HOME=${config.xdg.cacheHome}/huggingface"
-          "XDG_CACHE_HOME=${config.xdg.cacheHome}"
+          "HF_HOME=/home/j_kro/.cache/huggingface"
+          "XDG_CACHE_HOME=/home/j_kro/.cache"
           "ELECTRON_DISABLE_SANDBOX=1"
         ];
       };
