@@ -23,6 +23,8 @@
 
     # Enhanced Gaming Packages (Proton-GE, GameMode, etc.)
     nix-gaming.url = "github:fufexan/nix-gaming";
+    
+
 
     # Claude Code Native Binary
     claude-native.url = "github:ryoppippi/claude-code-overlay";
@@ -51,6 +53,10 @@
     nix-openclaw.url = "github:openclaw/nix-openclaw";
     nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
     nix-openclaw.inputs.home-manager.follows = "home-manager";
+
+    # Nix Flatpak - Declarative Flatpak management
+    nix-flatpak.url = "github:gmodena/nix-flatpak";
+    nix-flatpak.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs @ {
@@ -70,6 +76,7 @@
       inputs.nix-gaming.nixosModules.pipewireLowLatency
       inputs.nix-gaming.nixosModules.platformOptimizations
       inputs.agenix.nixosModules.default
+      inputs.nix-flatpak.nixosModules.nix-flatpak
 
       # Home Manager
       inputs.home-manager.nixosModules.home-manager
@@ -190,7 +197,7 @@
     # Development shell with all NixOS tools
     devShells.x86_64-linux.default = inputs.nixpkgs.legacyPackages.x86_64-linux.mkShell {
       name = "nixos-config";
-      
+
       packages = with inputs.nixpkgs.legacyPackages.x86_64-linux; [
         # Nix tools
         nixfmt-tree
@@ -198,34 +205,34 @@
         deadnix
         statix
         nixd
-        
+
         # Git tools
         git
         gh
-        
+
         # Build tools
         just
         colmena
-        
+
         # Secrets management
         age
         ssh-to-age
         sops
-        
+
         # Cloud/Cache tools
         minio-client
         rclone
-        
+
         # System tools
         jq
         yq
         curl
         wget
-        
+
         # Documentation
         mdsh
       ];
-      
+
       shellHook = ''
         echo "🚀 NixOS Config Development Environment"
         echo ""

@@ -1,11 +1,11 @@
 {pkgs, ...}: {
   # ============================================================================
-  # DYNAMIC LINKER SUPPORT - nix-ld for mining binaries and browsers
+  # DYNAMIC LINKER SUPPORT - nix-ld for Proton, mining binaries and browsers
   # ============================================================================
   programs.nix-ld = {
     enable = true;
     libraries = with pkgs; [
-      # Defaults (already included in recent nixpkgs)
+      # === BASE LIBRARIES ===
       zlib
       zstd
       stdenv.cc.cc.lib
@@ -20,13 +20,25 @@
       util-linux
       xz
       systemd
+      
+      # === 32-BIT COMPATIBILITY ===
+      # Essential for Proton/Steam games
+      pkgsi686Linux.zlib
+      pkgsi686Linux.stdenv.cc.cc.lib
 
-      # Common for GPU/mining/proprietary (add more as needed)
+      # === GRAPHICS & GPU ===
       libGL
+      libglvnd
       vulkan-loader
       libdrm
       libva
+      mesa
       pipewire
+      libxkbcommon
+      wayland
+      wayland-protocols
+      
+      # === X11 LIBRARIES ===
       xorg.libX11
       xorg.libXext
       xorg.libXrandr
@@ -35,23 +47,54 @@
       xorg.libxshmfence
       xorg.libXfixes
       xorg.libXxf86vm
+      xorg.libXcursor
+      xorg.libXft
+      xorg.libXrender
+      xorg.libXtst
+      xorg.libXi
+      xorg.libXcomposite
+      xorg.libXinerama
+      xorg.libXScrnSaver
+      
+      # === GTK & GUI ===
       glib
+      gtk2
       gtk3
+      gtk4
       pango
       cairo
       atk
       gdk-pixbuf
       fontconfig
       freetype
+      
+      # === AUDIO ===
       alsa-lib
+      alsa-plugins
+      pulseaudio
+      libpulseaudio
+      libvorbis
+      flac
+      libogg
+      
+      # === NETWORKING & DBUS ===
       expat
       dbus
+      dbus-glib
       libusb1
+      
+      # === MEDIA ===
       ffmpeg
       SDL2
-
-      # Browser-specific libraries for Chrome DevTools & Playwright MCP
-      # libstdc++ is already included as stdenv.cc.cc.lib above
+      SDL2_image
+      SDL2_mixer
+      SDL2_ttf
+      libpng
+      libjpeg
+      libtiff
+      libwebp
+      
+      # === BROWSER LIBRARIES ===
       libxcb
       libX11
       libXext
@@ -66,13 +109,28 @@
       xorg.libXft
       xorg.libXrender
       xorg.libXtst
-
-      # CUDA libraries for LM Studio and ML applications
-      # These provide libcudart.so, libcudnn.so, etc. for dynamically linked binaries
+      
+      # === ADDITIONAL GAME LIBRARIES ===
+      libgcrypt
+      libgpg-error
+      libxslt
+      libsecret
+      gmp
+      nettle
+      gnutls
+      libidn2
+      libpsl
+      nghttp2
+      rtmpdump
+      
+      # === CUDA ===
       cudaPackages.cuda_cudart
       cudaPackages.cudnn
       cudaPackages.libcublas
       cudaPackages.libcufft
+      
+      # === NVIDIA SPECIFIC ===
+      nvidia-vaapi-driver
     ];
   };
 }

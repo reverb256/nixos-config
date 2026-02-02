@@ -96,53 +96,55 @@ in {
 
   config = lib.mkIf cfg.enable {
     # Install MCP server wrapper packages
-    environment.systemPackages = with pkgs; [
-      # Node.js for npm-based MCP servers
-      nodejs_22
+    environment.systemPackages = with pkgs;
+      [
+        # Node.js for npm-based MCP servers
+        nodejs_22
 
-      # UV for Python-based MCP servers (if available)
-      (lib.optionalString (lib.hasAttr "uv" pkgs) uv)
+        # UV for Python-based MCP servers (if available)
+        (lib.optionalString (lib.hasAttr "uv" pkgs) uv)
 
-      # Playwright for browser automation (browsers installed via activation script)
-    ] ++ lib.optionals cfg.servers.playwright.enable [
-      playwright
-    ] ++ [
+        # Playwright for browser automation (browsers installed via activation script)
+      ]
+      ++ lib.optionals cfg.servers.playwright.enable [
+        playwright
+      ]
+      ++ [
+        # MCP server wrappers
+        (mkNpmMcpServer {
+          name = "filesystem";
+          package = "@modelcontextprotocol/server-filesystem";
+          args = cfg.servers.filesystem.allowedPaths;
+        })
 
-      # MCP server wrappers
-      (mkNpmMcpServer {
-        name = "filesystem";
-        package = "@modelcontextprotocol/server-filesystem";
-        args = cfg.servers.filesystem.allowedPaths;
-      })
+        (mkNpmMcpServer {
+          name = "git";
+          package = "@modelcontextprotocol/server-git";
+        })
 
-      (mkNpmMcpServer {
-        name = "git";
-        package = "@modelcontextprotocol/server-git";
-      })
+        (mkNpmMcpServer {
+          name = "playwright";
+          package = "@playwright/mcp@latest";
+        })
 
-      (mkNpmMcpServer {
-        name = "playwright";
-        package = "@playwright/mcp@latest";
-      })
+        (mkNpmMcpServer {
+          name = "puppeteer";
+          package = "@modelcontextprotocol/server-puppeteer";
+        })
 
-      (mkNpmMcpServer {
-        name = "puppeteer";
-        package = "@modelcontextprotocol/server-puppeteer";
-      })
+        (mkNpmMcpServer {
+          name = "brave-search";
+          package = "@modelcontextprotocol/server-brave-search";
+          env = lib.optionalAttrs (cfg.servers.brave-search.apiKey != "") {
+            BRAVE_API_KEY = cfg.servers.brave-search.apiKey;
+          };
+        })
 
-      (mkNpmMcpServer {
-        name = "brave-search";
-        package = "@modelcontextprotocol/server-brave-search";
-        env = lib.optionalAttrs (cfg.servers.brave-search.apiKey != "") {
-          BRAVE_API_KEY = cfg.servers.brave-search.apiKey;
-        };
-      })
-
-      (mkNpmMcpServer {
-        name = "chrome-devtools";
-        package = "chrome-devtools-mcp@latest";
-      })
-    ];
+        (mkNpmMcpServer {
+          name = "chrome-devtools";
+          package = "chrome-devtools-mcp@latest";
+        })
+      ];
 
     # Install Playwright browsers on system activation
     system.activationScripts.playwright-browsers = lib.mkIf cfg.servers.playwright.enable {
@@ -150,7 +152,7 @@ in {
         # Install Playwright browsers if not already present
         export PLAYWRIGHT_BROWSERS_PATH=/var/lib/playwright-browsers
         export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
-        
+
         if [ ! -d "$PLAYWRIGHT_BROWSERS_PATH" ]; then
           echo "Installing Playwright browsers..."
           mkdir -p $PLAYWRIGHT_BROWSERS_PATH

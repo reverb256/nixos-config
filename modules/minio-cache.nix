@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.nixos-minio-cache;
 in {
   options.services.nixos-minio-cache = {
@@ -54,7 +57,7 @@ in {
     };
 
     # For signed caches, configure the signing key
-    nix.settings.secret-key-files = lib.mkIf (cfg.privateKeyFile != null) [ cfg.privateKeyFile ];
-    nix.settings.trusted-public-keys = lib.mkIf (cfg.publicKey != null) [ cfg.publicKey ];
+    nix.settings.secret-key-files = lib.mkIf (cfg.privateKeyFile != null) [cfg.privateKeyFile];
+    nix.settings.trusted-public-keys = lib.mkIf (cfg.publicKey != null) [cfg.publicKey];
   };
 }

@@ -465,6 +465,21 @@
         "url": "https://flakehub.com/f/DeterminateSystems/nix-src/%2A"
       }
     },
+    "nix-flatpak": {
+      "locked": {
+        "lastModified": 1768656715,
+        "narHash": "sha256-Sbh037scxKFm7xL0ahgSCw+X2/5ZKeOwI2clqrYr9j4=",
+        "owner": "gmodena",
+        "repo": "nix-flatpak",
+        "rev": "123fe29340a5b8671367055b75a6e7c320d6f89a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gmodena",
+        "repo": "nix-flatpak",
+        "type": "github"
+      }
+    },
     "nix-gaming": {
       "inputs": {
         "flake-parts": "flake-parts_2",
@@ -658,11 +673,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1769912513,
-        "narHash": "sha256-PKG96T7FyYqZKI8gadafxO0Wy5prtDj/an2jCgO7rGM=",
+        "lastModified": 1769998501,
+        "narHash": "sha256-boPd9hgtdoaqY4s7pm5GJpLae8QMz0Zkmk6Y+b2bHTs=",
         "owner": "nix-community",
         "repo": "nixpkgs-xr",
-        "rev": "e25f7c49d3d86ee643d2395ba17163df2800fbbb",
+        "rev": "6ba02930c571402c83a767bfb25ddd3c26673fd2",
         "type": "github"
       },
       "original": {
@@ -816,11 +831,11 @@
         "nixpkgs": "nixpkgs_8"
       },
       "locked": {
-        "lastModified": 1769991522,
-        "narHash": "sha256-yAcuGcrzW4Bf+i0XMjfJfZH+nRHOS5ArVqwUTQfXwuw=",
+        "lastModified": 1769999964,
+        "narHash": "sha256-HRpHctFFBEIcPQWEWacdyRd8nFBKXltjb9+edzSeAF8=",
         "owner": "anomalyco",
         "repo": "opencode",
-        "rev": "fa75d922ed9e9c7e11ae43baec933674d5d3012d",
+        "rev": "8fbba8de73461b82dfa72c870b8686c9e177ead5",
         "type": "github"
       },
       "original": {
@@ -889,6 +904,7 @@
         "ezkea": "ezkea",
         "home-manager": "home-manager_2",
         "kimi-cli": "kimi-cli",
+        "nix-flatpak": "nix-flatpak",
         "nix-gaming": "nix-gaming",
         "nix-openclaw": "nix-openclaw",
         "nixcord": "nixcord",

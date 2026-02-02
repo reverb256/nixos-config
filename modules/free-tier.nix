@@ -1,6 +1,9 @@
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.nixos-free-tier;
 in {
   options.services.nixos-free-tier = {
@@ -33,13 +36,13 @@ in {
         ExecStart = pkgs.writeScript "free-tier-cleanup" ''
           #!/usr/bin/env bash
           set -e
-          
+
           # Delete old generations
           ${pkgs.nix}/bin/nix-collect-garbage --delete-older-than ${cfg.deleteOlderThan}
-          
+
           # Optimize store
           ${pkgs.nix}/bin/nix-store --optimise
-          
+
           # Log completion
           echo "$(date): Free tier cleanup completed"
         '';
@@ -48,7 +51,7 @@ in {
 
     systemd.timers.nixos-free-tier-cleanup = {
       description = "Timer for NixOS Free Tier Cleanup";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = cfg.interval;
         Persistent = true;
@@ -62,8 +65,10 @@ in {
     };
 
     system.autoUpgrade.flags = [
-      "--max-jobs" "2"
-      "--cores" "2"
+      "--max-jobs"
+      "2"
+      "--cores"
+      "2"
     ];
   };
 }

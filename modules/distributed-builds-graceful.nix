@@ -8,14 +8,14 @@
 }: let
   # Conservative settings for local-only builds (prevents OOM on 32GB RAM)
   localOnlySettings = {
-    max-jobs = 4;  # Safe for single machine with 32GB RAM
-    cores = 6;     # Leave headroom for desktop/gaming
+    max-jobs = 4; # Safe for single machine with 32GB RAM
+    cores = 6; # Leave headroom for desktop/gaming
   };
 
   # Aggressive settings when distributed builds are active
   distributedSettings = {
-    max-jobs = 21;  # 8 (zephyr) + 6 (nexus) + 3 (forge) + 4 (sentry)
-    cores = 8;      # Higher core usage per job since work is distributed
+    max-jobs = 21; # 8 (zephyr) + 6 (nexus) + 3 (forge) + 4 (sentry)
+    cores = 8; # Higher core usage per job since work is distributed
   };
 in {
   # ============================================================================
@@ -42,15 +42,15 @@ in {
       # ADAPTIVE max-jobs: Conservative when alone, aggressive with builders
       max-jobs = lib.mkDefault (
         if (config.nix.distributedBuilds && config.nix.buildMachines != [])
-        then distributedSettings.max-jobs  # 21 jobs with builders
-        else localOnlySettings.max-jobs     # 4 jobs local-only
+        then distributedSettings.max-jobs # 21 jobs with builders
+        else localOnlySettings.max-jobs # 4 jobs local-only
       );
 
       # ADAPTIVE cores: Same logic
       cores = lib.mkDefault (
         if (config.nix.distributedBuilds && config.nix.buildMachines != [])
-        then distributedSettings.cores      # 8 cores with builders
-        else localOnlySettings.cores        # 6 cores local-only
+        then distributedSettings.cores # 8 cores with builders
+        else localOnlySettings.cores # 6 cores local-only
       );
     };
   };
@@ -116,7 +116,7 @@ in {
     (pkgs.writeScriptBin "nix-toggle-distributed" ''
       #!/usr/bin/env bash
       # Toggle distributed builds on/off
-      
+
       if [ "$1" == "on" ]; then
         echo "Enabling distributed builds..."
         sudo mkdir -p /etc/nix

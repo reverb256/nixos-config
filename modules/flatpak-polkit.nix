@@ -43,13 +43,21 @@ with lib; {
         polkit.addRule(function(action, subject) {
           if (action.id == "org.freedesktop.Flatpak.app-install" ||
               action.id == "org.freedesktop.Flatpak.runtime-install" ||
-              action.id == "org.freedesktop.Flatpak.app-uninstall" ||
-              action.id == "org.freedesktop.Flatpak.runtime-uninstall" ||
               action.id == "org.freedesktop.Flatpak.install-bundle" ||
               action.id == "org.freedesktop.Flatpak.configure" ||
               action.id == "org.freedesktop.Flatpak.configure-remote" ||
               action.id == "org.freedesktop.Flatpak.modify-repo") {
-            return polkit.Result.YES;
+            // For system-wide operations, require admin privileges
+            if (subject.isInGroup("wheel")) {
+              return polkit.Result.YES;
+            }
+          } else if (action.id == "org.freedesktop.Flatpak.app-uninstall" ||
+                     action.id == "org.freedesktop.Flatpak.runtime-uninstall") {
+            // Handle uninstall differently - defer to user operations for user installs
+            // System uninstalls still require admin privileges
+            if (action.lookup("installation") == "system" && subject.isInGroup("wheel")) {
+              return polkit.Result.YES;
+            }
           }
         });
       '';
@@ -58,8 +66,15 @@ with lib; {
         polkit.addRule(function(action, subject) {
           if (action.id == "org.freedesktop.Flatpak.app-update" ||
               action.id == "org.freedesktop.Flatpak.runtime-update" ||
-              action.id == "org.freedesktop.Flatpak.update-remote") {
-            return polkit.Result.YES;
+              action.id == "org.freedesktop.Flatpak.update-remote" ||
+              action.id == "org.freedesktop.Flatpak.app-uninstall" ||
+              action.id == "org.freedesktop.Flatpak.runtime-uninstall") {
+            // Allow if the installation is for the current user or is a system installation
+            // For user installations, allow without authentication
+            if (action.lookup("installation") == "user" ||
+                subject.isInGroup("wheel")) {
+              return polkit.Result.YES;
+            }
           }
         });
       '';
