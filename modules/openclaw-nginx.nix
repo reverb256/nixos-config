@@ -1,11 +1,12 @@
 # OpenClaw Nginx Reverse Proxy Configuration
 # Provides SSL/TLS termination and reverse proxy for OpenClaw services
-{ config, lib, pkgs, ... }:
-
-let
-  cfg = config.services.openclaw.nginx;
-in
 {
+  config,
+  lib,
+  ...
+}: let
+  cfg = config.services.openclaw.nginx;
+in {
   options.services.openclaw.nginx = {
     enable = lib.mkEnableOption "nginx reverse proxy for OpenClaw services";
 
@@ -35,7 +36,7 @@ in
 
     allowedIPs = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "127.0.0.1" "::1" "10.0.0.0/8" "192.168.0.0/16" ];
+      default = ["127.0.0.1" "::1" "10.0.0.0/8" "192.168.0.0/16"];
       description = "Allowed IP ranges for access (CIDR notation)";
     };
   };
@@ -66,26 +67,28 @@ in
           acmeRoot = lib.mkIf cfg.enableSSL "/var/lib/acme/.challenges";
 
           # IP allowlist for security
-          extraConfig = lib.concatStringsSep "\n" (
-            map (ip: "allow ${ip};") cfg.allowedIPs
-          ) + ''
-            deny all;
+          extraConfig =
+            lib.concatStringsSep "\n" (
+              map (ip: "allow ${ip};") cfg.allowedIPs
+            )
+            + ''
+              deny all;
 
-            # Rate limiting
-            limit_req zone=openclaw_limit burst=20 nodelay;
-            limit_conn openclaw_conn 10;
+              # Rate limiting
+              limit_req zone=openclaw_limit burst=20 nodelay;
+              limit_conn openclaw_conn 10;
 
-            # Security headers
-            add_header X-Frame-Options "SAMEORIGIN" always;
-            add_header X-Content-Type-Options "nosniff" always;
-            add_header X-XSS-Protection "1; mode=block" always;
-            add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+              # Security headers
+              add_header X-Frame-Options "SAMEORIGIN" always;
+              add_header X-Content-Type-Options "nosniff" always;
+              add_header X-XSS-Protection "1; mode=block" always;
+              add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
-            # WebSocket support for OpenClaw gateway
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-          '';
+              # WebSocket support for OpenClaw gateway
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+            '';
 
           locations = {
             # OpenClaw Gateway WebSocket endpoint
@@ -133,11 +136,13 @@ in
           enableACME = cfg.enableSSL;
           forceSSL = cfg.enableSSL;
 
-          extraConfig = lib.concatStringsSep "\n" (
-            map (ip: "allow ${ip};") cfg.allowedIPs
-          ) + ''
-            deny all;
-          '';
+          extraConfig =
+            lib.concatStringsSep "\n" (
+              map (ip: "allow ${ip};") cfg.allowedIPs
+            )
+            + ''
+              deny all;
+            '';
 
           locations."/" = {
             proxyPass = "http://127.0.0.1:${toString cfg.storagePort}";
@@ -154,7 +159,7 @@ in
 
     # Firewall - only expose nginx ports
     networking.firewall = {
-      allowedTCPPorts = [ 80 443 ];
+      allowedTCPPorts = [80 443];
       # Internal ports are not exposed (bound to localhost only)
     };
 
@@ -164,6 +169,6 @@ in
     ];
 
     # Ensure nginx can read acme certificates
-    users.users.nginx.extraGroups = lib.mkIf cfg.enableSSL [ "acme" ];
+    users.users.nginx.extraGroups = lib.mkIf cfg.enableSSL ["acme"];
   };
 }
