@@ -126,8 +126,12 @@ Configured in `modules/nix-config.nix` for faster builds:
 | `nixpkgs-wayland.cachix.org` | Wayland/Hyprland packages | `nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA=` |
 | `nix-gaming.cachix.org` | Gaming packages (Proton-GE) | `nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w=` |
 | `ezkea.cachix.org` | Anime Games Launcher | `ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI=` |
+| `cache.garnix.io` | Garnix CI builds | `cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g=` |
+| `reverb-os.cachix.org` | Personal cache | `reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYz=` |
 
 **Note**: The `cuda-maintainers` cache is essential for AI/ML workloads to avoid building PyTorch/TensorFlow from source.
+
+**Note**: Magic Nix Cache public endpoint was discontinued Jan 2025. Use GitHub Actions version for CI caching (see below).
 
 ## CI/CD with Garnix
 
@@ -153,6 +157,21 @@ All flake outputs are built and cached:
 2. Connect your GitHub repository
 3. Push to GitHub - builds start automatically
 4. Use cached builds locally with the configured `cache.garnix.io`
+
+## CI/CD with GitHub Actions
+
+**GitHub Actions** workflow configured in `.github/workflows/nix.yml`:
+- **Magic Nix Cache** for 30-50% faster CI builds (v13, latest)
+- **Determinate Nix Installer** for reliable Nix setup
+- **Multi-host builds** (zephyr, nexus, forge, sentry)
+
+### Magic Nix Cache
+Uses GitHub Actions cache API to share build results between workflow runs:
+```yaml
+- uses: DeterminateSystems/magic-nix-cache-action@v13
+```
+
+**Note**: Magic Nix Cache only works in GitHub Actions, not for local builds.
 
 ## MCP Servers Configuration
 
