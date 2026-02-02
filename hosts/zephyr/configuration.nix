@@ -10,12 +10,13 @@
     ./hardware-configuration.nix
     ../../modules/desktop.nix
     ../../modules/nvidia-wayland.nix
-    ../../modules/nix-ld.nix # Dynamic linker for mining, LM Studio, MCP servers
+    ../../modules/nix-ld.nix
     ../../modules/mcp-servers.nix
-    ../../modules/steam-wayland-robust.nix # Full Steam + VR + gaming setup
-    ../../modules/openclaw.nix # OpenClaw AI agent orchestration
-    ../../modules/openclaw-common.nix # Common OpenClaw configuration
-    inputs.nixpkgs-xr.nixosModules.nixpkgs-xr # XR/VR packages (uses nix-community cache)
+    ../../modules/steam-wayland-robust.nix
+    ../../modules/openclaw.nix
+    ../../modules/openclaw-common.nix
+    ../../modules/aistor-secrets.nix
+    inputs.nixpkgs-xr.nixosModules.nixpkgs-xr
   ];
 
   # Host identification
@@ -221,11 +222,19 @@
     enable = true;
     endpoint = "http://10.1.1.120:9000";  # Nexus AIStor
     bucket = "nix-cache";
-    # TODO: Enable credentials after encrypting minio-cache-credentials.age
-    # See AISTOR-DEPLOY.md for instructions
-    # credentialsFile = config.age.secrets.minio-cache-credentials.path;
+    credentialsFile = config.age.secrets.minio-cache-credentials.path;
     # No signing needed for local cache
     publicKey = null;
     privateKeyFile = null;
+  };
+
+  # ============================================================================
+  # AISTOR SECRETS - Declarative credential generation
+  # ============================================================================
+  # This generates and encrypts AIStor credentials on first boot
+  services.aistor-secrets = {
+    enable = true;
+    mode = "generate";  # or "demo" for testing, "custom" for explicit credentials
+    outputPath = "/tmp/aistor-credentials.env";
   };
 }
