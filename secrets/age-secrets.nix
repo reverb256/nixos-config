@@ -26,10 +26,12 @@
       file = ./openclaw-env.age;
     };
 
-    # MinIO cache credentials (AIStor on nexus)
-    "minio-cache-credentials" = {
-      file = ./minio-cache-credentials.age;
-    };
+    # MinIO cache credentials for AIStor on nexus
+    # TODO: Uncomment after encrypting with real credentials:
+    # See AISTOR-DEPLOY.md for instructions
+    # "minio-cache-credentials" = {
+    #   file = ./minio-cache-credentials.age;
+    # };
 
     # Cachix authentication token (for pushing to reverb-os cache)
     "cachix-token" = {

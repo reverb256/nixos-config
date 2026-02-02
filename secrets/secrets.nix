@@ -26,5 +26,7 @@ in {
   "openclaw-env".publicKeys = allHosts;
 
   # MinIO cache credentials for AIStor on nexus
-  "minio-cache-credentials".publicKeys = allHosts;
+  # TODO: Uncomment after encrypting with real credentials:
+  # See AISTOR-DEPLOY.md for instructions
+  # "minio-cache-credentials".publicKeys = allHosts;
 }
