@@ -83,9 +83,8 @@ id_ecdsa*
 secrets/*.key
 secrets/*.txt
 
-# Secret Nix files
+# Secret Nix files - commit aistor-secrets.nix (module, not secret refs)
 secrets.nix
-*secrets*.nix
 
 # ============================================================================
 # TEMPORARY/BACKUP FILES

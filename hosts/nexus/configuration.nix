@@ -14,6 +14,8 @@
     ../../modules/openclaw.nix
     # Import OpenClaw common configuration
     ../../modules/openclaw-common.nix
+    # Import AIStor secrets generation
+    ../../modules/aistor-secrets.nix
   ];
 
   # Host identification
@@ -134,15 +136,21 @@
   # ============================================================================
   # AISTOR / MINIO S3 CACHE SERVER + AI DATA STORE
   # ============================================================================
+  services.aistor-secrets = {
+    enable = true;
+    mode = "generate";  # Generates secure credentials on first boot
+    outputPath = "/tmp/aistor-credentials.env";
+  };
+
   services.minio = {
     enable = true;
     listenAddress = "10.1.1.120:9000";
     consoleAddress = "10.1.1.120:9001";
     region = "us-east-1";
     # Data directory (use your large storage)
-    dataDir = "/var/lib/minio";
-    # Root credentials - set these via environment or secrets
-    # MINIO_ROOT_USER and MINIO_ROOT_PASSWORD
+    dataDir = ["/var/lib/minio"];
+    # Root credentials from aistor-secrets service
+    environmentFile = "/tmp/aistor-credentials.env";
   };
 
   # MCP Server environment (when AIStor MCP goes GA)
