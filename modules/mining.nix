@@ -106,8 +106,8 @@ in {
       };
       httpTokenFile = mkOption {
         type = types.path;
-        default = "/run/secrets/mining-api-token";
-        description = "Path to the file containing the HTTP API token";
+        default = "/run/agenix/mining-api-token";
+        description = "Path to the file containing the HTTP API token (agenix)";
       };
     };
   };
@@ -119,10 +119,8 @@ in {
 
     environment.systemPackages = [monitorScript lolminerWrapper];
 
-    # Create mining API token directory (actual token managed by agenix)
-    systemd.tmpfiles.rules = [
-      "d /run/secrets 0750 root root - -" 
-    ];
+    # Note: Mining API token is managed by agenix in /run/agenix/
+    # No tmpfiles rule needed - agenix handles the directory creation
 
     # XMRig configuration file
     environment.etc."xmrig/config.json" = {
