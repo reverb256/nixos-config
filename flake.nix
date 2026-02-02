@@ -78,6 +78,9 @@
       inputs.agenix.nixosModules.default
       inputs.nix-flatpak.nixosModules.nix-flatpak
 
+      # Local Modules
+      ./modules/garnix.nix
+
       # Home Manager
       inputs.home-manager.nixosModules.home-manager
       {

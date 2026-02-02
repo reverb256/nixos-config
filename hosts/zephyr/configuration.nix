@@ -15,12 +15,14 @@
     ../../modules/gaming.nix
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
-    # Import OpenClaw AI agent orchestration
-    ../../modules/openclaw.nix
-    # Import OpenClaw common configuration
-    ../../modules/openclaw-common.nix
-    # Import LM Studio - Desktop LLM Interface
-    ../../modules/lmstudio.nix
+    # Import Garnix cache configuration
+    ../../modules/garnix.nix
+    # Import OpenClaw (container-based - avoids pnpm/hasown issues)
+    ../../modules/openclaw-container.nix
+    # Import Tailscale
+    ../../modules/tailscale.nix
+    # Import LM Studio Docker
+    ../../modules/lmstudio-docker.nix
     # Import AIStor secrets generation
     ../../modules/aistor-secrets.nix
     # Import nix-ld for dynamically linked executables (Proton/Steam support)
@@ -131,6 +133,13 @@
   # ============================================================================
   # MINING CONFIGURATION
   # ============================================================================
+  # GARNIX - CI/CD Cache for faster builds
+  # ============================================================================
+  services.garnix = {
+    enable = true;
+  };
+
+  # ============================================================================
   services.mining = {
     enable = true;
     xmrig = {
@@ -185,35 +194,42 @@
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker"];
 
   # ============================================================================
-  # VIRTUALISATION - Docker
+  # OPENCLAW - AI Agent Gateway (Container-based - avoids pnpm/hasown issues)
   # ============================================================================
-  virtualisation.docker = {
+  services.openclaw-container = {
     enable = true;
-    enableOnBoot = true;
-  };
-
-  # Install docker-compose for container management
-  environment.systemPackages = with pkgs; [
-    docker-compose
-  ];
-
-  # ============================================================================
-  # OLLAMA - Local LLMs
-  # ============================================================================
-  services.ollama = {
-    enable = true;
-    package = pkgs.ollama-cuda; # Use NVIDIA RTX 3090 CUDA acceleration
-    environmentVariables = {
-      OLLAMA_KEEP_ALIVE = "24h";
-    };
+    image = "ghcr.io/openclaw/openclaw";  # Official GitHub container registry
+    tag = "latest";
+    port = 18789;
+    apiPort = 18790;
+    stateDir = "/var/lib/openclaw";
+    dataDir = "/var/lib/openclaw/data";
+    configDir = "/etc/openclaw";
+    runtime = "docker";  # Use docker (lmstudio-docker also uses docker)
+    memory = "2g";
+    cpuShares = 512;
+    healthCheckInterval = 30;
+    gatewayMode = "local";
+    gatewayBind = "0.0.0.0";
+    nginxProxy = true;
   };
 
   # ============================================================================
-  # LM STUDIO - Desktop LLM Interface (alternative to Ollama)
+  # TAILSALE - Secure mesh VPN
   # ============================================================================
-  services.lmstudio = {
+  services.tailscale-custom = {
     enable = true;
+    useRoutingFeatures = "client";
+  };
+
+  # ============================================================================
+  # LM STUDIO - Desktop LLM Interface (GUI only)
+  # ============================================================================
+  services.lmstudio-docker = {
+    enable = true;
+    daemonPort = 1234;
     modelsDir = "/home/j_kro/.local/share/lm-studio/models";
+    dataDir = "/home/j_kro/.local/share/lm-studio/data";
   };
 
   # ============================================================================

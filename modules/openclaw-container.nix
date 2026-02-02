@@ -115,22 +115,16 @@ in {
     # ============================================================================
     # CONTAINER RUNTIME
     # ============================================================================
-    virtualisation = {
-      ${cfg.runtime}.enable = true;
-      ${cfg.runtime}.enableOnBoot = true;
-      ${cfg.runtime}.daemon.settings = {
-        # Enable containerd for better compatibility
-        containerd = {
-          enable = true;
-        };
-        # Storage driver for overlayfs (works on most systems)
-        storage-driver = "overlay2";
-        # Log settings
-        log-driver = "json-file";
-        log-opts = {
-          "max-size" = "10m";
-          "max-file" = "3";
-        };
+    # Docker/Podman should already be enabled by host config or other modules
+    # We just configure the daemon settings
+    virtualisation.${cfg.runtime}.daemon.settings = {
+      # Storage driver for overlayfs (works on most systems)
+      storage-driver = "overlay2";
+      # Log settings
+      log-driver = "json-file";
+      log-opts = {
+        "max-size" = "10m";
+        "max-file" = "3";
       };
     };
 
@@ -208,12 +202,15 @@ in {
           DATA_DIR="${cfg.dataDir}"
           CONFIG_DIR="${cfg.configDir}"
 
+          # Generate a random token for gateway auth
+          GATEWAY_TOKEN=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
+
           # Create default configuration if none exists
           if [ ! -f "$CONFIG_DIR/openclaw.json" ]; then
             echo "Creating default OpenClaw configuration..."
             mkdir -p "$CONFIG_DIR"
 
-            cat > "$CONFIG_DIR/openclaw.json" << 'EOF'
+            cat > "$CONFIG_DIR/openclaw.json" << EOF
 {
   "version": "1.0.0",
   "gateway": {
@@ -221,7 +218,7 @@ in {
     "bind": "${cfg.gatewayBind}",
     "auth": {
       "mode": "token",
-      "token": "${lib.strings.randomString 32}"
+      "token": "$GATEWAY_TOKEN"
     },
     "server": {
       "host": "0.0.0.0",
@@ -260,6 +257,7 @@ in {
 EOF
             chown -R lobster:lobster "$CONFIG_DIR"
             echo "Configuration created at $CONFIG_DIR/openclaw.json"
+            echo "Generated gateway token: $GATEWAY_TOKEN"
           else
             echo "Configuration already exists at $CONFIG_DIR/openclaw.json"
           fi
@@ -297,10 +295,11 @@ EOF
         TimeoutStopSec = "30s";
 
         # Dynamic service execution
-        ExecStart = pkgs.writeShellScript "openclaw-container-start" ''
+        ExecStart = "${pkgs.writeShellScriptBin "openclaw-container-start" ''
+          #!/usr/bin/env bash
           set -euo pipefail
 
-          CONTAINER_RUNTIME="${cfg.runtime}"
+          DOCKER="/run/current-system/sw/bin/docker"
           FULL_IMAGE="${cfg.image}:${cfg.tag}"
           CONTAINER_NAME="openclaw"
           STATE_DIR="${cfg.stateDir}"
@@ -308,41 +307,28 @@ EOF
           CONFIG_DIR="${cfg.configDir}"
           PORT="${toString cfg.port}"
           API_PORT="${toString cfg.apiPort}"
-          MEMORY="${cfg.memory}"
-          CPU_SHARES="${toString cfg.cpuShares}"
 
           echo "Starting OpenClaw container..."
           echo "Image: $FULL_IMAGE"
-          echo "State: $STATE_DIR"
-          echo "Config: $CONFIG_DIR"
 
           # Stop and remove existing container
-          echo "Cleaning up existing container..."
-          $CONTAINER_RUNTIME rm -f "$CONTAINER_NAME" 2>/dev/null || true
+          $DOCKER rm -f "$CONTAINER_NAME" 2>/dev/null || true
 
           # Pull latest image
           echo "Pulling OpenClaw image..."
-          $CONTAINER_RUNTIME pull "$FULL_IMAGE" || {
-            echo "Failed to pull image, using cached version if available"
-          }
+          $DOCKER pull "$FULL_IMAGE" || echo "Using cached version"
 
-          # Run container with comprehensive configuration
+          # Run container
           echo "Starting container..."
-          $CONTAINER_RUNTIME run -d \
+          $DOCKER run -d \
             --name "$CONTAINER_NAME" \
             --restart unless-stopped \
             --network host \
-            \
-            # Volume mounts for persistence
             -v "$STATE_DIR:/var/lib/openclaw" \
             -v "$DATA_DIR:/var/lib/openclaw/data" \
             -v "$CONFIG_DIR:/etc/openclaw" \
-            \
-            # Port mappings
             -p "127.0.0.1:$PORT:$PORT" \
             -p "127.0.0.1:$API_PORT:$API_PORT" \
-            \
-            # Environment
             -e "OPENCLAW_MODE=${cfg.gatewayMode}" \
             -e "OPENCLAW_BIND=${cfg.gatewayBind}" \
             -e "OPENCLAW_PORT=$PORT" \
@@ -350,48 +336,32 @@ EOF
             -e "OPENCLAW_DATA_DIR=/var/lib/openclaw/data" \
             -e "OPENCLAW_CONFIG_DIR=/etc/openclaw" \
             -e "OPENCLAW_LOG_DIR=/var/lib/openclaw/data/logs" \
-            \
-            # Resource limits
-            --memory="$MEMORY" \
-            --cpu-shares="$CPU_SHARES" \
-            \
-            # Security hardening
+            --memory=2147483648 \
+            --cpu-shares=512 \
             --user "1000:1000" \
             --cap-drop ALL \
             --security-opt "no-new-privileges=true" \
-            --security-opt "seccomp=unconfined" \
-            \
-            # Health check
             --health-cmd "curl -sf http://localhost:$PORT/health || exit 1" \
             --health-interval="${toString cfg.healthCheckInterval}s" \
             --health-timeout="10s" \
             --health-retries="3" \
             --health-start-period="30s" \
-            \
-            # Labels for container management
-            --label "org.opencontainers.image.title=OpenClaw" \
-            --label "org.opencontainers.image.description=AI Agent Gateway" \
             --label "managed-by=nixos" \
-            \
-            "$FULL_IMAGE"
+            "$FULL_IMAGE" \
+            gateway
 
           echo "Container started: $CONTAINER_NAME"
-          echo "Gateway UI: http://localhost:$PORT"
-          echo "API: http://localhost:$API_PORT"
-        '';
+          echo "Gateway: http://localhost:$PORT"
+        ''}/bin/openclaw-container-start";
 
-        ExecStop = pkgs.writeShellScript "openclaw-container-stop" ''
-          ${cfg.runtime} stop openclaw 2>/dev/null || true
-          ${cfg.runtime} rm openclaw 2>/dev/null || true
-        '';
+        ExecStop = "${pkgs.writeShellScriptBin "openclaw-container-stop" ''
+          #!/usr/bin/env bash
+          /run/current-system/sw/bin/docker stop openclaw 2>/dev/null || true
+          /run/current-system/sw/bin/docker rm openclaw 2>/dev/null || true
+        ''}/bin/openclaw-container-stop";
 
         # Environment file for secrets
         EnvironmentFile = cfg.environmentFile;
-
-        # Resource monitoring
-        MemoryMax = cfg.memory;
-        CPUAccounting = true;
-        CPUQuota = "50%";
       };
     };
 
@@ -412,18 +382,20 @@ EOF
       description = "Health check for OpenClaw container";
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = pkgs.writeShellScript "openclaw-container-health" ''
+        ExecStart = "${pkgs.writeShellScriptBin "openclaw-container-health" ''
+          #!/usr/bin/env bash
           PORT="${toString cfg.port}"
+          DOCKER="/run/current-system/sw/bin/docker"
 
           # Check container status
-          if ! ${cfg.runtime} ps --format '{{.Names}}' | grep -q "^openclaw$"; then
+          if ! $DOCKER ps --format '{{.Names}}' | grep -q "^openclaw$"; then
             echo "OpenClaw container not running, restarting..."
             systemctl restart openclaw-container.service
             exit 0
           fi
 
           # Check container health
-          HEALTH=$(${cfg.runtime} inspect --format='{{.State.Health.Status}}' openclaw 2>/dev/null || echo "unknown")
+          HEALTH=$($DOCKER inspect --format='{{.State.Health.Status}}' openclaw 2>/dev/null || echo "unknown")
 
           case "$HEALTH" in
             healthy)
@@ -451,7 +423,7 @@ EOF
               fi
               ;;
           esac
-        '';
+        ''}/bin/openclaw-container-health";
       };
     };
 
