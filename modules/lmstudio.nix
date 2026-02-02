@@ -10,13 +10,15 @@
 with lib; let
   cfg = config.services.lmstudio;
   
-  # LM Studio 0.4.x uses the latest URL pattern
-  # Version 0.4.x - check https://lmstudio.ai/download for current version
-  lmstudioVersion = "0.4.1";
+  # LM Studio 0.4.1 - check https://lmstudio.ai/download for current version
+  lmstudioVersion = "0.4.1-1";
   
   # Download URL for the AppImage (GUI frontend)
-  # Using local file for faster iteration
-  lmstudioAppImageSrc = /home/j_kro/.local/share/lm-studio/LM-Studio-0.4.1.AppImage;
+  lmstudioAppImageSrc = pkgs.fetchurl {
+    url = "https://installers.lmstudio.ai/linux/x64/${lmstudioVersion}/LM-Studio-${lmstudioVersion}-x64.AppImage";
+    # Let Nix compute the hash
+    sha256 = lib.fakeHash;
+  };
 in {
   options.services.lmstudio = {
     enable = mkEnableOption "LM Studio - Local LLM Interface (0.4.x)";
