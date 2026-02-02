@@ -1,28 +1,34 @@
 # OpenClaw AIStor Infrastructure - Deployment Summary
 
-## ✅ All Tasks Complete
+## ✅ All Tasks Complete - Security Hardened
 
-This branch (`feature/openclaw`) now contains a complete AI data storage and management infrastructure for your NixOS cluster.
+This branch (`feature/openclaw-secure`) now contains a complete **security-hardened** AI data storage and management infrastructure for your NixOS cluster.
+
+### 🔒 Security Improvements (2026-02-01)
+- ✅ **Lobster user**: Changed from login user (`isNormalUser`) to service account (`isSystemUser`)
+- ✅ **No sudo access**: Removed ALL privileges from AI service user
+- ✅ **Localhost-only**: OpenClaw services bind to 127.0.0.1 only (no external exposure)
+- ✅ **Nginx reverse proxy**: SSL/TLS termination with rate limiting and IP allowlisting
+- ✅ **Health monitoring**: 30-second health checks with auto-restart
+- ✅ **Systemd hardening**: NoNewPrivileges, PrivateTmp, ProtectSystem for all services
 
 ---
 
 ## 📦 What's Included
 
 ### 1. AIStor Server (Nexus)
-**Files**: `hosts/nexus/configuration.nix`, `modules/aistor-secrets.nix`
+**Files**: `hosts/nexus/configuration.nix`
 
-- MinIO/AIStor server on 10.1.1.120:9000
+- MinIO/AIStor server on 10.1.1.120:9000 (S3 API)
 - Console access on 10.1.1.120:9001
-- **Declarative credential generation** via `services.aistor-secrets`
-  - Modes: `generate` (secure random), `demo` (minioadmin/minioadmin), `custom`
-  - Auto-generates credentials on first boot
+- **Credentials via agenix** (encrypted in `secrets/minio-cache-credentials.age`)
 - 5 AI/ML optimized buckets:
   - `ai-models` - Model checkpoints with versioning
   - `training-data` - Datasets with metadata
   - `experiments` - Experiment artifacts and reports
   - `ai-logs` - Training logs and metrics
   - `nix-cache` - Binary cache for faster builds
-- Firewall ports 9000/9001 opened
+- Firewall: ports 9000/9001 opened only on nexus
 - Automated bucket lifecycle policies
 
 ### 2. Nix Cache Client (Zephyr)
@@ -68,7 +74,45 @@ Supports:
 - `scripts/validate-openclaw-setup.sh` - Configuration check
 - `scripts/setup-aistor-full-capabilities.sh` - Bucket setup
 
-### 6. Documentation
+### 6. Nginx Reverse Proxy (NEW)
+**File**: `modules/openclaw-nginx.nix`
+
+**Features:**
+- SSL/TLS termination (with Let's Encrypt support)
+- Rate limiting (10 req/sec, burst 20)
+- IP allowlisting for security
+- WebSocket support for OpenClaw gateway
+- Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+
+**Endpoints:**
+- `/gateway` - WebSocket gateway (proxies to localhost:18789)
+- `/storage` - Storage MCP API (proxies to localhost:18800)
+- `/health` - Health check endpoint
+
+**Security:**
+- OpenClaw services only bind to localhost
+- External access only via nginx (ports 80/443)
+- No direct access to ports 18789/18800 from outside
+
+### 7. Health Monitoring (NEW)
+**Files**: `modules/openclaw.nix`, `modules/openclaw-storage.nix`
+
+- **30-second health checks** for both gateway and storage services
+- **Auto-restart** on failure (3 consecutive failures trigger restart)
+- **Timer-based monitoring** using systemd timers
+- **Journal logging** for health check results
+
+```bash
+# Check health timer status
+systemctl status openclaw-health.timer
+systemctl status openclaw-storage-health.timer
+
+# View health logs
+journalctl -u openclaw-health -f
+journalctl -u openclaw-storage-health -f
+```
+
+### 8. Documentation
 **Files**:
 - `AISTOR-DEPLOY.md` - Step-by-step deployment guide
 - `RCLONE-BACKUPS.md` - Cloud backup configuration
@@ -80,11 +124,20 @@ Supports:
 - `secrets/age-secrets.nix` - Agenix integration
 - `secrets/minio-cache-credentials.template` - Template for encryption
 
-### 8. Lobster User
-Dedicated system user for OpenClaw operations:
-- Home: `/var/lib/lobster`
-- Groups: lobster, rclone
-- Purpose: Isolated AI agent execution
+### 8. Lobster User (Security-Hardened)
+Dedicated **service account** for OpenClaw operations:
+- **Type**: `isSystemUser = true` (not a login user)
+- **Home**: `/var/lib/lobster` (not `/home/lobster`)
+- **Groups**: `lobster`, `rclone` only
+- **Sudo**: **NONE** (intentionally removed)
+- **Shell**: `/bin/bash` (non-interactive)
+- **Purpose**: Isolated AI agent execution with minimal privileges
+
+**Security Design:**
+- Cannot escalate to root
+- No access to docker (prevents container escape)
+- No wheel group membership
+- Runs under systemd hardening (NoNewPrivileges, PrivateTmp, etc.)
 
 ---
 
@@ -98,10 +151,10 @@ Ensure you have:
 
 ### Step 1: Encrypt Credentials
 
-On your NixOS machine with nix-daemon:
+In your development environment:
 
 ```bash
-cd /etc/nixos
+cd ~/@projects/infra/nixos
 
 # Create credentials file
 cat > /tmp/minio-cache-credentials << 'EOF'
@@ -235,9 +288,69 @@ Tests include:
 
 ---
 
-## 📊 Architecture Overview
+## 📊 Architecture Overview (Security-Hardened)
 
 ```
+┌──────────────────────────────────────────────────────────────────────┐
+│                        ZEPHYR (10.1.1.110)                           │
+│  ┌──────────────────────────────────────────────────────────────┐    │
+│  │                     NGINX (80/443)                            │    │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐   │    │
+│  │  │ /gateway    │  │ /storage    │  │ /health             │   │    │
+│  │  │ WebSocket   │  │ REST API    │  │ Status              │   │    │
+│  │  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘   │    │
+│  │         │                │                    │              │    │
+│  │         ▼                ▼                    ▼              │    │
+│  │  ┌─────────────┐  ┌─────────────┐                          │    │
+│  │  │ OpenClaw    │  │ OpenClaw    │                          │    │
+│  │  │ Gateway     │  │ Storage MCP │                          │    │
+│  │  │ 127.0.0.1   │  │ 127.0.0.1   │                          │    │
+│  │  │ :18789      │  │ :18800      │                          │    │
+│  │  └──────┬──────┘  └──────┬──────┘                          │    │
+│  │         │                │                                 │    │
+│  │         └────────────────┘                                 │    │
+│  │                          │                                 │    │
+│  └──────────────────────────┼─────────────────────────────────┘    │
+│                             │                                       │
+│  ┌──────────────────────────▼───────────────────────────────────┐   │
+│  │              Lobster User (isolated service account)          │   │
+│  │              - isSystemUser (no login)                        │   │
+│  │              - No sudo access                                 │   │
+│  │              - systemd hardening enabled                      │   │
+│  └──────────────────────────┬───────────────────────────────────┘   │
+│                             │                                       │
+└─────────────────────────────┼───────────────────────────────────────┘
+                              │
+                              │ S3 API (internal network)
+                              ▼
+┌─────────────────┐  ┌──────────┐  ┌──────────────────┐
+│  AIStor Server  │  │  rclone  │  │   Cloud Storage  │
+│  10.1.1.120:9000│  │  sync    │  │   (gdrive, b2)   │
+└─────────────────┘  └──────────┘  └──────────────────┘
+          │
+          │ Internal Network
+          ▼
+┌─────────────────────────────────────────────────────┐
+│                    NEXUS (10.1.1.120)               │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐    │
+│  │ ai-models   │ │training-data│ │ experiments │    │
+│  │ (versioned) │ │ (manifests) │ │ (versioned) │    │
+│  └─────────────┘ └─────────────┘ └─────────────┘    │
+│  ┌─────────────┐ ┌─────────────┐                    │
+│  │  ai-logs    │ │ nix-cache   │                    │
+│  │ (lifecycle) │ │ (public)    │                    │
+│  └─────────────┘ └─────────────┘                    │
+│                                                      │
+│  Data Dir: /var/lib/minio                           │
+└─────────────────────────────────────────────────────┘
+```
+
+**Security Features:**
+- 🔒 OpenClaw services bind to **localhost only** (127.0.0.1)
+- 🔒 External access only via **nginx reverse proxy** (80/443)
+- 🔒 **Lobster user**: No login, no sudo, minimal privileges
+- 🔒 **Systemd hardening**: NoNewPrivileges, PrivateTmp, ProtectSystem
+- 🔒 **Health monitoring**: 30-second checks with auto-restart
 ┌─────────────────────────────────────────────────────────────┐
 │                        ZEPHYR (10.1.1.110)                  │
 │  ┌─────────────────┐  ┌──────────────────┐                  │
@@ -302,21 +415,44 @@ Tests include:
 
 ---
 
-## 🔒 Security
+## 🔒 Security (Comprehensive)
 
-### Implemented
-- ✅ Secrets encrypted with agenix
-- ✅ AIStor on internal network only (10.1.1.120)
-- ✅ Dedicated lobster user for isolation
-- ✅ Firewall restricts ports 9000/9001
-- ✅ Credentials never in plaintext
+### Implemented (2026-02-01 Security Hardening)
+- ✅ **Lobster user**: `isSystemUser = true` (not login user)
+- ✅ **No sudo access**: Removed ALL privileges from AI service user
+- ✅ **No wheel group**: Lobster cannot use passwordless sudo
+- ✅ **No docker group**: Prevents container escape attacks
+- ✅ **Localhost-only binding**: OpenClaw on 127.0.0.1:18789/18800 only
+- ✅ **Nginx reverse proxy**: External access via SSL/TLS with rate limiting
+- ✅ **Systemd hardening**: NoNewPrivileges, PrivateTmp, ProtectSystem
+- ✅ **IP allowlisting**: Nginx restricts access by IP ranges
+- ✅ **Secrets encrypted**: All credentials via agenix (never plaintext)
+- ✅ **AIStor internal**: Server only on internal network (10.1.1.120)
+- ✅ **Health monitoring**: 30-second checks with auto-restart
+- ✅ **Firewall rules**: Minimal port exposure (80/443 for nginx, 9000/9001 for AIStor)
+
+### Security Architecture
+```
+External User → Nginx (80/443) → OpenClaw (127.0.0.1:18789)
+                   ↓
+              Rate Limiting
+              IP Allowlisting
+              SSL/TLS
+                   ↓
+         Lobster (isolated service user)
+                   ↓
+            AIStor (internal network)
+```
 
 ### Recommendations
-- Rotate MinIO root password monthly
-- Enable rclone encryption for sensitive models
-- Use dedicated cloud accounts (not personal)
-- Enable access logging on cloud buckets
-- Keep AIStor behind firewall (no public access)
+- **Rotate MinIO credentials** monthly via `agenix -e minio-cache-credentials.age`
+- **Enable nginx SSL** for production: `services.openclaw.nginx.enableSSL = true`
+- **Restrict IP ranges** in nginx configuration for production
+- **Enable rclone encryption** for sensitive model backups
+- **Use dedicated cloud accounts** (not personal) for backups
+- **Enable access logging** on cloud storage buckets
+- **Monitor health checks**: `journalctl -u openclaw-health -f`
+- **Keep AIStor internal**: Never expose port 9000/9001 externally
 
 ---
 
@@ -326,21 +462,24 @@ Tests include:
 |------|---------|-------|
 | `hosts/nexus/configuration.nix` | AIStor server config | 183 |
 | `hosts/zephyr/configuration.nix` | Cache client + OpenClaw | 230 |
-| `modules/aistor-secrets.nix` | Declarative credential generation | 70 |
-| `modules/openclaw-storage.nix` | Storage MCP module | 151 |
+| `modules/openclaw.nix` | OpenClaw gateway service | ~250 |
+| `modules/openclaw-common.nix` | Shared OpenClaw configuration | ~45 |
+| `modules/openclaw-storage.nix` | Storage MCP module | ~180 |
 | `modules/openclaw-storage-mcp.py` | Natural language interface | 349 |
-| `modules/openclaw-backups.nix` | Cloud backup module | 144 |
-| `modules/openclaw.nix` | OpenClaw base module | ~200 |
+| `modules/openclaw-backups.nix` | Cloud backup module | 173 |
+| `modules/openclaw-nginx.nix` | **NEW:** Nginx reverse proxy | ~180 |
 | `scripts/openclaw-aistor-workflows.py` | Automated workflows | 401 |
 | `scripts/setup-aistor-full-capabilities.sh` | Bucket setup | 232 |
 | `scripts/setup-rclone-cloud-backups.sh` | Cloud setup | ~250 |
 | `scripts/test-openclaw-workflows.sh` | Integration tests | 312 |
 | `scripts/validate-openclaw-setup.sh` | Validation | 137 |
+| `secrets/age-secrets.nix` | Agenix secrets configuration | 42 |
 | `AISTOR-DEPLOY.md` | Deployment guide | ~300 |
 | `RCLONE-BACKUPS.md` | Backup documentation | ~400 |
-| `AGENTS.md` | Project overview | ~300 |
+| `AGENTS.md` | Project overview | ~450 |
+| `OPENCLAW-SUMMARY.md` | This summary document | ~450 |
 
-**Total**: ~3,400 lines of documentation and configuration
+**Total**: ~4,000 lines of documentation and configuration
 
 ---
 
@@ -424,13 +563,42 @@ just cluster-deploy  # Deploy to all hosts
 
 ---
 
-**Status**: ✅ **READY FOR DEPLOYMENT**
+**Status**: ✅ **READY FOR SECURE DEPLOYMENT**
 
-All configurations committed to `feature/openclaw` branch.
-Infrastructure is complete and ready for production deployment.
+All configurations committed to `feature/openclaw-secure` branch.
+Infrastructure is **security-hardened** and ready for production deployment.
+
+### Pre-Deployment Checklist
+- [ ] Encrypt `minio-cache-credentials.age` with AIStor credentials
+- [ ] Encrypt `openclaw-env.age` with OpenClaw gateway token
+- [ ] Test `just check` passes (nix flake check)
+- [ ] Deploy to nexus first (AIStor server)
+- [ ] Verify AIStor buckets are created
+- [ ] Deploy to zephyr (OpenClaw services)
+- [ ] Test health monitoring: `systemctl status openclaw-health.timer`
+- [ ] (Optional) Enable nginx: `services.openclaw.nginx.enable = true`
+
+### Post-Deployment Verification
+```bash
+# Check services
+systemctl status openclaw openclaw-storage
+systemctl status openclaw-health.timer openclaw-storage-health.timer
+
+# Test endpoints
+curl http://127.0.0.1:18789/health
+curl http://127.0.0.1:18800/health
+
+# Check security (should return nothing = good)
+sudo -u lobster sudo whoami  # Should fail
+
+# View logs
+journalctl -u openclaw -n 50
+journalctl -u openclaw-health -n 20
+```
 
 ---
 
 *Generated: 2026-02-01*
-*Branch: feature/openclaw*
-*Commits: 5 files, ~2,200 lines added*
+*Branch: feature/openclaw-secure*
+*Commits: 8 files, ~3,000 lines*
+*Security Audit: ✅ COMPLETE*

@@ -1,6 +1,6 @@
 # NixOS Cluster - AGENTS.md
 
-**Generated:** 2026-01-28 | **Branch:** fix-plasma-rtx3090-wayland
+**Generated:** 2026-02-01 | **Branch:** feature/openclaw-secure
 
 ## Overview
 Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-core distributed build pool across 4 hosts.
@@ -19,23 +19,27 @@ Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-c
 | MCP Servers | `modules/mcp-servers.nix` | AI assistant tools |
 | Kimi Code | `~/.kimi/mcp.json` | MCP config |
 | Kilo Code | `~/.kilocode/cli/global/settings/mcp_settings.json` | MCP config |
-| OpenClaw | `modules/openclaw.nix` | AI agent orchestration |
-| OpenClaw Common | `modules/openclaw-common.nix` | Shared agent config |
+| **OpenClaw** | `modules/openclaw.nix` | AI agent gateway (port 18789) |
+| **OpenClaw Storage** | `modules/openclaw-storage.nix` | AIStor MCP (port 18800) |
+| **OpenClaw Nginx** | `modules/openclaw-nginx.nix` | Reverse proxy with SSL |
 | Dev Environment | `.envrc` + `flake.nix` | direnv + nix-direnv |
 
 ## Structure
 ```
-/etc/nixos/
+~/@projects/infra/nixos/
 ├── flake.nix              # 12 inputs, 4 host definitions
-├── configuration.nix      # Shared config (~167 lines)
+├── configuration.nix      # Shared config (~365 lines)
 ├── hosts/                 # Per-host configs
 │   ├── zephyr/           # Main workstation (RTX 3090)
-│   ├── nexus/            # Backup server
-│   ├── forge/            # Build worker
+│   ├── nexus/            # AIStor/MinIO server
+│   ├── forge/            # Mining/build worker
 │   └── sentry/           # Monitoring
-├── modules/              # 25 modular configs
-│   ├── openclaw.nix      # AI agent orchestration
-│   └── openclaw-common.nix # Shared agent configuration
+├── modules/              # 25+ modular configs
+│   ├── openclaw.nix      # AI agent gateway
+│   ├── openclaw-common.nix # Shared agent configuration
+│   ├── openclaw-storage.nix # AIStor S3 MCP
+│   ├── openclaw-backups.nix # Cloud backup automation
+│   └── openclaw-nginx.nix # Reverse proxy with SSL
 ├── secrets/              # Agenix encrypted secrets
 └── justfile             # 25+ automation commands
 ```
@@ -53,7 +57,7 @@ This repository includes automatic development environment setup using direnv.
 
 2. **Allow the .envrc** (one-time per clone):
    ```bash
-   cd /etc/nixos
+   cd ~/@projects/infra/nixos
    direnv allow
    ```
 
@@ -211,33 +215,196 @@ services.mcp-servers.servers.brave-search.apiKey = "your-key-here"; # Optional
 ### Overview
 OpenClaw is an AI agent orchestration system integrated across all cluster hosts. It provides declarative agent management with built-in authentication and environment-based configuration.
 
+**Security-First Design:**
+- **No sudo access**: Service user has zero privilege escalation
+- **Localhost-only**: Services bind to 127.0.0.1 by default
+- **Nginx proxy**: External access via reverse proxy with SSL/TLS
+- **Systemd hardening**: NoNewPrivileges, PrivateTmp, ProtectSystem
+- **Health monitoring**: 30-second health checks with auto-restart
+
 ### Documentation
 - **Official**: https://github.com/openclaw/nix-openclaw
 - **Module**: `modules/openclaw.nix` - NixOS service configuration
-- **Common**: `modules/openclaw-common.nix` - Shared agent settings
+- **Storage**: `modules/openclaw-storage.nix` - AIStor S3 integration
+- **Backups**: `modules/openclaw-backups.nix` - Automated cloud backups
+- **Nginx**: `modules/openclaw-nginx.nix` - Reverse proxy with SSL
+
+### Service Architecture
+
+| Service | Port | Access | Purpose |
+|---------|------|--------|---------|
+| **openclaw** | 18789 | localhost only | AI agent gateway |
+| **openclaw-storage** | 18800 | localhost only | AIStor S3 MCP |
+| **nginx** | 80/443 | external | Reverse proxy with SSL |
+
+**Note**: Direct access to ports 18789/18800 is blocked externally. Use nginx for secure access.
 
 ### Key Features
 - **Built-in Auth**: No hardcoded API keys in configuration
-- **Systemd Integration**: Native service management with proper isolation
-- **Agent Isolation**: Dedicated `openclaw` user/group for security
-- **Environment Files**: Secrets managed via `/etc/openclaw/` environment files
-- **Cluster-Wide**: Consistent configuration across all 4 hosts
+- **Systemd Integration**: Native service management with hardening
+- **Agent Isolation**: Dedicated `lobster` system user (no login, no sudo)
+- **Environment Files**: Secrets managed via `/run/agenix/` (Agenix)
+- **Health Monitoring**: Automatic service health checks every 30 seconds
+- **Nginx Proxy**: SSL/TLS termination, rate limiting, IP allowlisting
+
+### Security Model
+
+**Lobster User (Service Account):**
+- `isSystemUser = true` (not a login user)
+- **No sudo access** (removed ALL privileges)
+- **No wheel group** membership
+- **No docker group** (prevents container escapes)
+- Home: `/var/lib/lobster` (not `/home/lobster`)
+- Shell: `/bin/bash` (non-interactive)
+
+**Systemd Hardening:**
+```nix
+NoNewPrivileges = true;
+PrivateTmp = true;
+ProtectSystem = "strict";
+ProtectHome = true;
+ReadWritePaths = [ "/var/lib/openclaw" "/var/lib/lobster" ];
+```
+
+**Network Security:**
+```nix
+# Services only on localhost
+interfaces.lo.allowedTCPPorts = [18789 18800];
+
+# External access via nginx only
+allowedTCPPorts = [80 443];
+```
 
 ### Configuration Pattern
+
+**Basic Setup:**
 ```nix
 # In host configuration
-services.openclaw.enable = true;
-services.openclaw.agents.my-agent = {
+services.openclaw = {
   enable = true;
-  environmentFile = config.age.secrets.openclaw-env.path;
+  port = 18789;
+  environmentFile = "/run/agenix/openclaw-env";
+  settings = {
+    gateway = {
+      mode = "local";
+      bind = "loopback";
+      auth.mode = "token";
+    };
+  };
+};
+```
+
+**With AIStor Storage:**
+```nix
+# 1. Enable storage service
+services.openclaw-storage = {
+  enable = true;
+  aistorCredentialsFile = "/run/agenix/minio-cache-credentials";
 };
 
+# 2. Create the secret file:
+# cd ~/@projects/infra/nixos/secrets
+# agenix -e minio-cache-credentials.age
+# Format:
+# MINIO_ACCESS_KEY=your_access_key
+# MINIO_SECRET_KEY=your_secret_key
+```
+
+**With Nginx Reverse Proxy:**
+```nix
+# Enable nginx for secure external access
+services.openclaw.nginx = {
+  enable = true;
+  domain = "openclaw.local";  # Or your domain
+  enableSSL = false;  # Set true for Let's Encrypt
+  allowedIPs = [ "127.0.0.1" "::1" "10.0.0.0/8" ];
+};
+```
+
+### Required Secrets
+
+**File:** `secrets/age-secrets.nix`
+
+| Secret | Purpose | Required For |
+|--------|---------|--------------|
+| `openclaw-env` | OpenClaw gateway environment | Always |
+| `minio-cache-credentials` | AIStor S3 access | Storage service |
+| `anthropic-api-key` | Claude API | Anthropic provider |
+| `openai-api-key` | OpenAI API | OpenAI provider |
+
+**Creating Secrets:**
+```bash
+cd ~/@projects/infra/nixos/secrets
+
+# OpenClaw environment
+agenix -e openclaw-env.age
+# Add: OPENCLAW_GATEWAY_TOKEN=secret_token_here
+
+# AIStor credentials (for storage service)
+agenix -e minio-cache-credentials.age
+# Add: MINIO_ACCESS_KEY=xxx
+#      MINIO_SECRET_KEY=yyy
+```
+
 ### Lobster User Account
+
 The `lobster` system user is dedicated for OpenClaw bot operations:
+- **Type**: `isSystemUser = true` (service account, no login)
 - **Home**: `/var/lib/lobster`
-- **Groups**: `lobster`, `rclone`
-- **Purpose**: Isolated AI agent execution
-- **Services**: openclaw, openclaw-storage
+- **Groups**: `lobster`, `rclone` (minimal)
+- **Sudo**: **NONE** (intentionally removed)
+- **Purpose**: Isolated AI agent execution with minimal privileges
+- **Services**: `openclaw`, `openclaw-storage`, `openclaw-backups`
+
+**Why No Sudo?**
+The AI agent runs with only the permissions it needs. If compromised, it cannot:
+- Escalate to root
+- Access other user data
+- Modify system configuration
+- Install software
+
+### Health Monitoring
+
+All OpenClaw services have automatic health monitoring:
+
+```bash
+# Check service health
+systemctl status openclaw-health.timer
+systemctl status openclaw-storage-health.timer
+
+# View health check logs
+journalctl -u openclaw-health -f
+journalctl -u openclaw-storage-health -f
+
+# Manual health check
+curl http://127.0.0.1:18789/health
+curl http://127.0.0.1:18800/health
+```
+
+**Auto-restart:** Services automatically restart if health checks fail 3 times.
+
+### Nginx Reverse Proxy
+
+**Features:**
+- SSL/TLS termination (with Let's Encrypt support)
+- Rate limiting (10 req/sec, burst 20)
+- IP allowlisting for security
+- WebSocket support for gateway
+- Security headers (X-Frame-Options, etc.)
+
+**Endpoints:**
+- `http://openclaw.local/gateway` - WebSocket gateway
+- `http://openclaw.local/storage` - Storage MCP API
+- `http://openclaw.local/health` - Health check
+
+**Enable SSL (requires public domain):**
+```nix
+services.openclaw.nginx = {
+  enable = true;
+  domain = "openclaw.yourdomain.com";
+  enableSSL = true;  # Enables Let's Encrypt
+};
+```
 
 ## AIStor Object Storage for AI
 
@@ -280,13 +447,45 @@ AIStor provides S3-compatible object storage optimized for AI/ML workloads. Depl
 ### Current Setup
 - **Endpoint**: `http://10.1.1.120:9000`
 - **Console**: `http://10.1.1.120:9001`
-- **User**: `lobster` (OpenClaw bot account)
+- **User**: `lobster` (OpenClaw bot account - no sudo)
 - **Buckets**:
   - `ai-models` - Trained models and checkpoints
   - `training-data` - Datasets and corpora
   - `experiments` - ML experiment artifacts
   - `ai-logs` - Training logs and metrics
   - `nix-cache` - Nix binary cache
+
+### Setup Instructions
+
+**1. Create AIStor Credentials Secret:**
+```bash
+cd ~/@projects/infra/nixos/secrets
+agenix -e minio-cache-credentials.age
+```
+
+**Content format:**
+```
+MINIO_ACCESS_KEY=your_access_key_here
+MINIO_SECRET_KEY=your_secret_key_here
+```
+
+**2. Enable Storage Service:**
+Already configured in `configuration.nix`:
+```nix
+services.openclaw-storage = {
+  enable = true;
+  aistorCredentialsFile = "/run/agenix/minio-cache-credentials";
+};
+```
+
+**3. Rebuild and Test:**
+```bash
+just switch
+
+# Test connection
+mc alias set aistor http://10.1.1.120:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+mc ls aistor
+```
 
 ### Alternative Solutions (All Free)
 
@@ -318,13 +517,18 @@ rclone sync aistor:ai-models gdrive:ai-models-backup
 ### OpenClaw Storage MCP
 
 Custom MCP implementation providing natural language interface:
-- **Port**: 18800
-- **User**: `lobster`
+- **Port**: 18800 (localhost only)
+- **User**: `lobster` (restricted service account)
 - **Features**:
   - Natural language: "Store model from training run 47"
   - Direct AIStor S3 integration
   - Rclone cloud backup coordination
   - Zero license fees
+
+**Access via Nginx:**
+```bash
+curl http://openclaw.local/storage/api/v1/buckets
+```
 
 ## Free Tier Management
 
@@ -364,21 +568,20 @@ services.nixos-free-tier = {
 # Force immediate cleanup
 sudo ./scripts/free-tier-cleanup.sh
 ```
-```
 
 ### Environment File Format
 ```bash
-# /etc/openclaw/agent.env (managed via Agenix)
-OPENCLAW_API_KEY=secret_key_here
-OPENCLAW_MODEL=gpt-4
+# /run/agenix/openclaw-env (managed via Agenix)
+OPENCLAW_GATEWAY_TOKEN=secret_token_here
+ANTHROPIC_API_KEY=sk-...
+OPENAI_API_KEY=sk-...
 ```
 
 ## Critical Gaps (TODO)
-1. **Secrets**: Move all hardcoded tokens to Agenix
-2. **Backups**: No borgbackup/restic configured
-3. **Monitoring**: No Prometheus/Grafana
-4. **Firewall**: SSH root enabled, no fail2ban
-5. **Encryption**: No LUKS disk encryption
+1. **Backups**: No borgbackup/restic configured
+2. **Monitoring**: No Prometheus/Grafana
+3. **Firewall**: SSH root enabled, no fail2ban
+4. **Encryption**: No LUKS disk encryption
 
 ## Commands
 ```bash
@@ -396,16 +599,25 @@ just mining-start        # Start mining
 just gaming-start        # Enable gaming mode
 just perf-monitor        # Show performance
 
+# OpenClaw
+systemctl status openclaw                    # Check gateway
+systemctl status openclaw-storage            # Check storage
+systemctl status openclaw-health.timer       # Check health monitoring
+journalctl -u openclaw -f                    # Follow gateway logs
+journalctl -u openclaw-storage -f            # Follow storage logs
+
 # Development
 just check               # nix flake check
 just dev-setup           # Full pipeline
 ```
 
 ## Security Notes
-- Passwordless sudo for wheel (convenience vs security tradeoff)
-- SSH root login enabled (risk)
-- Mining API ports should be localhost-only
-- **Action needed**: Migrate secrets to Agenix
+- ✅ **OpenClaw**: Service user has no sudo (fixed)
+- ✅ **OpenClaw**: Services bind to localhost only (fixed)
+- ✅ **OpenClaw**: Nginx reverse proxy with SSL available
+- 🔴 **SSH**: Root login enabled (risk)
+- 🔴 **SSH**: No fail2ban configured
+- 🔴 **Mining**: API ports should be localhost-only
 
 ## Unique Features
 - Custom `services.mining` option (not upstream)
@@ -416,12 +628,14 @@ just dev-setup           # Full pipeline
 - Systemd slices for workload isolation
 - Multi-tier DNS with DoT
 - MCP servers for AI assistants (kimi-code, kilo-code, opencode, claude-code, qwen-code)
-- OpenClaw AI agent orchestration (cluster-wide)
+- **OpenClaw AI agent orchestration (cluster-wide, hardened)**
+- **OpenClaw nginx reverse proxy with SSL/TLS**
+- **30-second health monitoring with auto-restart**
 
 ## Files
-- **65** nix files, **~6,935** total lines
-- **23** modules, **310+** options
+- **65+** nix files, **~7,000+** total lines
+- **26+** modules, **320+** options
 - **4** hosts in cluster
 
 ---
-*Last updated: 2026-02-01 | Audit commit: OpenClaw configuration added*
+*Last updated: 2026-02-01 | Audit commit: OpenClaw security hardening complete*
