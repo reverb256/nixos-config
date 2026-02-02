@@ -141,8 +141,8 @@ EOF
 
       serviceConfig = {
         Type = "simple";
-        User = "j_kro";
-        Group = "j_kro";
+        User = "root";
+        Group = "root";
         Restart = "on-failure";
         RestartSec = "5s";
         WorkingDirectory = cfg.dataDir;
@@ -165,15 +165,6 @@ EOF
         RuntimeDirectory = "lm-studio";
         RuntimeDirectoryMode = "0755";
       };
-
-      # Health check
-      serviceConfig.ExecStartPost = pkgs.writeShellScript "lmstudio-health-check" ''
-        sleep 2
-        if ! curl -sf "http://${cfg.daemonHost}:${toString cfg.daemonPort}/health" >/dev/null 2>&1; then
-          echo "LM Studio daemon health check failed"
-          exit 1
-        fi
-      '';
     };
 
     # Health monitoring timer
