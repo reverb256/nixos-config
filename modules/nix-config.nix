@@ -42,8 +42,6 @@
         "https://cache.garnix.io"
         # Reverb OS - Your personal Cachix cache
         "https://reverb-os.cachix.org"
-        # GitHub Magic Nix Cache - Public cache for all packages
-        "https://magic.nixos.org"
       ];
 
       trusted-public-keys = [
@@ -57,7 +55,7 @@
         "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
         "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
         "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYz="
-        "magic.nixos.org-1:eRQ8mF8J9FqT6yV6k3kHdYiVr4R9mYr2A="
+        # "magic.nixos.org-1:eRQ8mF8J9FqT6yV6k3kHdYiVr4R9mYr2A="
       ];
 
       # TEMPORARY: Disable signature checks to fix NVIDIA driver issues
