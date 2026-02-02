@@ -182,6 +182,8 @@ in {
             "OPENCLAW_STATE_DIR=${cfg.stateDir}"
             "OPENCLAW_CONFIG_PATH=${cfg.configDir}/openclaw.json"
             "HOME=${cfg.stateDir}"
+            # Add NODE_PATH for pnpm dependencies
+            "NODE_PATH=${cfg.package}/lib/openclaw/node_modules:${cfg.package}/lib/openclaw/node_modules/.pnpm/node_modules"
           ]
           ++ (
             if cfg.enableLegacyEnv
