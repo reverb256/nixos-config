@@ -49,10 +49,11 @@
   # ============================================================================
   # STEAM + GAMING CONFIGURATION (via steam-wayland-robust module)
   # ============================================================================
-  services.steamWayland = {
-    enable = true;
-    protonVersion = "GE-Proton9-25";
-  };
+  # TODO: services.steamWayland module not available in nixpkgs 62c8382
+  # services.steamWayland = {
+  #   enable = true;
+  #   protonVersion = "GE-Proton9-25";
+  # };
 
   # ============================================================================
   # DISPLAY MANAGER - SDDM with Wayland (Pure Wayland, no X11)
