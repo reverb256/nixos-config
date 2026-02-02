@@ -15,7 +15,7 @@ in {
 
     image = mkOption {
       type = types.str;
-      default = "openclaw/openclaw-sandbox:bookworm";
+      default = "openclaw-sandbox:bookworm";
       description = "OpenClaw Docker image to use";
     };
 
@@ -125,16 +125,16 @@ EOF
         Restart = "on-failure";
         RestartSec = "5s";
         ExecStart = pkgs.writeShellScript "openclaw-start" ''
-          # Remove old container if exists
-          docker rm -f openclaw 2>/dev/null || true
+          # Use full path to docker
+          DOCKER="/run/current-system/sw/bin/docker"
 
-          # Build OpenClaw container from local source
-          cd /data/@projects/infra/nixos
-          
+          # Remove old container if exists
+          $DOCKER rm -f openclaw 2>/dev/null || true
+
           # Check if we have local source to build
           if [ -d "/data/@projects/infra/nixos/../openclaw" ]; then
             echo "Building OpenClaw from local source..."
-            docker build -t openclaw-local /data/@projects/infra/nixos/../openclaw
+            $DOCKER build -t openclaw-local /data/@projects/infra/nixos/../openclaw
             IMAGE="openclaw-local"
           else
             IMAGE="${cfg.image}"
@@ -142,7 +142,7 @@ EOF
           fi
 
           # Run OpenClaw container
-          docker run -d \
+          $DOCKER run -d \
             --name openclaw \
             --restart unless-stopped \
             --network host \
@@ -162,8 +162,9 @@ EOF
         '';
 
         ExecStop = pkgs.writeShellScript "openclaw-stop" ''
-          docker stop openclaw 2>/dev/null || true
-          docker rm openclaw 2>/dev/null || true
+          DOCKER="/run/current-system/sw/bin/docker"
+          $DOCKER stop openclaw 2>/dev/null || true
+          $DOCKER rm openclaw 2>/dev/null || true
         '';
 
         # Environment file support

@@ -8,9 +8,9 @@
   ...
 }:
 with lib; let
-  cfg = config.services.lmstudio;
+  cfg = config.services.lmstudio-docker;
 in {
-  options.services.lmstudio = {
+  options.services.lmstudio-docker = {
     enable = mkEnableOption "LM Studio - Local LLM Interface via Docker";
 
     image = mkOption {
@@ -75,10 +75,6 @@ in {
     # Docker container service for LM Studio
     # Using a custom Docker image since LM Studio doesn't ship official ones
     # We'll build a minimal image with the lms CLI
-    virtualisation.containers = {
-      enable = true;
-      automountCgroupns = true;
-    };
 
     systemd.services.lmstudio-daemon = {
       description = "LM Studio Local LLM Server (Docker)";
@@ -90,12 +86,15 @@ in {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = pkgs.writeShellScript "lmstudio-start" ''
+          # Use full path to docker
+          DOCKER="/run/current-system/sw/bin/docker"
+
           # Remove old container if exists
-          docker rm -f lmstudio 2>/dev/null || true
+          $DOCKER rm -f lmstudio 2>/dev/null || true
 
           # Build and run LM Studio container
           # Using a minimal Python-based server that mimics lms CLI
-          docker build -t lmstudio-local - <<'EOF'
+          $DOCKER build -t lmstudio-local - <<'EOF'
 FROM python:3.11-slim
 RUN pip install --no-cache-dir uvicorn fastapi httpx
 COPY <<'PYEOF' /app/server.py
@@ -161,7 +160,7 @@ CMD ["python", "/app/server.py"]
 EOF
 
           # Run the container
-          docker run -d \
+          $DOCKER run -d \
             --name lmstudio \
             --restart unless-stopped \
             -p ${toString cfg.daemonPort}:1234 \
@@ -174,8 +173,9 @@ EOF
         '';
 
         ExecStop = pkgs.writeShellScript "lmstudio-stop" ''
-          docker stop lmstudio 2>/dev/null || true
-          docker rm lmstudio 2>/dev/null || true
+          DOCKER="/run/current-system/sw/bin/docker"
+          $DOCKER stop lmstudio 2>/dev/null || true
+          $DOCKER rm lmstudio 2>/dev/null || true
         '';
 
         Restart = "on-failure";
@@ -190,9 +190,6 @@ EOF
       timerConfig = {
         OnCalendar = "*:*:0/30";
         Persistent = false;
-      };
-      install = {
-        WantedBy = ["timers.target"];
       };
     };
 
@@ -209,7 +206,7 @@ EOF
       };
     };
 
-    # Firewall: only localhost access
-    networking.firewall.interfaces.lo.allowedTCPPorts = mkIf cfg.enableDaemon [cfg.daemonPort];
+    # Firewall: only localhost access (always when service is enabled)
+    networking.firewall.interfaces.lo.allowedTCPPorts = [cfg.daemonPort];
   };
 }
