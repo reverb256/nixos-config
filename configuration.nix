@@ -81,7 +81,18 @@ in {
       common = {
         default = ["kde" "gtk"];
       };
+      kde = {
+        default = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.FileChooser" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.ScreenCast" = ["kde"];
+        "org.freedesktop.impl.portal.Screenshot" = ["kde"];
+        "org.freedesktop.impl.portal.RemoteDesktop" = ["kde"];
+        "org.freedesktop.impl.portal.Settings" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.Notification" = ["kde"];
+        "org.freedesktop.impl.portal.WindowManagement" = ["kde"];
+      };
     };
+    xdgOpenUsePortal = true;
   };
 
   # Declarative Flatpak configuration using nix-flatpak module
