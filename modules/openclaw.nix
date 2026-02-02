@@ -95,9 +95,9 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Create user and group
+    # Create user and group with low priority (allows override from users.nix)
     users.users = mkIf (cfg.user == "lobster") {
-      lobster = {
+      lobster = mkDefault {
         isSystemUser = true;
         group = cfg.group;
         description = "OpenClaw AI agent bot user (lobster)";
@@ -112,30 +112,12 @@ in {
     };
 
     # Create directories
-    systemd.tmpfiles.settings.openclaw = {
-      "${cfg.stateDir}" = {
-        d = {
-          user = cfg.user;
-          group = cfg.group;
-          mode = "0750";
-        };
-      };
-      "${cfg.configDir}" = {
-        d = {
-          user = "root";
-          group = cfg.group;
-          mode = "0750";
-        };
-      };
-    } ++ (if cfg.logDir != null then {
-      "${cfg.logDir}" = {
-        d = {
-          user = cfg.user;
-          group = cfg.group;
-          mode = "0755";
-        };
-      };
-    } else {});
+    systemd.tmpfiles.rules = [
+      "d ${cfg.stateDir} 0750 ${cfg.user} ${cfg.group} -"
+      "d ${cfg.configDir} 0750 root ${cfg.group} -"
+    ] ++ (if cfg.logDir != null then [
+      "d ${cfg.logDir} 0755 ${cfg.user} ${cfg.group} -"
+    ] else []);
 
     # Generate configuration file
     environment.etc."openclaw/openclaw.json".source = 
