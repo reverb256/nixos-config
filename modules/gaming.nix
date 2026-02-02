@@ -160,35 +160,55 @@ with lib; {
   };
 
   # ============================================================================
-  # MONADO - OpenXR Runtime for VR
+  # WI VRN - Wireless VR Streaming for Quest Pro
   # ============================================================================
-  services.monado = {
-    enable = true;
-    defaultRuntime = true;
+  # WiVRn user service (since services.wivrn NixOS module not available)
+  systemd.user.services.wivrn = {
+    description = "WiVRn - Wireless VR streaming for Quest Pro";
+    after = [ "network.target" "pipewire.service" ];
+    wants = [ "pipewire.service" ];
+    
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.wivrn}/bin/wivrn-server";
+      ExecStop = "${pkgs.wivrn}/bin/wivrn-apk stop";
+      Restart = "on-failure";
+      RestartSec = 5;
+      
+      # Environment for Quest Pro with NVENC
+      Environment = [
+        "WIVRN_LOG=info"
+        "WIVRN_ENCODER=nvenc"
+        "WIVRN_REFRESH_RATE=90"
+        "WIVRN_RESOLUTION=2160x2160"
+        "WIVRN_BITRATE=100000000"  # 100Mbps
+      ];
+    };
+    
+    # Start automatically when user logs in
+    wantedBy = [ "default.target" ];
   };
   
-  # Monado environment variables
-  systemd.user.services.monado.environment = {
-    # SteamVR compatibility
-    STEAMVR_LH_ENABLE = "1";
-    # Compute compositor for better performance
-    XRT_COMPOSITOR_COMPUTE = "1";
-    # Disable hand tracking if not using controllers
-    WMR_HANDTRACKING = "0";
-    # Performance tuning
-    U_PACING_COMP_MIN_TIME_MS = "5";
-    # Auto-stop when apps close
-    IPC_EXIT_ON_DISCONNECT = "1";
+  # Enable Avahi for Quest discovery
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    publish = {
+      enable = true;
+      addresses = true;
+      workstation = true;
+    };
   };
 
   # ============================================================================
-  # FIREWALL - VR Device and Lighthouse Support
+  # FIREWALL - WiVRn and Lighthouse Support
   # ============================================================================
   networking.firewall = {
-     allowedTCPPorts = []; # Monado uses local sockets
+     allowedTCPPorts = [9757]; # WiVRn TCP
      allowedUDPPorts = [
-       5353 # Avahi/mDNS for device discovery
-       9947 # Lighthouse base stations
+       9757  # WiVRn UDP
+       5353  # Avahi/mDNS for device discovery
+       9947  # Lighthouse base stations
        27036 # SteamVR discovery
        27031 # SteamVR
      ];
@@ -402,27 +422,6 @@ with lib; {
       export LD_LIBRARY_PATH="${pkgs.freetype}/lib:${pkgs.fontconfig}/lib:${pkgs.libpng}/lib:${pkgs.libjpeg}/lib:${pkgs.libtiff}/lib:$LD_LIBRARY_PATH"
     '';
   };
-
-  # ============================================================================
-  # ASSERTIONS - VR Configuration Validation
-  # ============================================================================
-  # ASSERTIONS - VR Configuration Validation
-  # ============================================================================
-
-  # Enable Avahi for device discovery
-  services.avahi = {
-    enable = true;
-    nssmdns4 = true;
-    publish = {
-      enable = true;
-      addresses = true;
-      workstation = true;
-    };
-  };
-
-  # Assertions removed - Steam and WiVRn requirements are already enforced
-  # by the modules that actually need them (steam-wayland-robust.nix)
-  # NVIDIA is not strictly required - WiVRn works with AMD GPUs too
 
   # Ensure nvidia shader cache directory exists
   systemd.tmpfiles.rules = [
