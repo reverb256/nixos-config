@@ -10,14 +10,14 @@
 with lib; let
   cfg = config.services.lmstudio;
   
-  # LM Studio 0.4.x uses install.sh script and lms CLI
-  # Version 0.4.1 - check https://lmstudio.ai/beta-releases for updates
+  # LM Studio 0.4.x uses the latest URL pattern
+  # Version 0.4.x - check https://lmstudio.ai/download for current version
   lmstudioVersion = "0.4.1";
   
   # Download URL for the AppImage (GUI frontend)
   lmstudioAppImageSrc = pkgs.fetchurl {
-    url = "https://installers.lmstudio.ai/linux/x64/${lmstudioVersion}/LM-Studio-${lmstudioVersion}-x64.AppImage";
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    url = "https://lmstudio.ai/download/latest/linux/x64?format=AppImage";
+    hash = "sha256-d18e178cadef7d6798f19e6d41f33a297e26a1d285091cbc30da8252d18a46f0";
   };
 in {
   options.services.lmstudio = {
@@ -178,13 +178,8 @@ EOF
     };
 
     # Health monitoring timer
-    systemd.timers.lmstudio-daemon-health = mkIf cfg.enableDaemon {
+    systemd.services.lmstudio-daemon-health = mkIf cfg.enableDaemon {
       description = "Health check for LM Studio daemon";
-      wantedBy = ["timers.target"];
-      timerConfig = {
-        OnCalendar = "*:*:0/30";
-        Persistent = false;
-      };
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "lmstudio-daemon-check" ''
@@ -194,6 +189,15 @@ EOF
             systemctl restart lmstudio-daemon.service
           fi
         '';
+      };
+    };
+
+    systemd.timers.lmstudio-daemon-health = mkIf cfg.enableDaemon {
+      description = "Health check for LM Studio daemon";
+      wantedBy = ["timers.target"];
+      timerConfig = {
+        OnCalendar = "*:*:0/30";
+        Persistent = false;
       };
     };
 
