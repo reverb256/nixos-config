@@ -1,9 +1,12 @@
 # Common OpenClaw configuration for all nodes
-{ config, lib, pkgs, inputs, ... }:
-
-with lib;
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
+with lib; let
   cfg = config.services.openclaw;
   # Common OpenClaw settings for all nodes
   commonSettings = {
@@ -16,7 +19,7 @@ let
   };
 in {
   # Import nix-config.nix to ensure binary caches are available on all nodes
-  imports = [ ./nix-config.nix ];
+  imports = [./nix-config.nix];
 
   options.services.openclaw.common = {
     enable = mkEnableOption "Common OpenClaw configuration for all nodes";
@@ -30,9 +33,13 @@ in {
     # No local LLM services - using cloud providers only
     services.ollama = mkDefault {};
 
-    # Common firewall rules for OpenClaw (if needed)
+    # Common firewall rules for OpenClaw services
+    # NOTE: These are bound to localhost by default for security.
+    # Use nginx reverse proxy for external access with SSL/TLS.
     networking.firewall = {
-      allowedTCPPorts = [8080]; # OpenClaw gateway port
+      # Only allow loopback access to OpenClaw services
+      # Ports: 18789 (gateway), 18800 (storage MCP)
+      interfaces.lo.allowedTCPPorts = [18789 18800];
       allowedUDPPorts = [];
     };
 
