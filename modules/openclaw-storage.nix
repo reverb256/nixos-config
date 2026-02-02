@@ -3,9 +3,7 @@
   config,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.openclaw-storage;
 in {
   options.services.openclaw-storage = {
@@ -71,7 +69,7 @@ in {
         home = "/var/lib/lobster";
         createHome = true;
         shell = pkgs.bash;
-        extraGroups = [ "rclone" ];  # Access to rclone config
+        extraGroups = ["rclone"]; # Access to rclone config
       };
     };
 
@@ -79,8 +77,17 @@ in {
       lobster = {};
     };
 
-    # Create state directory (scoped under lobster home)
+    # Create state directories
     systemd.tmpfiles.settings.openclaw-storage = {
+      # Working directory for the service
+      "/var/lib/openclaw-storage" = {
+        d = {
+          user = cfg.user;
+          group = cfg.user;
+          mode = "0750";
+        };
+      };
+      # Storage data directories
       "/var/lib/lobster/storage" = {
         d = {
           user = cfg.user;
@@ -114,9 +121,9 @@ in {
     # OpenClaw Storage MCP Server
     systemd.services.openclaw-storage = {
       description = "OpenClaw Storage MCP - AI Data Management";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "simple";
@@ -125,6 +132,16 @@ in {
         Restart = "on-failure";
         RestartSec = "5s";
         WorkingDirectory = "/var/lib/openclaw-storage";
+
+        # Security hardening
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        ReadWritePaths = [
+          "/var/lib/openclaw-storage"
+          "/var/lib/lobster/storage"
+        ];
 
         Environment = [
           "AISTOR_ENDPOINT=${cfg.aistorEndpoint}"
@@ -144,7 +161,37 @@ in {
       };
     };
 
-    # Firewall
-    networking.firewall.allowedTCPPorts = [ cfg.port ];
+    # Health monitoring timer
+    systemd.services.openclaw-storage-health = {
+      description = "OpenClaw Storage MCP Health Check";
+      serviceConfig = {
+        Type = "oneshot";
+        User = cfg.user;
+        ExecStart = pkgs.writeShellScript "openclaw-storage-health-check" ''
+          set -e
+          # Check if storage MCP is responding
+          if ! ${pkgs.curl}/bin/curl -sf "http://127.0.0.1:${toString cfg.port}/health" >/dev/null 2>&1; then
+            echo "OpenClaw Storage MCP health check failed"
+            # Try to restart the service if it's not responding
+            ${pkgs.systemd}/bin/systemctl restart openclaw-storage.service || true
+            exit 1
+          fi
+          exit 0
+        '';
+      };
+    };
+
+    systemd.timers.openclaw-storage-health = {
+      description = "Periodic health check for OpenClaw Storage MCP";
+      wantedBy = ["timers.target"];
+      timerConfig = {
+        OnCalendar = "*:*:0/30"; # Every 30 seconds
+        Persistent = false;
+      };
+    };
+
+    # Firewall - only allow localhost access by default
+    # Use nginx reverse proxy for external access
+    networking.firewall.interfaces.lo.allowedTCPPorts = [cfg.port];
   };
 }

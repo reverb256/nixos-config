@@ -1,9 +1,11 @@
-{ lib, config, pkgs, ... }:
-
-let
-  cfg = config.services.openclaw-backups;
-in
 {
+  lib,
+  config,
+  pkgs,
+  ...
+}: let
+  cfg = config.services.openclaw-backups;
+in {
   options.services.openclaw-backups = {
     enable = lib.mkEnableOption "automated cloud backups for OpenClaw AIStor";
 
@@ -15,7 +17,7 @@ in
 
     buckets = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "ai-models" "experiments" ];
+      default = ["ai-models" "experiments"];
       description = "Buckets to backup to cloud";
     };
 
@@ -56,14 +58,14 @@ in
         text = ''
           #!/usr/bin/env bash
           set -e
-          
+
           REMOTE="${cfg.remote}"
           LOG_FILE="/var/lib/lobster/storage/logs/backup-models-$(date +%Y%m%d).log"
-          
+
           mkdir -p "$(dirname "$LOG_FILE")"
-          
+
           echo "[$(date)] Starting models backup to $REMOTE..." >> "$LOG_FILE"
-          
+
           ${pkgs.rclone}/bin/rclone sync \
             :s3:ai-models \
             "$REMOTE:openclaw-ai-models-backup" \
@@ -78,7 +80,7 @@ in
             --log-level INFO \
             --exclude ".tmp/**" \
             --exclude "*.temp"
-          
+
           echo "[$(date)] Models backup complete" >> "$LOG_FILE"
         '';
         mode = "0755";
@@ -88,14 +90,14 @@ in
         text = ''
           #!/usr/bin/env bash
           set -e
-          
+
           REMOTE="${cfg.remote}"
           LOG_FILE="/var/lib/lobster/storage/logs/backup-experiments-$(date +%Y%m%d).log"
-          
+
           mkdir -p "$(dirname "$LOG_FILE")"
-          
+
           echo "[$(date)] Starting experiments backup to $REMOTE..." >> "$LOG_FILE"
-          
+
           ${pkgs.rclone}/bin/rclone sync \
             :s3:experiments \
             "$REMOTE:openclaw-experiments-backup" \
@@ -108,7 +110,7 @@ in
             --checkers 8 \
             --log-file "$LOG_FILE" \
             --log-level INFO
-          
+
           echo "[$(date)] Experiments backup complete" >> "$LOG_FILE"
         '';
         mode = "0755";
@@ -118,17 +120,17 @@ in
         text = ''
           #!/usr/bin/env bash
           set -e
-          
+
           REMOTE="''${1:-${cfg.remote}}"
-          
+
           echo "=== Starting full backup to $REMOTE ==="
-          
+
           echo "Backing up ai-models..."
           /etc/openclaw/backup-models.sh
-          
+
           echo "Backing up experiments..."
           /etc/openclaw/backup-experiments.sh
-          
+
           echo "=== Full backup complete ==="
         '';
         mode = "0755";
@@ -138,7 +140,7 @@ in
     # Create systemd service and timer
     systemd.services.openclaw-backup = {
       description = "OpenClaw AIStor Cloud Backup";
-      after = [ "network-online.target" ];
+      after = ["network-online.target"];
       serviceConfig = {
         Type = "oneshot";
         User = cfg.user;
@@ -150,7 +152,7 @@ in
 
     systemd.timers.openclaw-backup = {
       description = "Scheduled backup of OpenClaw AIStor to cloud";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnCalendar = cfg.interval;
         Persistent = true;
