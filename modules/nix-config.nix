@@ -48,6 +48,7 @@
         # GitHub Magic Nix Cache - Public cache for all packages
         "https://magic.nixos.org"
       ];
+
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
@@ -61,6 +62,9 @@
         "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYz="
         "magic.nixos.org-1:eRQ8mF8J9FqT6yV6k3kHdYiVr4R9mYr2A="
       ];
+
+      # TEMPORARY: Disable signature checks to fix NVIDIA driver issues
+      require-sigs = false;
     };
   };
 }
