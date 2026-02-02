@@ -1,5 +1,5 @@
-# LM Studio - Local LLM Interface
-# Desktop application and optional local server for running LLMs
+# LM Studio 0.4.x - Local LLM Interface with Daemon Mode
+# Supports separated backend (llmster daemon) and frontend (GUI)
 
 {
   config,
@@ -10,101 +10,101 @@
 with lib; let
   cfg = config.services.lmstudio;
   
-  # Current version - check https://lmstudio.ai for updates
-  lmstudioVersion = "0.3.23-3";
-  lmstudioSrc = pkgs.fetchurl {
-    url = "https://installers.lmstudio.ai/linux/x64/${lmstudioVersion}/LM-Studio-${lmstudioVersion}-x64.AppImage";
-    hash = "sha256-FG3CzD6UjuPYXImjTkKTozpTQVGk8JLqxhJxTS9qjuo=";
-  };
+  # LM Studio 0.4.x uses install.sh script and lms CLI
+  # Version 0.4.1 - check https://lmstudio.ai/beta-releases for updates
+  lmstudioVersion = "0.4.1";
   
-  # Build LM Studio package from AppImage
-  lmstudioPackage = pkgs.appimageTools.wrapType2 {
-    pname = "lm-studio";
-    version = lmstudioVersion;
-    src = lmstudioSrc;
-    
-    extraPkgs = pkgs: with pkgs; [
-      electron
-      libappindicator
-      libnotify
-      libsecret
-      xdg-utils
-      zlib
-      libxkbcommon
-      at-spi2-atk
-      at-spi2-core
-      cups
-      libdrm
-      libxshmfence
-      mesa
-      nspr
-      nss
-      systemd
-    ];
-    
-    # Electron sandbox requires special handling
-    makeWrapperArgs = [
-      "--add-flags --no-sandbox --disable-gpu-sandbox"
-      "--prefix PATH : ${lib.makeBinPath [ pkgs.bash ]}"
-    ];
-    
-    # Additional runtime dependencies
-    extraInstallCommands = ''
-      # Fix chrome-sandbox permissions for Electron
-      chmod 4755 "$out/share/lm-studio/chrome-sandbox" 2>/dev/null || true
-      
-      # Create desktop entry
-      mkdir -p "$out/share/applications"
-      cat > "$out/share/applications/lm-studio.desktop" << 'EOF'
+  # Download URL for the AppImage (GUI frontend)
+  lmstudioAppImageSrc = pkgs.fetchurl {
+    url = "https://installers.lmstudio.ai/linux/x64/${lmstudioVersion}/LM-Studio-${lmstudioVersion}-x64.AppImage";
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  };
+in {
+  options.services.lmstudio = {
+    enable = mkEnableOption "LM Studio - Local LLM Interface (0.4.x)";
+
+    package = mkOption {
+      type = types.package;
+      default = pkgs.appimageTools.wrapType2 {
+        pname = "lm-studio";
+        version = lmstudioVersion;
+        src = lmstudioAppImageSrc;
+        
+        extraPkgs = pkgs: with pkgs; [
+          electron
+          libappindicator
+          libnotify
+          libsecret
+          xdg-utils
+          zlib
+          libxkbcommon
+          at-spi2-atk
+          at-spi2-core
+          cups
+          libdrm
+          libxshmfence
+          mesa
+          nspr
+          nss
+          systemd
+        ];
+        
+        makeWrapperArgs = [
+          "--add-flags --no-sandbox --disable-gpu-sandbox"
+        ];
+        
+        extraInstallCommands = ''
+          # Create desktop entry
+          mkdir -p "$out/share/applications"
+          cat > "$out/share/applications/lm-studio.desktop" << 'EOF'
 [Desktop Entry]
 Name=LM Studio
-Comment=Run LLMs locally with an easy-to-use interface
+Comment=Run LLMs locally with GUI and API server
 Exec=lm-studio --no-sandbox
 Icon=lm-studio
 Terminal=false
 Type=Application
 Categories=Development;Education;AI;
 EOF
-    '';
-  };
-in {
-  options.services.lmstudio = {
-    enable = mkEnableOption "LM Studio - Local LLM Interface";
-
-    package = mkOption {
-      type = types.package;
-      default = lmstudioPackage;
+        '';
+      };
       defaultText = "pkgs.lmstudio (AppImage-based)";
-      description = "LM Studio package to use";
+      description = "LM Studio GUI package";
     };
 
-    enableServer = mkOption {
+    enableDaemon = mkOption {
       type = types.bool;
-      default = false;
-      description = "Enable local LLM server (OpenAI-compatible API on port 1234)";
+      default = true;
+      description = "Enable llmster daemon (headless server mode, 0.4.x feature)";
     };
 
-    serverPort = mkOption {
+    daemonPort = mkOption {
       type = types.port;
       default = 1234;
-      description = "Port for local LM Studio server";
+      description = "Port for LM Studio local server API";
     };
 
-    serverHost = mkOption {
+    daemonHost = mkOption {
       type = types.str;
       default = "127.0.0.1";
-      description = "Host for local LM Studio server";
+      description = "Host for LM Studio local server";
     };
 
     modelsDir = mkOption {
       type = types.str;
-      default = "/home/j_kro/.local/share/lm-studio/models";
+      default = "/home/j_kro/.cache/lm-studio/models";
       description = "Directory to store downloaded models";
+    };
+
+    dataDir = mkOption {
+      type = types.str;
+      default = "/home/j_kro/.local/share/lm-studio";
+      description = "LM Studio data directory (conversations, settings)";
     };
   };
 
   config = mkIf cfg.enable {
-    # Create models directory
+    # Create directories
     systemd.tmpfiles.settings.lmstudio = {
       "${cfg.modelsDir}" = {
         d = {
@@ -113,47 +113,91 @@ in {
           mode = "0755";
         };
       };
+      "${cfg.dataDir}" = {
+        d = {
+          user = config.users.users.j_kro.name;
+          group = config.users.users.j_kro.name;
+          mode = "0755";
+        };
+      };
     };
 
-    # Add LM Studio to system packages (for CLI access)
+    # Add LM Studio to system packages (GUI)
     environment.systemPackages = with pkgs; [
       cfg.package
     ];
 
-    # Desktop entry
+    # Environment variables for LM Studio
     environment.sessionVariables = {
-      # Required for Electron
       ELECTRON_DISABLE_SANDBOX = "1";
+      LMSTUDIO_DATA_DIR = cfg.dataDir;
     };
 
-    # Optional: Local server systemd service
-    # Note: LM Studio server features depend on version - not all versions support headless server
-    systemd.services.lmstudio-server = mkIf cfg.enableServer {
-      description = "LM Studio Local LLM Server";
+    # llmster daemon service (0.4.x feature - separate backend)
+    systemd.services.lmstudio-daemon = mkIf cfg.enableDaemon {
+      description = "LM Studio llmster Daemon (Local LLM Server)";
       after = ["network-online.target"];
+      wants = ["network-online.target"];
       wantedBy = ["multi-user.target"];
+
       serviceConfig = {
         Type = "simple";
         User = "j_kro";
         Group = "j_kro";
         Restart = "on-failure";
-        RestartSec = "10s";
-        WorkingDirectory = cfg.modelsDir;
-        
-        # Note: LM Studio server CLI may vary by version
-        # Check documentation for exact flags
-        ExecStart = "${cfg.package}/bin/lm-studio serve --port ${toString cfg.serverPort} --host ${cfg.serverHost}";
-        
+        RestartSec = "5s";
+        WorkingDirectory = cfg.dataDir;
+
+        # The llmster daemon - runs as a service
+        # In 0.4.x, this is separate from the GUI
+        ExecStart = "${cfg.package}/bin/lm-studio daemon up --host ${cfg.daemonHost} --port ${toString cfg.daemonPort}";
+
         # Environment
         Environment = [
-          "HF_HOME=/home/j_kro/.cache/huggingface"
-          "XDG_CACHE_HOME=/home/j_kro/.cache"
           "ELECTRON_DISABLE_SANDBOX=1"
+          "LMSTUDIO_DATA_DIR=${cfg.dataDir}"
+          "LMSTUDIO_MODELS_DIR=${cfg.modelsDir}"
+          "HOME=/home/j_kro"
+          "XDG_CACHE_HOME=/home/j_kro/.cache"
+          "XDG_DATA_HOME=${cfg.dataDir}"
         ];
+
+        # Runtime directory
+        RuntimeDirectory = "lm-studio";
+        RuntimeDirectoryMode = "0755";
+      };
+
+      # Health check
+      serviceConfig.ExecStartPost = pkgs.writeShellScript "lmstudio-health-check" ''
+        sleep 2
+        if ! curl -sf "http://${cfg.daemonHost}:${toString cfg.daemonPort}/health" >/dev/null 2>&1; then
+          echo "LM Studio daemon health check failed"
+          exit 1
+        fi
+      '';
+    };
+
+    # Health monitoring timer
+    systemd.timers.lmstudio-daemon-health = mkIf cfg.enableDaemon {
+      description = "Health check for LM Studio daemon";
+      wantedBy = ["timers.target"];
+      timerConfig = {
+        OnCalendar = "*:*:0/30";
+        Persistent = false;
+      };
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "lmstudio-daemon-check" ''
+          set -e
+          if ! curl -sf "http://${cfg.daemonHost}:${toString cfg.daemonPort}/health" >/dev/null 2>&1; then
+            echo "LM Studio daemon not responding, restarting..."
+            systemctl restart lmstudio-daemon.service
+          fi
+        '';
       };
     };
 
-    # Firewall: only localhost access by default
-    networking.firewall.interfaces.lo.allowedTCPPorts = mkIf cfg.enableServer [cfg.serverPort];
+    # Firewall: only localhost access
+    networking.firewall.interfaces.lo.allowedTCPPorts = mkIf cfg.enableDaemon [cfg.daemonPort];
   };
 }
