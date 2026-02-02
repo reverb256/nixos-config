@@ -91,13 +91,13 @@ EOF
 
     modelsDir = mkOption {
       type = types.str;
-      default = "/home/j_kro/.cache/lm-studio/models";
+      default = "/var/lib/lobster/.cache/lm-studio/models";
       description = "Directory to store downloaded models";
     };
 
     dataDir = mkOption {
       type = types.str;
-      default = "/home/j_kro/.local/share/lm-studio";
+      default = "/var/lib/lobster/.local/share/lm-studio";
       description = "LM Studio data directory (conversations, settings)";
     };
   };
@@ -141,8 +141,8 @@ EOF
 
       serviceConfig = {
         Type = "simple";
-        User = "root";
-        Group = "root";
+        User = "lobster";
+        Group = "lobster";
         Restart = "on-failure";
         RestartSec = "5s";
         WorkingDirectory = cfg.dataDir;
@@ -156,8 +156,8 @@ EOF
           "ELECTRON_DISABLE_SANDBOX=1"
           "LMSTUDIO_DATA_DIR=${cfg.dataDir}"
           "LMSTUDIO_MODELS_DIR=${cfg.modelsDir}"
-          "HOME=/home/j_kro"
-          "XDG_CACHE_HOME=/home/j_kro/.cache"
+          "HOME=/var/lib/lobster"
+          "XDG_CACHE_HOME=/var/lib/lobster/.cache"
           "XDG_DATA_HOME=${cfg.dataDir}"
         ];
 
