@@ -431,11 +431,11 @@
         "uv2nix": "uv2nix"
       },
       "locked": {
-        "lastModified": 1769790063,
-        "narHash": "sha256-vv22rN1dmOI7rROdCRfgNCdMRnfj04w2Q3NtsYZ8fVY=",
+        "lastModified": 1770037718,
+        "narHash": "sha256-jKMlLVJF0WwkShVq/szejlxS74DyyvDq2z1z5KhkRCI=",
         "owner": "MoonshotAI",
         "repo": "kimi-cli",
-        "rev": "e056888967134784969128e9746f3128ca35580b",
+        "rev": "b6f381face0dbbc82714449aede0b766d6dd96de",
         "type": "github"
       },
       "original": {
@@ -534,15 +534,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1769989160,
-        "narHash": "sha256-srBLBpT2lCFcHHwA1psRUoA8/j6aQTBYnlbBUyM/7lc=",
-        "owner": "openclaw",
+        "lastModified": 1770070539,
+        "narHash": "sha256-3EedMzeVAgI6Knr4L2uICXbRn/TCwpYAsNVCzTy5zVM=",
+        "owner": "reverb256",
         "repo": "nix-openclaw",
-        "rev": "1c70ed9a7fa462ec7ecf554f4932da4413329054",
+        "rev": "17179d52849dd196a10f4e2eb7dacb051e60748a",
         "type": "github"
       },
       "original": {
-        "owner": "openclaw",
+        "owner": "reverb256",
         "repo": "nix-openclaw",
         "type": "github"
       }
@@ -831,11 +831,11 @@
         "nixpkgs": "nixpkgs_8"
       },
       "locked": {
-        "lastModified": 1769999964,
-        "narHash": "sha256-HRpHctFFBEIcPQWEWacdyRd8nFBKXltjb9+edzSeAF8=",
+        "lastModified": 1770036606,
+        "narHash": "sha256-W2OzmjkI3g1MqqbmP/EFeL2uf2o1aSg8UEEzBfiljCo=",
         "owner": "anomalyco",
         "repo": "opencode",
-        "rev": "8fbba8de73461b82dfa72c870b8686c9e177ead5",
+        "rev": "3408f1a6ae7f8783d5fa80dab2cb2cf2e976da6d",
         "type": "github"
       },
       "original": {
