@@ -1,0 +1,17 @@
+# Local environment overrides - add to .envrc.local to override settings locally
+# This file should NOT be committed to the repository
+# Copy this to .envrc.local and customize as needed
+
+# Example local overrides:
+# export CUSTOM_HOSTNAME="my-personal-host"
+# export DEVELOPMENT_MODE="true"
+# export DEBUG_LEVEL="verbose"
+
+# Personal SSH key for deployments
+# export SSH_KEY_PATH="$HOME/.ssh/my-key"
+
+# Additional Nix substituters (caches)
+# export NIX_SUBSTITTERS="$NIX_SUBSTITTERS https://my-cache.example.com"
+
+# Personal development settings
+# export COLMENA_TARGETS="zephyr"  # Only deploy to local host during development

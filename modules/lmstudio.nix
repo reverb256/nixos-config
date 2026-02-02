@@ -16,8 +16,24 @@ with lib; let
   # Download URL for the AppImage (GUI frontend)
   lmstudioAppImageSrc = pkgs.fetchurl {
     url = "https://installers.lmstudio.ai/linux/x64/${lmstudioVersion}/LM-Studio-${lmstudioVersion}-x64.AppImage";
-    sha256 = "0Y4XjK3vfWeY8Z5tQfM6KX4modKFCRy8MNqCUtGKRvA=";
+    sha256 = "1w26ib8m50ns62y1q2c5sahjczi97brl2vcyy6c6fzggmn61g3ni";
   };
+  
+  # Extract AppImage for headless CLI use
+  lmstudio-extracted = pkgs.appimageTools.extract {
+    pname = "lm-studio";
+    version = lmstudioVersion;
+    src = lmstudioAppImageSrc;
+  };
+  
+  # lms CLI wrapper that uses extracted AppImage
+  lmsCli = pkgs.writeShellScriptBin "lms" ''
+    #!/bin/bash
+    export PATH="${lmstudio-extracted}/usr/sbin:$PATH"
+    export LD_LIBRARY_PATH="${lmstudio-extracted}/usr/lib:$LD_LIBRARY_PATH"
+    export XDG_DATA_DIRS="${lmstudio-extracted}/usr/share:$XDG_DATA_DIRS"
+    exec "${lmstudio-extracted}/resources/app/.webpack/lms" "$@"
+  '';
 in {
   options.services.lmstudio = {
     enable = mkEnableOption "LM Studio - Local LLM Interface (0.4.x)";
@@ -65,6 +81,7 @@ Terminal=false
 Type=Application
 Categories=Development;Education;AI;
 EOF
+          chmod +x "$out/share/applications/lm-studio.desktop"
         '';
       };
       defaultText = "pkgs.lmstudio (AppImage-based)";
@@ -73,8 +90,8 @@ EOF
 
     enableDaemon = mkOption {
       type = types.bool;
-      default = true;
-      description = "Enable llmster daemon (headless server mode, 0.4.x feature)";
+      default = false;  # Requires GUI initialization for authentication in 0.4.x
+      description = "Enable lmsterd daemon (headless server mode, 0.4.x feature - requires GUI run first)";
     };
 
     daemonPort = mkOption {
@@ -124,6 +141,7 @@ EOF
     # Add LM Studio to system packages (GUI)
     environment.systemPackages = with pkgs; [
       cfg.package
+      lmsCli
     ];
 
     # Environment variables for LM Studio
@@ -133,8 +151,9 @@ EOF
     };
 
     # llmster daemon service (0.4.x feature - separate backend)
+    # Use lms CLI tool for headless server mode
     systemd.services.lmstudio-daemon = mkIf cfg.enableDaemon {
-      description = "LM Studio llmster Daemon (Local LLM Server)";
+      description = "LM Studio Local LLM Server (Headless)";
       after = ["network-online.target"];
       wants = ["network-online.target"];
       wantedBy = ["multi-user.target"];
@@ -147,18 +166,18 @@ EOF
         RestartSec = "5s";
         WorkingDirectory = cfg.dataDir;
 
-        # The llmster daemon - runs as a service
-        # In 0.4.x, this is separate from the GUI
-        ExecStart = "${cfg.package}/bin/lm-studio daemon up --host ${cfg.daemonHost} --port ${toString cfg.daemonPort}";
+        # Use extracted AppImage for headless server (0.4.x)
+        ExecStart = "${lmsCli}/bin/lms server start --bind ${cfg.daemonHost} --port ${toString cfg.daemonPort}";
 
         # Environment
         Environment = [
-          "ELECTRON_DISABLE_SANDBOX=1"
-          "LMSTUDIO_DATA_DIR=${cfg.dataDir}"
-          "LMSTUDIO_MODELS_DIR=${cfg.modelsDir}"
           "HOME=/var/lib/openclaw"
           "XDG_CACHE_HOME=/var/lib/openclaw/.cache"
           "XDG_DATA_HOME=${cfg.dataDir}"
+          "LMSTUDIO_DATA_DIR=${cfg.dataDir}"
+          "LMSTUDIO_MODELS_DIR=${cfg.modelsDir}"
+          # Disable GPU sandbox for containerized runtime
+          "ELECTRON_DISABLE_SANDBOX=1"
         ];
 
         # Runtime directory

@@ -27,4 +27,7 @@ in {
   # TODO: Uncomment after encrypting with real credentials:
   # See AISTOR-DEPLOY.md for instructions
   # "minio-cache-credentials".publicKeys = allHosts;
+
+  # Garnix cache credentials
+  "garnix-netrc".publicKeys = allHosts;
 }

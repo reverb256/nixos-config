@@ -37,5 +37,10 @@
     "cachix-token" = {
       file = ./cachix-token.age;
     };
+
+    # Garnix cache credentials (for fetching from private Garnix cache)
+    "garnix-netrc" = {
+      file = ./garnix-netrc.age;
+    };
   };
 }
