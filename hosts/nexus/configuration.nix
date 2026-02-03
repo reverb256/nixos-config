@@ -10,8 +10,8 @@
     ../../modules/gaming.nix
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
-    # Import OpenClaw AI agent orchestration
-    ../../modules/openclaw.nix
+    # Import OpenClaw AI agent orchestration (declarative container)
+    ../../modules/openclaw-declarative-container.nix
     # Import OpenClaw common configuration
     ../../modules/openclaw-common.nix
     # Import AIStor secrets generation
@@ -122,16 +122,25 @@
   };
 
   # ============================================================================
-  # OPENCLAW - AI Agent Gateway
+  # OPENCLAW - AI Agent Gateway (declarative container)
   # ============================================================================
-  services.openclaw = {
+  services.openclaw.declarative = {
     enable = true;
-    common = {
-      enable = true; # Use common configuration for all nodes
-    };
-    # Let OpenClaw handle model configuration via its auth system
-    settings = {};
+    image = "ghcr.io/openclaw/openclaw:latest";
+    port = 18789;
+    apiPort = 18790;
+    stateDir = "/var/lib/openclaw";
+    dataDir = "/var/lib/openclaw/data";
+    configDir = "/etc/openclaw";
+    memory = "2G";
+    cpuShares = 512;
+    gatewayMode = "local";
+    gatewayBind = "127.0.0.1"; # Bind to localhost only for security
+    environmentFile = "/run/agenix/openclaw-env";
+    enableLegacyEnv = true;
   };
+
+
 
   # ============================================================================
   # AISTOR / MINIO S3 CACHE SERVER + AI DATA STORE

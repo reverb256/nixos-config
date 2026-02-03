@@ -259,6 +259,24 @@ with lib; {
   # ============================================================================
   hardware.graphics.enable = true;
   hardware.graphics.enable32Bit = true;
+  
+  # FIX: FreeType/Font libraries for Proton/Wine (pressure-vessel container)
+  # These libraries are placed in /run/opengl-driver/lib where pressure-vessel
+  # copies them into the Proton container, fixing "Wine cannot find FreeType" errors
+  hardware.graphics.extraPackages = with pkgs; [
+    freetype
+    fontconfig
+    libpng
+    libjpeg
+    libtiff
+  ];
+  hardware.graphics.extraPackages32 = with pkgs.pkgsi686Linux; [
+    freetype
+    fontconfig
+    libpng
+    libjpeg
+    libtiff
+  ];
 
   boot.extraModprobeConfig = ''
     # NVIDIA VR optimizations for RTX 3090

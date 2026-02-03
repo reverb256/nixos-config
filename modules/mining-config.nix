@@ -9,7 +9,8 @@
       pool = "stratum+ssl://xtm-rx-us.kryptex.network:8038"; # Kryptex XTM RX pool
       wallet = "krxXVNVMM7.zephyr"; # Kryptex wallet format
       threads = 18; # System service (full mode): 18 threads
-      httpToken = "my-secret-token";
+      # SECURITY FIX: Token loaded from agenix secrets
+      httpToken = builtins.readFile "/run/agenix/mining-api-token";
     };
     lolminer = {
       enable = true;

@@ -15,9 +15,11 @@
       # Build resource management - avoid oversubscription
       # Zephyr has 32 cores (16 physical + 16 hyperthread)
       # Formula: max-jobs * cores = total cores used
-      # Setting: 4 jobs * 6 cores = 24 cores used, leaving 8 for desktop/mining
-      max-jobs = lib.mkDefault 4; # Parallel derivations (conservative for desktop use, overridable by distributed-builds)
-      cores = 6; # Cores per derivation (leaves headroom for gaming/mining)
+      # Setting: 1 job * 1 core = 1 core used (conservative to fix OOM)
+      # max-jobs = 1; # Parallel derivations (CONSERVATIVE FIX FOR OOM)
+      # cores = 1; # Cores per derivation (CONSERVATIVE FIX FOR OOM)
+
+       # Distributed build configuration temporarily disabled to resolve cache issues
 
       # Binary caches for faster builds (ALL FREE - $0 to download)
       # Ordered by priority: official > CUDA > community > specialized
