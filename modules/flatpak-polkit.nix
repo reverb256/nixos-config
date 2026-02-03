@@ -17,7 +17,7 @@ with lib; {
       allowSystemOperations = mkOption {
         type = types.bool;
         default = false;
-        description = "Allow regular users to perform system-wide operations without authentication";
+        description = "Allow j_kro user to perform system-wide Flatpak operations without authentication";
       };
 
       allowUserOperations = mkOption {
@@ -48,14 +48,13 @@ with lib; {
               action.id == "org.freedesktop.Flatpak.configure-remote" ||
               action.id == "org.freedesktop.Flatpak.modify-repo") {
             // j_kro has full sysadmin privileges for Flatpak system operations
-            if (subject.user == "j_kro" || subject.isInGroup("wheel")) {
+            if (subject.user == "j_kro") {
               return polkit.Result.YES;
             }
           } else if (action.id == "org.freedesktop.Flatpak.app-uninstall" ||
                      action.id == "org.freedesktop.Flatpak.runtime-uninstall") {
-            // j_kro can uninstall system packages, others need wheel group
-            if (subject.user == "j_kro" || 
-                (action.lookup("installation") == "system" && subject.isInGroup("wheel"))) {
+            // j_kro can uninstall system packages
+            if (subject.user == "j_kro") {
               return polkit.Result.YES;
             }
           }
