@@ -161,6 +161,21 @@ with lib; {
         # NVIDIA optimizations
         export __GL_SHADER_DISK_CACHE=1
         export __GL_SHADER_DISK_CACHE_SIZE=1000000000
+        # Python compatibility fixes for pressure-vessel (fixes sre_parse AttributeError)
+        export PYTHONNOUSERSITE=1
+        export PYTHONDONTWRITEBYTECODE=1
+        export PYTHONPATH=""
+        # Pressure-vessel graphics compatibility fixes
+        export PRESSURE_VESSEL_LOG_LEVEL=2  # Reduce verbosity of warnings
+        export PRESSURE_VESSEL_FILESYSTEMS_BIND_READONLY=/run/opengl-driver:/run/host/run/opengl-driver
+        # Additional compatibility fixes for NVIDIA + pressure-vessel
+        export __NV_PRIME_RENDER_OFFLOAD=1
+        export __GLX_VENDOR_LIBRARY_NAME=nvidia
+        # Vulkan and NVENC environment variables for games
+        export VK_ICD_FILENAMES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json:/run/opengl-driver-32/share/vulkan/icd.d/nvidia_icd.json
+        export __GL_EXTERNAL_EXTENSIONS=1
+        # CUDA path for compute applications
+        export CUDA_PATH=/run/opengl-driver
         # Font library fixes
         export LD_LIBRARY_PATH="${pkgs.freetype}/lib:${pkgs.fontconfig}/lib:${pkgs.libpng}/lib:${pkgs.libjpeg}/lib:${pkgs.libtiff}/lib:$LD_LIBRARY_PATH"
         # Ensure Steam can find Proton-GE-RTSP
