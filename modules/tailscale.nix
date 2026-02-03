@@ -52,25 +52,30 @@ in {
       "net.ipv6.conf.all.forwarding" = 1;
     };
 
-    services.tailscale = {
-      enable = true;
-      useRoutingFeatures = cfg.useRoutingFeatures;
-    };
+    services.tailscale = lib.mkMerge [
+      {
+        enable = true;
+        useRoutingFeatures = cfg.useRoutingFeatures;
+      }
+      (mkIf cfg.enableSSH {
+        extraUpFlags = ["--ssh"];
+      })
+    ];
 
     # Configure tailscaled with auth key and settings
     systemd.services.tailscaled.serviceConfig = mkIf (cfg.advertiseRoutes != [] || cfg.advertiseExitNode) {
-      Environment = mkIf (cfg.advertiseRoutes != []) [
-        "TS_ADVERTISE_ROUTES=${builtins.concatStringsSep "," cfg.advertiseRoutes}"
-      ] ++ mkIf cfg.enableSSH [
-        "TS_SSH=true"
+      Environment = lib.mkMerge [
+        (mkIf (cfg.advertiseRoutes != []) [
+          "TS_ADVERTISE_ROUTES=${builtins.concatStringsSep "," cfg.advertiseRoutes}"
+        ])
+        (mkIf cfg.enableSSH [
+          "TS_SSH=true"
+        ])
       ];
     };
 
     # Allow tailscale through firewall
     networking.firewall.interfaces.lo.allowedTCPPorts = [41641];
     networking.firewall.interfaces.lo.allowedUDPPorts = [41641];
-
-    # Enable Tailscale SSH
-    programs.tailscale.enableSSHForwarding = cfg.enableSSH;
   };
 }
