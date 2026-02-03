@@ -55,16 +55,14 @@ in {
     services.tailscale = {
       enable = true;
       useRoutingFeatures = cfg.useRoutingFeatures;
-      extraFlags = mkIf cfg.advertiseExitNode [
-        "--advertise-exit-node"
-      ];
     };
 
     # Configure tailscaled with auth key and settings
-    systemd.services.tailscaled.serviceConfig = mkIf (cfg.enable && cfg.advertiseRoutes != []) {
-      Environment = [
+    systemd.services.tailscaled.serviceConfig = mkIf (cfg.advertiseRoutes != [] || cfg.advertiseExitNode) {
+      Environment = mkIf (cfg.advertiseRoutes != []) [
         "TS_ADVERTISE_ROUTES=${builtins.concatStringsSep "," cfg.advertiseRoutes}"
-        "TS_SSH=${if cfg.enableSSH then "true" else "false"}"
+      ] ++ mkIf cfg.enableSSH [
+        "TS_SSH=true"
       ];
     };
 
