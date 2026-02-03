@@ -653,6 +653,41 @@ just dev-setup           # Full pipeline
 - 🔴 **SSH**: No fail2ban configured
 - 🔴 **Mining**: API ports should be localhost-only
 
+## Opencode Skills
+
+**Project-specific skills** (located in `/etc/nixos/.opencode/skills/`):
+- `nixos-manager` - NixOS rebuilds, packages, secrets management via MCP
+
+**User-level skills** (located in `~/.config/opencode/skills/`):
+- `api-testing` - REST/GraphQL/WebSocket API testing
+- `docker-essentials` - Container management and Docker Compose
+- `git-workflows` - Advanced Git operations and collaboration
+- `system-monitor` - System monitoring and performance analysis
+
+**Using Skills:**
+```bash
+# Load a skill
+skill nixos-manager
+
+# Use skill tools (MCP-based)
+skill_mcp nixos-manager rebuild_system
+```
+
+## Recent Fixes (2026-02-02)
+
+### Steam/Proton Gaming Fixes
+- **Fixed duplicate `programs.steam` definitions** in `modules/gaming.nix`
+- **Added vulkan-loader** for better Proton compatibility
+- **Created reset script** at `/etc/nixos/scripts/reset-proton-prefixes.sh`
+- **VRChat** now uses Proton-GE-RTSP correctly
+- **Deadlock** configured for Proton Experimental
+
+### OpenClaw Container Fixes
+- **Updated environment variables** from deprecated `MOLTBOT_*/CLAWDBOT_*` to `OPENCLAW_*`
+- **Fixed user ID** from 1000:1000 to 982:979 (lobster user)
+- **Fixed container entrypoint** to use proper command execution
+- **Moved nixos-manager skill** from user config to project directory
+
 ## Unique Features
 - Custom `services.mining` option (not upstream)
 - Smart mining pause (auto-detects VR/gaming)
@@ -672,4 +707,4 @@ just dev-setup           # Full pipeline
 - **4** hosts in cluster
 
 ---
-*Last updated: 2026-02-02 | Refactor: Removed HM module to fix hasown workaround*
+*Last updated: 2026-02-02 | Refactor: Steam/Proton fixes, OpenClaw container fixes, environment variables updated*
