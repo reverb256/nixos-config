@@ -1,13 +1,13 @@
-name: Nix CI
+name: Nix CI + GitOps
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,3 +32,32 @@ jobs:
 
       - name: Build sentry configuration
         run: nix build .#nixosConfigurations.sentry.config.system.build.toplevel --no-link
+
+  merge-to-infra:
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge main → infra
+        run: |
+          git fetch origin infra
+          git checkout infra
+          git merge main --no-edit
+          git push origin infra
+
+      - name: Trigger deployment
+        run: |
+          curl -X POST "${{ secrets.DEPLOY_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{"ref": "infra", "repository": "${{ github.repository }}"}'
+        continue-on-error: true

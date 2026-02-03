@@ -97,6 +97,8 @@ in {
   # Declarative Flatpak configuration using nix-flatpak module
   services.flatpak = {
     enable = true;
+    polkit.enable = true;
+    polkit.allowSystemOperations = true;
     remotes = [
       {
         name = "flathub";
