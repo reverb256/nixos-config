@@ -145,21 +145,27 @@ ssh nexus.tigris-ule.ts.net
 
 ## 📖 Documentation
 
-### **Architecture**
-- **[AGENTS.md](AGENTS.md)** - Comprehensive system documentation
+### **Architecture & System Overview**
+- **[AGENTS.md](AGENTS.md)** - Comprehensive system documentation (master)
+- **[DOCS_INDEX.md](DOCS_INDEX.md)** - Documentation navigation map
+- **[DOCUMENTATION_STRATEGY.md](DOCUMENTATION_STRATEGY.md)** - Documentation refactoring plan
 - **[REVERB-OS-ARCHITECTURE.md](docs/REVERB-OS-ARCHITECTURE.md)** - Complete system design
 - **[PORTFOLIO.md](docs/PORTFOLIO.md)** - Technical achievements and portfolio showcase
+
+### **AI Assistant Access Points**
+- **[CLAUDE.md](CLAUDE.md)** - *(symlink to AGENTS.md)* - Claude access point
+- **[QWEN.md](QWEN.md)** - *(symlink to AGENTS.md)* - Qwen access point
 
 ### **Setup & Deployment**
 - **[DEPLOYMENT_INSTRUCTIONS.md](docs/DEPLOYMENT_INSTRUCTIONS.md)** - Detailed deployment instructions
 - **[QUICK_START.md](docs/QUICK_START.md)** - Fast track to running the cluster
 - **[TAILSCALE_SETUP.md](docs/TAILSCALE_SETUP.md)** - VPN configuration guide
 
-### **Development**
+### **Development & Security**
 - **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Development guidelines
 - **[SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)** - Security hardening guide
 
-### **Maintenance**
+### **Maintenance & Troubleshooting**
 - **[QUICK_FIXES.md](docs/QUICK_FIXES.md)** - Immediate security and performance improvements
 - **[PERFORMANCE_OPTIMIZATION_PLAN.md](docs/PERFORMANCE_OPTIMIZATION_PLAN.md)** - System optimization
 

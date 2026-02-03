@@ -10,7 +10,9 @@ in {
   # ============================================================================
   # USERS AND GROUPS - Configure users and groups
   # ============================================================================
-  users.users.${sysadminUser}.extraGroups = ["docker" "podman"]; # Add user to container groups
+  # Security: j_kro removed from docker group to prevent container escape
+  # Use 'sudo docker' for container operations (requires password)
+  users.users.${sysadminUser}.extraGroups = ["podman"]; # Removed "docker" for security
 
   # ============================================================================
   # KERNEL CONFIGURATION - Force ZEN kernel for gaming and mining performance
@@ -179,7 +181,7 @@ in {
 
       # CPU optimizations
       "amd_pstate=active"
-      "mitigations=off"
+      # "mitigations=off"  # REMOVED for security - CPU vulnerabilities exposed
       "transparent_hugepage=madvise"
       "numa_balancing=disable"
       "nowatchdog"

@@ -171,16 +171,21 @@ in {
             ${pkgs.docker}/bin/docker stop openclaw-declarative 2>/dev/null || true
             ${pkgs.docker}/bin/docker rm openclaw-declarative 2>/dev/null || true
 
-            # Start the OpenClaw container with all the right parameters
+            # Create Docker network for isolation (prevents host network access)
+            ${pkgs.docker}/bin/docker network create openclaw-network 2>/dev/null || true
+
+            # Start the OpenClaw container with bridge network (isolated from host)
             exec ${pkgs.docker}/bin/docker run \
               --name openclaw-declarative \
-              --network host \
+              --network openclaw-network \
               --restart unless-stopped \
+              -p "127.0.0.1:${toString cfg.port}:${toString cfg.port}" \
+              -p "127.0.0.1:${toString cfg.apiPort}:${toString cfg.apiPort}" \
               -v "${cfg.stateDir}:/var/lib/openclaw" \
               -v "${cfg.dataDir}:/var/lib/openclaw/data" \
               -v "${cfg.configDir}:/etc/openclaw" \
               -e "OPENCLAW_MODE=${cfg.gatewayMode}" \
-              -e "OPENCLAW_BIND=${cfg.gatewayBind}" \
+              -e "OPENCLAW_BIND=127.0.0.1" \
               -e "OPENCLAW_PORT=${toString cfg.port}" \
               -e "OPENCLAW_API_PORT=${toString cfg.apiPort}" \
               -e "OPENCLAW_STATE_DIR=${cfg.stateDir}" \
@@ -194,7 +199,7 @@ in {
               --user "982:979" \
               --cap-drop ALL \
               --security-opt "no-new-privileges=true" \
-              --health-cmd "${pkgs.curl}/bin/curl -sf http://localhost:${toString cfg.port}/health || exit 1" \
+              --health-cmd "${pkgs.curl}/bin/curl -sf http://127.0.0.1:${toString cfg.port}/health || exit 1" \
               --health-interval="30s" \
               --health-timeout="10s" \
               --health-retries="3" \
