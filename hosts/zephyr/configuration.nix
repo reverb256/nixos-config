@@ -225,7 +225,11 @@
   # ============================================================================
   services.tailscale-custom = {
     enable = true;
-    useRoutingFeatures = "client";
+    advertiseRoutes = ["10.1.1.0/24"];
+    advertiseExitNode = true;
+    acceptRoutes = true;
+    useRoutingFeatures = "both";
+    enableSSH = true;
   };
 
   # ============================================================================
