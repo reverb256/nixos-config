@@ -47,15 +47,15 @@ with lib; {
               action.id == "org.freedesktop.Flatpak.configure" ||
               action.id == "org.freedesktop.Flatpak.configure-remote" ||
               action.id == "org.freedesktop.Flatpak.modify-repo") {
-            // For system-wide operations, require admin privileges
-            if (subject.isInGroup("wheel")) {
+            // j_kro has full sysadmin privileges for Flatpak system operations
+            if (subject.user == "j_kro" || subject.isInGroup("wheel")) {
               return polkit.Result.YES;
             }
           } else if (action.id == "org.freedesktop.Flatpak.app-uninstall" ||
                      action.id == "org.freedesktop.Flatpak.runtime-uninstall") {
-            // Handle uninstall differently - defer to user operations for user installs
-            // System uninstalls still require admin privileges
-            if (action.lookup("installation") == "system" && subject.isInGroup("wheel")) {
+            // j_kro can uninstall system packages, others need wheel group
+            if (subject.user == "j_kro" || 
+                (action.lookup("installation") == "system" && subject.isInGroup("wheel"))) {
               return polkit.Result.YES;
             }
           }
@@ -66,13 +66,16 @@ with lib; {
         polkit.addRule(function(action, subject) {
           if (action.id == "org.freedesktop.Flatpak.app-update" ||
               action.id == "org.freedesktop.Flatpak.runtime-update" ||
-              action.id == "org.freedesktop.Flatpak.update-remote" ||
-              action.id == "org.freedesktop.Flatpak.app-uninstall" ||
-              action.id == "org.freedesktop.Flatpak.runtime-uninstall") {
-            // Allow if the installation is for the current user or is a system installation
-            // For user installations, allow without authentication
-            if (action.lookup("installation") == "user" ||
-                subject.isInGroup("wheel")) {
+              action.id == "org.freedesktop.Flatpak.update-remote") {
+            // j_kro can update all Flatpak packages without authentication
+            // This enables automatic updates for the sysadmin user
+            if (subject.user == "j_kro") {
+              return polkit.Result.YES;
+            }
+          } else if (action.id == "org.freedesktop.Flatpak.app-uninstall" ||
+                     action.id == "org.freedesktop.Flatpak.runtime-uninstall") {
+            // j_kro can uninstall user packages without authentication
+            if (action.lookup("installation") == "user" && subject.user == "j_kro") {
               return polkit.Result.YES;
             }
           }
