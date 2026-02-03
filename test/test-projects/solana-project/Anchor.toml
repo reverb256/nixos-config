@@ -1,1 +1,0 @@
-[toolchain]\n\n[features]\nresolution = true\n\n[programs.localnet]\nrpc_port = 8899\n\n[registry]\nurl = "https://api.apr.dev"
