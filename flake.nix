@@ -229,6 +229,9 @@
         curl
         wget
 
+        # Script quality
+        shellcheck
+
         # Documentation
         mdsh
       ];
@@ -242,6 +245,7 @@
         echo "  deadnix .         - Find dead Nix code"
         echo "  statix check .    - Lint Nix files"
         echo "  alejandra .       - Format Nix files"
+        echo "  shellcheck .      - Check shell scripts"
         echo "  mc                - MinIO client"
         echo ""
         echo "Hosts: zephyr, nexus, forge, sentry"

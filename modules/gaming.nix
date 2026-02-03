@@ -244,16 +244,18 @@ with lib; {
     wantedBy = [ "default.target" ];
   };
   
-  # Enable Avahi for Quest discovery
-  services.avahi = {
-    enable = true;
-    nssmdns4 = true;
-    publish = {
-      enable = true;
-      addresses = true;
-      workstation = true;
-    };
-  };
+   # Enable Avahi for Quest discovery
+   services.avahi = {
+     enable = true;
+     nssmdns4 = true;
+     publish = {
+       enable = true;
+       addresses = true;
+       workstation = true;
+     };
+     # Allow user services (like WiVRn) to publish via Avahi
+     disableUserServicePublishing = false;
+   };
 
   # ============================================================================
   # FIREWALL - WiVRn and Lighthouse Support

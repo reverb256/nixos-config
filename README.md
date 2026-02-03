@@ -18,7 +18,7 @@
 | **forge** | 10.1.1.130 | 100.116.190.124 | GPU Compute | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Compute, Mining |
 | **sentry** | 10.1.1.140 | 100.82.210.39 | Monitoring | 8 cores (Ryzen 7 1700) | 32GB | RX 5600 XT | Monitoring, Light Builds |
 
-**Total Build Capacity:** **51 cores** across all hosts
+**Total Build Capacity:** **78 cores** across all hosts (includes distributed builds)
 
 ### **Network Topology**
 ```
@@ -28,6 +28,40 @@ Internet ── Router (10.1.1.1)
                      ├── nexus  (10.1.1.120, 100.86.158.18) - Build/AIStor Server
                      ├── forge  (10.1.1.130, 100.116.190.124) - Mining/Build Worker
                      └── sentry (10.1.1.140, 100.82.210.39) - Monitoring Server
+```
+
+### **Directory Structure**
+```
+/etc/nixos/
+├── flake.nix                 # Main flake with Colmena hosts and inputs
+├── configuration.nix         # Shared cluster configuration
+├── home.nix                 # Home Manager user configuration
+├── justfile                 # Automation and management commands
+├── garnix.yaml              # CI/CD configuration
+├── hardware-configuration.nix # Auto-generated hardware config
+├── network.nix              # Network configuration
+├── hosts/                   # Host-specific configurations
+│   ├── zephyr/              # Master workstation (RTX 3090)
+│   ├── nexus/               # Build/AIStor server
+│   ├── forge/               # Mining/build worker
+│   └── sentry/              # Monitoring server
+├── modules/                 # Shared configuration modules
+│   ├── tailscale.nix        # Tailscale mesh VPN
+│   ├── openclaw-declarative-container.nix  # AI orchestration
+│   ├── openclaw-storage.nix                 # AIStor integration
+│   ├── openclaw-nginx.nix                   # Reverse proxy
+│   ├── mining.nix                          # Mining services
+│   ├── gaming.nix                          # VR/gaming setup
+│   └── ...                                # Other modules
+├── secrets/                 # Agenix encrypted secrets
+├── scripts/                 # Utility scripts
+├── docs/                    # Additional documentation
+├── doc-archive/             # Archived documentation
+├── examples/                # Example configurations
+├── lib/                     # Library functions
+├── packages/                # Package definitions
+├── .github/workflows/       # GitHub Actions for GitOps
+└── ...
 ```
 
 ### **GitOps Deployment Workflow**
@@ -146,28 +180,33 @@ ssh nexus.tigris-ule.ts.net
 ## 📖 Documentation
 
 ### **Architecture & System Overview**
-- **[AGENTS.md](AGENTS.md)** - Comprehensive system documentation (master)
+- **[MASTER_DOCS.md](MASTER_DOCS.md)** - Complete system documentation (single source of truth)
 - **[DOCS_INDEX.md](DOCS_INDEX.md)** - Documentation navigation map
-- **[DOCUMENTATION_STRATEGY.md](DOCUMENTATION_STRATEGY.md)** - Documentation refactoring plan
+- **[DOCUMENTATION_STRATEGY.md](DOCUMENTATION_STRATEGY.md)** - Documentation governance
+- **[DOC_CONSOLIDATION_PLAN.md](DOC_CONSOLIDATION_PLAN.md)** - Consolidation methodology
 - **[REVERB-OS-ARCHITECTURE.md](docs/REVERB-OS-ARCHITECTURE.md)** - Complete system design
 - **[PORTFOLIO.md](docs/PORTFOLIO.md)** - Technical achievements and portfolio showcase
 
 ### **AI Assistant Access Points**
-- **[CLAUDE.md](CLAUDE.md)** - *(symlink to AGENTS.md)* - Claude access point
-- **[QWEN.md](QWEN.md)** - *(symlink to AGENTS.md)* - Qwen access point
+- **[CLAUDE.md](CLAUDE.md)** - *(symlink to MASTER_DOCS.md)* - Claude access point
+- **[QWEN.md](QWEN.md)** - *(symlink to MASTER_DOCS.md)* - Qwen access point
 
-### **Setup & Deployment**
-- **[DEPLOYMENT_INSTRUCTIONS.md](docs/DEPLOYMENT_INSTRUCTIONS.md)** - Detailed deployment instructions
-- **[QUICK_START.md](docs/QUICK_START.md)** - Fast track to running the cluster
-- **[TAILSCALE_SETUP.md](docs/TAILSCALE_SETUP.md)** - VPN configuration guide
+### **Historical Documentation**
+- **[doc-archive/](doc-archive/)** - Archived original documentation for reference
 
 ### **Development & Security**
-- **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Development guidelines
-- **[SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)** - Security hardening guide
-
-### **Maintenance & Troubleshooting**
-- **[QUICK_FIXES.md](docs/QUICK_FIXES.md)** - Immediate security and performance improvements
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines and standards
 - **[PERFORMANCE_OPTIMIZATION_PLAN.md](docs/PERFORMANCE_OPTIMIZATION_PLAN.md)** - System optimization
+
+### **Quick Wins for New Contributors**
+- **Validate configuration**: `nix flake check`
+- **Format code**: `just format` or `nix fmt`
+- **Lint files**: `just lint` (statix)
+- **Find dead code**: `just deadnix`
+- **Check shell scripts**: `shellcheck .`
+- **Test build**: `sudo nixos-rebuild build --flake .#zephyr`
+- **Review changes**: `git diff` and `git status`
+- **Run development shell**: `nix develop` or use direnv
 
 ## 🛠️ Usage
 
