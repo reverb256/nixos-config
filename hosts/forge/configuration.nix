@@ -60,6 +60,7 @@
   # Ensure AMDGPU kernel modules are loaded
   boot.kernelModules = [
     "amdgpu"
+    "tun"  # Required for Tailscale VPN
   ];
 
   # Add AMDGPU to initrd modules for early loading
@@ -145,6 +146,7 @@
       ];
     };
   in [
+    "c /dev/net/tun 666 root root - - - -"  # TUN device for Tailscale VPN
     "L+ /opt/rocm - - - - ${rocmEnv}"
     "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
   ];
