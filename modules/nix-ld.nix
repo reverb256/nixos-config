@@ -73,7 +73,7 @@
       alsa-plugins
       pulseaudio
       libpulseaudio
-      pipewire.lib  # Add pipewire client library for Qt6 multimedia (libpipewire-0.3.so)
+      pipewire.dev  # Add pipewire client library for Qt6 multimedia (libpipewire-0.3.so)
       libvorbis
       flac
       libogg
