@@ -1,4 +1,4 @@
-# 🎯 NixOS Distributed Build System & AI Cluster
+# 🎯 Reverb-OS: Personal AI Assistant Platform
 
 [![NixOS](https://img.shields.io/badge/NixOS-26.05-blue.svg)](https://nixos.org)
 [![Flakes](https://img.shields.io/badge/Flakes-Enabled-5277C3)](https://nixos.wiki/wiki/Flakes)
@@ -6,7 +6,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Garnix Build](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadge%2Fgithub.com%2Fyour-username%2Fyour-repo)](https://garnix.io)
 
-A comprehensive NixOS flake-based configuration for a high-performance distributed build cluster with VR gaming, cryptocurrency mining, and AI capabilities.
+**Reverb-OS** is a NixOS-based personal AI assistant platform that serves as a comprehensive portfolio and demonstration system for the AstralVibe.ca ecosystem. Built entirely on Nix and NixOS, Reverb-OS showcases the power of declarative system configuration, distributed computing, and AI orchestration through its core interface: **OpenClaw** - the embedded AI assistant.
 
 ## 🏗️ Architecture Overview
 
@@ -39,12 +39,13 @@ Internet ── Router (10.1.1.1)
 - **Real-time build monitoring** and status tracking
 - **High availability** with automatic failover
 
-### **🤖 AI Orchestration (OpenClaw)**
-- **Declarative container deployment** for consistency
+### **🤖 OpenClaw: The Embedded AI Assistant**
+- **Natural language interface** for system operations
 - **AIStor object storage** for model artifacts and training data
 - **MCP server integration** for AI assistants (Kilo Code, Claude Code)
 - **RAG support** with AIStor vector database capabilities
 - **Health monitoring** with auto-restart on failure
+- **Service isolation** via lobster user (no sudo access)
 
 ### **🎮 VR Gaming & Mining**
 - **SteamVR/WiVRn support** with Quest Pro streaming (100Mbps HEVC)
@@ -99,7 +100,7 @@ just cluster-resources
 ## 📖 Documentation
 
 ### **Architecture**
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Complete system design and architecture
+- **[REVERB-OS-ARCHITECTURE.md](docs/REVERB-OS-ARCHITECTURE.md)** - Complete system design and architecture
 - **[PORTFOLIO.md](docs/PORTFOLIO.md)** - Technical achievements and portfolio showcase
 
 ### **Setup & Deployment**
@@ -211,7 +212,26 @@ just gaming-trigger
             └── test-openclaw-workflows.sh
 ```
 
-## 🎯 OpenClaw AI Platform
+## 🌐 AstralVibe.ca Ecosystem Integration
+
+Reverb-OS serves as a **core component** of the AstralVibe.ca ecosystem, providing:
+
+### **AstralDev Integration**
+- **GitHub Actions**: CI/CD automation for infrastructure changes
+- **Garnix CI**: Free CI/CD with binary cache integration  
+- **Colmena**: Declarative cluster deployment
+- **Direnv**: Automatic development environment setup
+- **MCP Servers**: AI assistant integration (Kilo Code, Claude Code)
+
+### **Portfolio Showcase**
+Reverb-OS demonstrates expertise in:
+- **NixOS system design** and declarative configuration
+- **Distributed computing** at scale (51-core cluster)
+- **AI orchestration** and personal assistant development
+- **Security hardening** and isolation practices
+- **Performance optimization** for VR gaming and mining
+
+## 🎯 OpenClaw: The Embedded AI Assistant
 
 ### **Services**
 | Service | Port | Access | Purpose |

@@ -1,4 +1,4 @@
-# Portfolio Presentation
+# Reverb-OS: Portfolio Presentation
 
 ## Technical Achievements
 
@@ -10,7 +10,7 @@
 - **Real-time build monitoring** and status tracking
 - **High availability** with automatic failover and health checks
 
-### **🤖 AI Orchestration (OpenClaw)**
+### **🤖 OpenClaw: The Embedded AI Assistant**
 - **Declarative container deployment** using Docker with systemd management
 - **AIStor object storage** for model artifacts and training data
 - **MCP server integration** for AI assistants (Kilo Code, Claude Code)
@@ -188,11 +188,11 @@ graph TD
         Sentry -->|Monitoring| Grafana[Grafana]
     end
 
-    subgraph "OpenClaw Ecosystem"
-        OpenClaw[OpenClaw Gateway<br/>Port 18789]
-        OpenClawStorage
-        OpenClawBackup[OpenClaw Backups]
-        Nginx[Nginx Reverse Proxy<br/>Port 80/443]
+     subgraph "Reverb-OS Ecosystem"
+         OpenClaw[OpenClaw Gateway<br/>Port 18789]
+         OpenClawStorage
+         OpenClawBackup[Reverb Backups]
+         Nginx[Nginx Reverse Proxy<br/>Port 80/443]
         
         OpenClaw -->|WebSocket| KiloCode[Kilo Code AI]
         OpenClaw -->|API| OpenClawStorage
@@ -202,7 +202,7 @@ graph TD
     end
 ```
 
-### **OpenClaw Service Architecture**
+### **Reverb-OS Service Architecture**
 ```mermaid
 flowchart LR
     Client[Kilo Code Client] -->|WebSocket| Nginx[Nginx Reverse Proxy<br/>SSL/TLS, Rate Limiting]
