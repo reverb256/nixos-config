@@ -69,7 +69,12 @@ in {
   openclaw-gateway =
     if prev ? openclaw-gateway
     then prev.openclaw-gateway.overrideAttrs (oldAttrs: {
-      # Add hasown and patch script as build inputs
+      src = prev.fetchFromGitHub {
+        owner = "openclaw";
+        repo = "openclaw";
+        rev = "561a10c491e28d04deb64b7abd9d89e4456561d0";
+        hash = "sha256-daCHfa88HGUP+bUqLasGsQnkW/5GYiKNWjEu+dLyG4Y=";
+      };
       nativeBuildInputs = (oldAttrs.nativeBuildInputs or []) ++ [ hasownStub patchWrapper ];
 
       # After the build, copy hasown into the node_modules

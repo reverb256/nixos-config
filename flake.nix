@@ -49,10 +49,10 @@
     kimi-cli.url = "github:MoonshotAI/kimi-cli";
     kimi-cli.inputs.nixpkgs.follows = "nixpkgs";
 
-    # OpenClaw - AI agent gateway (using our fork with hasown fix)
-    nix-openclaw.url = "github:reverb256/nix-openclaw";
-    nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
-    nix-openclaw.inputs.home-manager.follows = "home-manager";
+     # OpenClaw - AI agent gateway (upstream with hasown fix)
+     nix-openclaw.url = "github:openclaw/nix-openclaw";
+     nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
+     nix-openclaw.inputs.home-manager.follows = "home-manager";
 
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
@@ -91,12 +91,10 @@
 
       # Common Overlays & Config
        {
-         nixpkgs.overlays = [
-           self.overlays.default
-           # nix-openclaw first, then our workaround to override
-           inputs.nix-openclaw.overlays.default
-           (import ./modules/openclaw-overlay.nix)
-         ];
+       nixpkgs.overlays = [
+            self.overlays.default
+            inputs.nix-openclaw.overlays.default
+          ];
         nixpkgs.config.allowUnfree = true;
         nixpkgs.config.permittedInsecurePackages = [
           "electron-25.9.0"
@@ -131,22 +129,18 @@
     # Host definitions for Colmena
     colmenaNodes = {
       zephyr = mkColmenaNode {
-        name = "zephyr";
         targetHost = "10.1.1.110";
         modules = [./hosts/zephyr/configuration.nix];
       };
       nexus = mkColmenaNode {
-        name = "nexus";
         targetHost = "10.1.1.120";
         modules = [./hosts/nexus/configuration.nix];
       };
       forge = mkColmenaNode {
-        name = "forge";
         targetHost = "10.1.1.130";
         modules = [./hosts/forge/configuration.nix];
       };
       sentry = mkColmenaNode {
-        name = "sentry";
         targetHost = "10.1.1.140";
         modules = [./hosts/sentry/configuration.nix];
       };

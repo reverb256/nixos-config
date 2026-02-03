@@ -17,6 +17,9 @@
 - **RAG support** with AIStor vector database capabilities
 - **Health monitoring** with auto-restart on failure
 - **Service isolation** via lobster user (no sudo access)
+- **Consolidated architecture** - Merged 3 redundant implementations into single declarative container
+- **Dependency resolution** - Fixed hasown module missing error with custom overlay
+- **Security hardening** - Implemented localhost-only binding, systemd hardening, and nginx reverse proxy
 
 ### **🎮 VR Gaming & Mining**
 - **SteamVR/WiVRn support** with Quest Pro streaming (100Mbps HEVC)

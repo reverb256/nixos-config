@@ -1,6 +1,6 @@
 # NixOS Cluster - AGENTS.md
 
-**Generated:** 2026-02-01 | **Branch:** feature/openclaw-secure
+**Generated:** 2026-02-03 | **Branch:** feature/openclaw-secure
 
 ## Overview
 Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-core distributed build pool across 4 hosts.
@@ -34,7 +34,7 @@ Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-c
 │   ├── nexus/            # AIStor/MinIO server
 │   ├── forge/            # Mining/build worker
 │   └── sentry/           # Monitoring
-├── modules/              # 25+ modular configs
+├── modules/              # 50+ modular configs
 │   ├── openclaw-declarative-container.nix # AI agent gateway
 │   ├── openclaw-overlay.nix # Dependency fix overlay
 │   ├── openclaw-common.nix # Shared agent configuration
@@ -789,8 +789,8 @@ skill_mcp nixos-manager rebuild_system
 - **30-second health monitoring with auto-restart**
 
 ## Files
-- **65+** nix files, **~7,000+** total lines
-- **26+** modules, **320+** options
+- **60+** nix files, **~10,236+** total lines
+- **50+** modules, **320+** options
 - **4** hosts in cluster
 
 ---
