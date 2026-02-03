@@ -12,6 +12,8 @@
     ../../modules/openclaw-declarative-container.nix
     # Import OpenClaw common configuration
     ../../modules/openclaw-common.nix
+    # Import Tailscale mesh VPN
+    ../../modules/tailscale.nix
   ];
 
   # Host identification
@@ -121,5 +123,16 @@
   networking.firewall = {
     allowedTCPPorts = [];
     allowedUDPPorts = [];
+  };
+
+  # ============================================================================
+  # TAILSCALE - Secure mesh VPN
+  # ============================================================================
+  services.tailscale-custom = {
+    enable = true;
+    advertiseRoutes = ["10.1.1.0/24"];
+    acceptRoutes = true;
+    useRoutingFeatures = "both";
+    enableSSH = true;
   };
 }

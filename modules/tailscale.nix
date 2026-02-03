@@ -15,15 +15,21 @@ in {
 
     advertiseRoutes = mkOption {
       type = types.listOf types.str;
-      default = [];
+      default = ["10.1.1.0/24"];
       example = ["10.0.0.0/24"];
       description = "Routes to advertise to the Tailscale network";
     };
 
-    acceptRoutes = mkOption {
+    advertiseExitNode = mkOption {
       type = types.bool;
       default = false;
-      description = "Accept routes from Tailsacle network";
+      description = "Advertise this node as an exit node";
+    };
+
+    acceptRoutes = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Accept routes from Tailscale network";
     };
 
     useRoutingFeatures = mkOption {
@@ -31,22 +37,42 @@ in {
       default = "client";
       description = "Enable routing features";
     };
+
+    enableSSH = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Enable Tailscale SSH access";
+    };
   };
 
   config = mkIf cfg.enable {
+    # Enable IP forwarding for routing
+    boot.kernel.sysctl = {
+      "net.ipv4.ip_forward" = 1;
+      "net.ipv6.conf.all.forwarding" = 1;
+    };
+
     services.tailscale = {
       enable = true;
       useRoutingFeatures = cfg.useRoutingFeatures;
+      extraFlags = mkIf cfg.advertiseExitNode [
+        "--advertise-exit-node"
+      ];
+    };
+
+    # Configure tailscaled with auth key and settings
+    systemd.services.tailscaled.serviceConfig = mkIf (cfg.enable && cfg.advertiseRoutes != []) {
+      Environment = [
+        "TS_ADVERTISE_ROUTES=${builtins.concatStringsSep "," cfg.advertiseRoutes}"
+        "TS_SSH=${if cfg.enableSSH then "true" else "false"}"
+      ];
     };
 
     # Allow tailscale through firewall
-    networking.firewall.interfaces.lo.allowedTCPPorts = [41641];  # Tailscale wireguard
-    networking.firewall.interfaces.lo.allowedUDPPorts = [41641];  # Tailscale wireguard
+    networking.firewall.interfaces.lo.allowedTCPPorts = [41641];
+    networking.firewall.interfaces.lo.allowedUDPPorts = [41641];
 
-    # Optional: advertise routes to the tailnet
-    # This requires the --advertise-routes flag in tailscaled
-    # systemd.services.tailscaled.serviceConfig.Environment = [
-    #   "TS_ADVERTISE_ROUTES=${builtins.concatStringsSep "," cfg.advertiseRoutes}"
-    # ];
+    # Enable Tailscale SSH
+    programs.tailscale.enableSSHForwarding = cfg.enableSSH;
   };
 }
