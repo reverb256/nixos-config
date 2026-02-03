@@ -82,6 +82,12 @@ id_ecdsa*
 # But ignore unencrypted secrets
 secrets/*.key
 secrets/*.txt
+secrets/*.secret
+secrets/*.env
+secrets/*-token
+secrets/*-key
+secrets/*-password
+secrets/*-credentials
 
 # Secret Nix files - commit aistor-secrets.nix (module, not secret refs)
 secrets.nix

@@ -186,11 +186,29 @@ just gaming-trigger
 │   ├── gaming.nix                          # VR/gaming setup
 │   └── ...                                # Other modules
 ├── secrets/                 # Agenix encrypted secrets
-└── scripts/                 # Automation scripts
-    ├── setup/               # Initial setup
-    ├── maintenance/         # Maintenance tasks
-    ├── monitoring/          # Performance monitoring
-    └── testing/             # Testing procedures
+    └── scripts/                 # Automation scripts
+        ├── check-for-secrets.sh # Secret detection
+        ├── setup/               # Initial setup
+        │   ├── aistor-ops.py
+        │   ├── generate-aistor-credentials.sh
+        │   ├── setup-aistor-full-capabilities.sh
+        │   ├── setup-minio-cache.sh
+        │   ├── setup-rclone-cloud-backups.sh
+        │   ├── setup-rclone.sh
+        │   └── push-to-cachix.sh
+        ├── maintenance/         # Maintenance tasks
+        │   ├── free-tier-cleanup.sh
+        │   ├── free-tier-monitor.sh
+        │   ├── reset-proton-prefixes.sh
+        │   ├── validate-openclaw-setup.sh
+        │   └── gaming-trigger.sh
+        ├── monitoring/          # Performance monitoring
+        │   ├── verify_mining.sh
+        │   └── verify-wivrn-lighthouse.sh
+        └── testing/             # Testing procedures
+            ├── openclaw-aistor-workflows.py
+            ├── test-openclaw-tailscale.sh
+            └── test-openclaw-workflows.sh
 ```
 
 ## 🎯 OpenClaw AI Platform
