@@ -118,6 +118,7 @@ with lib; {
   # ============================================================================
   # STEAM - Full VR Support with NVENC Optimizations
   # ============================================================================
+  # MERGED: Single steam configuration with proper package override
   programs.steam = {
     enable = true;
     # Font packages for Steam and Proton (fixes FreeType/Wine issues)
@@ -126,6 +127,7 @@ with lib; {
       liberation_ttf
       dejavu_fonts
     ];
+    # Extra compatibility tools including Proton-GE-RTSP for VRChat
     extraCompatPackages = with pkgs;
       [
       ]
@@ -136,6 +138,36 @@ with lib; {
         ]
         else []
       );
+    # Override Steam package with additional libraries and environment fixes
+    package = pkgs.steam.override {
+      extraLibraries = pkgs:
+        with pkgs; [
+          freetype
+          fontconfig
+          libpng
+          libjpeg
+          libtiff
+          # Additional libraries for better Proton compatibility
+          vulkan-loader
+          vulkan-tools
+        ];
+      extraProfile = ''
+        # Fixes timezones on VRChat and other games
+        unset TZ
+        # Allows Monado/OpenXR runtimes to be used
+        export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
+        # Enable DXVK async for better performance (can help with stuttering)
+        export DXVK_ASYNC=1
+        # NVIDIA optimizations
+        export __GL_SHADER_DISK_CACHE=1
+        export __GL_SHADER_DISK_CACHE_SIZE=1000000000
+        # Font library fixes
+        export LD_LIBRARY_PATH="${pkgs.freetype}/lib:${pkgs.fontconfig}/lib:${pkgs.libpng}/lib:${pkgs.libjpeg}/lib:${pkgs.libtiff}/lib:$LD_LIBRARY_PATH"
+        # Ensure Steam can find Proton-GE-RTSP
+        export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
+        export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
+      '';
+    };
   };
 
   # Enable Steam hardware support for comprehensive controller udev rules
@@ -405,31 +437,6 @@ with lib; {
   # Note: OpenSeeFace needs to be installed manually
   # Download from: https://github.com/FaceTracking/OSC-facetracking
   # Configure OSC output to port 9000 for VRChat compatibility
-
-  # Custom Proton-GE-RTSP configuration for VRChat
-  programs.steam.package = pkgs.steam.override {
-    extraLibraries = pkgs:
-      with pkgs; [
-        freetype
-        fontconfig
-        libpng
-        libjpeg
-        libtiff
-      ];
-    extraProfile = ''
-      # Fixes timezones on VRChat
-      unset TZ
-      # Allows Monado to be used
-      export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
-      # Optimized for NVENC
-      export PROTON_USE_WINED3D=0
-      export DXVK_ASYNC=1
-      # Custom Proton-GE-RTSP support
-      export PROTON_USE_DXVK=1
-      # Fix for FreeType and font libraries in Proton
-      export LD_LIBRARY_PATH="${pkgs.freetype}/lib:${pkgs.fontconfig}/lib:${pkgs.libpng}/lib:${pkgs.libjpeg}/lib:${pkgs.libtiff}/lib:$LD_LIBRARY_PATH"
-    '';
-  };
 
   # Ensure nvidia shader cache directory exists
   systemd.tmpfiles.rules = [
