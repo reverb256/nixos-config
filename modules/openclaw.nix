@@ -79,7 +79,7 @@ in {
     enableLegacyEnv = mkOption {
       type = types.bool;
       default = false;
-      description = "Enable legacy MOLTBOT_* and CLAWDBOT_* environment variables for backwards compatibility";
+      description = "Enable OPENCLAW_* environment variables (updated from deprecated MOLTBOT_*/CLAWDBOT_* naming)";
     };
 
     settings = mkOption {
@@ -189,13 +189,10 @@ in {
           ++ (
             if cfg.enableLegacyEnv
             then [
-              # Legacy environment variables for backwards compatibility
-              "MOLTBOT_NIX_MODE=1"
-              "MOLTBOT_STATE_DIR=${cfg.stateDir}"
-              "MOLTBOT_CONFIG_PATH=${cfg.configDir}/openclaw.json"
-              "CLAWDBOT_NIX_MODE=1"
-              "CLAWDBOT_STATE_DIR=${cfg.stateDir}"
-              "CLAWDBOT_CONFIG_PATH=${cfg.configDir}/openclaw.json"
+              # Updated environment variables (non-deprecated)
+              "OPENCLAW_NIX_MODE=1"
+              "OPENCLAW_STATE_DIR=${cfg.stateDir}"
+              "OPENCLAW_CONFIG_PATH=${cfg.configDir}/openclaw.json"
             ]
             else []
           );
