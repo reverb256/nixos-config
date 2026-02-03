@@ -64,6 +64,8 @@ with lib; {
       addresses = true;
       workstation = true;
     };
+    # Allow user services (like WiVRn) to publish via Avahi
+    disableUserServicePublishing = false;
   };
 
   # Ensure avahi runtime directory exists
@@ -131,9 +133,6 @@ with lib; {
   # ============================================================================
   services.fail2ban = {
     enable = true;
-    maxRetry = 3;
-    bantime = "1h";
-    findtime = "10m";
     ignoreIP = [
       "127.0.0.1"
       "10.1.1.0/24"
@@ -142,25 +141,6 @@ with lib; {
       "100.116.190.124"  # forge Tailscale
       "100.82.210.39"  # sentry Tailscale
     ];
-    jails = {
-      sshd = {
-        enabled = true;
-        filter = "sshd";
-        port = "ssh";
-        maxRetry = 3;
-        bantime = "1h";
-        findtime = "10m";
-      };
-      openclaw = {
-        enabled = true;
-        filter = "http-get";
-        port = "18789,18790";
-        maxRetry = 5;
-        bantime = "30m";
-        findtime = "5m";
-        logpath = "/var/log/openclaw/access.log";
-      };
-    };
   };
 
   # Ensure NetworkManager service is running
