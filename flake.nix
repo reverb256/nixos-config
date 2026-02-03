@@ -90,13 +90,13 @@
       }
 
       # Common Overlays & Config
-      {
-        nixpkgs.overlays = [
-          self.overlays.default
-          # nix-openclaw first, then our workaround to override
-          inputs.nix-openclaw.overlays.default
-          (import ./modules/openclaw-workaround-overlay.nix)
-        ];
+       {
+         nixpkgs.overlays = [
+           self.overlays.default
+           # nix-openclaw first, then our workaround to override
+           inputs.nix-openclaw.overlays.default
+           (import ./modules/openclaw-overlay.nix)
+         ];
         nixpkgs.config.allowUnfree = true;
         nixpkgs.config.permittedInsecurePackages = [
           "electron-25.9.0"
@@ -176,7 +176,7 @@
 
     # Workaround overlay for OpenClaw hasown dependency bug
     # Fixes: https://github.com/openclaw/nix-openclaw/issues/45
-    overlays.openclaw-workaround = import ./modules/openclaw-workaround-overlay.nix;
+    overlays.openclaw-overlay = import ./modules/openclaw-overlay.nix;
 
     # NixOS configurations (for direct use with nixos-rebuild)
     nixosConfigurations = nixosSystems;

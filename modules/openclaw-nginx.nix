@@ -64,7 +64,6 @@ in {
         "${cfg.domain}" = {
           enableACME = cfg.enableSSL;
           forceSSL = cfg.enableSSL;
-          acmeRoot = lib.mkIf cfg.enableSSL "/var/lib/acme/.challenges";
 
           # IP allowlist for security
           extraConfig =

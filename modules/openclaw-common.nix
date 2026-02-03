@@ -8,15 +8,6 @@
 }:
 with lib; let
   cfg = config.services.openclaw;
-  # Common OpenClaw settings for all nodes
-  commonSettings = {
-    # Use OpenClaw's built-in authentication system
-    auth = {
-      type = "openclaw";
-      # No external authentication needed
-    };
-    # No model configuration - let OpenClaw handle it
-  };
 in {
   # Import nix-config.nix to ensure binary caches are available on all nodes
   imports = [./nix-config.nix];
@@ -25,14 +16,7 @@ in {
     enable = mkEnableOption "Common OpenClaw configuration for all nodes";
   };
 
-  config = mkIf (cfg.enable && cfg.common.enable) {
-    # Override OpenClaw settings with common configuration
-    services.openclaw.environmentFile = "/run/agenix/openclaw-env";
-    services.openclaw.settings = commonSettings;
-
-    # No local LLM services - using cloud providers only
-    services.ollama = mkDefault {};
-
+  config = mkIf cfg.common.enable {
     # Common firewall rules for OpenClaw services
     # NOTE: These are bound to localhost by default for security.
     # Use nginx reverse proxy for external access with SSL/TLS.
@@ -43,7 +27,10 @@ in {
       allowedUDPPorts = [];
     };
 
-    # Add OpenClaw and Ollama to system packages
+    # No local LLM services - using cloud providers only
+    services.ollama = mkDefault {};
+
+    # Add OpenClaw tools to system packages
     environment.systemPackages = with pkgs; [
       inputs.nix-openclaw.packages.x86_64-linux.openclaw-tools
     ];

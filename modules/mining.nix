@@ -186,7 +186,7 @@ in {
               # Set power limit using configured value
               "${pkgs.bash}/bin/bash -c '/run/current-system/sw/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=${cfg.lolminer.nvidia.devices}'"
             ];
-            ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
+            ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --apibind 127.0.0.1 --mode b --tls 1";
             ExecStopPost = "${pkgs.bash}/bin/bash -c '/run/current-system/sw/bin/nvidia-smi -pl 350 --id=${cfg.lolminer.nvidia.devices} || true'"; # Reset power limit to 350W
             Restart = "always";
             RestartSec = "30s";
@@ -214,7 +214,7 @@ in {
             User = "root";
             Group = "mining";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --mode b --tls 1";
+             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --apibind 127.0.0.1 --mode b --tls 1";
             Restart = "always";
             RestartSec = "30s";
             Environment = [
