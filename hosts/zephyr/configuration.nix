@@ -3,7 +3,6 @@
 {
   pkgs,
   config,
-  inputs,
   ...
 }: {
   imports = [
@@ -29,7 +28,7 @@
     ../../modules/mcp-servers.nix
     # Import nix-ld for dynamically linked executables (Proton/Steam support)
     ../../modules/nix-ld.nix
-    inputs.nixpkgs-xr.nixosModules.nixpkgs-xr
+    # Note: nixpkgs-xr overlay applied via flake.nix overlays, not imported here
   ];
 
   # Host identification
