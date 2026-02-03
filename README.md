@@ -11,23 +11,46 @@
 ## 🏗️ Architecture Overview
 
 ### **Cluster Nodes**
-| Host | IP Address | Role | CPU Cores | Memory | GPU | Purpose |
-|------|------------|------|-----------|--------|-----|---------|
-| **zephyr** | 10.1.1.110 | Master Node | 32 cores (Ryzen 9 5950X) | 64GB | RTX 3090 | VR Gaming, Development, Build Coordination |
-| **nexus** | 10.1.1.120 | Build/AIStor | 24 cores (Ryzen 9 3900X) | 32GB | 2x RTX 3060 Ti | Distributed Builds, AIStor Storage |
-| **forge** | 10.1.1.130 | GPU Compute | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Compute, Mining |
-| **sentry** | 10.1.1.140 | Monitoring | 8 cores (Ryzen 7 1700) | 32GB | RX 5600 XT | Monitoring, Light Builds |
+| Host | Local IP | Tailscale IP | Role | CPU Cores | Memory | GPU | Purpose |
+|------|----------|--------------|------|-----------|--------|-----|---------|
+| **zephyr** | 10.1.1.110 | 100.81.182.5 | Master Node | 32 cores (Ryzen 9 5950X) | 64GB | RTX 3090 | VR Gaming, Development, Build Coordination |
+| **nexus** | 10.1.1.120 | 100.86.158.18 | Build/AIStor | 24 cores (Ryzen 9 3900X) | 32GB | 2x RTX 3060 Ti | Distributed Builds, AIStor Storage |
+| **forge** | 10.1.1.130 | 100.116.190.124 | GPU Compute | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Compute, Mining |
+| **sentry** | 10.1.1.140 | 100.82.210.39 | Monitoring | 8 cores (Ryzen 7 1700) | 32GB | RX 5600 XT | Monitoring, Light Builds |
 
 **Total Build Capacity:** **51 cores** across all hosts
 
 ### **Network Topology**
 ```
 Internet ── Router (10.1.1.1)
-                    │
-                    ├── zephyr (10.1.1.110) - Master Workstation
-                    ├── nexus  (10.1.1.120) - Build/AIStor Server
-                    ├── forge  (10.1.1.130) - Mining/Build Worker
-                    └── sentry (10.1.1.140) - Monitoring Server
+                     │
+                     ├── zephyr (10.1.1.110, 100.81.182.5) - Master Workstation
+                     ├── nexus  (10.1.1.120, 100.86.158.18) - Build/AIStor Server
+                     ├── forge  (10.1.1.130, 100.116.190.124) - Mining/Build Worker
+                     └── sentry (10.1.1.140, 100.82.210.39) - Monitoring Server
+```
+
+### **GitOps Deployment Workflow**
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Push to    │────▶│ GitHub      │────▶│ Auto-merge  │────▶│ Deploy via  │
+│  main       │     │ Actions     │     │ to infra    │     │ Colmena     │
+│  branch     │     │ validation  │     │ branch      │     │             │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+                                                               │
+                            ┌─────────────────────────────────┤
+                            │
+                    ┌───────▼────────┐
+                    │   nexus        │
+                    │  (coordinator) │
+                    └───────┬────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+  ┌─────▼─────┐       ┌─────▼─────┐       ┌─────▼─────┐
+  │  zephyr   │       │  forge    │       │  sentry   │
+  │  (master) │       │  (worker) │       │  (monitor)│
+  └───────────┘       └───────────┘       └───────────┘
 ```
 
 ## 🚀 Key Features
@@ -38,6 +61,14 @@ Internet ── Router (10.1.1.1)
 - **Trusted user authentication** for restricted settings
 - **Real-time build monitoring** and status tracking
 - **High availability** with automatic failover
+
+### **🌐 Tailscale Mesh VPN**
+- **Secure mesh networking** across all 4 cluster nodes
+- **Tailscale SSH** enabled on all hosts (no traditional SSH needed)
+- **Subnet routing** for 10.1.1.0/24 network
+- **Exit node** configured on zephyr for external access
+- **Magic DNS** for easy hostname resolution
+- **100.x.x.x addressing** for encrypted connections
 
 ### **🤖 OpenClaw: The Embedded AI Assistant**
 - **Natural language interface** for system operations
@@ -65,7 +96,7 @@ Internet ── Router (10.1.1.1)
 
 ### **Prerequisites**
 - NixOS 26.05+ with flakes enabled
-- SSH access to cluster nodes
+- SSH access to cluster nodes (or Tailscale access)
 - Git for version control
 - Agenix for secret management
 
@@ -85,10 +116,14 @@ just dev-setup
 just switch
 ```
 
-### **Cluster Deployment**
+### **Cluster Deployment (GitOps)**
 ```bash
-# Deploy to all hosts
+# Deploy to all hosts (pulls from infra branch)
 just cluster-deploy
+
+# Deploy to specific host
+just deploy nexus
+just deploy-zephyr
 
 # Check cluster status
 just cluster-status
@@ -97,26 +132,36 @@ just cluster-status
 just cluster-resources
 ```
 
+### **Tailscale Access**
+```bash
+# Connect to any node via Tailscale IP
+ssh 100.86.158.18          # nexus
+ssh 100.116.190.124        # forge
+ssh 100.82.210.39          # sentry
+
+# Or use Magic DNS
+ssh nexus.tigris-ule.ts.net
+```
+
 ## 📖 Documentation
 
 ### **Architecture**
-- **[REVERB-OS-ARCHITECTURE.md](docs/REVERB-OS-ARCHITECTURE.md)** - Complete system design and architecture
+- **[AGENTS.md](AGENTS.md)** - Comprehensive system documentation
+- **[REVERB-OS-ARCHITECTURE.md](docs/REVERB-OS-ARCHITECTURE.md)** - Complete system design
 - **[PORTFOLIO.md](docs/PORTFOLIO.md)** - Technical achievements and portfolio showcase
 
 ### **Setup & Deployment**
-- **[SETUP.md](docs/SETUP.md)** - Step-by-step setup guide
 - **[DEPLOYMENT_INSTRUCTIONS.md](docs/DEPLOYMENT_INSTRUCTIONS.md)** - Detailed deployment instructions
 - **[QUICK_START.md](docs/QUICK_START.md)** - Fast track to running the cluster
+- **[TAILSCALE_SETUP.md](docs/TAILSCALE_SETUP.md)** - VPN configuration guide
 
 ### **Development**
 - **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Development guidelines
-- **[AGENTS.md](docs/AGENTS.md)** - Comprehensive system documentation
 - **[SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)** - Security hardening guide
 
 ### **Maintenance**
 - **[QUICK_FIXES.md](docs/QUICK_FIXES.md)** - Immediate security and performance improvements
 - **[PERFORMANCE_OPTIMIZATION_PLAN.md](docs/PERFORMANCE_OPTIMIZATION_PLAN.md)** - System optimization
-- **[CONSOLIDATION_PLAN.md](docs/CONSOLIDATION_PLAN.md)** - Infrastructure consolidation guide
 
 ## 🛠️ Usage
 
@@ -165,6 +210,21 @@ just gaming-status
 just gaming-trigger
 ```
 
+### **Tailscale Commands**
+```bash
+# Check Tailscale status
+tailscale status
+
+# Test connectivity to other nodes
+tailscale ping 100.86.158.18
+tailscale ping 100.116.190.124
+tailscale ping 100.82.210.39
+
+# Check your Tailscale IP
+tailscale ip --4
+tailscale ip --6
+```
+
 ## 🔧 Configuration Structure
 
 ```
@@ -175,11 +235,12 @@ just gaming-trigger
 ├── justfile                 # Automation and management commands
 ├── colmena.nix              # Cluster deployment config
 ├── hosts/                   # Host-specific configurations
-│   ├── zephyr/              # Master workstation
+│   ├── zephyr/              # Master workstation (RTX 3090)
 │   ├── nexus/               # Build/AIStor server
 │   ├── forge/               # Mining/build worker
 │   └── sentry/              # Monitoring server
 ├── modules/                 # Shared configuration modules
+│   ├── tailscale.nix       # Tailscale mesh VPN
 │   ├── openclaw-declarative-container.nix  # AI orchestration
 │   ├── openclaw-storage.nix                 # AIStor integration
 │   ├── openclaw-nginx.nix                   # Reverse proxy
@@ -187,29 +248,37 @@ just gaming-trigger
 │   ├── gaming.nix                          # VR/gaming setup
 │   └── ...                                # Other modules
 ├── secrets/                 # Agenix encrypted secrets
-    └── scripts/                 # Automation scripts
-        ├── check-for-secrets.sh # Secret detection
-        ├── setup/               # Initial setup
-        │   ├── aistor-ops.py
-        │   ├── generate-aistor-credentials.sh
-        │   ├── setup-aistor-full-capabilities.sh
-        │   ├── setup-minio-cache.sh
-        │   ├── setup-rclone-cloud-backups.sh
-        │   ├── setup-rclone.sh
-        │   └── push-to-cachix.sh
-        ├── maintenance/         # Maintenance tasks
-        │   ├── free-tier-cleanup.sh
-        │   ├── free-tier-monitor.sh
-        │   ├── reset-proton-prefixes.sh
-        │   ├── validate-openclaw-setup.sh
-        │   └── gaming-trigger.sh
-        ├── monitoring/          # Performance monitoring
-        │   ├── verify_mining.sh
-        │   └── verify-wivrn-lighthouse.sh
-        └── testing/             # Testing procedures
-            ├── openclaw-aistor-workflows.py
-            ├── test-openclaw-tailscale.sh
-            └── test-openclaw-workflows.sh
+└── .github/workflows/       # GitHub Actions for GitOps
+    └── nix.yml             # CI/CD pipeline
+```
+
+## 🌐 GitOps Workflow
+
+### **Continuous Deployment**
+1. **Push to `main` branch** - Development changes
+2. **GitHub Actions validates**:
+   - `nix flake check`
+   - Build all 4 host configurations
+   - ~5 minutes total
+3. **Auto-merge to `infra` branch** - Production-ready
+4. **Deploy via `just cluster-deploy`**:
+   - Pulls from `infra` branch
+   - Runs `colmena apply` on nexus
+   - Deploys to all 4 hosts
+
+### **Deployment Commands**
+```bash
+# Full cluster deployment
+just cluster-deploy
+
+# Update flake and deploy
+just cluster-update
+
+# Deploy to single host
+just deploy <host>
+just deploy-nexus
+just deploy-forge
+just deploy-sentry
 ```
 
 ## 🌐 AstralVibe.ca Ecosystem Integration
@@ -222,6 +291,7 @@ Reverb-OS serves as a **core component** of the AstralVibe.ca ecosystem, providi
 - **Colmena**: Declarative cluster deployment
 - **Direnv**: Automatic development environment setup
 - **MCP Servers**: AI assistant integration (Kilo Code, Claude Code)
+- **Tailscale**: Secure mesh VPN for cluster connectivity
 
 ### **Portfolio Showcase**
 Reverb-OS demonstrates expertise in:
@@ -230,6 +300,7 @@ Reverb-OS demonstrates expertise in:
 - **AI orchestration** and personal assistant development
 - **Security hardening** and isolation practices
 - **Performance optimization** for VR gaming and mining
+- **GitOps workflows** for infrastructure-as-code
 
 ## 🎯 OpenClaw: The Embedded AI Assistant
 
@@ -271,6 +342,7 @@ All secrets are encrypted using Agenix:
 - Mining credentials and wallet addresses
 - AIStor access keys
 - OpenClaw gateway tokens
+- Tailscale auth keys
 
 ### **System Hardening**
 ```nix
@@ -288,6 +360,7 @@ systemd.services.openclaw-container-declarative.serviceConfig = {
 - External access only via Nginx reverse proxy
 - VR streaming ports (9757-9760) restricted to local network
 - Firewall rules managed in `modules/networking.nix`
+- Tailscale mesh VPN for secure inter-node communication
 
 ## 🐛 Troubleshooting
 
@@ -308,6 +381,10 @@ just mining-status
 
 # Check VR/gaming mode
 just gaming-status
+
+# Check Tailscale connectivity
+tailscale status
+tailscale ping <node-ip>
 ```
 
 ## 📈 Performance Monitoring
@@ -325,6 +402,10 @@ just cluster-mining-status
 
 # Build statistics
 just build-stats
+
+# Tailscale network status
+tailscale status
+tailscale netcheck
 ```
 
 ### **Health Checks**
@@ -337,6 +418,9 @@ curl -s http://127.0.0.1:18800/health
 
 # Nginx health
 curl -s http://127.0.0.1/health
+
+# Tailscale health
+tailscale status
 ```
 
 ## 🤝 Contributing
@@ -350,3 +434,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🌟 Showcase
 
 For a detailed portfolio showcase of this infrastructure, see [PORTFOLIO.md](docs/PORTFOLIO.md).
+
+---
+
+**Reverb-OS** - NixOS-based personal AI assistant platform with GitOps deployment, Tailscale mesh VPN, and OpenClaw AI orchestration.
