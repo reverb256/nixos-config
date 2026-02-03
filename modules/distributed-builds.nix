@@ -3,7 +3,6 @@
 # See AGENTS.md for cluster architecture details
 {
   lib,
-  pkgs,
   ...
 }: {
   # ============================================================================

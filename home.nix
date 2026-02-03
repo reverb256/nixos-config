@@ -94,9 +94,10 @@
     ANTHROPIC_MODEL = "kat-coder-pro-v1";
 
     # API key files (from Agenix secrets)
+    # Note: These files must exist in secrets/ directory and be configured in secrets/age-secrets.nix
     ANTHROPIC_AUTH_TOKEN_FILE = "/run/agenix/claude-api-key";
     OPENROUTER_API_KEY_FILE = "/run/agenix/openrouter-api-key";
-    OPENAI_API_KEY_FILE = "/run/agenix/openai-api-key";
+    # OPENAI_API_KEY_FILE = "/run/agenix/openai-api-key"; # Commented out as file does not exist
 
     # OpenCode environment variables
     OPENCODE_MCP_SCHEMA_FIX = "1";
@@ -471,21 +472,22 @@
     vesktop.enable = true; # Use Vesktop (Vencord + Wayland support)
   };
 
-  # Vesktop - Disabled autostart to prevent launches during system updates
-  # systemd.user.services.vesktop-autostart = {
-  #   Unit = {
-  #     Description = "Vesktop autostart";
-  #     After = ["graphical-session.target" "plasma-workspace.target"];
-  #     PartOf = ["graphical-session.target"];
-  #   };
-  #   Service = {
-  #     Type = "simple";
-  #     ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
-  #     Restart = "on-failure";
-  #     RestartSec = 5;
-  #   };
-  #   Install = {
-  #     WantedBy = ["default.target"];
-  #   };
-  # };
+  # Autostart Vesktop on login (but not during home-manager switches)
+  # This will only start when the user logs into a graphical session, not during system configurations
+  systemd.user.services.vesktop-autostart = {
+    Unit = {
+      Description = "Vesktop autostart";
+      After = ["graphical-session-pre.target"];
+      PartOf = ["graphical-session.target"];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install = {
+      WantedBy = ["graphical-session.target"];
+    };
+  };
 }
