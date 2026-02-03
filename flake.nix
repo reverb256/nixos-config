@@ -56,7 +56,6 @@
 
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
-    nix-flatpak.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs @ {
