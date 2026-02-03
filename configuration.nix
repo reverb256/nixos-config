@@ -1,6 +1,5 @@
 {
   pkgs,
-  inputs ? null,
   ...
 }: let
   # Get gamemode package for polkit rules

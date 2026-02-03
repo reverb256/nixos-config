@@ -26,16 +26,41 @@
 
     # Desktop-specific portal configurations
     # Use kde section for proper portal selection (creates kde-portals.conf)
+    # This ensures that for each portal type, the system tries kde first, then falls back to gtk
     config = {
-      kde = {
+      common = {
+        # Common defaults for all desktop environments
         default = ["kde" "gtk"];
+      };
+      kde = {
+        # Specific KDE configuration - KDE portals first, GTK as fallback
+        default = ["kde" "gtk"];
+        # File chooser: prefers KDE (native feel in Dolphin) but falls back to GTK for compatibility
         "org.freedesktop.impl.portal.FileChooser" = ["kde" "gtk"];
+        # Screen cast: KDE implementation for better integration with Plasma
         "org.freedesktop.impl.portal.ScreenCast" = ["kde"];
+        # Screenshots: KDE implementation for better integration with Spectacle
         "org.freedesktop.impl.portal.Screenshot" = ["kde"];
+        # Remote Desktop: KDE implementation for better integration
         "org.freedesktop.impl.portal.RemoteDesktop" = ["kde"];
+        # Settings: prefers KDE settings dialogs but falls back to GTK
         "org.freedesktop.impl.portal.Settings" = ["kde" "gtk"];
+        # Notifications: KDE implementation for better integration with Plasma
         "org.freedesktop.impl.portal.Notification" = ["kde"];
+        # Window management: KDE implementation for better integration with KWin
         "org.freedesktop.impl.portal.WindowManagement" = ["kde"];
+        # Additional portal types commonly used
+        "org.freedesktop.impl.portal.Print" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.Email" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.Inhibit" = ["kde"];
+        "org.freedesktop.impl.portal.Access" = ["kde"];
+        "org.freedesktop.impl.portal.Account" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.Background" = ["kde"];
+        "org.freedesktop.impl.portal.GameMode" = ["kde"];
+        "org.freedesktop.impl.portal.LockScreen" = ["kde"];
+        "org.freedesktop.impl.portal.NetworkMonitor" = ["kde"];
+        "org.freedesktop.impl.portal.ProxyResolver" = ["kde"];
+        "org.freedesktop.impl.portal.Trash" = ["kde"];
       };
     };
 

@@ -62,7 +62,6 @@
   outputs = inputs @ {
     self,
     nixpkgs,
-    kimi-cli,
     ...
   }: let
     # Common modules shared across all hosts, inlined here for clarity
@@ -107,7 +106,6 @@
 
     # Function to create a Colmena node definition
     mkColmenaNode = {
-      name,
       targetHost,
       modules ? [],
     }: {

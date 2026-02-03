@@ -25,6 +25,8 @@
     ../../modules/lmstudio-docker.nix
     # Import AIStor secrets generation
     ../../modules/aistor-secrets.nix
+    # Import MCP servers
+    ../../modules/mcp-servers.nix
     # Import nix-ld for dynamically linked executables (Proton/Steam support)
     ../../modules/nix-ld.nix
     inputs.nixpkgs-xr.nixosModules.nixpkgs-xr
@@ -235,9 +237,44 @@
   # ============================================================================
   # MCP SERVERS - Browser automation and AI assistant tools
   # ============================================================================
-  # TODO: services.mcp-servers module missing - temporarily disabled
-  # services.mcp-servers = {
-  #   enable = true;
-  #   servers.playwright.enable = true;
-  # };
+  services.mcp-servers = {
+    enable = true;
+    servers.playwright.enable = true;
+  };
+
+  # ============================================================================
+  # OPENCLAW - AI Agent Gateway
+  # ============================================================================
+  services.openclaw = {
+    enable = true;
+    # Let OpenClaw handle model configuration via its auth system
+    settings = {};
+  };
+
+  # ============================================================================
+  # FIREWALL
+  # ============================================================================
+  networking.firewall = {
+    allowedTCPPorts = [9757];
+    allowedUDPPorts = [
+      9757
+      9758
+      9759
+      27031
+      27036
+    ];
+  };
+
+  # ============================================================================
+  # MEMORY/SWAP SETTINGS - Prevent OOM during Nix builds
+  # ============================================================================
+  boot.kernel.sysctl = {
+    # Use swap more aggressively (default is 60, was set to 10)
+    # Higher value = more willing to use swap
+    "vm.swappiness" = 80;
+
+    # Don't overcommit memory as aggressively
+    "vm.overcommit_memory" = 2;
+    "vm.overcommit_ratio" = 90;
+  };
 }
