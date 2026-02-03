@@ -276,8 +276,8 @@
     # Higher value = more willing to use swap
     "vm.swappiness" = 80;
 
-    # Don't overcommit memory as aggressively
-    "vm.overcommit_memory" = 2;
+    # Don't overcommit memory as aggressively (moved to vm-tuning.nix)
+    # "vm.overcommit_memory" = 2;
     "vm.overcommit_ratio" = 90;
   };
 }

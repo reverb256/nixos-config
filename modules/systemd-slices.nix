@@ -12,8 +12,8 @@
         OOMScoreAdjust = -1000;
         # Ensure user session stays alive even under memory pressure
         MemoryPressureWatch = "skip";
-        # Limit memory to prevent system-wide exhaustion
-        MemoryLimit = "24G";
+        # Limit memory to prevent system-wide exhaustion (increased from 24G due to Discover crashes)
+        MemoryLimit = "32G";
       };
       # CRITICAL: Prevent user session restart during nixos-rebuild
       # Restarting this service kills ALL user processes across ALL TTYs
