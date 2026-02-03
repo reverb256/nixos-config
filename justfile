@@ -17,19 +17,28 @@ j: help
 # Ensure we're in the correct directory and colmena is available
 _setup:
    #!/usr/bin/env bash
+   # Save current directory
+   ORIGINAL_DIR=$(pwd)
+
    if [ -f "flake.nix" ] && [ -f "justfile" ]; then
-     :
+     # Already in a config directory with flake.nix and justfile
+     echo "Using configuration from $(pwd)" >&2
+   elif [ -f "./configuration.nix" ] && [ -f "flake.nix" ]; then
+     # In a directory with configuration.nix and flake.nix (likely NixOS config)
+     echo "Using configuration from $(pwd)" >&2
    elif [ -d "/etc/nixos" ] && [ -f "/etc/nixos/flake.nix" ]; then
+     # Fall back to /etc/nixos if available
+     echo "Using configuration from /etc/nixos" >&2
      cd /etc/nixos
    else
-     echo "Error: Cannot find NixOS config directory (/etc/nixos)"
-     echo "Ensure /etc/nixos exists with flake.nix"
+     echo "Error: Cannot find NixOS config directory"
+     echo "Expected: Current directory with flake.nix, or /etc/nixos with flake.nix"
      exit 1
    fi
+
    if ! command -v colmena &> /dev/null; then
-     echo "Error: Colmena is not installed"
-     echo "Install with: nix shell nixpkgs#colmena or add to system-packages.nix"
-     exit 1
+     echo "Warning: Colmena is not installed (some commands will fail)" >&2
+     echo "Install with: nix shell nixpkgs#colmena" >&2
    fi
 
 # =============================================================================
@@ -37,10 +46,57 @@ _setup:
 # =============================================================================
 
 # Switch to new NixOS configuration on local machine
+# Auto-detects hostname from flake and applies appropriate configuration
 switch: _setup
-   @echo "Switching zephyr to new configuration..."
-   sudo nixos-rebuild switch --flake .#zephyr || true
-   @echo "Local switch complete!"
+   #!/usr/bin/env bash
+   # Detect current hostname to determine which configuration to apply
+   CURRENT_HOSTNAME=$(hostname)
+
+   # Map common hostnames to configurations (parameterized)
+   case "$CURRENT_HOSTNAME" in
+     zephyr*) CONFIG="${HOST_ZEPHYR:-zephyr}" ;;
+     nexus*)  CONFIG="${HOST_NEXUS:-nexus}" ;;
+     forge*)  CONFIG="${HOST_FORGE:-forge}" ;;
+     sentry*) CONFIG="${HOST_SENTRY:-sentry}" ;;
+     *)       CONFIG="${HOST_DEFAULT:-zephyr}" ;;  # Default to zephyr
+   esac
+
+   echo "Detected hostname: $CURRENT_HOSTNAME -> $CONFIG"
+   echo "Switching $CONFIG to new configuration..."
+   sudo nixos-rebuild switch --flake ".#$CONFIG" || true
+   echo "Local switch complete!"
+
+# Switch to specific configuration (override auto-detection)
+switch-to CONFIG:
+   @echo "Switching {{CONFIG}} to new configuration..."
+   sudo nixos-rebuild switch --flake ".#{{CONFIG}}" || true
+   @echo "Switch to {{CONFIG}} complete!"
+
+# Switch with custom hostname mapping override (environment-based)
+switch-custom:
+   #!/usr/bin/env bash
+   # Use environment variables to override default mappings
+   CURRENT_HOSTNAME=$(hostname)
+
+   if [ -n "$CUSTOM_HOST_CONFIG" ]; then
+       CONFIG="$CUSTOM_HOST_CONFIG"
+   else
+       # Map common hostnames to configurations (same as main switch)
+       case "$CURRENT_HOSTNAME" in
+         zephyr*) CONFIG="${HOST_ZEPHYR:-zephyr}" ;;
+         nexus*)  CONFIG="${HOST_NEXUS:-nexus}" ;;
+         forge*)  CONFIG="${HOST_FORGE:-forge}" ;;
+         sentry*) CONFIG="${HOST_SENTRY:-sentry}" ;;
+         *)       CONFIG="${HOST_DEFAULT:-zephyr}" ;;
+       esac
+   fi
+
+   echo "Custom switch: hostname=$CURRENT_HOSTNAME -> config=$CONFIG"
+   if [ -n "$CUSTOM_HOST_CONFIG" ]; then
+       echo "(using CUSTOM_HOST_CONFIG override: $CUSTOM_HOST_CONFIG)"
+   fi
+   sudo nixos-rebuild switch --flake ".#$CONFIG" || true
+   echo "Custom switch complete!"
 
 # Fast switch without home-manager (for quick system updates)
 switch-fast: _setup
@@ -361,7 +417,9 @@ help:
    @echo "NixOS Management with Colmena"
    @echo ""
    @echo "LOCAL OPERATIONS:"
-   @echo "  switch              Switch local system (with home-manager)"
+   @echo "  switch              Switch local system (auto-detects hostname -> config)"
+   @echo "  switch-to <config>  Switch to specific configuration (override auto-detect)"
+   @echo "  switch-custom       Custom switch with env var overrides"
    @echo "  switch-fast         Fast switch WITHOUT home-manager"
    @echo "  build               Build local config (dry run)"
    @echo "  build-only          Build without switching"
@@ -369,6 +427,20 @@ help:
    @echo "  update              Update flake + switch"
    @echo "  clean               Clean old generations"
    @echo "  status              Show system status"
+   @echo ""
+   @echo "ENVIRONMENT VARIABLES FOR CUSTOMIZATION:"
+   @echo "  HOST_ZEPHYR    Configuration for zephyr* hostnames (default: zephyr)"
+   @echo "  HOST_NEXUS     Configuration for nexus* hostnames (default: nexus)"
+   @echo "  HOST_FORGE     Configuration for forge* hostnames (default: forge)"
+   @echo "  HOST_SENTRY    Configuration for sentry* hostnames (default: sentry)"
+   @echo "  HOST_DEFAULT   Default config for unknown hostnames (default: zephyr)"
+   @echo "  CUSTOM_HOST_CONFIG  Override all mappings (use specific config)"
+   @echo ""
+   @echo "EXAMPLES:"
+   @echo "  just switch                              # Auto-detect based on hostname"
+   @echo "  just switch-to zephyr                    # Manually specify config"
+   @echo "  HOST_DEFAULT=forge just switch          # Use 'forge' for unknown hostnames"
+   @echo "  CUSTOM_HOST_CONFIG=nexus just switch    # Always use 'nexus' config"
    @echo ""
    @echo "CLUSTER OPERATIONS:"
    @echo "  cluster-deploy      Deploy to all hosts"

@@ -1,6 +1,5 @@
 {
   inputs,
-  pkgs,
 }: {
   imports = [
     ./hosts/zephyr/configuration.nix
