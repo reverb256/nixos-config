@@ -338,7 +338,7 @@ EOF
             -e "OPENCLAW_LOG_DIR=/var/lib/openclaw/data/logs" \
             --memory=2147483648 \
             --cpu-shares=512 \
-             --user "982:979" \
+            --user "982:979" \
             --cap-drop ALL \
             --security-opt "no-new-privileges=true" \
             --health-cmd "curl -sf http://localhost:$PORT/health || exit 1" \
@@ -346,9 +346,10 @@ EOF
             --health-timeout="10s" \
             --health-retries="3" \
             --health-start-period="30s" \
-             --label "managed-by=nixos" \
+            --label "managed-by=nixos" \
+            --entrypoint "/bin/sh" \
             "$FULL_IMAGE" \
-            gateway start
+            -c "exec openclaw gateway start"
 
           echo "Container started: $CONTAINER_NAME"
           echo "Gateway: http://localhost:$PORT"
