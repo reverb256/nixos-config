@@ -1,9 +1,9 @@
 # NixOS Cluster - AGENTS.md
 
-**Generated:** 2026-02-03 | **Branch:** feature/openclaw-secure
+**Generated:** 2026-02-03 | **Branch:** infra
 
 ## Overview
-Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-core distributed build pool across 4 hosts.
+Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-core distributed build pool across 4 hosts with GitOps deployment workflow.
 
 ## Quick Reference
 | Task | File | Key Config |
@@ -14,15 +14,63 @@ Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-c
 | Mining | `modules/mining.nix` | lolminer, xmrig |
 | VR/Steam | `modules/gaming.nix` | WiVRn, GameMode |
 | Network | `modules/networking.nix` | Static IP 10.1.1.110 |
+| Tailscale VPN | `modules/tailscale.nix` | 100.x.x.x mesh network |
 | Secrets | `secrets/` | Agenix encrypted |
 | Cluster deploy | `justfile` | `just cluster-deploy` |
+| GitOps workflow | `.github/workflows/nix.yml` | validate → merge → deploy |
 | MCP Servers | `modules/mcp-servers.nix` | AI assistant tools |
-| Kimi Code | `~/.kimi/mcp.json` | MCP config |
-| Kilo Code | `~/.kilocode/cli/global/settings/mcp_settings.json` | MCP config |
 | **OpenClaw** | `modules/openclaw-declarative-container.nix` | AI agent gateway (port 18789) |
 | **OpenClaw Storage** | `modules/openclaw-storage.nix` | AIStor MCP (port 18800) |
 | **OpenClaw Nginx** | `modules/openclaw-nginx.nix` | Reverse proxy with SSL |
 | Dev Environment | `.envrc` + `flake.nix` | direnv + nix-direnv |
+
+## Cluster Nodes
+
+| Host | Private IP | Tailscale IP | Role | Cores | GPU |
+|------|------------|--------------|------|-------|-----|
+| **zephyr** | 10.1.1.110 | 100.81.182.5 | Master/VR/Gaming | 32 | RTX 3090 |
+| **nexus** | 10.1.1.120 | 100.86.158.18 | Build/AIStor/Deploy | 24 | 2x RTX 3060 Ti |
+| **forge** | 10.1.1.130 | 100.116.190.124 | Mining/GPU Compute | 6 | 2x RTX 4060 + 2x RX 5700 XT |
+| **sentry** | 10.1.1.140 | 100.82.210.39 | Monitoring | 8 | RX 5600 XT |
+
+**Total:** 51 cores across 4 hosts
+
+## GitOps Deployment Workflow
+
+### Branch Strategy
+- **`main`** - Development branch (your working branch)
+- **`infra`** - Production deployment branch (validated, deployed)
+
+### Workflow
+```
+Push to main
+    ↓
+GitHub Actions validates
+    - flake check
+    - Build all 4 hosts
+    - ~5 min total
+    ↓
+If passes: Auto-merge to infra branch
+    ↓
+Manual or automated deployment
+    - just cluster-deploy (pulls from infra)
+    - Or via webhook to nexus
+```
+
+### Deploy Commands
+```bash
+# Deploy to all hosts
+just cluster-deploy      # Pulls from infra, runs colmena apply
+
+# Deploy to specific host
+just deploy nexus        # Deploy to single host
+just deploy-zephyr       # Deploy to zephyr
+just deploy-forge        # Deploy to forge
+just deploy-sentry       # Deploy to sentry
+
+# Update flake + deploy
+just cluster-update      # nix flake update + deploy
+```
 
 ## Structure
 ```
@@ -35,6 +83,7 @@ Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-c
 │   ├── forge/            # Mining/build worker
 │   └── sentry/           # Monitoring
 ├── modules/              # 50+ modular configs
+│   ├── tailscale.nix     # VPN mesh network
 │   ├── openclaw-declarative-container.nix # AI agent gateway
 │   ├── openclaw-overlay.nix # Dependency fix overlay
 │   ├── openclaw-common.nix # Shared agent configuration
@@ -99,6 +148,8 @@ cp .envrc.example .envrc.local
 - **Modular**: All features in `modules/`, no main config bloat
 - **Secrets**: Agenix for all sensitive data (no plaintext!)
 - **Distributed**: 51 cores via Colmena + machines.nix
+- **Networking**: Tailscale mesh VPN + local static IPs
+- **Deployment**: GitOps via GitHub Actions + infra branch
 
 ## Anti-Patterns (NEVER)
 - Edit `hardware-configuration.nix` (auto-generated)
@@ -107,6 +158,7 @@ cp .envrc.example .envrc.local
 - Add services to main config (create modules)
 - Break Colmena deployment (use `just cluster-deploy`)
 - **REPEAT FAILED COMMANDS** - If a command fails once, DO NOT run it again without modifying the approach or understanding why it failed
+- Commit directly to `infra` branch (always use `main` → validation → auto-merge)
 
 ## Code Quality
 ```bash
@@ -134,37 +186,21 @@ Configured in `modules/nix-config.nix` for faster builds:
 
 **Note**: Magic Nix Cache public endpoint was discontinued Jan 2025. Use GitHub Actions version for CI caching (see below).
 
-## CI/CD with Garnix
-
-**Garnix** provides free CI/CD for Nix flakes:
-- **Automatic builds** on every push to GitHub
-- **Binary cache** at `cache.garnix.io` (already configured)
-- **Build status** on GitHub PRs
-- **Dashboard** at https://garnix.io/builds
-
-### Configuration
-- `garnix.yaml` - CI configuration file
-- Connected to this repo - builds all flake outputs automatically
-
-### What Gets Built
-All flake outputs are built and cached:
-- `nixosConfigurations.zephyr`, `nexus`, `forge`, `sentry`
-- `packages.x86_64-linux.claude`, `kimi`
-- `colmena` deployment configs
-- Custom overlays
-
-### Setup
-1. Register at https://garnix.io (free tier)
-2. Connect your GitHub repository
-3. Push to GitHub - builds start automatically
-4. Use cached builds locally with the configured `cache.garnix.io`
-
 ## CI/CD with GitHub Actions
 
 **GitHub Actions** workflow configured in `.github/workflows/nix.yml`:
-- **Magic Nix Cache** for 30-50% faster CI builds (v13, latest)
-- **Determinate Nix Installer** for reliable Nix setup
-- **Multi-host builds** (zephyr, nexus, forge, sentry)
+- **Validate**: `nix flake check` on every push to main
+- **Build**: All 4 host configurations
+- **Auto-merge**: On success, merges to `infra` branch
+- **Deploy**: Triggers via webhook or manual
+
+### Workflow Steps
+1. Push to `main` branch
+2. GitHub Actions runs validation (~5 min)
+3. If passes: auto-merges to `infra` branch
+4. Deployment triggered via:
+   - `just cluster-deploy` (pulls latest from infra)
+   - Webhook to nexus (optional)
 
 ### Magic Nix Cache
 Uses GitHub Actions cache API to share build results between workflow runs:
@@ -173,6 +209,54 @@ Uses GitHub Actions cache API to share build results between workflow runs:
 ```
 
 **Note**: Magic Nix Cache only works in GitHub Actions, not for local builds.
+
+## Tailscale VPN Configuration
+
+All cluster nodes are connected via Tailscale mesh VPN:
+
+### Network Topology
+```
+Internet ── Tailscale Control Server
+                     │
+                     ├── zephyr (100.81.182.5) - Exit node, SSH enabled
+                     ├── nexus  (100.86.158.18) - Deploy coordinator
+                     ├── forge  (100.116.190.124) - Mining worker
+                     └── sentry (100.82.210.39) - Monitor
+```
+
+### Configuration
+Each host configured in `hosts/<host>/configuration.nix`:
+```nix
+services.tailscale-custom = {
+  enable = true;
+  advertiseRoutes = ["10.1.1.0/24"];
+  acceptRoutes = true;
+  useRoutingFeatures = "both";
+  enableSSH = true;
+};
+```
+
+### Features
+- **Mesh Network**: All nodes can reach each other via 100.x IPs
+- **Subnet Routing**: 10.1.1.0/24 advertised from all nodes
+- **Exit Node**: zephyr configured as exit node for internet access
+- **Tailscale SSH**: Enabled on all nodes for secure access
+- **Magic DNS**: `tigris-ule.ts.net` domain for internal resolution
+
+### Commands
+```bash
+# Check Tailscale status
+tailscale status
+
+# Check connectivity to other nodes
+ping 100.86.158.18  # nexus
+ping 100.116.190.124 # forge
+ping 100.82.210.39   # sentry
+
+# SSH via Tailscale (no traditional SSH needed)
+ssh 100.86.158.18
+ssh nexus.tigris-ule.ts.net
+```
 
 ## MCP Servers Configuration
 
@@ -626,8 +710,9 @@ just update              # Update flake + rebuild
 just clean               # Clean old generations
 
 # Cluster
-just cluster-deploy      # Deploy to all hosts
+just cluster-deploy      # Deploy to all hosts (pulls from infra)
 just cluster-status      # Check status
+just deploy nexus        # Deploy to specific host
 
 # Mining/Gaming
 just mining-start        # Start mining
@@ -644,6 +729,10 @@ journalctl -u openclaw-storage -f            # Follow storage logs
 # Development
 just check               # nix flake check
 just dev-setup           # Full pipeline
+
+# Tailscale
+tailscale status         # Check VPN mesh
+tailscale ping nexus     # Test connectivity
 ```
 
 ## Security Audit (2026-02-03)
@@ -760,7 +849,25 @@ skill nixos-manager
 skill_mcp nixos-manager rebuild_system
 ```
 
-## Recent Fixes (2026-02-02)
+## Recent Fixes (2026-02-03)
+
+### GitOps Workflow Implementation
+- **Created `infra` branch** for production deployments
+- **Updated GitHub Actions** to validate and auto-merge to infra
+- **Added git pull before deploy** in justfile recipes
+- **Fixed sync issue** between local /etc/nixos and GitHub
+
+### Tailscale VPN Configuration
+- **Enabled on all 4 nodes** with mesh networking
+- **Configured subnet routing** for 10.1.1.0/24
+- **Set zephyr as exit node** for external access
+- **Enabled Tailscale SSH** on all nodes
+- **Fixed forge** - added tun kernel module
+
+### OpenClaw Improvements
+- **Fixed container start script** - removed extra backslash bug
+- **Created missing secrets** - openclaw-gateway-token.age
+- **Updated environment variables** - OPENCLAW_* format
 
 ### Steam/Proton Gaming Fixes
 - **Fixed duplicate `programs.steam` definitions** in `modules/gaming.nix`
@@ -768,12 +875,6 @@ skill_mcp nixos-manager rebuild_system
 - **Created reset script** at `/etc/nixos/scripts/reset-proton-prefixes.sh`
 - **VRChat** now uses Proton-GE-RTSP correctly
 - **Deadlock** configured for Proton Experimental
-
-### OpenClaw Container Fixes
-- **Updated environment variables** from deprecated `MOLTBOT_*/CLAWDBOT_*` to `OPENCLAW_*`
-- **Fixed user ID** from 1000:1000 to 982:979 (lobster user)
-- **Fixed container entrypoint** to use proper command execution
-- **Moved nixos-manager skill** from user config to project directory
 
 ## Unique Features
 - Custom `services.mining` option (not upstream)
@@ -787,6 +888,8 @@ skill_mcp nixos-manager rebuild_system
 - **OpenClaw AI agent orchestration (cluster-wide, hardened)**
 - **OpenClaw nginx reverse proxy with SSL/TLS**
 - **30-second health monitoring with auto-restart**
+- **GitOps deployment workflow** (GitHub Actions → infra branch → colmena)
+- **Tailscale mesh VPN** (100.x network, subnet routing, exit node)
 
 ## Files
 - **60+** nix files, **~10,236+** total lines
@@ -794,4 +897,4 @@ skill_mcp nixos-manager rebuild_system
 - **4** hosts in cluster
 
 ---
-*Last updated: 2026-02-03 | Security audit completed, CVE-2026-25253 mitigation documented, AI-specific security recommendations added*
+*Last updated: 2026-02-03 | GitOps workflow implemented, Tailscale configured on all nodes, infra branch active*
