@@ -188,41 +188,53 @@ cluster-build: _setup
 
 # Deploy to all hosts (parallel by default)
 cluster-deploy: _setup
-   @echo "Deploying to all cluster hosts..."
-   sudo colmena apply || true
-   @echo "Cluster deployment complete!"
+    @echo "Pulling latest configuration from GitHub..."
+    git pull origin main || true
+    @echo "Deploying to all cluster hosts..."
+    sudo colmena apply || true
+    @echo "Cluster deployment complete!"
 
 # Deploy to specific host
 deploy HOST: _setup
-   @echo "Deploying to $<HOST>..."
-   sudo colmena apply --on $<HOST> || true
-   @echo "Deployment to $<HOST> complete!"
+    @echo "Pulling latest configuration from GitHub..."
+    git pull origin main || true
+    @echo "Deploying to $<HOST>..."
+    sudo colmena apply --on $<HOST> || true
+    @echo "Deployment to $<HOST> complete!"
 
 # Deploy to individual hosts
 deploy-nexus: _setup
-   @echo "Deploying to nexus..."
-   sudo colmena apply --on nexus || true
-   @echo "Deployment to nexus complete!"
+    @echo "Pulling latest configuration from GitHub..."
+    git pull origin main || true
+    @echo "Deploying to nexus..."
+    sudo colmena apply --on nexus || true
+    @echo "Deployment to nexus complete!"
 
 deploy-forge: _setup
-   @echo "Deploying to forge..."
-   sudo colmena apply --on forge || true
-   @echo "Deployment to forge complete!"
+    @echo "Pulling latest configuration from GitHub..."
+    git pull origin main || true
+    @echo "Deploying to forge..."
+    sudo colmena apply --on forge || true
+    @echo "Deployment to forge complete!"
 
 deploy-sentry: _setup
-   @echo "Deploying to sentry..."
-   sudo colmena apply --on sentry || true
-   @echo "Deployment to sentry complete!"
+    @echo "Pulling latest configuration from GitHub..."
+    git pull origin main || true
+    @echo "Deploying to sentry..."
+    sudo colmena apply --on sentry || true
+    @echo "Deployment to sentry complete!"
 
 deploy-zephyr: switch
 
 # Update flake + deploy to all hosts
 cluster-update: _setup
-   @echo "Updating flake inputs..."
-   nix flake update || true
-   @echo "Deploying updated configuration to all hosts..."
-   sudo colmena apply || true
-   @echo "Cluster update complete!"
+    @echo "Pulling latest configuration from GitHub..."
+    git pull origin main || true
+    @echo "Updating flake inputs..."
+    nix flake update || true
+    @echo "Deploying updated configuration to all hosts..."
+    sudo colmena apply || true
+    @echo "Cluster update complete!"
 
 # Check status of all hosts
 cluster-status: _setup
