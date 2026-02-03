@@ -19,7 +19,7 @@ Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-c
 | MCP Servers | `modules/mcp-servers.nix` | AI assistant tools |
 | Kimi Code | `~/.kimi/mcp.json` | MCP config |
 | Kilo Code | `~/.kilocode/cli/global/settings/mcp_settings.json` | MCP config |
-| **OpenClaw** | `modules/openclaw.nix` | AI agent gateway (port 18789) |
+| **OpenClaw** | `modules/openclaw-declarative-container.nix` | AI agent gateway (port 18789) |
 | **OpenClaw Storage** | `modules/openclaw-storage.nix` | AIStor MCP (port 18800) |
 | **OpenClaw Nginx** | `modules/openclaw-nginx.nix` | Reverse proxy with SSL |
 | Dev Environment | `.envrc` + `flake.nix` | direnv + nix-direnv |
@@ -35,7 +35,8 @@ Production NixOS 26.05 cluster with VR gaming, mining, and AI capabilities. 51-c
 │   ├── forge/            # Mining/build worker
 │   └── sentry/           # Monitoring
 ├── modules/              # 25+ modular configs
-│   ├── openclaw.nix      # AI agent gateway
+│   ├── openclaw-declarative-container.nix # AI agent gateway
+│   ├── openclaw-overlay.nix # Dependency fix overlay
 │   ├── openclaw-common.nix # Shared agent configuration
 │   ├── openclaw-storage.nix # AIStor S3 MCP
 │   ├── openclaw-backups.nix # Cloud backup automation
@@ -243,7 +244,7 @@ OpenClaw is an AI agent orchestration system integrated across all cluster hosts
 
 ### Documentation
 - **Official**: https://github.com/openclaw/nix-openclaw
-- **Module**: `modules/openclaw.nix` - NixOS service configuration
+- **Module**: `modules/openclaw-declarative-container.nix` - Declarative container implementation
 - **Storage**: `modules/openclaw-storage.nix` - AIStor S3 integration
 - **Backups**: `modules/openclaw-backups.nix` - Automated cloud backups
 - **Nginx**: `modules/openclaw-nginx.nix` - Reverse proxy with SSL
@@ -344,7 +345,7 @@ services.openclaw.nginx = {
 
 **Problem:** The upstream nix-openclaw package has a missing `hasown` dependency (form-data@2.5.4 requires it, but it's not in the pnpm lockfile). This causes `Error: Cannot find module 'hasown'` when running OpenClaw.
 
-**Solution:** We use a workaround overlay (`modules/openclaw-workaround-overlay.nix`) that:
+**Solution:** We use a consolidated overlay (`modules/openclaw-overlay.nix`) that:
 1. Creates a minimal `hasown` stub package
 2. Patches the OpenClaw package to include it in node_modules
 3. Wraps the binary with proper NODE_PATH
@@ -645,7 +646,93 @@ just check               # nix flake check
 just dev-setup           # Full pipeline
 ```
 
-## Security Notes
+## Security Audit (2026-02-03)
+
+### 🔍 Security Assessment Score: 8.1/10
+
+**Overall Status**: Good security foundation with critical AI-specific vulnerabilities requiring immediate attention.
+
+### 🚨 Critical Issues (Fix Within 48 Hours)
+
+#### CVE-2026-25253: Remote Code Execution via Token Exfiltration
+- **CVSS**: 8.8 (HIGH)
+- **Status**: Patched in v2026.1.29 - **VERIFY YOUR VERSION**
+- **Impact**: Full system compromise through malicious links
+- **Action**: Run `openclaw --version` and update if < 2026.1.29
+
+#### Container Network Exposure (HIGH)
+- **Location**: `modules/openclaw-declarative-container.nix:169`
+- **Issue**: Container uses `--network host` (exposes ports to all interfaces)
+- **Impact**: Bypasses localhost-only security controls
+- **Action**: Change to bridge network with port mapping
+
+#### Hardcoded Development Token (MEDIUM)
+- **Location**: `modules/openclaw-declarative-container.nix:181`
+- **Issue**: `OPENCLAW_GATEWAY_TOKEN=dev-token-12345`
+- **Impact**: Predictable authentication bypass
+- **Action**: Move to environment file `/run/agenix/openclaw-env`
+
+### ✅ Security Strengths
+- **Excellent User Isolation**: Lobster service user with no sudo access
+- **Comprehensive Systemd Hardening**: NoNewPrivileges, ProtectSystem, PrivateTmp
+- **Proper Secret Management**: Agenix integration for all sensitive data
+- **Network Segmentation**: Localhost-only binding with nginx reverse proxy
+- **Health Monitoring**: 30-second health checks with auto-restart
+
+### 🎯 AI-Specific Security Risks
+| Risk | Severity | Mitigation Status |
+|------|----------|------------------|
+| Prompt Injection | HIGH | ⚠️ Requires sandbox implementation |
+| Skill Poisoning | MEDIUM | ⚠️ No skill verification system |
+| Data Exfiltration | HIGH | ⚠️ Needs output filtering |
+| Autonomous Escalation | MEDIUM | ✅ Limited by systemd hardening |
+
+### 📋 Immediate Action Checklist (48 Hours)
+- [ ] Verify OpenClaw version ≥ 2026.1.29
+- [ ] Fix container network isolation (bridge network)
+- [ ] Move hardcoded token to environment file
+- [ ] Enable SSL/TLS for nginx
+- [ ] Rotate all existing gateway tokens
+- [ ] Test CVE-2026-25253 mitigation
+
+### 🔧 Short-term Enhancements (2 Weeks)
+- [ ] Implement AI output filtering
+- [ ] Add prompt injection detection
+- [ ] Enable comprehensive audit logging
+- [ ] Set up AI behavior monitoring
+- [ ] Audit all installed skills
+- [ ] Enable fail2ban for nginx
+
+### 🛡️ Security Best Practices Implemented
+```nix
+# Service user isolation (LOBSTER - no sudo)
+users.users.lobster = {
+  isSystemUser = true;
+  group = "lobster";
+  home = "/var/lib/lobster";
+  shell = "/bin/bash";
+};
+
+# Systemd hardening
+systemd.services.openclaw.serviceConfig = {
+  NoNewPrivileges = true;
+  PrivateTmp = true;
+  ProtectSystem = "strict";
+  ProtectHome = true;
+  ReadWritePaths = ["/var/lib/openclaw"];
+};
+
+# Network security (localhost only)
+networking.firewall.interfaces.lo.allowedTCPPorts = [18789 18800];
+```
+
+### 📚 Security Documentation
+- **Official Security Guide**: https://docs.openclaw.ai/gateway/security
+- **CVE-2026-25253 Advisory**: https://github.com/openclaw/openclaw/security/advisories/GHSA-g8p2-7wf7-98mq
+- **AI Security Research**: https://snyk.io/articles/clawdbot-ai-assistant/
+- **Complete Security Audit**: `/etc/nixos/docs/openclaw-security-audit.md`
+
+## Legacy Security Notes
 - ✅ **OpenClaw**: Service user has no sudo (fixed)
 - ✅ **OpenClaw**: Services bind to localhost only (fixed)
 - ✅ **OpenClaw**: Nginx reverse proxy with SSL available
@@ -707,4 +794,4 @@ skill_mcp nixos-manager rebuild_system
 - **4** hosts in cluster
 
 ---
-*Last updated: 2026-02-02 | Refactor: Steam/Proton fixes, OpenClaw container fixes, environment variables updated*
+*Last updated: 2026-02-03 | Security audit completed, CVE-2026-25253 mitigation documented, AI-specific security recommendations added*

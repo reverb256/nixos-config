@@ -1,0 +1,173 @@
+{
+  "name": "nixos-manager",
+  "description": "NixOS system management with rebuild, package, and secret operations",
+  "version": "2.0.0",
+  "tools": [
+    {
+      "name": "rebuild_system",
+      "description": "Rebuild NixOS system configuration",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "flake": {
+            "type": "string",
+            "description": "Flake reference (e.g., .#zephyr)",
+            "default": ".#$(hostname)"
+          },
+          "operation": {
+            "type": "string",
+            "enum": ["switch", "build", "test", "dry-build", "dry-activate"],
+            "description": "Rebuild operation type",
+            "default": "switch"
+          },
+          "max_jobs": {
+            "type": "integer",
+            "description": "Maximum parallel jobs",
+            "default": 2
+          },
+          "cores": {
+            "type": "integer",
+            "description": "Cores per job",
+            "default": 2
+          },
+          "upgrade": {
+            "type": "boolean",
+            "description": "Update flake inputs before building",
+            "default": false
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "search_packages",
+      "description": "Search for packages in nixpkgs",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Package name or keyword to search"
+          },
+          "channel": {
+            "type": "string",
+            "description": "Nixpkgs channel to search",
+            "default": "nixpkgs"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "install_shell_packages",
+      "description": "Install packages temporarily in nix-shell",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "packages": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of packages to install"
+          },
+          "command": {
+            "type": "string",
+            "description": "Optional command to run with the packages"
+          },
+          "pure": {
+            "type": "boolean",
+            "description": "Use pure nix-shell (isolated from host)",
+            "default": false
+          }
+        },
+        "required": ["packages"]
+      }
+    },
+    {
+      "name": "manage_secrets",
+      "description": "Manage Agenix secrets",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["encrypt", "decrypt", "generate-key", "rekey"],
+            "description": "Secret management operation"
+          },
+          "file": {
+            "type": "string",
+            "description": "Path to file (for encrypt/decrypt)"
+          },
+          "output": {
+            "type": "string",
+            "description": "Output path (for encrypt/decrypt)"
+          },
+          "recipients": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Age public keys for encryption"
+          }
+        },
+        "required": ["operation"]
+      }
+    },
+    {
+      "name": "collect_garbage",
+      "description": "Run Nix garbage collection",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "delete_older_than": {
+            "type": "string",
+            "description": "Delete generations older than (e.g., '30d')",
+            "default": null
+          },
+          "optimise": {
+            "type": "boolean",
+            "description": "Optimise store after collection",
+            "default": false
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "flake_update",
+      "description": "Update flake inputs",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "inputs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Specific inputs to update (empty = all)"
+          },
+          "commit": {
+            "type": "boolean",
+            "description": "Commit the lock file changes",
+            "default": true
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "check_health",
+      "description": "Check NixOS system health",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "full": {
+            "type": "boolean",
+            "description": "Run full health check including store verification",
+            "default": false
+          }
+        },
+        "required": []
+      }
+    }
+  ],
+  "server": {
+    "command": "/etc/nixos/.opencode/skills/nixos-manager/nixos-manager-server.sh",
+    "transport": "stdio"
+  }
+}

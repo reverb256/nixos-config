@@ -17,8 +17,8 @@
     ../../modules/nvidia-wayland.nix
     # Import Garnix cache configuration
     ../../modules/garnix.nix
-    # Import OpenClaw (container-based - avoids pnpm/hasown issues)
-    ../../modules/openclaw-container.nix
+    # Import OpenClaw (declarative container-based - native NixOS approach)
+    ../../modules/openclaw-declarative-container.nix
     # Import Tailscale
     ../../modules/tailscale.nix
     # Import LM Studio Docker
@@ -196,24 +196,29 @@
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker"];
 
   # ============================================================================
-  # OPENCLAW - AI Agent Gateway (Container-based - avoids pnpm/hasown issues)
   # ============================================================================
-  services.openclaw-container = {
+  # OPENCLAW - Declarative AI Agent Gateway (using native NixOS container approach)
+  # ============================================================================
+  # ============================================================================
+  # OPENCLAW - AI Agent Gateway (Tailscale-secured)
+  # ============================================================================
+  # SECURITY: Only accessible via Tailscale VPN (100.81.182.5)
+  # Blocks CVE-2026-25253 RCE attacks from public internet
+  services.openclaw.declarative = {
     enable = true;
-    image = "ghcr.io/openclaw/openclaw";  # Official GitHub container registry
-    tag = "latest";
+    image = "ghcr.io/openclaw/openclaw:latest";
     port = 18789;
     apiPort = 18790;
     stateDir = "/var/lib/openclaw";
     dataDir = "/var/lib/openclaw/data";
     configDir = "/etc/openclaw";
-    runtime = "docker";  # Use docker (lmstudio-docker also uses docker)
-    memory = "2g";
+    memory = "2G";
     cpuShares = 512;
-    healthCheckInterval = 30;
     gatewayMode = "local";
-    gatewayBind = "0.0.0.0";
-    nginxProxy = true;
+    # SECURITY FIX: Bind only to Tailscale interface, not public internet
+    gatewayBind = "100.81.182.5";  # Tailscale IP - blocks public access
+    environmentFile = "/run/agenix/openclaw-env";
+    enableLegacyEnv = true;
   };
 
   # ============================================================================
@@ -242,19 +247,13 @@
     servers.playwright.enable = true;
   };
 
-  # ============================================================================
-  # OPENCLAW - AI Agent Gateway
-  # ============================================================================
-  services.openclaw = {
-    enable = true;
-    # Let OpenClaw handle model configuration via its auth system
-    settings = {};
-  };
+
 
   # ============================================================================
   # FIREWALL
   # ============================================================================
   networking.firewall = {
+    # WiVRn VR streaming ports (local only)
     allowedTCPPorts = [9757];
     allowedUDPPorts = [
       9757
@@ -263,6 +262,11 @@
       27031
       27036
     ];
+    
+    # OpenClaw AI Gateway - Tailscale-only access (CVE-2026-25253 protection)
+    # Port 18789 accessible ONLY via Tailscale interface (100.81.182.5)
+    # Blocks public internet access to prevent 1-click RCE attacks
+    interfaces."tailscale0".allowedTCPPorts = [18789 18790];
   };
 
   # ============================================================================

@@ -236,24 +236,7 @@ in {
     freeSwapThreshold = 5; # Only kill when < 5% swap free
   };
 
-  # ============================================================================
-  # OPENCLAW - AI Agent Gateway
-  # ============================================================================
-  services.openclaw = {
-    enable = true;
-    port = 18789;
-    environmentFile = "/run/agenix/openclaw-env";
-    settings = {
-      # Core OpenClaw configuration with security focus
-      auth = {
-        type = "openclaw";
-      };
-      server = {
-        host = "127.0.0.1";  # Bind only to localhost for security
-        port = 18789;
-      };
-    };
-  };
+
 
   # OpenClaw Storage Management Control Plane (runs with lobster user)
   # Temporarily disabled until minio-cache-credentials are properly set up

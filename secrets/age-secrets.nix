@@ -24,6 +24,12 @@
       file = ./openclaw-env.age;
     };
 
+    # OpenClaw Gateway Token (separate from env file for container configs)
+    # SECURITY FIX: Moved from hardcoded "dev-token-12345" to agenix secret
+    "openclaw-gateway-token" = {
+      file = ./openclaw-gateway-token.age;
+    };
+
     # MinIO cache credentials for AIStor on nexus
     # IMPORTANT: You must create this secret file before enabling openclaw-storage
     # Run: agenix -e minio-cache-credentials.age

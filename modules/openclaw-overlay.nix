@@ -1,7 +1,7 @@
 # OpenClaw hasown dependency workaround overlay
+# Merged from openclaw-fix-overlay.nix and openclaw-workaround-overlay.nix
 # Fixes upstream bug: https://github.com/openclaw/nix-openclaw/issues/45
 # The form-data@2.5.4 package requires 'hasown' but it's not in the pnpm lockfile
-# IMPORTANT: This overlay must be applied AFTER nix-openclaw overlay
 
 final: prev:
 let
