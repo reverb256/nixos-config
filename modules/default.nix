@@ -14,5 +14,6 @@
     ./minio-cache.nix # S3 binary cache client support
     ./openclaw-storage.nix # OpenClaw storage management
     ./openclaw-backups.nix # OpenClaw automated backups
+    ./vm-tuning.nix # VM overcommit fixes for Discover crashes
   ];
 }
