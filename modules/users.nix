@@ -29,7 +29,11 @@ with lib; {
       packages = with pkgs; [
         just
         fzf
-        kdePackages.kate
+        (kdePackages.kate.overrideAttrs (finalAttrs: previousAttrs: {
+          # Add pipewire to buildInputs to fix pipewire-0.3 library errors
+          # This is required for Qt6 multimedia integration with PipeWire
+          buildInputs = previousAttrs.buildInputs ++ [ pipewire ];
+        }))
         steam
       ];
       openssh.authorizedKeys.keys = [
