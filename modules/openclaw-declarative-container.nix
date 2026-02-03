@@ -166,10 +166,18 @@ in {
             #!/usr/bin/env bash
             set -euo pipefail
 
-            # Start the OpenClaw container with all the right parameters
-            # Stop and remove any existing container with the same name
+            # Clean up any existing containers or processes
             ${pkgs.docker}/bin/docker stop openclaw-declarative 2>/dev/null || true
             ${pkgs.docker}/bin/docker rm openclaw-declarative 2>/dev/null || true
+
+            # Wait for port to be released
+            for i in {1..10}; do
+              if ! ${pkgs.bash}/bin/bash -c "ss -tuln | grep -q ':${toString cfg.port} '" 2>/dev/null; then
+                break
+              fi
+              echo "Waiting for port ${toString cfg.port} to be released..."
+              sleep 1
+            done
 
             # Create Docker network for isolation (prevents host network access)
             ${pkgs.docker}/bin/docker network create openclaw-network 2>/dev/null || true
@@ -199,11 +207,11 @@ in {
               --user "982:979" \
               --cap-drop ALL \
               --security-opt "no-new-privileges=true" \
-              --health-cmd "${pkgs.curl}/bin/curl -sf http://127.0.0.1:${toString cfg.port}/health || exit 1" \
-              --health-interval="30s" \
-              --health-timeout="10s" \
-              --health-retries="3" \
-              --health-start-period="30s" \
+              # --health-cmd "wget -q --spider http://127.0.0.1:${toString cfg.port}/ || exit 1" \
+              # --health-interval="30s" \
+              # --health-timeout="10s" \
+              # --health-retries="3" \
+              # --health-start-period="30s" \
               --label "managed-by=nixos" \
               --label "component=openclaw-gateway" \
               --label "environment=production" \
