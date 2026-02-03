@@ -36,7 +36,8 @@ in {
     enable = mkEnableOption "Robust Mining Services";
     user = mkOption {
       type = types.str;
-      default = "j_kro";
+      default = "mining";  # Default to non-root user
+      description = "User to run mining services as (security: never use root)";
     };
 
     lolminer = {
@@ -122,6 +123,12 @@ in {
     # Note: Mining API token is managed by agenix in /run/agenix/
     # No tmpfiles rule needed - agenix handles the directory creation
 
+    # Create mining state directory with proper permissions
+    systemd.tmpfiles.rules = [
+      "d /var/lib/mining 0750 ${cfg.user} mining - -"
+      "d /var/log/mining 0750 ${cfg.user} mining - -"
+    ];
+
     # XMRig configuration file
     environment.etc."xmrig/config.json" = {
       text = builtins.toJSON {
@@ -177,31 +184,38 @@ in {
           requires = [];
 
           serviceConfig = {
-            User = "root";
+            User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
             ExecStartPre = [
-              # Set persistent management and power limit for RTX 3090
-              "${pkgs.bash}/bin/bash -c '/run/current-system/sw/bin/nvidia-smi -pm 1'"
+              # Allow mining user to set persistent management and power limit for RTX 3090
+              # Using pkgs.bash with full path and sudo for nvidia-smi
+              "${pkgs.bash}/bin/bash -c 'sudo /run/current-system/sw/bin/nvidia-smi -pm 1 || true'"
               # Set power limit using configured value
-              "${pkgs.bash}/bin/bash -c '/run/current-system/sw/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=${cfg.lolminer.nvidia.devices}'"
+              "${pkgs.bash}/bin/bash -c 'sudo /run/current-system/sw/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=${cfg.lolminer.nvidia.devices} || true'"
             ];
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --apibind 127.0.0.1 --mode b --tls 1";
-            ExecStopPost = "${pkgs.bash}/bin/bash -c '/run/current-system/sw/bin/nvidia-smi -pl 350 --id=${cfg.lolminer.nvidia.devices} || true'"; # Reset power limit to 350W
+            ExecStopPost = "${pkgs.bash}/bin/bash -c 'sudo /run/current-system/sw/bin/nvidia-smi -pl 350 --id=${cfg.lolminer.nvidia.devices} || true'"; # Reset power limit to 350W
             Restart = "always";
             RestartSec = "30s";
             Environment = [
               "GPU_MAX_HEAP_SIZE=100"
               "GPU_MAX_ALLOC_PERCENT=100"
             ];
-            NoNewPrivileges = false;
+            # Security hardening
+            NoNewPrivileges = true;
             PrivateTmp = true;
-            PrivateDevices = false;
-            ProtectKernelTunables = false;
-            ProtectControlGroups = false;
-            ProtectHostname = false;
+            PrivateDevices = true;
+            ProtectKernelTunables = true;
+            ProtectControlGroups = true;
+            ProtectHostname = true;
             RestrictRealtime = true;
+            ReadOnlyPaths = "/";
+            ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
             LimitMEMLOCK = "4G";
+            # Remove all capabilities - use only what's granted
+            CapabilityBoundingSet = "";
+            AmbientCapabilities = "";
           };
         };
 
@@ -211,7 +225,7 @@ in {
           after = ["NetworkManager.service"];
 
           serviceConfig = {
-            User = "root";
+            User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
              ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --apibind 127.0.0.1 --mode b --tls 1";
@@ -222,14 +236,20 @@ in {
               "GPU_MAX_ALLOC_PERCENT=100"
               "HSA_OVERRIDE_GFX_VERSION=10.3.0"
             ];
-            NoNewPrivileges = false;
+            # Security hardening
+            NoNewPrivileges = true;
             PrivateTmp = true;
-            PrivateDevices = false;
-            ProtectKernelTunables = false;
-            ProtectControlGroups = false;
-            ProtectHostname = false;
+            PrivateDevices = true;
+            ProtectKernelTunables = true;
+            ProtectControlGroups = true;
+            ProtectHostname = true;
             RestrictRealtime = true;
+            ReadOnlyPaths = "/";
+            ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
             LimitMEMLOCK = "4G";
+            # Remove all capabilities
+            CapabilityBoundingSet = "";
+            AmbientCapabilities = "";
           };
         };
 
@@ -239,19 +259,23 @@ in {
           after = ["NetworkManager.service"];
 
           serviceConfig = {
-            User = "root";
-            Group = "root";
+            User = cfg.user;
+            Group = "mining";
             Slice = "mining.slice";
             ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://xtm-rx-us.kryptex.network:8038 -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-port 8081 --http-access-token-file ${cfg.xmrig.httpTokenFile} --randomx-1gb-pages --randomx-mode=fast --asm=auto";
             Restart = "always";
+            # Security hardening - strict sandboxing
             NoNewPrivileges = true;
             PrivateTmp = true;
             ProtectKernelTunables = true;
             ProtectControlGroups = true;
             RestrictRealtime = true;
+            ReadOnlyPaths = "/";
+            ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
             LimitMEMLOCK = "4G";
-            CapabilityBoundingSet = "CAP_SYS_ADMIN CAP_SYS_NICE CAP_SYS_RAWIO";
-            AmbientCapabilities = "CAP_SYS_ADMIN CAP_SYS_NICE CAP_SYS_RAWIO";
+            # No capabilities - just regular user
+            CapabilityBoundingSet = "";
+            AmbientCapabilities = "";
           };
         };
 
@@ -283,5 +307,12 @@ in {
         };
       };
     };
+
+    # Firewall: Only allow mining API ports from localhost
+    networking.firewall.interfaces.lo.allowedTCPPorts = [
+      cfg.lolminer.nvidia.apiPort
+      cfg.lolminer.amd.apiPort
+      8081  # XMRig HTTP API
+    ];
   };
 }

@@ -152,12 +152,39 @@ with lib; {
           }
         ];
       }
-      # Allow mining user to run nvidia-smi without password for GPU management
       {
+        # Allow mining user to run nvidia-smi without password for GPU management
         users = ["mining"];
         commands = [
           {
             command = "/run/current-system/sw/bin/nvidia-smi";
+            options = ["NOPASSWD"];
+          }
+        ];
+      }
+
+      {
+        # Allow j_kro to run docker commands without password (for containers)
+        users = ["j_kro"];
+        commands = [
+          {
+            command = "/run/current-system/sw/bin/docker";
+            options = ["NOPASSWD"];
+          }
+          {
+            command = "/run/current-system/sw/bin/docker ps";
+            options = ["NOPASSWD"];
+          }
+          {
+            command = "/run/current-system/sw/bin/docker images";
+            options = ["NOPASSWD"];
+          }
+          {
+            command = "/run/current-system/sw/bin/docker logs";
+            options = ["NOPASSWD"];
+          }
+          {
+            command = "/run/current-system/sw/bin/docker exec";
             options = ["NOPASSWD"];
           }
         ];

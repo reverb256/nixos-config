@@ -163,7 +163,7 @@ EOF
           $DOCKER run -d \
             --name lmstudio \
             --restart unless-stopped \
-            -p ${toString cfg.daemonPort}:1234 \
+            -p ${cfg.daemonHost}:${toString cfg.daemonPort}:1234 \
             -e PORT=${toString cfg.daemonPort} \
             -e MODELS_DIR=/models \
             -e DATA_DIR=/data \

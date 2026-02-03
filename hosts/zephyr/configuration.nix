@@ -132,7 +132,7 @@
   services.logind.settings.Login.KillUserProcesses = false;
 
   # ============================================================================
-  # MINING CONFIGURATION
+  # MINING CONFIGURATION - HARDENED FOR SECURITY
   # ============================================================================
   # GARNIX - CI/CD Cache for faster builds
   # ============================================================================
@@ -141,8 +141,13 @@
   };
 
   # ============================================================================
+  # MINING SERVICES - With strict security hardening
+  # ============================================================================
+  # Security: All mining services run as dedicated 'mining' user (not root)
+  # All services use strict systemd sandboxing to limit blast radius
   services.mining = {
     enable = true;
+    user = "mining";  # Dedicated non-root user
     xmrig = {
       enable = true;
       threads = 16;
@@ -160,6 +165,10 @@
       };
     };
   };
+
+  # ============================================================================
+  # Note: Mining API token is managed by agenix in /run/agenix/
+  # No tmpfiles rule needed - agenix handles the directory creation
 
   # ============================================================================
   # NETWORKING (Static IP)
