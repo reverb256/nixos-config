@@ -204,7 +204,7 @@ in {
               ${legacyEnvVars} \
               --memory=${cfg.memory} \
               --cpu-shares=${toString cfg.cpuShares} \
-              --user "982:979" \
+              --userns=keep-id \
               --cap-drop ALL \
               --security-opt "no-new-privileges=true" \
               # --health-cmd "wget -q --spider http://127.0.0.1:${toString cfg.port}/ || exit 1" \

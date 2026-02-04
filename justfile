@@ -16,25 +16,24 @@ _default:
 
 # Build all configurations (dry run)
 build:
-    sudo nix shell .#colmena -- colmena build -f /etc/nixos/hive.nix
+    sudo /etc/nixos/scripts/colmena-deploy build
 
 # Deploy to all cluster hosts
 deploy:
-    @cd /etc/nixos && git pull origin main
-    sudo nix shell .#colmena -- colmena apply -f /etc/nixos/hive.nix --on '@default'
+    sudo /etc/nixos/scripts/colmena-deploy deploy
 
 # Deploy to individual hosts
 zephyr:
-    sudo nix shell .#colmena -- colmena apply -f /etc/nixos/hive.nix --on 'zephyr'
+    sudo /etc/nixos/scripts/colmena-deploy zephyr
 
 nexus:
-    sudo nix shell .#colmena -- colmena apply -f /etc/nixos/hive.nix --on 'nexus'
+    sudo /etc/nixos/scripts/colmena-deploy nexus
 
 forge:
-    sudo nix shell .#colmena -- colmena apply -f /etc/nixos/hive.nix --on 'forge'
+    sudo /etc/nixos/scripts/colmena-deploy forge
 
 sentry:
-    sudo nix shell .#colmena -- colmena apply -f /etc/nixos/hive.nix --on 'sentry'
+    sudo /etc/nixos/scripts/colmena-deploy sentry
 
 # Local switch for zephyr
 switch:
