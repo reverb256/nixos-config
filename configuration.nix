@@ -9,7 +9,7 @@ in {
   # ============================================================================
   # Security: j_kro removed from docker group to prevent container escape
   # Use 'sudo docker' for container operations (requires password)
-  users.users.${sysadminUser}.extraGroups = ["podman"]; # Removed "docker" for security
+  users.users.${sysadminUser}.extraGroups = ["podman" "plugdev"]; # Removed "docker" for security, added plugdev for peripheral access
 
   # Blacklist nouveau and NovaCore drivers to ensure proper NVIDIA driver loads
   boot.blacklistedKernelModules = ["nouveau" "nova" "nova_core"];

@@ -52,78 +52,73 @@ in
       "hid-generic"
       "hid-logitech-dj"  # For Logitech receivers that may work with some gaming peripherals
     ];
-    
+
     # Razer device support (OpenRazer)
-    environment.systemPackages = with pkgs; 
-      (mkIf cfg.razer.enable [
+    environment.systemPackages = with pkgs;
+      (optionals cfg.razer.enable [
         cfg.razer.package
         razergenie
         polychromatic
         razer-cli
       ]) ++
-      (mkIf (cfg.corsair.enable && cfg.corsair.ckbNext) [
+      (optionals (cfg.corsair.enable && cfg.corsair.ckbNext) [
         ckb-next
       ]) ++
-      (mkIf (cfg.corsair.enable && cfg.corsair.opencorsairlink) [
+      (optionals (cfg.corsair.enable && cfg.corsair.opencorsairlink) [
         opencorsairlink
       ]) ++
-      (mkIf (cfg.corsair.enable && cfg.corsair.openlinkhub) [
+      (optionals (cfg.corsair.enable && cfg.corsair.openlinkhub) [
         openlinkhub
       ]) ++
       # Also add headsetcontrol which supports some Corsair headsets
-      (mkIf cfg.corsair.enable [
+      (optionals cfg.corsair.enable [
         headsetcontrol
       ]);
 
     # Enable OpenRazer daemon if requested
-    # Creating a systemd service for OpenRazer since NixOS doesn't seem to have a dedicated module
+    # Properly define the OpenRazer daemon service
     systemd.services.openrazer-daemon = mkIf cfg.razer.daemon {
-      description = "OpenRazer daemon service";
-      wantedBy = [ "graphical-session.target" ];  # Starts when user logs in graphically
-      after = [ "graphical-session-pre.target" ];
-      partOf = [ "graphical-session.target" ];
+      description = "OpenRazer daemon for managing Razer peripherals";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "syslog.target" "udev.service" ];
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${cfg.razer.package}/bin/razer_test -f";
+        ExecStart = "${cfg.razer.package}/bin/openrazer-daemon --run-as-root";
         Restart = "always";
         RestartSec = 5;
-        # Need root privileges for accessing hardware
+
+        # Security settings
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        LockPersonality = true;
+
+        # Device access for Razer devices
+        DevicePolicy = "closed";
+        DeviceAllow = [
+          "char-hidraw:* rwm"
+          "char-usbmon:* r"
+          "char-input:event r"
+          "char-input/mouse/* r"
+          "char-input/js* r"
+        ];
+
+        # User running the daemon (should be root to access hardware)
         User = "root";
         Group = "root";
-      };
-    };
 
-    # More robust OpenRazer daemon service using the proper startup script
-    systemd.services.openrazer-daemon-service = mkIf cfg.razer.daemon {
-      description = "OpenRazer daemon service (proper service)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "syslog.target" ];
-
-      serviceConfig = {
-        Type = "forking";
-        ExecStart = "${pkgs.python313}/bin/python3 -m openrazer_daemon -F";
-        PIDFile = "/var/run/openrazer-daemon.pid";
-        Restart = "always";
-        RestartSec = 5;
-        # Allow access to USB and HID devices
-        DeviceAllow = [
-          "char-usb_device:* rwm"
-          "char-hidraw:* rwm"
-        ];
-        # Needed for the daemon to properly interact with hardware
-        CapabilityBoundingSet = [
-          "CAP_SYS_ADMIN"  # Needed for adjusting device permissions
-          "CAP_SETGID"     # Needed for group management
-          "CAP_SETUID"     # Needed for user management
-        ];
-        SupplementaryGroups = [ "plugdev" ];
+        # Allow the daemon access to DBus which it might need
+        SupplementaryGroups = [ "plugdev" "input" ];
       };
     };
 
     # Configure udev rules for both Razer and Corsair devices
     services.udev.packages =
-      (mkIf cfg.razer.enable [
+      (optionals cfg.razer.enable [
         (pkgs.writeTextDir "etc/udev/rules.d/99-razer-peripherals.rules" ''
           # Razer devices udev rules
           KERNEL=="hidraw*", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0*", MODE="0666", GROUP="plugdev"
@@ -137,7 +132,7 @@ in
           KERNEL=="hidraw*", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0*", MODE="0666", GROUP="plugdev"
         '')
       ]) ++
-      (mkIf cfg.corsair.enable [
+      (optionals cfg.corsair.enable [
         (pkgs.writeTextDir "etc/udev/rules.d/99-corsair-peripherals.rules" ''
           # Corsair Keyboard and Mouse devices
           SUBSYSTEM=="usb", ATTR{idVendor}=="1b1c", ATTR{idProduct}=="*", MODE="0666", GROUP="plugdev"
