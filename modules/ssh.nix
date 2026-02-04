@@ -93,7 +93,7 @@
       Host github.com
         HostName github.com
         User git
-        IdentityFile ~/.ssh/id_ed25519
+        IdentityFile ~/.ssh/id_deploy
         IdentitiesOnly yes
     '';
   };
