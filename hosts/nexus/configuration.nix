@@ -14,10 +14,12 @@
     ../../modules/openclaw-declarative-container.nix
     # Import OpenClaw common configuration
     ../../modules/openclaw-common.nix
-    # Import Tailscale mesh VPN
-    ../../modules/tailscale.nix
+    # Import Tailscale mesh VPN (removed due to conflict)
+    # TODO: Fix tailscale module for future use
     # Import AIStor secrets generation
     ../../modules/aistor-secrets.nix
+    # Import mining module (robust configuration)
+    ../../modules/mining.nix
   ];
 
   # Host identification
@@ -63,17 +65,29 @@
   services.logind.settings.Login.KillUserProcesses = false;
 
   # ============================================================================
-  # MINING CONFIGURATION (Nexus: 24 cores, 2x RTX 3060 Ti)
+  # MINING CONFIGURATION (Nexus: 24 cores, RTX 3060 Ti)
   # ============================================================================
-  services.mining.enable = true;
-  services.mining.xmrig.enable = true;
-  services.mining.xmrig.threads = 16;
-  services.mining.lolminer.enable = true;
-  services.mining.lolminer.nvidia.enable = true;
-  services.mining.lolminer.nvidia.devices = "0";
-  services.mining.lolminer.algorithm = "CR29";
-  services.mining.lolminer.pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
-  services.mining.lolminer.wallet = "krxXVNVMM7.nexus";
+  services.mining = {
+    enable = true;
+    user = "mining";
+    xmrig = {
+      enable = true;
+      threads = 16;
+      pool = "xtm-rx-us.kryptex.network:8038";
+      wallet = "krxXVNVMM7.nexus";
+    };
+    lolminer = {
+      enable = true;
+      algorithm = "CR29";
+      pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
+      wallet = "krxXVNVMM7.nexus";
+      nvidia = {
+        enable = true;
+        devices = "0";  # Use only first RTX 3060 Ti
+        powerLimit = 130; # 130W power limit
+      };
+    };
+  };
 
   # ============================================================================
   # NETWORKING (Static IP via NetworkManager - required for desktop environment)
