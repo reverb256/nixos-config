@@ -11,6 +11,8 @@
     ./hardware-configuration.nix
     # Import desktop module for Plasma 6
     ../../modules/desktop.nix
+    # Import fish shell with starship
+    ../../modules/fish-starship.nix
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
     # Import OpenClaw AI agent orchestration (declarative container)
