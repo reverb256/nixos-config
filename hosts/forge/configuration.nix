@@ -26,6 +26,9 @@
     ../../modules/auto-update.nix
   ];
 
+  # Override any secretKeyFile from determinate module
+  nix.settings.secretKeyFile = null;
+
   # Host identification
   networking.hostName = "forge";
 
