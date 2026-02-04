@@ -1,58 +1,67 @@
-# NixOS Cluster Deployment
-# Deploys to zephyr, nexus, forge, sentry via SSH
+# NixOS Cluster Deployment - Idempotent Version
+# All commands work consistently from any node and any directory
+# Coordinated from nexus (deployment coordinator) via SSH
 
 _default:
-    @echo "NixOS Cluster Management"
+    @echo "NixOS Cluster Management - Idempotent Deployment"
     @echo ""
     @echo "USAGE:"
-    @echo "  just build         Build configs (dry run)"
-    @echo "  just deploy        Deploy to all hosts"
-    @echo "  just zephyr        Deploy to zephyr"
-    @echo "  just nexus         Deploy to nexus"
-    @echo "  just forge         Deploy to forge"
-    @echo "  just sentry        Deploy to sentry"
-    @echo "  just switch        Local switch (zephyr)"
-    @echo "  just update        Update flake + deploy"
+    @echo "  just build         Build configs (dry run) - runs on nexus"
+    @echo "  just deploy        Deploy to all hosts - runs on nexus"
+    @echo "  just zephyr        Deploy to zephyr - runs on nexus"
+    @echo "  just nexus         Deploy to nexus - runs on nexus"
+    @echo "  just forge         Deploy to forge - runs on nexus"
+    @echo "  just sentry        Deploy to sentry - runs on nexus"
+    @echo "  just switch        Local switch (current node) - runs locally"
+    @echo "  just update        Update flake + deploy all - runs on nexus"
+    @echo "  just ci            Show CI status"
+    @echo "  just status        Show cluster status"
+    @echo ""
+    @echo "All commands execute on nexus (deployment coordinator) via SSH"
+    @echo "except 'switch' which runs locally on the current node"
+    @echo "Works identically from any cluster node (zephyr, nexus, forge, sentry)"
 
-# Build all configurations (dry run)
+# Build all configurations (dry run) - runs on nexus with session isolation
 build:
-    sudo /etc/nixos/scripts/colmena-deploy build
+    @echo "Building all configurations (dry run)..."
+    /etc/nixos/scripts/just-cluster build
 
-# Deploy to all cluster hosts
+# Deploy to all cluster hosts - runs on nexus with session isolation
 deploy:
-    sudo /etc/nixos/scripts/colmena-deploy deploy
+    @echo "Deploying to all cluster hosts (with session isolation)..."
+    /etc/nixos/scripts/just-cluster deploy
 
-# Deploy to individual hosts
+# Deploy to individual hosts - runs on nexus with session isolation
 zephyr:
-    sudo /etc/nixos/scripts/colmena-deploy zephyr
+    @echo "Deploying to zephyr (with session isolation)..."
+    /etc/nixos/scripts/just-cluster zephyr
 
 nexus:
-    sudo /etc/nixos/scripts/colmena-deploy nexus
+    @echo "Deploying to nexus (with session isolation)..."
+    /etc/nixos/scripts/just-cluster nexus
 
 forge:
-    sudo /etc/nixos/scripts/colmena-deploy forge
+    @echo "Deploying to forge (with session isolation)..."
+    /etc/nixos/scripts/just-cluster forge
 
 sentry:
-    sudo /etc/nixos/scripts/colmena-deploy sentry
+    @echo "Deploying to sentry (with session isolation)..."
+    /etc/nixos/scripts/just-cluster sentry
 
-# Local switch for zephyr
+# Local switch for current node - runs locally with user isolation
 switch:
-    sudo nixos-rebuild switch --flake ".#zephyr"
+    @echo "Switching local system configuration for user $(whoami)..."
+    cd /etc/nixos && sudo -u $(id -un) -H nixos-rebuild switch --flake ".#$(hostname -s)"
 
-# Update flake and deploy
+# Update flake and deploy all - runs on nexus with session isolation
 update:
-    @cd /etc/nixos && git pull origin main
-    nix flake update
-    just deploy
+    @echo "Updating flake and deploying to all hosts (with session isolation)..."
+    /etc/nixos/scripts/just-cluster update
 
-# CI status
+# CI status (no session isolation needed)
 ci:
-    @gh run list --repo reverb256/nixos-config --limit 1
+    /etc/nixos/scripts/just-cluster ci
 
-# Cluster info
+# Cluster info (no session isolation needed)
 status:
-    @echo "=== CLUSTER ==="
-    @echo "zephyr: 10.1.1.110 (local)"
-    @echo "nexus:   10.1.1.120"
-    @echo "forge:   10.1.1.130"
-    @echo "sentry:  10.1.1.140"
+    /etc/nixos/scripts/just-cluster status

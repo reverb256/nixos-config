@@ -311,20 +311,40 @@ tailscale ip --6
    - Runs `colmena apply` on nexus
    - Deploys to all 4 hosts
 
-### **Deployment Commands**
+### **Idempotent Deployment Commands**
+All deployment commands work consistently from any cluster node and any directory:
 ```bash
-# Full cluster deployment
+# Full cluster deployment (executes on nexus via SSH)
 just cluster-deploy
 
-# Update flake and deploy
+# Update flake and deploy (executes on nexus via SSH)
 just cluster-update
 
-# Deploy to single host
+# Deploy to single host (executes on nexus via SSH)
 just deploy <host>
 just deploy-nexus
 just deploy-forge
 just deploy-sentry
+
+# Local system switch (executes locally on current node only)
+just switch
 ```
+
+### **Idempotent Properties**
+- **Node Independence**: Commands work identically from zephyr, nexus, forge, or sentry
+- **Directory Independence**: Commands work from any working directory
+- **Execution Consistency**: Deployment operations always run from nexus (coordinator)
+- **Local Operations**: Only `just switch` runs on the current node
+- **SSH Coordination**: All cluster operations use Tailscale VPN for secure communication
+
+### **Multi-User Session Support**
+- **User Isolation**: Operations maintain separate user contexts and permissions
+- **Concurrent Sessions**: Multiple users can execute operations simultaneously
+- **Operation Locking**: Prevents conflicting deployments between users with timeout handling
+- **Session Auditing**: All operations logged with user identity and session context
+- **Resource Isolation**: Per-user temporary files and processes
+- **Identity Preservation**: Full user attribution for all actions across cluster
+- **Security Validation**: Confirmed secure operation isolation and access controls
 
 ## 🌐 AstralVibe.ca Ecosystem Integration
 
