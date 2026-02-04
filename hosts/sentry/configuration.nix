@@ -1,6 +1,7 @@
 # Sentry Host Configuration
 # 10.1.1.140 - Monitoring Server (8 cores, RX 5600 XT)
 {
+  lib,
   pkgs,
   inputs,
   ...
@@ -30,9 +31,11 @@
   services.garnix.enable = true;
   services.nixos-auto-update.enable = true;
 
-  # Multi-kernel support: Zen + CachyOS BORE for gaming
-  boot.kernelPackages = [
-    pkgs.linuxPackages_zen
+  # Multi-kernel support: Zen primary kernel
+  boot.kernelPackages = pkgs.linuxPackages_zen;
+
+  # Install additional kernels (for systemd-boot menu)
+  environment.systemPackages = [
     inputs.nix-cachyos-kernel.packages.x86_64-linux.linux-cachyos-bore
   ];
 
@@ -141,13 +144,16 @@
   };
 
   # ============================================================================
-  # TAILSCALE - Secure mesh VPN
+  # TAILSCALE - Secure mesh VPN (using standard nixpkgs module)
   # ============================================================================
-  services.tailscale-custom = {
+  services.tailscale = {
     enable = true;
-    advertiseRoutes = ["10.1.1.0/24"];
-    acceptRoutes = true;
-    useRoutingFeatures = "both";
-    enableSSH = true;
+  };
+
+  # Routing features configured via tailscaled environment
+  systemd.services.tailscaled.environment = {
+    TS_ADVERTISE_ROUTES = "10.1.1.0/24";
+    TS_ROUTES = "";
+    TS_SSH = "true";
   };
 }

@@ -57,12 +57,12 @@ jobs:
         run: |
           for host in zephyr nexus forge sentry; do
             echo "Deploying to $host..."
-            # Get IP from known_hosts or use direct IP
             case $host in
               zephyr) ip="10.1.1.110" ;;
               nexus)  ip="10.1.1.120" ;;
               forge)  ip="10.1.1.130" ;;
               sentry) ip="10.1.1.140" ;;
             esac
+            ssh $ip "sudo nix --option accept-flake-config true store add-path /etc/nixos --no-recurse" 2>/dev/null || true
             ssh $ip "sudo nixos-rebuild switch --flake /etc/nixos --option accept-flake-config true" || echo "Failed: $host"
           done

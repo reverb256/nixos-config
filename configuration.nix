@@ -11,11 +11,6 @@ in {
   # Use 'sudo docker' for container operations (requires password)
   users.users.${sysadminUser}.extraGroups = ["podman"]; # Removed "docker" for security
 
-  # ============================================================================
-  # KERNEL CONFIGURATION - Force ZEN kernel for gaming and mining performance
-  # ============================================================================
-  boot.kernelPackages = pkgs.linuxPackages_zen;
-
   # Blacklist nouveau and NovaCore drivers to ensure proper NVIDIA driver loads
   boot.blacklistedKernelModules = ["nouveau" "nova" "nova_core"];
 
