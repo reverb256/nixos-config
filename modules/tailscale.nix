@@ -52,30 +52,32 @@ in {
       "net.ipv6.conf.all.forwarding" = 1;
     };
 
-    services.tailscale = lib.mkMerge [
-      {
-        enable = true;
-        useRoutingFeatures = cfg.useRoutingFeatures;
-      }
-      (mkIf cfg.enableSSH {
-        extraUpFlags = ["--ssh"];
-      })
-    ];
-
-    # Configure tailscaled with auth key and settings
-    systemd.services.tailscaled.serviceConfig = mkIf (cfg.advertiseRoutes != [] || cfg.advertiseExitNode) {
-      Environment = lib.mkMerge [
-        (mkIf (cfg.advertiseRoutes != []) [
-          "TS_ADVERTISE_ROUTES=${builtins.concatStringsSep "," cfg.advertiseRoutes}"
-        ])
-        (mkIf cfg.enableSSH [
-          "TS_SSH=true"
-        ])
-      ];
+    services.tailscaled.enable = true;
+    
+    # Configure tailscaled with settings
+    systemd.services.tailscaled = {
+      serviceConfig = mkIf (cfg.advertiseRoutes != [] || cfg.advertiseExitNode) {
+        Environment = lib.mkMerge [
+          (mkIf (cfg.advertiseRoutes != []) [
+            "TS_ADVERTISE_ROUTES=${builtins.concatStringsSep "," cfg.advertiseRoutes}"
+          ])
+          (mkIf cfg.enableSSH [
+            "TS_SSH=true"
+          ])
+        ];
+      };
     };
 
     # Allow tailscale through firewall
     networking.firewall.interfaces.lo.allowedTCPPorts = [41641];
-    networking.firewall.interfaces.lo.allowedUDPPorts = [41641];
+
+    # Open ports for Tailscale networking
+    networking.firewall.allowedUDPPorts = [41641];
+
+    # Configure kernel modules for networking
+    boot.kernelModules = ["tun"];
+    
+    # Disable old tailscale programs module to avoid conflict
+    programs.tailscale.enable = false;
   };
 }
