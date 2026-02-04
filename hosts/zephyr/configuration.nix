@@ -96,6 +96,7 @@
       nvidia = {
         enable = true;
         devices = "0";
+        powerLimit = 250;
       };
     };
   };
