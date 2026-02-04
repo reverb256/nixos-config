@@ -1,42 +1,96 @@
 #!/usr/bin/env bash
-# Colmena deployment wrapper script
+# Colmena deployment wrapper script - Multi-User Session-Safe Version
 set -e
 
 HIVE="/etc/nixos/hive.nix"
 COLMENA="colmena"
 
+# Show help if no arguments or if help is requested
+if [ $# -eq 0 ] || [[ "$1" == "help" || "$1" == "-h" || "$1" == "--help" ]]; then
+    echo "Usage: $0 {build|deploy|zephyr|nexus|forge|sentry|all}"
+    echo ""
+    echo "colmena-deploy: Reverb-OS Cluster Deployment Script"
+    echo ""
+    echo "Commands:"
+    echo "  build    - Build configurations (dry run)"
+    echo "  deploy   - Deploy to all hosts with git pull"
+    echo "  zephyr   - Deploy to zephyr node only"
+    echo "  nexus    - Deploy to nexus node only" 
+    echo "  forge    - Deploy to forge node only"
+    echo "  sentry   - Deploy to sentry node only"
+    echo "  all      - Deploy to all hosts (alias for deploy)"
+    echo ""
+    echo "All operations maintain user context and session tracking."
+    echo "Commands run with appropriate user permissions via sudo -u."
+    exit 0
+fi
+
+# Session and user information
+SESSION_ID=$$
+USER_ID=$(id -u)
+USER_NAME=$(id -un)
+NODE_NAME=$(hostname -s)
+TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
+
+# Log file for this session
+LOG_FILE="/tmp/colmena-${NODE_NAME}-${USER_NAME}-${SESSION_ID}-${TIMESTAMP}.log"
+
 # Check if colmena exists, if not install it
 if ! command -v $COLMENA &> /dev/null; then
-    echo "Installing colmena..."
+    echo "[INFO] Installing colmena for user $USER_NAME..." | tee -a "$LOG_FILE"
     nix-env -if https://github.com/zhaofengli/colmena/tarball/main
 fi
 
+# Ensure we're in the correct directory
+ORIGINAL_DIR=$(pwd)
+cd /etc/nixos
+
+# Log operation start (only for actual commands, not help)
+echo "[START] $(date) - User: $USER_NAME (UID: $USER_ID), Session: $SESSION_ID, Node: $NODE_NAME" | tee -a "$LOG_FILE"
+echo "[CMD] $0 $*" | tee -a "$LOG_FILE"
+
 case "$1" in
   build)
-    sudo $COLMENA build -f "$HIVE"
+    echo "[ACTION] Building configurations..." | tee -a "$LOG_FILE"
+    sudo -u "$USER_NAME" -H $COLMENA build -f "$HIVE" 2>&1 | tee -a "$LOG_FILE"
     ;;
   deploy)
-    cd /etc/nixos
-    git pull origin main
-    sudo $COLMENA apply -f "$HIVE" --on '@default'
+    echo "[ACTION] Deploying to all hosts..." | tee -a "$LOG_FILE"
+    git pull origin main 2>&1 | tee -a "$LOG_FILE"
+    sudo -u "$USER_NAME" -H $COLMENA apply -f "$HIVE" --on '@default' 2>&1 | tee -a "$LOG_FILE"
     ;;
   zephyr)
-    sudo $COLMENA apply -f "$HIVE" --on 'zephyr'
+    echo "[ACTION] Deploying to zephyr..." | tee -a "$LOG_FILE"
+    sudo -u "$USER_NAME" -H $COLMENA apply -f "$HIVE" --on 'zephyr' 2>&1 | tee -a "$LOG_FILE"
     ;;
   nexus)
-    sudo $COLMENA apply -f "$HIVE" --on 'nexus'
+    echo "[ACTION] Deploying to nexus..." | tee -a "$LOG_FILE"
+    sudo -u "$USER_NAME" -H $COLMENA apply -f "$HIVE" --on 'nexus' 2>&1 | tee -a "$LOG_FILE"
     ;;
   forge)
-    sudo $COLMENA apply -f "$HIVE" --on 'forge'
+    echo "[ACTION] Deploying to forge..." | tee -a "$LOG_FILE"
+    sudo -u "$USER_NAME" -H $COLMENA apply -f "$HIVE" --on 'forge' 2>&1 | tee -a "$LOG_FILE"
     ;;
   sentry)
-    sudo $COLMENA apply -f "$HIVE" --on 'sentry'
+    echo "[ACTION] Deploying to sentry..." | tee -a "$LOG_FILE"
+    sudo -u "$USER_NAME" -H $COLMENA apply -f "$HIVE" --on 'sentry' 2>&1 | tee -a "$LOG_FILE"
     ;;
   all)
-    sudo $COLMENA apply -f "$HIVE" --on '@default'
+    echo "[ACTION] Deploying to all hosts..." | tee -a "$LOG_FILE"
+    sudo -u "$USER_NAME" -H $COLMENA apply -f "$HIVE" --on '@default' 2>&1 | tee -a "$LOG_FILE"
     ;;
   *)
     echo "Usage: $0 {build|deploy|zephyr|nexus|forge|sentry|all}"
+    echo "[ERROR] Invalid command: $1" | tee -a "$LOG_FILE"
     exit 1
     ;;
 esac
+
+# Log operation completion
+echo "[END] $(date) - Operation completed by user $USER_NAME, Session: $SESSION_ID" | tee -a "$LOG_FILE"
+
+# Clean up log file after successful operation (keep logs for failed operations)
+rm -f "$LOG_FILE"
+
+# Return to original directory
+cd "$ORIGINAL_DIR"

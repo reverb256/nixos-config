@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# Idempotent Justfile wrapper for Reverb-OS cluster (Multi-User Edition)
+# Ensures consistent behavior from any node, any directory, by any user
+# Implements proper session locking and isolation for concurrent operations
+
+set -e
+
+# Determine the current node
+CURRENT_HOST=$(hostname -s)
+
+# Define coordinator node
+COORDINATOR="nexus"
+
+# Lock file for concurrent operations
+LOCK_FILE="/tmp/just-cluster-lock"
+LOCK_FD=200
+
+# Function to acquire lock
+acquire_lock() {
+    exec $LOCK_FD>"$LOCK_FILE"
+    if ! flock -n $LOCK_FD; then
+        echo "Another deployment is currently in progress. Please wait..."
+        # Wait up to 10 minutes for the lock
+        if ! flock -w 600 $LOCK_FD; then
+            echo "Timeout waiting for deployment lock. Please try again later."
+            exit 1
+        fi
+    fi
+}
+
+# Function to release lock
+release_lock() {
+    flock -u $LOCK_FD
+    exec $LOCK_FD>&-
+}
+
+# Function to run command on coordinator node with proper user context
+run_on_coordinator() {
+    local cmd="cd /etc/nixos && sudo -u $(id -un) -H $1"
+    local user_session="[$(id -un)@$(hostname -s):$(pwd)]"
+    
+    if [ "$CURRENT_HOST" = "$COORDINATOR" ]; then
+        # We're already on the coordinator, run locally
+        echo "[$(date '+%H:%M:%S')] $user_session Running on $COORDINATOR (local)"
+        acquire_lock
+        eval "$cmd"
+        release_lock
+    else
+        # SSH to coordinator and run command with proper user context
+        echo "[$(date '+%H:%M:%S')] $user_session Running on $COORDINATOR (via SSH from $CURRENT_HOST)"
+        acquire_lock
+        ssh -o StrictHostKeychecking=no -o UserKnownHostsFile=/dev/null "$COORDINATOR" "cd /etc/nixos && sudo -u $(id -un) -H $1"
+        release_lock
+    fi
+}
+
+# Function to run local command (for current node only) with proper user context
+run_locally() {
+    local user_session="[$(id -un)@$(hostname -s):$(pwd)]"
+    echo "[$(date '+%H:%M:%S')] $user_session Running locally..."
+    cd /etc/nixos
+    eval "$1"
+}
+
+# Log the operation
+echo "[$(date '+%H:%M:%S')] [$(id -un)@$(hostname -s):$(pwd)] Starting operation: $*"
+
+# Main dispatcher based on first argument
+case "$1" in
+    build)
+        echo "Building all configurations (dry run)..."
+        run_on_coordinator "sudo /etc/nixos/scripts/colmena-deploy build"
+        ;;
+    deploy)
+        echo "Deploying to all cluster hosts..."
+        run_on_coordinator "sudo /etc/nixos/scripts/colmena-deploy deploy"
+        ;;
+    zephyr)
+        echo "Deploying to zephyr..."
+        run_on_coordinator "sudo /etc/nixos/scripts/colmena-deploy zephyr"
+        ;;
+    nexus)
+        echo "Deploying to nexus..."
+        run_on_coordinator "sudo /etc/nixos/scripts/colmena-deploy nexus"
+        ;;
+    forge)
+        echo "Deploying to forge..."
+        run_on_coordinator "sudo /etc/nixos/scripts/colmena-deploy forge"
+        ;;
+    sentry)
+        echo "Deploying to sentry..."
+        run_on_coordinator "sudo /etc/nixos/scripts/colmena-deploy sentry"
+        ;;
+    switch)
+        echo "Switching local system configuration..."
+        run_locally "sudo nixos-rebuild switch --flake \".#$CURRENT_HOST\""
+        ;;
+    update)
+        echo "Updating flake and deploying to all hosts..."
+        run_on_coordinator 'cd /etc/nixos && git pull origin main && nix flake update && sudo colmena apply -f "/etc/nixos/hive.nix" --on "@default"'
+        ;;
+    ci)
+        echo "Getting CI status..."
+        # This can run from anywhere, no need for locking
+        gh run list --repo reverb256/nixos-config --limit 1
+        ;;
+    status)
+        echo "=== CLUSTER STATUS ==="
+        echo "zephyr: 10.1.1.110 (Tailscale: 100.81.182.5)"
+        echo "nexus:  10.1.1.120 (Tailscale: 100.86.158.18) - DEPLOY COORDINATOR"  
+        echo "forge:  10.1.1.130 (Tailscale: 100.116.190.124)"
+        echo "sentry: 10.1.1.140 (Tailscale: 100.82.210.39)"
+        ;;
+    *)
+        echo "NixOS Cluster Management - Idempotent Deployment (Multi-User)"
+        echo ""
+        echo "USAGE:"
+        echo "  just-cluster build         Build configs (dry run) - runs on nexus"
+        echo "  just-cluster deploy        Deploy to all hosts - runs on nexus" 
+        echo "  just-cluster zephyr        Deploy to zephyr - runs on nexus"
+        echo "  just-cluster nexus         Deploy to nexus - runs on nexus"
+        echo "  just-cluster forge         Deploy to forge - runs on nexus"
+        echo "  just-cluster sentry        Deploy to sentry - runs on nexus"
+        echo "  just-cluster switch        Local switch (current node) - runs locally"
+        echo "  just-cluster update        Update flake + deploy all - runs on nexus"
+        echo "  just-cluster status        Show cluster status"
+        echo "  just-cluster ci            Show CI status"
+        echo ""
+        echo "All commands except 'switch' execute on nexus (coordinator node) via SSH"
+        echo "The 'switch' command executes locally on the current node"
+        echo "Works identically from any cluster node (zephyr, nexus, forge, sentry)"
+        echo "Supports concurrent users/sessions via operation locking"
+        ;;
+esac
+
+echo "[$(date '+%H:%M:%S')] [$(id -un)@$(hostname -s)] Operation completed: $*"

@@ -2,8 +2,7 @@
 # All secrets are encrypted for all hosts
 let
   allHosts = [
-    "age1544cpynykxrv2upsnu7xyf4heyk0gsqmk39p8pkm2swdrssxnunq0cjux9" # zephyr (current)
-    # Other hosts can be added here when their keys are available
+    "age1g4d90gk5qpzhw0urvmmdfzy8xl4ffqvk4f4ryv7qzwfmgm75lf0qtzqyqq" # zephyr (from SSH ed25519)
   ];
 in {
   # Claude Code API Key (KAT/StreamLake)

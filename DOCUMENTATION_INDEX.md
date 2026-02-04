@@ -53,6 +53,26 @@ Welcome to the comprehensive Reverb-OS documentation! This platform combines "Ap
   - OpenClaw AI integration architecture *(currently implemented)*
   - Current 4-node cluster configuration *(working)*
   - Security architecture and design
+- **[REVERB_OS_IDEMPOTENT_DEPLOYMENT.md](REVERB_OS_IDEMPOTENT_DEPLOYMENT.md)** - Idempotent deployment system with coordinator pattern
+  - Node-independent command execution
+  - Directory-independent operations
+  - Consistent behavior guarantees
+  - Tailscale-secured coordination
+- **[MULTI_USER_SESSION_ARCHITECTURE.md](MULTI_USER_SESSION_ARCHITECTURE.md)** - Multi-user concurrent session support
+  - User isolation and session management
+  - Operation locking and conflict prevention
+  - Permission handling and authorization
+  - Auditable operations with per-session tracking
+- **[MULTI_USER_CONCURRENT_OPERATIONS.md](MULTI_USER_CONCURRENT_OPERATIONS.md)** - Multi-user concurrent operations system
+  - Team collaboration with independent deployments
+  - Session management and resource isolation
+  - Permission models for multiple administrators
+  - Audit trail and accountability system
+- **[MULTI_USER_FUNCTIONALITY_VALIDATED.md](MULTI_USER_FUNCTIONALITY_VALIDATED.md)** - Validation results and comprehensive testing
+  - User identity preservation verification
+  - Session isolation and concurrency control validation
+  - Security model and audit trail confirmation
+  - Integration and backward compatibility verification
 - **[CURRENT_REALITY_VS_FUTURE_PLANS.md](CURRENT_REALITY_VS_FUTURE_PLANS.md)** - Reality check of current vs. future systems
   - Working infrastructure components overview
   - Archived projects status and implementation status
