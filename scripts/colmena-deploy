@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Colmena deployment wrapper script
+set -e
+
+HIVE="/etc/nixos/hive.nix"
+COLMENA="colmena"
+
+# Check if colmena exists, if not install it
+if ! command -v $COLMENA &> /dev/null; then
+    echo "Installing colmena..."
+    nix-env -if https://github.com/zhaofengli/colmena/tarball/main
+fi
+
+case "$1" in
+  build)
+    sudo $COLMENA build -f "$HIVE"
+    ;;
+  deploy)
+    cd /etc/nixos
+    git pull origin main
+    sudo $COLMENA apply -f "$HIVE" --on '@default'
+    ;;
+  zephyr)
+    sudo $COLMENA apply -f "$HIVE" --on 'zephyr'
+    ;;
+  nexus)
+    sudo $COLMENA apply -f "$HIVE" --on 'nexus'
+    ;;
+  forge)
+    sudo $COLMENA apply -f "$HIVE" --on 'forge'
+    ;;
+  sentry)
+    sudo $COLMENA apply -f "$HIVE" --on 'sentry'
+    ;;
+  all)
+    sudo $COLMENA apply -f "$HIVE" --on '@default'
+    ;;
+  *)
+    echo "Usage: $0 {build|deploy|zephyr|nexus|forge|sentry|all}"
+    exit 1
+    ;;
+esac
