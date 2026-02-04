@@ -187,25 +187,25 @@ in {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            ExecStartPre = [
-              # Allow mining user to set persistent management and power limit for RTX 3090
-              # Using pkgs.bash with full path and sudo for nvidia-smi
-              "${pkgs.bash}/bin/bash -c 'sudo /run/current-system/sw/bin/nvidia-smi -pm 1 || true'"
-              # Set power limit using configured value
-              "${pkgs.bash}/bin/bash -c 'sudo /run/current-system/sw/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=${cfg.lolminer.nvidia.devices} || true'"
-            ];
-            ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --apibind 127.0.0.1 --mode b --tls 1";
-            ExecStopPost = "${pkgs.bash}/bin/bash -c 'sudo /run/current-system/sw/bin/nvidia-smi -pl 350 --id=${cfg.lolminer.nvidia.devices} || true'"; # Reset power limit to 350W
-            Restart = "always";
-            RestartSec = "30s";
             Environment = [
+              "PATH=/run/current-system/sw/bin:$PATH"
               "GPU_MAX_HEAP_SIZE=100"
               "GPU_MAX_ALLOC_PERCENT=100"
             ];
-            # Security hardening
-            NoNewPrivileges = true;
+            ExecStartPre = [
+              # Use direct nvidia-smi path without sudo (like forge)
+              "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pm 1 || true'"
+              # Set power limit using configured value
+              "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=${cfg.lolminer.nvidia.devices} || true'"
+            ];
+            ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
+            ExecStopPost = "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices} || true'";
+            Restart = "always";
+            RestartSec = "30s";
+            # GPU mining requires device access and privileges
+            NoNewPrivileges = false;
             PrivateTmp = true;
-            PrivateDevices = true;
+            PrivateDevices = false;  # Need access to GPU devices
             ProtectKernelTunables = true;
             ProtectControlGroups = true;
             ProtectHostname = true;
@@ -228,7 +228,7 @@ in {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --apibind 127.0.0.1 --mode b --tls 1";
+             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --api-address 127.0.0.1 --mode b --tls 1";
             Restart = "always";
             RestartSec = "30s";
             Environment = [

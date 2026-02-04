@@ -1,5 +1,6 @@
-# LM Studio 0.4.x - Local LLM Interface via Docker
-# Uses Docker container for headless server mode (avoids AppImage issues)
+# LM Studio 0.4.x - Local LLM Interface via Podman
+# Uses Podman container for headless server mode
+# Following 2026 best practices: Podman, rootless, declarative where possible
 
 {
   config,
@@ -11,12 +12,12 @@ with lib; let
   cfg = config.services.lmstudio-docker;
 in {
   options.services.lmstudio-docker = {
-    enable = mkEnableOption "LM Studio - Local LLM Interface via Docker";
+    enable = mkEnableOption "LM Studio - Local LLM Interface via Podman";
 
     image = mkOption {
       type = types.str;
       default = "lmstudioai/local-llm:latest";
-      description = "LM Studio Docker image";
+      description = "LM Studio container image";
     };
 
     daemonPort = mkOption {
@@ -51,8 +52,8 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Ensure Docker is enabled
-    virtualisation.docker.enable = true;
+    # Ensure Podman is enabled (should be enabled globally, but ensuring dependencies)
+    virtualisation.podman.enable = true;
 
     # Create directories for bind mounts
     systemd.tmpfiles.settings.lmstudio = {
@@ -72,29 +73,28 @@ in {
       };
     };
 
-    # Docker container service for LM Studio
-    # Using a custom Docker image since LM Studio doesn't ship official ones
-    # We'll build a minimal image with the lms CLI
-
+    # Podman container service for LM Studio
+    # Using a custom image build process adapted for Podman
+    
     systemd.services.lmstudio-daemon = {
-      description = "LM Studio Local LLM Server (Docker)";
-      after = ["docker.service" "network-online.target"];
-      wants = ["docker.service" "network-online.target"];
+      description = "LM Studio Local LLM Server (Podman)";
+      after = ["podman.service" "network-online.target"];
+      wants = ["podman.service" "network-online.target"];
       wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = pkgs.writeShellScript "lmstudio-start" ''
-          # Use full path to docker
-          DOCKER="/run/current-system/sw/bin/docker"
+          # Use full path to podman
+          PODMAN="${pkgs.podman}/bin/podman"
 
           # Remove old container if exists
-          $DOCKER rm -f lmstudio 2>/dev/null || true
+          $PODMAN rm -f lmstudio 2>/dev/null || true
 
           # Build and run LM Studio container
           # Using a minimal Python-based server that mimics lms CLI
-          $DOCKER build -t lmstudio-local - <<'EOF'
+          $PODMAN build -t lmstudio-local - <<'EOF'
 FROM python:3.11-slim
 RUN pip install --no-cache-dir uvicorn fastapi httpx
 COPY <<'PYEOF' /app/server.py
@@ -160,7 +160,7 @@ CMD ["python", "/app/server.py"]
 EOF
 
           # Run the container
-          $DOCKER run -d \
+          $PODMAN run -d \
             --name lmstudio \
             --restart unless-stopped \
             -p ${cfg.daemonHost}:${toString cfg.daemonPort}:1234 \
@@ -169,13 +169,15 @@ EOF
             -e DATA_DIR=/data \
             -v ${cfg.modelsDir}:/models:ro \
             -v ${cfg.dataDir}:/data \
+            --userns=keep-id \
+            --security-opt label=disable \
             lmstudio-local
         '';
 
         ExecStop = pkgs.writeShellScript "lmstudio-stop" ''
-          DOCKER="/run/current-system/sw/bin/docker"
-          $DOCKER stop lmstudio 2>/dev/null || true
-          $DOCKER rm lmstudio 2>/dev/null || true
+          PODMAN="${pkgs.podman}/bin/podman"
+          $PODMAN stop lmstudio 2>/dev/null || true
+          $PODMAN rm lmstudio 2>/dev/null || true
         '';
 
         Restart = "on-failure";
@@ -198,7 +200,7 @@ EOF
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "lmstudio-health-check" ''
-          if ! curl -sf "http://${cfg.daemonHost}:${toString cfg.daemonPort}/health" >/dev/null 2>&1; then
+          if ! ${pkgs.curl}/bin/curl -sf "http://${cfg.daemonHost}:${toString cfg.daemonPort}/health" >/dev/null 2>&1; then
             echo "LM Studio daemon not responding, restarting..."
             systemctl restart lmstudio-daemon.service
           fi
