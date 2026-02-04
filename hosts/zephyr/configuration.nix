@@ -17,6 +17,7 @@
     ../../modules/tailscale.nix
     ../../modules/lmstudio-docker.nix
     ../../modules/aistor-secrets.nix
+    ../../modules/nix-cache-server.nix
     ../../modules/mcp-servers.nix
     ../../modules/nix-ld.nix
     ../../modules/mining.nix
@@ -175,5 +176,10 @@
   boot.kernel.sysctl = {
     "vm.swappiness" = 80;
     "vm.overcommit_ratio" = 90;
+  };
+
+  services.nix-cache-server = {
+    enable = true;
+    port = 8080;
   };
 }
