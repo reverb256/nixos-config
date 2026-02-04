@@ -62,6 +62,9 @@
 
       # TEMPORARY: Disable signature checks to fix NVIDIA driver issues
       require-sigs = false;
+
+      # Disable secretKeyFile to prevent corrupt key errors
+      secretKeyFile = null;
     };
   };
 }
