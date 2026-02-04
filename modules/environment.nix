@@ -67,9 +67,6 @@
       SDL_VIDEODRIVER = "wayland"; # Prefer Wayland for SDL applications
       SDL_AUDIODRIVER = "pulseaudio"; # Use PulseAudio for audio
 
-      # Wine keyboard and input fixes
-      WINEDLLOVERRIDES = "mscoree,mshtml="; # Disable problematic DLLs
-
       # Wayland portal services for complete functionality (avoid duplicates)
       # XDG_CURRENT_DESKTOP and XDG_SESSION_DESKTOP already defined above
       XDG_DESKTOP_SESSION_ID = "1";
