@@ -31,29 +31,8 @@
   services.garnix.enable = true;
   services.nixos-auto-update.enable = true;
 
-  # Multi-kernel support: Zen + CachyOS BORE for gaming
-  boot.kernelPackages = [
-    pkgs.linuxPackages_zen
-    inputs.nix-cachyos-kernel.packages.x86_64-linux.linux-cachyos-bore
-  ];
-
-  # ============================================================================
-  # DESKTOP ENVIRONMENT - KDE Plasma 6
-  # ============================================================================
-
-  services.xserver = {
-    enable = true;
-    videoDrivers = ["nvidia"];
-  };
-
-  services.displayManager = {
-    sddm.enable = true;
-    defaultSession = "plasma";
-    autoLogin = {
-      enable = true;
-      user = "j_kro";
-    };
-  };
+  # Multi-kernel support: Zen primary kernel
+  boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # ============================================================================
   # PREVENT PLASMA SESSION KILL DURING REBUILD
@@ -190,14 +169,6 @@
       RemainAfterExit = true;
     };
   };
-
-  # Mesa OpenCL packages for AMD GPU mining
-  environment.systemPackages = with pkgs; [
-    mesa.opencl # Rusticl OpenCL implementation
-    rocmPackages.rocm-smi # AMD GPU monitoring
-    rocmPackages.rocminfo # AMD GPU information
-    clinfo # OpenCL information
-  ];
 
   # ============================================================================
   # nix-ld for improved library access in mining services
@@ -355,13 +326,16 @@
   };
 
   # ============================================================================
-  # TAILSCALE - Secure mesh VPN
+  # TAILSCALE - Secure mesh VPN (using standard nixpkgs module)
   # ============================================================================
-  services.tailscale-custom = {
+  services.tailscale = {
     enable = true;
-    advertiseRoutes = ["10.1.1.0/24"];
-    acceptRoutes = true;
-    useRoutingFeatures = "both";
-    enableSSH = true;
+  };
+
+  # Routing features configured via tailscaled environment
+  systemd.services.tailscaled.environment = {
+    TS_ADVERTISE_ROUTES = "10.1.1.0/24";
+    TS_ROUTES = "";
+    TS_SSH = "true";
   };
 }
