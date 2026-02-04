@@ -21,7 +21,7 @@ in {
   "anthropic-api-key".publicKeys = allHosts;
   "openai-api-key".publicKeys = allHosts;
   "openclaw-env".publicKeys = allHosts;
-  
+
   # OpenClaw Gateway Token (SECURITY FIX: Separate from env file for container configs)
   "openclaw-gateway-token".publicKeys = allHosts;
 

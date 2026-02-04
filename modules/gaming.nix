@@ -10,18 +10,18 @@
   ...
 }:
 with lib; {
-  # LVRA Wiki: OpenVR paths for xrizer (SteamVR compatibility)
+  # ============================================================================
+  # MONADO - Native OpenXR Runtime for Linux
   # https://lvra.gitlab.io/docs/distros/nixos/
-  # Creates /etc/xdg/openvr/openvrpaths.vrpath for system-wide access
-  environment.etc."xdg/openvr/openvrpaths.vrpath".text = builtins.toJSON {
-    version = 1;
-    jsonid = "vrpathreg";
-    external_drivers = null;
-    config = ["/home/j_kro/.local/share/Steam/config"];
-    log = ["/home/j_kro/.local/share/Steam/logs"];
-    runtime = [
-      "${pkgs.xrizer}/lib/xrizer"
-    ];
+  # ============================================================================
+  services.monado = {
+    enable = true;
+    defaultRuntime = true;
+  };
+
+  # Monado environment for performance
+  systemd.user.services.monado.environment = {
+    IPC_EXIT_ON_DISCONNECT = "1";
   };
 
   # ============================================================================
@@ -49,7 +49,7 @@ with lib; {
       gpu = {
         # CRITICAL: This flag is required for GPU optimizations to work
         apply_gpu_optimisations = "accept-responsibility";
-        
+
         # NVIDIA Ampere (RTX 3090) specific settings
         nv_powermizer_mode = 1; # Prefer Maximum Performance
         nv_core_clock_mhz_offset = 150; # Slight overclock (+150MHz)
@@ -147,43 +147,74 @@ with lib; {
           libpng
           libjpeg
           libtiff
-          # Additional libraries for better Proton compatibility
+          # Additional libraries for Proton/Steam
           vulkan-loader
           vulkan-tools
+          xorg.libXcursor
+          xorg.libXi
+          xorg.libXinerama
+          xorg.libXScrnSaver
+          libpulseaudio
+          libvorbis
+          stdenv.cc.cc.lib
+          libkrb5
+          keyutils
         ];
       extraProfile = ''
         # Fixes timezones on VRChat and other games
         unset TZ
         # Allows Monado/OpenXR runtimes to be used
         export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
-        # Enable DXVK async for better performance (can help with stuttering)
+        # Enable DXVK async for better performance
         export DXVK_ASYNC=1
         # NVIDIA optimizations
         export __GL_SHADER_DISK_CACHE=1
         export __GL_SHADER_DISK_CACHE_SIZE=1000000000
-        # Python compatibility fixes for pressure-vessel (fixes sre_parse AttributeError)
+        # Python compatibility fixes for pressure-vessel
         export PYTHONNOUSERSITE=1
         export PYTHONDONTWRITEBYTECODE=1
         export PYTHONPATH=""
-        # Pressure-vessel graphics compatibility fixes
-        export PRESSURE_VESSEL_LOG_LEVEL=2  # Reduce verbosity of warnings
+        # Pressure-vessel graphics compatibility
+        export PRESSURE_VESSEL_LOG_LEVEL=2
         export PRESSURE_VESSEL_FILESYSTEMS_BIND_READONLY=/run/opengl-driver:/run/host/run/opengl-driver
-        # Additional compatibility fixes for NVIDIA + pressure-vessel
+        # NVIDIA + pressure-vessel
         export __NV_PRIME_RENDER_OFFLOAD=1
         export __GLX_VENDOR_LIBRARY_NAME=nvidia
-        # Vulkan and NVENC environment variables for games
+        # Vulkan and NVENC
         export VK_ICD_FILENAMES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json:/run/opengl-driver-32/share/vulkan/icd.d/nvidia_icd.json
         export __GL_EXTERNAL_EXTENSIONS=1
-        # CUDA path for compute applications
         export CUDA_PATH=/run/opengl-driver
-        # Font library fixes
-        export LD_LIBRARY_PATH="${pkgs.freetype}/lib:${pkgs.fontconfig}/lib:${pkgs.libpng}/lib:${pkgs.libjpeg}/lib:${pkgs.libtiff}/lib:$LD_LIBRARY_PATH"
-        # Ensure Steam can find Proton-GE-RTSP
+        # Steam can find Proton-GE-RTSP
         export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
         export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
       '';
     };
   };
+
+  # ============================================================================
+  # NIX-LD - Critical for Steam and Proton on NixOS
+  # https://github.com/NixOS/nix-ld
+  # ============================================================================
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    # Core libraries for Steam/Proton
+    freetype
+    fontconfig
+    libpng
+    libjpeg
+    libtiff
+    libpulseaudio
+    libvorbis
+    libkrb5
+    keyutils
+    xorg.libXcursor
+    xorg.libXi
+    xorg.libXinerama
+    xorg.libXScrnSaver
+    vulkan-loader
+    vulkan-tools
+    stdenv.cc.cc.lib
+  ];
 
   # Enable Steam hardware support for comprehensive controller udev rules
   hardware.steam-hardware.enable = true;
@@ -220,62 +251,62 @@ with lib; {
   # WiVRn user service (since services.wivrn NixOS module not available)
   systemd.user.services.wivrn = {
     description = "WiVRn - Wireless VR streaming for Quest Pro";
-    after = [ "network.target" "pipewire.service" ];
-    wants = [ "pipewire.service" ];
-    
+    after = ["network.target" "pipewire.service"];
+    wants = ["pipewire.service"];
+
     serviceConfig = {
       Type = "simple";
       ExecStart = "${pkgs.wivrn}/bin/wivrn-server";
       ExecStop = "${pkgs.wivrn}/bin/wivrn-apk stop";
       Restart = "on-failure";
       RestartSec = 5;
-      
+
       # Environment for Quest Pro with NVENC
       Environment = [
         "WIVRN_LOG=info"
         "WIVRN_ENCODER=nvenc"
         "WIVRN_REFRESH_RATE=90"
         "WIVRN_RESOLUTION=2160x2160"
-        "WIVRN_BITRATE=100000000"  # 100Mbps
+        "WIVRN_BITRATE=100000000" # 100Mbps
       ];
     };
-    
+
     # Start automatically when user logs in
-    wantedBy = [ "default.target" ];
+    wantedBy = ["default.target"];
   };
-  
-   # Enable Avahi for Quest discovery
-   services.avahi = {
-     enable = true;
-     nssmdns4 = true;
-     publish = {
-       enable = true;
-       addresses = true;
-       workstation = true;
-     };
-     # Allow user services (like WiVRn) to publish via Avahi
-   };
+
+  # Enable Avahi for Quest discovery
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    publish = {
+      enable = true;
+      addresses = true;
+      workstation = true;
+    };
+    # Allow user services (like WiVRn) to publish via Avahi
+  };
 
   # ============================================================================
   # FIREWALL - WiVRn and Lighthouse Support
   # ============================================================================
   networking.firewall = {
-     allowedTCPPorts = [9757]; # WiVRn TCP
-     allowedUDPPorts = [
-       9757  # WiVRn UDP
-       5353  # Avahi/mDNS for device discovery
-       9947  # Lighthouse base stations
-       27036 # SteamVR discovery
-       27031 # SteamVR
-     ];
-   };
+    allowedTCPPorts = [9757]; # WiVRn TCP
+    allowedUDPPorts = [
+      9757 # WiVRn UDP
+      5353 # Avahi/mDNS for device discovery
+      9947 # Lighthouse base stations
+      27036 # SteamVR discovery
+      27031 # SteamVR
+    ];
+  };
 
   # ============================================================================
   # NVIDIA VR OPTIMIZATIONS - NVENC, Low Latency, VR Ready
   # ============================================================================
   hardware.graphics.enable = true;
   hardware.graphics.enable32Bit = true;
-  
+
   # FIX: FreeType/Font libraries for Proton/Wine (pressure-vessel container)
   # These libraries are placed in /run/opengl-driver/lib where pressure-vessel
   # copies them into the Proton container, fixing "Wine cannot find FreeType" errors
@@ -313,18 +344,18 @@ with lib; {
   # PACKAGES - VR Applications and Tools
   # ============================================================================
   environment.systemPackages = with pkgs;
-     [
-       # VR runtimes and tools
-       wivrn
-       openxr-loader
-       opencomposite
+    [
+      # VR runtimes and tools
+      wivrn
+      openxr-loader
+      opencomposite
 
-       # SteamVR support
-       steam-run
+      # SteamVR support
+      steam-run
 
-       # LVRA Wiki: xrizer for SteamVR/OpenVR compatibility
-       # https://lvra.gitlab.io/docs/distros/nixos/
-       xrizer
+      # LVRA Wiki: xrizer for SteamVR/OpenVR compatibility
+      # https://lvra.gitlab.io/docs/distros/nixos/
+      xrizer
 
       # Motion tracking calibration tools
       motoc

@@ -1,11 +1,7 @@
 # Distributed Build Configuration
 # Enables building across all 4 nodes in the cluster (51 cores total)
 # See AGENTS.md for cluster architecture details
-{
-  config,
-  lib,
-  ...
-}: {
+{lib, ...}: {
   # ============================================================================
   # DISTRIBUTED BUILD CONFIGURATION
   # ============================================================================
@@ -21,8 +17,8 @@
         protocol = "ssh-ng";
         maxJobs = 6;
         speedFactor = 2;
-        supportedFeatures = [ "nixos-test" "benchmark" "big-parallel" "kvm" ];
-        mandatoryFeatures = [ ];
+        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm"];
+        mandatoryFeatures = [];
       }
       {
         hostName = "forge";
@@ -30,8 +26,8 @@
         protocol = "ssh-ng";
         maxJobs = 3; # 6 cores total, leave some for mining
         speedFactor = 1;
-        supportedFeatures = [ "nixos-test" "benchmark" "big-parallel" "kvm" ];
-        mandatoryFeatures = [ ];
+        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm"];
+        mandatoryFeatures = [];
       }
       {
         hostName = "sentry";
@@ -39,8 +35,8 @@
         protocol = "ssh-ng";
         maxJobs = 4;
         speedFactor = 1;
-        supportedFeatures = [ "nixos-test" "benchmark" "big-parallel" "kvm" ];
-        mandatoryFeatures = [ ];
+        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm"];
+        mandatoryFeatures = [];
       }
     ];
 

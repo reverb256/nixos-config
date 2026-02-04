@@ -129,7 +129,7 @@
     alsa.support32Bit = true;
     pulse.enable = true;
     jack.enable = true;
-    
+
     # Low-latency configuration for gaming (from nix-gaming)
     lowLatency = {
       enable = true;

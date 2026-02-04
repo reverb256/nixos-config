@@ -3,6 +3,7 @@
 {
   lib,
   pkgs,
+  inputs,
   ...
 }: {
   imports = [
@@ -22,6 +23,12 @@
 
   # Host identification
   networking.hostName = "forge";
+
+  # Multi-kernel support: Zen + CachyOS BORE for gaming
+  boot.kernelPackages = [
+    pkgs.linuxPackages_zen
+    inputs.nix-cachyos-kernel.packages.x86_64-linux.linux-cachyos-bore
+  ];
 
   # ============================================================================
   # DESKTOP ENVIRONMENT - KDE Plasma 6
@@ -62,7 +69,7 @@
   # Ensure AMDGPU kernel modules are loaded
   boot.kernelModules = [
     "amdgpu"
-    "tun"  # Required for Tailscale VPN
+    "tun" # Required for Tailscale VPN
   ];
 
   # Add AMDGPU to initrd modules for early loading
@@ -148,7 +155,7 @@
       ];
     };
   in [
-    "c /dev/net/tun 666 root root - - - -"  # TUN device for Tailscale VPN
+    "c /dev/net/tun 666 root root - - - -" # TUN device for Tailscale VPN
     "L+ /opt/rocm - - - - ${rocmEnv}"
     "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
   ];
@@ -329,8 +336,6 @@
     environmentFile = "/run/agenix/openclaw-env";
     enableLegacyEnv = true;
   };
-
-
 
   # ============================================================================
   # FIREWALL (Minimal - no VR ports on mining rig)

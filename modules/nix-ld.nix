@@ -20,7 +20,7 @@
       util-linux
       xz
       systemd
-      
+
       # === 32-BIT COMPATIBILITY ===
       # Essential for Proton/Steam games
       pkgsi686Linux.zlib
@@ -37,7 +37,7 @@
       libxkbcommon
       wayland
       wayland-protocols
-      
+
       # === X11 LIBRARIES ===
       xorg.libX11
       xorg.libXext
@@ -55,7 +55,7 @@
       xorg.libXcomposite
       xorg.libXinerama
       xorg.libXScrnSaver
-      
+
       # === GTK & GUI ===
       glib
       gtk2
@@ -67,23 +67,23 @@
       gdk-pixbuf
       fontconfig
       freetype
-      
+
       # === AUDIO ===
       alsa-lib
       alsa-plugins
       pulseaudio
       libpulseaudio
-      pipewire.dev  # Add pipewire client library for Qt6 multimedia (libpipewire-0.3.so)
+      pipewire.dev # Add pipewire client library for Qt6 multimedia (libpipewire-0.3.so)
       libvorbis
       flac
       libogg
-      
+
       # === NETWORKING & DBUS ===
       expat
       dbus
       dbus-glib
       libusb1
-      
+
       # === MEDIA ===
       ffmpeg
       SDL2
@@ -94,7 +94,7 @@
       libjpeg
       libtiff
       libwebp
-      
+
       # === BROWSER LIBRARIES ===
       libxcb
       libX11
@@ -110,7 +110,7 @@
       xorg.libXft
       xorg.libXrender
       xorg.libXtst
-      
+
       # === ADDITIONAL GAME LIBRARIES ===
       libgcrypt
       libgpg-error
@@ -123,13 +123,13 @@
       libpsl
       nghttp2
       rtmpdump
-      
+
       # === CUDA ===
       cudaPackages.cuda_cudart
       cudaPackages.cudnn
       cudaPackages.libcublas
       cudaPackages.libcufft
-      
+
       # === NVIDIA SPECIFIC ===
       nvidia-vaapi-driver
     ];

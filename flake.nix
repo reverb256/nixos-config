@@ -23,8 +23,6 @@
 
     # Enhanced Gaming Packages (Proton-GE, GameMode, etc.)
     nix-gaming.url = "github:fufexan/nix-gaming";
-    
-
 
     # Claude Code Native Binary
     claude-native.url = "github:ryoppippi/claude-code-overlay";
@@ -49,13 +47,16 @@
     kimi-cli.url = "github:MoonshotAI/kimi-cli";
     kimi-cli.inputs.nixpkgs.follows = "nixpkgs";
 
-     # OpenClaw - AI agent gateway (upstream with hasown fix)
-     nix-openclaw.url = "github:openclaw/nix-openclaw";
-     nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
-     nix-openclaw.inputs.home-manager.follows = "home-manager";
+    # OpenClaw - AI agent gateway (upstream with hasown fix)
+    nix-openclaw.url = "github:openclaw/nix-openclaw";
+    nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
+    nix-openclaw.inputs.home-manager.follows = "home-manager";
 
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
+
+    # CachyOS Kernel - BORE scheduler for gaming
+    nix-cachyos-kernel.url = "github:drakon64/nixos-cachyos-kernel";
   };
 
   outputs = inputs @ {
@@ -89,32 +90,17 @@
       }
 
       # Common Overlays & Config
-       {
-       nixpkgs.overlays = [
-            self.overlays.default
-            inputs.nix-openclaw.overlays.default
-          ];
+      {
+        nixpkgs.overlays = [
+          self.overlays.default
+          inputs.nix-openclaw.overlays.default
+        ];
         nixpkgs.config.allowUnfree = true;
         nixpkgs.config.permittedInsecurePackages = [
           "electron-25.9.0"
         ];
       }
     ];
-
-    # Function to create a Colmena node definition
-    mkColmenaNode = {
-      targetHost,
-      modules ? [],
-    }: {
-      imports = commonModules ++ modules;
-      _module.args.inputs = inputs; # Pass inputs to modules
-      deployment = {
-        targetHost = targetHost;
-        targetUser = "j_kro";
-        buildOnTarget = false; # Build on zephyr (single source of truth)
-        tags = ["default"]; # Default tag for colmena apply
-      };
-    };
 
     # Function to create a NixOS system definition
     mkNixosSystem = {modules ? []}:
@@ -124,26 +110,6 @@
         specialArgs = {inherit inputs;};
         modules = commonModules ++ modules;
       };
-
-    # Host definitions for Colmena
-    colmenaNodes = {
-      zephyr = mkColmenaNode {
-        targetHost = "10.1.1.110";
-        modules = [./hosts/zephyr/configuration.nix];
-      };
-      nexus = mkColmenaNode {
-        targetHost = "10.1.1.120";
-        modules = [./hosts/nexus/configuration.nix];
-      };
-      forge = mkColmenaNode {
-        targetHost = "10.1.1.130";
-        modules = [./hosts/forge/configuration.nix];
-      };
-      sentry = mkColmenaNode {
-        targetHost = "10.1.1.140";
-        modules = [./hosts/sentry/configuration.nix];
-      };
-    };
 
     # NixOS system definitions
     nixosSystems = {
@@ -175,7 +141,17 @@
     nixosConfigurations = nixosSystems;
 
     # Colmena deployment configuration
-    #colmena = // colmenaNodes;  # Use hive.nix instead
+    # Import colmena module for deployment
+    colmena = inputs.colmena.lib.composeManyExtensions (
+      inputs.nixpkgs.lib.foldExtensions (acc: ext: acc // ext) {} [
+        inputs.colmena.nixosModules.deploymentOptions
+        (
+          _: {
+            imports = [./colmena.nix];
+          }
+        )
+      ]
+    );
 
     # Formatter for nix fmt
     formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;

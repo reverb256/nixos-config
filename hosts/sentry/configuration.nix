@@ -1,6 +1,10 @@
 # Sentry Host Configuration
 # 10.1.1.140 - Monitoring Server (8 cores, RX 5600 XT)
-{pkgs, ...}: {
+{
+  pkgs,
+  inputs,
+  ...
+}: {
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
@@ -18,6 +22,12 @@
 
   # Host identification
   networking.hostName = "sentry";
+
+  # Multi-kernel support: Zen + CachyOS BORE for gaming
+  boot.kernelPackages = [
+    pkgs.linuxPackages_zen
+    inputs.nix-cachyos-kernel.packages.x86_64-linux.linux-cachyos-bore
+  ];
 
   # ============================================================================
   # DESKTOP ENVIRONMENT - KDE Plasma 6 with AMD GPU
@@ -113,8 +123,6 @@
     environmentFile = "/run/agenix/openclaw-env";
     enableLegacyEnv = true;
   };
-
-
 
   # ============================================================================
   # FIREWALL (Base config - no extra ports)

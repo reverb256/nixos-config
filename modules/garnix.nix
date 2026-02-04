@@ -1,8 +1,10 @@
-{config, lib, ...}:
-let
-  cfg = config.services.garnix;
-in
 {
+  config,
+  lib,
+  ...
+}: let
+  cfg = config.services.garnix;
+in {
   options.services.garnix = {
     enable = lib.mkEnableOption "Garnix CI/CD cache configuration";
     netrcFile = lib.mkOption {

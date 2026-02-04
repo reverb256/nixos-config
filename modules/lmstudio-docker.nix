@@ -1,7 +1,6 @@
 # LM Studio 0.4.x - Local LLM Interface via Podman
 # Uses Podman container for headless server mode
 # Following 2026 best practices: Podman, rootless, declarative where possible
-
 {
   config,
   lib,
@@ -75,7 +74,7 @@ in {
 
     # Podman container service for LM Studio
     # Using a custom image build process adapted for Podman
-    
+
     systemd.services.lmstudio-daemon = {
       description = "LM Studio Local LLM Server (Podman)";
       after = ["podman.service" "network-online.target"];
@@ -86,92 +85,92 @@ in {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = pkgs.writeShellScript "lmstudio-start" ''
-          # Use full path to podman
-          PODMAN="${pkgs.podman}/bin/podman"
+                    # Use full path to podman
+                    PODMAN="${pkgs.podman}/bin/podman"
 
-          # Remove old container if exists
-          $PODMAN rm -f lmstudio 2>/dev/null || true
+                    # Remove old container if exists
+                    $PODMAN rm -f lmstudio 2>/dev/null || true
 
-          # Build and run LM Studio container
-          # Using a minimal Python-based server that mimics lms CLI
-          $PODMAN build -t lmstudio-local - <<'EOF'
-FROM python:3.11-slim
-RUN pip install --no-cache-dir uvicorn fastapi httpx
-COPY <<'PYEOF' /app/server.py
-import asyncio
-import json
-import os
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import subprocess
+                    # Build and run LM Studio container
+                    # Using a minimal Python-based server that mimics lms CLI
+                    $PODMAN build -t lmstudio-local - <<'EOF'
+          FROM python:3.11-slim
+          RUN pip install --no-cache-dir uvicorn fastapi httpx
+          COPY <<'PYEOF' /app/server.py
+          import asyncio
+          import json
+          import os
+          from fastapi import FastAPI
+          from fastapi.middleware.cors import CORSMiddleware
+          from pydantic import BaseModel
+          import subprocess
 
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+          app = FastAPI()
+          app.add_middleware(
+              CORSMiddleware,
+              allow_origins=["*"],
+              allow_credentials=True,
+              allow_methods=["*"],
+              allow_headers=["*"],
+          )
 
-MODELS_DIR = os.environ.get("MODELS_DIR", "/models")
-DATA_DIR = os.environ.get("DATA_DIR", "/data")
+          MODELS_DIR = os.environ.get("MODELS_DIR", "/models")
+          DATA_DIR = os.environ.get("DATA_DIR", "/data")
 
-class ModelLoadRequest(BaseModel):
-    model_path: str
+          class ModelLoadRequest(BaseModel):
+              model_path: str
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+          @app.get("/health")
+          async def health():
+              return {"status": "ok"}
 
-@app.get("/v1/models")
-async def list_models():
-    # List available models
-    models = []
-    if os.path.exists(MODELS_DIR):
-        for root, dirs, files in os.walk(MODELS_DIR):
-            for f in files:
-                if f.endswith((".gguf", ".safetensors", ".bin")):
-                    models.append({"id": os.path.join(root, f), "object": "model"})
-    return {"data": models}
+          @app.get("/v1/models")
+          async def list_models():
+              # List available models
+              models = []
+              if os.path.exists(MODELS_DIR):
+                  for root, dirs, files in os.walk(MODELS_DIR):
+                      for f in files:
+                          if f.endswith((".gguf", ".safetensors", ".bin")):
+                              models.append({"id": os.path.join(root, f), "object": "model"})
+              return {"data": models}
 
-@app.post("/v1/models/load")
-async def load_model(req: ModelLoadRequest):
-    # Stub - in real implementation, load model via proper API
-    return {"status": "loaded", "model": req.model_path}
+          @app.post("/v1/models/load")
+          async def load_model(req: ModelLoadRequest):
+              # Stub - in real implementation, load model via proper API
+              return {"status": "loaded", "model": req.model_path}
 
-@app.post("/v1/models/unload")
-async def unload_model():
-    return {"status": "unloaded"}
+          @app.post("/v1/models/unload")
+          async def unload_model():
+              return {"status": "unloaded"}
 
-@app.get("/v1/chat/completions")
-async def chat_completions():
-    # Stub endpoint
-    return {"choices": [{"message": {"content": "LM Studio API stub - configure with real model path"}}]}
+          @app.get("/v1/chat/completions")
+          async def chat_completions():
+              # Stub endpoint
+              return {"choices": [{"message": {"content": "LM Studio API stub - configure with real model path"}}]}
 
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", "1234"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
-PYEOF
-EXPOSE 1234
-CMD ["python", "/app/server.py"]
-EOF
+          if __name__ == "__main__":
+              import uvicorn
+              port = int(os.environ.get("PORT", "1234"))
+              uvicorn.run(app, host="0.0.0.0", port=port)
+          PYEOF
+          EXPOSE 1234
+          CMD ["python", "/app/server.py"]
+          EOF
 
-          # Run the container
-          $PODMAN run -d \
-            --name lmstudio \
-            --restart unless-stopped \
-            -p ${cfg.daemonHost}:${toString cfg.daemonPort}:1234 \
-            -e PORT=${toString cfg.daemonPort} \
-            -e MODELS_DIR=/models \
-            -e DATA_DIR=/data \
-            -v ${cfg.modelsDir}:/models:ro \
-            -v ${cfg.dataDir}:/data \
-            --userns=keep-id \
-            --security-opt label=disable \
-            lmstudio-local
+                    # Run the container
+                    $PODMAN run -d \
+                      --name lmstudio \
+                      --restart unless-stopped \
+                      -p ${cfg.daemonHost}:${toString cfg.daemonPort}:1234 \
+                      -e PORT=${toString cfg.daemonPort} \
+                      -e MODELS_DIR=/models \
+                      -e DATA_DIR=/data \
+                      -v ${cfg.modelsDir}:/models:ro \
+                      -v ${cfg.dataDir}:/data \
+                      --userns=keep-id \
+                      --security-opt label=disable \
+                      lmstudio-local
         '';
 
         ExecStop = pkgs.writeShellScript "lmstudio-stop" ''

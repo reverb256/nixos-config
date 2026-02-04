@@ -1,6 +1,4 @@
-{
-  inputs,
-}: {
+{inputs}: {
   imports = [
     ./hosts/zephyr/configuration.nix
     ./hosts/nexus/configuration.nix
