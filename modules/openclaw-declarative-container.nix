@@ -201,7 +201,7 @@ in {
               -e "OPENCLAW_CONFIG_DIR=${cfg.configDir}" \
               -e "OPENCLAW_GATEWAY_TOKEN=$(cat /run/agenix/openclaw-gateway-token 2>/dev/null || echo 'MISSING_SECRET')" \
               -e "OPENCLAW_NIX_MODE=1" \
-              ${legacyEnvVars}\
+              ${legacyEnvVars} \
               --memory=${cfg.memory} \
               --cpu-shares=${toString cfg.cpuShares} \
               --user "982:979" \
