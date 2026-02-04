@@ -175,13 +175,16 @@
     nixosConfigurations = nixosSystems;
 
     # Colmena deployment configuration
+    # Use the same nixpkgs as the flake to avoid lock issues
     colmena =
-      {
+      let
+        nixpkgsForColmena = import inputs.nixpkgs {
+          system = "x86_64-linux";
+          config.allowUnfree = true;
+        };
+      in {
         meta = {
-          nixpkgs = import inputs.nixpkgs {
-            system = "x86_64-linux";
-            config.allowUnfree = true;
-          };
+          nixpkgs = nixpkgsForColmena;
         };
       }
       // colmenaNodes;
