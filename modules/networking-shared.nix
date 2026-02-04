@@ -150,10 +150,11 @@ with lib; {
   };
 
   # ============================================================================
-  # TAILSCALE VPN
+  # TAILSCALE VPN (configured per-host)
   # ============================================================================
-
-  services.tailscale.enable = true;
+  # Note: Each host configures tailscale-custom module independently
+  # Note: Disabled due to module conflicts
+  # services.tailscale.enable = true;
 
   # ============================================================================
   # STATUS INDICATOR
