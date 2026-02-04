@@ -18,6 +18,7 @@
 | **Secrets** | `secrets/` | Agenix Encrypted |
 | **OpenClaw** | `modules/openclaw-declarative-container.nix` | Podman (Rootless) |
 | **Mining** | `modules/mining.nix` | Localhost-only API |
+| Mining Troubleshooting | `docs/MINING_TROUBLESHOOTING.md` | Mining fixes and debugging guide |
 | **AI Storage** | `modules/openclaw-storage.nix` | AIStor (S3 Compatible) |
 | **Local LLM** | `modules/lmstudio-docker.nix` | Podman Container |
 

@@ -158,8 +158,8 @@ in {
     networking.firewall.interfaces.lo.allowedTCPPorts = [
       cfg.prometheusPort
       cfg.grafanaPort
-      9100  # Node exporter
-      14445  # NVIDIA DCGM
+      9100 # Node exporter
+      14445 # NVIDIA DCGM
     ];
   };
 }

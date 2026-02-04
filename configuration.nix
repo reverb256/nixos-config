@@ -1,7 +1,4 @@
-{
-  pkgs,
-  ...
-}: let
+{pkgs, ...}: let
   # Get gamemode package for polkit rules
   gamemodePkg = pkgs.gamemode;
   # System administrator username
@@ -240,8 +237,6 @@ in {
     freeMemThreshold = 2; # Only kill when < 2% memory free (very lenient)
     freeSwapThreshold = 5; # Only kill when < 5% swap free
   };
-
-
 
   # OpenClaw Storage Management Control Plane (runs with lobster user)
   # Temporarily disabled until minio-cache-credentials are properly set up

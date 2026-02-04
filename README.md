@@ -117,6 +117,7 @@ Internet ── Router (10.1.1.1)
 - **Smart mining pause** during gaming/VR sessions (auto-detects applications)
 - **GameMode integration** with NVIDIA +150MHz overclock
 - **GPU mining** (lolMiner) and CPU mining (XMRig)
+- **Mining troubleshooting** and fixes documented in `docs/MINING_TROUBLESHOOTING.md`
 - **Performance monitoring** across all hosts
 
 ### **🛡️ Security**

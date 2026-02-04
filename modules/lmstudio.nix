@@ -1,6 +1,5 @@
 # LM Studio 0.4.x - Local LLM Interface with Daemon Mode
 # Supports separated backend (llmster daemon) and frontend (GUI)
-
 {
   config,
   lib,
@@ -9,23 +8,23 @@
 }:
 with lib; let
   cfg = config.services.lmstudio;
-  
+
   # LM Studio 0.4.1 - check https://lmstudio.ai/download for current version
   lmstudioVersion = "0.4.1-1";
-  
+
   # Download URL for the AppImage (GUI frontend)
   lmstudioAppImageSrc = pkgs.fetchurl {
     url = "https://installers.lmstudio.ai/linux/x64/${lmstudioVersion}/LM-Studio-${lmstudioVersion}-x64.AppImage";
     sha256 = "1w26ib8m50ns62y1q2c5sahjczi97brl2vcyy6c6fzggmn61g3ni";
   };
-  
+
   # Extract AppImage for headless CLI use
   lmstudio-extracted = pkgs.appimageTools.extract {
     pname = "lm-studio";
     version = lmstudioVersion;
     src = lmstudioAppImageSrc;
   };
-  
+
   # lms CLI wrapper that uses extracted AppImage
   lmsCli = pkgs.writeShellScriptBin "lms" ''
     #!/bin/bash
@@ -44,44 +43,45 @@ in {
         pname = "lm-studio";
         version = lmstudioVersion;
         src = lmstudioAppImageSrc;
-        
-        extraPkgs = pkgs: with pkgs; [
-          electron
-          libappindicator
-          libnotify
-          libsecret
-          xdg-utils
-          zlib
-          libxkbcommon
-          at-spi2-atk
-          at-spi2-core
-          cups
-          libdrm
-          libxshmfence
-          mesa
-          nspr
-          nss
-          systemd
-        ];
-        
+
+        extraPkgs = pkgs:
+          with pkgs; [
+            electron
+            libappindicator
+            libnotify
+            libsecret
+            xdg-utils
+            zlib
+            libxkbcommon
+            at-spi2-atk
+            at-spi2-core
+            cups
+            libdrm
+            libxshmfence
+            mesa
+            nspr
+            nss
+            systemd
+          ];
+
         makeWrapperArgs = [
           "--add-flags --no-sandbox --disable-gpu-sandbox"
         ];
-        
+
         extraInstallCommands = ''
-          # Create desktop entry
-          mkdir -p "$out/share/applications"
-          cat > "$out/share/applications/lm-studio.desktop" << 'EOF'
-[Desktop Entry]
-Name=LM Studio
-Comment=Run LLMs locally with GUI and API server
-Exec=lm-studio --no-sandbox
-Icon=lm-studio
-Terminal=false
-Type=Application
-Categories=Development;Education;AI;
-EOF
-          chmod +x "$out/share/applications/lm-studio.desktop"
+                    # Create desktop entry
+                    mkdir -p "$out/share/applications"
+                    cat > "$out/share/applications/lm-studio.desktop" << 'EOF'
+          [Desktop Entry]
+          Name=LM Studio
+          Comment=Run LLMs locally with GUI and API server
+          Exec=lm-studio --no-sandbox
+          Icon=lm-studio
+          Terminal=false
+          Type=Application
+          Categories=Development;Education;AI;
+          EOF
+                    chmod +x "$out/share/applications/lm-studio.desktop"
         '';
       };
       defaultText = "pkgs.lmstudio (AppImage-based)";
@@ -90,7 +90,7 @@ EOF
 
     enableDaemon = mkOption {
       type = types.bool;
-      default = false;  # Requires GUI initialization for authentication in 0.4.x
+      default = false; # Requires GUI initialization for authentication in 0.4.x
       description = "Enable lmsterd daemon (headless server mode, 0.4.x feature - requires GUI run first)";
     };
 

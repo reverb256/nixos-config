@@ -86,7 +86,7 @@ in {
     systemd.timers.borgmatic = {
       wantedBy = ["timers.target"];
       timerConfig = {
-        OnCalendar = "*-*-* 03:00:00";  # Daily at 3 AM
+        OnCalendar = "*-*-* 03:00:00"; # Daily at 3 AM
         Persistent = true;
         RandomizedDelaySec = "1h";
       };

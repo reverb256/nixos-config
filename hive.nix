@@ -6,7 +6,7 @@
     };
   };
 
-  defaults = {pkgs, ...}: {
+  defaults = {...}: {
     deployment = {
       targetUser = "j_kro";
       allowLocalDeployment = false;

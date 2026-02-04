@@ -19,7 +19,7 @@
       # max-jobs = 1; # Parallel derivations (CONSERVATIVE FIX FOR OOM)
       # cores = 1; # Cores per derivation (CONSERVATIVE FIX FOR OOM)
 
-       # Distributed build configuration temporarily disabled to resolve cache issues
+      # Distributed build configuration temporarily disabled to resolve cache issues
 
       # Binary caches for faster builds (ALL FREE - $0 to download)
       # Ordered by priority: official > CUDA > community > specialized
