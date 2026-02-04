@@ -9,6 +9,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/desktop.nix
+    ../../modules/fish-starship.nix
     ../../modules/gaming.nix
     ../../modules/nvidia-wayland.nix
     ../../modules/garnix.nix
