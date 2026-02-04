@@ -174,6 +174,8 @@ with lib; {
         export PYTHONNOUSERSITE=1
         export PYTHONDONTWRITEBYTECODE=1
         export PYTHONPATH=""
+        # Fix sre_parse.TYPE_FLAGS error
+        export STEAM_RUNTIME_PYTHON_VERSION=""
         # Pressure-vessel graphics compatibility
         export PRESSURE_VESSEL_LOG_LEVEL=2
         export PRESSURE_VESSEL_FILESYSTEMS_BIND_READONLY=/run/opengl-driver:/run/host/run/opengl-driver
@@ -187,6 +189,7 @@ with lib; {
         # Steam can find Proton-GE-RTSP
         export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
         export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
+        export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
       '';
     };
   };
@@ -214,6 +217,15 @@ with lib; {
     vulkan-loader
     vulkan-tools
     stdenv.cc.cc.lib
+    # 32-bit libraries for Proton
+    pkgsi686Linux.stdenv.cc.cc.lib
+    pkgsi686Linux.zlib
+    # Additional Proton libraries
+    libgcrypt
+    libgpg-error
+    libusb1
+    udev
+    libusb-compat-0_1
   ];
 
   # Enable Steam hardware support for comprehensive controller udev rules
@@ -501,10 +513,10 @@ with lib; {
 
   # Note: OpenSeeFace needs to be installed manually
   # Download from: https://github.com/FaceTracking/OSC-facetracking
-  # Configure OSC output to port 9000 for VRChat compatibility
-
   # Ensure nvidia shader cache directory exists
+  # Fix ldconfig path for pressure-vessel
   systemd.tmpfiles.rules = [
     "d /var/cache/nvidia-shader-cache 0755 root root - -"
+    "L /sbin/ldconfig - - - - ${pkgs.glibc}/sbin/ldconfig"
   ];
 }

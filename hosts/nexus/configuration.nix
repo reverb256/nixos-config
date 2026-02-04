@@ -18,16 +18,23 @@
     ../../modules/openclaw-declarative-container.nix
     # Import OpenClaw common configuration
     ../../modules/openclaw-common.nix
-    # Import Tailscale mesh VPN (removed due to conflict)
-    # TODO: Fix tailscale module for future use
+    # Import Tailscale mesh VPN
+    ../../modules/tailscale.nix
     # Import AIStor secrets generation
     ../../modules/aistor-secrets.nix
     # Import mining module (robust configuration)
     ../../modules/mining.nix
+    # Import CI/CD and auto-update modules
+    ../../modules/garnix.nix
+    ../../modules/auto-update.nix
   ];
 
   # Host identification
   networking.hostName = "nexus";
+
+  # Enable CI/CD features
+  services.garnix.enable = true;
+  services.nixos-auto-update.enable = true;
 
   # Multi-kernel support: Zen + CachyOS BORE for gaming
   boot.kernelPackages = [

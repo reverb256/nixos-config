@@ -19,10 +19,17 @@
     ../../modules/openclaw-common.nix
     # Import Tailscale mesh VPN
     ../../modules/tailscale.nix
+    # Import CI/CD and auto-update modules
+    ../../modules/garnix.nix
+    ../../modules/auto-update.nix
   ];
 
   # Host identification
   networking.hostName = "forge";
+
+  # Enable CI/CD features
+  services.garnix.enable = true;
+  services.nixos-auto-update.enable = true;
 
   # Multi-kernel support: Zen + CachyOS BORE for gaming
   boot.kernelPackages = [
