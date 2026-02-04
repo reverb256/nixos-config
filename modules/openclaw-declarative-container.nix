@@ -261,7 +261,7 @@ in {
           fi
 
           # Check if container is healthy
-          HEALTH_STATUS=$(${pkgs.docker}/bin/docker inspect --format='{{json .State.Health}}' openclaw-declarative 2>/dev/null || echo "{}")
+          HEALTH_STATUS=$(${pkgs.podman}/bin/podman inspect --format='{{json .State.Health}}' openclaw-declarative 2>/dev/null || echo "{}")
           if echo "$HEALTH_STATUS" | grep -q '"status":"unhealthy"'; then
             echo "OpenClaw container is unhealthy, restarting..."
             ${pkgs.systemd}/bin/systemctl restart openclaw-container-declarative

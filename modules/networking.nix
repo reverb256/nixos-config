@@ -65,7 +65,6 @@ with lib; {
       workstation = true;
     };
     # Allow user services (like WiVRn) to publish via Avahi
-    disableUserServicePublishing = false;
   };
 
   # Ensure avahi runtime directory exists
