@@ -167,8 +167,8 @@ in {
             set -euo pipefail
 
             # Clean up any existing containers or processes
-            ${pkgs.docker}/bin/docker stop openclaw-declarative 2>/dev/null || true
-            ${pkgs.docker}/bin/docker rm openclaw-declarative 2>/dev/null || true
+            ${pkgs.podman}/bin/docker stop openclaw-declarative 2>/dev/null || true
+            ${pkgs.podman}/bin/docker rm openclaw-declarative 2>/dev/null || true
 
             # Wait for port to be released
             for i in {1..10}; do
@@ -179,11 +179,11 @@ in {
               sleep 1
             done
 
-            # Create Docker network for isolation (prevents host network access)
-            ${pkgs.docker}/bin/docker network create openclaw-network 2>/dev/null || true
+            # Create Podman network for isolation (prevents host network access)
+            ${pkgs.podman}/bin/podman network create openclaw-network 2>/dev/null || true
 
             # Start the OpenClaw container with bridge network (isolated from host)
-            exec ${pkgs.docker}/bin/docker run \
+            exec ${pkgs.podman}/bin/podman run \
               --name openclaw-declarative \
               --network openclaw-network \
               --restart unless-stopped \
@@ -224,8 +224,8 @@ in {
           #!/usr/bin/env bash
           set -euo pipefail
 
-          ${pkgs.docker}/bin/docker stop openclaw-declarative 2>/dev/null || true
-          ${pkgs.docker}/bin/docker rm openclaw-declarative 2>/dev/null || true
+          ${pkgs.podman}/bin/docker stop openclaw-declarative 2>/dev/null || true
+          ${pkgs.podman}/bin/docker rm openclaw-declarative 2>/dev/null || true
         '';
 
         # Security settings
@@ -254,7 +254,7 @@ in {
           set -euo pipefail
 
           # Check if container is running
-          if ! ${pkgs.docker}/bin/docker ps --format "table {{.Names}}" | grep -q "^openclaw-declarative$"; then
+          if ! ${pkgs.podman}/bin/docker ps --format "table {{.Names}}" | grep -q "^openclaw-declarative$"; then
             echo "OpenClaw container is not running, restarting..."
             ${pkgs.systemd}/bin/systemctl restart openclaw-container-declarative
             exit 0
