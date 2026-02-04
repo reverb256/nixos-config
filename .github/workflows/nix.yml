@@ -33,31 +33,36 @@ jobs:
       - name: Build sentry configuration
         run: nix build .#nixosConfigurations.sentry.config.system.build.toplevel --no-link
 
-  merge-to-infra:
+  deploy:
     needs: validate
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Git
+      - name: Setup SSH
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          cat >> ~/.ssh/config <<EOF
+          Host zephyr nexus forge sentry
+              StrictHostKeyChecking accept-new
+              UserKnownHostsFile /dev/null
+              User j_kro
+          EOF
 
-      - name: Merge main → infra
+      - name: Deploy to all hosts
         run: |
-          git fetch origin infra
-          git checkout infra
-          git merge main --no-edit
-          git push origin infra
-
-      - name: Trigger deployment
-        run: |
-          curl -X POST "${{ secrets.DEPLOY_WEBHOOK_URL }}" \
-            -H "Content-Type: application/json" \
-            -d '{"ref": "infra", "repository": "${{ github.repository }}"}'
-        continue-on-error: true
+          for host in zephyr nexus forge sentry; do
+            echo "Deploying to $host..."
+            # Get IP from known_hosts or use direct IP
+            case $host in
+              zephyr) ip="10.1.1.110" ;;
+              nexus)  ip="10.1.1.120" ;;
+              forge)  ip="10.1.1.130" ;;
+              sentry) ip="10.1.1.140" ;;
+            esac
+            ssh $ip "sudo nixos-rebuild switch --flake /etc/nixos --option accept-flake-config true" || echo "Failed: $host"
+          done
