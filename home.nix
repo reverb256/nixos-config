@@ -504,4 +504,7 @@
       WantedBy = ["graphical-session.target"];
     };
   };
+
+  # Fix: Force overwrite SSH config to avoid conflicts
+  home.file.".ssh/config".force = true;
 }
