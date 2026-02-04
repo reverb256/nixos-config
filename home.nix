@@ -312,6 +312,18 @@
       };
     };
 
+    # SSH configuration for GitHub CI/CD deploys
+    ssh = {
+      enable = true;
+      extraConfig = ''
+        Host github.com
+          HostName github.com
+          User git
+          IdentityFile ~/.ssh/id_deploy
+          IdentitiesOnly yes
+      '';
+    };
+
     # Neovim configuration
     neovim = {
       enable = true;
