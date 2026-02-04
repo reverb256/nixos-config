@@ -1,12 +1,12 @@
 # System Reality Check & Infrastructure Audit
 
 **Date:** 2026-02-04
-**Status:** Post-Audit Remediation
+**Status:** Post-Audit Remediation Complete
 **Auditor:** AI Code Assistant
 
 ## 🟢 Executive Summary
 
-This document records the "Harsh Reality" audit conducted on Feb 3, 2026, and the immediate remediation actions taken on Feb 4, 2026. The infrastructure has moved from a state of "Architectural Split-Brain" (claiming Podman but using Docker) to a consistent **Declarative Podman** architecture.
+This document records the "Harsh Reality" audit conducted on Feb 3, 2026, and the remediation actions taken on Feb 4, 2026. The infrastructure has moved from a state of "Architectural Split-Brain" (claiming Podman but using Docker) to a consistent **Declarative Podman** architecture.
 
 ### Key Achievements (2026-02-04)
 1.  **Mining Security Fixed:** API ports (4068/4069) are now strictly bound to `127.0.0.1`.
@@ -15,6 +15,11 @@ This document records the "Harsh Reality" audit conducted on Feb 3, 2026, and th
     *   `lmstudio-docker.nix` updated to use Podman and rootless containers.
     *   Hardcoded `docker` binary calls replaced with correct paths.
 3.  **Distributed Builds Enabled:** The "51-core build pool" is now a reality. `nexus`, `forge`, and `sentry` are configured as build machines for `zephyr`.
+4.  **Agenix Secret Management Fixed:** 
+    *   Generated new age key (`age1pn55e68h5twm8ksrm29pzf4w5t8twdznmy0sqg5gvk094punpctq06q8zn`)
+    *   Extracted live secrets from `/run/agenix` on zephyr
+    *   Re-encrypted all secrets with new key
+    *   Key stored at `/root/.config/sops/age/keys.txt` for agenix decryption
 
 ---
 
