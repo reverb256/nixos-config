@@ -1,6 +1,10 @@
 # Nexus Host Configuration
 # 10.1.1.120 - Build Server (24 cores, 2x RTX 3060 Ti)
-{pkgs, ...}: {
+{
+  pkgs,
+  inputs,
+  ...
+}: {
   imports = [
     # Host-specific hardware
     ./hardware-configuration.nix
@@ -24,6 +28,12 @@
 
   # Host identification
   networking.hostName = "nexus";
+
+  # Multi-kernel support: Zen + CachyOS BORE for gaming
+  boot.kernelPackages = [
+    pkgs.linuxPackages_zen
+    inputs.nix-cachyos-kernel.packages.x86_64-linux.linux-cachyos-bore
+  ];
 
   # ============================================================================
   # NVIDIA WAYLAND CONFIGURATION (RTX 3060 Ti)
@@ -83,7 +93,7 @@
       wallet = "krxXVNVMM7.nexus";
       nvidia = {
         enable = true;
-        devices = "0";  # Use only first RTX 3060 Ti
+        devices = "0"; # Use only first RTX 3060 Ti
         powerLimit = 130; # 130W power limit
       };
     };
@@ -155,8 +165,6 @@
     environmentFile = "/run/agenix/openclaw-env";
     enableLegacyEnv = true;
   };
-
-
 
   # ============================================================================
   # AISTOR / MINIO S3 CACHE SERVER + AI DATA STORE

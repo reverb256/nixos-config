@@ -1,8 +1,9 @@
 # Zephyr Host Configuration - MINIMAL NVIDIA + Wayland
 # 10.1.1.110 - Master Workstation (32 cores, RTX 3090)
 {
-  pkgs,
   config,
+  inputs,
+  pkgs,
   ...
 }: {
   imports = [
@@ -18,6 +19,7 @@
     ../../modules/mcp-servers.nix
     ../../modules/nix-ld.nix
     ../../modules/mining.nix
+    ../../modules/flatpak-steam.nix
   ];
 
   networking.hostName = "zephyr";
@@ -138,13 +140,8 @@
     enableLegacyEnv = true;
   };
 
-  services.tailscale-custom = {
+  services.tailscale = {
     enable = true;
-    advertiseRoutes = ["10.1.1.0/24"];
-    advertiseExitNode = true;
-    acceptRoutes = true;
-    useRoutingFeatures = "both";
-    enableSSH = true;
   };
 
   services.lmstudio-docker = {
@@ -160,7 +157,7 @@
   };
 
   networking.firewall = {
-    allowedTCPPorts = [9757];
+    allowedTCPPorts = [9757 18789 18790];
     allowedUDPPorts = [
       9757
       9758

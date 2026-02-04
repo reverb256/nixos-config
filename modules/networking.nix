@@ -135,10 +135,10 @@ with lib; {
     ignoreIP = [
       "127.0.0.1"
       "10.1.1.0/24"
-      "100.81.182.5"  # zephyr Tailscale
-      "100.86.158.18"  # nexus Tailscale
-      "100.116.190.124"  # forge Tailscale
-      "100.82.210.39"  # sentry Tailscale
+      "100.81.182.5" # zephyr Tailscale
+      "100.86.158.18" # nexus Tailscale
+      "100.116.190.124" # forge Tailscale
+      "100.82.210.39" # sentry Tailscale
     ];
   };
 

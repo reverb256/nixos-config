@@ -36,7 +36,7 @@ in {
     enable = mkEnableOption "Robust Mining Services";
     user = mkOption {
       type = types.str;
-      default = "mining";  # Default to non-root user
+      default = "mining"; # Default to non-root user
       description = "User to run mining services as (security: never use root)";
     };
 
@@ -205,7 +205,7 @@ in {
             # GPU mining requires device access and privileges
             NoNewPrivileges = false;
             PrivateTmp = true;
-            PrivateDevices = false;  # Need access to GPU devices
+            PrivateDevices = false; # Need access to GPU devices
             ProtectKernelTunables = true;
             ProtectControlGroups = true;
             ProtectHostname = true;
@@ -228,7 +228,7 @@ in {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --api-address 127.0.0.1 --mode b --tls 1";
+            ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --api-address 127.0.0.1 --mode b --tls 1";
             Restart = "always";
             RestartSec = "30s";
             Environment = [
@@ -312,7 +312,7 @@ in {
     networking.firewall.interfaces.lo.allowedTCPPorts = [
       cfg.lolminer.nvidia.apiPort
       cfg.lolminer.amd.apiPort
-      8081  # XMRig HTTP API
+      8081 # XMRig HTTP API
     ];
   };
 }

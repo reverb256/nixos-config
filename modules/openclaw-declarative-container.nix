@@ -121,10 +121,10 @@ in {
     };
 
     users.groups = mkIf (cfg.group == "lobster") {
-      lobster = { gid = 979; };
+      lobster = {gid = 979;};
     };
 
-    # Create directories with proper permissions  
+    # Create directories with proper permissions
     systemd.tmpfiles.rules = [
       "d ${cfg.stateDir} 0750 ${cfg.user} ${cfg.group} - -"
       "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} - -"
@@ -132,7 +132,6 @@ in {
       "d ${cfg.stateDir}/workspace 0750 ${cfg.user} ${cfg.group} - -"
       "d ${cfg.stateDir}/workspace/skills 0750 ${cfg.user} ${cfg.group} - -"
     ];
-
 
     # Enable container runtime (Docker by default, can be overridden)
     # Note: This should be enabled globally in your host configuration, not in this module
@@ -285,7 +284,7 @@ in {
       description = "Periodic health check for OpenClaw container";
       wantedBy = ["timers.target"];
       timerConfig = {
-        OnCalendar = "*:0/30";  # Every 30 seconds
+        OnCalendar = "*:0/30"; # Every 30 seconds
         Persistent = true;
       };
     };
