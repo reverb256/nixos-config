@@ -30,7 +30,7 @@
   networking.hostName = "forge";
 
   # Enable CI/CD features
-  services.garnix.enable = true;
+  # garnix.enable = true;  # Disabled - requires nix-cache-key.sec
   services.nixos-auto-update.enable = true;
 
   # Multi-kernel support: Zen primary kernel
