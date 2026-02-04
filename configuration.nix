@@ -64,6 +64,21 @@ in {
     ./secrets/agenix-secrets.nix
   ];
 
+  # ============================================================================
+  # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
+  # ============================================================================
+  hardware.peripherals = {
+    enable = true;
+    razer = {
+      enable = true;
+      daemon = true;
+    };
+    corsair = {
+      enable = true;
+      ckbNext = true;
+    };
+  };
+
   # XDG Desktop Portal for KDE integration (with GTK fallback for Flatpak/Steam)
   xdg.portal = {
     enable = true;
