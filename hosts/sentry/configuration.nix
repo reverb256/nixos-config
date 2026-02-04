@@ -36,11 +36,6 @@
   # Multi-kernel support: Zen primary kernel
   boot.kernelPackages = pkgs.linuxPackages_zen;
 
-  # Install additional kernels (for systemd-boot menu)
-  environment.systemPackages = [
-    inputs.nix-cachyos-kernel.packages.x86_64-linux.linux-cachyos-bore
-  ];
-
   # ============================================================================
   # DESKTOP ENVIRONMENT - KDE Plasma 6 with AMD GPU
   # ============================================================================
