@@ -175,19 +175,7 @@
     nixosConfigurations = nixosSystems;
 
     # Colmena deployment configuration
-    # Use the same nixpkgs as the flake to avoid lock issues
-    colmena =
-      let
-        nixpkgsForColmena = import inputs.nixpkgs {
-          system = "x86_64-linux";
-          config.allowUnfree = true;
-        };
-      in {
-        meta = {
-          nixpkgs = nixpkgsForColmena;
-        };
-      }
-      // colmenaNodes;
+    #colmena = // colmenaNodes;  # Use hive.nix instead
 
     # Formatter for nix fmt
     formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
