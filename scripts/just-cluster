@@ -18,10 +18,46 @@ NODES[forge]="j_kro@10.1.1.130"
 NODES[sentry]="j_kro@10.1.1.140"
 
 # SSH options
-SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=5"
+SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 -o ServerAliveInterval=60"
 
 log() {
     echo "[$(date '+%H:%M:%S')] $*"
+}
+
+prep() {
+    log "Copying age key to all nodes..."
+    
+    # Copy age key to all nodes
+    for node in "${!NODES[@]}"; do
+        user_host="${NODES[$node]}"
+        log "Copying age key to $node ($user_host)..."
+        
+        ssh $SSH_OPTS "$user_host" "sudo mkdir -p /root/.config/sops/age/ && sudo chmod 700 /root/.config/sops/age/" 2>/dev/null || true
+        scp -o ConnectTimeout=30 ~/.config/age/keys.txt "$user_host:/tmp/age-keys.txt" 2>/dev/null || log "WARNING: Could not copy to $node"
+        ssh $SSH_OPTS "$user_host" "sudo mv /tmp/age-keys.txt /root/.config/sops/age/keys.txt && sudo chmod 600 /root/.config/sops/age/keys.txt" 2>/dev/null || log "WARNING: Could not set permissions on $node"
+        
+        log "✓ Age key copied to $node"
+    done
+    
+    log "Age key prep complete. Run 'just deploy' to deploy."
+}
+
+push() {
+    log "Pushing changes and deploying from current host..."
+    
+    # Push changes to origin
+    log "Pushing to origin/main..."
+    cd "$FLAKE_PATH"
+    git add -A 2>/dev/null || true
+    git commit -m "Cluster update: $(date '+%Y-%m-%d %H:%M')" 2>/dev/null || log "No changes to commit"
+    git push origin main 2>/dev/null || log "Push skipped (no changes or remote ahead)"
+    
+    # Deploy to current host
+    local current="${NODES[$CURRENT_HOST]}"
+    if [ -n "$current" ]; then
+        log "Deploying to $CURRENT_HOST (current host)..."
+        sudo nixos-rebuild switch --flake "${FLAKE_PATH}#${CURRENT_HOST}" 2>&1 | tail -50
+    fi
 }
 
 deploy_node() {
@@ -32,10 +68,10 @@ deploy_node() {
 
     if [ "$node" = "$CURRENT_HOST" ]; then
         # Local deployment
-        sudo nixos-rebuild switch --flake "${FLAKE_PATH}#${node}" 2>&1
+        sudo nixos-rebuild switch --flake "${FLAKE_PATH}#${node}" 2>&1 | tail -100
     else
         # Remote deployment via SSH + sudo
-        ssh $SSH_OPTS "$user_host" "cd ${FLAKE_PATH} && sudo nixos-rebuild switch --flake '${FLAKE_PATH}#${node}' --use-remote-sudo" 2>&1
+        ssh $SSH_OPTS "$user_host" "cd ${FLAKE_PATH} && sudo nixos-rebuild switch --flake '${FLAKE_PATH}#${node}' --use-remote-sudo" 2>&1 | tail -100
     fi
 }
 
@@ -59,6 +95,8 @@ show_help() {
     echo "USAGE: $0 <command> [nodes...]"
     echo ""
     echo "COMMANDS:"
+    echo "  prep           Copy age key to all nodes (run first!)"
+    echo "  push          Push changes + deploy to current host"
     echo "  all           Deploy to all nodes"
     echo "  build         Build all configs (dry run)"
     echo "  status        Show cluster status"
@@ -68,17 +106,24 @@ show_help() {
     echo "  sentry        Deploy to sentry"
     echo ""
     echo "EXAMPLES:"
-    echo "  $0 all           # Deploy to all nodes"
-    echo "  $0 forge nexus   # Deploy to forge and nexus only"
-    echo "  $0 build        # Build all configs without deploying"
+    echo "  $0 prep        # Copy age keys first"
+    echo "  $0 all         # Deploy to all nodes"
+    echo "  $0 build       # Build all configs without deploying"
     echo ""
     echo "NOTES:"
     echo "  - Remote deployment requires SSH access + sudo on target"
+    echo "  - Run 'just prep' before first deployment to all nodes"
     echo "  - Builds run on nexus (build host), deploys via SSH"
 }
 
 # Main dispatcher
 case "${1:-}" in
+    prep)
+        prep
+        ;;
+    push)
+        push
+        ;;
     all)
         log "Deploying to all cluster nodes..."
         for node in "${!NODES[@]}"; do
