@@ -87,6 +87,17 @@
       winetricks
 
       # ============================================================================
+      # PERIPHERAL SUPPORT
+      # Razer and Corsair device management tools
+      # ============================================================================
+      openrazer-daemon      # Daemon for Razer devices
+      razergenie            # Qt application for configuring Razer devices
+      razer-cli             # Command-line interface for Razer devices
+      polychromatic         # Graphical front-end for Razer devices
+      ckb-next              # Driver and configuration tool for Corsair devices
+      headsetcontrol        # For Corsair VOID headsets
+
+      # ============================================================================
       # CUDA AND ML LIBRARIES
       # System libraries for CUDA/ML workloads
       # These provide the runtime libraries, not user tools

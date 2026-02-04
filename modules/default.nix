@@ -15,5 +15,6 @@
     ./openclaw-storage.nix # OpenClaw storage management
     ./openclaw-backups.nix # OpenClaw automated backups
     ./vm-tuning.nix # VM overcommit fixes for Discover crashes
+    ./peripherals.nix # Razer and Corsair peripheral support
   ];
 }
