@@ -64,4 +64,14 @@ ci:
 
 # Cluster info (no session isolation needed)
 status:
-    /etc/nixos/scripts/just-cluster status
+    @/etc/nixos/scripts/just-cluster status
+
+# Copy age key to all nodes (run from zephyr first)
+prep:
+    @echo "Preparing cluster for deployment..."
+    /etc/nixos/scripts/just-cluster prep
+
+# Deploy from current host (alternative to just-cluster)
+push:
+    @echo "Deploying from current host..."
+    /etc/nixos/scripts/just-cluster push
