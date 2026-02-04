@@ -106,28 +106,30 @@
           #!/usr/bin/env bash
           set -euo pipefail
 
-          # Check if OpenClaw user exists
-          if ! id -u lobster 2>/dev/null; then
-            echo "Creating OpenClaw user..."
-            sudo useradd -r -u 982 -g 979 -s /bin/bash -c "openclaw user" lobster || exit 1
-          fi
-
-          # Wait for user to be fully created
-          while ! id -u lobster 2>/dev/null; do
-            echo "Waiting for OpenClaw user to be available..."
-            sleep 1
-          done
-
-          echo "Starting OpenClaw container..."
-
-          # Create container storage directory with proper permissions
+          # Create necessary directories with proper permissions
           ${pkgs.coreutils}/bin/mkdir -p /var/lib/containers/storage 2>/dev/null || true
           ${pkgs.coreutils}/bin/chown 982:979 /var/lib/containers/storage 2>/dev/null || true
+          ${pkgs.coreutils}/bin/chmod 700 /var/lib/containers/storage 2>/dev/null || true
+
+          # Create OpenClaw directories if they don't exist
+          ${pkgs.coreutils}/bin/mkdir -p ${cfg.stateDir} 2>/dev/null || true
+          ${pkgs.coreutils}/bin/mkdir -p ${cfg.dataDir} 2>/dev/null || true
+          ${pkgs.coreutils}/bin/mkdir -p ${cfg.configDir} 2>/dev/null || true
+
+          # Ensure proper ownership for OpenClaw directories
+          ${pkgs.coreutils}/bin/chown 982:979 ${cfg.stateDir} 2>/dev/null || true
+          ${pkgs.coreutils}/bin/chown 982:979 ${cfg.dataDir} 2>/dev/null || true
+          ${pkgs.coreutils}/bin/chown 982:979 ${cfg.configDir} 2>/dev/null || true
+
+          echo "Starting OpenClaw container..."
 
           # Stop any existing container
           ${pkgs.podman}/bin/podman stop openclaw-declarative 2>/dev/null || true
 
-          # Create Podman network for isolation
+          # Remove any existing container
+          ${pkgs.podman}/bin/podman rm openclaw-declarative 2>/dev/null || true
+
+          # Create Podman network for isolation (with proper permissions)
           ${pkgs.podman}/bin/podman network create openclaw-network 2>/dev/null || true
 
           # Start OpenClaw container
@@ -151,6 +153,7 @@
             ${if cfg.enableLegacyEnv then "-e MOLTBOT_NIX_MODE=1" else ""} \
             --memory=${cfg.memory} \
             --cpu-shares=${toString cfg.cpuShares} \
+            --user 982:979 \
             --userns=keep-id \
             --cap-drop ALL \
             --security-opt "no-new-privileges=true" \
@@ -175,13 +178,18 @@
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         RestrictAddressFamilies = "AF_INET AF_INET6";
-        SystemCallFilter = ["@system-service" "@resources"];
+        SystemCallFilter = ["@system-service" "@resources" "mount" "umount2" "unshare" "pivot_root" "setns"];
+
+        CapabilityBoundingSet = ["CAP_NET_ADMIN"];
+        AmbientCapabilities = ["CAP_NET_ADMIN"];
 
         ReadWritePaths = [
           cfg.stateDir
           cfg.dataDir
           cfg.configDir
+          "/var/lib/containers"
           "/var/lib/containers/storage"
+          "/run"
         ];
       };
 

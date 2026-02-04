@@ -33,7 +33,7 @@
   # garnix.enable = true;  # Disabled - requires nix-cache-key.sec
   services.nixos-auto-update.enable = true;
 
-  # Multi-kernel support: Zen primary kernel
+  # Zen kernel for gaming/desktop
   boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # ============================================================================
@@ -65,16 +65,14 @@
     "amdgpu"
   ];
 
-  # NVIDIA configuration for RTX 4060s (use proprietary beta drivers with ZEN kernel)
-  hardware.nvidia = {
-    package = pkgs.linuxPackages_zen.nvidiaPackages.stable;
-  };
+  # NVIDIA configuration for RTX 4060s (use Zen kernel's nvidia packages)
+  hardware.nvidia.package = pkgs.linuxPackages_zen.nvidiaPackages.stable;
 
   # Enable NVIDIA Wayland optimizations
   hardware.nvidia.wayland = {
     enable = true;
     enable32Bit = true;
-    openModules = true; # Use open-source kernel modules with proprietary userspace
+    openModules = true;
     powerManagement = true;
     sddmWayland = true;
   };

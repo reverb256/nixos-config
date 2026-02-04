@@ -312,15 +312,17 @@
       };
     };
 
-    # SSH configuration for GitHub CI/CD deploys
+    # SSH configuration - GitHub config moved to NixOS module (modules/ssh.nix)
+    # to avoid conflicts with centralized SSH config management
     ssh = {
       enable = true;
+      # Force overwrite existing config file to avoid conflicts during activation
+      matchBlocks = {
+        # Add known hosts or specific configurations as needed
+      };
       extraConfig = ''
-        Host github.com
-          HostName github.com
-          User git
-          IdentityFile ~/.ssh/id_deploy
-          IdentitiesOnly yes
+        # Managed by home-manager
+        # Additional SSH configuration can be added here
       '';
     };
 

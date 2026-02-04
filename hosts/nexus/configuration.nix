@@ -36,7 +36,7 @@
   networking.hostName = "nexus";
 
   # Enable CI/CD features
-  services.garnix.enable = true;
+  services.garnix.enable = false;
   services.nixos-auto-update.enable = true;
 
   # Multi-kernel support: Zen primary kernel
