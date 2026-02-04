@@ -39,37 +39,35 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Create the auto-update script
-    environment.etc."nixos-auto-update.sh".source =
-      pkgs.writeScript "nixos-auto-update.sh" ''
-        #!/usr/bin/env bash
-        
-        set -euo pipefail
-        
-        FLAKE_PATH=''
-      /etc/nixos ''
-        LOG_FILE=/var/log/nixos-auto-update.log
+    # Create the auto-update script using lib.writeScript
+    environment.etc."nixos-auto-update.sh".text = lib.mkIf cfg.enable ''
+      #!/usr/bin/env bash
 
-        exec >> "$LOG_FILE" 2>&1
-        echo "$(date): Starting automatic update"
+      set -euo pipefail
 
-        # Pull and update specified flake inputs
-        UPDATE_ARGS=""
-        for input_name in ${lib.concatStringsSep " " cfg.updateFlakeInputs}; do
-            UPDATE_ARGS="$UPDATE_ARGS --update-input $input_name"
-        done
+      FLAKE_PATH=/etc/nixos
+      LOG_FILE=/var/log/nixos-auto-update.log
 
-        if [ -n "$UPDATE_ARGS" ]; then
-            echo "$(date): Updating flake inputs: ${lib.concatStringsSep ", " cfg.updateFlakeInputs}"
-            nix flake update $UPDATE_ARGS --flake "$FLAKE_PATH"
-        fi
+      exec >> "$LOG_FILE" 2>&1
+      echo "$(date): Starting automatic update"
 
-        # Build and switch to the new configuration
-        echo "$(date): Building and switching to new configuration"
-        nixos-rebuild switch --flake "$FLAKE_PATH" --option refresh-template-caches true ''${cfg.extraFlags[*]}
+      # Pull and update specified flake inputs
+      UPDATE_ARGS=""
+      for input_name in ${lib.concatStringsSep " " cfg.updateFlakeInputs}; do
+          UPDATE_ARGS="$UPDATE_ARGS --update-input $input_name"
+      done
 
-        echo "$(date): Automatic update completed successfully"
-      '';
+      if [ -n "$UPDATE_ARGS" ]; then
+          echo "$(date): Updating flake inputs: ${lib.concatStringsSep ", " cfg.updateFlakeInputs}"
+          nix flake update $UPDATE_ARGS --flake "$FLAKE_PATH"
+      fi
+
+      # Build and switch to the new configuration
+      echo "$(date): Building and switching to new configuration"
+      nixos-rebuild switch --flake "$FLAKE_PATH" --option refresh-template-caches true ${lib.concatStringsSep " " cfg.extraFlags}
+
+      echo "$(date): Automatic update completed successfully"
+    '';
 
     systemd.services.nixos-auto-update = {
       description = "Automatic NixOS Update Service";
@@ -79,7 +77,7 @@ in {
       };
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.bash}/bin/bash /etc/nixos-auto-update.sh";
+        ExecStart = "${lib.getBin pkgs.bash}/bin/bash /etc/nixos-auto-update.sh";
         User = "root";
         StandardOutput = "journal";
         StandardError = "journal";
