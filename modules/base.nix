@@ -51,4 +51,7 @@
     enableRootSlice = true;
     enableSystemSlice = true;
   };
+
+  # Enable home-manager for user configuration (SSH, starship, etc.)
+  programs.home-manager.enable = true;
 }
