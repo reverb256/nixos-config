@@ -89,24 +89,12 @@
         IdentityFile /home/j_kro/.ssh/id_nixbuild
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-      # Short aliases for manual access (j_kro user)
-      Host n
-        HostName 10.1.1.120
-        User j_kro
+      # GitHub - for CI/CD deploys
+      Host github.com
+        HostName github.com
+        User git
         IdentityFile ~/.ssh/id_ed25519
-        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
-
-      Host f
-        HostName 10.1.1.130
-        User j_kro
-        IdentityFile ~/.ssh/id_ed25519
-        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
-
-      Host s
-        HostName 10.1.1.140
-        User j_kro
-        IdentityFile ~/.ssh/id_ed25519
-        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+        IdentitiesOnly yes
     '';
   };
 
