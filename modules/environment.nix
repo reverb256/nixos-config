@@ -49,6 +49,10 @@
       # Wine hidraw support - ENABLED for proper keyboard input in Wine applications
       WINEHIDRAW = "1"; # Required for keyboard input in AAGL and other Wine apps
 
+      # Additional Wine environment variables for proper controller support in AAGL games like Genshin Impact
+      WINEDLLOVERRIDES = "*dinput8=n"; # Disable dinput8 to improve controller compatibility
+      PROTON_ENABLE_HIDRAW = "1"; # Enable hidraw access for Proton games (important for DualSense)
+
       # Wine input and Wayland compatibility
       WINEDEBUG = "-all"; # Reduce Wine debug output for better performance
       WINEPREFIX = "$HOME/.wine-aagl"; # Dedicated Wine prefix for AAGL
