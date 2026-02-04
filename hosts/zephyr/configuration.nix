@@ -20,6 +20,7 @@
     ../../modules/nix-ld.nix
     ../../modules/mining.nix
     ../../modules/flatpak-steam.nix
+    ../../modules/auto-update.nix
   ];
 
   networking.hostName = "zephyr";
@@ -75,6 +76,7 @@
   services.logind.settings.Login.KillUserProcesses = false;
 
   services.garnix.enable = true;
+  services.nixos-auto-update.enable = true;
 
   services.mining = {
     enable = true;
