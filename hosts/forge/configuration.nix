@@ -115,14 +115,16 @@
   services.mining.lolminer.pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
   services.mining.lolminer.wallet = "krxXVNVMM7.forge";
 
-  # NVIDIA GPUs (RTX 4060s) - Using only 1 GPU
+  # NVIDIA GPUs (RTX 4060s) - Using both GPUs
   services.mining.lolminer.nvidia.enable = true;
-  services.mining.lolminer.nvidia.devices = "0"; # Only use first GPU
+  services.mining.lolminer.nvidia.devices = "0,1"; # Both NVIDIA GPUs
   services.mining.lolminer.nvidia.powerLimit = 90;
   services.mining.lolminer.nvidia.apiPort = 4068;
 
-  # AMD GPUs - DISABLED (only using NVIDIA)
-  services.mining.lolminer.amd.enable = false;
+  # AMD GPUs (RX 5700 XT) - Both GPUs
+  services.mining.lolminer.amd.enable = true;
+  services.mining.lolminer.amd.devices = "1"; # Both AMD GPUs (device 1 in lolminer means all AMD)
+  services.mining.lolminer.amd.powerLimit = 140;
 
   # ============================================================================
   # ROCm HIP symlink for OpenCL (fixes SIGSEGV crash)

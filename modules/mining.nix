@@ -234,8 +234,8 @@ in {
             Group = "mining";
             Slice = "mining.slice";
             ExecStartPre = [
-              # Set AMD power limit using rocm-smi
-              "${pkgs.rocm-smi}/bin/rocm-smi --setfanlimit 50 --setpoweroverdrive ${toString cfg.lolminer.amd.powerLimit} --id ${cfg.lolminer.amd.devices} 2>/dev/null || true"
+              # Set AMD power limit for all GPUs
+              "${pkgs.rocm-smi}/bin/rocm-smi --setpoweroverdrive ${toString cfg.lolminer.amd.powerLimit} 2>/dev/null || true"
             ];
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --api-address 127.0.0.1 --mode b --tls 1";
             Restart = "always";
