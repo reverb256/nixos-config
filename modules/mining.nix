@@ -197,11 +197,12 @@ in {
               "${pkgs.bash}/bin/bash -c 'sleep 2 && ${config.hardware.nvidia.package}/bin/nvidia-smi || true'"
               # Use direct nvidia-smi path without sudo
               "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pm 1 || true'"
-              # Set power limit using configured value (only if reasonable)
-              "${pkgs.bash}/bin/bash -c 'if [ ${toString cfg.lolminer.nvidia.powerLimit} -ge 100 ]; then ${config.hardware.nvidia.package}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=${cfg.lolminer.nvidia.devices} 2>/dev/null || true; fi'"
+              # Set power limit for each NVIDIA GPU (per-device, not combined)
+              "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=0 || true'"
+              "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=1 || true'"
             ];
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
-            ExecStopPost = "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices} 2>/dev/null || true'";
+            ExecStopPost = "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl 250 --id=0 || true; ${config.hardware.nvidia.package}/bin/nvidia-smi -pl 250 --id=1 || true'";
             Restart = "on-failure";
             RestartSec = "60s";
             # GPU mining requires device access and privileges
