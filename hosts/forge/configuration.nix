@@ -129,6 +129,9 @@
   # ============================================================================
   # ROCm HIP symlink for OpenCL (fixes SIGSEGV crash)
   # ============================================================================
+  environment.systemPackages = with pkgs; [
+    rocm-smi
+  ];
 
   systemd.tmpfiles.rules = let
     rocmEnv = pkgs.symlinkJoin {
