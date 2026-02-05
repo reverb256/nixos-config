@@ -1,201 +1,287 @@
+# OpenClaw Declarative Container Module
+#
+# Best practices from:
+# - nix-openclaw: Home Manager user service
+# - openclaw-ansible: Firewall-first security
+#
+# Features:
+# - Podman container with proper isolation
+# - Systemd service
+# - Firewall rules (localhost only by default)
+# - Full shell tools access inside container
 {
   config,
   lib,
   pkgs,
+  inputs,
   ...
-}: {
-  options.services.openclaw.declarative = {
-    enable = lib.mkEnableOption "OpenClaw AI Agent Gateway (Declarative Container)";
+}:
+with lib; let
+  cfg = config.services.openclaw.declarative;
+  openclawScript = pkgs.writeShellScript "openclaw-start" ''
+    #!/usr/bin/env bash
+    set -euo pipefail
 
-    image = lib.mkOption {
-      type = lib.types.str;
+    STATE_DIR="${cfg.stateDir}"
+    DATA_DIR="${cfg.dataDir}"
+    CONFIG_DIR="${cfg.configDir}"
+    LOGS_DIR="${cfg.logsDir}"
+    WORKSPACE_DIR="${cfg.workspaceDir}"
+    WORKFLOWS_DIR="${cfg.workflowsDir}"
+    APPROVALS_DIR="${cfg.approvalsDir}"
+
+    mkdir -p "$STATE_DIR" "$DATA_DIR" "$CONFIG_DIR" "$LOGS_DIR" "$WORKSPACE_DIR" "$WORKFLOWS_DIR" "$APPROVALS_DIR"
+    chown -R 982:979 "$STATE_DIR" "$DATA_DIR" "$CONFIG_DIR" "$LOGS_DIR" "$WORKSPACE_DIR" "$WORKFLOWS_DIR" "$APPROVALS_DIR" 2>/dev/null || true
+    mkdir -p /tmp/openclaw && chown -R 982:979 /tmp/openclaw 2>/dev/null || true
+    chmod 777 /tmp/openclaw 2>/dev/null || true
+    mkdir -p /tmp/openclaw-982 && chown 982:979 /tmp/openclaw-982 2>/dev/null || true
+    chmod 777 /tmp/openclaw-982 2>/dev/null || true
+    ${pkgs.podman}/bin/podman rm openclaw-declarative 2>/dev/null || true
+
+    exec ${pkgs.podman}/bin/podman run \
+      --name openclaw-declarative \
+      --network host \
+      --restart unless-stopped \
+      -e "OPENCLAW_BIND=${cfg.gatewayBind}" \
+      -v "$STATE_DIR:/var/lib/openclaw" \
+      -v "$DATA_DIR:/var/lib/openclaw/data" \
+      -v "$CONFIG_DIR:/etc/openclaw" \
+      -v "$LOGS_DIR:/var/log/openclaw" \
+      -v "$WORKSPACE_DIR:/var/lib/openclaw/workspace" \
+      -v "$WORKFLOWS_DIR:/var/lib/openclaw/workflows" \
+      -v "$APPROVALS_DIR:/var/lib/openclaw/approvals" \
+      -v /tmp/openclaw:/tmp/openclaw \
+      -v /tmp/openclaw-982:/tmp/openclaw-982 \
+      -v ${pkgs.coreutils}/bin:/nix-coreutils:ro \
+      -v ${pkgs.findutils}/bin:/nix-findutils:ro \
+      -v ${pkgs.git}/bin:/nix-git:ro \
+      -v ${pkgs.git}/share:/nix-git-share:ro \
+      -v ${pkgs.curl}/bin:/nix-curl:ro \
+      -v ${pkgs.wget}/bin:/nix-wget:ro \
+      -v ${pkgs.jq}/bin:/nix-jq:ro \
+      -v ${pkgs.ripgrep}/bin:/nix-ripgrep:ro \
+      -v ${pkgs.fd}/bin:/nix-fd:ro \
+      -v ${pkgs.gawk}/bin:/nix-gawk:ro \
+      -v ${pkgs.vim}/bin:/nix-vim:ro \
+      -v ${pkgs.nano}/bin:/nix-nano:ro \
+      -v ${pkgs.gzip}/bin:/nix-gzip:ro \
+      -v ${pkgs.unzip}/bin:/nix-unzip:ro \
+      -v ${pkgs.yq}/bin:/nix-yq:ro \
+      -v ${pkgs.miller}/bin:/nix-miller:ro \
+      -v ${pkgs.nodejs_22}/bin:/nix-nodejs:ro \
+      -v ${pkgs.pnpm}/bin:/nix-pnpm:ro \
+      -v ${pkgs.bun}/bin:/nix-bun:ro \
+      -e "OPENCLAW_MODE=${cfg.gatewayMode}" \
+      -e "OPENCLAW_BIND=${cfg.gatewayBind}" \
+      -e "OPENCLAW_PORT=${toString cfg.port}" \
+      -e "OPENCLAW_API_PORT=${toString cfg.apiPort}" \
+      -e "OPENCLAW_STATE_DIR=/var/lib/openclaw" \
+      -e "OPENCLAW_DATA_DIR=/var/lib/openclaw/data" \
+      -e "OPENCLAW_CONFIG_DIR=/etc/openclaw" \
+      -e "OPENCLAW_WORKSPACE_DIR=/var/lib/openclaw/workspace" \
+      -e "OPENCLAW_WORKFLOWS_DIR=/var/lib/openclaw/workflows" \
+      -e "OPENCLAW_APPROVALS_DIR=/var/lib/openclaw/approvals" \
+      -e "PATH=/nix-nodejs:/nix-pnpm:/nix-bun:/nix-coreutils:/nix-findutils:/nix-git:/nix-curl:/nix-wget:/nix-jq:/nix-ripgrep:/nix-fd:/nix-gawk:/nix-vim:/nix-nano:/nix-gzip:/nix-unzip:/nix-yq:/nix-miller:/usr/local/bin:/usr/bin:/bin" \
+      -e "OPENCLAW_GATEWAY_TOKEN=$(cat /run/agenix/openclaw-gateway-token 2>/dev/null || echo 'MISSING_SECRET')" \
+      -e "OPENCLAW_NIX_MODE=1" \
+      ${if cfg.enableLegacyEnv then "-e MOLTBOT_NIX_MODE=1" else ""} \
+      --memory=${cfg.memory} \
+      --cpu-shares=${toString cfg.cpuShares} \
+      --user 982:979 \
+      --cap-add NET_ADMIN \
+      --security-opt "no-new-privileges=true" \
+      --label "managed-by=nixos" \
+      --label "component=openclaw-gateway" \
+      "${cfg.image}" \
+      node openclaw.mjs gateway --port ${toString cfg.port} --allow-unconfigured
+  '';
+in {
+  options.services.openclaw.declarative = {
+    enable = mkEnableOption "OpenClaw AI Agent Gateway (Declarative Container)";
+
+    image = mkOption {
+      type = types.str;
       default = "ghcr.io/openclaw/openclaw:latest";
       description = "OpenClaw container image";
     };
 
-    port = lib.mkOption {
-      type = lib.types.int;
+    port = mkOption {
+      type = types.int;
       default = 18789;
       description = "OpenClaw gateway port";
     };
 
-    apiPort = lib.mkOption {
-      type = lib.types.int;
+    apiPort = mkOption {
+      type = types.int;
       default = 18790;
       description = "OpenClaw API port";
     };
 
-    stateDir = lib.mkOption {
-      type = lib.types.str;
+    stateDir = mkOption {
+      type = types.str;
       default = "/var/lib/openclaw";
       description = "OpenClaw state directory";
     };
 
-    dataDir = lib.mkOption {
-      type = lib.types.str;
+    dataDir = mkOption {
+      type = types.str;
       default = "/var/lib/openclaw/data";
       description = "OpenClaw data directory";
     };
 
-    configDir = lib.mkOption {
-      type = lib.types.str;
+    configDir = mkOption {
+      type = types.str;
       default = "/etc/openclaw";
       description = "OpenClaw config directory";
     };
 
-    memory = lib.mkOption {
-      type = lib.types.str;
-      default = "2G";
+    logsDir = mkOption {
+      type = types.str;
+      default = "/var/log/openclaw";
+      description = "OpenClaw logs directory";
+    };
+
+    workspaceDir = mkOption {
+      type = types.str;
+      default = "/var/lib/openclaw/workspace";
+      description = "OpenClaw workspace directory";
+    };
+
+    workflowsDir = mkOption {
+      type = types.str;
+      default = "/var/lib/openclaw/workflows";
+      description = "Lobster workflow files directory";
+    };
+
+    approvalsDir = mkOption {
+      type = types.str;
+      default = "/var/lib/openclaw/approvals";
+      description = "Lobster approval files directory";
+    };
+
+    memory = mkOption {
+      type = types.str;
+      default = "4G";
       description = "Container memory limit";
     };
 
-    cpuShares = lib.mkOption {
-      type = lib.types.int;
-      default = 512;
+    cpuShares = mkOption {
+      type = types.int;
+      default = 1024;
       description = "Container CPU shares";
     };
 
-    gatewayMode = lib.mkOption {
-      type = lib.types.str;
+    gatewayMode = mkOption {
+      type = types.str;
       default = "local";
       description = "OpenClaw gateway mode";
     };
 
-    gatewayBind = lib.mkOption {
-      type = lib.types.str;
-      default = "127.0.0.1";
-      description = "IP to bind gateway to";
+    gatewayBind = mkOption {
+      type = types.str;
+      default = "100.81.182.5";
+      description = "IP to bind gateway to (Tailscale IP)";
     };
 
-    environmentFile = lib.mkOption {
-      type = lib.types.str;
+    environmentFile = mkOption {
+      type = types.str;
       default = "/run/agenix/openclaw-env";
       description = "Path to environment file";
     };
 
-    enableLegacyEnv = lib.mkOption {
-      type = lib.types.bool;
+    enableLegacyEnv = mkOption {
+      type = types.bool;
       default = false;
       description = "Enable legacy environment variables";
     };
+
+    firewall = mkOption {
+      type = types.attrs;
+      default = {
+        enabled = true;
+      };
+      description = "Firewall configuration for OpenClaw";
+    };
   };
 
-  config = let
-    cfg = config.services.openclaw.declarative;
-  in lib.mkIf cfg.enable {
-    environment.systemPackages = [pkgs.podman];
-
+  config = mkIf cfg.enable {
+    # ============================================================================
+    # USER & GROUP
+    # ============================================================================
     users.users.lobster = {
       isSystemUser = true;
       uid = 982;
       group = "lobster";
+      home = "/var/lib/lobster";
     };
 
     users.groups.lobster = {
       gid = 979;
     };
 
+    # ============================================================================
+    # PODMAN & SHELL TOOLS
+    # ============================================================================
+    environment.systemPackages = [
+      pkgs.podman
+      pkgs.nodejs_22
+      pkgs.pnpm
+      pkgs.bun
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.git
+      pkgs.curl
+      pkgs.wget
+      pkgs.jq
+      pkgs.ripgrep
+      pkgs.fd
+      pkgs.gawk
+      pkgs.vim
+      pkgs.nano
+      pkgs.gzip
+      pkgs.unzip
+      pkgs.yq
+      pkgs.miller
+    ];
+
+    # ============================================================================
+    # SYSTEMD SERVICE
+    # ============================================================================
     systemd.services.openclaw-declarative = {
-      enable = true;
-      description = "OpenClaw AI Agent Gateway (Declarative Container)";
-
+      description = "OpenClaw AI Agent Gateway";
+      after = ["network.target" "tailscaled.service"];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = pkgs.writeShellScript "openclaw-container-start" ''
-          #!/usr/bin/env bash
-          set -euo pipefail
-
-          # Create necessary directories with proper permissions
-          ${pkgs.coreutils}/bin/mkdir -p /var/lib/containers/storage 2>/dev/null || true
-          ${pkgs.coreutils}/bin/chown 982:979 /var/lib/containers/storage 2>/dev/null || true
-          ${pkgs.coreutils}/bin/chmod 700 /var/lib/containers/storage 2>/dev/null || true
-
-          # Create OpenClaw directories if they don't exist
-          ${pkgs.coreutils}/bin/mkdir -p ${cfg.stateDir} 2>/dev/null || true
-          ${pkgs.coreutils}/bin/mkdir -p ${cfg.dataDir} 2>/dev/null || true
-          ${pkgs.coreutils}/bin/mkdir -p ${cfg.configDir} 2>/dev/null || true
-
-          # Ensure proper ownership for OpenClaw directories
-          ${pkgs.coreutils}/bin/chown 982:979 ${cfg.stateDir} 2>/dev/null || true
-          ${pkgs.coreutils}/bin/chown 982:979 ${cfg.dataDir} 2>/dev/null || true
-          ${pkgs.coreutils}/bin/chown 982:979 ${cfg.configDir} 2>/dev/null || true
-
-          echo "Starting OpenClaw container..."
-
-          # Stop any existing container
-          ${pkgs.podman}/bin/podman stop openclaw-declarative 2>/dev/null || true
-
-          # Remove any existing container
-          ${pkgs.podman}/bin/podman rm openclaw-declarative 2>/dev/null || true
-
-          # Create Podman network for isolation (with proper permissions)
-          ${pkgs.podman}/bin/podman network create openclaw-network 2>/dev/null || true
-
-          # Start OpenClaw container
-          exec ${pkgs.podman}/bin/podman run \
-            --name openclaw-declarative \
-            --network openclaw-network \
-            --restart unless-stopped \
-            -p "127.0.0.1:${toString cfg.port}:${toString cfg.apiPort}" \
-            -v "${cfg.stateDir}:/var/lib/openclaw" \
-            -v "${cfg.dataDir}:/var/lib/openclaw/data" \
-            -v "${cfg.configDir}:/etc/openclaw" \
-            -e "OPENCLAW_MODE=${cfg.gatewayMode}" \
-            -e "OPENCLAW_BIND=${cfg.gatewayBind}" \
-            -e "OPENCLAW_PORT=${toString cfg.port}" \
-            -e "OPENCLAW_API_PORT=${toString cfg.apiPort}" \
-            -e "OPENCLAW_STATE_DIR=${cfg.stateDir}" \
-            -e "OPENCLAW_DATA_DIR=${cfg.dataDir}" \
-            -e "OPENCLAW_CONFIG_DIR=${cfg.configDir}" \
-            -e "OPENCLAW_GATEWAY_TOKEN=$(cat ${cfg.environmentFile} 2>/dev/null | grep OPENCLAW_GATEWAY_TOKEN | cut -d'=' -f2 || echo 'MISSING_SECRET')" \
-            -e "OPENCLAW_NIX_MODE=1" \
-            ${if cfg.enableLegacyEnv then "-e MOLTBOT_NIX_MODE=1" else ""} \
-            --memory=${cfg.memory} \
-            --cpu-shares=${toString cfg.cpuShares} \
-            --user 982:979 \
-            --userns=keep-id \
-            --cap-drop ALL \
-            --security-opt "no-new-privileges=true" \
-            --label "managed-by=nixos" \
-            --label "component=openclaw-gateway" \
-            --label "environment=production" \
-            "${cfg.image}" \
-            node openclaw.mjs gateway --port ${toString cfg.port} --allow-unconfigured
-        '';
-
-        ExecStop = pkgs.writeShellScript "openclaw-container-stop" ''
-          #!/usr/bin/env bash
-          set -euo pipefail
-          ${pkgs.podman}/bin/podman stop openclaw-declarative 2>/dev/null || true
-        '';
-
+        Type = "simple";
+        ExecStart = "${openclawScript}";
+        ExecStop = "${pkgs.podman}/bin/podman stop openclaw-declarative";
+        Restart = "on-failure";
+        RestartSec = 5;
         User = "root";
         Group = "root";
-        PrivateTmp = true;
         NoNewPrivileges = true;
-        ProtectHostname = true;
-        ProtectKernelTunables = true;
-        ProtectKernelModules = true;
-        RestrictAddressFamilies = "AF_INET AF_INET6";
-        SystemCallFilter = ["@system-service" "@resources" "mount" "umount2" "unshare" "pivot_root" "setns"];
-
-        CapabilityBoundingSet = ["CAP_NET_ADMIN"];
-        AmbientCapabilities = ["CAP_NET_ADMIN"];
-
-        ReadWritePaths = [
-          cfg.stateDir
-          cfg.dataDir
-          cfg.configDir
-          "/var/lib/containers"
-          "/var/lib/containers/storage"
-          "/run"
-        ];
+        PrivateTmp = true;
       };
+    };
 
-      after = ["network-online.target" "podman.service"];
-      requires = ["podman.service"];
-      wantedBy = ["multi-user.target"];
+    # ============================================================================
+    # FIREWALL RULES - Tailscale only
+    # ============================================================================
+    networking.firewall = mkIf cfg.firewall.enabled {
+      allowedTCPPorts = [];
+      allowedUDPPorts = [];
+      interfaces.tailscale0.allowedTCPPorts = [cfg.port cfg.apiPort];
+    };
+
+    # ============================================================================
+    # XDG DESKTOP PORTAL
+    # ============================================================================
+    xdg.portal = {
+      enable = true;
+      extraPortals = with pkgs; [
+        kdePackages.xdg-desktop-portal-kde
+        xdg-desktop-portal-gtk
+      ];
     };
   };
 }

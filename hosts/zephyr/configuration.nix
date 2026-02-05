@@ -13,9 +13,8 @@
     ../../modules/gaming.nix
     ../../modules/nvidia-wayland.nix
     ../../modules/garnix.nix
-    ../../modules/openclaw-declarative-container.nix
     ../../modules/tailscale.nix
-    ../../modules/lmstudio-docker.nix
+    ../../modules/lmstudio.nix
     ../../modules/aistor-secrets.nix
     ../../modules/nix-cache-server.nix
     ../../modules/mcp-servers.nix
@@ -129,32 +128,19 @@
 
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker"];
 
-  services.openclaw.declarative = {
-    enable = true;
-    image = "ghcr.io/openclaw/openclaw:latest";
-    port = 18789;
-    apiPort = 18790;
-    stateDir = "/var/lib/openclaw";
-    dataDir = "/var/lib/openclaw/data";
-    configDir = "/etc/openclaw";
-    memory = "2G";
-    cpuShares = 512;
-    gatewayMode = "local";
-    gatewayBind = "100.81.182.5";
-    environmentFile = "/run/agenix/openclaw-env";
-    enableLegacyEnv = true;
-  };
-
   services.tailscale = {
     enable = true;
   };
 
-  services.lmstudio-docker = {
+  services.lmstudio = {
     enable = true;
-    daemonPort = 1234;
-    modelsDir = "/home/j_kro/.local/share/lm-studio/models";
-    dataDir = "/home/j_kro/.local/share/lm-studio/data";
+    enableGui = true;
+    enableServer = false;
+    user = "j_kro";
   };
+
+  systemd.oomd.enable = true;
+  systemd.coredump.enable = true;
 
   services.mcp-servers = {
     enable = true;

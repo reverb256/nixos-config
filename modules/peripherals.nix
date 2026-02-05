@@ -84,9 +84,11 @@ in
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${cfg.razer.package}/bin/openrazer-daemon --run-as-root";
+        ExecStart = "${cfg.razer.package}/bin/openrazer-daemon --as-root --config /etc/openrazer";
         Restart = "always";
         RestartSec = 5;
+
+        ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /etc/openrazer && ${pkgs.coreutils}/bin/chmod 755 /etc/openrazer";
 
         # Security settings
         NoNewPrivileges = true;

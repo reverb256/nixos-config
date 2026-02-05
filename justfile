@@ -75,3 +75,47 @@ prep:
 push:
     @echo "Deploying from current host..."
     /etc/nixos/scripts/just-cluster push
+
+# ============================================================================
+# OPENCLAW SERVICE MANAGEMENT
+# ============================================================================
+
+# View OpenClaw logs
+logs:
+    @echo "Viewing OpenClaw gateway logs..."
+    sudo journalctl -u openclaw-declarative -f
+
+# Check OpenClaw status
+status-openclaw:
+    @echo "Checking OpenClaw service status..."
+    sudo systemctl status openclaw-declarative
+    @echo ""
+    @echo "Checking health endpoint..."
+    curl -sf http://localhost:18789/health || echo "Health check failed"
+
+# Check WiVRn/Avahi status
+status-vr:
+    @echo "Checking Avahi daemon status..."
+    sudo systemctl status avahi-daemon
+    @echo ""
+    @echo "Checking OpenRazer status..."
+    sudo systemctl status openrazer-daemon || echo "OpenRazer may not be running"
+
+# Restart OpenClaw
+restart-openclaw:
+    @echo "Restarting OpenClaw gateway..."
+    sudo systemctl restart openclaw-declarative
+    @echo "Waiting for service to start..."
+    sleep 3
+    sudo systemctl status openclaw-declarative
+
+# View OpenClaw container logs
+logs-container:
+    @echo "Viewing OpenClaw container logs..."
+    sudo podman logs -f openclaw-declarative 2>/dev/null || echo "Container not running"
+
+# Restart WiVRn services
+restart-vr:
+    @echo "Restarting WiVRn services..."
+    sudo systemctl restart avahi-daemon
+    @echo "Avahi restarted"
