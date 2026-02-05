@@ -292,7 +292,7 @@ with lib; {
   # WI VRN - Wireless VR Streaming for Quest Pro
   # ============================================================================
   # WiVRn user service (since services.wivrn NixOS module not available)
-  systemd.user.services.wivrn = {
+  systemd.user.services.wivrn = lib.mkForce {
     description = "WiVRn - Wireless VR streaming for Quest Pro";
     after = ["network.target" "pipewire.service"];
     wants = ["pipewire.service"];
