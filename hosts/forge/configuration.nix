@@ -340,7 +340,7 @@
     enable = true;
     userName = "j_kro";
     userEmail = "j_kro@forge";
-    defaultBranch = "main";
+    init.defaultBranch = "main";
     originRemote = "git@github.com:reverb256/nixos-config.git";
   };
 }
