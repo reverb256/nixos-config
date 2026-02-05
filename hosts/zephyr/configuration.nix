@@ -122,10 +122,6 @@
     enable = true;
   };
 
-  environment.systemPackages = [
-    pkgs.lmstudio
-  ];
-
   systemd.oomd.enable = true;
   systemd.coredump.enable = true;
 
