@@ -131,19 +131,6 @@ in {
     ];
   };
 
-  # Steam configuration for gaming
-  programs.steam = {
-    enable = true;
-    remotePlay.openFirewall = true;
-    dedicatedServer.openFirewall = true;
-    extraCompatPackages = with pkgs; [
-      proton-ge-bin
-      gamescope
-      mangohud
-      goverlay
-    ];
-  };
-
   # Podman configuration for container management
   virtualisation.podman = {
     enable = true;

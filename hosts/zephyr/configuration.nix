@@ -14,13 +14,11 @@
     ../../modules/nvidia-wayland.nix
     ../../modules/garnix.nix
     ../../modules/tailscale.nix
-    ../../modules/lmstudio.nix
     ../../modules/aistor-secrets.nix
     ../../modules/nix-cache-server.nix
     ../../modules/mcp-servers.nix
     ../../modules/nix-ld.nix
     ../../modules/mining.nix
-    ../../modules/flatpak-steam.nix
     ../../modules/auto-update.nix
   ];
 
@@ -51,14 +49,6 @@
 
   hardware.nvidia.powerManagement.enable = true;
   hardware.nvidia.powerManagement.finegrained = false;
-
-  programs.steam = {
-    enable = true;
-    remotePlay.openFirewall = true;
-    dedicatedServer.openFirewall = true;
-  };
-
-  programs.gamemode.enable = true;
 
   services.displayManager = {
     sddm = {
