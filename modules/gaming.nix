@@ -11,36 +11,21 @@
 }:
 with lib; {
   # ============================================================================
-  # MONADO - Native OpenXR Runtime for Linux
-  # https://lvra.gitlab.io/docs/distros/nixos/
+  # WIVRN - Wireless VR Streaming for Quest Headsets (Primary VR Runtime)
+  # https://github.com/WiVRn/WiVRn
   # ============================================================================
-  services.monado = {
+  services.wivrn = {
     enable = true;
-    defaultRuntime = true;
+    openFirewall = true;  # Open firewall for wireless VR streaming
+    defaultRuntime = true; # Set as default OpenXR runtime
+    autoStart = true;     # Start automatically
   };
 
-  # Monado environment for performance
-  systemd.user.services.monado = {
-    description = "Monado OpenXR runtime";
-    after = ["graphical-session-pre.target" "pipewire.service"];
-    wants = ["graphical-session-pre.target" "pipewire.service"];
-
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${pkgs.monado}/bin/monado-service --no-lock-memory";
-      Restart = "on-failure";
-      RestartSec = 3;
-      Environment = [
-        "IPC_EXIT_ON_DISCONNECT=1"
-        "XRT_COMPOSITOR_COMPUTE=0"  # Disable compute shaders which may cause issues with NVIDIA
-        "STEAMVR_LH_ENABLE=1"
-        "WMR_HANDTRACKING=0"
-        "XRT_EMULATE_SPACE_CENTER=1"
-        "XRT_LOG_LEVEL=info"  # Lower log level to avoid flooding logs
-      ];
-    };
-
-    wantedBy = ["default.target"];
+  # MONADO - Kept for compatibility with some OpenXR applications if needed
+  # Primarily using WiVRn for VRChat and Quest support
+  services.monado = {
+    enable = false;  # Disabled in favor of WiVRn
+    defaultRuntime = false;
   };
 
   # ============================================================================
@@ -182,7 +167,9 @@ with lib; {
       extraProfile = ''
         # Fixes timezones on VRChat and other games
         unset TZ
-        # Allows Monado/OpenXR runtimes to be used
+        # Allow Steam to change to user's home directory initially to avoid bwrap errors
+        cd $HOME
+        # Allows OpenXR runtimes (WiVRn) to be used by Steam/Proton
         export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
         # Enable DXVK async for better performance
         export DXVK_ASYNC=1
@@ -214,6 +201,8 @@ with lib; {
         export DXVK_CONFIG_FILE=/dev/null
         # Additional OpenXR runtime variables for WiVRn
         export OPENXR_ACTIVE_RUNTIME=/nix/store/93gdgwz68nf0ngrkjiazqim4ixv7mz44-wivrn-25.12/lib/wivrn
+        # Explicitly set OpenVR API path
+        export OPENVR_API_PATH="${pkgs.opencomposite}/lib/opencomposite"
       '';
     };
   };
@@ -250,6 +239,9 @@ with lib; {
     libusb1
     udev
     libusb-compat-0_1
+    # VRChat-specific libraries
+    openvr
+    opencomposite
   ];
 
   # Enable Steam hardware support for comprehensive controller udev rules
@@ -259,6 +251,21 @@ with lib; {
   programs.steam.remotePlay.openFirewall = true;
   programs.steam.dedicatedServer.openFirewall = true;
   programs.steam.localNetworkGameTransfers.openFirewall = true;
+
+  # ============================================================================
+  # STEAM RUNTIME - Additional compatibility setup
+  # ============================================================================
+  environment.sessionVariables = {
+    # Ensure Steam runtime picks up OpenXR
+    PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES = "1";
+    # Wine compatibility for VRChat
+    WINE_FULLSCREEN_FAKE_CAPTURE = "1";
+    # Better GPU offloading for VR apps
+    __NV_PRIME_RENDER_OFFLOAD = "1";
+    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+    # For OpenComposite compatibility
+    OPENVR_API_PATH = "${pkgs.opencomposite}/lib/opencomposite";
+  };
 
   # ============================================================================
   # ANIME GAME LAUNCHERS (Simplified ezKEa Setup)

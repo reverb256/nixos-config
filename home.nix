@@ -466,10 +466,26 @@
         };
     };
 
-    # Using WiVRn as OpenXR runtime with OpenComposite for SteamVR compatibility
+    # Using WiVRn as the OpenXR runtime with OpenComposite for SteamVR compatibility
+    # This sets WiVRn as the active OpenXR runtime for VRChat and other VR apps
     configFile."openxr/1/active_runtime.json" = {
       source = "${pkgs.wivrn}/share/openxr/1/openxr_wivrn.json";
       force = true;
+    };
+
+    # Additional OpenComposite configuration to ensure compatibility
+    configFile."opencomposite/redirects.json".text = builtins.toJSON {
+      version = 1;
+      redirects = [
+        {
+          from = "C:\\\\windows\\\\system32\\\\openvr_api.dll";
+          to = "${pkgs.opencomposite}/lib/opencomposite/openvr_api.dll";
+        }
+        {
+          from = "C:\\\\windows\\\\syswow64\\\\openvr_api.dll";
+          to = "${pkgs.opencomposite}/lib/opencomposite/openvr_api.dll";
+        }
+      ];
     };
   };
 
