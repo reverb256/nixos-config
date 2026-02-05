@@ -121,10 +121,8 @@
   services.mining.lolminer.nvidia.powerLimit = 90;
   services.mining.lolminer.nvidia.apiPort = 4068;
 
-  # AMD GPUs (RX 5700 XT) - Both GPUs
-  services.mining.lolminer.amd.enable = true;
-  services.mining.lolminer.amd.devices = "1"; # Both AMD GPUs (device 1 in lolminer means all AMD)
-  services.mining.lolminer.amd.powerLimit = 140;
+  # AMD GPUs (RX 5700 XT) - TEMPORARILY DISABLED (address conflict)
+  services.mining.lolminer.amd.enable = false;
 
   # ============================================================================
   # ROCm HIP symlink for OpenCL (fixes SIGSEGV crash)
