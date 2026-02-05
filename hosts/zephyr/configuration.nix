@@ -122,6 +122,19 @@
     enable = true;
   };
 
+  environment.systemPackages = [
+    (pkgs.writeShellScriptBin "lms" ''
+      #!/bin/bash
+      cd /tmp
+      exec ${pkgs.steam-run}/bin/steam-run ${pkgs.lmstudio}/bin/lms "$@"
+    '')
+    (pkgs.writeShellScriptBin "lm-studio" ''
+      #!/bin/bash
+      cd /tmp
+      exec ${pkgs.steam-run}/bin/steam-run ${pkgs.lmstudio}/bin/lm-studio "$@"
+    '')
+  ];
+
   systemd.oomd.enable = true;
   systemd.coredump.enable = true;
 
