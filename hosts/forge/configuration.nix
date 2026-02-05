@@ -111,18 +111,14 @@
   services.mining.enable = true;
 
   # NVIDIA GPUs (RTX 4060s) - Both GPUs
-  services.mining.lolminer.enable = true;
-  services.mining.lolminer.algorithm = "CR29";
-  services.mining.lolminer.pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
-  services.mining.lolminer.wallet = "krxXVNVMM7.forge";
   services.mining.lolminer.nvidia.enable = true;
-  services.mining.lolminer.nvidia.devices = "0,1";
+  services.mining.lolminer.nvidia.devices = "0,2";
   services.mining.lolminer.nvidia.powerLimit = 90;
   services.mining.lolminer.nvidia.apiPort = 4068;
 
   # AMD GPUs (RX 5700 XT) - Both GPUs on different API port
   services.mining.lolminer.amd.enable = true;
-  services.mining.lolminer.amd.devices = "1";
+  services.mining.lolminer.amd.devices = "1,3";
   services.mining.lolminer.amd.apiPort = 4069;
 
   # ============================================================================
