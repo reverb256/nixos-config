@@ -70,13 +70,13 @@
   # Prevent systemd-logind from killing user processes during session changes
   services.logind.settings.Login.KillUserProcesses = false;
 
-  # Sentry-specific overrides - CPU mining only
+  # Sentry-specific overrides - CPU mining only (8 threads = 50% of 16 cores)
   services.mining.enable = true;
   services.mining.xmrig.enable = true;
   services.mining.xmrig.threads = 8;
   services.mining.xmrig.pool = "xtm-rx-us.kryptex.network:8038";
   services.mining.xmrig.wallet = "krxXVNVMM7.sentry";
-  services.mining.lolminer.enable = false; # No GPU mining
+  services.mining.lolminer.enable = false; # No GPU mining on sentry
 
   # ============================================================================
   # NETWORKING (Static IP)
