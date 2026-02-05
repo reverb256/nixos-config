@@ -89,11 +89,11 @@
       # ============================================================================
       # PERIPHERAL SUPPORT
       # Razer and Corsair device management tools
+      # Razer packages now handled by hardware.openrazer module
       # ============================================================================
-      openrazer-daemon      # Daemon for Razer devices
+      polychromatic         # Graphical front-end for Razer devices
       razergenie            # Qt application for configuring Razer devices
       razer-cli             # Command-line interface for Razer devices
-      polychromatic         # Graphical front-end for Razer devices
       ckb-next              # Driver and configuration tool for Corsair devices
       headsetcontrol        # For Corsair VOID headsets
 

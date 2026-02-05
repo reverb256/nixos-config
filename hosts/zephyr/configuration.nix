@@ -116,7 +116,7 @@
     "10.1.1.140" = ["sentry"];
   };
 
-  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker"];
+  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer"];
 
   services.tailscale = {
     enable = true;
@@ -126,12 +126,34 @@
     (pkgs.writeShellScriptBin "lms" ''
       #!/bin/bash
       cd /tmp
-      exec ${pkgs.steam-run}/bin/steam-run ${pkgs.lmstudio}/bin/lms "$@"
+      export NVIDIA_DRIVER_PATH=/run/opengl-driver
+      export NVIDIA_LIB_PATH=/run/opengl-driver/lib
+      export NVIDIA_ICD_PATH=/run/opengl-driver/share/vulkan/icd.d
+      export CUDA_PATH=/run/opengl-driver
+      exec ${pkgs.steam-run}/bin/steam-run \
+        --unshare-user-group \
+        --bind "$NVIDIA_LIB_PATH:/usr/lib" \
+        --bind "$NVIDIA_LIB_PATH:/usr/lib64" \
+        --bind "$NVIDIA_LIB_PATH:/lib" \
+        --bind "$NVIDIA_LIB_PATH:/lib64" \
+        --bind "$NVIDIA_ICD_PATH:/etc/vulkan/icd.d" \
+        ${pkgs.lmstudio}/bin/lms "$@"
     '')
     (pkgs.writeShellScriptBin "lm-studio" ''
       #!/bin/bash
       cd /tmp
-      exec ${pkgs.steam-run}/bin/steam-run ${pkgs.lmstudio}/bin/lm-studio "$@"
+      export NVIDIA_DRIVER_PATH=/run/opengl-driver
+      export NVIDIA_LIB_PATH=/run/opengl-driver/lib
+      export NVIDIA_ICD_PATH=/run/opengl-driver/share/vulkan/icd.d
+      export CUDA_PATH=/run/opengl-driver
+      exec ${pkgs.steam-run}/bin/steam-run \
+        --unshare-user-group \
+        --bind "$NVIDIA_LIB_PATH:/usr/lib" \
+        --bind "$NVIDIA_LIB_PATH:/usr/lib64" \
+        --bind "$NVIDIA_LIB_PATH:/lib" \
+        --bind "$NVIDIA_LIB_PATH:/lib64" \
+        --bind "$NVIDIA_ICD_PATH:/etc/vulkan/icd.d" \
+        ${pkgs.lmstudio}/bin/lm-studio "$@"
     '')
   ];
 

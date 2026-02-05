@@ -66,13 +66,12 @@ in {
 
   # ============================================================================
   # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
+  # Using built-in hardware.openrazer module for proper daemon setup
   # ============================================================================
+  hardware.openrazer.enable = true;
+
   hardware.peripherals = {
     enable = true;
-    razer = {
-      enable = true;
-      daemon = true;
-    };
     corsair = {
       enable = true;
       ckbNext = true;

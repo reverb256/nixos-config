@@ -1,85 +1,117 @@
 # System Reality Check & Infrastructure Audit
 
-**Date:** 2026-02-04
+**Date:** 2026-02-05
 **Status:** Post-Audit Remediation Complete
 **Auditor:** AI Code Assistant
 
-## 🟢 Executive Summary
+## Executive Summary
 
-This document records the "Harsh Reality" audit conducted on Feb 3, 2026, and the remediation actions taken on Feb 4, 2026. The infrastructure has moved from a state of "Architectural Split-Brain" (claiming Podman but using Docker) to a consistent **Declarative Podman** architecture.
+This document records the "Harsh Reality" audit conducted on Feb 3, 2026, and remediation actions. The infrastructure has evolved to use **Home Manager-based OpenClaw** and **nixpkgs LM Studio with steam-run**.
 
-### Key Achievements (2026-02-04)
-1.  **Mining Security Fixed:** API ports (4068/4069) are now strictly bound to `127.0.0.1`.
-2.  **Podman Transition Completed:**
-    *   `openclaw-declarative-container.nix` now uses `virtualisation.oci-containers` with Podman backend.
-    *   `lmstudio-docker.nix` updated to use Podman and rootless containers.
-    *   Hardcoded `docker` binary calls replaced with correct paths.
-3.  **Distributed Builds Enabled:** The "51-core build pool" is now a reality. `nexus`, `forge`, and `sentry` are configured as build machines for `zephyr`.
-4.  **Agenix Secret Management Fixed:** 
-    *   Generated new age key (`age1pn55e68h5twm8ksrm29pzf4w5t8twdznmy0sqg5gvk094punpctq06q8zn`)
-    *   Extracted live secrets from `/run/agenix` on zephyr
-    *   Re-encrypted all secrets with new key
-    *   Key stored at `/root/.config/sops/age/keys.txt` for agenix decryption
+### Key Changes (2026-02-05)
+1. **OpenClaw:** Migrated from container-based to nix-openclaw Home Manager module
+2. **LM Studio:** Working with NVIDIA GPU support via steam-run FHS wrapper
+3. **Home Manager:** Properly configured via flake.nix for all 4 hosts
+4. **Peripherals:** OpenRazer fixed using built-in module, ckb-next added for Corsair
 
 ---
 
-## 🔴 The "Harsh Reality" Audit Findings (2026-02-03)
+## 🔧 Current Configuration
 
-**Overall Health Score (Pre-Fix): 4.2/10**
+### Hosts
+| Host | Role | GPU | Status |
+|------|------|-----|--------|
+| zephyr | Master Workstation | RTX 3090 | ✅ Active |
+| nexus | Build Server | 2x RTX 3060 Ti | ✅ Active |
+| forge | Mining Rig | 2x RTX 4060 + 2x RX 5700 XT | ✅ Active |
+| sentry | Monitoring | RX 5600 XT | ✅ Active |
 
-### Critical Issues Identified
-1.  **Architectural Deception:** Documentation claimed a "Declarative Podman" architecture, but modules were implementing imperative Docker shell scripts.
-2.  **Fake Distributed Builds:** The configuration explicitly disabled distributed builds (`distributedBuilds = false`), rendering the "51-core pool" claim false.
-3.  **Security Gaps:** Mining API ports were exposed to all network interfaces.
-4.  **OpenClaw Sprawl:** 10 separate modules implementing 4 competing deployment strategies (binary, container, declarative, docker).
-5.  **Documentation Lies:** File counts and lines of code were significantly understated (65 claimed vs 81 actual; 7k lines vs 10.6k actual).
-
----
-
-## 🔧 Remediation & Implementation Notes
-
-### 1. Mining API Security
-**Issue:** Mining services exposed ports 4068/4069 to the world.
-**Fix:** Updated `modules/mining.nix` to include `--apibind 127.0.0.1` in service execution flags.
-**Status:** ✅ **SECURE** (Localhost only)
-
-### 2. OpenClaw Declarative Container
-**Issue:** `modules/openclaw-declarative-container.nix` was a wrapper around an imperative `docker run` script, creating conflicts with the system Podman configuration.
-**Fix:** Refactored to use `virtualisation.oci-containers` (which defaults to Podman) and replaced the custom shell script with standard NixOS container declarations where possible, and Podman calls where scripting was necessary.
-**Status:** ✅ **MODERNIZED** (Podman Native)
-
-### 3. LM Studio Modernization
-**Issue:** `modules/lmstudio-docker.nix` forced `virtualisation.docker.enable = true`, conflicting with the system-wide Podman preference.
-**Fix:** Updated the module to use Podman for container execution and removed the Docker service dependency.
-**Status:** ✅ **MODERNIZED** (Podman Native)
-
-### 4. Distributed Builds
-**Issue:** Feature was fully implemented but explicitly disabled.
-**Fix:** Enabled `distributedBuilds = true` in `modules/distributed-builds.nix` and configured the build machine array for `nexus`, `forge`, and `sentry` using the `ssh-ng` protocol.
-**Status:** ✅ **ACTIVE** (51 Cores Online)
+### Services
+| Service | Status | Notes |
+|---------|--------|-------|
+| OpenClaw | ✅ Running | Via nix-openclaw HM module |
+| LM Studio | ✅ Working | steam-run with NVIDIA libs |
+| Mining | ✅ Active | NVIDIA + AMD pools |
+| Distributed Builds | ✅ Enabled | 51 cores |
+| OpenRazer | ✅ Fixed | Using hardware.openrazer module |
+| ckb-next | ✅ Added | Corsair device support |
 
 ---
 
-## 📊 Configuration Stats (Verified 2026-02-04)
+## 📁 Quick Commands
 
-| Metric | Previous Claim | Reality |
-|--------|----------------|---------|
-| **Nix Files** | "65+" | **81** |
-| **Total Lines** | "~7,000+" | **~10,676** |
-| **Modules** | "26+" | **54+** |
-| **Container Backend** | "Podman" (Fake) | **Podman** (Real) |
+### System Management
+```bash
+# Deploy to all nodes
+just deploy
+
+# Push and deploy to current host
+just push
+
+# Update flake and deploy all
+just update
+
+# Validate configuration
+nix flake check
+```
+
+### OpenClaw
+```bash
+# Check status
+openclaw status
+
+# View logs
+openclaw logs --follow
+
+# Start gateway
+systemctl --user start openclaw-gateway.service
+```
+
+### LM Studio
+```bash
+# CLI server mode
+lms server start --host 127.0.0.1 --port 1234
+
+# GUI mode
+lm-studio
+```
+
+### Mining
+```bash
+# Check status
+systemctl status lolminer-nvidia.service
+systemctl status xmrig.service
+```
 
 ---
 
-## 🔮 Next Steps & Recommendations
+## 🎮 Peripheral Support
 
-### Immediate (Next 24 Hours)
-*   **Test Build:** Run a distributed build to verify SSH keys and connectivity.
-*   **Consolidate OpenClaw:** We still have multiple OpenClaw implementations. Delete `openclaw.nix` (binary) and `openclaw-docker.nix` (legacy) in favor of the new `openclaw-declarative-container.nix`.
+### Razer Devices (OpenRazer)
+```nix
+hardware.openrazer.enable = true;
+users.users.j_kro.extraGroups = ["openrazer"];
+```
 
-### Short Term (1 Week)
-*   **Documentation:** Fully rewrite `README.md` to reflect the new architecture.
-*   **Monitoring:** Implement Prometheus/Grafana to visualize the now-active distributed builds.
+### Corsair Devices (ckb-next)
+```nix
+hardware.peripherals.corsair.ckbNext = true;
+```
 
-### Long Term
-*   **CI/CD:** Move the Garnix/GitHub Actions workflow to fully utilize the internal build pool via a gateway runner.
+### Troubleshooting
+See [RAZER_CORSAIR_TROUBLESHOOTING.md](./RAZER_CORSAIR_TROUBLESHOOTING.md) for detailed fixes and verification steps.
+
+- **Mining APIs:** Bound to `127.0.0.1` only
+- **OpenClaw:** Tailscale-only access via HM configuration
+- **Secrets:** Agenix with age key at `/root/.config/sops/age/keys.txt`
+
+---
+
+## 📊 Configuration Stats
+
+| Metric | Value |
+|--------|-------|
+| Nix Files | 81+ |
+| Total Lines | ~10,600+ |
+| Hosts | 4 |
+| Container Backend | Podman |
