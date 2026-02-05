@@ -466,7 +466,7 @@
         };
     };
 
-    # WiVRn as default OpenXR runtime (primary VR runtime)
+    # Using WiVRn as OpenXR runtime with OpenComposite for SteamVR compatibility
     configFile."openxr/1/active_runtime.json" = {
       source = "${pkgs.wivrn}/share/openxr/1/openxr_wivrn.json";
       force = true;
