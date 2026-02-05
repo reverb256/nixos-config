@@ -244,7 +244,7 @@ in {
             Environment = [
               "GPU_MAX_HEAP_SIZE=100"
               "GPU_MAX_ALLOC_PERCENT=100"
-              "HSA_OVERRIDE_GFX_VERSION=10.3.0"
+              "HSA_OVERRIDE_GFX_VERSION=10.0.0"
             ];
             # Security hardening
             NoNewPrivileges = true;
