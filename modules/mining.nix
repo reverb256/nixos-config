@@ -193,15 +193,17 @@ in {
               "GPU_MAX_ALLOC_PERCENT=100"
             ];
             ExecStartPre = [
-              # Use direct nvidia-smi path without sudo (like forge)
+              # Wait for GPU to be ready
+              "${pkgs.bash}/bin/bash -c 'sleep 2 && ${config.hardware.nvidia.package}/bin/nvidia-smi || true'"
+              # Use direct nvidia-smi path without sudo
               "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pm 1 || true'"
-              # Set power limit using configured value
-              "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=${cfg.lolminer.nvidia.devices} || true'"
+              # Set power limit using configured value (only if reasonable)
+              "${pkgs.bash}/bin/bash -c 'if [ ${toString cfg.lolminer.nvidia.powerLimit} -ge 100 ]; then ${config.hardware.nvidia.package}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=${cfg.lolminer.nvidia.devices} 2>/dev/null || true; fi'"
             ];
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
-            ExecStopPost = "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices} || true'";
-            Restart = "always";
-            RestartSec = "30s";
+            ExecStopPost = "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices} 2>/dev/null || true'";
+            Restart = "on-failure";
+            RestartSec = "60s";
             # GPU mining requires device access and privileges
             NoNewPrivileges = false;
             PrivateTmp = true;
@@ -213,6 +215,9 @@ in {
             ReadOnlyPaths = "/";
             ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
             LimitMEMLOCK = "4G";
+            # Memory limits to prevent OOM
+            MemoryMax = "4G";
+            MemoryHigh = "3G";
             # Remove all capabilities - use only what's granted
             CapabilityBoundingSet = "";
             AmbientCapabilities = "";
@@ -296,6 +301,18 @@ in {
           script = "${monitorScript}/bin/miner-monitor";
           serviceConfig = {
             Type = "oneshot";
+          };
+        };
+
+        # System watchdog - reboots if system becomes unresponsive
+        nexus-watchdog = {
+          description = "System Watchdog for Nexus Stability";
+          wantedBy = ["multi-user.target"];
+          serviceConfig = {
+            Type = "simple";
+            ExecStart = "${pkgs.bash}/bin/bash -c 'while true; do load=\$(cat /proc/loadavg | awk \"{print \$1}\" | cut -d. -f1); if [ \"\$load\" -gt 20 ]; then sleep 120; load2=\$(cat /proc/loadavg | awk \"{print \$1}\" | cut -d. -f1); if [ \"\$load2\" -gt 20 ]; then echo \"High load persists, rebooting...\"; /run/current-system/sw/bin/reboot; fi; fi; sleep 60; done'";
+            Restart = "always";
+            RestartSec = "10s";
           };
         };
       };
