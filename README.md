@@ -113,12 +113,27 @@ Internet ── Router (10.1.1.1)
 - **Service isolation** via lobster user (no sudo access)
 
 ### **🎮 VR Gaming & Mining**
+- **ScopeBuddy Integration** ✅ NEW: Declarative gamescope wrapper with system-wide auto-detection
 - **SteamVR/WiVRn support** with Quest Pro streaming (100Mbps HEVC)
 - **Smart mining pause** during gaming/VR sessions (auto-detects applications)
 - **GameMode integration** with NVIDIA +150MHz overclock
 - **GPU mining** (lolMiner) and CPU mining (XMRig)
 - **Mining troubleshooting** and fixes documented in `docs/MINING_TROUBLESHOOTING.md`
 - **Performance monitoring** across all hosts
+
+**🎯 ScopeBuddy Auto-Detection:**
+- **Resolution**: Automatically detects display resolution
+- **HDR**: Auto-enables HDR for HDR-capable displays
+- **VRR**: Auto-enables adaptive sync for VRR displays  
+- **System-wide**: Applies to ALL users via declarative NixOS configuration
+- **Steam Integration**: Use `scb -- %command%` in launch options
+
+**🎯 ScopeBuddy Auto-Detection:**
+- **Resolution**: Automatically detects display resolution
+- **HDR**: Auto-enables HDR for HDR-capable displays
+- **VRR**: Auto-enables adaptive sync for VRR displays  
+- **System-wide**: Applies to ALL users via declarative NixOS configuration
+- **Steam Integration**: Use `scb -- %command%` in launch options
 
 ### **🛡️ Security**
 - **Agenix encrypted secrets** management
@@ -234,14 +249,22 @@ just build-stats
 
 ### **Mining Operations**
 ```bash
-# Start GPU mining (auto-pauses during gaming)
+# Mining operations
 just mining-start
-
-# Check mining status across cluster
-just mining-status
-
-# Stop mining
+just mining-status  
 just mining-stop
+
+# Gaming mode with ScopeBuddy
+just gaming-start
+just gaming-status
+
+# Manual mining pause (for testing)
+just gaming-trigger
+
+# ScopeBuddy usage (system-wide auto-detection)
+scb -- %command%  # Steam integration
+scb -O DP-3 -- %command%  # Multi-monitor
+SCB_AUTO_RES=0 scb -- %command%  # Manual override
 ```
 
 ### **Gaming Mode**
