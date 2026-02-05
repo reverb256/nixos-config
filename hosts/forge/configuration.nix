@@ -31,8 +31,7 @@
 
   # Enable CI/CD features
   # garnix.enable = true;  # Disabled - requires nix-cache-key.sec
-  # Determinate Nix module unavailable - using standard nix
-  # services.determinate.enable = true;
+  # Determinate Nix is already installed via installer (no config needed)
 
   # Zen kernel for gaming/desktop
   boot.kernelPackages = pkgs.linuxPackages_zen;
