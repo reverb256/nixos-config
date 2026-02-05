@@ -267,12 +267,15 @@ with lib; {
     libjpeg
     libtiff
     pkgs.ffmpeg
+    # ScopeBuddy dependencies
+    jq
+    wlr-randr
   ]
   ++ optionals (inputs != null && inputs ? claude-native) [
     inputs.claude-native.packages."x86_64-linux".default
   ]
   ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
-    inputs.nixpkgs-xr.packages."x86_64-linux".oscavmgr
+    inputs.nixpkgs-xr.packages.${pkgs.system}.oscavmgr
   ];
 
   # ============================================================================

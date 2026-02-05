@@ -179,13 +179,9 @@ in {
             ExecStartPre = pkgs.writeShellScript "nvidia-powerlimit-pre" ''
               PATH=/run/current-system/sw/bin:$PATH
               nvidia-smi -pm 1 || true
-              nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=${cfg.lolminer.nvidia.devices} || true
+              nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
             '';
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --api-address 127.0.0.1 --mode n --tls 1";
-            ExecStopPost = pkgs.writeShellScript "nvidia-powerlimit-post" ''
-              PATH=/run/current-system/sw/bin:$PATH
-              nvidia-smi -pl 250 --id=${cfg.lolminer.nvidia.devices} || true
-            '';
             Restart = "always";
             RestartSec = "30s";
             Environment = [
