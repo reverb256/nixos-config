@@ -19,9 +19,12 @@
 | **Secrets** | `secrets/` | Agenix Encrypted |
 | **OpenClaw** | `modules/openclaw-declarative-container.nix` | Podman (Rootless) |
 | **Mining** | `modules/mining.nix` | Localhost-only API |
+| **ScopeBuddy** | `modules/scopebuddy.nix` | Gamescope wrapper with auto-detection |
 | Mining Troubleshooting | `docs/MINING_TROUBLESHOOTING.md` | Mining fixes and debugging guide |
 | **AI Storage** | `modules/openclaw-storage.nix` | AIStor (S3 Compatible) |
+| **ScopeBuddy** | `modules/scopebuddy.nix` | Gamescope wrapper with auto-detection |
 | **Local LLM** | `modules/lmstudio-docker.nix` | Podman Container |
+| **ScopeBuddy** | `modules/scopebuddy.nix` | Gamescope wrapper with auto-detection |
 
 ## 🏗️ Architecture
 *   **Container Engine:** Podman (Declarative, Rootless)
@@ -45,8 +48,47 @@
     *   All secrets extracted from `/run/agenix` and re-encrypted
     *   Key location: `/root/.config/sops/age/keys.txt`
 5.  **NVIDIA Power Limit:** lolminer-nvidia set to 250W on zephyr
+6.  **ScopeBuddy Integration:** Added declarative gamescope wrapper with system-wide auto-detection
+     - Auto-detects resolution, HDR, VRR for all games
+     - Steam integration via `scb -- %command%`
+     - Compatible with existing gaming.nix setup
+     - Configuration: `/etc/scopebuddy/scb.conf` (system-wide)
 
 > **Note to Agents:** When modifying services, ensure they bind to `127.0.0.1` and use `virtualisation.oci-containers` (Podman) instead of Docker.
+
+## 🎮 Gaming & ScopeBuddy
+
+### **ScopeBuddy Auto-Detection**
+✅ **Resolution**: Automatically detects and sets display resolution (`-W`, `-H`)
+✅ **HDR**: Automatically enables HDR for HDR-capable displays  
+✅ **VRR**: Automatically enables adaptive sync for VRR displays
+✅ **System-wide**: Applies to all users and games globally
+✅ **Steam Integration**: Simple `scb -- %command%` in launch options
+
+### **ScopeBuddy Usage**
+
+### **ScopeBuddy Usage**
+```bash
+# Steam Integration (auto-detection enabled)
+scb -- %command%
+
+# Multi-monitor setup
+scb -O DP-3 -- %command%
+
+# Per-game configuration (override system defaults)
+# Create: ~/.config/scopebuddy/GAME_NAME.conf
+SCB_AUTO_RES=0 scb -- %command% -W 1920 -H 1080
+
+# Non-gamescope HDR (experimental)
+SCB_AUTO_HDR=1 SCB_NOSCOPE=1 scb -- %command%
+```
+
+### **Declarative Configuration**
+System-wide ScopeBuddy settings are configured in `modules/gaming.nix`:
+- **Auto-Detection**: Resolution, HDR, VRR enabled by default
+- **Global Config**: `/etc/scopebuddy/scb.conf` 
+- **User Overrides**: `~/.config/scopebuddy/scb.conf`
+- **Per-Game**: `~/.config/scopebuddy/GAME_NAME.conf`
 
 ## 🔐 Agenix Secret Management
 

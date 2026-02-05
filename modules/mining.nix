@@ -162,7 +162,7 @@ in {
           wantedBy = ["multi-user.target"];
           serviceConfig = {
             Type = "simple";
-            ExecStart = "${pkgs.bash}/bin/bash -c 'while true; do load=\$(cat /proc/loadavg | awk \"{print \$1}\" | cut -d. -f1); if [ \"\$load\" -gt 20 ]; then sleep 120; load2=\$(cat /proc/loadavg | awk \"{print \$1}\" | cut -d. -f1); if [ \"\$load2\" -gt 20 ]; then echo \"High load persists, rebooting...\"; /run/current-system/sw/bin/reboot; fi; fi; sleep 60; done'";
+            ExecStart = "${pkgs.bash}/bin/bash -c 'while true; do load=$(cat /proc/loadavg | awk \"{print \\$1}\" | cut -d. -f1); if [ \"$load\" -gt 20 ]; then sleep 120; load2=$(cat /proc/loadavg | awk \"{print \\$1}\" | cut -d. -f1); if [ \"$load2\" -gt 20 ]; then echo \"High load persists, rebooting...\"; /run/current-system/sw/bin/reboot; fi; fi; sleep 60; done'";
             Restart = "always";
             RestartSec = "10s";
           };
@@ -181,25 +181,38 @@ in {
               nvidia-smi -pm 1 || true
               nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
             '';
-            ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --api-address 127.0.0.1 --mode n --tls 1";
+            ExecStart = pkgs.writeShellScript "lolminer-start" ''
+              #!/bin/bash
+              export LD_LIBRARY_PATH=/run/opengl-driver/lib:$LD_LIBRARY_PATH
+              export CUDA_PATH=/run/opengl-driver
+              export NVIDIA_DRIVER_CAPABILITIES=all
+              exec ${pkgs.lolminer}/bin/lolMiner \
+                --algo ${cfg.lolminer.algorithm} \
+                --pool ${cfg.lolminer.pool} \
+                --user ${cfg.lolminer.wallet} \
+                --devices ${cfg.lolminer.nvidia.devices} \
+                --apiport ${toString cfg.lolminer.nvidia.apiPort} \
+                --mode n \
+                --tls 1
+            '';
             Restart = "always";
             RestartSec = "30s";
             Environment = [
               "GPU_MAX_HEAP_SIZE=100"
               "GPU_MAX_ALLOC_PERCENT=100"
             ];
-            NoNewPrivileges = true;
-            PrivateTmp = true;
-            PrivateDevices = true;
-            ProtectKernelTunables = true;
-            ProtectControlGroups = true;
-            ProtectHostname = true;
-            RestrictRealtime = true;
-            ReadOnlyPaths = "/";
+            NoNewPrivileges = false;
+            PrivateTmp = false;
+            PrivateDevices = false;
+            ProtectKernelTunables = false;
+            ProtectControlGroups = false;
+            ProtectHostname = false;
+            RestrictRealtime = false;
+            ReadOnlyPaths = [];
             ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
             LimitMEMLOCK = "4G";
-            CapabilityBoundingSet = "";
-            AmbientCapabilities = "";
+            CapabilityBoundingSet = "CAP_SYS_ADMIN CAP_SYS_NICE";
+            AmbientCapabilities = "CAP_SYS_ADMIN CAP_SYS_NICE";
           };
         };
 
@@ -211,7 +224,7 @@ in {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --api-address 127.0.0.1 --mode b --tls 1";
+            ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --mode b --tls 1";
             Restart = "always";
             RestartSec = "30s";
             Environment = [
