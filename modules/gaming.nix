@@ -32,10 +32,11 @@ with lib; {
       RestartSec = 3;
       Environment = [
         "IPC_EXIT_ON_DISCONNECT=1"
-        "XRT_COMPOSITOR_COMPUTE=1"
+        "XRT_COMPOSITOR_COMPUTE=0"  # Disable compute shaders which may cause issues with NVIDIA
         "STEAMVR_LH_ENABLE=1"
         "WMR_HANDTRACKING=0"
         "XRT_EMULATE_SPACE_CENTER=1"
+        "XRT_LOG_LEVEL=info"  # Lower log level to avoid flooding logs
       ];
     };
 
@@ -211,6 +212,8 @@ with lib; {
         # VRChat specific variables
         export WINE_FULLSCREEN_FAKE_CAPTURE=1
         export DXVK_CONFIG_FILE=/dev/null
+        # Additional OpenXR runtime variables for WiVRn
+        export OPENXR_ACTIVE_RUNTIME=/nix/store/93gdgwz68nf0ngrkjiazqim4ixv7mz44-wivrn-25.12/lib/wivrn
       '';
     };
   };

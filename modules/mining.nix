@@ -202,7 +202,7 @@ in {
               "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=1 || true'"
             ];
             ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerWrapper}/bin/lolminer-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
-            ExecStopPost = "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl 250 --id=0 || true; ${config.hardware.nvidia.package}/bin/nvidia-smi -pl 250 --id=1 || true'";
+            ExecStopPost = "${pkgs.bash}/bin/bash -c '${config.hardware.nvidia.package}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=0 || true; ${config.hardware.nvidia.package}/bin/nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} --id=1 || true'";
             Restart = "on-failure";
             RestartSec = "60s";
             # GPU mining requires device access and privileges
