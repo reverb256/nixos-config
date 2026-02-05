@@ -31,9 +31,7 @@
 
   # Enable CI/CD features
   # garnix.enable = true;  # Disabled - requires nix-cache-key.sec
-  # Determinate Nix disabled - causes secretKeyFile issues
-  # services.determinate.enable = true;
-  services.nixos-auto-update.enable = true;
+  services.determinate.enable = true;
 
   # Zen kernel for gaming/desktop
   boot.kernelPackages = pkgs.linuxPackages_zen;
