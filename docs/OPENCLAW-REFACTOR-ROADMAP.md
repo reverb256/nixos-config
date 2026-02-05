@@ -1,90 +1,72 @@
 # OpenClaw Implementation - COMPLETED
 
 **Generated:** 2026-02-02
-**Branch:** refactor/openclaw-hm-service
+**Updated:** 2026-02-05
 **Status:** ✅ COMPLETED
 
 ---
 
 ## Summary
 
-The OpenClaw refactor is **complete**. Key improvements:
+OpenClaw is now deployed via **Home Manager** using nix-openclaw module (not container-based).
 
 | Feature | Before | After |
 |---------|--------|-------|
-| Service Type | Root systemd | Root systemd (simplified) |
-| Container Runtime | Custom scripts | Native Podman integration |
-| Shell Tools | Limited | Full suite (npm, pnpm, bun, git, vim, jq, etc.) |
-| Firewall | Basic | Ansible-style localhost-only |
-| Documentation | Outdated | Comprehensive |
-| Avahi | Broken config | Hardened for WiVRn |
-| OpenRazer | Broken flag | Fixed `--as-root` + writable config |
+| Deployment | Container-based (Podman) | nix-openclaw HM module |
+| User | lobster (uid 982) | j_kro (uid 1000) |
+| Service | systemd (root) | systemd user service |
+| Configuration | Scripts + Podman | Declarative HM |
 
 ---
 
-## Changes Applied
+## Current Configuration
+
+### Home Manager Setup
+```nix
+# In home.nix
+programs.openclaw = {
+  enable = true;
+  instances.default = {
+    enable = true;
+    gatewayPort = 18789;
+  };
+};
+```
+
+### Commands
+```bash
+# Check status
+openclaw status
+
+# Start gateway
+systemctl --user start openclaw-gateway.service
+
+# View logs
+openclaw logs --follow
+```
+
+---
+
+## Changes Applied (2026-02-05)
+
+### Files Removed
+- `modules/openclaw-declarative-container.nix` - No longer needed
+- `modules/openclaw-common.nix` - No longer needed
 
 ### Files Modified
-
-| File | Change |
-|------|--------|
-| `modules/openclaw-declarative-container.nix` | Complete rewrite |
-| `hosts/zephyr/configuration.nix` | Updated OpenClaw config |
-| `hosts/nexus/configuration.nix` | Updated OpenClaw config |
-| `modules/gaming.nix` | Fixed avahi typo |
-| `modules/networking.nix` | Hardened avahi config |
-| `modules/peripherals.nix` | Fixed OpenRazer service |
-| `docs/OPENCLAW-ARCHITECTURE.md` | Updated documentation |
-
-### New Features
-
-1. **Podman Container** with full isolation
-2. **Systemd Service** for OpenClaw gateway
-3. **Shell Tools** mounted into container:
-   - Package managers: npm, pnpm, bun
-   - Utilities: coreutils, git, curl, wget, jq, ripgrep, fd, yq, miller
-   - Editors: vim, nano
-4. **Directory Structure**:
-   - `~/.openclaw/{state,data,config,logs,workspace,workflows,approvals}`
-5. **Firewall Rules** (localhost-only by default)
-6. **Avahi Hardening** for WiVRn discovery
-
-### Bug Fixes
-
-1. ✅ **Avahi** - Removed invalid `publish-aaaaa` config key
-2. ✅ **OpenRazer** - Fixed `--as-root` flag and writable config directory
+- `hosts/*/configuration.nix` - Removed container imports
+- `home.nix` - Added nix-openclaw HM module
+- `flake.nix` - HM configured in commonModules
 
 ---
 
 ## Deployment
 
 ```bash
-# Build and apply to zephyr
+# Deploy to zephyr
 sudo nixos-rebuild switch --flake .#zephyr
 
-# Apply to nexus
-sudo nixos-rebuild switch --flake .#nexus
-
-# Verify services
-systemctl status openclaw-declarative
-systemctl status avahi-daemon
-systemctl status openrazer-daemon
+# Verify
+openclaw status
+systemctl --user status openclaw-gateway.service
 ```
-
----
-
-## Known Issues (Minor)
-
-| Issue | Severity | Status |
-|-------|----------|--------|
-| OpenRazer config write | 🟡 Low | Configurable via `--config` flag |
-| Polkit errors on dry-run | 🔵 Info | Expected behavior |
-
----
-
-## Future Improvements
-
-- Move to Home Manager user service (per nix-openclaw pattern)
-- Add nginx reverse proxy for external access
-- Implement Lobster workflow integration
-- Add Prometheus metrics endpoint
