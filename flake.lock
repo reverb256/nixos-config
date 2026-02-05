@@ -927,6 +927,7 @@
         "nixpkgs": "nixpkgs_7",
         "nixpkgs-xr": "nixpkgs-xr",
         "opencode": "opencode",
+        "scopebuddy": "scopebuddy",
         "zen-browser": "zen-browser"
       }
     },
@@ -945,6 +946,26 @@
       "original": {
         "owner": "oxalica",
         "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "scopebuddy": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1769851037,
+        "narHash": "sha256-1n1lZidbtDV9Lm8QKd1s35bOS6Uh8sI3KtBJZ+FwdxQ=",
+        "owner": "OpenGamingCollective",
+        "repo": "ScopeBuddy",
+        "rev": "4340ab2047eb9d7f840d342b932d98a8d0f7f652",
+        "type": "github"
+      },
+      "original": {
+        "owner": "OpenGamingCollective",
+        "repo": "ScopeBuddy",
         "type": "github"
       }
     },
