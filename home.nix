@@ -448,11 +448,12 @@
       templates = "$HOME/Templates";
     };
 
-    # OpenVR paths for Steam integration with WiVRn
+    # OpenVR paths for Steam integration with OpenComposite for VRChat
 
     configFile."openvr/openvrpaths.vrpath" = {
       force = true;
       text = let
+        opencomposite = "${pkgs.opencomposite}/lib/opencomposite";
         steam = "$HOME/.local/share/Steam";
       in
         builtins.toJSON {
@@ -461,7 +462,7 @@
           external_drivers = null;
           config = ["${steam}/config"];
           log = ["${steam}/logs"];
-          "runtime" = ["$HOME/.local/share/openxr/1"];
+          "runtime" = ["${opencomposite}"];
         };
     };
 

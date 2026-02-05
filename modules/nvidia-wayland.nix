@@ -129,6 +129,12 @@ in {
 
       # Disable sync to vblank for stability
       __GL_SYNC_TO_VBLANK = "0";
+
+      # VRChat/SteamVR specific variables
+      SDL_VIDEODRIVER = "wayland";
+      WINEPREFIX = "$HOME/.wine";
+      PROTON_USE_WINED3D = "1";
+      DXVK_HUD = "1"; # Enable to debug VRChat performance if needed (remove later)
     };
 
     # ============================================================================

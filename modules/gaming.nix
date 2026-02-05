@@ -20,8 +20,25 @@ with lib; {
   };
 
   # Monado environment for performance
-  systemd.user.services.monado.environment = {
-    IPC_EXIT_ON_DISCONNECT = "1";
+  systemd.user.services.monado = {
+    description = "Monado OpenXR runtime";
+    after = ["graphical-session-pre.target"];
+    wants = ["graphical-session-pre.target"];
+
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.monado}/bin/monado-service --no-lock-memory";
+      Restart = "on-failure";
+      RestartSec = 3;
+      Environment = [
+        "IPC_EXIT_ON_DISCONNECT=1"
+        "XRT_COMPOSITOR_COMPUTE=1"
+        "STEAMVR_LH_ENABLE=1"
+        "WMR_HANDTRACKING=0"
+      ];
+    };
+
+    wantedBy = ["default.target"];
   };
 
   # ============================================================================
@@ -361,6 +378,7 @@ with lib; {
       wivrn
       openxr-loader
       opencomposite
+      openvr
 
       # SteamVR support
       steam-run
