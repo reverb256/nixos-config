@@ -24,6 +24,7 @@
     # Import CI/CD and auto-update modules
     ../../modules/garnix.nix
     ../../modules/auto-update.nix
+    ../../modules/git.nix
   ];
 
   # Host identification
@@ -152,5 +153,13 @@
     TS_ADVERTISE_ROUTES = "10.1.1.0/24";
     TS_ROUTES = "";
     TS_SSH = "true";
+  };
+
+  programs.git = {
+    enable = true;
+    userName = "j_kro";
+    userEmail = "j_kro@sentry";
+    defaultBranch = "main";
+    originRemote = "git@github.com:reverb256/nixos-config.git";
   };
 }
