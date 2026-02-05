@@ -337,4 +337,12 @@
     TS_ROUTES = "";
     TS_SSH = "true";
   };
+
+  programs.git = {
+    enable = true;
+    userName = "j_kro";
+    userEmail = "j_kro@forge";
+    defaultBranch = "main";
+    originRemote = "git@github.com:reverb256/nixos-config.git";
+  };
 }

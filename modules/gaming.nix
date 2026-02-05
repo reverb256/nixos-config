@@ -318,7 +318,7 @@ with lib; {
     wantedBy = ["default.target"];
   };
 
-  # Enable Avahi for Quest discovery
+  # Enable Avahi for Quest discovery (zephyr VR workstation)
   services.avahi = {
     enable = true;
     nssmdns4 = true;
@@ -326,8 +326,19 @@ with lib; {
       enable = true;
       addresses = true;
       workstation = true;
+      # Allow user services (like WiVRn) to publish via Avahi
+      userServices = true;
     };
-    # Allow user services (like WiVRn) to publish via Avahi
+    # Security hardening: restrict to wired ethernet only
+    allowInterfaces = ["enp38s0"];
+    denyInterfaces = ["tailscale0" "wlan*" "docker*" "virbr*"];
+    extraConfig = ''
+      [wide-area]
+      enable-wide-area=no
+
+      [publish]
+      disable-user-service-publishing=no
+    '';
   };
 
   # ============================================================================

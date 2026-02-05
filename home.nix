@@ -3,15 +3,11 @@
   inputs,
   ...
 }: {
-  # Import Zen Browser and Nixcord (Home Manager modules)
-  # NOTE: OpenClaw service is handled by NixOS module (modules/openclaw.nix)
-  # We do NOT import nix-openclaw.homeManagerModules.openclaw here because:
-  # 1. It provides a binary that shadows the system package
-  # 2. The workaround overlay is applied to pkgs.openclaw-gateway (system level)
-  # 3. Both service and CLI should use the same overlayed package
+  # Import Zen Browser, Nixcord, and nix-openclaw (Home Manager modules)
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
+    inputs.nix-openclaw.homeManagerModules.openclaw
   ];
 
   # NH (Nix Helper) configuration for better UX
@@ -305,10 +301,10 @@
     git = {
       enable = true;
       settings = {
-        user.name = "reverb256";
+        user.name = "Jeremy Kroeker";
         user.email = "j_kroeker@reverb256.ca";
-        init.defaultBranch = "master";
-        pull.rebase = true;
+        init.defaultBranch = "main";
+        pull.rebase = false;
       };
     };
 
@@ -492,9 +488,18 @@
   # Claude Code KwaiKAT Model Development Tool Configuration
   # API key is loaded from system environment via modules/environment.nix
 
-  # OpenClaw CLI is provided by the NixOS module (modules/openclaw.nix)
-  # which uses the overlayed package with hasown workaround
-  # The systemd service runs as 'lobster' user with full systemd hardening
+  # OpenClaw CLI is provided by nix-openclaw home-manager module
+  # Configured with Telegram channel and Tailscale-only access
+
+  programs.openclaw = {
+    enable = true;
+
+    # Run as systemd user service - gateway will use defaults and bind to Tailscale
+    instances.default = {
+      enable = true;
+      gatewayPort = 18789;
+    };
+  };
 
   # Minimal Nixcord (Discord client) configuration - uses Vesktop
   programs.nixcord = {

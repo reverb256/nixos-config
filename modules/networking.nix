@@ -53,7 +53,7 @@ with lib; {
   '';
 
   # ============================================================================
-  # AVAHI (Device discovery - required for WiVRn)
+  # AVAHI (Device discovery - required for WiVRn on zephyr)
   # ============================================================================
 
   services.avahi = {
@@ -63,8 +63,21 @@ with lib; {
       enable = true;
       addresses = true;
       workstation = true;
+      # Allow user services (like WiVRn) to publish via Avahi
+      userServices = true;
     };
-    # Allow user services (like WiVRn) to publish via Avahi
+    # Security hardening: restrict to wired interfaces only
+    # Override per-host with allowInterfaces/denyInterfaces if needed
+    allowInterfaces = ["enp38s0" "enp7s0"];  # zephyr and nexus wired NICs
+    denyInterfaces = ["tailscale0" "wlan*" "docker*" "virbr*" "wg*"];
+    # Extra config for security hardening
+    extraConfig = ''
+      [wide-area]
+      enable-wide-area=no
+
+      [publish]
+      disable-user-service-publishing=no
+    '';
   };
 
   # Ensure avahi runtime directory exists

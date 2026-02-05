@@ -11,7 +11,28 @@
 # export SSH_KEY_PATH="$HOME/.ssh/my-key"
 
 # Additional Nix substituters (caches)
-# export NIX_SUBSTITTERS="$NIX_SUBSTITTERS https://my-cache.example.com"
+# export NIX_SUBSTITUTERS="$NIX_SUBSTITUTERS https://my-cache.example.com"
 
 # Personal development settings
 # export COLMENA_TARGETS="zephyr"  # Only deploy to local host during development
+
+# ============================================================================
+# OPENCLAW DEVELOPMENT
+# ============================================================================
+
+# Skip OpenClaw deployment during local development
+# export SKIP_OPENCLAW="true"
+
+# Use custom OpenClaw image for development
+# export OPENCLAW_IMAGE="ghcr.io/openclaw/openclaw:dev"
+
+# ============================================================================
+# VR/WIVRN DEVELOPMENT
+# ============================================================================
+
+# Enable VR mode for local testing
+# export VR_ENABLED="true"
+
+# WiVRn client mode (connect to remote server)
+# export WIVRN_CLIENT_MODE="true"
+# export WIVRN_SERVER_IP="10.1.1.110"

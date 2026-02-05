@@ -162,15 +162,25 @@
     image = "ghcr.io/openclaw/openclaw:latest";
     port = 18789;
     apiPort = 18790;
-    stateDir = "/var/lib/openclaw";
-    dataDir = "/var/lib/openclaw/data";
-    configDir = "/etc/openclaw";
-    memory = "2G";
-    cpuShares = 512;
+    stateDir = "/home/j_kro/.openclaw/state";
+    dataDir = "/home/j_kro/.openclaw/data";
+    configDir = "/home/j_kro/.openclaw/config";
+    logsDir = "/home/j_kro/.openclaw/logs";
+    workspaceDir = "/home/j_kro/.openclaw/workspace";
+    workflowsDir = "/home/j_kro/.openclaw/workflows";
+    approvalsDir = "/home/j_kro/.openclaw/approvals";
+    memory = "4G";
+    cpuShares = 1024;
     gatewayMode = "local";
-    gatewayBind = "127.0.0.1"; # Bind to localhost only for security
+    gatewayBind = "127.0.0.1";
     environmentFile = "/run/agenix/openclaw-env";
-    enableLegacyEnv = true;
+    enableLegacyEnv = false;
+    firewall = {
+      enabled = true;
+      allowedTCPPorts = [];
+      allowedUDPPorts = [];
+      localhostOnly = true;
+    };
   };
 
   # ============================================================================
