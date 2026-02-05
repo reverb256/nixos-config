@@ -124,7 +124,7 @@ case "${1:-}" in
     push)
         push
         ;;
-    all)
+    deploy|all)
         log "Deploying to all cluster nodes..."
         for node in "${!NODES[@]}"; do
             deploy_node "$node" || log "ERROR: Failed to deploy $node"
@@ -136,8 +136,18 @@ case "${1:-}" in
             build_node "$node" || log "ERROR: Failed to build $node"
         done
         ;;
-    status)
+    ci|status)
         show_status
+        ;;
+    update)
+        log "Updating flake and deploying to all nodes..."
+        cd "$FLAKE_PATH"
+        git add -A 2>/dev/null || true
+        git commit -m "Cluster update: $(date '+%Y-%m-%d %H:%M')" 2>/dev/null || log "No changes to commit"
+        git push origin main 2>/dev/null || log "Push skipped"
+        for node in "${!NODES[@]}"; do
+            deploy_node "$node" || log "ERROR: Failed to deploy $node"
+        done
         ;;
     zephyr|nexus|forge|sentry)
         if [ -n "${NODES[$1]}" ]; then

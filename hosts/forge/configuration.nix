@@ -16,9 +16,7 @@
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
     # Import OpenClaw AI agent orchestration (declarative container)
-    ../../modules/openclaw-declarative-container.nix
     # Import OpenClaw common configuration
-    ../../modules/openclaw-common.nix
     # Import Tailscale mesh VPN
     ../../modules/tailscale.nix
     # Import CI/CD and auto-update modules

@@ -3,7 +3,6 @@
   inputs,
   ...
 }: {
-  # Import Zen Browser, Nixcord, and nix-openclaw (Home Manager modules)
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
@@ -488,28 +487,23 @@
   # Claude Code KwaiKAT Model Development Tool Configuration
   # API key is loaded from system environment via modules/environment.nix
 
-  # OpenClaw CLI is provided by nix-openclaw home-manager module
-  # Configured with Telegram channel and Tailscale-only access
+  # Nixcord (Discord) - uses Vesktop
+  programs.nixcord = {
+    enable = true;
+    discord.enable = false;
+    vesktop.enable = true;
+  };
 
+  # OpenClaw CLI (managed by nix-openclaw HM module)
   programs.openclaw = {
     enable = true;
-
-    # Run as systemd user service - gateway will use defaults and bind to Tailscale
     instances.default = {
       enable = true;
       gatewayPort = 18789;
     };
   };
 
-  # Minimal Nixcord (Discord client) configuration - uses Vesktop
-  programs.nixcord = {
-    enable = true;
-    discord.enable = false; # Disable Discord, use Vesktop instead
-    vesktop.enable = true; # Use Vesktop (Vencord + Wayland support)
-  };
-
-  # Autostart Vesktop on login (but not during home-manager switches)
-  # This will only start when the user logs into a graphical session, not during system configurations
+  # Autostart Vesktop on login
   systemd.user.services.vesktop-autostart = {
     Unit = {
       Description = "Vesktop autostart";

@@ -16,5 +16,6 @@
     ./vm-tuning.nix # VM overcommit fixes for Discover crashes
     ./peripherals.nix # Razer and Corsair peripheral support
     ./keyboard-shortcuts.nix # Keyboard shortcuts configuration
+    ./scopebuddy.nix # ScopeBuddy gamescope wrapper
   ];
 }

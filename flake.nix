@@ -24,6 +24,10 @@
     # Enhanced Gaming Packages (Proton-GE, GameMode, etc.)
     nix-gaming.url = "github:fufexan/nix-gaming";
 
+    # ScopeBuddy - Gamescope wrapper for Wayland desktop gaming
+    scopebuddy.url = "github:OpenGamingCollective/ScopeBuddy";
+    scopebuddy.inputs.nixpkgs.follows = "nixpkgs";
+
     # Claude Code Native Binary
     claude-native.url = "github:ryoppippi/claude-code-overlay";
     claude-native.inputs.nixpkgs.follows = "nixpkgs";
@@ -140,18 +144,8 @@
     # NixOS configurations (for direct use with nixos-rebuild)
     nixosConfigurations = nixosSystems;
 
-    # Colmena deployment configuration
-    # Import colmena module for deployment
-    colmena = inputs.colmena.lib.composeManyExtensions (
-      inputs.nixpkgs.lib.foldExtensions (acc: ext: acc // ext) {} [
-        inputs.colmena.nixosModules.deploymentOptions
-        (
-          _: {
-            imports = [./colmena.nix];
-          }
-        )
-      ]
-    );
+    # Colmena deployment configuration  
+    colmena = import ./colmena.nix { inherit inputs; inherit (inputs.nixpkgs) lib; };
 
     # Formatter for nix fmt
     formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
