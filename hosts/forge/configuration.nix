@@ -118,7 +118,7 @@
   # NVIDIA GPUs (RTX 4060s) - Using both GPUs
   services.mining.lolminer.nvidia.enable = true;
   services.mining.lolminer.nvidia.devices = "0,1"; # Both NVIDIA GPUs
-  services.mining.lolminer.nvidia.powerLimit = 90;
+  services.mining.lolminer.nvidia.powerLimit = 115; # RTX 4060 max is 115W
   services.mining.lolminer.nvidia.apiPort = 4068;
 
   # AMD GPUs (RX 5700 XT) - TEMPORARILY DISABLED (address conflict)

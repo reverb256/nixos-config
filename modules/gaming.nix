@@ -22,8 +22,8 @@ with lib; {
   # Monado environment for performance
   systemd.user.services.monado = {
     description = "Monado OpenXR runtime";
-    after = ["graphical-session-pre.target"];
-    wants = ["graphical-session-pre.target"];
+    after = ["graphical-session-pre.target" "pipewire.service"];
+    wants = ["graphical-session-pre.target" "pipewire.service"];
 
     serviceConfig = {
       Type = "simple";
@@ -35,6 +35,7 @@ with lib; {
         "XRT_COMPOSITOR_COMPUTE=1"
         "STEAMVR_LH_ENABLE=1"
         "WMR_HANDTRACKING=0"
+        "XRT_EMULATE_SPACE_CENTER=1"
       ];
     };
 
@@ -207,6 +208,9 @@ with lib; {
         export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
         export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
         export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
+        # VRChat specific variables
+        export WINE_FULLSCREEN_FAKE_CAPTURE=1
+        export DXVK_CONFIG_FILE=/dev/null
       '';
     };
   };
