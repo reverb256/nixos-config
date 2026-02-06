@@ -69,11 +69,10 @@ in {
   ];
 
   # OpenClaw AI Gateway Service
-  services.openclaw = {
-    enable = true;
-    port = 18789;
-    autoStart = true;
-  };
+  # OpenClaw AI Agent Gateway - using home-manager user service
+  # services.openclaw.enable = true;
+  # services.openclaw.port = 18789;
+  # services.openclaw.autoStart = true;
 
   # ============================================================================
   # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
