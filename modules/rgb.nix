@@ -51,7 +51,7 @@ in
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${if cfg.openrgb.withPlugins then openrgb-with-all-plugins else openrgb}/bin/OpenRGB --server 6742";
+        ExecStart = "${if cfg.openrgb.withPlugins then pkgs.openrgb-with-all-plugins else pkgs.openrgb}/bin/OpenRGB --server 6742";
         Restart = "on-failure";
         RestartSec = 10;
 
