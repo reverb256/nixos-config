@@ -497,6 +497,20 @@
   # OpenClaw CLI (managed by nix-openclaw HM module)
   programs.openclaw = {
     enable = true;
+    # Enable bundled plugins to provide built-in skills
+    bundledPlugins = {
+      summarize.enable = true; # Summarize web pages, PDFs, videos
+      peekaboo.enable = true; # Take screenshots
+      goplaces.enable = true; # Google Places API
+      oracle.enable = false; # Web search (enable if needed)
+      poltergeist.enable = false; # macOS UI control (not needed on Linux)
+      sag.enable = false; # Text-to-speech
+      camsnap.enable = false; # Camera snapshots
+      gogcli.enable = false; # Google Calendar
+      bird.enable = false; # Twitter/X
+      sonoscli.enable = false; # Sonos control
+      imsg.enable = false; # iMessage (macOS only)
+    };
     instances.default = {
       enable = true;
       gatewayPort = 18789;
