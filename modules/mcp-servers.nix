@@ -177,17 +177,6 @@ in {
 
     programs.nix-ld.enable = lib.mkDefault true;
 
-    # Create MCP directories
-    system.activationScripts.mcp-dirs = {
-      text = ''
-        mkdir -p ~/.config/opencode
-        mkdir -p ~/.claude
-        mkdir -p ~/.kilocode/cli/global/settings
-        mkdir -p ~/.openclaw
-        chown j_kro:j_kro ~/.config/opencode ~/.claude ~/.kilocode ~/.openclaw 2>/dev/null || true
-      '';
-    };
-
     # Documentation
     environment.etc."mcp-servers/README.md".text = ''
       # Unified MCP Servers for All AI Tools
