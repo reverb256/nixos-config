@@ -553,6 +553,9 @@
         model.primary = "qwen-portal/coder-model";
         model.fallbacks = [ "qwen-portal/vision-model" ];
         workspace = "/home/j_kro/.openclaw/workspace";
+        # Enable native shell access for full system command execution
+        native = "auto";
+        nativeSkills = true;
       };
     };
 
