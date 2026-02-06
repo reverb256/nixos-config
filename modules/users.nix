@@ -83,6 +83,9 @@ with lib; {
     # Plugdev group for USB device access (used by gaming.nix udev rules)
     groups.plugdev = {};
 
+    # Tailscale group for SSH access between nodes
+    groups.tailscale = {};
+
     # Lobster group for AI assistant
     groups.lobster = {};
 
