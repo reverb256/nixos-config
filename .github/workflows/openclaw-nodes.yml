@@ -1,0 +1,58 @@
+name: "OpenClaw Node Management"
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        default: "status"
+        type: choice
+        options:
+          - status
+          - list
+          - pending
+          - approve-all
+      node_id:
+        description: "Specific node ID (for approve action)"
+        required: false
+        type: string
+
+jobs:
+  manage-nodes:
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check OpenClaw node status
+      if: inputs.action == 'status'
+      run: |
+        echo "Checking OpenClaw node status..."
+        openclaw nodes status
+
+    - name: List OpenClaw nodes
+      if: inputs.action == 'list'
+      run: |
+        echo "Listing OpenClaw nodes..."
+        openclaw nodes list
+
+    - name: Check pending nodes
+      if: inputs.action == 'pending'
+      run: |
+        echo "Checking for pending nodes..."
+        openclaw nodes pending
+
+    - name: Approve all pending nodes
+      if: inputs.action == 'approve-all'
+      run: |
+        echo "Approving all pending nodes..."
+        openclaw nodes approve --all
+
+    - name: Approve specific node
+      if: inputs.action == 'approve' && inputs.node_id != ''
+      run: |
+        echo "Approving node: ${{ inputs.node_id }}"
+        openclaw nodes approve ${{ inputs.node_id }}
