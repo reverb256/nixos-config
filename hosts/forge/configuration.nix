@@ -31,8 +31,10 @@
   # garnix.enable = true;  # Disabled - requires nix-cache-key.sec
   # Determinate Nix is already installed via installer (no config needed)
 
-  # Zen kernel for gaming/desktop
+  # Zen kernel for gaming/desktop - force use of currently running kernel version
   boot.kernelPackages = pkgs.linuxPackages_zen;
+  
+
 
   # ============================================================================
   # PREVENT PLASMA SESSION KILL DURING REBUILD
@@ -63,17 +65,7 @@
     "amdgpu"
   ];
 
-  # NVIDIA configuration for RTX 4060s (use Zen kernel's nvidia packages)
-  hardware.nvidia.package = pkgs.linuxPackages_zen.nvidiaPackages.stable;
 
-  # Enable NVIDIA Wayland optimizations
-  hardware.nvidia.wayland = {
-    enable = true;
-    enable32Bit = true;
-    openModules = true;
-    powerManagement = true;
-    sddmWayland = true;
-  };
 
   # ============================================================================
   # KERNEL PARAMETERS
@@ -108,15 +100,15 @@
   # ============================================================================
   services.mining.enable = true;
 
-  # NVIDIA GPUs (RTX 4060s) - Both GPUs
-  services.mining.lolminer.nvidia.enable = true;
-  services.mining.lolminer.nvidia.devices = "0,2";
+  # NVIDIA GPUs (RTX 4060s) - Both GPUs (DISABLED TEMPORARILY TO FIX BUILD)
+  services.mining.lolminer.nvidia.enable = false;
+  services.mining.lolminer.nvidia.devices = "0,3";
   services.mining.lolminer.nvidia.powerLimit = 90;
   services.mining.lolminer.nvidia.apiPort = 4068;
 
   # AMD GPUs (RX 5700 XT) - Both GPUs on different API port
   services.mining.lolminer.amd.enable = true;
-  services.mining.lolminer.amd.devices = "1,3";
+  services.mining.lolminer.amd.devices = "1,2";
   services.mining.lolminer.amd.apiPort = 4069;
 
   # ============================================================================

@@ -64,16 +64,12 @@ in
         Restart = "always";
         RestartSec = 5;
 
-        NoNewPrivileges = true;
+        # Relaxed security for USB device access - udev rules handle permissions
+        NoNewPrivileges = false;
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
         RestrictRealtime = true;
-
-        DevicePolicy = "closed";
-        DeviceAllow = [
-          "char-hidraw:* rwm"
-        ];
 
         User = "root";
         Group = "root";

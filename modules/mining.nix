@@ -177,12 +177,13 @@ in {
             Group = "mining";
             Slice = "mining.slice";
             ExecStartPre = pkgs.writeShellScript "nvidia-powerlimit-pre" ''
+              #!/${pkgs.bash}/bin/bash
               PATH=/run/current-system/sw/bin:$PATH
               nvidia-smi -pm 1 || true
               nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
             '';
             ExecStart = pkgs.writeShellScript "lolminer-start" ''
-              #!/bin/bash
+              #!/${pkgs.bash}/bin/bash
               export LD_LIBRARY_PATH=/run/opengl-driver/lib:$LD_LIBRARY_PATH
               export CUDA_PATH=/run/opengl-driver
               export NVIDIA_DRIVER_CAPABILITIES=all
