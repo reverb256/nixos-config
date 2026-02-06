@@ -32,6 +32,15 @@
   # Host identification
   networking.hostName = "forge";
 
+  # Display Manager (SDDM) - Required for KDE Plasma
+  services.displayManager.sddm = {
+    enable = true;
+    wayland.enable = true;
+  };
+
+  # Enable NVIDIA drivers for RTX 4060s
+  services.xserver.videoDrivers = ["nvidia"];
+
   # Enable CI/CD features
   # garnix.enable = true;  # Disabled - requires nix-cache-key.sec
   # Determinate Nix is already installed via installer (no config needed)
@@ -98,11 +107,11 @@
   # Enable NVIDIA Wayland for RTX 4060s
   hardware.nvidia.wayland.enable = true;
 
-  # NVIDIA GPUs (RTX 4060s) - Both GPUs
-  services.mining.lolminer.nvidia.enable = true;
-  services.mining.lolminer.nvidia.devices = "0,3";
-  services.mining.lolminer.nvidia.powerLimit = 90;
-  services.mining.lolminer.nvidia.apiPort = 4068;
+  # NVIDIA GPUs (RTX 4060s) - DISABLED (no NVIDIA driver loaded)
+  services.mining.lolminer.nvidia.enable = false;
+  # services.mining.lolminer.nvidia.devices = "0,1";
+  # services.mining.lolminer.nvidia.powerLimit = 90;
+  # services.mining.lolminer.nvidia.apiPort = 4068;
 
   # AMD GPUs (RX 5700 XT) - Both GPUs on different API port
   services.mining.lolminer.amd.enable = true;
