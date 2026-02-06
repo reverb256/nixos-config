@@ -499,9 +499,63 @@
     vesktop.enable = true;
   };
 
-  # OpenClaw binary installation (config is imperative at ~/.openclaw/openclaw.json)
+  # OpenClaw - AI agent gateway
   programs.openclaw = {
     enable = true;
+
+    config = {
+      gateway = {
+        mode = "local";
+        port = 18789;
+        bind = "loopback";
+        auth = {
+          mode = "token";
+          token = "63bb4d47143c49f19fee58e4191b051ee783f274d386aa75";
+        };
+      };
+
+      channels.telegram = {
+        enabled = true;
+        botToken = "8540097525:AAEtI1GiIXoahua2iwuJNobIRhBxXg6lQY0";
+        dmPolicy = "pairing";
+        allowFrom = [ "1384182343" ];
+      };
+
+      models.providers.qwen-portal = {
+        baseUrl = "https://portal.qwen.ai/v1";
+        apiKey = "qwen-oauth";
+        api = "openai-completions";
+        models = [
+          {
+            id = "coder-model";
+            name = "Qwen Coder";
+            reasoning = false;
+            input = [ "text" ];
+            cost = { input = 0; output = 0; cacheRead = 0; cacheWrite = 0; };
+            contextWindow = 128000;
+            maxTokens = 8192;
+          }
+          {
+            id = "vision-model";
+            name = "Qwen Vision";
+            reasoning = false;
+            input = [ "text" "image" ];
+            cost = { input = 0; output = 0; cacheRead = 0; cacheWrite = 0; };
+            contextWindow = 128000;
+            maxTokens = 8192;
+          }
+        ];
+      };
+
+      agents.defaults = {
+        model.primary = "qwen-portal/coder-model";
+        model.fallbacks = [ "qwen-portal/vision-model" ];
+        workspace = "/home/j_kro/.openclaw/workspace";
+      };
+    };
+
+    # Force overwrite existing config
+    xdg.configFile."openclaw/openclaw.json".force = true;
   };
 
   # Autostart Vesktop on login
