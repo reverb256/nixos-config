@@ -189,84 +189,45 @@ in {
     };
 
     # Unified MCP configuration for ALL AI tools
-    home-manager.users.j_kro = {
-      home.stateVersion = "24.05";
-
+    home-manager.users.j_kro = let
+      mcpServers = {
+        filesystem = lib.optionalAttrs cfg.servers.filesystem.enable {
+          command = "mcp-filesystem";
+          args = cfg.servers.filesystem.allowedPaths;
+        };
+        git = lib.optionalAttrs cfg.servers.git.enable {
+          command = "mcp-git";
+        };
+        playwright = lib.optionalAttrs cfg.servers.playwright.enable {
+          command = "mcp-playwright";
+        };
+        fetch = lib.optionalAttrs cfg.servers.fetch.enable {
+          command = "mcp-fetch";
+        };
+        context7 = lib.optionalAttrs cfg.servers.context7.enable {
+          command = "mcp-context7";
+        };
+        grep-app = lib.optionalAttrs cfg.servers.grep-app.enable {
+          command = "mcp-grep-app";
+        };
+        chrome-devtools = lib.optionalAttrs cfg.servers.chrome-devtools.enable {
+          command = "mcp-chrome-devtools";
+        };
+        github = lib.optionalAttrs (cfg.servers.github.enable && cfg.servers.github.apiKey != "") {
+          command = "mcp-github";
+          env = {
+            GITHUB_API_TOKEN = cfg.servers.github.apiKey;
+          };
+        };
+        openclaw = lib.optionalAttrs cfg.servers.openclaw.enable {
+          command = "mcp-openclaw";
+        };
+      };
+    in {
       # OpenCode MCP configuration
       programs.opencode = {
         enable = true;
-        settings.mcp = {
-          servers = lib.filterAttrs (n: v: v.enable) {
-            filesystem = {
-              command = "mcp-filesystem";
-              args = cfg.servers.filesystem.allowedPaths;
-            };
-            git = {
-              command = "mcp-git";
-            };
-            playwright = {
-              command = "mcp-playwright";
-            };
-            fetch = {
-              command = "mcp-fetch";
-            };
-            context7 = {
-              command = "mcp-context7";
-            };
-            grep-app = {
-              command = "mcp-grep-app";
-            };
-            chrome-devtools = {
-              command = "mcp-chrome-devtools";
-            };
-            github = lib.optionalAttrs (cfg.servers.github.enable && cfg.servers.github.apiKey != "") {
-              command = "mcp-github";
-              env = {
-                GITHUB_API_TOKEN = cfg.servers.github.apiKey;
-              };
-            };
-            openclaw = lib.optionalAttrs cfg.servers.openclaw.enable {
-              command = "mcp-openclaw";
-            };
-          };
-        };
-      };
-
-      # OpenClaw MCP configuration
-      programs.openclaw.config.mcp = {
-        servers = lib.filterAttrs (n: v: v.enable) {
-          filesystem = {
-            command = "mcp-filesystem";
-            args = cfg.servers.filesystem.allowedPaths;
-          };
-          git = {
-            command = "mcp-git";
-          };
-          playwright = {
-            command = "mcp-playwright";
-          };
-          fetch = {
-            command = "mcp-fetch";
-          };
-          context7 = {
-            command = "mcp-context7";
-          };
-          grep-app = {
-            command = "mcp-grep-app";
-          };
-          chrome-devtools = {
-            command = "mcp-chrome-devtools";
-          };
-          github = lib.optionalAttrs (cfg.servers.github.enable && cfg.servers.github.apiKey != "") {
-            command = "mcp-github";
-            env = {
-              GITHUB_API_TOKEN = cfg.servers.github.apiKey;
-            };
-          };
-          openclaw = lib.optionalAttrs cfg.servers.openclaw.enable {
-            command = "mcp-openclaw";
-          };
-        };
+        settings.mcp.servers = mcpServers;
       };
     };
 
