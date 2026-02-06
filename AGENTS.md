@@ -1,5 +1,14 @@
 # NixOS Cluster - AI Agent Dashboard
 
+**⚠️ CRITICAL: CONFIGURATION MASTER NODE ⚠️**
+
+**`/etc/nixos/` on zephyr (10.1.1.110) is the SOLE SOURCE OF TRUTH for the ENTIRE cluster.**
+
+All configuration changes must be made HERE on zephyr. No individual node configs exist independently.
+Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all nodes)
+
+---
+
 **Status:** ✅ Healthy | **Backend:** Podman | **Builds:** Distributed (51 Cores)
 **Last Audit:** 2026-02-04 (See `docs/SYSTEM_REALITY_CHECK.md`)
 **Agenix Key:** `age1pn55e68h5twm8ksrm29pzf4w5t8wdznmy0sqg5gvk094punpctq06q8zn` (Generated Feb 4, 2026)
@@ -15,23 +24,25 @@
 ## 📍 Key Locations
 | Component | File Path | Status |
 |-----------|-----------|--------|
-| **Cluster Config** | `flake.nix` | 4 Hosts |
+| **Cluster Config** | `flake.nix` | 4 Hosts (ALL managed from zephyr) |
 | **Secrets** | `secrets/` | Agenix Encrypted |
 | **OpenClaw** | `modules/openclaw-declarative-container.nix` | Podman (Rootless) |
 | **Mining** | `modules/mining.nix` | Localhost-only API |
+| **Forge Config** | `hosts/forge/configuration.nix` | Managed from zephyr via SSH |
+| **Nexus Config** | `hosts/nexus/configuration.nix` | Managed from zephyr via SSH |
 | **ScopeBuddy** | `modules/scopebuddy.nix` | Gamescope wrapper with auto-detection |
 | Mining Troubleshooting | `docs/MINING_TROUBLESHOOTING.md` | Mining fixes and debugging guide |
 | **AI Storage** | `modules/openclaw-storage.nix` | AIStor (S3 Compatible) |
-| **ScopeBuddy** | `modules/scopebuddy.nix` | Gamescope wrapper with auto-detection |
 | **Local LLM** | `modules/lmstudio-docker.nix` | Podman Container |
-| **ScopeBuddy** | `modules/scopebuddy.nix` | Gamescope wrapper with auto-detection |
 
 ## 🏗️ Architecture
+*   **Configuration Master:** `/etc/nixos/` on zephyr - SOLE SOURCE OF TRUTH for all cluster nodes
 *   **Container Engine:** Podman (Declarative, Rootless)
 *   **Networking:** Tailscale Mesh (100.x.x.x)
 *   **Security:** Services bind 127.0.0.1, exposed via Nginx only
 *   **Build System:** Distributed builds enabled over `ssh-ng`
 *   **Secret Management:** Agenix with age key at `/root/.config/sops/age/keys.txt`
+*   **Deployment:** All nodes deployed via SSH from zephyr using `just <hostname>`
 
 ## 📚 Documentation Index
 *   [System Reality Check & Audit Log](docs/SYSTEM_REALITY_CHECK.md) - **READ THIS FIRST**
