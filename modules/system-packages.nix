@@ -7,10 +7,7 @@
   # Centralized SYSTEM packages - only packages needed by system services
   # User packages belong in home.nix
   environment.systemPackages =
-    (lib.optionals (inputs != null && inputs ? kimi-cli) [
-      inputs.kimi-cli.packages.x86_64-linux.default
-    ])
-    ++ (with pkgs; [
+    (with pkgs; [
       # ============================================================================
       # SYSTEM UTILITIES
       # Needed by system services, scripts, or all users
