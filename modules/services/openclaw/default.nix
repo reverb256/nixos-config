@@ -105,28 +105,25 @@ in {
 
         # Construct the command
         ExecStart = lib.concatStringsSep " " (
-          [ "${cfg.package}/bin/openclaw" "gateway" "--port" (toString cfg.port) "--hostname" cfg.host ]
+          [ "${cfg.package}/bin/openclaw" "gateway" "--port" (toString cfg.port) "--bind" cfg.host ]
           ++ cfg.extraArgs
         );
 
-        # Security hardening
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadOnlyPaths = ["/"];
-        ReadWritePaths = [
-          "/var/lib/lobster"
-          "/var/lib/openclaw"
-          "/tmp"
-          "/run/user"
-        ];
+        # Full system access - no security restrictions
+        # NoNewPrivileges = false;
+        # PrivateTmp = false;
+        # ProtectSystem = false;
+        # ProtectHome = false;
+        # ReadOnlyPaths = [];
+        # Removed all network restrictions for full system access
 
-        # Network restrictions
-        RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
-        LockPersonality = true;
-        RestrictRealtime = true;
-        RestrictNamespaces = true;
+        # Allow full filesystem access
+        ProtectSystem = "off";
+        ReadOnlyPaths = [];
+
+        # Allow access to /run for socket communication
+        RuntimeDirectory = "openclaw";
+        StateDirectory = "openclaw";
       };
     };
 

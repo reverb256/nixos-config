@@ -555,6 +555,11 @@
     };
   };
 
+  # Set PATH for user services (OpenClaw needs it for tools)
+  systemd.user.sessionVariables = {
+    PATH = "/nix/store/i2vmgx46q9hd3z6rigaiman3wl3i2gc4-coreutils-9.9/bin:/run/wrappers/bin:/home/j_kro/.nix-profile/bin:/nix/profile/bin:/etc/profiles/per-user/j_kro/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin";
+  };
+
   # Autostart Vesktop on login
   systemd.user.services.vesktop-autostart = {
     Unit = {
