@@ -13,8 +13,18 @@
     hashedPassword = "!";
   };
 
-  # Allow lobster to run commands without password for OpenClaw agent
+  # Allow j_kro (OpenClaw gateway user) to run commands as lobster without password
   security.sudo.extraRules = [
+    {
+      users = [ "j_kro" ];
+      commands = [
+        { command = "/run/current-system/sw/bin/bash"; options = [ "NOPASSWD" "SETENV" ]; }
+        { command = "/run/current-system/sw/bin/sh"; options = [ "NOPASSWD" "SETENV" ]; }
+        { command = "/run/current-system/sw/bin/nix"; options = [ "NOPASSWD" "SETENV" ]; }
+        { command = "/run/current-system/sw/bin/nix-shell"; options = [ "NOPASSWD" "SETENV" ]; }
+        { command = "ALL"; options = [ "NOPASSWD" "SETENV" ]; }
+      ];
+    }
     {
       users = [ "lobster" ];
       commands = [
@@ -34,4 +44,21 @@
     "d /home/lobster/.openclaw 0755 lobster lobster -"
     "d /home/lobster/workspace 0755 lobster lobster -"
   ];
+
+  # Set up proper shell environment for lobster
+  home-manager.users.lobster = { pkgs, ... }: {
+    home.stateVersion = "24.05";
+    programs.bash = {
+      enable = true;
+      initExtra = ''
+        # Nix environment
+        if [ -e /run/current-system/sw/bin/nix ]; then
+          export PATH="/run/current-system/sw/bin:$PATH"
+          export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos"
+        fi
+        # OpenClaw agent marker
+        echo "[OpenClaw Agent Shell - lobster@$(hostname)]"
+      '';
+    };
+  };
 }
