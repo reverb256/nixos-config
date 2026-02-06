@@ -107,11 +107,11 @@
   # Enable NVIDIA Wayland for RTX 4060s
   hardware.nvidia.wayland.enable = true;
 
-  # NVIDIA GPUs (RTX 4060s) - DISABLED (no NVIDIA driver loaded)
-  services.mining.lolminer.nvidia.enable = false;
-  # services.mining.lolminer.nvidia.devices = "0,1";
-  # services.mining.lolminer.nvidia.powerLimit = 90;
-  # services.mining.lolminer.nvidia.apiPort = 4068;
+  # NVIDIA GPUs (RTX 4060s) - Both GPUs mining
+  services.mining.lolminer.nvidia.enable = true;
+  services.mining.lolminer.nvidia.devices = "2,3";
+  services.mining.lolminer.nvidia.powerLimit = 90;
+  services.mining.lolminer.nvidia.apiPort = 4068;
 
   # AMD GPUs (RX 5700 XT) - Both GPUs on different API port
   services.mining.lolminer.amd.enable = true;
