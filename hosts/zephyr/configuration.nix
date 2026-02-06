@@ -116,7 +116,7 @@
     "10.1.1.140" = ["sentry"];
   };
 
-  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer"];
+  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale"];
 
   # Environment variables for CUDA and Vulkan accessibility
   environment.variables = {
