@@ -99,6 +99,13 @@ in {
   };
 
   config = mkIf cfg.enable {
+    # Create mining user and group
+    users.users.${cfg.user} = {
+      isSystemUser = true;
+      group = "mining";
+    };
+    users.groups.mining = {};
+
     boot.kernel.sysctl = {
       "vm.nr_hugepages" = 1280;
     };
