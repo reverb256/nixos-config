@@ -72,9 +72,9 @@
   # KERNEL PARAMETERS
   # ============================================================================
 
-  # Minimal kernel parameters - Generation 2 compatible
-  # GPU params removed to fix boot/storage mounting issues
-  boot.kernelParams = [
+  # Override common kernelParams with minimal working set (Generation 2 compatible)
+  # This replaces ALL common kernelParams to prevent conflicts with storage/SATA
+  boot.kernelParams = lib.mkForce [
     "loglevel=4"
     "lsm=landlock,yama,bpf"
     "simpledrm.disable=1"  # Required for display
@@ -106,7 +106,7 @@
 
   # AMD GPUs (RX 5700 XT) - Both GPUs on different API port
   services.mining.lolminer.amd.enable = true;
-  services.mining.lolminer.amd.devices = "0,1";
+  services.mining.lolminer.amd.devices = "0,2";
   services.mining.lolminer.amd.powerLimit = 140;
   services.mining.lolminer.amd.apiPort = 4069;
 
