@@ -30,7 +30,7 @@ in {
     host = lib.mkOption {
       type = lib.types.str;
       default = "127.0.0.1";
-      description = "Host for OpenClaw Gateway service";
+      description = "Host for OpenClaw Gateway service (127.0.0.1 for secure loopback-only)";
     };
 
     tokenFile = lib.mkOption {
