@@ -24,6 +24,7 @@ with lib; {
         "libinput"
         "render"
         "plugdev"
+        "tailscale"
       ];
       shell = "/run/current-system/sw/bin/fish";
       packages = with pkgs; [
