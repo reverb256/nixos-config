@@ -6,7 +6,7 @@
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
-    inputs.nix-openclaw.homeManagerModules.openclaw
+    # nix-openclaw home-manager module removed - using system service instead
   ];
 
   # NH (Nix Helper) configuration for better UX
@@ -28,29 +28,36 @@
   };
 
   # User packages - development tools, shell utilities, and applications
-  home.packages = with pkgs; [
-    # Shell tools (configured in programs section below)
-    btop
-    fzf
-    tmux
-    eza
-    zoxide
-    starship
+  home.packages = with pkgs;
+    let
+      openclawPkg = inputs.nix-openclaw.packages.x86_64-linux.openclaw;
+    in
+    [
+      # Shell tools (configured in programs section below)
+      btop
+      fzf
+      tmux
+      eza
+      zoxide
+      starship
 
-    # Nix development tools (keep global for NixOS management)
-    alejandra
-    deadnix
-    statix
-    nixd
+      # Nix development tools (keep global for NixOS management)
+      alejandra
+      deadnix
+      statix
+      nixd
 
-    # User applications
-    opencode
-    qwen-code
-    gh
-    gparted
+      # User applications
+      opencode
+      qwen-code
+      gh
+      gparted
 
-    # Cloud and sync tools
-    rclone
+      # OpenClaw AI agent
+      openclawPkg
+
+      # Cloud and sync tools
+      rclone
     rclone-browser
     restic
     tailscale
@@ -499,62 +506,6 @@
     vesktop.enable = true;
   };
 
-  # OpenClaw - AI agent gateway (user-level service with full access)
-  programs.openclaw = {
-    enable = true;
-
-    config = {
-      gateway = {
-        mode = "local";
-        port = 18789;
-        bind = "loopback";
-        auth = {
-          mode = "token";
-          token = "63bb4d47143c49f19fee58e4191b051ee783f274d386aa75";
-        };
-      };
-
-      channels.telegram = {
-        enabled = true;
-        botToken = "8540097525:AAEtI1GiIXoahua2iwuJNobIRhBxXg6lQY0";
-        dmPolicy = "pairing";
-        allowFrom = [ "1384182343" ];
-      };
-
-      models.providers.qwen-portal = {
-        baseUrl = "https://portal.qwen.ai/v1";
-        apiKey = "qwen-oauth";
-        api = "openai-completions";
-        models = [
-          {
-            id = "coder-model";
-            name = "Qwen Coder";
-            reasoning = false;
-            input = [ "text" ];
-            cost = { input = 0; output = 0; cacheRead = 0; cacheWrite = 0; };
-            contextWindow = 128000;
-            maxTokens = 8192;
-          }
-          {
-            id = "vision-model";
-            name = "Qwen Vision";
-            reasoning = false;
-            input = [ "text" "image" ];
-            cost = { input = 0; output = 0; cacheRead = 0; cacheWrite = 0; };
-            contextWindow = 128000;
-            maxTokens = 8192;
-          }
-        ];
-      };
-
-      agents.defaults = {
-        model.primary = "qwen-portal/coder-model";
-        model.fallbacks = [ "qwen-portal/vision-model" ];
-        workspace = "/home/j_kro/.openclaw/workspace";
-      };
-    };
-  };
-
   # Set PATH for user services (OpenClaw needs it for tools)
   systemd.user.sessionVariables = {
     PATH = "/nix/store/i2vmgx46q9hd3z6rigaiman3wl3i2gc4-coreutils-9.9/bin:/run/wrappers/bin:/home/j_kro/.nix-profile/bin:/nix/profile/bin:/etc/profiles/per-user/j_kro/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin";
@@ -578,6 +529,24 @@
     };
   };
 
-  # Fix: Force overwrite SSH config to avoid conflicts
-  home.file.".ssh/config".force = true;
+  # OpenClaw Gateway Service
+  systemd.user.services.openclaw-gateway = {
+    Unit = {
+      Description = "OpenClaw Gateway";
+      After = ["network.target"];
+      PartOf = ["graphical-session.target"];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${inputs.nix-openclaw.packages.x86_64-linux.openclaw}/bin/openclaw gateway --port 18789 --bind loopback --allow-unconfigured";
+      Restart = "on-failure";
+      RestartSec = 5;
+      Environment = [
+        "OPENCLAW_STATE_DIR=/home/j_kro/.openclaw"
+      ];
+    };
+    Install = {
+      WantedBy = ["graphical-session.target"];
+    };
+  };
 }

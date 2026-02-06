@@ -1,4 +1,4 @@
-{...}: {
+{lib, ...}: {
   age.secrets = {
     # Mining API token for XMRig HTTP API
     "mining-api-token" = {

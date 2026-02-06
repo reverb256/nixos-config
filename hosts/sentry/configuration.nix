@@ -153,4 +153,33 @@
       "/run/current-system/sw/bin/sw_vers"
     ];
   };
+
+  # Additional services for AI and automation
+  services.n8n = {
+    enable = true;
+    port = 5678;
+    host = "0.0.0.0";
+    dbType = "sqlite";
+    openFirewall = true;
+  };
+
+  services.stable-diffusion = {
+    enable = true;
+    port = 7860;
+    host = "0.0.0.0";
+    gpuType = "cpu";  # Use CPU since no specific GPU mentioned
+    cmdOptions = [
+      "--opt-split-attention"
+    ];
+    openFirewall = true;
+  };
+
+  # Kubernetes (Worker node configuration)
+  services.kubernetes = {
+    enable = true;
+    worker.enable = true;
+    worker.kubelet.enable = true;
+    containerRuntime = "containerd";
+    autoStart = true;
+  };
 }
