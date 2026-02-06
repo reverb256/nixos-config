@@ -62,8 +62,8 @@ in {
     # ./modules/flatpak.nix
     # Graceful distributed builds: conservative (4 jobs) when alone, aggressive (21 jobs) with builders
     ./modules/distributed-builds-graceful.nix
-    # Secrets must be imported AFTER agenix module
-    ./secrets/agenix-secrets.nix
+    # Secrets configuration
+    # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
     # OpenClaw service module
     ./modules/services/openclaw
   ];
