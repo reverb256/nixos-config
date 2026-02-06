@@ -28,6 +28,7 @@
     # Import CI/CD and auto-update modules
     ../../modules/garnix.nix
     ../../modules/auto-update.nix
+    ../../modules/ssh.nix
   ];
 
   # Host identification
