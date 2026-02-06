@@ -22,7 +22,7 @@
     # Import CI/CD and auto-update modules
     ../../modules/garnix.nix
     ../../modules/auto-update.nix
-    ../../modules/git.nix
+
   ];
 
   # Host identification
@@ -111,24 +111,7 @@
     };
   };
 
-  # ============================================================================
-  # OPENCLAW - AI Agent Gateway (declarative container)
-  # ============================================================================
-  services.openclaw.declarative = {
-    enable = true;
-    image = "ghcr.io/openclaw/openclaw:latest";
-    port = 18789;
-    apiPort = 18790;
-    stateDir = "/var/lib/openclaw";
-    dataDir = "/var/lib/openclaw/data";
-    configDir = "/etc/openclaw";
-    memory = "2G";
-    cpuShares = 512;
-    gatewayMode = "local";
-    gatewayBind = "127.0.0.1"; # Bind to localhost only for security
-    environmentFile = "/run/agenix/openclaw-env";
-    enableLegacyEnv = true;
-  };
+
 
   # ============================================================================
   # FIREWALL (Base config - no extra ports)
@@ -155,9 +138,11 @@
 
   programs.git = {
     enable = true;
-    userName = "j_kro";
-    userEmail = "j_kro@sentry";
-    defaultBranch = "main";
-    originRemote = "git@github.com:reverb256/nixos-config.git";
+    config = {
+      user.name = "j_kro";
+      user.email = "j_kro@sentry";
+      init.defaultBranch = "main";
+      remote.origin.url = "git@github.com:reverb256/nixos-config.git";
+    };
   };
 }

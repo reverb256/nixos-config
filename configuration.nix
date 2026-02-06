@@ -56,6 +56,7 @@ in {
 
   imports = [
     ./modules
+    ./modules/rgb.nix
     # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
     # ./modules/flatpak.nix
     # Graceful distributed builds: conservative (4 jobs) when alone, aggressive (21 jobs) with builders
@@ -75,6 +76,19 @@ in {
     corsair = {
       enable = true;
       ckbNext = true;
+    };
+  };
+
+  # RGB Lighting Control
+  # MSI X570 Tomahawk + RTX 3090 + Corsair devices + G.Skill Trident Z RGB
+  hardware.rgb = {
+    enable = true;
+    openrgb = {
+      enable = true;
+      withPlugins = true;
+    };
+    corsair = {
+      enable = true;  # ckb-next handles keyboard + Lighting Node Pro
     };
   };
 
@@ -214,6 +228,16 @@ in {
   # POWER MANAGEMENT
   # ============================================================================
   powerManagement.cpuFreqGovernor = "performance";
+
+  # ============================================================================
+  # MOSH - Mobile Shell for roaming connections
+  # ============================================================================
+  programs.mosh.enable = true;
+
+  # ============================================================================
+  # FIREWALL - Mosh uses UDP ports 60000-61000
+  # ============================================================================
+  networking.firewall.allowedUDPPorts = [60000 60001 60002 60003 60004];
 
   # ============================================================================
   # ZRAM - Compressed RAM swap for better performance

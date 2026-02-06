@@ -163,18 +163,20 @@ in {
     # EARLY NVIDIA LOADING - Fix race condition with simple-framebuffer
     # Load NVIDIA modules in initramfs before simple-framebuffer claims displays
     # ============================================================================
-    boot.initrd.kernelModules = [
-      "nvidia"
-      "nvidia_modeset"
-      "nvidia_drm"
-    ];
+    # Temporarily disabled to fix kernel module not found error
+    # boot.initrd.kernelModules = [
+    #   "nvidia"
+    #   "nvidia_modeset"
+    #   "nvidia_drm"
+    # ];
 
     # Also ensure modules are available in initramfs
-    boot.initrd.availableKernelModules = [
-      "nvidia"
-      "nvidia_modeset"
-      "nvidia_drm"
-    ];
+    # Temporarily disabled to fix kernel module not found error
+    # boot.initrd.availableKernelModules = [
+    #   "nvidia"
+    #   "nvidia_modeset"
+    #   "nvidia_drm"
+    # ];
 
     # ============================================================================
     # NVIDIA DEVICE NODE CREATION - Ensure device nodes exist after driver load
