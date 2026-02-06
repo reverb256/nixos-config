@@ -83,12 +83,12 @@ push:
 # View OpenClaw logs
 logs:
     @echo "Viewing OpenClaw gateway logs..."
-    sudo journalctl -u openclaw-declarative -f
+    sudo journalctl -u openclaw-gateway -f
 
 # Check OpenClaw status
 status-openclaw:
     @echo "Checking OpenClaw service status..."
-    sudo systemctl status openclaw-declarative
+    sudo systemctl status openclaw-gateway
     @echo ""
     @echo "Checking health endpoint..."
     curl -sf http://localhost:18789/health || echo "Health check failed"
@@ -104,15 +104,10 @@ status-vr:
 # Restart OpenClaw
 restart-openclaw:
     @echo "Restarting OpenClaw gateway..."
-    sudo systemctl restart openclaw-declarative
+    sudo systemctl restart openclaw-gateway
     @echo "Waiting for service to start..."
     sleep 3
-    sudo systemctl status openclaw-declarative
-
-# View OpenClaw container logs
-logs-container:
-    @echo "Viewing OpenClaw container logs..."
-    sudo podman logs -f openclaw-declarative 2>/dev/null || echo "Container not running"
+    sudo systemctl status openclaw-gateway
 
 # Restart WiVRn services
 restart-vr:
