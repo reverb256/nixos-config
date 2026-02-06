@@ -57,10 +57,13 @@
     };
   };
 in {
-  # Meta configuration - using modern flake integration
+  # Meta configuration
   meta = {
-    # In modern flake-based Colmena, nixpkgs comes from the flake inputs
-    # This avoids the "Passing a path to Nixpkgs as meta.nixpkgs is no longer accepted" error
+    # Specify nixpkgs for colmena - needed for hermetic evaluation
+    nixpkgs = import inputs.nixpkgs {
+      system = "x86_64-linux";
+      config.allowUnfree = true;
+    };
     allowUnfree = true;
   };
 
