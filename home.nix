@@ -502,23 +502,8 @@
   # OpenClaw CLI (managed by nix-openclaw HM module)
   programs.openclaw = {
     enable = true;
-    # Enable bundled plugins to provide built-in skills
-    # NOTE: Many plugins have dependency conflicts or are not available for x86_64-linux
-    # Only enabling core plugins known to work without conflicts
-    bundledPlugins = {
-      goplaces.enable = true; # Google Places API
-      oracle.enable = true; # Web search
-      # Disabled due to dependency conflicts or platform issues:
-      summarize.enable = false; # Dependency conflicts
-      sag.enable = false; # Dependency conflicts
-      camsnap.enable = false; # Dependency conflicts
-      gogcli.enable = false; # Dependency conflicts
-      peekaboo.enable = false; # Not available for x86_64-linux
-      bird.enable = false; # Not available for x86_64-linux
-      sonoscli.enable = false; # Sonos control
-      poltergeist.enable = false; # macOS UI control (macOS only)
-      imsg.enable = false; # iMessage (macOS only)
-    };
+    # Disable bundledPlugins - they cause Nix conflicts
+    # We'll install plugins directly via clawdhub instead
     instances.default = {
       enable = true;
       gatewayPort = 18789;
