@@ -47,10 +47,6 @@
     colmena.url = "github:zhaofengli/colmena";
     colmena.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Kimi Code CLI - AI coding agent
-    kimi-cli.url = "github:MoonshotAI/kimi-cli";
-    kimi-cli.inputs.nixpkgs.follows = "nixpkgs";
-
     # OpenClaw - AI agent gateway
     nix-openclaw.url = "github:openclaw/nix-openclaw";
     nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
@@ -155,7 +151,6 @@
 
     packages.x86_64-linux = {
       claude = inputs.claude-native.packages.x86_64-linux.default;
-      kimi = inputs.kimi-cli.packages.x86_64-linux.default;
     };
 
     # Development shell with all NixOS tools
