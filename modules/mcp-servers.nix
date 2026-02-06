@@ -22,15 +22,6 @@ in {
   options.services.mcp-servers = {
     enable = lib.mkEnableOption "MCP (Model Context Protocol) servers for AI coding assistants";
 
-    kimi-code = {
-      enable = lib.mkEnableOption "Kimi Code CLI MCP configuration" // {default = true;};
-      configPath = lib.mkOption {
-        type = lib.types.str;
-        default = "$HOME/.kimi/mcp.json";
-        description = "Path to Kimi MCP configuration file";
-      };
-    };
-
     kilo-code = {
       enable = lib.mkEnableOption "Kilo Code CLI MCP configuration" // {default = true;};
       configPath = lib.mkOption {
@@ -165,14 +156,12 @@ in {
     programs.nix-ld.enable = lib.mkDefault true;
 
     # Create MCP configuration files
-    system.activationScripts.mcp-config = lib.mkIf (cfg.kimi-code.enable || cfg.kilo-code.enable) {
+    system.activationScripts.mcp-config = lib.mkIf cfg.kilo-code.enable {
       text = ''
         # Create directories
-        ${lib.optionalString cfg.kimi-code.enable "mkdir -p $(dirname ${cfg.kimi-code.configPath})"}
         ${lib.optionalString cfg.kilo-code.enable "mkdir -p $(dirname ${cfg.kilo-code.configPath})"}
 
         # Set ownership
-        ${lib.optionalString cfg.kimi-code.enable "chown j_kro:j_kro $(dirname ${cfg.kimi-code.configPath}) 2>/dev/null || true"}
         ${lib.optionalString cfg.kilo-code.enable "chown j_kro:j_kro $(dirname ${cfg.kilo-code.configPath}) 2>/dev/null || true"}
       '';
     };
@@ -202,15 +191,14 @@ in {
 
       ## Configuration Files
 
-      - Kimi Code: `~/.kimi/mcp.json`
       - Kilo Code: `~/.kilocode/cli/global/settings/mcp_settings.json`
 
       ## Usage
 
       Test servers with:
       ```bash
-      kimi mcp list
-      kimi mcp test <server-name>
+      kilocode mcp list
+      kilocode mcp test <server-name>
       ```
 
       ## NixOS Integration
