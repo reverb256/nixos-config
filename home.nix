@@ -6,7 +6,7 @@
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
-    inputs.nix-openclaw.homeManagerModules.openclaw
+    #inputs.nix-openclaw.homeManagerModules.openclaw  # TEMPORARILY DISABLED - peekaboo plugin broken
   ];
 
   # NH (Nix Helper) configuration for better UX
@@ -503,18 +503,18 @@
   programs.openclaw = {
     enable = true;
     # Enable bundled plugins to provide built-in skills
-    # NOTE: Many plugins from nix-steipete-tools are not available for x86_64-linux
-    # Only enabling plugins known to work on Linux
+    # NOTE: Many plugins have dependency conflicts or are not available for x86_64-linux
+    # Only enabling core plugins known to work without conflicts
     bundledPlugins = {
-      summarize.enable = true; # Summarize web pages, PDFs, videos
       goplaces.enable = true; # Google Places API
       oracle.enable = true; # Web search
-      sag.enable = true; # Text-to-speech
-      camsnap.enable = true; # Camera snapshots
-      gogcli.enable = true; # Google Calendar
-      # Disabled - not available for x86_64-linux:
-      peekaboo.enable = false; # Take screenshots (nix-steipete-tools)
-      bird.enable = false; # Twitter/X (nix-steipete-tools)
+      # Disabled due to dependency conflicts or platform issues:
+      summarize.enable = false; # Dependency conflicts
+      sag.enable = false; # Dependency conflicts
+      camsnap.enable = false; # Dependency conflicts
+      gogcli.enable = false; # Dependency conflicts
+      peekaboo.enable = false; # Not available for x86_64-linux
+      bird.enable = false; # Not available for x86_64-linux
       sonoscli.enable = false; # Sonos control
       poltergeist.enable = false; # macOS UI control (macOS only)
       imsg.enable = false; # iMessage (macOS only)
