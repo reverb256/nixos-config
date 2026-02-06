@@ -553,6 +553,9 @@
         workspace = "/home/j_kro/.openclaw/workspace";
       };
     };
+
+    # Force overwrite existing config
+    xdg.configFile."openclaw/openclaw.json".force = true;
   };
 
   # Autostart Vesktop on login
