@@ -13,27 +13,8 @@
     hashedPassword = "!";
   };
 
-  # Allow j_kro (OpenClaw gateway user) to run commands as lobster without password
-  security.sudo.extraRules = [
-    {
-      users = [ "j_kro" ];
-      commands = [
-        { command = "/run/current-system/sw/bin/bash"; options = [ "NOPASSWD" "SETENV" ]; }
-        { command = "/run/current-system/sw/bin/sh"; options = [ "NOPASSWD" "SETENV" ]; }
-        { command = "/run/current-system/sw/bin/nix"; options = [ "NOPASSWD" "SETENV" ]; }
-        { command = "/run/current-system/sw/bin/nix-shell"; options = [ "NOPASSWD" "SETENV" ]; }
-        { command = "ALL"; options = [ "NOPASSWD" "SETENV" ]; }
-      ];
-    }
-    {
-      users = [ "lobster" ];
-      commands = [
-        { command = "ALL"; options = [ "NOPASSWD" "SETENV" ]; }
-      ];
-    }
-  ];
-
-  # Ensure lobster has proper environment for Nix
+  # Note: No sudo access granted - OpenClaw runs native commands as current user
+  # Shell access is provided through OpenClaw's native/exec tools, not sudo
   environment.sessionVariables = {
     LOBSTER_HOME = "/home/lobster";
   };
