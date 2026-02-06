@@ -499,6 +499,11 @@
     vesktop.enable = true;
   };
 
+  # OpenClaw binary installation (config is imperative at ~/.openclaw/openclaw.json)
+  programs.openclaw = {
+    enable = true;
+  };
+
   # Autostart Vesktop on login
   systemd.user.services.vesktop-autostart = {
     Unit = {
