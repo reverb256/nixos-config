@@ -74,6 +74,11 @@
     (pkgs.writeShellScriptBin "kilo" ''
       exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
     '')
+
+    # ClawHub CLI for OpenClaw skill management
+    (pkgs.writeShellScriptBin "clawdhub" ''
+      exec ${pkgs.nodejs_22}/bin/npx clawdhub "$@"
+    '')
   ];
 
   # StreamLake Claude Code environment variables (enhanced with MCP)
@@ -498,17 +503,19 @@
   programs.openclaw = {
     enable = true;
     # Enable bundled plugins to provide built-in skills
+    # Available bundled plugins: summarize, peekaboo, oracle, poltergeist, sag,
+    # camsnap, gogcli, goplaces, bird, sonoscli, imsg
     bundledPlugins = {
       summarize.enable = true; # Summarize web pages, PDFs, videos
       peekaboo.enable = true; # Take screenshots
       goplaces.enable = true; # Google Places API
-      oracle.enable = false; # Web search (enable if needed)
-      poltergeist.enable = false; # macOS UI control (not needed on Linux)
-      sag.enable = false; # Text-to-speech
-      camsnap.enable = false; # Camera snapshots
-      gogcli.enable = false; # Google Calendar
-      bird.enable = false; # Twitter/X
-      sonoscli.enable = false; # Sonos control
+      oracle.enable = true; # Web search
+      sag.enable = true; # Text-to-speech
+      camsnap.enable = true; # Camera snapshots
+      gogcli.enable = true; # Google Calendar
+      bird.enable = true; # Twitter/X
+      sonoscli.enable = false; # Sonos control (enable if you have Sonos)
+      poltergeist.enable = false; # macOS UI control (macOS only)
       imsg.enable = false; # iMessage (macOS only)
     };
     instances.default = {
