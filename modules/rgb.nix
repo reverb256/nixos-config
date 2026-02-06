@@ -19,12 +19,13 @@ in
   config = mkIf cfg.enable {
     # Install RGB packages
     environment.systemPackages = with pkgs; [
-      (mkIf cfg.openrgb.enable [
-        (mkIf cfg.openrgb.withPlugins openrgb-with-all-plugins openrgb)
-      ])
-    ] ++ (mkIf cfg.corsair.enable [
+      # OpenRGB packages (either with plugins or minimal)
+    ] ++ lib.optionals cfg.openrgb.enable (
+      if cfg.openrgb.withPlugins then [ openrgb-with-all-plugins ]
+      else [ openrgb ]
+    ) ++ lib.optionals cfg.corsair.enable [
       ckb-next
-    ]);
+    ];
 
     # OpenRGB udev rules for device access
     services.udev.extraRules = mkIf cfg.openrgb.enable ''
@@ -50,7 +51,7 @@ in
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${pkgs.openrgb}/bin/OpenRGB --server 6742";
+        ExecStart = "${if cfg.openrgb.withPlugins then openrgb-with-all-plugins else openrgb}/bin/OpenRGB --server 6742";
         Restart = "on-failure";
         RestartSec = 10;
 
