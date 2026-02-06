@@ -17,7 +17,7 @@
   programs.gnupg.agent = {
     enable = true;
     enableSSHSupport = false;
-    pinentryPackage = pkgs.pinentry;
+    pinentryPackage = pkgs.pinentry-curses;
   };
 
   # Udev rules for YubiKey detection
