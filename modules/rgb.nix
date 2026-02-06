@@ -28,7 +28,7 @@ in {
       ]
       ++ lib.optionals cfg.openrgb.enable (
         if cfg.openrgb.withPlugins
-        then [openrgb-with-all-plugins]
+        then [openrgb-with-plugins]
         else [openrgb]
       )
       ++ lib.optionals cfg.corsair.enable [
@@ -61,7 +61,7 @@ in {
         Type = "simple";
         ExecStart = "${
           if cfg.openrgb.withPlugins
-          then pkgs.openrgb-with-all-plugins
+          then pkgs.openrgb-with-plugins
           else pkgs.openrgb
         }/bin/OpenRGB --server 6742";
         Restart = "on-failure";
