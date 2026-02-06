@@ -25,6 +25,8 @@
     ../../modules/ssh.nix
     # Import mining services module
     ../../modules/mining.nix
+    # Import OpenClaw node host module
+    ../../modules/openclaw-node-host.nix
   ];
 
   # Host identification
