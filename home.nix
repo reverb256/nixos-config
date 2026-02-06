@@ -499,7 +499,7 @@
     vesktop.enable = true;
   };
 
-  # OpenClaw - AI agent gateway
+  # OpenClaw - AI agent gateway (user-level service with full access)
   programs.openclaw = {
     enable = true;
 

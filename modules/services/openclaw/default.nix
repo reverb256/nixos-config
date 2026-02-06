@@ -35,7 +35,7 @@ in {
 
     tokenFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
-      default = "/run/agenix/openclaw-gateway-token";
+      default = null;
       description = "Path to the OpenClaw gateway token file (should be an agenix secret)";
     };
 
@@ -47,7 +47,7 @@ in {
 
     environmentFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
-      default = "/run/agenix/openclaw-env";
+      default = null;
       description = "Environment file with API keys and other configuration";
     };
 
@@ -60,25 +60,8 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Create lobster user and group if they don't exist
-    users.users = lib.mkIf (!config.users.users ? ${lobsterUser}) {
-      ${lobsterUser} = {
-        isSystemUser = true;
-        group = lobsterGroup;
-        description = "OpenClaw AI Agent Bot User (lobster)";
-        home = "/var/lib/lobster";
-        createHome = true;
-        shell = pkgs.bash;
-      };
-    };
-
-    users.groups = lib.mkIf (!config.users.groups ? ${lobsterGroup}) {
-      ${lobsterGroup} = {};
-    };
-
     # Create necessary directories
     systemd.tmpfiles.rules = [
-      "d /var/lib/lobster 0750 ${lobsterUser} ${lobsterGroup} -"
       "d /var/lib/lobster/openclaw 0750 ${lobsterUser} ${lobsterGroup} -"
       "d /var/lib/openclaw 0750 ${lobsterUser} ${lobsterGroup} -"
     ];
@@ -115,8 +98,10 @@ in {
         ];
 
         # Load secrets if provided
-        EnvironmentFile = lib.mkIf (cfg.tokenFile != null) [cfg.tokenFile];
-        EnvironmentFile = lib.mkIf (cfg.environmentFile != null) [cfg.environmentFile];
+        EnvironmentFile = lib.mkIf (cfg.tokenFile != null || cfg.environmentFile != null) (
+          (lib.optionals (cfg.tokenFile != null) cfg.tokenFile)
+          ++ (lib.optionals (cfg.environmentFile != null) cfg.environmentFile)
+        );
 
         # Construct the command
         ExecStart = lib.concatStringsSep " " (
