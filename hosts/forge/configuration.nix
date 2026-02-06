@@ -97,10 +97,13 @@
   # ============================================================================
   # MINING CONFIGURATION
   # ============================================================================
-  services.mining.enable = true;
+   services.mining.enable = true;
 
-  # NVIDIA GPUs (RTX 4060s) - Both GPUs (DISABLED TEMPORARILY TO FIX BUILD)
-  services.mining.lolminer.nvidia.enable = false;
+  # Enable NVIDIA Wayland for RTX 4060s
+  hardware.nvidia.wayland.enable = true;
+
+  # NVIDIA GPUs (RTX 4060s) - Both GPUs
+  services.mining.lolminer.nvidia.enable = true;
   services.mining.lolminer.nvidia.devices = "0,3";
   services.mining.lolminer.nvidia.powerLimit = 90;
   services.mining.lolminer.nvidia.apiPort = 4068;
