@@ -227,31 +227,44 @@ in {
         lolminer-amd = mkIf cfg.lolminer.amd.enable {
           description = "lolMiner AMD Mining Service";
           wantedBy = ["multi-user.target"];
-          after = ["network.target"];
+          after = ["network.target" "amd-gpu-power-mgmt.service"];
           serviceConfig = {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.steam-run}/bin/steam-run ${lolminerAmdWrapper}/bin/lolminer-amd-wrapper --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --mode b --tls 1";
+            ExecStart = pkgs.writeShellScript "lolminer-amd-start" ''
+              #!/${pkgs.bash}/bin/bash
+              export LD_LIBRARY_PATH=/opt/rocm/lib:/run/opengl-driver/lib:$LD_LIBRARY_PATH
+              export ROC_ENABLE_PRE_VEGA=1
+              export HSA_OVERRIDE_GFX_VERSION=10.1.0
+              export GPU_MAX_HEAP_SIZE=100
+              export GPU_MAX_ALLOC_PERCENT=100
+              export GPU_SINGLE_ALLOC_PERCENT=100
+              export GPU_FORCE_64BIT_PTR=1
+              
+              exec ${pkgs.lolminer}/bin/lolMiner \
+                --algo ${cfg.lolminer.algorithm} \
+                --pool ${cfg.lolminer.pool} \
+                --user ${cfg.lolminer.wallet} \
+                --devices ${cfg.lolminer.amd.devices} \
+                --apiport ${toString cfg.lolminer.amd.apiPort} \
+                --mode b \
+                --tls 1
+            '';
             Restart = "always";
             RestartSec = "30s";
-            Environment = [
-              "GPU_MAX_HEAP_SIZE=100"
-              "GPU_MAX_ALLOC_PERCENT=100"
-              "HSA_OVERRIDE_GFX_VERSION=10.0.0"
-            ];
-            NoNewPrivileges = true;
-            PrivateTmp = true;
-            PrivateDevices = true;
-            ProtectKernelTunables = true;
-            ProtectControlGroups = true;
-            ProtectHostname = true;
-            RestrictRealtime = true;
-            ReadOnlyPaths = "/";
+            NoNewPrivileges = false;
+            PrivateTmp = false;
+            PrivateDevices = false;
+            ProtectKernelTunables = false;
+            ProtectControlGroups = false;
+            ProtectHostname = false;
+            RestrictRealtime = false;
+            ReadOnlyPaths = [];
             ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
-            LimitMEMLOCK = "4G";
-            CapabilityBoundingSet = "";
-            AmbientCapabilities = "";
+            LimitMEMLOCK = "8G";
+            CapabilityBoundingSet = "CAP_SYS_ADMIN CAP_SYS_NICE";
+            AmbientCapabilities = "CAP_SYS_ADMIN CAP_SYS_NICE";
           };
         };
 
