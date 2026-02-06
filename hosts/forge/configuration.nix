@@ -106,7 +106,7 @@
 
   # AMD GPUs (RX 5700 XT) - Both GPUs on different API port
   services.mining.lolminer.amd.enable = true;
-  services.mining.lolminer.amd.devices = "0,2";
+  services.mining.lolminer.amd.devices = "0,1";
   services.mining.lolminer.amd.powerLimit = 140;
   services.mining.lolminer.amd.apiPort = 4069;
 
