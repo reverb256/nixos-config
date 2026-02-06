@@ -64,7 +64,6 @@ in {
       system = "x86_64-linux";
       config.allowUnfree = true;
     };
-    allowUnfree = true;
   };
 
   # Default deployment settings for all nodes
