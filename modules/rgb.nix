@@ -51,8 +51,8 @@ in {
       KERNEL=="hidraw*", ATTRS{idVendor}=="1cc4", MODE="0666", GROUP="plugdev"
     '';
 
-    # OpenRGB systemd service (optional - can run as user)
-    systemd.services.openrgb-daemon = mkIf cfg.openrgb.enable {
+    # OpenRGB systemd service (disabled - requires display, run manually when needed)
+    systemd.services.openrgb-daemon = mkIf (cfg.openrgb.enable && false) {
       description = "OpenRGB Daemon - RGB control for various devices";
       wantedBy = ["multi-user.target"];
       after = ["network.target" "udev.service"];
