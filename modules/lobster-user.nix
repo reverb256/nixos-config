@@ -45,20 +45,4 @@
     "d /home/lobster/workspace 0755 lobster lobster -"
   ];
 
-  # Set up proper shell environment for lobster
-  home-manager.users.lobster = { pkgs, ... }: {
-    home.stateVersion = "24.05";
-    programs.bash = {
-      enable = true;
-      initExtra = ''
-        # Nix environment
-        if [ -e /run/current-system/sw/bin/nix ]; then
-          export PATH="/run/current-system/sw/bin:$PATH"
-          export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos"
-        fi
-        # OpenClaw agent marker
-        echo "[OpenClaw Agent Shell - lobster@$(hostname)]"
-      '';
-    };
-  };
 }
