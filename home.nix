@@ -6,7 +6,7 @@
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
-    inputs.nix-openclaw.homeManagerModules.openclaw
+    # inputs.nix-openclaw.homeManagerModules.openclaw  # Disabled - creates broken empty config
   ];
 
   # NH (Nix Helper) configuration for better UX
@@ -499,16 +499,7 @@
     vesktop.enable = true;
   };
 
-  # OpenClaw CLI (managed by nix-openclaw HM module)
-  programs.openclaw = {
-    enable = true;
-    # Disable bundledPlugins - they cause Nix conflicts
-    # We'll install plugins directly via clawdhub instead
-    instances.default = {
-      enable = true;
-      gatewayPort = 18789;
-    };
-  };
+
 
   # Autostart Vesktop on login
   systemd.user.services.vesktop-autostart = {
