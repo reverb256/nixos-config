@@ -17,8 +17,8 @@ in {
 
     gatewayHost = lib.mkOption {
       type = lib.types.str;
-      default = "100.81.182.5";
-      description = "Tailscale IP of gateway host (zephyr)";
+      default = "zephyr";
+      description = "Hostname/IP of gateway host (zephyr)";
     };
 
     gatewayTailscalePort = lib.mkOption {
