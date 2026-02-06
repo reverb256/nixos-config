@@ -6,7 +6,7 @@
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
-    #inputs.nix-openclaw.homeManagerModules.openclaw  # TEMPORARILY DISABLED - peekaboo plugin broken
+    inputs.nix-openclaw.homeManagerModules.openclaw
   ];
 
   # NH (Nix Helper) configuration for better UX
