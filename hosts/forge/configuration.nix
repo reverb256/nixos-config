@@ -72,19 +72,13 @@
   # KERNEL PARAMETERS
   # ============================================================================
 
-  # Combined AMD and NVIDIA GPU kernel parameters
+  # Minimal kernel parameters - Generation 2 compatible
+  # GPU params removed to fix boot/storage mounting issues
   boot.kernelParams = [
-    # AMD GPU kernel parameters
-    "amdgpu.noretry=0"
-    "amdgpu.mcbp=1"
-
-    # Enhanced NVIDIA RTX 4060 optimizations (Zen kernel compatible)
-    # Note: Basic Wayland params are set by nvidia-wayland.nix module
-    "nvidia.NVreg_RegistryDwords=PerfLevelSrc=0x2222"
-    "nvidia.NVreg_UsePageAttributeTable=1" # Better memory management
-    "nvidia.NVreg_EnableResizableBar=1" # Resizable BAR for RTX 40xx series
-    "nvidia-uvm/uvm_disable_huge_pages=1" # Fix Wayland compatibility
-    "threadirqs"
+    "loglevel=4"
+    "lsm=landlock,yama,bpf"
+    "simpledrm.disable=1"  # Required for display
+    "nvidia-drm.modeset=1"  # Required for NVIDIA display
   ];
 
   environment.variables = {
@@ -112,8 +106,32 @@
 
   # AMD GPUs (RX 5700 XT) - Both GPUs on different API port
   services.mining.lolminer.amd.enable = true;
-  services.mining.lolminer.amd.devices = "1,2";
+  services.mining.lolminer.amd.devices = "0,1";
+  services.mining.lolminer.amd.powerLimit = 140;
   services.mining.lolminer.amd.apiPort = 4069;
+
+  # AMD GPU Power Management - 140W limit, 86% fan speed
+  systemd.services.amd-gpu-power-mgmt = {
+    description = "AMD GPU Power and Fan Management";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "basic.target" "amd-gpu-check.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "amd-power-mgmt" ''
+        #!/usr/bin/env bash
+        sleep 5
+        if command -v rocm-smi &> /dev/null; then
+          rocm-smi --setpoweroverdrive 140 2>/dev/null || true
+          rocm-smi --setfan 220 2>/dev/null || true
+          echo "AMD GPU: 140W power limit, 86% fan speed configured"
+        fi
+      '';
+    };
+  };
+
+  # Disable OpenRGB on forge mining rig
+  hardware.rgb.openrgb.enable = lib.mkForce false;
 
   # ============================================================================
   # ROCm HIP symlink for OpenCL (fixes SIGSEGV crash)
