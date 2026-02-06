@@ -57,6 +57,7 @@ in {
   imports = [
     ./modules
     ./modules/rgb.nix
+    ./modules/lobster-user.nix
     # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
     # ./modules/flatpak.nix
     # Graceful distributed builds: conservative (4 jobs) when alone, aggressive (21 jobs) with builders
