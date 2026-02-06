@@ -27,9 +27,9 @@ in {
         # OpenRGB packages (either with plugins or minimal)
       ]
       ++ lib.optionals cfg.openrgb.enable (
-        if cfg.openrgb.withPlugins
-        then [openrgb-with-plugins]
-        else [openrgb]
+        if cfg.openrgb.withPlugins && pkgs.openrgb-with-plugins or false
+        then [pkgs.openrgb-with-plugins]
+        else [pkgs.openrgb]
       )
       ++ lib.optionals cfg.corsair.enable [
         ckb-next
@@ -60,7 +60,7 @@ in {
       serviceConfig = {
         Type = "simple";
         ExecStart = "${
-          if cfg.openrgb.withPlugins
+          if cfg.openrgb.withPlugins && pkgs.openrgb-with-plugins or false
           then pkgs.openrgb-with-plugins
           else pkgs.openrgb
         }/bin/OpenRGB --server 6742";
