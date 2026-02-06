@@ -25,8 +25,33 @@ in {
     # Only enable distributed builds if build machines are configured and reachable
     distributedBuilds = lib.mkDefault (config.nix.buildMachines != []);
 
-    # Build machines - configured but disabled by default until explicitly enabled
-    buildMachines = lib.mkDefault [];
+    # Build machines - configured with all cluster nodes
+    buildMachines = [
+      {
+        hostName = "nexus";
+        system = "x86_64-linux";
+        maxJobs = 6;  # nexus: 6 cores
+        speedFactor = 2;
+        supportedFeatures = ["benchmark" "big-parallel" "kvm"];
+        mandatoryFeatures = [];
+      }
+      {
+        hostName = "forge";
+        system = "x86_64-linux";
+        maxJobs = 3;  # forge: 3 cores allocated for builds
+        speedFactor = 1;
+        supportedFeatures = ["benchmark" "big-parallel"];
+        mandatoryFeatures = [];
+      }
+      {
+        hostName = "sentry";
+        system = "x86_64-linux";
+        maxJobs = 4;  # sentry: 4 cores allocated for builds
+        speedFactor = 1;
+        supportedFeatures = ["benchmark" "big-parallel"];
+        mandatoryFeatures = [];
+      }
+    ];
 
     # Settings that ADAPT based on whether distributed builds are enabled
     settings = {
