@@ -27,22 +27,20 @@ in
     ]);
 
     # OpenRGB udev rules for device access
-    services.udev.packages = mkIf cfg.openrgb.enable [
-      (pkgs.writeTextDir "etc/udev/rules.d/60-openrgb.rules" ''
-        # OpenRGB device access rules
-        SUBSYSTEM=="usb", ATTR{idVendor}=="0c09", ATTR{idProduct}=="0001", MODE="0666", GROUP="plugdev"
-        SUBSYSTEM=="usb", ATTR{idVendor}=="1b1c", ATTR{idProduct}=="0c0b", MODE="0666", GROUP="plugdev"
-        SUBSYSTEM=="usb", ATTR{idVendor}=="1b1c", ATTR{idProduct}=="0c13", MODE="0666", GROUP="plugdev"
-        SUBSYSTEM=="usb", ATTR{idVendor}=="1cc4", MODE="0666", GROUP="plugdev"
-        SUBSYSTEM=="usb", ATTR{idVendor}=="0951", MODE="0666", GROUP="plugdev"
-        SUBSYSTEM=="usb", ATTR{idVendor}=="04d8", MODE="0666", GROUP="plugdev"
-        SUBSYSTEM=="usb", ATTR{idVendor}=="04ca", MODE="0666", GROUP="plugdev"
-        SUBSYSTEM=="usb", ATTR{idVendor}=="1d6a", MODE="0666", GROUP="plugdev"
-        KERNEL=="hidraw*", ATTRS{idVendor}=="0c09", MODE="0666", GROUP="plugdev"
-        KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", MODE="0666", GROUP="plugdev"
-        KERNEL=="hidraw*", ATTRS{idVendor}=="1cc4", MODE="0666", GROUP="plugdev"
-      '')
-    ];
+    services.udev.extraRules = mkIf cfg.openrgb.enable ''
+      # OpenRGB device access rules
+      SUBSYSTEM=="usb", ATTR{idVendor}=="0c09", ATTR{idProduct}=="0001", MODE="0666", GROUP="plugdev"
+      SUBSYSTEM=="usb", ATTR{idVendor}=="1b1c", ATTR{idProduct}=="0c0b", MODE="0666", GROUP="plugdev"
+      SUBSYSTEM=="usb", ATTR{idVendor}=="1b1c", ATTR{idProduct}=="0c13", MODE="0666", GROUP="plugdev"
+      SUBSYSTEM=="usb", ATTR{idVendor}=="1cc4", MODE="0666", GROUP="plugdev"
+      SUBSYSTEM=="usb", ATTR{idVendor}=="0951", MODE="0666", GROUP="plugdev"
+      SUBSYSTEM=="usb", ATTR{idVendor}=="04d8", MODE="0666", GROUP="plugdev"
+      SUBSYSTEM=="usb", ATTR{idVendor}=="04ca", MODE="0666", GROUP="plugdev"
+      SUBSYSTEM=="usb", ATTR{idVendor}=="1d6a", MODE="0666", GROUP="plugdev"
+      KERNEL=="hidraw*", ATTRS{idVendor}=="0c09", MODE="0666", GROUP="plugdev"
+      KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", MODE="0666", GROUP="plugdev"
+      KERNEL=="hidraw*", ATTRS{idVendor}=="1cc4", MODE="0666", GROUP="plugdev"
+    '';
 
     # OpenRGB systemd service (optional - can run as user)
     systemd.services.openrgb-daemon = mkIf cfg.openrgb.enable {
