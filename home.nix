@@ -503,18 +503,19 @@
   programs.openclaw = {
     enable = true;
     # Enable bundled plugins to provide built-in skills
-    # Available bundled plugins: summarize, peekaboo, oracle, poltergeist, sag,
-    # camsnap, gogcli, goplaces, bird, sonoscli, imsg
+    # NOTE: Many plugins from nix-steipete-tools are not available for x86_64-linux
+    # Only enabling plugins known to work on Linux
     bundledPlugins = {
       summarize.enable = true; # Summarize web pages, PDFs, videos
-      peekaboo.enable = true; # Take screenshots
       goplaces.enable = true; # Google Places API
       oracle.enable = true; # Web search
       sag.enable = true; # Text-to-speech
       camsnap.enable = true; # Camera snapshots
       gogcli.enable = true; # Google Calendar
-      bird.enable = false; # Twitter/X - not available for x86_64-linux
-      sonoscli.enable = false; # Sonos control (enable if you have Sonos)
+      # Disabled - not available for x86_64-linux:
+      peekaboo.enable = false; # Take screenshots (nix-steipete-tools)
+      bird.enable = false; # Twitter/X (nix-steipete-tools)
+      sonoscli.enable = false; # Sonos control
       poltergeist.enable = false; # macOS UI control (macOS only)
       imsg.enable = false; # iMessage (macOS only)
     };
