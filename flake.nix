@@ -51,10 +51,10 @@
     kimi-cli.url = "github:MoonshotAI/kimi-cli";
     kimi-cli.inputs.nixpkgs.follows = "nixpkgs";
 
-    # OpenClaw - AI agent gateway (DISABLED - using manual install)
-    # nix-openclaw.url = "github:openclaw/nix-openclaw";
-    # nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
-    # nix-openclaw.inputs.home-manager.follows = "home-manager";
+    # OpenClaw - AI agent gateway
+    nix-openclaw.url = "github:openclaw/nix-openclaw";
+    nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
+    nix-openclaw.inputs.home-manager.follows = "home-manager";
 
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
@@ -97,7 +97,7 @@
       {
         nixpkgs.overlays = [
           self.overlays.default
-          # inputs.nix-openclaw.overlays.default  # Disabled
+          inputs.nix-openclaw.overlays.default
         ];
         nixpkgs.config.allowUnfree = true;
         nixpkgs.config.permittedInsecurePackages = [
