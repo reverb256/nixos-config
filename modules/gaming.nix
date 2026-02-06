@@ -247,36 +247,37 @@ with lib; {
   # ============================================================================
   # PACKAGES - VR Applications and Tools
   # ============================================================================
-  environment.systemPackages = with pkgs; [
-    wivrn
-    openxr-loader
-    opencomposite
-    openvr
-    steam-run
-    xrizer
-    motoc
-    gamescope
-    mangohud
-    goverlay
-    nvtopPackages.full
-    gamemode
-    scx.full
-    freetype
-    fontconfig
-    libpng
-    libjpeg
-    libtiff
-    pkgs.ffmpeg
-    # ScopeBuddy dependencies
-    jq
-    wlr-randr
-  ]
-  ++ optionals (inputs != null && inputs ? claude-native) [
-    inputs.claude-native.packages."x86_64-linux".default
-  ]
-  ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
-    inputs.nixpkgs-xr.packages.${pkgs.system}.oscavmgr
-  ];
+  environment.systemPackages = with pkgs;
+    [
+      wivrn
+      openxr-loader
+      opencomposite
+      openvr
+      steam-run
+      xrizer
+      motoc
+      gamescope
+      mangohud
+      goverlay
+      nvtopPackages.full
+      gamemode
+      scx.full
+      freetype
+      fontconfig
+      libpng
+      libjpeg
+      libtiff
+      pkgs.ffmpeg
+      # ScopeBuddy dependencies
+      jq
+      wlr-randr
+    ]
+    ++ optionals (inputs != null && inputs ? claude-native) [
+      inputs.claude-native.packages."x86_64-linux".default
+    ]
+    ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
+      inputs.nixpkgs-xr.packages.${pkgs.system}.oscavmgr
+    ];
 
   # ============================================================================
   # UDEV RULES - VR Device Permissions

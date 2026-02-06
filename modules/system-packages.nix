@@ -91,11 +91,11 @@
       # Razer and Corsair device management tools
       # Razer packages now handled by hardware.openrazer module
       # ============================================================================
-      polychromatic         # Graphical front-end for Razer devices
-      razergenie            # Qt application for configuring Razer devices
-      razer-cli             # Command-line interface for Razer devices
-      ckb-next              # Driver and configuration tool for Corsair devices
-      headsetcontrol        # For Corsair VOID headsets
+      polychromatic # Graphical front-end for Razer devices
+      razergenie # Qt application for configuring Razer devices
+      razer-cli # Command-line interface for Razer devices
+      ckb-next # Driver and configuration tool for Corsair devices
+      headsetcontrol # For Corsair VOID headsets
 
       # ============================================================================
       # CUDA AND ML LIBRARIES

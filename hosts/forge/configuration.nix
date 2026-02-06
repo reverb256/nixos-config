@@ -36,8 +36,6 @@
 
   # Zen kernel for gaming/desktop - force use of currently running kernel version
   boot.kernelPackages = pkgs.linuxPackages_zen;
-  
-
 
   # ============================================================================
   # PREVENT PLASMA SESSION KILL DURING REBUILD
@@ -67,8 +65,6 @@
   boot.initrd.kernelModules = [
     "amdgpu"
   ];
-
-
 
   # ============================================================================
   # KERNEL PARAMETERS
@@ -287,8 +283,6 @@
       OLLAMA_KEEP_ALIVE = "24h";
     };
   };
-
-
 
   # ============================================================================
   # FIREWALL (Minimal - no VR ports on mining rig)

@@ -1,8 +1,12 @@
-{ pkgs, lib, config, ... }:
-with lib;
-let cfg = config.hardware.rgb;
-in
 {
+  pkgs,
+  lib,
+  config,
+  ...
+}:
+with lib; let
+  cfg = config.hardware.rgb;
+in {
   options.hardware.rgb = {
     enable = mkEnableOption "RGB lighting control support";
 
@@ -18,14 +22,18 @@ in
 
   config = mkIf cfg.enable {
     # Install RGB packages
-    environment.systemPackages = with pkgs; [
-      # OpenRGB packages (either with plugins or minimal)
-    ] ++ lib.optionals cfg.openrgb.enable (
-      if cfg.openrgb.withPlugins then [ openrgb-with-all-plugins ]
-      else [ openrgb ]
-    ) ++ lib.optionals cfg.corsair.enable [
-      ckb-next
-    ];
+    environment.systemPackages = with pkgs;
+      [
+        # OpenRGB packages (either with plugins or minimal)
+      ]
+      ++ lib.optionals cfg.openrgb.enable (
+        if cfg.openrgb.withPlugins
+        then [openrgb-with-all-plugins]
+        else [openrgb]
+      )
+      ++ lib.optionals cfg.corsair.enable [
+        ckb-next
+      ];
 
     # OpenRGB udev rules for device access
     services.udev.extraRules = mkIf cfg.openrgb.enable ''
@@ -46,12 +54,16 @@ in
     # OpenRGB systemd service (optional - can run as user)
     systemd.services.openrgb-daemon = mkIf cfg.openrgb.enable {
       description = "OpenRGB Daemon - RGB control for various devices";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" "udev.service" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target" "udev.service"];
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${if cfg.openrgb.withPlugins then pkgs.openrgb-with-all-plugins else pkgs.openrgb}/bin/OpenRGB --server 6742";
+        ExecStart = "${
+          if cfg.openrgb.withPlugins
+          then pkgs.openrgb-with-all-plugins
+          else pkgs.openrgb
+        }/bin/OpenRGB --server 6742";
         Restart = "on-failure";
         RestartSec = 10;
 
@@ -64,7 +76,7 @@ in
 
         User = "root";
         Group = "root";
-        SupplementaryGroups = [ "plugdev" "input" ];
+        SupplementaryGroups = ["plugdev" "input"];
       };
     };
 
