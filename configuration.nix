@@ -88,7 +88,7 @@ in {
       withPlugins = true;
     };
     corsair = {
-      enable = true;  # ckb-next handles keyboard + Lighting Node Pro
+      enable = true; # ckb-next handles keyboard + Lighting Node Pro
     };
   };
 
