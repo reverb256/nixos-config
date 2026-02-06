@@ -553,6 +553,17 @@
         model.primary = "qwen-portal/coder-model";
         model.fallbacks = [ "qwen-portal/vision-model" ];
         workspace = "/home/j_kro/.openclaw/workspace";
+        # Shell configuration for full native command execution as lobster user
+        shell = {
+          user = "lobster";
+          command = "/run/current-system/sw/bin/bash";
+          env = {
+            PATH = "/home/lobster/.local/bin:/home/j_kro/.nix-profile/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin";
+            HOME = "/home/lobster";
+            USER = "lobster";
+            LOGNAME = "lobster";
+          };
+        };
       };
     };
 
