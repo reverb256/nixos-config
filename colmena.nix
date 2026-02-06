@@ -71,25 +71,6 @@ in {
     deployment = {
       # Allow local deployment (useful for testing)
       allowLocalDeployment = true;
-
-      # Timeout for nix-copy-closure operations
-      copyTimeout = 1800; # 30 minutes
-
-      # Retry failed builds
-      retry = 2;
-
-      # Use incremental builds when possible
-      incremental = true;
-
-      # SSH optimization settings
-      sshOptions = [
-        "-o"
-        "ConnectTimeout=10"
-        "-o"
-        "ServerAliveInterval=60"
-        "-o"
-        "ServerAliveCountMax=3"
-      ];
     };
   };
 
