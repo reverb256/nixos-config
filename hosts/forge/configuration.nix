@@ -321,4 +321,14 @@
       user.email = "j_kro@forge";
     };
   };
+
+  services.openclaw-node-host = {
+    enable = true;
+    gatewayHost = "100.81.182.5";
+    displayName = "Forge Build Node";
+    execAllowlist = [
+      "/run/current-system/sw/bin/uname"
+      "/run/current-system/sw/bin/sw_vers"
+    ];
+  };
 }
