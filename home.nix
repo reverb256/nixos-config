@@ -554,6 +554,8 @@
         model.fallbacks = [ "qwen-portal/vision-model" ];
         workspace = "/home/j_kro/.openclaw/workspace";
       };
+
+      # MCP servers configured via mcp-servers.nix home-manager module
     };
 
     # No plugins - using clawdhub for skills instead
