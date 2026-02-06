@@ -68,7 +68,7 @@ with lib; {
     };
     # Security hardening: restrict to wired interfaces only
     # Override per-host with allowInterfaces/denyInterfaces if needed
-    allowInterfaces = ["enp38s0" "enp7s0"];  # zephyr and nexus wired NICs
+    allowInterfaces = ["enp38s0" "enp7s0"]; # zephyr and nexus wired NICs
     denyInterfaces = ["tailscale0" "wlan*" "docker*" "virbr*" "wg*"];
     # Extra config for security hardening
     extraConfig = ''

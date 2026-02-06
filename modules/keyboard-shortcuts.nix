@@ -4,8 +4,7 @@
   pkgs,
   ...
 }:
-with lib;
-{
+with lib; {
   options = {
     # Empty options section as we're just configuring existing services
   };
@@ -17,7 +16,7 @@ with lib;
       # Disable the virtual terminal switching shortcuts that conflict with window navigation
       xkb = {
         # Configure XKB options to disable Ctrl+Alt+Fx TTY switching
-        options = "terminate:ctrl_alt_bksp";  # Keep only Ctrl+Alt+Backspace to terminate X server
+        options = "terminate:ctrl_alt_bksp"; # Keep only Ctrl+Alt+Backspace to terminate X server
       };
     };
 
