@@ -269,6 +269,20 @@ in {
   #   # Use default buckets from module
   # };
 
+  # Remove old openclaw-declarative symlinks from previous deployment
+  systemd.services.remove-openclaw-declarative = {
+    wantedBy = ["multi-user.target"];
+    serviceConfig.Type = "oneshot";
+    serviceConfig.RemainAfterExit = true;
+    serviceConfig.ExecStart = ''
+      rm -f /etc/systemd/system/openclaw-declarative.service
+      rm -f /etc/systemd/system/multi-user.target.wants/openclaw-declarative.service
+      rm -f /etc/systemd/system/openclaw-container-declarative-health.service
+      rm -f /etc/systemd/system/openclaw-container-declarative-health.timer
+      rm -f /etc/systemd/system/timers.target.wants/openclaw-container-declarative-health.timer
+    '';
+  };
+
   # OpenClaw automated backups to cloud storage - Temporarily disabled pending secret setup
   # services.openclaw-backups = {
   #   enable = true;
