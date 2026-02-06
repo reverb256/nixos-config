@@ -143,4 +143,14 @@
       remote.origin.url = "git@github.com:reverb256/nixos-config.git";
     };
   };
+
+  services.openclaw-node-host = {
+    enable = true;
+    gatewayHost = "zephyr";
+    displayName = "Sentry Build Node";
+    execAllowlist = [
+      "/run/current-system/sw/bin/uname"
+      "/run/current-system/sw/bin/sw_vers"
+    ];
+  };
 }
