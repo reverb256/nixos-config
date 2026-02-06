@@ -4,14 +4,14 @@
     enable = true;
     settings = {
       # Authentication Settings - Security hardened
-      PasswordAuthentication = false; # Disable password auth
+      PasswordAuthentication = false;
       KbdInteractiveAuthentication = false;
       PubkeyAuthentication = true;
       PermitRootLogin = "no";
       PermitEmptyPasswords = false;
       ChallengeResponseAuthentication = false;
 
-      # Modern Cryptographic Settings
+      # Modern Cryptographic Settings (Mozilla Modern recommendations)
       Ciphers = [
         "chacha20-poly1305@openssh.com"
         "aes256-gcm@openssh.com"
@@ -23,8 +23,6 @@
 
       KexAlgorithms = [
         "mlkem768x25519-sha256"
-        "sntrup761x25519-sha512"
-        "sntrup761x25519-sha512@openssh.com"
         "curve25519-sha256"
         "curve25519-sha256@libssh.org"
         "diffie-hellman-group-exchange-sha256"
@@ -38,13 +36,18 @@
 
       # Security and Performance Settings
       UseDns = false;
-      LogLevel = "INFO";
+      LogLevel = "VERBOSE";
       AllowUsers = ["j_kro" "nixbuild"];
       AllowGroups = ["wheel" "nixbuild"];
-      ClientAliveInterval = 60;
-      ClientAliveCountMax = 3;
+      ClientAliveInterval = 300;
+      ClientAliveCountMax = 0;
       MaxAuthTries = 3;
       MaxSessions = 10;
+
+      # Disable features we don't use
+      AllowTcpForwarding = false;
+      AllowAgentForwarding = false;
+      X11Forwarding = false;
     };
   };
 

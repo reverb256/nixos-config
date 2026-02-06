@@ -49,7 +49,6 @@ Internet ── Router (10.1.1.1)
 │   ├── tailscale.nix        # Tailscale mesh VPN
 │   ├── openclaw-declarative-container.nix  # AI orchestration
 │   ├── openclaw-storage.nix                 # AIStor integration
-│   ├── openclaw-nginx.nix                   # Reverse proxy
 │   ├── mining.nix                          # Mining services
 │   ├── gaming.nix                          # VR/gaming setup
 │   └── ...                                # Other modules

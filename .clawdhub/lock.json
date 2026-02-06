@@ -72,6 +72,22 @@
     "crypto-wallet": {
       "version": "1.0.1",
       "installedAt": 1769856020521
+    },
+    "computer-use": {
+      "version": "1.2.0",
+      "installedAt": 1770345494369
+    },
+    "project-manager": {
+      "version": "1.0.0",
+      "installedAt": 1770345509722
+    },
+    "marketing-mode": {
+      "version": "1.0.0",
+      "installedAt": 1770345520858
+    },
+    "cli-developer": {
+      "version": "0.1.0",
+      "installedAt": 1770345529190
     }
   }
 }
