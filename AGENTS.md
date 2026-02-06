@@ -67,6 +67,86 @@ Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all no
 
 > **Note to Agents:** When modifying services, ensure they bind to `127.0.0.1` and use `virtualisation.oci-containers` (Podman) instead of Docker.
 
+## 🤖 OpenClaw Agent ("Claw") - CLI Interaction
+
+OpenClaw is deployed via `nix-openclaw` and runs as a systemd user service. The agent can be interacted with directly through the CLI.
+
+### Status & Health
+```bash
+# Check gateway status
+openclaw doctor
+
+# Check service status
+systemctl --user status openclaw-gateway.service
+
+# View logs
+journalctl --user -u openclaw-gateway.service -f
+```
+
+### Messaging the Agent (CLI)
+
+Send messages to Claw and receive replies directly in the terminal:
+
+```bash
+# Basic message (reply prints to stdout)
+openclaw agent --session-id "agent:main:main" --message "Hello!"
+
+# With verbose output
+openclaw agent --session-id "agent:main:main" --message "Hello!" --verbose on
+
+# Using local embedded mode (requires API keys in shell)
+openclaw agent --local --message "Hello!"
+
+# List available sessions
+openclaw sessions
+```
+
+**Important:** Do NOT use `--deliver` flag for CLI replies - that sends the response back to Telegram instead of printing to stdout.
+
+### Telegram Integration
+
+The agent is connected to Telegram bot `@reverbOS_bot`. To message via Telegram:
+
+```bash
+# Send message via Telegram bot
+openclaw message send --channel telegram --target "1384182343" --message "Hello from CLI"
+
+# Or just message the bot directly in Telegram app
+```
+
+### Session Management
+
+```bash
+# List active sessions
+openclaw sessions
+
+# Check agent skills
+openclaw skills list
+
+# Check agent status
+openclaw status
+```
+
+### Configuration
+
+Config is managed declaratively in `home.nix` under `programs.openclaw`. Runtime config stored at:
+- `~/.openclaw/openclaw.json`
+- `~/.openclaw/workspace/` (skills, documents, sessions)
+
+### Troubleshooting
+
+If the agent stops responding:
+```bash
+# Restart the gateway
+systemctl --user restart openclaw-gateway.service
+
+# Check for errors
+openclaw doctor
+
+# View detailed logs
+cat /tmp/openclaw/openclaw-*.log | tail -50
+```
+
 ## 🎮 Gaming & ScopeBuddy
 
 ### **ScopeBuddy Auto-Detection**
