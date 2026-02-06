@@ -190,8 +190,7 @@ in {
       };
     };
 
-    # Firewall - only allow localhost access by default
-    # Use nginx reverse proxy for external access
+    # Firewall - only allow localhost access
     networking.firewall.interfaces.lo.allowedTCPPorts = [cfg.port];
   };
 }

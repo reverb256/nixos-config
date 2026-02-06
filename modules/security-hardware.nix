@@ -5,8 +5,10 @@
   # YubiKey Manager for device configuration
   programs.yubikey-manager.enable = true;
 
-  # Bitwarden CLI for password management
-  programs.bitwarden.enable = true;
+  # RBW - Rust Bitwarden CLI (headless password manager)
+  environment.systemPackages = with pkgs; [
+    rbw
+  ];
 
   # Enable SSH agent for key management
   programs.ssh.startAgent = true;
@@ -14,7 +16,7 @@
   # GPG agent for YubiKey PGP keys (if used)
   programs.gnupg.agent = {
     enable = true;
-    enableSSHSupport = true;
+    enableSSHSupport = false;
     pinentryPackage = pkgs.pinentry;
   };
 
