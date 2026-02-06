@@ -23,6 +23,8 @@
     ../../modules/garnix.nix
     ../../modules/auto-update.nix
     ../../modules/ssh.nix
+    # Import mining services module
+    ../../modules/mining.nix
   ];
 
   # Host identification
