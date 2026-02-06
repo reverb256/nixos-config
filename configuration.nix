@@ -64,7 +64,16 @@ in {
     ./modules/distributed-builds-graceful.nix
     # Secrets must be imported AFTER agenix module
     ./secrets/agenix-secrets.nix
+    # OpenClaw service module
+    ./modules/services/openclaw
   ];
+
+  # OpenClaw AI Gateway Service
+  services.openclaw = {
+    enable = true;
+    port = 18789;
+    autoStart = true;
+  };
 
   # ============================================================================
   # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
