@@ -29,6 +29,8 @@
     ../../modules/garnix.nix
     ../../modules/auto-update.nix
     ../../modules/ssh.nix
+    # Import OpenClaw node host module
+    ../../modules/openclaw-node-host.nix
   ];
 
   # Host identification
@@ -221,5 +223,15 @@
     TS_ADVERTISE_ROUTES = "10.1.1.0/24";
     TS_ROUTES = "";
     TS_SSH = "true";
+  };
+
+  services.openclaw-node-host = {
+    enable = true;
+    gatewayHost = "zephyr";
+    displayName = "Nexus Build Node";
+    execAllowlist = [
+      "/run/current-system/sw/bin/uname"
+      "/run/current-system/sw/bin/sw_vers"
+    ];
   };
 }
