@@ -513,7 +513,7 @@
       sag.enable = true; # Text-to-speech
       camsnap.enable = true; # Camera snapshots
       gogcli.enable = true; # Google Calendar
-      bird.enable = true; # Twitter/X
+      bird.enable = false; # Twitter/X - not available for x86_64-linux
       sonoscli.enable = false; # Sonos control (enable if you have Sonos)
       poltergeist.enable = false; # macOS UI control (macOS only)
       imsg.enable = false; # iMessage (macOS only)
