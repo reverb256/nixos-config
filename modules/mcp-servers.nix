@@ -188,49 +188,6 @@ in {
       '';
     };
 
-    # Unified MCP configuration for ALL AI tools
-    home-manager.users.j_kro = let
-      mcpServers = {
-        filesystem = lib.optionalAttrs cfg.servers.filesystem.enable {
-          command = "mcp-filesystem";
-          args = cfg.servers.filesystem.allowedPaths;
-        };
-        git = lib.optionalAttrs cfg.servers.git.enable {
-          command = "mcp-git";
-        };
-        playwright = lib.optionalAttrs cfg.servers.playwright.enable {
-          command = "mcp-playwright";
-        };
-        fetch = lib.optionalAttrs cfg.servers.fetch.enable {
-          command = "mcp-fetch";
-        };
-        context7 = lib.optionalAttrs cfg.servers.context7.enable {
-          command = "mcp-context7";
-        };
-        grep-app = lib.optionalAttrs cfg.servers.grep-app.enable {
-          command = "mcp-grep-app";
-        };
-        chrome-devtools = lib.optionalAttrs cfg.servers.chrome-devtools.enable {
-          command = "mcp-chrome-devtools";
-        };
-        github = lib.optionalAttrs (cfg.servers.github.enable && cfg.servers.github.apiKey != "") {
-          command = "mcp-github";
-          env = {
-            GITHUB_API_TOKEN = cfg.servers.github.apiKey;
-          };
-        };
-        openclaw = lib.optionalAttrs cfg.servers.openclaw.enable {
-          command = "mcp-openclaw";
-        };
-      };
-    in {
-      # OpenCode MCP configuration
-      programs.opencode = {
-        enable = true;
-        settings.mcp.servers = mcpServers;
-      };
-    };
-
     # Documentation
     environment.etc."mcp-servers/README.md".text = ''
       # Unified MCP Servers for All AI Tools
@@ -251,15 +208,41 @@ in {
       | github | STDIO | GitHub integration |
       | openclaw | STDIO | OpenClaw Gateway tools |
 
-      ## Tools Using These MCP Servers
+       ## Available MCP Server Commands
 
-      - **OpenCode**: `~/.config/opencode/settings.json`
-      - **OpenClaw**: `~/.openclaw/openclaw.json` (mcp.servers)
-      - **Kimi/Kilo**: `~/.kilocode/cli/global/settings/mcp_settings.json`
+       MCP servers are installed as system packages and available via PATH:
 
-      ## NixOS Integration
+       | Server | Command | Purpose |
+       |--------|---------|---------|
+       | filesystem | `mcp-filesystem` | Local filesystem access |
+       | git | `mcp-git` | Git operations |
+       | playwright | `mcp-playwright` | Browser automation |
+       | fetch | `mcp-fetch` | Web fetching |
+       | context7 | `mcp-context7` | Documentation search |
+       | grep-app | `mcp-grep-app` | Code search |
+       | chrome-devtools | `mcp-chrome-devtools` | Chrome debugging |
+       | github | `mcp-github` | GitHub integration |
+       | openclaw | `mcp-openclaw` | OpenClaw Gateway tools |
 
-      Configure in `/etc/nixos/modules/mcp-servers.nix`
-    '';
+       ## Configuration
+
+       Configure MCP servers manually in each tool's config file:
+
+       - **OpenCode**: `~/.config/opencode/settings.json`
+       - **OpenClaw**: `~/.openclaw/openclaw.json`
+       - **Kilo Code**: `~/.kilocode/cli/global/settings/mcp_settings.json`
+
+       Example MCP server config format:
+       ```json
+       {
+         "servers": {
+           "filesystem": {
+             "command": "mcp-filesystem",
+             "args": ["/etc/nixos", "$HOME"]
+           }
+         }
+       }
+       ```
+     '';
   };
 }
