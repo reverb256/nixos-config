@@ -109,8 +109,10 @@ with lib; {
       createHome = false;
       shell = "/bin/bash";
       openssh.authorizedKeys.keys = [
-        # Cluster-wide distributed build key
+        # Cluster-wide distributed build key (legacy)
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBrQ6cTBLsgw8N2xKu6S3p7mlBiicKRL39QflEKaJvDl nix-distributed-build"
+        # j_kro@zephyr SSH key (current)
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKxlZFnzslRkCM+6mEdPpgLDudCRHYdeEcJoAPLDmHvm j_kro@zephyr"
       ];
     };
   };

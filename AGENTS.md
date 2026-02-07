@@ -48,9 +48,14 @@ Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all no
 ## 🏗️ Architecture
 *   **Configuration Master:** `/etc/nixos/` on zephyr - SOLE SOURCE OF TRUTH for all cluster nodes
 *   **Container Engine:** Podman (Declarative, Rootless)
-*   **Networking:** Tailscale Mesh (100.x.x.x)
+*   **Networking:** Tailscale Mesh (100.x.x.x) + 1Gbps wired network (TP-Link Easy Smart Switches)
 *   **Security:** Services bind 127.0.0.1, exposed via Nginx only
-*   **Build System:** Distributed builds enabled over `ssh-ng`
+*   **Build System:** Distributed builds with GPU acceleration (CUDA + ROCm)
+    *   **Total Build Capacity:** 26 concurrent jobs (up from 13)
+    *   **GPU Features:** CUDA (nexus, forge, zephyr), ROCm (forge, sentry)
+    *   **Binary Caches:** 5 caches including cuda.cachix.org and rocm.cachix.org
+    *   **Network Optimization:** 100 parallel HTTP connections for 1Gbps
+    *   **Mining Awareness:** Build capacity adjusted for active mining operations
 *   **Secret Management:** Agenix with age key at `/root/.config/sops/age/keys.txt`
 *   **Deployment:** All nodes deployed via SSH from zephyr using `just <hostname>`
 

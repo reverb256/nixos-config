@@ -526,3 +526,38 @@ For a detailed portfolio showcase of this infrastructure, see [PORTFOLIO.md](doc
 ---
 
 **Reverb-OS** - NixOS-based personal AI assistant platform with GitOps deployment, Tailscale mesh VPN, and OpenClaw AI orchestration.
+
+### **🚀 New Features (2026-02-07)**
+
+#### GPU-Accelerated Builds
+- **CUDA support** on nexus (2x RTX 3060 Ti), forge (2x RTX 4060), and zephyr (RTX 3090)
+- **ROCm support** on forge (2x RX 5700 XT) and sentry (RX 5600 XT)
+- Automatic GPU detection for intelligent build routing
+
+#### Network Optimization
+- **1Gbps networking** with TP-Link Easy Smart Switches
+- **100 parallel HTTP connections** for faster dependency downloads
+- Optimized for fast binary cache access
+
+#### Binary Cache Enhancement
+- Added **cuda.cachix.org** for NVIDIA GPU packages
+- Added **rocm.cachix.org** for AMD GPU packages
+- Total of **5 binary caches** configured
+
+#### Mining-Aware Build Scheduling
+- Build capacity adjusted based on active mining operations
+- Forge: 2 jobs (conservative due to heavy mining)
+- Zephyr: 6 jobs (reduced due to active CPU+GPU mining)
+- Nexus: 12 jobs (prioritized - 48GB RAM, moderate GPU mining)
+
+#### Documentation
+- **`docs/GPU_BUILDS.md`** - Comprehensive GPU build user guide
+- **`docs/MINING_STATUS.md`** - Current mining configuration across cluster
+- Updated build comments with mining awareness
+
+### **📚 New Documentation**
+
+- [GPU Build Guide](docs/GPU_BUILDS.md) - Complete guide for GPU-accelerated builds
+- [Mining Status](docs/MINING_STATUS.md) - Mining configuration per node
+- [Distributed Builds](modules/distributed-builds.nix) - Build configuration with GPU features
+
