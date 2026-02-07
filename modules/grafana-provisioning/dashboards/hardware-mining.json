@@ -1,0 +1,263 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Hardware Monitoring - GPU & Mining",
+    "tags": ["nixos", "mining", "gpu", "hardware"],
+    "timezone": "browser",
+    "schemaVersion": 17,
+    "version": 0,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Mining Hashrates",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "mining_shares_total[10m]",
+            "legendFormat": "{{instance}} shares/10m",
+            "refId": "A"
+          },
+          {
+            "expr": "mining_shares_total[1h]",
+            "legendFormat": "{{instance}} shares/1h",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "h": 12,
+          "w": 12
+        },
+        "yaxes": [
+          {
+            "id": "Y",
+            "position": "left",
+            "show": true
+          }
+        ],
+        "description": "Mining share rates over different time windows"
+      },
+      {
+        "id": 2,
+        "title": "GPU Temperature",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "nvidia_gpu_temperature_celsius",
+            "legendFormat": "{{instance}}",
+            "refId": "C"
+          }
+        ],
+        "gridPos": {
+          "h": 12,
+          "w": 6
+        },
+        "options": {
+          "minVizColor": "blue",
+          "maxVizColor": "red",
+          "orientation": "horizontal",
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 75
+              },
+              {
+                "color": "orange",
+                "value": 85
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "description": "GPU temperature across all hosts - high temp = throttling risk"
+      },
+      {
+        "id": 3,
+        "title": "GPU Power Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "nvidia_gpu_power_usage_milliwatts",
+            "legendFormat": "{{instance}}",
+            "refId": "D"
+          }
+        ],
+        "gridPos": {
+          "h": 12,
+          "w": 12
+        },
+        "options": {
+          "legend": {
+            "showLegend": true,
+            "calcs": false,
+            "displayMode": "list",
+            "placement": "bottom",
+            "avg": true,
+            "max": true,
+            "min": true,
+            "show": true
+          }
+        },
+        "description": "GPU power consumption in milliwatts"
+      },
+      {
+        "id": 4,
+        "title": "GPU Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(nvidia_gpu_memory_used_bytes / nvidia_gpu_memory_total_bytes) * 100",
+            "legendFormat": "{{instance}}",
+            "refId": "E"
+          }
+        ],
+        "gridPos": {
+          "h": 12,
+          "w": 12
+        },
+        "yaxes": [
+          {
+            "id": "Y",
+            "position": "left",
+            "max": 100,
+            "show": true,
+            "unit": "percent"
+          }
+        ],
+        "description": "GPU memory utilization percentage"
+      },
+      {
+        "id": 5,
+        "title": "GPU Fan Speed",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "nvidia_gpu_fan_speed_percent",
+            "legendFormat": "{{instance}}",
+            "refId": "F"
+          }
+        ],
+        "gridPos": {
+          "h": 18,
+          "w": 6
+        },
+        "options": {
+          "minVizColor": "green",
+          "maxVizColor": "red",
+          "orientation": "horizontal",
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "orange",
+                "value": 75
+              },
+              {
+                "color": "red",
+                "value": 95
+              }
+            ]
+          }
+        },
+        "description": "GPU fan speed percentage"
+      },
+      {
+        "id": 6,
+        "title": "NVIDIA Clock Speeds",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "nvidia_gpu_clock_graphics_mhz",
+            "legendFormat": "{{instance}} graphics",
+            "refId": "G1"
+          },
+          {
+            "expr": "nvidia_gpu_clock_sm_mhz",
+            "legendFormat": "{{instance}} sm",
+            "refId": "G2"
+          },
+          {
+            "expr": "nvidia_gpu_clock_memory_mhz",
+            "legendFormat": "{{instance}} memory",
+            "refId": "G3"
+          }
+        ],
+        "gridPos": {
+          "h": 6,
+          "w": 18
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "showLegend": true
+          }
+        },
+        "description": "NVIDIA GPU clock speeds for graphics, SM, and memory"
+      },
+      {
+        "id": 7,
+        "title": "Power Limit (W)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "nvidia_power_limit",
+            "legendFormat": "{{instance}}",
+            "refId": "P"
+          }
+        ],
+        "gridPos": {
+          "h": 6,
+          "w": 12
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none"
+        },
+        "description": "Power limit in watts for each GPU"
+      },
+      {
+        "id": 8,
+        "title": "GPU Utilization",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "nvidia_gpu_utilization",
+            "legendFormat": "{{instance}}",
+            "refId": "U"
+          }
+        ],
+        "gridPos": {
+          "h": 6,
+          "w": 12
+        },
+        "options": {
+          "tooltip": {
+            "mode": "multi"
+          },
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "showLegend": true
+          }
+        },
+        "description": "GPU utilization percentage (combined compute + display)"
+      }
+    ]
+  }
+}

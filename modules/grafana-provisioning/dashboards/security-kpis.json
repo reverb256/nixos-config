@@ -1,0 +1,129 @@
+# Prometheus Rules
+# High CPU Alert
+- alert: HighCPU
+  expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+  for: 5m
+  labels:
+    severity: warning
+    category: resource
+    team: operations
+  annotations:
+    summary: "High CPU usage on {{ $labels.instance }}"
+    description: "CPU utilization exceeded 80% for 5 minutes"
+
+# High Memory Alert
+- alert: HighMemory
+  expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+  for: 5m
+  labels:
+    severity: warning
+    category: resource
+    team: operations
+  annotations:
+    summary: "High memory usage on {{ $labels.instance }}"
+    description: "Memory utilization exceeded 90% for 5 minutes"
+
+# Disk Full Alert
+- alert: DiskFull
+  expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 90
+  for: 5m
+  labels:
+    severity: critical
+    category: infrastructure
+    team: operations
+  annotations:
+    summary: "Disk almost full on {{ $labels.instance }}"
+    description: "Disk usage exceeded 90% for 5 minutes"
+
+# Service Down Alerts
+- alert: MiningServiceDown
+  expr: up{job="mining"} == 0
+  for: 1m
+  labels:
+    severity: critical
+    category: mining
+    team: mining
+  annotations:
+    summary: "Mining service is down on {{ $labels.instance }}"
+    description: "Mining service unreachable for 1 minute"
+
+- alert: OpenClawGatewayDown
+  expr: up{job="openclaw"} == 0
+  for: 1m
+  labels:
+    severity: critical
+    category: services
+    team: ai
+  annotations:
+    summary: "OpenClaw gateway is down on {{ $labels.instance }}"
+    description: "OpenClaw gateway unreachable for 1 minute"
+
+# SSH Attack Detection
+- alert: SSHBruteForce
+  expr: rate(node_login_total[5m]) > 5
+  for: 5m
+  labels:
+    severity: warning
+    category: security
+    team: security
+  annotations:
+    summary: "Potential SSH brute force attack on {{ $labels.instance }}"
+    description: "More than 5 SSH login attempts per 5 minutes"
+
+# Mining Alerts
+- alert: MiningHashrateDrop
+  expr: rate(mining_shares_total[10m]) < 1
+  for: 10m
+  labels:
+    severity: warning
+    category: mining
+    team: mining
+  annotations:
+    summary: "Mining hashrate dropped significantly on {{ $labels.instance }}"
+    description: "Less than 1 share per 10 minutes - possible issue"
+
+# GPU Alerts
+- alert: GPUHighTemperature
+  expr: nvidia_gpu_temperature_celsius > 85
+  for: 5m
+  labels:
+    severity: warning
+    category: hardware
+    team: operations
+  annotations:
+    summary: "GPU temperature exceeds 85°C on {{ $labels.instance }}"
+    description: "GPU temperature above threshold - check cooling"
+
+- alert: GPUMemoryHigh
+  expr: nvidia_gpu_memory_used_bytes / nvidia_gpu_memory_total_bytes > 0.9
+  for: 5m
+  labels:
+    severity: warning
+    category: hardware
+    team: operations
+  annotations:
+    summary: "GPU memory usage exceeds 90% on {{ $labels.instance }}"
+    description: "GPU memory running low"
+
+# Security KPIs
+- alert: HighMTTD
+  expr: avg(increase(prometheus_alerts{alertstate="firing"}[5m])) > 300
+  for: 5m
+  labels:
+    severity: warning
+    category: security
+    team: security
+  annotations:
+    summary: "Mean Time to Detection (MTTD) exceeds 5 minutes"
+    description: "Average time to detect security incidents is above 5 minute target"
+
+- alert: HighMTTR
+  expr: avg(prometheus_alerts{alertstate="firing"} - prometheus_alerts{alertstate="firing"} offset 5m)[5m]) > 900
+  for: 5m
+  labels:
+    severity: critical
+    category: security
+    team: security
+  annotations:
+    summary: "Mean Time to Response (MTTR) exceeds 15 minutes"
+    description: "Average time to resolve incidents is above 15 minute target"

@@ -1,0 +1,183 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "System Overview - NixOS Cluster",
+    "tags": ["nixos", "cluster", "monitoring"],
+    "timezone": "browser",
+    "schemaVersion": 17,
+    "version": 0,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Cluster Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"prometheus\"}",
+            "legendFormat": "Prometheus: {{value}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 24
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            }
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "Down"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Up"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "description": "Overall cluster health status - green means all hosts online"
+      },
+      {
+        "id": 2,
+        "title": "Host Availability",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "up",
+            "format": "table",
+            "instant": true,
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 20
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "mode": "series"
+            },
+            "fields": [
+              {
+                "name": "Value"
+                "type": "number"
+              },
+              {
+                "name": "instance"
+                "type": "string"
+              }
+            ]
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "description": "Show status of all 4 cluster hosts (zephyr, nexus, forge, sentry)"
+      },
+      {
+        "id": 3,
+        "title": "CPU Usage (5 min avg)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "{{instance}}",
+            "refId": "C"
+          }
+        ],
+        "gridPos": {
+          "h": 9,
+          "w": 12
+        },
+        "yaxes": [
+          {
+            "id": "Y",
+            "position": "left",
+            "max": 100,
+            "show": true
+          }
+        ],
+        "description": "CPU utilization percentage across all hosts"
+      },
+      {
+        "id": 4,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100)",
+            "legendFormat": "{{instance}}",
+            "refId": "D"
+          }
+        ],
+        "gridPos": {
+          "h": 9,
+          "w": 12
+        },
+        "yaxes": [
+          {
+            "id": "Y",
+            "position": "left",
+            "max": 100,
+            "show": true
+          }
+        ],
+        "description": "Memory usage percentage across all hosts"
+      },
+      {
+        "id": 5,
+        "title": "Disk Usage",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100)",
+            "legendFormat": "{{instance}} - {{mountpoint}}",
+            "refId": "E"
+          }
+        ],
+        "gridPos": {
+          "h": 9,
+          "w": 12
+        },
+        "options": {
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "values": false,
+            "calcs": false
+          }
+        },
+        "description": "Disk usage percentage for root filesystem"
+      }
+    ]
+  }
+}
