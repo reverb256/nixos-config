@@ -82,7 +82,6 @@
       enable = true;
       algorithm = "CR29";
       pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
-      wallet = "krxXVNVMM7.zephyr";
       nvidia = {
         enable = true;
         devices = "0";
