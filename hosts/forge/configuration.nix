@@ -96,15 +96,12 @@
     OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
   };
 
-  # ============================================================================
-  # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
-  # ============================================================================
-  # ============================================================================
-  # MINING CONFIGURATION
-  # ============================================================================
+   # ============================================================================
+   # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
+   # ============================================================================
    services.mining.enable = true;
 
-  # Enable NVIDIA Wayland for RTX 4060s
+   # Enable NVIDIA Wayland for RTX 4060s
   hardware.nvidia.wayland.enable = true;
 
   # NVIDIA GPUs (RTX 4060s) - Both GPUs mining

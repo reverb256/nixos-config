@@ -6,6 +6,7 @@
 }:
 with lib; let
   cfg = config.services.mining;
+  hostname = config.networking.hostName;
 
   lolminerWrapper = pkgs.writeShellScriptBin "lolminer-wrapper" ''
     #!/usr/bin/env bash
@@ -16,6 +17,8 @@ with lib; let
     #!/usr/bin/env bash
     exec ${pkgs.lolminer}/bin/lolMiner "$@"
   '';
+
+  defaultWallet = "krxXVNVMM7.${hostname}";
 in {
   options.services.mining = {
     enable = mkEnableOption "Robust Mining Services";
@@ -37,7 +40,7 @@ in {
       };
       wallet = mkOption {
         type = types.str;
-        default = "krxXVNVMM7.zephyr";
+        default = defaultWallet;
       };
       nvidia = {
         enable = mkEnableOption "NVIDIA GPU Mining";
@@ -80,7 +83,7 @@ in {
       };
       wallet = mkOption {
         type = types.str;
-        default = "krxXVNVMM7.zephyr";
+        default = defaultWallet;
       };
       password = mkOption {
         type = types.str;
