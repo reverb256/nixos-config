@@ -182,7 +182,7 @@
     after = ["basic.target"];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || lspci -v | grep -i amd > /tmp/amd-gpu-info.log 2>&1'";
+      ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
       RemainAfterExit = true;
     };
   };
