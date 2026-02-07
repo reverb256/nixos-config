@@ -23,6 +23,8 @@
     ../../modules/garnix.nix
     ../../modules/auto-update.nix
     ../../modules/ssh.nix
+    # Import distributed builds module (GPU+ROCm support)
+    ../../modules/distributed-builds.nix
   ];
 
   # Host identification

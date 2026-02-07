@@ -74,23 +74,23 @@
         StrictHostKeyChecking accept-new
         ConnectTimeout 5
 
-      # Build machines - use nixbuild user (configured in distributed-builds.nix)
+      # Build machines - use j_kro user for distributed builds
       # These override the default user for distributed builds
       Host nexus 10.1.1.120
         HostName 10.1.1.120
-        User nixbuild
+        User j_kro
         IdentityFile /home/j_kro/.ssh/id_nixbuild
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
       Host forge 10.1.1.130
         HostName 10.1.1.130
-        User nixbuild
+        User j_kro
         IdentityFile /home/j_kro/.ssh/id_nixbuild
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
       Host sentry 10.1.1.140
         HostName 10.1.1.140
-        User nixbuild
+        User j_kro
         IdentityFile /home/j_kro/.ssh/id_nixbuild
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
