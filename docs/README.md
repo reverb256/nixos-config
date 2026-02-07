@@ -13,10 +13,10 @@ A comprehensive NixOS flake-based configuration for a high-performance distribut
 |------|------------|------|-----------|--------|-----|---------|
 | **zephyr** | 10.1.1.110 | Master Node | 32 cores (Ryzen 9 5950X) | 64GB | RTX 3090 | VR Gaming, Development, Build Coordination |
 | **nexus** | 10.1.1.120 | Build/Backup | 24 cores (Ryzen 9 3900X) | 32GB | 2x RTX 3060 Ti | Distributed Builds, Backup Storage |
-| **forge** | 10.1.1.130 | GPU Compute | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Compute, Mining |
+| **forge** | 10.1.1.130 | GPU Compute | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Mining (NVIDIA+AMD) |
 | **sentry** | 10.1.1.140 | Monitoring | 8 cores (Ryzen 7 1700) | 32GB | RX 5600 XT | Monitoring, Light Builds |
 
-**Total Build Capacity:** **51 cores** across 3 build hosts + master coordination
+**Total Build Capacity:** **70 cores** across all 4 hosts (zephyr 32, nexus 24, forge 6, sentry 8)
 
 ### **Network Topology**
 ```
@@ -90,13 +90,16 @@ just switch
 ### **Cluster Deployment**
 ```bash
 # Update and deploy to all hosts
-just cluster-update
+just update
+
+# Deploy to all nodes
+just deploy
 
 # Check cluster status
-just cluster-status
+just status
 
-# Monitor resources
-just cluster-resources
+# Monitor resources (use Grafana dashboards)
+# TODO: Create resource monitoring dashboard
 ```
 
 ## 📖 Usage Guide
@@ -513,7 +516,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ using NixOS and Colmena**
 
-**Last Updated:** January 26, 2026
+**Last Updated:** February 7, 2026
 **Latest Commit:** [Latest - VR Gaming Configuration Complete]
 **Build Capacity:** 51 cores across distributed cluster (zephyr 32, nexus 8, forge 3, sentry 8)
 **VR Gaming Features:** ✅ Complete WiVRn + SteamVR setup with smart mining pause

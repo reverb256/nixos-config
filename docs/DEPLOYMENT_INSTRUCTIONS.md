@@ -8,7 +8,26 @@
 
 ## Deployment Commands
 
-### Option 1: Manual Deployment (Recommended for initial deployment)
+### Option 1: Using just-cluster (Recommended)
+```bash
+# Deploy to all nodes:
+cd /etc/nixos
+just deploy
+
+# Deploy to specific host:
+just zephyr
+just nexus
+just forge
+just sentry
+
+# Check cluster status:
+just status
+
+# Copy age keys to all nodes (run first time):
+just prep
+```
+
+### Option 2: Manual Deployment (For troubleshooting)
 ```bash
 # On zephyr (master node):
 ssh j_kro@zephyr
@@ -61,9 +80,11 @@ echo "🎉 All deployments complete!"
 ### Mining Services Check
 ```bash
 # Check mining status on all hosts
+# Note: XMRig (CPU) runs on zephyr, nexus, sentry (NOT forge)
+#       lolMiner (GPU) runs on forge only
 ssh j_kro@zephyr "systemctl status lolminer-nvidia xmrig"
 ssh j_kro@nexus "systemctl status lolminer-nvidia xmrig"
-ssh j_kro@forge "systemctl status lolminer-nvidia"  # CPU mining disabled
+ssh j_kro@forge "systemctl status lolminer-nvidia"
 ssh j_kro@sentry "systemctl status lolminer-nvidia xmrig"
 ```
 

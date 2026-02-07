@@ -127,7 +127,7 @@ in {
 
       [security]
       admin_user = admin
-      admin_password = ${config.secrets.grafanaPassword or "changeme"}
+      admin_password = ${config.secrets.grafanaPassword or (lib.throwError "Grafana password must be set in config.secrets.grafanaPassword. Run: openssl rand -base64 32 | nix-shell -p age --run 'age -r <AGE_PUBLIC_KEY> -o /etc/nixos/secrets/grafana-password.age /dev/stdin'\nThen add grafana-password entry to secrets/age-secrets.nix.\nSee docs/INCIDENT_RESPONSE_PLAN.md for security procedures.")}
       disable_admin_auth = false
 
       [paths]

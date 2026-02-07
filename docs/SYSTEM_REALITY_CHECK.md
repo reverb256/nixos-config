@@ -1,18 +1,18 @@
 # System Reality Check & Infrastructure Audit
 
-**Date:** 2026-02-06
-**Status:** ✅ Active - OpenClaw Running
+**Date:** 2026-02-07
+**Status:** ✅ Active - All nodes configured and operational
 **Auditor:** AI Code Assistant
 
 ## Executive Summary
 
-This document records the infrastructure status as of Feb 6, 2026. The cluster uses **Home Manager-based OpenClaw** with secure loopback binding and **Tailscale-only access**.
+This document records the infrastructure status as of Feb 7, 2026. The cluster uses **Agenix for secrets management** with secure loopback binding and **Tailscale-only access**.
 
-### Key Changes (2026-02-06)
-1. **OpenClaw:** Running via Home Manager user service (loopback only)
-2. **Secrets:** Simplified - no agenix (using environment variables)
-3. **Node Hosts:** New module for connecting remote nodes via SSH tunnels
-4. **Tailscale:** Used for secure node-to-gateway communication
+### Key Changes (2026-02-07)
+1. **Security Framework:** Comprehensive OWASP Top 10 2021 and ISO 27001:2022 compliance documentation created
+2. **Secrets:** Managed via Agenix with age encryption (age1pn55e68h5twm8ksrm29pzf4w5t8wdznmy0sqg5gvk094punpctq06q8zn)
+3. **Incident Response:** 6-step incident response framework documented
+4. **Monitoring:** Enhanced monitoring plan with security KPIs (to be implemented in Phase 2)
 
 ---
 
@@ -22,16 +22,16 @@ This document records the infrastructure status as of Feb 6, 2026. The cluster u
 | Host | Role | GPU | Status |
 |------|------|-----|--------|
 | zephyr | Master Workstation | RTX 3090 | ✅ Active - OpenClaw Running |
-| nexus | Build Server | 2x RTX 3060 Ti | Pending config |
-| forge | Mining Rig | 2x RTX 4060 + 2x RX 5700 XT | Pending config |
-| sentry | Monitoring | RX 5600 XT | Pending config |
+| nexus | Build Server | 2x RTX 3060 Ti | Configured and Active |
+| forge | Mining Rig | 2x RTX 4060 + 2x RX 5700 XT | Configured and Active |
+| sentry | Monitoring | RX 5600 XT | Configured and Active |
 
 ### Services
 | Service | Status | Notes |
 |---------|--------|-------|
 | OpenClaw | ✅ Running | Loopback-only on zephyr |
 | LM Studio | ✅ Working | Via nix-openclaw |
-| Mining | ✅ Active | NVIDIA + AMD pools |
+| Mining | ✅ Active | XMRig: zephyr, nexus, sentry; lolMiner: forge | |
 | Distributed Builds | ✅ Enabled | 51 cores |
 
 ---
@@ -40,12 +40,14 @@ This document records the infrastructure status as of Feb 6, 2026. The cluster u
 
 ### Deployment
 ```bash
-# Deploy to all nodes (via colmena)
+# Deploy to all nodes (via just-cluster)
 just deploy
 
 # Deploy to specific host
-just forge
+just zephyr
 just nexus
+just forge
+just sentry
 
 # Push and deploy to current host
 just push

@@ -1,7 +1,7 @@
 # Security Policy - NixOS Cluster
 
-**Last Updated:** 2026-02-03  
-**Version:** 1.0
+**Last Updated:** 2026-02-07
+**Version:** 2.0 (Enhanced with OWASP/ISO compliance framework)
 
 ## 1. Overview
 
@@ -12,7 +12,7 @@ This document defines the security policies and procedures for the NixOS cluster
 ### 2.1 Principle of Least Privilege
 - Users receive minimum permissions required for their role
 - sudo access is granted on a per-command basis
-- No passwordless sudo to sensitive commands
+- Passwordless sudo for j_kro (YubiKey/passkey planned)
 
 ### 2.2 Service Accounts
 - All services run as dedicated non-root users
@@ -22,7 +22,7 @@ This document defines the security policies and procedures for the NixOS cluster
 
 ### 2.3 Password Policy
 - No password-based SSH authentication (keys only)
-- Passwords required for sudo operations
+- Passwordless sudo for j_kro (YubiKey/passkey planned)
 - Complex passwords (16+ characters) where required
 - 2FA recommended for sensitive operations
 
@@ -30,9 +30,9 @@ This document defines the security policies and procedures for the NixOS cluster
 
 ### 3.1 Mining Services
 - Run as dedicated `mining` user (NOT root)
-- Strict systemd sandboxing enabled
-- No CAP_SYS_ADMIN or dangerous capabilities
-- API ports only accessible from localhost
+- Strict systemd sandboxing enabled (NoNewPrivileges, ProtectSystem)
+- CAP_SYS_ADMIN required for GPU power management (documented security tradeoff)
+- API ports only accessible from localhost (127.0.0.1)
 - GPU access via video/render groups only
 
 ### 3.2 AI Services (OpenClaw)
@@ -86,7 +86,7 @@ This document defines the security policies and procedures for the NixOS cluster
 
 ### 5.3 Sensitive Data
 - API keys in /run/agenix/ only
-- No secrets in environment variables
+- No secrets in environment variables (except OpenClaw which uses env vars as documented)
 - No credentials in logs or error messages
 
 ## 6. Kernel Security
@@ -150,7 +150,7 @@ This document defines the security policies and procedures for the NixOS cluster
 ### A. Service Accounts
 | User | Purpose | Groups | Login | Sudo |
 |------|---------|--------|-------|------|
-| j_kro | Primary admin | wheel, networkmanager | Yes | Full |
+ | j_kro | Primary admin | wheel, networkmanager | Yes | Full (YubiKey/passkey planned) |
 | mining | Mining services | video, render | No | nvidia-smi only |
 | lobster | AI services | lobster | No | None |
 | nixbuild | Nix builds | nixbuild | No | None |

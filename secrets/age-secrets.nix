@@ -48,5 +48,11 @@
     "garnix-netrc" = {
       file = ./garnix-netrc.age;
     };
+
+    # Grafana password for monitoring dashboard
+    # SECURITY FIX: Removed default "changeme" password, now requires explicit secret
+    "grafana-password" = {
+      file = ./grafana-password.age;
+    };
   };
 }
