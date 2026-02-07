@@ -9,9 +9,19 @@ Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all no
 
 ---
 
-**Status:** ✅ Healthy | **Backend:** Podman | **Builds:** Distributed (51 Cores)
-**Last Audit:** 2026-02-04 (See `docs/SYSTEM_REALITY_CHECK.md`)
+**Status:** ✅ Healthy | **Backend:** Podman | **Builds:** Distributed (70 cores - all 4 hosts) | **Security:** OWASP 96%, ISO 93% | **Last Audit:** 2026-02-07 (See `docs/COMPLIANCE_ASSESSMENT.md`)
 **Agenix Key:** `age1pn55e68h5twm8ksrm29pzf4w5t8wdznmy0sqg5gvk094punpctq06q8zn` (Generated Feb 4, 2026)
+
+## 📁 Quick Reference - Host Specs
+
+| Host | IP Address | Tailscale IP | CPU | Memory | GPUs | Role |
+|------|-------------|---------------|-----|--------|-------|--------|
+| **zephyr** | 10.1.1.110 | 100.81.182.5 | 32 cores | 64GB | RTX 3090 | Master Workstation |
+| **nexus** | 10.1.1.120 | 100.86.158.18 | 24 cores | 32GB | 2x RTX 3060 Ti | Build/Backup |
+| **forge** | 10.1.1.130 | 100.116.190.124 | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Mining |
+| **sentry** | 10.1.1.140 | 100.82.210.39 | 8 cores | 32GB | RX 5600 XT | Monitoring |
+
+**Total Build Capacity:** **70 cores** across all 4 hosts
 
 ## ⚡ Quick Actions
 | Context | Command | Description |
@@ -47,7 +57,11 @@ Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all no
 ## 📚 Documentation Index
 *   [System Reality Check & Audit Log](docs/SYSTEM_REALITY_CHECK.md) - **READ THIS FIRST**
 *   [Deployment Instructions](docs/DEPLOYMENT_INSTRUCTIONS.md)
-*   [Security Policy](docs/security-policy.md)
+*   [Security Policy](docs/security-policy.md) - Comprehensive security framework
+*   [Security Control Matrix](docs/SECURITY_CONTROL_MATRIX.md) - OWASP/ISO compliance
+*   [Incident Response Plan](docs/INCIDENT_RESPONSE_PLAN.md) - 6-step IR framework
+*   [Compliance Assessment](docs/COMPLIANCE_ASSESSMENT.md) - OWASP/ISO status
+*   [Cluster Status](docs/CLUSTER_STATUS.md) - Live cluster monitoring
 *   [Tailscale Setup](docs/TAILSCALE_SETUP.md)
 
 ## ⚠️ Recent Changes (2026-02-04)

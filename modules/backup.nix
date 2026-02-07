@@ -28,6 +28,9 @@ in {
       default = "/run/agenix/backup-encryption-key";
       description = "Path to encryption key (agenix)";
     };
+    # SECURITY NOTE: backup-encryption-key.age must be created before enabling backup service
+    # Run: openssl rand -base64 32 | nix-shell -p age --run 'age -r <AGE_PUBLIC_KEY> -o /etc/nixos/secrets/backup-encryption-key.age /dev/stdin'
+    # Then add backup-encryption-key entry to secrets/age-secrets.nix
     excludePatterns = mkOption {
       type = types.listOf types.str;
       default = [
