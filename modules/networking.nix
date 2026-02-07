@@ -2,12 +2,23 @@
 {lib, ...}:
 with lib; {
   # ============================================================================
-  # NETWORK MANAGER (Basic setup - no profile config here, that's host-specific)
+  # FAIL2BAN CONFIGURATION
   # ============================================================================
-
-  networking.networkmanager = {
+  
+  services.fail2ban = {
     enable = true;
-    # Profiles are configured per-host in hosts/*/default.nix
+    ignoreIP = [
+      "127.0.0.1"
+      "10.1.0.0/24" # Entire cluster subnet
+      "10.1.1.110" # zephyr
+      "10.1.1.120" # nexus
+      "10.1.1.130" # forge
+      "10.1.1.140" # sentry
+      "100.81.182.5" # zephyr Tailscale
+      "100.86.158.18" # nexus Tailscale
+      "100.116.190.124" # forge Tailscale
+      "100.82.210.39" # sentry Tailscale
+    ];
   };
 
   # Enable wpa_supplicant for wifi support with NetworkManager
