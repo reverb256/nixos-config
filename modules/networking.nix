@@ -2,27 +2,6 @@
 {lib, ...}:
 with lib; {
   # ============================================================================
-  # FAIL2BAN CONFIGURATION
-  # ============================================================================
-  
-  services.fail2ban = {
-    enable = true;
-    ignoreIP = [
-      "127.0.0.1"
-      "10.1.0.0/24" # Entire cluster subnet
-      "10.1.1.110" # zephyr
-      "10.1.1.120" # nexus
-      "10.1.1.130" # forge
-      "10.1.1.140" # sentry
-      "100.81.182.5" # zephyr Tailscale
-      "100.86.158.18" # nexus Tailscale
-      "100.116.190.124" # forge Tailscale
-      "100.82.210.39" # sentry Tailscale
-    ];
-  };
-
-  # Enable wpa_supplicant for wifi support with NetworkManager
-  networking.wireless.enable = true;
 
   # Disable conflicting services
   networking.dhcpcd.enable = false;
@@ -158,7 +137,11 @@ with lib; {
     enable = true;
     ignoreIP = [
       "127.0.0.1"
-      "10.1.1.0/24"
+      "10.1.0.0/24" # Entire cluster subnet
+      "10.1.1.110" # zephyr
+      "10.1.1.120" # nexus
+      "10.1.1.130" # forge
+      "10.1.1.140" # sentry
       "100.81.182.5" # zephyr Tailscale
       "100.86.158.18" # nexus Tailscale
       "100.116.190.124" # forge Tailscale
@@ -166,26 +149,10 @@ with lib; {
     ];
   };
 
-  # Ensure NetworkManager service is running
-  systemd.services.NetworkManager = {
-    wantedBy = ["multi-user.target"];
-    serviceConfig = {
-      Restart = "on-failure";
-    };
-  };
-
-  # Optimize NetworkManager wait-online timeout to prevent boot delays
-  # Default is 30s, reducing to 10s for faster boot
-  systemd.services.NetworkManager-wait-online = {
-    serviceConfig = {
-      TimeoutStartSec = 10;
-    };
-  };
-
   # ============================================================================
   # FIREWALL (Base config - ports can be overridden per-host)
   # ============================================================================
-
+  
   networking.firewall = {
     enable = true;
     # Base allowed ports - all hosts get these

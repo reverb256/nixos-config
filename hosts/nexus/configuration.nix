@@ -31,6 +31,10 @@
     ../../modules/ssh.nix
     # Import OpenClaw node host module
     ../../modules/openclaw-node-host.nix
+    # Import distributed builds module (GPU+CUDA+ROCm support)
+    ../../modules/distributed-builds.nix
+    # Import OpenClaw node host module
+    ../../modules/openclaw-node-host.nix
   ];
 
   # Host identification

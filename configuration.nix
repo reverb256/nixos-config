@@ -23,7 +23,11 @@ in {
   # ============================================================================
   nix = {
     settings = {
-      experimental-features = ["nix-command" "flakes"];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+        "fetch-tree"     # Improved flake fetching and caching
+      ];
       # max-jobs and cores are configured in modules/nix-config.nix
     };
   };
