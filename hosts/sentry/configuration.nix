@@ -179,6 +179,5 @@
     worker.enable = true;
     worker.kubelet.enable = true;
     containerRuntime = "containerd";
-    autoStart = true;
   };
 }
