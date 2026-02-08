@@ -61,20 +61,20 @@ push() {
     fi
 }
 
-deploy_node() {
+  deploy_node() {
     local node=$1
     local user_host="${NODES[$node]}"
 
     log "Deploying to $node ($user_host)..."
-
+ 
     if [ "$node" = "$CURRENT_HOST" ]; then
         # Local deployment
         sudo nixos-rebuild switch --flake "${FLAKE_PATH}#${node}" 2>&1 | tail -100
     else
-        # Remote deployment via SSH + sudo
+        # Remote deployment via SSH + sudo with SSH key
         ssh $SSH_OPTS "$user_host" "cd ${FLAKE_PATH} && sudo nixos-rebuild switch --flake '${FLAKE_PATH}#${node}' --use-remote-sudo" 2>&1 | tail -100
     fi
-}
+  }
 
 build_node() {
     local node=$1
