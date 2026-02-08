@@ -13,7 +13,6 @@ in {
       type = types.listOf types.str;
       default = [
         "/etc/nixos"
-        "/var/lib/openclaw"
         "/home/j_kro/.local/share"
       ];
       description = "Paths to backup";
@@ -37,7 +36,6 @@ in {
         "*.pyc"
         "*.so"
         "*.tmp"
-        "/var/lib/openclaw/.cache"
         "/home/j_kro/.cache"
       ];
       description = "Patterns to exclude from backup";

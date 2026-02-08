@@ -4,7 +4,7 @@ This document outlines the approach for cleaning up the branch complexity in the
 
 ## Current Situation
 
-- Multiple feature branches with similar names (openclaw variants)
+- Multiple feature branches with similar names ( variants)
 - Inconsistent branch state (`main` behind `infra`)
 - Unused/closed feature branches cluttering the repository
 - Need to simplify for ongoing maintenance
@@ -17,8 +17,8 @@ This document outlines the approach for cleaning up the branch complexity in the
 - `security-hardening-2026-02-03` - Current active work
 
 ### To Clean Up (Superseded/Obsolete)
-- `feature/openclaw` - Superseded by newer versions
-- `feature/openclaw-fixed` - Superseded by secure version
+- `feature/` - Superseded by newer versions
+- `feature/-fixed` - Superseded by secure version
 - `wayland-plasma-cleanup` - Appears completed
 - `refactor/layer-separation` - Appears completed
 - `staging` - Old development branch

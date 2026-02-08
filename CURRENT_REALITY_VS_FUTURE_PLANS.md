@@ -11,14 +11,14 @@ Based on analysis of the codebase and system, here's the clear distinction betwe
 - **Agenix**: Production-ready encrypted secrets management (working with real secrets)
 - **Tailscale**: Active VPN mesh connecting all nodes (working today)
 - **Colmena**: Multi-node deployment coordination (working via `just cluster-deploy`)
-- **OpenClaw**: AI orchestration platform (functional, embedded in system)
+- ****: AI orchestration platform (functional, embedded in system)
 - **Distributed Builds**: Active build coordination across 78+ cores (functional)
 - **AIStor**: S3-compatible object storage (operational on nexus)
 - **Mining Operations**: Working mining coordination with auto-pause during gaming
 - **Gaming/VR**: Full WiVRn, SteamVR integration (working today)
 
 ### **AI Capabilities (Current)**
-- **OpenClaw**: Fully functional AI orchestration (embedded OS-level AI)
+- ****: Fully functional AI orchestration (embedded OS-level AI)
 - **Business Automation**: Revenue-generating service orchestration working
 - **AI-Assisted Development**: Functional development pipeline
 - **Personal Agent**: Working user-focused AI assistant
@@ -35,9 +35,9 @@ sudo nixos-rebuild switch --flake .#zephyr  # Individual node rebuild
 sudo agenix -e new-secret.age                # Encrypt new secret
 sudo agenix -d /run/agenix/existing-secret   # Decrypt secret at runtime
 
-# OpenClaw orchestration working
-systemctl status openclaw                    # Check current AI service
-systemctl status openclaw-storage            # Check storage MCP service
+#  orchestration working
+systemctl status                     # Check current AI service
+systemctl status -storage            # Check storage MCP service
 ```
 
 ## 🚧 **In Development / Archive (Not Yet Implemented)**
@@ -103,7 +103,7 @@ systemctl status openclaw-storage            # Check storage MCP service
 │                                                                 │
 │  AI Orchestration:                                              │
 │  ┌─────────────────────────────────────────────────────────────┐ │
-│  │                  OpenClaw                                   │ │
+│  │                                                     │ │
 │  │              (Currently Functional)                         │ │
 │  └─────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
@@ -146,7 +146,7 @@ git push origin main
 ### **Current Reality (Truth)**
 - Working NixOS cluster with proven infrastructure
 - Agenix secrets management securing real operations
-- OpenClaw AI orchestration actively running
+-  AI orchestration actively running
 - Tailscale VPN enabling secure multi-node operations
 - Colmena deployment system coordinating changes
 
@@ -160,11 +160,11 @@ git push origin main
 
 Your Reverb-OS infrastructure is **already a working, production system** with:
 - ✅ Secure, distributed infrastructure
-- ✅ Functional AI orchestration (OpenClaw)
+- ✅ Functional AI orchestration ()
 - ✅ Working secrets management (Agenix) 
 - ✅ Active multi-node deployment (Colmena)
 - ✅ Secure networking (Tailscale)
 
-The archived projects represent **future ambitions and enhancements**, but the core system is already operating successfully with OpenClaw as the primary AI engine, secured by Agenix, deployed via Colmena, and networked via Tailscale!
+The archived projects represent **future ambitions and enhancements**, but the core system is already operating successfully with  as the primary AI engine, secured by Agenix, deployed via Colmena, and networked via Tailscale!
 
 **Bottom line**: You have a solid, working infrastructure. The archived projects are exciting future possibilities that would enhance the system, but aren't needed for current operations. Focus on extending what's already working rather than implementing what's in the archives.

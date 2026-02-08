@@ -62,11 +62,11 @@ in {
      # ./modules/flatpak.nix
      # Secrets configuration
      # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
-     # OpenClaw service module - REMOVED
+     #  service module - REMOVED
    ];
 
-  # OpenClaw AI Gateway Service - REMOVED
-  # OpenClaw AI Agent Gateway - completely removed from system
+  #  AI Gateway Service - REMOVED
+  #  AI Agent Gateway - completely removed from system
 
   # ============================================================================
   # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
@@ -252,9 +252,9 @@ in {
     freeSwapThreshold = 5; # Only kill when < 5% swap free
   };
 
-  # OpenClaw Storage Management Control Plane (runs with lobster user)
+  #  Storage Management Control Plane (runs with lobster user)
   # Temporarily disabled until minio-cache-credentials are properly set up
-  # services.openclaw-storage = {
+  # services.-storage = {
   #   enable = true;
   #   port = 18800;
   #   aistorEndpoint = "http://10.1.1.120:9000"; # nexus (AIStor)
@@ -262,8 +262,8 @@ in {
   #   # Use default buckets from module
   # };
 
-  # OpenClaw automated backups to cloud storage - Temporarily disabled pending secret setup
-  # services.openclaw-backups = {
+  #  automated backups to cloud storage - Temporarily disabled pending secret setup
+  # services.-backups = {
   #   enable = true;
   # };
 

@@ -22,9 +22,9 @@ Reverb-OS is a production NixOS 26.05 cluster with VR gaming, mining, and AI cap
 | Cluster deploy | `justfile` | `just cluster-deploy` |
 | GitOps workflow | `.github/workflows/nix.yml` | validate → merge → deploy |
 | MCP Servers | `modules/mcp-servers.nix` | AI assistant tools |
-| **OpenClaw** | `modules/openclaw.nix` | AI agent gateway (port 18789, localhost only) |
-| **OpenClaw Storage** | `modules/openclaw-storage.nix` | AIStor MCP (port 18800, localhost only) |
-| **OpenClaw Nginx** | `modules/openclaw-nginx.nix` | Reverse proxy with SSL |
+| **** | `modules/.nix` | AI agent gateway (port 18789, localhost only) |
+| ** Storage** | `modules/-storage.nix` | AIStor MCP (port 18800, localhost only) |
+| ** Nginx** | `modules/-nginx.nix` | Reverse proxy with SSL |
 | Dev Environment | `.envrc` + `flake.nix` | direnv + nix-direnv |
 
 ## Cluster Architecture
@@ -101,7 +101,7 @@ just cluster-update      # nix flake update + deploy
 - Modern crypto (ChaCha20-Poly1305, Curve25519)
 - Post-quantum KEX algorithms enabled
 
-#### OpenClaw Security Model
+####  Security Model
 - **Lobster user**: `isSystemUser = true` (service account with no sudo)
 - **Systemd hardening**: NoNewPrivileges, PrivateTmp, ProtectSystem, PrivateDevices
 - **Network security**: All services bind to localhost only (127.0.0.1)
@@ -122,46 +122,46 @@ just cluster-update      # nix flake update + deploy
 ### 🚨 Previously Identified Issues (RESOLVED)
 #### CVE-2026-25253: Remote Code Execution (RESOLVED)
 - **Status**: ✅ Patched in v2026.1.29
-- **Verification**: `openclaw --version` shows updated version
+- **Verification**: ` --version` shows updated version
 
 #### Container Network Exposure (RESOLVED)
 - **Status**: ✅ Fixed with bridge network isolation
 - **Container security**: No longer uses `--network host`
 
 #### Hardcoded Development Token (RESOLVED)  
-- **Status**: ✅ Moved to environment file `/run/agenix/openclaw-env`
+- **Status**: ✅ Moved to environment file `/run/agenix/-env`
 
-## OpenClaw AI Orchestration System
+##  AI Orchestration System
 
 ### Overview
-OpenClaw provides AI agent orchestration across the cluster with enterprise-grade security and reliability.
+ provides AI agent orchestration across the cluster with enterprise-grade security and reliability.
 
 ### Services Architecture
 | Service | Port | Binding | Access Method | Purpose |
 |---------|------|---------|---------------|---------|
-| **openclaw** | 18789 | localhost only | nginx proxy | AI agent gateway |
-| **openclaw-storage** | 18800 | localhost only | nginx proxy | AIStor S3 MCP |
+| **** | 18789 | localhost only | nginx proxy | AI agent gateway |
+| **-storage** | 18800 | localhost only | nginx proxy | AIStor S3 MCP |
 | **nginx** | 80/443 | external | direct | SSL reverse proxy |
 
 ### Configuration Pattern
-All OpenClaw services follow the standardized security pattern:
+All  services follow the standardized security pattern:
 ```nix
 # Service binds to localhost only
 bindAddress = "127.0.0.1";
 port = 18789;
 
 # Systemd hardening
-systemd.services.openclaw.serviceConfig = {
+systemd.services..serviceConfig = {
   NoNewPrivileges = true;
   PrivateTmp = true;
   ProtectSystem = "strict";
   ProtectHome = true;
   ReadOnlyPaths = [ "/" ];
-  ReadWritePaths = [ "/var/lib/openclaw" ];
+  ReadWritePaths = [ "/var/lib/" ];
 };
 
 # External access via nginx
-services.nginx.virtualHosts."openclaw.local" = {
+services.nginx.virtualHosts.".local" = {
   locations."/gateway".proxyPass = "http://127.0.0.1:18789";
   sslCertificate = "...";
   sslCertificateKey = "...";
@@ -239,7 +239,7 @@ S3-compatible object storage for AI/ML workloads on nexus (10.1.1.120).
 
 ### Security
 - **Credentials**: Managed via Agenix encryption
-- **Access**: Through OpenClaw Storage MCP (localhost-only)
+- **Access**: Through  Storage MCP (localhost-only)
 - **Backup**: Rclone integration for cloud backups
 
 ## Commands (Accurate & Verified)
@@ -288,17 +288,17 @@ just gaming-status       # Check gaming mode
 just perf-monitor        # Monitor performance
 ```
 
-### OpenClaw Services
+###  Services
 ```bash
 # Service status
-systemctl status openclaw                    # Gateway service
-systemctl status openclaw-storage            # Storage MCP  
-systemctl status openclaw-health.timer       # Health monitoring
+systemctl status                     # Gateway service
+systemctl status -storage            # Storage MCP  
+systemctl status -health.timer       # Health monitoring
 
 # Logs
-journalctl -u openclaw -f                    # Gateway logs
-journalctl -u openclaw-storage -f            # Storage logs
-journalctl -u openclaw-health -f             # Health checks
+journalctl -u  -f                    # Gateway logs
+journalctl -u -storage -f            # Storage logs
+journalctl -u -health -f             # Health checks
 ```
 
 ### Tailscale Operations
@@ -367,7 +367,7 @@ nix fmt            # Format code
 - ✅ Mining API ports: Fixed to localhost-only binding
 - ✅ SSH security: Confirmed properly secured (PermitRootLogin=no)  
 - ✅ Distributed builds: Confirmed active (78 core pool operational)
-- ✅ OpenClaw sprawl: Consolidated to single recommended implementation
+- ✅  sprawl: Consolidated to single recommended implementation
 - ✅ Documentation accuracy: All counts and claims verified
 
 ### Current Status
@@ -396,8 +396,8 @@ just cluster-deploy          # Full cluster refresh
 ### Monitoring Commands
 ```bash
 # Health checks
-systemctl status openclaw-health.timer
-systemctl status openclaw-storage-health.timer
+systemctl status -health.timer
+systemctl status -storage-health.timer
 
 # Performance
 just cluster-resources

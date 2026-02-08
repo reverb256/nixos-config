@@ -44,7 +44,7 @@
       MaxAuthTries = 3;
       MaxSessions = 10;
 
-      # TCP forwarding needed for OpenClaw node tunnels via Tailscale
+      # TCP forwarding needed for  node tunnels via Tailscale
       AllowTcpForwarding = true;
 
       # Disable other features we don't use

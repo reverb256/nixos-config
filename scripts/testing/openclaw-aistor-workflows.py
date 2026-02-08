@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OpenClaw AIStor Integration Workflows
+ AIStor Integration Workflows
 Automated AI data management workflows leveraging AIStor capabilities
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 import logging
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("openclaw-aistor")
+logger = logging.getLogger("-aistor")
 
 
 class AIStorWorkflows:
@@ -300,7 +300,7 @@ class AIStorWorkflows:
             "rclone",
             "sync",
             f":s3:{bucket}",
-            f"{cloud_remote}:openclaw-{bucket_type}-backup",
+            f"{cloud_remote}:-{bucket_type}-backup",
             "--s3-endpoint",
             self.endpoint,
             "--s3-region",
@@ -327,7 +327,7 @@ class AIStorWorkflows:
             "timestamp": datetime.now().isoformat(),
             "operation": operation,
             "details": details,
-            "source": "openclaw-workflows",
+            "source": "-workflows",
         }
 
         log_file = (
@@ -350,7 +350,7 @@ async def main():
     """CLI interface for workflows"""
     import argparse
 
-    parser = argparse.ArgumentParser(description="OpenClaw AIStor Workflows")
+    parser = argparse.ArgumentParser(description=" AIStor Workflows")
     parser.add_argument(
         "workflow", choices=["checkpoint", "dataset", "experiment", "serve", "backup"]
     )

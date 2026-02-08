@@ -6,7 +6,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Garnix Build](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadge%2Fgithub.com%2Fyour-username%2Fyour-repo)](https://garnix.io)
 
-**Reverb-OS** is a NixOS-based personal AI assistant platform that serves as a comprehensive portfolio and demonstration system for the AstralVibe.ca ecosystem. Built entirely on Nix and NixOS, Reverb-OS showcases the power of declarative system configuration, distributed computing, and AI orchestration through its core interface: **OpenClaw** - the embedded AI assistant.
+**Reverb-OS** is a NixOS-based personal AI assistant platform that serves as a comprehensive portfolio and demonstration system for the AstralVibe.ca ecosystem. Built entirely on Nix and NixOS, Reverb-OS showcases the power of declarative system configuration, distributed computing, and AI orchestration through its core interface: **** - the embedded AI assistant.
 
 ## 🏗️ Architecture Overview
 
@@ -47,8 +47,8 @@ Internet ── Router (10.1.1.1)
 │   └── sentry/              # Monitoring server
 ├── modules/                 # Shared configuration modules
 │   ├── tailscale.nix        # Tailscale mesh VPN
-│   ├── openclaw-declarative-container.nix  # AI orchestration
-│   ├── openclaw-storage.nix                 # AIStor integration
+│   ├── -declarative-container.nix  # AI orchestration
+│   ├── -storage.nix                 # AIStor integration
 │   ├── mining.nix                          # Mining services
 │   ├── gaming.nix                          # VR/gaming setup
 │   └── ...                                # Other modules
@@ -103,7 +103,7 @@ Internet ── Router (10.1.1.1)
 - **Magic DNS** for easy hostname resolution
 - **100.x.x.x addressing** for encrypted connections
 
-### **🤖 OpenClaw: The Embedded AI Assistant**
+### **🤖 : The Embedded AI Assistant**
 - **Natural language interface** for system operations
 - **AIStor object storage** for model artifacts and training data
 - **MCP server integration** for AI assistants (Kilo Code, Claude Code)
@@ -309,9 +309,9 @@ tailscale ip --6
 │   └── sentry/              # Monitoring server
 ├── modules/                 # Shared configuration modules
 │   ├── tailscale.nix       # Tailscale mesh VPN
-│   ├── openclaw-declarative-container.nix  # AI orchestration
-│   ├── openclaw-storage.nix                 # AIStor integration
-│   ├── openclaw-nginx.nix                   # Reverse proxy
+│   ├── -declarative-container.nix  # AI orchestration
+│   ├── -storage.nix                 # AIStor integration
+│   ├── -nginx.nix                   # Reverse proxy
 │   ├── mining.nix                          # Mining services
 │   ├── gaming.nix                          # VR/gaming setup
 │   └── ...                                # Other modules
@@ -390,13 +390,13 @@ Reverb-OS demonstrates expertise in:
 - **Performance optimization** for VR gaming and mining
 - **GitOps workflows** for infrastructure-as-code
 
-## 🎯 OpenClaw: The Embedded AI Assistant
+## 🎯 : The Embedded AI Assistant
 
 ### **Services**
 | Service | Port | Access | Purpose |
 |---------|------|--------|---------|
-| **openclaw** | 18789 | localhost only | AI agent gateway |
-| **openclaw-storage** | 18800 | localhost only | AIStor S3 MCP |
+| **** | 18789 | localhost only | AI agent gateway |
+| **-storage** | 18800 | localhost only | AIStor S3 MCP |
 | **nginx** | 80/443 | external | Reverse proxy with SSL |
 
 ### **Capabilities**
@@ -429,13 +429,13 @@ All secrets are encrypted using Agenix:
 - API keys (Anthropic, OpenAI, Claude)
 - Mining credentials and wallet addresses
 - AIStor access keys
-- OpenClaw gateway tokens
+-  gateway tokens
 - Tailscale auth keys
 
 ### **System Hardening**
 ```nix
-# Systemd hardening for OpenClaw
-systemd.services.openclaw-container-declarative.serviceConfig = {
+# Systemd hardening for 
+systemd.services.-container-declarative.serviceConfig = {
   NoNewPrivileges = true;
   ProtectSystem = "strict";
   ProtectHome = true;
@@ -454,11 +454,11 @@ systemd.services.openclaw-container-declarative.serviceConfig = {
 
 ### **Common Issues**
 ```bash
-# Check OpenClaw status
-systemctl status openclaw-container-declarative
+# Check  status
+systemctl status -container-declarative
 
 # View container logs
-journalctl -u openclaw-container-declarative -f
+journalctl -u -container-declarative -f
 
 # Check AIStor connection
 mc alias set aistor http://10.1.1.120:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
@@ -498,7 +498,7 @@ tailscale netcheck
 
 ### **Health Checks**
 ```bash
-# OpenClaw health
+#  health
 curl -s http://127.0.0.1:18789/health
 
 # AIStor health
@@ -525,7 +525,7 @@ For a detailed portfolio showcase of this infrastructure, see [PORTFOLIO.md](doc
 
 ---
 
-**Reverb-OS** - NixOS-based personal AI assistant platform with GitOps deployment, Tailscale mesh VPN, and OpenClaw AI orchestration.
+**Reverb-OS** - NixOS-based personal AI assistant platform with GitOps deployment, Tailscale mesh VPN, and  AI orchestration.
 
 ### **🚀 New Features (2026-02-07)**
 

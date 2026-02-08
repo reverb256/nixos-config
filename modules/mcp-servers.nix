@@ -20,7 +20,7 @@
       '';
 in {
   options.services.mcp-servers = {
-    enable = lib.mkEnableOption "MCP (Model Context Protocol) servers for all AI tools (OpenCode, Qwen, Kimi, OpenClaw)";
+    enable = lib.mkEnableOption "MCP (Model Context Protocol) servers for all AI tools (OpenCode, Qwen, Kimi, )";
     
     servers = {
       filesystem = {
@@ -225,7 +225,7 @@ in {
     environment.etc."mcp-servers/README.md".text = ''
       # Unified MCP Servers for All AI Tools
       
-      MCP servers configured for: OpenCode, Qwen, Kimi, OpenClaw
+      MCP servers configured for: OpenCode, Qwen, Kimi, 
       
       ## Available Servers
       
