@@ -15,6 +15,7 @@
       ripgrep
       fd
       parallel
+      parallel-full
       htop
       neofetch
       wget
