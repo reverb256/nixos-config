@@ -48,6 +48,9 @@ git pull
 sudo nixos-rebuild switch --flake .#forge
 
 # On sentry (monitoring node):
+# ⚠️ CURRENT ISSUE: SSH connection refused (see AGENTS.md - Known Issues)
+# Manual deployment to sentry currently blocked
+# When SSH is restored:
 ssh j_kro@sentry
 cd /etc/nixos
 git pull
@@ -94,7 +97,8 @@ ssh j_kro@sentry "systemctl status lolminer-nvidia xmrig"
 ssh j_kro@zephyr "grep 'kryptex' /etc/nixos/configuration.nix"
 ssh j_kro@nexus "grep 'kryptex' /etc/nixos/hosts/nexus/configuration.nix"
 ssh j_kro@forge "grep 'kryptex' /etc/nixos/hosts/forge/configuration.nix"
-ssh j_kro@sentry "grep 'kryptex' /etc/nixos/hosts/sentry/configuration.nix"
+# ⚠️ sentry verification blocked due to SSH refused
+# ssh j_kro@sentry "grep 'kryptex' /etc/nixos/hosts/sentry/configuration.nix"
 ```
 
 ### KDE Plasma Verification
@@ -112,5 +116,6 @@ ssh j_kro@sentry "echo \$QT_QPA_PLATFORM"  # Should output 'wayland'
 ssh j_kro@zephyr "sudo nixos-rebuild switch --rollback"
 ssh j_kro@nexus "sudo nixos-rebuild switch --rollback"
 ssh j_kro@forge "sudo nixos-rebuild switch --rollback"
-ssh j_kro@sentry "sudo nixos-rebuild switch --rollback"
+# ⚠️ sentry rollback blocked due to SSH refused
+# ssh j_kro@sentry "sudo nixos-rebuild switch --rollback"
 ```

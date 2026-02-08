@@ -82,19 +82,7 @@ in {
           description = "GitHub API token";
         };
       };
-      
-      openclaw = {
-        enable = lib.mkEnableOption "OpenClaw MCP server (exposes Gateway tools)" // {default = true;};
-        nixos = {
-          enable = lib.mkEnableOption "NixOS MCP server for NixOS packages and options" // {default = false;};
-          apiKey = lib.mkOption {
-            type = lib.types.str;
-            default = "";
-            description = "Context7 API key (optional, for higher rate limits)";
-          };
-        };
-      };
-      
+       
       kubernetes = {
         enable = lib.mkEnableOption "Kubernetes MCP server for cluster management" // {default = false;};
         kubeconfig = lib.mkOption {
@@ -216,11 +204,7 @@ in {
             GITHUB_API_TOKEN = cfg.servers.github.apiKey;
           };
         })
-        
-        (mkNpmMcpServer {
-          name = "openclaw";
-          package = "@openclaw/mcp-server";
-        })
+
       ];
     
     # Install Playwright browsers
@@ -254,8 +238,7 @@ in {
       | context7 | STDIO | Documentation search |
       | grep-app | STDIO | Code search |
       | chrome-devtools | STDIO | Chrome debugging |
-      | github | STDIO | GitHub integration |
-      | openclaw | STDIO | OpenClaw Gateway tools |
+       | github | STDIO | GitHub integration |
       
        ## Available MCP Server Commands
       
@@ -269,17 +252,15 @@ in {
        | fetch | `mcp-fetch` | Web fetching |
        | context7 | `mcp-context7` | Documentation search |
        | grep-app | `mcp-grep-app` | Code search |
-       | chrome-devtools | `mcp-chrome-devtools` | Chrome debugging |
-       | github | `mcp-github` | GitHub integration |
-       | openclaw | `mcp-openclaw` | OpenClaw Gateway tools |
+        | chrome-devtools | `mcp-chrome-devtools` | Chrome debugging |
+        | github | `mcp-github` | GitHub integration |
       
        ## Configuration
       
        Configure MCP servers manually in each tool's config file:
-      
-       - OpenCode: ~/.config/opencode/settings.json
-       - OpenClaw: ~/.openclaw/openclaw.json
-       - Kilo Code: ~/.kilocode/cli/global/settings/mcp_settings.json
+       
+        - OpenCode: ~/.config/opencode/settings.json
+        - Kilo Code: ~/.kilocode/cli/global/settings/mcp_settings.json
       
        Example MCP server config format:
         {

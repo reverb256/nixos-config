@@ -32,7 +32,6 @@
       # Import stable-diffusion module - DISABLED (causing infinite recursion)
       # ../../modules/services/stable-diffusion.nix
       # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
-      # ../../modules/openclaw-node-host.nix
     ];
 
   # Host identification
@@ -43,7 +42,7 @@
   services.nixos-auto-update.enable = true;
 
   # Multi-kernel support: Use latest kernel (workaround for zen 6.18.7 module shrinkage bug)
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # ============================================================================
   # DESKTOP ENVIRONMENT - KDE Plasma 6 with AMD GPU
@@ -121,12 +120,13 @@
   };
 
   # ============================================================================
-  # FIREWALL (Base config - no extra ports)
+  # GPU DRIVERS (AMD & NVIDIA) - Consistent with main configuration
   # ============================================================================
-
-  networking.firewall = {
-    allowedTCPPorts = [];
-    allowedUDPPorts = [];
+  
+  services.xserver.videoDrivers = ["amdgpu"];
+  
+  hardware.amdgpu = {
+    opencl.enable = true;
   };
 
   # ============================================================================
@@ -154,7 +154,6 @@
   };
 
   # OpenClaw node host service - DISABLED (OpenClaw refactor in progress)
-  # services.openclaw-node-host = {
   #   enable = true;
   #   gatewayHost = "zephyr";
   #   displayName = "Sentry Build Node";

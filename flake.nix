@@ -47,11 +47,6 @@
     colmena.url = "github:zhaofengli/colmena";
     colmena.inputs.nixpkgs.follows = "nixpkgs";
 
-    # OpenClaw - AI agent gateway - REMOVED
-    # nix-openclaw.url = "github:openclaw/nix-openclaw";
-    # nix-openclaw.inputs.nixpkgs.follows = "nixpkgs";
-    # nix-openclaw.inputs.home-manager.follows = "home-manager";
-
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
@@ -93,7 +88,6 @@
       {
         nixpkgs.overlays = [
           self.overlays.default
-          # inputs.nix-openclaw.overlays.default - REMOVED
         ];
         nixpkgs.config.allowUnfree = true;
         nixpkgs.config.permittedInsecurePackages = [
@@ -132,11 +126,7 @@
 
     # Add nixpkgs-xr overlay for VR/gaming packages
     overlays.nixpkgs-xr = inputs.nixpkgs-xr.overlays.default;
-
-    # Workaround overlay for OpenClaw hasown dependency bug - REMOVED
-    # Fixes: https://github.com/openclaw/nix-openclaw/issues/45
-    # overlays.openclaw-overlay = import ./modules/openclaw-overlay.nix;
-
+ 
     # NixOS configurations (for direct use with nixos-rebuild)
     nixosConfigurations = nixosSystems;
 

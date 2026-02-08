@@ -1,5 +1,5 @@
 # NixOS Cluster Status - Live Monitoring
-**Last Updated**: 2026-02-07 13:30 CST
+**Last Updated**: 2026-02-08 22:08 CST
 **Cluster Version**: 26.05
 
 ## Cluster Overview
@@ -9,7 +9,9 @@
 | **zephyr** | 10.1.1.110 | 100.81.182.5 | 32 cores | 64GB | RTX 3090 | Master Workstation | ✅ Online |
 | **nexus** | 10.1.1.120 | 100.86.158.18 | 24 cores | 32GB | 2x RTX 3060 Ti | Build Server | ✅ Online |
 | **forge** | 10.1.1.130 | 100.116.190.124 | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Mining Rig | ✅ Online |
-| **sentry** | 10.1.1.140 | 100.82.210.39 | 8 cores | 32GB | RX 5600 XT | Monitoring Server | ✅ Online |
+| **sentry** | 10.1.1.140 | 100.82.210.39 | 8 cores | 32GB | RX 5600 XT | Monitoring Server | ⚠️ SSH Refused |
+
+**Cluster Status:** ⚠️ Partially Degraded (3/4 nodes accessible)
 
 **Total Build Capacity**: **70 cores** (32 + 24 + 6 + 8)
 **Cluster Network**: 10.1.1.0/24 LAN + 100.x.x.x Tailscale VPN
@@ -35,15 +37,12 @@
 
 | Host | Gateway | Node Hosts | Status |
 |-------|----------|-------------|--------|
-| **zephyr** | ✅ Running (loopback:18789) | nexus, forge, sentry | ✅ Active |
-| **nexus** | N/A (gateway on zephyr) | ✅ Connected via SSH tunnel | ✅ Active |
-| **forge** | N/A (gateway on zephyr) | ✅ Connected via SSH tunnel | ✅ Active |
-| **sentry** | N/A (gateway on zephyr) | ✅ Connected via SSH tunnel | ✅ Active |
+| **zephyr** | 🔄 Removed | N/A | 🔄 Deprecated |
+| **nexus** | N/A | N/A | 🔄 Deprecated |
+| **forge** | N/A | N/A | 🔄 Deprecated |
+| **sentry** | N/A | N/A | 🔄 Deprecated |
 
-**OpenClaw Configuration**:
-- Gateway: zephyr (127.0.0.1:18789)
-- Node Authentication: Token-based
-- Exec Allowlist: `/run/current-system/sw/bin/uname`, `/run/current-system/sw/bin/sw_vers`
+**OpenClaw Status:** 🔄 **DEPRECATION IN PROGRESS** - Being removed from codebase
 
 ### Monitoring Services
 
@@ -140,13 +139,15 @@
 ### Deployment History (2026-02)
 | Date | Host | Changes | Status |
 |-------|-------|----------|--------|
-| 2026-02-06 | All | OpenClaw gateway token secret | ✅ Success |
+| 2026-02-08 | zephyr, nexus, forge | MCP servers syntax fix + updates | ✅ Success |
+| 2026-02-08 | sentry | **FAILED** - SSH connection refused | ❌ Failed |
 | 2026-02-07 | forge | Mining wallet parameterization | ✅ Success |
 | 2026-02-07 | All | Security framework documentation | ✅ Success |
+| 2026-02-06 | All | OpenClaw gateway token secret | ✅ Success |
 
 ### Last Configuration Check
 - **Flake Valid**: ✅ `nix flake check` passed
-- **Git Clean**: ✅ No uncommitted changes (before this update)
+- **Git Clean**: 🔄 Uncommitted changes pending
 - **Branch**: refactor/openclaw-hm-service
 - **Up to Date**: ✅ Pulled latest from origin
 
@@ -178,19 +179,42 @@
 None at this time.
 
 ### Known Issues
-1. **Monitoring Coverage**: Only zephyr has full monitoring (nexus/forge/sentry pending)
+1. **Sentry SSH Refused (CRITICAL)**: Cannot deploy to sentry node
+   - **Impact**: Cannot apply kernel workaround or fix Nix store corruption
+   - **Status**: ❌ Requires manual console access
+   - **Error**: Connection refused to port 22 on 10.1.1.140
+
+2. **Sentry Kernel Module Failure**: linux-zen-6.18.7 kernel build errors
+   - **Impact**: Cannot boot with zen kernel on sentry
+   - **Root Cause**: nixpkgs #484105 - modules.builtin.modinfo missing
+   - **Workaround**: Use `linuxPackages_latest` instead (requires SSH access)
+
+3. **Sentry Nix Store Corruption**: Hundreds of corrupted link warnings
+   - **Impact**: Degraded build performance, potential data loss
+   - **Fix**: `nix-store --verify --check-contents --repair` (requires SSH access)
+
+4. **Justfile Parallel Fetch Broken**: GNU parallel syntax errors
+   - **Impact**: Parallel git fetch feature not working
+   - **Workaround**: Use sequential `just deploy` commands
+
+5. **Monitoring Coverage**: Only zephyr has full monitoring (nexus/forge/sentry pending)
    - **Impact**: Reduced visibility into cluster health
    - **Status**: 🔄 Phase 2 (7-30 days)
 
-2. **Backup Encryption Key**: Not generated yet
+6. **Backup Encryption Key**: Not generated yet
    - **Impact**: Backup service cannot encrypt data
    - **Status**: 🔄 To be generated
 
-3. **Alertmanager**: No notification endpoints configured
+7. **Alertmanager**: No notification endpoints configured
    - **Impact**: Alerts not sent to operators
    - **Status**: 🔄 Phase 2 (7-30 days)
 
 ### Pending Actions
+- [ ] **URGENT**: Fix sentry SSH access (console intervention required)
+- [ ] Apply linuxPackages_latest workaround to sentry (after SSH fixed)
+- [ ] Run nix-store repair on sentry (after SSH fixed)
+- [ ] Fix justfile parallel fetch syntax or revert to sequential approach
+- [ ] Remove all OpenClaw references from codebase (after justfile fixed)
 - [ ] Generate backup-encryption-key.age
 - [ ] Configure monitoring on nexus, forge, sentry
 - [ ] Configure Alertmanager notification endpoints
@@ -252,7 +276,8 @@ journalctl -u xmrig -f
 
 ---
 
-**Next Update**: 2026-02-08 (24 hours) or after significant changes
+**Next Update**: 2026-02-09 (24 hours) or after sentry SSH restored
 **Maintained by**: j_kro
 **Cluster Version**: 26.05
 **NixOS Channel**: Stable
+**Degraded Services**: Sentry (SSH Refused, Kernel Issues, Store Corruption)
