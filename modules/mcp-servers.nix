@@ -85,6 +85,65 @@ in {
 
       openclaw = {
         enable = lib.mkEnableOption "OpenClaw MCP server (exposes Gateway tools)" // {default = true;};
+        nixos = {
+          enable = lib.mkEnableOption "NixOS MCP server for NixOS packages and options" // {default = false;};
+          apiKey = lib.mkOption {
+            type = lib.types.str;
+            default = "";
+            description = "Context7 API key (optional, for higher rate limits)";
+          };
+        };
+
+      kubernetes = {
+        enable = lib.mkEnableOption "Kubernetes MCP server for cluster management" // {default = false;};
+        kubeconfig = lib.mkOption {
+          type = lib.types.path;
+          default = "";
+          description = "Path to kubeconfig file";
+        };
+      };
+
+      github-actions = {
+        enable = lib.mkEnableOption "GitHub Actions MCP server for CI/CD automation" // {default = false;};
+      };
+
+      terraform = {
+        enable = lib.mkEnableOption "Terraform MCP server for IaC automation" // {default = false;};
+      };
+
+      ansible = {
+        enable = lib.mkEnableOption "Ansible MCP server for configuration management" // {default = false;};
+      };
+
+      n8n = {
+        enable = lib.mkEnableOption "n8n workflow automation MCP server" // {default = false;};
+        url = lib.mkOption {
+          type = lib.types.str;
+          default = "http://localhost:5678";
+          description = "n8n instance URL";
+        };
+      };
+
+      computer-use = {
+        enable = lib.mkEnableOption "Computer use MCP server for desktop automation" // {default = false;};
+        platform = lib.mkOption {
+          type = lib.types.enum ["windows" "macos" "linux"];
+          default = "linux";
+          description = "Operating system platform";
+        };
+      };
+
+      exa = {
+        enable = lib.mkEnableOption "Exa web search MCP server" // {default = false;};
+        apiKey = lib.mkOption {
+          type = lib.types.str;
+          default = "";
+          description = "Exa API key (use your key: 3a8a3e63-3267-492c-b078-543abb2ee144)";
+        };
+      };
+
+      google-drive = {
+        enable = lib.mkEnableOption "Google Drive MCP server for cloud storage" // {default = false;};
       };
     };
   };
