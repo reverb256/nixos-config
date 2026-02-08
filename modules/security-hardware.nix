@@ -10,8 +10,8 @@
     rbw
   ];
 
-  # Enable SSH agent for key management
-  programs.ssh.startAgent = true;
+  # SSH agent is managed by distributed-builds.nix (coordinated across all nodes)
+  # programs.ssh.startAgent is set there to avoid conflicts
 
   # GPG agent for YubiKey PGP keys (if used)
   programs.gnupg.agent = {
