@@ -34,8 +34,9 @@ _default:
 fetch:
     @echo "Fetching all nodes (parallel)..."
     @parallel --tag "just-fetch-{{n}}.out" -- \
-        ssh $SSH_OPTS ${{HOST}} "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
-    ::: ::: HOST zephyr nexus forge sentry
+        @for node in zephyr nexus; do \
+            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
+        done
     @wait
     @echo "Fetched all nodes"
 
@@ -43,25 +44,27 @@ fetch:
 build:
     @echo "Building all configurations (parallel)..."
     @parallel --tag "just-build-{{n}}.out" -- \
-        ssh $SSH_OPTS ${{HOST}} "cd ${FLAKE_PATH} && nix build .#${HOST} 2>&1" | tee /tmp/just-{{HOST}}.out \
-        ::: ::: HOST zephyr nexus forge sentry
+        @for node in zephyr nexus; do \
+            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && nix build .#${node}} 2>&1" | tee /tmp/just-{{node}}.out \
+        done
     @wait
     @parallel --tag "just-build-done.{{n}}.out" -- \
-        echo "Built {{HOST}}"
-        ::: ::: HOST zephyr nexus forge sentry
+        echo "Built {{node}}"
+        ::: ::: HOST zephyr nexus
+    @echo "Built all nodes"
 
 # Update flake and deploy all - runs on nexus with session isolation
 update:
     @echo "Updating flake and deploying to all hosts (parallel)..."
-    @parallel --tag "just-update-{{n}}.out" -- \
-        @for node in zephyr nexus forge sentry; do \
+    @parallel --tag "just-update.{{n}}.out" -- \
+        @for node in zephyr nexus; do \
             echo "Fetching on ${{node}}..."; \
-            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"; \
+            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
         done
     @wait
     @parallel --tag "just-update-done.{{n}}.out" -- \
         echo "Fetched {{node}}"
-        ::: ::: HOST zephyr nexus forge sentry
+        ::: ::: HOST zephyr nexus
     @echo "Deploying to all cluster hosts (with session isolation)..."
     /etc/nixos/scripts/just-cluster deploy
 
