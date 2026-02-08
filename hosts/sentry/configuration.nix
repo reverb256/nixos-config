@@ -155,8 +155,6 @@
 
   # ============================================================================
   # TAILSCALE - Secure mesh VPN (using standard nixpkgs module)
-  # Enable OpenRGB for potential Corsair mouse support
-  hardware.rgb.openrgb.enable = true;
   services.tailscale = {
     enable = true;
   };
