@@ -122,12 +122,11 @@
   # ============================================================================
   # GPU DRIVERS (AMD & NVIDIA) - Consistent with main configuration
   # ============================================================================
-  
+
   services.xserver.videoDrivers = ["amdgpu"];
-  
-  hardware.amdgpu = {
-    opencl.enable = true;
-  };
+
+  # OpenCL is handled by hardware.amdgpu.wayland.opencl option above
+  # No need for duplicate configuration
 
   # ============================================================================
   # TAILSCALE - Secure mesh VPN (using standard nixpkgs module)
