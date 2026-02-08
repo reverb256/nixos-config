@@ -26,7 +26,6 @@
     # Import mining services module
     ../../modules/mining.nix
     # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
-    # ../../modules/openclaw-node-host.nix
     # Import distributed builds module (GPU+CUDA+ROCm support)
     ../../modules/distributed-builds.nix
   ];
@@ -349,7 +348,6 @@
   };
 
   # OpenClaw node host service - DISABLED (OpenClaw refactor in progress)
-  # services.openclaw-node-host = {
   #   enable = true;
   #   gatewayHost = "zephyr";
   #   displayName = "Forge Build Node";

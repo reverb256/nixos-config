@@ -30,11 +30,9 @@
     ../../modules/auto-update.nix
     ../../modules/ssh.nix
     # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
-    # ../../modules/openclaw-node-host.nix
     # Import distributed builds module (GPU+CUDA+ROCm support)
     ../../modules/distributed-builds.nix
     # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
-    # ../../modules/openclaw-node-host.nix
   ];
 
   # Host identification
@@ -232,7 +230,6 @@
   };
 
   # OpenClaw node host service - DISABLED (OpenClaw refactor in progress)
-  # services.openclaw-node-host = {
   #   enable = true;
   #   gatewayHost = "zephyr";
   #   displayName = "Nexus Build Node";
