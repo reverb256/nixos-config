@@ -20,11 +20,11 @@
       '';
 in {
   options.services.mcp-servers = {
-    enable = liblib.mkEnableOption "MCP (Model Context Protocol) servers for all AI tools (OpenCode, Qwen, Kimi, OpenClaw)";
+    enable = lib.mkEnableOption "MCP (Model Context Protocol) servers for all AI tools (OpenCode, Qwen, Kimi, OpenClaw)";
     
     servers = {
       filesystem = {
-        enable = liblib.mkEnableOption "Filesystem MCP server" // {default = true;};
+        enable = lib.mkEnableOption "Filesystem MCP server" // {default = true;};
         allowedPaths = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = ["$HOME" "/etc/nixos"];
@@ -33,23 +33,23 @@ in {
       };
       
       git = {
-        enable = liblib.mkEnableOption "Git MCP server" // {default = true;};
+        enable = lib.mkEnableOption "Git MCP server" // {default = true;};
       };
       
       playwright = {
-        enable = liblib.mkEnableOption "Playwright MCP server for browser automation" // {default = true;};
+        enable = lib.mkEnableOption "Playwright MCP server for browser automation" // {default = true;};
       };
       
       puppeteer = {
-        enable = liblib.mkEnableOption "Puppeteer MCP server (deprecated, use Playwright)" // {default = false;};
+        enable = lib.mkEnableOption "Puppeteer MCP server (deprecated, use Playwright)" // {default = false;};
       };
       
       fetch = {
-        enable = liblib.mkEnableOption "Fetch MCP server for web content" // {default = true;};
+        enable = lib.mkEnableOption "Fetch MCP server for web content" // {default = true;};
       };
       
       context7 = {
-        enable = liblib.mkEnableOption "Context7 MCP server for documentation" // {default = true;};
+        enable = lib.mkEnableOption "Context7 MCP server for documentation" // {default = true;};
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
@@ -58,11 +58,11 @@ in {
       };
       
       grep-app = {
-        enable = liblib.mkEnableOption "Grep.app MCP server for code search" // {default = true;};
+        enable = lib.mkEnableOption "Grep.app MCP server for code search" // {default = true;};
       };
       
       brave-search = {
-        enable = liblib.mkEnableOption "Brave Search MCP server" // {default = false;};
+        enable = lib.mkEnableOption "Brave Search MCP server" // {default = false;};
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
@@ -71,11 +71,11 @@ in {
       };
       
       chrome-devtools = {
-        enable = liblib.mkEnableOption "Chrome DevTools MCP server" // {default = true;};
+        enable = lib.mkEnableOption "Chrome DevTools MCP server" // {default = true;};
       };
       
       github = {
-        enable = liblib.mkEnableOption "GitHub MCP server" // {default = false;};
+        enable = lib.mkEnableOption "GitHub MCP server" // {default = false;};
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
@@ -84,18 +84,19 @@ in {
       };
       
       openclaw = {
-        enable = liblib.mkEnableOption "OpenClaw MCP server (exposes Gateway tools)" // {default = true;};
+        enable = lib.mkEnableOption "OpenClaw MCP server (exposes Gateway tools)" // {default = true;};
         nixos = {
-          enable = liblib.mkEnableOption "NixOS MCP server for NixOS packages and options" // {default = false;};
+          enable = lib.mkEnableOption "NixOS MCP server for NixOS packages and options" // {default = false;};
           apiKey = lib.mkOption {
             type = lib.types.str;
             default = "";
             description = "Context7 API key (optional, for higher rate limits)";
           };
         };
+      };
       
       kubernetes = {
-        enable = liblib.mkEnableOption "Kubernetes MCP server for cluster management" // {default = false;};
+        enable = lib.mkEnableOption "Kubernetes MCP server for cluster management" // {default = false;};
         kubeconfig = lib.mkOption {
           type = lib.types.path;
           default = "";
@@ -104,19 +105,19 @@ in {
       };
       
       github-actions = {
-        enable = liblib.mkEnableOption "GitHub Actions MCP server for CI/CD automation" // {default = false;};
+        enable = lib.mkEnableOption "GitHub Actions MCP server for CI/CD automation" // {default = false;};
       };
       
       terraform = {
-        enable =lib.mkEnableOption "Terraform MCP server for IaC automation" // {default = false;};
+        enable = lib.mkEnableOption "Terraform MCP server for IaC automation" // {default = false;};
       };
       
       ansible = {
-        enable = liblib.mkEnableOption "Ansible MCP server for configuration management" // {default = false;};
+        enable = lib.mkEnableOption "Ansible MCP server for configuration management" // {default = false;};
       };
       
       n8n = {
-        enable = liblib.mkEnableOption "n8n workflow automation MCP server" // {default = false;};
+        enable = lib.mkEnableOption "n8n workflow automation MCP server" // {default = false;};
         url = lib.mkOption {
           type = lib.types.str;
           default = "http://localhost:5678";
@@ -125,7 +126,7 @@ in {
       };
       
       computer-use = {
-        enable = liblib.mkEnableOption "Computer use MCP server for desktop automation" // {default = false;};
+        enable = lib.mkEnableOption "Computer use MCP server for desktop automation" // {default = false;};
         platform = lib.mkOption {
           type = lib.types.enum ["windows" "macos" "linux"];
           default = "linux";
@@ -134,7 +135,7 @@ in {
       };
       
       exa = {
-        enable = liblib.mkEnableOption "Exa web search MCP server" // {default = false;};
+        enable = lib.mkEnableOption "Exa web search MCP server" // {default = false;};
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
@@ -143,7 +144,7 @@ in {
       };
       
       google-drive = {
-        enable = liblib.mkEnableOption "Google Drive MCP server for cloud storage" // {default = false;};
+        enable = lib.mkEnableOption "Google Drive MCP server for cloud storage" // {default = false;};
       };
     };
   };
