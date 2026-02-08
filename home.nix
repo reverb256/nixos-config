@@ -30,7 +30,7 @@
   # User packages - development tools, shell utilities, and applications
   home.packages = with pkgs;
     let
-      openclawPkg = inputs.nix-openclaw.packages.x86_64-linux.openclaw;
+      # openclawPkg removed
     in
     [
       # Shell tools (configured in programs section below)
@@ -54,8 +54,6 @@
       gparted
 
       # OpenClaw AI agent
-      openclawPkg
-
       # Cloud and sync tools
       rclone
     rclone-browser
@@ -88,17 +86,13 @@
     '')
   ];
 
-  # StreamLake Claude Code environment variables (enhanced with MCP)
   home.sessionVariables = {
     # MCP Server Configuration
     MCP_SERVER_URL = "http://localhost:3000";
     MCP_ENABLED = "true";
     WEB_SEARCH_ENABLED = "true";
 
-    # StreamLake/Vanchin KAT-Coder-Pro-v1 configuration with proxy
-    ANTHROPIC_BASE_URL = "https://vanchin.streamlake.ai/api/gateway/coding/kat-coder-pro-v1/claude-code-proxy";
     API_TIMEOUT_MS = "3000000";
-    ANTHROPIC_MODEL = "kat-coder-pro-v1";
 
     # API key files (from Agenix secrets)
     # Note: These files must exist in secrets/ directory and be configured in secrets/age-secrets.nix
@@ -529,24 +523,25 @@
     };
   };
 
-  # OpenClaw Gateway Service
-  systemd.user.services.openclaw-gateway = {
-    Unit = {
-      Description = "OpenClaw Gateway";
-      After = ["network.target"];
-      PartOf = ["graphical-session.target"];
-    };
-    Service = {
-      Type = "simple";
-      ExecStart = "${inputs.nix-openclaw.packages.x86_64-linux.openclaw}/bin/openclaw gateway --port 18789 --bind loopback --allow-unconfigured";
-      Restart = "on-failure";
-      RestartSec = 5;
-      Environment = [
-        "OPENCLAW_STATE_DIR=/home/j_kro/.openclaw"
-      ];
-    };
-    Install = {
-      WantedBy = ["graphical-session.target"];
-    };
-  };
+  # OpenClaw Gateway Service - REMOVED FROM SYSTEM (modules/services/openclaw/default.nix)
+  # Service removed from system
+  # systemd.user.services.openclaw-gateway = {
+  #   Unit = {
+  #     Description = "OpenClaw Gateway";
+  #     After = ["network.target"];
+  #     PartOf = ["graphical-session.target"];
+  #   };
+  #   Service = {
+  #     Type = "simple";
+  #     ExecStart = "${inputs.nix-openclaw.packages.x86_64-linux.openclaw}/bin/openclaw gateway --port 18789 --bind loopback --allow-unconfigured";
+  #     Restart = "on-failure";
+  #     RestartSec = 5;
+  #     Environment = [
+  #       "OPENCLAW_STATE_DIR=/home/j_kro/.openclaw"
+  #     ];
+  #   };
+  #   Install = {
+  #     WantedBy = ["graphical-session.target"];
+  #   };
+  # };
 }

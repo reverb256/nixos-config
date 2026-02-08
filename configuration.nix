@@ -68,15 +68,11 @@ in {
     ./modules/distributed-builds-graceful.nix
     # Secrets configuration
     # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
-    # OpenClaw service module
-    ./modules/services/openclaw
+    # OpenClaw service module - REMOVED
   ];
 
-  # OpenClaw AI Gateway Service
-  # OpenClaw AI Agent Gateway - using home-manager user service
-  # services.openclaw.enable = true;
-  # services.openclaw.port = 18789;
-  # services.openclaw.autoStart = true;
+  # OpenClaw AI Gateway Service - REMOVED
+  # OpenClaw AI Agent Gateway - completely removed from system
 
   # ============================================================================
   # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
