@@ -16,12 +16,12 @@ Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all no
 
 | Host | IP Address | Tailscale IP | CPU | Memory | GPUs | Role |
 |------|-------------|---------------|-----|--------|-------|--------|
-| **zephyr** | 10.1.1.110 | 100.81.182.5 | 32 cores | 64GB | RTX 3090 | Master Workstation |
-| **nexus** | 10.1.1.120 | 100.86.158.18 | 24 cores | 32GB | 2x RTX 3060 Ti | Build/Backup |
-| **forge** | 10.1.1.130 | 100.116.190.124 | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Mining |
-| **sentry** | 10.1.1.140 | 100.82.210.39 | 8 cores | 32GB | RX 5600 XT | Monitoring |
+| **zephyr** | 10.1.1.110 | 100.81.182.5 | 32 cores | 64GB | RTX 3090 | Master Workstation | ✅ RGB: Corsair + Razer |
+| **nexus** | 10.1.1.120 | 100.86.158.18 | 24 cores | 32GB | 2x RTX 3060 Ti | Build/Backup | ❌ No RGB Hardware |
+| **forge** | 10.1.1.130 | 100.116.190.124 | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Mining | ❌ No RGB Hardware |
+| **sentry** | 10.1.1.140 | 100.82.210.39 | 8 cores | 32GB | RX 5600 XT | Monitoring | ❌ No RGB Hardware |
 
-**Total Build Capacity:** **70 cores** across all 4 hosts
+**Total Build Capacity:** **70 cores** across all 4 hosts | **RGB Tools:** OpenRGB, liquidctl, Polychromatic, ckb-next
 
 ## ⚡ Quick Actions
 | Context | Command | Description |
@@ -30,6 +30,9 @@ Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all no
 | **Push** | `just push` | Push changes + deploy to current host |
 | **Update** | `just update` | Update flake + deploy all |
 | **Check** | `nix flake check` | Validate configuration syntax |
+| **RGB Profile** | `rgb-profile [gaming|movie|off]` | Switch RGB profiles for monitoring/alerts |
+| **RGB Status** | `openrgb --list-devices` | View all RGB devices |
+| **RGB Sync** | `liquidctl list` | Check AIO/RAM status |
 
 ## 📍 Key Locations
 | Component | File Path | Status |
@@ -71,22 +74,34 @@ Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all no
 ## ⚠️ Recent Changes (2026-02-08)
 
 ### Infrastructure Updates
-1.  **MCP Servers Module Fixed:** Resolved syntax error in `modules/mcp-servers.nix` (missing closing brace)
-2.  **Deployments Completed:**
+1. **MCP Servers Module Fixed:** Resolved syntax error in `modules/mcp-servers.nix` (missing closing brace)
+2. **Deployments Completed:**
     *   ✅ zephyr: Deployed successfully
     *   ✅ nexus: Deployed successfully (openrgb-daemon warning unrelated)
     *   ✅ forge: Deployed successfully
     *   ❌ sentry: **Deployment FAILED** - See Known Issues
-3.  **Sentry Kernel Issue:** linux-zen-6.18.7 failing with module shrinkage errors
+3. **Sentry Kernel Issue:** linux-zen-6.18.7 failing with module shrinkage errors
     *   **Workaround:** Using `linuxPackages_latest` instead of `linuxPackages_zen`
     *   **Root Cause:** nixpkgs #484105 - modules.builtin.modinfo missing in Linux 6.12+
-4.  **Justfile Development:** Attempted parallel git fetch implementation (syntax errors remain)
-5.  **OpenClaw References:** **REMOVAL IN PROGRESS** - All OpenClaw references being removed from codebase
-6.  **ScopeBuddy Integration:** Added declarative gamescope wrapper with system-wide auto-detection
+4. **Justfile Development:** Attempted parallel git fetch implementation (syntax errors remain)
+5. **OpenClaw References:** **REMOVAL IN PROGRESS** - All OpenClaw references being removed from codebase
+6. **ScopeBuddy Integration:** Added declarative gamescope wrapper with system-wide auto-detection
      - Auto-detects resolution, HDR, VRR for all games
      - Steam integration via `scb -- %command%`
      - Compatible with existing gaming.nix setup
      - Configuration: `/etc/scopebuddy/scb.conf` (system-wide)
+7. **RGB Control Enhanced:**
+    *   ✅ zephyr: OpenRGB enabled (MSI X570, G.Skill RAM, RTX 3090)
+    *   ✅ zephyr: Added liquidctl (H115i AIO, Corsair Vengeance RAM)
+    *   ✅ zephyr: ckb-next for Corsair keyboard, OpenRazer for Razer Naga mouse
+    *   ✅ zephyr: Polychromatic for Razer GUI control
+    *   ✅ nexus: OpenRGB enabled (Gigabyte AORUS X470)
+    *   ✅ forge/sentry: OpenRGB enabled (potential Corsair mouse support)
+    *   **Intelligent Use**: RGB configured for temperature monitoring, status signaling, and alerts
+        - Temperature alerts (liquidctl monitors Corsair Vengeance RAM + H115i)
+        - Status indicators (RGB profiles: gaming=active, movie=calm, off=alerts)
+        - Visual signaling (breathing effects when gaming, static blue for movies)
+    *   **Documentation**: `docs/RGB_CONTROL_GUIDE.md` - Comprehensive RGB tool guide
 
 ### Previous Changes (2026-02-04)
 1.  **Mining Security:** API ports now bound to localhost.

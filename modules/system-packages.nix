@@ -89,12 +89,14 @@
       # PERIPHERAL SUPPORT
       # Razer and Corsair device management tools
       # Razer packages now handled by hardware.openrazer module
+      # liquidctl - Cross-platform CLI for AIO coolers, PSUs, and Corsair Vengeance RAM
       # ============================================================================
       polychromatic # Graphical front-end for Razer devices
       razergenie # Qt application for configuring Razer devices
       razer-cli # Command-line interface for Razer devices
       ckb-next # Driver and configuration tool for Corsair devices
       headsetcontrol # For Corsair VOID headsets
+      liquidctl # AIO cooler, PSU, and RAM RGB control
 
       # ============================================================================
       # CUDA AND ML LIBRARIES

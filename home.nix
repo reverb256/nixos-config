@@ -52,6 +52,8 @@
       qwen-code
       gh
       gparted
+      localsend
+      jocalsend
 
       # OpenClaw AI agent
       # Cloud and sync tools
