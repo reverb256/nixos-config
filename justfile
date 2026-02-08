@@ -42,8 +42,8 @@ sync BRANCH=`git branch --show-current`:
     @echo "Syncing changes to branch: {{BRANCH}}"
     @echo "Checking for uncommitted changes..."
     if [ -n "$(git status --porcelain)" ]; then
-        @echo "No changes to sync"
-        exit 0
+      @echo "No changes to sync"
+      exit 0
     fi
     @echo "Committing changes..."
     git add -A
