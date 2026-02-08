@@ -30,77 +30,59 @@ _default:
 # Example: parallel --tag "tag-{{n}}" -- ssh user@host "command"
 # Documentation: https://www.gnu.org/software/parallel/
 
-# Fetch latest code on all nodes in parallel
+# Fetch latest code on all nodes
 fetch:
-    @echo "Fetching all nodes (parallel)..."
-    @parallel --tag "just-fetch-{{n}}.out" -- \
-        @for node in zephyr nexus; do \
-            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
-        done
-    @wait
+    @echo "Fetching all nodes..."
+    @for node in zephyr nexus; do \
+        echo "Fetching $node..."; \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"; \
+    done
     @echo "Fetched all nodes"
 
-# Build all configurations (parallel) - runs on nexus
+# Build all configurations (sequential) - runs on nexus
 build:
-    @echo "Building all configurations (parallel)..."
-    @parallel --tag "just-build-{{n}}.out" -- \
-        @for node in zephyr nexus; do \
-            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && nix build .#${node}} 2>&1" | tee /tmp/just-{{node}}.out \
-        done
-    @wait
-    @parallel --tag "just-build-done.{{n}}.out" -- \
-        echo "Built {{node}}"
-        ::: ::: HOST zephyr nexus
+    @echo "Building all configurations..."
+    @for node in zephyr nexus; do \
+        echo "Building $node..."; \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && nix build .#${node} 2>&1" | tee /tmp/just-$node.out; \
+    done
     @echo "Built all nodes"
 
 # Update flake and deploy all - runs on nexus with session isolation
 update:
-    @echo "Updating flake and deploying to all hosts (parallel)..."
-    @parallel --tag "just-update.{{n}}.out" -- \
-        @for node in zephyr nexus; do \
-            echo "Fetching on ${{node}}..."; \
-            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
-        done
-    @wait
-    @parallel --tag "just-update-done.{{n}}.out" -- \
-        echo "Fetched {{node}}"
-        ::: ::: HOST zephyr nexus
+    @echo "Updating flake and deploying to all hosts..."
+    @for node in zephyr nexus; do \
+        echo "Fetching on $node..."; \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"; \
+    done
     @echo "Deploying to all cluster hosts (with session isolation)..."
     /etc/nixos/scripts/just-cluster deploy
 
 # Deploy to all cluster hosts - runs on nexus with session isolation
 deploy:
-    @echo "Fetching latest code on all nodes (parallel)..."
-    @parallel --tag "just-deploy.{{n}}.out" -- \
-        @for node in zephyr nexus forge sentry; do \
-            echo "Fetching on ${{node}}..."; \
-            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"; \
-        done
-    @wait
-    @parallel --tag "just-deploy-done.{{n}}.out" -- \
-        echo "Deployed {{node}}"
-        ::: ::: HOST zephyr nexus forge sentry
+    @echo "Fetching latest code on all nodes..."
+    @for node in zephyr nexus forge sentry; do \
+        echo "Fetching on $node..."; \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"; \
+    done
     @echo "Deployment complete for all nodes"
 
 # Deploy to individual hosts - runs on nexus with session isolation
 zephyr:
     @echo "Fetching latest code on zephyr..."
-    @parallel --tag "just-zephyr.out" -- \
-        ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
+    ssh $SSH_OPTS "${NODES[zephyr]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
     @echo "Deploying to zephyr (with session isolation)..."
     /etc/nixos/scripts/just-cluster zephyr
 
 nexus:
     @echo "Fetching latest code on nexus..."
-    @parallel --tag "just-nexus.out" -- \
-        ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
+    ssh $SSH_OPTS "${NODES[nexus]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
     @echo "Deploying to nexus (with session isolation)..."
     /etc/nixos/scripts/just-cluster nexus
 
 forge:
     @echo "Fetching latest code on forge..."
-    @parallel --tag "just-forge.out" -- \
-        ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
+    ssh $SSH_OPTS "${NODES[forge]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
     @echo "Deploying to forge (with session isolation)..."
     /etc/nixos/scripts/just-cluster forge
 
@@ -112,21 +94,17 @@ sentry:
     # @echo "Deploying to sentry (with session isolation)..."
     # /etc/nixos/scripts/just-cluster sentry
 
-# Local switch for current node - runs locally with user isolation
+# Local switch for current node - runs locally
 switch:
     @echo "Switching local system configuration for user $(whoami)..."
-    cd /etc/nixos && sudo -u $(id -un) -H nixos-rebuild switch --flake ".#$(hostname -s)"
+    cd /etc/nixos && sudo nixos-rebuild switch --flake ".#$(hostname -s)"
 
 # Copy age key to all nodes (run from zephyr first)
 prep:
-    @echo "Fetching all nodes (parallel)..."
-    @parallel --tag "just-prep.{{n}}.out" -- \
-        ssh $SSH_OPTS ${{HOST}} "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
-    ::: ::: HOST zephyr nexus forge sentry
-    @wait
-    @parallel --tag "just-prep-done.{{n}}.out" -- \
-        echo "Prepped {{HOST}}"
-        ::: ::: HOST zephyr nexus forge sentry
+    @echo "Fetching all nodes..."
+    @for host in zephyr nexus forge sentry; do \
+        ssh $SSH_OPTS "$host" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"; \
+    done
     @echo "Copying age key to all nodes..."
     /etc/nixos/scripts/just-cluster prep
 

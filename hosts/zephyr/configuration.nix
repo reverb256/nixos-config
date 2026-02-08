@@ -68,8 +68,8 @@
   systemd.services.sddm.restartIfChanged = false;
   services.logind.settings.Login.KillUserProcesses = false;
 
-  # Disable OpenRGB on zephyr (no RGB devices)
-  hardware.rgb.openrgb.enable = lib.mkForce false;
+# Unified RGB Control - MSI X570 + G.Skill RAM + RTX 3090
+  hardware.unified-rgb.enable = true;
 
    services.garnix.enable = true;
    services.nixos-auto-update.enable = true;

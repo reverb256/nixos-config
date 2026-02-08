@@ -84,9 +84,12 @@
   # Prevent systemd-logind from killing user processes during session changes
   services.logind.settings.Login.KillUserProcesses = false;
 
-  # Disable OpenRGB on nexus (no RGB devices)
-  hardware.rgb.openrgb.enable = lib.mkForce false;
-
+# Unified RGB Control - Gigabyte AORUS X470 with RGB
+  hardware.unified-rgb.enable = true;
+# Unified RGB Control - Gigabyte AORUS X470 with RGB
+  hardware.unified-rgb.enable = true;
+# Unified RGB Control - Gigabyte AORUS X470 with RGB
+  hardware.unified-rgb.enable = true;
   # ============================================================================
   # MINING CONFIGURATION (Nexus: 24 cores, RTX 3060 Ti)
   # ============================================================================

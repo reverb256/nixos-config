@@ -96,6 +96,13 @@
       prefixLength = 24;
     }
   ];
+
+  # ============================================================================
+  # DISABLE DISTRIBUTED BUILDS ON SENTRY
+  # ============================================================================
+  # Sentry is a build machine, not a coordinator
+  # Disable distributed builds to prevent garnix secret errors
+  nix.distributedBuilds = lib.mkForce false;
   networking.defaultGateway = "10.1.1.1";
 
   # ============================================================================
@@ -131,7 +138,8 @@
 
   # ============================================================================
   # TAILSCALE - Secure mesh VPN (using standard nixpkgs module)
-  # ============================================================================
+  # Enable OpenRGB for potential Corsair mouse support
+  hardware.rgb.openrgb.enable = true;
   services.tailscale = {
     enable = true;
   };
