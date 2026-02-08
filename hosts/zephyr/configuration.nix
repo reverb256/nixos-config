@@ -71,10 +71,10 @@
   # Disable OpenRGB on zephyr (no RGB devices)
   hardware.rgb.openrgb.enable = lib.mkForce false;
 
-  services.garnix.enable = true;
-  services.nixos-auto-update.enable = true;
+   services.garnix.enable = true;
+   services.nixos-auto-update.enable = true;
 
-  services.mining = {
+   services.mining = {
     enable = true;
     user = "mining";
     xmrig = {
