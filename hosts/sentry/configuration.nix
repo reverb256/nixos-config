@@ -186,7 +186,7 @@
   #   openFirewall = true;
   # };
 
-  # Kubernetes (Worker node configuration) - DISABLED (module conflict with nixpkgs)
+   # Kubernetes (Worker node configuration) - DISABLED (module conflict with nixpkgs)
   # services.kubernetes = {
   #   enable = true;
   #   worker.enable = true;

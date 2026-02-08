@@ -56,35 +56,35 @@
       # OpenClaw AI agent
       # Cloud and sync tools
       rclone
-    rclone-browser
-    restic
-    tailscale
+      rclone-browser
+      restic
+      tailscale
 
-    # From nix profile (moved to declarative)
-    gpu-viewer
-    cachix
+      # From nix profile (moved to declarative)
+      gpu-viewer
+      cachix
 
-    # CLI tools
-    _1password-cli # 1Password CLI
-    himalaya # Email CLI
-    spotify-player # Spotify TUI
+      # CLI tools
+      _1password-cli # 1Password CLI
+      himalaya # Email CLI
+      spotify-player # Spotify TUI
 
-    # Media tools (moved from system-packages)
-    yt-dlp
+      # Media tools (moved from system-packages)
+      yt-dlp
 
-    # Display management (moved from system-packages)
-    kanshi
+      # Display management (moved from system-packages)
+      kanshi
 
-    # Kilo CLI wrapper
-    (pkgs.writeShellScriptBin "kilo" ''
-      exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
-    '')
+      # Kilo CLI wrapper
+      (pkgs.writeShellScriptBin "kilo" ''
+        exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
+      '')
 
-    # ClawHub CLI for OpenClaw skill management
-    (pkgs.writeShellScriptBin "clawdhub" ''
-      exec ${pkgs.nodejs_22}/bin/npx clawdhub "$@"
-    '')
-  ];
+      # ClawHub CLI for OpenClaw skill management
+      (pkgs.writeShellScriptBin "clawdhub" ''
+        exec ${pkgs.nodejs_22}/bin/npx clawdhub "$@"
+      '')
+    ];
 
   home.sessionVariables = {
     # MCP Server Configuration
@@ -236,7 +236,7 @@
         Locked = false; # Allow user customization
       };
 
-      # Override the new tab page
+      # Override new tab page
       NewTabPage = false;
 
       # Disable default browser check
@@ -313,19 +313,8 @@
       };
     };
 
-    # SSH configuration - GitHub config moved to NixOS module (modules/ssh.nix)
-    # to avoid conflicts with centralized SSH config management
-    ssh = {
-      enable = true;
-      # Force overwrite existing config file to avoid conflicts during activation
-      matchBlocks = {
-        # Add known hosts or specific configurations as needed
-      };
-      extraConfig = ''
-        # Managed by home-manager
-        # Additional SSH configuration can be added here
-      '';
-    };
+    # SSH configuration - Managed centrally by modules/ssh.nix (NixOS system module)
+    # Home Manager SSH is disabled to avoid conflicts with system-level SSH config
 
     # Neovim configuration
     neovim = {
@@ -467,8 +456,8 @@
         };
     };
 
-    # Using WiVRn as the OpenXR runtime with OpenComposite for SteamVR compatibility
-    # This sets WiVRn as the active OpenXR runtime for VRChat and other VR apps
+    # Using WiVRn as OpenXR runtime with OpenComposite for SteamVR compatibility
+    # This sets WiVRn as active OpenXR runtime for VRChat and other VR apps
     configFile."openxr/1/active_runtime.json" = {
       source = "${pkgs.wivrn}/share/openxr/1/openxr_wivrn.json";
       force = true;
