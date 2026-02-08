@@ -9,7 +9,7 @@ FORGE := "j_kro@100.116.190.124"
 SENTRY := "j_kro@100.82.210.39"
 
 # Default branch for deployment (can be overridden with JUST_BRANCH=branch-name)
-BRANCH := "infra"
+BRANCH := ""  # Empty = use current branch
 
 _default:
      @echo "NixOS Cluster Management - Idempotent Deployment"
@@ -35,9 +35,9 @@ _default:
 # TEST & DEPLOY - Branch-aware testing and deployment
 # ============================================================================
 
-# Test configuration (dry build) - optional branch parameter
-test branch:
-    @echo "Testing configuration for branch: {{branch}}"
+# Test configuration (dry build) - optional branch parameter (default: current branch)
+test BRANCH=`git branch --show-current`:
+    @echo "Testing configuration for branch: {{BRANCH}}"
     @echo "Checking flake syntax..."
     nix flake check --no-build
     @echo "Evaluating all configurations..."
@@ -45,19 +45,19 @@ test branch:
     nix eval .#nixosConfigurations.nexus.config.system.build.toplevel --raw > /dev/null
     nix eval .#nixosConfigurations.forge.config.system.build.toplevel --raw > /dev/null
     nix eval .#nixosConfigurations.sentry.config.system.build.toplevel --raw > /dev/null
-    @echo "✅ All configurations valid for branch: {{branch}}"
+    @echo "✅ All configurations valid for branch: {{BRANCH}}"
 
-# Deploy specified branch via colmena - optional branch parameter
-deploy branch={{BRANCH}}:
-    @echo "Deploying branch: {{branch}}"
+# Deploy specified branch via colmena - optional branch parameter (default: current branch)
+deploy *BRANCH=`git branch --show-current`:
+    @echo "Deploying branch: {{BRANCH}}"
     @echo "Checking out branch on all nodes..."
-    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout {{branch}} && git pull origin {{branch}} 2>/dev/null || true"
-    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout {{branch}} && git pull origin {{branch}} 2>/dev/null || true"
-    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout {{branch}} && git pull origin {{branch}} 2>/dev/null || true"
-    cd {{FLAKE_PATH}} && git fetch origin && git checkout {{branch}} && git pull origin {{branch}}
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
+    cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}}
     @echo "Deploying via colmena to all nodes..."
     nix run github:zhaofengli/colmena -- deploy --on-change --skip-eval
-    @echo "✅ Deployment complete for branch: {{branch}}"
+    @echo "✅ Deployment complete for branch: {{BRANCH}}"
 
 # ============================================================================
 # GIT OPERATIONS
@@ -97,7 +97,7 @@ switch:
 # Copy age key to all nodes (run from zephyr first)
 prep:
     @echo "Fetching all nodes..."
-    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
