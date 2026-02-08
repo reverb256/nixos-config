@@ -151,11 +151,10 @@ in {
       (lib.mkIf (cfg.containerRuntime == "containerd") {
           containerd = {
             enable = true;
-            enableCRI = true;
           };
         })
       (lib.mkIf (cfg.containerRuntime == "cri-o") {
-          crio = {
+          cri-o = {
             enable = true;
           };
         })
@@ -167,7 +166,7 @@ in {
           kube-apiserver = {
             description = "Kubernetes API Server";
             after = ["network.target"];
-            wantedBy = lib.optionals cfg.autoStart ["multi-user.target"];
+            wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
 
             serviceConfig = {
               Type = "simple";
@@ -184,7 +183,7 @@ in {
           kube-controller-manager = {
             description = "Kubernetes Controller Manager";
             after = ["network.target" "kube-apiserver.service"];
-            wantedBy = lib.optionals cfg.autoStart ["multi-user.target"];
+             wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
 
             serviceConfig = {
               Type = "simple";
@@ -201,7 +200,7 @@ in {
           kube-scheduler = {
             description = "Kubernetes Scheduler";
             after = ["network.target" "kube-apiserver.service"];
-            wantedBy = lib.optionals cfg.autoStart ["multi-user.target"];
+             wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
 
             serviceConfig = {
               Type = "simple";
@@ -218,7 +217,7 @@ in {
           kubelet = {
             description = "Kubernetes Kubelet";
             after = ["network.target"];
-            wantedBy = lib.optionals cfg.autoStart ["multi-user.target"];
+            wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
 
             serviceConfig = {
               Type = "simple";
@@ -235,7 +234,7 @@ in {
           kube-proxy = {
             description = "Kubernetes Proxy";
             after = ["network.target" "kubelet.service"];
-            wantedBy = lib.optionals cfg.autoStart ["multi-user.target"];
+             wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
 
             serviceConfig = {
               Type = "simple";
