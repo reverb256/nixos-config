@@ -186,11 +186,4 @@
   #   openFirewall = true;
   # };
 
-   # Kubernetes (Worker node configuration) - DISABLED (module conflict with nixpkgs)
-  # services.kubernetes = {
-  #   enable = true;
-  #   worker.enable = true;
-  #   worker.kubelet.enable = true;
-  #   containerRuntime = "containerd";
-  # };
 }
