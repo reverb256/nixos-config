@@ -26,27 +26,51 @@ build:
     @echo "Building all configurations (dry run)..."
     /etc/nixos/scripts/just-cluster build
 
+# Fetch latest code on all nodes in parallel
+fetch:
+    @echo "Fetching latest code on all nodes (parallel)..."
+    @for node in zephyr nexus forge sentry; do \
+        echo "Fetching on $$node..."; \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null || echo 'WARNING: Fetch failed on $$node'" & \
+    done
+    @wait
+
 # Deploy to all cluster hosts - runs on nexus with session isolation
 deploy:
+    @echo "Fetching latest code on all nodes before deployment..."
+    @for node in zephyr nexus forge sentry; do \
+        echo "Fetching on $$node..."; \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
+    done
+    @wait
     @echo "Deploying to all cluster hosts (with session isolation)..."
     /etc/nixos/scripts/just-cluster deploy
 
 # Deploy to individual hosts - runs on nexus with session isolation
 zephyr:
+    @echo "Fetching latest code on zephyr..."
+    ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on zephyr'
     @echo "Deploying to zephyr (with session isolation)..."
     /etc/nixos/scripts/just-cluster zephyr
 
 nexus:
+    @echo "Fetching latest code on nexus..."
+    ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on nexus'
     @echo "Deploying to nexus (with session isolation)..."
     /etc/nixos/scripts/just-cluster nexus
 
 forge:
+    @echo "Fetching latest code on forge..."
+    ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on forge'
     @echo "Deploying to forge (with session isolation)..."
     /etc/nixos/scripts/just-cluster forge
 
 sentry:
-    @echo "Deploying to sentry (with session isolation)..."
-    /etc/nixos/scripts/just-cluster sentry
+    @echo "Skipping sentry deployment (kernel issue workaround pending)"
+    # @echo "Fetching latest code on sentry..."
+    # ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on sentry'
+    # @echo "Deploying to sentry (with session isolation)..."
+    # /etc/nixos/scripts/just-cluster sentry
 
 # Local switch for current node - runs locally with user isolation
 switch:
@@ -68,7 +92,13 @@ status:
 
 # Copy age key to all nodes (run from zephyr first)
 prep:
-    @echo "Preparing cluster for deployment..."
+    @echo "Fetching latest code on all nodes (parallel)..."
+    @for node in zephyr nexus forge sentry; do \
+        echo "Fetching on $$node..."; \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null || echo 'WARNING: Fetch failed on $$node'" & \
+    done
+    @wait
+    @echo "Copying age key to all nodes..."
     /etc/nixos/scripts/just-cluster prep
 
 # Deploy from current host (alternative to just-cluster)
