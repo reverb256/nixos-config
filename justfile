@@ -2,6 +2,14 @@
 # All commands work consistently from any node and any directory
 # Coordinated from nexus (deployment coordinator) via SSH
 
+# Cluster configuration
+FLAKE_PATH := "/etc/nixos"
+SSH_OPTS := "-o ConnectTimeout=5 -o StrictHostKeyChecking=no"
+ZEPHYR := "j_kro@10.1.1.110"
+NEXUS := "j_kro@10.1.1.120"
+FORGE := "j_kro@10.1.1.130"
+SENTRY := "j_kro@10.1.1.140"
+
 _default:
      @echo "NixOS Cluster Management - Idempotent Deployment"
      @echo ""
@@ -33,56 +41,50 @@ _default:
 # Fetch latest code on all nodes
 fetch:
     @echo "Fetching all nodes..."
-    @for node in zephyr nexus; do \
-        echo "Fetching $node..."; \
-        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"; \
-    done
+    ssh $SSH_OPTS {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh $SSH_OPTS {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Fetched all nodes"
 
 # Build all configurations (sequential) - runs on nexus
 build:
     @echo "Building all configurations..."
-    @for node in zephyr nexus; do \
-        echo "Building $node..."; \
-        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && nix build .#${node} 2>&1" | tee /tmp/just-$node.out; \
-    done
+    ssh {{SSH_OPTS}} {{ZEPHYR}} "cd {{FLAKE_PATH}} && nix build .#zephyr 2>&1" | tee /tmp/just-zephyr.out
+    ssh {{SSH_OPTS}} {{NEXUS}} "cd {{FLAKE_PATH}} && nix build .#nexus 2>&1" | tee /tmp/just-nexus.out
     @echo "Built all nodes"
 
 # Update flake and deploy all - runs on nexus with session isolation
 update:
     @echo "Updating flake and deploying to all hosts..."
-    @for node in zephyr nexus; do \
-        echo "Fetching on $node..."; \
-        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"; \
-    done
+    ssh {{SSH_OPTS}} {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh {{SSH_OPTS}} {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Deploying to all cluster hosts (with session isolation)..."
     /etc/nixos/scripts/just-cluster deploy
 
 # Deploy to all cluster hosts - runs on nexus with session isolation
 deploy:
     @echo "Fetching latest code on all nodes..."
-    @for node in zephyr nexus forge sentry; do \
-        echo "Fetching on $node..."; \
-        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"; \
-    done
+    ssh {{SSH_OPTS}} {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh {{SSH_OPTS}} {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh {{SSH_OPTS}} {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh {{SSH_OPTS}} {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Deployment complete for all nodes"
 
 # Deploy to individual hosts - runs on nexus with session isolation
 zephyr:
     @echo "Fetching latest code on zephyr..."
-    ssh $SSH_OPTS "${NODES[zephyr]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
+    ssh {{SSH_OPTS}} {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Deploying to zephyr (with session isolation)..."
     /etc/nixos/scripts/just-cluster zephyr
 
 nexus:
     @echo "Fetching latest code on nexus..."
-    ssh $SSH_OPTS "${NODES[nexus]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
+    ssh {{SSH_OPTS}} {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Deploying to nexus (with session isolation)..."
     /etc/nixos/scripts/just-cluster nexus
 
 forge:
     @echo "Fetching latest code on forge..."
-    ssh $SSH_OPTS "${NODES[forge]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
+    ssh {{SSH_OPTS}} {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Deploying to forge (with session isolation)..."
     /etc/nixos/scripts/just-cluster forge
 
@@ -102,9 +104,10 @@ switch:
 # Copy age key to all nodes (run from zephyr first)
 prep:
     @echo "Fetching all nodes..."
-    @for host in zephyr nexus forge sentry; do \
-        ssh $SSH_OPTS "$host" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"; \
-    done
+    ssh $SSH_OPTS $ZEPHYR "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
+    ssh $SSH_OPTS $NEXUS "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
+    ssh $SSH_OPTS $FORGE "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
+    ssh $SSH_OPTS $SENTRY "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
     @echo "Copying age key to all nodes..."
     /etc/nixos/scripts/just-cluster prep
 
