@@ -15,6 +15,8 @@
     ../../modules/fish-starship.nix
     # Import AMD GPU Wayland module
     ../../modules/amdgpu-wayland.nix
+    # TEMPORARY: Comment out unified-rgb due to syntax errors
+    # # ../../modules/unified-rgb.nix
     # Import OpenClaw AI agent orchestration (declarative container)
     # Import OpenClaw common configuration
     # Import Tailscale mesh VPN
