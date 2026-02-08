@@ -29,12 +29,12 @@
     ../../modules/garnix.nix
     ../../modules/auto-update.nix
     ../../modules/ssh.nix
-    # Import OpenClaw node host module
-    ../../modules/openclaw-node-host.nix
+    # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
+    # ../../modules/openclaw-node-host.nix
     # Import distributed builds module (GPU+CUDA+ROCm support)
     ../../modules/distributed-builds.nix
-    # Import OpenClaw node host module
-    ../../modules/openclaw-node-host.nix
+    # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
+    # ../../modules/openclaw-node-host.nix
   ];
 
   # Host identification
@@ -85,6 +85,9 @@
 
   # Prevent systemd-logind from killing user processes during session changes
   services.logind.settings.Login.KillUserProcesses = false;
+
+  # Disable OpenRGB on nexus (no RGB devices)
+  hardware.rgb.openrgb.enable = lib.mkForce false;
 
   # ============================================================================
   # MINING CONFIGURATION (Nexus: 24 cores, RTX 3060 Ti)
@@ -228,13 +231,14 @@
     TS_SSH = "true";
   };
 
-  services.openclaw-node-host = {
-    enable = true;
-    gatewayHost = "zephyr";
-    displayName = "Nexus Build Node";
-    execAllowlist = [
-      "/run/current-system/sw/bin/uname"
-      "/run/current-system/sw/bin/sw_vers"
-    ];
-  };
+  # OpenClaw node host service - DISABLED (OpenClaw refactor in progress)
+  # services.openclaw-node-host = {
+  #   enable = true;
+  #   gatewayHost = "zephyr";
+  #   displayName = "Nexus Build Node";
+  #   execAllowlist = [
+  #     "/run/current-system/sw/bin/uname"
+  #     "/run/current-system/sw/bin/sw_vers"
+  #   ];
+  # };
 }
