@@ -68,9 +68,6 @@
   systemd.services.sddm.restartIfChanged = false;
   services.logind.settings.Login.KillUserProcesses = false;
 
-# Unified RGB Control - MSI X570 + G.Skill RAM + RTX 3090
-  hardware.unified-rgb.enable = true;
-
    services.garnix.enable = true;
    services.nixos-auto-update.enable = true;
 
