@@ -84,14 +84,14 @@ in {
 
   # RGB Lighting Control
   # MSI X570 Tomahawk + RTX 3090 + Corsair devices + G.Skill Trident Z RGB
-  hardware.rgb = {
+  hardware.unified-rgb = {
     enable = true;
     openrgb = {
       enable = true;
-      withPlugins = true;
+      motherboard = "msi"; # MSI X570
     };
-    corsair = {
-      enable = true; # ckb-next handles keyboard + Lighting Node Pro
+    liquidctl = {
+      enable = true; # Corsair H115i + Vengeance RAM
     };
   };
 
