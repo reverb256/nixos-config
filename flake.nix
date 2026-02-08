@@ -81,6 +81,7 @@
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
         home-manager.users.j_kro = import ./home.nix; # Assuming home.nix is in root
+        home-manager.backupFileExtension = "bak";
         home-manager.extraSpecialArgs = {inherit inputs;};
       }
 
