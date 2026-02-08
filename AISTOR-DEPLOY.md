@@ -3,11 +3,11 @@
 **Version**: 2026-02-01 | **Security Hardened**
 
 ## Overview
-This document describes how to deploy AIStor (S3-compatible object storage) on the nexus node and configure it for AI/ML workloads with the security-hardened OpenClaw infrastructure.
+This document describes how to deploy AIStor (S3-compatible object storage) on the nexus node and configure it for AI/ML workloads with the security-hardened  infrastructure.
 
 ## Architecture
 - **Server**: nexus (10.1.1.120:9000) - AIStor/MinIO server
-- **Client**: zephyr - Uses AIStor as private S3 cache and OpenClaw storage backend
+- **Client**: zephyr - Uses AIStor as private S3 cache and  storage backend
 - **Buckets**: ai-models, training-data, experiments, ai-logs, nix-cache
 - **Security**: All credentials encrypted with agenix, services isolated
 
@@ -16,13 +16,13 @@ This document describes how to deploy AIStor (S3-compatible object storage) on t
 ### Service Isolation
 - **Lobster user**: `isSystemUser = true` (no login, no sudo)
 - **No privilege escalation**: AI service cannot become root
-- **Localhost-only**: OpenClaw services bind to 127.0.0.1 only
+- **Localhost-only**:  services bind to 127.0.0.1 only
 - **Nginx proxy**: External access via SSL/TLS with rate limiting
 
 ### Credentials Management
 All credentials are stored in `secrets/` directory and encrypted with agenix:
 - `minio-cache-credentials.age` - AIStor S3 access keys
-- `openclaw-env.age` - OpenClaw gateway environment
+- `-env.age` -  gateway environment
 
 **Never store plaintext credentials in the repository!**
 
@@ -44,7 +44,7 @@ sudo chmod 600 /etc/minio/minio-root.env
 
 **Important**: Choose a strong password and store it securely.
 
-### 2. Create and Encrypt AIStor Credentials for OpenClaw
+### 2. Create and Encrypt AIStor Credentials for 
 
 **Step A: Create the plaintext credentials file**
 
@@ -94,7 +94,7 @@ Check that `secrets/age-secrets.nix` includes:
 And `configuration.nix` references it:
 
 ```nix
-services.openclaw-storage = {
+services.-storage = {
   enable = true;
   aistorCredentialsFile = "/run/agenix/minio-cache-credentials";
 };
@@ -173,7 +173,7 @@ This configures:
 - Object locking (WORM) for compliance
 - Quotas and monitoring
 
-### Step 6: Deploy zephyr (OpenClaw + Cache Client)
+### Step 6: Deploy zephyr ( + Cache Client)
 
 ```bash
 cd ~/@projects/infra/nixos
@@ -183,29 +183,29 @@ just deploy-zephyr
 
 This will:
 - Enable the nix-cache S3 backend (using encrypted credentials)
-- Start OpenClaw gateway on localhost:18789
-- Start OpenClaw Storage MCP on localhost:18800
+- Start  gateway on localhost:18789
+- Start  Storage MCP on localhost:18800
 - Create the isolated lobster service user
 - Enable 30-second health monitoring with auto-restart
 
-### Step 7: Verify OpenClaw Services
+### Step 7: Verify  Services
 
 ```bash
 ssh zephyr
 
-# Check all OpenClaw services
-systemctl status openclaw
-systemctl status openclaw-storage
-systemctl status openclaw-health.timer
-systemctl status openclaw-storage-health.timer
+# Check all  services
+systemctl status 
+systemctl status -storage
+systemctl status -health.timer
+systemctl status -storage-health.timer
 
 # Test health endpoints
 curl http://127.0.0.1:18789/health
 curl http://127.0.0.1:18800/health
 
 # View logs
-journalctl -u openclaw -n 50
-journalctl -u openclaw-health -n 20
+journalctl -u  -n 50
+journalctl -u -health -n 20
 ```
 
 ### Step 8: Test Configuration
@@ -214,8 +214,8 @@ journalctl -u openclaw-health -n 20
 # Test S3 cache upload
 nix store info --store s3://nix-cache?endpoint=http://10.1.1.120:9000
 
-# Test OpenClaw workflows
-python3 ~/@projects/infra/nixos/scripts/openclaw-aistor-workflows.py checkpoint \
+# Test  workflows
+python3 ~/@projects/infra/nixos/scripts/-aistor-workflows.py checkpoint \
     --run-id test-001 \
     --model-path /path/to/test-model.pt \
     --metrics '{"accuracy": 0.95}'
@@ -233,9 +233,9 @@ For secure external access, enable nginx:
 Edit `hosts/zephyr/configuration.nix`:
 
 ```nix
-services.openclaw.nginx = {
+services..nginx = {
   enable = true;
-  domain = "openclaw.local";  # Or your domain
+  domain = ".local";  # Or your domain
   enableSSL = false;  # Set true for Let's Encrypt (requires public domain)
   allowedIPs = [ "127.0.0.1" "::1" "10.0.0.0/8" "192.168.0.0/16" ];
 };
@@ -251,37 +251,37 @@ just deploy-zephyr
 
 ```bash
 # Via nginx (recommended)
-curl http://openclaw.local/health
-curl http://openclaw.local/gateway  # WebSocket
-curl http://openclaw.local/storage/api/v1/buckets
+curl http://.local/health
+curl http://.local/gateway  # WebSocket
+curl http://.local/storage/api/v1/buckets
 
 # Direct access (localhost only)
 curl http://127.0.0.1:18789/health
 curl http://127.0.0.1:18800/health
 ```
 
-## OpenClaw Storage MCP Usage
+##  Storage MCP Usage
 
 ### Natural Language Commands
 
 ```bash
 # Via MCP server
 echo '{"command": "natural_language", "params": {"query": "store model from /path/to/model.pt"}}' | \
-    python3 ~/@projects/infra/nixos/modules/openclaw-storage-mcp.py
+    python3 ~/@projects/infra/nixos/modules/-storage-mcp.py
 
 # Direct commands
 echo '{"command": "get_storage_stats", "params": {}}' | \
-    python3 ~/@projects/infra/nixos/modules/openclaw-storage-mcp.py
+    python3 ~/@projects/infra/nixos/modules/-storage-mcp.py
 
 # Backup to cloud
 echo '{"command": "backup_to_cloud", "params": {"bucket_type": "models", "cloud_remote": "gdrive"}}' | \
-    python3 ~/@projects/infra/nixos/modules/openclaw-storage-mcp.py
+    python3 ~/@projects/infra/nixos/modules/-storage-mcp.py
 ```
 
 ### Python API
 
 ```python
-from openclaw_aistor_workflows import AIStorWorkflows
+from _aistor_workflows import AIStorWorkflows
 
 workflows = AIStorWorkflows()
 
@@ -316,7 +316,7 @@ rclone listremotes
 Enable automated backups in `configuration.nix`:
 
 ```nix
-services.openclaw-backups = {
+services.-backups = {
   enable = true;
   remote = "gdrive";  # or b2, wasabi, s3, etc.
   buckets = [ "ai-models" "experiments" ];
@@ -346,20 +346,20 @@ for bucket in ai-models training-data experiments ai-logs nix-cache; do
 done
 ```
 
-### Check OpenClaw Services
+### Check  Services
 
 ```bash
 # Check all services
-systemctl status openclaw openclaw-storage
+systemctl status  -storage
 
 # Check health monitoring
-systemctl status openclaw-health.timer
-systemctl status openclaw-storage-health.timer
+systemctl status -health.timer
+systemctl status -storage-health.timer
 
 # View logs
-journalctl -u openclaw -f
-journalctl -u openclaw-storage -f
-journalctl -u openclaw-health -f
+journalctl -u  -f
+journalctl -u -storage -f
+journalctl -u -health -f
 ```
 
 ### Test Health Endpoints
@@ -372,7 +372,7 @@ curl http://127.0.0.1:18789/health
 curl http://127.0.0.1:18800/health
 
 # If nginx is enabled
-curl http://openclaw.local/health
+curl http://.local/health
 ```
 
 ## Troubleshooting
@@ -425,8 +425,8 @@ ss -tlnp | grep 18789
 ss -tlnp | grep 18800
 
 # Check logs
-journalctl -u openclaw -n 100
-journalctl -u openclaw-storage -n 100
+journalctl -u  -n 100
+journalctl -u -storage -n 100
 
 # Verify configuration syntax
 nixos-rebuild test --flake .#zephyr
@@ -447,13 +447,13 @@ nixos-rebuild test --flake .#zephyr
 2. **Use nginx for external access**: SSL/TLS + rate limiting
 3. **IP allowlisting**: Restrict nginx access to known IPs
    ```nix
-   services.openclaw.nginx.allowedIPs = [ "10.0.0.0/8" "192.168.0.0/16" ];
+   services..nginx.allowedIPs = [ "10.0.0.0/8" "192.168.0.0/16" ];
    ```
 
 ### Service Isolation
 1. **Lobster has no sudo**: Verify with `sudo -u lobster sudo whoami` (should fail)
 2. **Services bind to localhost**: Verify with `ss -tlnp | grep 18789`
-3. **Systemd hardening enabled**: Check with `systemctl cat openclaw`
+3. **Systemd hardening enabled**: Check with `systemctl cat `
 
 ## Free Tier Management
 
@@ -480,7 +480,7 @@ Use the free tier monitoring script:
 - [ ] Create buckets with mc
 - [ ] Run `setup-aistor-full-capabilities.sh`
 - [ ] Deploy to zephyr
-- [ ] Verify OpenClaw services: `systemctl status openclaw openclaw-storage`
+- [ ] Verify  services: `systemctl status  -storage`
 - [ ] Test health endpoints: `curl http://127.0.0.1:18789/health`
 - [ ] Verify lobster security: `sudo -u lobster sudo whoami` (should fail)
 - [ ] (Optional) Enable nginx for external access
@@ -491,7 +491,7 @@ Use the free tier monitoring script:
 1. ✅ Deploy AIStor server to nexus
 2. ✅ Create buckets and configure lifecycle
 3. ✅ Set up encrypted credentials for zephyr
-4. ✅ Enable OpenClaw Storage MCP
+4. ✅ Enable  Storage MCP
 5. ✅ Configure health monitoring
 6. ✅ Security harden services
 7. 🔄 Test training checkpoint workflow
@@ -502,7 +502,7 @@ Use the free tier monitoring script:
 
 - [AIStor Documentation](https://min.io/docs/aistor)
 - [MinIO S3 API](https://min.io/docs/minio/linux/reference/minio-mc)
-- [OpenClaw Workflows](~/@projects/infra/nixos/scripts/openclaw-aistor-workflows.py)
+- [ Workflows](~/@projects/infra/nixos/scripts/-aistor-workflows.py)
 - [NixOS MinIO Module](https://search.nixos.org/options?channel=unstable&show=services.minio.enable)
 - [Agenix Documentation](https://github.com/ryantm/agenix)
 
@@ -510,4 +510,4 @@ Use the free tier monitoring script:
 
 *Updated: 2026-02-01*
 *Security Hardening: Complete*
-*Branch: feature/openclaw-secure*
+*Branch: feature/-secure*

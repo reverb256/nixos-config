@@ -1,10 +1,10 @@
-# 4-Node NixOS Cluster with OpenClaw AI Integration
+# 4-Node NixOS Cluster with  AI Integration
 
-This repository contains the NixOS configuration for a 4-node cluster with distributed builds, CI/CD, and OpenClaw AI node management.
+This repository contains the NixOS configuration for a 4-node cluster with distributed builds, CI/CD, and  AI node management.
 
 ## Cluster Topology
 
-- **zephyr** (10.1.1.110): Main node with OpenClaw gateway, primary compute
+- **zephyr** (10.1.1.110): Main node with  gateway, primary compute
 - **nexus** (10.1.1.120): AI Storage (AIStor) and build node
 - **forge** (10.1.1.130): GPU mining and compute node  
 - **sentry** (10.1.1.140): Monitoring and secondary compute
@@ -26,9 +26,9 @@ This repository contains the NixOS configuration for a 4-node cluster with distr
 ### 3. GitHub Actions CI/CD
 - `.github/workflows/ci.yml`: Continuous integration testing
 - `.github/workflows/deploy.yml`: Production deployment
-- `.github/workflows/openclaw-nodes.yml`: Node management
+- `.github/workflows/-nodes.yml`: Node management
 
-### 4. OpenClaw Multi-Node Setup
+### 4.  Multi-Node Setup
 - Gateway running on zephyr (port 18789)
 - Node pairing and management capabilities
 - Scripts to facilitate node joining
@@ -57,18 +57,18 @@ colmena apply --on-change build --target nexus
 nix build --dry-run -L nixpkgs.hello
 ```
 
-## OpenClaw Node Management
+##  Node Management
 
 ### Check Node Status
 ```bash
-openclaw nodes status
-openclaw nodes list
-openclaw nodes pending
+ nodes status
+ nodes list
+ nodes pending
 ```
 
 ### Approve New Nodes
 ```bash
-openclaw nodes approve <node-id>
+ nodes approve <node-id>
 ```
 
 ## Repository Structure
@@ -93,10 +93,10 @@ openclaw nodes approve <node-id>
 2. Run `sudo nixos-rebuild switch` to apply local configuration
 3. Test distributed builds connectivity
 4. Deploy to cluster using colmena
-5. Set up OpenClaw nodes on remaining devices
+5. Set up  nodes on remaining devices
 6. Push changes to GitHub to activate CI/CD pipelines
 
 ## Scripts
 
 - `scripts/deploy-cluster.sh`: Deploy complete cluster configuration
-- `scripts/setup-openclaw-nodes.sh`: Set up OpenClaw node pairing
+- `scripts/setup--nodes.sh`: Set up  node pairing

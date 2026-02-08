@@ -141,7 +141,7 @@ ssh "$COORDINATOR" "cd /etc/nixos && sudo -u $(id -un) -H $COMMAND"
 ### **With Current Ecosystem**
 - **Agenix Secrets**: Maintains per-user access controls
 - **Garnix CI/CD**: GitHub Actions continue to work as before
-- **OpenClaw AI**: AI operations maintain proper user contexts
+- ** AI**: AI operations maintain proper user contexts
 - **Tailscale Mesh**: VPN connections preserve user identity
 - **Colmena Deploy**: Cluster operations execute with user context
 

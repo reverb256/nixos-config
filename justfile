@@ -116,21 +116,13 @@ push:
     /etc/nixos/scripts/just-cluster push
 
 # ============================================================================
-# OPENCLAW SERVICE MANAGEMENT
+#  SERVICE MANAGEMENT
 # ============================================================================
 
-# View OpenClaw logs
+# View system logs
 logs:
-    @echo "Viewing OpenClaw gateway logs..."
-    sudo journalctl -u openclaw-gateway -f
-
-# Check OpenClaw status
-status-openclaw:
-    @echo "Checking OpenClaw service status..."
-    sudo systemctl status openclaw-gateway
-    @echo ""
-    @echo "Checking health endpoint..."
-    curl -sf http://localhost:18789/health || echo "Health check failed"
+    @echo "Viewing recent system logs..."
+    sudo journalctl -f
 
 # Check WiVRn/Avahi status
 status-vr:
@@ -139,14 +131,6 @@ status-vr:
     @echo ""
     @echo "Checking OpenRazer status..."
     sudo systemctl status openrazer-daemon || echo "OpenRazer may not be running"
-
-# Restart OpenClaw
-restart-openclaw:
-    @echo "Restarting OpenClaw gateway..."
-    sudo systemctl restart openclaw-gateway
-    @echo "Waiting for service to start..."
-    sleep 3
-    sudo systemctl status openclaw-gateway
 
 # Restart WiVRn services
 restart-vr:

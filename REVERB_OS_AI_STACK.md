@@ -1,10 +1,10 @@
-# Reverb-OS AI/LLM Stack: Vibe-LLM & OpenClaw Integration
+# Reverb-OS AI/LLM Stack: Vibe-LLM &  Integration
 
 ## 🧠 **AI/LLM Stack Overview**
 
 The Reverb-OS AI/LLM stack brings together two powerful systems:
 - **Vibe-LLM**: Advanced LLM inference and code routing platform
-- **OpenClaw**: AI orchestration and business automation engine
+- ****: AI orchestration and business automation engine
 - **Astral Key**: Web3/FIDO2 authentication and security layer
 
 ## 🏗️ **Architectural Integration**
@@ -31,9 +31,9 @@ Vibe-LLM: Modular LLM Inference Platform
     └── Memory-efficient inference
 ```
 
-### **OpenClaw: AI Orchestration Engine**
+### **: AI Orchestration Engine**
 ```
-OpenClaw: Business Automation & AI Orchestration
+: Business Automation & AI Orchestration
 ├── OS-Level Integration
 │   ├── Embedded system service
 │   ├── Containerized deployment
@@ -74,22 +74,22 @@ Astral Key: Web3 & FIDO2 Authentication
 
 ## 🔗 **System Interconnections**
 
-### **Vibe-LLM ↔️ OpenClaw: Intelligent Service Coordination**
+### **Vibe-LLM ↔️ : Intelligent Service Coordination**
 ```
 Request Flow:
-User Input → OpenClaw Task Classifier → Vibe-LLM Smart Router → LLM Response → OpenClaw Business Logic → Result Delivered
+User Input →  Task Classifier → Vibe-LLM Smart Router → LLM Response →  Business Logic → Result Delivered
 
 Data Flow:
-OpenClaw sends context → Vibe-LLM enhances with RAG → Response optimized by OpenClaw
+ sends context → Vibe-LLM enhances with RAG → Response optimized by 
 ```
 
-### **OpenClaw ↔️ Astral Key: Secure Orchestration**
+### ** ↔️ Astral Key: Secure Orchestration**
 ```
 Authentication Flow:
-User Identity → Astral Key Verification → OpenClaw Authorization → Service Access Granted
+User Identity → Astral Key Verification →  Authorization → Service Access Granted
 
 Transaction Flow:
-Business Operation → Astral Key Authentication → OpenClaw Processing → Secure Execution
+Business Operation → Astral Key Authentication →  Processing → Secure Execution
 ```
 
 ### **Vibe-LLM ↔️ Astral Key: Secure AI Operations**
@@ -113,8 +113,8 @@ just reverb-ai deploy --scale-out            # Distributed deployment for multi-
 # Vibe-LLM container with GPU passthrough
 just reverb-service add vibe-llm --gpu-enabled
 
-# OpenClaw orchestration service
-just reverb-service add openclaw --business-automation
+#  orchestration service
+just reverb-service add  --business-automation
 
 # Astral Key authentication bridge
 just reverb-service add astral-key --web3-auth
@@ -136,17 +136,17 @@ just reverb-ai balance-gpus
 
 ### **Case 1: AI-Assisted Code Development**
 ```
-Developer writes code → Vibe-LLM provides suggestions → OpenClaw automates deployment → Astral Key signs transactions
+Developer writes code → Vibe-LLM provides suggestions →  automates deployment → Astral Key signs transactions
 ```
 
 ### **Case 2: Business Process Automation**
 ```
-Business process triggered → OpenClaw orchestrates → Vibe-LLM analyzes → Astral Key authenticates → Actions executed
+Business process triggered →  orchestrates → Vibe-LLM analyzes → Astral Key authenticates → Actions executed
 ```
 
 ### **Case 3: Secure AI Service Delivery**
 ```
-User request → Astral Key authenticates → OpenClaw classifies → Vibe-LLM processes → Secure response delivered
+User request → Astral Key authenticates →  classifies → Vibe-LLM processes → Secure response delivered
 ```
 
 ## 🔄 **Advanced Features**
@@ -159,13 +159,13 @@ User request → Astral Key authenticates → OpenClaw classifies → Vibe-LLM p
   - Cost optimization
 
 ### **Predictive Resource Allocation**
-- **OpenClaw** predicts resource needs using:
+- **** predicts resource needs using:
   - Historical usage patterns
   - Time-based trends
   - Event-driven scaling triggers
 
 ### **Cross-Service Intelligence**
-- **Shared context** between Vibe-LLM and OpenClaw
+- **Shared context** between Vibe-LLM and 
 - **Coordinated responses** that leverage both systems
 - **Unified logging** and monitoring across AI services
 
@@ -178,7 +178,7 @@ User request → Astral Key authenticates → OpenClaw classifies → Vibe-LLM p
   - Resource limits
 
 ### **AI Service Isolation**
-- **OpenClaw** ensures separation between:
+- **** ensures separation between:
   - Business logic and inference
   - User data and AI processing
   - Authentication and orchestration
@@ -196,7 +196,7 @@ User request → Astral Key authenticates → OpenClaw classifies → Vibe-LLM p
 - **Batch processing** for cost-effective inference
 
 ### **Resource Efficiency**
-- **OpenClaw** manages AI service lifecycles
+- **** manages AI service lifecycles
 - **Automatic scaling** based on demand
 - **Idle resource recovery** to maximize efficiency
 
@@ -217,8 +217,8 @@ just reverb-ai deploy --hardware-class legacy  # For basic systems
 # Deploy Vibe-LLM AI router
 just reverb-service add vibe-llm
 
-# Deploy OpenClaw orchestration
-just reverb-service add openclaw
+# Deploy  orchestration
+just reverb-service add 
 
 # Deploy Astral Key authentication
 just reverb-service add astral-key

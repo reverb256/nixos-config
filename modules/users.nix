@@ -93,8 +93,7 @@ with lib; {
     # LOBSTER USER - AI Assistant Service 🦞
     # ============================================================================
     # NOTE: This is a system service user, not a login user.
-    # The actual service user configuration is in modules/openclaw.nix
-    # We only define the group here and let the modules handle the user.
+    # We only define the group here and let the module handle the user.
     # This prevents conflicts between different module definitions.
 
     # ============================================================================
@@ -126,7 +125,6 @@ with lib; {
 
     # NOTE: Lobster (AI service user) has NO sudo access by design.
     # It runs as a restricted system user with only service permissions.
-    # See modules/openclaw.nix for the service configuration.
     extraRules = [
       # Allow j_kro to control mining services without password (for desktop icons)
       {

@@ -17,8 +17,8 @@
     ../../modules/amdgpu-wayland.nix
     # TEMPORARY: Comment out unified-rgb due to syntax errors
     # # ../../modules/unified-rgb.nix
-    # Import OpenClaw AI agent orchestration (declarative container)
-    # Import OpenClaw common configuration
+    # Import  AI agent orchestration (declarative container)
+    # Import  common configuration
     # Import Tailscale mesh VPN
     ../../modules/tailscale.nix
     # Import CI/CD and auto-update modules
@@ -33,7 +33,7 @@
       # ../../modules/services/n8n.nix
       # Import stable-diffusion module - DISABLED (causing infinite recursion)
       # ../../modules/services/stable-diffusion.nix
-      # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
+      # Import  node host module - DISABLED ( refactor in progress)
     ];
 
   # Host identification
@@ -178,7 +178,7 @@
     };
   };
 
-  # OpenClaw node host service - DISABLED (OpenClaw refactor in progress)
+  #  node host service - DISABLED ( refactor in progress)
   #   enable = true;
   #   gatewayHost = "zephyr";
   #   displayName = "Sentry Build Node";

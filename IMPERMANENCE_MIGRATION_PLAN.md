@@ -20,7 +20,7 @@ Sentry (Monitor): BTRFS (/ + /home)
 ### Key Findings
 1. **No Impermanence Implementation:** All nodes lack tmpfs mounts, state separation, or automated cleanup
 2. **Boot Optimization:** `tmpfiles.cleanOnBoot` disabled (boot time optimization)
-3. **Stateful Services:** OpenClaw, MinIO, LM Studio, Mining all store state on disk
+3. **Stateful Services:** , MinIO, LM Studio, Mining all store state on disk
 4. **User Data:** `/home/j_kro` contains application data and configurations
 5. **Filesystem Mix:** BTRFS (supports subvolumes) and EXT4 (Forge)
 6. **Existing Backups:** Borgmatic + rclone backups in place
@@ -119,7 +119,7 @@ impermanence = {
     "/home/j_kro/.config"
     
     # System state
-    "/var/lib/openclaw"
+    "/var/lib/"
     "/var/lib/mining"
     
     # Data partition (already persistent)
@@ -140,8 +140,8 @@ impermanence = {
     # MinIO/AIStor data
     "/var/lib/minio"
     
-    # OpenClaw state
-    "/var/lib/openclaw"
+    #  state
+    "/var/lib/"
     
     # Mining state
     "/var/lib/mining"
@@ -164,8 +164,8 @@ impermanence = {
     # Mining state
     "/var/lib/mining"
     
-    # OpenClaw state
-    "/var/lib/openclaw"
+    #  state
+    "/var/lib/"
     
     # ROCm configuration
     "/opt/rocm"
@@ -189,8 +189,8 @@ impermanence = {
     "/var/lib/prometheus"
     "/var/lib/grafana"
     
-    # OpenClaw state
-    "/var/lib/openclaw"
+    #  state
+    "/var/lib/"
     
     # Mining state
     "/var/lib/mining"
@@ -271,7 +271,7 @@ storage.remote.rclone.nexus-backups = {
 1. **Single Node Test:** Deploy to Sentry first (least critical)
 2. **Test Scenarios:**
    - Reboot test - verify persistent data survives
-   - Services startup - verify OpenClaw, mining, etc. work
+   - Services startup - verify , mining, etc. work
    - Backup test - verify borgmatic/rclone work
 3. **Rollback Plan:** Keep snapshots of current system state
 4. **Gradual Deployment:** Move to Forge, Nexus, then Zephyr
@@ -343,7 +343,7 @@ borgmatic create --verbosity 1
 ✅ **Core Functionality:**
 - All nodes boot successfully with tmpfs mounts
 - Persistent data survives reboots
-- Services (OpenClaw, MinIO, mining) function correctly
+- Services (, MinIO, mining) function correctly
 - Backups continue to operate
 
 ✅ **Performance:**

@@ -15,8 +15,8 @@
     ../../modules/fish-starship.nix
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
-    # Import OpenClaw AI agent orchestration (declarative container)
-    # Import OpenClaw common configuration
+    # Import  AI agent orchestration (declarative container)
+    # Import  common configuration
     # Import Tailscale mesh VPN
     ../../modules/tailscale.nix
     # Import CI/CD and auto-update modules
@@ -25,7 +25,7 @@
     ../../modules/ssh.nix
     # Import mining services module
     ../../modules/mining.nix
-    # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
+    # Import  node host module - DISABLED ( refactor in progress)
     # Import distributed builds module (GPU+CUDA+ROCm support)
     ../../modules/distributed-builds.nix
   ];
@@ -348,7 +348,7 @@
     };
   };
 
-  # OpenClaw node host service - DISABLED (OpenClaw refactor in progress)
+  #  node host service - DISABLED ( refactor in progress)
   #   enable = true;
   #   gatewayHost = "zephyr";
   #   displayName = "Forge Build Node";

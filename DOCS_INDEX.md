@@ -29,12 +29,12 @@ This index provides navigation across the extensive documentation set for the Re
 - **[Tailscale Setup](./docs/TAILSCALE_SETUP.md)** - VPN configuration guide
 - **[Mining Operations](./docs/MINING_CLUSTER_STATUS.md)** - Mining configuration
 - **[Gaming Configuration](./docs/KDE_PLASMA_FIX_GUIDE.md)** - VR/gaming setup
-- **[OpenClaw](./OPENCLAW-SUMMARY.md)** - AI orchestration system
+- **[](./-SUMMARY.md)** - AI orchestration system
 
 ### Security & Auditing
 - **[Security Audit Report](./docs/SECURITY_AUDIT_REPORT.md)** - Comprehensive security assessment
 - **[Quick Security Fixes](./docs/QUICK_FIXES.md)** - Immediate security improvements
-- **[OpenClaw Security](./docs/OPENCLAW-TAILSCALE-SECURITY.md)** - AI security measures
+- **[ Security](./docs/-TAILSCALE-SECURITY.md)** - AI security measures
 - **[Security Current](./docs/SECURITY_AUDIT_CURRENT.md)** - Current security status
 
 ### Development & Troubleshooting
@@ -62,7 +62,7 @@ The following files contain overlapping information that needs consolidation:
 - Multiple security audit documents (4 files)
 - Multiple deployment guides (3 files) 
 - Multiple quick start guides (4 files)
-- Scattered OpenClaw documentation (5+ files)
+- Scattered  documentation (5+ files)
 
 ### 🟡 Medium Priority Updates
 - Architecture documentation consistency
@@ -86,7 +86,7 @@ Due to the distributed nature of documentation, when searching for information:
 Example search:
 ```bash
 grep -r "tailscale" /etc/nixos/ --include="*.md"
-grep -r "openclaw" /etc/nixos/ --include="*.md" 
+grep -r "" /etc/nixos/ --include="*.md" 
 grep -r "mining" /etc/nixos/ --include="*.md"
 ```
 
@@ -97,7 +97,7 @@ Over the next sprint, the following consolidation efforts are planned:
 ### Q1 2026 Effort
 - [ ] Merge security audit files into single SECURITY.md
 - [ ] Combine deployment guides into unified DEPLOYMENT.md
-- [ ] Consolidate OpenClaw documentation into OPENCLAW.md
+- [ ] Consolidate  documentation into .md
 - [ ] Create unified TROUBLESHOOTING.md from scattered guides
 
 ### Q2 2026 Effort

@@ -75,10 +75,6 @@ in {
           static_configs:
             - targets: ["localhost:14445"]
 
-        - job_name: "openclaw"
-          static_configs:
-            - targets: ["localhost:18789"]
-
         - job_name: "mining"
           static_configs:
             - targets: ["localhost:4068"]
@@ -133,15 +129,6 @@ in {
               category: mining
             annotations:
               summary: "Mining service is down on {{ $labels.instance }}"
-
-          - alert: OpenClawGatewayDown
-            expr: up{job="openclaw"} == 0
-            for: 1m
-            labels:
-              severity: critical
-              category: services
-            annotations:
-              summary: "OpenClaw gateway is down on {{ $labels.instance }}"
 
           # Security KPIs - MTTD & MTTR
           - alert: HighMTTD
@@ -201,6 +188,7 @@ in {
       "d /etc/grafana/provisioning/dashboards/security-kpis.json 0750 grafana grafana -"
       "d /etc/grafana/provisioning/dashboards/cluster-overview.json 0750 grafana grafana -"
       "d /etc/grafana/provisioning/dashboards/hardware-mining.json 0750 grafana grafana -"
+      "d /etc/prometheus/templates 0750 alertmanager alertmanager -"
     ];
 
     # NVIDIA DCGM exporter
@@ -396,15 +384,11 @@ in {
             match_re:
               disabled: 'true'
 
-      templates:
-        - '/etc/prometheus/templates/*.tmpl'
-    '';
+       templates:
+         - '/etc/prometheus/templates/*.tmpl'
+     '';
 
     # Alertmanager email templates
-    systemd.tmpfiles.rules = lib.mkIf cfg.enableAlertmanager [
-      "d /etc/prometheus/templates 0750 alertmanager alertmanager -"
-    ];
-
     environment.etc."prometheus/templates/default.tmpl".text = ''
       {{ define "subject" }}[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:Firing{{ end }}] {{ .GroupLabels.alertname }}]{{ end }}
 
@@ -436,7 +420,6 @@ in {
       {{ end }}
       {{ end }}
     '';
-    };
 
     # Firewall: Only localhost access
     networking.firewall.interfaces.lo.allowedTCPPorts = [

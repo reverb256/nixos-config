@@ -1,4 +1,4 @@
-# Rclone Cloud Backups for OpenClaw AIStor
+# Rclone Cloud Backups for  AIStor
 
 ## Overview
 Automated cloud backups for your AIStor data using rclone. Supports multiple cloud providers with scheduled backups via systemd timers.
@@ -37,10 +37,10 @@ Enable in your host configuration:
 # hosts/zephyr/configuration.nix
 {
   imports = [
-    ../../modules/openclaw-backups.nix
+    ../../modules/-backups.nix
   ];
 
-  services.openclaw-backups = {
+  services.-backups = {
     enable = true;
     remote = "gdrive";  # or b2, s3, wasabi, etc.
     buckets = [ "ai-models" "experiments" ];
@@ -97,7 +97,7 @@ rclone ls aistor:
 rclone ls gdrive:  # or your remote name
 
 # Test sync (dry run)
-rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup --dry-run
+rclone sync aistor:ai-models gdrive:-ai-models-backup --dry-run
 ```
 
 ## Backup Commands
@@ -106,13 +106,13 @@ rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup --dry-run
 
 ```bash
 # Backup specific bucket
-rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup
+rclone sync aistor:ai-models gdrive:-ai-models-backup
 
 # Backup experiments
-rclone sync aistor:experiments gdrive:openclaw-experiments-backup
+rclone sync aistor:experiments gdrive:-experiments-backup
 
 # Backup with progress and logging
-rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
+rclone sync aistor:ai-models gdrive:-ai-models-backup \
   --progress \
   --log-file /var/lib/lobster/storage/logs/backup-$(date +%Y%m%d).log
 ```
@@ -123,27 +123,27 @@ If using the NixOS module, backups run automatically via systemd timer:
 
 ```bash
 # Check timer status
-systemctl status openclaw-backup.timer
+systemctl status -backup.timer
 
 # View scheduled backups
-systemctl list-timers openclaw-backup.timer
+systemctl list-timers -backup.timer
 
 # Trigger manual backup
-systemctl start openclaw-backup.service
+systemctl start -backup.service
 
 # View backup logs
-journalctl -u openclaw-backup.service -f
+journalctl -u -backup.service -f
 ```
 
 ### Using Backup Scripts
 
 ```bash
 # Run all backups
-/etc/openclaw/backup-all.sh
+/etc//backup-all.sh
 
 # Or individual buckets
-/etc/openclaw/backup-models.sh
-/etc/openclaw/backup-experiments.sh
+/etc//backup-models.sh
+/etc//backup-experiments.sh
 ```
 
 ## Provider-Specific Setup
@@ -169,7 +169,7 @@ journalctl -u openclaw-backup.service -f
    ```
 
 3. **Folder setup:**
-   - Backups go to `openclaw-ai-models-backup/` and `openclaw-experiments-backup/`
+   - Backups go to `-ai-models-backup/` and `-experiments-backup/`
    - Create these folders in Google Drive first (optional)
 
 ### Backblaze B2
@@ -187,7 +187,7 @@ journalctl -u openclaw-backup.service -f
    ```
 
 3. **Bucket naming:**
-   - rclone will create `openclaw-ai-models-backup` and `openclaw-experiments-backup` buckets
+   - rclone will create `-ai-models-backup` and `-experiments-backup` buckets
    - Or use existing buckets with `--s3-bucket` flag
 
 ### Wasabi
@@ -213,7 +213,7 @@ journalctl -u openclaw-backup.service -f
 
 ```bash
 # Limit to 10MB/s upload
-rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
+rclone sync aistor:ai-models gdrive:-ai-models-backup \
   --bwlimit 10M
 ```
 
@@ -221,7 +221,7 @@ rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
 
 ```bash
 # Exclude temporary files
-rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
+rclone sync aistor:ai-models gdrive:-ai-models-backup \
   --exclude ".tmp/**" \
   --exclude "*.temp" \
   --exclude "checkpoint-*.pt"
@@ -231,7 +231,7 @@ rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
 
 ```bash
 # Encrypt backups with rclone crypt
-rclone config create crypt remote=gdrive:openclaw-encrypted \
+rclone config create crypt remote=gdrive:-encrypted \
   filename_encryption=standard \
   directory_name_encryption=true \
   password=YOUR_PASSWORD
@@ -244,13 +244,13 @@ rclone sync aistor:ai-models crypt:ai-models
 
 ```bash
 # Backup to multiple clouds
-/etc/openclaw/backup-all.sh gdrive
-/etc/openclaw/backup-all.sh b2
+/etc//backup-all.sh gdrive
+/etc//backup-all.sh b2
 
 # Or use a script
 for remote in gdrive b2 wasabi; do
     echo "Backing up to $remote..."
-    rclone sync aistor:ai-models "$remote:openclaw-ai-models-backup"
+    rclone sync aistor:ai-models "$remote:-ai-models-backup"
 done
 ```
 
@@ -264,7 +264,7 @@ ls -la /var/lib/lobster/storage/logs/
 tail -f /var/lib/lobster/storage/logs/backup-$(date +%Y%m%d).log
 
 # Check cloud storage usage
-rclone size gdrive:openclaw-ai-models-backup
+rclone size gdrive:-ai-models-backup
 rclone size aistor:ai-models
 ```
 
@@ -276,9 +276,9 @@ Add to your backup scripts:
 #!/bin/bash
 # backup-with-alert.sh
 
-if ! rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup; then
+if ! rclone sync aistor:ai-models gdrive:-ai-models-backup; then
     # Send alert (replace with your notification method)
-    echo "Backup failed!" | mail -s "OpenClaw Backup Alert" admin@example.com
+    echo "Backup failed!" | mail -s " Backup Alert" admin@example.com
     exit 1
 fi
 ```
@@ -299,7 +299,7 @@ rclone about gdrive:
 
 ```bash
 # Add delays between transfers
-rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
+rclone sync aistor:ai-models gdrive:-ai-models-backup \
   --tpslimit 10 \
   --transfers 2
 ```
@@ -308,7 +308,7 @@ rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
 
 ```bash
 # Enable chunked transfer for large models
-rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
+rclone sync aistor:ai-models gdrive:-ai-models-backup \
   --s3-chunk-size 100M \
   --s3-upload-cutoff 200M
 ```
@@ -317,7 +317,7 @@ rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
 
 ```bash
 # Increase timeouts
-rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
+rclone sync aistor:ai-models gdrive:-ai-models-backup \
   --timeout 10m \
   --retries 5 \
   --low-level-retries 10
@@ -338,17 +338,17 @@ rclone sync aistor:ai-models gdrive:openclaw-ai-models-backup \
 
 ```bash
 # Delete old backups (keep last 30 days)
-rclone delete gdrive:openclaw-ai-models-backup --min-age 30d
+rclone delete gdrive:-ai-models-backup --min-age 30d
 
 # Or use lifecycle policies (provider-specific)
 ```
 
-## Integration with OpenClaw Workflows
+## Integration with  Workflows
 
-The OpenClaw workflows can automatically trigger cloud backups:
+The  workflows can automatically trigger cloud backups:
 
 ```python
-# In openclaw-aistor-workflows.py
+# In -aistor-workflows.py
 async def training_checkpoint_workflow(self, run_id, local_path, metrics):
     # ... existing code ...
     
@@ -373,4 +373,4 @@ async def training_checkpoint_workflow(self, run_id, local_path, metrics):
 - [rclone S3 Backend](https://rclone.org/s3/)
 - [Backblaze B2 Pricing](https://www.backblaze.com/b2/cloud-storage-pricing.html)
 - [Wasabi Pricing](https://wasabi.com/cloud-storage-pricing/)
-- [OpenClaw AIStor Workflows](~/@projects/infra/nixos/scripts/openclaw-aistor-workflows.py)
+- [ AIStor Workflows](~/@projects/infra/nixos/scripts/-aistor-workflows.py)
