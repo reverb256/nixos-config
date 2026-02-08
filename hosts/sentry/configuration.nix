@@ -25,7 +25,15 @@
     ../../modules/ssh.nix
     # Import distributed builds module (GPU+ROCm support)
     ../../modules/distributed-builds.nix
-  ];
+      # Import Kubernetes module - DISABLED (module conflict with nixpkgs)
+      # ../../modules/services/kubernetes.nix
+      # Import n8n module (custom with dbType option) - DISABLED (module conflict)
+      # ../../modules/services/n8n.nix
+      # Import stable-diffusion module - DISABLED (causing infinite recursion)
+      # ../../modules/services/stable-diffusion.nix
+      # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
+      # ../../modules/openclaw-node-host.nix
+    ];
 
   # Host identification
   networking.hostName = "sentry";
@@ -145,41 +153,44 @@
     };
   };
 
-  services.openclaw-node-host = {
-    enable = true;
-    gatewayHost = "zephyr";
-    displayName = "Sentry Build Node";
-    execAllowlist = [
-      "/run/current-system/sw/bin/uname"
-      "/run/current-system/sw/bin/sw_vers"
-    ];
-  };
+  # OpenClaw node host service - DISABLED (OpenClaw refactor in progress)
+  # services.openclaw-node-host = {
+  #   enable = true;
+  #   gatewayHost = "zephyr";
+  #   displayName = "Sentry Build Node";
+  #   execAllowlist = [
+  #     "/run/current-system/sw/bin/uname"
+  #     "/run/current-system/sw/bin/sw_vers"
+  #   ];
+  # };
 
   # Additional services for AI and automation
-  services.n8n = {
-    enable = true;
-    port = 5678;
-    host = "0.0.0.0";
-    dbType = "sqlite";
-    openFirewall = true;
-  };
+  # n8n workflow automation - DISABLED (module conflict with nixpkgs)
+  # services.n8n = {
+  #   enable = true;
+  #   port = 5678;
+  #   host = "0.0.0.0";
+  #   dbType = "sqlite";
+  #   openFirewall = true;
+  # };
 
-  services.stable-diffusion = {
-    enable = true;
-    port = 7860;
-    host = "0.0.0.0";
-    gpuType = "cpu";  # Use CPU since no specific GPU mentioned
-    cmdOptions = [
-      "--opt-split-attention"
-    ];
-    openFirewall = true;
-  };
+  # Stable Diffusion - DISABLED (causing infinite recursion)
+  # services.stable-diffusion = {
+  #   enable = true;
+  #   port = 7860;
+  #   host = "0.0.0.0";
+  #   gpuType = "cpu";  # Use CPU since no specific GPU mentioned
+  #   cmdOptions = [
+  #     "--opt-split-attention"
+  #   ];
+  #   openFirewall = true;
+  # };
 
-  # Kubernetes (Worker node configuration)
-  services.kubernetes = {
-    enable = true;
-    worker.enable = true;
-    worker.kubelet.enable = true;
-    containerRuntime = "containerd";
-  };
+  # Kubernetes (Worker node configuration) - DISABLED (module conflict with nixpkgs)
+  # services.kubernetes = {
+  #   enable = true;
+  #   worker.enable = true;
+  #   worker.kubelet.enable = true;
+  #   containerRuntime = "containerd";
+  # };
 }

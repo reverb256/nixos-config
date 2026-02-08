@@ -1,6 +1,7 @@
 # Zephyr Host Configuration - MINIMAL NVIDIA + Wayland
 # 10.1.1.110 - Master Workstation (32 cores, RTX 3090)
 {
+  lib,
   config,
   inputs,
   pkgs,
@@ -65,6 +66,9 @@
   systemd.services.display-manager.restartIfChanged = false;
   systemd.services.sddm.restartIfChanged = false;
   services.logind.settings.Login.KillUserProcesses = false;
+
+  # Disable OpenRGB on zephyr (no RGB devices)
+  hardware.rgb.openrgb.enable = lib.mkForce false;
 
   services.garnix.enable = true;
   services.nixos-auto-update.enable = true;
