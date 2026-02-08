@@ -21,6 +21,7 @@
     ../../modules/nix-ld.nix
     ../../modules/mining.nix
     ../../modules/auto-update.nix
+    ../../modules/ssh.nix
   ];
 
   networking.hostName = "zephyr";
