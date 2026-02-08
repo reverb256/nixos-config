@@ -9,7 +9,7 @@ Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all no
 
 ---
 
-**Status:** ✅ Healthy | **Backend:** Podman | **Builds:** Distributed (70 cores - all 4 hosts) | **Security:** OWASP 96%, ISO 93% | **Last Audit:** 2026-02-07 (See `docs/COMPLIANCE_ASSESSMENT.md`)
+**Status:** ⚠️ Partially Degraded | **Backend:** Podman | **Builds:** Distributed (70 cores - 3/4 hosts online) | **Security:** OWASP 96%, ISO 93% | **Last Audit:** 2026-02-07 (See `docs/COMPLIANCE_ASSESSMENT.md`)
 **Agenix Key:** `age1pn55e68h5twm8ksrm29pzf4w5t8wdznmy0sqg5gvk094punpctq06q8zn` (Generated Feb 4, 2026)
 
 ## 📁 Quick Reference - Host Specs
@@ -36,13 +36,12 @@ Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all no
 |-----------|-----------|--------|
 | **Cluster Config** | `flake.nix` | 4 Hosts (ALL managed from zephyr) |
 | **Secrets** | `secrets/` | Agenix Encrypted |
-| **OpenClaw** | `modules/openclaw-declarative-container.nix` | Podman (Rootless) |
 | **Mining** | `modules/mining.nix` | Localhost-only API |
 | **Forge Config** | `hosts/forge/configuration.nix` | Managed from zephyr via SSH |
 | **Nexus Config** | `hosts/nexus/configuration.nix` | Managed from zephyr via SSH |
 | **ScopeBuddy** | `modules/scopebuddy.nix` | Gamescope wrapper with auto-detection |
 | Mining Troubleshooting | `docs/MINING_TROUBLESHOOTING.md` | Mining fixes and debugging guide |
-| **AI Storage** | `modules/openclaw-storage.nix` | AIStor (S3 Compatible) |
+| **MCP Servers** | `modules/mcp-servers.nix` | Model Context Protocol servers |
 | **Local LLM** | `modules/lmstudio-docker.nix` | Podman Container |
 
 ## 🏗️ Architecture
@@ -69,102 +68,123 @@ Deploy with: `just forge`, `just nexus`, `just zephyr`, or `just deploy` (all no
 *   [Cluster Status](docs/CLUSTER_STATUS.md) - Live cluster monitoring
 *   [Tailscale Setup](docs/TAILSCALE_SETUP.md)
 
-## ⚠️ Recent Changes (2026-02-04)
-1.  **Mining Security:** API ports now bound to localhost.
-2.  **Podman Migration:** OpenClaw and LM Studio modules rewritten for Podman.
-3.  **Distributed Builds:** Enabled for nexus, forge, sentry.
-4.  **Agenix Secret Management:** 
-    *   New age key generated and deployed
-    *   All secrets extracted from `/run/agenix` and re-encrypted
-    *   Key location: `/root/.config/sops/age/keys.txt`
-5.  **NVIDIA Power Limit:** lolminer-nvidia set to 250W on zephyr
+## ⚠️ Recent Changes (2026-02-08)
+
+### Infrastructure Updates
+1.  **MCP Servers Module Fixed:** Resolved syntax error in `modules/mcp-servers.nix` (missing closing brace)
+2.  **Deployments Completed:**
+    *   ✅ zephyr: Deployed successfully
+    *   ✅ nexus: Deployed successfully (openrgb-daemon warning unrelated)
+    *   ✅ forge: Deployed successfully
+    *   ❌ sentry: **Deployment FAILED** - See Known Issues
+3.  **Sentry Kernel Issue:** linux-zen-6.18.7 failing with module shrinkage errors
+    *   **Workaround:** Using `linuxPackages_latest` instead of `linuxPackages_zen`
+    *   **Root Cause:** nixpkgs #484105 - modules.builtin.modinfo missing in Linux 6.12+
+4.  **Justfile Development:** Attempted parallel git fetch implementation (syntax errors remain)
+5.  **OpenClaw References:** **REMOVAL IN PROGRESS** - All OpenClaw references being removed from codebase
 6.  **ScopeBuddy Integration:** Added declarative gamescope wrapper with system-wide auto-detection
      - Auto-detects resolution, HDR, VRR for all games
      - Steam integration via `scb -- %command%`
      - Compatible with existing gaming.nix setup
      - Configuration: `/etc/scopebuddy/scb.conf` (system-wide)
 
+### Previous Changes (2026-02-04)
+1.  **Mining Security:** API ports now bound to localhost.
+2.  **Podman Migration:** OpenClaw and LM Studio modules rewritten for Podman.
+3.  **Distributed Builds:** Enabled for nexus, forge, sentry.
+4.  **Agenix Secret Management:**
+    *   New age key generated and deployed
+    *   All secrets extracted from `/run/agenix` and re-encrypted
+    *   Key location: `/root/.config/sops/age/keys.txt`
+5.  **NVIDIA Power Limit:** lolminer-nvidia set to 250W on zephyr
+
 > **Note to Agents:** When modifying services, ensure they bind to `127.0.0.1` and use `virtualisation.oci-containers` (Podman) instead of Docker.
 
-## 🤖 OpenClaw Agent ("Claw") - CLI Interaction
+## ⚠️ Known Issues
 
-OpenClaw is deployed via `nix-openclaw` and runs as a systemd user service. The agent can be interacted with directly through the CLI.
+### 1. Sentry Deployment Failed (2026-02-08)
+**Status:** ❌ **CRITICAL** - Cannot deploy to sentry
 
-### Status & Health
+**Symptoms:**
+- SSH connection refused to port 22 on 10.1.1.140
+- Ping succeeds (network reachable via Tailscale)
+- Cannot execute deployment commands
+
+**Root Cause:** SSH service on sentry not running or firewalled
+
+**Impact:**
+- Sentry cannot be updated with new configuration
+- Kernel workaround (linux-zen → linux_latest) cannot be applied
+- Nix store corruption cannot be repaired
+
+**Mitigation:**
+- Sentry remains on previous configuration (linux-zen kernel)
+- Monitoring functionality may be degraded
+- Manual intervention required on sentry node
+
+**Next Steps:**
+1. Access sentry via console/monitor
+2. Restart SSH service: `systemctl restart sshd`
+3. Check firewall rules
+4. Verify port 22 is open
+5. Retry deployment with workaround kernel
+
+### 2. Sentry Nix Store Corruption
+**Status:** ⚠️ **HIGH** - Data integrity risk
+
+**Symptoms:**
+- Hundreds of "corrupted link" warnings during deployment
+- Warnings: `warning: removing corrupted link "/nix/store/.links/..."`
+
+**Root Cause:** Likely kernel build failures or interrupted builds
+
+**Impact:**
+- Degraded build performance
+- Potential data loss
+- May cause deployment failures
+
+**Fix Command (requires SSH access):**
 ```bash
-# Check gateway status
-openclaw doctor
-
-# Check service status
-systemctl --user status openclaw-gateway.service
-
-# View logs
-journalctl --user -u openclaw-gateway.service -f
+nix-store --verify --check-contents --repair
 ```
 
-### Messaging the Agent (CLI)
+### 3. Justfile Parallel Git Fetch Broken
+**Status:** ⚠️ **MEDIUM** - Feature non-functional
 
-Send messages to Claw and receive replies directly in the terminal:
+**Symptoms:**
+- Syntax errors with GNU parallel in justfile
+- Error: "Recipe line has extra leading whitespace"
 
-```bash
-# Basic message (reply prints to stdout)
-openclaw agent --session-id "agent:main:main" --message "Hello!"
+**Root Cause:** Justfile recipe syntax incompatible with GNU parallel's `:::` operator
 
-# With verbose output
-openclaw agent --session-id "agent:main:main" --message "Hello!" --verbose on
+**Impact:**
+- Parallel git fetch feature not working
+- Manual deployment required for each host
 
-# Using local embedded mode (requires API keys in shell)
-openclaw agent --local --message "Hello!"
+**Workaround:** Use existing `just deploy` for sequential deployment
 
-# List available sessions
-openclaw sessions
-```
+### 4. Sentry Linux-Zen Kernel Failure
+**Status:** ⚠️ **MEDIUM** - Kernel build errors
 
-**Important:** Do NOT use `--deliver` flag for CLI replies - that sends the response back to Telegram instead of printing to stdout.
+**Symptoms:**
+- linux-zen-6.18.7 fails during module shrinkage
+- Error: `modprobe: FATAL: Module ahci not found`
 
-### Telegram Integration
+**Root Cause:** nixpkgs Issue #484105 - modules.builtin.modinfo missing in Linux 6.12+
 
-The agent is connected to Telegram bot `@reverbOS_bot`. To message via Telegram:
+**Workaround:** Use `linuxPackages_latest` instead of `linuxPackages_zen` (requires SSH access to sentry)
 
-```bash
-# Send message via Telegram bot
-openclaw message send --channel telegram --target "1384182343" --message "Hello from CLI"
+### 5. OpenClaw Removal In Progress
+**Status:** 🔄 **IN PROGRESS** - Cleanup pending
 
-# Or just message the bot directly in Telegram app
-```
+**Description:** All OpenClaw references being removed from codebase
 
-### Session Management
+**Impact:**
+- Documentation references will be updated
+- Module files will be deleted
+- No operational impact (OpenClaw not currently active)
 
-```bash
-# List active sessions
-openclaw sessions
-
-# Check agent skills
-openclaw skills list
-
-# Check agent status
-openclaw status
-```
-
-### Configuration
-
-Config is managed declaratively in `home.nix` under `programs.openclaw`. Runtime config stored at:
-- `~/.openclaw/openclaw.json`
-- `~/.openclaw/workspace/` (skills, documents, sessions)
-
-### Troubleshooting
-
-If the agent stops responding:
-```bash
-# Restart the gateway
-systemctl --user restart openclaw-gateway.service
-
-# Check for errors
-openclaw doctor
-
-# View detailed logs
-cat /tmp/openclaw/openclaw-*.log | tail -50
-```
+**Status:** Awaiting justfile fix to proceed with cleanup
 
 ## 🎮 Gaming & ScopeBuddy
 
