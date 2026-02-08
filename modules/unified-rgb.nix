@@ -17,7 +17,7 @@ in {
           default = 6742;
           description = "OpenRGB server port for remote control";
         };
-        autoStart = lib.mkEnableOption "Auto-start OpenRGB daemon on boot");
+        autoStart = lib.mkEnableOption "Auto-start OpenRGB daemon on boot";
       };
       motherboard = lib.mkOption {
         type = types.str;
@@ -116,14 +116,18 @@ in {
         Type = "simple";
         ExecStart = ''
           ${
-            if lib.optionalString cfg.openrgb.motherboard "openrgb-with-plugins"
-              then pkgs."openrgb-with-plugins"
+            if cfg.openrgb.motherboard != null
+              then pkgs.openrgb
               else pkgs.openrgb
-          }/bin/openrgb \
-            ${lib.optionalString cfg.openrgb.motherboard "--motherboard ${cfg.openrgb.motherboard}"} \
-            ${lib.optionalString cfg.openrgb.server.autoStart "--server"} \
-            ${lib.optionalString cfg.openrgb.server.enable "--port ${toString cfg.openrgb.server.port}"} \
-            ${lib.optionalString cfg.sync.enable "--color ${cfg.sync.color}"};
+          }/bin/openrgb ${
+            if cfg.openrgb.motherboard != null then "--motherboard ${cfg.openrgb.motherboard}" else ""
+          } ${
+            if cfg.openrgb.server.autoStart then "--server" else ""
+          } ${
+            if cfg.openrgb.server.enable then "--port ${toString cfg.openrgb.server.port}" else ""
+          } ${
+            if cfg.sync.enable then "--color ${cfg.sync.color}" else ""
+          }
         '';
         Restart = "on-failure";
         RestartSec = 10;
@@ -142,46 +146,8 @@ in {
       };
     };
 
-    # Ensure plugdev group exists
+     # Ensure plugdev group exists
     users.groups.plugdev = {};
-
-    # Create RGB profile switcher script
-    environment.systemPackages = with pkgs; [
-      (pkgs.writeScriptBin "rgb-profile" ''
-        #!/bin/sh
-        # Unified RGB Profile Switcher
-        # Usage: rgb-profile [gaming|movie|off]
-
-        PROFILE="''${1:-off}"
-
-        case "$PROFILE" in
-          gaming)
-            # Gaming profile - breathe red/blue
-            ${pkgs.openrgb}/bin/openrgb --color ff0000 --mode breathing 2>/dev/null || true
-            echo "Applied gaming RGB profile"
-            ;;
-          movie)
-            # Movie profile - static blue (minimal distraction)
-            ${pkgs.openrgb}/bin/openrgb --color 0000ff --mode static 2>/dev/null || true
-            echo "Applied movie RGB profile"
-            ;;
-          off)
-            # Off - all RGB off
-            ${pkgs.openrgb}/bin/openrgb --color 000000 --mode static 2>/dev/null || true
-            ${pkgs.liquidctl}/bin/liquidctl status 2>/dev/null || true
-            echo "Turned off all RGB"
-            ;;
-          *)
-            echo "Usage: rgb-profile [gaming|movie|off]"
-            echo "Profiles:"
-            echo "  gaming  - Breathing red/blue effect"
-            echo "  movie   - Static blue (minimal distraction)"
-            echo "  off     - All RGB off"
-            exit 1
-            ;;
-        esac
-      '')
-    ];
 
     # RGB sync service (optional)
     systemd.services.rgb-sync = lib.mkIf cfg.sync.enable {
