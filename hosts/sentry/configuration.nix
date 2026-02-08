@@ -103,6 +103,21 @@
   # Sentry is a build machine, not a coordinator
   # Disable distributed builds to prevent garnix secret errors
   nix.distributedBuilds = lib.mkForce false;
+
+  # Also remove garnix cache reference to prevent nix-cache-key error
+  nix.settings = {
+    substituters = lib.mkForce [
+      "https://cache.nixos.org"
+      "https://cache.nixos-cuda.org"
+      "https://nix-community.cachix.org"
+      "https://nixpkgs-wayland.cachix.org"
+      "https://nix-gaming.cachix.org"
+      "https://ezkea.cachix.org"
+      "https://zen-browser.cachix.org"
+      "https://devenv.cachix.org"
+    ];
+  };
+
   networking.defaultGateway = "10.1.1.1";
 
   # ============================================================================
