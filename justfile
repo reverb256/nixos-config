@@ -80,14 +80,42 @@ update:
 
 # Parallel fetch command
 parallel:
-    @parallel-full --keep-order --tag "just-{{#}}.out" {{CMD}}
-    @for node in zephyr nexus forge sentry; do \
-        @parallel-full --tag "just-{{#}}.out" -- \
-            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null || echo 'WARNING: Fetch failed on {{#}}'" &
+    @echo "Fetching all nodes (in parallel)..."
+    @for node in zephyr nexus forge; do \
+        echo "Fetching on $$node..."; \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
     done
     @wait
-    @echo "Fetched {{#}} nodes"
-    ::: ::: # zephyr nexus forge sentry
+    @echo "Fetched all nodes"
+
+# Build all configurations (dry run) - runs on nexus
+build:
+    @echo "Building all configurations (dry run)..."
+    @for node in zephyr nexus forge sentry; do \
+        ssh $SSH_OPTS $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && nix build .#${{node}} 2>&1" | tee /tmp/just-${{node}}.out
+    ::: ::: HOST zephyr nexus forge sentry
+
+# Update flake and deploy all - runs on nexus with session isolation
+update:
+    @echo "Updating flake and deploying to all hosts (with session isolation)..."
+    @for node in zephyr nexus forge sentry; do \
+        echo "Fetching on $$node..."; \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
+        done
+    @wait
+    @echo "Deploying to all cluster hosts (with session isolation)..."
+    /etc/nixos/scripts/just-cluster deploy
+
+# Deploy to all cluster hosts - runs on nexus with session isolation
+deploy:
+    @echo "Fetching latest code on all nodes (parallel)..."
+    @for node in zephyr nexus forge sentry; do \
+        echo "Fetching on $$node..."; \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
+        done
+    @wait
+    @echo "Deploying to all cluster hosts (with session isolation)..."
+    /etc/nixos/scripts/just-cluster deploy
     @wait
     @parallel-full --tag "just-{{#.}}.out" -- \
         echo "Built $$node"
