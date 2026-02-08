@@ -39,6 +39,7 @@
 
   # Enable CI/CD features
   services.garnix.enable = false;
+  services.garnix.netrcFile = null; # Explicitly disable garnix netrc
   services.nixos-auto-update.enable = true;
 
   # Multi-kernel support: Use latest kernel (workaround for zen 6.18.7 module shrinkage bug)
