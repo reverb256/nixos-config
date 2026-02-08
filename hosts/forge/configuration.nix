@@ -137,9 +137,8 @@
     };
   };
 
-  # Disable OpenRGB on forge mining rig
-  # Enable OpenRGB for potential Corsair mouse support
-  hardware.rgb.openrgb.enable = true;
+  # RGB control disabled - not currently using OpenRGB
+  # hardware.rgb.openrgb.enable = true;
 
   # ============================================================================
   # ROCm HIP symlink for OpenCL (fixes SIGSEGV crash)

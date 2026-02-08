@@ -55,14 +55,14 @@ in {
   '';
 
    imports = [
-     ./modules
-      ./modules/unified-rgb.nix
-     ./modules/lobster-user.nix
-     # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
-     # ./modules/flatpak.nix
-     # Secrets configuration
-     # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
-     #  service module - REMOVED
+      ./modules
+      # ./modules/unified-rgb.nix  # Disabled - causing option errors
+      ./modules/lobster-user.nix
+      # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
+      # ./modules/flatpak.nix
+      # Secrets configuration
+      # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
+      #  service module - REMOVED
    ];
 
   #  AI Gateway Service - REMOVED

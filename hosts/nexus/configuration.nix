@@ -85,11 +85,7 @@
   services.logind.settings.Login.KillUserProcesses = false;
 
 # Unified RGB Control - Gigabyte AORUS X470 with RGB
-  hardware.unified-rgb.enable = true;
-# Unified RGB Control - Gigabyte AORUS X470 with RGB
-  hardware.unified-rgb.enable = true;
-# Unified RGB Control - Gigabyte AORUS X470 with RGB
-  hardware.unified-rgb.enable = true;
+  # hardware.unified-rgb.enable = true;  # Disabled - module causing errors
   # ============================================================================
   # MINING CONFIGURATION (Nexus: 24 cores, RTX 3060 Ti)
   # ============================================================================
