@@ -35,40 +35,128 @@ fetch:
     done
     @wait
 
-# Deploy to all cluster hosts - runs on nexus with session isolation
-deploy:
-    @echo "Fetching latest code on all nodes before deployment..."
+# NixOS Cluster Deployment - Idempotent Version
+# All commands work consistently from any node and any directory
+# Coordinated from nexus (deployment coordinator) via SSH
+# 
+# ============================================================================
+# PARALLEL COMMANDS - GNU Parallel for fast operations
+# ============================================================================
+# Use parallel-full instead of default 'parallel' for optimized parallel execution
+# This is especially useful for git fetch/build across all cluster nodes
+
+# Parallel command
+parallel:
+    @echo "Executing command on all nodes (in parallel)..."
+    @parallel-full --keep-order --tag "just-$@" --tag-output "parallel-{{#.}}.out" {{CMD}}
+
+# Build all configurations (dry run) - runs on nexus
+build:
+    @echo "Building all configurations (dry run)..."
+    @parallel-full --keep-order --tag "just-{{#.}}.out" \
+        -- {{#}} ssh $SSH_OPTS ${{HOST}} "cd ${FLAKE_PATH} && nix build .#{{HOST}} 2>&1" | tee /tmp/just-{{HOST}}.out
+    ::: ::: HOST zephyr nexus forge sentry
+
+# Update flake and deploy all - runs on nexus with session isolation
+update:
+    @echo "Updating flake and deploying to all hosts (with session isolation)..."
     @for node in zephyr nexus forge sentry; do \
         echo "Fetching on $$node..."; \
-        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null" & \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null || echo 'WARNING: Fetch failed on $$node'" & \
     done
     @wait
     @echo "Deploying to all cluster hosts (with session isolation)..."
     /etc/nixos/scripts/just-cluster deploy
 
+# NixOS Cluster Deployment - Idempotent Version
+# All commands work consistently from any node and any directory
+# Coordinated from nexus (deployment coordinator) via SSH
+
+# ============================================================================
+# PARALLEL COMMANDS - GNU Parallel for fast operations
+# ============================================================================
+# Use parallel-full instead of default 'parallel' for optimized parallel execution
+# This is especially useful for git fetch/build across all cluster nodes
+
+# Parallel fetch command
+parallel:
+    @parallel-full --keep-order --tag "just-{{#.}}.out" {{CMD}}
+    @for node in zephyr nexus forge sentry; do \
+        @parallel-full --tag "just-{{#.}}.out" -- \
+        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null || echo 'WARNING: Fetch failed on $$node'"
+    @wait
+    @parallel-full --tag "just-{{#.}}.out" -- \
+        echo "Fetched $$node"
+
+# Build all configurations (dry run) - runs on nexus
+build:
+    @echo "Building all configurations (dry run)..."
+    @for node in zephyr nexus forge sentry; do \
+        @parallel-full --tag "just-{{#.}}.out" \
+        -- {{#}} ssh $SSH_OPTS ${{HOST}} "cd ${FLAKE_PATH} && nix build .#{{HOST}} 2>&1" | tee /tmp/just-{{HOST}}.out
+    ::: ::: HOST zephyr nexus forge sentry
+    @wait
+    @parallel-full --tag "just-{{#.}}.out" -- \
+        echo "Built $$node"
+
+# Update flake and deploy all - runs on nexus with session isolation
+update:
+    @echo "Updating flake and deploying to all hosts (with session isolation)..."
+    @parallel-full --tag "just-update.{{#.}}.out" -- \
+        @for node in zephyr nexus forge sentry; do \
+            echo "Fetching on $$node..."; \
+            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null || echo 'WARNING: Fetch failed on $$node'"; \
+        done
+    @wait
+    @parallel-full --tag "just-update.{{#.}}.out" -- \
+        echo "Fetched $$node"
+    @echo "Deploying to all cluster hosts (with session isolation)..."
+    /etc/nixos/scripts/just-cluster deploy
+
+# Deploy to all cluster hosts - runs on nexus with session isolation
+deploy:
+    @echo "Fetching latest code on all nodes (parallel)..."
+    @parallel-full --tag "just-deploy.{{#.}}.out" -- \
+        @for node in zephyr nexus forge sentry; do \
+            echo "Fetching on $$node..."; \
+            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null || echo 'WARNING: Fetch failed on $$node'"; \
+        done
+    @wait
+    @parallel-full --tag "just-deploy.{{#.}}.out" -- \
+        echo "Deployed $$node"
+    @echo "Deployment complete for all nodes"
+
 # Deploy to individual hosts - runs on nexus with session isolation
+# ============================================================================
+# NOTE: These legacy commands are superseded by the new 'fetch' workflow above
+# They're kept for manual use but 'deploy' now uses parallel git fetch
+
 zephyr:
     @echo "Fetching latest code on zephyr..."
-    ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on zephyr'
+    @parallel-full --tag "just-zephyr.out" -- \
+        ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on zephyr'"
     @echo "Deploying to zephyr (with session isolation)..."
     /etc/nixos/scripts/just-cluster zephyr
 
 nexus:
     @echo "Fetching latest code on nexus..."
-    ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on nexus'
+    @parallel-full --tag "just-nexus.out" -- \
+        ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on nexus'"
     @echo "Deploying to nexus (with session isolation)..."
     /etc/nixos/scripts/just-cluster nexus
 
 forge:
     @echo "Fetching latest code on forge..."
-    ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on forge'
+    @parallel-full --tag "just-forge.out" -- \
+        ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on forge'"
     @echo "Deploying to forge (with session isolation)..."
     /etc/nixos/scripts/just-cluster forge
 
 sentry:
     @echo "Skipping sentry deployment (kernel issue workaround pending)"
     # @echo "Fetching latest code on sentry..."
-    # ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on sentry'
+    # @parallel-full --tag "just-sentry.out" -- \
+        ssh $SSH_OPTS "cd ${FLAKE_PATH} && git fetch origin" || echo 'WARNING: Fetch failed on sentry'"
     # @echo "Deploying to sentry (with session isolation)..."
     # /etc/nixos/scripts/just-cluster sentry
 
