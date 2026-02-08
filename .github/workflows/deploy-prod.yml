@@ -1,0 +1,72 @@
+name: "Deploy Cluster - Production"
+
+on:
+  push:
+    branches: ["infra"]
+  workflow_dispatch:  # Manual deployment trigger
+    inputs:
+      target_branch:
+        description: 'Branch to deploy (default: infra)'
+        required: false
+        default: 'infra'
+        type: string
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Build all configurations
+  build:
+    runs-on: self-hosted
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.target_branch || 'infra' }}
+
+    - name: Install Nix
+      uses: DeterminateSystems/nix-installer-action@main
+
+    - name: Magic Nix Cache
+      uses: DeterminateSystems/magic-nix-cache-action@main
+
+    - name: Build all configurations
+      run: |
+        nix build .#nixosConfigurations.zephyr.config.system.build.toplevel
+        nix build .#nixosConfigurations.nexus.config.system.build.toplevel
+        nix build .#nixosConfigurations.forge.config.system.build.toplevel
+        nix build .#nixosConfigurations.sentry.config.system.build.toplevel
+
+  # Deploy to all nodes via colmena
+  deploy:
+    runs-on: self-hosted
+    needs: build
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.target_branch || 'infra' }}
+
+    - name: Install Nix
+      uses: DeterminateSystems/nix-installer-action@main
+
+    - name: Magic Nix Cache
+      uses: DeterminateSystems/magic-nix-cache-action@main
+
+    - name: Deploy using Colmena
+      run: |
+        nix run github:zhaofengli/colmena -- deploy --on-change --skip-eval
+
+    - name: Verify deployment
+      run: |
+        for host in zephyr nexus forge sentry; do
+          echo "Checking $host..."
+          case $host in
+            zephyr) ip="100.81.182.5" ;;
+            nexus)  ip="100.86.158.18" ;;
+            forge)  ip="100.116.190.124" ;;
+            sentry) ip="100.82.210.39" ;;
+          esac
+          ssh -o ConnectTimeout=10 j_kro@$ip "nixos-version" || echo "❌ Failed to connect to $host"
+        done
