@@ -42,8 +42,7 @@
   services.garnix.enable = false;
   services.nixos-auto-update.enable = true;
 
-  # Multi-kernel support: Use latest stable kernel temporarily (linux-zen 6.18.7 has module shrinkage bug)
-  # boot.kernelPackages = pkgs.linuxPackages_zen;
+  # Multi-kernel support: Use latest kernel (workaround for zen 6.18.7 module shrinkage bug)
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # ============================================================================
