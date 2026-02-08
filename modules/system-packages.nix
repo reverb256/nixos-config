@@ -25,6 +25,7 @@
       netcat
       socat
       tmux
+      # websocat - REMOVED
 
       # ============================================================================
       # NETWORK MANAGEMENT

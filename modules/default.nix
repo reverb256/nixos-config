@@ -19,5 +19,6 @@
     ./scopebuddy.nix # ScopeBuddy gamescope wrapper
     ./security-hardware.nix # YubiKey and Bitwarden CLI
     ./openclaw-node-host.nix # OpenClaw node host (secure SSH tunnel to gateway)
+    ./opencode.nix # OpenCode/oh-my-opencode configuration
   ];
 }

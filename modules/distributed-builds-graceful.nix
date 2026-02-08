@@ -119,6 +119,7 @@ in {
   # ============================================================================
   programs.ssh.extraConfig = lib.mkIf config.nix.distributedBuilds ''
     # Build machine configurations for distributed Nix builds
+    # NOTE: Using j_kro user which has SSH access across all cluster nodes
     Host nexus
       HostName 10.1.1.120
       User j_kro
@@ -150,9 +151,11 @@ in {
   programs.ssh.startAgent = lib.mkDefault config.nix.distributedBuilds;
 
   # Ensure SSH key directories exist
+  # NOTE: j_kro's SSH key is used to authenticate as nixbuild on remote machines
   systemd.tmpfiles.rules = lib.mkIf config.nix.distributedBuilds [
     "d /home/j_kro/.ssh 0700 j_kro users -"
-    "d /home/nixbuild/.ssh 0700 nixbuild nixbuild -"
+    # nixbuild user is a system user with /var/empty home, authorized_keys is in /etc/ssh/authorized_keys.d/
+    "d /etc/ssh/authorized_keys.d 0755 root root -"
   ];
 
   # ============================================================================

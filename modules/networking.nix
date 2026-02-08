@@ -134,7 +134,7 @@ with lib; {
   # FAIL2BAN CONFIGURATION
   # ============================================================================
   services.fail2ban = {
-    enable = true;
+    enable = false; # Temporarily disabled for cluster management
     ignoreIP = [
       "127.0.0.1"
       "10.1.0.0/24" # Entire cluster subnet
