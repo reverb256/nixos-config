@@ -56,7 +56,7 @@ in {
 
    imports = [
      ./modules
-     ./modules/rgb.nix
+      ./modules/unified-rgb.nix
      ./modules/lobster-user.nix
      # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
      # ./modules/flatpak.nix
