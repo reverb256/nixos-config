@@ -84,16 +84,7 @@ in {
 
   # RGB Lighting Control
   # MSI X570 Tomahawk + RTX 3090 + Corsair devices + G.Skill Trident Z RGB
-  hardware.unified-rgb = {
-    enable = true;
-    openrgb = {
-      enable = true;
-      motherboard = "msi"; # MSI X570
-    };
-    liquidctl = {
-      enable = true; # Corsair H115i + Vengeance RAM
-    };
-  };
+  # RGB devices managed via existing modules (desktop.nix, system-packages.nix)
 
   # XDG Desktop Portal for KDE integration (with GTK fallback for Flatpak/Steam)
   xdg.portal = {
