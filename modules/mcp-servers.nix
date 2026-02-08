@@ -280,17 +280,19 @@ in {
        - **OpenClaw**: `~/.openclaw/openclaw.json`
        - **Kilo Code**: `~/.kilocode/cli/global/settings/mcp_settings.json`
 
-       Example MCP server config format:
-       ```json
-       {
-         "servers": {
-           "filesystem": {
-             "command": "mcp-filesystem",
-             "args": ["/etc/nixos", "$HOME"]
-           }
-         }
-       }
-       ```
-     '';
-  };
+        Example MCP server config format:
+        ```json
+        {
+          "servers": {
+            "filesystem": {
+              "command": "mcp-filesystem",
+              "args": ["/etc/nixos", "$HOME"]
+            }
+          }
+        }
+        ```
+      '';
+   };
+   };
 }
+
