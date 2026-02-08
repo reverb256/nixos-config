@@ -15,6 +15,7 @@ _default:
      @echo "NixOS Cluster Management - Idempotent Deployment"
      @echo ""
      @echo "USAGE:"
+     @echo "  just sync           Commit, push, and deploy changes to all nodes"
      @echo "  just test [branch]  Test configuration (dry build) - optional branch"
      @echo "  just deploy [branch] Deploy infra branch (or custom branch) via colmena"
      @echo "  just fetch          Fetch latest code on all nodes (parallel)"
@@ -23,6 +24,7 @@ _default:
      @echo "  just status        Show cluster status"
      @echo ""
      @echo "EXAMPLES:"
+     @echo "  just sync                Commit, push, and deploy current changes"
      @echo "  just test                Test infra branch"
      @echo "  just test refactor/...    Test custom branch"
      @echo "  just deploy              Deploy infra branch (production)"
@@ -30,6 +32,27 @@ _default:
      @echo ""
      @echo "All deployments use colmena via Tailscale VPN (100.x.x.x)"
      @echo "Works identically from any cluster node (zephyr, nexus, forge, sentry)"
+
+# ============================================================================
+# SYNC & DEPLOY - Commit, push, and deploy all nodes
+# ============================================================================
+
+# Commit, push, and deploy current changes to all nodes
+sync BRANCH=`git branch --show-current`:
+    @echo "Syncing changes to branch: {{BRANCH}}"
+    @echo "Checking for uncommitted changes..."
+    if [ -n "$(git status --porcelain)" ]; then
+        @echo "No changes to sync"
+        exit 0
+    fi
+    @echo "Committing changes..."
+    git add -A
+    git commit -m "sync: Auto-commit before deployment $(date '+%Y-%m-%d %H:%M:%S')"
+    @echo "Pushing to origin..."
+    git push origin {{BRANCH}}
+    @echo "Deploying to all nodes..."
+    just deploy {{BRANCH}}
+    @echo "✅ Sync complete for branch: {{BRANCH}}"
 
 # ============================================================================
 # TEST & DEPLOY - Branch-aware testing and deployment
