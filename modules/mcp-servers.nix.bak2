@@ -5,7 +5,7 @@
   ...
 }: let
   cfg = config.services.mcp-servers;
-  
+
   # Helper to create MCP server packages via npm/npx
   mkNpmMcpServer = {
     name,
@@ -13,141 +13,141 @@
     args ? [],
     env ? {},
   }:
-      pkgs.writeShellScriptBin "mcp-${name}" ''
-        export PATH="${pkgs.nodejs_22}/bin:$PATH"
-        ${lib.concatStringsSep "\n" (lib.mapAttrsToList (k: v: "export ${k}=\"${v}\"") env)}
-        exec ${pkgs.nodejs_22}/bin/npx -y ${package} ${lib.concatStringsSep " " args} "$@"
-      '';
+    pkgs.writeShellScriptBin "mcp-${name}" ''
+      export PATH="${pkgs.nodejs_22}/bin:$PATH"
+      ${lib.concatStringsSep "\n" (lib.mapAttrsToList (k: v: "export ${k}=\"${v}\"") env)}
+      exec ${pkgs.nodejs_22}/bin/npx -y ${package} ${lib.concatStringsSep " " args} "$@"
+    '';
 in {
   options.services.mcp-servers = {
-    enable = liblib.mkEnableOption "MCP (Model Context Protocol) servers for all AI tools (OpenCode, Qwen, Kimi, OpenClaw)";
-    
+    enable = lib.mkEnableOption "MCP (Model Context Protocol) servers for all AI tools (OpenCode, Qwen, Kimi, OpenClaw)";
+
     servers = {
       filesystem = {
-        enable = liblib.mkEnableOption "Filesystem MCP server" // {default = true;};
+        enable = lib.mkEnableOption "Filesystem MCP server" // {default = true;};
         allowedPaths = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = ["$HOME" "/etc/nixos"];
           description = "Paths allowed for filesystem access";
         };
       };
-      
+
       git = {
-        enable = liblib.mkEnableOption "Git MCP server" // {default = true;};
+        enable = lib.mkEnableOption "Git MCP server" // {default = true;};
       };
-      
+
       playwright = {
-        enable = liblib.mkEnableOption "Playwright MCP server for browser automation" // {default = true;};
+        enable = lib.mkEnableOption "Playwright MCP server for browser automation" // {default = true;};
       };
-      
+
       puppeteer = {
-        enable = liblib.mkEnableOption "Puppeteer MCP server (deprecated, use Playwright)" // {default = false;};
+        enable = lib.mkEnableOption "Puppeteer MCP server (deprecated, use Playwright)" // {default = false;};
       };
-      
+
       fetch = {
-        enable = liblib.mkEnableOption "Fetch MCP server for web content" // {default = true;};
+        enable = lib.mkEnableOption "Fetch MCP server for web content" // {default = true;};
       };
-      
+
       context7 = {
-        enable = liblib.mkEnableOption "Context7 MCP server for documentation" // {default = true;};
+        enable = lib.mkEnableOption "Context7 MCP server for documentation" // {default = true;};
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
           description = "Context7 API key (optional, for higher rate limits)";
         };
       };
-      
+
       grep-app = {
-        enable = liblib.mkEnableOption "Grep.app MCP server for code search" // {default = true;};
+        enable = lib.mkEnableOption "Grep.app MCP server for code search" // {default = true;};
       };
-      
+
       brave-search = {
-        enable = liblib.mkEnableOption "Brave Search MCP server" // {default = false;};
+        enable = lib.mkEnableOption "Brave Search MCP server" // {default = false;};
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
           description = "Brave Search API key";
         };
       };
-      
+
       chrome-devtools = {
-        enable = liblib.mkEnableOption "Chrome DevTools MCP server" // {default = true;};
+        enable = lib.mkEnableOption "Chrome DevTools MCP server" // {default = true;};
       };
-      
+
       github = {
-        enable = liblib.mkEnableOption "GitHub MCP server" // {default = false;};
+        enable = lib.mkEnableOption "GitHub MCP server" // {default = false;};
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
           description = "GitHub API token";
         };
       };
-      
+
       openclaw = {
-        enable = liblib.mkEnableOption "OpenClaw MCP server (exposes Gateway tools)" // {default = true;};
+        enable = lib.mkEnableOption "OpenClaw MCP server (exposes Gateway tools)" // {default = true;};
         nixos = {
-          enable = liblib.mkEnableOption "NixOS MCP server for NixOS packages and options" // {default = false;};
+          enable = lib.mkEnableOption "NixOS MCP server for NixOS packages and options" // {default = false;};
           apiKey = lib.mkOption {
             type = lib.types.str;
             default = "";
             description = "Context7 API key (optional, for higher rate limits)";
           };
         };
-      
+
       kubernetes = {
-        enable = liblib.mkEnableOption "Kubernetes MCP server for cluster management" // {default = false;};
+        enable = lib.mkEnableOption "Kubernetes MCP server for cluster management" // {default = false;};
         kubeconfig = lib.mkOption {
           type = lib.types.path;
           default = "";
           description = "Path to kubeconfig file";
         };
       };
-      
+
       github-actions = {
-        enable = liblib.mkEnableOption "GitHub Actions MCP server for CI/CD automation" // {default = false;};
+        enable = lib.mkEnableOption "GitHub Actions MCP server for CI/CD automation" // {default = false;};
       };
-      
+
       terraform = {
-        enable =lib.mkEnableOption "Terraform MCP server for IaC automation" // {default = false;};
+        enable = lib.mkEnableOption "Terraform MCP server for IaC automation" // {default = false;};
       };
-      
+
       ansible = {
-        enable = liblib.mkEnableOption "Ansible MCP server for configuration management" // {default = false;};
+        enable = lib.mkEnableOption "Ansible MCP server for configuration management" // {default = false;};
       };
-      
+
       n8n = {
-        enable = liblib.mkEnableOption "n8n workflow automation MCP server" // {default = false;};
+        enable = lib.mkEnableOption "n8n workflow automation MCP server" // {default = false;};
         url = lib.mkOption {
           type = lib.types.str;
           default = "http://localhost:5678";
           description = "n8n instance URL";
         };
       };
-      
+
       computer-use = {
-        enable = liblib.mkEnableOption "Computer use MCP server for desktop automation" // {default = false;};
+        enable = lib.mkEnableOption "Computer use MCP server for desktop automation" // {default = false;};
         platform = lib.mkOption {
           type = lib.types.enum ["windows" "macos" "linux"];
           default = "linux";
           description = "Operating system platform";
         };
       };
-      
+
       exa = {
-        enable = liblib.mkEnableOption "Exa web search MCP server" // {default = false;};
+        enable = lib.mkEnableOption "Exa web search MCP server" // {default = false;};
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
           description = "Exa API key (use your key: 3a8a3e63-3267-492c-b078-543abb2ee144)";
         };
       };
-      
+
       google-drive = {
-        enable = liblib.mkEnableOption "Google Drive MCP server for cloud storage" // {default = false;};
+        enable = lib.mkEnableOption "Google Drive MCP server for cloud storage" // {default = false;};
       };
     };
   };
-  
+
   config = lib.mkIf cfg.enable {
     # Install MCP server wrapper packages
     environment.systemPackages = with pkgs;
@@ -164,37 +164,37 @@ in {
           package = "@modelcontextprotocol/server-filesystem";
           args = cfg.servers.filesystem.allowedPaths;
         })
-        
+
         (mkNpmMcpServer {
           name = "git";
           package = "@modelcontextprotocol/server-git";
         })
-        
+
         (mkNpmMcpServer {
           name = "playwright";
           package = "@playwright/mcp@latest";
         })
-        
+
         (mkNpmMcpServer {
           name = "puppeteer";
           package = "@modelcontextprotocol/server-puppeteer";
         })
-        
+
         (mkNpmMcpServer {
           name = "fetch";
           package = "@modelcontextprotocol/server-fetch";
         })
-        
+
         (mkNpmMcpServer {
           name = "context7";
           package = "@context7/context7-mcp";
         })
-        
+
         (mkNpmMcpServer {
           name = "grep-app";
           package = "@grepapp/mcp-server";
         })
-        
+
         (mkNpmMcpServer {
           name = "brave-search";
           package = "@modelcontextprotocol/server-brave-search";
@@ -202,12 +202,12 @@ in {
             BRAVE_API_KEY = cfg.servers.brave-search.apiKey;
           };
         })
-        
+
         (mkNpmMcpServer {
           name = "chrome-devtools";
           package = "chrome-devtools-mcp@latest";
         })
-        
+
         (mkNpmMcpServer {
           name = "github";
           package = "@modelcontextprotocol/server-github";
@@ -215,13 +215,13 @@ in {
             GITHUB_API_TOKEN = cfg.servers.github.apiKey;
           };
         })
-        
+
         (mkNpmMcpServer {
           name = "openclaw";
           package = "@openclaw/mcp-server";
         })
       ];
-    
+
     # Install Playwright browsers
     system.activationScripts.playwright-browsers = lib.mkIf cfg.servers.playwright.enable {
       text = ''
@@ -233,17 +233,17 @@ in {
         fi
       '';
     };
-    
+
     programs.nix-ld.enable = lib.mkDefault true;
-    
+
     # Documentation
     environment.etc."mcp-servers/README.md".text = ''
       # Unified MCP Servers for All AI Tools
-      
+
       MCP servers configured for: OpenCode, Qwen, Kimi, OpenClaw
-      
+
       ## Available Servers
-      
+
       | Server | Type | Purpose |
       |--------|------|---------|
       | filesystem | STDIO | Local filesystem access |
@@ -255,11 +255,11 @@ in {
       | chrome-devtools | STDIO | Chrome debugging |
       | github | STDIO | GitHub integration |
       | openclaw | STDIO | OpenClaw Gateway tools |
-      
+
        ## Available MCP Server Commands
-      
+
        MCP servers are installed as system packages and available via PATH:
-      
+
        | Server | Command | Purpose |
        |--------|---------|---------|
        | filesystem | `mcp-filesystem` | Local filesystem access |
@@ -271,16 +271,17 @@ in {
        | chrome-devtools | `mcp-chrome-devtools` | Chrome debugging |
        | github | `mcp-github` | GitHub integration |
        | openclaw | `mcp-openclaw` | OpenClaw Gateway tools |
-      
+
        ## Configuration
-      
+
        Configure MCP servers manually in each tool's config file:
-      
-       - OpenCode: ~/.config/opencode/settings.json
-       - OpenClaw: ~/.openclaw/openclaw.json
-       - Kilo Code: ~/.kilocode/cli/global/settings/mcp_settings.json
-      
-       Example MCP server config format:
+
+       - **OpenCode**: `~/.config/opencode/settings.json`
+       - **OpenClaw**: `~/.openclaw/openclaw.json`
+       - **Kilo Code**: `~/.kilocode/cli/global/settings/mcp_settings.json`
+
+        Example MCP server config format:
+        ```json
         {
           "servers": {
             "filesystem": {
@@ -289,6 +290,8 @@ in {
             }
           }
         }
-    '';
-  };
+        ```
+      '';
+   };
 }
+   }

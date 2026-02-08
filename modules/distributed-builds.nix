@@ -94,36 +94,6 @@
   };
 
   # ============================================================================
-  # SSH CONFIGURATION FOR BUILD MACHINES
-  # ============================================================================
-  programs.ssh.extraConfig = ''
-    # Build machine configurations for distributed Nix builds
-    Host nexus
-      HostName 10.1.1.120
-      User j_kro
-      IdentityFile /home/j_kro/.ssh/id_nixbuild
-      ConnectTimeout 5
-      StrictHostKeyChecking accept-new
-      LogLevel ERROR
-
-    Host forge
-      HostName 10.1.1.130
-      User j_kro
-      IdentityFile /home/j_kro/.ssh/id_nixbuild
-      ConnectTimeout 5
-      StrictHostKeyChecking accept-new
-      LogLevel ERROR
-
-    Host sentry
-      HostName 10.1.1.140
-      User j_kro
-      IdentityFile /home/j_kro/.ssh/id_nixbuild
-      ConnectTimeout 5
-      StrictHostKeyChecking accept-new
-      LogLevel ERROR
-  '';
-
-  # ============================================================================
   # SSH AGENT CONFIGURATION
   # ============================================================================
   programs.ssh.startAgent = true;
@@ -133,6 +103,8 @@
     "d /home/j_kro/.ssh 0700 j_kro users -"
     "d /home/nixbuild/.ssh 0700 nixbuild nixbuild -"
   ];
+
+  # SSH client configuration for build machines is managed by modules/ssh.nix
 
   # ============================================================================
   # BUILD OPTIMIZATION

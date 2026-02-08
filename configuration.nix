@@ -21,15 +21,11 @@ in {
   # NIX CONFIGURATION - Experimental features only
   # Build optimization settings are in modules/nix-config.nix
   # ============================================================================
-  nix = {
-    settings = {
-      experimental-features = [
-        "nix-command"
-        "flakes"
-        "fetch-tree"     # Improved flake fetching and caching
-      ];
-      # max-jobs and cores are configured in modules/nix-config.nix
-    };
+  # NixOS Cluster Configuration
+  nix.settings = {
+    trusted-users = ["j_kro"];
+    auto-optimise-store = true;
+    # max-jobs and cores are configured in modules/nix-config.nix
   };
 
   # ============================================================================
@@ -58,18 +54,16 @@ in {
     });
   '';
 
-  imports = [
-    ./modules
-    ./modules/rgb.nix
-    ./modules/lobster-user.nix
-    # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
-    # ./modules/flatpak.nix
-    # Graceful distributed builds: conservative (4 jobs) when alone, aggressive (21 jobs) with builders
-    ./modules/distributed-builds-graceful.nix
-    # Secrets configuration
-    # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
-    # OpenClaw service module - REMOVED
-  ];
+   imports = [
+     ./modules
+     ./modules/rgb.nix
+     ./modules/lobster-user.nix
+     # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
+     # ./modules/flatpak.nix
+     # Secrets configuration
+     # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
+     # OpenClaw service module - REMOVED
+   ];
 
   # OpenClaw AI Gateway Service - REMOVED
   # OpenClaw AI Agent Gateway - completely removed from system
