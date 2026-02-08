@@ -4,7 +4,6 @@
 
 # Cluster configuration
 FLAKE_PATH := "/etc/nixos"
-SSH_OPTS := "-o ConnectTimeout=5 -o StrictHostKeyChecking=no"
 ZEPHYR := "j_kro@10.1.1.110"
 NEXUS := "j_kro@10.1.1.120"
 FORGE := "j_kro@10.1.1.130"
@@ -41,50 +40,50 @@ _default:
 # Fetch latest code on all nodes
 fetch:
     @echo "Fetching all nodes..."
-    ssh $SSH_OPTS {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
-    ssh $SSH_OPTS {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Fetched all nodes"
 
 # Build all configurations (sequential) - runs on nexus
 build:
     @echo "Building all configurations..."
-    ssh {{SSH_OPTS}} {{ZEPHYR}} "cd {{FLAKE_PATH}} && nix build .#zephyr 2>&1" | tee /tmp/just-zephyr.out
-    ssh {{SSH_OPTS}} {{NEXUS}} "cd {{FLAKE_PATH}} && nix build .#nexus 2>&1" | tee /tmp/just-nexus.out
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "cd {{FLAKE_PATH}} && nix build .#zephyr 2>&1" | tee /tmp/just-zephyr.out
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && nix build .#nexus 2>&1" | tee /tmp/just-nexus.out
     @echo "Built all nodes"
 
 # Update flake and deploy all - runs on nexus with session isolation
 update:
     @echo "Updating flake and deploying to all hosts..."
-    ssh {{SSH_OPTS}} {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
-    ssh {{SSH_OPTS}} {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Deploying to all cluster hosts (with session isolation)..."
     /etc/nixos/scripts/just-cluster deploy
 
 # Deploy to all cluster hosts - runs on nexus with session isolation
 deploy:
     @echo "Fetching latest code on all nodes..."
-    ssh {{SSH_OPTS}} {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
-    ssh {{SSH_OPTS}} {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
-    ssh {{SSH_OPTS}} {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
-    ssh {{SSH_OPTS}} {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Deployment complete for all nodes"
 
 # Deploy to individual hosts - runs on nexus with session isolation
 zephyr:
     @echo "Fetching latest code on zephyr..."
-    ssh {{SSH_OPTS}} {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Deploying to zephyr (with session isolation)..."
     /etc/nixos/scripts/just-cluster zephyr
 
 nexus:
     @echo "Fetching latest code on nexus..."
-    ssh {{SSH_OPTS}} {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Deploying to nexus (with session isolation)..."
     /etc/nixos/scripts/just-cluster nexus
 
 forge:
     @echo "Fetching latest code on forge..."
-    ssh {{SSH_OPTS}} {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Deploying to forge (with session isolation)..."
     /etc/nixos/scripts/just-cluster forge
 
@@ -104,10 +103,10 @@ switch:
 # Copy age key to all nodes (run from zephyr first)
 prep:
     @echo "Fetching all nodes..."
-    ssh $SSH_OPTS $ZEPHYR "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
-    ssh $SSH_OPTS $NEXUS "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
-    ssh $SSH_OPTS $FORGE "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
-    ssh $SSH_OPTS $SENTRY "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin 2>/dev/null"
     @echo "Copying age key to all nodes..."
     /etc/nixos/scripts/just-cluster prep
 
