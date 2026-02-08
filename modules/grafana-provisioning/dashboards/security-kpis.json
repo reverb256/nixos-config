@@ -47,16 +47,16 @@
     summary: "Mining service is down on {{ $labels.instance }}"
     description: "Mining service unreachable for 1 minute"
 
-- alert: OpenClawGatewayDown
-  expr: up{job="openclaw"} == 0
+- alert: GatewayDown
+  expr: up{job=""} == 0
   for: 1m
   labels:
     severity: critical
     category: services
     team: ai
   annotations:
-    summary: "OpenClaw gateway is down on {{ $labels.instance }}"
-    description: "OpenClaw gateway unreachable for 1 minute"
+    summary: " gateway is down on {{ $labels.instance }}"
+    description: " gateway unreachable for 1 minute"
 
 # SSH Attack Detection
 - alert: SSHBruteForce

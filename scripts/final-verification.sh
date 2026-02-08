@@ -5,8 +5,8 @@ echo "🚀 FINAL CLUSTER VERIFICATION"
 echo "============================"
 
 echo ""
-echo "1️⃣  OPENCLAW GATEWAY:"
-if pgrep -f openclaw-gateway >/dev/null 2>&1; then
+echo "1️⃣   GATEWAY:"
+if pgrep -f -gateway >/dev/null 2>&1; then
     echo "   ✅ Running on port 18789"
     echo "   🌐 Access: http://localhost:18789"
 else
@@ -46,13 +46,13 @@ else
 fi
 
 echo ""
-echo "5️⃣  OPENCLAW NODE SETUP:"
-if command -v openclaw >/dev/null 2>&1; then
-    echo "   ✅ OpenClaw CLI available"
+echo "5️⃣   NODE SETUP:"
+if command -v  >/dev/null 2>&1; then
+    echo "   ✅  CLI available"
     echo "   📋 Node status:"
-    openclaw nodes status 2>/dev/null | head -3 || echo "   (nodes not yet paired)"
+     nodes status 2>/dev/null | head -3 || echo "   (nodes not yet paired)"
 else
-    echo "   ❌ OpenClaw CLI not available"
+    echo "   ❌  CLI not available"
 fi
 
 echo ""
@@ -63,10 +63,10 @@ echo "   🏗️  Rebuild needed: $(if [ -f /run/current-system ]; then echo "No
 echo ""
 echo "🎯 SUMMARY:"
 echo "   - Distributed Builds: ✅ Configured for 4 nodes"
-echo "   - OpenClaw Gateway: ✅ Running"
+echo "   -  Gateway: ✅ Running"
 echo "   - Cluster Connectivity: ✅ All nodes reachable"
 echo "   - GitHub Actions: ✅ Workflows configured"
-echo "   - OpenClaw Nodes: ✅ Setup scripts ready"
+echo "   -  Nodes: ✅ Setup scripts ready"
 
 echo ""
 echo "🚀 READY FOR DEPLOYMENT!"

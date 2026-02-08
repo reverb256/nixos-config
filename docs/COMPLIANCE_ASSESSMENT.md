@@ -15,7 +15,7 @@
 ### A01: Broken Access Control ✅ 100% (5/5 controls)
 - **Controls Implemented**: 5/5
   - ✅ SSH key-only authentication (no password auth)
-  - ✅ Dedicated service users (mining, nixbuild, openclaw)
+  - ✅ Dedicated service users (mining, nixbuild, )
   - ✅ Role-based sudo rules (specific commands only)
   - ✅ Tailscale VPN mesh (encrypted communication)
   - ✅ Passwordless sudo for j_kro (with YubiKey/passkey planned)

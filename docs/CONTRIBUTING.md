@@ -67,7 +67,7 @@ footer (optional)
 feat(gaming): add WiVRn support
 fix(mining): correct API endpoint
 docs: update setup guide
-refactor(openclaw): merge overlays
+refactor(): merge overlays
 ```
 
 **Allowed types**:

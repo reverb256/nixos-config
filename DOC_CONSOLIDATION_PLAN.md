@@ -70,7 +70,7 @@ This document outlines the consolidation of fragmented documentation across the 
 | `docs/HARSH_REALITY_AUDIT.md` | `MASTER_DOCS.md` | ✅ INTEGRATED |
 | `docs/DEPLOYMENT_INSTRUCTIONS.md` | `MASTER_DOCS.md` | ✅ INTEGRATED |
 | `docs/TAILSCALE_SETUP.md` | `MASTER_DOCS.md` | ✅ INTEGRATED |
-| `OPENCLAW-SUMMARY.md` | `MASTER_DOCS.md` | ✅ INTEGRATED |
+| `-SUMMARY.md` | `MASTER_DOCS.md` | ✅ INTEGRATED |
 | `AISTOR-DEPLOY.md` | `MASTER_DOCS.md` | ✅ INTEGRATED |
 | `docs/MINING_CLUSTER_STATUS.md` | `MASTER_DOCS.md` | ✅ INTEGRATED |
 | `docs/SPRAWL_CLEANUP_*.md` | `MASTER_DOCS.md` | ✅ INTEGRATED |
@@ -84,7 +84,7 @@ This document outlines the consolidation of fragmented documentation across the 
 2. **Distributed Builds**: Confirmed they are active (not disabled as claimed)
 3. **File Counts**: Updated to reflect actual 83 Nix files, 11,376 lines
 4. **Module Counts**: Updated to actual 54 modules instead of claimed 26+
-5. **OpenClaw Implementation**: Consolidated from 4 competing implementations to 1
+5. ** Implementation**: Consolidated from 4 competing implementations to 1
 6. **Mining API Security**: Fixed to localhost-only binding (was network-exposed)
 
 ### Documentation Claims Verified
@@ -112,7 +112,7 @@ doc-archive/
 ├── SPRAWL_CLEANUP_QUICKREF_original.md
 ├── DEPLOYMENT_INSTRUCTIONS_original.md
 ├── TAILSCALE_SETUP_original.md
-├── OPENCLAW_SUMMARY_original.md
+├── _SUMMARY_original.md
 ├── AISTOR_DEPLOY_original.md
 ├── MINING_CLUSTER_STATUS_original.md
 ├── TODO_obsolete.md
@@ -186,7 +186,7 @@ grep -i "PermitRootLogin.*no" MASTER_DOCS.md  # Should confirm security
 # Verify all systems operational
 sudo nixos-rebuild build --flake .
 just check
-systemctl status openclaw
+systemctl status 
 systemctl status xmrig
 tailscale status
 ```

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Comprehensive Cluster Verification Script
-# Tests distributed builds, colmena, and OpenClaw node readiness
+# Tests distributed builds, colmena, and  node readiness
 
 set -e
 
@@ -8,23 +8,23 @@ echo "🚀 Comprehensive Cluster Verification"
 echo "====================================="
 
 echo ""
-echo "1️⃣  Testing OpenClaw Services..."
-if pgrep -f openclaw-gateway >/dev/null 2>&1; then
-    echo "   ✅ OpenClaw gateway is running"
+echo "1️⃣  Testing  Services..."
+if pgrep -f -gateway >/dev/null 2>&1; then
+    echo "   ✅  gateway is running"
     echo "   🌐 Access at: http://localhost:18789"
 else
-    echo "   ⚠️  OpenClaw gateway is not running"
-    echo "   🔧 Start with: systemctl --user start openclaw-gateway"
+    echo "   ⚠️   gateway is not running"
+    echo "   🔧 Start with: systemctl --user start -gateway"
 fi
 
 echo ""
-echo "2️⃣  Testing OpenClaw Node Status..."
-if command -v openclaw >/dev/null 2>&1; then
-    echo "   ✅ OpenClaw CLI is available"
+echo "2️⃣  Testing  Node Status..."
+if command -v  >/dev/null 2>&1; then
+    echo "   ✅  CLI is available"
     echo "   📋 Node status:"
-    openclaw nodes status 2>/dev/null | head -10 || echo "   (nodes not yet configured)"
+     nodes status 2>/dev/null | head -10 || echo "   (nodes not yet configured)"
 else
-    echo "   ⚠️  OpenClaw CLI is not available"
+    echo "   ⚠️   CLI is not available"
 fi
 
 echo ""
@@ -80,8 +80,8 @@ git status --porcelain
 
 echo ""
 echo "📋 Summary of Ready Components:"
-echo "   - OpenClaw Gateway: $(if pgrep -f openclaw-gateway >/dev/null 2>&1; then echo "✅"; else echo "❌"; fi)"
-echo "   - OpenClaw CLI: $(if command -v openclaw >/dev/null 2>&1; then echo "✅"; else echo "❌"; fi)"
+echo "   -  Gateway: $(if pgrep -f -gateway >/dev/null 2>&1; then echo "✅"; else echo "❌"; fi)"
+echo "   -  CLI: $(if command -v  >/dev/null 2>&1; then echo "✅"; else echo "❌"; fi)"
 echo "   - Distributed Builds: $(if [ -f ~/.ssh/id_nixbuild ]; then echo "✅"; else echo "❌"; fi)"
 echo "   - Colmena Config: $(if [ -f colmena.nix ]; then echo "✅"; else echo "❌"; fi)"
 echo "   - GitHub Actions: $(if [ -d .github/workflows ]; then echo "✅"; else echo "❌"; fi)"
@@ -93,5 +93,5 @@ echo ""
 echo "Next steps:"
 echo "1. If distributed builds aren't working, run: sudo nixos-rebuild switch"
 echo "2. To deploy to cluster: colmena apply --on-change build"
-echo "3. To test OpenClaw nodes: openclaw nodes status"
+echo "3. To test  nodes:  nodes status"
 echo "4. Push changes to GitHub to activate CI/CD"

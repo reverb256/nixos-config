@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 CLUSTER_REPO="/etc/nixos"
-TARGET_BRANCH="refactor/openclaw-hm-service"
+TARGET_BRANCH="refactor/-hm-service"
 CURRENT_HOST=$(hostname -s)
 
 # Nodes configuration

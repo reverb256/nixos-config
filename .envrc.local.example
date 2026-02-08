@@ -17,14 +17,14 @@
 # export COLMENA_TARGETS="zephyr"  # Only deploy to local host during development
 
 # ============================================================================
-# OPENCLAW DEVELOPMENT
+#  DEVELOPMENT
 # ============================================================================
 
-# Skip OpenClaw deployment during local development
-# export SKIP_OPENCLAW="true"
+# Skip  deployment during local development
+# export SKIP_="true"
 
-# Use custom OpenClaw image for development
-# export OPENCLAW_IMAGE="ghcr.io/openclaw/openclaw:dev"
+# Use custom  image for development
+# export _IMAGE="ghcr.io//:dev"
 
 # ============================================================================
 # VR/WIVRN DEVELOPMENT

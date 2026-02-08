@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rclone Cloud Backup Setup for OpenClaw AIStor
+# Rclone Cloud Backup Setup for  AIStor
 # Configures automated cloud backups for AI data
 
 set -e
@@ -199,7 +199,7 @@ echo "[$(date)] Starting models backup to $REMOTE..." >> "$LOG_FILE"
 
 rclone sync \
     aistor:ai-models \
-    "$REMOTE:openclaw-ai-models-backup" \
+    "$REMOTE:-ai-models-backup" \
     --progress \
     --transfers 4 \
     --checkers 8 \
@@ -226,7 +226,7 @@ echo "[$(date)] Starting experiments backup to $REMOTE..." >> "$LOG_FILE"
 
 rclone sync \
     aistor:experiments \
-    "$REMOTE:openclaw-experiments-backup" \
+    "$REMOTE:-experiments-backup" \
     --progress \
     --transfers 4 \
     --checkers 8 \
@@ -273,9 +273,9 @@ if [[ $setup_timer =~ ^[Yy]$ ]]; then
     echo "Creating systemd timer for automated backups..."
     
     # Create systemd service
-    cat > /tmp/openclaw-backup.service << EOF
+    cat > /tmp/-backup.service << EOF
 [Unit]
-Description=OpenClaw AIStor Cloud Backup
+Description= AIStor Cloud Backup
 After=network-online.target
 
 [Service]
@@ -287,9 +287,9 @@ Environment="RCLONE_CONFIG=$RCLONE_CONFIG"
 EOF
 
     # Create systemd timer
-    cat > /tmp/openclaw-backup.timer << EOF
+    cat > /tmp/-backup.timer << EOF
 [Unit]
-Description=Daily backup of OpenClaw AIStor to cloud
+Description=Daily backup of  AIStor to cloud
 
 [Timer]
 OnCalendar=daily
@@ -302,10 +302,10 @@ EOF
 
     echo ""
     echo "To enable automated backups, run:"
-    echo "  sudo cp /tmp/openclaw-backup.service /etc/systemd/system/"
-    echo "  sudo cp /tmp/openclaw-backup.timer /etc/systemd/system/"
+    echo "  sudo cp /tmp/-backup.service /etc/systemd/system/"
+    echo "  sudo cp /tmp/-backup.timer /etc/systemd/system/"
     echo "  sudo systemctl daemon-reload"
-    echo "  sudo systemctl enable --now openclaw-backup.timer"
+    echo "  sudo systemctl enable --now -backup.timer"
     echo ""
 fi
 
@@ -325,7 +325,7 @@ echo "Test commands:"
 echo "  rclone ls aistor:ai-models"
 echo "  rclone ls aistor:experiments"
 if [ -n "$BACKUP_REMOTE" ]; then
-    echo "  rclone ls $BACKUP_REMOTE:openclaw-ai-models-backup"
+    echo "  rclone ls $BACKUP_REMOTE:-ai-models-backup"
 fi
 echo ""
 echo "Next steps:"

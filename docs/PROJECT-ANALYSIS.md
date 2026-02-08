@@ -1,7 +1,7 @@
 # ~/@projects/ Directory Structure Analysis
 
 ## Overview
-This document provides a comprehensive analysis of the ~/@projects/ directory structure, identifying project types, technologies used, and business domains. The analysis aims to inform the design of an OpenClaw system capable of managing the entire end-to-end product lifecycle for websites, customer journeys, and SaaS/PaaS services.
+This document provides a comprehensive analysis of the ~/@projects/ directory structure, identifying project types, technologies used, and business domains. The analysis aims to inform the design of an  system capable of managing the entire end-to-end product lifecycle for websites, customer journeys, and SaaS/PaaS services.
 
 ## Directory Structure
 
@@ -12,7 +12,7 @@ This document provides a comprehensive analysis of the ~/@projects/ directory st
 ├── hairathome/          # Hugo static site generator (beauty/haircare niche)
 ├── infra/              # Infrastructure management
 │   ├── nixos/          # NixOS cluster configuration
-│   ├── openclaw/       # OpenClaw AI agent orchestration
+│   ├── /       #  AI agent orchestration
 │   └── knowledge-base/ # RAG knowledge base (38 technical books)
 ├── logs/               # System logs
 ├── plans/              # Architecture plans
@@ -138,20 +138,20 @@ This document provides a comprehensive analysis of the ~/@projects/ directory st
 
 **Components**:
 1. **nixos**: NixOS cluster configuration (4-node cluster)
-2. **openclaw**: OpenClaw AI agent orchestration system
+2. ****:  AI agent orchestration system
 3. **knowledge-base**: RAG knowledge base (38 technical books)
 
 **Technologies Used**:
 - Nix/NixOS (declarative configuration)
 - Colmena (cluster deployment)
-- OpenClaw (AI agent orchestration)
+-  (AI agent orchestration)
 - AIStor (S3-compatible storage)
 - Tailscale (VPN)
 - Agenix (secrets management)
 
 **Key Features**:
 - 4-node NixOS cluster (gaming, mining, AI)
-- OpenClaw AI agent orchestration
+-  AI agent orchestration
 - RAG knowledge base with 4.3M+ words
 - AIStor object storage (11 nines durability)
 - Automated cluster deployment and management
@@ -161,7 +161,7 @@ This document provides a comprehensive analysis of the ~/@projects/ directory st
 - System health monitoring
 - Backup and recovery automation
 - Nix package management
-- OpenClaw workflow automation
+-  workflow automation
 
 ## Technology Stack Analysis
 
@@ -209,7 +209,7 @@ This document provides a comprehensive analysis of the ~/@projects/ directory st
 | LLM Orchestration | Vibe-LLM | Multi-backend management |
 | ChromaDB | Archive projects | Vector search |
 | PyTorch/Scikit-learn | Archive projects | Machine learning |
-| OpenClaw | Infrastructure | AI agent orchestration |
+|  | Infrastructure | AI agent orchestration |
 
 ## Business Domain Mapping
 
@@ -226,7 +226,7 @@ This document provides a comprehensive analysis of the ~/@projects/ directory st
 
 ### Infrastructure Management
 - **NixOS cluster**: IT infrastructure for gaming, mining, and AI
-- **OpenClaw**: AI agent orchestration for automation
+- ****: AI agent orchestration for automation
 
 ## Prioritization of Project Management Needs
 
@@ -260,7 +260,7 @@ This document provides a comprehensive analysis of the ~/@projects/ directory st
    - RAG pipeline testing
    - Container security scanning
 
-## Automation Patterns for OpenClaw
+## Automation Patterns for 
 
 ### E-commerce Automation
 ```mermaid
@@ -280,7 +280,7 @@ graph TD
 graph TD
     A[Configuration Change] --> B[Colmena Deploy]
     B --> C[Cluster Health Check]
-    C --> D[OpenClaw Workflow]
+    C --> D[ Workflow]
     D --> E[Service Restart]
     E --> F[Monitoring Dashboard]
     F --> G[Alert System]
@@ -291,12 +291,12 @@ graph TD
 graph TD
     A[Code Commit] --> B[Security Scan]
     B --> C[Vulnerability Check]
-    C --> D[OpenClaw Alert]
+    C --> D[ Alert]
     D --> E[Security Review]
     E --> F[Patch Deployment]
 ```
 
-## OpenClaw Skill Requirements
+##  Skill Requirements
 
 ### E-commerce Management Skills
 1. **shopify-integration**: Product inventory management
@@ -326,7 +326,7 @@ The ~/@projects/ directory contains a diverse portfolio of projects spanning e-c
 
 1. **E-commerce focus**: Two active projects (Troves & Coves, Hair at Home) serving niche markets
 2. **Security specialization**: Astral Key provides enterprise-grade authentication
-3. **AI integration**: Multiple projects leveraging RAG, LLMs, and OpenClaw orchestration
+3. **AI integration**: Multiple projects leveraging RAG, LLMs, and  orchestration
 4. **Infrastructure maturity**: NixOS cluster with distributed computing capabilities
 
-The OpenClaw system should prioritize e-commerce and infrastructure automation as critical use cases, with security and content management as important secondary areas. The diverse technology stack requires flexible automation skills that can handle both frontend/backend development and DevOps operations.
+The  system should prioritize e-commerce and infrastructure automation as critical use cases, with security and content management as important secondary areas. The diverse technology stack requires flexible automation skills that can handle both frontend/backend development and DevOps operations.

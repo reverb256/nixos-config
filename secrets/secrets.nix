@@ -7,6 +7,4 @@ let
 in {
   "anthropic-api-key".publicKeys = allHosts;
   "openai-api-key".publicKeys = allHosts;
-  "openclaw-env".publicKeys = allHosts;
-  "openclaw-gateway-token".publicKeys = allHosts;
 }

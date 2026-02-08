@@ -33,7 +33,7 @@
 - API Ports: 4068 (NVIDIA), 4069 (AMD), 8081 (XMRig)
 - All mining services bind to localhost only (127.0.0.1)
 
-### OpenClaw AI Services
+###  AI Services
 
 | Host | Gateway | Node Hosts | Status |
 |-------|----------|-------------|--------|
@@ -42,7 +42,7 @@
 | **forge** | N/A | N/A | 🔄 Deprecated |
 | **sentry** | N/A | N/A | 🔄 Deprecated |
 
-**OpenClaw Status:** 🔄 **DEPRECATION IN PROGRESS** - Being removed from codebase
+** Status:** 🔄 **DEPRECATION IN PROGRESS** - Being removed from codebase
 
 ### Monitoring Services
 
@@ -54,7 +54,7 @@
 | **sentry** | 🔄 To be configured | 🔄 To be configured | 🔄 To be configured | 🔄 To be configured | 🔄 Pending |
 
 **Monitoring Configuration**:
-- Prometheus: Basic exporters (node, nvidia, openclaw, mining)
+- Prometheus: Basic exporters (node, nvidia, , mining)
 - Grafana: Dashboards for CPU, memory, disk, GPU, mining metrics
 - Alertmanager: Configured but endpoints empty (needs email/Slack)
 - Security KPIs: To be implemented (MTTD, MTTR, compliance score)
@@ -143,12 +143,12 @@
 | 2026-02-08 | sentry | **FAILED** - SSH connection refused | ❌ Failed |
 | 2026-02-07 | forge | Mining wallet parameterization | ✅ Success |
 | 2026-02-07 | All | Security framework documentation | ✅ Success |
-| 2026-02-06 | All | OpenClaw gateway token secret | ✅ Success |
+| 2026-02-06 | All |  gateway token secret | ✅ Success |
 
 ### Last Configuration Check
 - **Flake Valid**: ✅ `nix flake check` passed
 - **Git Clean**: 🔄 Uncommitted changes pending
-- **Branch**: refactor/openclaw-hm-service
+- **Branch**: refactor/-hm-service
 - **Up to Date**: ✅ Pulled latest from origin
 
 ## Health Checks
@@ -162,8 +162,8 @@
 
 ### Service Health
 - **Mining Services**: ✅ All active
-- **OpenClaw Gateway**: ✅ Running on zephyr
-- **OpenClaw Nodes**: ✅ Connected on nexus/forge/sentry
+- ** Gateway**: ✅ Running on zephyr
+- ** Nodes**: ✅ Connected on nexus/forge/sentry
 - **Monitoring**: ⚠️ Only zephyr configured (others pending)
 
 ### Security Status
@@ -214,7 +214,7 @@ None at this time.
 - [ ] Apply linuxPackages_latest workaround to sentry (after SSH fixed)
 - [ ] Run nix-store repair on sentry (after SSH fixed)
 - [ ] Fix justfile parallel fetch syntax or revert to sequential approach
-- [ ] Remove all OpenClaw references from codebase (after justfile fixed)
+- [ ] Remove all  references from codebase (after justfile fixed)
 - [ ] Generate backup-encryption-key.age
 - [ ] Configure monitoring on nexus, forge, sentry
 - [ ] Configure Alertmanager notification endpoints
@@ -235,7 +235,7 @@ tailscale status
 curl http://127.0.0.1:4068/summary
 curl http://127.0.0.1:8081/summary
 
-# Check OpenClaw gateway
+# Check  gateway
 curl http://127.0.0.1:18789/health
 
 # Check Prometheus targets

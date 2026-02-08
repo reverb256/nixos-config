@@ -35,7 +35,7 @@ This document defines the security policies and procedures for the NixOS cluster
 - API ports only accessible from localhost (127.0.0.1)
 - GPU access via video/render groups only
 
-### 3.2 AI Services (OpenClaw)
+### 3.2 AI Services ()
 - Containerized with bridge networking (NOT host network)
 - Bound to localhost only (127.0.0.1)
 - Nginx reverse proxy for external access
@@ -58,7 +58,7 @@ This document defines the security policies and procedures for the NixOS cluster
 
 ### 4.2 Fail2Ban Configuration
 - SSH protection: 3 retries, 1-hour ban
-- OpenClaw protection: 5 retries, 30-minute ban
+-  protection: 5 retries, 30-minute ban
 - Trusted IPs excluded from bans:
   - localhost (127.0.0.1)
   - Cluster network (10.1.1.0/24)
@@ -86,7 +86,7 @@ This document defines the security policies and procedures for the NixOS cluster
 
 ### 5.3 Sensitive Data
 - API keys in /run/agenix/ only
-- No secrets in environment variables (except OpenClaw which uses env vars as documented)
+- No secrets in environment variables (except  which uses env vars as documented)
 - No credentials in logs or error messages
 
 ## 6. Kernel Security
@@ -161,14 +161,14 @@ This document defines the security policies and procedures for the NixOS cluster
 | 22 | SSH | Tailscale only | Fail2Ban |
 | 443 | Nginx | Public | Rate limiting |
 | 1234 | LM Studio | localhost | None |
-| 18789 | OpenClaw | localhost | Fail2Ban |
+| 18789 |  | localhost | Fail2Ban |
 | 4068 | lolMiner API | localhost | None |
 | 8081 | XMRig API | localhost | None |
 
 ### C. Useful Commands
 ```bash
 # Check service status
-systemctl status openclaw-container-declarative
+systemctl status -container-declarative
 
 # View Fail2Ban status
 fail2ban-client status

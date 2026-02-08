@@ -6,7 +6,7 @@
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
-    # nix-openclaw home-manager module removed - using system service instead
+    # nix- home-manager module removed - using system service instead
   ];
 
   # NH (Nix Helper) configuration for better UX
@@ -30,7 +30,7 @@
   # User packages - development tools, shell utilities, and applications
   home.packages = with pkgs;
     let
-      # openclawPkg removed
+      # Pkg removed
     in
     [
       # Shell tools (configured in programs section below)
@@ -55,7 +55,7 @@
       localsend
       jocalsend
 
-      # OpenClaw AI agent
+      #  AI agent
       # Cloud and sync tools
       rclone
       rclone-browser
@@ -82,7 +82,7 @@
         exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
       '')
 
-      # ClawHub CLI for OpenClaw skill management
+      # ClawHub CLI for  skill management
       (pkgs.writeShellScriptBin "clawdhub" ''
         exec ${pkgs.nodejs_22}/bin/npx clawdhub "$@"
       '')
@@ -491,7 +491,7 @@
     vesktop.enable = true;
   };
 
-  # Set PATH for user services (OpenClaw needs it for tools)
+  # Set PATH for user services ( needs it for tools)
   systemd.user.sessionVariables = {
     PATH = "/nix/store/i2vmgx46q9hd3z6rigaiman3wl3i2gc4-coreutils-9.9/bin:/run/wrappers/bin:/home/j_kro/.nix-profile/bin:/nix/profile/bin:/etc/profiles/per-user/j_kro/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin";
   };
@@ -514,21 +514,21 @@
     };
   };
 
-  # OpenClaw Gateway Service - REMOVED FROM SYSTEM (modules/services/openclaw/default.nix)
+  #  Gateway Service - REMOVED FROM SYSTEM (modules/services//default.nix)
   # Service removed from system
-  # systemd.user.services.openclaw-gateway = {
+  # systemd.user.services.-gateway = {
   #   Unit = {
-  #     Description = "OpenClaw Gateway";
+  #     Description = " Gateway";
   #     After = ["network.target"];
   #     PartOf = ["graphical-session.target"];
   #   };
   #   Service = {
   #     Type = "simple";
-  #     ExecStart = "${inputs.nix-openclaw.packages.x86_64-linux.openclaw}/bin/openclaw gateway --port 18789 --bind loopback --allow-unconfigured";
+  #     ExecStart = "${inputs.nix-.packages.x86_64-linux.}/bin/ gateway --port 18789 --bind loopback --allow-unconfigured";
   #     Restart = "on-failure";
   #     RestartSec = 5;
   #     Environment = [
-  #       "OPENCLAW_STATE_DIR=/home/j_kro/.openclaw"
+  #       "_STATE_DIR=/home/j_kro/."
   #     ];
   #   };
   #   Install = {

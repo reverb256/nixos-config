@@ -2,13 +2,13 @@
 
 ## Overview
 
-Reverb-OS is a **NixOS-based personal AI assistant platform** that serves as a comprehensive portfolio and demonstration system for the AstralVibe.ca ecosystem. Built entirely on Nix and NixOS, Reverb-OS showcases the power of declarative system configuration, distributed computing, and AI orchestration through its core interface: **OpenClaw** - the embedded AI assistant.
+Reverb-OS is a **NixOS-based personal AI assistant platform** that serves as a comprehensive portfolio and demonstration system for the AstralVibe.ca ecosystem. Built entirely on Nix and NixOS, Reverb-OS showcases the power of declarative system configuration, distributed computing, and AI orchestration through its core interface: **** - the embedded AI assistant.
 
 **Key Value Proposition:**
 - A production-grade NixOS cluster demonstrating modern DevOps and AI/ML capabilities
 - Comprehensive portfolio showcasing expertise in system design, security, and AI integration
 - AstralVibe.ca ecosystem integration for seamless development and deployment workflows
-- OpenClaw AI assistant providing natural language interface to the entire system
+-  AI assistant providing natural language interface to the entire system
 
 ## Architectural Principles
 
@@ -67,16 +67,16 @@ graph TD
         Sentry -->|Monitoring| Grafana[Grafana]
     end
 
-    subgraph "OpenClaw AI Assistant"
-        OpenClaw[OpenClaw Gateway<br/>Port 18789]
+    subgraph " AI Assistant"
+        [ Gateway<br/>Port 18789]
         ReverbStorage
         ReverbBackup[Reverb Backups]
         Nginx[Nginx Reverse Proxy<br/>Port 80/443]
         
-        OpenClaw -->|WebSocket| KiloCode[Kilo Code AI]
-        OpenClaw -->|API| ReverbStorage
-        OpenClaw -->|Rclone| CloudBackups[Cloud Backups]
-        Nginx -->|Proxy| OpenClaw
+         -->|WebSocket| KiloCode[Kilo Code AI]
+         -->|API| ReverbStorage
+         -->|Rclone| CloudBackups[Cloud Backups]
+        Nginx -->|Proxy| 
         Nginx -->|Proxy| ReverbStorage
     end
 ```
@@ -91,10 +91,10 @@ graph TD
 
 **Total Build Capacity:** **51 cores** across all hosts
 
-### **2. OpenClaw: The Embedded AI Assistant**
+### **2. : The Embedded AI Assistant**
 
 #### Core Functionality
-OpenClaw serves as the **primary interface** to Reverb-OS, providing:
+ serves as the **primary interface** to Reverb-OS, providing:
 
 **Natural Language Operations:**
 - System management and configuration
@@ -111,13 +111,13 @@ OpenClaw serves as the **primary interface** to Reverb-OS, providing:
 - **Health Checks**: 30-second interval with auto-restart
 - **Language Support**: English, with multi-language capabilities
 
-#### OpenClaw Service Architecture
+####  Service Architecture
 ```mermaid
 flowchart LR
     Client[Kilo Code Client] -->|WebSocket| Nginx[Nginx Reverse Proxy<br/>SSL/TLS, Rate Limiting]
-    Nginx -->|Proxy| OpenClaw[OpenClaw Gateway<br/>Port 18789]
+    Nginx -->|Proxy| [ Gateway<br/>Port 18789]
     
-    OpenClaw -->|API| ReverbStorage[Reverb Storage MCP<br/>Port 18800]
+     -->|API| ReverbStorage[Reverb Storage MCP<br/>Port 18800]
     ReverbStorage -->|S3| AIStor[AIStor Server<br/>10.1.1.120:9000]
     
     AIStor -->|Buckets| AIModels[ai-models]
@@ -126,9 +126,9 @@ flowchart LR
     AIStor -->|Buckets| AILogs[ai-logs]
     AIStor -->|Buckets| NixCache[nix-cache]
     
-    OpenClaw -->|Rclone| CloudBackups[Cloud Backups<br/>Google Drive]
-    OpenClaw -->|Systemd| HealthCheck[Health Check<br/>Every 30 seconds]
-    OpenClaw -->|Docker| Container[Declarative Container<br/>User: lobster]
+     -->|Rclone| CloudBackups[Cloud Backups<br/>Google Drive]
+     -->|Systemd| HealthCheck[Health Check<br/>Every 30 seconds]
+     -->|Docker| Container[Declarative Container<br/>User: lobster]
 ```
 
 #### Key Features
@@ -195,7 +195,7 @@ flowchart LR
 
 **Security:**
 - External access only via nginx (ports 80/443)
-- OpenClaw services bind to localhost only
+-  services bind to localhost only
 
 ## AstralVibe.ca Ecosystem Integration
 
@@ -210,7 +210,7 @@ graph TD
     D --> E[Binary Cache]
     E --> F[Colmena Deployment]
     F --> G[Reverb-OS Cluster]
-    G --> H[OpenClaw Orchestration]
+    G --> H[ Orchestration]
     H --> I[System Monitoring]
     I --> J[Alerting & Notifications]
 ```
@@ -234,7 +234,7 @@ Reverb-OS serves as a **living portfolio** demonstrating:
    - Binary cache optimization
 
 2. **AI/ML Capabilities**:
-   - OpenClaw AI assistant
+   -  AI assistant
    - AIStor object storage
    - RAG (Retrieval Augmented Generation)
    - Model training and deployment
@@ -259,7 +259,7 @@ Reverb-OS serves as a **living portfolio** demonstrating:
 - "Rebuild the system with the latest configuration"
 - "Check cluster health status"
 - "Monitor GPU usage across all nodes"
-- "Restart the OpenClaw service"
+- "Restart the  service"
 
 **AI/ML Operations:**
 - "Train a new model on the latest dataset"
@@ -281,7 +281,7 @@ Reverb-OS serves as a **living portfolio** demonstrating:
 
 ### **Skill Ecosystem**
 
-Skills are modular capabilities that extend OpenClaw's functionality:
+Skills are modular capabilities that extend 's functionality:
 
 #### System Management Skills
 | Skill Name | Description | Category |
@@ -311,7 +311,7 @@ Skills are modular capabilities that extend OpenClaw's functionality:
 
 ### **Lobster Service User**
 
-**Purpose**: Isolated service account for OpenClaw operations
+**Purpose**: Isolated service account for  operations
 
 **Security Hardening:**
 - `isSystemUser = true` (not a login user)
@@ -325,12 +325,12 @@ Skills are modular capabilities that extend OpenClaw's functionality:
 ### **Systemd Hardening**
 
 ```nix
-systemd.services.openclaw-container-declarative.serviceConfig = {
+systemd.services.-container-declarative.serviceConfig = {
   NoNewPrivileges = true;
   ProtectSystem = "strict";
   ProtectHome = true;
   PrivateTmp = true;
-  ReadWritePaths = ["/var/lib/openclaw"];
+  ReadWritePaths = ["/var/lib/"];
 };
 ```
 
@@ -340,7 +340,7 @@ systemd.services.openclaw-container-declarative.serviceConfig = {
 networking.firewall = {
   enable = true;
   allowedTCPPorts = [22 80 443]; # SSH, HTTP, HTTPS only
-  interfaces.lo.allowedTCPPorts = [18789 18800]; # OpenClaw services
+  interfaces.lo.allowedTCPPorts = [18789 18800]; #  services
   interfaces.eth0.allowedTCPPorts = [9757 9758 9759 9760]; # VR streaming
 };
 ```
@@ -354,8 +354,8 @@ networking.firewall = {
 - Access controlled via ACLs
 
 **Required Secrets:**
-- `openclaw-env` - OpenClaw gateway environment
-- `openclaw-gateway-token` - API authentication token
+- `-env` -  gateway environment
+- `-gateway-token` - API authentication token
 - `minio-cache-credentials` - AIStor S3 access
 - `anthropic-api-key` - Claude API key
 - `openai-api-key` - OpenAI API key
@@ -395,9 +395,9 @@ networking.firewall = {
 │   ├── forge/               # Mining/build worker
 │   └── sentry/              # Monitoring server
 ├── modules/                 # Shared configuration modules
-│   ├── openclaw-declarative-container.nix  # AI orchestration
-│   ├── openclaw-storage.nix                 # AIStor integration
-│   ├── openclaw-nginx.nix                   # Reverse proxy
+│   ├── -declarative-container.nix  # AI orchestration
+│   ├── -storage.nix                 # AIStor integration
+│   ├── -nginx.nix                   # Reverse proxy
 │   ├── mining.nix                          # Mining services
 │   ├── gaming.nix                          # VR/gaming setup
 │   └── ...                                # Other modules
@@ -416,15 +416,15 @@ networking.firewall = {
         │   ├── free-tier-cleanup.sh
         │   ├── free-tier-monitor.sh
         │   ├── reset-proton-prefixes.sh
-        │   ├── validate-openclaw-setup.sh
+        │   ├── validate--setup.sh
         │   └── gaming-trigger.sh
         ├── monitoring/          # Performance monitoring
         │   ├── verify_mining.sh
         │   └── verify-wivrn-lighthouse.sh
         └── testing/             # Testing procedures
-            ├── openclaw-aistor-workflows.py
-            ├── test-openclaw-tailscale.sh
-            └── test-openclaw-workflows.sh
+            ├── -aistor-workflows.py
+            ├── test--tailscale.sh
+            └── test--workflows.sh
 ```
 
 ## Getting Started
@@ -475,7 +475,7 @@ just cluster-resources
 - **Real-time build monitoring** and status tracking
 - **High availability** with automatic failover and health checks
 
-#### **🤖 OpenClaw AI Assistant**
+#### **🤖  AI Assistant**
 - **Declarative container deployment** using Docker with systemd management
 - **AIStor object storage** for model artifacts and training data
 - **MCP server integration** for AI assistants (Kilo Code, Claude Code)
@@ -509,8 +509,8 @@ just cluster-resources
 ```nix
 # Secrets are encrypted with age and deployed to /run/agenix/
 {
-  "openclaw-env" = {
-    file = ./openclaw-env.age;
+  "-env" = {
+    file = ./-env.age;
     owner = "lobster";
     group = "lobster";
   };
@@ -524,12 +524,12 @@ just cluster-resources
 
 #### **Systemd Hardening**
 ```nix
-systemd.services.openclaw-container-declarative.serviceConfig = {
+systemd.services.-container-declarative.serviceConfig = {
   NoNewPrivileges = true;
   ProtectSystem = "strict";
   ProtectHome = true;
   PrivateTmp = true;
-  ReadWritePaths = ["/var/lib/openclaw"];
+  ReadWritePaths = ["/var/lib/"];
 };
 ```
 

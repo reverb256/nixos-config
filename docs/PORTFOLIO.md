@@ -10,7 +10,7 @@
 - **Real-time build monitoring** and status tracking
 - **High availability** with automatic failover and health checks
 
-### **🤖 OpenClaw: The Embedded AI Assistant**
+### **🤖 : The Embedded AI Assistant**
 - **Declarative container deployment** using Docker with systemd management
 - **AIStor object storage** for model artifacts and training data
 - **MCP server integration** for AI assistants (Kilo Code, Claude Code)
@@ -52,8 +52,8 @@
 ```nix
 # Secrets are encrypted with age and deployed to /run/agenix/
 {
-  "openclaw-env" = {
-    file = ./openclaw-env.age;
+  "-env" = {
+    file = ./-env.age;
     owner = "lobster";
     group = "lobster";
   };
@@ -67,12 +67,12 @@
 
 ### **Systemd Hardening**
 ```nix
-systemd.services.openclaw-container-declarative.serviceConfig = {
+systemd.services.-container-declarative.serviceConfig = {
   NoNewPrivileges = true;
   ProtectSystem = "strict";
   ProtectHome = true;
   PrivateTmp = true;
-  ReadWritePaths = ["/var/lib/openclaw"];
+  ReadWritePaths = ["/var/lib/"];
 };
 ```
 
@@ -81,7 +81,7 @@ systemd.services.openclaw-container-declarative.serviceConfig = {
 users.users.lobster = {
   isSystemUser = true;
   group = "lobster";
-  description = "OpenClaw AI agent bot user (lobster)";
+  description = " AI agent bot user (lobster)";
   home = "/var/lib/lobster";
   createHome = true;
   uid = 982;
@@ -95,7 +95,7 @@ users.users.lobster = {
 networking.firewall = {
   enable = true;
   allowedTCPPorts = [22 80 443]; # SSH, HTTP, HTTPS only
-  interfaces.lo.allowedTCPPorts = [18789 18800]; # OpenClaw services
+  interfaces.lo.allowedTCPPorts = [18789 18800]; #  services
   interfaces.eth0.allowedTCPPorts = [9757 9758 9759 9760]; # VR streaming
 };
 ```
@@ -105,12 +105,12 @@ networking.firewall = {
 ### **Modular Configuration**
 ```
 modules/
-├── openclaw-declarative-container.nix # Primary implementation
-├── openclaw-overlay.nix               # Dependency fixes
-├── openclaw-common.nix               # Shared config
-├── openclaw-storage.nix              # AIStor integration
-├── openclaw-backups.nix              # Cloud backups
-├── openclaw-nginx.nix                # Reverse proxy
+├── -declarative-container.nix # Primary implementation
+├── -overlay.nix               # Dependency fixes
+├── -common.nix               # Shared config
+├── -storage.nix              # AIStor integration
+├── -backups.nix              # Cloud backups
+├── -nginx.nix                # Reverse proxy
 ├── mining.nix                        # Mining services
 ├── gaming.nix                        # VR/gaming setup
 └── ...
@@ -122,12 +122,12 @@ modules/
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
-    nix-openclaw.url = "github:openclaw/nix-openclaw";
+    nix-.url = "github:/nix-";
     colmena.url = "github:zhaofengli/colmena";
     # ...
   };
   
-  outputs = { self, nixpkgs, nix-openclaw, ... }@inputs: {
+  outputs = { self, nixpkgs, nix-, ... }@inputs: {
     nixosConfigurations = {
       zephyr = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
@@ -177,7 +177,7 @@ graph TD
         Zephyr -->|VR Streaming| WiVRn[WiVRn - 9757-9760]
         Zephyr -->|SteamVR| SteamVR[SteamVR]
         
-        Nexus -->|AIStor| OpenClawStorage[OpenClaw Storage<br/>Port 18800]
+        Nexus -->|AIStor| Storage[ Storage<br/>Port 18800]
         Nexus -->|S3| AIModels[AI Models Bucket]
         Nexus -->|S3| TrainingData[Training Data Bucket]
         
@@ -189,16 +189,16 @@ graph TD
     end
 
      subgraph "Reverb-OS Ecosystem"
-         OpenClaw[OpenClaw Gateway<br/>Port 18789]
-         OpenClawStorage
-         OpenClawBackup[Reverb Backups]
+         [ Gateway<br/>Port 18789]
+         Storage
+         Backup[Reverb Backups]
          Nginx[Nginx Reverse Proxy<br/>Port 80/443]
         
-        OpenClaw -->|WebSocket| KiloCode[Kilo Code AI]
-        OpenClaw -->|API| OpenClawStorage
-        OpenClaw -->|Rclone| CloudBackups[Cloud Backups]
-        Nginx -->|Proxy| OpenClaw
-        Nginx -->|Proxy| OpenClawStorage
+         -->|WebSocket| KiloCode[Kilo Code AI]
+         -->|API| Storage
+         -->|Rclone| CloudBackups[Cloud Backups]
+        Nginx -->|Proxy| 
+        Nginx -->|Proxy| Storage
     end
 ```
 
@@ -206,10 +206,10 @@ graph TD
 ```mermaid
 flowchart LR
     Client[Kilo Code Client] -->|WebSocket| Nginx[Nginx Reverse Proxy<br/>SSL/TLS, Rate Limiting]
-    Nginx -->|Proxy| OpenClaw[OpenClaw Gateway<br/>Port 18789]
+    Nginx -->|Proxy| [ Gateway<br/>Port 18789]
     
-    OpenClaw -->|API| OpenClawStorage[OpenClaw Storage MCP<br/>Port 18800]
-    OpenClawStorage -->|S3| AIStor[AIStor Server<br/>10.1.1.120:9000]
+     -->|API| Storage[ Storage MCP<br/>Port 18800]
+    Storage -->|S3| AIStor[AIStor Server<br/>10.1.1.120:9000]
     
     AIStor -->|Buckets| AIModels[ai-models]
     AIStor -->|Buckets| TrainingData[training-data]
@@ -217,9 +217,9 @@ flowchart LR
     AIStor -->|Buckets| AILogs[ai-logs]
     AIStor -->|Buckets| NixCache[nix-cache]
     
-    OpenClaw -->|Rclone| CloudBackups[Cloud Backups<br/>Google Drive]
-    OpenClaw -->|Systemd| HealthCheck[Health Check<br/>Every 30 seconds]
-    OpenClaw -->|Docker| Container[Declarative Container<br/>User: lobster]
+     -->|Rclone| CloudBackups[Cloud Backups<br/>Google Drive]
+     -->|Systemd| HealthCheck[Health Check<br/>Every 30 seconds]
+     -->|Docker| Container[Declarative Container<br/>User: lobster]
 ```
 
 ## Badges and Status
@@ -293,7 +293,7 @@ flowchart LR
 > "This infrastructure has drastically reduced our build times from hours to minutes. The distributed build system is a game-changer for our development workflow."  
 > — Lead Developer, AI Startup
 
-> "The OpenClaw integration has made it incredibly easy to manage our AI agents. The declarative container approach ensures consistency across all our deployment environments."  
+> "The  integration has made it incredibly easy to manage our AI agents. The declarative container approach ensures consistency across all our deployment environments."  
 > — DevOps Engineer, Tech Company
 
 > "The VR gaming performance is outstanding. The smart mining pause feature works flawlessly and ensures we get maximum performance when we need it."  

@@ -1,37 +1,37 @@
 # NixOS Infrastructure Consolidation & Sanitization Plan
 
 **Target**: Make this NixOS infrastructure production-ready and publicly shareable  
-**Branch**: feature/openclaw-secure → main  
+**Branch**: feature/-secure → main  
 **Status**: Complete | **Last Updated**: 2026-02-03
 
-## 1. OpenClaw Consolidation Strategy
+## 1.  Consolidation Strategy
 
 ### Summary
-Standardize on `openclaw-declarative-container.nix` as the ONLY implementation. Migrate all hosts from binary to declarative container, delete redundant files, merge overlays, and update supporting services.
+Standardize on `-declarative-container.nix` as the ONLY implementation. Migrate all hosts from binary to declarative container, delete redundant files, merge overlays, and update supporting services.
 
 ### Changes
 | File | Action | Reason |
 |------|--------|--------|
-| `openclaw.nix` | Delete | Redundant binary package implementation |
-| `openclaw-container.nix` | Delete | Redundant container implementation |
-| `openclaw-docker.nix` | Delete | Redundant Docker implementation |
-| `openclaw-fix-overlay.nix` + `openclaw-workaround-overlay.nix` | Merge | Create single consolidated overlay |
-| `openclaw-declarative-container.nix` | Keep & Update | Make it the primary implementation |
-| `openclaw-storage.nix` | Keep | Storage service support |
-| `openclaw-backups.nix` | Keep | Backup service support |
-| `openclaw-nginx.nix` | Keep | Nginx reverse proxy support |
-| `openclaw-common.nix` | Update | Make it work with declarative containers |
+| `.nix` | Delete | Redundant binary package implementation |
+| `-container.nix` | Delete | Redundant container implementation |
+| `-docker.nix` | Delete | Redundant Docker implementation |
+| `-fix-overlay.nix` + `-workaround-overlay.nix` | Merge | Create single consolidated overlay |
+| `-declarative-container.nix` | Keep & Update | Make it the primary implementation |
+| `-storage.nix` | Keep | Storage service support |
+| `-backups.nix` | Keep | Backup service support |
+| `-nginx.nix` | Keep | Nginx reverse proxy support |
+| `-common.nix` | Update | Make it work with declarative containers |
 
 ### Details
 
 #### Merge Overlays into Single File
-**File**: `modules/openclaw-overlay.nix` (new)
-- Combine `openclaw-fix-overlay.nix` and `openclaw-workaround-overlay.nix`
+**File**: `modules/-overlay.nix` (new)
+- Combine `-fix-overlay.nix` and `-workaround-overlay.nix`
 - Fix hasown dependency issue with proper implementation
-- Support both openclaw-gateway and openclaw-tools
+- Support both -gateway and -tools
 
-#### Update openclaw-common.nix
-**File**: `modules/openclaw-common.nix`
+#### Update -common.nix
+**File**: `modules/-common.nix`
 - Remove binary package references
 - Add declarative container support
 - Update configuration patterns
@@ -39,9 +39,9 @@ Standardize on `openclaw-declarative-container.nix` as the ONLY implementation. 
 
 #### Migrate Host Configurations
 **Hosts to Update**: zephyr, nexus, forge, sentry
-1. Replace `services.openclaw.enable = true;` with `services.openclaw.declarative.enable = true;`
+1. Replace `services..enable = true;` with `services..declarative.enable = true;`
 2. Remove binary package configurations
-3. Keep existing environment file references (`/run/agenix/openclaw-env`)
+3. Keep existing environment file references (`/run/agenix/-env`)
 4. Verify health monitoring settings
 
 ## 2. Security Hardening
@@ -108,8 +108,8 @@ grep -r "0\.0\.0\.0" --include="*.nix" modules/ hosts/
 - `mining-wallet.age`
 - `minio-cache-credentials.template`
 - `openai-api-key.age`
-- `openclaw-env.age`
-- `openclaw-gateway-token.age`
+- `-env.age`
+- `-gateway-token.age`
 
 ### Gitignore Patterns
 **File**: `.gitignore` (update)
@@ -191,11 +191,11 @@ bfg --delete-files "*.age" --no-blob-protection
 2. **Verify current state**: Run `just cluster-status` and `just cluster-build`
 3. **Document existing configuration**: Take screenshots or notes of current service status
 
-### Phase 2: OpenClaw Consolidation
-1. **Merge overlays**: Create `openclaw-overlay.nix` from existing overlays
-2. **Update openclaw-common.nix**: Add declarative container support
+### Phase 2:  Consolidation
+1. **Merge overlays**: Create `-overlay.nix` from existing overlays
+2. **Update -common.nix**: Add declarative container support
 3. **Update zephyr configuration**: Test migration on master node first
-4. **Deploy zephyr**: `just deploy zephyr` and verify OpenClaw functionality
+4. **Deploy zephyr**: `just deploy zephyr` and verify  functionality
 5. **Repeat for other hosts**: nexus → forge → sentry
 
 ### Phase 3: Security Hardening
@@ -223,7 +223,7 @@ bfg --delete-files "*.age" --no-blob-protection
 
 ### Phase 7: Testing & Verification
 1. **Full cluster deployment**: `just cluster-deploy`
-2. **Test OpenClaw**: Verify on all hosts
+2. **Test **: Verify on all hosts
 3. **Test mining**: `just mining-status`
 4. **Test gaming/VR**: Check WiVRn and SteamVR functionality
 5. **Test distributed builds**: `nix build --builders-use-substitutes nixpkgs#hello`
@@ -232,8 +232,8 @@ bfg --delete-files "*.age" --no-blob-protection
 ## 7. Verification Checklist
 
 - [ ] All 4 hosts (zephyr, nexus, forge, sentry) deploy successfully
-- [ ] OpenClaw declarative container runs on all hosts
-- [ ] OpenClaw health monitoring works
+- [ ]  declarative container runs on all hosts
+- [ ]  health monitoring works
 - [ ] Mining services run correctly with localhost-only API
 - [ ] Gaming/VR functionality (WiVRn, SteamVR) intact
 - [ ] Distributed builds work (or documented as disabled)
@@ -247,9 +247,9 @@ bfg --delete-files "*.age" --no-blob-protection
 ## 8. Rollback Plan
 
 ### If Migration Fails
-1. **Revert changes**: `git reset --hard feature/openclaw-secure`
+1. **Revert changes**: `git reset --hard feature/-secure`
 2. **Deploy previous version**: `just cluster-deploy`
-3. **Restart services**: `systemctl restart openclaw openclaw-storage` on all hosts
+3. **Restart services**: `systemctl restart  -storage` on all hosts
 4. **Verify functionality**: Run through checklist again
 
 ### Backup Strategy
@@ -283,9 +283,9 @@ bfg --delete-files "*.age" --no-blob-protection
 ### Key Files
 | File | Purpose |
 |------|---------|
-| `modules/openclaw-declarative-container.nix` | Primary OpenClaw implementation |
-| `modules/openclaw-overlay.nix` | Consolidated hasown dependency fix |
-| `modules/openclaw-common.nix` | Shared OpenClaw configuration |
+| `modules/-declarative-container.nix` | Primary  implementation |
+| `modules/-overlay.nix` | Consolidated hasown dependency fix |
+| `modules/-common.nix` | Shared  configuration |
 | `modules/mining.nix` | Mining service with localhost API |
 | `modules/networking.nix` | Firewall and networking rules |
 | `docs/SETUP.md` | Setup and secret management |
@@ -295,8 +295,8 @@ bfg --delete-files "*.age" --no-blob-protection
 # Deploy to all hosts
 just cluster-deploy
 
-# Verify OpenClaw status
-systemctl status openclaw-container-declarative
+# Verify  status
+systemctl status -container-declarative
 
 # Check service bindings
 ss -tuln

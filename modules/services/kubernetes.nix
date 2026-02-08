@@ -100,8 +100,8 @@ in {
 
     clusterName = lib.mkOption {
       type = lib.types.str;
-      default = "openclaw-cluster";
-      description = "Name of the Kubernetes cluster.";
+      default = "nixos-cluster";
+      description = "Name of Kubernetes cluster.";
     };
 
     apiServerAddress = lib.mkOption {

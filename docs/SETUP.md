@@ -65,13 +65,13 @@ ls -la
 
 ### 3. Create Required Secrets
 
-#### OpenClaw Environment
+####  Environment
 ```bash
-# Create openclaw-env.age (OpenClaw gateway environment variables)
-agenix -e openclaw-env.age
+# Create -env.age ( gateway environment variables)
+agenix -e -env.age
 
 # Add these variables:
-OPENCLAW_GATEWAY_TOKEN=your_secret_token_here
+_GATEWAY_TOKEN=your_secret_token_here
 ```
 
 #### AIStor Credentials
@@ -105,7 +105,7 @@ agenix -e mining-api-token.age     # Mining API token
 cat /etc/nixos/secrets/age-secrets.nix
 
 # Verify secrets can be decrypted
-agenix -d openclaw-env.age
+agenix -d -env.age
 ```
 
 ## Host Configuration
@@ -158,10 +158,10 @@ just deploy sentry
 
 ### 3. Verify Deployment
 ```bash
-# Check if OpenClaw is running on all hosts
+# Check if  is running on all hosts
 just cluster-mining-status
 
-# Check OpenClaw health
+# Check  health
 curl -s http://10.1.1.110:18789/health
 curl -s http://10.1.1.120:18789/health
 curl -s http://10.1.1.130:18789/health
@@ -173,12 +173,12 @@ curl -s http://10.1.1.140:18789/health
 ### 1. Check System Services
 ```bash
 # On each host
-systemctl status openclaw-container-declarative
-systemctl status openclaw-storage
+systemctl status -container-declarative
+systemctl status -storage
 systemctl status nginx
 ```
 
-### 2. Test OpenClaw
+### 2. Test 
 ```bash
 # Test gateway connection
 curl -s http://127.0.0.1:18789/health
@@ -259,16 +259,16 @@ just search <package-name>
 
 ### Common Issues
 
-#### 1. OpenClaw Container Not Running
+#### 1.  Container Not Running
 ```bash
 # Check container status
-systemctl status openclaw-container-declarative
+systemctl status -container-declarative
 
 # View logs
-journalctl -u openclaw-container-declarative -f
+journalctl -u -container-declarative -f
 
 # Restart container
-systemctl restart openclaw-container-declarative
+systemctl restart -container-declarative
 ```
 
 #### 2. AIStor Connection Failed
@@ -359,15 +359,15 @@ just cluster-rollback
 
 ## Advanced Configuration
 
-### Customizing OpenClaw
+### Customizing 
 ```nix
 # In host configuration (hosts/zephyr/configuration.nix)
-services.openclaw.declarative = {
+services..declarative = {
   enable = true;
   port = 18789;
   gatewayMode = "local";
   gatewayBind = "127.0.0.1";
-  environmentFile = "/run/agenix/openclaw-env";
+  environmentFile = "/run/agenix/-env";
   memory = "4G";
   cpuShares = 1024;
 };
@@ -396,4 +396,4 @@ services.openclaw.declarative = {
 - **Colmena**: https://colmena.cli.rs/
 - **Agenix**: https://github.com/ryantm/agenix
 - **AIStor**: https://aistorage.com/
-- **OpenClaw**: https://github.com/openclaw/openclaw
+- ****: https://github.com//

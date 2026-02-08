@@ -11,7 +11,7 @@
 | Control | Implementation | Status | Evidence | Risk |
 |---------|---------------|--------|----------|-------|
 | SSH key-only authentication | `services.openssh.passwordAuthentication = false` | ✅ Implemented | No password auth in logs | Critical → Mitigated |
-| Dedicated service users | mining, nixbuild, openclaw users | ✅ Implemented | `users.users.*.isSystemUser = true` | High → Mitigated |
+| Dedicated service users | mining, nixbuild,  users | ✅ Implemented | `users.users.*.isSystemUser = true` | High → Mitigated |
 | Role-based sudo rules | `security.sudo.extraRules` | ✅ Implemented | Specific commands only | High → Mitigated |
 | Tailscale VPN mesh | `services.tailscale.enable = true` | ✅ Implemented | VPN active on all nodes | Critical → Mitigated |
 | Secrets encryption (Agenix) | `/run/agenix/` contains all secrets | ✅ Implemented | 4 .age files deployed | Critical → Mitigated |

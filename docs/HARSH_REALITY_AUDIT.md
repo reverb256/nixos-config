@@ -13,7 +13,7 @@
 This infrastructure suffers from **severe configuration sprawl**, **multiple competing implementations**, and **documentation that doesn't match reality**. While some components are well-designed (SSH security, secret management), the system as a whole is a maintenance nightmare waiting to happen.
 
 ### Critical Issues Requiring Immediate Action
-1. **10 OpenClaw modules** (2,135 lines) with 4 different implementations competing
+1. **10  modules** (2,135 lines) with 4 different implementations competing
 2. **Distributed builds DISABLED** despite claiming "51-core distributed build pool"
 3. **Mining API ports exposed** to all interfaces (security risk)
 4. **Documentation lies** - claims don't match actual code
@@ -43,48 +43,48 @@ Total project files (nix/md/sh/py): 146
 ```
 
 **Top 10 Largest Modules:**
-1. `openclaw-container.nix` - 589 lines
-2. `openclaw-declarative-container.nix` - 277 lines  
-3. `openclaw.nix` - 270 lines
-4. `openclaw-docker.nix` - 201 lines
-5. `openclaw-storage.nix` - 197 lines
-6. `openclaw-backups.nix` - 174 lines
-7. `openclaw-nginx.nix` - 173 lines
-8. `openclaw-workaround-overlay.nix` - 144 lines
+1. `-container.nix` - 589 lines
+2. `-declarative-container.nix` - 277 lines  
+3. `.nix` - 270 lines
+4. `-docker.nix` - 201 lines
+5. `-storage.nix` - 197 lines
+6. `-backups.nix` - 174 lines
+7. `-nginx.nix` - 173 lines
+8. `-workaround-overlay.nix` - 144 lines
 9. `gaming.nix` - Unknown (not checked)
 10. `mining.nix` - Unknown (not checked)
 
-**OpenClaw alone: 2,135 lines across 10 files** (18.8% of entire codebase)
+** alone: 2,135 lines across 10 files** (18.8% of entire codebase)
 
 ---
 
-## 🚨 CRITICAL ISSUE #1: OpenClaw Implementation Chaos
+## 🚨 CRITICAL ISSUE #1:  Implementation Chaos
 
 ### The Problem
-**10 separate OpenClaw modules** implementing 4 different deployment strategies:
+**10 separate  modules** implementing 4 different deployment strategies:
 
-1. **`openclaw.nix`** (270 lines) - Direct binary service
-2. **`openclaw-container.nix`** (589 lines) - Generic container
-3. **`openclaw-declarative-container.nix`** (277 lines) - Declarative container
-4. **`openclaw-docker.nix`** (201 lines) - Docker-specific
+1. **`.nix`** (270 lines) - Direct binary service
+2. **`-container.nix`** (589 lines) - Generic container
+3. **`-declarative-container.nix`** (277 lines) - Declarative container
+4. **`-docker.nix`** (201 lines) - Docker-specific
 
 Plus 6 supporting modules:
-- `openclaw-common.nix` (51 lines)
-- `openclaw-storage.nix` (197 lines)
-- `openclaw-backups.nix` (174 lines)
-- `openclaw-nginx.nix` (173 lines)
-- `openclaw-fix-overlay.nix` (59 lines)
-- `openclaw-workaround-overlay.nix` (144 lines)
+- `-common.nix` (51 lines)
+- `-storage.nix` (197 lines)
+- `-backups.nix` (174 lines)
+- `-nginx.nix` (173 lines)
+- `-fix-overlay.nix` (59 lines)
+- `-workaround-overlay.nix` (144 lines)
 
 ### Current Usage Across Hosts
 
 | Host | Implementation | Status |
 |------|---------------|--------|
-| **zephyr** | `openclaw.declarative` | ✅ Enabled (container) |
-| **zephyr** | `openclaw` | ❌ Disabled (conflicts) |
-| **nexus** | `openclaw` | ✅ Enabled (binary) |
-| **forge** | `openclaw` | ✅ Enabled (binary) |
-| **sentry** | `openclaw` | ✅ Enabled (binary) |
+| **zephyr** | `.declarative` | ✅ Enabled (container) |
+| **zephyr** | `` | ❌ Disabled (conflicts) |
+| **nexus** | `` | ✅ Enabled (binary) |
+| **forge** | `` | ✅ Enabled (binary) |
+| **sentry** | `` | ✅ Enabled (binary) |
 
 ### The Harsh Reality
 
@@ -155,8 +155,8 @@ apiPort = mkOption {
 - No authentication on API endpoints
 - AGENTS.md acknowledges this: "Mining: API ports should be localhost-only"
 
-### Comparison to OpenClaw
-OpenClaw services correctly bind to `127.0.0.1` only, with nginx reverse proxy for external access. Mining services don't follow this pattern.
+### Comparison to 
+ services correctly bind to `127.0.0.1` only, with nginx reverse proxy for external access. Mining services don't follow this pattern.
 
 **Risk Level:** 🔴 **HIGH**  
 **Recommended Action:** Bind mining APIs to localhost, add nginx proxy if external access needed
@@ -183,7 +183,7 @@ OpenClaw services correctly bind to `127.0.0.1` only, with nginx reverse proxy f
 **AGENTS.md Line 777:**
 > "Critical Gaps (TODO): No borgbackup/restic configured"
 
-**Reality:** There IS backup configuration (`openclaw-backups.nix`, `nexus-backups.nix`), but it's rclone-based, not borg/restic.
+**Reality:** There IS backup configuration (`-backups.nix`, `nexus-backups.nix`), but it's rclone-based, not borg/restic.
 
 ### The Pattern
 Documentation was written once and never updated. As the system evolved, the docs became increasingly inaccurate.
@@ -197,7 +197,7 @@ Documentation was written once and never updated. As the system evolved, the doc
 
 ### Evidence of Incomplete Work
 
-1. **Multiple OpenClaw implementations** - Started 4 different approaches, never cleaned up
+1. **Multiple  implementations** - Started 4 different approaches, never cleaned up
 2. **Distributed builds infrastructure** - Built but disabled
 3. **TODO in secrets** - `secrets/secrets.nix:30` - MinIO credentials commented out
 4. **Test projects** - 7 test project directories, unclear if used
@@ -240,7 +240,7 @@ test/test-projects/
 - ✅ No hardcoded API keys (moved to `/run/agenix/`)
 - ✅ Proper file permissions
 
-**OpenClaw Security Model** (when using the binary service):
+** Security Model** (when using the binary service):
 - ✅ Dedicated `lobster` system user (no sudo)
 - ✅ Systemd hardening (`NoNewPrivileges`, `ProtectSystem`, `PrivateTmp`)
 - ✅ Localhost-only binding
@@ -262,7 +262,7 @@ test/test-projects/
 
 | Category | Severity | Effort to Fix | Priority |
 |----------|----------|---------------|----------|
-| **OpenClaw sprawl** | 🔴 Critical | 8-16 hours | P0 |
+| ** sprawl** | 🔴 Critical | 8-16 hours | P0 |
 | **Distributed builds** | 🟡 Medium | 2-4 hours | P2 |
 | **Mining API security** | 🔴 High | 1-2 hours | P1 |
 | **Documentation accuracy** | 🟡 Medium | 4-8 hours | P2 |
@@ -288,12 +288,12 @@ test/test-projects/
    - Add nginx reverse proxy if external access needed
    - Update firewall rules to block external access
 
-2. **Consolidate OpenClaw Implementations** (8-16 hours)
+2. **Consolidate  Implementations** (8-16 hours)
    - **Decision required:** Which implementation to keep?
-     - **Recommendation:** Keep `openclaw.nix` (binary service) for simplicity
-     - Delete: `openclaw-container.nix`, `openclaw-declarative-container.nix`, `openclaw-docker.nix`
-     - Keep: `openclaw-storage.nix`, `openclaw-backups.nix`, `openclaw-nginx.nix` (supporting services)
-     - Merge: `openclaw-fix-overlay.nix` + `openclaw-workaround-overlay.nix` → single overlay
+     - **Recommendation:** Keep `.nix` (binary service) for simplicity
+     - Delete: `-container.nix`, `-declarative-container.nix`, `-docker.nix`
+     - Keep: `-storage.nix`, `-backups.nix`, `-nginx.nix` (supporting services)
+     - Merge: `-fix-overlay.nix` + `-workaround-overlay.nix` → single overlay
    - Update all hosts to use the same implementation
    - Test deployment across cluster
 
@@ -337,7 +337,7 @@ test/test-projects/
 ### Documentation
 
 4. **Create Architecture Decision Records** (2-4 hours)
-   - Document why 4 OpenClaw implementations exist
+   - Document why 4  implementations exist
    - Document why distributed builds are disabled
    - Document security model for each service
 
@@ -380,7 +380,7 @@ test/test-projects/
 5. **Add Integration Tests** (16-32 hours)
    - Test distributed builds
    - Test mining pause on VR/gaming
-   - Test OpenClaw cluster coordination
+   - Test  cluster coordination
    - Test backup/restore procedures
 
 ---
@@ -390,7 +390,7 @@ test/test-projects/
 | Risk | Likelihood | Impact | Overall | Mitigation |
 |------|-----------|--------|---------|------------|
 | **Mining API exploit** | Medium | High | 🔴 **HIGH** | Bind to localhost |
-| **OpenClaw port conflicts** | High | Medium | 🟡 **MEDIUM** | Consolidate implementations |
+| ** port conflicts** | High | Medium | 🟡 **MEDIUM** | Consolidate implementations |
 | **Distributed build failure** | N/A | N/A | 🟢 **LOW** | Already disabled |
 | **Documentation confusion** | High | Low | 🟡 **MEDIUM** | Update docs |
 | **Maintenance burden** | High | High | 🔴 **HIGH** | Reduce complexity |
@@ -402,7 +402,7 @@ test/test-projects/
 ### What Went Wrong
 
 1. **Feature Creep Without Cleanup**
-   - Added 4 OpenClaw implementations without removing old ones
+   - Added 4  implementations without removing old ones
    - Built distributed build infrastructure but never enabled it
    - Created test projects and never cleaned them up
 
@@ -412,7 +412,7 @@ test/test-projects/
    - No verification process
 
 3. **Lack of Architectural Decisions**
-   - No clear decision on which OpenClaw implementation to use
+   - No clear decision on which  implementation to use
    - No decision on distributed builds (enable or remove)
    - No standard patterns for service deployment
 
@@ -440,12 +440,12 @@ test/test-projects/
 ### Immediate (This Week)
 
 1. **Fix mining API security** - 1-2 hours, high impact
-2. **Pick ONE OpenClaw implementation** - Decision required
+2. **Pick ONE  implementation** - Decision required
 3. **Update AGENTS.md with accurate numbers** - 1 hour
 
 ### Short-Term (This Month)
 
-1. **Consolidate OpenClaw modules** - 8-16 hours
+1. **Consolidate  modules** - 8-16 hours
 2. **Enable distributed builds OR remove infrastructure** - 2-4 hours
 3. **Clean up test projects** - 1 hour
 4. **Add fail2ban** - 2-4 hours
@@ -469,13 +469,13 @@ This infrastructure is **functional but fragile**. It works, but it's held toget
 - No critical security vulnerabilities (except mining API)
 
 ### The Bad News
-- **18.8% of the codebase** is OpenClaw sprawl (10 modules, 2,135 lines)
+- **18.8% of the codebase** is  sprawl (10 modules, 2,135 lines)
 - Distributed builds don't work despite claiming they do
 - Documentation is 62% understated and contains false claims
 - Maintenance burden is extreme
 
 ### The Path Forward
-**Focus on consolidation, not expansion.** Delete the 3 unused OpenClaw implementations, fix the mining API, and update the docs. This will reduce complexity by ~30% and make the system maintainable again.
+**Focus on consolidation, not expansion.** Delete the 3 unused  implementations, fix the mining API, and update the docs. This will reduce complexity by ~30% and make the system maintainable again.
 
 **Estimated effort to reach "good" state: 18-35 hours of focused work.**
 
@@ -494,8 +494,8 @@ grep "distributedBuilds" modules/distributed-builds.nix  # Should be false
 # Verify SSH security
 grep "PermitRootLogin" modules/ssh.nix  # Should be "no"
 
-# Check OpenClaw implementations
-ls -1 modules/openclaw*.nix | wc -l  # Currently 10
+# Check  implementations
+ls -1 modules/*.nix | wc -l  # Currently 10
 
 # Check mining API binding
 grep -A 5 "apiPort" modules/mining.nix  # Check if localhost-only

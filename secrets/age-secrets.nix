@@ -10,7 +10,7 @@
       file = ./mining-wallet.age;
     };
 
-    # OpenClaw API Keys
+    # API Keys
     "anthropic-api-key" = {
       file = ./anthropic-api-key.age;
     };
@@ -19,19 +19,8 @@
       file = ./openai-api-key.age;
     };
 
-    # OpenClaw environment file (contains all OpenClaw env vars)
-    "openclaw-env" = {
-      file = ./openclaw-env.age;
-    };
-
-    # OpenClaw Gateway Token (separate from env file for container configs)
-    # SECURITY FIX: Moved from hardcoded "dev-token-12345" to agenix secret
-    "openclaw-gateway-token" = {
-      file = ./openclaw-gateway-token.age;
-    };
-
     # MinIO cache credentials for AIStor on nexus
-    # IMPORTANT: You must create this secret file before enabling openclaw-storage
+    # IMPORTANT: You must create this secret file before enabling minio-cache
     # Run: agenix -e minio-cache-credentials.age
     # Format: MINIO_ACCESS_KEY=xxx
     #         MINIO_SECRET_KEY=yyy

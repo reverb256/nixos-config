@@ -25,7 +25,7 @@ graph TD
         Zephyr -->|VR Streaming| WiVRn[WiVRn - 9757-9760]
         Zephyr -->|SteamVR| SteamVR[SteamVR]
         
-        Nexus -->|AIStor| OpenClawStorage[OpenClaw Storage<br/>Port 18800]
+        Nexus -->|AIStor| Storage[ Storage<br/>Port 18800]
         Nexus -->|S3| AIModels[AI Models Bucket]
         Nexus -->|S3| TrainingData[Training Data Bucket]
         
@@ -36,17 +36,17 @@ graph TD
         Sentry -->|Monitoring| Grafana[Grafana]
     end
 
-    subgraph "OpenClaw Ecosystem"
-        OpenClaw[OpenClaw Gateway<br/>Port 18789]
-        OpenClawStorage
-        OpenClawBackup[OpenClaw Backups]
+    subgraph " Ecosystem"
+        [ Gateway<br/>Port 18789]
+        Storage
+        Backup[ Backups]
         Nginx[Nginx Reverse Proxy<br/>Port 80/443]
         
-        OpenClaw -->|WebSocket| KiloCode[Kilo Code AI]
-        OpenClaw -->|API| OpenClawStorage
-        OpenClaw -->|Rclone| CloudBackups[Cloud Backups]
-        Nginx -->|Proxy| OpenClaw
-        Nginx -->|Proxy| OpenClawStorage
+         -->|WebSocket| KiloCode[Kilo Code AI]
+         -->|API| Storage
+         -->|Rclone| CloudBackups[Cloud Backups]
+        Nginx -->|Proxy| 
+        Nginx -->|Proxy| Storage
     end
 ```
 
@@ -61,10 +61,10 @@ graph TD
 
 ## Service Architecture
 
-### OpenClaw AI Agent Gateway
+###  AI Agent Gateway
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  OpenClaw Declarative Container                             │
+│   Declarative Container                             │
 ├─────────────────────────────────────────────────────────────┤
 │  • Runs in Docker container with systemd management          │
 │  • User: lobster (uid: 982, gid: 979) - no sudo access      │
@@ -76,7 +76,7 @@ graph TD
          └───────────────────┐
                              ▼
          ┌─────────────────────────────────────────────────────┐
-         │  OpenClaw Storage MCP                               │
+         │   Storage MCP                               │
          ├─────────────────────────────────────────────────────┤
          │  • S3-compatible API via AIStor                     │
          │  • Port: 18800 (localhost only)                     │
@@ -161,12 +161,12 @@ graph TD
 │   ├── forge/               # Build/Development server
 │   └── sentry/              # Monitoring server
 ├── modules/                 # Shared configuration modules (25+ files)
-│   ├── openclaw-declarative-container.nix  # Primary OpenClaw implementation
-│   ├── openclaw-overlay.nix  # Dependency fix overlay
-│   ├── openclaw-common.nix  # Shared OpenClaw configuration
-│   ├── openclaw-storage.nix # AIStor S3 MCP
-│   ├── openclaw-backups.nix # Cloud backup automation
-│   ├── openclaw-nginx.nix   # Reverse proxy with SSL
+│   ├── -declarative-container.nix  # Primary  implementation
+│   ├── -overlay.nix  # Dependency fix overlay
+│   ├── -common.nix  # Shared  configuration
+│   ├── -storage.nix # AIStor S3 MCP
+│   ├── -backups.nix # Cloud backup automation
+│   ├── -nginx.nix   # Reverse proxy with SSL
 │   ├── mining.nix           # Mining services
 │   ├── gaming.nix           # VR/Gaming setup
 │   └── ...                  # Other modules
@@ -187,18 +187,18 @@ User: lobster (uid: 982, gid: 979)
 ├─ Home: /var/lib/lobster
 ├─ Groups: lobster, rclone
 ├─ Permissions: No sudo access, no wheel group
-├─ Purpose: OpenClaw bot operations
-└─ Services: openclaw-container-declarative, openclaw-storage, openclaw-backups
+├─ Purpose:  bot operations
+└─ Services: -container-declarative, -storage, -backups
 ```
 
 ### Systemd Hardening
 ```nix
-systemd.services.openclaw-container-declarative.serviceConfig = {
+systemd.services.-container-declarative.serviceConfig = {
   NoNewPrivileges = true;
   ProtectSystem = "strict";
   ProtectHome = true;
   PrivateTmp = true;
-  ReadWritePaths = ["/var/lib/openclaw"];
+  ReadWritePaths = ["/var/lib/"];
 };
 ```
 
@@ -217,7 +217,7 @@ Outbound Rules:
 
 ## Container Isolation
 ```
-OpenClaw Container Security:
+ Container Security:
 ├─ --network host (for performance, localhost-only service)
 ├─ --user "982:979" (runs as lobster user)
 ├─ --cap-drop ALL (removes all capabilities)
@@ -287,16 +287,16 @@ cd /etc/nixos → direnv allow
 ```
 Push to GitHub → Garnix builds all flake outputs → Caches at cache.garnix.io
 ├─ Builds: nixosConfigurations.zephyr/nexus/forge/sentry
-├─ Packages: openclaw-gateway, kimi-code
+├─ Packages: -gateway, kimi-code
 ├─ Colmena: Cluster deployment configs
-└─ Custom overlays: OpenClaw dependency fixes
+└─ Custom overlays:  dependency fixes
 ```
 
 ---
 
 ## Key Design Decisions
 
-### OpenClaw Implementation
+###  Implementation
 **Decision**: Use declarative containers instead of binary packages  
 **Rationale**:
 - Better isolation and security
@@ -313,7 +313,7 @@ Push to GitHub → Garnix builds all flake outputs → Caches at cache.garnix.io
 - Easier firewall configuration
 
 ### User Isolation
-**Decision**: Run OpenClaw as dedicated lobster user with no sudo  
+**Decision**: Run  as dedicated lobster user with no sudo  
 **Rationale**:
 - Limits damage from compromised service
 - Prevents privilege escalation

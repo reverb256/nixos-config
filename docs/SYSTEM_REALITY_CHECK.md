@@ -21,7 +21,7 @@ This document records the infrastructure status as of Feb 7, 2026. The cluster u
 ### Hosts
 | Host | Role | GPU | Status |
 |------|------|-----|--------|
-| zephyr | Master Workstation | RTX 3090 | ✅ Active - OpenClaw Running |
+| zephyr | Master Workstation | RTX 3090 | ✅ Active -  Running |
 | nexus | Build Server | 2x RTX 3060 Ti | Configured and Active |
 | forge | Mining Rig | 2x RTX 4060 + 2x RX 5700 XT | Configured and Active |
 | sentry | Monitoring | RX 5600 XT | Configured and Active |
@@ -29,8 +29,8 @@ This document records the infrastructure status as of Feb 7, 2026. The cluster u
 ### Services
 | Service | Status | Notes |
 |---------|--------|-------|
-| OpenClaw | ✅ Running | Loopback-only on zephyr |
-| LM Studio | ✅ Working | Via nix-openclaw |
+|  | ✅ Running | Loopback-only on zephyr |
+| LM Studio | ✅ Working | Via nix- |
 | Mining | ✅ Active | XMRig: zephyr, nexus, sentry; lolMiner: forge | |
 | Distributed Builds | ✅ Enabled | 51 cores |
 
@@ -53,16 +53,16 @@ just sentry
 just push
 ```
 
-### OpenClaw
+### 
 ```bash
 # Check status
-openclaw status
+ status
 
 # View logs
-journalctl --user -u openclaw-gateway.service -f
+journalctl --user -u -gateway.service -f
 
 # Restart gateway
-systemctl --user restart openclaw-gateway.service
+systemctl --user restart -gateway.service
 ```
 
 ### Cluster Management
@@ -113,11 +113,11 @@ nix flake check
 ```
 
 ### Node Host Setup
-Each node hosts run `openclaw node run` which connects to the gateway via SSH tunnel:
+Each node hosts run ` node run` which connects to the gateway via SSH tunnel:
 ```bash
 # On node host (nexus/forge/sentry)
 ssh -N -L 18790:127.0.0.1:18789 j_kro@zephyr &
-openclaw node run --host 127.0.0.1 --port 18790 --display-name "Build Node"
+ node run --host 127.0.0.1 --port 18790 --display-name "Build Node"
 ```
 
 ### Exec Allowlist
@@ -141,8 +141,8 @@ Secrets are managed via **Agenix** with age encryption:
 /etc/nixos/secrets/
 ├── anthropic-api-key.age
 ├── openai-api-key.age
-├── openclaw-env.age
-└── openclaw-gateway-token.age
+├── -env.age
+└── -gateway-token.age
 ```
 
 ### Generating New Secrets
@@ -169,16 +169,16 @@ echo "my-secret-value" | nix shell nixpkgs#age -c age -r "age1..." -o secret.age
 
 ## 🐛 Troubleshooting
 
-### OpenClaw Won't Start
+###  Won't Start
 ```bash
 # Check logs
-journalctl --user -u openclaw-gateway.service -f
+journalctl --user -u -gateway.service -f
 
 # Verify binding
 curl http://127.0.0.1:18789/health
 
 # Restart service
-systemctl --user restart openclaw-gateway.service
+systemctl --user restart -gateway.service
 ```
 
 ### SSH Tunnel Issues

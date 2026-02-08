@@ -17,8 +17,8 @@
     ../../modules/gaming.nix
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
-    # Import OpenClaw AI agent orchestration (declarative container)
-    # Import OpenClaw common configuration
+    # Import  AI agent orchestration (declarative container)
+    # Import  common configuration
     # Import Tailscale mesh VPN
     ../../modules/tailscale.nix
     # Import AIStor secrets generation
@@ -29,10 +29,10 @@
     ../../modules/garnix.nix
     ../../modules/auto-update.nix
     ../../modules/ssh.nix
-    # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
+    # Import  node host module - DISABLED ( refactor in progress)
     # Import distributed builds module (GPU+CUDA+ROCm support)
     ../../modules/distributed-builds.nix
-    # Import OpenClaw node host module - DISABLED (OpenClaw refactor in progress)
+    # Import  node host module - DISABLED ( refactor in progress)
   ];
 
   # Host identification
@@ -232,7 +232,7 @@
     TS_SSH = "true";
   };
 
-  # OpenClaw node host service - DISABLED (OpenClaw refactor in progress)
+  #  node host service - DISABLED ( refactor in progress)
   #   enable = true;
   #   gatewayHost = "zephyr";
   #   displayName = "Nexus Build Node";
