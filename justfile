@@ -80,21 +80,14 @@ update:
 
 # Parallel fetch command
 parallel:
-    @parallel-full --keep-order --tag "just-{{#.}}.out" {{CMD}}
+    @parallel-full --keep-order --tag "just-{{#}}.out" {{CMD}}
     @for node in zephyr nexus forge sentry; do \
-        @parallel-full --tag "just-{{#.}}.out" -- \
-        ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null || echo 'WARNING: Fetch failed on $$node'"
+        @parallel-full --tag "just-{{#}}.out" -- \
+            ssh $SSH_OPTS "${NODES[$node]}" "cd ${FLAKE_PATH} && git fetch origin 2>/dev/null || echo 'WARNING: Fetch failed on {{#}}'" &
+    done
     @wait
-    @parallel-full --tag "just-{{#.}}.out" -- \
-        echo "Fetched $$node"
-
-# Build all configurations (dry run) - runs on nexus
-build:
-    @echo "Building all configurations (dry run)..."
-    @for node in zephyr nexus forge sentry; do \
-        @parallel-full --tag "just-{{#.}}.out" \
-        -- {{#}} ssh $SSH_OPTS ${{HOST}} "cd ${FLAKE_PATH} && nix build .#{{HOST}} 2>&1" | tee /tmp/just-{{HOST}}.out
-    ::: ::: HOST zephyr nexus forge sentry
+    @echo "Fetched {{#}} nodes"
+    ::: ::: # zephyr nexus forge sentry
     @wait
     @parallel-full --tag "just-{{#.}}.out" -- \
         echo "Built $$node"
