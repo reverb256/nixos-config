@@ -98,7 +98,6 @@
 
     # API key files (from Agenix secrets)
     # Note: These files must exist in secrets/ directory and be configured in secrets/age-secrets.nix
-    ANTHROPIC_AUTH_TOKEN_FILE = "/run/agenix/claude-api-key";
     OPENROUTER_API_KEY_FILE = "/run/agenix/openrouter-api-key";
     # OPENAI_API_KEY_FILE = "/run/agenix/openai-api-key"; # Commented out as file does not exist
 
