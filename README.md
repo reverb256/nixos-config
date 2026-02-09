@@ -13,7 +13,7 @@
 ### **Cluster Nodes**
 | Host | Local IP | Tailscale IP | Role | CPU Cores | Memory | GPU | Purpose |
 |------|----------|--------------|------|-----------|--------|-----|---------|
-| **zephyr** | 10.1.1.110 | 100.81.182.5 | Master Node | 32 cores (Ryzen 9 5950X) | 64GB | RTX 3090 | VR Gaming, Development, Build Coordination |
+| **zephyr** | 10.1.1.110 | 100.81.182.5 | Master Node | 32 cores (Ryzen 9 5950X) | 32GB | RTX 3090 | VR Gaming, Development, Build Coordination |
 | **nexus** | 10.1.1.120 | 100.86.158.18 | Build/AIStor | 24 cores (Ryzen 9 3900X) | 32GB | 2x RTX 3060 Ti | Distributed Builds, AIStor Storage |
 | **forge** | 10.1.1.130 | 100.116.190.124 | GPU Compute | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Compute, Mining |
 | **sentry** | 10.1.1.140 | 100.82.210.39 | Monitoring | 8 cores (Ryzen 7 1700) | 32GB | RX 5600 XT | Monitoring, Light Builds |
