@@ -60,6 +60,11 @@ in {
       ./modules/lobster-user.nix
       # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
       # ./modules/flatpak.nix
+      # Mining-aware build wrapper (pause/resume during builds)
+      ./modules/mining-build-wrapper.nix
+      # Storage configuration modules
+      ./modules/storage.nix
+      ./modules/storage-btrfs.nix
       # Secrets configuration
       # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
       #  service module - REMOVED
