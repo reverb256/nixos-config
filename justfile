@@ -82,7 +82,7 @@ deploy *BRANCH=`git branch --show-current`:
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     @echo "Deploying via colmena to all nodes..."
-    nix run github:zhaofengli/colmena -- apply --on @all --activate --build-on-target --reboot 0
+    nix run github:zhaofengli/colmena -- apply --on @all
     @echo "Resuming mining on all nodes..."
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
@@ -104,19 +104,19 @@ fetch:
 # Deploy to individual hosts via colmena
 zephyr:
     @echo "Deploying to zephyr via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply zephyr --activate --build-on-target --reboot 0
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply --on zephyr
 
 nexus:
     @echo "Deploying to nexus via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply nexus --activate --build-on-target --reboot 0
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply --on nexus
 
 forge:
     @echo "Deploying to forge via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply forge --activate --build-on-target --reboot 0
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply --on forge
 
 sentry:
     @echo "Deploying to sentry via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply sentry --activate --build-on-target --reboot 0
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply --on sentry
 
 # Local switch for current node - runs locally
 switch:
