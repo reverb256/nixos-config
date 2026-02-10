@@ -82,8 +82,6 @@
   # Prevent systemd-logind from killing user processes during session changes
   services.logind.settings.Login.KillUserProcesses = false;
 
-  # Unified RGB Control - Gigabyte AORUS X470 with RGB
-  # hardware.unified-rgb.enable = true;  # Disabled - module causing errors
   # ============================================================================
   # MINING CONFIGURATION (Nexus: 24 cores, RTX 3060 Ti)
   # ============================================================================
@@ -226,13 +224,4 @@
     TS_SSH = "true";
   };
 
-  #  node host service - DISABLED ( refactor in progress)
-  #   enable = true;
-  #   gatewayHost = "zephyr";
-  #   displayName = "Nexus Build Node";
-  #   execAllowlist = [
-  #     "/run/current-system/sw/bin/uname"
-  #     "/run/current-system/sw/bin/sw_vers"
-  #   ];
-  # };
 }

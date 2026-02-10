@@ -28,7 +28,12 @@ in {
   };
 
   # Host configurations with full module imports
-  zephyr = { name, nodes, pkgs, ... }: {
+  zephyr = {
+    name,
+    nodes,
+    pkgs,
+    ...
+  }: {
     imports = [
       ./configuration.nix
       ./hosts/zephyr/configuration.nix
@@ -37,7 +42,12 @@ in {
     deployment.targetUser = "root";
   };
 
-  nexus = { name, nodes, pkgs, ... }: {
+  nexus = {
+    name,
+    nodes,
+    pkgs,
+    ...
+  }: {
     imports = [
       ./configuration.nix
       ./hosts/nexus/configuration.nix
@@ -46,7 +56,12 @@ in {
     deployment.targetUser = "j_kro";
   };
 
-  forge = { name, nodes, pkgs, ... }: {
+  forge = {
+    name,
+    nodes,
+    pkgs,
+    ...
+  }: {
     imports = [
       ./configuration.nix
       ./hosts/forge/configuration.nix
@@ -55,7 +70,12 @@ in {
     deployment.targetUser = "j_kro";
   };
 
-  sentry = { name, nodes, pkgs, ... }: {
+  sentry = {
+    name,
+    nodes,
+    pkgs,
+    ...
+  }: {
     imports = [
       ./configuration.nix
       ./hosts/sentry/configuration.nix

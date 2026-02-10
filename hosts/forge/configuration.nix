@@ -47,9 +47,6 @@
   # Enable NVIDIA drivers for RTX 4060s
   services.xserver.videoDrivers = ["nvidia"];
 
-  # Enable CI/CD features
-  # garnix.enable = true;  # Disabled - requires nix-cache-key.sec
-  # Determinate Nix is already installed via installer (no config needed)
 
   # Zen kernel for gaming/desktop - force use of currently running kernel version
   boot.kernelPackages = pkgs.linuxPackages_zen;
@@ -141,9 +138,6 @@
       '';
     };
   };
-
-  # RGB control disabled - not currently using OpenRGB
-  # hardware.rgb.openrgb.enable = true;
 
   # ============================================================================
   # ROCm HIP symlink for OpenCL (fixes SIGSEGV crash)
