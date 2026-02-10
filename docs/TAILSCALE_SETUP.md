@@ -19,7 +19,7 @@ All 4 cluster nodes are connected via Tailscale mesh VPN, providing secure commu
 |------|--------------|------|--------|
 | **zephyr** | 100.81.182.5 | Master/Exit Node | ✅ Active |
 | **nexus** | 100.86.158.18 | Build/AIStor | ✅ Active |
-| **forge** | 100.116.190.124 | Mining/GPU | ✅ Active |
+| **forge** | 100.95.222.45 | Mining/GPU | ✅ Active |
 | **sentry** | 100.82.210.39 | Monitoring | ✅ Active |
 
 ## Configuration
@@ -118,7 +118,7 @@ sudo tailscale down
 # SSH via Tailscale IP (no traditional SSH keys needed)
 ssh 100.81.182.5           # zephyr
 ssh 100.86.158.18          # nexus
-ssh 100.116.190.124        # forge
+ssh 100.95.222.45          # forge
 ssh 100.82.210.39          # sentry
 
 # SSH via Magic DNS
@@ -140,7 +140,7 @@ tailscale up --exit-node=
 All nodes are accessible via DNS names:
 - `zephyr.tigris-ule.ts.net` → 100.81.182.5
 - `nexus.tigris-ule.ts.net` → 100.86.158.18
-- `forge.tigris-ule.ts.net` → 100.116.190.124
+- `forge.tigris-ule.ts.net` → 100.95.222.45
 - `sentry.tigris-ule.ts.net` → 100.82.210.39
 
 ## Troubleshooting
@@ -256,7 +256,7 @@ The Tailscale configuration is managed via GitOps:
               │                 │                 │
     ┌─────────▼────────┐ ┌──────▼──────┐ ┌───────▼───────┐
     │    zephyr      │ │    nexus    │ │     forge     │
-    │  100.81.182.5  │ │100.86.158.18│ │100.116.190.124│
+     │  100.81.182.5  │ │100.86.158.18│ │100.95.222.45 │
     │   Exit Node    │ │  Deploy     │ │   Mining      │
     │   Master       │ │  AIStor     │ │   Worker      │
     └────────┬────────┘ └──────┬──────┘ └───────┬───────┘

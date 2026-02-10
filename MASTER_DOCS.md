@@ -34,7 +34,7 @@ Reverb-OS is a production NixOS 26.05 cluster with VR gaming, mining, and AI cap
 |------|------------|--------------|------|-------|-----|--------|
 | **zephyr** | 10.1.1.110 | 100.81.182.5 | Master/VR/Gaming | 32 | RTX 3090 | ✅ Active |
 | **nexus** | 10.1.1.120 | 100.86.158.18 | Build/AIStor/Deploy | 24 | 2x RTX 3060 Ti | ✅ Active |
-| **forge** | 10.1.1.130 | 100.116.190.124 | Mining/GPU Compute | 6 | 2x RTX 4060 + 2x RX 5700 XT | ✅ Active |
+| **forge** | 10.1.1.130 | 100.95.222.45 | Mining/GPU Compute | 6 | 2x RTX 4060 + 2x RX 5700 XT | ✅ Active |
 | **sentry** | 10.1.1.140 | 100.82.210.39 | Monitoring | 8 | RX 5600 XT | ✅ Active |
 
 **Total:** 78 cores across 4 hosts (includes distributed build pool)
@@ -45,7 +45,7 @@ Internet ── Router (10.1.1.1)
                      │
                      ├── zephyr (10.1.1.110, 100.81.182.5) - Master Workstation
                      ├── nexus  (10.1.1.120, 100.86.158.18) - Build/AIStor Server
-                     ├── forge  (10.1.1.130, 100.116.190.124) - Mining/Build Worker
+                     ├── forge  (10.1.1.130, 100.95.222.45) - Mining/Build Worker
                      └── sentry (10.1.1.140, 100.82.210.39) - Monitoring Server
 ```
 
@@ -215,7 +215,7 @@ services.mining.xmrig = {
 All cluster nodes connected via Tailscale mesh VPN:
 - **zephyr** (100.81.182.5): Master/Exit Node
 - **nexus** (100.86.158.18): Build/AIStor Coordination  
-- **forge** (100.116.190.124): Mining/GPU Compute
+- **forge** (100.95.222.45): Mining/GPU Compute
 - **sentry** (100.82.210.39): Monitoring
 
 ### Security Features

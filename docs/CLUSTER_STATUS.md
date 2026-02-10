@@ -8,7 +8,7 @@
 |-------|-------------|---------------|-----|--------|-------|--------|
 | **zephyr** | 10.1.1.110 | 100.81.182.5 | 32 cores | 64GB | RTX 3090 | Master Workstation | ✅ Online |
 | **nexus** | 10.1.1.120 | 100.86.158.18 | 24 cores | 32GB | 2x RTX 3060 Ti | Build Server | ✅ Online |
-| **forge** | 10.1.1.130 | 100.116.190.124 | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Mining Rig | ✅ Online |
+| **forge** | 10.1.1.130 | 100.95.222.45 | 6 cores | 32GB | 2x RTX 4060 + 2x RX 5700 XT | GPU Mining Rig | ✅ Online |
 | **sentry** | 10.1.1.140 | 100.82.210.39 | 8 cores | 32GB | RX 5600 XT | Monitoring Server | ⚠️ SSH Refused |
 
 **Cluster Status:** ⚠️ Partially Degraded (3/4 nodes accessible)

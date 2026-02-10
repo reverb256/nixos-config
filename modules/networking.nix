@@ -144,7 +144,7 @@ with lib; {
       "10.1.1.140" # sentry
       "100.81.182.5" # zephyr Tailscale
       "100.86.158.18" # nexus Tailscale
-      "100.116.190.124" # forge Tailscale
+      "100.95.222.45" # forge Tailscale
       "100.82.210.39" # sentry Tailscale
     ];
   };
