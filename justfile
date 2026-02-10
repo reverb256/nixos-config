@@ -82,7 +82,7 @@ deploy *BRANCH=`git branch --show-current`:
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     @echo "Deploying via colmena to all nodes..."
-    nix run github:zhaofengli/colmena -- deploy --on-change --skip-eval
+    nix run github:zhaofengli/colmena -- deploy --activate
     @echo "Resuming mining on all nodes..."
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
@@ -104,19 +104,19 @@ fetch:
 # Deploy to individual hosts via colmena
 zephyr:
     @echo "Deploying to zephyr via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy zephyr --on-change --skip-eval
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy zephyr --activate
 
 nexus:
     @echo "Deploying to nexus via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy nexus --on-change --skip-eval
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy nexus --activate
 
 forge:
     @echo "Deploying to forge via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy forge --on-change --skip-eval
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy forge --activate
 
 sentry:
     @echo "Deploying to sentry via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy sentry --on-change --skip-eval
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy sentry --activate
 
 # Local switch for current node - runs locally
 switch:
