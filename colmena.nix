@@ -24,7 +24,7 @@ in {
       ./configuration.nix
       ./hosts/zephyr/configuration.nix
     ];
-    deployment.targetHost = "100.81.182.5";
+    deployment.targetHost = "100.81.182.5"; # Local: 10.1.1.110
     deployment.targetUser = "j_kro";
   };
 
@@ -33,7 +33,7 @@ in {
       ./configuration.nix
       ./hosts/nexus/configuration.nix
     ];
-    deployment.targetHost = "100.86.158.18";
+    deployment.targetHost = "100.86.158.18"; # Local: 10.1.1.120
     deployment.targetUser = "j_kro";
   };
 
@@ -42,7 +42,7 @@ in {
       ./configuration.nix
       ./hosts/forge/configuration.nix
     ];
-    deployment.targetHost = "100.116.190.124";
+    deployment.targetHost = "100.95.222.45"; # Local: 10.1.1.130
     deployment.targetUser = "j_kro";
   };
 
@@ -51,7 +51,7 @@ in {
       ./configuration.nix
       ./hosts/sentry/configuration.nix
     ];
-    deployment.targetHost = "100.82.210.39";
+    deployment.targetHost = "100.82.210.39"; # Local: 10.1.1.140
     deployment.targetUser = "j_kro";
   };
 }
