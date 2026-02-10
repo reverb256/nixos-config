@@ -43,9 +43,9 @@
     # OpenCode AI Agent
     opencode.url = "github:anomalyco/opencode/dev";
 
-    # Colmena - Multi-host deployment (available via devShell)
-    # colmena.url = "github:zhaofengli/colmena";
-    # colmena.inputs.nixpkgs.follows = "nixpkgs";
+    # Colmena - Multi-host deployment (v0.5+ requires colmenaHive output)
+    colmena.url = "github:zhaofengli/colmena";
+    colmena.inputs.nixpkgs.follows = "nixpkgs";
 
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
@@ -131,10 +131,13 @@
     # NixOS configurations (for direct use with nixos-rebuild)
     nixosConfigurations = nixosSystems;
 
-    # Colmena deployment configuration
+    # Colmena v0.5+ configuration
     colmena = import ./colmena.nix {
       inherit inputs self;
     };
+
+    # Colmena v0.5+ requires colmenaHive output
+    colmenaHive = inputs.colmena.lib.makeHive self.outputs.colmena;
 
     # Formatter for nix fmt
     formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
