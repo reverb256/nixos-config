@@ -1,9 +1,12 @@
 # Mining-aware Build Wrapper with XMrig API Integration
 # Pauses CPU mining before builds and resumes after completion
 # XMrig exposes HTTP API on localhost:18088 for control
-{pkgs, ...}:
-with pkgs; let
-  xmrig = pkgs.writeShellScriptBin "mining-pause" ''
+
+let
+  path = "/run/current-system/sw/bin";
+
+  # Mining pause script
+  mining-pause = ''
     #!/bin/sh
     set -e
 
@@ -27,7 +30,8 @@ with pkgs; let
     fi
   '';
 
-  xmrig-resume = pkgs.writeShellScriptBin "mining-resume" ''
+  # Mining resume script
+  mining-resume = ''
     #!/bin/sh
     set -e
 
@@ -51,7 +55,8 @@ with pkgs; let
     fi
   '';
 
-  build-wrapper = pkgs.writeShellScriptBin "build-wrapper" ''
+  # Build wrapper script
+  build-wrapper = ''
     #!/bin/sh
     set -e
 
@@ -60,7 +65,7 @@ with pkgs; let
     echo "  BUILD STARTED"
     echo "========================================="
     echo "Pausing mining..."
-    ${xmrig-pause}/bin/mining-pause || true
+    "$path/mining-pause" || true
 
     # Run the actual build command
     echo "Running build: $@"
@@ -73,10 +78,11 @@ with pkgs; let
     echo "  BUILD COMPLETE (status: $BUILD_STATUS)"
     echo "========================================="
     echo "Resuming mining to 50% throttle..."
-    ${xmrig-resume}/bin/mining-resume || true
+    "$path/mining-resume" || true
     echo "✓ Mining resumed"
   '';
 
 in {
-  packages = [xmrig-pause xmrig-resume build-wrapper];
+  packages = [];
 }
+
