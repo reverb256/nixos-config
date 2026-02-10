@@ -18,6 +18,44 @@
     # Nixcord - Declarative Discord/Vesktop configuration
     nixcord.url = "github:FlameFlag/nixcord";
 
+    # Colmena - Multi-host deployment (v0.5+)
+    colmena = {
+      meta = {
+        nixpkgs = import inputs.nixpkgs {
+          system = "x86_64-linux";
+          config.allowUnfree = true;
+        };
+        specialArgs = {
+          inherit inputs self;
+        };
+      };
+      meta.nixpkgs.follows = "nixpkgs";
+
+      # Use zephyr as canary, rest of cluster
+      zephyr.deployment = {
+        targetHost = "100.81.182.5";
+        targetUser = "root";
+      };
+
+      nexus.deployment = {
+        targetHost = "100.86.158.18";
+        targetUser = "j_kro";
+      };
+
+      forge.deployment = {
+        targetHost = "100.95.222.45";
+        targetUser = "j_kro";
+      };
+
+      sentry.deployment = {
+        targetHost = "100.82.210.39";
+        targetUser = "j_kro";
+      };
+    };
+
+    # Colmena v0.5+ hive output
+    colmenaHive = inputs.colmena.lib.makeHive self.outputs.colmena;
+
     # Enhanced Gaming Packages (Proton-GE, GameMode, etc.)
     nix-gaming.url = "github:fufexan/nix-gaming";
 
