@@ -66,7 +66,7 @@
       ./configuration.nix
 
       # External Modules
-      inputs.aagl.nixosModules.default
+      # inputs.aagl.nixosModules.default
       inputs.determinate.nixosModules.default
       inputs.nix-gaming.nixosModules.pipewireLowLatency
       inputs.nix-gaming.nixosModules.platformOptimizations
