@@ -1,6 +1,6 @@
 # Nix Module
 # Extracted from configuration.nix - Nix configuration and optimization
-{lib, ...}: {
+_: {
   # ============================================================================
   # NIX CONFIGURATION - Experimental features, build optimization, and caching
   # ============================================================================

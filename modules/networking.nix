@@ -152,7 +152,7 @@ with lib; {
   # ============================================================================
   # FIREWALL (Base config - ports can be overridden per-host)
   # ============================================================================
-  
+
   networking.firewall = {
     enable = true;
     # Base allowed ports - all hosts get these

@@ -1,6 +1,6 @@
 # Hardware Module
 # Extracted from configuration.nix - Hardware configuration for zephyr workstation
-{...}: {
+_: {
   # ============================================================================
   # BLUETOOTH SUPPORT
   # ============================================================================

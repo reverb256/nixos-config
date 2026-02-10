@@ -47,7 +47,7 @@ in {
     # ============================================================================
     hardware.graphics = {
       enable = true;
-      enable32Bit = cfg.enable32Bit;
+      inherit (cfg) enable32Bit;
 
       extraPackages = with pkgs; [
         # Mesa drivers (default, usually sufficient)

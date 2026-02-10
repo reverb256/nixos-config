@@ -17,12 +17,14 @@
         inputs.home-manager.nixosModules.home-manager
         ./secrets/age-secrets.nix
         {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "backup";
-          home-manager.extraSpecialArgs = {inherit inputs;};
-          home-manager.users.j_kro = {
-            imports = [./home.nix];
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            backupFileExtension = "backup";
+            extraSpecialArgs = {inherit inputs;};
+            users.j_kro = {
+              imports = [./home.nix];
+            };
           };
         }
       ];
@@ -38,12 +40,14 @@
         inputs.home-manager.nixosModules.home-manager
         ./secrets/age-secrets.nix
         {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "backup";
-          home-manager.extraSpecialArgs = {inherit inputs;};
-          home-manager.users.j_kro = {
-            imports = [./home.nix];
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            backupFileExtension = "backup";
+            extraSpecialArgs = {inherit inputs;};
+            users.j_kro = {
+              imports = [./home.nix];
+            };
           };
         }
       ];
@@ -61,12 +65,14 @@
         inputs.home-manager.nixosModules.home-manager
         ./secrets/age-secrets.nix
         {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "backup";
-          home-manager.extraSpecialArgs = {inherit inputs;};
-          home-manager.users.j_kro = {
-            imports = [./home.nix];
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            backupFileExtension = "backup";
+            extraSpecialArgs = {inherit inputs;};
+            users.j_kro = {
+              imports = [./home.nix];
+            };
           };
         }
       ];
@@ -82,12 +88,14 @@
         inputs.home-manager.nixosModules.home-manager
         ./secrets/age-secrets.nix
         {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "backup";
-          home-manager.extraSpecialArgs = {inherit inputs;};
-          home-manager.users.j_kro = {
-            imports = [./home.nix];
+          home-manager = {
+            useGlobalPkgs = true;
+            useUserPackages = true;
+            backupFileExtension = "backup";
+            extraSpecialArgs = {inherit inputs;};
+            users.j_kro = {
+              imports = [./home.nix];
+            };
           };
         }
       ];

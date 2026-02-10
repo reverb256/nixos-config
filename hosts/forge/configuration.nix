@@ -3,38 +3,37 @@
 {
   lib,
   pkgs,
-  inputs,
   ...
 }: {
   imports = [
-      # Host-specific hardware
-      ./hardware-configuration.nix
-      # Import desktop module for Plasma 6
-      ../../modules/desktop.nix
-      # Import fish shell with starship
-      ../../modules/fish-starship.nix
-      # Import gaming module
-      ../../modules/gaming.nix
-      # Import NVIDIA Wayland module (best practices)
-      ../../modules/nvidia-wayland.nix
-      # Import AI agent orchestration (declarative container)
-      # Import  common configuration
-      # Import Tailscale mesh VPN
-      ../../modules/tailscale.nix
-      # Import CI/CD and auto-update modules
-      ../../modules/garnix.nix
-      ../../modules/auto-update.nix
-      # Import SSH configuration
-      ../../modules/ssh.nix
-      # Import mining services module
-      ../../modules/mining.nix
-      # Import distributed builds module (GPU+CUDA+ROCm support)
-      ../../modules/distributed-builds.nix
-      # Import storage management
-      ../../modules/storage-btrfs.nix
-      # Import mining-aware build wrapper
-      ../../modules/mining-build-wrapper.nix
-   ];
+    # Host-specific hardware
+    ./hardware-configuration.nix
+    # Import desktop module for Plasma 6
+    ../../modules/desktop.nix
+    # Import fish shell with starship
+    ../../modules/fish-starship.nix
+    # Import gaming module
+    ../../modules/gaming.nix
+    # Import NVIDIA Wayland module (best practices)
+    ../../modules/nvidia-wayland.nix
+    # Import AI agent orchestration (declarative container)
+    # Import  common configuration
+    # Import Tailscale mesh VPN
+    ../../modules/tailscale.nix
+    # Import CI/CD and auto-update modules
+    ../../modules/garnix.nix
+    ../../modules/auto-update.nix
+    # Import SSH configuration
+    ../../modules/ssh.nix
+    # Import mining services module
+    ../../modules/mining.nix
+    # Import distributed builds module (GPU+CUDA+ROCm support)
+    ../../modules/distributed-builds.nix
+    # Import storage management
+    ../../modules/storage-btrfs.nix
+    # Import mining-aware build wrapper
+    ../../modules/mining-build-wrapper.nix
+  ];
 
   # Host identification
   networking.hostName = "forge";
@@ -93,8 +92,8 @@
   boot.kernelParams = lib.mkForce [
     "loglevel=4"
     "lsm=landlock,yama,bpf"
-    "simpledrm.disable=1"  # Required for display
-    "nvidia-drm.modeset=1"  # Required for NVIDIA display
+    "simpledrm.disable=1" # Required for display
+    "nvidia-drm.modeset=1" # Required for NVIDIA display
   ];
 
   environment.variables = {
@@ -103,12 +102,12 @@
     OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
   };
 
-   # ============================================================================
-   # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
-   # ============================================================================
-   services.mining.enable = true;
+  # ============================================================================
+  # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
+  # ============================================================================
+  services.mining.enable = true;
 
-   # Enable NVIDIA Wayland for RTX 4060s
+  # Enable NVIDIA Wayland for RTX 4060s
   hardware.nvidia.wayland.enable = true;
 
   # NVIDIA GPUs (RTX 4060s) - Both GPUs mining
@@ -126,8 +125,8 @@
   # AMD GPU Power Management - 140W limit, 86% fan speed
   systemd.services.amd-gpu-power-mgmt = {
     description = "AMD GPU Power and Fan Management";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "basic.target" "amd-gpu-check.service" ];
+    wantedBy = ["multi-user.target"];
+    after = ["basic.target" "amd-gpu-check.service"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;

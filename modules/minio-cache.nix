@@ -45,18 +45,20 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Add MinIO cache to substituters
-    nix.settings.substituters = lib.mkAfter [
-      "s3://${cfg.bucket}?endpoint=${cfg.endpoint}&region=${cfg.region}"
-    ];
+    nix.settings = {
+      # Add MinIO cache to substituters
+      substituters = lib.mkAfter [
+        "s3://${cfg.bucket}?endpoint=${cfg.endpoint}&region=${cfg.region}"
+      ];
+
+      # For signed caches, configure signing key
+      secret-key-files = lib.mkIf (cfg.privateKeyFile != null) [cfg.privateKeyFile];
+      trusted-public-keys = lib.mkIf (cfg.publicKey != null) [cfg.publicKey];
+    };
 
     # Configure S3 credentials if provided
     systemd.services.nix-daemon.serviceConfig = lib.mkIf (cfg.credentialsFile != null) {
       EnvironmentFile = cfg.credentialsFile;
     };
-
-    # For signed caches, configure the signing key
-    nix.settings.secret-key-files = lib.mkIf (cfg.privateKeyFile != null) [cfg.privateKeyFile];
-    nix.settings.trusted-public-keys = lib.mkIf (cfg.publicKey != null) [cfg.publicKey];
   };
 }

@@ -89,10 +89,12 @@ in {
     services.postgresql = lib.mkIf cfg.postgresql.enable {
       enable = true;
       ensureDatabases = ["n8ndb"];
-      ensureUsers = [{
-        name = "n8n";
-        ensurePermissions = {"DATABASE n8ndb" = "ALL PRIVILEGES";};
-      }];
+      ensureUsers = [
+        {
+          name = "n8n";
+          ensurePermissions = {"DATABASE n8ndb" = "ALL PRIVILEGES";};
+        }
+      ];
     };
 
     # Firewall configuration

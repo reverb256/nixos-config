@@ -23,10 +23,7 @@ in {
   config = mkIf cfg.enable {
     # Install RGB packages
     environment.systemPackages = with pkgs;
-      [
-        # OpenRGB packages (either with plugins or minimal)
-      ]
-      ++ lib.optionals cfg.openrgb.enable (
+      lib.optionals cfg.openrgb.enable (
         if cfg.openrgb.withPlugins && pkgs.openrgb-with-plugins or false
         then [pkgs.openrgb-with-plugins]
         else [pkgs.openrgb]

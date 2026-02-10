@@ -70,7 +70,7 @@ in {
     # ============================================================================
     hardware.graphics = {
       enable = true;
-      enable32Bit = cfg.enable32Bit;
+      inherit (cfg) enable32Bit;
 
       extraPackages = with pkgs; [
         # Essential for NVIDIA + Wayland integration

@@ -1,42 +1,37 @@
 # Nexus Host Configuration
 # 10.1.1.120 - Build Server (24 cores, 2x RTX 3060 Ti)
-{
-  lib,
-  pkgs,
-  inputs,
-  ...
-}: {
+{pkgs, ...}: {
   imports = [
-      # Host-specific hardware
-      ./hardware-configuration.nix
-      # Import desktop module for Plasma 6
-      ../../modules/desktop.nix
-      # Import fish shell with starship
-      ../../modules/fish-starship.nix
-      # Import gaming module
-      ../../modules/gaming.nix
-      # Import NVIDIA Wayland module (best practices)
-      ../../modules/nvidia-wayland.nix
-      # Import AI agent orchestration (declarative container)
-      # Import  common configuration
-      # Import Tailscale mesh VPN
-      ../../modules/tailscale.nix
-      # Import AIStor secrets generation
-      ../../modules/aistor-secrets.nix
-      # Import mining module (robust configuration)
-      ../../modules/mining.nix
-      # Import CI/CD and auto-update modules
-      ../../modules/garnix.nix
-      ../../modules/auto-update.nix
-      # Import distributed builds module (GPU+CUDA+ROCm support)
-      ../../modules/distributed-builds.nix
-      # Import storage management
-      ../../modules/storage-btrfs.nix
-      # Import mining-aware build wrapper
-      ../../modules/mining-build-wrapper.nix
-      # Import SSH configuration
-      ../../modules/ssh.nix
-   ];
+    # Host-specific hardware
+    ./hardware-configuration.nix
+    # Import desktop module for Plasma 6
+    ../../modules/desktop.nix
+    # Import fish shell with starship
+    ../../modules/fish-starship.nix
+    # Import gaming module
+    ../../modules/gaming.nix
+    # Import NVIDIA Wayland module (best practices)
+    ../../modules/nvidia-wayland.nix
+    # Import AI agent orchestration (declarative container)
+    # Import  common configuration
+    # Import Tailscale mesh VPN
+    ../../modules/tailscale.nix
+    # Import AIStor secrets generation
+    ../../modules/aistor-secrets.nix
+    # Import mining module (robust configuration)
+    ../../modules/mining.nix
+    # Import CI/CD and auto-update modules
+    ../../modules/garnix.nix
+    ../../modules/auto-update.nix
+    # Import distributed builds module (GPU+CUDA+ROCm support)
+    ../../modules/distributed-builds.nix
+    # Import storage management
+    ../../modules/storage-btrfs.nix
+    # Import mining-aware build wrapper
+    ../../modules/mining-build-wrapper.nix
+    # Import SSH configuration
+    ../../modules/ssh.nix
+  ];
 
   # Host identification
   networking.hostName = "nexus";
@@ -87,7 +82,7 @@
   # Prevent systemd-logind from killing user processes during session changes
   services.logind.settings.Login.KillUserProcesses = false;
 
-# Unified RGB Control - Gigabyte AORUS X470 with RGB
+  # Unified RGB Control - Gigabyte AORUS X470 with RGB
   # hardware.unified-rgb.enable = true;  # Disabled - module causing errors
   # ============================================================================
   # MINING CONFIGURATION (Nexus: 24 cores, RTX 3060 Ti)

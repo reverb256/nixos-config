@@ -3,7 +3,6 @@
 {
   lib,
   pkgs,
-  inputs,
   ...
 }: {
   imports = [
@@ -31,14 +30,14 @@
     ../../modules/storage-btrfs.nix
     # Import mining build wrapper
     ../../modules/mining-build-wrapper.nix
-      # Import Kubernetes module - DISABLED (module conflict with nixpkgs)
-      # ../../modules/services/kubernetes.nix
-      # Import n8n module (custom with dbType option) - DISABLED (module conflict)
-      # ../../modules/services/n8n.nix
-      # Import stable-diffusion module - DISABLED (causing infinite recursion)
-      # ../../modules/services/stable-diffusion.nix
-      # Import  node host module - DISABLED ( refactor in progress)
-    ];
+    # Import Kubernetes module - DISABLED (module conflict with nixpkgs)
+    # ../../modules/services/kubernetes.nix
+    # Import n8n module (custom with dbType option) - DISABLED (module conflict)
+    # ../../modules/services/n8n.nix
+    # Import stable-diffusion module - DISABLED (causing infinite recursion)
+    # ../../modules/services/stable-diffusion.nix
+    # Import  node host module - DISABLED ( refactor in progress)
+  ];
 
   # Host identification
   networking.hostName = "sentry";
@@ -86,11 +85,11 @@
   services.logind.settings.Login.KillUserProcesses = false;
 
   # Sentry-specific overrides - CPU mining only (8 threads = 50% of 16 cores)
-   services.mining.enable = true;
-   services.mining.xmrig.enable = true;
-   services.mining.xmrig.threads = 8;
-   services.mining.xmrig.pool = "xtm-rx-us.kryptex.network:8038";
-   services.mining.lolminer.enable = false; # No GPU mining on sentry
+  services.mining.enable = true;
+  services.mining.xmrig.enable = true;
+  services.mining.xmrig.threads = 8;
+  services.mining.xmrig.pool = "xtm-rx-us.kryptex.network:8038";
+  services.mining.lolminer.enable = false; # No GPU mining on sentry
 
   # ============================================================================
   # NETWORKING (Static IP)
@@ -211,5 +210,4 @@
   #   ];
   #   openFirewall = true;
   # };
-
 }

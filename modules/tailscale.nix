@@ -1,10 +1,5 @@
 # Tailscale - Secure mesh VPN
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{lib, ...}:
 with lib; {
   services.tailscale = {
     enable = true;
