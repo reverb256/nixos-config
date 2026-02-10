@@ -1,27 +1,34 @@
 # Colmena Cluster Deployment Configuration (v0.5+)
+# Full module imports - required for proper evaluation
 {
   inputs,
   self,
   ...
 }: let
-  inherit (inputs.nixpkgs) lib;
+  pkgs = import inputs.nixpkgs {
+    system = "x86_64-linux";
+    config.allowUnfree = true;
+  };
 in {
   meta = {
     nixpkgs = import inputs.nixpkgs {
       system = "x86_64-linux";
-      config.allowUnfree = true;
+      overlays = [];
+    };
+    specialArgs = {
+      inherit inputs self;
     };
   };
 
   # Default deployment settings
-  defaults = {pkgs, ...}: {
+  defaults = {
     deployment = {
       allowLocalDeployment = true;
     };
   };
 
-  # Host configurations with NixOS configs
-  zephyr = { config, pkgs, ... }: {
+  # Host configurations with full module imports
+  zephyr = { name, nodes, pkgs, ... }: {
     imports = [
       ./configuration.nix
       ./hosts/zephyr/configuration.nix
@@ -30,7 +37,7 @@ in {
     deployment.targetUser = "root";
   };
 
-  nexus = { config, pkgs, ... }: {
+  nexus = { name, nodes, pkgs, ... }: {
     imports = [
       ./configuration.nix
       ./hosts/nexus/configuration.nix
@@ -39,7 +46,7 @@ in {
     deployment.targetUser = "j_kro";
   };
 
-  forge = { config, pkgs, ... }: {
+  forge = { name, nodes, pkgs, ... }: {
     imports = [
       ./configuration.nix
       ./hosts/forge/configuration.nix
@@ -48,7 +55,7 @@ in {
     deployment.targetUser = "j_kro";
   };
 
-  sentry = { config, pkgs, ... }: {
+  sentry = { name, nodes, pkgs, ... }: {
     imports = [
       ./configuration.nix
       ./hosts/sentry/configuration.nix
