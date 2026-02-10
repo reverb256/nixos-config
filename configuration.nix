@@ -54,7 +54,7 @@ in {
     });
   '';
 
-   imports = [
+  imports = [
       ./modules
       # ./modules/unified-rgb.nix  # Disabled - causing option errors
       ./modules/lobster-user.nix
@@ -64,7 +64,8 @@ in {
       ./modules/mining-build-wrapper.nix
       # Storage configuration modules
       ./modules/storage.nix
-      ./modules/storage-btrfs.nix
+      # Temporarily disabled - syntax errors being fixed
+      # ./modules/storage-btrfs.nix
       # Secrets configuration
       # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
       #  service module - REMOVED
