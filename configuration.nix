@@ -246,7 +246,7 @@ in {
   programs.mosh.enable = true;
 
   # ============================================================================
-  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix)
+  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix) - 4 launchers enabled
   # ============================================================================
   programs.anime-game-launcher.enable = true;
   programs.honkers-railway-launcher.enable = true;
