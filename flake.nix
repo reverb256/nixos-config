@@ -17,49 +17,15 @@
 
     # Nixcord - Declarative Discord/Vesktop configuration
     nixcord.url = "github:FlameFlag/nixcord";
-
-    # Colmena - Multi-host deployment (v0.5+)
-    colmena = {
-      meta = {
-        nixpkgs = import inputs.nixpkgs {
-          system = "x86_64-linux";
-          config.allowUnfree = true;
-        };
-        specialArgs = {
-          inherit inputs self;
-        };
-      };
-
-      # Use zephyr as canary, rest of cluster
-      zephyr.deployment = {
-        targetHost = "100.81.182.5";
-        targetUser = "root";
-      };
-
-      nexus.deployment = {
-        targetHost = "100.86.158.18";
-        targetUser = "j_kro";
-      };
-
-      forge.deployment = {
-        targetHost = "100.95.222.45";
-        targetUser = "j_kro";
-      };
-
-      sentry.deployment = {
-        targetHost = "100.82.210.39";
-        targetUser = "j_kro";
-      };
-    };
-
-    # Colmena v0.5+ hive output
-    colmenaHive = inputs.colmena.lib.makeHive self.outputs.colmena;
-
+ 
+    # Colmena - Multi-host deployment (v0.5+ requires colmenaHive output)
+    colmena.url = "github:zhaofengli/colmena";
+    colmena.inputs.nixpkgs.follows = "nixpkgs";
+ 
     # Enhanced Gaming Packages (Proton-GE, GameMode, etc.)
     nix-gaming.url = "github:fufexan/nix-gaming";
 
     # Anime Game Launchers (ezKEa/aagl-gtk-on-nix)
-    # Anime Games Launcher (ezKEa)/    # Anime Game Launchers (ezKEa)/    aagl.url = "github:ezKEa/aagl-gtk-on-nix";/
     aagl.url = "github:ezKEa/aagl-gtk-on-nix";
 
     # ScopeBuddy - Gamescope wrapper for Wayland desktop gaming
@@ -80,11 +46,7 @@
 
     # OpenCode AI Agent
     opencode.url = "github:anomalyco/opencode/dev";
-
-    # Colmena - Multi-host deployment (v0.5+ requires colmenaHive output)
-    colmena.url = "github:zhaofengli/colmena";
-    colmena.inputs.nixpkgs.follows = "nixpkgs";
-
+ 
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 

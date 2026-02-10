@@ -145,25 +145,6 @@
       port = 8080;
     };
 
-    # Additional services for AI and automation (disabled until modules are properly set up)
-    # n8n = {
-    #   enable = true;
-    #   port = 5678;
-    #   host = "0.0.0.0";
-    #   openFirewall = true;
-    # };
-    # stable-diffusion = {
-    #   enable = true;
-    #   port = 7860;
-    #   host = "0.0.0.0";
-    #   gpuType = "cuda";  # Use CUDA for NVIDIA RTX 3090
-    #   cmdOptions = [
-    #     "--xformers"
-    #     "--opt-split-attention"
-    #     "--medvram"
-    #   ];
-    #   openFirewall = true;
-    # };
   };
 
   systemd = {

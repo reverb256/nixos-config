@@ -97,7 +97,6 @@
     # API key files (from Agenix secrets)
     # Note: These files must exist in secrets/ directory and be configured in secrets/age-secrets.nix
     OPENROUTER_API_KEY_FILE = "/run/agenix/openrouter-api-key";
-    # OPENAI_API_KEY_FILE = "/run/agenix/openai-api-key"; # Commented out as file does not exist
 
     # OpenCode environment variables
     OPENCODE_MCP_SCHEMA_FIX = "1";

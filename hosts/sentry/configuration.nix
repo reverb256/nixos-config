@@ -178,36 +178,4 @@
       remote.origin.url = "git@github.com:reverb256/nixos-config.git";
     };
   };
-
-  #  node host service - DISABLED ( refactor in progress)
-  #   enable = true;
-  #   gatewayHost = "zephyr";
-  #   displayName = "Sentry Build Node";
-  #   execAllowlist = [
-  #     "/run/current-system/sw/bin/uname"
-  #     "/run/current-system/sw/bin/sw_vers"
-  #   ];
-  # };
-
-  # Additional services for AI and automation
-  # n8n workflow automation - DISABLED (module conflict with nixpkgs)
-  # services.n8n = {
-  #   enable = true;
-  #   port = 5678;
-  #   host = "0.0.0.0";
-  #   dbType = "sqlite";
-  #   openFirewall = true;
-  # };
-
-  # Stable Diffusion - DISABLED (causing infinite recursion)
-  # services.stable-diffusion = {
-  #   enable = true;
-  #   port = 7860;
-  #   host = "0.0.0.0";
-  #   gpuType = "cpu";  # Use CPU since no specific GPU mentioned
-  #   cmdOptions = [
-  #     "--opt-split-attention"
-  #   ];
-  #   openFirewall = true;
-  # };
 }

@@ -55,23 +55,23 @@ in {
   '';
 
   imports = [
-      ./modules
-      # ./modules/unified-rgb.nix  # Disabled - causing option errors
-      ./modules/lobster-user.nix
-      # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
-      # ./modules/flatpak.nix
-      # Mining-aware build wrapper (pause/resume during builds)
-      ./modules/mining-build-wrapper.nix
-      # Storage configuration modules
-      ./modules/storage.nix
-      ./modules/storage-btrfs.nix
-      # Temporarily disabled - syntax errors being fixed
-      # Temporarily disabled until we verify distributed builds are working
-      # ./modules/distributed-builds.nix
-      # Secrets configuration
-      # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
-      #  service module - REMOVED
-   ];
+    ./modules
+    # ./modules/unified-rgb.nix  # Disabled - causing option errors
+    ./modules/lobster-user.nix
+    # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
+    # ./modules/flatpak.nix
+    # Mining-aware build wrapper (pause/resume during builds)
+    ./modules/mining-build-wrapper.nix
+    # Storage configuration modules
+    ./modules/storage.nix
+    ./modules/storage-btrfs.nix
+    # Temporarily disabled - syntax errors being fixed
+    # Temporarily disabled until we verify distributed builds are working
+    # ./modules/distributed-builds.nix
+    # Secrets configuration
+    # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
+    #  service module - REMOVED
+  ];
 
   #  AI Gateway Service - REMOVED
   #  AI Agent Gateway - completely removed from system
@@ -159,16 +159,12 @@ in {
   };
 
   # Note: Docker is not explicitly enabled, avoiding conflict with podman's Docker socket
-  # virtualisation.docker.enable = false;  # Only enable if podman dockerSocket causes issues
-
+ 
   # OCI Containers configuration for container management
   virtualisation.oci-containers = {
     backend = "podman"; # Use podman as backend
-
+ 
     # Note: Specific containers managed via individual services when needed
-    # containers = {
-    #   # Example containers definitions would go here if needed
-    # };
   };
 
   # ============================================================================
