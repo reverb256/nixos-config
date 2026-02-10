@@ -1,11 +1,6 @@
 # AMD GPU Module
 # AMD GPU driver configuration with Wayland and OpenCL support
-{
-  lib,
-  config,
-  pkgs,
-  ...
-}:
+{lib, ...}:
 with lib; {
   # ============================================================================
   # AMD GPU DRIVER CONFIGURATION

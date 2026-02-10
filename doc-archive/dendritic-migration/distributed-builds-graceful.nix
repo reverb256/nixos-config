@@ -40,8 +40,8 @@ in {
         # Mining: 2x NVIDIA GPUs @ 130W power limit (moderate load)
         hostName = "nexus";
         system = "x86_64-linux";
-        maxJobs = 12;  # 4GB per job (48GB total)
-        speedFactor = 3;  # Prioritized for CPU-heavy builds (24 cores)
+        maxJobs = 12; # 4GB per job (48GB total)
+        speedFactor = 3; # Prioritized for CPU-heavy builds (24 cores)
         supportedFeatures = ["benchmark" "big-parallel" "kvm" "cuda"];
         mandatoryFeatures = [];
       }
@@ -51,8 +51,8 @@ in {
         # CAUTION: GPU builds may impact mining profitability
         hostName = "forge";
         system = "x86_64-linux";
-        maxJobs = 2;  # VERY conservative due to heavy mining + only 16GB RAM
-        speedFactor = 2;  # Hybrid GPU acceleration (use sparingly)
+        maxJobs = 2; # VERY conservative due to heavy mining + only 16GB RAM
+        speedFactor = 2; # Hybrid GPU acceleration (use sparingly)
         supportedFeatures = ["benchmark" "big-parallel" "cuda" "rocm"];
         mandatoryFeatures = [];
       }
@@ -61,8 +61,8 @@ in {
         # Mining: CPU-only (8 threads, no GPU mining)
         hostName = "sentry";
         system = "x86_64-linux";
-        maxJobs = 6;  # 4GB per job (24GB total, leave 8GB overhead)
-        speedFactor = 1;  # Lighter builds
+        maxJobs = 6; # 4GB per job (24GB total, leave 8GB overhead)
+        speedFactor = 1; # Lighter builds
         supportedFeatures = ["benchmark" "big-parallel" "rocm"];
         mandatoryFeatures = [];
       }
@@ -77,8 +77,8 @@ in {
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
-        "https://cuda.cachix.org"  # GPU packages (CUDA)
-        "https://rocm.cachix.org"  # GPU packages (ROCm)
+        "https://cuda.cachix.org" # GPU packages (CUDA)
+        "https://rocm.cachix.org" # GPU packages (ROCm)
         "https://nix-gaming.cachix.org"
       ];
       trusted-public-keys = [
@@ -90,9 +90,9 @@ in {
       ];
 
       # Network optimization (1Gbps networking with TP-Link Easy Smart switches)
-      http-connections = 100;  # More parallel downloads (1Gbps can handle it)
+      http-connections = 100; # More parallel downloads (1Gbps can handle it)
       connect-timeout = 30;
-      max-silent-time = 3600;  # Kill stuck builds after 1 hour
+      max-silent-time = 3600; # Kill stuck builds after 1 hour
 
       # ADAPTIVE max-jobs: Conservative when alone, aggressive with builders
       max-jobs = lib.mkDefault (

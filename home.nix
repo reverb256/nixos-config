@@ -28,65 +28,63 @@
   };
 
   # User packages - development tools, shell utilities, and applications
-  home.packages = with pkgs;
-    let
-      # Pkg removed
-    in
-    [
-      # Shell tools (configured in programs section below)
-      btop
-      fzf
-      tmux
-      eza
-      zoxide
-      starship
+  home.packages = with pkgs; let
+    # Pkg removed
+  in [
+    # Shell tools (configured in programs section below)
+    btop
+    fzf
+    tmux
+    eza
+    zoxide
+    starship
 
-      # Nix development tools (keep global for NixOS management)
-      alejandra
-      deadnix
-      statix
-      nixd
+    # Nix development tools (keep global for NixOS management)
+    alejandra
+    deadnix
+    statix
+    nixd
 
-      # User applications
-      opencode
-      qwen-code
-      gh
-      gparted
-      localsend
-      jocalsend
+    # User applications
+    opencode
+    qwen-code
+    gh
+    gparted
+    localsend
+    jocalsend
 
-      #  AI agent
-      # Cloud and sync tools
-      rclone
-      rclone-browser
-      restic
-      tailscale
+    #  AI agent
+    # Cloud and sync tools
+    rclone
+    rclone-browser
+    restic
+    tailscale
 
-      # From nix profile (moved to declarative)
-      gpu-viewer
-      cachix
+    # From nix profile (moved to declarative)
+    gpu-viewer
+    cachix
 
-      # CLI tools
-      _1password-cli # 1Password CLI
-      himalaya # Email CLI
-      spotify-player # Spotify TUI
+    # CLI tools
+    _1password-cli # 1Password CLI
+    himalaya # Email CLI
+    spotify-player # Spotify TUI
 
-      # Media tools (moved from system-packages)
-      yt-dlp
+    # Media tools (moved from system-packages)
+    yt-dlp
 
-      # Display management (moved from system-packages)
-      kanshi
+    # Display management (moved from system-packages)
+    kanshi
 
-      # Kilo CLI wrapper
-      (pkgs.writeShellScriptBin "kilo" ''
-        exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
-      '')
+    # Kilo CLI wrapper
+    (pkgs.writeShellScriptBin "kilo" ''
+      exec ${pkgs.nodejs_22}/bin/npx @kilocode/cli "$@"
+    '')
 
-      # ClawHub CLI for  skill management
-      (pkgs.writeShellScriptBin "clawdhub" ''
-        exec ${pkgs.nodejs_22}/bin/npx clawdhub "$@"
-      '')
-    ];
+    # ClawHub CLI for  skill management
+    (pkgs.writeShellScriptBin "clawdhub" ''
+      exec ${pkgs.nodejs_22}/bin/npx clawdhub "$@"
+    '')
+  ];
 
   home.sessionVariables = {
     # MCP Server Configuration

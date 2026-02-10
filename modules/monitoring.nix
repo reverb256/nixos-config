@@ -386,7 +386,7 @@ in {
 
        templates:
          - '/etc/prometheus/templates/*.tmpl'
-     '';
+    '';
 
     # Alertmanager email templates
     environment.etc."prometheus/templates/default.tmpl".text = ''

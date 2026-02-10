@@ -1,7 +1,6 @@
 # Flatpak Steam - Controller Support
 # Both native and Flatpak Steam installed for maximum compatibility
 {
-  config,
   lib,
   pkgs,
   ...

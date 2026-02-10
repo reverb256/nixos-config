@@ -1,7 +1,11 @@
 # Unified RGB Control Module
 # Combines OpenRGB + liquidctl + ckb-next + OpenRazer/Polychromatic
-
-{lib, config, pkgs, ...}:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 with lib; let
   cfg = config.hardware.unified-rgb;
 in {
@@ -32,7 +36,7 @@ in {
     };
 
     profiles = lib.mkOption {
-      type = types.attrsOf (types.str);
+      type = types.attrsOf types.str;
       default = {};
       description = "RGB profiles for different scenarios (gaming, movie, off)";
       example = {
@@ -54,12 +58,14 @@ in {
 
   config = lib.mkIf cfg.enable {
     # OpenRGB and liquidctl packages
-    environment.systemPackages = with pkgs; [
-      openrgb
-      (lib.optionalString cfg.openrgb.motherboard "openrgb-with-plugins")
-    ] ++ lib.optionals cfg.liquidctl.enable [
-      pkgs.liquidctl
-    ];
+    environment.systemPackages = with pkgs;
+      [
+        openrgb
+        (lib.optionalString cfg.openrgb.motherboard "openrgb-with-plugins")
+      ]
+      ++ lib.optionals cfg.liquidctl.enable [
+        pkgs.liquidctl
+      ];
 
     # OpenRGB udev rules for device access (comprehensive)
     services.udev.extraRules = lib.mkIf cfg.openrgb.enable ''
@@ -117,16 +123,24 @@ in {
         ExecStart = ''
           ${
             if cfg.openrgb.motherboard != null
-              then pkgs.openrgb
-              else pkgs.openrgb
+            then pkgs.openrgb
+            else pkgs.openrgb
           }/bin/openrgb ${
-            if cfg.openrgb.motherboard != null then "--motherboard ${cfg.openrgb.motherboard}" else ""
+            if cfg.openrgb.motherboard != null
+            then "--motherboard ${cfg.openrgb.motherboard}"
+            else ""
           } ${
-            if cfg.openrgb.server.autoStart then "--server" else ""
+            if cfg.openrgb.server.autoStart
+            then "--server"
+            else ""
           } ${
-            if cfg.openrgb.server.enable then "--port ${toString cfg.openrgb.server.port}" else ""
+            if cfg.openrgb.server.enable
+            then "--port ${toString cfg.openrgb.server.port}"
+            else ""
           } ${
-            if cfg.sync.enable then "--color ${cfg.sync.color}" else ""
+            if cfg.sync.enable
+            then "--color ${cfg.sync.color}"
+            else ""
           }
         '';
         Restart = "on-failure";
@@ -146,7 +160,7 @@ in {
       };
     };
 
-     # Ensure plugdev group exists
+    # Ensure plugdev group exists
     users.groups.plugdev = {};
 
     # RGB sync service (optional)

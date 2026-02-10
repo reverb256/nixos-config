@@ -1,4 +1,4 @@
-{lib, ...}: {
+_: {
   age.secrets = {
     # Mining API token for XMRig HTTP API
     "mining-api-token" = {
@@ -28,10 +28,10 @@
     #   file = ./minio-cache-credentials.age;
     # };
 
-  # Cachix authentication token (for pushing to reverb-os cache)
-  # "cachix-token" = {
-  #   file = ./cachix-token.age;
-  # };
+    # Cachix authentication token (for pushing to reverb-os cache)
+    # "cachix-token" = {
+    #   file = ./cachix-token.age;
+    # };
 
     # Garnix cache credentials (for fetching from private Garnix cache)
     "garnix-netrc" = {

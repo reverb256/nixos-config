@@ -1,40 +1,81 @@
 # Zephyr Host Configuration - MINIMAL NVIDIA + Wayland
 # 10.1.1.110 - Master Workstation (32 cores, RTX 3090)
 {
-  lib,
   config,
-  inputs,
   pkgs,
   ...
 }: {
   imports = [
-      ./hardware-configuration.nix
-      ../../modules/desktop.nix
-      ../../modules/fish-starship.nix
-      ../../modules/gaming.nix
-      ../../modules/nvidia-wayland.nix
-      ../../modules/garnix.nix
-      ../../modules/tailscale.nix
-      ../../modules/aistor-secrets.nix
-      ../../modules/nix-cache-server.nix
-      ../../modules/mcp-servers.nix
-      ../../modules/mining.nix
-      ../../modules/auto-update.nix
-      ../../modules/ssh.nix
-      ../../modules/distributed-builds.nix
-      ../../modules/storage-btrfs.nix
-      ../../modules/mining-build-wrapper.nix
-   ];
+    ./hardware-configuration.nix
+    ../../modules/desktop.nix
+    ../../modules/fish-starship.nix
+    ../../modules/gaming.nix
+    ../../modules/nvidia-wayland.nix
+    ../../modules/garnix.nix
+    ../../modules/tailscale.nix
+    ../../modules/aistor-secrets.nix
+    ../../modules/nix-cache-server.nix
+    ../../modules/mcp-servers.nix
+    ../../modules/mining.nix
+    ../../modules/auto-update.nix
+    ../../modules/ssh.nix
+    ../../modules/distributed-builds.nix
+    ../../modules/storage-btrfs.nix
+    ../../modules/mining-build-wrapper.nix
+  ];
 
-  networking.hostName = "zephyr";
+  networking = {
+    hostName = "zephyr";
 
-  services.xserver.videoDrivers = ["nvidia"];
-  hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
+    networkmanager.ensureProfiles = {
+      profiles."Wired connection 1" = {
+        connection = {
+          id = "Wired connection 1";
+          type = "ethernet";
+          interface-name = "enp38s0";
+          autoconnect = true;
+        };
+        ipv4 = {
+          method = "manual";
+          address1 = "10.1.1.110/24";
+          gateway = "10.1.1.1";
+          dns = "127.0.0.1,::1";
+        };
+        ipv6.method = "auto";
+      };
+    };
 
-  hardware.nvidia.wayland = {
-    enable = true;
-    openModules = true;
-    sddmWayland = true;
+    hosts = {
+      "10.1.1.110" = ["zephyr"];
+      "10.1.1.120" = ["nexus"];
+      "10.1.1.130" = ["forge"];
+      "10.1.1.140" = ["sentry"];
+    };
+
+    firewall = {
+      allowedTCPPorts = [9757 18789 18790];
+      allowedUDPPorts = [
+        9757
+        9758
+        9759
+        27031
+        27036
+      ];
+      interfaces."tailscale0".allowedTCPPorts = [18789 18790];
+    };
+  };
+
+  hardware.nvidia = {
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
+
+    wayland = {
+      enable = true;
+      openModules = true;
+      sddmWayland = true;
+    };
+
+    powerManagement.enable = true;
+    powerManagement.finegrained = false;
   };
 
   boot.kernelParams = [
@@ -51,72 +92,88 @@
     "iommu=pt"
   ];
 
-  hardware.nvidia.powerManagement.enable = true;
-  hardware.nvidia.powerManagement.finegrained = false;
+  services = {
+    xserver.videoDrivers = ["nvidia"];
 
-  services.displayManager = {
-    sddm = {
-      enable = true;
-      wayland.enable = true;
-    };
-    defaultSession = "plasma";
-    autoLogin = {
-      enable = true;
-      user = "j_kro";
-    };
-  };
-
-  systemd.services.display-manager.restartIfChanged = false;
-  systemd.services.sddm.restartIfChanged = false;
-  services.logind.settings.Login.KillUserProcesses = false;
-
-   services.garnix.enable = true;
-   services.nixos-auto-update.enable = true;
-
-   services.mining = {
-    enable = true;
-    user = "mining";
-    xmrig = {
-      enable = true;
-      threads = 16;
-      pool = "xtm-rx-us.kryptex.network:8038";
-      wallet = "krxXVNVMM7.zephyr";
-    };
-    lolminer = {
-      enable = true;
-      algorithm = "CR29";
-      pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
-      nvidia = {
+    displayManager = {
+      sddm = {
         enable = true;
-        devices = "0";
-        powerLimit = 250;
+        wayland.enable = true;
+      };
+      defaultSession = "plasma";
+      autoLogin = {
+        enable = true;
+        user = "j_kro";
       };
     };
-  };
 
-  networking.networkmanager.ensureProfiles = {
-    profiles."Wired connection 1" = {
-      connection = {
-        id = "Wired connection 1";
-        type = "ethernet";
-        interface-name = "enp38s0";
-        autoconnect = true;
+    logind.settings.Login.KillUserProcesses = false;
+
+    garnix.enable = true;
+    nixos-auto-update.enable = true;
+
+    mining = {
+      enable = true;
+      user = "mining";
+      xmrig = {
+        enable = true;
+        threads = 16;
+        pool = "xtm-rx-us.kryptex.network:8038";
+        wallet = "krxXVNVMM7.zephyr";
       };
-      ipv4 = {
-        method = "manual";
-        address1 = "10.1.1.110/24";
-        gateway = "10.1.1.1";
-        dns = "127.0.0.1,::1";
+      lolminer = {
+        enable = true;
+        algorithm = "CR29";
+        pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
+        nvidia = {
+          enable = true;
+          devices = "0";
+          powerLimit = 250;
+        };
       };
-      ipv6.method = "auto";
     };
+
+    tailscale.enable = true;
+
+    mcp-servers = {
+      enable = true;
+      servers.playwright.enable = true;
+    };
+
+    nix-cache-server = {
+      enable = true;
+      port = 8080;
+    };
+
+    # Additional services for AI and automation (disabled until modules are properly set up)
+    # n8n = {
+    #   enable = true;
+    #   port = 5678;
+    #   host = "0.0.0.0";
+    #   openFirewall = true;
+    # };
+    # stable-diffusion = {
+    #   enable = true;
+    #   port = 7860;
+    #   host = "0.0.0.0";
+    #   gpuType = "cuda";  # Use CUDA for NVIDIA RTX 3090
+    #   cmdOptions = [
+    #     "--xformers"
+    #     "--opt-split-attention"
+    #     "--medvram"
+    #   ];
+    #   openFirewall = true;
+    # };
   };
 
-  networking.hosts = {
-    "10.1.1.110" = ["zephyr"];
-    "10.1.1.120" = ["nexus"];
-    "10.1.1.130" = ["forge"];
-    "10.1.1.140" = ["sentry"];
+  systemd = {
+    services = {
+      display-manager.restartIfChanged = false;
+      sddm.restartIfChanged = false;
+    };
+
+    oomd.enable = true;
+    coredump.enable = true;
   };
 
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale"];
@@ -127,20 +184,21 @@
     NVIDIA_DRIVER_PATH = "/run/opengl-driver";
     NVIDIA_LIB_PATH = "/run/opengl-driver/lib";
     NVIDIA_ICD_PATH = "/run/opengl-driver/share/vulkan/icd.d";
-    
+
     # CUDA variables
     CUDA_PATH = "/run/opengl-driver";
     CUDA_HOME = "/run/opengl-driver";
-    
+
     # Vulkan variables
     VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json";
-    
+
     # Library path enhancement for CUDA detection
   };
   environment.variables.LD_LIBRARY_PATH = pkgs.lib.mkForce "/run/opengl-driver/lib:/run/opengl-driver/lib64";
 
-  services.tailscale = {
-    enable = true;
+  boot.kernel.sysctl = {
+    "vm.swappiness" = 80;
+    "vm.overcommit_ratio" = 90;
   };
 
   environment.systemPackages = with pkgs; [
@@ -148,23 +206,23 @@
     (pkgs.writeShellScriptBin "lms-enhanced" ''
       #!/bin/bash
       cd /tmp
-      
+
       # Set environment variables for GPU detection
       export __NV_PRIME_RENDER_OFFLOAD=1
       export __GLX_VENDOR_LIBRARY_NAME=nvidia
       export __VK_LAYER_NV_optimus=NVIDIA_only
-      
+
       # Set CUDA environment
       export CUDA_PATH=/run/opengl-driver
       export CUDA_HOME=/run/opengl-driver
       export NVIDIA_DRIVER_PATH=/run/opengl-driver
       export NVIDIA_LIB_PATH=/run/opengl-driver/lib
       export NVIDIA_ICD_PATH=/run/opengl-driver/share/vulkan/icd.d
-      
+
       # Enhance library path for CUDA detection
       export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64:$LD_LIBRARY_PATH"
       export VK_ICD_FILENAMES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json
-      
+
       # Use steam-run with enhanced bindings for maximum compatibility
       exec ${pkgs.steam-run}/bin/steam-run \
         --unshare-user-group \
@@ -185,27 +243,27 @@
         --bind "/run/opengl-driver/bin:/usr/bin" \
         ${pkgs.lmstudio}/bin/lms "$@"
     '')
-    
+
     (pkgs.writeShellScriptBin "lm-studio-enhanced" ''
       #!/bin/bash
       cd /tmp
-      
+
       # Set environment variables for GPU detection
       export __NV_PRIME_RENDER_OFFLOAD=1
       export __GLX_VENDOR_LIBRARY_NAME=nvidia
       export __VK_LAYER_NV_optimus=NVIDIA_only
-      
+
       # Set CUDA environment
       export CUDA_PATH=/run/opengl-driver
       export CUDA_HOME=/run/opengl-driver
       export NVIDIA_DRIVER_PATH=/run/opengl-driver
       export NVIDIA_LIB_PATH=/run/opengl-driver/lib
       export NVIDIA_ICD_PATH=/run/opengl-driver/share/vulkan/icd.d
-      
+
       # Enhance library path for CUDA detection
       export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64:$LD_LIBRARY_PATH"
       export VK_ICD_FILENAMES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json
-      
+
       # Use steam-run with enhanced bindings for maximum compatibility
       exec ${pkgs.steam-run}/bin/steam-run \
         --unshare-user-group \
@@ -226,7 +284,7 @@
         --bind "/run/opengl-driver/bin:/usr/bin" \
         ${pkgs.lmstudio}/bin/lm-studio "$@"
     '')
-    
+
     # Keep original wrappers as fallback
     (pkgs.writeShellScriptBin "lms" ''
       #!/bin/bash
@@ -260,7 +318,7 @@
         --bind "$NVIDIA_ICD_PATH:/etc/vulkan/icd.d" \
         ${pkgs.lmstudio}/bin/lm-studio "$@"
     '')
-    
+
     # Additional CUDA packages for better compatibility
     cudaPackages.cudatoolkit
     cudaPackages.cudnn
@@ -268,55 +326,4 @@
     vulkan-tools
     vulkan-validation-layers
   ];
-
-  systemd.oomd.enable = true;
-  systemd.coredump.enable = true;
-
-  services.mcp-servers = {
-    enable = true;
-    servers.playwright.enable = true;
-  };
-
-  networking.firewall = {
-    allowedTCPPorts = [9757 18789 18790];
-    allowedUDPPorts = [
-      9757
-      9758
-      9759
-      27031
-      27036
-    ];
-    interfaces."tailscale0".allowedTCPPorts = [18789 18790];
-  };
-
-  boot.kernel.sysctl = {
-    "vm.swappiness" = 80;
-    "vm.overcommit_ratio" = 90;
-  };
-
-  services.nix-cache-server = {
-    enable = true;
-    port = 8080;
-  };
-
-  # Additional services for AI and automation (disabled until modules are properly set up)
-  # services.n8n = {
-  #   enable = true;
-  #   port = 5678;
-  #   host = "0.0.0.0";
-  #   openFirewall = true;
-  # };
-
-  # services.stable-diffusion = {
-  #   enable = true;
-  #   port = 7860;
-  #   host = "0.0.0.0";
-  #   gpuType = "cuda";  # Use CUDA for NVIDIA RTX 3090
-  #   cmdOptions = [
-  #     "--xformers"
-  #     "--opt-split-attention"
-  #     "--medvram"
-  #   ];
-  #   openFirewall = true;
-  # };
 }

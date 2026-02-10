@@ -1,10 +1,6 @@
 # Desktop Profile
 # Composable profile for desktop hosts (zephyr, nexus, forge)
-{
-  lib,
-  config,
-  ...
-}:
+{lib, ...}:
 with lib; {
   imports = [
     ../../core/base.nix

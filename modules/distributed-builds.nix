@@ -29,8 +29,8 @@
         hostName = "zephyr";
         system = "x86_64-linux";
         protocol = "ssh-ng";
-        maxJobs = 6;  # 4GB per job (31GB total, 6 threads for mining + 20 for OS/apps)
-        speedFactor = 2;  # Moderate builds with mining-aware scheduling
+        maxJobs = 6; # 4GB per job (31GB total, 6 threads for mining + 20 for OS/apps)
+        speedFactor = 2; # Moderate builds with mining-aware scheduling
         supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "cuda"];
         mandatoryFeatures = [];
       }
@@ -40,8 +40,8 @@
         hostName = "nexus";
         system = "x86_64-linux";
         protocol = "ssh-ng";
-        maxJobs = 12;  # 4GB per job (48GB total)
-        speedFactor = 3;  # Prioritized for CPU-heavy builds (24 cores)
+        maxJobs = 12; # 4GB per job (48GB total)
+        speedFactor = 3; # Prioritized for CPU-heavy builds (24 cores)
         supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "cuda"];
         mandatoryFeatures = [];
       }
@@ -52,8 +52,8 @@
         hostName = "forge";
         system = "x86_64-linux";
         protocol = "ssh-ng";
-        maxJobs = 2;  # VERY conservative due to heavy mining + only 15GB RAM
-        speedFactor = 2;  # Hybrid GPU acceleration (use sparingly)
+        maxJobs = 2; # VERY conservative due to heavy mining + only 15GB RAM
+        speedFactor = 2; # Hybrid GPU acceleration (use sparingly)
         supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "cuda" "rocm"];
         mandatoryFeatures = [];
       }
@@ -63,8 +63,8 @@
         hostName = "sentry";
         system = "x86_64-linux";
         protocol = "ssh-ng";
-        maxJobs = 8;  # 4GB per job (31GB total, leave 8GB for overhead)
-        speedFactor = 1;  # Lighter builds
+        maxJobs = 8; # 4GB per job (31GB total, leave 8GB for overhead)
+        speedFactor = 1; # Lighter builds
         supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "rocm"];
         mandatoryFeatures = [];
       }
@@ -79,8 +79,8 @@
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
-        "https://cuda.cachix.org"  # GPU packages (CUDA)
-        "https://rocm.cachix.org"  # GPU packages (ROCm)
+        "https://cuda.cachix.org" # GPU packages (CUDA)
+        "https://rocm.cachix.org" # GPU packages (ROCm)
         "https://nix-gaming.cachix.org"
       ];
       trusted-public-keys = [
@@ -98,9 +98,9 @@
       max-jobs = lib.mkDefault 30; # 6 (zephyr) + 12 (nexus) + 2 (forge) + 8 (sentry)
 
       # Network optimization (1Gbps networking with TP-Link Easy Smart switches)
-      http-connections = 100;  # More parallel downloads (1Gbps can handle it)
+      http-connections = 100; # More parallel downloads (1Gbps can handle it)
       connect-timeout = 30;
-      max-silent-time = 3600;  # Kill stuck builds after 1 hour
+      max-silent-time = 3600; # Kill stuck builds after 1 hour
 
       # Build logging and debugging
       keep-build-log = true;

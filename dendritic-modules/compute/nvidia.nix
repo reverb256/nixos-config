@@ -1,11 +1,6 @@
 # NVIDIA GPU Module
 # NVIDIA Wayland driver configuration with best practices
-{
-  lib,
-  config,
-  pkgs,
-  ...
-}:
+{lib, ...}:
 with lib; {
   # ============================================================================
   # NVIDIA WAYLAND CONFIGURATION
@@ -16,21 +11,21 @@ with lib; {
 
   # NVIDIA driver package selection (default: stable)
   # Can be overridden per-host for beta or production branches
-  hardware.nvidia.package = mkDefault config.boot.kernelPackages.nvidiaPackages.stable;
-
   # NVIDIA Wayland optimizations
-  hardware.nvidia.wayland = {
-    enable = true;
-    enable32Bit = mkDefault true;
-    openModules = mkDefault true; # Use open-source kernel modules with proprietary userspace
-    powerManagement = mkDefault true;
-    sddmWayland = mkDefault true;
-  };
-
   # NVIDIA power management
-  hardware.nvidia.powerManagement = {
-    enable = mkDefault true;
-    finegrained = mkDefault false;
+  hardware.nvidia = {
+    package = mkDefault config.boot.kernelPackages.nvidiaPackages.stable;
+    wayland = {
+      enable = true;
+      enable32Bit = mkDefault true;
+      openModules = mkDefault true; # Use open-source kernel modules with proprietary userspace
+      powerManagement = mkDefault true;
+      sddmWayland = mkDefault true;
+    };
+    powerManagement = {
+      enable = mkDefault true;
+      finegrained = mkDefault false;
+    };
   };
 
   # NVIDIA kernel parameters for optimal performance

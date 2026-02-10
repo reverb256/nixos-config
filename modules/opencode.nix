@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: let
   cfg = config.services.opencode;
@@ -142,16 +141,21 @@ in {
         plugin = ["oh-my-opencode"];
         model = cfg.defaultModel;
         provider = {};
-        agent = lib.mapAttrs (name: model: {inherit model;}) cfg.agents;
+        agent = lib.mapAttrs (_: model: {inherit model;}) cfg.agents;
       }}
       EOF
 
       # Generate oh-my-opencode.json
       cat > /home/j_kro/.config/opencode/oh-my-opencode.json <<EOF
       ${builtins.toJSON {
-        agents = lib.mapAttrs (name: model: {inherit model;}) cfg.agents;
-        categories = lib.mapAttrs (name: cat: {model = cat.model; description = cat.description;}) cfg.categories;
-        lsp = cfg.lsp;
+        agents = lib.mapAttrs (_: model: {inherit model;}) cfg.agents;
+        categories =
+          lib.mapAttrs (_: cat: {
+            inherit (cat) model;
+            inherit (cat) description;
+          })
+          cfg.categories;
+        inherit (cfg) lsp;
       }}
       EOF
 

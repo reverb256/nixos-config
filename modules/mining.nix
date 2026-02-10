@@ -13,11 +13,6 @@ with lib; let
     exec ${pkgs.lolminer}/bin/lolMiner "$@"
   '';
 
-  lolminerAmdWrapper = pkgs.writeShellScriptBin "lolminer-amd-wrapper" ''
-    #!/usr/bin/env bash
-    exec ${pkgs.lolminer}/bin/lolMiner "$@"
-  '';
-
   defaultWallet = "krxXVNVMM7.${hostname}";
 in {
   options.services.mining = {
@@ -156,7 +151,7 @@ in {
           priority = null;
           "memory-pool" = false;
           yield = true;
-          threads = cfg.xmrig.threads;
+          inherit (cfg.xmrig) threads;
         };
         logging = {
           type = "stdout";
@@ -244,7 +239,7 @@ in {
               export GPU_MAX_ALLOC_PERCENT=100
               export GPU_SINGLE_ALLOC_PERCENT=100
               export GPU_FORCE_64BIT_PTR=1
-              
+
               exec ${pkgs.lolminer}/bin/lolMiner \
                 --algo ${cfg.lolminer.algorithm} \
                 --pool ${cfg.lolminer.pool} \

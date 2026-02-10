@@ -101,8 +101,7 @@ with lib; {
       dejavu_fonts
     ];
     extraCompatPackages = with pkgs;
-      []
-      ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
+      optionals (inputs != null && inputs ? nixpkgs-xr) [
         inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
       ];
     package = pkgs.steam.override {
