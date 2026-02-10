@@ -1,4 +1,4 @@
-{pkgs, inputs ? null, ...}: let
+{pkgs, ...}: let
   # Get gamemode package for polkit rules
   gamemodePkg = pkgs.gamemode;
   # System administrator username
@@ -55,26 +55,23 @@ in {
   '';
 
   imports = [
-    ./modules
-    # ./modules/unified-rgb.nix  # Disabled - causing option errors
-    ./modules/lobster-user.nix
-    # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
-    # ./modules/flatpak.nix
-    # Mining-aware build wrapper (pause/resume during builds)
-    ./modules/mining-build-wrapper.nix
-    # Storage configuration modules
-    ./modules/storage.nix
-    ./modules/storage-btrfs.nix
-    # Temporarily disabled - syntax errors being fixed
-    # ./modules/distributed-builds.nix
-    # Secrets configuration
-    # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
-    # service module - REMOVED
-    # Anime game launchers (ezKEa/aagl-gtk-on-nix) - import via inputs
-    pkgs.lib.mkIf (inputs != null && inputs ? ezkea != null) [
-      inputs.ezkea.nixosModules.default
-    ]
-  ];
+      ./modules
+      # ./modules/unified-rgb.nix  # Disabled - causing option errors
+      ./modules/lobster-user.nix
+      # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
+      # ./modules/flatpak.nix
+      # Mining-aware build wrapper (pause/resume during builds)
+      ./modules/mining-build-wrapper.nix
+      # Storage configuration modules
+      ./modules/storage.nix
+      ./modules/storage-btrfs.nix
+      # Temporarily disabled - syntax errors being fixed
+      # Temporarily disabled until we verify distributed builds are working
+      # ./modules/distributed-builds.nix
+      # Secrets configuration
+      # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
+      #  service module - REMOVED
+   ];
 
   #  AI Gateway Service - REMOVED
   #  AI Agent Gateway - completely removed from system
