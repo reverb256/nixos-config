@@ -1,0 +1,68 @@
+name: Nix CI + GitOps
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+
+      - name: Check Nix flake
+        run: nix flake check
+
+      - name: Build zephyr configuration
+        run: nix build .#nixosConfigurations.zephyr.config.system.build.toplevel --no-link
+
+      - name: Build nexus configuration
+        run: nix build .#nixosConfigurations.nexus.config.system.build.toplevel --no-link
+
+      - name: Build forge configuration
+        run: nix build .#nixosConfigurations.forge.config.system.build.toplevel --no-link
+
+      - name: Build sentry configuration
+        run: nix build .#nixosConfigurations.sentry.config.system.build.toplevel --no-link
+
+  deploy:
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          cat >> ~/.ssh/config <<EOF
+          Host zephyr nexus forge sentry
+              StrictHostKeyChecking accept-new
+              UserKnownHostsFile /dev/null
+              User j_kro
+          EOF
+
+      - name: Deploy to all hosts
+        run: |
+          for host in zephyr nexus forge sentry; do
+            echo "Deploying to $host..."
+            case $host in
+              zephyr) ip="10.1.1.110" ;;
+              nexus)  ip="10.1.1.120" ;;
+              forge)  ip="10.1.1.130" ;;
+              sentry) ip="10.1.1.140" ;;
+            esac
+            ssh $ip "sudo nix --option accept-flake-config true store add-path /etc/nixos --no-recurse" 2>/dev/null || true
+            ssh $ip "sudo nixos-rebuild switch --flake /etc/nixos --option accept-flake-config true" || echo "Failed: $host"
+          done
