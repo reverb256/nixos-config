@@ -13,15 +13,18 @@
       ../../modules/desktop.nix
       # Import fish shell with starship
       ../../modules/fish-starship.nix
+      # Import gaming module
+      ../../modules/gaming.nix
       # Import NVIDIA Wayland module (best practices)
       ../../modules/nvidia-wayland.nix
-      # Import  AI agent orchestration (declarative container)
+      # Import AI agent orchestration (declarative container)
       # Import  common configuration
       # Import Tailscale mesh VPN
       ../../modules/tailscale.nix
       # Import CI/CD and auto-update modules
       ../../modules/garnix.nix
       ../../modules/auto-update.nix
+      # Import SSH configuration
       ../../modules/ssh.nix
       # Import mining services module
       ../../modules/mining.nix
@@ -29,8 +32,9 @@
       ../../modules/distributed-builds.nix
       # Import storage management
       ../../modules/storage-btrfs.nix
+      # Import mining-aware build wrapper
       ../../modules/mining-build-wrapper.nix
-  ];
+   ];
 
   # Host identification
   networking.hostName = "forge";
