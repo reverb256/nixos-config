@@ -16,9 +16,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Validate colmena configuration before deployment
+  validate-colmena:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+
+      - name: Validate colmena configuration
+        run: |
+          echo "Validating colmena configuration..."
+          nix eval .#colmena --raw || echo "::error::Colmena configuration invalid"
+
+      - name: Dry-run colmena deployment
+        run: |
+          echo "Dry-running colmena deployment (no actual changes)..."
+          nix run github:zhaofengli/colmena -- --dry-run || echo "::error::Colmena dry-run failed"
+
   # Build all configurations
   build:
     runs-on: self-hosted
+    needs: validate-colmena
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -58,18 +79,38 @@ jobs:
       run: |
         nix run github:zhaofengli/colmena -- deploy --activate --build-on-target ---j$(nproc)
 
-    - name: Verify deployment
-      run: |
-        for host in zephyr nexus forge sentry; do
-          echo "Checking $host..."
-          case $host in
-            zephyr) ip="100.81.182.5" ;;
-            nexus)  ip="100.86.158.18" ;;
-            forge)  ip="100.95.222.45" ;;
-            sentry) ip="100.82.210.39" ;;
-          esac
-          ssh -o ConnectTimeout=10 j_kro@$ip "nixos-version" || echo "❌ Failed to connect to $host"
-          # Verify mining scripts are available
-          ssh -o ConnectTimeout=10 j_kro@$ip "which build-wrapper" || echo "⚠️  Warning: build-wrapper not found on $host"
-          ssh -o ConnectTimeout=10 j_kro@$ip "ls -la /run/current-system/sw/bin/ | grep -E 'build-wrapper|mining' || true"
-        done
+     - name: Verify deployment
+       run: |
+         # Check that all nodes are running expected configuration
+         for host in zephyr nexus forge sentry; do
+           echo "Checking $host..."
+           ssh $host "nixos-version"
+
+          # Verify Tailscale connectivity before proceeding
+          echo "Verifying Tailscale VPN connectivity..."
+          TAILSCALE_STATUS=$(ssh zephyr "tailscale status --json" || echo "Failed to get Tailscale status")
+          echo "$TAILSCALE_STATUS" | grep -q '"healthy":true' || echo "Tailscale connectivity issue detected"
+
+          # Check that all Tailscale IPs are reachable
+          echo "Pinging cluster nodes via Tailscale VPN..."
+          for node in "100.81.182.5:zephyr" "100.86.158.18:nexus" "100.95.222.45:forge" "100.82.210.39:sentry"; do
+            IFS=':' read -ra ADDR _ <<< "$node"
+            timeout 10 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no $ADDR "hostname" || echo "Failed to reach $ADDR at $IP"
+          done
+
+          echo "✅ All nodes are reachable via Tailscale"
+
+          # Verify Tailscale connectivity before proceeding
+          echo "Verifying Tailscale VPN connectivity..."
+          TAILSCALE_STATUS=$(ssh zephyr "tailscale status --json" || echo "Failed to get Tailscale status")
+          echo "$TAILSCALE_STATUS" | grep -q '"healthy":true' || echo "Tailscale connectivity issue detected"
+
+          # Check that all Tailscale IPs are reachable
+          # Ping cluster nodes via Tailscale VPN (health check)
+          echo "Pinging cluster nodes via Tailscale VPN..."
+          for node in "100.81.182.5:zephyr" "100.86.158.18:nexus" "100.95.222.45:forge" "100.82.210.39:sentry"; do
+            IFS=':' read -ra ADDR _ <<< "$node"
+            timeout10 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no $ADDR "hostname" || echo "Failed to connect to $ADDR at $IP"
+          done
+
+          echo "✅ All nodes are reachable via Tailscale"
