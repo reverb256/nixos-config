@@ -64,8 +64,10 @@ in {
       ./modules/mining-build-wrapper.nix
       # Storage configuration modules
       ./modules/storage.nix
+      ./modules/storage-btrfs.nix
       # Temporarily disabled - syntax errors being fixed
-      # ./modules/storage-btrfs.nix
+      # Temporarily disabled until we verify distributed builds are working
+      # ./modules/distributed-builds.nix
       # Secrets configuration
       # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
       #  service module - REMOVED

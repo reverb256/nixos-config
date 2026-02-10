@@ -8,20 +8,25 @@
   ...
 }: {
   imports = [
-    ./hardware-configuration.nix
-    ../../modules/desktop.nix
-    ../../modules/fish-starship.nix
-    ../../modules/gaming.nix
-    ../../modules/nvidia-wayland.nix
-    ../../modules/garnix.nix
-    ../../modules/tailscale.nix
-    ../../modules/aistor-secrets.nix
-    ../../modules/nix-cache-server.nix
-    ../../modules/mcp-servers.nix
-    ../../modules/nix-ld.nix
-    ../../modules/mining.nix
-    ../../modules/auto-update.nix
-    ../../modules/ssh.nix
+      ./hardware-configuration.nix
+      ../../modules/desktop.nix
+      ../../modules/fish-starship.nix
+      ../../modules/gaming.nix
+      ../../modules/nvidia-wayland.nix
+      ../../modules/garnix.nix
+      ../../modules/tailscale.nix
+      ../../modules/aistor-secrets.nix
+      ../../modules/nix-cache-server.nix
+      ../../modules/mcp-servers.nix
+      ../../modules/nix-ld.nix
+      ../../modules/mining.nix
+      ../../modules/auto-update.nix
+      ../../modules/ssh.nix
+      ../../modules/distributed-builds.nix
+      ../../modules/storage-btrfs.nix
+      ../../modules/mining-build-wrapper.nix
+      # Temporarily disabled - syntax errors being fixed
+      # ./modules/storage-btrfs.nix
   ];
 
   networking.hostName = "zephyr";
