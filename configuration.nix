@@ -1,4 +1,4 @@
-{pkgs, ...}: let
+{pkgs, inputs ? null, ...}: let
   # Get gamemode package for polkit rules
   gamemodePkg = pkgs.gamemode;
   # System administrator username
@@ -66,11 +66,14 @@ in {
     ./modules/storage.nix
     ./modules/storage-btrfs.nix
     # Temporarily disabled - syntax errors being fixed
-    # Temporarily disabled until we verify distributed builds are working
     # ./modules/distributed-builds.nix
     # Secrets configuration
     # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
-    #  service module - REMOVED
+    # service module - REMOVED
+    # Anime game launchers (ezKEa/aagl-gtk-on-nix) - import via inputs
+    pkgs.lib.mkIf (inputs != null && inputs ? ezkea != null) [
+      inputs.ezkea.nixosModules.default
+    ]
   ];
 
   #  AI Gateway Service - REMOVED
