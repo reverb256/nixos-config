@@ -27,6 +27,10 @@
     ../../modules/ssh.nix
     # Import distributed builds module (GPU+ROCm support)
     ../../modules/distributed-builds.nix
+    # Import storage management
+    ../../modules/storage-btrfs.nix
+    # Import mining build wrapper
+    ../../modules/mining-build-wrapper.nix
       # Import Kubernetes module - DISABLED (module conflict with nixpkgs)
       # ../../modules/services/kubernetes.nix
       # Import n8n module (custom with dbType option) - DISABLED (module conflict)
