@@ -65,7 +65,7 @@
       ./configuration.nix
 
       # External Modules
-      inputs.ezkea.nixosModules.default
+      inputs.aagl.nixosModules.default
       inputs.determinate.nixosModules.default
       inputs.nix-gaming.nixosModules.pipewireLowLatency
       inputs.nix-gaming.nixosModules.platformOptimizations
@@ -94,6 +94,9 @@
         nixpkgs.config.permittedInsecurePackages = [
           "electron-25.9.0"
         ];
+
+        # ezKEa aagl-gtk-on-nix Cachix
+        nix.settings = inputs.aagl.nixConfig;
       }
     ];
 
