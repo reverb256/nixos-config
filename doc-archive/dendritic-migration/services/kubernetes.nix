@@ -143,109 +143,109 @@ in {
     # Enable container runtime based on selection
     virtualisation = lib.mkMerge [
       (lib.mkIf (cfg.containerRuntime == "docker") {
-          docker = {
-            enable = true;
-            enableOnBoot = true;
-          };
-        })
+        docker = {
+          enable = true;
+          enableOnBoot = true;
+        };
+      })
       (lib.mkIf (cfg.containerRuntime == "containerd") {
-          containerd = {
-            enable = true;
-          };
-        })
+        containerd = {
+          enable = true;
+        };
+      })
       (lib.mkIf (cfg.containerRuntime == "cri-o") {
-          cri-o = {
-            enable = true;
-          };
-        })
+        cri-o = {
+          enable = true;
+        };
+      })
     ];
 
     # Kubernetes master services
     systemd.services = lib.mkMerge [
       (lib.mkIf (cfg.master.enable && cfg.master.apiserver.enable) {
-          kube-apiserver = {
-            description = "Kubernetes API Server";
-            after = ["network.target"];
-            wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
+        kube-apiserver = {
+          description = "Kubernetes API Server";
+          after = ["network.target"];
+          wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
 
-            serviceConfig = {
-              Type = "simple";
-              User = kubeUser;
-              Group = kubeGroup;
-              ExecStart = "${pkgs.kubernetes}/bin/kube-apiserver --secure-port=${toString cfg.master.apiserver.port} --advertise-address=${cfg.master.apiserver.advertiseAddress}";
-              Restart = "always";
-              RestartSec = 10;
-            };
+          serviceConfig = {
+            Type = "simple";
+            User = kubeUser;
+            Group = kubeGroup;
+            ExecStart = "${pkgs.kubernetes}/bin/kube-apiserver --secure-port=${toString cfg.master.apiserver.port} --advertise-address=${cfg.master.apiserver.advertiseAddress}";
+            Restart = "always";
+            RestartSec = 10;
           };
-        })
+        };
+      })
 
       (lib.mkIf (cfg.master.enable && cfg.master.controllerManager.enable) {
-          kube-controller-manager = {
-            description = "Kubernetes Controller Manager";
-            after = ["network.target" "kube-apiserver.service"];
-             wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
+        kube-controller-manager = {
+          description = "Kubernetes Controller Manager";
+          after = ["network.target" "kube-apiserver.service"];
+          wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
 
-            serviceConfig = {
-              Type = "simple";
-              User = kubeUser;
-              Group = kubeGroup;
-              ExecStart = "${pkgs.kubernetes}/bin/kube-controller-manager --master=${cfg.apiServerAddress}";
-              Restart = "always";
-              RestartSec = 10;
-            };
+          serviceConfig = {
+            Type = "simple";
+            User = kubeUser;
+            Group = kubeGroup;
+            ExecStart = "${pkgs.kubernetes}/bin/kube-controller-manager --master=${cfg.apiServerAddress}";
+            Restart = "always";
+            RestartSec = 10;
           };
-        })
+        };
+      })
 
       (lib.mkIf (cfg.master.enable && cfg.master.scheduler.enable) {
-          kube-scheduler = {
-            description = "Kubernetes Scheduler";
-            after = ["network.target" "kube-apiserver.service"];
-             wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
+        kube-scheduler = {
+          description = "Kubernetes Scheduler";
+          after = ["network.target" "kube-apiserver.service"];
+          wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
 
-            serviceConfig = {
-              Type = "simple";
-              User = kubeUser;
-              Group = kubeGroup;
-              ExecStart = "${pkgs.kubernetes}/bin/kube-scheduler --master=${cfg.apiServerAddress}";
-              Restart = "always";
-              RestartSec = 10;
-            };
+          serviceConfig = {
+            Type = "simple";
+            User = kubeUser;
+            Group = kubeGroup;
+            ExecStart = "${pkgs.kubernetes}/bin/kube-scheduler --master=${cfg.apiServerAddress}";
+            Restart = "always";
+            RestartSec = 10;
           };
-        })
+        };
+      })
 
       (lib.mkIf (cfg.worker.enable && cfg.worker.kubelet.enable) {
-          kubelet = {
-            description = "Kubernetes Kubelet";
-            after = ["network.target"];
-            wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
+        kubelet = {
+          description = "Kubernetes Kubelet";
+          after = ["network.target"];
+          wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
 
-            serviceConfig = {
-              Type = "simple";
-              User = kubeUser;
-              Group = kubeGroup;
-              ExecStart = "${pkgs.kubelet}/bin/kubelet --container-runtime=${cfg.containerRuntime} --container-runtime-endpoint=unix:///run/${cfg.containerRuntime}/containerd.sock --port=${toString cfg.worker.kubelet.port}";
-              Restart = "always";
-              RestartSec = 10;
-            };
+          serviceConfig = {
+            Type = "simple";
+            User = kubeUser;
+            Group = kubeGroup;
+            ExecStart = "${pkgs.kubelet}/bin/kubelet --container-runtime=${cfg.containerRuntime} --container-runtime-endpoint=unix:///run/${cfg.containerRuntime}/containerd.sock --port=${toString cfg.worker.kubelet.port}";
+            Restart = "always";
+            RestartSec = 10;
           };
-        })
+        };
+      })
 
       (lib.mkIf (cfg.worker.enable && cfg.worker.kubeProxy.enable) {
-          kube-proxy = {
-            description = "Kubernetes Proxy";
-            after = ["network.target" "kubelet.service"];
-             wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
+        kube-proxy = {
+          description = "Kubernetes Proxy";
+          after = ["network.target" "kubelet.service"];
+          wantedBy = lib.optional cfg.autoStart ["multi-user.target"];
 
-            serviceConfig = {
-              Type = "simple";
-              User = kubeUser;
-              Group = kubeGroup;
-              ExecStart = "${pkgs.kubernetes}/bin/kube-proxy --master=${cfg.apiServerAddress}";
-              Restart = "always";
-              RestartSec = 10;
-            };
+          serviceConfig = {
+            Type = "simple";
+            User = kubeUser;
+            Group = kubeGroup;
+            ExecStart = "${pkgs.kubernetes}/bin/kube-proxy --master=${cfg.apiServerAddress}";
+            Restart = "always";
+            RestartSec = 10;
           };
-        })
+        };
+      })
     ];
 
     # Enable required kernel modules for Kubernetes

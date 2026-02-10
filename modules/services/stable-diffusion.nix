@@ -99,7 +99,7 @@ in {
         # Create models directory if it doesn't exist
         mkdir -p ${cfg.modelsDir}
         chown ${sdUser}:${sdGroup} ${cfg.modelsDir}
-        
+
         # Create cache directory if it doesn't exist
         mkdir -p /var/lib/stable-diffusion/cache
         chown ${sdUser}:${sdGroup} /var/lib/stable-diffusion/cache
@@ -124,7 +124,7 @@ in {
         RestartSec = 10;
         Environment = [
           "PYTHONPATH=${cfg.package}/share/stable-diffusion-stability-ai"
-          "CUDA_VISIBLE_DEVICES=0"  # Use first GPU
+          "CUDA_VISIBLE_DEVICES=0" # Use first GPU
           "HF_HOME=/var/lib/stable-diffusion/cache"
           "TRANSFORMERS_CACHE=/var/lib/stable-diffusion/cache/transformers"
           "TORCH_HOME=/var/lib/stable-diffusion/cache/torch"
@@ -132,7 +132,7 @@ in {
         WorkingDirectory = "/var/lib/stable-diffusion";
         StateDirectory = "stable-diffusion";
         LogsDirectory = "stable-diffusion";
-        GPUDevicePolicy = "auto";  # Allow access to GPU devices
+        GPUDevicePolicy = "auto"; # Allow access to GPU devices
       };
     };
 

@@ -44,7 +44,12 @@
     opencode.url = "github:anomalyco/opencode/dev";
   };
 
-  outputs = inputs @ {self, nixpkgs, flake-parts, ...}:
+  outputs = inputs @ {
+    self,
+    nixpkgs,
+    flake-parts,
+    ...
+  }:
     flake-parts.lib.mkFlake {inherit inputs;} {
       systems = ["x86_64-linux"];
 
@@ -53,7 +58,11 @@
         ./dendritic-modules
       ];
 
-      perSystem = {pkgs, system, ...}: {
+      perSystem = {
+        pkgs,
+        system,
+        ...
+      }: {
         # Shared overlays
         _module.args.pkgs = import nixpkgs {
           inherit system;
@@ -71,7 +80,7 @@
           nixpkgs-xr = inputs.nixpkgs-xr.overlays.default;
 
           # Claude Code overlay
-          claude = final: prev: {
+          claude = _: _: {
             claude = inputs.claude-native.packages.${system}.default;
           };
         };

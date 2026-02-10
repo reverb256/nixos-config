@@ -1,7 +1,12 @@
 # Unified Btrfs Subvolume Management Module
 # Provides declarative, unified storage configuration across all cluster nodes
 # Each host can enable/disable subvolumes based on their specific needs
-{lib, pkgs, config, ...}:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 with lib; let
   cfg = config.storage-btrfs;
 in {
@@ -137,69 +142,74 @@ in {
     };
 
     # Btrfs subvolume management service
-    systemd.services.btrfs-subvolumes = mkIf (
-      cfg.subvolumes."@data".enable ||
-      cfg.subvolumes."@projects".enable ||
-      cfg.subvolumes."@cache".enable ||
-      cfg.subvolumes."@media".enable ||
-      cfg.subvolumes."@snapshots".enable
-    ) {
-      description = "Ensure Btrfs subvolumes exist";
-      path = [pkgs.writeShellScriptBin "btrfs-create-subvolumes" ''
-        #!/bin/sh
-        set -e
+    systemd.services.btrfs-subvolumes =
+      mkIf (
+        cfg.subvolumes."@data".enable
+        || cfg.subvolumes."@projects".enable
+        || cfg.subvolumes."@cache".enable
+        || cfg.subvolumes."@media".enable
+        || cfg.subvolumes."@snapshots".enable
+      ) {
+        description = "Ensure Btrfs subvolumes exist";
+        path = [
+          pkgs.writeShellScriptBin
+          "btrfs-create-subvolumes"
+          ''
+            #!/bin/sh
+            set -e
 
-        DEVICE="${cfg.subvolumes.device}"
-        ROOT_MOUNT="/run/btrfs-root"
+            DEVICE="${cfg.subvolumes.device}"
+            ROOT_MOUNT="/run/btrfs-root"
 
-        # Mount device temporarily
-        mount -t btrfs "$DEVICE" "$ROOT_MOUNT"
+            # Mount device temporarily
+            mount -t btrfs "$DEVICE" "$ROOT_MOUNT"
 
-        # Create subvolumes if they don't exist
-        ${optionalString cfg.subvolumes."@data".enable ''
-          btrfs subvolume list "$ROOT_MOUNT" | grep -q '@data' || \
-            btrfs subvolume create "$ROOT_MOUNT/@data"
-        ''}
+            # Create subvolumes if they don't exist
+            ${optionalString cfg.subvolumes."@data".enable ''
+              btrfs subvolume list "$ROOT_MOUNT" | grep -q '@data' || \
+                btrfs subvolume create "$ROOT_MOUNT/@data"
+            ''}
 
-        ${optionalString cfg.subvolumes."@projects".enable ''
-          btrfs subvolume list "$ROOT_MOUNT" | grep -q '@projects' || \
-            btrfs subvolume create "$ROOT_MOUNT/@projects"
-        ''}
+            ${optionalString cfg.subvolumes."@projects".enable ''
+              btrfs subvolume list "$ROOT_MOUNT" | grep -q '@projects' || \
+                btrfs subvolume create "$ROOT_MOUNT/@projects"
+            ''}
 
-        ${optionalString cfg.subvolumes."@cache".enable ''
-          btrfs subvolume list "$ROOT_MOUNT" | grep -q '@cache' || \
-            btrfs subvolume create "$ROOT_MOUNT/@cache"
-        ''}
+            ${optionalString cfg.subvolumes."@cache".enable ''
+              btrfs subvolume list "$ROOT_MOUNT" | grep -q '@cache' || \
+                btrfs subvolume create "$ROOT_MOUNT/@cache"
+            ''}
 
-        ${optionalString cfg.subvolumes."@media".enable ''
-          btrfs subvolume list "$ROOT_MOUNT" | grep -q '@media' || \
-            btrfs subvolume create "$ROOT_MOUNT/@media"
-        ''}
+            ${optionalString cfg.subvolumes."@media".enable ''
+              btrfs subvolume list "$ROOT_MOUNT" | grep -q '@media' || \
+                btrfs subvolume create "$ROOT_MOUNT/@media"
+            ''}
 
-        ${optionalString cfg.subvolumes."@snapshots".enable ''
-          btrfs subvolume list "$ROOT_MOUNT" | grep -q '@snapshots' || \
-            btrfs subvolume create "$ROOT_MOUNT/@snapshots"
-        ''}
+            ${optionalString cfg.subvolumes."@snapshots".enable ''
+              btrfs subvolume list "$ROOT_MOUNT" | grep -q '@snapshots' || \
+                btrfs subvolume create "$ROOT_MOUNT/@snapshots"
+            ''}
 
-        # Unmount
-        umount "$ROOT_MOUNT"
-      ''];
+            # Unmount
+            umount "$ROOT_MOUNT"
+          ''
+        ];
 
-      script = ''
-        # Run on boot and when module is enabled
-        ${pkgs.btrfs-create-subvolumes}/bin/btrfs-create-subvolumes
-      '';
+        script = ''
+          # Run on boot and when module is enabled
+          ${pkgs.btrfs-create-subvolumes}/bin/btrfs-create-subvolumes
+        '';
 
-      wantedBy = ["multi-user.target"];
-      after = ["local-fs.target"];
-    };
+        wantedBy = ["multi-user.target"];
+        after = ["local-fs.target"];
+      };
 
     # Create filesystem mounts for enabled subvolumes
     fileSystems = mkMerge [
       # @data - User data (Zephyr only)
       (mkIf cfg.subvolumes."@data".enable {
         "/data" = {
-          device = cfg.subvolumes.device;
+          inherit (cfg.subvolumes) device;
           fsType = "btrfs";
           options = ["subvol=@data"];
         };
@@ -208,7 +218,7 @@ in {
       # @projects - Development projects
       (mkIf cfg.subvolumes."@projects".enable {
         "/home/j_kro/projects" = {
-          device = cfg.subvolumes.device;
+          inherit (cfg.subvolumes) device;
           fsType = "btrfs";
           options = ["subvol=@projects"];
         };
@@ -217,7 +227,7 @@ in {
       # @cache - Build/cache data
       (mkIf cfg.subvolumes."@cache".enable {
         "/home/j_kro/.cache" = {
-          device = cfg.subvolumes.device;
+          inherit (cfg.subvolumes) device;
           fsType = "btrfs";
           options = ["subvol=@cache"];
         };
@@ -226,7 +236,7 @@ in {
       # @media - Media files
       (mkIf cfg.subvolumes."@media".enable {
         "/home/j_kro/Media" = {
-          device = cfg.subvolumes.device;
+          inherit (cfg.subvolumes) device;
           fsType = "btrfs";
           options = ["subvol=@media"];
         };
@@ -235,7 +245,7 @@ in {
       # @snapshots - Btrfs snapshots
       (mkIf cfg.subvolumes."@snapshots".enable {
         "/home/j_kro/.snapshots" = {
-          device = cfg.subvolumes.device;
+          inherit (cfg.subvolumes) device;
           fsType = "btrfs";
           options = ["subvol=@snapshots"];
         };

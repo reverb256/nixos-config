@@ -1,9 +1,5 @@
 # Colmena Cluster Deployment Configuration
-{
-  inputs,
-  lib,
-  ...
-}: let
+{inputs, ...}: let
   nixpkgs = import inputs.nixpkgs {
     system = "x86_64-linux";
     config.allowUnfree = true;

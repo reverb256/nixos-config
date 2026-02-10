@@ -1,10 +1,6 @@
 # Zephyr Host Configuration
 # 10.1.1.110 - Master Workstation (32 cores, RTX 3090)
-{
-  lib,
-  config,
-  ...
-}:
+{lib, ...}:
 with lib; {
   networking.hostName = "zephyr";
 

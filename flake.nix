@@ -127,7 +127,7 @@
 
     # Add nixpkgs-xr overlay for VR/gaming packages
     overlays.nixpkgs-xr = inputs.nixpkgs-xr.overlays.default;
- 
+
     # NixOS configurations (for direct use with nixos-rebuild)
     nixosConfigurations = nixosSystems;
 
