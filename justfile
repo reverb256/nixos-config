@@ -82,7 +82,7 @@ deploy *BRANCH=`git branch --show-current`:
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     @echo "Deploying via colmena to all nodes..."
-    nix run github:zhaofengli/colmena -- deploy --activate
+    nix run github:zhaofengli/colmena -- apply --on @all --activate --build-on-target --reboot 0
     @echo "Resuming mining on all nodes..."
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
@@ -104,19 +104,19 @@ fetch:
 # Deploy to individual hosts via colmena
 zephyr:
     @echo "Deploying to zephyr via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy zephyr --activate
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply zephyr --activate --build-on-target --reboot 0
 
 nexus:
     @echo "Deploying to nexus via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy nexus --activate
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply nexus --activate --build-on-target --reboot 0
 
 forge:
     @echo "Deploying to forge via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy forge --activate
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply forge --activate --build-on-target --reboot 0
 
 sentry:
     @echo "Deploying to sentry via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- deploy sentry --activate
+    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply sentry --activate --build-on-target --reboot 0
 
 # Local switch for current node - runs locally
 switch:
