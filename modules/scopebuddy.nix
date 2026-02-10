@@ -190,26 +190,28 @@ in {
         "${inputs.scopebuddy.packages.${pkgs.system}.default}/bin/scopebuddy";
     };
 
-    # Add to user packages for Home Manager integration
-    home-manager.users.j_kro = mkIf config.home-manager.useUserPackages {
-      home.packages = with pkgs;
-        (optionals (inputs != null && inputs ? scopebuddy) [
-          inputs.scopebuddy.packages.${pkgs.system}.default
-        ])
-        ++ [
-          jq
-          wlr-randr
-        ];
+    # Home Manager integration - disabled for colmena compatibility
+    # Colmena evaluates in a different context where home-manager users
+    # may not be properly initialized. Local deployment still works.
+    # home-manager.users.j_kro = mkIf (config ? home-manager && config.home-manager.useUserPackages) {
+    #   home.packages = with pkgs;
+    #     (optionals (inputs != null && inputs ? scopebuddy) [
+    #       inputs.scopebuddy.packages.${pkgs.system}.default
+    #     ])
+    #     ++ [
+    #       jq
+    #       wlr-randr
+    #     ];
 
-      # Create user config directory and default config
-      home.file.".config/scopebuddy/scb.conf".source =
-        config.environment.etc."scopebuddy/scb.conf".source;
+    #   # Create user config directory and default config
+    #   home.file.".config/scopebuddy/scb.conf".source =
+    #     config.environment.etc."scopebuddy/scb.conf".source;
 
-      # Add to PATH in user shell
-      home.sessionPath = mkIf (inputs != null && inputs ? scopebuddy) [
-        "${inputs.scopebuddy.packages.${pkgs.system}.default}/bin"
-      ];
-    };
+    #   # Add to PATH in user shell
+    #   home.sessionPath = mkIf (inputs != null && inputs ? scopebuddy) [
+    #     "${inputs.scopebuddy.packages.${pkgs.system}.default}/bin"
+    #   ];
+    # };
 
     # System integration notes
     documentation.doc.enable = true;

@@ -24,6 +24,9 @@
     # Enhanced Gaming Packages (Proton-GE, GameMode, etc.)
     nix-gaming.url = "github:fufexan/nix-gaming";
 
+    # Anime Game Launchers (ezKEa/aagl-gtk-on-nix)
+    aagl.url = "github:ezKEa/aagl-gtk-on-nix";
+
     # ScopeBuddy - Gamescope wrapper for Wayland desktop gaming
     scopebuddy.url = "github:OpenGamingCollective/ScopeBuddy";
     scopebuddy.inputs.nixpkgs.follows = "nixpkgs";

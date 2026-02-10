@@ -81,9 +81,10 @@ with lib; {
   };
 
   # ============================================================================
-  # ANIME GAME LAUNCHERS
+  # ANIME GAME LAUNCHERS (from ezKEa/aagl-gtk-on-nix)
+  # Note: ezKEa module renames to programs.an-anime-game-launcher
   # ============================================================================
-  programs.anime-game-launcher.enable = true;
+  programs.an-anime-game-launcher.enable = true;
   programs.anime-games-launcher.enable = true;
   programs.honkers-railway-launcher.enable = true;
   programs.honkers-launcher.enable = true;
