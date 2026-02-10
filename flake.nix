@@ -27,6 +27,7 @@
 
     # Anime Game Launchers (ezKEa/aagl-gtk-on-nix)
     aagl.url = "github:ezKEa/aagl-gtk-on-nix";
+    aagl.inputs.nixpkgs.follows = "nixpkgs";  # CRITICAL: Must follow for mkRenamedOptionModule to work
 
     # ScopeBuddy - Gamescope wrapper for Wayland desktop gaming
     scopebuddy.url = "github:OpenGamingCollective/ScopeBuddy";
