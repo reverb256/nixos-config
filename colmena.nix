@@ -1,57 +1,59 @@
-# Colmena Cluster Deployment Configuration
+# Colmena Cluster Deployment Configuration (v0.5+)
 {
   inputs,
   self,
   ...
 }: let
-  nixpkgs = import inputs.nixpkgs {
-    system = "x86_64-linux";
-    config.allowUnfree = true;
-  };
+  inherit (inputs.nixpkgs) lib;
 in {
   meta = {
-    inherit nixpkgs;
+    nixpkgs = import inputs.nixpkgs {
+      system = "x86_64-linux";
+      config.allowUnfree = true;
+    };
   };
 
-  defaults = {
+  # Default deployment settings
+  defaults = {pkgs, ...}: {
     deployment = {
       allowLocalDeployment = true;
     };
   };
 
-  zephyr = {
+  # Host configurations with NixOS configs
+  zephyr = { config, pkgs, ... }: {
     imports = [
       ./configuration.nix
       ./hosts/zephyr/configuration.nix
     ];
-    deployment.targetHost = "100.81.182.5"; # Local: 10.1.1.110
-    deployment.targetUser = "j_kro";
+    deployment.targetHost = "100.81.182.5"; # Tailscale IP (Local: 10.1.1.110)
+    deployment.targetUser = "root";
   };
 
-  nexus = {
+  nexus = { config, pkgs, ... }: {
     imports = [
       ./configuration.nix
       ./hosts/nexus/configuration.nix
     ];
-    deployment.targetHost = "100.86.158.18"; # Local: 10.1.1.120
+    deployment.targetHost = "100.86.158.18"; # Tailscale IP (Local: 10.1.1.120)
     deployment.targetUser = "j_kro";
   };
 
-  forge = {
+  forge = { config, pkgs, ... }: {
     imports = [
       ./configuration.nix
       ./hosts/forge/configuration.nix
     ];
-    deployment.targetHost = "100.95.222.45"; # Local: 10.1.1.130
+    deployment.targetHost = "100.95.222.45"; # Tailscale IP (Local: 10.1.1.130)
     deployment.targetUser = "j_kro";
   };
 
-  sentry = {
+  sentry = { config, pkgs, ... }: {
     imports = [
       ./configuration.nix
       ./hosts/sentry/configuration.nix
     ];
-    deployment.targetHost = "100.82.210.39"; # Local: 10.1.1.140
+    deployment.targetHost = "100.82.210.39"; # Tailscale IP (Local: 10.1.1.140)
     deployment.targetUser = "j_kro";
   };
 }
