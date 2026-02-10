@@ -177,10 +177,9 @@
   };
   environment.variables.LD_LIBRARY_PATH = pkgs.lib.mkForce "/run/opengl-driver/lib:/run/opengl-driver/lib64";
 
-  boot.kernel.sysctl = {
-    "vm.swappiness" = 80;
-    "vm.overcommit_ratio" = 90;
-  };
+  # boot.kernel.sysctl moved to shared configuration.nix
+  # vm.swappiness = 60 (gaming optimized)
+  # vm.overcommit_ratio = 90 (shared config)
 
   environment.systemPackages = with pkgs; [
     # Enhanced LM Studio wrappers with proper GPU detection environment

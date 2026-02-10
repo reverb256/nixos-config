@@ -199,6 +199,9 @@ in {
 
       # Disable simple-framebuffer to prevent monitor conflicts with NVIDIA
       "simpledrm.disable=1"
+
+      # NVMe optimization for gaming - faster error detection
+      "nvme_core.io_timeout=15"
     ];
 
     # System tuning
@@ -210,13 +213,23 @@ in {
       "kernel.perf_event_paranoid" = -1;
       "vm.max_map_count" = 262144;
       "kernel.shmmax" = 134217728;
+      # Swap optimization for gaming - less aggressive swapping, more responsive
+      "vm.swappiness" = 60;  # Down from default 60 (or your previous 80) - less swap pressure
+      "vm.page-cluster" = 0;  # Down from 3 - single page reads, more responsive swap
+      "vm.overcommit_ratio" = 90;  # Allow overcommit for gaming/malloc-heavy apps
     };
   };
 
-  # I/O Scheduler for NVMe SSDs - use kyber for better latency
+  # I/O Scheduler for NVMe SSDs - optimized for swap and gaming
+  # Note: Scheduler is per-device, not per-partition, so use mq-deadline for all NVMe
   services.udev.extraRules = ''
-    # NVMe SSDs - use kyber scheduler for better latency
-    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="kyber"
+    # NVMe devices - use mq-deadline for gaming/swap performance
+    ACTION=="add|change", KERNEL=="nvme0n1", ATTR{queue/scheduler}="mq-deadline"
+    ACTION=="add|change", KERNEL=="nvme1n1", ATTR{queue/scheduler}="mq-deadline"
+
+    # Disable writeback throttling for gaming (wbt_lat_usec=0)
+    ACTION=="add|change", KERNEL=="nvme0n1", ATTR{queue/wbt_lat_usec}="0"
+    ACTION=="add|change", KERNEL=="nvme1n1", ATTR{queue/wbt_lat_usec}="0"
 
     # SATA SSDs - use mq-deadline
     ACTION=="add|change", KERNEL=="sd[a-z]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
@@ -233,18 +246,30 @@ in {
   programs.mosh.enable = true;
 
   # ============================================================================
+  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix)
+  # ============================================================================
+  programs.anime-game-launcher.enable = true;
+  programs.honkers-railway-launcher.enable = true;
+  programs.wavey-launcher.enable = true;
+  programs.sleepy-launcher.enable = true;
+
+  # Disabled launchers (not needed)
+  programs.anime-games-launcher.enable = false;
+  programs.honkers-launcher.enable = false;
+
+  # ============================================================================
   # FIREWALL - Mosh uses UDP ports 60000-61000
   # ============================================================================
   networking.firewall.allowedUDPPorts = [60000 60001 60002 60003 60004];
 
   # ============================================================================
-  # ZRAM - Compressed RAM swap for better performance
+  # ZRAM - DISABLED - Use disk swap only
   # ============================================================================
   zramSwap = {
-    enable = true;
+    enable = false;
     algorithm = "zstd";
-    memoryPercent = 50; # Use 50% of RAM for zram
-    priority = 100; # Higher priority than disk swap
+    memoryPercent = 50;
+    priority = 100;
   };
 
   # ============================================================================
