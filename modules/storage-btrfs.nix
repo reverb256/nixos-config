@@ -59,32 +59,31 @@ in {
 
     systemd.tmpfiles.rules =
       # Create mount points
-      (lib.optional cfg.subvolumes."@data" "d ${cfg.subvolumes.device} 0755 root root -")
-      ++ (lib.optional cfg.subvolumes."@projects" "d ${cfg.subvolumes.device} 0755 root root -")
-      ++ (lib.optional cfg.subvolumes."@cache" "d ${cfg.subvolumes.device} 0755 root root -")
-      ++ (lib.optional cfg.subvolumes."@media" "d ${cfg.subvolumes.device} 0755 root root -")
-      ++ (lib.optional cfg.subvolumes."@snapshots" "d ${cfg.subvolumes.device} 0755 root root -")
-    );
+      (lib.optional cfg.subvolumes."@data" "d \${cfg.subvolumes.device} 0755 root root -")
+      ++ (lib.optional cfg.subvolumes."@projects" "d \${cfg.subvolumes.device} 0755 root root -")
+      ++ (lib.optional cfg.subvolumes."@cache" "d \${cfg.subvolumes.device} 0755 root root -")
+      ++ (lib.optional cfg.subvolumes."@media" "d \${cfg.subvolumes.device} 0755 root root -")
+      ++ (lib.optional cfg.subvolumes."@snapshots" "d \${cfg.subvolumes.device} 0755 root root -")
+    ];
 
     # Auto-scrub service
     services.btrfs.autoScrub = mkIf cfg.autoScrub.enable {
       enable = true;
-      fileSystems = lib.flatten (lib.mapAttrsToList (name: enable: cfg.subvolumes."${name}") ([
+      fileSystems = lib.flatten (lib.mapAttrsToList (name: enable: cfg.subvolumes."\${name}") [
         cfg.subvolumes."@".device
         cfg.subvolumes."@home".device
-      ]));
+      ];
       interval = cfg.autoScrub.schedule;
     };
 
-    # Auto-balance service (periodic rebalancing)
+    # Auto-balance service
     systemd.services.btrfs-balance = mkIf cfg.autoBalance.enable {
       description = "Periodic Btrfs balance to maintain filesystem health";
       serviceConfig = {
         Type = "oneshot";
         User = "root";
-        ExecStart = "${pkgs.btrfs-progs}/bin/btrfs balance start -dusage=${toString cfg.autoBalance.threshold}% ${cfg.subvolumes.device}";
-        # Only run if usage threshold is exceeded
-        ExecCondition = ''${pkgs.btrfs-progs}/bin/btrfs filesystem usage ${cfg.subvolumes.device} | awk '/Device/ {gsub(/,/,$2); if ($2+0) > ${toString cfg.autoBalance.threshold} { exit 0 } exit 1 }'';
+        ExecStart = "\${pkgs.btrfs-progs}/bin/btrfs balance start -dusage=\${toString cfg.autoBalance.threshold}% \${cfg.subvolumes.device}";
+        ExecCondition = ''\${pkgs.btrfs-progs}/bin/btrfs filesystem usage \${cfg.subvolumes.device} | awk '/Device/ {gsub(/,/\$,2); if (\$2+0) > \${toString cfg.autoBalance.threshold} { exit 0 } exit 1 }'';
       };
     };
 
@@ -110,45 +109,45 @@ in {
         #!/bin/sh
         set -e
 
-        DEVICE="${cfg.subvolumes.device}"
+        DEVICE="\${cfg.subvolumes.device}"
         ROOT_MOUNT="/run/btrfs-root"
 
         # Mount device temporarily
-        mount -t btrfs "$DEVICE" "$ROOT_MOUNT"
+        mount -t btrfs "\$DEVICE" "\$ROOT_MOUNT"
 
         # Create subvolumes if they don't exist
-        ${lib.optionalString cfg.subvolumes."@data".enable ''
-          btrfs subvolume list "$ROOT_MOUNT" | grep -q '@data' || \
-            btrfs subvolume create "$ROOT_MOUNT/@data"
+        \${lib.optionalString cfg.subvolumes."@data".enable ''
+          btrfs subvolume list "\$ROOT_MOUNT" | grep -q '@data' || \
+            btrfs subvolume create "\$ROOT_MOUNT/@data"
         ''}
 
-        ${lib.optionalString cfg.subvolumes."@projects".enable ''
-          btrfs subvolume list "$ROOT_MOUNT" | grep -q '@projects' || \
-            btrfs subvolume create "$ROOT_MOUNT/@projects"
+        \${lib.optionalString cfg.subvolumes."@projects".enable ''
+          btrfs subvolume list "\$ROOT_MOUNT" | grep -q '@projects' || \
+            btrfs subvolume create "\$ROOT_MOUNT/@projects"
         ''}
 
-        ${lib.optionalString cfg.subvolumes."@cache".enable ''
-          btrfs subvolume list "$ROOT_MOUNT" | grep -q '@cache' || \
-            btrfs subvolume create "$ROOT_MOUNT/@cache"
+        \${lib.optionalString cfg.subvolumes."@cache".enable ''
+          btrfs subvolume list "\$ROOT_MOUNT" | grep -q '@cache' || \
+            btrfs subvolume create "\$ROOT_MOUNT/@cache"
         ''}
 
-        ${lib.optionalString cfg.subvolumes."@media".enable ''
-          btrfs subvolume list "$ROOT_MOUNT" | grep -q '@media' || \
-            btrfs subvolume create "$ROOT_MOUNT/@media"
+        \${lib.optionalString cfg.subvolumes."@media".enable ''
+          btrfs subvolume list "\$ROOT_MOUNT" | grep -q '@media' || \
+            btrfs subvolume create "\$ROOT_MOUNT/@media"
         ''}
 
-        ${lib.optionalString cfg.subvolumes."@snapshots".enable ''
-          btrfs subvolume list "$ROOT_MOUNT" | grep -q '@snapshots' || \
-            btrfs subvolume create "$ROOT_MOUNT/@snapshots"
+        \${lib.optionalString cfg.subvolumes."@snapshots".enable ''
+          btrfs subvolume list "\$ROOT_MOUNT" | grep -q '@snapshots' || \
+            btrfs subvolume create "\$ROOT_MOUNT/@snapshots"
         ''}
 
         # Unmount
-        umount "$ROOT_MOUNT"
+        umount "\$ROOT_MOUNT"
       ''};
 
       script = ''
         # Run on boot and when module is enabled
-        ${pkgs.btrfs-create-subvolumes}/bin/btrfs-create-subvolumes
+        \${pkgs.btrfs-create-subvolumes}/bin/btrfs-create-subvolumes
       '';
 
       wantedBy = ["multi-user.target"];
