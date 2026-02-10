@@ -81,15 +81,10 @@ with lib; {
   };
 
   # ============================================================================
-  # ANIME GAME LAUNCHERS (from ezKEa/aagl-gtk-on-nix)
-  # Note: ezKEa module renames to programs.an-anime-game-launcher
+  # ANIME GAME LAUNCHER (ezKEa/aagl-gtk-on-nix)
+  # Uses programs.an-anime-game-launcher (ezKEa module's renamed option)
   # ============================================================================
   programs.an-anime-game-launcher.enable = true;
-  programs.anime-games-launcher.enable = true;
-  programs.honkers-railway-launcher.enable = true;
-  programs.honkers-launcher.enable = true;
-  programs.wavey-launcher.enable = true;
-  programs.sleepy-launcher.enable = true;
 
   # ============================================================================
   # STEAM - Full VR Support with NVENC Optimizations

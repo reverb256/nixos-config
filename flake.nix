@@ -25,6 +25,7 @@
     nix-gaming.url = "github:fufexan/nix-gaming";
 
     # Anime Game Launchers (ezKEa/aagl-gtk-on-nix)
+    # Anime Games Launcher (ezKEa)/    # Anime Game Launchers (ezKEa)/    aagl.url = "github:ezKEa/aagl-gtk-on-nix";/
     aagl.url = "github:ezKEa/aagl-gtk-on-nix";
 
     # ScopeBuddy - Gamescope wrapper for Wayland desktop gaming
