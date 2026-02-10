@@ -29,7 +29,6 @@
           inherit inputs self;
         };
       };
-      meta.nixpkgs.follows = "nixpkgs";
 
       # Use zephyr as canary, rest of cluster
       zephyr.deployment = {
