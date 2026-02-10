@@ -22,7 +22,7 @@ Reverb-OS is a production NixOS 26.05 cluster with 4 nodes managed centrally fro
 |-------|----|--------------|-------|-----|------|
 | zephyr | 10.1.1.110 | 100.81.182.5 | 32 | RTX 3090 | Master Workstation |
 | nexus | 10.1.1.120 | 100.86.158.18 | 24 | 2x RTX 3060 Ti | Build/Backup |
-| forge | 10.1.1.130 | 100.116.190.124 | 6 | 2x RTX 4060 + 2x RX 5700 XT | GPU Mining |
+| forge | 10.1.1.130 | 100.95.222.45 | 6 | 2x RTX 4060 + 2x RX 5700 XT | GPU Mining |
 | sentry | 10.1.1.140 | 100.82.210.39 | 8 | RX 5600 XT | Monitoring |
 
 ---

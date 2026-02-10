@@ -2,11 +2,12 @@
 # All commands work consistently from any node and any directory
 # Zephyr is local (no SSH needed), other nodes via SSH
 
-# Cluster configuration
+# Cluster configuration (using Tailscale IPs for cluster management)
 FLAKE_PATH := "/etc/nixos"
-NEXUS := "j_kro@100.86.158.18"
-FORGE := "j_kro@100.116.190.124"
-SENTRY := "j_kro@100.82.210.39"
+NEXUS := "j_kro@100.86.158.18"   # Local: 10.1.1.120
+FORGE := "j_kro@100.95.222.45"   # Local: 10.1.1.130
+SENTRY := "j_kro@100.82.210.39"   # Local: 10.1.1.140
+# ZEPHYR (current node): Local 10.1.1.110, Tailscale 100.81.182.5
 
 # Default branch for deployment (can be overridden with JUST_BRANCH=branch-name)
 BRANCH := ""  # Empty = use current branch
