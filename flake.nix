@@ -15,9 +15,6 @@
     zen-browser.inputs.nixpkgs.follows = "nixpkgs";
     zen-browser.inputs.home-manager.follows = "home-manager";
 
-    # Anime Games Launcher (ezKEa)
-    ezkea.url = "github:ezKEa/aagl-gtk-on-nix";
-
     # Nixcord - Declarative Discord/Vesktop configuration
     nixcord.url = "github:FlameFlag/nixcord";
 
