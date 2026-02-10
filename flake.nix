@@ -43,9 +43,9 @@
     # OpenCode AI Agent
     opencode.url = "github:anomalyco/opencode/dev";
 
-    # Colmena - Multi-host deployment
-    colmena.url = "github:zhaofengli/colmena";
-    colmena.inputs.nixpkgs.follows = "nixpkgs";
+    # Colmena - Multi-host deployment (available via devShell)
+    # colmena.url = "github:zhaofengli/colmena";
+    # colmena.inputs.nixpkgs.follows = "nixpkgs";
 
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
