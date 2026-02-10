@@ -132,10 +132,7 @@
     nixosConfigurations = nixosSystems;
 
     # Colmena deployment configuration
-    colmena = import ./colmena.nix {
-      inherit inputs;
-      inherit (inputs.nixpkgs) lib;
-    };
+    colmena = inputs.self.outputs.colmena;
 
     # Formatter for nix fmt
     formatter.x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.nixfmt-tree;
