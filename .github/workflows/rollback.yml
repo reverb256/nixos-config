@@ -1,0 +1,33 @@
+name: Rollback
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to rollback to'
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set Git user
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Fetch origin
+        run: git fetch origin
+
+      - name: Rollback on all nodes
+        run: |
+          for host in zephyr nexus forge sentry; do
+            echo "Rolling back on $host..."
+            ssh $host "cd /etc/nixos && \
+                     git checkout ${{ inputs.commit_sha }} && \
+                     sudo nixos-rebuild switch --flake . && \
+                     echo 'Rolled back on $host'"
+            done

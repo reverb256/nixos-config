@@ -9,31 +9,46 @@ concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
 
-jobs:
+  jobs:
   # Light testing only (fast feedback)
   test:
     runs-on: self-hosted
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@main
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
 
-    - name: Magic Nix Cache
-      uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
 
-    - name: Check flake (syntax and validation)
-      run: nix flake check --no-build
+      - name: Run deadnix (unused code detection)
+        run: |
+          echo "Checking for dead code..."
+          nix run nixpkgs#deadnix -- . || echo "::warning::deadnix issues found"
 
-    - name: Evaluate all configurations
-      run: |
-        nix eval .#nixosConfigurations.zephyr.config.system.build.toplevel --raw > /dev/null
-        nix eval .#nixosConfigurations.nexus.config.system.build.toplevel --raw > /dev/null
-        nix eval .#nixosConfigurations.forge.config.system.build.toplevel --raw > /dev/null
-        nix eval .#nixosConfigurations.sentry.config.system.build.toplevel --raw > /dev/null
+      - name: Run statix (Nix linting)
+        run: |
+          echo "Linting Nix code..."
+          nix run nixpkgs#statix check . || echo "::warning::statix issues found"
+
+      - name: Check alejandra formatting
+        run: |
+          echo "Checking formatting..."
+          nix run nixpkgs#alejandra --check . || echo "::warning::formatting issues found"
+
+      - name: Check flake syntax
+        run: nix flake check --no-build
+
+      - name: Evaluate all configurations
+        run: |
+          nix eval .#nixosConfigurations.zephyr.config.system.build.toplevel --raw > /dev/null
+          nix eval .#nixosConfigurations.nexus.config.system.build.toplevel --raw > /dev/null
+          nix eval .#nixosConfigurations.forge.config.system.build.toplevel --raw > /dev/null
+          nix eval .#nixosConfigurations.sentry.config.system.build.toplevel --raw > /dev/null
 
   # Auto-merge to infra on success
   merge-to-infra:

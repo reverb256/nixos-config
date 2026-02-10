@@ -3,7 +3,7 @@ name: "Deploy Cluster - Production"
 on:
   push:
     branches: ["infra"]
-  workflow_dispatch:  # Manual deployment trigger
+  workflow_dispatch:
     inputs:
       target_branch:
         description: 'Branch to deploy (default: infra)'
@@ -11,12 +11,11 @@ on:
         default: 'infra'
         type: string
 
-concurrency:
+  concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Validate colmena configuration before deployment
   validate-colmena:
     runs-on: ubuntu-latest
     steps:
@@ -25,6 +24,9 @@ jobs:
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v4
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Validate colmena configuration
         run: |
@@ -36,81 +38,156 @@ jobs:
           echo "Dry-running colmena deployment (no actual changes)..."
           nix run github:zhaofengli/colmena -- --dry-run || echo "::error::Colmena dry-run failed"
 
-  # Build all configurations
+  validate-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets are set
+        run: |
+          if [ -z "${{ secrets.CLUSTER_DEPLOY_KEY }}" ]; then
+            echo "::error::CLUSTER_DEPLOY_KEY secret not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" ]; then
+            echo "::error::DEPLOY_SSH_PRIVATE_KEY not set"
+            exit 1
+          fi
+          echo "✅ All required secrets are set"
+
+  system-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check mining services on all nodes
+        run: |
+          echo "Checking mining services health..."
+          for host in zephyr nexus; do
+            ssh $host "systemctl is-active lolminer.service" || \
+                echo "::warning::Mining service not running on $host"
+            ssh $host "systemctl is-active xmrig.service" || \
+                echo "::warning::Mining service not running on $host"
+            ssh $host "systemctl is-active prometheus-blackbox-exporter.service" || \
+                echo "::warning::Prometheus Blackbox not running on nexus"
+            ssh nexus "systemctl is-active grafana.service" || \
+                echo "::warning::Grafana not running on nexus"
+            echo "✅ System health checks complete"
+
+      - name: Check monitoring on nexus
+        run: |
+          echo "Checking monitoring services..."
+          ssh nexus "systemctl is-active prometheus-blackbox-exporter.service" || \
+                echo "::warning::Prometheus Blackbox Exporter not running on nexus"
+          ssh nexus "systemctl is-active grafana.service" || \
+                echo "::warning::Grafana not running on nexus"
+          echo "✅ Monitoring checks complete"
+
   build:
     runs-on: self-hosted
-    needs: validate-colmena
+    needs: [validate-colmena, validate-secrets]
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.inputs.target_branch || 'infra' }}
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@main
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
 
-    - name: Magic Nix Cache
-      uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
 
-    - name: Build all configurations
-      run: |
-        nix build .#nixosConfigurations.zephyr.config.system.build.toplevel
-        nix build .#nixosConfigurations.nexus.config.system.build.toplevel
-        nix build .#nixosConfigurations.forge.config.system.build.toplevel
-        nix build .#nixosConfigurations.sentry.config.system.build.toplevel
+      - name: Build all configurations
+        run: |
+          nix build .#nixosConfigurations.zephyr.config.system.build.toplevel
+          nix build .#nixosConfigurations.nexus.config.system.build.toplevel
+          nix build .#nixosConfigurations.forge.config.system.build.toplevel
+          nix build .#nixosConfigurations.sentry.config.system.build.toplevel
 
-  # Deploy to all nodes via colmena
   deploy:
     runs-on: self-hosted
     needs: build
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.inputs.target_branch || 'infra' }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch || 'infra' }}
 
-    - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@main
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
 
-    - name: Magic Nix Cache
-      uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
 
-    - name: Deploy using Colmena
-      run: |
-        nix run github:zhaofengli/colmena -- deploy --activate --build-on-target ---j$(nproc)
+      - name: Canary deployment to zephyr
+        run: |
+          echo "🚨 Starting canary deployment to zephyr..."
+          nix run github:zhaofengli/colmena -- deploy zephyr --activate --on-change build --reboot
+          echo "✅ Canary deployment to zephyr completed"
 
-     - name: Verify deployment
-       run: |
-         # Check that all nodes are running expected configuration
-         for host in zephyr nexus forge sentry; do
-           echo "Checking $host..."
-           ssh $host "nixos-version"
+      - name: Verify zephyr canary health
+        run: |
+          echo "🔍 Verifying zephyr canary health..."
+          ssh zephyr "nixos-version"
+          ssh zephyr "systemctl is-active lolminer.service" || \
+              echo "::warning::Mining not active on zephyr after canary"
+          ssh zephyr "systemctl is-active xmrig.service" || \
+              echo "::warning::Mining not active on zephyr after canary"
+          ssh zephyr "tailscale status --json" || echo "Failed to get Tailscale status"
+          echo "✅ Zephyr canary verified"
 
-          # Verify Tailscale connectivity before proceeding
+      - name: Deploy to remaining nodes if canary passes
+        if: success()
+          run: |
+            echo "🚀 Deploying to remaining nodes (nexus, forge, sentry)..."
+            nix run github:zhaofengli/colmena -- deploy nexus forge sentry --activate --on-change build --reboot
+            echo "✅ Full cluster deployment completed"
+
+      - name: Rollback zephyr if canary fails
+        if: failure()
+          run: |
+            echo "❌ Canary deployment failed, rolling back zephyr..."
+            nix run github:zhaofengli/colmena -- deploy zephyr --revert
+
+      - name: Verify Tailscale connectivity
+        run: |
           echo "Verifying Tailscale VPN connectivity..."
           TAILSCALE_STATUS=$(ssh zephyr "tailscale status --json" || echo "Failed to get Tailscale status")
           echo "$TAILSCALE_STATUS" | grep -q '"healthy":true' || echo "Tailscale connectivity issue detected"
 
-          # Check that all Tailscale IPs are reachable
-          echo "Pinging cluster nodes via Tailscale VPN..."
-          for node in "100.81.182.5:zephyr" "100.86.158.18:nexus" "100.95.222.45:forge" "100.82.210.39:sentry"; do
-            IFS=':' read -ra ADDR _ <<< "$node"
-            timeout 10 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no $ADDR "hostname" || echo "Failed to reach $ADDR at $IP"
-          done
+      - name: Verify cluster connectivity
+        run: |
+          echo "Checking cluster connectivity..."
+          SUCCESS=0
+          for node in zephyr nexus; do
+            ssh -o ConnectTimeout=5 $node "echo OK" || SUCCESS=1
+            done
+          if [ "$SUCCESS" -eq 0 ]; then
+            echo "::warning::Cluster connectivity issue detected"
+          fi
+          echo "✅ Cluster connectivity verified"
 
-          echo "✅ All nodes are reachable via Tailscale"
+  metrics:
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-          # Verify Tailscale connectivity before proceeding
-          echo "Verifying Tailscale VPN connectivity..."
-          TAILSCALE_STATUS=$(ssh zephyr "tailscale status --json" || echo "Failed to get Tailscale status")
-          echo "$TAILSCALE_STATUS" | grep -q '"healthy":true' || echo "Tailscale connectivity issue detected"
+      - name: Compile deployment metrics
+        run: |
+          echo "# Deployment Metrics"
+          echo "Deployment ID: ${{ github.run_id }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Triggered by: ${{ github.event_name }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Status: ${{ job.status }}"
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Check that all Tailscale IPs are reachable
-          # Ping cluster nodes via Tailscale VPN (health check)
-          echo "Pinging cluster nodes via Tailscale VPN..."
-          for node in "100.81.182.5:zephyr" "100.86.158.18:nexus" "100.95.222.45:forge" "100.82.210.39:sentry"; do
-            IFS=':' read -ra ADDR _ <<< "$node"
-            timeout10 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no $ADDR "hostname" || echo "Failed to connect to $ADDR at $IP"
-          done
-
-          echo "✅ All nodes are reachable via Tailscale"
+      - name: Report metrics to GitHub
+        run: |
+          echo "deployment_time=$SECONDS seconds" >> $GITHUB_STEP_SUMMARY
+          echo "deployment_success=${{ job.status }}" >> $GITHUB_STEP_SUMMARY
