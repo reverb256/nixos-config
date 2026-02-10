@@ -7,7 +7,7 @@ FLAKE_PATH := "/etc/nixos"
 NEXUS := "j_kro@100.86.158.18"   # Local: 10.1.1.120
 FORGE := "j_kro@100.95.222.45"   # Local: 10.1.1.130
 SENTRY := "j_kro@100.82.210.39"   # Local: 10.1.1.140
-# ZEPHYR (current node): Local 10.1.1.110, Tailscale 100.81.182.5
+ZEPHYR := "root@100.81.182.5"   # Local: 10.1.1.110, Tailscale 100.81.182.5
 
 # Default branch for deployment (can be overridden with JUST_BRANCH=branch-name)
 BRANCH := ""  # Empty = use current branch
@@ -74,13 +74,18 @@ test BRANCH=`git branch --show-current`:
 # Deploy specified branch via colmena - optional branch parameter (default: current branch)
 deploy *BRANCH=`git branch --show-current`:
     @echo "Deploying branch: {{BRANCH}}"
+    @echo "Pausing mining on all nodes..."
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "mining-build-wrapper/bin/mining-pause" 2>/dev/null || true
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "mining-build-wrapper/bin/mining-pause" 2>/dev/null || true
     @echo "Checking out branch on all nodes..."
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
-    cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} -B {{BRANCH}} && git pull origin {{BRANCH}}
     @echo "Deploying via colmena to all nodes..."
     nix run github:zhaofengli/colmena -- deploy --on-change --skip-eval
+    @echo "Resuming mining on all nodes..."
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
     @echo "✅ Deployment complete for branch: {{BRANCH}}"
 
 # ============================================================================
