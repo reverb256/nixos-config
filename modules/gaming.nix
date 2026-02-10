@@ -84,15 +84,7 @@ with lib; {
   # ANIME GAME LAUNCHER (ezKEa/aagl-gtk-on-nix)
   # Module imported in commonModules (flake.nix)
   # Cachix configured in flake.nix (inputs.aagl.nixConfig)
-  # ============================================================================
-  programs.anime-game-launcher.enable = true;
-  programs.honkers-railway-launcher.enable = true;
-  programs.wavey-launcher.enable = true;
-  programs.sleepy-launcher.enable = true;
-
-  # Disabled launchers (not needed)
-  programs.anime-games-launcher.enable = false;
-  programs.honkers-launcher.enable = false;
+  # Options moved to configuration.nix (same scope as aagl module import)
   # ============================================================================
 
   # ============================================================================

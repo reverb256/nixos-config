@@ -41,8 +41,8 @@
   };
 
   swapDevices = [
-    {device = "/dev/disk/by-uuid/f1fa3b38-f788-485b-8e56-58ecbe526091";}
-    {device = "/dev/disk/by-uuid/e41f2f97-013a-4c2c-8eb2-7214768fcf4d";}
+    {device = "/dev/disk/by-uuid/f1fa3b38-f788-485b-8e56-58ecbe526091"; priority = -2;}  # Primary swap (nvme1n1 - data drive, less contention)
+    {device = "/dev/disk/by-uuid/e41f2f97-013a-4c2c-8eb2-7214768fcf4d"; priority = -3;}  # Secondary swap (nvme0n1 - root drive, emergency only)
   ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
