@@ -1,8 +1,7 @@
 # Mining-aware Build Wrapper with XMrig API Integration
 # Pauses CPU mining before builds and resumes after completion
 # XMrig exposes HTTP API on localhost:18088 for control
-
-{pkgs, ...}:
+{ pkgs, ... }:
 
   # Mining pause script
   mining-pause = pkgs.writeShellScriptBin "mining-pause" ''
@@ -25,7 +24,7 @@
       }
 
     if [ $? -eq 0 ]; then
-      echo "✓ XMirig paused successfully"
+      echo "✓ XMrig paused successfully"
     fi
   '';
 
