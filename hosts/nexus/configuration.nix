@@ -7,31 +7,33 @@
   ...
 }: {
   imports = [
-    # Host-specific hardware
-    ./hardware-configuration.nix
-    # Import desktop module for Plasma 6
-    ../../modules/desktop.nix
-    # Import fish shell with starship
-    ../../modules/fish-starship.nix
-    # Import gaming module
-    ../../modules/gaming.nix
-    # Import NVIDIA Wayland module (best practices)
-    ../../modules/nvidia-wayland.nix
-    # Import  AI agent orchestration (declarative container)
-    # Import  common configuration
-    # Import Tailscale mesh VPN
-    ../../modules/tailscale.nix
-    # Import AIStor secrets generation
-    ../../modules/aistor-secrets.nix
-    # Import mining module (robust configuration)
-    ../../modules/mining.nix
-    # Import CI/CD and auto-update modules
-    ../../modules/garnix.nix
-    ../../modules/auto-update.nix
-    ../../modules/ssh.nix
-    # Import  node host module - DISABLED ( refactor in progress)
-    # Import distributed builds module (GPU+CUDA+ROCm support)
-    ../../modules/distributed-builds.nix
+      # Host-specific hardware
+      ./hardware-configuration.nix
+      # Import desktop module for Plasma 6
+      ../../modules/desktop.nix
+      # Import fish shell with starship
+      ../../modules/fish-starship.nix
+      # Import gaming module
+      ../../modules/gaming.nix
+      # Import NVIDIA Wayland module (best practices)
+      ../../modules/nvidia-wayland.nix
+      # Import  AI agent orchestration (declarative container)
+      # Import  common configuration
+      # Import Tailscale mesh VPN
+      ../../modules/tailscale.nix
+      # Import AIStor secrets generation
+      ../../modules/aistor-secrets.nix
+      # Import mining module (robust configuration)
+      ../../modules/mining.nix
+      # Import CI/CD and auto-update modules
+      ../../modules/garnix.nix
+      ../../modules/auto-update.nix
+      ../../modules/ssh.nix
+      # Import distributed builds module (GPU+CUDA+ROCm support)
+      ../../modules/distributed-builds.nix
+      # Import storage management
+      ../../modules/storage-btrfs.nix
+      ../../modules/mining-build-wrapper.nix
     # Import  node host module - DISABLED ( refactor in progress)
   ];
 

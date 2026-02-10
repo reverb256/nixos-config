@@ -67,6 +67,10 @@ jobs:
             nexus)  ip="100.86.158.18" ;;
             forge)  ip="100.116.190.124" ;;
             sentry) ip="100.82.210.39" ;;
-          esac
-          ssh -o ConnectTimeout=10 j_kro@$ip "nixos-version" || echo "❌ Failed to connect to $host"
-        done
+           esac
+           ssh -o ConnectTimeout=10 j_kro@$ip "nixos-version" || echo "❌ Failed to connect to $host"
+         done
+         # Verify mining scripts are available
+         ssh -o ConnectTimeout=10 j_kro@$ip "which build-wrapper" || echo "⚠️  Warning: build-wrapper not found on $host"
+         ssh -o ConnectTimeout=10 j_kro@$ip "ls -la /run/current-system/sw/bin/ | grep -E 'build-wrapper|mining' || true"
+         done
