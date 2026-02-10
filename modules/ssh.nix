@@ -76,20 +76,21 @@
 
       # Build machines - use j_kro user for distributed builds
       # These override the default user for distributed builds
-      Host nexus 10.1.1.120
-        HostName 10.1.1.120
+      # Support both local IP and Tailscale IP for mosh compatibility
+      Host nexus 10.1.1.120 100.86.158.18
+        HostName 100.86.158.18
         User j_kro
         IdentityFile /home/j_kro/.ssh/id_nixbuild
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-      Host forge 10.1.1.130
-        HostName 10.1.1.130
+      Host forge 10.1.1.130 100.95.222.45
+        HostName 100.95.222.45
         User j_kro
         IdentityFile /home/j_kro/.ssh/id_nixbuild
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
-      Host sentry 10.1.1.140
-        HostName 10.1.1.140
+      Host sentry 10.1.1.140 100.82.210.39
+        HostName 100.82.210.39
         User j_kro
         IdentityFile /home/j_kro/.ssh/id_nixbuild
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
