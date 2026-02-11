@@ -28,6 +28,16 @@
   ];
 
   # ============================================================================
+  # STABILITYMATRIX - Stable Diffusion Package Manager
+  # ============================================================================
+
+  programs.stability-matrix = {
+    enable = true;
+    enableCuda = true;  # NVIDIA GPU support (RTX 3090)
+    dataDir = "/home/j_kro/.stabilitymatrix";
+  };
+
+  # ============================================================================
   # OPENCLAW - CLUSTER ORCHESTRATION
   # ============================================================================
 
