@@ -19,8 +19,8 @@
   
   # Fetch the icon from the StabilityMatrix repo
   icon = pkgs.fetchurl {
-    url = "https://raw.githubusercontent.com/LykosAI/StabilityMatrix/main/StabilityMatrix.Avalonia/Assets/StabilityMatrix.svg";
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    url = "https://raw.githubusercontent.com/LykosAI/StabilityMatrix/main/StabilityMatrix.Avalonia/Assets/Icon.png";
+    hash = "sha256-DDLc1WDfra5sjMFIb7oSJ+nPk6VeO6JiVx6DBS4b8i4=";
   };
   
   # Desktop entry for StabilityMatrix
