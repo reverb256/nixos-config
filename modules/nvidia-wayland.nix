@@ -103,11 +103,18 @@ in {
       # Enable Wayland for Ozone-based applications (Chrome, Electron, etc.)
       NIXOS_OZONE_WL = "1";
 
+      # CRITICAL: Force NVIDIA Vulkan ICD (fixes DXVK initialization failures)
+      # Without this, Vulkan loader can't find the NVIDIA driver
+      VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json";
+
       # Ensure GLX uses NVIDIA vendor library
       __GLX_VENDOR_LIBRARY_NAME = "nvidia";
 
       # Force GBM to use NVIDIA DRM backend (fixes DMA-BUF/EGL buffer import issues)
       GBM_BACKEND = "nvidia-drm";
+
+      # VA-API driver for hardware video acceleration
+      LIBVA_DRIVER_NAME = "nvidia";
 
       # Disable G-SYNC to prevent buffer issues
       __GL_GSYNC_ALLOWED = "0";
@@ -128,7 +135,6 @@ in {
       # VRChat/SteamVR specific variables
       SDL_VIDEODRIVER = "wayland";
       WINEPREFIX = "$HOME/.wine";
-      PROTON_USE_WINED3D = "1";
       DXVK_HUD = "1"; # Enable to debug VRChat performance if needed (remove later)
     };
 
