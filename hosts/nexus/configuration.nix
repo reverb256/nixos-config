@@ -14,6 +14,8 @@
     ../../modules/nvidia-wayland.nix
     # Import AI agent orchestration (declarative container)
     # Import  common configuration
+    # Import networking module (DNS, firewall, Avahi)
+    ../../modules/networking.nix
     # Import Tailscale mesh VPN
     ../../modules/tailscale.nix
     # Import AIStor secrets generation
@@ -37,7 +39,7 @@
   networking.hostName = "nexus";
 
   # Enable CI/CD features
-  services.garnix.enable = false;
+  # services.garnix.enable = false; # Default is false, no need to set explicitly
   services.nixos-auto-update.enable = true;
 
   # Multi-kernel support: Zen primary kernel

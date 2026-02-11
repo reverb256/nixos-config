@@ -58,7 +58,7 @@
         mandatoryFeatures = [];
       }
       {
-        # Sentry: 16 cores, 31GB RAM, Ryzen 7 1700X, RX 5600 XT, ROCm
+        # Sentry: 16 cores (8 physical + 16 threads), 31GB RAM, Ryzen 7 1700X, RX 5600 XT, ROCm
         # Mining: CPU-only (8 threads @ 100% CPU quota, no GPU mining)
         hostName = "sentry";
         system = "x86_64-linux";

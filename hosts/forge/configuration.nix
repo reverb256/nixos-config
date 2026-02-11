@@ -18,6 +18,8 @@
     ../../modules/nvidia-wayland.nix
     # Import AI agent orchestration (declarative container)
     # Import  common configuration
+    # Import networking module (DNS, firewall, Avahi)
+    ../../modules/networking.nix
     # Import Tailscale mesh VPN
     ../../modules/tailscale.nix
     # Import CI/CD and auto-update modules

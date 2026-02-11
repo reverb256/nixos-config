@@ -71,6 +71,8 @@ in {
     # Secrets configuration
     # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
     #  service module - REMOVED
+    # Host-specific configuration
+    ./hosts/zephyr/configuration.nix
   ];
 
   #  AI Gateway Service - REMOVED
@@ -246,16 +248,16 @@ in {
   programs.mosh.enable = true;
 
   # ============================================================================
-  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix) - 4 launchers enabled
+  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix) - DISABLED temporarily
   # ============================================================================
-  programs.anime-game-launcher.enable = true;
-  programs.honkers-railway-launcher.enable = true;
-  programs.wavey-launcher.enable = true;
-  programs.sleepy-launcher.enable = true;
+  # programs.anime-game-launcher.enable = true;
+  # programs.honkers-railway-launcher.enable = true;
+  # programs.wavey-launcher.enable = true;
+  # programs.sleepy-launcher.enable = true;
 
   # Disabled launchers (not needed)
-  programs.anime-games-launcher.enable = false;
-  programs.honkers-launcher.enable = false;
+  # programs.anime-games-launcher.enable = false;
+  # programs.honkers-launcher.enable = false;
 
   # ============================================================================
   # FIREWALL - Mosh uses UDP ports 60000-61000
