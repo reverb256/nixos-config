@@ -105,7 +105,7 @@ in {
 
       # CRITICAL: Force NVIDIA Vulkan ICD (fixes DXVK initialization failures)
       # Without this, Vulkan loader can't find the NVIDIA driver
-      VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json";
+      VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
 
       # Ensure GLX uses NVIDIA vendor library
       __GLX_VENDOR_LIBRARY_NAME = "nvidia";
