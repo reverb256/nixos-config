@@ -182,7 +182,7 @@ in {
         };
       };
 
-      # Other remote storage backends could be added here
+      # Other remote storage backends could be added here (e.g., sshfs, nfs, etc.)
       # e.g., sshfs, nfs, etc.
     };
   };

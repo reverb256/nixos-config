@@ -73,7 +73,7 @@ with lib; {
             }
           } else if (action.id == "org.freedesktop.Flatpak.app-uninstall" ||
                      action.id == "org.freedesktop.Flatpak.runtime-uninstall") {
-            // j_kro can uninstall user packages without authentication
+             # j_kro can uninstall user packages without authentication
             if (action.lookup("installation") == "user" && subject.user == "j_kro") {
               return polkit.Result.YES;
             }

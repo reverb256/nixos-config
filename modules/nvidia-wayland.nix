@@ -6,7 +6,8 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.hardware.nvidia.wayland;
 in {
   options.hardware.nvidia.wayland = {
@@ -102,12 +103,6 @@ in {
       # Enable Wayland for Ozone-based applications (Chrome, Electron, etc.)
       NIXOS_OZONE_WL = "1";
 
-      # Enable Wayland for Firefox
-      MOZ_ENABLE_WAYLAND = "1";
-
-      # Force VA-API to use NVIDIA driver (prevents simpledrm fallback)
-      LIBVA_DRIVER_NAME = "nvidia";
-
       # Ensure GLX uses NVIDIA vendor library
       __GLX_VENDOR_LIBRARY_NAME = "nvidia";
 
@@ -146,9 +141,16 @@ in {
 
       # Display management
       kanshi
+    ];
 
-      # Note: nvtop is provided by system-packages.nix to avoid rebuilds
-      # nvtopPackages.full causes kernel-dependent rebuilds
+    # ============================================================================
+    # VULKAN ICD SYMLINK - Create symlink in /etc/vulkan/icd.d for standard loader
+    # NixOS uses /run/opengl-driver which isn't in default search paths
+    # ============================================================================
+    systemd.tmpfiles.rules = [
+      "L+ /etc/vulkan/icd.d/nvidia_icd.json - - - /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
+      "L+ /etc/vulkan/icd.d/nvidia_icd.x86_64.json - - - /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
+      "d /etc/vulkan/icd.d 0755 root root -"
     ];
 
     # ============================================================================
@@ -163,20 +165,18 @@ in {
     # EARLY NVIDIA LOADING - Fix race condition with simple-framebuffer
     # Load NVIDIA modules in initramfs before simple-framebuffer claims displays
     # ============================================================================
-    # Temporarily disabled to fix kernel module not found error
-    # boot.initrd.kernelModules = [
-    #   "nvidia"
-    #   "nvidia_modeset"
-    #   "nvidia_drm"
-    # ];
+    boot.initrd.kernelModules = [
+      "nvidia"
+      "nvidia_modeset"
+      "nvidia_drm"
+    ];
 
     # Also ensure modules are available in initramfs
-    # Temporarily disabled to fix kernel module not found error
-    # boot.initrd.availableKernelModules = [
-    #   "nvidia"
-    #   "nvidia_modeset"
-    #   "nvidia_drm"
-    # ];
+    boot.initrd.availableKernelModules = [
+      "nvidia"
+      "nvidia_modeset"
+      "nvidia_drm"
+    ];
 
     # ============================================================================
     # NVIDIA DEVICE NODE CREATION - Ensure device nodes exist after driver load
@@ -207,9 +207,9 @@ in {
                     mknod -m 666 "/dev/nvidia$minor" c 195 "$minor" 2>/dev/null || true
                   fi
                 fi
-              done
+                done
+              fi
             fi
-          fi
         '';
       };
     };

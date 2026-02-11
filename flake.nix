@@ -26,7 +26,7 @@
     nix-gaming.url = "github:fufexan/nix-gaming";
 
     # Anime Game Launchers (ezKEa/aagl-gtk-on-nix)
-    aagl.url = "github:ezKEa/aagl-gtk-on-nix/release-25.11";
+    aagl.url = "github:ezKEa/aagl-gtk-on-nix";
     aagl.inputs.nixpkgs.follows = "nixpkgs";  # CRITICAL: Must follow for mkRenamedOptionModule to work
 
     # ScopeBuddy - Gamescope wrapper for Wayland desktop gaming
@@ -66,12 +66,10 @@
     ./common-base.nix
 
     # External Modules
-    # inputs.aagl.nixosModules.default  # Temporarily disabled due to option errors
+    inputs.aagl.nixosModules.default
     inputs.determinate.nixosModules.default
-    # inputs.nix-gaming.nixosModules.pipewireLowLatency  # Temporarily disabled
-    # inputs.nix-gaming.nixosModules.platformOptimizations
-    # inputs.nix-gaming.nixosModules.pipewire # Temporarily disabled
-    # inputs.nix-gaming.nixosModules.pipewire.alsa  # Temporarily disabled
+    inputs.nix-gaming.nixosModules.pipewireLowLatency
+    inputs.nix-gaming.nixosModules.platformOptimizations
     inputs.agenix.nixosModules.default
     inputs.nix-flatpak.nixosModules.nix-flatpak
 

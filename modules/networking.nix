@@ -26,7 +26,7 @@ with lib; {
     0.0.0.0 regionconfig.eu.amplitude.com
     0.0.0.0 o1125869.ingest.sentry.io
 
-    # VRChat Specific (Hasn't used yet, added for future proofing)
+
     0.0.0.0 api3.amplitude.com
     0.0.0.0 cdn.amplitude.com
     0.0.0.0 info.amplitude.com
