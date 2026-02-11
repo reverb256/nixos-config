@@ -23,19 +23,20 @@
     ../../modules/distributed-builds.nix
     ../../modules/storage-btrfs.nix
     ../../modules/mining-build-wrapper.nix
-    # ../../modules/quadlet-openclaw-simple.nix  # Disabled - module options not properly defined
+    ../../modules/quadlet-openclaw.nix  # OpenClaw cluster orchestration
   ];
 
   # ============================================================================
-  # OPENCLAW - CLUSTER ORCHESTRATION - DISABLED (module options not defined)
+  # OPENCLAW - CLUSTER ORCHESTRATION
   # ============================================================================
-  # services.openclaw-quadlet = {
-  #   enable = true;
-  #   masterNode = "zephyr";
-  #   agentNodes = ["nexus" "forge" "sentry"];
-  #   authToken = "your-token-here";
-  #   workspaces.zephyr = "/home/j_kro/workspace";
-  # };
+
+  services.openclaw-quadlet = {
+    enable = true;
+    workspacePath = "/home/j_kro/workspace";
+    authToken = "";  # Set via agenix or environment variable
+    port = 18090;
+    bindToLocalhost = true;
+  };
 
   networking = {
     hostName = "zephyr";
