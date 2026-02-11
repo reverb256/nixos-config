@@ -89,9 +89,10 @@ in {
       (pkgs.writeShellScriptBin "openclaw" ''
         # OpenClaw CLI wrapper - runs commands inside the container
         CONTAINER_NAME="openclaw-gateway"
+        PODMAN="sudo podman"
         
         check_container() {
-          if ! ${pkgs.podman}/bin/podman ps --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
+          if ! $PODMAN ps --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
             echo "Error: Container '$CONTAINER_NAME' is not running"
             echo "Start it with: sudo systemctl start openclaw-gateway"
             exit 1
@@ -101,13 +102,17 @@ in {
         case "$1" in
           shell|sh)
             check_container
-            ${pkgs.podman}/bin/podman exec -it "$CONTAINER_NAME" /bin/bash || ${pkgs.podman}/bin/podman exec -it "$CONTAINER_NAME" /bin/sh
+            $PODMAN exec -it "$CONTAINER_NAME" /bin/bash || $PODMAN exec -it "$CONTAINER_NAME" /bin/sh
             ;;
           logs)
-            ${pkgs.podman}/bin/podman logs -f "$CONTAINER_NAME"
+            $PODMAN logs -f "$CONTAINER_NAME"
             ;;
           status)
-            ${pkgs.podman}/bin/podman ps -a --filter "name=$CONTAINER_NAME"
+            echo "=== Container ==="
+            $PODMAN ps -a --filter "name=$CONTAINER_NAME"
+            echo
+            echo "=== Service ==="
+            systemctl status openclaw-gateway --no-pager 2>/dev/null || true
             ;;
           restart)
             sudo systemctl restart openclaw-gateway
@@ -115,7 +120,7 @@ in {
           exec)
             shift
             check_container
-            ${pkgs.podman}/bin/podman exec -it "$CONTAINER_NAME" "$@"
+            $PODMAN exec -it "$CONTAINER_NAME" "$@"
             ;;
           --help|-h|help)
             echo "OpenClaw CLI Wrapper"
@@ -139,9 +144,9 @@ in {
           *)
             check_container
             if [ $# -eq 0 ]; then
-              ${pkgs.podman}/bin/podman exec -it "$CONTAINER_NAME" openclaw --help
+              $PODMAN exec -it "$CONTAINER_NAME" openclaw --help
             else
-              ${pkgs.podman}/bin/podman exec -it "$CONTAINER_NAME" openclaw "$@"
+              $PODMAN exec -it "$CONTAINER_NAME" openclaw "$@"
             fi
             ;;
         esac
