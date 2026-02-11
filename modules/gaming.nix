@@ -19,10 +19,7 @@ with lib; {
     autoStart = true;
   };
 
-  services.monado = {
-    enable = false;
-    defaultRuntime = false;
-  };
+
 
   # ============================================================================
   # GAMEMODE - CPU/GPU Optimizations
@@ -136,14 +133,14 @@ with lib; {
         export PRESSURE_VESSEL_FILESYSTEMS_BIND_READONLY=/run/opengl-driver:/run/host/run/opengl-driver
         export __NV_PRIME_RENDER_OFFLOAD=1
         export __GLX_VENDOR_LIBRARY_NAME=nvidia
-        export VK_ICD_FILENAMES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json:/run/opengl-driver-32/share/vulkan/icd.d/nvidia_icd.json
+        # VK_ICD_FILENAMES - Removed to let Vulkan loader auto-discover ICDs
         export __GL_EXTERNAL_EXTENSIONS=1
         export CUDA_PATH=/run/opengl-driver
         export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
         export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
         export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
         export WINE_FULLSCREEN_FAKE_CAPTURE=1
-        export DXVK_CONFIG_FILE=/dev/null
+        # DXVK_CONFIG_FILE - Removed to let DXVK auto-discover config
         export OPENXR_ACTIVE_RUNTIME=/nix/store/93gdgwz68nf0ngrkjiazqim4ixv7mz44-wivrn-25.12/lib/wivrn
         export OPENVR_API_PATH="${pkgs.opencomposite}/lib/opencomposite"
       '';

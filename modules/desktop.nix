@@ -18,7 +18,7 @@
   xdg.portal = {
     enable = true;
 
-    # Portal implementations - KDE only (hyprland removed)
+    # Portal implementations - KDE only
     extraPortals = with pkgs; [
       kdePackages.xdg-desktop-portal-kde # Primary for KDE
       xdg-desktop-portal-gtk # GTK app fallback

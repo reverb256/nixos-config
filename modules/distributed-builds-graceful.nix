@@ -134,7 +134,6 @@ in {
       IdentityFile /home/j_kro/.ssh/id_nixbuild
       ConnectTimeout 5
       StrictHostKeyChecking accept-new
-      LogLevel ERROR
 
     Host sentry
       HostName 10.1.1.140
@@ -142,7 +141,6 @@ in {
       IdentityFile /home/j_kro/.ssh/id_nixbuild
       ConnectTimeout 5
       StrictHostKeyChecking accept-new
-      LogLevel ERROR
   '';
 
   # ============================================================================

@@ -44,6 +44,5 @@ with lib; {
     NVIDIA_ICD_PATH = mkDefault "/run/opengl-driver/share/vulkan/icd.d";
     CUDA_PATH = mkDefault "/run/opengl-driver";
     CUDA_HOME = mkDefault "/run/opengl-driver";
-    VK_ICD_FILENAMES = mkDefault "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json";
   };
 }

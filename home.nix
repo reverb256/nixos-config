@@ -509,26 +509,4 @@
       WantedBy = ["graphical-session.target"];
     };
   };
-
-  #  Gateway Service - REMOVED FROM SYSTEM (modules/services//default.nix)
-  # Service removed from system
-  # systemd.user.services.-gateway = {
-  #   Unit = {
-  #     Description = " Gateway";
-  #     After = ["network.target"];
-  #     PartOf = ["graphical-session.target"];
-  #   };
-  #   Service = {
-  #     Type = "simple";
-  #     ExecStart = "${inputs.nix-.packages.x86_64-linux.}/bin/ gateway --port 18789 --bind loopback --allow-unconfigured";
-  #     Restart = "on-failure";
-  #     RestartSec = 5;
-  #     Environment = [
-  #       "_STATE_DIR=/home/j_kro/."
-  #     ];
-  #   };
-  #   Install = {
-  #     WantedBy = ["graphical-session.target"];
-  #   };
-  # };
 }

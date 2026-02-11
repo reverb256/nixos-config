@@ -77,18 +77,10 @@ in {
   #  AI Agent Gateway - completely removed from system
 
   # ============================================================================
-  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix) - TEMPORARILY DISABLED
+  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix)
   # ============================================================================
-  # Note: aagl module imported in flake.nix
-  # Cachix configured in flake.nix
-  # Temporarily disabled due to option compatibility issues - will debug separately
-  # programs.anime-game-launcher.enable = true;
-  # programs.anime-games-launcher.enable = true;
-  # programs.honkers-railway-launcher.enable = true;
-  # programs.honkers-launcher.enable = true;
-  # programs.wavey-launcher.enable = true;
-  # programs.sleepy-launcher.enable = true;
-
+  # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
+  # Using built-in hardware.openrazer module for proper daemon setup
   # ============================================================================
   # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
   # Using built-in hardware.openrazer module for proper daemon setup
@@ -133,32 +125,31 @@ in {
   };
 
   # Declarative Flatpak configuration using nix-flatpak module
-  # Temporarily disabled due to NixOS 26.05 option name changes
-  # services.flatpak = {
-  #   enable = true;
-  #   polkit.enable = true;
-  #   polkit.allowSystemOperations = true;
-  #   remotes = [
-  #     {
-  #       name = "flathub";
-  #       location = "https://flathub.org/repo/flathub.flatpakrepo";
-  #     }
-  #     {
-  #       name = "flathub-beta";
-  #       location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
-  #     }
-  #   ];
-  #   packages = [
-  #     # Keep existing system-wide Flatpak apps
-  #     # Note: nix-flatpak uses just the app ID, not "remote:app-id" format
-  #     "com.spotify.Client"
-  #     "io.github.kolunmi.Bazaar"
-  #     "org.gnome.Calculator"
-  #     "org.gnome.Fractal"
-  #     "org.telegram.desktop"
-  #     "org.kde.audiotube"
-  #   ];
-  # };
+  services.flatpak = {
+    enable = true;
+    polkit.enable = true;
+    polkit.allowSystemOperations = true;
+    remotes = [
+      {
+        name = "flathub";
+        location = "https://flathub.org/repo/flathub.flatpakrepo";
+      }
+      {
+        name = "flathub-beta";
+        location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
+      }
+    ];
+    packages = [
+      # Keep existing system-wide Flatpak apps
+      # Note: nix-flatpak uses just the app ID, not "remote:app-id" format
+      "com.spotify.Client"
+      "io.github.kolunmi.Bazaar"
+      "org.gnome.Calculator"
+      "org.gnome.Fractal"
+      "org.telegram.desktop"
+      "org.kde.audiotube"
+    ];
+  };
 
   # Podman configuration for container management
   virtualisation.podman = {
@@ -260,16 +251,14 @@ in {
   programs.mosh.enable = true;
 
   # ============================================================================
-  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix) - DISABLED temporarily
+  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix)
   # ============================================================================
-  # programs.anime-game-launcher.enable = true;
-  # programs.honkers-railway-launcher.enable = true;
-  # programs.wavey-launcher.enable = true;
-  # programs.sleepy-launcher.enable = true;
-
-  # Disabled launchers (not needed)
-  # programs.anime-games-launcher.enable = false;
-  # programs.honkers-launcher.enable = false;
+  programs.anime-game-launcher.enable = true;
+  programs.anime-games-launcher.enable = true;
+  programs.honkers-railway-launcher.enable = true;
+  programs.honkers-launcher.enable = true;
+  programs.wavey-launcher.enable = true;
+  programs.sleepy-launcher.enable = true;
 
   # ============================================================================
   # FIREWALL - Mosh uses UDP ports 60000-61000
