@@ -33,7 +33,7 @@
   services.openclaw-quadlet = {
     enable = true;
     workspacePath = "/home/j_kro/workspace";
-    authToken = "";  # Set via agenix or environment variable
+    authToken = "cebfb92cc1ab3a575e29fbc564548f5586b6ed8fa54f8070ab2072a7fab4f7ce";
     port = 18090;
     bindToLocalhost = true;
   };
