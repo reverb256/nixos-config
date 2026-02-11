@@ -177,8 +177,7 @@ in {
         
         # Environment variables
         environments = mkIf (cfg.authToken != "") {
-          OPENCLAW_TOKEN = cfg.authToken;
-          OPENCLAW_AUTH_MODE = "token";
+          OPENCLAW_GATEWAY_TOKEN = cfg.authToken;
         };
         
         # Labels
