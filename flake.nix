@@ -73,6 +73,7 @@
     inputs.nix-gaming.nixosModules.platformOptimizations
     inputs.agenix.nixosModules.default
     inputs.nix-flatpak.nixosModules.nix-flatpak
+    inputs.quadlet-nix.nixosModules.quadlet
 
     # Base Configuration (after external modules)
     ./common-base.nix
