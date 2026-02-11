@@ -3,8 +3,8 @@
 with lib; {
   # ============================================================================
 
-  # Disable conflicting services
-  networking.dhcpcd.enable = false;
+  # Use NetworkManager for interface management
+  networking.networkmanager.enable = true;
   networking.useDHCP = false;
 
   # ============================================================================

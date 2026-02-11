@@ -18,6 +18,8 @@
     # # ../../modules/unified-rgb.nix
     # Import  AI agent orchestration (declarative container)
     # Import  common configuration
+    # Import networking module (DNS, firewall, Avahi)
+    ../../modules/networking.nix
     # Import Tailscale mesh VPN
     ../../modules/tailscale.nix
     # Import CI/CD and auto-update modules
@@ -43,8 +45,7 @@
   networking.hostName = "sentry";
 
   # Enable CI/CD features
-  services.garnix.enable = false;
-  services.garnix.netrcFile = null; # Explicitly disable garnix netrc
+  # services.garnix.enable = false; # Default is false, no need to set explicitly
   services.nixos-auto-update.enable = true;
 
   # Multi-kernel support: Use latest kernel (workaround for zen 6.18.7 module shrinkage bug)
@@ -103,13 +104,12 @@
   ];
 
   # ============================================================================
-  # DISABLE DISTRIBUTED BUILDS ON SENTRY
+  # ENABLE DISTRIBUTED BUILDS ON SENTRY
   # ============================================================================
-  # Sentry is a build machine, not a coordinator
-  # Disable distributed builds to prevent garnix secret errors
-  nix.distributedBuilds = lib.mkForce false;
+  # Sentry can build locally and distribute to other nodes
+  # Note: Garnix cache disabled to prevent secret errors (garnix.enable = false above)
+  nix.distributedBuilds = true;
 
-  # Also remove garnix cache reference to prevent nix-cache-key error
   nix.settings = {
     substituters = lib.mkForce [
       "https://cache.nixos.org"

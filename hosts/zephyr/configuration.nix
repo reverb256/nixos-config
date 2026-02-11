@@ -12,6 +12,7 @@
     ../../modules/gaming.nix
     ../../modules/nvidia-wayland.nix
     ../../modules/garnix.nix
+    ../../modules/networking.nix
     ../../modules/tailscale.nix
     ../../modules/aistor-secrets.nix
     ../../modules/nix-cache-server.nix
@@ -26,6 +27,7 @@
 
   networking = {
     hostName = "zephyr";
+    networkmanager.enable = true;
 
     networkmanager.ensureProfiles = {
       profiles."Wired connection 1" = {
@@ -158,6 +160,16 @@
   };
 
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale"];
+
+  # ============================================================================
+  # TAILSCALE - Secure mesh VPN
+  # ============================================================================
+  # Routing features configured via tailscaled environment
+  systemd.services.tailscaled.environment = {
+    TS_ADVERTISE_ROUTES = "10.1.1.0/24";
+    TS_ROUTES = "";
+    TS_SSH = "true";
+  };
 
   # Environment variables for CUDA and Vulkan accessibility
   environment.variables = {
