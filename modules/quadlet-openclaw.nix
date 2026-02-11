@@ -91,7 +91,7 @@ in {
       
       # Container configuration
       containerConfig = {
-        image = "docker.io/ghcr.io/openclaw/openclaw-gateway:latest";
+        image = "ghcr.io/openclaw/openclaw:latest";
         name = "openclaw-gateway";
         
         # Workspace binding
