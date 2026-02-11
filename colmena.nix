@@ -35,6 +35,14 @@ in {
     ...
   }: {
     imports = [
+      # External modules (must come before common-base.nix)
+      inputs.aagl.nixosModules.default
+      inputs.determinate.nixosModules.default
+      inputs.nix-gaming.nixosModules.pipewireLowLatency
+      inputs.nix-gaming.nixosModules.platformOptimizations
+      inputs.agenix.nixosModules.default
+      inputs.nix-flatpak.nixosModules.nix-flatpak
+      # Base configuration
       ./common-base.nix
       ./hosts/zephyr/configuration.nix
     ];
@@ -49,6 +57,14 @@ in {
     ...
   }: {
     imports = [
+      # External modules (must come before common-base.nix)
+      inputs.aagl.nixosModules.default
+      inputs.determinate.nixosModules.default
+      inputs.nix-gaming.nixosModules.pipewireLowLatency
+      inputs.nix-gaming.nixosModules.platformOptimizations
+      inputs.agenix.nixosModules.default
+      inputs.nix-flatpak.nixosModules.nix-flatpak
+      # Base configuration
       ./common-base.nix
       ./hosts/nexus/configuration.nix
     ];
@@ -63,6 +79,14 @@ in {
     ...
   }: {
     imports = [
+      # External modules (must come before common-base.nix)
+      inputs.aagl.nixosModules.default
+      inputs.determinate.nixosModules.default
+      inputs.nix-gaming.nixosModules.pipewireLowLatency
+      inputs.nix-gaming.nixosModules.platformOptimizations
+      inputs.agenix.nixosModules.default
+      inputs.nix-flatpak.nixosModules.nix-flatpak
+      # Base configuration
       ./common-base.nix
       ./hosts/forge/configuration.nix
     ];
@@ -77,6 +101,14 @@ in {
     ...
   }: {
     imports = [
+      # External modules (must come before common-base.nix)
+      inputs.aagl.nixosModules.default
+      inputs.determinate.nixosModules.default
+      inputs.nix-gaming.nixosModules.pipewireLowLatency
+      inputs.nix-gaming.nixosModules.platformOptimizations
+      inputs.agenix.nixosModules.default
+      inputs.nix-flatpak.nixosModules.nix-flatpak
+      # Base configuration
       ./common-base.nix
       ./hosts/sentry/configuration.nix
     ];
