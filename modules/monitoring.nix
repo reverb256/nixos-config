@@ -378,7 +378,7 @@ in {
               send_firing: true
 
       inhibit_rules:
-        # Don't send alerts if alerting is disabled
+        # Do not send alerts if alerting is disabled
         - target_match_re:
             source_re: 'alertmanager'
             match_re:

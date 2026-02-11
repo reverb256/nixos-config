@@ -171,19 +171,13 @@
     TS_SSH = "true";
   };
 
-  # Environment variables for CUDA and Vulkan accessibility
+  # Environment variables for CUDA accessibility
   environment.variables = {
-    # NVIDIA-specific variables
-    NVIDIA_DRIVER_PATH = "/run/opengl-driver";
-    NVIDIA_LIB_PATH = "/run/opengl-driver/lib";
-    NVIDIA_ICD_PATH = "/run/opengl-driver/share/vulkan/icd.d";
-
     # CUDA variables
     CUDA_PATH = "/run/opengl-driver";
     CUDA_HOME = "/run/opengl-driver";
 
     # Vulkan variables
-    VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json";
 
     # Library path enhancement for CUDA detection
   };
@@ -207,32 +201,13 @@
       # Set CUDA environment
       export CUDA_PATH=/run/opengl-driver
       export CUDA_HOME=/run/opengl-driver
-      export NVIDIA_DRIVER_PATH=/run/opengl-driver
-      export NVIDIA_LIB_PATH=/run/opengl-driver/lib
-      export NVIDIA_ICD_PATH=/run/opengl-driver/share/vulkan/icd.d
 
-      # Enhance library path for CUDA detection
-      export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64:$LD_LIBRARY_PATH"
-      export VK_ICD_FILENAMES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json
-
-      # Use steam-run with enhanced bindings for maximum compatibility
+      # Use steam-run for maximum compatibility
       exec ${pkgs.steam-run}/bin/steam-run \
         --unshare-user-group \
         --setenv=__NV_PRIME_RENDER_OFFLOAD=1 \
         --setenv=__GLX_VENDOR_LIBRARY_NAME=nvidia \
         --setenv=__VK_LAYER_NV_optimus=NVIDIA_only \
-        --setenv=CUDA_PATH=/run/opengl-driver \
-        --setenv=CUDA_HOME=/run/opengl-driver \
-        --setenv=NVIDIA_DRIVER_PATH=/run/opengl-driver \
-        --setenv=NVIDIA_LIB_PATH=/run/opengl-driver/lib \
-        --setenv=LD_LIBRARY_PATH=/run/opengl-driver/lib:/run/opengl-driver/lib64 \
-        --setenv=VK_ICD_FILENAMES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json \
-        --bind "/run/opengl-driver/lib:/usr/lib" \
-        --bind "/run/opengl-driver/lib64:/usr/lib64" \
-        --bind "/run/opengl-driver/lib:/lib" \
-        --bind "/run/opengl-driver/lib64:/lib64" \
-        --bind "/run/opengl-driver/share/vulkan/icd.d:/etc/vulkan/icd.d" \
-        --bind "/run/opengl-driver/bin:/usr/bin" \
         ${pkgs.lmstudio}/bin/lms "$@"
     '')
 
@@ -248,15 +223,8 @@
       # Set CUDA environment
       export CUDA_PATH=/run/opengl-driver
       export CUDA_HOME=/run/opengl-driver
-      export NVIDIA_DRIVER_PATH=/run/opengl-driver
-      export NVIDIA_LIB_PATH=/run/opengl-driver/lib
-      export NVIDIA_ICD_PATH=/run/opengl-driver/share/vulkan/icd.d
 
-      # Enhance library path for CUDA detection
-      export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64:$LD_LIBRARY_PATH"
-      export VK_ICD_FILENAMES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json
-
-      # Use steam-run with enhanced bindings for maximum compatibility
+      # Use steam-run for maximum compatibility
       exec ${pkgs.steam-run}/bin/steam-run \
         --unshare-user-group \
         --setenv=__NV_PRIME_RENDER_OFFLOAD=1 \
@@ -264,52 +232,11 @@
         --setenv=__VK_LAYER_NV_optimus=NVIDIA_only \
         --setenv=CUDA_PATH=/run/opengl-driver \
         --setenv=CUDA_HOME=/run/opengl-driver \
-        --setenv=NVIDIA_DRIVER_PATH=/run/opengl-driver \
-        --setenv=NVIDIA_LIB_PATH=/run/opengl-driver/lib \
-        --setenv=LD_LIBRARY_PATH=/run/opengl-driver/lib:/run/opengl-driver/lib64 \
-        --setenv=VK_ICD_FILENAMES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json \
-        --bind "/run/opengl-driver/lib:/usr/lib" \
-        --bind "/run/opengl-driver/lib64:/usr/lib64" \
-        --bind "/run/opengl-driver/lib:/lib" \
-        --bind "/run/opengl-driver/lib64:/lib64" \
-        --bind "/run/opengl-driver/share/vulkan/icd.d:/etc/vulkan/icd.d" \
         --bind "/run/opengl-driver/bin:/usr/bin" \
         ${pkgs.lmstudio}/bin/lm-studio "$@"
     '')
 
-    # Keep original wrappers as fallback
-    (pkgs.writeShellScriptBin "lms" ''
-      #!/bin/bash
-      cd /tmp
-      export NVIDIA_DRIVER_PATH=/run/opengl-driver
-      export NVIDIA_LIB_PATH=/run/opengl-driver/lib
-      export NVIDIA_ICD_PATH=/run/opengl-driver/share/vulkan/icd.d
-      export CUDA_PATH=/run/opengl-driver
-      exec ${pkgs.steam-run}/bin/steam-run \
-        --unshare-user-group \
-        --bind "$NVIDIA_LIB_PATH:/usr/lib" \
-        --bind "$NVIDIA_LIB_PATH:/usr/lib64" \
-        --bind "$NVIDIA_LIB_PATH:/lib" \
-        --bind "$NVIDIA_LIB_PATH:/lib64" \
-        --bind "$NVIDIA_ICD_PATH:/etc/vulkan/icd.d" \
-        ${pkgs.lmstudio}/bin/lms "$@"
-    '')
-    (pkgs.writeShellScriptBin "lm-studio" ''
-      #!/bin/bash
-      cd /tmp
-      export NVIDIA_DRIVER_PATH=/run/opengl-driver
-      export NVIDIA_LIB_PATH=/run/opengl-driver/lib
-      export NVIDIA_ICD_PATH=/run/opengl-driver/share/vulkan/icd.d
-      export CUDA_PATH=/run/opengl-driver
-      exec ${pkgs.steam-run}/bin/steam-run \
-        --unshare-user-group \
-        --bind "$NVIDIA_LIB_PATH:/usr/lib" \
-        --bind "$NVIDIA_LIB_PATH:/usr/lib64" \
-        --bind "$NVIDIA_LIB_PATH:/lib" \
-        --bind "$NVIDIA_LIB_PATH:/lib64" \
-        --bind "$NVIDIA_ICD_PATH:/etc/vulkan/icd.d" \
-        ${pkgs.lmstudio}/bin/lm-studio "$@"
-    '')
+    # LM Studio wrapper removed - duplicate of lms-enhanced
 
     # Additional CUDA packages for better compatibility
     cudaPackages.cudatoolkit
