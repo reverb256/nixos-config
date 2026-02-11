@@ -84,6 +84,70 @@ in {
       "d ${cfg.workspacePath} 0755 j_kro users -"
     ];
     
+    # Add OpenClaw CLI wrapper to system packages
+    environment.systemPackages = [
+      (pkgs.writeShellScriptBin "openclaw" ''
+        # OpenClaw CLI wrapper - runs commands inside the container
+        CONTAINER_NAME="openclaw-gateway"
+        
+        check_container() {
+          if ! ${pkgs.podman}/bin/podman ps --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
+            echo "Error: Container '$CONTAINER_NAME' is not running"
+            echo "Start it with: sudo systemctl start openclaw-gateway"
+            exit 1
+          fi
+        }
+        
+        case "$1" in
+          shell|sh)
+            check_container
+            ${pkgs.podman}/bin/podman exec -it "$CONTAINER_NAME" /bin/bash || ${pkgs.podman}/bin/podman exec -it "$CONTAINER_NAME" /bin/sh
+            ;;
+          logs)
+            ${pkgs.podman}/bin/podman logs -f "$CONTAINER_NAME"
+            ;;
+          status)
+            ${pkgs.podman}/bin/podman ps -a --filter "name=$CONTAINER_NAME"
+            ;;
+          restart)
+            sudo systemctl restart openclaw-gateway
+            ;;
+          exec)
+            shift
+            check_container
+            ${pkgs.podman}/bin/podman exec -it "$CONTAINER_NAME" "$@"
+            ;;
+          --help|-h|help)
+            echo "OpenClaw CLI Wrapper"
+            echo ""
+            echo "Usage: openclaw <command>"
+            echo ""
+            echo "Commands:"
+            echo "  shell      Get a shell inside the container"
+            echo "  logs       Show container logs"
+            echo "  status     Show container status"
+            echo "  restart    Restart the container"
+            echo "  exec <cmd> Run command in container"
+            echo "  <cmd>      Run OpenClaw CLI command (gateway, onboard, etc.)"
+            echo ""
+            echo "Examples:"
+            echo "  openclaw gateway --help"
+            echo "  openclaw onboard"
+            echo "  openclaw doctor"
+            echo "  openclaw security audit"
+            ;;
+          *)
+            check_container
+            if [ $# -eq 0 ]; then
+              ${pkgs.podman}/bin/podman exec -it "$CONTAINER_NAME" openclaw --help
+            else
+              ${pkgs.podman}/bin/podman exec -it "$CONTAINER_NAME" openclaw "$@"
+            fi
+            ;;
+        esac
+      '')
+    ];
+    
     # OpenClaw Gateway Container
     virtualisation.quadlet.containers.openclaw-gateway = {
       # Auto-start on boot
