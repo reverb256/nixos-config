@@ -68,8 +68,10 @@
     # External Modules
     # inputs.aagl.nixosModules.default  # Temporarily disabled due to option errors
     inputs.determinate.nixosModules.default
-    inputs.nix-gaming.nixosModules.pipewireLowLatency
-    inputs.nix-gaming.nixosModules.platformOptimizations
+    # inputs.nix-gaming.nixosModules.pipewireLowLatency  # Temporarily disabled
+    # inputs.nix-gaming.nixosModules.platformOptimizations
+    # inputs.nix-gaming.nixosModules.pipewire # Temporarily disabled
+    # inputs.nix-gaming.nixosModules.pipewire.alsa  # Temporarily disabled
     inputs.agenix.nixosModules.default
     inputs.nix-flatpak.nixosModules.nix-flatpak
 
