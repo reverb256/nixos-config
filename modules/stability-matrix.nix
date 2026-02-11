@@ -1,5 +1,8 @@
 # StabilityMatrix - Multi-Platform Package Manager for Stable Diffusion
 # https://github.com/LykosAI/StabilityMatrix
+#
+# This module provides a wrapper script that downloads and runs StabilityMatrix.
+# The AppImage is downloaded on first run and cached in the user's data directory.
 {
   lib,
   config,
@@ -8,25 +11,24 @@
 }: let
   cfg = config.programs.stability-matrix;
   
-  # StabilityMatrix version and sources
+  # StabilityMatrix version
   version = "2.15.5";
   
-  # Download the Linux ZIP release
-  src = pkgs.fetchzip {
-    url = "https://github.com/LykosAI/StabilityMatrix/releases/download/v${version}/StabilityMatrix-linux-x64.zip";
-    sha256 = "sha256-cU3sq4Brs7vR9U/KOooHZcBSJwKKN9Z/ItBvJ6w/ZHM=";
-    stripRoot = false;
-  };
+  # Download URL for the Linux release
+  downloadUrl = "https://github.com/LykosAI/StabilityMatrix/releases/download/v${version}/StabilityMatrix-linux-x64.zip";
   
-  # The AppImage is inside the extracted directory
-  appImagePath = "${src}/StabilityMatrix.Avalonia";
+  # Fetch the icon from the StabilityMatrix repo
+  icon = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/LykosAI/StabilityMatrix/main/StabilityMatrix.Avalonia/Assets/StabilityMatrix.svg";
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  };
   
   # Desktop entry for StabilityMatrix
   desktopEntry = pkgs.makeDesktopItem {
     name = "StabilityMatrix";
     desktopName = "Stability Matrix";
     comment = "Multi-Platform Package Manager for Stable Diffusion";
-    icon = "stability-matrix";
+    icon = "${icon}";
     exec = "stability-matrix %U";
     categories = ["Graphics" "2DGraphics" "RasterGraphics" "Art"];
     keywords = ["stable diffusion" "ai" "image generation" "art"];
@@ -38,9 +40,9 @@ in {
     enable = lib.mkEnableOption "StabilityMatrix - Package Manager for Stable Diffusion";
     
     dataDir = lib.mkOption {
-      type = lib.types.path;
+      type = lib.types.str;
       default = "$HOME/.stabilitymatrix";
-      description = "Directory where StabilityMatrix stores its data and models.";
+      description = "Directory where StabilityMatrix stores its data, models, and cached AppImage.";
     };
     
     enableCuda = lib.mkOption {
@@ -62,13 +64,56 @@ in {
       # Required for running AppImages on NixOS
       appimage-run
       
+      # Required for downloading and extracting the release
+      curl
+      unzip
+      
       # StabilityMatrix wrapper script
       (pkgs.writeShellScriptBin "stability-matrix" ''
         #!/bin/bash
+        set -e
         
-        # Set up data directory
-        SM_DATA="${cfg.dataDir}"
+        # Expand the data directory path
+        SM_DATA="$(eval echo "${cfg.dataDir}")"
+        SM_CACHE="$SM_DATA/.cache"
+        SM_APPIMAGE="$SM_CACHE/StabilityMatrix.Avalonia"
+        SM_VERSION_FILE="$SM_CACHE/version"
+        
+        # Current expected version
+        EXPECTED_VERSION="${version}"
+        
+        # Create directories
         mkdir -p "$SM_DATA"
+        mkdir -p "$SM_CACHE"
+        
+        # Download/update AppImage if needed
+        if [[ ! -f "$SM_APPIMAGE" ]] || [[ ! -f "$SM_VERSION_FILE" ]] || [[ "$(cat "$SM_VERSION_FILE")" != "$EXPECTED_VERSION" ]]; then
+          echo "StabilityMatrix: Downloading version $EXPECTED_VERSION..."
+          TMP_DIR=$(mktemp -d)
+          trap "rm -rf $TMP_DIR" EXIT
+          
+          # Download the zip file
+          curl -fsSL "${downloadUrl}" -o "$TMP_DIR/StabilityMatrix-linux-x64.zip"
+          
+          # Extract the AppImage
+          unzip -q "$TMP_DIR/StabilityMatrix-linux-x64.zip" -d "$TMP_DIR"
+          
+          # Find and move the AppImage (the name may vary slightly)
+          APPIMAGE_SRC=$(find "$TMP_DIR" -name "StabilityMatrix.Avalonia" -type f | head -1)
+          if [[ -z "$APPIMAGE_SRC" ]]; then
+            echo "Error: Could not find StabilityMatrix.Avalonia in the extracted archive"
+            exit 1
+          fi
+          
+          # Make executable and move to cache
+          chmod +x "$APPIMAGE_SRC"
+          mv "$APPIMAGE_SRC" "$SM_APPIMAGE"
+          
+          # Write version file
+          echo "$EXPECTED_VERSION" > "$SM_VERSION_FILE"
+          
+          echo "StabilityMatrix: Download complete!"
+        fi
         
         ${lib.optionalString cfg.enableCuda ''
         # NVIDIA CUDA environment variables
@@ -90,9 +135,9 @@ in {
         # Set the data directory for StabilityMatrix
         export STABILITY_MATRIX_DATA="$SM_DATA"
         
-        # Run the AppImage
+        # Run the AppImage from the data directory
         cd "$SM_DATA"
-        exec ${pkgs.appimage-run}/bin/appimage-run ${appImagePath} "$@"
+        exec ${pkgs.appimage-run}/bin/appimage-run "$SM_APPIMAGE" "$@"
       '')
       
       # Desktop entry
@@ -105,8 +150,5 @@ in {
       CUDA_PATH = "/run/opengl-driver";
       CUDA_HOME = "/run/opengl-driver";
     };
-    
-    # Note: StabilityMatrix manages its own Python environments and packages
-    # The system doesn't need to provide Python or additional ML libraries
   };
 }
