@@ -24,6 +24,7 @@
     ../../modules/storage-btrfs.nix
     ../../modules/mining-build-wrapper.nix
     ../../modules/quadlet-openclaw.nix  # OpenClaw cluster orchestration
+    ../../modules/stability-matrix.nix  # StabilityMatrix - Stable Diffusion package manager
   ];
 
   # ============================================================================
