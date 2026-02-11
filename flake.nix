@@ -47,12 +47,16 @@
 
     # OpenCode AI Agent
     opencode.url = "github:anomalyco/opencode/dev";
- 
+
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
     # CachyOS Kernel - BORE scheduler for gaming
     nix-cachyos-kernel.url = "github:drakon64/nixos-cachyos-kernel";
+
+    # Quadlet-nix - Podman Quadlets for NixOS (OpenClaw support)
+    quadlet-nix.url = "github:SEIAROTg/quadlet-nix";
+    quadlet-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs @ {
@@ -62,16 +66,16 @@
   }: let
   # Common modules shared across all hosts, inlined here for clarity
   commonModules = [
-    # Base Configuration
-    ./common-base.nix
-
-    # External Modules
+    # External Modules (must come before common-base.nix)
     inputs.aagl.nixosModules.default
     inputs.determinate.nixosModules.default
     inputs.nix-gaming.nixosModules.pipewireLowLatency
     inputs.nix-gaming.nixosModules.platformOptimizations
     inputs.agenix.nixosModules.default
     inputs.nix-flatpak.nixosModules.nix-flatpak
+
+    # Base Configuration (after external modules)
+    ./common-base.nix
 
     # Local Modules
     # garnix.nix moved to host-specific imports to avoid nix.settings conflicts
@@ -81,7 +85,7 @@
     {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
-      home-manager.users.j_kro = import ./home.nix; # Assuming home.nix is in root
+      home-manager.users.j_kro = import ./home.nix;
       home-manager.backupFileExtension = "bak";
       home-manager.extraSpecialArgs = {inherit inputs;};
     }
@@ -101,30 +105,30 @@
     }
   ];
 
-    # Function to create a NixOS system definition
-    mkNixosSystem = {modules ? []}:
-      nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        # Pass all inputs to specialArgs for modules to use
-        specialArgs = {inherit inputs;};
-        modules = commonModules ++ modules;
-      };
-
-    # NixOS system definitions
-    nixosSystems = {
-      zephyr = mkNixosSystem {
-        modules = [./hosts/zephyr/configuration.nix];
-      };
-      nexus = mkNixosSystem {
-        modules = [./hosts/nexus/configuration.nix];
-      };
-      forge = mkNixosSystem {
-        modules = [./hosts/forge/configuration.nix];
-      };
-      sentry = mkNixosSystem {
-        modules = [./hosts/sentry/configuration.nix];
-      };
+  # Function to create a NixOS system definition
+  mkNixosSystem = {modules ? []}:
+    nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      # Pass all inputs to specialArgs for modules to use
+      specialArgs = {inherit inputs;};
+      modules = commonModules ++ modules;
     };
+
+  # NixOS system definitions
+  nixosSystems = {
+    zephyr = mkNixosSystem {
+      modules = [./hosts/zephyr/configuration.nix];
+    };
+    nexus = mkNixosSystem {
+      modules = [./hosts/nexus/configuration.nix];
+    };
+    forge = mkNixosSystem {
+      modules = [./hosts/forge/configuration.nix];
+    };
+    sentry = mkNixosSystem {
+      modules = [./hosts/sentry/configuration.nix];
+    };
+  };
   in {
     # Shared overlays
     overlays.default = import ./modules/mining-overlay.nix;
