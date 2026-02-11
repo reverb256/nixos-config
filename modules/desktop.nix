@@ -136,6 +136,8 @@
       quantum = 64;
       rate = 48000;
     };
+
+  # Enable RTKit for real-time audio priority (reduces crackling/latency)
   };
 
   # Enable RTKit for real-time audio priority (reduces crackling/latency)

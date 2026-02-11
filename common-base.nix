@@ -48,7 +48,7 @@ in {
       if (action.id == "org.freedesktop.policykit.exec" &&
           (action.lookup("program") == "${gamemodePkg}/libexec/cpugovctl" ||
            action.lookup("program") == "${gamemodePkg}/libexec/procsysctl" ||
-            action.lookup("program") == "${gamemodePkg}/libexec/gpuclockctl")) {  // Added gpuclockctl
+             action.lookup("program") == "${gamemodePkg}/libexec/gpuclockctl")) {  // Added gpuclockctl
         return polkit.Result.YES;
       }
     });
@@ -71,12 +71,23 @@ in {
     # Secrets configuration
     # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
     #  service module - REMOVED
-    # Host-specific configuration
-    ./hosts/zephyr/configuration.nix
   ];
 
   #  AI Gateway Service - REMOVED
   #  AI Agent Gateway - completely removed from system
+
+  # ============================================================================
+  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix) - TEMPORARILY DISABLED
+  # ============================================================================
+  # Note: aagl module imported in flake.nix
+  # Cachix configured in flake.nix
+  # Temporarily disabled due to option compatibility issues - will debug separately
+  # programs.anime-game-launcher.enable = true;
+  # programs.anime-games-launcher.enable = true;
+  # programs.honkers-railway-launcher.enable = true;
+  # programs.honkers-launcher.enable = true;
+  # programs.wavey-launcher.enable = true;
+  # programs.sleepy-launcher.enable = true;
 
   # ============================================================================
   # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
@@ -122,31 +133,32 @@ in {
   };
 
   # Declarative Flatpak configuration using nix-flatpak module
-  services.flatpak = {
-    enable = true;
-    polkit.enable = true;
-    polkit.allowSystemOperations = true;
-    remotes = [
-      {
-        name = "flathub";
-        location = "https://flathub.org/repo/flathub.flatpakrepo";
-      }
-      {
-        name = "flathub-beta";
-        location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
-      }
-    ];
-    packages = [
-      # Keep existing system-wide Flatpak apps
-      # Note: nix-flatpak uses just the app ID, not "remote:app-id" format
-      "com.spotify.Client"
-      "io.github.kolunmi.Bazaar"
-      "org.gnome.Calculator"
-      "org.gnome.Fractal"
-      "org.telegram.desktop"
-      "org.kde.audiotube"
-    ];
-  };
+  # Temporarily disabled due to NixOS 26.05 option name changes
+  # services.flatpak = {
+  #   enable = true;
+  #   polkit.enable = true;
+  #   polkit.allowSystemOperations = true;
+  #   remotes = [
+  #     {
+  #       name = "flathub";
+  #       location = "https://flathub.org/repo/flathub.flatpakrepo";
+  #     }
+  #     {
+  #       name = "flathub-beta";
+  #       location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
+  #     }
+  #   ];
+  #   packages = [
+  #     # Keep existing system-wide Flatpak apps
+  #     # Note: nix-flatpak uses just the app ID, not "remote:app-id" format
+  #     "com.spotify.Client"
+  #     "io.github.kolunmi.Bazaar"
+  #     "org.gnome.Calculator"
+  #     "org.gnome.Fractal"
+  #     "org.telegram.desktop"
+  #     "org.kde.audiotube"
+  #   ];
+  # };
 
   # Podman configuration for container management
   virtualisation.podman = {
@@ -161,11 +173,11 @@ in {
   };
 
   # Note: Docker is not explicitly enabled, avoiding conflict with podman's Docker socket
- 
+
   # OCI Containers configuration for container management
   virtualisation.oci-containers = {
     backend = "podman"; # Use podman as backend
- 
+
     # Note: Specific containers managed via individual services when needed
   };
 
@@ -279,8 +291,8 @@ in {
   # ============================================================================
   services.earlyoom = {
     enable = true;
-    freeMemThreshold = 2; # Only kill when < 2% memory free (very lenient)
-    freeSwapThreshold = 5; # Only kill when < 5% swap free
+    freeMemThreshold = 2; # Only kill when <2% memory free (very lenient)
+    freeSwapThreshold = 5; # Only kill when <5% swap free
   };
 
   #  Storage Management Control Plane (runs with lobster user)
