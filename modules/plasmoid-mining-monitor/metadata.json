@@ -1,0 +1,19 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "",
+                "Name": "j_kro"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Multi-Node Mining Monitor - GPU and CPU miners across cluster",
+        "Icon": "utilities-system-monitor",
+        "Id": "org.example.miningmonitor",
+        "Name": "Mining Monitor",
+        "Version": "2.0",
+        "Website": ""
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
