@@ -10,7 +10,9 @@ with lib; let
 
   lolminerWrapper = pkgs.writeShellScriptBin "lolminer-wrapper" ''
     #!/usr/bin/env bash
-    exec ${pkgs.lolminer}/bin/lolMiner "$@"
+    # lolminer package not available - placeholder
+    echo "lolminer not available" >&2
+    exit 1
   '';
 
   defaultWallet = "krxXVNVMM7.${hostname}";
@@ -189,17 +191,9 @@ in {
             '';
             ExecStart = pkgs.writeShellScript "lolminer-start" ''
               #!/${pkgs.bash}/bin/bash
-              export LD_LIBRARY_PATH=/run/opengl-driver/lib:$LD_LIBRARY_PATH
-              export CUDA_PATH=/run/opengl-driver
-              export NVIDIA_DRIVER_CAPABILITIES=all
-              exec ${pkgs.lolminer}/bin/lolMiner \
-                --algo ${cfg.lolminer.algorithm} \
-                --pool ${cfg.lolminer.pool} \
-                --user ${cfg.lolminer.wallet} \
-                --devices ${cfg.lolminer.nvidia.devices} \
-                --apiport ${toString cfg.lolminer.nvidia.apiPort} \
-                --mode n \
-                --tls 1
+              # lolminer not available in nixpkgs - placeholder
+              echo "lolminer not available - install manually or use nixgl"
+              exit 1
             '';
             Restart = "always";
             RestartSec = "30s";
@@ -232,22 +226,9 @@ in {
             Slice = "mining.slice";
             ExecStart = pkgs.writeShellScript "lolminer-amd-start" ''
               #!/${pkgs.bash}/bin/bash
-              export LD_LIBRARY_PATH=/opt/rocm/lib:/run/opengl-driver/lib:$LD_LIBRARY_PATH
-              export ROC_ENABLE_PRE_VEGA=1
-              export HSA_OVERRIDE_GFX_VERSION=10.1.0
-              export GPU_MAX_HEAP_SIZE=100
-              export GPU_MAX_ALLOC_PERCENT=100
-              export GPU_SINGLE_ALLOC_PERCENT=100
-              export GPU_FORCE_64BIT_PTR=1
-
-              exec ${pkgs.lolminer}/bin/lolMiner \
-                --algo ${cfg.lolminer.algorithm} \
-                --pool ${cfg.lolminer.pool} \
-                --user ${cfg.lolminer.wallet} \
-                --devices ${cfg.lolminer.amd.devices} \
-                --apiport ${toString cfg.lolminer.amd.apiPort} \
-                --mode b \
-                --tls 1
+              # lolminer not available in nixpkgs - placeholder
+              echo "lolminer not available - install manually or use nixgl"
+              exit 1
             '';
             Restart = "always";
             RestartSec = "30s";
