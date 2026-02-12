@@ -25,17 +25,17 @@
         port = 18789;
         auth = {
           mode = "token";
-          token = "cebfb92cc1ab3a575e29fbc564548f5586b6ed8fa54f8070ab2072a7fab4f7ce";
+          token = "fb3a1cfa656c5881ff1445822de404c6f8e6ed5e41166a5b";
         };
       };
     };
-    
+
     instances.default = {
       enable = true;
       stateDir = "/home/j_kro/.openclaw";
       workspaceDir = "/home/j_kro/.openclaw/workspace";
       plugins = [];
-      
+
       # Gateway config for this instance
       config = {
         gateway = {
@@ -44,7 +44,7 @@
           port = 18789;
           auth = {
             mode = "token";
-            token = "cebfb92cc1ab3a575e29fbc564548f5586b6ed8fa54f8070ab2072a7fab4f7ce";
+            token = "fb3a1cfa656c5881ff1445822de404c6f8e6ed5e41166a5b";
           };
         };
       };
@@ -532,6 +532,14 @@
   # Set PATH for user services ( needs it for tools)
   systemd.user.sessionVariables = {
     PATH = "/nix/store/i2vmgx46q9hd3z6rigaiman3wl3i2gc4-coreutils-9.9/bin:/run/wrappers/bin:/home/j_kro/.nix-profile/bin:/nix/profile/bin:/etc/profiles/per-user/j_kro/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin";
+  };
+
+  # Autostart OpenClaw gateway on login
+  # nix-openclaw creates the service without [Install], so we add WantedBy here
+  systemd.user.services.openclaw-gateway = {
+    Install = {
+      WantedBy = ["default.target"];
+    };
   };
 
   # Autostart Vesktop on login
