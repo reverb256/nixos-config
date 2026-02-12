@@ -2,13 +2,14 @@
   lib,
   stdenv,
   fetchurl,
+  autoPatchelfHook,
+  makeWrapper,
   glibc,
   zlib,
   gcc-unwrapped,
   libX11,
   libxcb,
   libXext,
-  steam-run,
 }:
 stdenv.mkDerivation rec {
   pname = "lolminer";
@@ -19,6 +20,8 @@ stdenv.mkDerivation rec {
     sha256 = "0avny9fshray40snp3p90svlijh0mx5dh37fqqqppip9ss9gby72";
   };
 
+  nativeBuildInputs = [autoPatchelfHook makeWrapper];
+
   buildInputs = [
     glibc
     zlib
@@ -26,7 +29,6 @@ stdenv.mkDerivation rec {
     libX11
     libxcb
     libXext
-    steam-run
   ];
 
   unpackPhase = ''
@@ -40,6 +42,10 @@ stdenv.mkDerivation rec {
     mkdir -p $out/bin
     cp ./lolMiner $out/bin/
     chmod +x $out/bin/lolMiner
+
+    # Wrap with CUDA/OpenCL library paths for NixOS
+    wrapProgram $out/bin/lolMiner \
+      --prefix LD_LIBRARY_PATH : /run/opengl-driver/lib
 
     runHook postInstall
   '';

@@ -38,23 +38,23 @@
       wayland
       wayland-protocols
 
-      # === X11 LIBRARIES ===
-      xorg.libX11
-      xorg.libXext
-      xorg.libXrandr
-      xorg.libXdamage
-      xorg.libxcb
-      xorg.libxshmfence
-      xorg.libXfixes
-      xorg.libXxf86vm
-      xorg.libXcursor
-      xorg.libXft
-      xorg.libXrender
-      xorg.libXtst
-      xorg.libXi
-      xorg.libXcomposite
-      xorg.libXinerama
-      xorg.libXScrnSaver
+      # === X11 LIBRARIES (new package names, not deprecated xorg.*) ===
+      libX11
+      libXext
+      libxrandr
+      libXdamage
+      libxcb
+      libxshmfence
+      libXfixes
+      libXxf86vm
+      libxcursor
+      libXft
+      libXrender
+      libXtst
+      libxi
+      libXcomposite
+      libxinerama
+      libxscrnsaver
 
       # === GTK & GUI ===
       glib
@@ -96,20 +96,8 @@
       libwebp
 
       # === BROWSER LIBRARIES ===
-      libxcb
-      libX11
-      libXext
-      libXrandr
-      libXcomposite
-      libXdamage
-      libXi
       nspr
       nss
-      xorg.libXcursor
-      xorg.libXfixes
-      xorg.libXft
-      xorg.libXrender
-      xorg.libXtst
 
       # === ADDITIONAL GAME LIBRARIES ===
       libgcrypt

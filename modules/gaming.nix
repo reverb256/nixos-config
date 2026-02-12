@@ -108,10 +108,10 @@ with lib; {
           libtiff
           vulkan-loader
           vulkan-tools
-          xorg.libXcursor
-          xorg.libXi
-          xorg.libXinerama
-          xorg.libXScrnSaver
+           libxcursor
+           libxi
+           libxinerama
+           libxscrnsaver
           libpulseaudio
           libvorbis
           stdenv.cc.cc.lib
@@ -158,10 +158,10 @@ with lib; {
     libvorbis
     libkrb5
     keyutils
-    xorg.libXcursor
-    xorg.libXi
-    xorg.libXinerama
-    xorg.libXScrnSaver
+    libxcursor
+    libxi
+    libxinerama
+    libxscrnsaver
     vulkan-loader
     vulkan-tools
     stdenv.cc.cc.lib
@@ -279,7 +279,7 @@ with lib; {
       inputs.claude-native.packages."x86_64-linux".default
     ]
     ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
-      inputs.nixpkgs-xr.packages.${pkgs.system}.oscavmgr
+      inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
     ];
 
   # ============================================================================
