@@ -14,8 +14,8 @@ in {
   age.secretsMountPoint = "/run/agenix.d";
 
   # Use age key file for decryption
-  # Age private key stored in /root/.config/sops/age/keys.txt
+  # Age private key stored in j_kro's home directory
   age.identityPaths = [
-    "/root/.config/sops/age/keys.txt"
+    "/home/j_kro/.config/sops/age/keys.txt"
   ];
 }

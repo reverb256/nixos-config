@@ -56,21 +56,14 @@ in {
 
   imports = [
     ./modules
-    # ./modules/unified-rgb.nix  # Disabled - causing option errors
     ./modules/lobster-user.nix
-    # NOTE: Using nix-flatpak declarative module instead of custom flatpak.nix
-    # ./modules/flatpak.nix
     # Mining-aware build wrapper (pause/resume during builds)
     ./modules/mining-build-wrapper.nix
     # Storage configuration modules
     ./modules/storage.nix
     ./modules/storage-btrfs.nix
-    # Temporarily disabled - syntax errors being fixed
-    # Temporarily disabled until we verify distributed builds are working
-    # ./modules/distributed-builds.nix
-    # Secrets configuration
-    # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
-    #  service module - REMOVED
+    # Secrets configuration (agenix)
+    ./secrets/agenix-secrets.nix
   ];
 
   #  AI Gateway Service - REMOVED
@@ -283,21 +276,6 @@ in {
     freeMemThreshold = 2; # Only kill when <2% memory free (very lenient)
     freeSwapThreshold = 5; # Only kill when <5% swap free
   };
-
-  #  Storage Management Control Plane (runs with lobster user)
-  # Temporarily disabled until minio-cache-credentials are properly set up
-  # services.-storage = {
-  #   enable = true;
-  #   port = 18800;
-  #   aistorEndpoint = "http://10.1.1.120:9000"; # nexus (AIStor)
-  #   aistorCredentialsFile = "/run/agenix/minio-cache-credentials"; # Requires secret creation
-  #   # Use default buckets from module
-  # };
-
-  #  automated backups to cloud storage - Temporarily disabled pending secret setup
-  # services.-backups = {
-  #   enable = true;
-  # };
 
   # ============================================================================
   # TIMEZONE AND LOCALE

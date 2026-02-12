@@ -1,10 +1,14 @@
 # Age-encrypted secrets for NixOS
 # All secrets are encrypted for all hosts
 let
+  # Public key from /home/j_kro/.config/sops/age/keys.txt
   allHosts = [
-    "age1dc2jhy8h860rga7yjv96vy6rg4jzd364gahj64gc9narr2gayc8q27rfgu" # generated 2026-02-06
+    "age1edmwffffyz5m9wtf0mhfeh002h0ftrwk8luumkl89hyycr47r30qalg29y" # zephyr (j_kro)
   ];
 in {
-  "anthropic-api-key".publicKeys = allHosts;
-  "openai-api-key".publicKeys = allHosts;
+  # Mining (active)
+  "mining-api-token".publicKeys = allHosts;
+
+  # Add more secrets as needed:
+  # "secret-name".publicKeys = allHosts;
 }

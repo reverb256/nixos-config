@@ -16,8 +16,6 @@
     ../../modules/gaming.nix
     # Import NVIDIA Wayland module (best practices)
     ../../modules/nvidia-wayland.nix
-    # Import AI agent orchestration (declarative container)
-    # Import  common configuration
     # Import networking module (DNS, firewall, Avahi)
     ../../modules/networking.nix
     # Import Tailscale mesh VPN
@@ -347,14 +345,4 @@
       user.email = "j_kro@forge";
     };
   };
-
-  #  node host service - DISABLED ( refactor in progress)
-  #   enable = true;
-  #   gatewayHost = "zephyr";
-  #   displayName = "Forge Build Node";
-  #   execAllowlist = [
-  #     "/run/current-system/sw/bin/uname"
-  #     "/run/current-system/sw/bin/sw_vers"
-  #   ];
-  # };
 }

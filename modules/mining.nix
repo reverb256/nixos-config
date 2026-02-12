@@ -7,14 +7,6 @@
 with lib; let
   cfg = config.services.mining;
   hostname = config.networking.hostName;
-
-  lolminerWrapper = pkgs.writeShellScriptBin "lolminer-wrapper" ''
-    #!/usr/bin/env bash
-    # lolminer package not available - placeholder
-    echo "lolminer not available" >&2
-    exit 1
-  '';
-
   defaultWallet = "krxXVNVMM7.${hostname}";
 in {
   options.services.mining = {
@@ -110,7 +102,7 @@ in {
       "vm.nr_hugepages" = 1280;
     };
 
-    environment.systemPackages = [lolminerWrapper];
+    environment.systemPackages = [pkgs.lolminer];
 
     systemd.tmpfiles.rules = [
       "d /var/lib/mining 0750 ${cfg.user} mining - -"
@@ -189,12 +181,7 @@ in {
               nvidia-smi -pm 1 || true
               nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
             '';
-            ExecStart = pkgs.writeShellScript "lolminer-start" ''
-              #!/${pkgs.bash}/bin/bash
-              # lolminer not available in nixpkgs - placeholder
-              echo "lolminer not available - install manually or use nixgl"
-              exit 1
-            '';
+            ExecStart = "${pkgs.lolminer}/bin/lolMiner --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
             Restart = "always";
             RestartSec = "30s";
             Environment = [
@@ -224,12 +211,7 @@ in {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            ExecStart = pkgs.writeShellScript "lolminer-amd-start" ''
-              #!/${pkgs.bash}/bin/bash
-              # lolminer not available in nixpkgs - placeholder
-              echo "lolminer not available - install manually or use nixgl"
-              exit 1
-            '';
+            ExecStart = "${pkgs.lolminer}/bin/lolMiner --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --mode b --tls 1";
             Restart = "always";
             RestartSec = "30s";
             NoNewPrivileges = false;

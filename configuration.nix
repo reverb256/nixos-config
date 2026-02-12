@@ -63,8 +63,8 @@ in {
     # Storage configuration modules
     ./modules/storage.nix
     ./modules/storage-btrfs.nix
-    # Secrets configuration
-    # ./secrets/agenix-secrets.nix  # Disabled - using simple environment variables instead
+    # Secrets configuration (agenix)
+    ./secrets/agenix-secrets.nix
     # Host-specific configuration
     ./hosts/zephyr/configuration.nix
   ];

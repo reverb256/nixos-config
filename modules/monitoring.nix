@@ -14,6 +14,11 @@ in {
       default = 3001;
       description = "Grafana web UI port";
     };
+    grafanaPasswordFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = "Path to file containing Grafana admin password (e.g., /run/agenix/grafana-password)";
+    };
     prometheusPort = mkOption {
       type = types.port;
       default = 9090;
@@ -302,7 +307,7 @@ in {
 
       [security]
       admin_user = admin
-      admin_password = ${config.secrets.grafanaPassword or (lib.throwError "Grafana password must be set in config.secrets.grafanaPassword. Run: openssl rand -base64 32 | nix-shell -p age --run 'age -r <AGE_PUBLIC_KEY> -o /etc/nixos/secrets/grafana-password.age /dev/stdin'\nThen add grafana-password entry to secrets/age-secrets.nix.\nSee docs/INCIDENT_RESPONSE_PLAN.md for security procedures.")}
+      admin_password = ${if cfg.grafanaPasswordFile != null then builtins.readFile cfg.grafanaPasswordFile else "changeme"}
       disable_admin_auth = false
 
       [paths]

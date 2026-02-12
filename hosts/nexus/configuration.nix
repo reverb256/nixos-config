@@ -19,7 +19,6 @@
     ../../modules/distributed-builds.nix
     ../../modules/storage-btrfs.nix
     ../../modules/mining-build-wrapper.nix
-    # ../../modules/quadlet-openclaw-simple.nix  # Disabled - module options not properly defined
   ];
 
   networking = {
