@@ -119,7 +119,7 @@
   services.mining.lolminer.amd.powerLimit = 140;
   services.mining.lolminer.amd.apiPort = 4069;
 
-  # AMD GPU Power Management - 140W limit, 86% fan speed
+  # AMD GPU Power Management - 140W limit, 60% fan speed (lower temps)
   systemd.services.amd-gpu-power-mgmt = {
     description = "AMD GPU Power and Fan Management";
     wantedBy = ["multi-user.target"];
@@ -132,8 +132,8 @@
         sleep 5
         if command -v rocm-smi &> /dev/null; then
           rocm-smi --setpoweroverdrive 140 2>/dev/null || true
-          rocm-smi --setfan 220 2>/dev/null || true
-          echo "AMD GPU: 140W power limit, 86% fan speed configured"
+          rocm-smi --setfan 153 2>/dev/null || true
+          echo "AMD GPU: 140W power limit, 60% fan speed configured"
         fi
       '';
     };

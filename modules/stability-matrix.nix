@@ -64,6 +64,18 @@ in {
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
+      # Symlink c++/gcc/g++ so UV's isolated builds can find them
+      # UV creates isolated build environments that only see standard PATHs
+      # These symlinks ensure compilers are discoverable in /run/current-system/sw/bin
+      (pkgs.runCommand "compiler-symlinks" {} ''
+        mkdir -p $out/bin
+        ln -s ${pkgs.gcc}/bin/g++ $out/bin/c++
+        ln -s ${pkgs.gcc}/bin/gcc $out/bin/gcc
+        ln -s ${pkgs.gcc}/bin/g++ $out/bin/g++
+        ln -s ${pkgs.gcc}/bin/ar $out/bin/ar
+        ln -s ${pkgs.gcc}/bin/ranlib $out/bin/ranlib
+      '')
+
       # Wrapper script that sets environment and runs the AppImage
       (pkgs.writeShellScriptBin "stability-matrix" ''
         #!/bin/bash
@@ -74,13 +86,17 @@ in {
         # Create data directory
         mkdir -p "$SM_DATA"
 
-        # Add build tools to PATH for UV package builds (e.g., insightface with C++ extensions)
-        # UV_NO_BUILD_ISOLATION=1 disables isolated builds so UV uses current environment's compilers
-        # This is required on NixOS where compilers aren't in FHS paths like /usr/bin
-        export PATH="${pkgs.gcc}/bin:${pkgs.cmake}/bin:${pkgs.pkg-config}/bin:$PATH"
-        export CC="${pkgs.gcc}/bin/gcc"
-        export CXX="${pkgs.gcc}/bin/g++"
-        export UV_NO_BUILD_ISOLATION=1
+        # Build environment for UV/pip on NixOS
+        # Compiler symlinks are installed system-wide above
+        # This means UV's isolated builds will find c++ in standard PATH
+        export PATH="${pkgs.gcc}/bin:${pkgs.cmake}/bin:${pkgs.pkg-config}/bin:${pkgs.gnumake}/bin:$PATH"
+        export CC="gcc"
+        export CXX="g++"
+        export AR="ar"
+        export RANLIB="ranlib"
+        # Keep build isolation ON - setuptools is provided by UV's isolated env
+        #unset UV_NO_BUILD_ISOLATION
+        #unset PIP_NO_BUILD_ISOLATION
 
         ${lib.optionalString cfg.enableCuda ''
         # NVIDIA CUDA environment variables
@@ -103,14 +119,9 @@ in {
         export STABILITY_MATRIX_DATA="$SM_DATA"
 
         # Run from data directory using steam-run for FHS compatibility
-        # This ensures UV can find compilers for building packages with C/C++ extensions
+        # steam-run inherits exported environment variables
         cd "$SM_DATA"
-        exec ${pkgs.steam-run}/bin/steam-run \
-          --setenv=PATH="$PATH" \
-          --setenv=CC="$CC" \
-          --setenv=CXX="$CXX" \
-          --setenv=UV_NO_BUILD_ISOLATION=1 \
-          ${wrappedApp}/bin/${pname} "$@"
+        exec ${pkgs.steam-run}/bin/steam-run ${wrappedApp}/bin/${pname} "$@"
       '')
 
       # Desktop entry
