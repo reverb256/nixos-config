@@ -79,16 +79,14 @@
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
-        "https://cuda.cachix.org" # GPU packages (CUDA)
-        "https://rocm.cachix.org" # GPU packages (ROCm)
+        "https://cache.nixos-cuda.org" # CUDA packages (official mirror)
         "https://nix-gaming.cachix.org"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7k3hC7Fi6XZJ6i4y5bT0="
-        "cuda.cachix.org-1:d8e9lTzW8p9pCz6DvN6dVlJ3p6sJwXr4vNtQ9w="
-        "rocm.cachix.org-1:3h0G9z7yXbH3zq8x6G9Y3zq8x6G9Y3zq8x6G9Y3zq8="
-        "nix-gaming.cachix.org-1:lj83ZtOqK9Pp3r4aWj9A3P5R8ZlFJ1nJ2W0vWZ4="
+        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+        "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+        "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
       ];
 
       # Maximum number of parallel build jobs across all machines
