@@ -237,7 +237,7 @@ in {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://xtm-rx-us.kryptex.network:8038 -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-port 8081 --http-access-token-file ${cfg.xmrig.httpTokenFile} --randomx-1gb-pages --randomx-mode=fast --asm=auto";
+            ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://xtm-rx-us.kryptex.network:8038 -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-host 0.0.0.0 --http-port 8081 --http-access-token-file ${cfg.xmrig.httpTokenFile} --http-no-restricted --randomx-1gb-pages --randomx-mode=fast --asm=auto";
             Restart = "always";
             NoNewPrivileges = true;
             PrivateTmp = true;

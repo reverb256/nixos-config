@@ -10,11 +10,16 @@ PlasmoidItem {
     
     // Node configuration - Tailscale IPs
     readonly property var nodes: ({
-        "zephyr": { ip: "100.81.182.5", lolminer: 4068, xmrig: 8081 },
-        "nexus": { ip: "100.86.158.18", lolminer: 4068, xmrig: 8081 },
-        "forge": { ip: "100.95.222.45", lolminerAmd: 4069, lolminerNvidia: 4068, xmrig: 8081 },
-        "sentry": { ip: "100.82.210.39", xmrig: 8081 }
+        "zephyr": { ip: "100.81.182.5", lolminer: 4068, xmrig: 8081, hasNvidia: true },
+        "nexus": { ip: "100.86.158.18", lolminer: 4068, xmrig: 8081, hasNvidia: true },
+        "forge": { ip: "100.95.222.45", lolminerAmd: 4069, lolminerNvidia: 4068, xmrig: 8081, hasAmd: true, hasNvidia: true },
+        "sentry": { ip: "100.82.210.39", xmrig: 8081, hasCpu: true }
     })
+    
+    // Colors
+    readonly property color amdColor: Qt.rgba(1, 0.42, 0.21, 1.0)      // Orange #FF6B35
+    readonly property color nvidiaColor: Qt.rgba(0.46, 0.73, 0, 1.0)   // Green #76B900
+    readonly property color cpuColor: Qt.rgba(0.2, 0.6, 0.8, 1.0)       // Blue #3399CC
     
     // Data storage
     property var gpuData: []
@@ -32,6 +37,8 @@ PlasmoidItem {
         border.width: 1
         radius: 4
         
+        property string totalHashrate: "0.00"
+        
         Timer {
             interval: 5000
             running: true
@@ -42,27 +49,27 @@ PlasmoidItem {
         
         RowLayout {
             anchors.centerIn: parent
-            spacing: 4
+            spacing: 6
             
             PlasmaComponents.Label {
                 text: "GPU: " + root.totalGpuHashrate + " g/s"
                 font.bold: true
-                font.pixelSize: Math.min(parent.width, parent.height) * 0.25
-                color: Kirigami.Theme.textColor
+                font.pixelSize: Math.min(compactRoot.width, compactRoot.height) * 0.3
+                color: nvidiaColor
             }
             
             PlasmaComponents.Label {
                 text: "|"
-                font.pixelSize: Math.min(parent.width, parent.height) * 0.25
+                font.pixelSize: Math.min(compactRoot.width, compactRoot.height) * 0.3
                 color: Kirigami.Theme.textColor
                 opacity: 0.5
             }
             
             PlasmaComponents.Label {
-                text: "CPU: " + root.totalCpuHashrate + " kH/s"
+                text: "CPU: " + root.totalCpuHashrate + " kH"
                 font.bold: true
-                font.pixelSize: Math.min(parent.width, parent.height) * 0.25
-                color: Kirigami.Theme.textColor
+                font.pixelSize: Math.min(compactRoot.width, compactRoot.height) * 0.3
+                color: cpuColor
             }
         }
         
@@ -72,19 +79,22 @@ PlasmoidItem {
         }
     }
     
-    // Full representation
+    // Full representation - Glassmorphic Design
     fullRepresentation: Rectangle {
         id: fullRoot
-        Layout.minimumWidth: 400
+        Layout.minimumWidth: 350
         Layout.minimumHeight: 500
-        Layout.preferredWidth: 500
+        Layout.preferredWidth: 400
         Layout.preferredHeight: 600
         
+        // Glassmorphism background
         color: Qt.rgba(Kirigami.Theme.backgroundColor.r, Kirigami.Theme.backgroundColor.g, Kirigami.Theme.backgroundColor.b, 0.4)
         radius: 20
+        border.color: Qt.rgba(1, 1, 1, 0.08)
+        border.width: 1
         
         Timer {
-            interval: 5000
+            interval: 3000
             running: true
             repeat: true
             onTriggered: root.fetchAllData()
@@ -99,15 +109,15 @@ PlasmoidItem {
             // Title
             Rectangle {
                 Layout.fillWidth: true
-                height: 35
+                height: 40
                 color: Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.15)
-                radius: 10
+                radius: 12
                 
                 PlasmaComponents.Label {
                     anchors.centerIn: parent
                     text: "⛏️ Cluster Mining Monitor"
                     font.bold: true
-                    font.pixelSize: 14
+                    font.pixelSize: 16
                 }
             }
             
@@ -116,43 +126,75 @@ PlasmoidItem {
                 Layout.fillWidth: true
                 spacing: 10
                 
+                // GPU Total
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 60
-                    color: Qt.rgba(0.46, 0.73, 0, 0.15)
-                    radius: 12
+                    height: 70
+                    color: Qt.rgba(nvidiaColor.r, nvidiaColor.g, nvidiaColor.b, 0.15)
+                    radius: 16
+                    border.color: Qt.rgba(nvidiaColor.r, nvidiaColor.g, nvidiaColor.b, 0.3)
+                    border.width: 1
                     
                     ColumnLayout {
                         anchors.centerIn: parent
-                        PlasmaComponents.Label { text: "GPU Total"; font.pixelSize: 10; opacity: 0.7 }
-                        PlasmaComponents.Label { text: root.totalGpuHashrate + " g/s"; font.bold: true; font.pixelSize: 18 }
+                        spacing: 2
+                        
+                        PlasmaComponents.Label {
+                            text: "🎮 GPU Total"
+                            font.pixelSize: 10
+                            opacity: 0.8
+                        }
+                        
+                        PlasmaComponents.Label {
+                            text: root.totalGpuHashrate + " g/s"
+                            font.bold: true
+                            font.pixelSize: 22
+                            color: nvidiaColor
+                        }
                     }
                 }
                 
+                // CPU Total
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 60
-                    color: Qt.rgba(0.2, 0.6, 0.8, 0.15)
-                    radius: 12
+                    height: 70
+                    color: Qt.rgba(cpuColor.r, cpuColor.g, cpuColor.b, 0.15)
+                    radius: 16
+                    border.color: Qt.rgba(cpuColor.r, cpuColor.g, cpuColor.b, 0.3)
+                    border.width: 1
                     
                     ColumnLayout {
                         anchors.centerIn: parent
-                        PlasmaComponents.Label { text: "CPU Total"; font.pixelSize: 10; opacity: 0.7 }
-                        PlasmaComponents.Label { text: root.totalCpuHashrate + " kH/s"; font.bold: true; font.pixelSize: 18 }
+                        spacing: 2
+                        
+                        PlasmaComponents.Label {
+                            text: "💻 CPU Total"
+                            font.pixelSize: 10
+                            opacity: 0.8
+                        }
+                        
+                        PlasmaComponents.Label {
+                            text: root.totalCpuHashrate + " kH/s"
+                            font.bold: true
+                            font.pixelSize: 22
+                            color: cpuColor
+                        }
                     }
                 }
             }
             
-            // GPU Section
+            // GPU Section Header
             PlasmaComponents.Label {
-                text: "🎮 GPU Miners"
+                text: "🔥 GPU Miners"
                 font.bold: true
-                font.pixelSize: 12
+                font.pixelSize: 13
+                color: amdColor
             }
             
+            // GPU List
             ScrollView {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
+                Layout.preferredHeight: 180
                 
                 ColumnLayout {
                     id: gpuList
@@ -164,37 +206,49 @@ PlasmoidItem {
                         
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 40
-                            color: Qt.rgba(Kirigami.Theme.backgroundColor.r, Kirigami.Theme.backgroundColor.g, Kirigami.Theme.b, 0.3)
-                            radius: 8
-                            border.color: Qt.rgba(1, 1, 1, 0.05)
+                            height: 42
+                            // Color based on GPU type
+                            color: modelData.type === "amd" ? 
+                                Qt.rgba(amdColor.r, amdColor.g, amdColor.b, 0.15) :
+                                Qt.rgba(nvidiaColor.r, nvidiaColor.g, nvidiaColor.b, 0.15)
+                            radius: 10
+                            border.width: 1
+                            border.color: modelData.type === "amd" ?
+                                Qt.rgba(amdColor.r, amdColor.g, amdColor.b, 0.3) :
+                                Qt.rgba(nvidiaColor.r, nvidiaColor.g, nvidiaColor.b, 0.3)
                             
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.margins: 8
                                 spacing: 8
                                 
+                                // GPU emoji based on type
+                                PlasmaComponents.Label {
+                                    text: modelData.type === "amd" ? "🔥" : "💚"
+                                    font.pixelSize: 14
+                                }
+                                
                                 PlasmaComponents.Label {
                                     text: modelData.node
                                     font.bold: true
                                     font.pixelSize: 11
-                                    Layout.preferredWidth: 60
+                                    Layout.preferredWidth: 55
                                 }
                                 
                                 PlasmaComponents.Label {
                                     text: modelData.gpu
                                     font.pixelSize: 10
                                     opacity: 0.8
-                                    Layout.preferredWidth: 100
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
                                 }
                                 
                                 PlasmaComponents.Label {
                                     text: modelData.hashrate.toFixed(2) + " g/s"
                                     font.bold: true
                                     font.pixelSize: 12
+                                    Layout.preferredWidth: 70
                                 }
-                                
-                                Item { Layout.fillWidth: true }
                                 
                                 PlasmaComponents.Label {
                                     text: modelData.temp + "°C"
@@ -202,6 +256,7 @@ PlasmoidItem {
                                     font.bold: true
                                     color: modelData.temp > 80 ? "#FF6B6B" : 
                                            modelData.temp > 70 ? "#FFE066" : "#69DB7C"
+                                    Layout.preferredWidth: 45
                                 }
                             }
                         }
@@ -209,39 +264,45 @@ PlasmoidItem {
                 }
             }
             
-            // CPU Section
+            // CPU Section Header
             PlasmaComponents.Label {
                 text: "💻 CPU Miners"
                 font.bold: true
-                font.pixelSize: 12
+                font.pixelSize: 13
+                color: cpuColor
             }
             
+            // CPU Grid
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 5
+                spacing: 8
                 
                 Repeater {
                     model: root.cpuData
                     
                     Rectangle {
                         Layout.fillWidth: true
-                        height: 50
-                        color: Qt.rgba(0.2, 0.6, 0.8, 0.1)
-                        radius: 8
+                        height: 55
+                        color: Qt.rgba(cpuColor.r, cpuColor.g, cpuColor.b, 0.12)
+                        radius: 10
+                        border.color: Qt.rgba(cpuColor.r, cpuColor.g, cpuColor.b, 0.2)
+                        border.width: 1
                         
                         ColumnLayout {
                             anchors.centerIn: parent
-                            spacing: 2
+                            spacing: 1
                             
                             PlasmaComponents.Label {
                                 text: modelData.node
                                 font.bold: true
-                                font.pixelSize: 10
+                                font.pixelSize: 11
                             }
                             
                             PlasmaComponents.Label {
                                 text: (modelData.hashrate / 1000).toFixed(1) + " kH/s"
-                                font.pixelSize: 12
+                                font.pixelSize: 13
+                                font.bold: true
+                                color: cpuColor
                             }
                             
                             PlasmaComponents.Label {
@@ -253,23 +314,29 @@ PlasmoidItem {
                     }
                 }
             }
+            
+            Item { Layout.fillHeight: true }
         }
     }
     
-    // Data fetching functions
+    // Data fetching
     function fetchAllData() {
         var gpus = []
         var cpus = []
         var totalGpu = 0
         var totalCpu = 0
-        
-        // Counter for async completion
         var pending = 0
         var completed = 0
         
         function checkComplete() {
             completed++
             if (completed >= pending) {
+                // Sort GPUs: AMD first, then NVIDIA, by node
+                gpus.sort(function(a, b) {
+                    if (a.type !== b.type) return a.type === "amd" ? -1 : 1
+                    if (a.node !== b.node) return a.node.localeCompare(b.node)
+                    return a.index - b.index
+                })
                 root.gpuData = gpus
                 root.cpuData = cpus
                 root.totalGpuHashrate = totalGpu.toFixed(2)
@@ -277,19 +344,23 @@ PlasmoidItem {
             }
         }
         
-        // Fetch Zephyr lolminer
+        // === GPU Miners ===
+        
+        // Zephyr NVIDIA
         pending++
-        var xhr = new XMLHttpRequest()
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
+        var xhrZephyrNv = new XMLHttpRequest()
+        xhrZephyrNv.onreadystatechange = function() {
+            if (xhrZephyrNv.readyState === XMLHttpRequest.DONE) {
+                if (xhrZephyrNv.status === 200) {
                     try {
-                        var d = JSON.parse(xhr.responseText)
+                        var d = JSON.parse(xhrZephyrNv.responseText)
                         if (d.Workers && d.Algorithms) {
                             for (var i = 0; i < d.Workers.length; i++) {
                                 gpus.push({
                                     node: "zephyr",
-                                    gpu: d.Workers[i].Name || "GPU " + i,
+                                    type: "nvidia",
+                                    index: i,
+                                    gpu: d.Workers[i].Name || "RTX 3090",
                                     hashrate: d.Algorithms[0].Worker_Performance[i] || 0,
                                     temp: d.Workers[i].Core_Temp || 0
                                 })
@@ -301,22 +372,24 @@ PlasmoidItem {
                 checkComplete()
             }
         }
-        xhr.open("GET", "http://" + nodes.zephyr.ip + ":" + nodes.zephyr.lolminer + "/")
-        xhr.send()
+        xhrZephyrNv.open("GET", "http://" + nodes.zephyr.ip + ":" + nodes.zephyr.lolminer + "/")
+        xhrZephyrNv.send()
         
-        // Fetch Nexus lolminer
+        // Nexus NVIDIA
         pending++
-        var xhr2 = new XMLHttpRequest()
-        xhr2.onreadystatechange = function() {
-            if (xhr2.readyState === XMLHttpRequest.DONE) {
-                if (xhr2.status === 200) {
+        var xhrNexusNv = new XMLHttpRequest()
+        xhrNexusNv.onreadystatechange = function() {
+            if (xhrNexusNv.readyState === XMLHttpRequest.DONE) {
+                if (xhrNexusNv.status === 200) {
                     try {
-                        var d = JSON.parse(xhr2.responseText)
+                        var d = JSON.parse(xhrNexusNv.responseText)
                         if (d.Workers && d.Algorithms) {
                             for (var i = 0; i < d.Workers.length; i++) {
                                 gpus.push({
                                     node: "nexus",
-                                    gpu: d.Workers[i].Name || "GPU " + i,
+                                    type: "nvidia",
+                                    index: i,
+                                    gpu: d.Workers[i].Name || "RTX 3060 Ti",
                                     hashrate: d.Algorithms[0].Worker_Performance[i] || 0,
                                     temp: d.Workers[i].Core_Temp || 0
                                 })
@@ -328,22 +401,24 @@ PlasmoidItem {
                 checkComplete()
             }
         }
-        xhr2.open("GET", "http://" + nodes.nexus.ip + ":" + nodes.nexus.lolminer + "/")
-        xhr2.send()
+        xhrNexusNv.open("GET", "http://" + nodes.nexus.ip + ":" + nodes.nexus.lolminer + "/")
+        xhrNexusNv.send()
         
-        // Fetch Forge AMD lolminer
+        // Forge AMD
         pending++
-        var xhr3 = new XMLHttpRequest()
-        xhr3.onreadystatechange = function() {
-            if (xhr3.readyState === XMLHttpRequest.DONE) {
-                if (xhr3.status === 200) {
+        var xhrForgeAmd = new XMLHttpRequest()
+        xhrForgeAmd.onreadystatechange = function() {
+            if (xhrForgeAmd.readyState === XMLHttpRequest.DONE) {
+                if (xhrForgeAmd.status === 200) {
                     try {
-                        var d = JSON.parse(xhr3.responseText)
+                        var d = JSON.parse(xhrForgeAmd.responseText)
                         if (d.Workers && d.Algorithms) {
                             for (var i = 0; i < d.Workers.length; i++) {
                                 gpus.push({
                                     node: "forge",
-                                    gpu: d.Workers[i].Name || "AMD GPU " + i,
+                                    type: "amd",
+                                    index: i,
+                                    gpu: d.Workers[i].Name || "RX 5700 XT",
                                     hashrate: d.Algorithms[0].Worker_Performance[i] || 0,
                                     temp: d.Workers[i].Core_Temp || 0
                                 })
@@ -355,22 +430,24 @@ PlasmoidItem {
                 checkComplete()
             }
         }
-        xhr3.open("GET", "http://" + nodes.forge.ip + ":" + nodes.forge.lolminerAmd + "/")
-        xhr3.send()
+        xhrForgeAmd.open("GET", "http://" + nodes.forge.ip + ":" + nodes.forge.lolminerAmd + "/")
+        xhrForgeAmd.send()
         
-        // Fetch Forge NVIDIA lolminer
+        // Forge NVIDIA
         pending++
-        var xhr4 = new XMLHttpRequest()
-        xhr4.onreadystatechange = function() {
-            if (xhr4.readyState === XMLHttpRequest.DONE) {
-                if (xhr4.status === 200) {
+        var xhrForgeNv = new XMLHttpRequest()
+        xhrForgeNv.onreadystatechange = function() {
+            if (xhrForgeNv.readyState === XMLHttpRequest.DONE) {
+                if (xhrForgeNv.status === 200) {
                     try {
-                        var d = JSON.parse(xhr4.responseText)
+                        var d = JSON.parse(xhrForgeNv.responseText)
                         if (d.Workers && d.Algorithms) {
                             for (var i = 0; i < d.Workers.length; i++) {
                                 gpus.push({
                                     node: "forge",
-                                    gpu: d.Workers[i].Name || "NVIDIA GPU " + i,
+                                    type: "nvidia",
+                                    index: i,
+                                    gpu: d.Workers[i].Name || "RTX 4060",
                                     hashrate: d.Algorithms[0].Worker_Performance[i] || 0,
                                     temp: d.Workers[i].Core_Temp || 0
                                 })
@@ -382,14 +459,15 @@ PlasmoidItem {
                 checkComplete()
             }
         }
-        xhr4.open("GET", "http://" + nodes.forge.ip + ":" + nodes.forge.lolminerNvidia + "/")
-        xhr4.send()
+        xhrForgeNv.open("GET", "http://" + nodes.forge.ip + ":" + nodes.forge.lolminerNvidia + "/")
+        xhrForgeNv.send()
         
-        // Fetch xmrig from each node
+        // === CPU Miners ===
+        
         var xmrigNodes = ["zephyr", "nexus", "sentry"]
         for (var n = 0; n < xmrigNodes.length; n++) {
             pending++
-            (function(nodeName) {
+            ;(function(nodeName) {
                 var xhr = new XMLHttpRequest()
                 xhr.onreadystatechange = function() {
                     if (xhr.readyState === XMLHttpRequest.DONE) {
