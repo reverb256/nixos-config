@@ -37,10 +37,19 @@ with lib; {
       serviceConfig = {
         Type = "simple";
         ExecStart = "${pkgs.python3}/bin/python3 ${config.services.nix-cache-server.scriptPath}";
-        Restart = "always";
-        User = "nixbld";
-        Group = "nixbld";
+        Restart = "on-failure";
+        RestartSec = "5s";
+        # Run as root to read /nix/store files
+        # This is safe since the server is localhost-only and read-only
+        User = "root";
+        Group = "root";
         Environment = "PATH=${pkgs.coreutils}/bin:${pkgs.python3}/bin";
+        # Basic hardening
+        NoNewPrivileges = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        PrivateTmp = true;
+        ReadWritePaths = ["/var/cache/nix-cache"];
       };
     };
 
