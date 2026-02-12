@@ -83,6 +83,19 @@ in {
           - echo "Backup completed"
     '';
 
+    # Log rotation for backup logs (including rclone)
+    services.logrotate.settings."/var/log/rclone-backup.log" = {
+      enable = true;
+      frequency = "weekly";
+      rotate = 4;
+      compress = true;
+      delaycompress = true;
+      missingok = true;
+      notifempty = true;
+      size = "100M";
+      create = "0644 root root";
+    };
+
     # Daily backup timer
     systemd.timers.borgmatic = {
       wantedBy = ["timers.target"];

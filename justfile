@@ -79,10 +79,10 @@ deploy *BRANCH=`git branch --show-current`:
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "mining-build-wrapper/bin/mining-pause" 2>/dev/null || true
     @echo "Checking out branch on all nodes..."
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} && git reset --hard origin/{{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
-    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} && git reset --hard origin/{{BRANCH}} && git pull origin/{{BRANCH}} 2>/dev/null || true"
-    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} && git reset --hard origin/{{BRANCH}} && git pull origin/{{BRANCH}} 2>/dev/null || true"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} && git reset --hard origin/{{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} && git reset --hard origin/{{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     @echo "Deploying via colmena to all nodes..."
-    nix run github:zhaofengli/colmena -- apply --on @all --keep-result
+    cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on @all --keep-result
     # Resume mining after successful deployment
     @echo "Resuming mining on all nodes..."
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
@@ -108,19 +108,19 @@ fetch:
 # Deploy to individual hosts via colmena
 zephyr:
     @echo "Deploying to zephyr via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply --on zephyr
+    cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on zephyr
 
 nexus:
     @echo "Deploying to nexus via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply --on nexus
+    cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on nexus
 
 forge:
     @echo "Deploying to forge via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply --on forge
+    cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on forge
 
 sentry:
     @echo "Deploying to sentry via colmena..."
-    cd {{FLAKE_PATH}} && nix run github:zhaofengli/colmena -- apply --on sentry
+    cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on sentry
 
 # Local switch for current node - runs locally
 switch:
