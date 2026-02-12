@@ -12,7 +12,7 @@ PlasmoidItem {
     readonly property var nodes: ({
         "zephyr": { ip: "100.81.182.5", lolminer: 4068, xmrig: 8081, hasNvidia: true },
         "nexus": { ip: "100.86.158.18", lolminer: 4068, xmrig: 8081, hasNvidia: true },
-        "forge": { ip: "100.95.222.45", lolminerAmd: 4069, lolminerNvidia: 4068, xmrig: 8081, hasAmd: true, hasNvidia: true },
+        "forge": { ip: "100.95.222.45", lolminerAmd: 4069, lolminerNvidia: 4068, hasAmd: true, hasNvidia: true },
         "sentry": { ip: "100.82.210.39", xmrig: 8081, hasCpu: true }
     })
     
