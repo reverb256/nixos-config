@@ -48,6 +48,9 @@ in {
       FLAKE_PATH=/etc/nixos
       LOG_FILE=/var/log/nixos-auto-update.log
 
+      # Set up PATH to include Nix - critical for systemd services
+      export PATH=/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:$PATH
+
       exec >> "$LOG_FILE" 2>&1
       echo "$(date): Starting automatic update"
 
