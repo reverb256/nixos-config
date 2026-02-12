@@ -6,8 +6,37 @@
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
-    # nix-openclaw temporarily disabled
+    inputs.nix-openclaw.homeManagerModules.openclaw
   ];
+
+  # ============================================================================
+  # OPENCLAW - Personal AI Assistant (Official nix-openclaw)
+  # ============================================================================
+  programs.openclaw = {
+    enable = true;
+    
+    # Use the openclaw package from the overlay (already applied in flake.nix)
+    # package = pkgs.openclaw;  # Uses overlay
+    
+    config = {
+      gateway = {
+        mode = "local";
+        bind = "loopback";
+        port = 18789;
+        auth = {
+          mode = "token";
+          token = "cebfb92cc1ab3a575e29fbc564548f5586b6ed8fa54f8070ab2072a7fab4f7ce";
+        };
+      };
+    };
+    
+    instances.default = {
+      enable = true;
+      stateDir = "~/.openclaw";
+      workspaceDir = "~/.openclaw/workspace";
+      plugins = [];
+    };
+  };
 
   # NH (Nix Helper) configuration for better UX
   programs.nh = {
