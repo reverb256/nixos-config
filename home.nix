@@ -50,8 +50,8 @@
     qwen-code
     gh
     gparted
-    localsend
-    jocalsend
+    # localsend - moved to system config (programs.localsend with firewall)
+    jocalsend  # TUI client for LocalSend (uses same port)
 
     #  AI agent
     # Cloud and sync tools
