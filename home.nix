@@ -32,8 +32,8 @@
     
     instances.default = {
       enable = true;
-      stateDir = "~/.openclaw";
-      workspaceDir = "~/.openclaw/workspace";
+      stateDir = "/home/j_kro/.openclaw";
+      workspaceDir = "/home/j_kro/.openclaw/workspace";
       plugins = [];
     };
   };
