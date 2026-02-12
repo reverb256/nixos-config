@@ -154,10 +154,10 @@
       claude = inputs.claude-native.packages.x86_64-linux.default;
     };
 
-    # Colmena app for deployment
+    # Colmena app for deployment - use 0.5.0-pre from store (avoids cache corruption)
     apps.x86_64-linux.colmena = {
       type = "app";
-      program = "${inputs.colmena.packages.x86_64-linux.colmena}/bin/colmena";
+      program = "/nix/store/r5dwx2c02zz2fmlr75s7c1z758kayrcp-colmena-0.5.0-pre/bin/colmena";
     };
 
     # Development shell with all NixOS tools

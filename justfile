@@ -2,6 +2,9 @@
 # All commands work consistently from any node and any directory
 # Zephyr is local (no SSH needed), other nodes via SSH
 
+# Disable Nix stats output for cleaner colmena output
+export NIX_SHOW_STATS := "0"
+
 # Cluster configuration (using Tailscale IPs for cluster management)
 FLAKE_PATH := "/etc/nixos"
 NEXUS := "j_kro@100.86.158.18"   # Local: 10.1.1.120
