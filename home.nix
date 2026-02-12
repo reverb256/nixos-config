@@ -35,6 +35,19 @@
       stateDir = "/home/j_kro/.openclaw";
       workspaceDir = "/home/j_kro/.openclaw/workspace";
       plugins = [];
+      
+      # Gateway config for this instance
+      config = {
+        gateway = {
+          mode = "local";
+          bind = "loopback";
+          port = 18789;
+          auth = {
+            mode = "token";
+            token = "cebfb92cc1ab3a575e29fbc564548f5586b6ed8fa54f8070ab2072a7fab4f7ce";
+          };
+        };
+      };
     };
   };
 
