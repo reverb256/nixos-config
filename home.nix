@@ -9,14 +9,6 @@
     # nix-openclaw temporarily disabled
   ];
 
-  # ============================================================================
-  # OPENCLAW - Personal AI Assistant (Official nix-openclaw)
-  # Temporarily disabled - nix-openclaw package build issue
-  # ============================================================================
-  programs.openclaw = {
-    enable = false;
-  };
-
   # NH (Nix Helper) configuration for better UX
   programs.nh = {
     enable = true;
