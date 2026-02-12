@@ -154,6 +154,12 @@
       claude = inputs.claude-native.packages.x86_64-linux.default;
     };
 
+    # Colmena app for deployment
+    apps.x86_64-linux.colmena = {
+      type = "app";
+      program = "${inputs.colmena.packages.x86_64-linux.colmena}/bin/colmena";
+    };
+
     # Development shell with all NixOS tools
     devShells.x86_64-linux.default = inputs.nixpkgs.legacyPackages.x86_64-linux.mkShell {
       name = "nixos-config";
