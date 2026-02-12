@@ -158,8 +158,8 @@
     # DISPLAY MANAGEMENT
     # System display configuration tools
     # ============================================================================
-    xorg.xrdb
-    xorg.xrandr
+    xrdb
+    xrandr
     # kanshi  # MOVED to home.nix - user display management tool
     kdePackages.kscreen
     kdePackages.kio-extras

@@ -1,8 +1,7 @@
 # StabilityMatrix - Multi-Platform Package Manager for Stable Diffusion
 # https://github.com/LykosAI/StabilityMatrix
 #
-# This module provides a wrapper script that downloads and runs StabilityMatrix.
-# The AppImage is downloaded on first run and cached in the user's data directory.
+# Packaged using appimageTools.wrapType2 for proper NixOS integration
 {
   lib,
   config,
@@ -10,111 +9,79 @@
   ...
 }: let
   cfg = config.programs.stability-matrix;
-  
+  inherit (pkgs) appimageTools fetchzip;
+
   # StabilityMatrix version
   version = "2.15.5";
-  
-  # Download URL for the Linux release
-  downloadUrl = "https://github.com/LykosAI/StabilityMatrix/releases/download/v${version}/StabilityMatrix-linux-x64.zip";
-  
-  # Fetch the icon from the StabilityMatrix repo
-  icon = pkgs.fetchurl {
-    url = "https://raw.githubusercontent.com/LykosAI/StabilityMatrix/main/StabilityMatrix.Avalonia/Assets/Icon.png";
-    hash = "sha256-DDLc1WDfra5sjMFIb7oSJ+nPk6VeO6JiVx6DBS4b8i4=";
+  pname = "stability-matrix";
+
+  # Fetch and extract the zip containing the AppImage
+  extracted-zip = fetchzip {
+    url = "https://github.com/LykosAI/StabilityMatrix/releases/download/v${version}/StabilityMatrix-linux-x64.zip";
+    sha256 = "sha256-BD7NOeR4+EIHzBr6mF/eru8rmuS+Akk9+d+pXJGmzjY=";
   };
-  
-  # Desktop entry for StabilityMatrix
-  desktopEntry = pkgs.makeDesktopItem {
-    name = "StabilityMatrix";
-    desktopName = "Stability Matrix";
-    comment = "Multi-Platform Package Manager for Stable Diffusion";
-    icon = "${icon}";
-    exec = "stability-matrix %U";
-    categories = ["Graphics" "2DGraphics" "RasterGraphics" "Art"];
-    keywords = ["stable diffusion" "ai" "image generation" "art"];
-    startupNotify = true;
-    terminal = false;
+
+  src = "${extracted-zip}/StabilityMatrix.AppImage";
+
+  # Extract AppImage contents for desktop integration
+  appimageContents = appimageTools.extract {
+    inherit pname version src;
+  };
+
+  # Wrap the AppImage with required libraries
+  wrappedApp = appimageTools.wrapType2 {
+    inherit pname version src;
+
+    # Required libraries for .NET/Avalonia and Python
+    extraPkgs = pkgs: [
+      pkgs.icu             # .NET globalization support
+      pkgs.libxcrypt       # Python crypt module
+      pkgs.libxcrypt-legacy # Legacy crypt support for bundled Python
+    ];
   };
 in {
   options.programs.stability-matrix = {
     enable = lib.mkEnableOption "StabilityMatrix - Package Manager for Stable Diffusion";
-    
+
     dataDir = lib.mkOption {
       type = lib.types.str;
       default = "$HOME/.stabilitymatrix";
-      description = "Directory where StabilityMatrix stores its data, models, and cached AppImage.";
+      description = "Directory where StabilityMatrix stores its data and models.";
     };
-    
+
     enableCuda = lib.mkOption {
       type = lib.types.bool;
       default = true;
       description = "Enable NVIDIA CUDA GPU acceleration.";
     };
-    
+
     enableRocm = lib.mkOption {
       type = lib.types.bool;
       default = false;
       description = "Enable AMD ROCm GPU acceleration.";
     };
   };
-  
+
   config = lib.mkIf cfg.enable {
-    # Add required packages to system
-    environment.systemPackages = with pkgs; [
-      # Required for running AppImages on NixOS
-      appimage-run
-      
-      # Required for downloading and extracting the release
-      curl
-      unzip
-      
-      # StabilityMatrix wrapper script
+    environment.systemPackages = [
+      # Wrapper script that sets environment and runs the AppImage
       (pkgs.writeShellScriptBin "stability-matrix" ''
         #!/bin/bash
-        set -e
-        
+
         # Expand the data directory path
         SM_DATA="$(eval echo "${cfg.dataDir}")"
-        SM_CACHE="$SM_DATA/.cache"
-        SM_APPIMAGE="$SM_CACHE/StabilityMatrix.Avalonia"
-        SM_VERSION_FILE="$SM_CACHE/version"
-        
-        # Current expected version
-        EXPECTED_VERSION="${version}"
-        
-        # Create directories
+
+        # Create data directory
         mkdir -p "$SM_DATA"
-        mkdir -p "$SM_CACHE"
-        
-        # Download/update AppImage if needed
-        if [[ ! -f "$SM_APPIMAGE" ]] || [[ ! -f "$SM_VERSION_FILE" ]] || [[ "$(cat "$SM_VERSION_FILE")" != "$EXPECTED_VERSION" ]]; then
-          echo "StabilityMatrix: Downloading version $EXPECTED_VERSION..."
-          TMP_DIR=$(mktemp -d)
-          trap "rm -rf $TMP_DIR" EXIT
-          
-          # Download the zip file
-          curl -fsSL "${downloadUrl}" -o "$TMP_DIR/StabilityMatrix-linux-x64.zip"
-          
-          # Extract the AppImage
-          unzip -q "$TMP_DIR/StabilityMatrix-linux-x64.zip" -d "$TMP_DIR"
-          
-          # Find and move the AppImage (the name may vary slightly)
-          APPIMAGE_SRC=$(find "$TMP_DIR" -name "StabilityMatrix.Avalonia" -type f | head -1)
-          if [[ -z "$APPIMAGE_SRC" ]]; then
-            echo "Error: Could not find StabilityMatrix.Avalonia in the extracted archive"
-            exit 1
-          fi
-          
-          # Make executable and move to cache
-          chmod +x "$APPIMAGE_SRC"
-          mv "$APPIMAGE_SRC" "$SM_APPIMAGE"
-          
-          # Write version file
-          echo "$EXPECTED_VERSION" > "$SM_VERSION_FILE"
-          
-          echo "StabilityMatrix: Download complete!"
-        fi
-        
+
+        # Add build tools to PATH for UV package builds (e.g., insightface with C++ extensions)
+        # UV_NO_BUILD_ISOLATION=1 disables isolated builds so UV uses current environment's compilers
+        # This is required on NixOS where compilers aren't in FHS paths like /usr/bin
+        export PATH="${pkgs.gcc}/bin:${pkgs.cmake}/bin:${pkgs.pkg-config}/bin:$PATH"
+        export CC="${pkgs.gcc}/bin/gcc"
+        export CXX="${pkgs.gcc}/bin/g++"
+        export UV_NO_BUILD_ISOLATION=1
+
         ${lib.optionalString cfg.enableCuda ''
         # NVIDIA CUDA environment variables
         export __NV_PRIME_RENDER_OFFLOAD=1
@@ -122,31 +89,46 @@ in {
         export __VK_LAYER_NV_optimus=NVIDIA_only
         export CUDA_PATH=/run/opengl-driver
         export CUDA_HOME=/run/opengl-driver
-        export LD_LIBRARY_PATH=/run/opengl-driver/lib:/run/opengl-driver/lib64''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+        export LD_LIBRARY_PATH=/run/opengl-driver/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
         ''}
-        
+
         ${lib.optionalString cfg.enableRocm ''
         # AMD ROCm environment variables
         export ROCM_PATH=/run/opengl-driver
         export HSA_OVERRIDE_GFX_VERSION=10.3.0
         export LD_LIBRARY_PATH=/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
         ''}
-        
+
         # Set the data directory for StabilityMatrix
         export STABILITY_MATRIX_DATA="$SM_DATA"
-        
-        # Run the AppImage from the data directory
+
+        # Run from data directory using steam-run for FHS compatibility
+        # This ensures UV can find compilers for building packages with C/C++ extensions
         cd "$SM_DATA"
-        exec ${pkgs.appimage-run}/bin/appimage-run "$SM_APPIMAGE" "$@"
+        exec ${pkgs.steam-run}/bin/steam-run \
+          --setenv=PATH="$PATH" \
+          --setenv=CC="$CC" \
+          --setenv=CXX="$CXX" \
+          --setenv=UV_NO_BUILD_ISOLATION=1 \
+          ${wrappedApp}/bin/${pname} "$@"
       '')
-      
+
       # Desktop entry
-      desktopEntry
+      (pkgs.makeDesktopItem {
+        name = "StabilityMatrix";
+        desktopName = "Stability Matrix";
+        comment = "Multi-Platform Package Manager for Stable Diffusion";
+        icon = "${appimageContents}/usr/share/icons/hicolor/512x512/apps/zone.lykos.stabilitymatrix.png";
+        exec = "stability-matrix %U";
+        categories = ["Graphics" "2DGraphics" "RasterGraphics" "Art"];
+        keywords = ["stable diffusion" "ai" "image generation" "art"];
+        startupNotify = true;
+        terminal = false;
+      })
     ];
-    
-    # Add to environment variables
+
+    # Environment variables for CUDA
     environment.variables = lib.mkIf cfg.enableCuda {
-      # Ensure CUDA is available to StabilityMatrix packages
       CUDA_PATH = "/run/opengl-driver";
       CUDA_HOME = "/run/opengl-driver";
     };

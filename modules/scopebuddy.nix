@@ -74,7 +74,7 @@ in {
     # Add ScopeBuddy package if inputs are available
     environment.systemPackages = with pkgs;
       (optionals (inputs != null && inputs ? scopebuddy) [
-        inputs.scopebuddy.packages.${pkgs.system}.default
+        inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default
       ])
       ++ [
         # Dependencies for auto-detection
@@ -175,19 +175,19 @@ in {
     programs.bash.shellAliases = {
       scb =
         mkIf (inputs != null && inputs ? scopebuddy)
-        "${inputs.scopebuddy.packages.${pkgs.system}.default}/bin/scopebuddy";
+        "${inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/scopebuddy";
       scopebuddy =
         mkIf (inputs != null && inputs ? scopebuddy)
-        "${inputs.scopebuddy.packages.${pkgs.system}.default}/bin/scopebuddy";
+        "${inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/scopebuddy";
     };
 
     programs.fish.shellAliases = {
       scb =
         mkIf (inputs != null && inputs ? scopebuddy)
-        "${inputs.scopebuddy.packages.${pkgs.system}.default}/bin/scopebuddy";
+        "${inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/scopebuddy";
       scopebuddy =
         mkIf (inputs != null && inputs ? scopebuddy)
-        "${inputs.scopebuddy.packages.${pkgs.system}.default}/bin/scopebuddy";
+        "${inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/scopebuddy";
     };
 
     # ============================================================================
