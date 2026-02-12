@@ -42,7 +42,6 @@ in {
       inputs.nix-gaming.nixosModules.platformOptimizations
       inputs.agenix.nixosModules.default
       inputs.nix-flatpak.nixosModules.nix-flatpak
-      inputs.quadlet-nix.nixosModules.quadlet
       # Base configuration
       ./common-base.nix
       ./hosts/zephyr/configuration.nix
@@ -65,7 +64,6 @@ in {
       inputs.nix-gaming.nixosModules.platformOptimizations
       inputs.agenix.nixosModules.default
       inputs.nix-flatpak.nixosModules.nix-flatpak
-      inputs.quadlet-nix.nixosModules.quadlet
       # Base configuration
       ./common-base.nix
       ./hosts/nexus/configuration.nix
@@ -88,7 +86,6 @@ in {
       inputs.nix-gaming.nixosModules.platformOptimizations
       inputs.agenix.nixosModules.default
       inputs.nix-flatpak.nixosModules.nix-flatpak
-      inputs.quadlet-nix.nixosModules.quadlet
       # Base configuration
       ./common-base.nix
       ./hosts/forge/configuration.nix
@@ -111,7 +108,6 @@ in {
       inputs.nix-gaming.nixosModules.platformOptimizations
       inputs.agenix.nixosModules.default
       inputs.nix-flatpak.nixosModules.nix-flatpak
-      inputs.quadlet-nix.nixosModules.quadlet
       # Base configuration
       ./common-base.nix
       ./hosts/sentry/configuration.nix
