@@ -54,9 +54,8 @@
     # CachyOS Kernel - BORE scheduler for gaming
     nix-cachyos-kernel.url = "github:drakon64/nixos-cachyos-kernel";
 
-    # Quadlet-nix - Podman Quadlets for NixOS (OpenClaw support)
-    quadlet-nix.url = "github:SEIAROTg/quadlet-nix";
-    quadlet-nix.inputs.nixpkgs.follows = "nixpkgs";
+    # nix-openclaw - Official OpenClaw Nix package (AI assistant)
+    nix-openclaw.url = "github:openclaw/nix-openclaw";
   };
 
   outputs = inputs @ {
@@ -73,7 +72,6 @@
     inputs.nix-gaming.nixosModules.platformOptimizations
     inputs.agenix.nixosModules.default
     inputs.nix-flatpak.nixosModules.nix-flatpak
-    inputs.quadlet-nix.nixosModules.quadlet
 
     # Base Configuration (after external modules)
     ./common-base.nix

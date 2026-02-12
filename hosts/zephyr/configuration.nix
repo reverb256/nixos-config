@@ -23,7 +23,7 @@
     ../../modules/distributed-builds.nix
     ../../modules/storage-btrfs.nix
     ../../modules/mining-build-wrapper.nix
-    ../../modules/quadlet-openclaw.nix  # OpenClaw cluster orchestration
+    # OpenClaw now managed via nix-openclaw in home.nix
     ../../modules/stability-matrix.nix  # StabilityMatrix - Stable Diffusion package manager
   ];
 
@@ -38,15 +38,12 @@
   };
 
   # ============================================================================
-  # OPENCLAW - CLUSTER ORCHESTRATION
+  # LOCALSEND - Cross-platform local file sharing (AirDrop alternative)
   # ============================================================================
 
-  services.openclaw-quadlet = {
+  programs.localsend = {
     enable = true;
-    workspacePath = "/home/j_kro/workspace";
-    authToken = "cebfb92cc1ab3a575e29fbc564548f5586b6ed8fa54f8070ab2072a7fab4f7ce";
-    port = 18090;
-    bindToLocalhost = true;
+    openFirewall = true;  # Opens TCP/UDP port 53317 for receiving files
   };
 
   networking = {
