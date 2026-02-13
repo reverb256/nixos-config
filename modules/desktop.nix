@@ -130,8 +130,8 @@
     pulse.enable = true;
     jack.enable = true;
     
-    # Manual low-latency config (instead of nix-gaming's broken lowLatency)
-    # nix-gaming sets rt.prio=88 but RTKit max is 20, causing silent failure
+    # Low latency config - manual config with RTKit-safe rt.prio
+    # nix-gaming sets rt.prio=88 but RTKit max is 20
     extraConfig = {
       pipewire."99-lowlatency" = {
         "context.properties" = {
@@ -144,9 +144,12 @@
             flags = ["ifexists" "nofail"];
             args = {
               "nice.level" = -15;
-              "rt.prio" = 19;  # RTKit-safe (max=20)
+              "rt.prio" = 19;          # RTKit-safe (max=20)
               "rt.time.soft" = 200000;
               "rt.time.hard" = 200000;
+              "rlimits.enabled" = false;  # Disable rlimits, use RTKit
+              "rtportal.enabled" = false; # Portal fails with pidns error
+              "rtkit.enabled" = true;     # Use RTKit directly
             };
           }
         ];
