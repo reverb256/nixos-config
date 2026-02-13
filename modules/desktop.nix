@@ -131,24 +131,23 @@
     jack.enable = true;
     
     # Low latency audio - balanced for gaming stability
-    # Higher quantum = more stable under CPU load (less crackling)
     # 256/48000 = ~5.3ms latency - good balance for gaming
     lowLatency = {
       enable = true;
-      quantum = 256;       # ~5.3ms - stable for gaming
+      quantum = 256;
       rate = 48000;
     };
     
-    # Override RT priority to RTKit-safe value (max is 20)
-    # nix-gaming defaults to 88 which RTKit silently rejects
-    extraConfig.pipewire."10-rt-priority" = {
+    # Override RT priority AFTER nix-gaming's config (99- prefix)
+    # RTKit max is 20, nix-gaming uses 88 which fails silently
+    extraConfig.pipewire."99-rtkit-safe" = {
       "context.modules" = [
         {
           name = "libpipewire-module-rt";
           flags = ["ifexists" "nofail"];
           args = {
             "nice.level" = -15;
-            "rt.prio" = 19;
+            "rt.prio" = 19;  # RTKit-safe (max is 20)
             "rt.time.soft" = 200000;
             "rt.time.hard" = 200000;
           };
@@ -157,7 +156,7 @@
     };
   };
 
-  # Enable RTKit for real-time audio priority (reduces crackling/latency)
+  # Enable RTKit for real-time audio priority
   security.rtkit.enable = true;
 
   # ============================================================================
