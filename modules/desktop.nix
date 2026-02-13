@@ -130,29 +130,29 @@
     pulse.enable = true;
     jack.enable = true;
     
-    # Low latency audio - balanced for gaming stability
-    # 256/48000 = ~5.3ms latency - good balance for gaming
-    lowLatency = {
-      enable = true;
-      quantum = 256;
-      rate = 48000;
-    };
-    
-    # Override RT priority AFTER nix-gaming's config (99- prefix)
-    # RTKit max is 20, nix-gaming uses 88 which fails silently
-    extraConfig.pipewire."99-rtkit-safe" = {
-      "context.modules" = [
-        {
-          name = "libpipewire-module-rt";
-          flags = ["ifexists" "nofail"];
-          args = {
-            "nice.level" = -15;
-            "rt.prio" = 19;  # RTKit-safe (max is 20)
-            "rt.time.soft" = 200000;
-            "rt.time.hard" = 200000;
-          };
-        }
-      ];
+    # Manual low-latency config (instead of nix-gaming's broken lowLatency)
+    # nix-gaming sets rt.prio=88 but RTKit max is 20, causing silent failure
+    extraConfig = {
+      pipewire."99-lowlatency" = {
+        "context.properties" = {
+          "default.clock.min-quantum" = 256;
+          "default.clock.max-quantum" = 2048;
+        };
+        "context.modules" = [
+          {
+            name = "libpipewire-module-rt";
+            flags = ["ifexists" "nofail"];
+            args = {
+              "nice.level" = -15;
+              "rt.prio" = 19;  # RTKit-safe (max=20)
+              "rt.time.soft" = 200000;
+              "rt.time.hard" = 200000;
+            };
+          }
+        ];
+      };
+      pipewire-pulse."99-lowlatency"."pulse.min.quantum" = "256/48000";
+      client."99-lowlatency"."stream.properties"."node.latency" = "256/48000";
     };
   };
 
