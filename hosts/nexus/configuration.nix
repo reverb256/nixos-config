@@ -2,6 +2,7 @@
 # 10.1.1.120 - 24 cores, 2x RTX 3060 Ti
 # Features: Gaming + VR, MCP Servers
 {
+  config,
   pkgs,
   ...
 }: {
@@ -67,7 +68,7 @@
   # NVIDIA CONFIGURATION
   # ============================================================================
   hardware.nvidia = {
-    package = pkgs.linuxPackages_zen.nvidiaPackages.stable;
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
     wayland = {
       enable = true;
       openModules = true;
