@@ -52,6 +52,8 @@ in {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
         home-manager.users.j_kro = import ./home.nix;
+        home-manager.backupFileExtension = "bak";
+        home-manager.extraSpecialArgs = {inherit inputs;};
       }
     ];
     deployment.targetHost = "100.81.182.5"; # Tailscale IP (Local: 10.1.1.110)
@@ -81,6 +83,8 @@ in {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
         home-manager.users.j_kro = import ./home.nix;
+        home-manager.backupFileExtension = "bak";
+        home-manager.extraSpecialArgs = {inherit inputs;};
       }
     ];
     deployment.targetHost = "100.86.158.18"; # Tailscale IP (Local: 10.1.1.120)
@@ -110,6 +114,8 @@ in {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
         home-manager.users.j_kro = import ./home.nix;
+        home-manager.backupFileExtension = "bak";
+        home-manager.extraSpecialArgs = {inherit inputs;};
       }
     ];
     deployment.targetHost = "100.95.222.45"; # Tailscale IP (Local: 10.1.1.130)
@@ -139,6 +145,8 @@ in {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
         home-manager.users.j_kro = import ./home.nix;
+        home-manager.backupFileExtension = "bak";
+        home-manager.extraSpecialArgs = {inherit inputs;};
       }
     ];
     deployment.targetHost = "100.82.210.39"; # Tailscale IP (Local: 10.1.1.140)
