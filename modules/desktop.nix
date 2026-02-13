@@ -129,6 +129,18 @@
     alsa.support32Bit = true;
     pulse.enable = true;
     jack.enable = true;
+    
+    # Low latency audio for gaming (reduces crackling/dropouts)
+    lowLatency = {
+      enable = true;
+      quantum = 64;        # ~1.3ms latency (64/48000)
+      rate = 48000;
+      
+      # ALSA low-latency for specific devices (optional, can break some devices)
+      alsa = {
+        enable = false;  # Keep disabled to avoid breaking HDMI audio
+      };
+    };
   };
 
   # Enable RTKit for real-time audio priority (reduces crackling/latency)
