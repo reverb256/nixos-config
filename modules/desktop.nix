@@ -138,19 +138,27 @@
       quantum = 256;       # ~5.3ms - stable for gaming
       rate = 48000;
     };
+    
+    # Override RT priority to RTKit-safe value (max is 20)
+    # nix-gaming defaults to 88 which RTKit silently rejects
+    extraConfig.pipewire."10-rt-priority" = {
+      "context.modules" = [
+        {
+          name = "libpipewire-module-rt";
+          flags = ["ifexists" "nofail"];
+          args = {
+            "nice.level" = -15;
+            "rt.prio" = 19;
+            "rt.time.soft" = 200000;
+            "rt.time.hard" = 200000;
+          };
+        }
+      ];
+    };
   };
 
   # Enable RTKit for real-time audio priority (reduces crackling/latency)
   security.rtkit.enable = true;
-  
-  # PAM limits for real-time audio (needed for nix-gaming's rt.prio=88)
-  # Without this, RTKit silently fails to grant RT priority
-  security.pam.loginLimits = [
-    { domain = "@users"; item = "rtprio"; type = "soft"; value = "95"; }
-    { domain = "@users"; item = "rtprio"; type = "hard"; value = "95"; }
-    { domain = "@users"; item = "memlock"; type = "soft"; value = "unlimited"; }
-    { domain = "@users"; item = "memlock"; type = "hard"; value = "unlimited"; }
-  ];
 
   # ============================================================================
   # BLUETOOTH SUPPORT
