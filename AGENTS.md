@@ -199,6 +199,32 @@ just <hostname>
 
 ---
 
+## Troubleshooting
+
+### Python Package Builds (UV/pip on NixOS)
+
+**Problem:** Packages like `insightface` fail to build because UV's isolated build environments can't find C++ compilers (NixOS doesn't have `/usr/bin/c++`).
+
+**Solution:** The `stability-matrix.nix` module installs compiler symlinks in `/run/current-system/sw/bin/`:
+
+```nix
+# modules/stability-matrix.nix
+(pkgs.runCommand "compiler-symlinks" {} ''
+  mkdir -p $out/bin
+  ln -s ${pkgs.gcc}/bin/g++ $out/bin/c++
+  ln -s ${pkgs.gcc}/bin/gcc $out/bin/gcc
+  ln -s ${pkgs.gcc}/bin/g++ $out/bin/g++
+'')
+```
+
+This allows UV's isolated builds to:
+1. Keep build isolation ON (setuptools provided by UV)
+2. Find `c++`/`gcc` via standard PATH lookup
+
+**Key insight:** Do NOT disable build isolation (`UV_NO_BUILD_ISOLATION=1`) because the venv won't have setuptools. Instead, provide compilers at discoverable paths.
+
+---
+
 ## Documentation
 
 | Doc | Location |
@@ -210,4 +236,4 @@ just <hostname>
 | Troubleshooting | docs/MINING_TROUBLESHOOTING.md |
 
 ---
-**Last Updated:** 2026-02-12
+**Last Updated:** 2026-02-13
