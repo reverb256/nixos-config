@@ -188,18 +188,21 @@ in {
               "GPU_MAX_HEAP_SIZE=100"
               "GPU_MAX_ALLOC_PERCENT=100"
             ];
-            NoNewPrivileges = false;
-            PrivateTmp = false;
-            PrivateDevices = false;
-            ProtectKernelTunables = false;
-            ProtectControlGroups = false;
-            ProtectHostname = false;
-            RestrictRealtime = false;
-            ReadOnlyPaths = [];
+            # Security hardening - consistent with xmrig
+            NoNewPrivileges = true;
+            PrivateTmp = true;
+            ProtectKernelTunables = true;
+            ProtectControlGroups = true;
+            ProtectHostname = true;
+            RestrictRealtime = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            ReadOnlyPaths = "/";
             ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
             LimitMEMLOCK = "4G";
-            CapabilityBoundingSet = "CAP_SYS_ADMIN CAP_SYS_NICE";
-            AmbientCapabilities = "CAP_SYS_ADMIN CAP_SYS_NICE";
+            # Minimal capabilities - only what's needed for GPU access
+            CapabilityBoundingSet = "CAP_SYS_NICE";
+            AmbientCapabilities = "CAP_SYS_NICE";
           };
         };
 
@@ -214,18 +217,21 @@ in {
             ExecStart = "${pkgs.lolminer}/bin/lolMiner --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --mode b --tls 1";
             Restart = "always";
             RestartSec = "30s";
-            NoNewPrivileges = false;
-            PrivateTmp = false;
-            PrivateDevices = false;
-            ProtectKernelTunables = false;
-            ProtectControlGroups = false;
-            ProtectHostname = false;
-            RestrictRealtime = false;
-            ReadOnlyPaths = [];
+            # Security hardening - consistent with other mining services
+            NoNewPrivileges = true;
+            PrivateTmp = true;
+            ProtectKernelTunables = true;
+            ProtectControlGroups = true;
+            ProtectHostname = true;
+            RestrictRealtime = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            ReadOnlyPaths = "/";
             ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
             LimitMEMLOCK = "8G";
-            CapabilityBoundingSet = "CAP_SYS_ADMIN CAP_SYS_NICE";
-            AmbientCapabilities = "CAP_SYS_ADMIN CAP_SYS_NICE";
+            # Minimal capabilities - only what's needed for GPU access
+            CapabilityBoundingSet = "CAP_SYS_NICE";
+            AmbientCapabilities = "CAP_SYS_NICE";
           };
         };
 
@@ -239,14 +245,19 @@ in {
             Slice = "mining.slice";
             ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://xtm-rx-us.kryptex.network:8038 -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-host 0.0.0.0 --http-port 8081 --randomx-1gb-pages --randomx-mode=fast --asm=auto";
             Restart = "always";
+            # Security hardening - consistent with other mining services
             NoNewPrivileges = true;
             PrivateTmp = true;
             ProtectKernelTunables = true;
             ProtectControlGroups = true;
+            ProtectHostname = true;
             RestrictRealtime = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
             ReadOnlyPaths = "/";
             ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
             LimitMEMLOCK = "4G";
+            # CPU mining doesn't need special capabilities
             CapabilityBoundingSet = "";
             AmbientCapabilities = "";
           };
