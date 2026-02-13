@@ -10,7 +10,7 @@ FLAKE_PATH := "/etc/nixos"
 NEXUS := "j_kro@100.86.158.18"   # Local: 10.1.1.120
 FORGE := "j_kro@100.95.222.45"   # Local: 10.1.1.130
 SENTRY := "j_kro@100.82.210.39"   # Local: 10.1.1.140
-ZEPHYR := "root@100.81.182.5"   # Local: 10.1.1.110, Tailscale 100.81.182.5
+ZEPHYR := "j_kro@100.81.182.5"   # Local: 10.1.1.110, Tailscale 100.81.182.5
 
 # Default branch for deployment (can be overridden with JUST_BRANCH=branch-name)
 BRANCH := ""  # Empty = use current branch
@@ -126,9 +126,20 @@ sentry:
     cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on sentry
 
 # Local switch for current node - runs locally
+# Uses sudo -E to preserve SSH_AUTH_SOCK for distributed builds
 switch:
-    @echo "Switching local system configuration for user $(whoami)..."
-    cd /etc/nixos && sudo nixos-rebuild switch --flake ".#$(hostname -s)"
+    @echo "Switching local system configuration..."
+    cd /etc/nixos && sudo -E nixos-rebuild switch --flake ".#$(hostname -s)"
+
+# Local switch without distributed builds (faster for small changes)
+switch-local:
+    @echo "Switching local system configuration (no remote builders)..."
+    cd /etc/nixos && sudo -E nixos-rebuild switch --flake ".#$(hostname -s)" --builders ""
+
+# Local switch with upgrade
+switch-upgrade:
+    @echo "Switching local system configuration with upgrade..."
+    cd /etc/nixos && sudo -E nixos-rebuild switch --flake ".#$(hostname -s)" --upgrade-all
 
 # Copy age key to all nodes (run from zephyr first)
 prep:
