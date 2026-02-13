@@ -9,6 +9,9 @@ in {
   # Mining (active)
   "mining-api-token".publicKeys = allHosts;
 
-  # Add more secrets as needed:
-  # "secret-name".publicKeys = allHosts;
+  # OpenClaw Gateway token
+  "openclaw-token".publicKeys = allHosts;
+
+  # Exa API key (optional, for MCP servers)
+  "exa-api-key".publicKeys = allHosts;
 }

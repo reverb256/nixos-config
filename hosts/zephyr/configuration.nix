@@ -33,7 +33,7 @@
   # ============================================================================
   services.gaming = {
     enable = true;
-    vr.enable = true; # WiVRn, SteamVR, OpenXR
+    vr.enable = false; # WiVRn, SteamVR, OpenXR
   };
 
   # ============================================================================

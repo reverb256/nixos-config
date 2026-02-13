@@ -259,28 +259,6 @@ in {
         OPENVR_API_PATH = "${pkgs.opencomposite}/lib/opencomposite";
       };
 
-      # WiVRn user service
-      systemd.user.services.wivrn = {
-        description = "WiVRn - Wireless VR streaming";
-        after = ["network.target" "pipewire.service"];
-        wants = ["pipewire.service"];
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${pkgs.wivrn}/bin/wivrn-server";
-          ExecStop = "${pkgs.wivrn}/bin/wivrn-apk stop";
-          Restart = "on-failure";
-          RestartSec = 5;
-          Environment = [
-            "WIVRN_LOG=info"
-            "WIVRN_ENCODER=${vrCfg.encoder}"
-            "WIVRN_REFRESH_RATE=${toString vrCfg.refreshRate}"
-            "WIVRN_RESOLUTION=${vrCfg.resolution}"
-            "WIVRN_BITRATE=100000000"
-          ];
-        };
-        wantedBy = ["default.target"];
-      };
-
       # VR firewall ports
       networking.firewall = {
         allowedTCPPorts = [9757];
