@@ -8,12 +8,13 @@
   pkgs = import inputs.nixpkgs {
     system = "x86_64-linux";
     config.allowUnfree = true;
+    overlays = [ self.overlays.default ];
   };
 in {
   meta = {
     nixpkgs = import inputs.nixpkgs {
       system = "x86_64-linux";
-      overlays = [];
+      overlays = [ self.overlays.default ];
     };
     specialArgs = {
       inherit inputs self;
