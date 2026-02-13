@@ -130,16 +130,13 @@
     pulse.enable = true;
     jack.enable = true;
     
-    # Low latency audio for gaming (reduces crackling/dropouts)
+    # Low latency audio - balanced for gaming stability
+    # Higher quantum = more stable under CPU load (less crackling)
+    # 256/48000 = ~5.3ms latency - good balance for gaming
     lowLatency = {
       enable = true;
-      quantum = 64;        # ~1.3ms latency (64/48000)
+      quantum = 256;       # ~5.3ms - stable for gaming
       rate = 48000;
-      
-      # ALSA low-latency for specific devices (optional, can break some devices)
-      alsa = {
-        enable = false;  # Keep disabled to avoid breaking HDMI audio
-      };
     };
   };
 
