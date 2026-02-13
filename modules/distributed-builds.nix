@@ -119,7 +119,6 @@
   # Ensure SSH key exists and has correct permissions
   systemd.tmpfiles.rules = [
     "d /home/j_kro/.ssh 0700 j_kro users -"
-    "d /home/nixbuild/.ssh 0700 nixbuild nixbuild -"
   ];
 
   # SSH client configuration for build machines is managed by modules/ssh.nix
