@@ -145,7 +145,13 @@ in {
         (lib.optionalString (lib.hasAttr "uv" pkgs) uv)
       ]
       ++ lib.optionals cfg.servers.playwright.enable [
-        playwright
+        # Use nixpkgs' playwright-mcp which is properly wrapped for NixOS
+        # with PLAYWRIGHT_BROWSERS_PATH pointing to playwright-driver.browsers
+        playwright-mcp
+        # Provide mcp-playwright command (nixpkgs provides mcp-server-playwright)
+        (pkgs.writeShellScriptBin "mcp-playwright" ''
+          exec ${pkgs.playwright-mcp}/bin/mcp-server-playwright "$@"
+        '')
       ]
       ++ [
         (mkNpmMcpServer {
@@ -157,11 +163,6 @@ in {
         (mkNpmMcpServer {
           name = "git";
           package = "@modelcontextprotocol/server-git";
-        })
-
-        (mkNpmMcpServer {
-          name = "playwright";
-          package = "@playwright/mcp@latest";
         })
 
         (mkNpmMcpServer {
@@ -206,17 +207,9 @@ in {
         })
       ];
 
-    # Install Playwright browsers
-    system.activationScripts.playwright-browsers = lib.mkIf cfg.servers.playwright.enable {
-      text = ''
-        export PLAYWRIGHT_BROWSERS_PATH=/var/lib/playwright-browsers
-        export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
-        if [ ! -d "$PLAYWRIGHT_BROWSERS_PATH" ]; then
-          mkdir -p $PLAYWRIGHT_BROWSERS_PATH
-          ${pkgs.nodejs_22}/bin/npx playwright install chromium --with-deps || true
-        fi
-      '';
-    };
+    # Note: playwright-mcp from nixpkgs is already wrapped with proper
+    # PLAYWRIGHT_BROWSERS_PATH and browser binaries from playwright-driver.browsers.
+    # No activation script needed - browsers are in the Nix store.
 
     programs.nix-ld.enable = lib.mkDefault true;
 
@@ -232,7 +225,7 @@ in {
       |--------|------|---------|
       | filesystem | STDIO | Local filesystem access |
       | git | STDIO | Git operations |
-      | playwright | STDIO | Browser automation |
+       | playwright | STDIO | Browser automation (Nix-provided browsers) |
       | fetch | STDIO | Web fetching |
       | context7 | STDIO | Documentation search |
       | grep-app | STDIO | Code search |
@@ -247,7 +240,7 @@ in {
        |--------|---------|---------|
        | filesystem | `mcp-filesystem` | Local filesystem access |
        | git | `mcp-git` | Git operations |
-       | playwright | `mcp-playwright` | Browser automation |
+        | playwright | `mcp-playwright` | Browser automation (uses Nix-provided browsers) |
        | fetch | `mcp-fetch` | Web fetching |
        | context7 | `mcp-context7` | Documentation search |
        | grep-app | `mcp-grep-app` | Code search |

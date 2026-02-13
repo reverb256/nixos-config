@@ -6,6 +6,7 @@
     ./networking.nix
     ./gaming.nix
     ./mining.nix
+    ./mining-plasmoid.nix # Plasma plasmoid for mining monitoring
     ./ssh.nix
     ./systemd-slices.nix
     ./flatpak-polkit.nix

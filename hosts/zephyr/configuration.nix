@@ -209,55 +209,82 @@
   # vm.overcommit_ratio = 90 (shared config)
 
   environment.systemPackages = with pkgs; [
-    # Enhanced LM Studio wrappers with proper GPU detection environment
+    # ============================================================================
+    # LM STUDIO WITH GPU SUPPORT
+    # ============================================================================
+    # Fixed wrapper with proper CUDA and Vulkan detection for NixOS
+    # Based on: https://github.com/NixOS/nixpkgs/issues/340346
     (pkgs.writeShellScriptBin "lms-enhanced" ''
       #!/bin/bash
       cd /tmp
 
-      # Set environment variables for GPU detection
+      # NVIDIA GPU selection
       export __NV_PRIME_RENDER_OFFLOAD=1
       export __GLX_VENDOR_LIBRARY_NAME=nvidia
       export __VK_LAYER_NV_optimus=NVIDIA_only
 
-      # Set CUDA environment
+      # CUDA environment - critical for GPU detection
       export CUDA_PATH=/run/opengl-driver
       export CUDA_HOME=/run/opengl-driver
+      export CUDA_VISIBLE_DEVICES=0
 
-      # Use steam-run for maximum compatibility
-      exec ${pkgs.steam-run}/bin/steam-run \
-        --unshare-user-group \
-        --setenv=__NV_PRIME_RENDER_OFFLOAD=1 \
-        --setenv=__GLX_VENDOR_LIBRARY_NAME=nvidia \
-        --setenv=__VK_LAYER_NV_optimus=NVIDIA_only \
-        ${pkgs.lmstudio}/bin/lms "$@"
+      # CRITICAL: LD_LIBRARY_PATH must include NVIDIA/CUDA libraries
+      # LM Studio's bundled llama.cpp needs to find libcuda.so at runtime
+      export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+      # Vulkan ICD configuration - force NVIDIA Vulkan driver
+      export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
+
+      # Vulkan layer path for NVIDIA-specific layers
+      export VK_LAYER_PATH="/run/opengl-driver/share/vulkan/implicit_layer.d"
+
+      # XDG data dirs for Vulkan ICD discovery
+      export XDG_DATA_DIRS="/run/opengl-driver/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+
+      # Disable sandbox if running as AppImage (helps with GPU access)
+      export ELECTRON_DISABLE_SANDBOX=1
+
+      exec ${pkgs.lmstudio}/bin/lms "$@"
     '')
 
     (pkgs.writeShellScriptBin "lm-studio-enhanced" ''
       #!/bin/bash
       cd /tmp
 
-      # Set environment variables for GPU detection
+      # NVIDIA GPU selection
       export __NV_PRIME_RENDER_OFFLOAD=1
       export __GLX_VENDOR_LIBRARY_NAME=nvidia
       export __VK_LAYER_NV_optimus=NVIDIA_only
 
-      # Set CUDA environment
+      # CUDA environment - critical for GPU detection
       export CUDA_PATH=/run/opengl-driver
       export CUDA_HOME=/run/opengl-driver
+      export CUDA_VISIBLE_DEVICES=0
 
-      # Use steam-run for maximum compatibility
-      exec ${pkgs.steam-run}/bin/steam-run \
-        --unshare-user-group \
-        --setenv=__NV_PRIME_RENDER_OFFLOAD=1 \
-        --setenv=__GLX_VENDOR_LIBRARY_NAME=nvidia \
-        --setenv=__VK_LAYER_NV_optimus=NVIDIA_only \
-        --setenv=CUDA_PATH=/run/opengl-driver \
-        --setenv=CUDA_HOME=/run/opengl-driver \
-        --bind "/run/opengl-driver/bin:/usr/bin" \
-        ${pkgs.lmstudio}/bin/lm-studio "$@"
+      # CRITICAL: LD_LIBRARY_PATH must include NVIDIA/CUDA libraries
+      # LM Studio's bundled llama.cpp needs to find libcuda.so at runtime
+      export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+      # Vulkan ICD configuration - force NVIDIA Vulkan driver
+      export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
+
+      # Vulkan layer path for NVIDIA-specific layers
+      export VK_LAYER_PATH="/run/opengl-driver/share/vulkan/implicit_layer.d"
+
+      # XDG data dirs for Vulkan ICD discovery
+      export XDG_DATA_DIRS="/run/opengl-driver/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+
+      # Disable sandbox if running as AppImage (helps with GPU access)
+      export ELECTRON_DISABLE_SANDBOX=1
+
+      exec ${pkgs.lmstudio}/bin/lm-studio "$@"
     '')
 
-    # LM Studio wrapper removed - duplicate of lms-enhanced
+    # Convenience symlink - use enhanced version by default
+    (pkgs.runCommand "lm-studio-default" {} ''
+      mkdir -p $out/bin
+      ln -s ${pkgs.lmstudio}/bin/lm-studio $out/bin/lm-studio
+    '')
 
     # Additional CUDA packages for better compatibility
     cudaPackages.cudatoolkit
