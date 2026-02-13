@@ -12,15 +12,7 @@
 
   # Plasmoid source files
   plasmoidName = "org.example.miningmonitor";
-  plasmoidDir = pkgs.stdenv.mkDerivation {
-    name = "mining-monitor-plasmoid";
-    src = ./plasmoids/mining-monitor;
-
-    installPhase = ''
-      mkdir -p $out
-      cp -r * $out/
-    '';
-  };
+  plasmoidSrc = ../plasmoids/mining-monitor;
 in {
   options.programs.mining-plasmoid = {
     enable = lib.mkEnableOption "Mining Monitor Plasma Plasmoid - Multi-node GPU/CPU monitor";
@@ -33,18 +25,12 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Install plasmoid system-wide via environment.etc
-    # Plasma will pick it up from the XDG data directories
+    # Install plasmoid system-wide so Plasma can discover it
     environment.systemPackages = [
       (pkgs.runCommand "mining-monitor-plasmoid" {} ''
         mkdir -p $out/share/plasma/plasmoids/${plasmoidName}
-        cp -r ${./plasmoids/mining-monitor}/* $out/share/plasma/plasmoids/${plasmoidName}/
+        cp -r ${plasmoidSrc}/* $out/share/plasma/plasmoids/${plasmoidName}/
       '')
     ];
-
-    # Ensure the plasmoid is discoverable
-    environment.variables = {
-      XDG_DATA_DIRS = ["/run/current-system/sw/share"];
-    };
   };
 }
