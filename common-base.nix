@@ -11,6 +11,13 @@ in {
   # Use 'sudo docker' for container operations (requires password)
   users.users.${sysadminUser}.extraGroups = ["podman" "plugdev"]; # Removed "docker" for security, added plugdev for peripheral access
 
+  # ============================================================================
+  # SYSTEMD - Prevent display manager restart during rebuild
+  # ============================================================================
+  # This prevents Plasma 6 Wayland session termination on configuration changes
+  systemd.services.display-manager.restartIfChanged = false;
+  systemd.services.sddm.restartIfChanged = false;
+
   # Blacklist nouveau and NovaCore drivers to ensure proper NVIDIA driver loads
   boot.blacklistedKernelModules = ["nouveau" "nova" "nova_core"];
 
@@ -66,14 +73,6 @@ in {
     ./secrets/agenix-secrets.nix
   ];
 
-  #  AI Gateway Service - REMOVED
-  #  AI Agent Gateway - completely removed from system
-
-  # ============================================================================
-  # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix)
-  # ============================================================================
-  # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
-  # Using built-in hardware.openrazer module for proper daemon setup
   # ============================================================================
   # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
   # Using built-in hardware.openrazer module for proper daemon setup
@@ -92,30 +91,7 @@ in {
   # MSI X570 Tomahawk + RTX 3090 + Corsair devices + G.Skill Trident Z RGB
   # RGB devices managed via existing modules (desktop.nix, system-packages.nix)
 
-  # XDG Desktop Portal for KDE integration (with GTK fallback for Flatpak/Steam)
-  xdg.portal = {
-    enable = true;
-    extraPortals = with pkgs; [
-      kdePackages.xdg-desktop-portal-kde # Primary KDE portal
-      xdg-desktop-portal-gtk # Fallback for GTK/Flatpak apps
-    ];
-    config = {
-      common = {
-        default = ["kde" "gtk"];
-      };
-      kde = {
-        default = ["kde" "gtk"];
-        "org.freedesktop.impl.portal.FileChooser" = ["kde" "gtk"];
-        "org.freedesktop.impl.portal.ScreenCast" = ["kde"];
-        "org.freedesktop.impl.portal.Screenshot" = ["kde"];
-        "org.freedesktop.impl.portal.RemoteDesktop" = ["kde"];
-        "org.freedesktop.impl.portal.Settings" = ["kde" "gtk"];
-        "org.freedesktop.impl.portal.Notification" = ["kde"];
-        "org.freedesktop.impl.portal.WindowManagement" = ["kde"];
-      };
-    };
-    xdgOpenUsePortal = true;
-  };
+  # Note: XDG Portal configuration is in modules/desktop.nix to keep desktop settings together
 
   # Declarative Flatpak configuration using nix-flatpak module
   services.flatpak = {

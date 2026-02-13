@@ -1,4 +1,4 @@
-_: {
+{config, ...}: {
   age.secrets = {
     # Mining API token for XMRig HTTP API (internal stats/pause/resume)
     "mining-api-token" = {
@@ -8,8 +8,20 @@ _: {
       mode = "400";
     };
 
-    # Other secrets can be added as needed
-    # To create: agenix -e /etc/nixos/secrets/<name>.age
-    # Then add entry here and in secrets.nix
+    # OpenClaw Gateway authentication token
+    "openclaw-token" = {
+      file = ./openclaw-token.age;
+      owner = "j_kro";
+      group = "users";
+      mode = "400";
+    };
+
+    # MCP Servers Exa API key
+    "exa-api-key" = {
+      file = ./exa-api-key.age;
+      owner = "j_kro";
+      group = "users";
+      mode = "400";
+    };
   };
 }

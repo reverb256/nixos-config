@@ -25,7 +25,8 @@
         port = 18789;
         auth = {
           mode = "token";
-          token = "fb3a1cfa656c5881ff1445822de404c6f8e6ed5e41166a5b";
+          # Token loaded from Agenix secret
+          tokenFile = "/run/agenix/openclaw-token";
         };
       };
     };
@@ -44,7 +45,8 @@
           port = 18789;
           auth = {
             mode = "token";
-            token = "fb3a1cfa656c5881ff1445822de404c6f8e6ed5e41166a5b";
+            # Token loaded from Agenix secret
+            tokenFile = "/run/agenix/openclaw-token";
           };
         };
       };

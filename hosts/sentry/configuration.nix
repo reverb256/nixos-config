@@ -1,56 +1,43 @@
-# Sentry Host Configuration
-# 10.1.1.140 - Monitoring Server (8 cores, RX 5600 XT)
+# Sentry Host Configuration - Monitoring Server
+# 10.1.1.140 - 16 cores, RX 5600 XT
+# Features: Gaming only (no VR), CPU mining, ROCm
 {
   lib,
   pkgs,
   ...
 }: {
   imports = [
-    # Host-specific hardware
+    # Hardware configuration (generated)
     ./hardware-configuration.nix
-    # Import desktop module for Plasma 6
-    ../../modules/desktop.nix
-    # Import fish shell with starship
-    ../../modules/fish-starship.nix
-    # Import AMD GPU Wayland module
+
+    # Common host imports (desktop, gaming, networking, etc.)
+    ../../modules/common-host.nix
+
+    # Host-specific GPU support
     ../../modules/amdgpu-wayland.nix
-    # Import networking module (DNS, firewall, Avahi)
-    ../../modules/networking.nix
-    # Import Tailscale mesh VPN
-    ../../modules/tailscale.nix
-    # Import CI/CD and auto-update modules
-    ../../modules/garnix.nix
-    ../../modules/auto-update.nix
-    ../../modules/ssh.nix
-    # Import distributed builds module (GPU+ROCm support)
-    ../../modules/distributed-builds.nix
-    # Import storage management
-    ../../modules/storage-btrfs.nix
-    # Import mining build wrapper
-    ../../modules/mining-build-wrapper.nix
-    # Disabled modules (module conflicts with nixpkgs):
-    # - kubernetes.nix
-    # - n8n.nix
-    # - stable-diffusion.nix (infinite recursion)
   ];
 
-  # Host identification
+  # ============================================================================
+  # HOST IDENTIFICATION
+  # ============================================================================
   networking.hostName = "sentry";
 
-  # Enable CI/CD features
-  # services.garnix.enable = false; # Default is false, no need to set explicitly
-  services.nixos-auto-update.enable = true;
+  # ============================================================================
+  # GAMING (No VR - RX 5600 XT not powerful enough for VR streaming)
+  # ============================================================================
+  services.gaming = {
+    enable = true;
+    vr.enable = false;
+  };
 
-  # Multi-kernel support: Use latest kernel (workaround for zen 6.18.7 module shrinkage bug)
+  # ============================================================================
+  # KERNEL
+  # ============================================================================
   boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # ============================================================================
-  # DESKTOP ENVIRONMENT - KDE Plasma 6 with AMD GPU
+  # GPU CONFIGURATION (AMD RX 5600 XT)
   # ============================================================================
-
-  services.xserver.enable = true;
-
-  # AMD GPU Wayland configuration
   hardware.amdgpu.wayland = {
     enable = true;
     enable32Bit = true;
@@ -58,6 +45,11 @@
     sddmWayland = true;
   };
 
+  services.xserver.videoDrivers = ["amdgpu"];
+
+  # ============================================================================
+  # DISPLAY MANAGER
+  # ============================================================================
   services.displayManager = {
     sddm.enable = true;
     defaultSession = "plasma";
@@ -67,40 +59,24 @@
     };
   };
 
-  # ============================================================================
-  # PREVENT PLASMA SESSION KILL DURING REBUILD
-  # ============================================================================
-  # Stop display-manager from restarting during nixos-rebuild switch
-  # This prevents Plasma 6 Wayland session termination on configuration changes
-  systemd.services.display-manager.restartIfChanged = false;
-  systemd.services.sddm.restartIfChanged = false;
-
-  # Prevent systemd-logind from killing user processes during session changes
   services.logind.settings.Login.KillUserProcesses = false;
 
-  # Sentry-specific overrides - CPU mining only (8 threads = 50% of 16 cores)
-  services.mining.enable = true;
-  services.mining.xmrig.enable = true;
-  services.mining.xmrig.threads = 8;
-  services.mining.xmrig.pool = "xtm-rx-us.kryptex.network:8038";
-  services.mining.lolminer.enable = false; # No GPU mining on sentry
+  # ============================================================================
+  # MINING (CPU only - 8 threads = 50% of 16 cores)
+  # ============================================================================
+  services.mining = {
+    enable = true;
+    xmrig = {
+      enable = true;
+      threads = 8;
+      pool = "xtm-rx-us.kryptex.network:8038";
+    };
+    lolminer.enable = false; # No GPU mining on Sentry
+  };
 
   # ============================================================================
-  # NETWORKING (Static IP)
+  # DISTRIBUTED BUILDS
   # ============================================================================
-
-  networking.interfaces.enp7s0.ipv4.addresses = [
-    {
-      address = "10.1.1.140";
-      prefixLength = 24;
-    }
-  ];
-
-  # ============================================================================
-  # ENABLE DISTRIBUTED BUILDS ON SENTRY
-  # ============================================================================
-  # Sentry can build locally and distribute to other nodes
-  # Note: Garnix cache disabled to prevent secret errors (garnix.enable = false above)
   nix.distributedBuilds = true;
 
   nix.settings = {
@@ -114,7 +90,6 @@
       "https://zen-browser.cachix.org"
       "https://devenv.cachix.org"
     ];
-    # CRITICAL: Must have matching trusted-public-keys for all substituters
     trusted-public-keys = lib.mkForce [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
@@ -127,52 +102,49 @@
     ];
   };
 
+  # ============================================================================
+  # NETWORKING
+  # ============================================================================
+  networking.interfaces.enp7s0.ipv4.addresses = [
+    {
+      address = "10.1.1.140";
+      prefixLength = 24;
+    }
+  ];
+
   networking.defaultGateway = "10.1.1.1";
 
   # ============================================================================
-  # LOCAL HOSTS ENTRIES
+  # TAILSCALE
   # ============================================================================
+  services.tailscale.enable = true;
 
-  networking.hosts = {
-    "10.1.1.110" = ["zephyr"];
-    "10.1.1.120" = ["nexus"];
-    "10.1.1.130" = ["forge"];
-    "10.1.1.140" = ["sentry"];
-  };
-
-  # ============================================================================
-  # OLLAMA - Local LLMs
-  # ============================================================================
-  services.ollama = {
-    enable = true;
-    package = pkgs.ollama-cpu; # CPU-only (AMD RX 5600 XT not used for LLM)
-    environmentVariables = {
-      OLLAMA_KEEP_ALIVE = "24h";
-    };
-  };
-
-  # ============================================================================
-  # GPU DRIVERS (AMD & NVIDIA) - Consistent with main configuration
-  # ============================================================================
-
-  services.xserver.videoDrivers = ["amdgpu"];
-
-  # OpenCL is handled by hardware.amdgpu.wayland.opencl option above
-  # No need for duplicate configuration
-
-  # ============================================================================
-  # TAILSCALE - Secure mesh VPN (using standard nixpkgs module)
-  services.tailscale = {
-    enable = true;
-  };
-
-  # Routing features configured via tailscaled environment
   systemd.services.tailscaled.environment = {
     TS_ADVERTISE_ROUTES = "10.1.1.0/24";
     TS_ROUTES = "";
     TS_SSH = "true";
   };
 
+  # ============================================================================
+  # OLLAMA (CPU-only)
+  # ============================================================================
+  services.ollama = {
+    enable = true;
+    package = pkgs.ollama-cpu;
+    environmentVariables = {
+      OLLAMA_KEEP_ALIVE = "24h";
+    };
+  };
+
+  # ============================================================================
+  # CI/CD
+  # ============================================================================
+  services.garnix.enable = false;
+  services.nixos-auto-update.enable = true;
+
+  # ============================================================================
+  # GIT CONFIGURATION
+  # ============================================================================
   programs.git = {
     enable = true;
     config = {

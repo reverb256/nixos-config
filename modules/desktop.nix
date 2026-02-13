@@ -58,6 +58,8 @@
         "org.freedesktop.impl.portal.Background" = ["kde"];
         "org.freedesktop.impl.portal.GameMode" = ["kde"];
         "org.freedesktop.impl.portal.LockScreen" = ["kde"];
+        # Realtime: DISABLE GTK portal (has pidns bug) - let PipeWire use RTKit directly
+        "org.freedesktop.impl.portal.Realtime" = [];
         "org.freedesktop.impl.portal.NetworkMonitor" = ["kde"];
         "org.freedesktop.impl.portal.ProxyResolver" = ["kde"];
         "org.freedesktop.impl.portal.Trash" = ["kde"];
