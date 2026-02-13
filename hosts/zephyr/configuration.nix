@@ -210,87 +210,67 @@
 
   environment.systemPackages = with pkgs; [
     # ============================================================================
-    # LM STUDIO WITH GPU SUPPORT
+    # LM STUDIO WITH GPU SUPPORT (CUDA + Vulkan)
     # ============================================================================
-    # Fixed wrapper with proper CUDA and Vulkan detection for NixOS
+    # Custom wrapper that injects CUDA/Vulkan libraries into the AppImage sandbox
     # Based on: https://github.com/NixOS/nixpkgs/issues/340346
-    (pkgs.writeShellScriptBin "lms-enhanced" ''
-      #!/bin/bash
-      cd /tmp
-
-      # NVIDIA GPU selection
+    # The default nixpkgs lmstudio only includes ocl-icd (OpenCL), missing CUDA/Vulkan
+    
+    (let
+      lmstudioPkg = pkgs.lmstudio;
+    in pkgs.buildFHSEnv {
+      name = "lm-studio-gpu";
+      targetPkgs = pkgs: with pkgs; [
+        # Base dependencies from original package
+        ocl-icd
+        
+        # CUDA Runtime - CRITICAL for GPU detection
+        cudaPackages.cuda_cudart
+        cudaPackages.libcublas
+        cudaPackages.libcufft
+        cudaPackages.libcusparse
+        cudaPackages.libcusolver
+        cudaPackages.cudnn
+        
+        # Vulkan support
+        vulkan-loader
+        vulkan-headers
+        
+        # Graphics libraries
+        libGL
+        libglvnd
+        
+        # Additional dependencies
+        stdenv.cc.cc.lib
+        glib
+        nss
+        nspr
+        dbus
+        libdrm
+        fontconfig
+        freetype
+        zlib
+      ];
+      
+      # Run the original lm-studio binary inside the FHS environment
+      runScript = "${lmstudioPkg}/bin/lm-studio";
+      
+      # Export GPU environment variables
+      profile = ''
+        export __NV_PRIME_RENDER_OFFLOAD=1
+        export __GLX_VENDOR_LIBRARY_NAME=nvidia
+        export CUDA_VISIBLE_DEVICES=0
+        export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
+      '';
+    })
+    
+    # CLI tool wrapper with GPU support
+    (pkgs.writeShellScriptBin "lms" ''
       export __NV_PRIME_RENDER_OFFLOAD=1
       export __GLX_VENDOR_LIBRARY_NAME=nvidia
-      export __VK_LAYER_NV_optimus=NVIDIA_only
-
-      # CUDA environment - critical for GPU detection
-      export CUDA_PATH=/run/opengl-driver
-      export CUDA_HOME=/run/opengl-driver
       export CUDA_VISIBLE_DEVICES=0
-
-      # CRITICAL: LD_LIBRARY_PATH must include NVIDIA/CUDA libraries
-      # LM Studio's bundled llama.cpp needs to find libcuda.so at runtime
       export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-
-      # Vulkan ICD configuration - force NVIDIA Vulkan driver
-      export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
-
-      # Vulkan layer path for NVIDIA-specific layers
-      export VK_LAYER_PATH="/run/opengl-driver/share/vulkan/implicit_layer.d"
-
-      # XDG data dirs for Vulkan ICD discovery
-      export XDG_DATA_DIRS="/run/opengl-driver/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
-
-      # Disable sandbox if running as AppImage (helps with GPU access)
-      export ELECTRON_DISABLE_SANDBOX=1
-
       exec ${pkgs.lmstudio}/bin/lms "$@"
     '')
-
-    (pkgs.writeShellScriptBin "lm-studio-enhanced" ''
-      #!/bin/bash
-      cd /tmp
-
-      # NVIDIA GPU selection
-      export __NV_PRIME_RENDER_OFFLOAD=1
-      export __GLX_VENDOR_LIBRARY_NAME=nvidia
-      export __VK_LAYER_NV_optimus=NVIDIA_only
-
-      # CUDA environment - critical for GPU detection
-      export CUDA_PATH=/run/opengl-driver
-      export CUDA_HOME=/run/opengl-driver
-      export CUDA_VISIBLE_DEVICES=0
-
-      # CRITICAL: LD_LIBRARY_PATH must include NVIDIA/CUDA libraries
-      # LM Studio's bundled llama.cpp needs to find libcuda.so at runtime
-      export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-
-      # Vulkan ICD configuration - force NVIDIA Vulkan driver
-      export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
-
-      # Vulkan layer path for NVIDIA-specific layers
-      export VK_LAYER_PATH="/run/opengl-driver/share/vulkan/implicit_layer.d"
-
-      # XDG data dirs for Vulkan ICD discovery
-      export XDG_DATA_DIRS="/run/opengl-driver/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
-
-      # Disable sandbox if running as AppImage (helps with GPU access)
-      export ELECTRON_DISABLE_SANDBOX=1
-
-      exec ${pkgs.lmstudio}/bin/lm-studio "$@"
-    '')
-
-    # Convenience symlink - use enhanced version by default
-    (pkgs.runCommand "lm-studio-default" {} ''
-      mkdir -p $out/bin
-      ln -s ${pkgs.lmstudio}/bin/lm-studio $out/bin/lm-studio
-    '')
-
-    # Additional CUDA packages for better compatibility
-    cudaPackages.cudatoolkit
-    cudaPackages.cudnn
-    opencl-headers
-    vulkan-tools
-    vulkan-validation-layers
   ];
 }
