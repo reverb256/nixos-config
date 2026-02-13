@@ -216,7 +216,7 @@
     # Based on: https://github.com/NixOS/nixpkgs/issues/340346
     # The default nixpkgs lmstudio only includes ocl-icd (OpenCL), missing CUDA/Vulkan
     # 
-    # KEY FIX: Mount /run/opengl-driver into sandbox so libcuda.so is accessible!
+    # KEY FIX: Use extraBwrapArgs to mount /run/opengl-driver so libcuda.so is accessible!
     
     (let
       version = "0.4.2-2";
@@ -230,72 +230,98 @@
         inherit version src;
         pname = "lm-studio";
       };
+    in pkgs.buildFHSEnv {
+      name = "lm-studio";
       
-      # Create a custom wrapper script that adds opengl-driver bind mount
-      lm-studio-wrapper = pkgs.writeShellScriptBin "lm-studio" ''
-        #!/bin/bash
+      # Include CUDA/Vulkan libraries inside the FHS environment
+      targetPkgs = pkgs: with pkgs; [
+        # OpenCL
+        ocl-icd
         
-        # Set GPU environment variables
-        export __NV_PRIME_RENDER_OFFLOAD=1
-        export __GLX_VENDOR_LIBRARY_NAME=nvidia
-        export CUDA_VISIBLE_DEVICES=0
-        export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
-        
-        # Create symlink for CUDA libraries inside the sandbox
-        # The FHS sandbox can't see /run/opengl-driver, so we need to make libcuda accessible
-        # We use LD_LIBRARY_PATH to point to the nvidia driver libraries
-        export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        
-        exec ${appimageContents}/AppRun --no-sandbox "$@"
-      '';
-      
-      # CLI tool wrapper
-      lms-wrapper = pkgs.writeShellScriptBin "lms" ''
-        #!/bin/bash
-        export __NV_PRIME_RENDER_OFFLOAD=1
-        export __GLX_VENDOR_LIBRARY_NAME=nvidia
-        export CUDA_VISIBLE_DEVICES=0
-        export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
-        
-        # Use steam-run to provide FHS environment for the lms binary
-        exec ${pkgs.steam-run}/bin/steam-run ${appimageContents}/resources/app/.webpack/lms "$@"
-      '';
-      
-      # Create a desktop file
-      desktopItem = pkgs.makeDesktopItem {
-        name = "lm-studio";
-        desktopName = "LM Studio";
-        comment = "Run local LLMs with GPU acceleration";
-        exec = "lm-studio %U";
-        icon = "${appimageContents}/usr/share/icons/hicolor/0x0/apps/lm-studio.png";
-        categories = [ "Development" "IDE" ];
-        terminal = false;
-      };
-      
-    in pkgs.symlinkJoin {
-      name = "lm-studio-${version}";
-      paths = [
-        lm-studio-wrapper
-        lms-wrapper
-        desktopItem
-      ];
-      
-      # Add CUDA runtime libraries for the sandbox
-      buildInputs = with pkgs; [
+        # CUDA Runtime libraries
         cudaPackages.cuda_cudart
         cudaPackages.libcublas
         cudaPackages.libcufft
+        cudaPackages.libcusparse
+        cudaPackages.libcusolver
         cudaPackages.cudnn
+        
+        # Vulkan support
         vulkan-loader
+        vulkan-headers
+        
+        # Graphics libraries
         libGL
-        ocl-icd
+        libglvnd
+        
+        # Additional dependencies
+        stdenv.cc.cc.lib
+        glib
+        nss
+        nspr
+        dbus
+        libdrm
+        fontconfig
+        freetype
+        zlib
+        alsa-lib
+        cups
+        expat
+        libxkbcommon
+        wayland
       ];
       
-      meta = {
-        description = "LM Studio with GPU support for NixOS";
-        mainProgram = "lm-studio";
-      };
+      # CRITICAL: Mount /run/opengl-driver so NVIDIA driver libraries are accessible!
+      # This is the key fix - libcuda.so lives in /run/opengl-driver/lib
+      extraBwrapArgs = [
+        "--ro-bind /run/opengl-driver /run/opengl-driver"
+        "--ro-bind /run/agenix.d /run/agenix.d"
+      ];
+      
+      # Run the AppImage directly inside FHS environment
+      # --no-sandbox is critical for GPU access
+      runScript = "${pkgs.bash}/bin/bash -c 'exec ${appimageContents}/AppRun --no-sandbox \"$@\"' --";
+      
+      # Set GPU environment variables
+      profile = ''
+        export __NV_PRIME_RENDER_OFFLOAD=1
+        export __GLX_VENDOR_LIBRARY_NAME=nvidia
+        export CUDA_VISIBLE_DEVICES=0
+        export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
+        export XDG_DATA_DIRS="/run/opengl-driver/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+      '';
+      
+      extraInstallCommands = ''
+        # Install the CLI tool (lms)
+        mkdir -p $out/bin
+        cat > $out/bin/lms << 'LMS_EOF'
+#!/bin/bash
+export __NV_PRIME_RENDER_OFFLOAD=1
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export CUDA_VISIBLE_DEVICES=0
+export LD_LIBRARY_PATH="/run/opengl-driver/lib:/run/opengl-driver/lib64''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export VK_ICD_FILENAMES="/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
+exec ${pkgs.steam-run}/bin/steam-run ${appimageContents}/resources/app/.webpack/lms "$@"
+LMS_EOF
+        chmod +x $out/bin/lms
+        
+        # Install desktop file
+        mkdir -p $out/share/applications
+        cat > $out/share/applications/lm-studio.desktop << 'DESKTOP_EOF'
+[Desktop Entry]
+Name=LM Studio
+Comment=Run local LLMs with GPU acceleration
+Exec=lm-studio %U
+Icon=lm-studio
+Categories=Development;IDE;
+Terminal=false
+Type=Application
+DESKTOP_EOF
+        
+        # Install icon
+        mkdir -p $out/share/icons/hicolor/0x0/apps
+        cp ${appimageContents}/usr/share/icons/hicolor/0x0/apps/lm-studio.png $out/share/icons/hicolor/0x0/apps/
+      '';
     })
   ];
 }
