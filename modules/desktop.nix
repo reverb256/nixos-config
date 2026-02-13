@@ -131,7 +131,6 @@
     jack.enable = true;
     
     # Low latency config - manual config with RTKit-safe rt.prio
-    # nix-gaming sets rt.prio=88 but RTKit max is 20
     extraConfig = {
       pipewire."99-lowlatency" = {
         "context.properties" = {
@@ -144,12 +143,9 @@
             flags = ["ifexists" "nofail"];
             args = {
               "nice.level" = -15;
-              "rt.prio" = 19;          # RTKit-safe (max=20)
+              "rt.prio" = 19;
               "rt.time.soft" = 200000;
               "rt.time.hard" = 200000;
-              "rlimits.enabled" = false;  # Disable rlimits, use RTKit
-              "rtportal.enabled" = false; # Portal fails with pidns error
-              "rtkit.enabled" = true;     # Use RTKit directly
             };
           }
         ];
@@ -159,8 +155,14 @@
     };
   };
 
-  # Enable RTKit for real-time audio priority
+  # Enable RTKit for real-time audio
   security.rtkit.enable = true;
+  
+  # PAM limits for real-time audio (RTKit requires RLIMIT_RTPRIO >= rt.prio)
+  security.pam.loginLimits = [
+    { domain = "@users"; item = "rtprio"; type = "-"; value = "95"; }
+    { domain = "@users"; item = "memlock"; type = "-"; value = "unlimited"; }
+  ];
 
   # ============================================================================
   # BLUETOOTH SUPPORT
