@@ -8,13 +8,19 @@
   pkgs = import inputs.nixpkgs {
     system = "x86_64-linux";
     config.allowUnfree = true;
-    overlays = [ self.overlays.default ];
+    overlays = [ 
+      self.overlays.default
+      inputs.nix-openclaw.overlays.default
+    ];
   };
 in {
   meta = {
     nixpkgs = import inputs.nixpkgs {
       system = "x86_64-linux";
-      overlays = [ self.overlays.default ];
+      overlays = [ 
+        self.overlays.default
+        inputs.nix-openclaw.overlays.default
+      ];
     };
     specialArgs = {
       inherit inputs self;
