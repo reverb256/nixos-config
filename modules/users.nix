@@ -123,6 +123,13 @@ with lib; {
     # Passwordless sudo for wheel group (security risk - for mining controls)
     wheelNeedsPassword = false;
 
+    # Preserve SSH_AUTH_SOCK for distributed builds with sudo
+    # This allows SSH agent forwarding when running nixos-rebuild with sudo
+    extraConfig = ''
+      Defaults env_keep += "SSH_AUTH_SOCK"
+      Defaults env_keep += "SSH_AGENT_PID"
+    '';
+
     # NOTE: Lobster (AI service user) has NO sudo access by design.
     # It runs as a restricted system user with only service permissions.
     extraRules = [
