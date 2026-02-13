@@ -127,7 +127,7 @@ in {
         apiKey = lib.mkOption {
           type = lib.types.str;
           default = "";
-          description = "Exa API key (use your key: 3a8a3e63-3267-492c-b078-543abb2ee144)";
+          description = "Exa API key (set via environment variable or Agenix secret)";
         };
       };
 

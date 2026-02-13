@@ -1,161 +1,105 @@
 # Colmena Cluster Deployment Configuration (v0.5+)
-# Full module imports - required for proper evaluation
+# Refactored to eliminate duplication using helper functions
 {
   inputs,
   self,
   ...
 }: let
-  pkgs = import inputs.nixpkgs {
-    system = "x86_64-linux";
-    config.allowUnfree = true;
-    overlays = [ 
-      self.overlays.default
-      inputs.nix-openclaw.overlays.default
-    ];
+  # Overlay configuration shared across all hosts
+  overlays = [
+    self.overlays.default
+    inputs.nix-openclaw.overlays.default
+  ];
+
+  # Common modules imported by all hosts
+  commonExternalModules = [
+    inputs.aagl.nixosModules.default
+    inputs.determinate.nixosModules.default
+    inputs.nix-gaming.nixosModules.pipewireLowLatency
+    inputs.nix-gaming.nixosModules.platformOptimizations
+    inputs.agenix.nixosModules.default
+    inputs.nix-flatpak.nixosModules.nix-flatpak
+  ];
+
+  # Home Manager configuration (identical for all hosts)
+  homeManagerConfig = {
+    home-manager.useGlobalPkgs = true;
+    home-manager.useUserPackages = true;
+    home-manager.users.j_kro = import ./home.nix;
+    home-manager.backupFileExtension = "bak";
+    home-manager.extraSpecialArgs = {inherit inputs;};
+  };
+
+  # Helper function to create host configuration
+  mkHost = {
+    hostname,
+    hostConfig,
+    tailscaleIP,
+    extraModules ? [],
+  }: {
+    name,
+    nodes,
+    pkgs,
+    ...
+  }: {
+    imports =
+      commonExternalModules
+      ++ [
+        ./common-base.nix
+        hostConfig
+        inputs.home-manager.nixosModules.home-manager
+        homeManagerConfig
+      ]
+      ++ extraModules;
+
+    deployment = {
+      targetHost = tailscaleIP;
+      targetUser = "j_kro";
+      allowLocalDeployment = true;
+    };
+  };
+
+  # Host configurations
+  hosts = {
+    zephyr = {
+      hostname = "zephyr";
+      hostConfig = ./hosts/zephyr/configuration.nix;
+      tailscaleIP = "100.81.182.5";
+    };
+
+    nexus = {
+      hostname = "nexus";
+      hostConfig = ./hosts/nexus/configuration.nix;
+      tailscaleIP = "100.86.158.18";
+    };
+
+    forge = {
+      hostname = "forge";
+      hostConfig = ./hosts/forge/configuration.nix;
+      tailscaleIP = "100.95.222.45";
+    };
+
+    sentry = {
+      hostname = "sentry";
+      hostConfig = ./hosts/sentry/configuration.nix;
+      tailscaleIP = "100.82.210.39";
+    };
   };
 in {
   meta = {
     nixpkgs = import inputs.nixpkgs {
       system = "x86_64-linux";
-      overlays = [ 
-        self.overlays.default
-        inputs.nix-openclaw.overlays.default
-      ];
+      config.allowUnfree = true;
+      inherit overlays;
     };
     specialArgs = {
       inherit inputs self;
     };
   };
 
-  # Default deployment settings
-  defaults = {
-    deployment = {
-      allowLocalDeployment = true;
-    };
-  };
-
-  # Host configurations with full module imports
-  zephyr = {
-    name,
-    nodes,
-    pkgs,
-    ...
-  }: {
-    imports = [
-      # External modules (must come before common-base.nix)
-      inputs.aagl.nixosModules.default
-      inputs.determinate.nixosModules.default
-      inputs.nix-gaming.nixosModules.pipewireLowLatency
-      inputs.nix-gaming.nixosModules.platformOptimizations
-      inputs.agenix.nixosModules.default
-      inputs.nix-flatpak.nixosModules.nix-flatpak
-      # Base configuration
-      ./common-base.nix
-      ./hosts/zephyr/configuration.nix
-      # Home Manager (CRITICAL - was missing!)
-      inputs.home-manager.nixosModules.home-manager
-      {
-        home-manager.useGlobalPkgs = true;
-        home-manager.useUserPackages = true;
-        home-manager.users.j_kro = import ./home.nix;
-        home-manager.backupFileExtension = "bak";
-        home-manager.extraSpecialArgs = {inherit inputs;};
-      }
-    ];
-    deployment.targetHost = "100.81.182.5"; # Tailscale IP (Local: 10.1.1.110)
-    deployment.targetUser = "j_kro";
-  };
-
-  nexus = {
-    name,
-    nodes,
-    pkgs,
-    ...
-  }: {
-    imports = [
-      # External modules (must come before common-base.nix)
-      inputs.aagl.nixosModules.default
-      inputs.determinate.nixosModules.default
-      inputs.nix-gaming.nixosModules.pipewireLowLatency
-      inputs.nix-gaming.nixosModules.platformOptimizations
-      inputs.agenix.nixosModules.default
-      inputs.nix-flatpak.nixosModules.nix-flatpak
-      # Base configuration
-      ./common-base.nix
-      ./hosts/nexus/configuration.nix
-      # Home Manager (CRITICAL - was missing!)
-      inputs.home-manager.nixosModules.home-manager
-      {
-        home-manager.useGlobalPkgs = true;
-        home-manager.useUserPackages = true;
-        home-manager.users.j_kro = import ./home.nix;
-        home-manager.backupFileExtension = "bak";
-        home-manager.extraSpecialArgs = {inherit inputs;};
-      }
-    ];
-    deployment.targetHost = "100.86.158.18"; # Tailscale IP (Local: 10.1.1.120)
-    deployment.targetUser = "j_kro";
-  };
-
-  forge = {
-    name,
-    nodes,
-    pkgs,
-    ...
-  }: {
-    imports = [
-      # External modules (must come before common-base.nix)
-      inputs.aagl.nixosModules.default
-      inputs.determinate.nixosModules.default
-      inputs.nix-gaming.nixosModules.pipewireLowLatency
-      inputs.nix-gaming.nixosModules.platformOptimizations
-      inputs.agenix.nixosModules.default
-      inputs.nix-flatpak.nixosModules.nix-flatpak
-      # Base configuration
-      ./common-base.nix
-      ./hosts/forge/configuration.nix
-      # Home Manager (CRITICAL - was missing!)
-      inputs.home-manager.nixosModules.home-manager
-      {
-        home-manager.useGlobalPkgs = true;
-        home-manager.useUserPackages = true;
-        home-manager.users.j_kro = import ./home.nix;
-        home-manager.backupFileExtension = "bak";
-        home-manager.extraSpecialArgs = {inherit inputs;};
-      }
-    ];
-    deployment.targetHost = "100.95.222.45"; # Tailscale IP (Local: 10.1.1.130)
-    deployment.targetUser = "j_kro";
-  };
-
-  sentry = {
-    name,
-    nodes,
-    pkgs,
-    ...
-  }: {
-    imports = [
-      # External modules (must come before common-base.nix)
-      inputs.aagl.nixosModules.default
-      inputs.determinate.nixosModules.default
-      inputs.nix-gaming.nixosModules.pipewireLowLatency
-      inputs.nix-gaming.nixosModules.platformOptimizations
-      inputs.agenix.nixosModules.default
-      inputs.nix-flatpak.nixosModules.nix-flatpak
-      # Base configuration
-      ./common-base.nix
-      ./hosts/sentry/configuration.nix
-      # Home Manager (CRITICAL - was missing!)
-      inputs.home-manager.nixosModules.home-manager
-      {
-        home-manager.useGlobalPkgs = true;
-        home-manager.useUserPackages = true;
-        home-manager.users.j_kro = import ./home.nix;
-        home-manager.backupFileExtension = "bak";
-        home-manager.extraSpecialArgs = {inherit inputs;};
-      }
-    ];
-    deployment.targetHost = "100.82.210.39"; # Tailscale IP (Local: 10.1.1.140)
-    deployment.targetUser = "j_kro";
-  };
+  # Generate host configurations using the helper function
+  zephyr = mkHost hosts.zephyr;
+  nexus = mkHost hosts.nexus;
+  forge = mkHost hosts.forge;
+  sentry = mkHost hosts.sentry;
 }
