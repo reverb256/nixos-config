@@ -142,6 +142,15 @@
 
   # Enable RTKit for real-time audio priority (reduces crackling/latency)
   security.rtkit.enable = true;
+  
+  # PAM limits for real-time audio (needed for nix-gaming's rt.prio=88)
+  # Without this, RTKit silently fails to grant RT priority
+  security.pam.loginLimits = [
+    { domain = "@users"; item = "rtprio"; type = "soft"; value = "95"; }
+    { domain = "@users"; item = "rtprio"; type = "hard"; value = "95"; }
+    { domain = "@users"; item = "memlock"; type = "soft"; value = "unlimited"; }
+    { domain = "@users"; item = "memlock"; type = "hard"; value = "unlimited"; }
+  ];
 
   # ============================================================================
   # BLUETOOTH SUPPORT
