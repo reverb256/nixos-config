@@ -21,6 +21,7 @@
     distributedBuilds = true;
 
     # Build machines configuration
+    # NOTE: sshUser defaults to root when running with sudo, must specify j_kro
     buildMachines = [
       {
         # Zephyr: 32 cores, 31GB RAM, RTX 3090, AMD Wayland
@@ -28,6 +29,7 @@
         # Pause mining before builds (16 threads left for OS + apps)
         hostName = "zephyr";
         system = "x86_64-linux";
+        sshUser = "j_kro";
         protocol = "ssh-ng";
         maxJobs = 6; # 4GB per job (31GB total, 6 threads for mining + 20 for OS/apps)
         speedFactor = 2; # Moderate builds with mining-aware scheduling
@@ -39,6 +41,7 @@
         # Mining: 2x NVIDIA GPUs @ 130W power limit (moderate load)
         hostName = "nexus";
         system = "x86_64-linux";
+        sshUser = "j_kro";
         protocol = "ssh-ng";
         maxJobs = 12; # 4GB per job (48GB total)
         speedFactor = 3; # Prioritized for CPU-heavy builds (24 cores)
@@ -51,6 +54,7 @@
         # CAUTION: GPU builds may impact mining profitability
         hostName = "forge";
         system = "x86_64-linux";
+        sshUser = "j_kro";
         protocol = "ssh-ng";
         maxJobs = 2; # VERY conservative due to heavy mining + only 15GB RAM
         speedFactor = 2; # Hybrid GPU acceleration (use sparingly)
@@ -62,6 +66,7 @@
         # Mining: CPU-only (8 threads @ 100% CPU quota, no GPU mining)
         hostName = "sentry";
         system = "x86_64-linux";
+        sshUser = "j_kro";
         protocol = "ssh-ng";
         maxJobs = 8; # 4GB per job (31GB total, leave 8GB for overhead)
         speedFactor = 1; # Lighter builds
