@@ -75,6 +75,7 @@ test BRANCH=`git branch --show-current`:
     @echo "✅ All configurations valid for branch: {{BRANCH}}"
 
 # Deploy specified branch via colmena - optional branch parameter (default: current branch)
+# Uses sudo -E to preserve SSH_AUTH_SOCK for distributed builds
 deploy *BRANCH=`git branch --show-current`:
     @echo "Deploying branch: {{BRANCH}}"
     @echo "Pausing mining on all nodes..."
@@ -85,7 +86,7 @@ deploy *BRANCH=`git branch --show-current`:
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{FORGE}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} && git reset --hard origin/{{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{SENTRY}} "cd {{FLAKE_PATH}} && git fetch origin && git checkout origin/{{BRANCH}} && git reset --hard origin/{{BRANCH}} && git pull origin {{BRANCH}} 2>/dev/null || true"
     @echo "Deploying via colmena to all nodes..."
-    cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on @all --keep-result
+    cd {{FLAKE_PATH}} && sudo -E nix run .#colmena -- apply --on @all --keep-result
     # Resume mining after successful deployment
     @echo "Resuming mining on all nodes..."
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
@@ -111,19 +112,19 @@ fetch:
 # Deploy to individual hosts via colmena
 zephyr:
     @echo "Deploying to zephyr via colmena..."
-    cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on zephyr
+    cd {{FLAKE_PATH}} && sudo -E nix run .#colmena -- apply --on zephyr
 
 nexus:
     @echo "Deploying to nexus via colmena..."
-    cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on nexus
+    cd {{FLAKE_PATH}} && sudo -E nix run .#colmena -- apply --on nexus
 
 forge:
     @echo "Deploying to forge via colmena..."
-    cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on forge
+    cd {{FLAKE_PATH}} && sudo -E nix run .#colmena -- apply --on forge
 
 sentry:
     @echo "Deploying to sentry via colmena..."
-    cd {{FLAKE_PATH}} && nix run .#colmena -- apply --on sentry
+    cd {{FLAKE_PATH}} && sudo -E nix run .#colmena -- apply --on sentry
 
 # Local switch for current node - runs locally
 # Uses sudo -E to preserve SSH_AUTH_SOCK for distributed builds
