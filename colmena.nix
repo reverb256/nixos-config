@@ -46,9 +46,16 @@ in {
       # Base configuration
       ./common-base.nix
       ./hosts/zephyr/configuration.nix
+      # Home Manager (CRITICAL - was missing!)
+      inputs.home-manager.nixosModules.home-manager
+      {
+        home-manager.useGlobalPkgs = true;
+        home-manager.useUserPackages = true;
+        home-manager.users.j_kro = import ./home.nix;
+      }
     ];
     deployment.targetHost = "100.81.182.5"; # Tailscale IP (Local: 10.1.1.110)
-    deployment.targetUser = "root";
+    deployment.targetUser = "j_kro";
   };
 
   nexus = {
@@ -68,6 +75,13 @@ in {
       # Base configuration
       ./common-base.nix
       ./hosts/nexus/configuration.nix
+      # Home Manager (CRITICAL - was missing!)
+      inputs.home-manager.nixosModules.home-manager
+      {
+        home-manager.useGlobalPkgs = true;
+        home-manager.useUserPackages = true;
+        home-manager.users.j_kro = import ./home.nix;
+      }
     ];
     deployment.targetHost = "100.86.158.18"; # Tailscale IP (Local: 10.1.1.120)
     deployment.targetUser = "j_kro";
@@ -90,6 +104,13 @@ in {
       # Base configuration
       ./common-base.nix
       ./hosts/forge/configuration.nix
+      # Home Manager (CRITICAL - was missing!)
+      inputs.home-manager.nixosModules.home-manager
+      {
+        home-manager.useGlobalPkgs = true;
+        home-manager.useUserPackages = true;
+        home-manager.users.j_kro = import ./home.nix;
+      }
     ];
     deployment.targetHost = "100.95.222.45"; # Tailscale IP (Local: 10.1.1.130)
     deployment.targetUser = "j_kro";
@@ -112,6 +133,13 @@ in {
       # Base configuration
       ./common-base.nix
       ./hosts/sentry/configuration.nix
+      # Home Manager (CRITICAL - was missing!)
+      inputs.home-manager.nixosModules.home-manager
+      {
+        home-manager.useGlobalPkgs = true;
+        home-manager.useUserPackages = true;
+        home-manager.users.j_kro = import ./home.nix;
+      }
     ];
     deployment.targetHost = "100.82.210.39"; # Tailscale IP (Local: 10.1.1.140)
     deployment.targetUser = "j_kro";
