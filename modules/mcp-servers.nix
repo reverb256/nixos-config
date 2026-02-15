@@ -148,8 +148,19 @@ in {
         # Use nixpkgs' playwright-mcp which is properly wrapped for NixOS
         # with PLAYWRIGHT_BROWSERS_PATH pointing to playwright-driver.browsers
         playwright-mcp
-        # Provide mcp-playwright command (nixpkgs provides mcp-server-playwright)
+        # Provide mcp-playwright command with NixOS sandbox workaround
+        # Fixes issue #443704: permission denied in /nix/store by using writable directory
         (pkgs.writeShellScriptBin "mcp-playwright" ''
+          set -euo pipefail
+
+          # Critical: Set writable directory for browser profiles
+          # Workaround for NixOS issue #443704: permission denied in /nix/store
+          if [ -z "''${PWMCP_PROFILES_DIR_FOR_TEST:-}" ]; then
+            export PWMCP_PROFILES_DIR_FOR_TEST="$PWD/.pwmcp-profiles"
+            echo "[playwright] Using profile directory: $PWMCP_PROFILES_DIR_FOR_TEST"
+          fi
+
+          # Execute Playwright MCP server
           exec ${pkgs.playwright-mcp}/bin/mcp-server-playwright "$@"
         '')
       ]
