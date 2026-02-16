@@ -12,10 +12,8 @@
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Zen Browser Flake - PINNED to current version
-    # Last updated: 2026-01-29
-    # To update: Remove the rev parameter and run: nix flake update zen-browser
-    zen-browser.url = "github:0xc000022070/zen-browser-flake/e97c8e719c7e2567ccf86d279f73ade1dbf72373";
+    # Zen Browser Flake
+    zen-browser.url = "github:0xc000022070/zen-browser-flake/231ae41b0cd867046ff0bc3c1a7707e244fe8127";
     zen-browser.inputs.nixpkgs.follows = "nixpkgs";
     zen-browser.inputs.home-manager.follows = "home-manager";
 
@@ -58,7 +56,7 @@
     nix-openclaw.url = "github:openclaw/nix-openclaw";
 
     # Stylix - Declarative theming for NixOS
-    stylix.url = "github:danth/stylix";
+    stylix.url = "github:danth/stylix/master";
     stylix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
