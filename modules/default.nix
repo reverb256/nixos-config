@@ -13,7 +13,7 @@
     ./nix-config.nix # Binary caches and Nix settings
     ./minio-cache.nix # S3 binary cache client support
     ./vm-tuning.nix # VM overcommit fixes for Discover crashes
-    ./peripherals.nix # Razer and Corsair peripheral support
+    ./rgb.nix # RGB lighting control (Corsair, Razer, Gigabyte/Aorus, MSI, EVGA)
     ./keyboard-shortcuts.nix # Keyboard shortcuts configuration
     ./scopebuddy.nix # ScopeBuddy gamescope wrapper
     ./security-hardware.nix # YubiKey and Bitwarden CLI
