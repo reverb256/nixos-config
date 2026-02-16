@@ -56,6 +56,10 @@
 
     # nix-openclaw - Official OpenClaw Nix package (AI assistant)
     nix-openclaw.url = "github:openclaw/nix-openclaw";
+
+    # Stylix - Declarative theming for NixOS
+    stylix.url = "github:danth/stylix";
+    stylix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs @ {
@@ -72,6 +76,7 @@
       inputs.nix-gaming.nixosModules.platformOptimizations
       inputs.agenix.nixosModules.default
       inputs.nix-flatpak.nixosModules.nix-flatpak
+      inputs.stylix.nixosModules.stylix
 
       # Base Configuration (after external modules)
       ./common-base.nix

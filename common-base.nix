@@ -71,6 +71,8 @@ in {
     ./modules/storage-btrfs.nix
     # Secrets configuration (agenix)
     ./secrets/agenix-secrets.nix
+    # Stylix theming
+    ./modules/stylix.nix
   ];
 
   # ============================================================================
@@ -90,6 +92,9 @@ in {
   # RGB Lighting Control
   # MSI X570 Tomahawk + RTX 3090 + Corsair devices + G.Skill Trident Z RGB
   # RGB devices managed via existing modules (desktop.nix, system-packages.nix)
+
+  # Stylix - System-wide theming
+  stylix.enable = true;
 
   # Note: XDG Portal configuration is in modules/desktop.nix to keep desktop settings together
 
