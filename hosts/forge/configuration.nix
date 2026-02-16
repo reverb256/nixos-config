@@ -29,9 +29,9 @@
   services.gaming.enable = false;
 
   # ============================================================================
-  # KERNEL - Zen for better desktop responsiveness
+  # KERNEL - CachyOS x86_64-v2 for better desktop responsiveness (pre-AVX2 Intel CPU)
   # ============================================================================
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+  boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-latest-x86_64-v2;
 
   # ============================================================================
   # KERNEL PARAMETERS (Minimal - avoids storage conflicts)
@@ -92,20 +92,89 @@
   # AMD GPU POWER MANAGEMENT
   # ============================================================================
   systemd.services.amd-gpu-power-mgmt = {
-    description = "AMD GPU Power and Fan Management";
+    description = "AMD GPU Power Limit (One-Time)";
     wantedBy = ["multi-user.target"];
     after = ["basic.target" "amd-gpu-check.service"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      ExecStart = pkgs.writeShellScript "amd-power-mgmt" ''
+      ExecStart = pkgs.writeShellScript "amd-power-limit" ''
         #!/usr/bin/env bash
         sleep 5
         if command -v rocm-smi &> /dev/null; then
           rocm-smi --setpoweroverdrive 140 2>/dev/null || true
-          rocm-smi --setfan 153 2>/dev/null || true
-          echo "AMD GPU: 140W power limit, 60% fan speed configured"
+          echo "AMD GPU: 140W power limit configured"
         fi
+      '';
+    };
+  };
+
+  # ============================================================================
+  # AMD GPU DYNAMIC FAN CURVE
+  # ============================================================================
+  systemd.services.amd-gpu-fan-curve = {
+    description = "AMD GPU Dynamic Fan Curve Control";
+    wantedBy = ["multi-user.target"];
+    after = ["network.target" "amd-gpu-power-mgmt.service"];
+    serviceConfig = {
+      Type = "simple";
+      Restart = "always";
+      RestartSec = "10s";
+      ExecStart = pkgs.writeShellScript "amd-fan-curve" ''
+        #!/usr/bin/env bash
+        set -e
+
+        PATH=/run/current-system/sw/bin:$PATH
+
+        log() {
+          echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
+        }
+
+        get_temp() {
+          local gpu=$1
+          rocm-smi --showtemp --gpu $gpu 2>/dev/null | grep "Junction" | awk '{print $4}' | cut -d'C' -f1
+        }
+
+        set_fan() {
+          local gpu=$1
+          local fan_percent=$2
+          local fan_level=$((fan_percent * 255 / 100))
+          rocm-smi --gpu $gpu --setfan $fan_level 2>/dev/null || true
+        }
+
+        log "Starting dynamic fan curve for RX 5700 XT (devices 0,1)"
+
+        while true; do
+          for gpu in 0 1; do
+            temp=$(get_temp $gpu) || continue
+
+            # Fan curve based on junction temperature
+            # <70C: 40% fan
+            # 70-75C: 50% fan
+            # 75-80C: 60% fan
+            # 80-85C: 75% fan
+            # 85-90C: 85% fan
+            # >90C: 100% fan (emergency)
+            if (( $(echo "$temp < 70" | bc -l) )); then
+                fan=40
+            elif (( $(echo "$temp < 75" | bc -l) )); then
+                fan=50
+            elif (( $(echo "$temp < 80" | bc -l) )); then
+                fan=60
+            elif (( $(echo "$temp < 85" | bc -l) )); then
+                fan=75
+            elif (( $(echo "$temp < 90" | bc -l) )); then
+                fan=85
+            else
+                fan=100
+            fi
+
+            set_fan $gpu $fan
+            log "GPU$gpu: Temp $temp°C -> Fan $fan%"
+          done
+
+          sleep 15
+        done
       '';
     };
   };
