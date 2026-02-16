@@ -12,6 +12,14 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    # Enable Podman
+    virtualisation.podman = {
+      inherit (cfg);
+      enable = true;
+      dockerCompat = cfg.dockerCompat or true;
+      defaultPolicy = cfg.defaultPolicy or "sigpolicy";
+    };
+
     # Add Podman to system packages
     environment.systemPackages = [ pkgs.podman ];
 
