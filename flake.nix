@@ -102,7 +102,7 @@
             # via stylix.homeManagerIntegration.autoImport (default = true)
           ];
         };
-        home-manager.backupFileExtension = "bak";
+        home-manager.backupFileExtension = "hm-backup";
         home-manager.extraSpecialArgs = {inherit inputs;};
       }
 
