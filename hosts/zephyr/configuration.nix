@@ -1,11 +1,7 @@
 # Zephyr Host Configuration - Master Workstation
 # 10.1.1.110 - 32 cores, RTX 3090
 # Features: Gaming + VR, Stability Matrix, Nix Cache Server, MCP Servers
-{
-  config,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   imports = [
     # Hardware configuration (generated)
     ./hardware-configuration.nix
@@ -13,7 +9,8 @@
     # Common host imports (desktop, gaming, networking, etc.)
     ../../modules/common-host.nix
 
-    # Host-specific GPU support
+    # NVIDIA GPU support (common + wayland-specific)
+    ../../modules/nvidia-common.nix
     ../../modules/nvidia-wayland.nix
 
     # Zephyr-specific modules
@@ -95,22 +92,10 @@
 
   # ============================================================================
   # NVIDIA CONFIGURATION
+  # Note: Base config is in nvidia-common.nix
   # ============================================================================
-  hardware.nvidia = {
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
-    wayland = {
-      enable = true;
-      openModules = true;
-      sddmWayland = true;
-    };
-    powerManagement.enable = true;
-    powerManagement.finegrained = false;
-  };
-
+  # Zephyr-specific kernel params (in addition to nvidia-common.nix defaults)
   boot.kernelParams = [
-    "nvidia_drm.modeset=1"
-    "nvidia_drm.fbdev=1"
-    "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
     "nvidia.NVreg_EnableResizableBar=1"
     "nvidia.NVreg_EnableGpuFirmware=1"
     "split_lock_detect=off"
@@ -122,45 +107,26 @@
   ];
 
   # ============================================================================
-  # DISPLAY MANAGER
+  # SERVICES
   # ============================================================================
   services = {
     xserver.videoDrivers = ["nvidia"];
-
-    displayManager = {
-      sddm = {
-        enable = true;
-        wayland.enable = true;
-      };
-      defaultSession = "plasma";
-      autoLogin = {
-        enable = true;
-        user = "j_kro";
-      };
-    };
-
-    logind.settings.Login.KillUserProcesses = false;
 
     garnix.enable = true;
     nixos-auto-update.enable = true;
 
     # Mining configuration
+    # Uses defaults from mining.nix for pool URLs and wallet format
     mining = {
       enable = true;
-      user = "mining";
       xmrig = {
         enable = true;
         threads = 16;
-        pool = "xtm-rx-us.kryptex.network:8038";
-        wallet = "krxXVNVMM7.zephyr";
       };
       lolminer = {
         enable = true;
-        algorithm = "CR29";
-        pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
         nvidia = {
           enable = true;
-          devices = "0";
           powerLimit = 250;
         };
       };

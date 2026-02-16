@@ -1,11 +1,7 @@
 # Nexus Host Configuration - Build and Backup Node
 # 10.1.1.120 - 24 cores, 2x RTX 3060 Ti
 # Features: Gaming + VR, MCP Servers
-{
-  config,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   imports = [
     # Hardware configuration (generated)
     ./hardware-configuration.nix
@@ -13,7 +9,8 @@
     # Common host imports (desktop, gaming, networking, etc.)
     ../../modules/common-host.nix
 
-    # Host-specific GPU support
+    # NVIDIA GPU support (common + wayland-specific)
+    ../../modules/nvidia-common.nix
     ../../modules/nvidia-wayland.nix
 
     # Nexus-specific modules
@@ -71,63 +68,33 @@
 
   # ============================================================================
   # NVIDIA CONFIGURATION
+  # Note: Base config is in nvidia-common.nix
   # ============================================================================
-  hardware.nvidia = {
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
-    wayland = {
-      enable = true;
-      openModules = true;
-      sddmWayland = true;
-    };
-    powerManagement.enable = true;
-    powerManagement.finegrained = false;
-  };
-
+  # Nexus-specific kernel params (in addition to nvidia-common.nix defaults)
   boot.kernelParams = [
-    "nvidia_drm.modeset=1"
-    "nvidia_drm.fbdev=1"
-    "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
     "nvidia.NVreg_EnableResizableBar=1"
     "nvidia.NVreg_EnableGpuFirmware=1"
   ];
 
   # ============================================================================
-  # DISPLAY MANAGER
+  # SERVICES
   # ============================================================================
   services = {
     xserver.videoDrivers = ["nvidia"];
-
-    displayManager = {
-      sddm = {
-        enable = true;
-        wayland.enable = true;
-      };
-      defaultSession = "plasma";
-      autoLogin = {
-        enable = true;
-        user = "j_kro";
-      };
-    };
-
-    logind.settings.Login.KillUserProcesses = false;
 
     garnix.enable = false;
     nixos-auto-update.enable = true;
 
     # Mining configuration
+    # Uses defaults from mining.nix for pool URLs and wallet format
     mining = {
       enable = true;
-      user = "mining";
       xmrig = {
         enable = true;
         threads = 12;
-        pool = "xtm-rx-us.kryptex.network:8038";
-        wallet = "krxXVNVMM7.nexus";
       };
       lolminer = {
         enable = true;
-        algorithm = "CR29";
-        pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
         nvidia = {
           enable = true;
           devices = "0,1";
@@ -157,6 +124,4 @@
   # USER GROUPS
   # ============================================================================
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale"];
-
-  system.stateVersion = "26.05";
 }
