@@ -71,8 +71,8 @@ in {
     ./modules/storage-btrfs.nix
     # Secrets configuration (agenix)
     ./secrets/agenix-secrets.nix
-    # Stylix theming configuration
-    ./modules/stylix.nix
+    # Stylix + Base24 hybrid theming configuration
+    ./modules/stylix-base24.nix
   ];
 
   # ============================================================================
