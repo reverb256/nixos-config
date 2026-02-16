@@ -4,6 +4,10 @@
     nixpkgs-xr.url = "github:nix-community/nixpkgs-xr";
     nixpkgs-xr.inputs.nixpkgs.follows = "nixpkgs";
 
+    # CachyOS Kernel - x86_64-v3/v2 variants (actively maintained)
+    # Use release branch for binary cache availability
+    cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
+
     # Home Manager
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
@@ -61,6 +65,7 @@
   outputs = inputs @ {
     self,
     nixpkgs,
+    cachyos-kernel,
     ...
   }: let
   # Common modules shared across all hosts, inlined here for clarity
@@ -94,6 +99,7 @@
       nixpkgs.overlays = [
         self.overlays.default
         inputs.nix-openclaw.overlays.default
+        inputs.cachyos-kernel.overlays.pinned
       ];
       nixpkgs.config.allowUnfree = true;
       nixpkgs.config.permittedInsecurePackages = [

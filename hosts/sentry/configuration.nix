@@ -31,9 +31,9 @@
   };
 
   # ============================================================================
-  # KERNEL
+  # KERNEL - CachyOS x86_64-v3 for gaming (Zen 1 architecture)
   # ============================================================================
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+  boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-latest-x86_64-v3;
 
   # ============================================================================
   # GPU CONFIGURATION (AMD RX 5600 XT)

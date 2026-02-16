@@ -443,7 +443,7 @@
 
     # Direnv for project-specific environments
     direnv = {
-      enable = true;
+      enable = false;
       enableBashIntegration = true;
       nix-direnv.enable = true;
     };
