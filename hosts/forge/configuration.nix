@@ -148,23 +148,22 @@
           for gpu in 0 1; do
             temp=$(get_temp $gpu) || continue
 
-            # Fan curve based on junction temperature
+            # Fan curve based on junction temperature (using integer comparison)
             # <70C: 40% fan
             # 70-75C: 50% fan
             # 75-80C: 60% fan
             # 80-85C: 75% fan
             # 85-90C: 85% fan
             # >90C: 100% fan (emergency)
-            # Use awk for floating-point comparison
-            if (( $(echo "$temp" | awk '{print ($1 < 70)}')); then
+            if (( $(echo "$temp" | cut -d'.' -f1) < 70 )); then
                 fan=40
-            elif (( $(echo "$temp" | awk '{print ($1 < 75)}')); then
+            elif (( $(echo "$temp" | cut -d'.' -f1) < 75 )); then
                 fan=50
-            elif (( $(echo "$temp" | awk '{print ($1 < 80)}')); then
+            elif (( $(echo "$temp" | cut -d'.' -f1) < 80 )); then
                 fan=60
-            elif (( $(echo "$temp" | awk '{print ($1 < 85)}')); then
+            elif (( $(echo "$temp" | cut -d'.' -f1) < 85 )); then
                 fan=75
-            elif (( $(echo "$temp" | awk '{print ($1 < 90)}')); then
+            elif (( $(echo "$temp" | cut -d'.' -f1) < 90 )); then
                 fan=85
             else
                 fan=100
