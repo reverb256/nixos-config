@@ -278,6 +278,4 @@ in {
     dates = "weekly";
     channel = "https://nixos.org/channels/nixos-unstable";
   };
-
-  system.stateVersion = "26.05";
 }
