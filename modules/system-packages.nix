@@ -67,10 +67,7 @@
     vulkan-loader
     vulkan-tools
 
-    # Gaming tools
-    gamescope
-    mangohud
-    goverlay
+    # Gaming tools - NOTE: gamescope, mangohud, goverlay, nvtop are in gaming.nix
     xrizer
     opencomposite
     vulkan-validation-layers
@@ -144,7 +141,7 @@
     # ============================================================================
     nvidia-vaapi-driver
     vdpauinfo
-    nvtopPackages.full
+    # NOTE: nvtopPackages.full is in gaming.nix
     egl-wayland
     wayland-utils
     ffmpeg

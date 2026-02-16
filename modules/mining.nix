@@ -8,6 +8,57 @@ with lib; let
   cfg = config.services.mining;
   hostname = config.networking.hostName;
   defaultWallet = "krxXVNVMM7.${hostname}";
+
+  # Helper to build lolMiner command arguments
+  mkLolminerArgs = deviceCfg:
+    concatStringsSep " " [
+      "--algo ${cfg.lolminer.algorithm}"
+      "--pool ${cfg.lolminer.pool}"
+      "--user ${cfg.lolminer.wallet}"
+      "--devices ${deviceCfg.devices}"
+      "--apiport ${toString deviceCfg.apiPort}"
+      "--mode b"
+      "--tls 1"
+    ];
+
+  # Helper for lolMiner security hardening
+  lolminerHardening = {
+    NoNewPrivileges = true;
+    PrivateTmp = true;
+    ProtectKernelTunables = true;
+    ProtectControlGroups = true;
+    ProtectHostname = true;
+    RestrictRealtime = true;
+    ProtectSystem = "strict";
+    ProtectHome = true;
+    ReadOnlyPaths = "/";
+    ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
+    CapabilityBoundingSet = "CAP_SYS_NICE";
+    AmbientCapabilities = "CAP_SYS_NICE";
+  };
+
+  # NVIDIA power limit script
+  nvidiaPowerLimitScript = pkgs.writeShellScript "nvidia-powerlimit-pre" ''
+    PATH=/run/current-system/sw/bin:$PATH
+    nvidia-smi -pm 1 || true
+    nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
+  '';
+
+  # System watchdog script - reboots if load stays high
+  nexusWatchdogScript = pkgs.writeShellScript "nexus-watchdog" ''
+    while true; do
+      load=$(cat /proc/loadavg | awk "{print \$1}" | cut -d. -f1)
+      if [ "$load" -gt 20 ]; then
+        sleep 120
+        load2=$(cat /proc/loadavg | awk "{print \$1}" | cut -d. -f1)
+        if [ "$load2" -gt 20 ]; then
+          echo "High load persists, rebooting..."
+          /run/current-system/sw/bin/reboot
+        fi
+      fi
+      sleep 60
+    done
+  '';
 in {
   options.services.mining = {
     enable = mkEnableOption "Robust Mining Services";
@@ -161,7 +212,7 @@ in {
           wantedBy = ["multi-user.target"];
           serviceConfig = {
             Type = "simple";
-            ExecStart = "${pkgs.bash}/bin/bash -c 'while true; do load=$(cat /proc/loadavg | awk \"{print \\$1}\" | cut -d. -f1); if [ \"$load\" -gt 20 ]; then sleep 120; load2=$(cat /proc/loadavg | awk \"{print \\$1}\" | cut -d. -f1); if [ \"$load2\" -gt 20 ]; then echo \"High load persists, rebooting...\"; /run/current-system/sw/bin/reboot; fi; fi; sleep 60; done'";
+            ExecStart = nexusWatchdogScript;
             Restart = "always";
             RestartSec = "10s";
           };
@@ -171,68 +222,39 @@ in {
           description = "lolMiner NVIDIA Mining Service";
           wantedBy = ["multi-user.target"];
           after = ["network.target"];
-          serviceConfig = {
-            User = cfg.user;
-            Group = "mining";
-            Slice = "mining.slice";
-            ExecStartPre = pkgs.writeShellScript "nvidia-powerlimit-pre" ''
-              #!/${pkgs.bash}/bin/bash
-              PATH=/run/current-system/sw/bin:$PATH
-              nvidia-smi -pm 1 || true
-              nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
-            '';
-            ExecStart = "${pkgs.lolminer}/bin/lolMiner --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.nvidia.devices} --apiport ${toString cfg.lolminer.nvidia.apiPort} --mode b --tls 1";
-            Restart = "always";
-            RestartSec = "30s";
-            Environment = [
-              "GPU_MAX_HEAP_SIZE=100"
-              "GPU_MAX_ALLOC_PERCENT=100"
-            ];
-            # Security hardening - consistent with xmrig
-            NoNewPrivileges = true;
-            PrivateTmp = true;
-            ProtectKernelTunables = true;
-            ProtectControlGroups = true;
-            ProtectHostname = true;
-            RestrictRealtime = true;
-            ProtectSystem = "strict";
-            ProtectHome = true;
-            ReadOnlyPaths = "/";
-            ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
-            LimitMEMLOCK = "4G";
-            # Minimal capabilities - only what's needed for GPU access
-            CapabilityBoundingSet = "CAP_SYS_NICE";
-            AmbientCapabilities = "CAP_SYS_NICE";
-          };
+          serviceConfig =
+            {
+              User = cfg.user;
+              Group = "mining";
+              Slice = "mining.slice";
+              ExecStartPre = nvidiaPowerLimitScript;
+              ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.nvidia}";
+              Restart = "always";
+              RestartSec = "30s";
+              Environment = [
+                "GPU_MAX_HEAP_SIZE=100"
+                "GPU_MAX_ALLOC_PERCENT=100"
+              ];
+              LimitMEMLOCK = "4G";
+            }
+            // lolminerHardening;
         };
 
         lolminer-amd = mkIf cfg.lolminer.amd.enable {
           description = "lolMiner AMD Mining Service";
           wantedBy = ["multi-user.target"];
           after = ["network.target" "amd-gpu-power-mgmt.service"];
-          serviceConfig = {
-            User = cfg.user;
-            Group = "mining";
-            Slice = "mining.slice";
-            ExecStart = "${pkgs.lolminer}/bin/lolMiner --algo ${cfg.lolminer.algorithm} --pool ${cfg.lolminer.pool} --user ${cfg.lolminer.wallet} --devices ${cfg.lolminer.amd.devices} --apiport ${toString cfg.lolminer.amd.apiPort} --mode b --tls 1";
-            Restart = "always";
-            RestartSec = "30s";
-            # Security hardening - consistent with other mining services
-            NoNewPrivileges = true;
-            PrivateTmp = true;
-            ProtectKernelTunables = true;
-            ProtectControlGroups = true;
-            ProtectHostname = true;
-            RestrictRealtime = true;
-            ProtectSystem = "strict";
-            ProtectHome = true;
-            ReadOnlyPaths = "/";
-            ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
-            LimitMEMLOCK = "8G";
-            # Minimal capabilities - only what's needed for GPU access
-            CapabilityBoundingSet = "CAP_SYS_NICE";
-            AmbientCapabilities = "CAP_SYS_NICE";
-          };
+          serviceConfig =
+            {
+              User = cfg.user;
+              Group = "mining";
+              Slice = "mining.slice";
+              ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.amd}";
+              Restart = "always";
+              RestartSec = "30s";
+              LimitMEMLOCK = "8G";
+            }
+            // lolminerHardening;
         };
 
         xmrig = mkIf cfg.xmrig.enable {
@@ -243,9 +265,8 @@ in {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://xtm-rx-us.kryptex.network:8038 -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-host 0.0.0.0 --http-port 8081 --randomx-1gb-pages --randomx-mode=fast --asm=auto";
+            ExecStart = "${pkgs.xmrig}/bin/xmrig -o stratum+ssl://${cfg.xmrig.pool} -u ${cfg.xmrig.wallet} -t ${toString cfg.xmrig.threads} --http-host 0.0.0.0 --http-port 8081 --randomx-1gb-pages --randomx-mode=fast --asm=auto";
             Restart = "always";
-            # Security hardening - consistent with other mining services
             NoNewPrivileges = true;
             PrivateTmp = true;
             ProtectKernelTunables = true;
@@ -257,7 +278,6 @@ in {
             ReadOnlyPaths = "/";
             ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
             LimitMEMLOCK = "4G";
-            # CPU mining doesn't need special capabilities
             CapabilityBoundingSet = "";
             AmbientCapabilities = "";
           };
