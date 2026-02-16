@@ -67,6 +67,10 @@
   }: let
     # Common modules shared across all hosts, inlined here for clarity
     commonModules = [
+      # Stylix MUST be first - it initializes the stylix option namespace
+      # that other modules depend on
+      inputs.stylix.nixosModules.stylix
+      
       # External Modules (must come before common-base.nix)
       inputs.aagl.nixosModules.default
       inputs.determinate.nixosModules.default
@@ -74,7 +78,6 @@
       inputs.nix-gaming.nixosModules.platformOptimizations
       inputs.agenix.nixosModules.default
       inputs.nix-flatpak.nixosModules.nix-flatpak
-      inputs.stylix.nixosModules.stylix
 
       # Base Configuration (after external modules)
       ./common-base.nix
