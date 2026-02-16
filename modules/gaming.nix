@@ -79,20 +79,8 @@ in {
         };
       };
 
-      systemd.slices."gaming.slice" = {
-        description = "Gaming applications slice";
-        sliceConfig = {
-          MemoryHigh = "90%";
-          CPUQuota = "95%";
-          CPUAccounting = "yes";
-          MemoryAccounting = "yes";
-          TasksAccounting = "yes";
-          TasksMax = 20000;
-          DeviceAllow = "char-226 rw";
-          BlockIOAccounting = "yes";
-          BlockIOWeight = 1000;
-        };
-      };
+      # Note: gaming.slice is defined in modules/systemd-slices.nix
+      # This ensures consistent resource limits across all hosts
 
       # ============================================================================
       # STEAM - Gaming platform
