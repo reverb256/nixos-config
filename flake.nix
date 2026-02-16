@@ -52,8 +52,7 @@
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
-    # nix-openclaw - Official OpenClaw Nix package (AI assistant)
-    nix-openclaw.url = "github:openclaw/nix-openclaw";
+
 
     # Stylix - Declarative theming for NixOS
     stylix.url = "github:danth/stylix/master";
@@ -142,7 +141,6 @@
       {
         nixpkgs.overlays = [
           self.overlays.default
-          inputs.nix-openclaw.overlays.default
           inputs.cachyos-kernel.overlays.pinned
         ];
         nixpkgs.config.allowUnfree = true;

@@ -16,6 +16,7 @@
     # Nexus-specific modules
     ../../modules/mcp-servers.nix
     ../../modules/aistor-secrets.nix
+    ../../modules/podman-support.nix
   ];
 
   # ============================================================================
