@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  config,
   inputs,
   ...
 }: {
@@ -520,6 +521,91 @@
         }
       ];
     };
+
+    # Konsole theming (Stylix doesn't have native Konsole support)
+    # Generate Konsole color scheme from Stylix colors
+    configFile."konsole/Stylix.colorscheme".text = let
+      c = config.lib.stylix.colors;
+    in ''
+      [Background]
+      Color=${builtins.substring 1 6 c.base00}
+
+      [BackgroundIntense]
+      Color=${builtins.substring 1 6 c.base01}
+
+      [Color0]
+      Color=${builtins.substring 1 6 c.base00}
+
+      [Color0Intense]
+      Color=${builtins.substring 1 6 c.base01}
+
+      [Color1]
+      Color=${builtins.substring 1 6 c.base08}
+
+      [Color1Intense]
+      Color=${builtins.substring 1 6 c.base08}
+
+      [Color2]
+      Color=${builtins.substring 1 6 c.base0B}
+
+      [Color2Intense]
+      Color=${builtins.substring 1 6 c.base0B}
+
+      [Color3]
+      Color=${builtins.substring 1 6 c.base0A}
+
+      [Color3Intense]
+      Color=${builtins.substring 1 6 c.base0A}
+
+      [Color4]
+      Color=${builtins.substring 1 6 c.base0D}
+
+      [Color4Intense]
+      Color=${builtins.substring 1 6 c.base0D}
+
+      [Color5]
+      Color=${builtins.substring 1 6 c.base0E}
+
+      [Color5Intense]
+      Color=${builtins.substring 1 6 c.base0E}
+
+      [Color6]
+      Color=${builtins.substring 1 6 c.base0C}
+
+      [Color6Intense]
+      Color=${builtins.substring 1 6 c.base0C}
+
+      [Color7]
+      Color=${builtins.substring 1 6 c.base05}
+
+      [Color7Intense]
+      Color=${builtins.substring 1 6 c.base06}
+
+      [Foreground]
+      Color=${builtins.substring 1 6 c.base05}
+
+      [ForegroundIntense]
+      Color=${builtins.substring 1 6 c.base06}
+
+      [General]
+      Description=Stylix
+      Opacity=1
+    '';
+
+    configFile."konsole/Stylix.profile".text = ''
+      [Appearance]
+      ColorScheme=Stylix
+      Font=${config.stylix.fonts.monospace.name},${toString config.stylix.fonts.sizes.terminal}
+
+      [General]
+      Name=Stylix
+      Parent=FALLBACK/
+    '';
+
+    configFile."konsolerc".text = ''
+      [Desktop Entry]
+      DefaultProfile=Stylix.profile
+    '';
   };
 
   # Claude Code KwaiKAT Model Development Tool Configuration
