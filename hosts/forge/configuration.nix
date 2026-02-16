@@ -109,93 +109,39 @@
       Restart = "always";
       RestartSec = "10s";
       ExecStart = pkgs.writeShellScript "amd-fan-curve" ''
-        #!/usr/bin/env bash
+        #!/run/current-system/sw/bin/bash
+        set -euo pipefail
 
         PATH=/run/current-system/sw/bin:$PATH
 
         log() {
-          echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
-        }
-
-        get_temp() {
-          local gpu=$1
-          rocm-smi --showtemp -d $gpu 2>/dev/null | grep -i junction | awk '{print $NF}' | cut -d'C' -f1
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
         }
 
         set_fan() {
-          local gpu=$1
-          local fan_percent=$2
-          local fan_level=$((fan_percent * 255 / 100))
-          rocm-smi -d $gpu --setfan $fan_level 2>/dev/null || true
+          rocm-smi --setfan $1 -d $2 >/dev/null 2>&1
+          if [[ $? -eq 0 ]]; then
+            log "Successfully set GPU$2 fan to $1%"
+          else
+            log "Failed to set GPU$2 fan to $1%"
+          fi
         }
 
-        log "Starting dynamic fan curve for RX 5700 XT (devices 0,1) with hysteresis"
+        log "Starting fixed fan control for RX 5700 XT (devices 0,1) - 60% fixed"
+        log "Enforcing 60% fan speed every 3 seconds to override lolminer/driver auto control"
 
-        # Initialize variables to track previous temperatures and fan speeds
-        prev_temp_0=-999
-        prev_temp_1=-999
-        prev_fan_0=40
-        prev_fan_1=40
-        
+        # Reset fans and set to 60% (153 = 60% of 255)
+        rocm-smi --resetfans >/dev/null 2>&1
+        sleep 2
+        set_fan 153 0
+        set_fan 153 1
+        sleep 2
+
+        # Loop to keep enforcing 60% fan speed
         while true; do
-          for gpu in 0 1; do
-            temp=$(get_temp $gpu) || continue
-
-            # Fan curve based on junction temperature with hysteresis to prevent spiking
-            # Wider temperature ranges (10°C) for smoother transitions
-            # <60C: 35% fan (idle)
-            # 60-70C: 40% fan
-            # 70-80C: 50% fan
-            # 80-85C: 60% fan
-            # 85-90C: 75% fan
-            # 90-95C: 85% fan
-            # >95C: 100% fan (emergency - 110°C is AMD critical limit)
-            temp_int=$(echo "$temp" | cut -d'.' -f1)
-            
-            # Hysteresis: Only change fan if temp moved >5°C from last change
-            # This prevents rapid cycling from minor temperature fluctuations
-            hysteresis=5
-            
-            # Get previous temp using case statement
-            case $gpu in
-              0) prev_temp_val=$prev_temp_0; prev_fan_val=$prev_fan_0 ;;
-              1) prev_temp_val=$prev_temp_1; prev_fan_val=$prev_fan_1 ;;
-            esac
-            
-            # Check if temp moved enough to warrant fan change
-            if (( temp_int >= (prev_temp_val + hysteresis) )); then
-                # Update fan based on wider 10°C ranges
-                if (( temp_int < 60 )); then
-                    fan=35
-                elif (( temp_int < 70 )); then
-                    fan=40
-                elif (( temp_int < 80 )); then
-                    fan=50
-                elif (( temp_int < 85 )); then
-                    fan=60
-                elif (( temp_int < 90 )); then
-                    fan=75
-                elif (( temp_int < 95 )); then
-                    fan=85
-                else
-                    fan=100
-                fi
-            else
-                # Keep current fan speed (use previous value)
-                fan=$prev_fan_val
-            fi
-            
-            # Store current temp and fan for next iteration
-            case $gpu in
-              0) prev_temp_0=$temp_int; prev_fan_0=$fan ;;
-              1) prev_temp_1=$temp_int; prev_fan_1=$fan ;;
-            esac
-
-            set_fan $gpu $fan
-            log "GPU$gpu: Temp $temp°C -> Fan $fan%"
-          done
-
-          sleep 15
+          set_fan 153 0
+          set_fan 153 1
+          sleep 3
         done
       '';
     };
