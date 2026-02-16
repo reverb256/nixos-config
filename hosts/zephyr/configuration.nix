@@ -21,6 +21,7 @@
     ../../modules/nix-cache-server.nix
     ../../modules/mcp-servers.nix
     ../../modules/aistor-secrets.nix
+    ../../modules/podman-support.nix
   ];
 
   # ============================================================================

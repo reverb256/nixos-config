@@ -47,13 +47,17 @@ sync BRANCH=`git branch --show-current`:
     @echo "Checking for uncommitted changes..."
     if [ -n "$(git status --porcelain)" ]; then \
       echo "No changes to sync"; \
-      exit 0; \
+    else \
+      @echo "Committing changes..."; \
+      git add -A; \
+      git commit -m "sync: Auto-commit before deployment $(date '+%Y-%m-%d %H:%M:%S')"; \
     fi
-    @echo "Committing changes..."
-    git add -A
-    git commit -m "sync: Auto-commit before deployment $(date '+%Y-%m-%d %H:%M:%S')"
     @echo "Pushing to origin..."
-    git push origin {{BRANCH}}
+    if git diff --quiet HEAD~1 HEAD; then \
+      git push origin {{BRANCH}}; \
+    else \
+      echo "No changes to push"; \
+    fi
     @echo "Deploying to all nodes..."
     just deploy {{BRANCH}}
     @echo "✅ Sync complete for branch: {{BRANCH}}"

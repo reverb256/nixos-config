@@ -30,8 +30,6 @@
 
   # User packages - development tools, shell utilities, and applications
   home.packages = with pkgs; [
-    # OpenClaw AI Assistant (installed via overlay, manages its own config)
-    openclaw
 
     # Shell tools (configured in programs section below)
     btop

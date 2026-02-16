@@ -10,13 +10,7 @@
     #   mode = "400";
     # };
 
-    # OpenClaw Gateway authentication token
-    "openclaw-token" = {
-      file = ./openclaw-token.age;
-      owner = "j_kro";
-      group = "users";
-      mode = "400";
-    };
+
 
     # MCP Servers Exa API key
     "exa-api-key" = {

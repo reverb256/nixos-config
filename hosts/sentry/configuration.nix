@@ -15,6 +15,7 @@
 
     # Host-specific GPU support
     ../../modules/amdgpu-wayland.nix
+    ../../modules/podman-support.nix
   ];
 
   # ============================================================================
