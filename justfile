@@ -91,9 +91,6 @@ deploy *BRANCH=`git branch --show-current`:
     @echo "Resuming mining on all nodes..."
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
     ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
-    @echo "Resuming mining on all nodes..."
-    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{NEXUS}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
-    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no {{ZEPHYR}} "mining-build-wrapper/bin/mining-resume" 2>/dev/null || true
     @echo "✅ Deployment complete for branch: {{BRANCH}}"
 
 # ============================================================================
