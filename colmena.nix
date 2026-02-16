@@ -23,7 +23,6 @@ let
   # Overlay configuration shared across all hosts
   overlays = [
     self.overlays.default
-    inputs.nix-openclaw.overlays.default
     inputs.cachyos-kernel.overlays.pinned
   ];
 
