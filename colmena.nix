@@ -57,25 +57,21 @@
   # Host configurations
   hosts = {
     zephyr = {
-      hostname = "zephyr";
       hostConfig = ./hosts/zephyr/configuration.nix;
       tailscaleIP = "100.81.182.5";
     };
 
     nexus = {
-      hostname = "nexus";
       hostConfig = ./hosts/nexus/configuration.nix;
       tailscaleIP = "100.86.158.18";
     };
 
     forge = {
-      hostname = "forge";
       hostConfig = ./hosts/forge/configuration.nix;
       tailscaleIP = "100.95.222.45";
     };
 
     sentry = {
-      hostname = "sentry";
       hostConfig = ./hosts/sentry/configuration.nix;
       tailscaleIP = "100.82.210.39";
     };
