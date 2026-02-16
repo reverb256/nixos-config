@@ -122,7 +122,6 @@
       RestartSec = "10s";
       ExecStart = pkgs.writeShellScript "amd-fan-curve" ''
         #!/usr/bin/env bash
-        set -e
 
         PATH=/run/current-system/sw/bin:$PATH
 
@@ -132,14 +131,14 @@
 
         get_temp() {
           local gpu=$1
-          rocm-smi --showtemp --gpu $gpu 2>/dev/null | grep "Junction" | awk '{print $4}' | cut -d'C' -f1
+          rocm-smi --showtemp -d $gpu 2>/dev/null | grep -i junction | awk '{print $NF}' | cut -d'C' -f1
         }
 
         set_fan() {
           local gpu=$1
           local fan_percent=$2
           local fan_level=$((fan_percent * 255 / 100))
-          rocm-smi --gpu $gpu --setfan $fan_level 2>/dev/null || true
+          rocm-smi -d $gpu --setfan $fan_level 2>/dev/null || true
         }
 
         log "Starting dynamic fan curve for RX 5700 XT (devices 0,1)"
