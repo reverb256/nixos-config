@@ -129,33 +129,67 @@
           rocm-smi -d $gpu --setfan $fan_level 2>/dev/null || true
         }
 
-        log "Starting dynamic fan curve for RX 5700 XT (devices 0,1)"
+        log "Starting dynamic fan curve for RX 5700 XT (devices 0,1) with hysteresis"
 
+        # Initialize variables to track previous temperatures and fan speeds
+        prev_temp_0=-999
+        prev_temp_1=-999
+        prev_fan_0=40
+        prev_fan_1=40
+        
         while true; do
           for gpu in 0 1; do
             temp=$(get_temp $gpu) || continue
 
-            # Fan curve based on junction temperature (using integer comparison)
-            # <70C: 40% fan
-            # 70-75C: 50% fan
-            # 75-80C: 60% fan
-            # 80-85C: 75% fan
-            # 85-90C: 85% fan
-            # >90C: 100% fan (emergency)
+            # Fan curve based on junction temperature with hysteresis to prevent spiking
+            # Wider temperature ranges (10°C) for smoother transitions
+            # <60C: 35% fan (idle)
+            # 60-70C: 40% fan
+            # 70-80C: 50% fan
+            # 80-85C: 60% fan
+            # 85-90C: 75% fan
+            # 90-95C: 85% fan
+            # >95C: 100% fan (emergency - 110°C is AMD critical limit)
             temp_int=$(echo "$temp" | cut -d'.' -f1)
-            if (( temp_int < 70 )); then
-                fan=40
-            elif (( temp_int < 75 )); then
-                fan=50
-            elif (( temp_int < 80 )); then
-                fan=60
-            elif (( temp_int < 85 )); then
-                fan=75
-            elif (( temp_int < 90 )); then
-                fan=85
+            
+            # Hysteresis: Only change fan if temp moved >5°C from last change
+            # This prevents rapid cycling from minor temperature fluctuations
+            hysteresis=5
+            
+            # Get previous temp using case statement
+            case $gpu in
+              0) prev_temp_val=$prev_temp_0; prev_fan_val=$prev_fan_0 ;;
+              1) prev_temp_val=$prev_temp_1; prev_fan_val=$prev_fan_1 ;;
+            esac
+            
+            # Check if temp moved enough to warrant fan change
+            if (( temp_int >= (prev_temp_val + hysteresis) )); then
+                # Update fan based on wider 10°C ranges
+                if (( temp_int < 60 )); then
+                    fan=35
+                elif (( temp_int < 70 )); then
+                    fan=40
+                elif (( temp_int < 80 )); then
+                    fan=50
+                elif (( temp_int < 85 )); then
+                    fan=60
+                elif (( temp_int < 90 )); then
+                    fan=75
+                elif (( temp_int < 95 )); then
+                    fan=85
+                else
+                    fan=100
+                fi
             else
-                fan=100
+                # Keep current fan speed (use previous value)
+                fan=$prev_fan_val
             fi
+            
+            # Store current temp and fan for next iteration
+            case $gpu in
+              0) prev_temp_0=$temp_int; prev_fan_0=$fan ;;
+              1) prev_temp_1=$temp_int; prev_fan_1=$fan ;;
+            esac
 
             set_fan $gpu $fan
             log "GPU$gpu: Temp $temp°C -> Fan $fan%"
