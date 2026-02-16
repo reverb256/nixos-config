@@ -58,6 +58,16 @@
     # Stylix - Declarative theming for NixOS
     stylix.url = "github:danth/stylix/master";
     stylix.inputs.nixpkgs.follows = "nixpkgs";
+
+    # base16.nix - Base16/Base24 theming library (used by Stylix, exposed for direct access)
+    base16.url = "github:SenchoPens/base16.nix";
+    base16.inputs.nixpkgs.follows = "nixpkgs";
+
+    # tinted-schemes - Base16 and Base24 color schemes from tinted-theming
+    tinted-schemes = {
+      url = "github:tinted-theming/schemes";
+      flake = false;
+    };
   };
 
   outputs = inputs @ {
@@ -71,9 +81,32 @@
       # that other modules depend on
       inputs.stylix.nixosModules.stylix
 
-      # Enable Stylix system-wide (base16Scheme is set in modules/stylix.nix)
-      ({ ... }: {
-        stylix.enable = true;
+      # Enable Stylix system-wide with Tokyo City Dark theme
+      ({ pkgs, ... }: {
+        stylix = {
+          enable = true;
+          base16Scheme = "${pkgs.base16-schemes}/share/themes/tokyo-city-terminal-dark.yaml";
+
+          # Beautiful font stack: Inter (UI) + JetBrains Mono (terminal)
+          fonts = {
+            serif = {
+              name = "DejaVu Serif";
+              package = pkgs.dejavu_fonts;
+            };
+            sansSerif = {
+              name = "Inter";
+              package = pkgs.inter;
+            };
+            monospace = {
+              name = "JetBrains Mono NF";
+              package = pkgs.nerd-fonts.jetbrains-mono;
+            };
+            emoji = {
+              name = "Noto Color Emoji";
+              package = pkgs.noto-fonts-color-emoji;
+            };
+          };
+        };
       })
       
       # External Modules (must come before common-base.nix)
