@@ -61,7 +61,6 @@
 
     # base16.nix - Base16/Base24 theming library (used by Stylix, exposed for direct access)
     base16.url = "github:SenchoPens/base16.nix";
-    base16.inputs.nixpkgs.follows = "nixpkgs";
 
     # tinted-schemes - Base16 and Base24 color schemes from tinted-theming
     tinted-schemes = {
