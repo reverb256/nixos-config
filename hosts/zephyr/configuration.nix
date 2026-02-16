@@ -88,7 +88,7 @@
   # ============================================================================
   # KERNEL - CachyOS x86_64-v3 for gaming (Zen 3 architecture)
   # ============================================================================
-  boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-latest-x86_64-v3;
+  boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # ============================================================================
   # NVIDIA CONFIGURATION

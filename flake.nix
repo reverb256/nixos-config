@@ -165,10 +165,10 @@
     };
 
     # Colmena app for deployment
-    # Uses the colmena package from nixpkgs for better reproducibility
+    # Use colmena from flake input to match hive schema version
     apps.x86_64-linux.colmena = {
       type = "app";
-      program = "${inputs.nixpkgs.legacyPackages.x86_64-linux.colmena}/bin/colmena";
+      program = "${inputs.colmena.packages.x86_64-linux.colmena}/bin/colmena";
     };
 
     # Development shell with all NixOS tools
