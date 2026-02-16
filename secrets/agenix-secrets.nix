@@ -16,6 +16,6 @@ in {
   # Use age key file for decryption
   # Age private key stored in j_kro's home directory
   age.identityPaths = [
-    "/home/j_kro/.config/sops/age/keys.txt"
+    "/home/j_kro/.config/age/keys.txt"
   ];
 }
