@@ -55,9 +55,6 @@
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
-    # CachyOS Kernel - BORE scheduler for gaming
-    nix-cachyos-kernel.url = "github:drakon64/nixos-cachyos-kernel";
-
     # nix-openclaw - Official OpenClaw Nix package (AI assistant)
     nix-openclaw.url = "github:openclaw/nix-openclaw";
   };
@@ -106,8 +103,17 @@
           "electron-25.9.0"
         ];
 
-        # ezKEa aagl-gtk-on-nix Cachix
-        nix.settings = inputs.aagl.nixConfig;
+        # ezKEa aagl-gtk-on-nix Cachix + CachyOS binary cache
+        nix.settings = {
+          substituters = [
+            "https://attic.xuyh0120.win/lantian"
+            "https://cache.garnix.io"
+          ];
+          trusted-public-keys = [
+            "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
+            "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+          ];
+        };
       }
     ];
 

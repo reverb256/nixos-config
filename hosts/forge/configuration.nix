@@ -29,9 +29,9 @@
   services.gaming.enable = false;
 
   # ============================================================================
-  # KERNEL - CachyOS x86_64-v2 for better desktop responsiveness (pre-AVX2 Intel CPU)
+  # KERNEL - Zen for better desktop responsiveness
   # ============================================================================
-  boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-latest-x86_64-v2;
+  boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # ============================================================================
   # KERNEL PARAMETERS (Minimal - avoids storage conflicts)
