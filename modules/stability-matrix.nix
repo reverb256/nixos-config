@@ -18,7 +18,7 @@
   # Fetch and extract the zip containing the AppImage
   extracted-zip = fetchzip {
     url = "https://github.com/LykosAI/StabilityMatrix/releases/download/v${version}/StabilityMatrix-linux-x64.zip";
-    sha256 = "sha256-1vrjlkplbf2cc15inlhwvaqwy7rbvny1gdmjgrqg37qpj61pycbz";
+    sha256 = "sha256-607+rH7jURBpA7AW/jIuW9WHz7x20JxWT+MGSx/MAuU=";
   };
 
   src = "${extracted-zip}/StabilityMatrix.AppImage";
