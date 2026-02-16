@@ -3,22 +3,19 @@
 # Podman is preferred over Docker on NixOS (more native, better integration)
 { pkgs, lib, config, ... }:
 with lib;
-let cfg = config.virtualisation.podman or {};
+let
+  # Check if Podman is already configured
+  isPodmanEnabled = config.virtualisation.podman.enable or false;
 in {
   # Add Docker compatibility alias
   virtualisation.podman = {
-    dockerCompat = lib.mkIf (cfg.dockerCompat or true) true;
-    defaultPolicy = lib.mkIf (cfg.defaultPolicy or "sigpolicy") cfg.defaultPolicy;
+    dockerCompat = lib.mkIf (!isPodmanEnabled) true;
+    defaultPolicy = lib.mkIf (!isPodmanEnabled) (config.virtualisation.podman.defaultPolicy or "sigpolicy");
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf (!isPodmanEnabled) {
     # Enable Podman
-    virtualisation.podman = {
-      inherit (cfg);
-      enable = true;
-      dockerCompat = cfg.dockerCompat or true;
-      defaultPolicy = cfg.defaultPolicy or "sigpolicy";
-    };
+    virtualisation.podman.enable = true;
 
     # Add Podman to system packages
     environment.systemPackages = [ pkgs.podman ];
