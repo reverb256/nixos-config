@@ -155,6 +155,42 @@ push:
     /etc/nixos/scripts/just-cluster push
 
 # ============================================================================
+# STABILITY MATRIX UPDATE
+# ============================================================================
+
+# Check and update StabilityMatrix to latest version
+update-stability-matrix:
+    @echo "🔄 Checking for StabilityMatrix updates..."
+    @chmod +x scripts/update-stability-matrix.sh
+    @./scripts/update-stability-matrix.sh
+
+# Update StabilityMatrix and deploy to zephyr
+upgrade-stability-matrix: update-stability-matrix
+    @if ! git diff --quiet modules/stability-matrix.nix; then \
+        echo "🚀 Committing update..."; \
+        git add modules/stability-matrix.nix; \
+        git commit -m "chore(stability-matrix): update to latest version"; \
+        echo "📦 Deploying to zephyr..."; \
+        just zephyr; \
+    else \
+        echo "✅ No update needed"; \
+    fi
+
+# Force StabilityMatrix update (even if current version matches)
+force-update-stability-matrix:
+    @echo "🔄 Force checking for StabilityMatrix updates..."
+    @FORCE_UPDATE=true ./scripts/update-stability-matrix.sh
+    @if ! git diff --quiet modules/stability-matrix.nix; then \
+        echo "🚀 Committing forced update..."; \
+        git add modules/stability-matrix.nix; \
+        git commit -m "chore(stability-matrix): force update to latest version"; \
+        echo "📦 Deploying to zephyr..."; \
+        just zephyr; \
+    else \
+        echo "✅ Already at latest version"; \
+    fi
+
+# ============================================================================
 #  SERVICE MANAGEMENT
 # ============================================================================
 

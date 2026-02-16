@@ -12,13 +12,13 @@
   inherit (pkgs) appimageTools fetchzip;
 
   # StabilityMatrix version
-  version = "2.15.5";
+  version = "2.15.6";
   pname = "stability-matrix";
 
   # Fetch and extract the zip containing the AppImage
   extracted-zip = fetchzip {
     url = "https://github.com/LykosAI/StabilityMatrix/releases/download/v${version}/StabilityMatrix-linux-x64.zip";
-    sha256 = "sha256-BD7NOeR4+EIHzBr6mF/eru8rmuS+Akk9+d+pXJGmzjY=";
+    sha256 = "sha256-1vrjlkplbf2cc15inlhwvaqwy7rbvny1gdmjgrqg37qpj61pycbz";
   };
 
   src = "${extracted-zip}/StabilityMatrix.AppImage";
@@ -142,6 +142,12 @@ in {
     environment.variables = lib.mkIf cfg.enableCuda {
       CUDA_PATH = "/run/opengl-driver";
       CUDA_HOME = "/run/opengl-driver";
+    };
+
+    # Update script for automatic version tracking
+    passthru = {
+      updateScript = ./scripts/update-stability-matrix.sh;
+      version = version;
     };
   };
 }

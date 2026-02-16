@@ -1,7 +1,7 @@
 # Zephyr Host Configuration - Master Workstation
 # 10.1.1.110 - 32 cores, RTX 3090
 # Features: Gaming + VR, Stability Matrix, Nix Cache Server, MCP Servers
-{pkgs, ...}: {
+{pkgs, lib, ...}: {
   imports = [
     # Hardware configuration (generated)
     ./hardware-configuration.nix
@@ -12,6 +12,9 @@
     # NVIDIA GPU support (common + wayland-specific)
     ../../modules/nvidia-common.nix
     ../../modules/nvidia-wayland.nix
+
+    # Alternative desktop environment (Hyprland)
+    ../../modules/hyprland.nix
 
     # Zephyr-specific modules
     ../../modules/stability-matrix.nix
@@ -24,6 +27,14 @@
   # HOST IDENTIFICATION
   # ============================================================================
   networking.hostName = "zephyr";
+
+  # ============================================================================
+  # ALTERNATIVE DESKTOP ENVIRONMENT (Hyprland)
+  # ============================================================================
+  programs.hyprland.enable = true;
+
+  # Display Manager - Allow session selection between Plasma and Hyprland
+  services.displayManager.defaultSession = lib.mkDefault null; # No auto-selection
 
   # ============================================================================
   # GAMING + VR (Full support - RTX 3090)
