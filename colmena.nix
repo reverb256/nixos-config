@@ -1,10 +1,25 @@
 # Colmena Cluster Deployment Configuration (v0.5+)
 # Refactored to eliminate duplication using helper functions
+#
+# Can be used in two ways:
+# 1. As a flake output: receives 'inputs' and 'self' from flake.nix
+# 2. Directly: when used without flake, uses throw to remind users to use flake
 {
-  inputs,
-  self,
+  inputs ? null,
+  self ? null,
   ...
-}: let
+}:
+let
+  # Check if we're in flake context
+  isFlake = inputs != null && self != null;
+  # Handle the case where we're not in flake context
+  actualInputs = if isFlake then inputs else throw "colmena.nix must be used as a flake output. Use 'nix run .#apps.x86_64-linux.colmena' instead of 'colmena -f ./colmena.nix'";
+  actualSelf = if isFlake then self else throw "colmena.nix must be used as a flake output. Use 'nix run .#apps.x86_64-linux.colmena' instead of 'colmena -f ./colmena.nix'";
+in
+if !isFlake then
+  throw "colmena.nix must be used as a flake output. Use 'nix run .#apps.x86_64-linux.colmena' instead of 'colmena -f ./colmena.nix'"
+else
+let
   # Overlay configuration shared across all hosts
   overlays = [
     self.overlays.default
