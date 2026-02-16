@@ -35,13 +35,20 @@ let
     inputs.nix-gaming.nixosModules.platformOptimizations
     inputs.agenix.nixosModules.default
     inputs.nix-flatpak.nixosModules.nix-flatpak
+    # Stylix modules must be imported early
+    inputs.stylix.nixosModules.stylix
   ];
 
   # Home Manager configuration (identical for all hosts)
   homeManagerConfig = {
     home-manager.useGlobalPkgs = true;
     home-manager.useUserPackages = true;
-    home-manager.users.j_kro = import ./home.nix;
+    home-manager.users.j_kro = { pkgs, ... }: {
+      imports = [
+        ./home.nix
+        inputs.stylix.homeModules.stylix
+      ];
+    };
     home-manager.backupFileExtension = "bak";
     home-manager.extraSpecialArgs = {inherit inputs;};
   };
