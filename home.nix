@@ -136,6 +136,15 @@
   programs.zen-browser = {
     enable = true;
 
+    # Profile definitions for Stylix theming
+    profiles.default = {
+      isDefault = true;
+      id = 0;
+      settings = {
+        "zen.welcome-screen.seen" = true;
+      };
+    };
+
     # Firefox-like policies and configuration
     policies = {
       # Disable telemetry and data collection
@@ -325,6 +334,9 @@
       };
     };
   };
+
+  # Stylix zen-browser theming
+  stylix.targets.zen-browser.profileNames = [ "default" ];
 
   # Program configurations
   programs = {

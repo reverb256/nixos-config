@@ -71,6 +71,14 @@
       # that other modules depend on
       inputs.stylix.nixosModules.stylix
       
+      # Stylix configuration (must come after stylix module import)
+      ({ pkgs, ... }: {
+        stylix = {
+          enable = true;
+          base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
+        };
+      })
+      
       # External Modules (must come before common-base.nix)
       inputs.aagl.nixosModules.default
       inputs.determinate.nixosModules.default

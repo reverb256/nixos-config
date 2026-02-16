@@ -33,8 +33,8 @@
   # ============================================================================
   programs.hyprland.enable = true;
 
-  # Display Manager - Allow session selection between Plasma and Hyprland
-  services.displayManager.defaultSession = lib.mkDefault null; # No auto-selection
+  # Display Manager - Both Plasma and Hyprland available in SDDM
+  # Users can select at login: Plasma (default) or Hyprland
 
   # ============================================================================
   # GAMING + VR (Full support - RTX 3090)
