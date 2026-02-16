@@ -70,13 +70,10 @@
       # Stylix MUST be first - it initializes the stylix option namespace
       # that other modules depend on
       inputs.stylix.nixosModules.stylix
-      
-      # Stylix configuration (must come after stylix module import)
-      ({ pkgs, ... }: {
-        stylix = {
-          enable = true;
-          base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
-        };
+
+      # Enable Stylix system-wide (base16Scheme is set in modules/stylix.nix)
+      ({ ... }: {
+        stylix.enable = true;
       })
       
       # External Modules (must come before common-base.nix)
@@ -101,7 +98,8 @@
         home-manager.users.j_kro = { pkgs, ... }: {
           imports = [
             ./home.nix
-            inputs.stylix.homeModules.stylix
+            # NOTE: stylix.homeModules.stylix is auto-imported by NixOS module
+            # via stylix.homeManagerIntegration.autoImport (default = true)
           ];
         };
         home-manager.backupFileExtension = "bak";
