@@ -14,6 +14,7 @@
     ./minio-cache.nix # S3 binary cache client support
     ./vm-tuning.nix # VM overcommit fixes for Discover crashes
     ./rgb.nix # RGB lighting control (Corsair, Razer, Gigabyte/Aorus, MSI, EVGA)
+    ./stylix-rgb-sync.nix # Sync Stylix colors to OpenRGB hardware
     ./keyboard-shortcuts.nix # Keyboard shortcuts configuration
     ./scopebuddy.nix # ScopeBuddy gamescope wrapper
     ./security-hardware.nix # YubiKey and Bitwarden CLI
