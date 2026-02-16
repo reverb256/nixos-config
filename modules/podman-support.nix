@@ -7,15 +7,15 @@ let
   # Check if Podman is already configured
   isPodmanEnabled = config.virtualisation.podman.enable or false;
 in {
-  # Add Docker compatibility alias
-  virtualisation.podman = {
-    dockerCompat = lib.mkIf (!isPodmanEnabled) true;
-    defaultPolicy = lib.mkIf (!isPodmanEnabled) (config.virtualisation.podman.defaultPolicy or "sigpolicy");
-  };
-
   config = lib.mkIf (!isPodmanEnabled) {
-    # Enable Podman
+    # Enable Podman if not already enabled
     virtualisation.podman.enable = true;
+
+    # Add Docker compatibility alias (enables `docker` command as alias to `podman`)
+    virtualisation.podman.dockerCompat = true;
+
+    # Set default security policy
+    virtualisation.podman.defaultPolicy = lib.mkIf (!isPodmanEnabled) (config.virtualisation.podman.defaultPolicy or "sigpolicy");
 
     # Add Podman to system packages
     environment.systemPackages = [ pkgs.podman ];
