@@ -25,7 +25,8 @@
         port = 18789;
         auth = {
           mode = "token";
-          token = "cebfb92cc1ab3a575e29fbc564548f5586b6ed8fa54f8070ab2072a7fab4f7ce";
+          # Token loaded from Agenix secret (see secrets/age-secrets.nix)
+          token = builtins.readFile "/run/agenix/openclaw-token";
         };
       };
     };
@@ -57,9 +58,7 @@
   };
 
   # User packages - development tools, shell utilities, and applications
-  home.packages = with pkgs; let
-    # Pkg removed
-  in [
+  home.packages = with pkgs; [
     # Shell tools (configured in programs section below)
     btop
     fzf
