@@ -73,10 +73,14 @@ in {
   # PERIPHERAL DEVICE SUPPORT - Razer and Corsair devices
   # Using built-in hardware.openrazer module for proper daemon setup
   # ============================================================================
+  # RGB Lighting Control
   hardware.openrazer.enable = true;
-
-  hardware.peripherals = {
+  hardware.rgb = {
     enable = true;
+    openrgb = {
+      enable = true;
+      withPlugins = true;
+    };
     corsair = {
       enable = true;
       ckbNext = true;
