@@ -14,9 +14,6 @@ in {
     # Add Docker compatibility alias (enables `docker` command as alias to `podman`)
     virtualisation.podman.dockerCompat = true;
 
-    # Set default security policy
-    virtualisation.podman.defaultPolicy = lib.mkIf (!isPodmanEnabled) (config.virtualisation.podman.defaultPolicy or "sigpolicy");
-
     # Add Podman to system packages
     environment.systemPackages = [ pkgs.podman ];
 
