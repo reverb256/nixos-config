@@ -98,13 +98,14 @@
       {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
-        home-manager.users.j_kro = import ./home.nix;
+        home-manager.users.j_kro = { pkgs, ... }: {
+          imports = [
+            ./home.nix
+            inputs.stylix.homeModules.stylix
+          ];
+        };
         home-manager.backupFileExtension = "bak";
         home-manager.extraSpecialArgs = {inherit inputs;};
-        # Add stylix Home Manager module for user theming
-        home-manager.sharedModules = [
-          inputs.stylix.homeModules.stylix
-        ];
       }
 
       # Common Overlays & Config
