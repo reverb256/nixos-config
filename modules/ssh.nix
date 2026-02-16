@@ -53,6 +53,23 @@
     };
   };
 
+  # Declarative known hosts for cluster hosts
+  # This prevents SSH key mismatch errors after reboots
+  programs.ssh.knownHosts = {
+    nexus = {
+      hostNames = ["nexus" "10.1.1.120" "100.86.158.18"];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEldBvJIZYJKHw8pt0/Bx3xhJK4rSrhno0NyHgTtWAaV";
+    };
+    forge = {
+      hostNames = ["forge" "10.1.1.130" "100.95.222.45"];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINhHtW56M3KuMH/qCwamdGKQe22NuemFQaYV7LhJXdUz";
+    };
+    sentry = {
+      hostNames = ["sentry" "10.1.1.140" "100.82.210.39"];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK7IznKNG8BJVrPv1dnJBrbFhcmzTKaYSAzVdrXV7Fn";
+    };
+  };
+
   # SSH client configuration for cluster access
   # Note: Build machine configs are in distributed-builds.nix
   environment.etc."ssh/config" = {
