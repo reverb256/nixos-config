@@ -71,8 +71,8 @@ in {
     ./modules/storage-btrfs.nix
     # Secrets configuration (agenix)
     ./secrets/agenix-secrets.nix
-    # NOTE: Stylix theming config moved to commonModules in flake.nix
-    # to ensure proper initialization order
+    # Stylix theming configuration
+    ./modules/stylix.nix
   ];
 
   # ============================================================================
