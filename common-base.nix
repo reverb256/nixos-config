@@ -81,8 +81,13 @@ in {
   # ============================================================================
   hardware.openrazer.enable = true;
 
-  hardware.peripherals = {
+  # RGB Lighting Control - Supports Corsair, Razer, Gigabyte/Aorus, MSI, EVGA
+  hardware.rgb = {
     enable = true;
+    openrgb = {
+      enable = true;
+      withPlugins = true;
+    };
     corsair = {
       enable = true;
       ckbNext = true;
