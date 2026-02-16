@@ -1,6 +1,5 @@
 # Networking Module - DNS, Firewall, Analytics Blocking, Avahi
-{lib, ...}:
-with lib; {
+{...}: {
   # ============================================================================
 
   # Use NetworkManager for interface management

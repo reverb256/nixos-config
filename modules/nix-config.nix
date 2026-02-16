@@ -42,6 +42,8 @@ _: {
         "https://devenv.cachix.org"
         # Garnix - CI/CD builds (free for open source)
         "https://cache.garnix.io"
+        # ROCm - AMD GPU compute packages
+        "https://nixos-rocm.cachix.org"
       ];
 
       trusted-public-keys = [
@@ -54,6 +56,7 @@ _: {
         "zen-browser.cachix.org-1:z/QLGrEkiBYF/7zoHX1Hpuv0B26QrmbVBSy9yDD2tSs="
         "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
         "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+        "nixos-rocm.cachix.org-1:VEpsf7pRIijjd8csKjFNBGzkBqOmw8H9PRmgAq14LnE="
       ];
 
       # Note: secretKeyFile setting removed as it causes errors on some nix versions
