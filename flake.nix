@@ -44,7 +44,6 @@
     # Agenix - Age-encrypted secrets for NixOS
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
-    nix-gaming.inputs.nixpkgs.follows = "nixpkgs";
 
     # Determinate Nix module
     determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/*";
@@ -62,7 +61,6 @@
   outputs = inputs @ {
     self,
     nixpkgs,
-    cachyos-kernel,
     ...
   }: let
     # Common modules shared across all hosts, inlined here for clarity
@@ -166,10 +164,11 @@
       claude = inputs.claude-native.packages.x86_64-linux.default;
     };
 
-    # Colmena app for deployment - use 0.5.0-pre from store (avoids cache corruption)
+    # Colmena app for deployment
+    # Uses the colmena package from nixpkgs for better reproducibility
     apps.x86_64-linux.colmena = {
       type = "app";
-      program = "/nix/store/r5dwx2c02zz2fmlr75s7c1z758kayrcp-colmena-0.5.0-pre/bin/colmena";
+      program = "${inputs.nixpkgs.legacyPackages.x86_64-linux.colmena}/bin/colmena";
     };
 
     # Development shell with all NixOS tools
