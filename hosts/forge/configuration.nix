@@ -155,15 +155,16 @@
             # 80-85C: 75% fan
             # 85-90C: 85% fan
             # >90C: 100% fan (emergency)
-            if (( $(echo "$temp" | cut -d'.' -f1) < 70 )); then
+            temp_int=$(echo "$temp" | cut -d'.' -f1)
+            if (( temp_int < 70 )); then
                 fan=40
-            elif (( $(echo "$temp" | cut -d'.' -f1) < 75 )); then
+            elif (( temp_int < 75 )); then
                 fan=50
-            elif (( $(echo "$temp" | cut -d'.' -f1) < 80 )); then
+            elif (( temp_int < 80 )); then
                 fan=60
-            elif (( $(echo "$temp" | cut -d'.' -f1) < 85 )); then
+            elif (( temp_int < 85 )); then
                 fan=75
-            elif (( $(echo "$temp" | cut -d'.' -f1) < 90 )); then
+            elif (( temp_int < 90 )); then
                 fan=85
             else
                 fan=100
