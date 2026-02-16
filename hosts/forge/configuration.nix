@@ -155,15 +155,16 @@
             # 80-85C: 75% fan
             # 85-90C: 85% fan
             # >90C: 100% fan (emergency)
-            if (( $(echo "$temp < 70" | bc -l) )); then
+            # Use awk for floating-point comparison
+            if (( $(echo "$temp" | awk '{print ($1 < 70)}')); then
                 fan=40
-            elif (( $(echo "$temp < 75" | bc -l) )); then
+            elif (( $(echo "$temp" | awk '{print ($1 < 75)}')); then
                 fan=50
-            elif (( $(echo "$temp < 80" | bc -l) )); then
+            elif (( $(echo "$temp" | awk '{print ($1 < 80)}')); then
                 fan=60
-            elif (( $(echo "$temp < 85" | bc -l) )); then
+            elif (( $(echo "$temp" | awk '{print ($1 < 85)}')); then
                 fan=75
-            elif (( $(echo "$temp < 90" | bc -l) )); then
+            elif (( $(echo "$temp" | awk '{print ($1 < 90)}')); then
                 fan=85
             else
                 fan=100
