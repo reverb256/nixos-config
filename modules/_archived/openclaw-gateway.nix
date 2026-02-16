@@ -3,7 +3,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 with lib; let
@@ -63,9 +62,9 @@ in {
     # Create the container using oci-containers
     virtualisation.oci-containers.containers.openclaw-gateway = {
       image = cfg.image;
-      
+
       ports = ["127.0.0.1:${toString cfg.port}:${toString cfg.port}"];
-      
+
       volumes = [
         "${cfg.stateDir}:/home/node/.openclaw"
         "${cfg.workspaceDir}:/workspace"

@@ -131,7 +131,7 @@
     alsa.support32Bit = true;
     pulse.enable = true;
     jack.enable = true;
-    
+
     # Low latency config - manual config with RTKit-safe rt.prio
     extraConfig = {
       pipewire."99-lowlatency" = {
@@ -159,11 +159,21 @@
 
   # Enable RTKit for real-time audio
   security.rtkit.enable = true;
-  
+
   # PAM limits for real-time audio (RTKit requires RLIMIT_RTPRIO >= rt.prio)
   security.pam.loginLimits = [
-    { domain = "@users"; item = "rtprio"; type = "-"; value = "95"; }
-    { domain = "@users"; item = "memlock"; type = "-"; value = "unlimited"; }
+    {
+      domain = "@users";
+      item = "rtprio";
+      type = "-";
+      value = "95";
+    }
+    {
+      domain = "@users";
+      item = "memlock";
+      type = "-";
+      value = "unlimited";
+    }
   ];
 
   # ============================================================================

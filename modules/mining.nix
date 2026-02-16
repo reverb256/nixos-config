@@ -109,7 +109,7 @@ in {
       "d /var/log/mining 0750 ${cfg.user} mining - -"
     ];
 
-    environment.etc."xmrig/config.json" = {
+    environment.etc."xmrig/config.json" = mkIf cfg.xmrig.enable {
       text = builtins.toJSON {
         api = {
           id = null;

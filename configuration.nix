@@ -152,11 +152,11 @@ in {
   };
 
   # Note: Docker is not explicitly enabled, avoiding conflict with podman's Docker socket
- 
+
   # OCI Containers configuration for container management
   virtualisation.oci-containers = {
     backend = "podman"; # Use podman as backend
- 
+
     # Note: Specific containers managed via individual services when needed
   };
 
@@ -206,9 +206,9 @@ in {
       "vm.max_map_count" = 262144;
       "kernel.shmmax" = 134217728;
       # Swap optimization for gaming - less aggressive swapping, more responsive
-      "vm.swappiness" = 60;  # Down from default 60 (or your previous 80) - less swap pressure
-      "vm.page-cluster" = 0;  # Down from 3 - single page reads, more responsive swap
-      "vm.overcommit_ratio" = 90;  # Allow overcommit for gaming/malloc-heavy apps
+      "vm.swappiness" = 60; # Down from default 60 (or your previous 80) - less swap pressure
+      "vm.page-cluster" = 0; # Down from 3 - single page reads, more responsive swap
+      "vm.overcommit_ratio" = 90; # Allow overcommit for gaming/malloc-heavy apps
     };
   };
 
@@ -246,8 +246,6 @@ in {
   # ============================================================================
   networking.firewall.allowedUDPPorts = [60000 60001 60002 60003 60004];
 
-
-
   # ============================================================================
   # EARLYOOM - Lenient OOM handling to prevent session killing
   # ============================================================================
@@ -256,7 +254,7 @@ in {
     freeMemThreshold = 2; # Only kill when < 2% memory free (very lenient)
     freeSwapThreshold = 5; # Only kill when < 5% swap free
   };
-  
+
   # ============================================================================
   # TIMEZONE AND LOCALE
   # ============================================================================
