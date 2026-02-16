@@ -112,8 +112,8 @@
     # Required for system administration
     # ============================================================================
     nh
-    colmena
     home-manager
+    # Colmena is managed via flake.nix (v0.5.0-pre with colmenaHive schema)
 
     # ============================================================================
     # DESKTOP ENVIRONMENT SUPPORT
