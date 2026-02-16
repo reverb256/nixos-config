@@ -1,9 +1,8 @@
-# Common Host Module - Shared imports for all cluster nodes
-# This eliminates duplication across hosts/*/configuration.nix
+# Common Host Module - Shared imports for cluster nodes that use desktop/gaming
+# This module is imported by hosts with desktop environments (zephyr, nexus, forge, sentry)
+# Note: modules/ directory is already imported globally via common-base.nix
 #
-# Usage: Import this module in host configs, then add host-specific modules
-#
-# Host-specific modules still imported separately:
+# Host-specific modules still imported separately in host configs:
 #   - nvidia-wayland.nix (zephyr, nexus, forge)
 #   - amdgpu-wayland.nix (sentry)
 #   - stability-matrix.nix (zephyr only)
@@ -15,21 +14,18 @@
 # VR: Enabled with services.gaming.vr.enable = true (only zephyr/nexus)
 {...}: {
   imports = [
+    # Shared defaults (stateVersion, logind, displayManager)
+    ./common-host-defaults.nix
+
     # Desktop environment (Plasma 6 + Wayland)
+    # NOTE: Not in default.nix since some hosts might be headless
     ./desktop.nix
 
     # Shell configuration
     ./fish-starship.nix
 
-    # Gaming support (optional - enable per-host)
-    # services.gaming.enable = true
-    # services.gaming.vr.enable = true (only for zephyr/nexus)
-    ./gaming.nix
-
-    # Network configuration (DNS, firewall, Avahi)
-    ./networking.nix
-
     # Tailscale VPN mesh
+    # NOTE: Not in default.nix since some hosts might not need it
     ./tailscale.nix
 
     # CI/CD integration
@@ -38,19 +34,12 @@
     # Auto-update configuration
     ./auto-update.nix
 
-    # SSH hardening
-    ./ssh.nix
-
-    # Mining services (conditional per-host)
-    ./mining.nix
-
     # Distributed builds across cluster
+    # NOTE: Not in default.nix since configuration varies by host
     ./distributed-builds.nix
 
-    # BTRFS storage management
-    ./storage-btrfs.nix
-
     # Mining-aware build wrapper
+    # NOTE: Not in default.nix since only some hosts mine
     ./mining-build-wrapper.nix
   ];
 }
