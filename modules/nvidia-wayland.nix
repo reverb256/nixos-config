@@ -6,8 +6,7 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.hardware.nvidia.wayland;
 in {
   options.hardware.nvidia.wayland = {

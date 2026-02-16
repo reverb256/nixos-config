@@ -34,8 +34,8 @@
 
     # Required libraries for .NET/Avalonia and Python
     extraPkgs = pkgs: [
-      pkgs.icu             # .NET globalization support
-      pkgs.libxcrypt       # Python crypt module
+      pkgs.icu # .NET globalization support
+      pkgs.libxcrypt # Python crypt module
       pkgs.libxcrypt-legacy # Legacy crypt support for bundled Python
     ];
   };
@@ -99,20 +99,20 @@ in {
         #unset PIP_NO_BUILD_ISOLATION
 
         ${lib.optionalString cfg.enableCuda ''
-        # NVIDIA CUDA environment variables
-        export __NV_PRIME_RENDER_OFFLOAD=1
-        export __GLX_VENDOR_LIBRARY_NAME=nvidia
-        export __VK_LAYER_NV_optimus=NVIDIA_only
-        export CUDA_PATH=/run/opengl-driver
-        export CUDA_HOME=/run/opengl-driver
-        export LD_LIBRARY_PATH=/run/opengl-driver/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+          # NVIDIA CUDA environment variables
+          export __NV_PRIME_RENDER_OFFLOAD=1
+          export __GLX_VENDOR_LIBRARY_NAME=nvidia
+          export __VK_LAYER_NV_optimus=NVIDIA_only
+          export CUDA_PATH=/run/opengl-driver
+          export CUDA_HOME=/run/opengl-driver
+          export LD_LIBRARY_PATH=/run/opengl-driver/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
         ''}
 
         ${lib.optionalString cfg.enableRocm ''
-        # AMD ROCm environment variables
-        export ROCM_PATH=/run/opengl-driver
-        export HSA_OVERRIDE_GFX_VERSION=10.3.0
-        export LD_LIBRARY_PATH=/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+          # AMD ROCm environment variables
+          export ROCM_PATH=/run/opengl-driver
+          export HSA_OVERRIDE_GFX_VERSION=10.3.0
+          export LD_LIBRARY_PATH=/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
         ''}
 
         # Set the data directory for StabilityMatrix

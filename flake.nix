@@ -21,17 +21,17 @@
 
     # Nixcord - Declarative Discord/Vesktop configuration
     nixcord.url = "github:FlameFlag/nixcord";
- 
+
     # Colmena - Multi-host deployment (v0.5+ requires colmenaHive output)
     colmena.url = "github:zhaofengli/colmena";
     colmena.inputs.nixpkgs.follows = "nixpkgs";
- 
+
     # Enhanced Gaming Packages (Proton-GE, GameMode, etc.)
     nix-gaming.url = "github:fufexan/nix-gaming";
 
     # Anime Game Launchers (ezKEa/aagl-gtk-on-nix)
     aagl.url = "github:ezKEa/aagl-gtk-on-nix";
-    aagl.inputs.nixpkgs.follows = "nixpkgs";  # CRITICAL: Must follow for mkRenamedOptionModule to work
+    aagl.inputs.nixpkgs.follows = "nixpkgs"; # CRITICAL: Must follow for mkRenamedOptionModule to work
 
     # ScopeBuddy - Gamescope wrapper for Wayland desktop gaming
     scopebuddy.url = "github:OpenGamingCollective/ScopeBuddy";
@@ -68,73 +68,73 @@
     cachyos-kernel,
     ...
   }: let
-  # Common modules shared across all hosts, inlined here for clarity
-  commonModules = [
-    # External Modules (must come before common-base.nix)
-    inputs.aagl.nixosModules.default
-    inputs.determinate.nixosModules.default
-    inputs.nix-gaming.nixosModules.pipewireLowLatency
-    inputs.nix-gaming.nixosModules.platformOptimizations
-    inputs.agenix.nixosModules.default
-    inputs.nix-flatpak.nixosModules.nix-flatpak
+    # Common modules shared across all hosts, inlined here for clarity
+    commonModules = [
+      # External Modules (must come before common-base.nix)
+      inputs.aagl.nixosModules.default
+      inputs.determinate.nixosModules.default
+      inputs.nix-gaming.nixosModules.pipewireLowLatency
+      inputs.nix-gaming.nixosModules.platformOptimizations
+      inputs.agenix.nixosModules.default
+      inputs.nix-flatpak.nixosModules.nix-flatpak
 
-    # Base Configuration (after external modules)
-    ./common-base.nix
+      # Base Configuration (after external modules)
+      ./common-base.nix
 
-    # Local Modules
-    # garnix.nix moved to host-specific imports to avoid nix.settings conflicts
+      # Local Modules
+      # garnix.nix moved to host-specific imports to avoid nix.settings conflicts
 
-    # Home Manager
-    inputs.home-manager.nixosModules.home-manager
-    {
-      home-manager.useGlobalPkgs = true;
-      home-manager.useUserPackages = true;
-      home-manager.users.j_kro = import ./home.nix;
-      home-manager.backupFileExtension = "bak";
-      home-manager.extraSpecialArgs = {inherit inputs;};
-    }
+      # Home Manager
+      inputs.home-manager.nixosModules.home-manager
+      {
+        home-manager.useGlobalPkgs = true;
+        home-manager.useUserPackages = true;
+        home-manager.users.j_kro = import ./home.nix;
+        home-manager.backupFileExtension = "bak";
+        home-manager.extraSpecialArgs = {inherit inputs;};
+      }
 
-    # Common Overlays & Config
-    {
-      nixpkgs.overlays = [
-        self.overlays.default
-        inputs.nix-openclaw.overlays.default
-        inputs.cachyos-kernel.overlays.pinned
-      ];
-      nixpkgs.config.allowUnfree = true;
-      nixpkgs.config.permittedInsecurePackages = [
-        "electron-25.9.0"
-      ];
+      # Common Overlays & Config
+      {
+        nixpkgs.overlays = [
+          self.overlays.default
+          inputs.nix-openclaw.overlays.default
+          inputs.cachyos-kernel.overlays.pinned
+        ];
+        nixpkgs.config.allowUnfree = true;
+        nixpkgs.config.permittedInsecurePackages = [
+          "electron-25.9.0"
+        ];
 
-      # ezKEa aagl-gtk-on-nix Cachix
-      nix.settings = inputs.aagl.nixConfig;
-    }
-  ];
+        # ezKEa aagl-gtk-on-nix Cachix
+        nix.settings = inputs.aagl.nixConfig;
+      }
+    ];
 
-  # Function to create a NixOS system definition
-  mkNixosSystem = {modules ? []}:
-    nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      # Pass all inputs to specialArgs for modules to use
-      specialArgs = {inherit inputs;};
-      modules = commonModules ++ modules;
+    # Function to create a NixOS system definition
+    mkNixosSystem = {modules ? []}:
+      nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        # Pass all inputs to specialArgs for modules to use
+        specialArgs = {inherit inputs;};
+        modules = commonModules ++ modules;
+      };
+
+    # NixOS system definitions
+    nixosSystems = {
+      zephyr = mkNixosSystem {
+        modules = [./hosts/zephyr/configuration.nix];
+      };
+      nexus = mkNixosSystem {
+        modules = [./hosts/nexus/configuration.nix];
+      };
+      forge = mkNixosSystem {
+        modules = [./hosts/forge/configuration.nix];
+      };
+      sentry = mkNixosSystem {
+        modules = [./hosts/sentry/configuration.nix];
+      };
     };
-
-  # NixOS system definitions
-  nixosSystems = {
-    zephyr = mkNixosSystem {
-      modules = [./hosts/zephyr/configuration.nix];
-    };
-    nexus = mkNixosSystem {
-      modules = [./hosts/nexus/configuration.nix];
-    };
-    forge = mkNixosSystem {
-      modules = [./hosts/forge/configuration.nix];
-    };
-    sentry = mkNixosSystem {
-      modules = [./hosts/sentry/configuration.nix];
-    };
-  };
   in {
     # Shared overlays
     overlays.default = import ./modules/mining-overlay.nix;

@@ -13,7 +13,7 @@
 #
 # Gaming: Enabled with services.gaming.enable = true
 # VR: Enabled with services.gaming.vr.enable = true (only zephyr/nexus)
-{ ... }: {
+{...}: {
   imports = [
     # Desktop environment (Plasma 6 + Wayland)
     ./desktop.nix
