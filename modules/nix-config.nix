@@ -38,11 +38,11 @@ _: {
         "https://ezkea.cachix.org"
         # Zen Browser - Pre-built binaries
         "https://zen-browser.cachix.org"
-         # Devenv - Development environment packages
-         "https://devenv.cachix.org"
-         # Garnix - CI/CD builds (free for open source)
-         "https://cache.garnix.io"
-       ];
+        # Devenv - Development environment packages
+        "https://devenv.cachix.org"
+        # Garnix - CI/CD builds (free for open source)
+        "https://cache.garnix.io"
+      ];
 
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
@@ -56,7 +56,7 @@ _: {
         "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
       ];
 
-         # Note: secretKeyFile setting removed as it causes errors on some nix versions
+      # Note: secretKeyFile setting removed as it causes errors on some nix versions
     };
   };
 }

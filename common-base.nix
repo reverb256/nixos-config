@@ -188,9 +188,9 @@ in {
       "vm.max_map_count" = 262144;
       "kernel.shmmax" = 134217728;
       # Swap optimization for gaming - less aggressive swapping, more responsive
-      "vm.swappiness" = 60;  # Down from default 60 (or your previous 80) - less swap pressure
-      "vm.page-cluster" = 0;  # Down from 3 - single page reads, more responsive swap
-      "vm.overcommit_ratio" = 90;  # Allow overcommit for gaming/malloc-heavy apps
+      "vm.swappiness" = 60; # Down from default 60 (or your previous 80) - less swap pressure
+      "vm.page-cluster" = 0; # Down from 3 - single page reads, more responsive swap
+      "vm.overcommit_ratio" = 90; # Allow overcommit for gaming/malloc-heavy apps
     };
   };
 

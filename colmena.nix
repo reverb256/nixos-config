@@ -9,6 +9,7 @@
   overlays = [
     self.overlays.default
     inputs.nix-openclaw.overlays.default
+    inputs.cachyos-kernel.overlays.pinned
   ];
 
   # Common modules imported by all hosts
@@ -32,16 +33,10 @@
 
   # Helper function to create host configuration
   mkHost = {
-    hostname,
     hostConfig,
     tailscaleIP,
     extraModules ? [],
-  }: {
-    name,
-    nodes,
-    pkgs,
-    ...
-  }: {
+  }: {...}: {
     imports =
       commonExternalModules
       ++ [

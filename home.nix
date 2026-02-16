@@ -14,10 +14,10 @@
   # ============================================================================
   programs.openclaw = {
     enable = true;
-    
+
     # Use the openclaw package from the overlay (already applied in flake.nix)
     # package = pkgs.openclaw;  # Uses overlay
-    
+
     config = {
       gateway = {
         mode = "local";
@@ -29,7 +29,7 @@
         };
       };
     };
-    
+
     instances.default = {
       enable = true;
       stateDir = "/home/j_kro/.openclaw";
@@ -80,7 +80,7 @@
     gh
     gparted
     # localsend - moved to system config (programs.localsend with firewall)
-    jocalsend  # TUI client for LocalSend (uses same port)
+    jocalsend # TUI client for LocalSend (uses same port)
 
     #  AI agent
     # Cloud and sync tools

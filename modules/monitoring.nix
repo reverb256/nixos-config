@@ -307,7 +307,11 @@ in {
 
       [security]
       admin_user = admin
-      admin_password = ${if cfg.grafanaPasswordFile != null then builtins.readFile cfg.grafanaPasswordFile else "changeme"}
+      admin_password = ${
+        if cfg.grafanaPasswordFile != null
+        then builtins.readFile cfg.grafanaPasswordFile
+        else "changeme"
+      }
       disable_admin_auth = false
 
       [paths]

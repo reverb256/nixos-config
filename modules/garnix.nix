@@ -1,8 +1,11 @@
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.garnix;
-  
+
   # Garnix credentials for cache.garnix.io
   garnixNetrc = pkgs.writeText "garnix-netrc" ''
     machine cache.garnix.io
@@ -20,8 +23,8 @@ in {
       # Reduce TTL for presigned URLs that expire quickly
       narinfo-cache-positive-ttl = 3600;
       # Add Garnix as a substituter
-      substituters = [ "https://cache.garnix.io" ];
-      trusted-public-keys = [ "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g=" ];
+      substituters = ["https://cache.garnix.io"];
+      trusted-public-keys = ["cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="];
     };
 
     # Create netrc file for Garnix authentication

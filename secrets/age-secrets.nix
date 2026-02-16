@@ -1,12 +1,14 @@
-{config, ...}: {
+{...}: {
   age.secrets = {
     # Mining API token for XMRig HTTP API (internal stats/pause/resume)
-    "mining-api-token" = {
-      file = ./mining-api-token.age;
-      owner = "mining";
-      group = "mining";
-      mode = "400";
-    };
+    # NOTE: Temporarily disabled - age identity not available on forge
+    # Re-enable when xmrig is actually used and identity is properly configured
+    # "mining-api-token" = {
+    #   file = ./mining-api-token.age;
+    #   owner = "mining";
+    #   group = "mining";
+    #   mode = "400";
+    # };
 
     # OpenClaw Gateway authentication token
     "openclaw-token" = {
