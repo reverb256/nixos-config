@@ -14,7 +14,8 @@
     # Note: gaming.nix is imported but not enabled (services.gaming.enable = false by default)
     ../../modules/common-host.nix
 
-    # Host-specific GPU support (NVIDIA for RTX 4060s)
+    # NVIDIA GPU support (common + wayland-specific)
+    ../../modules/nvidia-common.nix
     ../../modules/nvidia-wayland.nix
   ];
 
@@ -45,27 +46,14 @@
 
   # ============================================================================
   # GPU DRIVERS (Hybrid AMD + NVIDIA)
+  # Note: NVIDIA base config is in nvidia-common.nix
   # ============================================================================
-  services.xserver.videoDrivers = ["nvidia"];
-
   hardware.amdgpu = {
     opencl.enable = true;
   };
 
-  hardware.nvidia.wayland.enable = true;
-
   boot.kernelModules = ["amdgpu" "tun"];
   boot.initrd.kernelModules = ["amdgpu"];
-
-  # ============================================================================
-  # DISPLAY MANAGER
-  # ============================================================================
-  services.displayManager.sddm = {
-    enable = true;
-    wayland.enable = true;
-  };
-
-  services.logind.settings.Login.KillUserProcesses = false;
 
   # ============================================================================
   # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)

@@ -48,30 +48,16 @@
   services.xserver.videoDrivers = ["amdgpu"];
 
   # ============================================================================
-  # DISPLAY MANAGER
-  # ============================================================================
-  services.displayManager = {
-    sddm.enable = true;
-    defaultSession = "plasma";
-    autoLogin = {
-      enable = true;
-      user = "j_kro";
-    };
-  };
-
-  services.logind.settings.Login.KillUserProcesses = false;
-
-  # ============================================================================
   # MINING (CPU only - 8 threads = 50% of 16 cores)
+  # Uses defaults from mining.nix for pool URLs and wallet format
   # ============================================================================
   services.mining = {
     enable = true;
     xmrig = {
       enable = true;
       threads = 8;
-      pool = "xtm-rx-us.kryptex.network:8038";
     };
-    lolminer.enable = false; # No GPU mining on Sentry
+    lolminer.enable = false;
   };
 
   # ============================================================================
