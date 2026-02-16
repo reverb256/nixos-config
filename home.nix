@@ -1,43 +1,13 @@
 {
   pkgs,
+  lib,
   inputs,
   ...
 }: {
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
-    inputs.nix-openclaw.homeManagerModules.openclaw
   ];
-
-  # ============================================================================
-  # OPENCLAW - Personal AI Assistant (Official nix-openclaw)
-  # ============================================================================
-  programs.openclaw = {
-    enable = true;
-
-    # Use the openclaw package from the overlay (already applied in flake.nix)
-    # package = pkgs.openclaw;  # Uses overlay
-
-    config = {
-      gateway = {
-        mode = "local";
-        bind = "loopback";
-        port = 18789;
-        auth = {
-          mode = "token";
-          # Token loaded from Agenix secret (see secrets/age-secrets.nix)
-          token = builtins.readFile "/run/agenix/openclaw-token";
-        };
-      };
-    };
-
-    instances.default = {
-      enable = true;
-      stateDir = "/home/j_kro/.openclaw";
-      workspaceDir = "/home/j_kro/.openclaw/workspace";
-      plugins = [];
-    };
-  };
 
   # NH (Nix Helper) configuration for better UX
   programs.nh = {
@@ -59,6 +29,9 @@
 
   # User packages - development tools, shell utilities, and applications
   home.packages = with pkgs; [
+    # OpenClaw AI Assistant (installed via overlay, manages its own config)
+    openclaw
+
     # Shell tools (configured in programs section below)
     btop
     fzf
@@ -66,6 +39,12 @@
     eza
     zoxide
     starship
+
+    # Stylix fonts (also configured in stylix.fonts above)
+    inter
+    pkgs.nerd-fonts.jetbrains-mono
+    noto-fonts-color-emoji
+    dejavu_fonts
 
     # Nix development tools (keep global for NixOS management)
     alejandra
@@ -137,11 +116,16 @@
     enable = true;
 
     # Profile definitions for Stylix theming
+    # Using the actual active profile (w26i4er3) that zen-browser uses
     profiles.default = {
       isDefault = true;
       id = 0;
+      name = "Default Profile";
+      path = "w26i4er3.Default Profile";
       settings = {
         "zen.welcome-screen.seen" = true;
+        # Force dark theme to bypass xdg-desktop-portal detection
+        "layout.css.prefers-color-scheme.content-override" = 0;
       };
     };
 
@@ -335,8 +319,29 @@
     };
   };
 
-  # Stylix zen-browser theming
-  stylix.targets.zen-browser.profileNames = [ "default" ];
+  # Stylix theming - Apply Tokyo City Dark theme to all applications
+  stylix.targets = {
+    # Browser
+    zen-browser.profileNames = [ "default" ];
+
+    # Shell and Prompt
+    fish.enable = true;
+    starship.enable = true;
+
+    # Terminal Tools
+    bat.enable = true;
+    fzf.enable = true;
+    tmux.enable = true;
+
+    # Editor
+    neovim.enable = true;
+    vim.enable = true;
+
+    # Desktop Environment
+    gtk.enable = true;
+    qt.enable = true;
+    qt.platform = "qtct";
+  };
 
   # Program configurations
   programs = {
@@ -525,19 +530,44 @@
     enable = true;
     discord.enable = false;
     vesktop.enable = true;
+
+    # Plugins
+    vesktopConfig = {
+      plugins = {
+        XSOverlay = {
+          enable = true;
+          dmNotifications = true;
+          groupDmNotifications = true;
+          serverNotifications = true;
+          callNotifications = true;
+          channelPingColor = "#8a2be2";
+          pingColor = "#7289da";
+          timeout = 3;
+          volume = 0.2;
+          opacity = 1.0;
+        };
+        fakeNitro = {
+          enable = true;
+          enableEmojiBypass = true;
+          enableStickerBypass = true;
+          enableStreamBypass = true;
+          emojiSize = 48.0;
+        };
+        USRBG = {
+          enable = true;
+          nitroFirst = true;
+          voiceBackground = true;
+        };
+        ReviewDB = {
+          enable = true;
+        };
+      };
+    };
   };
 
   # Set PATH for user services ( needs it for tools)
   systemd.user.sessionVariables = {
     PATH = "/nix/store/i2vmgx46q9hd3z6rigaiman3wl3i2gc4-coreutils-9.9/bin:/run/wrappers/bin:/home/j_kro/.nix-profile/bin:/nix/profile/bin:/etc/profiles/per-user/j_kro/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin";
-  };
-
-  # Autostart OpenClaw gateway on login
-  # nix-openclaw creates the service without [Install], so we add WantedBy here
-  systemd.user.services.openclaw-gateway = {
-    Install = {
-      WantedBy = ["default.target"];
-    };
   };
 
   # Autostart Vesktop on login
@@ -557,4 +587,16 @@
       WantedBy = ["graphical-session.target"];
     };
   };
+
+  # Sync zen-browser config from XDG (~/.config/zen) to legacy path (~/.zen)
+  # Zen Browser reads from ~/.zen but Home Manager writes to ~/.config/zen
+  home.activation.syncZenConfig = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    ZEN_PROFILE="w26i4er3.Default Profile"
+    if [ -d "$HOME/.config/zen/$ZEN_PROFILE" ]; then
+      mkdir -p "$HOME/.zen/$ZEN_PROFILE/chrome"
+      cp -fL "$HOME/.config/zen/$ZEN_PROFILE/user.js" "$HOME/.zen/$ZEN_PROFILE/" 2>/dev/null || true
+      cp -fL "$HOME/.config/zen/$ZEN_PROFILE/chrome/userChrome.css" "$HOME/.zen/$ZEN_PROFILE/chrome/" 2>/dev/null || true
+      cp -fL "$HOME/.config/zen/$ZEN_PROFILE/chrome/userContent.css" "$HOME/.zen/$ZEN_PROFILE/chrome/" 2>/dev/null || true
+    fi
+  '';
 }
