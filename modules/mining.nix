@@ -38,10 +38,12 @@ with lib; let
   };
 
   # NVIDIA power limit script
-  nvidiaPowerLimitScript = pkgs.writeShellScript "nvidia-powerlimit-pre" ''
+  nvidiaPowerLimitScript = pkgs.writeShellScript "nvidia-powerlimit" ''
     PATH=/run/current-system/sw/bin:$PATH
+    echo "Setting NVIDIA power limit to ${toString cfg.lolminer.nvidia.powerLimit}W..."
     nvidia-smi -pm 1 || true
     nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
+    echo "NVIDIA power limit set successfully"
   '';
 
   # System watchdog script - reboots if load stays high
@@ -218,16 +220,29 @@ in {
           };
         };
 
+        # NVIDIA power limit service (runs before lolminer)
+        nvidia-power-limit = mkIf cfg.lolminer.nvidia.enable {
+          description = "Set NVIDIA GPU Power Limit for Mining";
+          wantedBy = ["multi-user.target"];
+          before = ["lolminer-nvidia.service"];
+          requiredBy = ["lolminer-nvidia.service"];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = nvidiaPowerLimitScript;
+            RemainAfterExit = true;
+          };
+        };
+
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
           wantedBy = ["multi-user.target"];
-          after = ["network.target"];
+          after = ["network.target" "nvidia-power-limit.service"];
+          requires = ["nvidia-power-limit.service"];
           serviceConfig =
             {
               User = cfg.user;
               Group = "mining";
               Slice = "mining.slice";
-              ExecStartPre = nvidiaPowerLimitScript;
               ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.nvidia}";
               Restart = "always";
               RestartSec = "30s";
