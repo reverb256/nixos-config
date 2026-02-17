@@ -1,0 +1,10 @@
+--- flake.nix
++++ flake.nix
+@@ -73,6 +73,7 @@
+     # External Modules (must come before common-base.nix)
+     inputs.aagl.nixosModules.default
+     inputs.determinate.nixosModules.default
++    inputs.nix-flatpak.nixosModules.qt
+     inputs.nix-gaming.nixosModules.pipewireLowLatency
+ 
+ 
