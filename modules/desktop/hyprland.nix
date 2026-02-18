@@ -8,7 +8,6 @@
     rofi # Application launcher
     grim # Screenshot tool
     slurp # Region selection tool
-    wl-clipboard # Clipboard utilities
     wlogout # Logout menu
     swww # Wallpaper utility
     # pywalcolor - removed, package no longer exists

@@ -37,13 +37,13 @@ with lib; let
     AmbientCapabilities = "CAP_SYS_NICE";
   };
 
-  # NVIDIA power limit script
-  nvidiaPowerLimitScript = pkgs.writeShellScript "nvidia-powerlimit" ''
+  # NVIDIA GPU power limit script
+  nvidiaGpuPowerLimitScript = pkgs.writeShellScript "nvidia-gpu-power-limit" ''
     PATH=/run/current-system/sw/bin:$PATH
-    echo "Setting NVIDIA power limit to ${toString cfg.lolminer.nvidia.powerLimit}W..."
+    echo "Setting NVIDIA GPU power limit to ${toString cfg.lolminer.nvidia.powerLimit}W..."
     nvidia-smi -pm 1 || true
     nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
-    echo "NVIDIA power limit set successfully"
+    echo "NVIDIA GPU power limit set successfully"
   '';
 
   # System watchdog script - reboots if load stays high
@@ -220,15 +220,15 @@ in {
           };
         };
 
-        # NVIDIA power limit service (runs before lolminer)
-        nvidia-power-limit = mkIf cfg.lolminer.nvidia.enable {
+        # NVIDIA GPU power limit service (runs before lolminer)
+        nvidia-gpu-power-limit = mkIf cfg.lolminer.nvidia.enable {
           description = "Set NVIDIA GPU Power Limit for Mining";
           wantedBy = ["multi-user.target"];
           before = ["lolminer-nvidia.service"];
           requiredBy = ["lolminer-nvidia.service"];
           serviceConfig = {
             Type = "oneshot";
-            ExecStart = nvidiaPowerLimitScript;
+            ExecStart = nvidiaGpuPowerLimitScript;
             RemainAfterExit = true;
           };
         };
@@ -236,8 +236,8 @@ in {
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
           wantedBy = ["multi-user.target"];
-          after = ["network.target" "nvidia-power-limit.service"];
-          requires = ["nvidia-power-limit.service"];
+          after = ["network.target" "nvidia-gpu-power-limit.service"];
+          requires = ["nvidia-gpu-power-limit.service"];
           serviceConfig =
             {
               User = cfg.user;

@@ -115,6 +115,8 @@
     # ============================================================================
     # DESKTOP ENVIRONMENT SUPPORT
     # KDE Plasma and Wayland system packages
+    # NOTE: Removed qtstyleplugin-kvantum and qt6ct - they cause crashes with
+    # Plasma 6 Wayland on NVIDIA. Using Breeze (native KDE style) instead.
     # ============================================================================
     libnotify
     kdePackages.kdialog

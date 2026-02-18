@@ -73,17 +73,21 @@
     nixpkgs,
     ...
   }: let
-    # Common modules shared across all hosts, inlined here for clarity
-    commonModules = [
-      # Stylix MUST be first - it initializes the stylix option namespace
-      # that other modules depend on
-      inputs.stylix.nixosModules.stylix
+      # Common modules shared across all hosts, inlined here for clarity
+      commonModules = [
+        # Stylix MUST be first - it initializes the stylix option namespace
+        # that other modules depend on
+        inputs.stylix.nixosModules.stylix
 
-      # Enable Stylix system-wide with Tokyo City Dark theme
+       # Enable Stylix system-wide with Tokyo City Dark theme
       ({ pkgs, ... }: {
         stylix = {
           enable = true;
           base16Scheme = "${pkgs.base16-schemes}/share/themes/tokyo-city-terminal-dark.yaml";
+
+          # Disable Stylix Qt theming - it sets QT_STYLE_OVERRIDE=kvantum which breaks Plasma 6
+          # with "module 'kvantum' is not installed" errors in QML
+          targets.qt.enable = false;
 
           # Beautiful font stack: Inter (UI) + JetBrains Mono (terminal)
           fonts = {
@@ -188,7 +192,7 @@
     };
   in {
     # Shared overlays
-    overlays.default = import ./modules/mining-overlay.nix;
+    overlays.default = import ./modules/mining/mining-overlay.nix;
 
     # Add nixpkgs-xr overlay for VR/gaming packages
     overlays.nixpkgs-xr = inputs.nixpkgs-xr.overlays.default;
