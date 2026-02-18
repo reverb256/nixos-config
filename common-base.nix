@@ -101,7 +101,7 @@ in {
 
   # NOTE: Stylix theming is configured in flake.nix to ensure proper module order
 
-  # Note: XDG Portal configuration is in modules/desktop.nix to keep desktop settings together
+  # Note: XDG Portal configuration is in modules/desktop/desktop.nix to keep desktop settings together
 
   # Declarative Flatpak configuration using nix-flatpak module
   services.flatpak = {
