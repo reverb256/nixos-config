@@ -1,23 +1,43 @@
 # Default module imports for all submodules
+# Modules are organized into logical subdirectories for better maintainability
 {...}: {
   imports = [
-    ./system-packages.nix
-    ./users.nix
-    ./networking.nix
-    ./gaming.nix
-    ./mining.nix
-    ./mining-plasmoid.nix # Plasma plasmoid for mining monitoring
-    ./ssh.nix
-    ./systemd-slices.nix
-    ./flatpak-polkit.nix
-    ./nix-config.nix # Binary caches and Nix settings
-    ./minio-cache.nix # S3 binary cache client support
-    ./vm-tuning.nix # VM overcommit fixes for Discover crashes
-    ./rgb.nix # RGB lighting control (Corsair, Razer, Gigabyte/Aorus, MSI, EVGA)
-    ./stylix-rgb-sync.nix # Sync Stylix colors to OpenRGB hardware
-    ./keyboard-shortcuts.nix # Keyboard shortcuts configuration
-    ./scopebuddy.nix # ScopeBuddy gamescope wrapper
-    ./security-hardware.nix # YubiKey and Bitwarden CLI
-    ./opencode.nix # OpenCode/oh-my-opencode configuration
+    # System-level configuration
+    ./system/system-packages.nix
+    ./system/users.nix
+    ./system/networking.nix
+    ./system/ssh.nix
+    ./system/systemd-slices.nix
+    ./system/nix-config.nix # Binary caches and Nix settings
+    ./system/vm-tuning.nix # VM overcommit fixes for Discover crashes
+    ./system/storage.nix
+    ./system/storage-btrfs.nix
+
+    # Desktop environment
+    ./hardware/rgb.nix # RGB lighting control (Corsair, Razer, Gigabyte/Aorus, MSI, EVGA)
+    ./desktop/stylix-rgb-sync.nix # Sync Stylix colors to OpenRGB hardware
+    ./desktop/synapse-theme.nix # Synapse theme generation from Stylix colors
+    ./desktop/keyboard-shortcuts.nix # Keyboard shortcuts configuration
+    ./desktop/hyprland.nix # Hyprland window manager
+
+    # Gaming
+    ./gaming/gaming.nix
+    ./gaming/scopebuddy.nix # ScopeBuddy gamescope wrapper
+
+    # Mining
+    ./mining/mining.nix
+    ./mining/mining-plasmoid.nix # Plasma plasmoid for mining monitoring
+
+    # Services
+    ./services/flatpak-polkit.nix
+    ./services/minio-cache.nix # S3 binary cache client support
+    ./services/whisper-dictation.nix # Local Whisper speech-to-text dictation
+    ./services/nanoclaw.nix # NanoClaw personal AI assistant (optional)
+
+    # Development
+    ./development/opencode.nix # OpenCode/oh-my-opencode configuration
+
+    # Security
+    ./security/security-hardware.nix # YubiKey and Bitwarden CLI
   ];
 }

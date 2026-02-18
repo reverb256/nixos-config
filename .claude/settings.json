@@ -11,9 +11,8 @@
     }
   },
   "statusLine": {
-    "enabled": true,
-    "tools": ["web-search", "web-fetch"],
-    "showToolStatus": true
+    "type": "command",
+    "command": "/home/j_kro/.claude/hooks/status-line-hook.sh"
   },
   "webSearch": {
     "enabled": true,
@@ -21,11 +20,6 @@
     "timeout": 10000,
     "allowedDomains": ["*"],
     "blockedDomains": ["clickbait.com", "malware.com"]
-  },
-  "hooks": {
-    "enabled": true,
-    "webSearchHook": "/home/j_kro/.claude/hooks/web-search-hook.sh",
-    "statusLineHook": "/home/j_kro/.claude/hooks/status-line-hook.sh"
   },
   "api": {
     "timeout": 3000000,

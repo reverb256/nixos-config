@@ -10,6 +10,13 @@
     inputs.nixcord.homeModules.nixcord
   ];
 
+  # Stylix home-manager integration - must match system-level config
+  # System-level config is in flake.nix with same theme
+  stylix = {
+    enable = true;
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/tokyo-city-terminal-dark.yaml";
+  };
+
   # NH (Nix Helper) configuration for better UX
   programs.nh = {
     enable = true;
@@ -338,8 +345,9 @@
 
     # Desktop Environment
     gtk.enable = true;
-    qt.enable = true;
-    qt.platform = "qtct";
+    # Disable Stylix Qt theming - it generates Kvantum configs that cause "module kvantum is not installed" errors
+    # Plasma 6 handles Qt theming natively via "kde" platform
+    qt.enable = false;
   };
 
   # Program configurations
@@ -480,12 +488,14 @@
       templates = "$HOME/Templates";
     };
 
-    # OpenVR paths for Steam integration with OpenComposite for VRChat
+    # OpenVR paths for Steam integration with xrizer (OpenVR -> OpenXR translation)
+    # xrizer is newer and better maintained than OpenComposite
+    # WiVRn handles the openvr-compat-path in its own config.json
 
     configFile."openvr/openvrpaths.vrpath" = {
       force = true;
       text = let
-        opencomposite = "${pkgs.opencomposite}/lib/opencomposite";
+        xrizer = "${pkgs.xrizer}/lib/xrizer";
         steam = "$HOME/.local/share/Steam";
       in
         builtins.toJSON {
@@ -494,30 +504,15 @@
           external_drivers = null;
           config = ["${steam}/config"];
           log = ["${steam}/logs"];
-          "runtime" = ["${opencomposite}"];
+          runtime = ["${xrizer}"];
         };
     };
 
-    # Using WiVRn as OpenXR runtime with OpenComposite for SteamVR compatibility
-    # This sets WiVRn as active OpenXR runtime for VRChat and other VR apps
+    # Using WiVRn as OpenXR runtime
+    # This sets WiVRn as active OpenXR runtime for all OpenXR apps
     configFile."openxr/1/active_runtime.json" = {
       source = "${pkgs.wivrn}/share/openxr/1/openxr_wivrn.json";
       force = true;
-    };
-
-    # Additional OpenComposite configuration to ensure compatibility
-    configFile."opencomposite/redirects.json".text = builtins.toJSON {
-      version = 1;
-      redirects = [
-        {
-          from = "C:\\\\windows\\\\system32\\\\openvr_api.dll";
-          to = "${pkgs.opencomposite}/lib/opencomposite/openvr_api.dll";
-        }
-        {
-          from = "C:\\\\windows\\\\syswow64\\\\openvr_api.dll";
-          to = "${pkgs.opencomposite}/lib/opencomposite/openvr_api.dll";
-        }
-      ];
     };
 
     # Konsole theming (Stylix doesn't have native Konsole support)
@@ -600,11 +595,24 @@
       Parent=FALLBACK/
     '';
 
-    configFile."konsolerc".text = ''
-      [Desktop Entry]
-      DefaultProfile=Stylix.profile
-    '';
+    # Note: konsolerc default profile is set via home.activation because Konsole
+    # needs to write runtime state to this file. home.activation creates a writable
+    # copy that Konsole can modify.
   };
+
+  # Create writable konsolerc with default profile
+  home.activation.konsolercWritable = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    # Create directory if it doesn't exist
+    mkdir -p $HOME/.config
+
+    # Write konsolerc with default profile (only if file doesn't exist or is a symlink)
+    if [ ! -e "$HOME/.config/konsolerc" ] || [ -L "$HOME/.config/konsolerc" ]; then
+      cat > "$HOME/.config/konsolerc" <<EOF
+[Desktop Entry]
+DefaultProfile=Stylix.profile
+EOF
+    fi
+  '';
 
   # Claude Code KwaiKAT Model Development Tool Configuration
   # API key is loaded from system environment via modules/environment.nix

@@ -29,6 +29,13 @@ in {
   };
 
   config = mkIf cfg.enable {
+    # Load I2C kernel modules for motherboard and RAM RGB
+    boot.kernelModules = lib.mkIf cfg.openrgb.enable [
+      "i2c_dev"      # I2C device access (/dev/i2c-*)
+      "i2c_piix4"    # AMD X570 motherboard I2C
+      "i2c_smbus"     # SMBus support
+    ];
+
     # Install RGB packages
     environment.systemPackages = with pkgs;
       lib.optionals cfg.openrgb.enable (
@@ -40,21 +47,31 @@ in {
         ckb-next
       ];
 
-    # OpenRGB udev rules for device access
-    services.udev.extraRules = mkIf cfg.openrgb.enable ''
-      # OpenRGB device access rules
-      SUBSYSTEM=="usb", ATTR{idVendor}=="0c09", ATTR{idProduct}=="0001", MODE="0666", GROUP="plugdev"
-      SUBSYSTEM=="usb", ATTR{idVendor}=="1b1c", ATTR{idProduct}=="0c0b", MODE="0666", GROUP="plugdev"
-      SUBSYSTEM=="usb", ATTR{idVendor}=="1b1c", ATTR{idProduct}=="0c13", MODE="0666", GROUP="plugdev"
-      SUBSYSTEM=="usb", ATTR{idVendor}=="1cc4", MODE="0666", GROUP="plugdev"
-      SUBSYSTEM=="usb", ATTR{idVendor}=="0951", MODE="0666", GROUP="plugdev"
-      SUBSYSTEM=="usb", ATTR{idVendor}=="04d8", MODE="0666", GROUP="plugdev"
-      SUBSYSTEM=="usb", ATTR{idVendor}=="04ca", MODE="0666", GROUP="plugdev"
-      SUBSYSTEM=="usb", ATTR{idVendor}=="1d6a", MODE="0666", GROUP="plugdev"
-      KERNEL=="hidraw*", ATTRS{idVendor}=="0c09", MODE="0666", GROUP="plugdev"
-      KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", MODE="0666", GROUP="plugdev"
-      KERNEL=="hidraw*", ATTRS{idVendor}=="1cc4", MODE="0666", GROUP="plugdev"
-    '';
+    # Install udev rules for RGB devices
+    services.udev.packages = lib.mkMerge [
+      # OpenRGB package's built-in udev rules
+      (mkIf cfg.openrgb.enable (
+        if cfg.openrgb.withPlugins && pkgs.openrgb-with-plugins or false
+        then [pkgs.openrgb-with-plugins]
+        else [pkgs.openrgb]
+      ))
+      # Corsair device udev rules
+      (mkIf cfg.corsair.enable [
+        (pkgs.writeTextDir "etc/udev/rules.d/99-corsair-peripherals.rules" ''
+          # Corsair Keyboard and Mouse devices
+          SUBSYSTEM=="usb", ATTR{idVendor}=="1b1c", ATTR{idProduct}=="*", MODE="0666", GROUP="plugdev"
+          KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="*", MODE="0666", GROUP="plugdev"
+
+          # Corsair Headset devices
+          KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="0a1c", MODE="0666", GROUP="plugdev"
+          KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="0a1d", MODE="0666", GROUP="plugdev"
+
+          # Some older Corsair devices
+          KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="0a00", MODE="0666", GROUP="plugdev"
+          KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="0a01", MODE="0666", GROUP="plugdev"
+        '')
+      ])
+    ];
 
     # OpenRGB systemd service
     systemd.services.openrgb-daemon = mkIf cfg.openrgb.enable {
@@ -68,7 +85,7 @@ in {
           if cfg.openrgb.withPlugins && pkgs.openrgb-with-plugins or false
           then pkgs.openrgb-with-plugins
           else pkgs.openrgb
-        }/bin/openrgb --server 6742";
+        }/bin/openrgb --server --server-port 6742";
         Restart = "on-failure";
         RestartSec = 10;
 
@@ -109,24 +126,6 @@ in {
         SupplementaryGroups = ["plugdev" "input"];
       };
     };
-
-    # Configure udev rules for Corsair devices
-    # Note: Razer udev rules are handled by hardware.openrazer module
-    services.udev.packages = lib.mkIf cfg.corsair.enable [
-      (pkgs.writeTextDir "etc/udev/rules.d/99-corsair-peripherals.rules" ''
-        # Corsair Keyboard and Mouse devices
-        SUBSYSTEM=="usb", ATTR{idVendor}=="1b1c", ATTR{idProduct}=="*", MODE="0666", GROUP="plugdev"
-        KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="*", MODE="0666", GROUP="plugdev"
-
-        # Corsair Headset devices
-        KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="0a1c", MODE="0666", GROUP="plugdev"
-        KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="0a1d", MODE="0666", GROUP="plugdev"
-
-        # Some older Corsair devices
-        KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="0a00", MODE="0666", GROUP="plugdev"
-        KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", ATTRS{idProduct}=="0a01", MODE="0666", GROUP="plugdev"
-      '')
-    ];
 
     # Ensure plugdev group exists
     users.groups.plugdev = {};

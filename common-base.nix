@@ -1,8 +1,9 @@
-{pkgs, ...}: let
+{pkgs, lib, ...}: let
   # Get gamemode package for polkit rules
   gamemodePkg = pkgs.gamemode;
   # System administrator username
   sysadminUser = "j_kro";
+  inherit (lib) mkDefault;
 in {
   # ============================================================================
   # USERS AND GROUPS - Configure users and groups
@@ -65,14 +66,14 @@ in {
     ./modules
     ./modules/lobster-user.nix
     # Mining-aware build wrapper (pause/resume during builds)
-    ./modules/mining-build-wrapper.nix
+    ./modules/mining/mining-build-wrapper.nix
     # Storage configuration modules
-    ./modules/storage.nix
-    ./modules/storage-btrfs.nix
+    ./modules/system/storage.nix
+    ./modules/system/storage-btrfs.nix
     # Secrets configuration (agenix)
     ./secrets/agenix-secrets.nix
     # Stylix + Base24 hybrid theming configuration
-    ./modules/stylix-base24.nix
+    ./modules/desktop/stylix-base24.nix
   ];
 
   # ============================================================================
@@ -194,7 +195,7 @@ in {
       "vm.vfs_cache_pressure" = 50;
       "kernel.sched_autogroup_enabled" = 0;
       "kernel.perf_event_paranoid" = -1;
-      "vm.max_map_count" = 262144;
+      "vm.max_map_count" = mkDefault 262144;  # Use mkDefault so gaming module can override
       "kernel.shmmax" = 134217728;
       # Swap optimization for gaming - less aggressive swapping, more responsive
       "vm.swappiness" = 60; # Down from default 60 (or your previous 80) - less swap pressure
@@ -220,13 +221,28 @@ in {
 
   # ============================================================================
   # POWER MANAGEMENT
+  # Using mkDefault to allow per-host override (e.g., "schedutil" for efficiency)
   # ============================================================================
-  powerManagement.cpuFreqGovernor = "performance";
+  powerManagement.cpuFreqGovernor = mkDefault "performance";
 
   # ============================================================================
   # MOSH - Mobile Shell for roaming connections
   # ============================================================================
   programs.mosh.enable = true;
+
+  # ============================================================================
+  # WHISPER DICTATION - Local speech-to-text for Plasma
+  # ============================================================================
+  services.whisper-dictation = {
+    enable = true;
+    model = "base.en";
+    language = "en";
+    injectionMode = "type";  # type | clipboard | both
+    keyDelay = 10;           # ms between keystrokes
+    silenceTimeout = 1.5;    # seconds before auto-stop
+    silenceThreshold = "5%"; # 2%=sensitive, 5%=balanced, 10%=less sensitive
+    notify = true;
+  };
 
   # ============================================================================
   # ANIME GAME LAUNCHERS (ezKEa/aagl-gtk-on-nix)
@@ -264,19 +280,20 @@ in {
 
   # ============================================================================
   # TIMEZONE AND LOCALE
+  # Using mkDefault to allow per-host overrides if needed
   # ============================================================================
-  time.timeZone = "America/Winnipeg";
-  i18n.defaultLocale = "en_CA.UTF-8";
+  time.timeZone = mkDefault "America/Winnipeg";
+  i18n.defaultLocale = mkDefault "en_CA.UTF-8";
   i18n.extraLocaleSettings = {
-    LC_ADDRESS = "en_CA.UTF-8";
-    LC_IDENTIFICATION = "en_CA.UTF-8";
-    LC_MEASUREMENT = "en_CA.UTF-8";
-    LC_MONETARY = "en_CA.UTF-8";
-    LC_NAME = "en_CA.UTF-8";
-    LC_NUMERIC = "en_CA.UTF-8";
-    LC_PAPER = "en_CA.UTF-8";
-    LC_TELEPHONE = "en_CA.UTF-8";
-    LC_TIME = "en_CA.UTF-8";
+    LC_ADDRESS = mkDefault "en_CA.UTF-8";
+    LC_IDENTIFICATION = mkDefault "en_CA.UTF-8";
+    LC_MEASUREMENT = mkDefault "en_CA.UTF-8";
+    LC_MONETARY = mkDefault "en_CA.UTF-8";
+    LC_NAME = mkDefault "en_CA.UTF-8";
+    LC_NUMERIC = mkDefault "en_CA.UTF-8";
+    LC_PAPER = mkDefault "en_CA.UTF-8";
+    LC_TELEPHONE = mkDefault "en_CA.UTF-8";
+    LC_TIME = mkDefault "en_CA.UTF-8";
   };
 
   # ============================================================================

@@ -132,7 +132,8 @@ in {
       __GL_SYNC_TO_VBLANK = "0";
 
       # VRChat/SteamVR specific variables
-      SDL_VIDEODRIVER = "wayland";
+      # SDL_VIDEODRIVER = "wayland";  # REMOVED: Causes Steam Vulkan init failure
+      # SDL auto-detects best backend; Steam client needs XWayland fallback
       WINEPREFIX = "$HOME/.wine";
       DXVK_HUD = "1"; # Enable to debug VRChat performance if needed (remove later)
     };

@@ -15,9 +15,9 @@
     ../../modules/common-host.nix
 
     # NVIDIA GPU support (common + wayland-specific)
-    ../../modules/nvidia-common.nix
-    ../../modules/nvidia-wayland.nix
-    ../../modules/podman-support.nix
+    ../../modules/hardware/nvidia-common.nix
+    ../../modules/hardware/nvidia-wayland.nix
+    ../../modules/services/podman-support.nix
   ];
 
   # ============================================================================

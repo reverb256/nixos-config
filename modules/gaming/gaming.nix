@@ -1,6 +1,13 @@
 # Gaming Module - Steam, GameMode, and optional VR support
 # VR (WiVRn) is gated by services.gaming.vr.enable option
 # Only enable VR on zephyr and nexus (high-end GPUs)
+#
+# IMPORTANT LIMITATIONS (2026-02):
+# - SteamVR async reprojection does NOT work on NVIDIA GPUs (no fix available)
+#   WiVRn handles frame timing better, but some judder may occur in SteamVR titles
+#   See: https://lvra.gitlab.io/docs/distros/nixos/#steamvr
+# - xrizer is used for OpenVR compatibility (recommended over OpenComposite)
+# - Avahi is required for WiVRn server discovery
 {
   config,
   lib,
@@ -54,8 +61,11 @@ in {
           gpu = {
             apply_gpu_optimisations = "accept-responsibility";
             nv_powermizer_mode = 1;
-            nv_core_clock_mhz_offset = 150;
-            nv_mem_clock_mhz_offset = 500;
+            # Conservative overclock values - increase gradually if stable
+            # Default: 50MHz core, 200MHz memory (safer starting point)
+            # Aggressive: 150MHz core, 500MHz memory (may cause instability)
+            nv_core_clock_mhz_offset = 50;
+            nv_mem_clock_mhz_offset = 200;
           };
           custom = {
             start = "/run/current-system/sw/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'";
@@ -87,6 +97,8 @@ in {
       # ============================================================================
       programs.steam = {
         enable = true;
+        # SteamOS-style platform optimizations (sysctl, memory management)
+        platformOptimizations.enable = true;
         fontPackages = with pkgs; [
           noto-fonts
           liberation_ttf
@@ -115,30 +127,32 @@ in {
               stdenv.cc.cc.lib
               libkrb5
               keyutils
+              libcap
+              SDL2
             ];
-          extraProfile = ''
-            unset TZ
-            cd $HOME
-            export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
-            export DXVK_ASYNC=1
-            export __GL_SHADER_DISK_CACHE=1
-            export __GL_SHADER_DISK_CACHE_SIZE=1000000000
-            export PYTHONNOUSERSITE=1
-            export PYTHONDONTWRITEBYTECODE=1
-            export PYTHONPATH=""
-            export STEAM_RUNTIME_PYTHON_VERSION=""
-            export PRESSURE_VESSEL_LOG_LEVEL=2
-            export PRESSURE_VESSEL_FILESYSTEMS_BIND_READONLY=/run/opengl-driver:/run/host/run/opengl-driver
-            export __NV_PRIME_RENDER_OFFLOAD=1
-            export __GLX_VENDOR_LIBRARY_NAME=nvidia
-            export __GL_EXTERNAL_EXTENSIONS=1
-            export CUDA_PATH=/run/opengl-driver
-            export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
-            export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
-            export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
-            export WINE_FULLSCREEN_FAKE_CAPTURE=1
-            export OPENVR_API_PATH="${pkgs.opencomposite}/lib/opencomposite"
-          '';
+           extraProfile = ''
+             # LVRA recommendation for VRChat timezone display
+             unset TZ
+             
+             cd $HOME
+             
+             # OpenXR/VR support - critical for WiVRn
+             export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
+             export PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/wivrn/comp_ipc
+             
+             # Steam container paths
+             export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
+             export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
+             export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
+             
+             # OpenVR -> OpenXR translation via xrizer
+             export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
+             
+             # CRITICAL: Fix Vulkan ICD path for NVIDIA on Wayland
+             # Steam's pressure-vessel container looks for ICD at wrong path
+             export VK_ICD_FILENAMES=/run/host/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json
+             export VK_DRIVER_FILES=/run/host/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json
+           '';
         };
       };
 
@@ -176,17 +190,36 @@ in {
 
       hardware.steam-hardware.enable = true;
 
-      # Common session variables
+      # Common session variables (gaming + MangoHud defaults)
       environment.sessionVariables = {
         PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES = "1";
         WINE_FULLSCREEN_FAKE_CAPTURE = "1";
         __NV_PRIME_RENDER_OFFLOAD = "1";
         __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+        # Force X11 backend for SDL games on Wayland (fixes invisible window issues)
+        SDL_VIDEODRIVER = "x11";
+        # MangoHud default configuration (can be overridden per-game)
+        MANGOHUD_CONFIG = "fps,frametime,cpu_stats,gpu_stats,vram,ram,cpu_temp,gpu_temp,core_load,background_alpha=0.5,position=top-left,toggle_hud=Shift_R+F12";
       };
 
       # Graphics support
       hardware.graphics.enable = true;
       hardware.graphics.enable32Bit = true;
+
+      # ============================================================================
+      # PIPEWIRE LOW-LATENCY - Override desktop.nix for lower gaming latency
+      # ============================================================================
+      # desktop.nix sets 256/48000 (~5.3ms) which is good for desktop use
+      # For gaming, we want 64/48000 (~1.3ms) for minimal audio latency
+      # Using mkForce to override desktop.nix's higher values
+      services.pipewire.extraConfig = {
+        pipewire."99-lowlatency"."context.properties" = {
+          "default.clock.min-quantum" = mkForce 64;
+          "default.clock.max-quantum" = mkForce 2048;
+        };
+        pipewire-pulse."99-lowlatency"."pulse.min.quantum" = mkForce "64/48000";
+        client."99-lowlatency"."stream.properties"."node.latency" = mkForce "64/48000";
+      };
 
       # Gamescope configuration
       programs.gamescope = {
@@ -198,7 +231,8 @@ in {
           __GL_SHADER_DISK_CACHE_PATH = "/var/cache/nvidia-shader-cache";
           __GLX_FORCE_MONO = "0";
           __GL_ALLOW_FXAA_USAGE = "1";
-          ENABLE_HDR_WSI = "11";
+          # HDR configuration - ENABLE_GAMESCOPE_WSI=1 is the standard value
+          ENABLE_GAMESCOPE_WSI = "1";
           DXVK_HDR = "1";
         };
         args = [
@@ -213,6 +247,13 @@ in {
           "--expose-wayland"
         ];
       };
+
+      # ============================================================================
+      # MANGOHUD - Performance overlay for games
+      # ============================================================================
+      # Note: programs.mangohud is a Home Manager option, not NixOS
+      # Configuration is handled via MANGOHUD_CONFIG env var (set in sessionVariables)
+      # or ~/.config/MangoHud/MangoHud.conf (can be managed via GOverlay)
 
       # Common gaming packages
       environment.systemPackages = with pkgs; [
@@ -230,8 +271,19 @@ in {
       ];
     })
 
-    # VR configuration (only when vr.enable = true)
+      # VR configuration (only when vr.enable = true)
     (mkIf vrCfg.enable {
+      # ============================================================================
+      # AVAHI - Required for WiVRn server discovery
+      # ============================================================================
+      # Without Avahi, the WiVRn server won't appear in headset discovery
+      # and manual IP connection will be required
+      services.avahi = {
+        enable = true;
+        nssmdns4 = true;
+        openFirewall = true;
+      };
+
       # ============================================================================
       # WIVRN - Wireless VR Streaming for Quest Headsets
       # ============================================================================
@@ -244,7 +296,7 @@ in {
 
       # VR-specific session variables
       environment.sessionVariables = {
-        OPENVR_API_PATH = "${pkgs.opencomposite}/lib/opencomposite";
+        OPENVR_API_PATH = "${pkgs.xrizer}/lib/xrizer";
       };
 
       # VR firewall ports

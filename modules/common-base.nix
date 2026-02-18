@@ -52,6 +52,18 @@
     enableSystemSlice = true;
   };
 
+  # ============================================================================
+  # QT MODULE - Use Breeze for stability
+  # Kvantum can cause issues with Plasma 6 Wayland on NVIDIA:
+  # - "module 'kvantum' is not installed" QML errors
+  # - EGL context creation failures for decorations
+  # Use Breeze (KDE's native style) for stability
+  # ============================================================================
+  qt = {
+    enable = true;
+    style = "breeze";
+  };
+
   # Enable home-manager for user configuration (SSH, starship, etc.)
   programs.home-manager.enable = true;
 }

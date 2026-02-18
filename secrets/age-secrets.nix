@@ -10,7 +10,14 @@
     #   mode = "400";
     # };
 
-
+    # Zhipu AI (GLM) API key for NanoClaw
+    # Uses Anthropic-compatible endpoint: https://api.z.ai/api/anthropic
+    "zhipu-api-key" = {
+      file = ./zhipu-api-key.age;
+      owner = "j_kro";
+      group = "users";
+      mode = "400";
+    };
 
     # MCP Servers Exa API key
     "exa-api-key" = {
