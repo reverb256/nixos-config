@@ -1,8 +1,8 @@
 # Stylix Theming Configuration
 #
 # IMPORTANT: The main Stylix configuration has been moved to:
-#   - modules/stylix-base24.nix - Hybrid Stylix + Base24 theming module
-#   - modules/stylix-base24.md  - Documentation for the theming system
+#   - modules/desktop/stylix-base24.nix - Hybrid Stylix + Base24 theming module
+#   - modules/desktop/stylix-base24.md  - Documentation for the theming system
 #
 # This file is kept as a placeholder for any future host-specific theming overrides.
 # All shared theming logic is now in the stylix-base24.nix module.
@@ -15,5 +15,5 @@
 { ... }:
 {
   # Host-specific theming overrides can go here
-  # For shared theming, see modules/stylix-base24.nix
+  # For shared theming, see modules/desktop/stylix-base24.nix
 }
