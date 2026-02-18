@@ -10,13 +10,13 @@
     ../../modules/common-host.nix
 
     # NVIDIA GPU support (common + wayland-specific)
-    ../../modules/nvidia-common.nix
-    ../../modules/nvidia-wayland.nix
+    ../../modules/hardware/nvidia-common.nix
+    ../../modules/hardware/nvidia-wayland.nix
 
     # Nexus-specific modules
-    ../../modules/mcp-servers.nix
-    ../../modules/aistor-secrets.nix
-    ../../modules/podman-support.nix
+    ../../modules/services/mcp-servers.nix
+    ../../modules/security/aistor-secrets.nix
+    ../../modules/services/podman-support.nix
   ];
 
   # ============================================================================
@@ -71,11 +71,9 @@
   # NVIDIA CONFIGURATION
   # Note: Base config is in nvidia-common.nix
   # ============================================================================
-  # Nexus-specific kernel params (in addition to nvidia-common.nix defaults)
-  boot.kernelParams = [
-    "nvidia.NVreg_EnableResizableBar=1"
-    "nvidia.NVreg_EnableGpuFirmware=1"
-  ];
+  # Nexus-specific kernel params (appended after nvidia-common.nix defaults)
+  # No additional params needed beyond nvidia-common.nix defaults
+
 
   # ============================================================================
   # SERVICES
@@ -99,7 +97,7 @@
         nvidia = {
           enable = true;
           devices = "0,1";
-          powerLimit = 120;
+          powerLimit = 130;
         };
       };
     };
@@ -124,5 +122,5 @@
   # ============================================================================
   # USER GROUPS
   # ============================================================================
-  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale"];
+  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale" "video" "render"];
 }

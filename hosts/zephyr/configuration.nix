@@ -10,18 +10,18 @@
     ../../modules/common-host.nix
 
     # NVIDIA GPU support (common + wayland-specific)
-    ../../modules/nvidia-common.nix
-    ../../modules/nvidia-wayland.nix
+    ../../modules/hardware/nvidia-common.nix
+    ../../modules/hardware/nvidia-wayland.nix
 
     # Alternative desktop environment (Hyprland)
-    ../../modules/hyprland.nix
+    ../../modules/desktop/hyprland.nix
 
     # Zephyr-specific modules
-    ../../modules/stability-matrix.nix
-    ../../modules/nix-cache-server.nix
-    ../../modules/mcp-servers.nix
-    ../../modules/aistor-secrets.nix
-    ../../modules/podman-support.nix
+    ../../modules/services/stability-matrix.nix
+    ../../modules/system/nix-cache-server.nix
+    ../../modules/services/mcp-servers.nix
+    ../../modules/security/aistor-secrets.nix
+    ../../modules/services/podman-support.nix
   ];
 
   # ============================================================================
@@ -42,7 +42,7 @@
   # ============================================================================
   services.gaming = {
     enable = true;
-    vr.enable = false; # WiVRn, SteamVR, OpenXR
+    vr.enable = true; # WiVRn, SteamVR, OpenXR
   };
 
   # ============================================================================
@@ -92,7 +92,7 @@
 
     firewall = {
       allowedTCPPorts = [9757 18789 18790];
-      allowedUDPPorts = [9757 9758 9759 27031 27036];
+      allowedUDPPorts = [9757 9758 9759 27031 27036 5353 9947];
       interfaces."tailscale0".allowedTCPPorts = [18789 18790];
     };
   };
@@ -106,10 +106,8 @@
   # NVIDIA CONFIGURATION
   # Note: Base config is in nvidia-common.nix
   # ============================================================================
-  # Zephyr-specific kernel params (in addition to nvidia-common.nix defaults)
-  boot.kernelParams = [
-    "nvidia.NVreg_EnableResizableBar=1"
-    "nvidia.NVreg_EnableGpuFirmware=1"
+  # Zephyr-specific kernel params (appended after nvidia-common.nix defaults)
+  boot.kernelParams = lib.mkAfter [
     "split_lock_detect=off"
     "threadirqs"
     "preempt=full"
@@ -155,6 +153,13 @@
       enable = true;
       port = 8080;
     };
+
+    # NanoClaw - Personal AI assistant with WhatsApp
+    nanoclaw = {
+      enable = true;
+      assistantName = "Claw";
+      containerRuntime = "podman";
+    };
   };
 
   # ============================================================================
@@ -169,7 +174,7 @@
   # ============================================================================
   # USER GROUPS
   # ============================================================================
-  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale"];
+  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale" "video" "render"];
 
   # ============================================================================
   # CUDA ENVIRONMENT
