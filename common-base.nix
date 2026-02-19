@@ -199,7 +199,6 @@ in {
       "vm.vfs_cache_pressure" = 50;
       "kernel.sched_autogroup_enabled" = 0;
       "kernel.perf_event_paranoid" = -1;
-      "vm.max_map_count" = mkDefault 262144; # Use mkDefault so gaming module can override
       "kernel.shmmax" = 134217728;
       # Swap optimization for gaming - less aggressive swapping, more responsive
       "vm.swappiness" = 60; # Down from default 60 (or your previous 80) - less swap pressure
