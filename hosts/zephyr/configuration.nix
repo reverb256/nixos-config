@@ -24,6 +24,7 @@
     ../../modules/services/stability-matrix.nix
     ../../modules/system/nix-cache-server.nix
     ../../modules/services/mcp-servers.nix
+    ../../modules/services/github-actions-runner.nix
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/hoyoverse-controller-fix.nix
     ../../modules/services/whisper-dictation.nix
@@ -173,6 +174,16 @@
       notify = true;
       silenceTimeout = 1.5;
       silenceThreshold = "5%"; # Less sensitive to background noise
+    };
+
+    # GitHub Actions Runner - Self-hosted CI/CD runner
+    # Token expires after 1 hour - regenerate from: https://github.com/reverb256/nixos-config/settings/actions/runners
+    # To get new token: Settings > Actions > Runners > New self-hosted runner > Linux > Copy token
+    github-actions-runner = {
+      enable = true;
+      url = "https://github.com/reverb256/nixos-config";
+      token = "CHANGE_ME"; # TODO: Replace with actual registration token
+      name = "zephyr";
     };
   };
 
