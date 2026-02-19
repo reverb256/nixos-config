@@ -268,18 +268,20 @@
             if (( time_since_last >= MIN_ADJUST_INTERVAL )); then
               new_fan=$(calculate_fan "$temp" "''${LAST_TEMP[$gpu]}" "''${LAST_FAN[$gpu]}")
 
-              # Only update if fan speed changed significantly (>= 5%)
+              # Update fan speed if changed significantly (>= 5%)
               fan_change=$((new_fan - LAST_FAN[$gpu]))
               if (( fan_change >= 5 || fan_change <= -5 )); then
                 log "GPU$gpu: ''${temp}°C (was ''${LAST_TEMP[$gpu]}°C) -> fan ''${new_fan}% (was ''${LAST_FAN[$gpu]}%)"
-                set_fan "$new_fan" $gpu
                 LAST_FAN[$gpu]=$new_fan
                 LAST_TEMP[$gpu]=$temp
                 LAST_ADJUST_TIME[$gpu]=$current_time
               else
-                # Update temp tracker even if we don't change fan
+                # Update temp tracker even if we don't change fan target
                 LAST_TEMP[$gpu]=$temp
               fi
+
+              # ALWAYS write PWM to fight driver overrides (every 5s min)
+              set_fan "''${LAST_FAN[$gpu]}" $gpu
             fi
           done
 
