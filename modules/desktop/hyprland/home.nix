@@ -26,7 +26,7 @@ in {
   # Home Manager packages for Hyprland
   home.packages = with pkgs; [
     waybar
-    rofi-wayland
+    rofi
     mako
     swaylock
     swaylock-effects

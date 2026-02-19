@@ -24,10 +24,10 @@
       # ============================================================
       # APPLICATION LAUNCHERS
       # ============================================================
-      "$mainMod, D, Launch application, exec, ${pkgs.rofi-wayland}/bin/rofi -show drun"
-      "$mainMod SHIFT, D, Show windows, exec, ${pkgs.rofi-wayland}/bin/rofi -show window"
-      "$mainMod, A, Show apps, exec, ${pkgs.rofi-wayland}/bin/rofi -show apps"
-      "$mainMod, K, Show keybindings, exec, ${pkgs.rofi-wayland}/bin/rofi -show file"
+      "$mainMod, D, Launch application, exec, ${pkgs.rofi}/bin/rofi -show drun"
+      "$mainMod SHIFT, D, Show windows, exec, ${pkgs.rofi}/bin/rofi -show window"
+      "$mainMod, A, Show apps, exec, ${pkgs.rofi}/bin/rofi -show apps"
+      "$mainMod, K, Show keybindings, exec, ${pkgs.rofi}/bin/rofi -show file"
       "$mainMod, E, File manager, exec, ${pkgs.thunar}/bin/thunar"
       "$mainMod, F, Firefox, exec, ${pkgs.firefox}/bin/firefox"
       "$mainMod, C, VSCodium, exec, ${pkgs.vscodium}/bin/codium"
@@ -132,7 +132,7 @@
       # WALLPAPER & APPEARANCE (Omarchy: uses B for background)
       # ============================================================
       "$mainMod, B, Wallpaper picker, exec, ${pkgs.waypaper}/bin/waypaper"
-      "$mainMod SHIFT, B, Next wallpaper, exec, ${pkgs.swww}/bin/swww img \$(${pkgs.rofi-wayland}/bin/rofi -show file)"
+      "$mainMod SHIFT, B, Next wallpaper, exec, ${pkgs.swww}/bin/swww img \$(${pkgs.rofi}/bin/rofi -show file)"
       "$mainMod CTRL, B, Color picker, exec, ${pkgs.hyprpicker}/bin/hyprpicker -a"
 
       # ============================================================
@@ -151,12 +151,12 @@
       # ============================================================
       # UTILITIES
       # ============================================================
-      "$mainMod, V, Emoji picker, exec, ${pkgs.rofi-wayland}/bin/rofi -show emoji"
+      "$mainMod, V, Emoji picker, exec, ${pkgs.rofi}/bin/rofi -show emoji"
       "$mainMod, comma, Dismiss notification, exec, ${pkgs.mako}/bin/makoctl dismiss"
       "$mainMod SHIFT, comma, Dismiss all notifications, exec, ${pkgs.mako}/bin/makoctl dismiss -a"
       "$mainMod, period, Restore notification, exec, ${pkgs.mako}/bin/makoctl restore"
-      "$mainMod, Tab, Show windows, exec, ${pkgs.rofi-wayland}/bin/rofi -show window"
-      "$mainMod SHIFT, Tab, Show windows (cd), exec, ${pkgs.rofi-wayland}/bin/rofi -show windowcd"
+      "$mainMod, Tab, Show windows, exec, ${pkgs.rofi}/bin/rofi -show window"
+      "$mainMod SHIFT, Tab, Show windows (cd), exec, ${pkgs.rofi}/bin/rofi -show windowcd"
 
       # Scroll through workspaces with mouse
       "$mainMod, mouse_down, Scroll workspace down, workspace, e+1"
