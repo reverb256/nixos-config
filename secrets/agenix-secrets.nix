@@ -3,11 +3,9 @@
   lib,
   pkgs,
   ...
-}: let
-  # Load the actual secrets configuration
-  secretsConfig = import ./age-secrets.nix {inherit config lib pkgs;};
-in {
-  imports = [secretsConfig];
+}: {
+  # Import the secrets configuration
+  imports = [./age-secrets.nix];
 
   # Agenix configuration
   age.secretsDir = "/run/agenix";
