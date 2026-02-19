@@ -120,19 +120,30 @@ Internet ── Router (10.1.1.1)
 - **Mining troubleshooting** and fixes documented in `docs/MINING_TROUBLESHOOTING.md`
 - **Performance monitoring** across all hosts
 
-**🎯 ScopeBuddy Auto-Detection:**
-- **Resolution**: Automatically detects display resolution
-- **HDR**: Auto-enables HDR for HDR-capable displays
-- **VRR**: Auto-enables adaptive sync for VRR displays  
-- **System-wide**: Applies to ALL users via declarative NixOS configuration
-- **Steam Integration**: Use `scb -- %command%` in launch options
+### **🎤 Speech-to-Text Dictation** ✅ NEW
+- **Whisper Dictation** enabled on all desktop hosts
+- **Real-time transcription** using whisper-cpp with GGML base.en model
+- **Two modes available**: toggle and auto-stop on silence
+- **KDE Plasma notifications** for transcription status
+- **Dual injection**: type directly + copy to clipboard
+- **Automatic model download** on first use (141MB)
+- **Cross-platform support**: Works on both Plasma Wayland and X11 via XWayland
+
+**Usage:**
+```bash
+whisper-dictate        # Toggle mode - press again to stop
+whisper-dictate-auto    # Auto-stops on silence (1.5s)
+```
+
+**Configuration:** Available on all nodes (Zephyr, Nexus, Forge, Sentry) via `modules/common-host.nix` import.
 
 **🎯 ScopeBuddy Auto-Detection:**
 - **Resolution**: Automatically detects display resolution
 - **HDR**: Auto-enables HDR for HDR-capable displays
-- **VRR**: Auto-enables adaptive sync for VRR displays  
+- **VRR**: Auto-enables adaptive sync for VRR displays
 - **System-wide**: Applies to ALL users via declarative NixOS configuration
 - **Steam Integration**: Use `scb -- %command%` in launch options
+- **Manual Override**: `SCB_AUTO_RES=0 scb -- %command%` to disable
 
 ### **🛡️ Security**
 - **Agenix encrypted secrets** management

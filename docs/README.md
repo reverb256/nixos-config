@@ -25,6 +25,7 @@
 | [MINING.md](MINING.md) | Mining configuration |
 | [PERIPHERALS.md](PERIPHERALS.md) | Razer/Corsair devices |
 | [GPU_BUILDS.md](GPU_BUILDS.md) | GPU build configuration |
+| [WHISPER_DICTATION.md](WHISPER_DICTATION.md) | Speech-to-text setup |
 
 ---
 **Total docs:** 12 (down from 116)
