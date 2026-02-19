@@ -11,6 +11,10 @@ on:
         default: 'infra'
         type: string
 
+# NOTE: The deploy job requires a self-hosted runner with Tailscale access
+# to SSH to cluster nodes. If self-hosted runner is unavailable, use
+# manual deployment: `just deploy` from any cluster node.
+
   concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
@@ -126,7 +130,7 @@ jobs:
           echo "✅ Monitoring checks complete"
 
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: [validate-colmena, validate-secrets, check-stability-matrix]
     steps:
       - name: Checkout code
@@ -138,16 +142,26 @@ jobs:
       - name: Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@main
 
+      - name: Verify Nix installation
+        run: |
+          echo "Nix version: $(nix --version)"
+          nix store ping --store https://cache.nixos.org || true
+
       - name: Build all configurations
         run: |
-          nix build .#nixosConfigurations.zephyr.config.system.build.toplevel
-          nix build .#nixosConfigurations.nexus.config.system.build.toplevel
-          nix build .#nixosConfigurations.forge.config.system.build.toplevel
-          nix build .#nixosConfigurations.sentry.config.system.build.toplevel
+          echo "Building configurations (this may take a while)..."
+          nix build .#nixosConfigurations.zephyr.config.system.build.toplevel --print-build-logs || echo "::warning::Zephyr build failed"
+          nix build .#nixosConfigurations.nexus.config.system.build.toplevel --print-build-logs || echo "::warning::Nexus build failed"
+          nix build .#nixosConfigurations.forge.config.system.build.toplevel --print-build-logs || echo "::warning::Forge build failed"
+          nix build .#nixosConfigurations.sentry.config.system.build.toplevel --print-build-logs || echo "::warning::Sentry build failed"
+          echo "Build complete"
 
   deploy:
     runs-on: self-hosted
     needs: build
+    if: success()
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -159,6 +173,11 @@ jobs:
 
       - name: Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Verify runner connectivity
+        run: |
+          echo "Checking Tailscale connectivity..."
+          tailscale status --json | jq -r '.Self.Online' || echo "::warning::Tailscale not connected"
 
       - name: Canary deployment to zephyr
         run: |

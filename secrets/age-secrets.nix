@@ -26,5 +26,13 @@
       group = "users";
       mode = "400";
     };
+
+    # HuggingFace token for model downloads
+    "hf-token" = {
+      file = ./hf-token.age;
+      owner = "j_kro";
+      group = "users";
+      mode = "400";
+    };
   };
 }
