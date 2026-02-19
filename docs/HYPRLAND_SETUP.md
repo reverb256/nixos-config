@@ -35,15 +35,17 @@ modules/desktop/hyprland/
 - Colors sync across both desktop environments
 - Window borders match your system theme
 
-### **Smart Keybindings**
+### **Smart Keybindings** (Omarchy-inspired)
 - `SUPER+Return` → Kitty terminal
-- `SUPER+Q` → Kill window
+- `SUPER+W` → Close window
 - `SUPER+D` → Application launcher (rofi)
 - `SUPER+F` → Toggle fullscreen
-- `HJKL` → Vim-style window navigation
-- `SUPER+1-0` → Switch workspaces
+- `HJKL` or Arrows → Vim-style window navigation
+- `SUPER+1-0` → Switch workspaces (uses code:10-19)
 - `Print` → Screenshot (copy to clipboard)
 - `SUPER+Print` → Screenshot region selection
+- `SUPER+S` → Toggle scratchpad workspace
+- `SUPER+G` → Toggle window grouping
 
 ### **Window Rules**
 - Browsers → Workspace 1
@@ -80,21 +82,27 @@ modules/desktop/hyprland/
 **Window Management:**
 - `SUPER+H/J/K/L` or Arrow keys - Move focus
 - `SUPER+SHIFT+H/J/K/L` - Move windows
+- `SUPER+T` - Toggle floating/tiling
 - `SUPER+Space` - Toggle floating
-- `SUPER+T` - Toggle pseudotile (split direction)
+- `SUPER+G` - Toggle window grouping
+- `SUPER+ALT+Arrows` - Navigate between window groups
 
 **Workspace Navigation:**
-- `SUPER+[1-0]` - Switch workspace
+- `SUPER+[1-0]` - Switch workspace (uses number keys)
 - `SUPER+SHIFT+[1-0]` - Move window to workspace
 - `SUPER+[/]` - Previous/next workspace
+- `SUPER+S` - Toggle scratchpad workspace
+- `SUPER+SHIFT+S` - Move window to scratchpad
 
 **Common Tasks:**
 - `SUPER+E` - Thunar file manager
 - `SUPER+N` - Discord
 - `SUPER+F` - Firefox
 - `SUPER+C` - VSCodium
-- `SUPER+Escape` - Lock screen
-- `SUPER+SHIFT+Escape` - Logout menu
+- `SUPER+B` - Wallpaper picker
+- `SUPER+K` - Show keybindings (with rofi)
+- `SUPER+Escape` - System menu (logout, reboot, etc.)
+- `SUPER+SHIFT+Escape` - Lock screen
 
 ### **Screenshots**
 - `Print` - Capture screen to clipboard
@@ -127,8 +135,19 @@ modules/desktop/hyprland/
 Edit `modules/desktop/hyprland/binds.nix`:
 
 ```nix
+# Basic syntax
 "$mainMod, KEY, ACTION, params"
+
+# Example
+"$mainMod, Return, Open terminal, exec, ${pkgs.kitty}/bin/kitty"
 ```
+
+**Omarchy-inspired patterns used:**
+- Window grouping (`SUPER+G`) - Treat multiple windows as a single unit
+- Scratchpad workspace (`SUPER+S`) - Temporarily stash windows
+- `SUPER+W` to close (Omarchy pattern)
+- `code:10-19` for workspace keys (more portable than 1-9)
+- Resize with `=`/-` keys (`SUPER+equal`, `SUPER+minus`)
 
 ### **Adding Window Rules**
 
