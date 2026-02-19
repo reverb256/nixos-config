@@ -122,15 +122,15 @@
         # Fan curve configuration (RX 5700 XT optimized)
         # Format: "TEMP:TARGET_FAN_SPEED"
         # Temp in Celsius, fan speed as percentage (0-100)
-        # VERY AGGRESSIVE curve - AMD driver overrides to 100% at ~65-70°C junction
+        # Balanced curve - max 80% to reduce noise while keeping temps reasonable
+        # Note: AMD driver may still override to 100% if junction temp hits ~70°C
         FAN_CURVE=(
-          "50:75"   # 50°C -> 75% (high base to prevent thermal creep)
-          "55:85"   # 55°C -> 85%
-          "60:95"   # 60°C -> 95%
-          "62:100"  # 62°C -> 100% (near driver override threshold)
-          "65:100"  # 65°C -> 100% (at driver override threshold)
-          "70:100"  # 70°C -> 100% (emergency - maximum cooling)
-          "75:100"  # 75°C -> 100% (maximum cooling)
+          "50:50"   # 50°C -> 50% (quiet operation)
+          "55:60"   # 55°C -> 60%
+          "60:70"   # 60°C -> 70%
+          "65:80"   # 65°C -> 80% (max fan speed - noise limit)
+          "70:80"   # 70°C -> 80% (at driver threshold - will likely override)
+          "75:80"   # 75°C -> 80%
         )
 
         # Hysteresis configuration (prevents rapid oscillation)
