@@ -122,15 +122,15 @@
         # Fan curve configuration (RX 5700 XT optimized)
         # Format: "TEMP:TARGET_FAN_SPEED"
         # Temp in Celsius, fan speed as percentage (0-100)
-        # Increased targets to stay below 70°C AMD driver threshold
+        # AGGRESSIVE curve to keep junction temps well below 70°C AMD driver threshold
         FAN_CURVE=(
-          "50:40"   # 50°C -> 40% (idle/low load)
-          "55:50"   # 55°C -> 50%
-          "60:60"   # 60°C -> 60%
-          "65:70"   # 65°C -> 70%
-          "70:75"   # 70°C -> 75% (below driver override threshold)
-          "75:80"   # 75°C -> 80%
-          "80:90"   # 80°C -> 90%
+          "50:50"   # 50°C -> 50% (higher base to prevent thermal creep)
+          "55:65"   # 55°C -> 65%
+          "60:75"   # 60°C -> 75%
+          "65:85"   # 65°C -> 85%
+          "68:90"   # 68°C -> 90% (critical - approaching driver override)
+          "70:95"   # 70°C -> 95% (emergency - at driver threshold)
+          "75:100"  # 75°C -> 100% (maximum cooling)
         )
 
         # Hysteresis configuration (prevents rapid oscillation)
@@ -199,8 +199,9 @@
           fi
 
           # Calculate smoothed fan change (gradual ramp)
+          # Higher max_change when temps are high to prevent driver override
           local fan_diff=$((target_fan - last_fan))
-          local max_change=15  # Max 15% change per adjustment
+          local max_change=25  # Max 25% change per adjustment (increased for thermal safety)
 
           if (( fan_diff > 0 )); then
             # Ramping up
