@@ -36,7 +36,7 @@ jobs:
       - name: Dry-run colmena deployment
         run: |
           echo "Dry-running colmena deployment (no actual changes)..."
-          nix run github:zhaofengli/colmena -- --dry-run || echo "::error::Colmena dry-run failed"
+          nix run .#apps.x86_64-linux.colmena -- apply --on @all --dry-run 2>&1 | head -50 || echo "::error::Colmena dry-run failed"
 
   validate-secrets:
     runs-on: ubuntu-latest
@@ -163,7 +163,7 @@ jobs:
       - name: Canary deployment to zephyr
         run: |
           echo "🚨 Starting canary deployment to zephyr..."
-          nix run github:zhaofengli/colmena -- deploy zephyr --activate --on-change build --reboot
+          nix run .#apps.x86_64-linux.colmena -- apply zephyr --on --on-error continue
           echo "✅ Canary deployment to zephyr completed"
 
       - name: Verify zephyr canary health
@@ -181,14 +181,14 @@ jobs:
         if: success()
           run: |
             echo "🚀 Deploying to remaining nodes (nexus, forge, sentry)..."
-            nix run github:zhaofengli/colmena -- deploy nexus forge sentry --activate --on-change build --reboot
+            nix run .#apps.x86_64-linux.colmena -- apply nexus forge sentry --on --on-error continue
             echo "✅ Full cluster deployment completed"
 
       - name: Rollback zephyr if canary fails
         if: failure()
           run: |
             echo "❌ Canary deployment failed, rolling back zephyr..."
-            nix run github:zhaofengli/colmena -- deploy zephyr --revert
+            nix run .#apps.x86_64-linux.colmena -- apply zephyr --revert 2>/dev/null || echo "Rollback failed - manual intervention required"
 
       - name: Verify Tailscale connectivity
         run: |

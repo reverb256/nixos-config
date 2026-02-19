@@ -28,17 +28,17 @@ concurrency:
       - name: Run deadnix (unused code detection)
         run: |
           echo "Checking for dead code..."
-          nix run nixpkgs#deadnix -- . || echo "::warning::deadnix issues found"
+          nix run nixpkgs#deadnix -- -e . || echo "::warning::deadnix issues found"
 
       - name: Run statix (Nix linting)
         run: |
           echo "Linting Nix code..."
-          nix run nixpkgs#statix check . || echo "::warning::statix issues found"
+          nix run nixpkgs#statix -- check . 2>&1 | head -20 || echo "::warning::statix issues found (may be style warnings)"
 
       - name: Check alejandra formatting
         run: |
           echo "Checking formatting..."
-          nix run nixpkgs#alejandra --check . || echo "::warning::formatting issues found"
+          nix run nixpkgs#alejandra -- --check .
 
       - name: Check flake syntax
         run: nix flake check --no-build

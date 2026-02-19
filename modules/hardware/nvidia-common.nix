@@ -23,7 +23,7 @@
     "nvidia_drm.modeset=1"
     "nvidia_drm.fbdev=1"
     "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
-    "nvidia.NVreg_EnableResizableBar=1"  # Enable Resizable BAR for better performance
-    "nvidia.NVreg_EnableGpuFirmware=1"   # Enable GPU firmware loading
+    "nvidia.NVreg_EnableResizableBar=1" # Enable Resizable BAR for better performance
+    "nvidia.NVreg_EnableGpuFirmware=1" # Enable GPU firmware loading
   ];
 }

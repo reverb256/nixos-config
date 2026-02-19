@@ -3,7 +3,12 @@
 #
 # Uses Zhipu AI (GLM) via Anthropic-compatible endpoint
 #
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib; let
   cfg = config.services.nanoclaw;
 in {
@@ -54,12 +59,21 @@ in {
     # Create user and group with subuid/subgid for rootless podman
     users.users.${cfg.user} = {
       isSystemUser = true;
-      group = cfg.group;
-      home = cfg.dataDir;
+      inherit (cfg) group dataDir;
       description = "NanoClaw service user";
-      extraGroups = [ "podman" ];
-      subGidRanges = [{ startGid = 100000; count = 65536; }];
-      subUidRanges = [{ startUid = 100000; count = 65536; }];
+      extraGroups = ["podman"];
+      subGidRanges = [
+        {
+          startGid = 100000;
+          count = 65536;
+        }
+      ];
+      subUidRanges = [
+        {
+          startUid = 100000;
+          count = 65536;
+        }
+      ];
     };
     users.groups.${cfg.group} = {};
 
@@ -72,11 +86,11 @@ in {
     # Build container image service
     systemd.services.nanoclaw-image = {
       description = "Build NanoClaw agent container image";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "${cfg.containerRuntime}.service" "network-online.target" ];
-      wants = [ "network-online.target" ];
-      before = [ "nanoclaw.service" ];
-      
+      wantedBy = ["multi-user.target"];
+      after = ["${cfg.containerRuntime}.service" "network-online.target"];
+      wants = ["network-online.target"];
+      before = ["nanoclaw.service"];
+
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -86,12 +100,14 @@ in {
         WorkingDirectory = cfg.dataDir;
       };
 
-      path = [
-        pkgs.git
-        pkgs.nodejs_22
-        pkgs.bash
-        pkgs.coreutils
-      ] ++ lib.optional (cfg.containerRuntime == "podman") pkgs.podman
+      path =
+        [
+          pkgs.git
+          pkgs.nodejs_22
+          pkgs.bash
+          pkgs.coreutils
+        ]
+        ++ lib.optional (cfg.containerRuntime == "podman") pkgs.podman
         ++ lib.optional (cfg.containerRuntime == "docker") pkgs.docker;
 
       # Environment for npm scripts
@@ -103,7 +119,7 @@ in {
         set -e
 
         cd ${cfg.dataDir}
-        
+
         # Ensure git is happy with the directory
         git config --global --add safe.directory ${cfg.dataDir} 2>/dev/null || true
 
@@ -128,10 +144,10 @@ in {
         # Build container image
         echo "Building container image..."
         cd container
-        
+
         # Fix Dockerfile to use docker.io explicitly
         sed -i 's|FROM node:|FROM docker.io/library/node:|g' Dockerfile
-        
+
         ${cfg.containerRuntime} build -t nanoclaw-agent:latest .
 
         # Fix ownership for nanoclaw user
@@ -144,10 +160,10 @@ in {
     # Main NanoClaw service
     systemd.services.nanoclaw = {
       description = "NanoClaw - Personal Claude Assistant";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" "nanoclaw-image.service" ];
-      wants = [ "network-online.target" ];
-      requires = [ "nanoclaw-image.service" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network-online.target" "nanoclaw-image.service"];
+      wants = ["network-online.target"];
+      requires = ["nanoclaw-image.service"];
 
       serviceConfig = {
         Type = "simple";
@@ -168,15 +184,15 @@ in {
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
-        RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
+        RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
         RestrictNamespaces = true;
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
         LockPersonality = true;
-        MemoryDenyWriteExecute = false;  # Node.js needs JIT
-        ReadWritePaths = [ cfg.dataDir ];
+        MemoryDenyWriteExecute = false; # Node.js needs JIT
+        ReadWritePaths = [cfg.dataDir];
         SystemCallArchitectures = "native";
-        SystemCallFilter = [ "@system-service" "~@privileged" ];
+        SystemCallFilter = ["@system-service" "~@privileged"];
         CapabilityBoundingSet = "";
         AmbientCapabilities = "";
         UMask = "0077";

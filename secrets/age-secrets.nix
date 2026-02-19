@@ -1,4 +1,4 @@
-{...}: {
+{
   age.secrets = {
     # Mining API token for XMRig HTTP API (internal stats/pause/resume)
     # NOTE: Temporarily disabled - age identity not available on forge

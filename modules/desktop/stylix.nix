@@ -11,9 +11,7 @@
 #   - Stylix (Base16): config.lib.stylix.colors.base00-base0F
 #   - Base24 (Bright): config.base24.base10-base17
 #   - Base24 via Stylix: config.stylix.base24.base10-base17
-
-{ ... }:
-{
+{...}: {
   # Host-specific theming overrides can go here
   # For shared theming, see modules/desktop/stylix-base24.nix
 }

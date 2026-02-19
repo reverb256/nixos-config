@@ -9,8 +9,6 @@ in {
   # Mining (active)
   "mining-api-token".publicKeys = allHosts;
 
-
-
   # Exa API key (optional, for MCP servers)
   "exa-api-key".publicKeys = allHosts;
 }

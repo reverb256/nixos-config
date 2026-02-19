@@ -52,8 +52,6 @@
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
-
-
     # Stylix - Declarative theming for NixOS
     stylix.url = "github:danth/stylix/master";
     stylix.inputs.nixpkgs.follows = "nixpkgs";
@@ -73,14 +71,14 @@
     nixpkgs,
     ...
   }: let
-      # Common modules shared across all hosts, inlined here for clarity
-      commonModules = [
-        # Stylix MUST be first - it initializes the stylix option namespace
-        # that other modules depend on
-        inputs.stylix.nixosModules.stylix
+    # Common modules shared across all hosts, inlined here for clarity
+    commonModules = [
+      # Stylix MUST be first - it initializes the stylix option namespace
+      # that other modules depend on
+      inputs.stylix.nixosModules.stylix
 
-       # Enable Stylix system-wide with Tokyo City Dark theme
-      ({ pkgs, ... }: {
+      # Enable Stylix system-wide with Tokyo City Dark theme
+      ({pkgs, ...}: {
         stylix = {
           enable = true;
           base16Scheme = "${pkgs.base16-schemes}/share/themes/tokyo-city-terminal-dark.yaml";
@@ -110,7 +108,7 @@
           };
         };
       })
-      
+
       # External Modules (must come before common-base.nix)
       inputs.aagl.nixosModules.default
       inputs.determinate.nixosModules.default
@@ -130,7 +128,7 @@
       {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
-        home-manager.users.j_kro = { pkgs, ... }: {
+        home-manager.users.j_kro = {...}: {
           imports = [
             ./home.nix
             # NOTE: stylix.homeModules.stylix is auto-imported by NixOS module

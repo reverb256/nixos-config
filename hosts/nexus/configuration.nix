@@ -74,7 +74,6 @@
   # Nexus-specific kernel params (appended after nvidia-common.nix defaults)
   # No additional params needed beyond nvidia-common.nix defaults
 
-
   # ============================================================================
   # SERVICES
   # ============================================================================

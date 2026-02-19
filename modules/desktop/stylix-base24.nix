@@ -7,12 +7,15 @@
 # Usage:
 #   - Stylix colors: config.lib.stylix.colors.base00
 #   - Base24 colors: config.base24.base10 (bright red), base11 (bright green), etc.
-
-{ pkgs, lib, config, inputs, ... }:
-
-let
+{
+  pkgs,
+  lib,
+  config,
+  inputs,
+  ...
+}: let
   # Import base16.nix library functions
-  base16Lib = inputs.base16.lib { inherit pkgs lib; };
+  base16Lib = inputs.base16.lib {inherit pkgs lib;};
 
   # Base24 adds 8 additional colors (base10-base17) for bright ANSI colors:
   # base10 = bright red, base11 = bright green, base12 = bright yellow
@@ -28,8 +31,7 @@ let
   # Generate full Base24 scheme attrs using base16.nix
   # This provides access to base10-base17 (bright colors)
   base24Scheme = base16Lib.mkSchemeAttrs stylixScheme;
-in
-{
+in {
   # Expose Base24 colors through a convenient interface
   # Access via: config.base24.base10, config.base24.base11, etc.
   options.base24 = lib.mkOption {

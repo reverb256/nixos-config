@@ -37,7 +37,6 @@
 
   # User packages - development tools, shell utilities, and applications
   home.packages = with pkgs; [
-
     # Shell tools (configured in programs section below)
     btop
     fzf
@@ -100,10 +99,9 @@
   ];
 
   home.sessionVariables = {
-    # MCP Server Configuration
-    MCP_SERVER_URL = "http://localhost:3000";
+    # MCP Configuration
     MCP_ENABLED = "true";
-    WEB_SEARCH_ENABLED = "true";
+    OPENCODE_MCP_SCHEMA_FIX = "1";
 
     API_TIMEOUT_MS = "3000000";
 
@@ -328,7 +326,7 @@
   # Stylix theming - Apply Tokyo City Dark theme to all applications
   stylix.targets = {
     # Browser
-    zen-browser.profileNames = [ "default" ];
+    zen-browser.profileNames = ["default"];
 
     # Shell and Prompt
     fish.enable = true;
@@ -602,16 +600,16 @@
 
   # Create writable konsolerc with default profile
   home.activation.konsolercWritable = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    # Create directory if it doesn't exist
-    mkdir -p $HOME/.config
+        # Create directory if it doesn't exist
+        mkdir -p $HOME/.config
 
-    # Write konsolerc with default profile (only if file doesn't exist or is a symlink)
-    if [ ! -e "$HOME/.config/konsolerc" ] || [ -L "$HOME/.config/konsolerc" ]; then
-      cat > "$HOME/.config/konsolerc" <<EOF
-[Desktop Entry]
-DefaultProfile=Stylix.profile
-EOF
-    fi
+        # Write konsolerc with default profile (only if file doesn't exist or is a symlink)
+        if [ ! -e "$HOME/.config/konsolerc" ] || [ -L "$HOME/.config/konsolerc" ]; then
+          cat > "$HOME/.config/konsolerc" <<EOF
+    [Desktop Entry]
+    DefaultProfile=Stylix.profile
+    EOF
+        fi
   '';
 
   # Claude Code KwaiKAT Model Development Tool Configuration

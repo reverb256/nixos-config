@@ -1,10 +1,13 @@
 # RGB Lighting Control Module
 # Supports Corsair, Razer, Gigabyte/Aorus, MSI, and EVGA devices via OpenRGB
-
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 with lib; let
   cfg = config.hardware.rgb;
-
 in {
   options.hardware.rgb = {
     enable = mkEnableOption "RGB lighting control support";
@@ -31,9 +34,9 @@ in {
   config = mkIf cfg.enable {
     # Load I2C kernel modules for motherboard and RAM RGB
     boot.kernelModules = lib.mkIf cfg.openrgb.enable [
-      "i2c_dev"      # I2C device access (/dev/i2c-*)
-      "i2c_piix4"    # AMD X570 motherboard I2C
-      "i2c_smbus"     # SMBus support
+      "i2c_dev" # I2C device access (/dev/i2c-*)
+      "i2c_piix4" # AMD X570 motherboard I2C
+      "i2c_smbus" # SMBus support
     ];
 
     # Install RGB packages

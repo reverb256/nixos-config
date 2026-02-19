@@ -2,7 +2,7 @@
 # Colmena deployment wrapper script - Multi-User Session-Safe Version
 set -e
 
-HIVE="/etc/nixos/hive.nix"
+HIVE="/etc/nixos/colmena.nix"
 COLMENA="colmena"
 
 # Show help if no arguments or if help is requested

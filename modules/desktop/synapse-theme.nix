@@ -1,10 +1,7 @@
-{ pkgs, lib, config, ... }:
-
-let
+{config, ...}: let
   colors = config.stylix.base16Scheme;
   base24 = config.base24 or {};
-in
-{
+in {
   # Generate Synapse theme config at build time
   environment.etc."synapse/theme.json".text = builtins.toJSON {
     name = "Synapse Theme";
