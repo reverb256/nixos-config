@@ -110,7 +110,6 @@
     OPENROUTER_API_KEY_FILE = "/run/agenix/openrouter-api-key";
 
     # OpenCode environment variables
-    OPENCODE_MCP_SCHEMA_FIX = "1";
     OPENCODE_TOOL_STRUCTURED_OUTPUT = "1";
     OPENCODE_PATH_FIX = "1";
   };
