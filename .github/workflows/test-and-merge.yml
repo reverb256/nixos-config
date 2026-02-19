@@ -99,7 +99,7 @@ jobs:
           }
 
           echo "Merging main into infra..."
-          git merge origin/main --no-edit -m "Merge main to infra [skip ci]" || {
+          git merge origin/main --no-edit -m "Merge main to infra" || {
             echo "::error::Failed to merge main into infra"
             git status
             exit 1
