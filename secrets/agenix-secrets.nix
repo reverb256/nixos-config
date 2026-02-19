@@ -18,11 +18,10 @@
   ];
 
   # HuggingFace token (manually encrypted with age)
-  # NOTE: Temporarily disabled - recreate with: echo "TOKEN" | age -a -R ~/.config/age/keys.txt > hf-token.age
-  # age.secrets.hf-token = {
-  #   file = ./hf-token.age;
-  #   owner = "j_kro";
-  #   group = "users";
-  #   mode = "400";
-  # };
+  age.secrets.hf-token = {
+    file = ./hf-token.age;
+    owner = "j_kro";
+    group = "users";
+    mode = "400";
+  };
 }
