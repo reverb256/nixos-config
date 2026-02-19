@@ -56,18 +56,18 @@ concurrency:
     needs: test
     if: success()
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Configure git
-      run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
+      - name: Configure git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
-    - name: Merge main to infra
-      run: |
-        git fetch origin
-        git checkout infra
-        git pull origin infra
-        git merge origin/main --no-edit
-        git push origin infra
+      - name: Merge main to infra
+        run: |
+          git fetch origin
+          git checkout infra
+          git pull origin infra
+          git merge origin/main --no-edit
+          git push origin infra
