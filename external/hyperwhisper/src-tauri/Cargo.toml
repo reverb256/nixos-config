@@ -1,0 +1,47 @@
+[package]
+name = "hyperwhisper"
+version = "0.1.0"
+description = "The most productive speech to text app for linux"
+authors = ["shenoy.ameya@gmail.com"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "hyperwhisper_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["macos-private-api", "unstable"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+cpal = "0.15"
+base64 = "0.22"
+chrono = "0.4"
+dirs = "5"
+tungstenite = { version = "0.21", features = ["native-tls"] }
+native-tls = "0.2"
+url = "2"
+zbus = "4"
+ureq = { version = "2", features = ["json"] }
+sha2 = "0.10"
+hex = "0.4"
+rubato = "0.15"
+clap = { version = "4", features = ["derive"] }
+# Multi-model local transcription
+transcribe-rs = { version = "0.2", features = ["whisper", "parakeet", "moonshine"] }
+# Note: silero-vad-rs has ort version conflict with transcribe-rs, using simple energy-based VAD instead
+
+[dependencies.async-trait]
+version = "0.1"
+
+[dependencies.tokio]
+version = "1"
+features = ["sync", "rt-multi-thread", "macros", "time"]

@@ -17,7 +17,7 @@
       "$mainMod, W, Close window, killactive"
       "$mainMod SHIFT, W, Close terminal, exec, pkill -9 kitty"
       "$mainMod, Escape, System menu, exec, ${pkgs.wlogout}/bin/wlogout"
-      "$mainMod SHIFT, Escape, Lock screen, exec, ${pkgs.swaylock}/bin/swaylock -f -c $base00"
+      "$mainMod SHIFT, Escape, Lock screen, exec, ${pkgs.swaylock-effects}/bin/swaylock -f -c $base00"
       "$mainMod, L, Lock screen (effects), exec, ${pkgs.swaylock-effects}/bin/swaylock-effects"
       "$mainMod SHIFT, R, Exit Hyprland, exec, pkill hyprland && dispatch exit"
 
@@ -165,7 +165,7 @@
 
     bindl = [
       # Lock when laptop closes
-      ", switch:Lid Switch, Lock screen, exec, ${pkgs.swaylock}/bin/swaylock -f -c $base00"
+      ", switch:Lid Switch, Lock screen, exec, ${pkgs.swaylock-effects}/bin/swaylock -f -c $base00"
     ];
 
     binde = [

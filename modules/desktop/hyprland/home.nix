@@ -17,10 +17,23 @@ in {
     xwayland.enable = true;
 
     # Extra config will be merged from the imported modules above
-    settings = { };
+    settings = {
+      # Override any conflicting default settings
+      general = lib.mkOverride 1000 {
+        gaps_in = 5;
+        gaps_out = 10;
+        border_size = 2;
+        "col.active_border" = "rgba($base0Dff) rgba($base0Fff) 45deg";
+        "col.inactive_border" = "rgba($base0080)";
+        layout = "dwindle";
+        resize_on_border = true;
+        extend_border_grab_area = 15;
+        hover_icon_on_border = true;
+      };
+    };
 
-    # System-wide startup applications
-    systemdIntegration = true;
+    # System-wide startup applications (using new systemd.enable option)
+    systemd.enable = true;
   };
 
   # Home Manager packages for Hyprland
@@ -28,8 +41,7 @@ in {
     waybar
     rofi
     mako
-    swaylock
-    swaylock-effects
+    swaylock-effects # includes swaylock with effects/blur support
     hyprlock
     wlogout
     waypaper

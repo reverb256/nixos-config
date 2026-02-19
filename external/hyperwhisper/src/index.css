@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(0 0% 3.9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(0 0% 3.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(0 0% 3.9%);
+  --primary: hsl(221 83% 53%);
+  --primary-foreground: hsl(0 0% 98%);
+  --secondary: hsl(0 0% 96.1%);
+  --secondary-foreground: hsl(0 0% 9%);
+  --muted: hsl(0 0% 96.1%);
+  --muted-foreground: hsl(0 0% 45.1%);
+  --accent: hsl(0 0% 96.1%);
+  --accent-foreground: hsl(0 0% 9%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(0 0% 89.8%);
+  --input: hsl(0 0% 89.8%);
+  --ring: hsl(221 83% 53%);
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: hsl(0 0% 3.9%);
+  --foreground: hsl(0 0% 98%);
+  --card: hsl(0 0% 7%);
+  --card-foreground: hsl(0 0% 98%);
+  --popover: hsl(0 0% 7%);
+  --popover-foreground: hsl(0 0% 98%);
+  --primary: hsl(186 100% 50%);
+  --primary-foreground: hsl(0 0% 3.9%);
+  --secondary: hsl(0 0% 14.9%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(0 0% 14.9%);
+  --muted-foreground: hsl(0 0% 63.9%);
+  --accent: hsl(0 0% 14.9%);
+  --accent-foreground: hsl(0 0% 98%);
+  --destructive: hsl(0 62.8% 50.6%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(0 0% 18%);
+  --input: hsl(0 0% 18%);
+  --ring: hsl(186 100% 50%);
+}
+
+* {
+  border-color: var(--border);
+}
+
+@keyframes sb1 { 0%,100%{transform:scaleY(.42)} 23%{transform:scaleY(.91)} 54%{transform:scaleY(.28)} 79%{transform:scaleY(.67)} }
+@keyframes sb2 { 0%,100%{transform:scaleY(.71)} 17%{transform:scaleY(.33)} 41%{transform:scaleY(.88)} 68%{transform:scaleY(.52)} }
+@keyframes sb3 { 0%,100%{transform:scaleY(.29)} 31%{transform:scaleY(.76)} 59%{transform:scaleY(.44)} 82%{transform:scaleY(.93)} }
+@keyframes sb4 { 0%,100%{transform:scaleY(.58)} 14%{transform:scaleY(.95)} 38%{transform:scaleY(.31)} 61%{transform:scaleY(.73)} 85%{transform:scaleY(.47)} }
+@keyframes sb5 { 0%,100%{transform:scaleY(.83)} 22%{transform:scaleY(.39)} 47%{transform:scaleY(.69)} 73%{transform:scaleY(.24)} }
+@keyframes sb6 { 0%,100%{transform:scaleY(.36)} 19%{transform:scaleY(.82)} 43%{transform:scaleY(.55)} 71%{transform:scaleY(.97)} 89%{transform:scaleY(.41)} }
+@keyframes sb7 { 0%,100%{transform:scaleY(.64)} 27%{transform:scaleY(.21)} 52%{transform:scaleY(.79)} 78%{transform:scaleY(.46)} }
+@keyframes sb8 { 0%,100%{transform:scaleY(.47)} 16%{transform:scaleY(.86)} 34%{transform:scaleY(.32)} 58%{transform:scaleY(.71)} 81%{transform:scaleY(.53)} }
+@keyframes sb9 { 0%,100%{transform:scaleY(.77)} 21%{transform:scaleY(.43)} 49%{transform:scaleY(.92)} 74%{transform:scaleY(.35)} }
+@keyframes sb10 { 0%,100%{transform:scaleY(.33)} 13%{transform:scaleY(.68)} 37%{transform:scaleY(.89)} 62%{transform:scaleY(.27)} 86%{transform:scaleY(.74)} }
+@keyframes sb11 { 0%,100%{transform:scaleY(.56)} 29%{transform:scaleY(.94)} 53%{transform:scaleY(.38)} 77%{transform:scaleY(.66)} }
+@keyframes sb12 { 0%,100%{transform:scaleY(.81)} 18%{transform:scaleY(.29)} 44%{transform:scaleY(.63)} 69%{transform:scaleY(.96)} 91%{transform:scaleY(.51)} }
+@keyframes sb13 { 0%,100%{transform:scaleY(.24)} 26%{transform:scaleY(.72)} 51%{transform:scaleY(.45)} 76%{transform:scaleY(.87)} }
+@keyframes sb14 { 0%,100%{transform:scaleY(.69)} 15%{transform:scaleY(.34)} 39%{transform:scaleY(.91)} 64%{transform:scaleY(.48)} 88%{transform:scaleY(.76)} }
+@keyframes sb15 { 0%,100%{transform:scaleY(.52)} 24%{transform:scaleY(.85)} 48%{transform:scaleY(.31)} 72%{transform:scaleY(.68)} }
+@keyframes sb16 { 0%,100%{transform:scaleY(.38)} 12%{transform:scaleY(.79)} 36%{transform:scaleY(.54)} 59%{transform:scaleY(.93)} 83%{transform:scaleY(.42)} }
+
+.sb1{animation:sb1 2.31s linear infinite;transform-origin:center}
+.sb2{animation:sb2 1.87s linear infinite;transform-origin:center}
+.sb3{animation:sb3 2.73s linear infinite;transform-origin:center}
+.sb4{animation:sb4 1.53s linear infinite;transform-origin:center}
+.sb5{animation:sb5 2.17s linear infinite;transform-origin:center}
+.sb6{animation:sb6 1.79s linear infinite;transform-origin:center}
+.sb7{animation:sb7 2.41s linear infinite;transform-origin:center}
+.sb8{animation:sb8 1.67s linear infinite;transform-origin:center}
+.sb9{animation:sb9 2.03s linear infinite;transform-origin:center}
+.sb10{animation:sb10 1.91s linear infinite;transform-origin:center}
+.sb11{animation:sb11 2.59s linear infinite;transform-origin:center}
+.sb12{animation:sb12 1.43s linear infinite;transform-origin:center}
+.sb13{animation:sb13 2.29s linear infinite;transform-origin:center}
+.sb14{animation:sb14 1.61s linear infinite;transform-origin:center}
+.sb15{animation:sb15 2.11s linear infinite;transform-origin:center}
+.sb16{animation:sb16 1.97s linear infinite;transform-origin:center}
+
+html, body {
+  background-color: transparent;
+  color: var(--foreground);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  /* Disable pinch to zoom */
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+}
