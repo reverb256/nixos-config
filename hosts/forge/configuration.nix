@@ -153,7 +153,7 @@
         get_temp() {
           local gpu=$1
           rocm-smi --showtemp --csv 2>/dev/null | \
-            awk -F',' -v gpu="$gpu" '$1 == gpu {gsub(/[^0-9.]/, "", $2); print $2; exit}'
+            awk -F',' -v gpu="card$gpu" '$1 == gpu {print $3; exit}'
         }
 
         get_target_fan() {
