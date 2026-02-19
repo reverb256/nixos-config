@@ -64,9 +64,6 @@
       url = "github:tinted-theming/schemes";
       flake = false;
     };
-
-    # HyperWhisper - Real-time speech-to-text desktop app
-    hyperwhisper.url = "path:/etc/nixos/external/hyperwhisper";
   };
 
   outputs = inputs @ {

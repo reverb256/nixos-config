@@ -103,6 +103,7 @@ just test            # Validate configuration
 | distributed-builds.nix | Multi-node builds |
 | system-packages.nix | Central packages |
 | mcp-servers.nix | MCP servers |
+| whisper-dictation.nix | Speech-to-text dictation (whisper-cpp) |
 
 ---
 
@@ -222,6 +223,50 @@ This allows UV's isolated builds to:
 2. Find `c++`/`gcc` via standard PATH lookup
 
 **Key insight:** Do NOT disable build isolation (`UV_NO_BUILD_ISOLATION=1`) because the venv won't have setuptools. Instead, provide compilers at discoverable paths.
+
+---
+
+## Speech-to-Text Dictation
+
+**Module:** `whisper-dictation.nix`
+**Status:** Enabled on all desktop hosts
+**Technology:** whisper-cpp (GGML base.en model)
+
+### Features
+- Real-time speech-to-text transcription
+- Two modes: toggle and auto-stop on silence
+- KDE Plasma notifications
+- Text injection: both type + clipboard
+- Systemd user service for model download
+
+### Usage
+```bash
+# Toggle mode (press again to stop)
+whisper-dictate
+
+# Auto-stop mode (stops on silence)
+whisper-dictate-auto
+```
+
+### Configuration
+Available on all desktop hosts with defaults:
+```nix
+services.whisper-dictation = {
+  enable = true;
+  model = "base.en";
+  language = "en";
+  injectionMode = "both";
+  keyDelay = 10;
+  notify = true;
+  silenceTimeout = 1.5;
+  silenceThreshold = "5%";
+};
+```
+
+### Requirements
+- Audio input device (microphone)
+- ydotool service running (for auto-type)
+- Model downloaded automatically on first use (141MB)
 
 ---
 
