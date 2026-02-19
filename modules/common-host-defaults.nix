@@ -30,4 +30,19 @@
       user = lib.mkDefault "j_kro";
     };
   };
+
+  # ============================================================================
+  # SPEECH-TO-TEXT DICTATION
+  # ============================================================================
+  # Available on all desktop hosts with audio input
+  services.whisper-dictation = lib.mkDefault {
+    enable = true;
+    model = "base.en";
+    language = "en";
+    injectionMode = "both";
+    keyDelay = 10;
+    notify = true;
+    silenceTimeout = 1.5;
+    silenceThreshold = "5%";
+  };
 }
