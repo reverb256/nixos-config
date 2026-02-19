@@ -84,14 +84,31 @@ jobs:
 
       - name: Merge main to infra
         run: |
+          set -x  # Enable verbose output for debugging
           echo "Fetching branches..."
-          git fetch origin main infra
+          git fetch origin main:remotes/origin/main infra:remotes/origin/infra || {
+            echo "::error::Failed to fetch branches"
+            exit 1
+          }
 
           echo "Checking out infra branch..."
-          git checkout infra
+          git checkout infra || {
+            echo "::error::Failed to checkout infra branch"
+            git branch -a
+            exit 1
+          }
 
           echo "Merging main into infra..."
-          git merge origin/main --no-edit -m "Merge main to infra [skip ci]"
+          git merge origin/main --no-edit -m "Merge main to infra [skip ci]" || {
+            echo "::error::Failed to merge main into infra"
+            git status
+            exit 1
+          }
 
           echo "Pushing to infra..."
-          git push origin infra
+          git push origin infra || {
+            echo "::error::Failed to push to infra"
+            exit 1
+          }
+
+          echo "✅ Successfully merged and pushed to infra"
