@@ -44,7 +44,20 @@ in {
     # SYSTEM PACKAGES
     # ==========================================================================
     environment.systemPackages = with pkgs; [
-      hyperwhisper-package
+      # Wrapper script for hyperwhisper with XWayland backend
+      # Note: WebKitGTK's Wayland backend has protocol errors on both Plasma and Hyprland
+      # XWayland (X11 backend) provides reliable compatibility across all compositors
+      (pkgs.writeShellScriptBin "hyperwhisper" ''
+        # Force X11 backend (XWayland) for compatibility
+        # WebKitGTK's native Wayland support has protocol issues with modern compositors
+        export GDK_BACKEND=x11
+
+        # Enable portal integration for file dialogs, etc.
+        export GTK_USE_PORTAL=1
+
+        # Launch hyperwhisper
+        exec ${hyperwhisper-package}/bin/hyperwhisper "$@"
+      '')
       wtype
       ydotool
     ];
@@ -72,6 +85,22 @@ in {
     };
 
     # ==========================================================================
+    # PORTAL CONFIGURATION FOR WAYLAND
+    # ==========================================================================
+    xdg.portal = {
+      enable = true;
+      extraPortals = with pkgs; [
+        xdg-desktop-portal-gtk
+        xdg-desktop-portal-hyprland
+      ];
+      # Use GTK portal as fallback, prefer compositor-specific portals
+      config = {
+        hyprland.default = ["hyprland" "gtk"];
+        kde.default = ["kde" "gtk"];
+      };
+    };
+
+    # ==========================================================================
     # D-BUS SERVICE FOR GLOBAL HOTKEY SUPPORT
     # ==========================================================================
     services.dbus.packages = [hyperwhisper-package];
@@ -84,11 +113,12 @@ in {
       Type=Application
       Name=HyperWhisper
       Comment=Real-time speech-to-text transcription
-      Exec=${hyperwhisper-package}/bin/hyperwhisper
+      Exec=hyperwhisper %F
       Icon=hyperwhisper
       Terminal=false
       Categories=Utility;Audio;
       X-DBUS-ServiceName=dev.hyperwhisper
+      SingleMainWindow=true
     '';
 
     # ==========================================================================
