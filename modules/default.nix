@@ -31,7 +31,7 @@
     # Services
     ./services/flatpak-polkit.nix
     ./services/minio-cache.nix # S3 binary cache client support
-    ./services/whisper-dictation.nix # Local Whisper speech-to-text dictation
+    # ./services/hyperwhisper.nix # HyperWhisper desktop speech-to-text app (disabled - flake reference issue)
     ./services/nanoclaw.nix # NanoClaw personal AI assistant (optional)
 
     # Development
