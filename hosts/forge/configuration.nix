@@ -159,7 +159,8 @@
           local gpu=$1
           local hwmon="''${GPU_HWMON[$gpu]}"
           # Read junction temperature from temp2_input (millidegrees Celsius)
-          awk "BEGIN {printf \"%.1f\", \$(cat \"$hwmon/temp2_input\") / 1000}" </dev/null
+          local temp_milli=$(cat "$hwmon/temp2_input" 2>/dev/null || echo "0")
+          awk "BEGIN {printf \"%.1f\", $temp_milli / 1000}"
         }
 
         get_target_fan() {
