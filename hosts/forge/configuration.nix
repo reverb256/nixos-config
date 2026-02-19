@@ -150,10 +150,16 @@
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
         }
 
+        # GPU to hwmon mapping (bypass rocm-smi which gets overridden by driver)
+        declare -A GPU_HWMON
+        GPU_HWMON[0]="/sys/class/drm/card0/device/hwmon/hwmon0"
+        GPU_HWMON[1]="/sys/class/drm/card1/device/hwmon/hwmon1"
+
         get_temp() {
           local gpu=$1
-          rocm-smi --showtemp --csv 2>/dev/null | \
-            awk -F',' -v gpu="card$gpu" '$1 == gpu {print $3; exit}'
+          local hwmon="''${GPU_HWMON[$gpu]}"
+          # Read junction temperature from temp2_input (millidegrees Celsius)
+          awk "BEGIN {printf \"%.1f\", \$(cat \"$hwmon/temp2_input\") / 1000}" </dev/null
         }
 
         get_target_fan() {
@@ -175,10 +181,13 @@
         set_fan() {
           local fan_pct=$1
           local gpu=$2
+          local hwmon="''${GPU_HWMON[$gpu]}"
           # Convert percentage to 0-255 range
           local fan_value=$((fan_pct * 255 / 100))
 
-          rocm-smi --setfan $fan_value -d $gpu >/dev/null 2>&1
+          # Set manual mode and fan speed via sysfs (direct hardware control)
+          echo "1" > "$hwmon/pwm1_enable" 2>/dev/null || true
+          echo "$fan_value" > "$hwmon/pwm1" 2>/dev/null || true
         }
 
         calculate_fan() {
