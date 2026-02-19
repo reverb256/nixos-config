@@ -38,6 +38,7 @@ in {
 
   # Home Manager packages for Hyprland
   home.packages = with pkgs; [
+    # Core Hyprland packages
     waybar
     rofi
     mako
@@ -53,5 +54,15 @@ in {
     wl-mirror
     hyprpicker
     xdg-desktop-portal-hyprland
+
+    # Applications referenced in keybindings
+    kitty
+    thunar
+    vscodium
+
+    # System utilities
+    brightnessctl
+    pamixer
+    playerctl
   ];
 }

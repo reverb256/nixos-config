@@ -55,7 +55,7 @@ modules/desktop/hyprland/
 - Discord → Workspace 10
 
 ### **Workspace Organization**
-1. Web browsing (Firefox/Chromium)
+1. Web browsing (Zen Browser/Firefox/Chromium)
 2. Development (VSCodium/Neovim)
 3. (Free)
 4. Gaming (Steam/Lutris/Heroic)
@@ -64,7 +64,7 @@ modules/desktop/hyprland/
 7. (Free)
 8. (Free)
 9. (Free)
-10. Communication (Discord/Telegram)
+10. Communication (Vesktop/Discord/Telegram)
 
 ## Usage
 
@@ -96,8 +96,8 @@ modules/desktop/hyprland/
 
 **Common Tasks:**
 - `SUPER+E` - Thunar file manager
-- `SUPER+N` - Discord
-- `SUPER+F` - Firefox
+- `SUPER+N` - Vesktop (Discord)
+- `SUPER+F` - Zen Browser
 - `SUPER+C` - VSCodium
 - `SUPER+B` - Wallpaper picker
 - `SUPER+K` - Show keybindings (with rofi)

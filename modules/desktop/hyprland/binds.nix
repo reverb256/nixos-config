@@ -29,9 +29,9 @@
       "$mainMod, A, Show apps, exec, ${pkgs.rofi}/bin/rofi -show apps"
       "$mainMod, K, Show keybindings, exec, ${pkgs.rofi}/bin/rofi -show file"
       "$mainMod, E, File manager, exec, ${pkgs.thunar}/bin/thunar"
-      "$mainMod, F, Firefox, exec, ${pkgs.firefox}/bin/firefox"
+      "$mainMod, F, Zen Browser, exec, zen"
       "$mainMod, C, VSCodium, exec, ${pkgs.vscodium}/bin/codium"
-      "$mainMod, N, Discord, exec, ${pkgs.discord}/bin/discord"
+      "$mainMod, N, Vesktop (Discord), exec, vesktop"
 
       # ============================================================
       # WINDOW MANAGEMENT (Omarchy patterns)
