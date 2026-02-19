@@ -1,9 +1,18 @@
-{config, ...}: let
-  colors = config.stylix.base16Scheme;
+{
+  config,
+  lib,
+  ...
+}: let
+  # Only generate Synapse theme if Stylix is enabled
+  hasStylix = config.stylix.enable or false;
+  colors =
+    if hasStylix
+    then config.stylix.base16Scheme
+    else {};
   base24 = config.base24 or {};
 in {
   # Generate Synapse theme config at build time
-  environment.etc."synapse/theme.json".text = builtins.toJSON {
+  environment.etc."synapse/theme.json".text = lib.mkIf hasStylix (builtins.toJSON {
     name = "Synapse Theme";
     variant = "dark";
     colors = {
@@ -34,5 +43,5 @@ in {
       base16 = base24.base16 or "#526270";
       base17 = base24.base17 or "#D8E2EC";
     };
-  };
+  });
 }
