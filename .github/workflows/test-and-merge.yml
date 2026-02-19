@@ -3,7 +3,7 @@ name: "Merge main to infra - Light Testing"
 on:
   push:
     branches: ["main"]
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}
