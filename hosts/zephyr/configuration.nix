@@ -26,7 +26,7 @@
     ../../modules/services/mcp-servers.nix
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/hoyoverse-controller-fix.nix
-    ../../modules/services/whisper-dictation.nix
+    # ../../modules/services/hyperwhisper.nix # Disabled - flake reference issue
     ../../modules/services/lm-studio.nix
   ];
 
@@ -163,17 +163,12 @@
       port = 8080;
     };
 
-    # Whisper Dictation - Speech-to-text with KDE integration
-    whisper-dictation = {
-      enable = true;
-      model = "base.en";
-      language = "en";
-      injectionMode = "both";
-      keyDelay = 10;
-      notify = true;
-      silenceTimeout = 1.5;
-      silenceThreshold = "5%"; # Less sensitive to background noise
-    };
+    # HyperWhisper - Real-time speech-to-text desktop app (disabled - flake reference issue)
+    # hyperwhisper = {
+    #   enable = true;
+    #   autoType = true;
+    #   defaultModel = "moonshine-base"; # Fast, handles accents well
+    # };
   };
 
   # ============================================================================
