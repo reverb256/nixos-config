@@ -164,7 +164,7 @@
             local curve_temp="''${entry%%:*}"
             local curve_fan="''${entry##*:}"
 
-            if (( $(echo "$temp >= $curve_temp" | bc -l) )); then
+            if (( $(awk "BEGIN {print ($temp >= $curve_temp)}") )); then
               target_fan=$curve_fan
             fi
           done
@@ -189,10 +189,10 @@
           local target_fan=$(get_target_fan "$temp")
 
           # Apply hysteresis - only change if temp moved significantly
-          local temp_diff=$(echo "$temp - $last_temp" | bc -l)
-          local abs_diff=$(echo "if ($temp_diff < 0) -$temp_diff else $temp_diff" | bc -l)
+          local temp_diff=$(awk "BEGIN {print $temp - $last_temp}")
+          local abs_diff=$(awk "BEGIN {if ($temp_diff < 0) print -$temp_diff; else print $temp_diff}")
 
-          if (( $(echo "$abs_diff < $HYSTERESIS" | bc -l) )); then
+          if (( $(awk "BEGIN {print ($abs_diff < $HYSTERESIS)}") )); then
             # Within hysteresis zone - keep last fan speed
             echo "$last_fan"
             return
