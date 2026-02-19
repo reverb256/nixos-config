@@ -1,28 +1,35 @@
 # Hyprland Variables - Theme colors and settings
-{ config, ... }:
+{ config, lib, ... }:
 let
   colors = config.lib.stylix.colors;
+
+  # Convert hex color to rgb(r,g,b) format for Hyprland
+  hexToRgb = hex: let
+    r = lib.substring 1 2 hex;
+    g = lib.substring 3 2 hex;
+    b = lib.substring 5 2 hex;
+  in "rgb(${r},${g},${b})";
 in {
   wayland.windowManager.hyprland.settings = {
     "$mainMod" = "SUPER";
 
-    # Stylix color variables
-    "$base00" = "rgb(${colors.base00_rgb})";
-    "$base01" = "rgb(${colors.base01_rgb})";
-    "$base02" = "rgb(${colors.base02_rgb})";
-    "$base03" = "rgb(${colors.base03_rgb})";
-    "$base04" = "rgb(${colors.base04_rgb})";
-    "$base05" = "rgb(${colors.base05_rgb})";
-    "$base06" = "rgb(${colors.base06_rgb})";
-    "$base07" = "rgb(${colors.base07_rgb})";
-    "$base08" = "rgb(${colors.base08_rgb})";
-    "$base09" = "rgb(${colors.base09_rgb})";
-    "$base0A" = "rgb(${colors.base0A_rgb})";
-    "$base0B" = "rgb(${colors.base0B_rgb})";
-    "$base0C" = "rgb(${colors.base0C_rgb})";
-    "$base0D" = "rgb(${colors.base0D_rgb})";
-    "$base0E" = "rgb(${colors.base0E_rgb})";
-    "$base0F" = "rgb(${colors.base0F_rgb})";
+    # Stylix color variables (converted to RGB for Hyprland)
+    "$base00" = hexToRgb colors.base00;
+    "$base01" = hexToRgb colors.base01;
+    "$base02" = hexToRgb colors.base02;
+    "$base03" = hexToRgb colors.base03;
+    "$base04" = hexToRgb colors.base04;
+    "$base05" = hexToRgb colors.base05;
+    "$base06" = hexToRgb colors.base06;
+    "$base07" = hexToRgb colors.base07;
+    "$base08" = hexToRgb colors.base08;
+    "$base09" = hexToRgb colors.base09;
+    "$base0A" = hexToRgb colors.base0A;
+    "$base0B" = hexToRgb colors.base0B;
+    "$base0C" = hexToRgb colors.base0C;
+    "$base0D" = hexToRgb colors.base0D;
+    "$base0E" = hexToRgb colors.base0E;
+    "$base0F" = hexToRgb colors.base0F;
 
     # Transparency
     "$alpha" = "0.8";

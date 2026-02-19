@@ -8,7 +8,7 @@
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
-    ../../modules/desktop/hyprland/home.nix
+    ./modules/desktop/hyprland/home.nix
   ];
 
   # Stylix home-manager integration - must match system-level config
