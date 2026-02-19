@@ -26,7 +26,7 @@
     ../../modules/services/mcp-servers.nix
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/hoyoverse-controller-fix.nix
-    # ../../modules/services/hyperwhisper.nix # Disabled - flake reference issue
+    ../../modules/services/hyperwhisper.nix
     ../../modules/services/lm-studio.nix
   ];
 
@@ -163,12 +163,12 @@
       port = 8080;
     };
 
-    # HyperWhisper - Real-time speech-to-text desktop app (disabled - flake reference issue)
-    # hyperwhisper = {
-    #   enable = true;
-    #   autoType = true;
-    #   defaultModel = "moonshine-base"; # Fast, handles accents well
-    # };
+    # HyperWhisper - Real-time speech-to-text desktop app
+    hyperwhisper = {
+      enable = true;
+      autoType = true;
+      defaultModel = "moonshine-base"; # Fast, handles accents well
+    };
   };
 
   # ============================================================================
