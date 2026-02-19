@@ -122,13 +122,15 @@
         # Fan curve configuration (RX 5700 XT optimized)
         # Format: "TEMP:TARGET_FAN_SPEED"
         # Temp in Celsius, fan speed as percentage (0-100)
+        # Increased targets to stay below 70°C AMD driver threshold
         FAN_CURVE=(
-          "50:30"   # 50°C -> 30% (idle/low load)
-          "60:40"   # 60°C -> 40%
-          "65:50"   # 65°C -> 50%
-          "70:60"   # 70°C -> 60%
-          "75:70"   # 75°C -> 70%
-          "80:85"   # 80°C -> 85%
+          "50:40"   # 50°C -> 40% (idle/low load)
+          "55:50"   # 55°C -> 50%
+          "60:60"   # 60°C -> 60%
+          "65:70"   # 65°C -> 70%
+          "70:75"   # 70°C -> 75% (below driver override threshold)
+          "75:80"   # 75°C -> 80%
+          "80:90"   # 80°C -> 90%
         )
 
         # Hysteresis configuration (prevents rapid oscillation)
