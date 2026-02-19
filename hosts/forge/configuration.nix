@@ -190,7 +190,7 @@
 
           # Apply hysteresis - only change if temp moved significantly
           local temp_diff=$(awk "BEGIN {print $temp - $last_temp}")
-          local abs_diff=$(awk "BEGIN {if ($temp_diff < 0) print -$temp_diff; else print $temp_diff}")
+          local abs_diff=$(awk "BEGIN {if ($temp_diff < 0) print (0 - $temp_diff); else print $temp_diff}")
 
           if (( $(awk "BEGIN {print ($abs_diff < $HYSTERESIS)}") )); then
             # Within hysteresis zone - keep last fan speed
