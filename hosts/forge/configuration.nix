@@ -226,7 +226,7 @@
 
         # Initialize with current temps
         for gpu in 0 1; do
-          local temp=$(get_temp $gpu)
+          temp=$(get_temp $gpu)
           if [[ -n "$temp" ]]; then
             LAST_TEMP[$gpu]=$temp
             LAST_FAN[$gpu]=$(get_target_fan "$temp")
@@ -240,23 +240,23 @@
 
         # Main control loop
         while true; do
-          local current_time=$(date +%s)
+          current_time=$(date +%s)
 
           for gpu in 0 1; do
-            local temp=$(get_temp $gpu)
+            temp=$(get_temp $gpu)
 
             if [[ -z "$temp" ]]; then
               continue
             fi
 
             # Check if enough time has passed since last adjustment
-            local time_since_last=$((current_time - LAST_ADJUST_TIME[$gpu]))
+            time_since_last=$((current_time - LAST_ADJUST_TIME[$gpu]))
 
             if (( time_since_last >= MIN_ADJUST_INTERVAL )); then
-              local new_fan=$(calculate_fan "$temp" "''${LAST_TEMP[$gpu]}" "''${LAST_FAN[$gpu]}")
+              new_fan=$(calculate_fan "$temp" "''${LAST_TEMP[$gpu]}" "''${LAST_FAN[$gpu]}")
 
               # Only update if fan speed changed significantly (>= 5%)
-              local fan_change=$((new_fan - LAST_FAN[$gpu]))
+              fan_change=$((new_fan - LAST_FAN[$gpu]))
               if (( fan_change >= 5 || fan_change <= -5 )); then
                 log "GPU$gpu: ''${temp}°C (was ''${LAST_TEMP[$gpu]}°C) -> fan ''${new_fan}% (was ''${LAST_FAN[$gpu]}%)"
                 set_fan "$new_fan" $gpu
