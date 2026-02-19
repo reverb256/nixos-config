@@ -106,6 +106,8 @@ in {
           export CUDA_PATH=/run/opengl-driver
           export CUDA_HOME=/run/opengl-driver
           export LD_LIBRARY_PATH=/run/opengl-driver/lib:/run/opengl-driver/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+          # Fix setuptools distutils issue for Python packages
+          export SETUPTOOLS_USE_DISTUTILS=stdlib
         ''}
 
         ${lib.optionalString cfg.enableRocm ''
