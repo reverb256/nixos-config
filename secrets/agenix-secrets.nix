@@ -18,13 +18,13 @@ in {
   age.identityPaths = [
     "/home/j_kro/.config/age/keys.txt"
   ];
-}
 
-# HuggingFace token (manually encrypted with age)
-# Recreate with: echo "TOKEN" | age -a -R ~/.config/age/keys.txt > hf-token.age
-age.secrets.hf-token = {
-  file = ./hf-token.age;
-  owner = "j_kro";
-  group = "users";
-  mode = "400";
-};
+  # HuggingFace token (manually encrypted with age)
+  # Recreate with: echo "TOKEN" | age -a -R ~/.config/age/keys.txt > hf-token.age
+  age.secrets.hf-token = {
+    file = ./hf-token.age;
+    owner = "j_kro";
+    group = "users";
+    mode = "400";
+  };
+}
