@@ -99,8 +99,12 @@
   };
 
   # ============================================================================
-  # AMD GPU DYNAMIC FAN CURVE
+  # AMD GPU DYNAMIC FAN CURVE (Temperature-Based with Hysteresis)
   # ============================================================================
+  # Smooth fan curve for RX 5700 XT to prevent spiking
+  # - Temperature-based targeting with hysteresis
+  # - Dead zones to prevent rapid oscillation
+  # - Gradual ramp changes
   systemd.services.amd-gpu-fan-curve = {
     description = "AMD GPU Dynamic Fan Curve Control";
     wantedBy = ["multi-user.target"];
@@ -115,34 +119,155 @@
 
         PATH=/run/current-system/sw/bin:$PATH
 
+        # Fan curve configuration (RX 5700 XT optimized)
+        # Format: "TEMP:TARGET_FAN_SPEED"
+        # Temp in Celsius, fan speed as percentage (0-100)
+        FAN_CURVE=(
+          "50:30"   # 50°C -> 30% (idle/low load)
+          "60:40"   # 60°C -> 40%
+          "65:50"   # 65°C -> 50%
+          "70:60"   # 70°C -> 60%
+          "75:70"   # 75°C -> 70%
+          "80:85"   # 80°C -> 85%
+        )
+
+        # Hysteresis configuration (prevents rapid oscillation)
+        # Only change fan speed if temperature changes by this many degrees
+        HYSTERESIS=3
+
+        # Minimum time between fan adjustments (seconds)
+        # Prevents rapid successive changes
+        MIN_ADJUST_INTERVAL=5
+
+        # State tracking per GPU
+        declare -A LAST_TEMP
+        declare -A LAST_FAN
+        declare -A LAST_ADJUST_TIME
+
         log() {
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
         }
 
+        get_temp() {
+          local gpu=$1
+          rocm-smi --showtemp --csv 2>/dev/null | \
+            awk -F',' -v gpu="$gpu" '$1 == gpu {gsub(/[^0-9.]/, "", $2); print $2; exit}'
+        }
+
+        get_target_fan() {
+          local temp=$1
+          local target_fan=30
+
+          for entry in "''${FAN_CURVE[@]}"; do
+            local curve_temp="''${entry%%:*}"
+            local curve_fan="''${entry##*:}"
+
+            if (( $(echo "$temp >= $curve_temp" | bc -l) )); then
+              target_fan=$curve_fan
+            fi
+          done
+
+          echo "$target_fan"
+        }
+
         set_fan() {
-          rocm-smi --setfan $1 -d $2 >/dev/null 2>&1
-          if [[ $? -eq 0 ]]; then
-            log "Successfully set GPU$2 fan to $1%"
+          local fan_pct=$1
+          local gpu=$2
+          # Convert percentage to 0-255 range
+          local fan_value=$((fan_pct * 255 / 100))
+
+          rocm-smi --setfan $fan_value -d $gpu >/dev/null 2>&1
+        }
+
+        calculate_fan() {
+          local temp=$1
+          local last_temp=$2
+          local last_fan=$3
+
+          local target_fan=$(get_target_fan "$temp")
+
+          # Apply hysteresis - only change if temp moved significantly
+          local temp_diff=$(echo "$temp - $last_temp" | bc -l)
+          local abs_diff=$(echo "if ($temp_diff < 0) -$temp_diff else $temp_diff" | bc -l)
+
+          if (( $(echo "$abs_diff < $HYSTERESIS" | bc -l) )); then
+            # Within hysteresis zone - keep last fan speed
+            echo "$last_fan"
+            return
+          fi
+
+          # Calculate smoothed fan change (gradual ramp)
+          local fan_diff=$((target_fan - last_fan))
+          local max_change=15  # Max 15% change per adjustment
+
+          if (( fan_diff > 0 )); then
+            # Ramping up
+            if (( fan_diff > max_change )); then
+              echo $((last_fan + max_change))
+            else
+              echo "$target_fan"
+            fi
           else
-            log "Failed to set GPU$2 fan to $1%"
+            # Ramping down
+            local neg_max_change=$((-max_change))
+            if (( fan_diff < neg_max_change )); then
+              echo $((last_fan - max_change))
+            else
+              echo "$target_fan"
+            fi
           fi
         }
 
-        log "Starting fixed fan control for RX 5700 XT (devices 0,1) - 60% fixed"
-        log "Enforcing 60% fan speed every 3 seconds to override lolminer/driver auto control"
+        log "Starting temperature-based fan control for RX 5700 XT (devices 0,1)"
+        log "Fan curve with hysteresis: ''${HYSTERESIS}°C dead zone, ''${MIN_ADJUST_INTERVAL}s min interval"
 
-        # Reset fans and set to 60% (153 = 60% of 255)
-        rocm-smi --resetfans >/dev/null 2>&1
-        sleep 2
-        set_fan 153 0
-        set_fan 153 1
-        sleep 2
+        # Initialize with current temps
+        for gpu in 0 1; do
+          local temp=$(get_temp $gpu)
+          if [[ -n "$temp" ]]; then
+            LAST_TEMP[$gpu]=$temp
+            LAST_FAN[$gpu]=$(get_target_fan "$temp")
+            LAST_ADJUST_TIME[$gpu]=0
+            log "GPU$gpu initial: ''${temp}°C -> fan set to ''${LAST_FAN[$gpu]}%"
+            set_fan "''${LAST_FAN[$gpu]}" $gpu
+          fi
+        done
 
-        # Loop to keep enforcing 60% fan speed
+        sleep 3
+
+        # Main control loop
         while true; do
-          set_fan 153 0
-          set_fan 153 1
-          sleep 3
+          local current_time=$(date +%s)
+
+          for gpu in 0 1; do
+            local temp=$(get_temp $gpu)
+
+            if [[ -z "$temp" ]]; then
+              continue
+            fi
+
+            # Check if enough time has passed since last adjustment
+            local time_since_last=$((current_time - LAST_ADJUST_TIME[$gpu]))
+
+            if (( time_since_last >= MIN_ADJUST_INTERVAL )); then
+              local new_fan=$(calculate_fan "$temp" "''${LAST_TEMP[$gpu]}" "''${LAST_FAN[$gpu]}")
+
+              # Only update if fan speed changed significantly (>= 5%)
+              local fan_change=$((new_fan - LAST_FAN[$gpu]))
+              if (( fan_change >= 5 || fan_change <= -5 )); then
+                log "GPU$gpu: ''${temp}°C (was ''${LAST_TEMP[$gpu]}°C) -> fan ''${new_fan}% (was ''${LAST_FAN[$gpu]}%)"
+                set_fan "$new_fan" $gpu
+                LAST_FAN[$gpu]=$new_fan
+                LAST_TEMP[$gpu]=$temp
+                LAST_ADJUST_TIME[$gpu]=$current_time
+              else
+                # Update temp tracker even if we don't change fan
+                LAST_TEMP[$gpu]=$temp
+              fi
+            fi
+          done
+
+          sleep 2
         done
       '';
     };

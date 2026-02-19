@@ -12,7 +12,7 @@
 
   # Plasmoid source files
   plasmoidName = "org.example.miningmonitor";
-  plasmoidSrc = ../plasmoids/mining-monitor;
+  plasmoidSrc = ../../plasmoids/mining-monitor;
 in {
   options.programs.mining-plasmoid = {
     enable = lib.mkEnableOption "Mining Monitor Plasma Plasmoid - Multi-node GPU/CPU monitor";

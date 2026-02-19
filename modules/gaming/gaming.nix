@@ -130,29 +130,29 @@ in {
               libcap
               SDL2
             ];
-           extraProfile = ''
-             # LVRA recommendation for VRChat timezone display
-             unset TZ
-             
-             cd $HOME
-             
-             # OpenXR/VR support - critical for WiVRn
-             export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
-             export PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/wivrn/comp_ipc
-             
-             # Steam container paths
-             export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
-             export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
-             export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
-             
-             # OpenVR -> OpenXR translation via xrizer
-             export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
-             
-             # CRITICAL: Fix Vulkan ICD path for NVIDIA on Wayland
-             # Steam's pressure-vessel container looks for ICD at wrong path
-             export VK_ICD_FILENAMES=/run/host/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json
-             export VK_DRIVER_FILES=/run/host/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json
-           '';
+          extraProfile = ''
+            # LVRA recommendation for VRChat timezone display
+            unset TZ
+
+            cd $HOME
+
+            # OpenXR/VR support - critical for WiVRn
+            export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
+            export PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/wivrn/comp_ipc
+
+            # Steam container paths
+            export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
+            export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
+            export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
+
+            # OpenVR -> OpenXR translation via xrizer
+            export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
+
+            # CRITICAL: Fix Vulkan ICD path for NVIDIA on Wayland
+            # Steam's pressure-vessel container looks for ICD at wrong path
+            export VK_ICD_FILENAMES=/run/host/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json
+            export VK_DRIVER_FILES=/run/host/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json
+          '';
         };
       };
 
@@ -265,13 +265,22 @@ in {
         scx.full
       ];
 
+      # Disable DualSense/DualShock touchpad to prevent drift in games
+      # The touchpad reports absolute coordinates that can cause camera drift
+      # This rule ignores the touchpad at the kernel level (not X11/xinput)
+      services.udev.extraRules = ''
+        # Disable DualSense (PS5) touchpad
+        KERNEL=="event*", SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+        KERNEL=="event*", SUBSYSTEM=="input", ATTRS{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+      '';
+
       systemd.tmpfiles.rules = [
         "d /var/cache/nvidia-shader-cache 0755 root root - -"
         "L /sbin/ldconfig - - - - ${pkgs.glibc}/sbin/ldconfig"
       ];
     })
 
-      # VR configuration (only when vr.enable = true)
+    # VR configuration (only when vr.enable = true)
     (mkIf vrCfg.enable {
       # ============================================================================
       # AVAHI - Required for WiVRn server discovery
@@ -333,24 +342,19 @@ in {
         ];
 
       # VR device udev rules
+      # NOTE: DualSense/DualShock rules are NOT needed here - hardware.steam-hardware.enable
+      # (set in base gaming config) already provides them via steam-devices-udev-rules
       services.udev.extraRules = ''
-        # VR Headsets and Controllers
+        # Oculus Rift
         SUBSYSTEM=="usb", ATTR{idVendor}=="2833", ATTR{idProduct}=="0181", MODE="0666", GROUP="plugdev"
+
+        # Valve Index / Vive
         SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", GROUP="plugdev"
         SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", GROUP="plugdev"
         SUBSYSTEM=="hidraw", ATTRS{idVendor}=="28de", ATTRS{idProduct}=="2102", MODE="0666", GROUP="plugdev"
 
         # HTC Vive
         SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", ATTR{idProduct}=="2c87", MODE="0666", GROUP="plugdev"
-
-        # Sony PlayStation VR
-        SUBSYSTEM=="usb", ATTR{idVendor}=="054c", ATTR{idProduct}=="0ce6", MODE="0666", GROUP="plugdev"
-        SUBSYSTEM=="usb", ATTR{idVendor}=="054c", ATTR{idProduct}=="0df2", MODE="0666", GROUP="plugdev"
-        KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", MODE="0660", TAG+="uaccess"
-        KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0df2", MODE="0660", TAG+="uaccess"
-
-        # Valve Index
-        SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", GROUP="plugdev"
       '';
 
       # VR kernel modules
