@@ -187,8 +187,11 @@
           local fan_value=$((fan_pct * 255 / 100))
 
           # Set manual mode and fan speed via sysfs (direct hardware control)
-          echo "1" > "$hwmon/pwm1_enable" 2>/dev/null || true
-          echo "$fan_value" > "$hwmon/pwm1" 2>/dev/null || true
+          if echo "1" > "$hwmon/pwm1_enable" 2>/dev/null && echo "$fan_value" > "$hwmon/pwm1" 2>/dev/null; then
+            log "GPU$gpu: Set pwm to $fan_value ($fan_pct%)"
+          else
+            log "GPU$gpu: Failed to set pwm!"
+          fi
         }
 
         calculate_fan() {
