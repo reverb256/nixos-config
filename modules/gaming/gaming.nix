@@ -147,11 +147,6 @@ in {
 
             # OpenVR -> OpenXR translation via xrizer
             export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
-
-            # CRITICAL: Fix Vulkan ICD path for NVIDIA on Wayland
-            # Steam's pressure-vessel container looks for ICD at wrong path
-            export VK_ICD_FILENAMES=/run/host/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json
-            export VK_DRIVER_FILES=/run/host/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json
           '';
         };
       };
