@@ -182,7 +182,7 @@
     github-actions-runner = {
       enable = true;
       url = "https://github.com/reverb256/nixos-config";
-      token = "CHANGE_ME"; # TODO: Replace with actual registration token
+      token = "A646A7TUAS6J5QKTBIELDDLJS7MVQ";
       name = "zephyr";
     };
   };
