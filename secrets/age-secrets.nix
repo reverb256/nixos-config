@@ -38,8 +38,8 @@
     # GitHub Actions runner token (self-hosted CI/CD)
     "github-actions-runner-token" = {
       file = ./github-actions-runner-token.age;
-      owner = "github-actions-runner";
-      group = "github-actions-runner";
+      owner = "root";
+      group = "root";
       mode = "400";
     };
   };
