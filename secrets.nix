@@ -1,1 +1,1 @@
-age-secrets.nix
+secrets/age-secrets.nix
