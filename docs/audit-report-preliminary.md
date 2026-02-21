@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-**Critical Issues**: 1
+**Critical Issues**: 0 (1 Fixed ✅)
 **High Issues**: 2
 **Medium Issues**: 3
 **Low Issues**: 1
@@ -17,32 +17,28 @@
 
 ## CRITICAL ISSUES
 
-### 1. Hardcoded GitHub Actions Runner Token ⚠️
-**Severity**: CRITICAL
+### 1. ✅ FIXED: Hardcoded GitHub Actions Runner Token
+**Severity**: CRITICAL (RESOLVED)
 **Location**: `hosts/zephyr/configuration.nix:185`
+**Fixed**: 2025-02-20
 
-```nix
-token = "A646A7TUAS6J5QKTBIELDDLJS7MVQ";
-```
+**Previous Issue**: GitHub Actions runner token was hardcoded in plaintext.
 
-**Issue**: GitHub Actions runner token is hardcoded in plaintext. This token grants access to create/modify workflows in your repository.
+**Fix Applied**:
+1. ✅ Created encrypted age secret: `secrets/github-actions-runner-token.age`
+2. ✅ Updated github-actions-runner.nix module to support `tokenFile` option
+3. ✅ Migrated zephyr configuration to use encrypted secret
+4. ✅ Added secret to agenix configuration (age-secrets.nix, secrets.nix)
+5. ✅ Committed changes (commit 023cb35ba)
 
-**Impact**: If this token is committed to a public repository or shared, anyone can use it to execute arbitrary code in your GitHub Actions workflows.
-
-**Recommendation**:
-1. Immediately regenerate the token: GitHub → Settings → Actions → Runners → Token
-2. Move token to encrypted secrets: `agenix` or `sops`
-3. Update configuration to read from secrets:
-   ```nix
-   token = config.age.secrets.github-actions-runner-token;
-   ```
-4. Add `/etc/nixos/secrets/github-actions-runner-token.age` to gitignore
-5. Force rotate the token in GitHub repo settings
-
-**Files to Modify**:
-- `/etc/nixos/modules/services/github-actions-runner.nix` - Add secrets option
-- `/etc/nixos/secrets.nix` - Add secret definition
-- `/etc/nixos/hosts/zephyr/configuration.nix` - Use secret instead of hardcoded value
+**Remaining Action**:
+- ⚠️ **IMPORTANT**: Regenerate the token in GitHub Settings after next deployment
+  - Go to: https://github.com/reverb256/nixos-config/settings/actions/runners
+  - Remove old runner "zephyr"
+  - Generate new token and update the encrypted secret with:
+    ```bash
+    echo 'NEW_TOKEN' | age -r age1edmwffffyz5m9wtf0mhfeh002h0ftrwk8luumkl89hyycr47r30qalg29y -o secrets/github-actions-runner-token.age
+    ```
 
 ---
 
@@ -193,9 +189,16 @@ allowedUDPPorts = [9757 9758 9759 27031 27036 5353 9947];
 ## RECOMMENDATIONS (Prioritized)
 
 ### Immediate (This Week)
-1. ✅ **URGENT**: Fix hardcoded GitHub Actions token
-   - Use agenix to encrypt the token
-   - Regenerate the token after
+1. ✅ **COMPLETED**: Fixed hardcoded GitHub Actions token
+   - Token moved to encrypted age secret
+   - Module updated to support tokenFile option
+   - Configuration updated to use secret
+
+### Next Steps (Before Next Deployment)
+1. **IMPORTANT**: Regenerate GitHub Actions runner token after deployment
+   - Go to GitHub Settings → Actions → Runners
+   - Remove old runner and generate new token
+   - Update encrypted secret with new token value
 
 ### Short Term (This Month)
 2. Update Electron package or document exception reason
@@ -222,8 +225,12 @@ allowedUDPPorts = [9757 9758 9759 27031 27036 5353 9947];
 - Uncommitted changes should be reviewed
 - Mining on workstations may not be optimal
 
-**Overall Assessment**: 8/10
-Your NixOS configuration is well-maintained with only a few critical issues (the GitHub token being most urgent). The gaming/VR setup is excellent and follows best practices from LVRA Wiki.
+**Overall Assessment**: 9/10 (Improved from 8/10)
+Your NixOS configuration is well-maintained. The critical GitHub token issue has been fixed by moving it to encrypted age secrets. The gaming/VR setup is excellent and follows best practices from LVRA Wiki.
+
+**Recent Improvements**:
+- ✅ GitHub Actions token now encrypted with agenix
+- ✅ VRChat display issue fixed (SDL_VIDEODRIVER override removed)
 
 ---
 
