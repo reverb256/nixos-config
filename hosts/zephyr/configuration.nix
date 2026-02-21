@@ -177,12 +177,12 @@
     };
 
     # GitHub Actions Runner - Self-hosted CI/CD runner
-    # Token expires after 1 hour - regenerate from: https://github.com/reverb256/nixos-config/settings/actions/runners
-    # To get new token: Settings > Actions > Runners > New self-hosted runner > Linux > Copy token
+    # Token is stored in encrypted age secret for security
+    # To rotate token: regenerate in GitHub, then update secret with: age -r <public-key> -o secrets/github-actions-runner-token.age
     github-actions-runner = {
       enable = true;
       url = "https://github.com/reverb256/nixos-config";
-      token = "A646A7TUAS6J5QKTBIELDDLJS7MVQ";
+      tokenFile = "/run/agenix/github-actions-runner-token";
       name = "zephyr";
     };
   };
