@@ -9,6 +9,7 @@
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
     ./modules/desktop/hyprland/home.nix
+    # ./modules/desktop/niri/home.nix  # Uncomment to enable Niri
   ];
 
   # Stylix home-manager integration - must match system-level config

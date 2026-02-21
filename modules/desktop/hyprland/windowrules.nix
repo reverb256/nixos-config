@@ -2,7 +2,7 @@
 { ... }:
 {
   wayland.windowManager.hyprland.settings = {
-    windowrulev2 = [
+    windowrule = [
       # ============================================================
       # FLOATING WINDOWS (Dialogs, utilities, etc.)
       # ============================================================
