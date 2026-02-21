@@ -191,8 +191,8 @@ in {
         WINE_FULLSCREEN_FAKE_CAPTURE = "1";
         __NV_PRIME_RENDER_OFFLOAD = "1";
         __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-        # Force X11 backend for SDL games on Wayland (fixes invisible window issues)
-        SDL_VIDEODRIVER = "x11";
+        # Note: SDL_VIDEODRIVER is NOT set - let Steam/Proton auto-detect the best backend
+        # This fixes VRChat and other games that benefit from native Wayland support
         # MangoHud default configuration (can be overridden per-game)
         MANGOHUD_CONFIG = "fps,frametime,cpu_stats,gpu_stats,vram,ram,cpu_temp,gpu_temp,core_load,background_alpha=0.5,position=top-left,toggle_hud=Shift_R+F12";
       };
