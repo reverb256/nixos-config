@@ -11,4 +11,7 @@ in {
 
   # Exa API key (optional, for MCP servers)
   "exa-api-key".publicKeys = allHosts;
+
+  # GitHub Actions runner token (self-hosted CI/CD)
+  "github-actions-runner-token".publicKeys = allHosts;
 }

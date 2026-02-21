@@ -34,5 +34,13 @@
       group = "users";
       mode = "400";
     };
+
+    # GitHub Actions runner token (self-hosted CI/CD)
+    "github-actions-runner-token" = {
+      file = ./github-actions-runner-token.age;
+      owner = "github-actions-runner";
+      group = "github-actions-runner";
+      mode = "400";
+    };
   };
 }

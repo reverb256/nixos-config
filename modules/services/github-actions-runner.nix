@@ -44,7 +44,14 @@ in {
 
     token = lib.mkOption {
       type = types.str;
-      description = "Runner registration token (get from repo settings/actions/runners)";
+      default = "";
+      description = "Runner registration token (get from repo settings/actions/runners). DEPRECATED: Use tokenFile instead for better security.";
+    };
+
+    tokenFile = lib.mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = "Path to age-encrypted token file (recommended over plain token)";
     };
 
     name = lib.mkOption {
@@ -104,12 +111,19 @@ in {
             export PATH="${pkgs.glibc.bin}/bin:${pkgs.binutils}/bin:${pkgs.coreutils}/bin:${pkgs.bash}/bin:${pkgs.util-linux}/bin:$PATH"
             # Set up library path for .NET dependencies (libstdc++, libz, etc.)
             export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.zlib.out}/lib:${pkgs.openssl.out}/lib:${pkgs.curl.out}/lib:${pkgs.icu.out}/lib:''${LD_LIBRARY_PATH:-}"
+            # Get token from secret file or use plain token (deprecated)
+            ${lib.optionalString (cfg.tokenFile != null) ''
+            RUNNER_TOKEN=$(cat ${cfg.tokenFile})
+            ''}
+            ${lib.optionalString (cfg.tokenFile == null && cfg.token != "") ''
+            RUNNER_TOKEN="${cfg.token}"
+            ''}
             # Use sudo -u to run as the runner user with proper environment
             ${pkgs.sudo}/bin/sudo -u ${cfg.user} \
-              env PATH="$PATH" LD_LIBRARY_PATH="$LD_LIBRARY_PATH" \
+              env PATH="$PATH" LD_LIBRARY_PATH="$LD_LIBRARY_PATH" RUNNER_TOKEN="$RUNNER_TOKEN" \
               ${cfg.home}/config.sh \
               --url ${cfg.url} \
-              --token ${cfg.token} \
+              --token "$RUNNER_TOKEN" \
               --name ${cfg.name} \
               --labels ${builtins.concatStringsSep "," cfg.labels} \
               --work ${cfg.home}/_work
