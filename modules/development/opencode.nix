@@ -178,27 +178,27 @@ in {
     # Sync configuration to other cluster nodes
     system.activationScripts.opencodeSync = lib.mkAfter ''
       # Only run on zephyr (main node)
-      if [ "$(hostname)" = "zephyr" ]; then
+      if [ "$(/run/current-system/sw/bin/hostname)" = "zephyr" ]; then
         echo "Syncing opencode configuration to cluster nodes..."
 
         # Sync to forge
-        if ssh -o ConnectTimeout=5 j_kro@forge "test -d /home/j_kro/.config"; then
-          scp -o ConnectTimeout=5 -q /home/j_kro/.config/opencode/*.json j_kro@forge:/home/j_kro/.config/opencode/
-          ssh -o ConnectTimeout=5 j_kro@forge "sudo cp /home/j_kro/.config/opencode/*.json /root/.config/opencode/"
+        if /run/current-system/sw/bin/ssh -o ConnectTimeout=5 j_kro@forge "test -d /home/j_kro/.config"; then
+          /run/current-system/sw/bin/scp -o ConnectTimeout=5 -q /home/j_kro/.config/opencode/*.json j_kro@forge:/home/j_kro/.config/opencode/ || true
+          /run/current-system/sw/bin/ssh -o ConnectTimeout=5 j_kro@forge "sudo -n cp /home/j_kro/.config/opencode/*.json /root/.config/opencode/" 2>/dev/null || true
           echo "  ✓ forge synced"
         fi
 
         # Sync to nexus
-        if ssh -o ConnectTimeout=5 j_kro@nexus "test -d /home/j_kro/.config"; then
-          scp -o ConnectTimeout=5 -q /home/j_kro/.config/opencode/*.json j_kro@nexus:/home/j_kro/.config/opencode/
-          ssh -o ConnectTimeout=5 j_kro@nexus "sudo cp /home/j_kro/.config/opencode/*.json /root/.config/opencode/"
+        if /run/current-system/sw/bin/ssh -o ConnectTimeout=5 j_kro@nexus "test -d /home/j_kro/.config"; then
+          /run/current-system/sw/bin/scp -o ConnectTimeout=5 -q /home/j_kro/.config/opencode/*.json j_kro@nexus:/home/j_kro/.config/opencode/ || true
+          /run/current-system/sw/bin/ssh -o ConnectTimeout=5 j_kro@nexus "sudo -n cp /home/j_kro/.config/opencode/*.json /root/.config/opencode/" 2>/dev/null || true
           echo "  ✓ nexus synced"
         fi
 
         # Sync to sentry
-        if ssh -o ConnectTimeout=5 j_kro@sentry "test -d /home/j_kro/.config"; then
-          scp -o ConnectTimeout=5 -q /home/j_kro/.config/opencode/*.json j_kro@sentry:/home/j_kro/.config/opencode/
-          ssh -o ConnectTimeout=5 j_kro@sentry "sudo cp /home/j_kro/.config/opencode/*.json /root/.config/opencode/"
+        if /run/current-system/sw/bin/ssh -o ConnectTimeout=5 j_kro@sentry "test -d /home/j_kro/.config"; then
+          /run/current-system/sw/bin/scp -o ConnectTimeout=5 -q /home/j_kro/.config/opencode/*.json j_kro@sentry:/home/j_kro/.config/opencode/ || true
+          /run/current-system/sw/bin/ssh -o ConnectTimeout=5 j_kro@sentry "sudo -n cp /home/j_kro/.config/opencode/*.json /root/.config/opencode/" 2>/dev/null || true
           echo "  ✓ sentry synced"
         fi
 
