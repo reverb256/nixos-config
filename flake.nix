@@ -49,6 +49,11 @@
     # OpenCode AI Agent
     opencode.url = "github:anomalyco/opencode/dev";
 
+    # SpaceBot - AI Operating System for Teams
+    # https://github.com/spacedriveapp/spacebot
+    spacebot.url = "github:spacedriveapp/spacebot";
+    spacebot.inputs.nixpkgs.follows = "nixpkgs";
+
     # Nix Flatpak - Declarative Flatpak management
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
@@ -146,9 +151,6 @@
           inputs.cachyos-kernel.overlays.pinned
         ];
         nixpkgs.config.allowUnfree = true;
-        nixpkgs.config.permittedInsecurePackages = [
-          "electron-25.9.0"
-        ];
 
         # ezKEa aagl-gtk-on-nix Cachix + CachyOS binary cache
         nix.settings = {

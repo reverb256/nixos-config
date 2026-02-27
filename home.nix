@@ -4,12 +4,17 @@
   config,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
     inputs.zen-browser.homeModules.default
     inputs.nixcord.homeModules.nixcord
     ./modules/desktop/hyprland/home.nix
-    # ./modules/desktop/niri/home.nix  # Uncomment to enable Niri
+
+    # Shell (starship is Home Manager compatible)
+    ./modules/shell/starship.nix
+
+    # Note: niri home.nix, fish.nix, and rust.nix are imported in system configuration, not here
   ];
 
   # Stylix home-manager integration - must match system-level config
@@ -58,12 +63,15 @@
     deadnix
     statix
     nixd
+    cmake # CMake build system
 
     # User applications
     opencode
     qwen-code
+    inputs.self.packages.x86_64-linux.claude
     gh
     gparted
+    # yakuake  # KDE dropdown terminal - temporarily disabled, package may not be available
     # localsend - moved to system config (programs.localsend with firewall)
     jocalsend # TUI client for LocalSend (uses same port)
 
@@ -114,6 +122,15 @@
     # OpenCode environment variables
     OPENCODE_TOOL_STRUCTURED_OUTPUT = "1";
     OPENCODE_PATH_FIX = "1";
+
+    # GLM Coding Plan - Model Mappings for Claude Code
+    # Maps Claude Code's model tiers to GLM models
+    # Opus tier = GLM-5 (best for complex reasoning, large-scale refactoring)
+    # Sonnet tier = GLM-4.7 (balanced for daily development)
+    # Haiku tier = GLM-4.5-Air (fastest for simple tasks)
+    ANTHROPIC_DEFAULT_OPUS_MODEL = "glm-5";
+    ANTHROPIC_DEFAULT_SONNET_MODEL = "glm-4.7";
+    ANTHROPIC_DEFAULT_HAIKU_MODEL = "glm-4.5-air";
   };
 
   # Zen Browser configuration - Enhanced privacy and productivity setup
@@ -327,7 +344,7 @@
   # Stylix theming - Apply Tokyo City Dark theme to all applications
   stylix.targets = {
     # Browser
-    zen-browser.profileNames = ["default"];
+    zen-browser.profileNames = [ "default" ];
 
     # Shell and Prompt
     fish.enable = true;
@@ -359,6 +376,13 @@
         user.email = "j_kroeker@reverb256.ca";
         init.defaultBranch = "main";
         pull.rebase = false;
+        # Optimization settings for distributed fleet operations
+        fetch.prune = true;
+        fetch.parallel = 4;
+        core.compression = 9;
+        # Additional performance optimizations (camelCase for nested settings)
+        core.preloadIndex = true;
+        core.untrackedCache = true;
       };
     };
 
@@ -377,7 +401,10 @@
     bash = {
       enable = true;
       enableCompletion = true;
-      historyControl = ["ignoredups" "ignorespace"];
+      historyControl = [
+        "ignoredups"
+        "ignorespace"
+      ];
       historySize = 10000;
       shellAliases = {
         ll = "ls -la";
@@ -406,49 +433,6 @@
         set -U fish_greeting ""
         eval "$(zoxide init fish)"
       '';
-    };
-
-    # Starship prompt (Omarchy minimal configuration)
-    starship = {
-      enable = true;
-      settings = {
-        format = "[$directory$git_branch$git_status]($style)$character";
-        scan_timeout = 10;
-        add_newline = false;
-
-        character = {
-          error_symbol = "[✗](bold cyan)";
-          success_symbol = "[❯](bold cyan)";
-        };
-
-        directory = {
-          truncation_length = 2;
-          truncation_symbol = "…/";
-          repo_root_style = "bold cyan";
-          repo_root_format = "[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) ";
-        };
-
-        git_branch = {
-          format = "[$branch]($style) ";
-          style = "italic cyan";
-        };
-
-        git_status = {
-          format = "[$all_status]($style)";
-          style = "cyan";
-          ahead = "⇡ ";
-          behind = "⇣ ";
-          diverged = "⇕ ";
-          conflicted = "✖";
-          untracked = "•";
-          modified = "▲";
-          staged = "●";
-        };
-
-        # Disable unused modules
-        nix_shell.disabled = true;
-        docker_context.disabled = true;
-      };
     };
 
     # Zoxide - Smart cd (Omarchy-style)
@@ -493,17 +477,18 @@
 
     configFile."openvr/openvrpaths.vrpath" = {
       force = true;
-      text = let
-        xrizer = "${pkgs.xrizer}/lib/xrizer";
-        steam = "$HOME/.local/share/Steam";
-      in
+      text =
+        let
+          xrizer = "${pkgs.xrizer}/lib/xrizer";
+          steam = "$HOME/.local/share/Steam";
+        in
         builtins.toJSON {
           version = 1;
           jsonid = "vrpathreg";
           external_drivers = null;
-          config = ["${steam}/config"];
-          log = ["${steam}/logs"];
-          runtime = ["${xrizer}"];
+          config = [ "${steam}/config" ];
+          log = [ "${steam}/logs" ];
+          runtime = [ "${xrizer}" ];
         };
     };
 
@@ -516,73 +501,75 @@
 
     # Konsole theming (Stylix doesn't have native Konsole support)
     # Generate Konsole color scheme from Stylix colors
-    configFile."konsole/Stylix.colorscheme".text = let
-      c = config.lib.stylix.colors;
-    in ''
-      [Background]
-      Color=${builtins.substring 1 6 c.base00}
+    configFile."konsole/Stylix.colorscheme".text =
+      let
+        c = config.lib.stylix.colors;
+      in
+      ''
+        [Background]
+        Color=${builtins.substring 1 6 c.base00}
 
-      [BackgroundIntense]
-      Color=${builtins.substring 1 6 c.base01}
+        [BackgroundIntense]
+        Color=${builtins.substring 1 6 c.base01}
 
-      [Color0]
-      Color=${builtins.substring 1 6 c.base00}
+        [Color0]
+        Color=${builtins.substring 1 6 c.base00}
 
-      [Color0Intense]
-      Color=${builtins.substring 1 6 c.base01}
+        [Color0Intense]
+        Color=${builtins.substring 1 6 c.base01}
 
-      [Color1]
-      Color=${builtins.substring 1 6 c.base08}
+        [Color1]
+        Color=${builtins.substring 1 6 c.base08}
 
-      [Color1Intense]
-      Color=${builtins.substring 1 6 c.base08}
+        [Color1Intense]
+        Color=${builtins.substring 1 6 c.base08}
 
-      [Color2]
-      Color=${builtins.substring 1 6 c.base0B}
+        [Color2]
+        Color=${builtins.substring 1 6 c.base0B}
 
-      [Color2Intense]
-      Color=${builtins.substring 1 6 c.base0B}
+        [Color2Intense]
+        Color=${builtins.substring 1 6 c.base0B}
 
-      [Color3]
-      Color=${builtins.substring 1 6 c.base0A}
+        [Color3]
+        Color=${builtins.substring 1 6 c.base0A}
 
-      [Color3Intense]
-      Color=${builtins.substring 1 6 c.base0A}
+        [Color3Intense]
+        Color=${builtins.substring 1 6 c.base0A}
 
-      [Color4]
-      Color=${builtins.substring 1 6 c.base0D}
+        [Color4]
+        Color=${builtins.substring 1 6 c.base0D}
 
-      [Color4Intense]
-      Color=${builtins.substring 1 6 c.base0D}
+        [Color4Intense]
+        Color=${builtins.substring 1 6 c.base0D}
 
-      [Color5]
-      Color=${builtins.substring 1 6 c.base0E}
+        [Color5]
+        Color=${builtins.substring 1 6 c.base0E}
 
-      [Color5Intense]
-      Color=${builtins.substring 1 6 c.base0E}
+        [Color5Intense]
+        Color=${builtins.substring 1 6 c.base0E}
 
-      [Color6]
-      Color=${builtins.substring 1 6 c.base0C}
+        [Color6]
+        Color=${builtins.substring 1 6 c.base0C}
 
-      [Color6Intense]
-      Color=${builtins.substring 1 6 c.base0C}
+        [Color6Intense]
+        Color=${builtins.substring 1 6 c.base0C}
 
-      [Color7]
-      Color=${builtins.substring 1 6 c.base05}
+        [Color7]
+        Color=${builtins.substring 1 6 c.base05}
 
-      [Color7Intense]
-      Color=${builtins.substring 1 6 c.base06}
+        [Color7Intense]
+        Color=${builtins.substring 1 6 c.base06}
 
-      [Foreground]
-      Color=${builtins.substring 1 6 c.base05}
+        [Foreground]
+        Color=${builtins.substring 1 6 c.base05}
 
-      [ForegroundIntense]
-      Color=${builtins.substring 1 6 c.base06}
+        [ForegroundIntense]
+        Color=${builtins.substring 1 6 c.base06}
 
-      [General]
-      Description=Stylix
-      Opacity=1
-    '';
+        [General]
+        Description=Stylix
+        Opacity=1
+      '';
 
     configFile."konsole/Stylix.profile".text = ''
       [Appearance]
@@ -600,7 +587,7 @@
   };
 
   # Create writable konsolerc with default profile
-  home.activation.konsolercWritable = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  home.activation.konsolercWritable = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         # Create directory if it doesn't exist
         mkdir -p $HOME/.config
 
@@ -656,32 +643,53 @@
     };
   };
 
-  # Set PATH for user services ( needs it for tools)
-  systemd.user.sessionVariables = {
-    PATH = "/nix/store/i2vmgx46q9hd3z6rigaiman3wl3i2gc4-coreutils-9.9/bin:/run/wrappers/bin:/home/j_kro/.nix-profile/bin:/nix/profile/bin:/etc/profiles/per-user/j_kro/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin";
-  };
+  # PATH for user services is automatically managed by Home Manager
+  # systemd.user.sessionVariables.PATH is not needed - HM sets this correctly
 
   # Autostart Vesktop on login
   systemd.user.services.vesktop-autostart = {
     Unit = {
       Description = "Vesktop autostart";
-      After = ["graphical-session-pre.target"];
-      PartOf = ["graphical-session.target"];
+      After = [ "graphical-session-pre.target" ];
+      PartOf = [ "graphical-session.target" ];
     };
     Service = {
       Type = "simple";
-      ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-features=UseOzonePlatform --ozone-platform-hint=auto";
       Restart = "on-failure";
       RestartSec = 5;
     };
     Install = {
-      WantedBy = ["graphical-session.target"];
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
+
+  # Set monitor priorities and primary display on Plasma login
+  # Lower priority number = higher priority (1 is highest/default)
+  systemd.user.services.kde-monitor-setup = {
+    Unit = {
+      Description = "KDE Plasma monitor priority and primary display setup";
+      After = [ "graphical-session-pre.target" "plasma-kscreen.service" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      # Wait for KScreen DBus service to be available
+      ExecStartPre = "/run/current-system/sw/bin/bash -c 'while ! busctl --user list | grep -q \"org.kde.KScreen\"; do sleep 0.5; done'";
+      # Set priorities (DP-2=1, DP-1=2, DP-3=3, HDMI-A-1=4) and mark DP-2 as primary
+      # Primary display gets: new windows, notifications, dialogs, panel focus
+      ExecStart = "/run/current-system/sw/bin/kscreen-doctor output.DP-2.priority=1 output.DP-2.primary output.DP-1.priority=2 output.DP-3.priority=3 output.HDMI-A-1.priority=4";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
     };
   };
 
   # Sync zen-browser config from XDG (~/.config/zen) to legacy path (~/.zen)
   # Zen Browser reads from ~/.zen but Home Manager writes to ~/.config/zen
-  home.activation.syncZenConfig = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  home.activation.syncZenConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     ZEN_PROFILE="w26i4er3.Default Profile"
     if [ -d "$HOME/.config/zen/$ZEN_PROFILE" ]; then
       mkdir -p "$HOME/.zen/$ZEN_PROFILE/chrome"
