@@ -37,13 +37,29 @@ with lib; let
     AmbientCapabilities = "CAP_SYS_NICE";
   };
 
-  # NVIDIA GPU power limit script
+  # NVIDIA GPU power limit script - supports per-GPU limits
   nvidiaGpuPowerLimitScript = pkgs.writeShellScript "nvidia-gpu-power-limit" ''
     PATH=/run/current-system/sw/bin:$PATH
-    echo "Setting NVIDIA GPU power limit to ${toString cfg.lolminer.nvidia.powerLimit}W..."
+    echo "Setting NVIDIA GPU power limits..."
     nvidia-smi -pm 1 || true
-    nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
-    echo "NVIDIA GPU power limit set successfully"
+
+    ${lib.optionalString (cfg.lolminer.nvidia.perGpuPowerLimits != {})
+      (lib.concatStringsSep "\n" (lib.mapAttrsToList
+        (gpuId: limit: ''
+          echo "Setting GPU ${gpuId} power limit to ${toString limit}W..."
+          nvidia-smi -i ${gpuId} -pl ${toString limit} || true
+        '')
+        cfg.lolminer.nvidia.perGpuPowerLimits))
+    }
+
+    ${lib.optionalString (cfg.lolminer.nvidia.perGpuPowerLimits == {})
+      ''
+        echo "Setting all GPUs power limit to ${toString cfg.lolminer.nvidia.powerLimit}W..."
+        nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
+      ''
+    }
+
+    echo "NVIDIA GPU power limits set successfully"
   '';
 
   # System watchdog script - reboots if load stays high
@@ -93,6 +109,12 @@ in {
         powerLimit = mkOption {
           type = types.int;
           default = 90;
+          description = "Legacy global power limit (deprecated - use perGpuPowerLimits)";
+        };
+        perGpuPowerLimits = mkOption {
+          type = types.attrsOf types.int;
+          default = {};
+          description = "Per-GPU power limits in watts (e.g., { \"0\" = 130; \"1\" = 250; })";
         };
         apiPort = mkOption {
           type = types.int;

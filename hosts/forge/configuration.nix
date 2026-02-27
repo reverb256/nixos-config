@@ -41,8 +41,6 @@
   boot.kernelParams = lib.mkForce [
     "loglevel=4"
     "lsm=landlock,yama,bpf"
-    "simpledrm.disable=1"
-    "nvidia-drm.modeset=1"
   ];
 
   # ============================================================================
