@@ -10,7 +10,7 @@
   garnixNetrc = pkgs.writeText "garnix-netrc" ''
     machine cache.garnix.io
       login reverb256
-      password TvENbzJlSFCUqJhsP+l575OwKcTVFp32+8Fhzkk1
+      password EV1t91y48c6CTCkNbezdhJBU2QTdIVPCjE9sSxyY
   '';
 in {
   options.services.garnix = {
@@ -22,6 +22,8 @@ in {
     nix.settings = {
       # Reduce TTL for presigned URLs that expire quickly
       narinfo-cache-positive-ttl = 3600;
+      # Point to netrc file for authentication
+      netrc-file = "/etc/nix/netrc";
       # Add Garnix as a substituter
       substituters = ["https://cache.garnix.io"];
       trusted-public-keys = ["cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="];

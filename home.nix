@@ -96,6 +96,7 @@
 
     # Display management (moved from system-packages)
     kanshi
+    jq # JSON processor for monitor config scripts
 
     # Kilo CLI wrapper
     (pkgs.writeShellScriptBin "kilo" ''
@@ -664,23 +665,86 @@
     };
   };
 
-  # Set monitor priorities and primary display on Plasma login
-  # Lower priority number = higher priority (1 is highest/default)
-  systemd.user.services.kde-monitor-setup = {
+  # KScreen monitor configuration by EDID (manufacturer + model)
+  # This ensures monitors keep their priorities regardless of port changes
+  #
+  # Priority order:
+  #   1. ZOWIE (BenQ/BNQ) - primary gaming display
+  #   2. ASUS VT229 (AUS) - secondary display
+  #   3. Acer X203H (ACR) - tertiary display
+  #   4. Samsung (SAM) - lowest priority (large 4K TV)
+  systemd.user.services.kscreen-edid-setup = {
     Unit = {
-      Description = "KDE Plasma monitor priority and primary display setup";
+      Description = "Set KScreen monitor priorities by EDID";
       After = [ "graphical-session-pre.target" "plasma-kscreen.service" ];
       PartOf = [ "graphical-session.target" ];
     };
     Service = {
       Type = "oneshot";
-      # Wait for KScreen DBus service to be available
-      ExecStartPre = "/run/current-system/sw/bin/bash -c 'while ! busctl --user list | grep -q \"org.kde.KScreen\"; do sleep 0.5; done'";
-      # Set priorities (DP-2=1, DP-1=2, DP-3=3, HDMI-A-1=4) and mark DP-2 as primary
-      # Primary display gets: new windows, notifications, dialogs, panel focus
-      ExecStart = "/run/current-system/sw/bin/kscreen-doctor output.DP-2.priority=1 output.DP-2.primary output.DP-1.priority=2 output.DP-3.priority=3 output.HDMI-A-1.priority=4";
-      Restart = "on-failure";
-      RestartSec = 2;
+      ExecStart = toString (pkgs.writeShellScript "kscreen-edid-setup" ''
+        #!${pkgs.bash}/bin/bash
+        set -e
+
+        KSCREEN_CONFIG="$HOME/.local/share/kscreen/monitors.json"
+        MAPPING_FILE=$(mktemp)
+
+        # Wait for KScreen to create the config file
+        for i in {1..30}; do
+          [[ -f "$KSCREEN_CONFIG" ]] && break
+          sleep 1
+        done
+
+        [[ ! -f "$KSCREEN_CONFIG" ]] && exit 1
+
+        # Get manufacturer from EDID for a connector
+        get_mfg() {
+          local conn="$1"
+          local edid="/sys/class/drm/card1-$conn/edid"
+          [[ -f "$edid" ]] && ${pkgs.edid-decode}/bin/edid-decode "$edid" 2>/dev/null | grep "Manufacturer:" | awk '{print $2}'
+        }
+
+        # Get priority by manufacturer
+        get_prio() {
+          local mfg="$1"
+          case "$mfg" in
+            BNQ) echo 1 ;;  # ZOWIE (BenQ)
+            AUS) echo 2 ;;  # ASUS
+            ACR) echo 3 ;;  # Acer
+            SAM) echo 4 ;;  # Samsung
+            *)   echo 99 ;; # Unknown
+          esac
+        }
+
+        # Create connector-to-priority mapping (avoid subshell issue)
+        ${pkgs.jq}/bin/jq -r '.outputs[] | select(.enabled==true) | .name' "$KSCREEN_CONFIG" | while read -r conn; do
+          mfg=$(get_mfg "$conn" || echo "UNK")
+          prio=$(get_prio "$mfg")
+          echo "$conn:$prio"
+        done > "$MAPPING_FILE"
+
+        # Build jq filter from mapping file
+        jq_filter=".outputs |= map("
+        first=true
+
+        while IFS=: read -r conn prio; do
+          if $first; then
+            jq_filter+="if .name==\"$conn\" then .priority=$prio"
+            first=false
+          else
+            jq_filter+=" elif .name==\"$conn\" then .priority=$prio"
+          fi
+        done < "$MAPPING_FILE"
+
+        rm -f "$MAPPING_FILE"
+        jq_filter+=" else .priority end)"
+
+        # Update config atomically with unlock/re-lock
+        ${pkgs.jq}/bin/jq "$jq_filter" "$KSCREEN_CONFIG" > "$KSCREEN_CONFIG.tmp"
+        sudo chattr -i "$KSCREEN_CONFIG" 2>/dev/null || true
+        mv "$KSCREEN_CONFIG.tmp" "$KSCREEN_CONFIG"
+        sudo chattr +i "$KSCREEN_CONFIG" 2>/dev/null || true
+      '');
+      RemainAfterExit = true;
     };
     Install = {
       WantedBy = [ "graphical-session.target" ];

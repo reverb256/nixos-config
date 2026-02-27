@@ -4,24 +4,20 @@
   pkgs,
   ...
 }: {
-  # Import the secrets configuration
-  imports = [./age-secrets.nix];
-
   # Agenix configuration
   age.secretsDir = "/run/agenix";
   age.secretsMountPoint = "/run/agenix.d";
 
-  # Use age key file for decryption
-  # Age private key stored in j_kro's home directory
+  # Use rage instead of age for native SSH key support
+  age.ageBin = "${pkgs.rage}/bin/rage";
+
+  # Use SSH host keys for decryption (works on all nodes)
+  # Each node can decrypt secrets encrypted with its host SSH key
   age.identityPaths = [
-    "/home/j_kro/.config/age/keys.txt"
+    "/etc/ssh/ssh_host_ed25519_key"
   ];
 
-  # HuggingFace token (manually encrypted with age)
-  age.secrets.hf-token = {
-    file = ./hf-token.age;
-    owner = "j_kro";
-    group = "users";
-    mode = "400";
-  };
+  # Import the secrets configuration
+  # All secrets are encrypted with age public keys from all nodes
+  imports = [./age-secrets.nix];
 }

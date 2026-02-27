@@ -24,6 +24,8 @@ _: {
       # Binary caches for faster builds (ALL FREE - $0 to download)
       # Ordered by priority: official > CUDA > community > specialized
       substituters = [
+        # Private cache (reverb-os) - highest priority for custom builds
+        "https://reverb-os.cachix.org"
         # Official NixOS cache (primary)
         "https://cache.nixos.org"
         # CUDA packages (PyTorch, TensorFlow, LM Studio, etc.)
@@ -47,6 +49,7 @@ _: {
       ];
 
       trusted-public-keys = [
+        "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="

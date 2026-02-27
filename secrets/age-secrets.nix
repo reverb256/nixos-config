@@ -42,5 +42,13 @@
       group = "root";
       mode = "400";
     };
+
+    # Cachix token for reverb-os private cache
+    "cachix-token" = {
+      file = ./cachix-token.age;
+      owner = "j_kro";
+      group = "users";
+      mode = "400";
+    };
   };
 }

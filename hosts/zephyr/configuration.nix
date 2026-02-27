@@ -29,6 +29,7 @@
     ../../modules/services/hoyoverse-controller-fix.nix
     ../../modules/services/whisper-dictation.nix
     ../../modules/services/lm-studio.nix
+    ../../modules/services/spacebot.nix
   ];
 
   # ============================================================================
@@ -184,6 +185,34 @@
       url = "https://github.com/reverb256/nixos-config";
       tokenFile = "/run/agenix/github-actions-runner-token";
       name = "zephyr";
+    };
+
+    # SpaceBot - AI Operating System for Teams
+    # Uses Z.ai (GLM) via Anthropic-compatible API endpoint
+    # Projects mounted at /data/@projects for agent workspace access
+    spacebot-podman = {
+      enable = true;
+      port = 19898;
+      host = "127.0.0.1"; # Use reverse proxy for external access
+      openFirewall = false;
+
+      llm = {
+        provider = "anthropic"; # Z.ai uses Anthropic-compatible API
+        apiKey = "/run/agenix/zhipu-api-key";
+        baseURL = "https://api.z.ai/api/anthropic";
+        model = "glm-4.7";
+      };
+
+      extraEnvironment = {
+        RUST_LOG = "spacebot=debug";
+        SPACEBOT_HOSTNAME = "zephyr.local";
+      };
+
+      # Mount project directories for agent workspace access
+      projectPaths = [
+        "/data/@projects"
+        "/etc/nixos"
+      ];
     };
   };
 

@@ -4,7 +4,7 @@
 #
 # Uses containerized deployment for:
 # - Official container image (ghcr.io/spacedriveapp/spacebot:latest)
-# - Proper secret handling via systemd LoadCredential
+# - Proper secret handling via agenix
 # - Z.ai Coding Plan integration with optimized model routing
 {
   config,
@@ -18,18 +18,16 @@
   spacebotStartScript = pkgs.writeShellScript "spacebot-start" ''
     set -e
 
-    # Read API key from credential (set by systemd LoadCredential)
-    if [ -n "$CREDENTIALS_DIRECTORY" ]; then
-      API_KEY=$(cat "$CREDENTIALS_DIRECTORY/zhipu-api-key")
-    else
-      # Fallback: read from agenix path
-      API_KEY=$(cat "${cfg.llm.apiKey}")
-    fi
+    # Read API key from agenix path
+    API_KEY=$(cat "${cfg.llm.apiKey}")
 
     # Extract just the key value if the file contains "KEY=value" format
     if [[ "$API_KEY" == *"="* ]]; then
       API_KEY=$(echo "$API_KEY" | cut -d= -f2)
     fi
+
+    # Ensure podman is ready
+    ${pkgs.podman}/bin/podman system prune -f 2>/dev/null || true
 
     # Start the container with all environment variables
     # SpaceBot reads zai_coding_plan_key from ZAI_CODING_PLAN_KEY env var
@@ -149,7 +147,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Enable Podman
+    # Enable Podman with full configuration
     virtualisation.podman = {
       enable = true;
       dockerCompat = true;
@@ -157,15 +155,20 @@ in {
         enable = true;
         dates = "weekly";
       };
+      # Create required directories
+      extraPackages = [pkgs.crun];
     };
 
-    # Create data directory and config file
-    # Set 0755 on agents directory to allow user access via symlink
+    # Create required directories
     systemd.tmpfiles.rules = [
       "d ${cfg.dataDir} 0755 root root - -"
       "d ${cfg.dataDir}/agents 0755 root root - -"
       "d ${cfg.dataDir}/agents/* 0755 j_kro users - -"
       "z ${cfg.dataDir}/agents/*/* 0644 j_kro users - -"
+      # Podman runtime directories
+      "d /var/lib/containers 0755 root root - -"
+      "d /run/containers 0755 root root - -"
+      "d /run/libpod 0755 root root - -"
     ];
 
     # Generate SpaceBot config.toml with Z.ai native configuration
@@ -202,15 +205,15 @@ in {
     # Firewall
     networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [cfg.port];
 
-    # Custom systemd service for SpaceBot with proper secret handling
+    # Custom systemd service for SpaceBot
     systemd.services.spacebot-podman = {
       description = "SpaceBot AI Operating System";
-      after = ["network-online.target" "podman.service"];
+      after = ["network-online.target" "podman.service" "agenix.service"];
       wants = ["network-online.target"];
       wantedBy = ["multi-user.target"];
+      requires = ["podman.service"];
 
-      # Load credentials for secret management
-      serviceConfig.LoadCredential = "zhipu-api-key:${cfg.llm.apiKey}";
+      path = [pkgs.podman pkgs.crun];
 
       serviceConfig = {
         Type = "notify";
@@ -222,18 +225,10 @@ in {
         Restart = "on-failure";
         RestartSec = "10s";
 
-        # Security - use less strict settings for container runtime
+        # Less restrictive sandboxing for container runtime
         PrivateTmp = true;
-        ProtectSystem = "yes"; # Protects /usr and /boot but allows /var and /etc
-        ProtectHome = true;
-        ReadWritePaths =
-          [
-            cfg.dataDir
-            "/var/lib/containers"
-            "/run/containers"
-            "/run/lock"
-          ]
-          ++ cfg.projectPaths;
+        ProtectSystem = "no"; # Allow writing to /var/lib/containers
+        ProtectHome = false; # Allow reading from home for project paths
 
         # Runtime directory
         RuntimeDirectory = "spacebot";
