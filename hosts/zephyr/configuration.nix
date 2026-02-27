@@ -22,13 +22,13 @@
 
     # Zephyr-specific modules
     ../../modules/services/stability-matrix.nix
+    ../../modules/services/llama-server.nix
     ../../modules/system/nix-cache-server.nix
     ../../modules/services/mcp-servers.nix
     ../../modules/services/github-actions-runner.nix
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/hoyoverse-controller-fix.nix
     ../../modules/services/whisper-dictation.nix
-    ../../modules/services/lm-studio.nix
   ];
 
   # ============================================================================
@@ -130,13 +130,11 @@
   # SERVICES
   # ============================================================================
   services = {
-    xserver.videoDrivers = ["nvidia"];
-
     garnix.enable = true;
     nixos-auto-update.enable = true;
 
-    # Mining configuration
-    # Uses defaults from mining.nix for pool URLs and wallet format
+    # Mining configuration - uses RTX 3060 Ti (GPU 0) only
+    # Display uses RTX 3090 (GPU 1) - no conflict when configured correctly
     mining = {
       enable = true;
       xmrig = {
@@ -147,6 +145,7 @@
         enable = true;
         nvidia = {
           enable = true;
+          devices = "0";
           powerLimit = 250;
         };
       };
@@ -185,6 +184,37 @@
       tokenFile = "/run/agenix/github-actions-runner-token";
       name = "zephyr";
     };
+
+    # Llama.cpp AI Inference Server - Multi-GPU with Maximum Context
+    # Uses both RTX 3090 (24GB) and RTX 3060 Ti (8GB) for distributed inference
+    # Automatically stops mining service when running (conflicts directive)
+    llama-server = {
+      enable = true;
+
+      # Maximum natural context window for Qwen3.5-35B-A3B model
+      contextSize = 262144;  # Model's native 262K tokens
+
+      # Multi-GPU configuration
+      enableMultiGpu = true;
+      multiGpuMode = "layer";  # Split layers across both GPUs
+      mainGpu = null;  # Auto-select main GPU (will be 3090)
+
+      # GPU layers offloading
+      gpuLayers = 99;  # Offload almost all layers to GPU
+
+      # Performance tuning
+      enableFlashAttention = true;
+      enableMetrics = true;
+      parallelSlots = 1;
+      ubatchSize = 1024;
+      batchSize = 2048;
+
+      # Sampling parameters
+      temperature = 0.7;
+      topP = 0.9;
+      topK = 20;
+      repeatPenalty = 1.05;
+    };
   };
 
   # ============================================================================
@@ -207,11 +237,9 @@
   environment.variables = {
     CUDA_PATH = "/run/opengl-driver";
     CUDA_HOME = "/run/opengl-driver";
+    # KWin DRM devices - restrict to primary GPU only (RTX 3090)
+    # Prevents KWin from trying to open mining GPU (RTX 3060 Ti) which causes session crash
+    KWIN_DRM_DEVICES = "/dev/dri/card2";
   };
   environment.variables.LD_LIBRARY_PATH = pkgs.lib.mkForce "/run/opengl-driver/lib:/run/opengl-driver/lib64";
-
-  # ============================================================================
-  # LM STUDIO - Local LLM runner with GPU support
-  # ============================================================================
-  programs.lm-studio.enable = true;
 }

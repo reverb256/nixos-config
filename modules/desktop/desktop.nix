@@ -1,14 +1,18 @@
-# Desktop Module - Pure Wayland with XWayland Fallback
-# Optimized for Steam and gaming with Wayland-first approach
+# Desktop Module - Plasma Desktop Environment
+# Optimized for Steam and gaming with Wayland support
 {pkgs, ...}: {
   # ============================================================================
-  # KDE PLASMA 6 (Pure Wayland with XWayland fallback for legacy apps)
+  # PLASMA DESKTOP
   # ============================================================================
 
-  services.desktopManager.plasma6 = {
+  services.xserver.enable = true;
+
+  services.displayManager.sddm = {
     enable = true;
-    # XWayland is automatically enabled by Plasma 6 for X11 app compatibility
+    wayland.enable = true;
   };
+
+  services.desktopManager.plasma6.enable = true;
 
   # ============================================================================
   # XDG DESKTOP PORTAL - DRY configuration for zephyr (KDE + future Hyprland)
@@ -199,9 +203,6 @@
     # Force XWayland for electron apps that crash on native Wayland
     # This prevents "Failed to connect to Wayland display" errors
     ELECTRON_OZONE_PLATFORM_HINT = "x11";
-
-    # Disable Wayland for problematic electron apps
-    NIXOS_OZONE_WL = "1";
 
     # GTK apps should use portal for better KDE integration
     GTK_USE_PORTAL = "1";

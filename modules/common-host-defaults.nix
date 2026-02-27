@@ -20,10 +20,6 @@
   # ============================================================================
   # Consistent display manager configuration across all hosts
   services.displayManager = {
-    sddm = {
-      enable = lib.mkDefault true;
-      wayland.enable = lib.mkDefault true;
-    };
     defaultSession = lib.mkDefault "plasma";
     autoLogin = {
       enable = lib.mkDefault true;
