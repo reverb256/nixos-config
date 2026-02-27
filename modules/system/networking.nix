@@ -1,5 +1,5 @@
 # Networking Module - DNS, Firewall, Analytics Blocking, Avahi
-{...}: {
+{ pkgs, ... }: {
   # ============================================================================
 
   # Use NetworkManager for interface management
@@ -83,6 +83,15 @@
   systemd.tmpfiles.rules = [
     "d /run/avahi-daemon 755 avahi avahi -"
   ];
+
+  # Fix: Clean stale PID file before starting avahi-daemon
+  # Prevents "File exists" errors after rapid restarts/rebuilds
+  # The '+' prefix runs this command as root, bypassing User=avahi
+  systemd.services.avahi-daemon = {
+    serviceConfig.ExecStartPre = [
+      "+${pkgs.coreutils}/bin/rm -f /run/avahi-daemon/pid"
+    ];
+  };
 
   services.unbound = {
     enable = true;

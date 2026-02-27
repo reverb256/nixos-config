@@ -2,6 +2,16 @@
 # Timezone, locale, fonts, system optimizations
 {pkgs, ...}: {
   # ============================================================================
+  # D-BUS CONFIGURATION (Shared across all hosts)
+  # ============================================================================
+
+  # Use dbus-broker instead of classic dbus daemon
+  # - Better performance and reliability
+  # - More efficient message passing for desktop environments
+  # - Improved multi-threading and error isolation
+  services.dbus.implementation = "broker";
+
+  # ============================================================================
   # TIMEZONE AND LOCALE (Shared across all hosts)
   # ============================================================================
 
