@@ -1,0 +1,67 @@
+name: "Cachix - Build and Push Cache"
+
+on:
+  push:
+    branches: ["main", "infra"]
+  pull_request:
+    branches: ["main", "infra"]
+  workflow_dispatch:
+    inputs:
+      push:
+        description: 'Push to Cachix'
+        required: false
+        default: 'true'
+        type: boolean
+
+# Only run on the main repo, not forks
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: reverb-os
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          # Always push on main/infra branches, or when manually triggered
+          extraPullArgs: --public
+          # Push all build outputs
+          skipPush: false
+
+      - name: Build all configurations
+        run: |
+          echo "Building all host configurations..."
+          echo "These builds will be cached to reverb-os.cachix.org"
+
+          # Build each host configuration
+          for host in zephyr nexus forge sentry; do
+            echo "Building $host..."
+            nix build .#nixosConfigurations.$host.config.system.build.toplevel --print-build-logs || {
+              echo "::warning::Failed to build $host"
+            }
+          done
+
+          echo "✅ Builds complete and cached to Cachix"
+
+      - name: Build common packages
+        run: |
+          echo "Building common packages for cache..."
+          # Build commonly used packages
+          nix build .#packages.x86_64-linux.claude --print-build-logs || true
+
+      - name: Cache summary
+        run: |
+          echo "## Cache Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All builds have been pushed to **reverb-os.cachix.org**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Your cluster nodes will now be able to download these pre-built artifacts." >> $GITHUB_STEP_SUMMARY

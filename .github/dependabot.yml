@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # Update GitHub Actions
+  - directory: /
+    directory: /.github/workflows
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  # Update flake inputs
+  - directory: /
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "flake"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Ignore major version updates for critical inputs
+    ignore:
+      - dependency-name: "nixpkgs"
+        update-types: ["version-update:semver-major"]

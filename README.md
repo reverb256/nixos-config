@@ -1,10 +1,14 @@
 # 🎯 Reverb-OS: Personal AI Assistant Platform
 
+[![CI Status](https://github.com/reverb256/nixos-config/actions/workflows/status.yml/badge.svg)](https://github.com/reverb256/nixos-config/actions/workflows/status.yml)
+[![PR CI](https://github.com/reverb256/nixos-config/actions/workflows/pr-ci.yml/badge.svg)](https://github.com/reverb256/nixos-config/actions/workflows/pr-ci.yml)
+[![Deploy](https://github.com/reverb256/nixos-config/actions/workflows/deploy-prod.yml/badge.svg)](https://github.com/reverb256/nixos-config/actions/workflows/deploy-prod.yml)
+[![Cachix](https://github.com/reverb256/nixos-config/actions/workflows/cachix.yml/badge.svg)](https://github.com/reverb256/nixos-config/actions/workflows/cachix.yml)
 [![NixOS](https://img.shields.io/badge/NixOS-26.05-blue.svg)](https://nixos.org)
 [![Flakes](https://img.shields.io/badge/Flakes-Enabled-5277C3)](https://nixos.wiki/wiki/Flakes)
 [![Colmena](https://img.shields.io/badge/Colmena-0.4.0-9cf)](https://colmena.cli.rs)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Garnix Build](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadge%2Fgithub.com%2Fyour-username%2Fyour-repo)](https://garnix.io)
+[![Garnix Build](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadge%2Fgithub.com%2Freverb256%2Fnixos-config)](https://garnix.io)
 
 **Reverb-OS** is a NixOS-based personal AI assistant platform that serves as a comprehensive portfolio and demonstration system for the AstralVibe.ca ecosystem. Built entirely on Nix and NixOS, Reverb-OS showcases the power of declarative system configuration, distributed computing, and AI orchestration through its core interface: **** - the embedded AI assistant.
 

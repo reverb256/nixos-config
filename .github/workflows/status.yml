@@ -1,0 +1,46 @@
+name: "CI Status"
+
+on:
+  push:
+    branches: ["main", "infra"]
+  pull_request:
+    branches: ["main", "infra"]
+  workflow_dispatch:
+
+# Allow GitHub to generate status badges
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  status-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Quick flake check
+        run: |
+          nix flake check --no-build --keep-going
+
+      - name: Evaluate all hosts
+        run: |
+          for host in zephyr nexus forge sentry; do
+            nix eval .#nixosConfigurations.$host.config.system.build.toplevel --raw
+          done
+
+      - name: Set commit status
+        if: always()
+        uses: Sibz/github-status-action@v2
+        with:
+          auth_token: ${{ secrets.GITHUB_TOKEN }}
+          context: "CI Status"
+          description: "${{ job.status }}"
+          state: "${{ job.status == 'success' && 'success' || 'failure' }}"
+          target_url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -1,0 +1,3 @@
+# Production deployment environment
+# Requires manual approval when deploy-prod workflow is triggered with approve=true
+name: production

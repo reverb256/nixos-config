@@ -1,0 +1,226 @@
+name: "PR CI - Full Testing"
+
+on:
+  pull_request:
+    branches: ["main", "infra"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Static analysis and formatting checks
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Check formatting with alejandra
+        run: |
+          echo "Checking formatting..."
+          nix run nixpkgs#alejandra -- --check . || {
+            echo "::error::Code is not formatted. Run 'alejandra .' to fix."
+            exit 1
+          }
+
+      - name: Run deadnix (dead code detection)
+        run: |
+          echo "Checking for dead code..."
+          nix run nixpkgs#deadnix -- -e . || {
+            echo "::warning::deadnix found issues"
+          }
+
+      - name: Run statix (Nix linting)
+        run: |
+          echo "Linting Nix code..."
+          nix run nixpkgs#statix -- check . || {
+            echo "::warning::statix found issues"
+          }
+
+      - name: Check for TODO/FIXME comments
+        run: |
+          echo "Checking for TODO/FIXME comments..."
+          TODO_COUNT=$(grep -r "TODO\|FIXME" --include="*.nix" . 2>/dev/null | wc -l || echo "0")
+          if [ "$TODO_COUNT" -gt 0 ]; then
+            echo "::warning::Found $TODO_COUNT TODO/FIXME comments"
+            grep -rn "TODO\|FIXME" --include="*.nix" . || true
+          fi
+
+  # Security and secret scanning
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for exposed secrets
+        run: |
+          echo "Checking for potential secrets..."
+          # Check for common secret patterns
+          if grep -rE "(password|secret|api_key|token)\s*=\s*\"[^\"]+\"" --include="*.nix" modules/ hosts/ 2>/dev/null; then
+            echo "::warning::Potential hardcoded secrets found (should use agenix)"
+          fi
+
+  # Evaluate all configurations
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Evaluate all host configurations
+        run: |
+          echo "Evaluating all host configurations..."
+          for host in zephyr nexus forge sentry; do
+            echo "Evaluating $host..."
+            nix eval .#nixosConfigurations.$host.config.system.build.toplevel --raw || {
+              echo "::error::Failed to evaluate $host configuration"
+              exit 1
+            }
+          done
+          echo "✅ All configurations evaluate successfully"
+
+      - name: Check flake metadata
+        run: |
+          echo "Checking flake metadata..."
+          nix flake metadata . || echo "Warning: Flake metadata check failed"
+          nix flake show || echo "Warning: Flake show failed"
+
+  # Build test (lightweight - don't build full systems)
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build a sample package to verify nixpkgs
+        run: |
+          echo "Building hello package as smoke test..."
+          nix build nixpkgs#hello --print-build-logs || {
+            echo "::error::Failed to build basic package"
+            exit 1
+          }
+          echo "✅ Build smoke test passed"
+
+  # Colmena validation
+  colmena-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Validate colmena configuration
+        run: |
+          echo "Validating colmena configuration..."
+          nix eval .#colmena --raw || {
+            echo "::error::Colmena configuration invalid"
+            exit 1
+          }
+
+      - name: Dry-run colmena deployment
+        run: |
+          echo "Dry-running colmena deployment..."
+          nix run .#apps.x86_64-linux.colmena -- apply --on @all --dry-run 2>&1 | head -50 || {
+            echo "::warning::Colmena dry-run had warnings"
+          }
+
+  # PR comment with results
+  comment:
+    runs-on: ubuntu-latest
+    needs: [lint, security, evaluate, build-check, colmena-check]
+    if: always()
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('CI Results')
+            );
+
+            const lintStatus = '${{ needs.lint.result }}';
+            const securityStatus = '${{ needs.security.result }}';
+            const evalStatus = '${{ needs.evaluate.result }}';
+            const buildStatus = '${{ needs.build-check.result }}';
+            const colmenaStatus = '${{ needs.colmena-check.result }}';
+
+            const allSuccess = [lintStatus, securityStatus, evalStatus, buildStatus, colmenaStatus]
+              .every(status => status === 'success');
+
+            const emoji = allSuccess ? '✅' : '⚠️';
+            const body = `## ${emoji} CI Results
+
+            | Job | Status |
+            |-----|--------|
+            | Lint | ${lintStatus === 'success' ? '✅' : '❌'} |
+            | Security | ${securityStatus === 'success' ? '✅' : '❌'} |
+            | Evaluate | ${evalStatus === 'success' ? '✅' : '❌'} |
+            | Build Check | ${buildStatus === 'success' ? '✅' : '❌'} |
+            | Colmena | ${colmenaStatus === 'success' ? '✅' : '❌'} |
+
+            _Commit: ${context.sha.substring(0, 7)}_`;
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }

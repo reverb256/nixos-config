@@ -1,0 +1,68 @@
+name: "Update Flake Inputs"
+
+on:
+  schedule:
+    # Run every Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-flake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Update flake inputs
+        run: |
+          nix flake update
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet flake.lock; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No updates available"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Updates available!"
+          fi
+
+      - name: Build configurations to verify
+        if: steps.check-changes.outputs.changed == 'true'
+        run: |
+          echo "Building configurations with updated inputs..."
+          # Quick smoke test - build one host
+          nix build .#nixosConfigurations.zephyr.config.system.build.toplevel --print-build-logs || {
+            echo "::error::Build failed with updated inputs"
+            exit 1
+          }
+          echo "✅ Build successful"
+
+      - name: Create PR
+        if: steps.check-changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: "update/flake-inputs"
+          title: "chore(flake): update inputs"
+          body: |
+            ## Automated Flake Input Update
+
+            This PR updates all flake inputs to their latest versions.
+
+            ### Changes
+            - Updated flake.lock via `nix flake update`
+            - Verified build succeeds on zephyr
+
+            ### Checklist
+            - [x] Build passes
+            - [ ] All hosts tested (manual review needed)
+          labels: |
+            dependencies
+            flake
+            automated
+          draft: false

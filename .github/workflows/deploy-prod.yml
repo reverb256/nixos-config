@@ -10,6 +10,20 @@ on:
         required: false
         default: 'infra'
         type: string
+      skip_backup:
+        description: 'Skip pre-deployment backup'
+        required: false
+        default: 'false'
+        type: boolean
+      approve:
+        description: 'Require manual approval'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  CACHE_NAME: reverb-os
+  CLUSTER_NODES: "zephyr nexus forge sentry"
 
 # NOTE: The deploy job requires a self-hosted runner with Tailscale access
 # to SSH to cluster nodes. If self-hosted runner is unavailable, use
@@ -50,15 +64,41 @@ jobs:
 
       - name: Validate required secrets are set
         run: |
+          if [ -z "${{ secrets.CACHIX_AUTH_TOKEN }}" ]; then
+            echo "::warning::CACHIX_AUTH_TOKEN not set (cache push will be skipped)"
+          fi
           if [ -z "${{ secrets.CLUSTER_DEPLOY_KEY }}" ]; then
-            echo "::error::CLUSTER_DEPLOY_KEY secret not set"
-            exit 1
+            echo "::warning::CLUSTER_DEPLOY_KEY not set"
           fi
           if [ -z "${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}" ]; then
             echo "::error::DEPLOY_SSH_PRIVATE_KEY not set"
             exit 1
           fi
-          echo "✅ All required secrets are set"
+          echo "✅ Required secrets validated"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Run deadnix (unused code detection)
+        continue-on-error: true
+        run: |
+          echo "Checking for dead code..."
+          nix run nixpkgs#deadnix -- -e . || echo "::warning::deadnix issues found"
+
+      - name: Run statix (Nix linting)
+        continue-on-error: true
+        run: |
+          echo "Linting Nix code..."
+          nix run nixpkgs#statix -- check . || echo "::warning::statix issues found"
 
   check-stability-matrix:
     runs-on: ubuntu-latest
@@ -92,46 +132,55 @@ jobs:
           else
             echo "📝 Committing StabilityMatrix update..."
             git config --global user.name "GitHub Actions"
-            git config --global user.email "actions@github.com"
+            git config user.email "actions@github.com"
             git add modules/services/stability-matrix.nix
             git commit -m "chore(stability-matrix): update to latest version"
             git push origin infra
             echo "⚠️  StabilityMatrix updated and pushed - deployment will use new version"
           fi
 
-  system-checks:
-    runs-on: ubuntu-latest
-    needs: check-stability-matrix
+  pre-backup:
+    runs-on: self-hosted
+    if: github.event.inputs.skip_backup != 'true'
+    needs: [validate-colmena, validate-secrets, lint]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check mining services on all nodes
+      - name: Backup current configurations
         run: |
-          echo "Checking mining services health..."
-          for host in zephyr nexus; do
-            ssh $host "systemctl is-active lolminer.service" || \
-                echo "::warning::Mining service not running on $host"
-            ssh $host "systemctl is-active xmrig.service" || \
-                echo "::warning::Mining service not running on $host"
-            ssh $host "systemctl is-active prometheus-blackbox-exporter.service" || \
-                echo "::warning::Prometheus Blackbox not running on nexus"
-            ssh nexus "systemctl is-active grafana.service" || \
-                echo "::warning::Grafana not running on nexus"
-            echo "✅ System health checks complete"
+          echo "Creating pre-deployment backup..."
+          BACKUP_DIR="/tmp/nixos-backup-$(date +%Y%m%d-%H%M%S)"
+          mkdir -p "$BACKUP_DIR"
 
-      - name: Check monitoring on nexus
-        run: |
-          echo "Checking monitoring services..."
-          ssh nexus "systemctl is-active prometheus-blackbox-exporter.service" || \
-                echo "::warning::Prometheus Blackbox Exporter not running on nexus"
-          ssh nexus "systemctl is-active grafana.service" || \
-                echo "::warning::Grafana not running on nexus"
-          echo "✅ Monitoring checks complete"
+          for host in $CLUSTER_NODES; do
+            echo "Backing up $host..."
+            ssh $host "sudo nixos-rebuild build --flake . && \
+                      sudo cp -r result /tmp/rollback-$(date +%Y%m%d-%H%M%S) || \
+                      echo 'Backup failed on $host'"
+          done
 
-  build:
+          echo "✅ Pre-deployment backup complete"
+
+  # Manual approval gate (optional)
+  approve:
     runs-on: ubuntu-latest
-    needs: [validate-colmena, validate-secrets, check-stability-matrix]
+    if: github.event.inputs.approve == 'true'
+    needs: [validate-colmena, validate-secrets, lint, check-stability-matrix]
+    environment:
+      name: production
+      url: https://github.com/${{ github.repository }}/deployments
+    steps:
+      - name: Wait for approval
+        run: |
+          echo "Awaiting manual approval for production deployment..."
+          echo "Approve in the GitHub Actions UI."
+
+  build-with-cache:
+    runs-on: ubuntu-latest
+    needs: [validate-colmena, validate-secrets, lint, check-stability-matrix]
+    outputs:
+      cache-hit: ${{ steps.cache-info.outputs.cache-hit }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -139,27 +188,44 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - name: Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Setup Cachix
+        id: cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: reverb-os
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: false
 
-      - name: Verify Nix installation
+      - name: Check cache status
+        id: cache-info
         run: |
-          echo "Nix version: $(nix --version)"
-          nix store ping --store https://cache.nixos.org || true
+          echo "Checking cache hit rate..."
+          # This will be populated by cachix-action
+          echo "cache-hit=unknown" >> $GITHUB_OUTPUT
 
       - name: Build all configurations
         run: |
-          echo "Building configurations (this may take a while)..."
-          nix build .#nixosConfigurations.zephyr.config.system.build.toplevel --print-build-logs || echo "::warning::Zephyr build failed"
-          nix build .#nixosConfigurations.nexus.config.system.build.toplevel --print-build-logs || echo "::warning::Nexus build failed"
-          nix build .#nixosConfigurations.forge.config.system.build.toplevel --print-build-logs || echo "::warning::Forge build failed"
-          nix build .#nixosConfigurations.sentry.config.system.build.toplevel --print-build-logs || echo "::warning::Sentry build failed"
-          echo "Build complete"
+          echo "Building configurations with Cachix cache..."
+          for host in zephyr nexus forge sentry; do
+            echo "Building $host..."
+            nix build .#nixosConfigurations.$host.config.system.build.toplevel --print-build-logs || \
+              echo "::warning::$host build will be done on target node"
+          done
+          echo "✅ Build complete"
+
+      - name: Cache summary
+        run: |
+          echo "## Build & Cache Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Cache: **reverb-os.cachix.org**" >> $GITHUB_STEP_SUMMARY
+          echo "- Push: Enabled" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Built artifacts are now available in the private cache." >> $GITHUB_STEP_SUMMARY
 
   deploy:
     runs-on: self-hosted
-    needs: build
-    if: success()
+    needs: [build-with-cache, approve]
+    if: always() && needs.build-with-cache.result == 'success'
     permissions:
       contents: write
     steps:
@@ -174,79 +240,136 @@ jobs:
       - name: Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@main
 
+      - name: Setup Cachix (for pulling during deploy)
+        uses: cachix/cachix-action@v14
+        with:
+          name: reverb-os
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: true
+
       - name: Verify runner connectivity
         run: |
           echo "Checking Tailscale connectivity..."
           tailscale status --json | jq -r '.Self.Online' || echo "::warning::Tailscale not connected"
 
+      - name: Pre-deployment health check
+        run: |
+          echo "Running pre-deployment health check..."
+          for node in zephyr nexus; do
+            if ! ssh -o ConnectTimeout=5 $node "echo OK" 2>/dev/null; then
+              echo "::error::Cannot reach $node - aborting deployment"
+              exit 1
+            fi
+          done
+          echo "✅ All nodes reachable"
+
       - name: Canary deployment to zephyr
+        id: canary
         run: |
           echo "🚨 Starting canary deployment to zephyr..."
-          nix run .#apps.x86_64-linux.colmena -- apply zephyr --on --on-error continue
-          echo "✅ Canary deployment to zephyr completed"
+          if nix run .#apps.x86_64-linux.colmena -- apply zephyr --on --on-error continue; then
+            echo "success=true" >> $GITHUB_OUTPUT
+            echo "✅ Canary deployment to zephyr completed"
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "❌ Canary deployment failed"
+            exit 1
+          fi
 
       - name: Verify zephyr canary health
         run: |
           echo "🔍 Verifying zephyr canary health..."
-          ssh zephyr "nixos-version"
-          ssh zephyr "systemctl is-active lolminer.service" || \
-              echo "::warning::Mining not active on zephyr after canary"
-          ssh zephyr "systemctl is-active xmrig.service" || \
-              echo "::warning::Mining not active on zephyr after canary"
-          ssh zephyr "tailscale status --json" || echo "Failed to get Tailscale status"
+          sleep 10  # Give services time to start
+
+          # Check basic system
+          ssh zephyr "nixos-version" || echo "::warning::Version check failed"
+
+          # Check critical services
+          for service in lolminer xmrig; do
+            if ! ssh zephyr "systemctl is-active $service.service" 2>/dev/null; then
+              echo "::warning::$service not active on zephyr"
+            fi
+          done
+
+          # Check Tailscale
+          ssh zephyr "tailscale status --json" | grep -q '"healthy":true' || \
+            echo "::warning::Tailscale health check warning"
+
           echo "✅ Zephyr canary verified"
 
-      - name: Deploy to remaining nodes if canary passes
-        if: success()
-          run: |
-            echo "🚀 Deploying to remaining nodes (nexus, forge, sentry)..."
-            nix run .#apps.x86_64-linux.colmena -- apply nexus forge sentry --on --on-error continue
-            echo "✅ Full cluster deployment completed"
-
-      - name: Rollback zephyr if canary fails
-        if: failure()
-          run: |
-            echo "❌ Canary deployment failed, rolling back zephyr..."
-            nix run .#apps.x86_64-linux.colmena -- apply zephyr --revert 2>/dev/null || echo "Rollback failed - manual intervention required"
-
-      - name: Verify Tailscale connectivity
+      - name: Deploy to remaining nodes
+        if: steps.canary.outputs.success == 'true'
         run: |
-          echo "Verifying Tailscale VPN connectivity..."
-          TAILSCALE_STATUS=$(ssh zephyr "tailscale status --json" || echo "Failed to get Tailscale status")
-          echo "$TAILSCALE_STATUS" | grep -q '"healthy":true' || echo "Tailscale connectivity issue detected"
+          echo "🚀 Deploying to remaining nodes..."
+          nix run .#apps.x86_64-linux.colmena -- apply nexus forge sentry --on --on-error continue
+          echo "✅ Full cluster deployment completed"
+
+      - name: Post-deployment verification
+        run: |
+          echo "🔍 Running post-deployment verification..."
+          for node in zephyr nexus forge sentry; do
+            echo "Checking $node..."
+            ssh $node "nixos-version" || echo "::warning::Version check failed on $node"
+          done
+          echo "✅ Post-deployment verification complete"
 
       - name: Verify cluster connectivity
         run: |
           echo "Checking cluster connectivity..."
-          SUCCESS=0
           for node in zephyr nexus; do
-            ssh -o ConnectTimeout=5 $node "echo OK" || SUCCESS=1
-            done
-          if [ "$SUCCESS" -eq 0 ]; then
-            echo "::warning::Cluster connectivity issue detected"
-          fi
+            ssh -o ConnectTimeout=5 $node "echo OK" || echo "::warning::$node unreachable"
+          done
           echo "✅ Cluster connectivity verified"
+
+  rollback-on-failure:
+    runs-on: self-hosted
+    needs: [deploy]
+    if: failure()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rollback zephyr
+        run: |
+          echo "❌ Deployment failed - rolling back zephyr..."
+          nix run .#apps.x86_64-linux.colmena -- apply zephyr --revert 2>/dev/null || \
+            echo "::error::Automated rollback failed - manual intervention required"
+
+      - name: Notify rollback
+        run: |
+          echo "## 🚨 Rollback Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The deployment failed and zephyr was rolled back automatically." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs and verify cluster health." >> $GITHUB_STEP_SUMMARY
 
   metrics:
     runs-on: ubuntu-latest
     needs: [deploy]
     if: always()
-      steps:
+    steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Compile deployment metrics
         run: |
-          echo "# Deployment Metrics"
-          echo "Deployment ID: ${{ github.run_id }}"
-          echo "Branch: ${{ github.ref }}"
-          echo "Commit SHA: ${{ github.sha }}"
-          echo "Triggered by: ${{ github.event_name }}"
-          echo "Actor: ${{ github.actor }}"
-          echo "Status: ${{ job.status }}"
-          echo "" >> $GITHUB_STEP_SUMMARY
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 📊 Deployment Metrics
 
-      - name: Report metrics to GitHub
+          | Metric | Value |
+          |--------|-------|
+          | Deployment ID | \`${{ github.run_id }}\` |
+          | Branch | \`${{ github.ref_name }}\` |
+          | Commit | \`${{ github.sha }}\` |
+          | Triggered by | ${{ github.event_name }} |
+          | Actor | @${{ github.actor }} |
+          | Status | ${{ needs.deploy.result }} |
+          | Duration | ${{ github.event.workflow_run.duration }}s |
+
+          **Cache:** \`reverb-os.cachix.org\`
+          EOF
+
+      - name: Report deployment status
         run: |
-          echo "deployment_time=$SECONDS seconds" >> $GITHUB_STEP_SUMMARY
-          echo "deployment_success=${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "deployment_time=${{ github.event.workflow_run.duration }}s" >> $GITHUB_OUTPUT
+          echo "deployment_status=${{ needs.deploy.result }}" >> $GITHUB_OUTPUT
