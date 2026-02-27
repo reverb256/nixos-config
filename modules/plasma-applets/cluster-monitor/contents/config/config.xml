@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg>
+<group name="General">
+  <entry name="prometheusUrl" type="string">http://127.0.0.1:9090</entry>
+  <entry name="refreshInterval" type="int">5000</entry>
+  <entry name="showGpuTemps" type="bool">true</entry>
+  <entry name="showPowerUsage" type="bool">true</entry>
+  <entry name="showHashrate" type="bool">true</entry>
+  <entry name="compactMode" type="bool">false</entry>
+</group>
+</kcfg>

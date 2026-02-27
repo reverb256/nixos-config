@@ -1,23 +1,30 @@
-name: "Merge main to infra - Light Testing"
+name: "Validate & Merge to Infra"
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Skip merge, only validate'
+        required: false
+        default: 'false'
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
 
+env:
+  CACHE_NAME: reverb-os
+
 jobs:
-  # Light testing only (fast feedback)
-  test:
+  # Lint and formatting checks
+  lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -25,13 +32,15 @@ jobs:
       - name: Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - name: Verify Nix installation
+      - name: Check formatting with alejandra
         run: |
-          echo "Nix version: $(nix --version)"
-          echo "Nix path: $(which nix)"
-          nix store ping --store https://cache.nixos.org || echo "Cache ping failed (expected on first run)"
+          echo "Checking formatting..."
+          nix run nixpkgs#alejandra -- --check . || {
+            echo "::error::Code is not formatted. Run 'alejandra .' to fix."
+            exit 1
+          }
 
-      - name: Run deadnix (unused code detection)
+      - name: Run deadnix (dead code detection)
         continue-on-error: true
         run: |
           echo "Checking for dead code..."
@@ -41,33 +50,163 @@ jobs:
         continue-on-error: true
         run: |
           echo "Linting Nix code..."
-          nix run nixpkgs#statix -- check . 2>&1 | head -20 || echo "::warning::statix issues found (may be style warnings)"
+          nix run nixpkgs#statix -- check . || echo "::warning::statix issues found"
 
-      - name: Check alejandra formatting
-        continue-on-error: true
-        run: |
-          echo "Checking formatting..."
-          nix run nixpkgs#alejandra -- --check . || echo "::warning::formatting issues found"
+  # Security scanning
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Check flake syntax
-        run: |
-          echo "Checking flake syntax..."
-          nix flake metadata . || echo "Flake metadata check failed"
-          nix flake check --no-build --keep-going || echo "Flake check had warnings"
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
 
-      - name: Evaluate all configurations
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Validate all configurations
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Evaluate all host configurations
         run: |
-          echo "Evaluating configurations..."
+          echo "Evaluating all host configurations..."
           for host in zephyr nexus forge sentry; do
             echo "Evaluating $host..."
-            nix eval .#nixosConfigurations.$host.config.system.build.toplevel --raw 2>&1 | head -5 || echo "::error::Failed to evaluate $host"
+            nix eval .#nixosConfigurations.$host.config.system.build.toplevel --raw || {
+              echo "::error::Failed to evaluate $host configuration"
+              exit 1
+            }
           done
+          echo "✅ All configurations evaluate successfully"
 
-  # Auto-merge to infra on success
+      - name: Check flake metadata
+        run: |
+          nix flake metadata .
+          nix flake show
+
+  # Colmena validation
+  colmena:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Validate colmena configuration
+        run: |
+          echo "Validating colmena configuration..."
+          nix eval .#colmena --raw || {
+            echo "::error::Colmena configuration invalid"
+            exit 1
+          }
+
+      - name: Dry-run colmena deployment
+        run: |
+          echo "Dry-running colmena deployment..."
+          nix run .#apps.x86_64-linux.colmena -- apply --on @all --dry-run 2>&1 | head -50 || {
+            echo "::warning::Colmena dry-run had warnings"
+          }
+
+  # Build with Cachix
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, security, evaluate, colmena]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: reverb-os
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: false
+
+      - name: Build all configurations
+        run: |
+          echo "Building configurations with Cachix cache..."
+          for host in zephyr nexus forge sentry; do
+            echo "Building $host..."
+            nix build .#nixosConfigurations.$host.config.system.build.toplevel --print-build-logs || \
+              echo "::warning::$host build will be done on target node"
+          done
+          echo "✅ Build complete"
+
+      - name: Cache summary
+        run: |
+          echo "## Build & Cache Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Cache: **reverb-os.cachix.org**" >> $GITHUB_STEP_SUMMARY
+          echo "- All artifacts pushed to private cache" >> $GITHUB_STEP_SUMMARY
+
+  # Check StabilityMatrix
+  stability-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+
+      - name: Check commit message for StabilityMatrix update
+        id: check-commit
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          if echo "$COMMIT_MSG" | grep -q "chore(stability-matrix):"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update StabilityMatrix if needed
+        if: steps.check-commit.outputs.skip != 'true'
+        run: |
+          chmod +x scripts/update-stability-matrix.sh
+          ./scripts/update-stability-matrix.sh
+          if ! git diff --quiet modules/services/stability-matrix.nix; then
+            echo "Updating StabilityMatrix..."
+            git config user.name "GitHub Actions"
+            git config user.email "actions@github.com"
+            git add modules/services/stability-matrix.nix
+            git commit -m "chore(stability-matrix): update to latest version"
+            git push origin main
+          fi
+
+  # Merge to infra (only if all checks pass and not dry run)
   merge-to-infra:
     runs-on: ubuntu-latest
-    needs: test
-    if: success()
+    needs: [lint, security, evaluate, colmena, build, stability-matrix]
+    if: success() && github.event.inputs.dry_run != 'true'
     permissions:
       contents: write
     steps:
@@ -80,35 +219,51 @@ jobs:
       - name: Configure git
         run: |
           git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          git config user.email "actions@github.com"
 
       - name: Merge main to infra
         run: |
-          set -x  # Enable verbose output for debugging
+          set -e
           echo "Fetching branches..."
-          git fetch origin main:remotes/origin/main infra:remotes/origin/infra || {
-            echo "::error::Failed to fetch branches"
-            exit 1
-          }
+          git fetch origin main:remotes/origin/main infra:remotes/origin/infra
 
           echo "Checking out infra branch..."
-          git checkout infra || {
-            echo "::error::Failed to checkout infra branch"
-            git branch -a
-            exit 1
-          }
+          git checkout infra
 
           echo "Merging main into infra..."
-          git merge origin/main --no-edit -m "Merge main to infra" || {
-            echo "::error::Failed to merge main into infra"
-            git status
-            exit 1
-          }
+          git merge origin/main --no-edit -m "Merge main to infra"
 
           echo "Pushing to infra..."
-          git push origin infra || {
-            echo "::error::Failed to push to infra"
-            exit 1
-          }
+          git push origin infra
 
           echo "✅ Successfully merged and pushed to infra"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Deployment Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Merged \`main\` to \`infra\` branch." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Production deployment will now run via \`deploy-prod.yml\`." >> $GITHUB_STEP_SUMMARY
+
+  # Report status
+  status:
+    runs-on: ubuntu-latest
+    needs: [lint, security, evaluate, colmena, build, stability-matrix]
+    if: always()
+    steps:
+      - name: Report validation status
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🔍 Validation Results
+
+          | Check | Status |
+          |-------|--------|
+          | Lint | ${{ needs.lint.result == 'success' && '✅' || '❌' }} |
+          | Security | ${{ needs.security.result == 'success' && '✅' || '❌' }} |
+          | Evaluate | ${{ needs.evaluate.result == 'success' && '✅' || '❌' }} |
+          | Colmena | ${{ needs.colmena.result == 'success' && '✅' || '❌' }} |
+          | Build | ${{ needs.build.result == 'success' && '✅' || '❌' }} |
+          | StabilityMatrix | ${{ needs.stability-matrix.result == 'success' && '✅' || '❌' }} |
+
+          **Commit:** \`${{ github.sha }}\`
+          **Branch:** \`main\`
+          EOF

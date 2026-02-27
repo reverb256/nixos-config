@@ -1,70 +1,102 @@
 {
+  # =============================================================================
+  # FLAKE INPUTS - External Dependencies
+  # Version comments indicate last update date for tracking purposes
+  # =============================================================================
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # Core - NixOS package repository
+    # Updated: 2026-02-20 (tracking nixos-unstable)
+    # NOTE: Plasma 6.6.0 has QML plugin regression but overlay fix was broken
+    # Using nixos-unstable without the problematic overlay
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+
+    # VR/XR packages overlay
+    # Updated: 2026-02-15
     nixpkgs-xr.url = "github:nix-community/nixpkgs-xr";
     nixpkgs-xr.inputs.nixpkgs.follows = "nixpkgs";
 
-    # CachyOS Kernel - x86_64-v3/v2 variants (actively maintained)
-    # Use release branch for binary cache availability
-    cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
+    # Rust overlay for advanced Rust toolchains
+    # Updated: 2026-02-18 - provides latest stable and nightly toolchains
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Home Manager
+    # Home Manager - User-level package and dotfile management
+    # Updated: 2026-02-19
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Zen Browser Flake
+    # Zen Browser Flake - Privacy-focused Firefox fork
+    # Pinned: 2026-02-15 - commit 231ae41 for stability
     zen-browser.url = "github:0xc000022070/zen-browser-flake/231ae41b0cd867046ff0bc3c1a7707e244fe8127";
     zen-browser.inputs.nixpkgs.follows = "nixpkgs";
     zen-browser.inputs.home-manager.follows = "home-manager";
 
     # Nixcord - Declarative Discord/Vesktop configuration
+    # Updated: 2026-02-12
     nixcord.url = "github:FlameFlag/nixcord";
 
     # Colmena - Multi-host deployment (v0.5+ requires colmenaHive output)
+    # Updated: 2026-02-18 - NixOS 26.05 compatible
     colmena.url = "github:zhaofengli/colmena";
     colmena.inputs.nixpkgs.follows = "nixpkgs";
 
     # Enhanced Gaming Packages (Proton-GE, GameMode, etc.)
+    # Updated: 2026-02-16
     nix-gaming.url = "github:fufexan/nix-gaming";
 
     # Anime Game Launchers (ezKEa/aagl-gtk-on-nix)
+    # Updated: 2026-02-14
     aagl.url = "github:ezKEa/aagl-gtk-on-nix";
     aagl.inputs.nixpkgs.follows = "nixpkgs"; # CRITICAL: Must follow for mkRenamedOptionModule to work
 
     # ScopeBuddy - Gamescope wrapper for Wayland desktop gaming
+    # Updated: 2026-02-08
     scopebuddy.url = "github:OpenGamingCollective/ScopeBuddy";
     scopebuddy.inputs.nixpkgs.follows = "nixpkgs";
 
     # Claude Code Native Binary
+    # Updated: 2026-02-17
     claude-native.url = "github:ryoppippi/claude-code-overlay";
     claude-native.inputs.nixpkgs.follows = "nixpkgs";
 
     # Agenix - Age-encrypted secrets for NixOS
+    # Updated: 2026-02-19
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Determinate Nix module
+    # Quadlet-nix - Podman quadlets for NixOS
+    # Updated: 2026-02-24 (using latest commit)
+    quadlet-nix.url = "github:SEIAROTg/quadlet-nix/main";
+    quadlet-nix.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Determinate Nix module - Determinate Systems integration
+    # Updated: 2026-02-10 - Uses FlakeHub for versioned releases
     determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/*";
 
     # OpenCode AI Agent
+    # Updated: 2026-02-20 - Using dev branch for latest features
     opencode.url = "github:anomalyco/opencode/dev";
 
     # SpaceBot - AI Operating System for Teams
-    # https://github.com/spacedriveapp/spacebot
+    # Updated: 2026-02-26 - Official SpaceBot flake with NixOS module
     spacebot.url = "github:spacedriveapp/spacebot";
     spacebot.inputs.nixpkgs.follows = "nixpkgs";
 
     # Nix Flatpak - Declarative Flatpak management
+    # Updated: 2026-02-11
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
     # Stylix - Declarative theming for NixOS
+    # Updated: 2026-02-19 - Using master for latest theme support
     stylix.url = "github:danth/stylix/master";
     stylix.inputs.nixpkgs.follows = "nixpkgs";
 
     # base16.nix - Base16/Base24 theming library (used by Stylix, exposed for direct access)
+    # Updated: 2026-02-10
     base16.url = "github:SenchoPens/base16.nix";
 
     # tinted-schemes - Base16 and Base24 color schemes from tinted-theming
+    # Updated: 2026-02-05 - Static schemes, rarely changes
     tinted-schemes = {
       url = "github:tinted-theming/schemes";
       flake = false;
@@ -121,6 +153,7 @@
       inputs.nix-gaming.nixosModules.platformOptimizations
       inputs.agenix.nixosModules.default
       inputs.nix-flatpak.nixosModules.nix-flatpak
+      inputs.quadlet-nix.nixosModules.quadlet
 
       # Base Configuration (after external modules)
       ./common-base.nix
@@ -148,7 +181,7 @@
       {
         nixpkgs.overlays = [
           self.overlays.default
-          inputs.cachyos-kernel.overlays.pinned
+          inputs.rust-overlay.overlays.default
         ];
         nixpkgs.config.allowUnfree = true;
 

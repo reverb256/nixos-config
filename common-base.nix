@@ -1,21 +1,13 @@
 {
-  pkgs,
   lib,
   ...
-}: let
-  # Get gamemode package for polkit rules
-  gamemodePkg = pkgs.gamemode;
+}:
+let
   # System administrator username
   sysadminUser = "j_kro";
   inherit (lib) mkDefault;
-in {
-  # ============================================================================
-  # USERS AND GROUPS - Configure users and groups
-  # ============================================================================
-  # Security: j_kro removed from docker group to prevent container escape
-  # Use 'sudo docker' for container operations (requires password)
-  users.users.${sysadminUser}.extraGroups = ["podman" "plugdev"]; # Removed "docker" for security, added plugdev for peripheral access
-
+in
+{
   # ============================================================================
   # SYSTEMD - Prevent display manager restart during rebuild
   # ============================================================================
@@ -24,7 +16,11 @@ in {
   systemd.services.sddm.restartIfChanged = false;
 
   # Blacklist nouveau and NovaCore drivers to ensure proper NVIDIA driver loads
-  boot.blacklistedKernelModules = ["nouveau" "nova" "nova_core"];
+  boot.blacklistedKernelModules = [
+    "nouveau"
+    "nova"
+    "nova_core"
+  ];
 
   nixpkgs.config.allowUnfree = true;
   nixpkgs.config.cudaSupport = true;
@@ -35,7 +31,7 @@ in {
   # ============================================================================
   # NixOS Cluster Configuration
   nix.settings = {
-    trusted-users = ["j_kro"];
+    trusted-users = [ "j_kro" ];
     auto-optimise-store = true;
     # max-jobs and cores are configured in modules/nix-config.nix
   };
@@ -53,14 +49,16 @@ in {
 
   # ============================================================================
   # POLKIT RULES - Fix gamemode permission issues
-  # Using pkgs.gamemode path instead of hardcoded store path
+  # Uses specific GameMode action IDs instead of generic pkexec
   # ============================================================================
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
-      if (action.id == "org.freedesktop.policykit.exec" &&
-          (action.lookup("program") == "${gamemodePkg}/libexec/cpugovctl" ||
-           action.lookup("program") == "${gamemodePkg}/libexec/procsysctl" ||
-             action.lookup("program") == "${gamemodePkg}/libexec/gpuclockctl")) {  // Added gpuclockctl
+      if (
+        (action.id == "com.feralinteractive.GameMode.governor-helper" ||
+         action.id == "com.feralinteractive.GameMode.procsys-helper" ||
+         action.id == "com.feralinteractive.GameMode.gpu-helper") &&
+        subject.user == "${sysadminUser}"
+      ) {
         return polkit.Result.YES;
       }
     });
@@ -68,7 +66,6 @@ in {
 
   imports = [
     ./modules
-    ./modules/lobster-user.nix
     # Mining-aware build wrapper (pause/resume during builds)
     ./modules/mining/mining-build-wrapper.nix
     # Storage configuration modules
@@ -101,13 +98,23 @@ in {
 
   # RGB Lighting Control
   # MSI X570 Tomahawk + RTX 3090 + Corsair devices + G.Skill Trident Z RGB
-  # RGB devices managed via existing modules (desktop.nix, system-packages.nix)
+  # RGB devices managed via existing modules (plasma6.nix, system-packages.nix)
 
   # NOTE: Stylix theming is configured in flake.nix to ensure proper module order
 
-  # Note: XDG Portal configuration is in modules/desktop/desktop.nix to keep desktop settings together
+  # Note: XDG Portal configuration is now split:
+  #   - Plasma: modules/desktop/plasma6.nix
+  #   - Hyprland: modules/desktop/hyprland.nix
+  #   - Niri: modules/desktop/niri.nix
 
-  # Declarative Flatpak configuration using nix-flatpak module
+  # Modern D-Bus implementation (better performance, security, and features)
+  # services.dbus.implementation = "broker";  # Commented out - causes critical switch inhibitor
+
+  # ============================================================================
+  # FLATPAK - Declarative configuration with Flathub integration
+  # ============================================================================
+  # Using nix-flatpak module for declarative remotes and packages
+  # Activation scripts handle overrides for Wayland, theming, and gaming
   services.flatpak = {
     enable = true;
     polkit.enable = true;
@@ -133,6 +140,68 @@ in {
       "org.kde.audiotube"
     ];
   };
+
+  # Flatpak overrides - Wayland, theming, and Steam integration
+  # These activation scripts run after flatpak-remotes are configured
+  system.activationScripts.flatpak-overrides = lib.stringAfter [ "usrbinenv" ] ''
+        # Create global overrides directory
+        mkdir -p /var/lib/flatpak/overrides
+
+        # Global override - Comprehensive socket and filesystem access
+        cat > /var/lib/flatpak/overrides/global << 'EOF'
+    [Context]
+    # Socket access - comprehensive for all app types
+    sockets=wayland;x11;pulseaudio;session-bus;system-bus;ssh-auth;pcsc;cups;gpg-agent;
+
+    # Filesystem access - common user directories
+    filesystems=xdg-download;xdg-documents;xdg-pictures;xdg-music;xdg-videos;xdg-desktop;xdg-config/gtk-3.0:ro;xdg-config/gtk-4.0:ro;xdg-config/Kvantum:ro;xdg-config/qt5ct:ro;xdg-config/qt6ct:ro;
+
+    # Device access - needed for GPU acceleration, controllers, etc.
+    devices=dri;shm;all;
+
+    # Shared resources
+    shared=network;ipc;
+
+    # Features
+    features=bluetooth;canbus;inhibit;multiarch;devel;
+
+    [Environment]
+    # Theming
+    XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+    GTK_THEME=Breeze
+    QT_QPA_PLATFORMTHEME=kde
+    QT_STYLE_OVERRIDE=Breeze
+
+    # Wayland by default, but allow X11 fallback
+    SDL_VIDEODRIVER=wayland
+    QT_QPA_PLATFORM=wayland
+    GDK_BACKEND=wayland
+
+    # Fix for NVIDIA + Flatpak
+    __GLX_VENDOR_LIBRARY_NAME=nvidia
+    EOF
+
+        # Steam override - Additional permissions for gaming
+        cat > /var/lib/flatpak/overrides/com.valvesoftware.Steam << 'EOF'
+    [Context]
+    sockets=wayland;x11;pulseaudio;system-talk-bus;session-talk-bus;
+    filesystems=xdg-download;xdg-documents;xdg-pictures;xdg-music;xdg-videos;~/.local/share/Steam:create;~/.steam:create;/run/media:rw;/mnt:rw;
+    devices=all;
+    shared=network;
+
+    [Environment]
+    XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+    GTK_THEME=Breeze
+    QT_QPA_PLATFORMTHEME=kde
+    SDL_VIDEODRIVER=wayland
+    EOF
+
+        # Steam Proton compatibility tool override
+        cat > /var/lib/flatpak/overrides/com.valvesoftware.Steam.CompatibilityTool.Proton << 'EOF'
+    [Context]
+    filesystems=~/.local/share/Steam:rw;~/.steam:rw;
+    EOF
+  '';
 
   # Podman configuration for container management
   virtualisation.podman = {
@@ -246,7 +315,13 @@ in {
   # ============================================================================
   # FIREWALL - Mosh uses UDP ports 60000-61000
   # ============================================================================
-  networking.firewall.allowedUDPPorts = [60000 60001 60002 60003 60004];
+  networking.firewall.allowedUDPPorts = [
+    60000
+    60001
+    60002
+    60003
+    60004
+  ];
 
   # ============================================================================
   # ZRAM - DISABLED - Use disk swap only
