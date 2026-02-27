@@ -133,23 +133,22 @@
     garnix.enable = true;
     nixos-auto-update.enable = true;
 
-    # Mining configuration - uses RTX 3060 Ti (GPU 0) only
-    # Display uses RTX 3090 (GPU 1) - no conflict when configured correctly
-    mining = {
-      enable = true;
-      xmrig = {
-        enable = true;
-        threads = 16;
-      };
-      lolminer = {
-        enable = true;
-        nvidia = {
-          enable = true;
-          devices = "0";
-          powerLimit = 250;
-        };
-      };
-    };
+    # Mining DISABLED - start manually with: systemctl start mining.slice
+    # mining = {
+    #   enable = true;
+    #   xmrig = {
+    #     enable = true;
+    #     threads = 16;
+    #   };
+    #   lolminer = {
+    #     enable = true;
+    #     nvidia = {
+    #       enable = true;
+    #       devices = "0";
+    #       powerLimit = 250;
+    #     };
+    #   };
+    # };
 
     tailscale.enable = true;
 
@@ -185,36 +184,11 @@
       name = "zephyr";
     };
 
-    # Llama.cpp AI Inference Server - Multi-GPU with Maximum Context
-    # Uses both RTX 3090 (24GB) and RTX 3060 Ti (8GB) for distributed inference
-    # Automatically stops mining service when running (conflicts directive)
-    llama-server = {
-      enable = true;
-
-      # Maximum natural context window for Qwen3.5-35B-A3B model
-      contextSize = 262144;  # Model's native 262K tokens
-
-      # Multi-GPU configuration
-      enableMultiGpu = true;
-      multiGpuMode = "layer";  # Split layers across both GPUs
-      mainGpu = null;  # Auto-select main GPU (will be 3090)
-
-      # GPU layers offloading
-      gpuLayers = 99;  # Offload almost all layers to GPU
-
-      # Performance tuning
-      enableFlashAttention = true;
-      enableMetrics = true;
-      parallelSlots = 1;
-      ubatchSize = 1024;
-      batchSize = 2048;
-
-      # Sampling parameters
-      temperature = 0.7;
-      topP = 0.9;
-      topK = 20;
-      repeatPenalty = 1.05;
-    };
+    # Llama.cpp AI Inference Server - DISABLED, start manually with: systemctl start llama-server
+    # llama-server = {
+    #   enable = true;
+    #   ...
+    # };
   };
 
   # ============================================================================
