@@ -211,9 +211,6 @@
   environment.variables = {
     CUDA_PATH = "/run/opengl-driver";
     CUDA_HOME = "/run/opengl-driver";
-    # KWin DRM devices - restrict to primary GPU only (RTX 3090)
-    # Prevents KWin from trying to open mining GPU (RTX 3060 Ti) which causes session crash
-    KWIN_DRM_DEVICES = "/dev/dri/card2";
   };
   environment.variables.LD_LIBRARY_PATH = pkgs.lib.mkForce "/run/opengl-driver/lib:/run/opengl-driver/lib64";
 }
