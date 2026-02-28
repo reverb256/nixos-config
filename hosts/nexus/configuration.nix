@@ -9,7 +9,7 @@
     # Common host imports (desktop, gaming, networking, etc.)
     ../../modules/common-host.nix
 
-    # NVIDIA GPU support (common + wayland-specific)
+    # NVIDIA GPU support (common enables wayland module)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
 
@@ -78,8 +78,6 @@
   # SERVICES
   # ============================================================================
   services = {
-    xserver.videoDrivers = ["nvidia"];
-
     garnix.enable = false;
     nixos-auto-update.enable = true;
 
@@ -121,5 +119,5 @@
   # ============================================================================
   # USER GROUPS
   # ============================================================================
-  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale" "video" "render"];
+  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "tailscale" "video" "render"];
 }

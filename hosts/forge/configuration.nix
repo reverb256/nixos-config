@@ -14,9 +14,8 @@
     # Note: gaming.nix is imported but not enabled (services.gaming.enable = false by default)
     ../../modules/common-host.nix
 
-    # NVIDIA GPU support (common + wayland-specific)
-    ../../modules/hardware/nvidia-common.nix
-    ../../modules/hardware/nvidia-wayland.nix
+    # Hybrid GPU support (AMD for display, NVIDIA for compute)
+    ../../modules/hardware/nvidia-hybrid-amd.nix
     ../../modules/services/podman-support.nix
   ];
 
@@ -45,8 +44,23 @@
 
   # ============================================================================
   # GPU DRIVERS (Hybrid AMD + NVIDIA)
-  # Note: NVIDIA base config is in nvidia-common.nix
+  # Note: Full config in nvidia-hybrid-amd.nix
   # ============================================================================
+  hardware.nvidia = {
+    # Use open source kernel modules (required for driver 560+)
+    # RTX 4060 is Ada Lovelace architecture - use open modules
+    open = true;
+  };
+
+  hardware.nvidia.hybridAmd = {
+    enable = true;
+    # From lspci: AMD at 03:00.0, 08:00.0 | NVIDIA at 0f:00.0, 11:00.0
+    # AMD GPUs (card0, card1) used for display, NVIDIA (card2, card3) for compute
+    amdgpuBusId = "PCI:3:0:0";    # First AMD GPU (primary display)
+    nvidiaBusId = "PCI:15:0:0";   # First NVIDIA GPU (for offload)
+    primaryDisplay = "/dev/dri/card0";  # AMD GPU for desktop rendering
+  };
+
   hardware.amdgpu = {
     opencl.enable = true;
   };
@@ -459,7 +473,8 @@
   services.tailscale.enable = true;
 
   systemd.services.tailscaled.environment = {
-    TS_ADVERTISE_ROUTES = "10.1.1.0/24";
+    # Forge is NOT the gateway - only zephyr should advertise routes
+    TS_ADVERTISE_ROUTES = "";
     TS_ROUTES = "";
     TS_SSH = "true";
   };

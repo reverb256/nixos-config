@@ -3,8 +3,8 @@
   services.openssh = {
     enable = true;
     settings = {
-      # Authentication Settings - Security hardened
-      PasswordAuthentication = false;
+      # Authentication Settings - Password enabled for convenience
+      PasswordAuthentication = true;
       KbdInteractiveAuthentication = false;
       PubkeyAuthentication = true;
       PermitRootLogin = "no";

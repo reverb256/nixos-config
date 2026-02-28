@@ -2,6 +2,7 @@
 # 10.1.1.110 - 32 cores, RTX 3090
 # Features: Gaming + VR, Stability Matrix, Nix Cache Server, MCP Servers
 {
+  config,
   pkgs,
   lib,
   ...
@@ -13,12 +14,17 @@
     # Common host imports (desktop, gaming, networking, etc.)
     ../../modules/common-host.nix
 
-    # NVIDIA GPU support (common + wayland-specific)
+    # NVIDIA GPU support (common enables wayland module)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
 
-    # Alternative desktop environment (Hyprland)
+    # Alternative desktop environments
     ../../modules/desktop/hyprland.nix
+    ../../modules/desktop/niri.nix
+    ../../modules/desktop/sway.nix
+
+    # Visual theming (Stylix + Base24)
+    ../../modules/desktop/stylix-base24.nix
 
     # Zephyr-specific modules
     ../../modules/services/stability-matrix.nix
@@ -37,12 +43,27 @@
   networking.hostName = "zephyr";
 
   # ============================================================================
+  # VISUAL THEMING (Stylix)
+  # ============================================================================
+  stylix.enable = true;
+  # stylix.image = /etc/nixos/wallpapers/zephyr.png;  # TODO: Add wallpaper
+
+  # ============================================================================
   # ALTERNATIVE DESKTOP ENVIRONMENT (Hyprland)
   # ============================================================================
   programs.hyprland.enable = true;
 
-  # Display Manager - Both Plasma and Hyprland available in SDDM
-  # Users can select at login: Plasma (default) or Hyprland
+  # Display Manager - Plasma Login Manager (NEW in Plasma 6.6)
+  # Replaces SDDM with better multi-monitor, HDR, and systemd integration
+  services.displayManager.plasma-login-manager.enable = true;
+  services.displayManager.autoLogin.user = "j_kro";
+
+  # Multi-GPU: Tell KWin to use RTX 3090 (card1) for display
+  # RTX 3060 Ti (card0) has no monitors - used for compute only
+  hardware.nvidia.wayland.multiGpu = {
+    enable = true;
+    primaryCard = "/dev/dri/card1";
+  };
 
   # ============================================================================
   # GAMING + VR (Full support - RTX 3090)
@@ -113,20 +134,6 @@
   boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # ============================================================================
-  # NVIDIA CONFIGURATION
-  # Note: Base config is in nvidia-common.nix
-  # ============================================================================
-  # Zephyr-specific kernel params (appended after nvidia-common.nix defaults)
-  boot.kernelParams = lib.mkAfter [
-    "split_lock_detect=off"
-    "threadirqs"
-    "preempt=full"
-    "processor.max_cstate=1"
-    "intel_idle.max_cstate=1"
-    "iommu=pt"
-  ];
-
-  # ============================================================================
   # SERVICES
   # ============================================================================
   services = {
@@ -184,11 +191,20 @@
       name = "zephyr";
     };
 
-    # Llama.cpp AI Inference Server - DISABLED, start manually with: systemctl start llama-server
-    # llama-server = {
-    #   enable = true;
-    #   ...
-    # };
+    # Llama.cpp AI Inference Server - Multi-GPU (RTX 3090 + RTX 3060 Ti)
+    llama-server = {
+      enable = true;
+      # AI power limits (high for AI inference)
+      aiPowerLimits = {
+        "0" = 160;  # RTX 3060 Ti (card0, compute only)
+        "1" = 350;  # RTX 3090 (card1, display + compute)
+      };
+      # Mining power limits (low, restored when llama-server stops)
+      miningPowerLimits = {
+        "0" = 130;  # RTX 3060 Ti mining
+        "1" = 250;  # RTX 3090 mining
+      };
+    };
   };
 
   # ============================================================================
@@ -203,14 +219,58 @@
   # ============================================================================
   # USER GROUPS
   # ============================================================================
-  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale" "video" "render"];
+  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "tailscale" "video" "render"];
 
   # ============================================================================
-  # CUDA ENVIRONMENT
+  # BOOT SPECIALISATIONS
   # ============================================================================
-  environment.variables = {
-    CUDA_PATH = "/run/opengl-driver";
-    CUDA_HOME = "/run/opengl-driver";
+  specialisation = {
+    beta.configuration = {
+      system.nixos.tags = ["beta"];
+      hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
+    };
+
+    hyprland-niri.configuration = {
+      system.nixos.tags = ["hyprland-niri"];
+      # Disable Plasma/PLM, use SDDM for Hyprland/Niri
+      services.desktopManager.plasma6.enable = lib.mkForce false;
+      services.displayManager.plasma-login-manager.enable = lib.mkForce false;
+      services.displayManager.sddm.enable = lib.mkForce true;
+      services.displayManager.sddm.wayland.enable = lib.mkForce true;
+      services.displayManager.sddm.settings.Users.HideUsers = lib.mkForce "mining;nixbuild;lobster";
+    };
+
+    nvidia-proprietary.configuration = {
+      system.nixos.tags = ["nvidia-proprietary"];
+      hardware.nvidia.wayland.openModules = lib.mkForce false;
+      hardware.nvidia.open = lib.mkForce false;
+    };
+
+    nouveau.configuration = {
+      system.nixos.tags = ["nouveau"];
+      hardware.nvidia.open = lib.mkForce false;
+      hardware.nvidia.wayland.enable = lib.mkForce false;
+      services.xserver.videoDrivers = lib.mkForce ["nouveau"];
+      boot.blacklistedKernelModules = ["nvidia" "nvidia_modeset" "nvidia_drm" "nvidia_uvm"];
+      environment.sessionVariables.QT_QPA_PLATFORM = lib.mkForce "xcb";
+    };
+
+    x11.configuration = {
+      system.nixos.tags = ["x11"];
+      environment.sessionVariables.QT_QPA_PLATFORM = lib.mkForce "xcb";
+      environment.sessionVariables.GDK_BACKEND = lib.mkForce "x11";
+    };
+
+    safe.configuration = {
+      system.nixos.tags = ["safe-mode"];
+      # Disable GPU acceleration, use Sway for lightweight WM
+      hardware.nvidia.wayland.enable = lib.mkForce false;
+      services.xserver.enable = lib.mkForce false;
+      boot.kernelParams = ["nomodeset" "nouveau.modeset=0" "nvidia.modeset=0" "nvidia-drm.modeset=0"];
+      boot.blacklistedKernelModules = ["nvidia" "nvidia_modeset" "nvidia_drm" "nouveau"];
+      # Enable Sway as failsafe WM
+      programs.sway.enable = true;
+      services.displayManager.sddm.enable = lib.mkForce true;
+    };
   };
-  environment.variables.LD_LIBRARY_PATH = pkgs.lib.mkForce "/run/opengl-driver/lib:/run/opengl-driver/lib64";
 }

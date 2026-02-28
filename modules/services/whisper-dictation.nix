@@ -305,6 +305,23 @@ in {
         ExecStart = "${pkgs.ydotool}/bin/ydotoold";
         Restart = "on-failure";
         RestartSec = 5;
+
+        # Security hardening
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = "read-only";
+        PrivateDevices = false;  # Required for /dev/uinput access
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+        RestrictAddressFamilies = ["AF_UNIX"];
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        LockPersonality = true;
+        MemoryDenyWriteExecute = true;
+        CapabilityBoundingSet = "";
+        SystemCallArchitectures = "native";
       };
     };
 
@@ -329,6 +346,26 @@ in {
       '';
       serviceConfig = {
         Type = "oneshot";
+
+        # Security hardening
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = "read-only";
+        PrivateDevices = true;
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+        RestrictAddressFamilies = ["AF_INET" "AF_INET6"];
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        LockPersonality = true;
+        MemoryDenyWriteExecute = true;
+        CapabilityBoundingSet = "";
+        SystemCallArchitectures = "native";
+
+        # Resource limits
+        MemoryMax = "512M";
       };
     };
   };

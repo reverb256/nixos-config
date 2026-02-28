@@ -12,6 +12,7 @@
     swww # Wallpaper utility
     # pywalcolor - removed, package no longer exists
     xdg-desktop-portal-hyprland # XDG portal for Hyprland
+    greetd.gtkgreet # Graphical greeter for stand-alone Hyprland
   ];
 
   # XDG Portal configuration for Hyprland
