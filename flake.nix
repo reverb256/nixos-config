@@ -4,6 +4,10 @@
     nixpkgs-xr.url = "github:nix-community/nixpkgs-xr";
     nixpkgs-xr.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Rust overlay for advanced Rust toolchains
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
+
     # CachyOS Kernel - x86_64-v3/v2 variants (actively maintained)
     # Use release branch for binary cache availability
     cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
@@ -144,6 +148,7 @@
         nixpkgs.overlays = [
           self.overlays.default
           inputs.cachyos-kernel.overlays.pinned
+          inputs.rust-overlay.overlays.default
         ];
         nixpkgs.config.allowUnfree = true;
         nixpkgs.config.permittedInsecurePackages = [
