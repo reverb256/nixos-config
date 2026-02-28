@@ -164,14 +164,14 @@
     };
 
     # Extra protection against DDoS patterns
-    jails.sshd-ddos.settings = {
-      port = "ssh";
-      filter = "sshd-ddos";
-      logpath = "/var/log/auth.log";
-      maxretry = 2;
-      findtime = 600;
-      bantime = 86400;
-    };
+##     jails.sshd-ddos.settings = {
+##       port = "ssh";
+##       filter = "sshd-ddos";
+##       logpath = "/var/log/auth.log";
+##       maxretry = 2;
+##       findtime = 600;
+##       bantime = 86400;
+##     };
   };
 
   # ============================================================================

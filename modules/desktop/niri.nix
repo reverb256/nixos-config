@@ -30,17 +30,17 @@
     wlrctl
 
     # Gtkgreet for graphical login
-    greetd.gtkgreet
+    gtkgreet
 
     # Notifications
     mako
   ];
 
-  # XDG Portal configuration for Niri
+  # XDG Portal configuration for Niri (uses upstream defaults)
   xdg.portal = {
     config = {
       niri = {
-        default = ["niri" "gtk"];
+        default = ["gnome" "gtk"];
       };
     };
   };

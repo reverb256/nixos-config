@@ -68,6 +68,9 @@
       url = "github:tinted-theming/schemes";
       flake = false;
     };
+
+    # llama.cpp - AI inference with CUDA support (official flake)
+    llama-cpp.url = "github:ggml-org/llama.cpp";
   };
 
   outputs = inputs @ {
@@ -147,10 +150,12 @@
       {
         nixpkgs.overlays = [
           self.overlays.default
+          inputs.llama-cpp.overlays.default
           inputs.cachyos-kernel.overlays.pinned
           inputs.rust-overlay.overlays.default
         ];
         nixpkgs.config.allowUnfree = true;
+        nixpkgs.config.cudaSupport = true;  # Enable CUDA for llama.cpp
         nixpkgs.config.permittedInsecurePackages = [
           "electron-25.9.0"
         ];

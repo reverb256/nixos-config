@@ -187,12 +187,30 @@ in {
 
       # Common session variables (gaming + MangoHud defaults)
       environment.sessionVariables = {
+        # OpenXR runtime support
         PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES = "1";
         WINE_FULLSCREEN_FAKE_CAPTURE = "1";
-        __NV_PRIME_RENDER_OFFLOAD = "1";
+
+        # NOTE: __NV_PRIME_RENDER_OFFLOAD is NOT set for dual-dGPU setups
+        # PRIME offload is for iGPU+dGPU hybrid laptops only
+        # Your dual RTX setup uses direct rendering via KWIN_DRM_DEVICES
+
+        # GLX vendor library
         __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+
+        # ========================================================================
+        # DLSS 4 / VULKAN OPTIMIZATIONS (2026)
+        # ========================================================================
+        # Enable NVIDIA NVAPI in Proton for DLSS support
+        PROTON_ENABLE_NVAPI = "1";
+        # Use DXVK/Vulkan for best performance (not wined3d)
+        PROTON_USE_WINED3D = "0";
+        # Enable DLSS/RayTracing in Proton games
+        DXVK_NVAPI = "1";
+
         # Note: SDL_VIDEODRIVER is NOT set - let Steam/Proton auto-detect the best backend
         # This fixes VRChat and other games that benefit from native Wayland support
+
         # MangoHud default configuration (can be overridden per-game)
         MANGOHUD_CONFIG = "fps,frametime,cpu_stats,gpu_stats,vram,ram,cpu_temp,gpu_temp,core_load,background_alpha=0.5,position=top-left,toggle_hud=Shift_R+F12";
       };

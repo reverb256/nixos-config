@@ -55,14 +55,22 @@
 
   # Display Manager - Plasma Login Manager (NEW in Plasma 6.6)
   # Replaces SDDM with better multi-monitor, HDR, and systemd integration
+  services.displayManager.sddm.enable = lib.mkForce false;  # Disable SDDM first
   services.displayManager.plasma-login-manager.enable = true;
-  services.displayManager.autoLogin.user = "j_kro";
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "j_kro";
+  };
 
-  # Multi-GPU: Tell KWin to use RTX 3090 (card1) for display
-  # RTX 3060 Ti (card0) has no monitors - used for compute only
+  # Enable NVIDIA Wayland optimizations
+  hardware.nvidia.wayland.enable = true;
+
+  # Multi-GPU: RTX 3090 (card2) has all 4 displays, RTX 3060 Ti (card1) is compute-only
   hardware.nvidia.wayland.multiGpu = {
     enable = true;
-    primaryCard = "/dev/dri/card1";
+    autoDetect = false;  # Use explicit values
+    primaryCard = "/dev/dri/card2";  # RTX 3090 (display GPU)
+    secondaryCard = "/dev/dri/card1";  # RTX 3060 Ti (compute-only)
   };
 
   # ============================================================================
@@ -140,22 +148,25 @@
     garnix.enable = true;
     nixos-auto-update.enable = true;
 
-    # Mining DISABLED - start manually with: systemctl start mining.slice
-    # mining = {
-    #   enable = true;
-    #   xmrig = {
-    #     enable = true;
-    #     threads = 16;
-    #   };
-    #   lolminer = {
-    #     enable = true;
-    #     nvidia = {
-    #       enable = true;
-    #       devices = "0";
-    #       powerLimit = 250;
-    #     };
-    #   };
-    # };
+    # Mining (both GPUs: RTX 3060 Ti @ 130W + RTX 3090 @ 250W)
+    mining = {
+      enable = true;
+      xmrig = {
+        enable = true;
+        threads = 16;
+      };
+      lolminer = {
+        enable = true;
+        nvidia = {
+          enable = true;
+          devices = "1";  # Only RTX 3090 (card1) - GPU0 used by llama.cpp
+          perGpuPowerLimits = {
+            "0" = 130;  # RTX 3060 Ti - compute only
+            "1" = 250;  # RTX 3090 - display + compute
+          };
+        };
+      };
+    };
 
     tailscale.enable = true;
 
@@ -194,12 +205,27 @@
     # Llama.cpp AI Inference Server - Multi-GPU (RTX 3090 + RTX 3060 Ti)
     llama-server = {
       enable = true;
-      # AI power limits (high for AI inference)
+      # Tensor split in MiB: GPU0 (3060 Ti) = 6GB, GPU1 (3090) = 15GB
+      # Reduced GPU1 allocation to leave room for Hyprland (uses ~8GB on display GPU)
+      # Total = 21GB for Qwen3.5-35B-A3B-Q4_K_M.gguf model
+      # When using tensorSplit, -ngl is automatically disabled
+      tensorSplit = "6144,15360";
+      # Context size - Qwen3.5 supports up to 131072 tokens
+      contextSize = 262144;  # 256K tokens maximum for Qwen3.5-35B-A3B
+      # Cache settings - Q8_0 for better quality, Q4_0 for memory savings
+      # With 256K context: Q8_0 ≈ 8GB, Q4_0 ≈ 4GB KV cache
+      cacheTypeK = "q8_0";
+      cacheTypeV = "q8_0";
+      # Sampling parameters for coding/technical tasks
+      temperature = 0.6;
+      topP = 0.95;
+      topK = 20;
+      # AI power limits (adjusted for tensor split)
       aiPowerLimits = {
-        "0" = 160;  # RTX 3060 Ti (card0, compute only)
-        "1" = 350;  # RTX 3090 (card1, display + compute)
+        "0" = 200;  # RTX 3060 Ti (card0, compute only)
+        "1" = 250;  # RTX 3090 (card1, display + compute - lower for headroom)
       };
-      # Mining power limits (low, restored when llama-server stops)
+      # Mining power limits (restored when llama-server stops)
       miningPowerLimits = {
         "0" = 130;  # RTX 3060 Ti mining
         "1" = 250;  # RTX 3090 mining
@@ -219,33 +245,93 @@
   # ============================================================================
   # USER GROUPS
   # ============================================================================
-  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "tailscale" "video" "render"];
+  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "tailscale" "video" "render" "uinput"];
+
+  # ============================================================================
+  # HOST-SPECIFIC FIXES
+  # ============================================================================
+  # Ydotoold - Fix permissions for /dev/uinput access (daemon security)
+  systemd.services.ydotoold = {
+    serviceConfig = {
+      CapabilityBoundingSet = ["CAP_SYS_ADMIN"];
+      AmbientCapabilities = ["CAP_SYS_ADMIN"];
+      PrivateDevices = lib.mkForce false;
+      SystemCallFilter = lib.mkForce null;
+      ProtectSystem = lib.mkForce false;
+      ProtectHome = lib.mkForce false;
+      ProtectKernelTunables = lib.mkForce false;
+      ProtectKernelModules = lib.mkForce false;
+      ProtectControlGroups = lib.mkForce false;
+      RestrictAddressFamilies = lib.mkForce null;
+      RestrictRealtime = lib.mkForce false;
+      RestrictSUIDSGID = lib.mkForce false;
+      LockPersonality = lib.mkForce false;
+      MemoryDenyWriteExecute = lib.mkForce false;
+      SystemCallArchitectures = lib.mkForce null;
+      NoNewPrivileges = lib.mkForce false;
+      PrivateTmp = lib.mkForce false;
+    };
+  };
+
+  # uinput device access
+  services.udev.extraRules = ''
+    KERNEL=="uinput", MODE="0660", GROUP="uinput", OPTIONS="static_node=uinput"
+  '';
+
+  # Fail2ban - Remove non-existent sshd-ddos filter
+  services.fail2ban.jails = {
+    sshd-ddos = lib.mkForce {};
+  };
+
+  # Networking - Disable IPv4 forwarding (not needed)
+  boot.kernel.sysctl."net.ipv4.ip_forward" = lib.mkForce false;
 
   # ============================================================================
   # BOOT SPECIALISATIONS
   # ============================================================================
   specialisation = {
+    # Beta NVIDIA driver - Plasma Wayland with autologin
     beta.configuration = {
       system.nixos.tags = ["beta"];
       hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
+      services.displayManager.autoLogin.enable = lib.mkForce true;
+      services.displayManager.autoLogin.user = lib.mkForce "j_kro";
     };
 
+    # Hyprland/Niri - SDDM with session selection (NO autologin)
     hyprland-niri.configuration = {
       system.nixos.tags = ["hyprland-niri"];
+      # Enable Niri compositor
+      programs.niri.enable = true;
+      # Disable SSH agent to avoid conflict with gcr-ssh-agent
+      programs.ssh.startAgent = lib.mkForce false;
       # Disable Plasma/PLM, use SDDM for Hyprland/Niri
       services.desktopManager.plasma6.enable = lib.mkForce false;
       services.displayManager.plasma-login-manager.enable = lib.mkForce false;
-      services.displayManager.sddm.enable = lib.mkForce true;
-      services.displayManager.sddm.wayland.enable = lib.mkForce true;
-      services.displayManager.sddm.settings.Users.HideUsers = lib.mkForce "mining;nixbuild;lobster";
+      services.displayManager.sddm.enable = true;
+      services.displayManager.sddm.wayland.enable = true;
+      # Disable autologin - user chooses between Hyprland/Niri
+      services.displayManager.autoLogin.enable = lib.mkForce false;
+      services.displayManager.sddm.settings = {
+        General = {
+          DisplayServer = "wayland";
+        };
+        Users = {
+          HideUsers = "mining;nixbuild;lobster";
+        };
+      };
     };
 
+    # Proprietary NVIDIA driver - Plasma Wayland with autologin
     nvidia-proprietary.configuration = {
       system.nixos.tags = ["nvidia-proprietary"];
       hardware.nvidia.wayland.openModules = lib.mkForce false;
       hardware.nvidia.open = lib.mkForce false;
+      services.displayManager.autoLogin.enable = lib.mkForce true;
+      services.displayManager.autoLogin.user = lib.mkForce "j_kro";
     };
 
+    # Nouveau (open source) - Plasma X11 with autologin
     nouveau.configuration = {
       system.nixos.tags = ["nouveau"];
       hardware.nvidia.open = lib.mkForce false;
@@ -253,24 +339,35 @@
       services.xserver.videoDrivers = lib.mkForce ["nouveau"];
       boot.blacklistedKernelModules = ["nvidia" "nvidia_modeset" "nvidia_drm" "nvidia_uvm"];
       environment.sessionVariables.QT_QPA_PLATFORM = lib.mkForce "xcb";
+      # Force Plasma X11 session
+      services.displayManager.defaultSession = lib.mkForce "plasma";
+      services.displayManager.autoLogin.enable = lib.mkForce true;
+      services.displayManager.autoLogin.user = lib.mkForce "j_kro";
     };
 
+    # X11 - Plasma X11 with autologin
     x11.configuration = {
       system.nixos.tags = ["x11"];
       environment.sessionVariables.QT_QPA_PLATFORM = lib.mkForce "xcb";
       environment.sessionVariables.GDK_BACKEND = lib.mkForce "x11";
+      # Force Plasma X11 session
+      services.displayManager.defaultSession = lib.mkForce "plasma";
+      services.displayManager.autoLogin.enable = lib.mkForce true;
+      services.displayManager.autoLogin.user = lib.mkForce "j_kro";
     };
 
+    # Safe mode - Sway with autologin
     safe.configuration = {
       system.nixos.tags = ["safe-mode"];
       # Disable GPU acceleration, use Sway for lightweight WM
       hardware.nvidia.wayland.enable = lib.mkForce false;
-      services.xserver.enable = lib.mkForce false;
-      boot.kernelParams = ["nomodeset" "nouveau.modeset=0" "nvidia.modeset=0" "nvidia-drm.modeset=0"];
-      boot.blacklistedKernelModules = ["nvidia" "nvidia_modeset" "nvidia_drm" "nouveau"];
-      # Enable Sway as failsafe WM
-      programs.sway.enable = true;
-      services.displayManager.sddm.enable = lib.mkForce true;
+      # Disable Plasma/PLM, use SDDM for Sway
+      services.desktopManager.plasma6.enable = lib.mkForce false;
+      services.displayManager.plasma-login-manager.enable = lib.mkForce false;
+      services.displayManager.sddm.enable = true;
+      services.displayManager.defaultSession = lib.mkForce "sway";
+      services.displayManager.autoLogin.enable = lib.mkForce true;
+      services.displayManager.autoLogin.user = lib.mkForce "j_kro";
     };
   };
 }
