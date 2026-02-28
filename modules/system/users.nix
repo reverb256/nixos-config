@@ -26,6 +26,7 @@ with lib; {
         "render"
         "plugdev"
         "tailscale"
+        "uinput"
       ];
       shell = "/run/current-system/sw/bin/fish";
       packages = with pkgs; [
@@ -89,6 +90,9 @@ with lib; {
 
     # Lobster group for AI assistant
     groups.lobster = {};
+
+    # Uinput group for virtual input devices (ydotool)
+    groups.uinput = {};
 
     # ============================================================================
     # LOBSTER USER - AI Assistant Service 🦞

@@ -22,7 +22,7 @@
 
     # Build machines configuration
     # NOTE: sshUser defaults to root when running with sudo, must specify j_kro
-    buildMachines = [
+    buildMachines = lib.mkForce [
       {
         # Zephyr: 32 cores, 31GB RAM, RTX 3090, AMD Wayland
         # Mining: CPU (16 threads @ 100%) + GPU (RTX 3090 @ 250W)
@@ -61,18 +61,19 @@
         supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "cuda" "rocm"];
         mandatoryFeatures = [];
       }
-      {
-        # Sentry: 16 cores (8 physical + 16 threads), 31GB RAM, Ryzen 7 1700X, RX 5600 XT, ROCm
-        # Mining: CPU-only (8 threads @ 100% CPU quota, no GPU mining)
-        hostName = "sentry";
-        system = "x86_64-linux";
-        sshUser = "j_kro";
-        protocol = "ssh-ng";
-        maxJobs = 8; # 4GB per job (31GB total, leave 8GB for overhead)
-        speedFactor = 1; # Lighter builds
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "rocm"];
-        mandatoryFeatures = [];
-      }
+      # Sentry temporarily disabled - connection timeout
+      # {
+      #   # Sentry: 16 cores (8 physical + 16 threads), 31GB RAM, Ryzen 7 1700X, RX 5600 XT, ROCm
+      #   # Mining: CPU-only (8 threads @ 100% CPU quota, no GPU mining)
+      #   hostName = "sentry";
+      #   system = "x86_64-linux";
+      #   sshUser = "j_kro";
+      #   protocol = "ssh-ng";
+      #   maxJobs = 8; # 4GB per job (31GB total, leave 8GB for overhead)
+      #   speedFactor = 1; # Lighter builds
+      #   supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "rocm"];
+      #   mandatoryFeatures = [];
+      # }
     ];
 
     # Settings for distributed builds
