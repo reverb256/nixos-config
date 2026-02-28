@@ -274,6 +274,20 @@ in {
             }
           }
         }
+
+      ## Security Considerations
+
+      MCP servers run as user-space processes invoked by AI tools. Security model:
+
+      1. **Filesystem server**: Only grant access to directories the AI should modify
+      2. **Git server**: Inherits user's git permissions
+      3. **Playwright**: Runs browsers in sandboxed mode by default
+      4. **API-based servers**: Store API keys in Agenix secrets, not plaintext
+
+      For sensitive operations, consider:
+      - Using separate MCP configurations per project
+      - Limiting filesystem paths to specific project directories
+      - Running AI tools in containers for isolation
     '';
   };
 }

@@ -143,19 +143,35 @@
   # FAIL2BAN CONFIGURATION
   # ============================================================================
   services.fail2ban = {
-    enable = false; # Temporarily disabled for cluster management
+    enable = true;
     ignoreIP = [
-      "127.0.0.1"
-      "10.1.0.0/24" # Entire cluster subnet
-      "10.1.1.110" # zephyr
-      "10.1.1.120" # nexus
-      "10.1.1.130" # forge
-      "10.1.1.140" # sentry
-      "100.81.182.5" # zephyr Tailscale
-      "100.86.158.18" # nexus Tailscale
-      "100.95.222.45" # forge Tailscale
-      "100.82.210.39" # sentry Tailscale
+      "127.0.0.1/8"
+      "10.1.1.0/24" # Cluster subnet
+      "100.64.0.0/10" # Tailscale CGNAT range (100.x.x.x)
     ];
+
+    # Default ban action using nftables
+    banaction = "nftables-multiport";
+
+    # SSH jail configuration using settings submodule
+    jails.sshd.settings = {
+      port = "ssh";
+      filter = "sshd";
+      logpath = "/var/log/auth.log";
+      maxretry = 3;
+      findtime = 600;
+      bantime = 3600;
+    };
+
+    # Extra protection against DDoS patterns
+    jails.sshd-ddos.settings = {
+      port = "ssh";
+      filter = "sshd-ddos";
+      logpath = "/var/log/auth.log";
+      maxretry = 2;
+      findtime = 600;
+      bantime = 86400;
+    };
   };
 
   # ============================================================================

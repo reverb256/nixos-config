@@ -107,7 +107,8 @@
   services.tailscale.enable = true;
 
   systemd.services.tailscaled.environment = {
-    TS_ADVERTISE_ROUTES = "10.1.1.0/24";
+    # Sentry is NOT the gateway - only zephyr should advertise routes
+    TS_ADVERTISE_ROUTES = "";
     TS_ROUTES = "";
     TS_SSH = "true";
   };

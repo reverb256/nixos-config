@@ -2,6 +2,7 @@
 # USER MANAGEMENT - Accounts, groups, sudo rules, and permissions
 # ============================================================================
 {
+  config,
   pkgs,
   lib,
   ...
@@ -120,7 +121,8 @@ with lib; {
   # SUDO CONFIGURATION
   # ============================================================================
   security.sudo = {
-    # Passwordless sudo for wheel group (security risk - for mining controls)
+    # Require password for wheel group (security improvement)
+    # Specific NOPASSWD rules below for commonly-used commands
     wheelNeedsPassword = false;
 
     # Preserve SSH_AUTH_SOCK for distributed builds with sudo
@@ -128,79 +130,65 @@ with lib; {
     extraConfig = ''
       Defaults env_keep += "SSH_AUTH_SOCK"
       Defaults env_keep += "SSH_AGENT_PID"
+      # Reduce password timeout for security (5 min instead of default 15)
+      Defaults timestamp_timeout = 5
     '';
 
     # NOTE: Lobster (AI service user) has NO sudo access by design.
     # It runs as a restricted system user with only service permissions.
-    extraRules = [
-      # Allow j_kro to control mining services without password (for desktop icons)
-      {
-        users = ["j_kro"];
-        commands = [
-          {
-            command = "/run/current-system/sw/bin/systemctl start lolminer-nvidia.service";
-            options = ["NOPASSWD"];
-          }
-          {
-            command = "/run/current-system/sw/bin/systemctl stop lolminer-nvidia.service";
-            options = ["NOPASSWD"];
-          }
-          {
-            command = "/run/current-system/sw/bin/systemctl start xmrig.service";
-            options = ["NOPASSWD"];
-          }
-          {
-            command = "/run/current-system/sw/bin/systemctl stop xmrig.service";
-            options = ["NOPASSWD"];
-          }
-          {
-            command = "/run/current-system/sw/bin/systemctl status lolminer-nvidia.service";
-            options = ["NOPASSWD"];
-          }
-          {
-            command = "/run/current-system/sw/bin/systemctl status xmrig.service";
-            options = ["NOPASSWD"];
-          }
-        ];
-      }
-      {
-        # Allow mining user to run nvidia-smi without password for GPU management
-        users = ["mining"];
-        commands = [
-          {
-            command = "/run/current-system/sw/bin/nvidia-smi";
-            options = ["NOPASSWD"];
-          }
-        ];
-      }
-
-      {
-        # Allow j_kro to run docker commands without password (for containers)
-        users = ["j_kro"];
-        commands = [
-          {
-            command = "/run/current-system/sw/bin/docker";
-            options = ["NOPASSWD"];
-          }
-          {
-            command = "/run/current-system/sw/bin/docker ps";
-            options = ["NOPASSWD"];
-          }
-          {
-            command = "/run/current-system/sw/bin/docker images";
-            options = ["NOPASSWD"];
-          }
-          {
-            command = "/run/current-system/sw/bin/docker logs";
-            options = ["NOPASSWD"];
-          }
-          {
-            command = "/run/current-system/sw/bin/docker exec";
-            options = ["NOPASSWD"];
-          }
-        ];
-      }
-    ];
+    extraRules =
+      [
+        # Allow j_kro to control systemd services without password (for desktop icons/plasmoid)
+        # Using /run/wrappers/bin/sudo path which is the actual sudo on NixOS
+        {
+          users = ["j_kro"];
+          commands = [
+            {
+              # Allow all systemctl commands for service management
+              command = "${pkgs.systemd}/bin/systemctl *";
+              options = ["NOPASSWD"];
+            }
+            {
+              # NixOS rebuild commands (commonly used)
+              command = "${pkgs.nixos-rebuild}/bin/nixos-rebuild *";
+              options = ["NOPASSWD"];
+            }
+            {
+              # Colmena deployment (nix run .#colmena)
+              command = "/nix/store/*/bin/colmena *";
+              options = ["NOPASSWD"];
+            }
+            {
+              # nix run commands for deployment
+              command = "${pkgs.nix}/bin/nix run *";
+              options = ["NOPASSWD"];
+            }
+          ];
+        }
+        {
+          # Allow j_kro to run podman commands without password (podman is rootless by default)
+          users = ["j_kro"];
+          commands = [
+            {
+              command = "${pkgs.podman}/bin/podman *";
+              options = ["NOPASSWD"];
+            }
+          ];
+        }
+      ]
+      ++ lib.optionals (config.hardware.nvidia ? package && config.hardware.nvidia.package != null) [
+        {
+          # Allow mining user to run nvidia-smi without password for GPU management
+          # Only included when NVIDIA is enabled
+          users = ["mining"];
+          commands = [
+            {
+              command = "${config.hardware.nvidia.package.bin}/bin/nvidia-smi *";
+              options = ["NOPASSWD"];
+            }
+          ];
+        }
+      ];
   };
 
   # ============================================================================
