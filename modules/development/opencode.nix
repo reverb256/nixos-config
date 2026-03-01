@@ -27,6 +27,25 @@ in {
       description = "Model for vision/multimodal tasks (GLM-4.6V)";
     };
 
+    # Local Llama model (Qwen3.5 with 256K context)
+    localLlamaModel = lib.mkOption {
+      type = lib.types.str;
+      default = "qwen3.5-35b-a3b";
+      description = "Local llama model identifier (Qwen3.5-35B-A3B)";
+    };
+
+    localLlamaEndpoint = lib.mkOption {
+      type = lib.types.str;
+      default = "http://127.0.0.1:8001/v1";
+      description = "Local llama server endpoint (llama.cpp on port 8001)";
+    };
+
+    localLlamaContext = lib.mkOption {
+      type = lib.types.int;
+      default = 262144;
+      description = "Context window size for local llama (256K tokens for Qwen3.5)";
+    };
+
     # Agent model mappings (extensible)
     agents = lib.mkOption {
       type = lib.types.attrs;

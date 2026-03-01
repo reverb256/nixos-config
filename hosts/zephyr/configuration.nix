@@ -208,26 +208,31 @@
     # Llama.cpp AI Inference Server - Multi-GPU (RTX 3090 + RTX 3060 Ti)
     llama-server = {
       enable = true;
-      # Multi-GPU tensor split: Both GPUs for Qwen MoE model
+      # Multi-GPU tensor split: Optimal for Qwen3.5-35B-A3B dual-GPU setup
       # NOTE: llama.cpp detects GPUs as: CUDA0=RTX3090, CUDA1=RTX3060Ti (reverse of nvidia-smi)
-      # CUDA0 (RTX 3090, 24GB): 14336MiB (~14GB) for model/KV cache, ~10GB for display
-      # CUDA1 (RTX 3060 Ti, 8GB): 6400MiB (~6.3GB) for model/KV cache
-      # Total: ~20.7GB fits in available VRAM
-      tensorSplit = "14336,6400";
-      # Context size - Qwen3.5 supports up to 256K tokens
+      # CUDA0 (RTX 3090, 24GB): 14000MiB (~14GB) for 70% of model
+      # CUDA1 (RTX 3060 Ti, 8GB): 6400MiB (~6.3GB) for 30% of model
+      # Ratio 70:30 matches VRAM availability after display allocation
+      # Total: ~20GB fits in available VRAM (leaves ~2GB for KV cache on GPU0)
+      tensorSplit = "14000,6400";
+      # Main GPU for KV cache and intermediate results (faster RTX 3090)
+      mainGpu = 0;
+      # Multi-GPU split mode (layer = default, optimal for dual-GPU)
+      multiGpuMode = "layer";
+      # Context size - Qwen3.5 supports up to 262K tokens (extendable to 1M with YaRN)
       contextSize = 262144;
-      # Cache settings - Q4_0 for efficiency
-      cacheTypeK = "q4_0";
-      cacheTypeV = "q4_0";
-      # Sampling parameters optimized for Qwen3.5 (per Unsloth docs)
-      temperature = 0.6;
-      topP = 0.95;
+      # Cache settings - Q8_0 for optimal speed (40-70% boost over Q4_0)
+      cacheTypeK = "q8_0";
+      cacheTypeV = "q8_0";
+      # Sampling parameters optimized for Qwen3.5
+      temperature = 0.7;
+      topP = 0.8;
       topK = 20;
       minP = 0.0;
       repeatPenalty = 1.0;  # Qwen3.5 performs best with repeat penalty disabled
-      presencePenalty = null;  # Use repeat_penalty for Qwen3.5
+      presencePenalty = null;
       enableThinking = true;  # Enable Qwen3.5 thinking mode
-      # MoE settings - keep MoE computation on GPU (not CPU since we want no RAM usage)
+      # MoE settings - keep MoE computation on GPU
       cpuMoe = false;
       nCpuMoe = null;
       # AI power limits - Both GPUs used for AI
@@ -330,6 +335,10 @@
           HideUsers = "mining;nixbuild;lobster";
         };
       };
+      # Home Manager: Add Hyprland-specific config (waybar, etc.)
+      home-manager.users.j_kro.imports = [
+        ../../modules/desktop/hyprland/home.nix
+      ];
     };
 
     # Proprietary NVIDIA driver - Plasma Wayland with autologin
