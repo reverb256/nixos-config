@@ -38,9 +38,6 @@
     ../../modules/services/monitoring
     ../../modules/services/gpu-exporters.nix
     ../../modules/services/mining-exporter.nix
-
-    # Override Plasma Manager (sentry uses Hyprland)
-    ../../modules/sentry-desktop-override.nix
   ];
 
   # ============================================================================
