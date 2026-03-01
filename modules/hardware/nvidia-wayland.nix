@@ -307,15 +307,19 @@ in {
     # CRITICAL: DefaultEnvironment affects ALL systemd services, including
     # plasmalogin greeter. This is required because environment.sessionVariables
     # only affects user sessions, not system services like plasmalogin.
+    # NOTE: KWin 6.6 doesn't parse colon-separated format correctly - use only primary GPU
     systemd.settings.Manager = lib.optionalAttrs (cfg.multiGpu.enable && !cfg.multiGpu.autoDetect && cfg.multiGpu.primaryCard != null) {
       DefaultEnvironment = let
-        devices =
+        # wlroots supports colon-separated format, but KWin doesn't
+        wlrDevices =
           if cfg.multiGpu.secondaryCard != null
           then "${cfg.multiGpu.primaryCard}:${cfg.multiGpu.secondaryCard}"
           else cfg.multiGpu.primaryCard;
       in [
-        "KWIN_DRM_DEVICES=${devices}"
-        "WLR_DRM_DEVICES=${devices}"
+        # KWin only needs the primary display GPU (where monitors are connected)
+        "KWIN_DRM_DEVICES=${cfg.multiGpu.primaryCard}"
+        # wlroots compositors (Hyprland, Sway, Niri) can handle multiple GPUs
+        "WLR_DRM_DEVICES=${wlrDevices}"
       ];
     };
 
