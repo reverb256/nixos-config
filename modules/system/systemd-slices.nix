@@ -1,6 +1,10 @@
 # Systemd Slices Module
 # Extracted from configuration.nix - Workload isolation for gaming, mining, and builds
-_: {
+{ config, lib, ... }:
+let
+  # Only enable on zephyr (where CPU affinity issues occur)
+  enableCPUFix = config.networking.hostName == "zephyr";
+in {
   # ============================================================================
   # SYSTEMD SLICES - Workload isolation for gaming, mining, and builds
   # ============================================================================
@@ -62,5 +66,21 @@ _: {
 
     # Nix daemon service configuration
     services.nix-daemon.serviceConfig.Slice = "nix.slice";
+  };
+
+  # ============================================================================
+  # FIX CPU AFFINITY RESTRICTION (Zephyr-specific)
+  # ============================================================================
+  # Plasma 6.6 has a bug where it restricts processes to only 2 CPU cores
+  # This service resets CPU affinity to all cores after Plasma starts
+  systemd.user.services.fix-plasma-cpu-affinity = lib.mkIf enableCPUFix {
+    description = "Fix Plasma CPU affinity restriction";
+    wantedBy = ["plasma-workspace.target"];
+    after = ["plasma-workspace.target"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "/run/current-system/sw/bin/bash -c 'for pid in $(pgrep -f plasmashell && pgrep -f kwin); do taskset -cp 0-31 $pid 2>/dev/null || true; done'";
+    };
   };
 }
