@@ -208,29 +208,37 @@
     # Llama.cpp AI Inference Server - Multi-GPU (RTX 3090 + RTX 3060 Ti)
     llama-server = {
       enable = true;
-      # Multi-GPU tensor split: Both GPUs for Qwen model (no mining on GPU0)
-      # GPU0 (3060 Ti, 8GB): 7680MiB for KV cache (Q4_0 with 256K context ≈ 6-7GB)
-      # GPU1 (RTX 3090, 24GB): 21504MiB for model weights + ~2.5GB for display
-      # Total: ~29GB model + cache fits in combined 32GB VRAM
-      tensorSplit = "7680,21504";
-      # Context size - Qwen3.5 supports up to 131072 tokens
-      contextSize = 262144;  # 256K tokens maximum for Qwen3.5-35B-A3B
-      # Cache settings - Q4_0 for efficiency (fits in GPU0 allocation)
+      # Multi-GPU tensor split: Both GPUs for Qwen MoE model
+      # NOTE: llama.cpp detects GPUs as: CUDA0=RTX3090, CUDA1=RTX3060Ti (reverse of nvidia-smi)
+      # CUDA0 (RTX 3090, 24GB): 14336MiB (~14GB) for model/KV cache, ~10GB for display
+      # CUDA1 (RTX 3060 Ti, 8GB): 6400MiB (~6.3GB) for model/KV cache
+      # Total: ~20.7GB fits in available VRAM
+      tensorSplit = "14336,6400";
+      # Context size - Qwen3.5 supports up to 256K tokens
+      contextSize = 262144;
+      # Cache settings - Q4_0 for efficiency
       cacheTypeK = "q4_0";
       cacheTypeV = "q4_0";
-      # Sampling parameters for coding/technical tasks
+      # Sampling parameters optimized for Qwen3.5 (per Unsloth docs)
       temperature = 0.6;
       topP = 0.95;
       topK = 20;
+      minP = 0.0;
+      repeatPenalty = 1.0;  # Qwen3.5 performs best with repeat penalty disabled
+      presencePenalty = null;  # Use repeat_penalty for Qwen3.5
+      enableThinking = true;  # Enable Qwen3.5 thinking mode
+      # MoE settings - keep MoE computation on GPU (not CPU since we want no RAM usage)
+      cpuMoe = false;
+      nCpuMoe = null;
       # AI power limits - Both GPUs used for AI
       aiPowerLimits = {
-        "0" = 200;  # RTX 3060 Ti (full KV cache)
-        "1" = 350;  # RTX 3090 (model + display)
+        "0" = 200;  # RTX 3060 Ti
+        "1" = 350;  # RTX 3090
       };
       # Mining power limits (restored when llama-server stops)
       miningPowerLimits = {
-        "0" = 130;  # RTX 3060 Ti (currently not used for mining)
-        "1" = 250;  # RTX 3090 mining (GPU1 used for AI when llama-server runs)
+        "0" = 130;  # RTX 3060 Ti (not used for mining currently)
+        "1" = 250;  # RTX 3090 mining
       };
     };
   };

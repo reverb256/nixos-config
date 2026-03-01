@@ -1,6 +1,6 @@
 # Sentry Host Configuration - Monitoring Server
 # 10.1.1.140 - 16 cores, RX 5600 XT
-# Features: Gaming only (no VR), CPU mining, ROCm
+# Features: Monitoring stack (Prometheus, Grafana), CPU mining, ROCm builds
 {
   lib,
   pkgs,
@@ -16,6 +16,23 @@
     # Host-specific GPU support
     ../../modules/hardware/amdgpu-wayland.nix
     ../../modules/services/podman-support.nix
+
+    # ============================================================================
+    # XNM1 MODULES - Essential tools for maintenance and monitoring
+    # ============================================================================
+    # Development (light - for monitoring tool development)
+    ../../modules/development/tools.nix
+    ../../modules/development/lsp.nix
+    ../../modules/development/programming-languages.nix
+
+    # Shell (XNM1 - for administration)
+    ../../modules/development/fish-starship.nix
+
+    # System (XNM1)
+    ../../modules/system/distributed-builds.nix
+
+    # Desktop Environment (XNM1 - for gaming)
+    ../../modules/desktop/hyprland.nix
   ];
 
   # ============================================================================
@@ -24,10 +41,19 @@
   networking.hostName = "sentry";
 
   # ============================================================================
-  # GAMING (No VR - RX 5600 XT not powerful enough for VR streaming)
+  # MONITORING STACK - Exporters for sentry (central Prometheus on zephyr)
+  # ============================================================================
+  services.monitoring.node-exporter.enable = true;
+  # Note: gpu-exporters module is NVIDIA-specific. AMD GPU metrics (amdgpu-exporter)
+  # are not yet implemented as a module. Enable manually if needed.
+  # services.gpu-exporters.enable = false;
+  services.mining-exporter.enable = true; # XMRig metrics
+
+  # ============================================================================
+  # GAMING - Disabled on sentry
   # ============================================================================
   services.gaming = {
-    enable = true;
+    enable = false;
     vr.enable = false;
   };
 
@@ -76,6 +102,8 @@
       "https://ezkea.cachix.org"
       "https://zen-browser.cachix.org"
       "https://devenv.cachix.org"
+      "https://cache.garnix.io"
+      "https://nixos-rocm.cachix.org"
     ];
     trusted-public-keys = lib.mkForce [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
@@ -86,6 +114,8 @@
       "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
       "zen-browser.cachix.org-1:z/QLGrEkiBYF/7zoHX1Hpuv0B26QrmbVBSy9yDD2tSs="
       "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
+      "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+      "nixos-rocm.cachix.org-1:VEpsf7pRIijjd8csKjFNBGzkBqOmw8H9PRmgAq14LnE="
     ];
   };
 
@@ -102,27 +132,19 @@
   networking.defaultGateway = "10.1.1.1";
 
   # ============================================================================
-  # TAILSCALE
+  # TAILSCALE - Now managed by modules/system/tailscale.nix
   # ============================================================================
-  services.tailscale.enable = true;
-
-  systemd.services.tailscaled.environment = {
-    # Sentry is NOT the gateway - only zephyr should advertise routes
-    TS_ADVERTISE_ROUTES = "";
-    TS_ROUTES = "";
-    TS_SSH = "true";
-  };
+  # Tailscale routing automatically configured via network-constants
 
   # ============================================================================
-  # OLLAMA (CPU-only)
+  # WHISPER DICTATION - Disabled on sentry (no microphone/keyboard needs)
   # ============================================================================
-  services.ollama = {
-    enable = true;
-    package = pkgs.ollama-cpu;
-    environmentVariables = {
-      OLLAMA_KEEP_ALIVE = "24h";
-    };
-  };
+  services.whisper-dictation.enable = false;
+
+  # ============================================================================
+  # OPENCODE - AI coding assistant - Disabled on sentry
+  # ============================================================================
+  services.opencode.enable = false;
 
   # ============================================================================
   # CI/CD
@@ -140,6 +162,29 @@
       user.email = "j_kro@sentry";
       init.defaultBranch = "main";
       remote.origin.url = "git@github.com:reverb256/nixos-config.git";
+    };
+  };
+
+  # ============================================================================
+  # BOOT SWITCH - Auto-deploy on boot
+  # ============================================================================
+  systemd.services.nixos-boot-switch = {
+    description = "NixOS configuration switch on boot";
+    wantedBy = ["multi-user.target"];
+    after = ["network-online.target"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.writeScript "nixos-boot-switch" ''
+        #!/bin/sh
+        set -e
+        cd /etc/nixos
+        git fetch origin
+        git checkout origin/infra || git checkout origin/main
+        git reset --hard HEAD
+        git pull origin $(git branch --show-current) 2>/dev/null || true
+        exec nixos-rebuild switch --flake ".#sentry"
+      ''}";
     };
   };
 }
