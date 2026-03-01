@@ -1,7 +1,9 @@
-{pkgs, ...}: {
+{pkgs, lib, ...}: {
   # Centralized SYSTEM packages - only packages needed by system services
   # User packages belong in home.nix
   environment.systemPackages = with pkgs; [
+    mlocate  # For locate command
+
     # ============================================================================
     # SYSTEM UTILITIES
     # Needed by system services, scripts, or all users
