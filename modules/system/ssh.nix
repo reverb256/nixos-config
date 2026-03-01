@@ -2,6 +2,9 @@
 {pkgs, ...}: {
   services.openssh = {
     enable = true;
+    # Firewall is configured per-interface in host configs
+    # Zephyr: local net (10.1.1.0/24) + Tailscale only
+    openFirewall = false;
     settings = {
       # Authentication Settings - Password enabled for convenience
       PasswordAuthentication = true;
