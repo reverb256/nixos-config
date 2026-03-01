@@ -16,6 +16,11 @@
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Plasma Manager - Declarative KDE Plasma configuration
+    plasma-manager.url = "github:nix-community/plasma-manager";
+    plasma-manager.inputs.nixpkgs.follows = "nixpkgs";
+    plasma-manager.inputs.home-manager.follows = "home-manager";
+
     # Zen Browser Flake
     zen-browser.url = "github:0xc000022070/zen-browser-flake/231ae41b0cd867046ff0bc3c1a7707e244fe8127";
     zen-browser.inputs.nixpkgs.follows = "nixpkgs";
@@ -138,6 +143,7 @@
         home-manager.users.j_kro = {...}: {
           imports = [
             ./home.nix
+            inputs.plasma-manager.homeManagerModules.plasma-manager
             # NOTE: stylix.homeModules.stylix is auto-imported by NixOS module
             # via stylix.homeManagerIntegration.autoImport (default = true)
           ];
