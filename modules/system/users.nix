@@ -214,4 +214,10 @@ with lib; {
 
   # Ignore shell program check for j_kro user
   users.users.j_kro.ignoreShellProgramCheck = true;
+
+  # ============================================================================
+  # REALTIMEKIT - For PipeWire audio scheduling
+  # ============================================================================
+  # Fixes xdg-desktop-portal RealtimeKit errors
+  security.rtkit.enable = true;
 }
