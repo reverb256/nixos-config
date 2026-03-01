@@ -143,7 +143,7 @@
         home-manager.users.j_kro = {...}: {
           imports = [
             ./home.nix
-            inputs.plasma-manager.homeManagerModules.plasma-manager
+            inputs.plasma-manager.homeModules.plasma-manager
             # NOTE: stylix.homeModules.stylix is auto-imported by NixOS module
             # via stylix.homeManagerIntegration.autoImport (default = true)
           ];
