@@ -33,8 +33,8 @@
     ../../modules/services/mcp-servers.nix
     ../../modules/services/github-actions-runner.nix
     ../../modules/security/aistor-secrets.nix
-    ../../modules/services/hoyoverse-controller-fix.nix
     ../../modules/services/whisper-dictation.nix
+    ../../modules/system/system-services.nix
   ];
 
   # ============================================================================
@@ -82,7 +82,8 @@
   };
 
   # HoYoverse controller fix (DualSense/DualShock)
-  services.hoyoverse-controller-fix.enable = true;
+  # DISABLED: Causes 90-second timeout on boot (winedevice.exe hangs)
+  # services.hoyoverse-controller-fix.enable = true;
 
   # ============================================================================
   # STABILITY MATRIX - Stable Diffusion Package Manager
@@ -130,9 +131,11 @@
     };
 
     firewall = {
-      allowedTCPPorts = [9757 18789 18790];
+      allowedTCPPorts = [9757];
       allowedUDPPorts = [9757 9758 9759 27031 27036 5353 9947];
-      interfaces."tailscale0".allowedTCPPorts = [18789 18790];
+      # SSH only from local network and Tailscale
+      interfaces."enp38s0".allowedTCPPorts = [22];  # Local network 10.1.1.0/24
+      interfaces."tailscale0".allowedTCPPorts = [22 18789 18790];
     };
   };
 
@@ -205,30 +208,29 @@
     # Llama.cpp AI Inference Server - Multi-GPU (RTX 3090 + RTX 3060 Ti)
     llama-server = {
       enable = true;
-      # Tensor split in MiB: GPU0 (3060 Ti) = 6GB, GPU1 (3090) = 15GB
-      # Reduced GPU1 allocation to leave room for Hyprland (uses ~8GB on display GPU)
-      # Total = 21GB for Qwen3.5-35B-A3B-Q4_K_M.gguf model
-      # When using tensorSplit, -ngl is automatically disabled
-      tensorSplit = "6144,15360";
+      # Multi-GPU tensor split: Both GPUs for Qwen model (no mining on GPU0)
+      # GPU0 (3060 Ti, 8GB): 7680MiB for KV cache (Q4_0 with 256K context ≈ 6-7GB)
+      # GPU1 (RTX 3090, 24GB): 21504MiB for model weights + ~2.5GB for display
+      # Total: ~29GB model + cache fits in combined 32GB VRAM
+      tensorSplit = "7680,21504";
       # Context size - Qwen3.5 supports up to 131072 tokens
       contextSize = 262144;  # 256K tokens maximum for Qwen3.5-35B-A3B
-      # Cache settings - Q8_0 for better quality, Q4_0 for memory savings
-      # With 256K context: Q8_0 ≈ 8GB, Q4_0 ≈ 4GB KV cache
-      cacheTypeK = "q8_0";
-      cacheTypeV = "q8_0";
+      # Cache settings - Q4_0 for efficiency (fits in GPU0 allocation)
+      cacheTypeK = "q4_0";
+      cacheTypeV = "q4_0";
       # Sampling parameters for coding/technical tasks
       temperature = 0.6;
       topP = 0.95;
       topK = 20;
-      # AI power limits (adjusted for tensor split)
+      # AI power limits - Both GPUs used for AI
       aiPowerLimits = {
-        "0" = 200;  # RTX 3060 Ti (card0, compute only)
-        "1" = 250;  # RTX 3090 (card1, display + compute - lower for headroom)
+        "0" = 200;  # RTX 3060 Ti (full KV cache)
+        "1" = 350;  # RTX 3090 (model + display)
       };
       # Mining power limits (restored when llama-server stops)
       miningPowerLimits = {
-        "0" = 130;  # RTX 3060 Ti mining
-        "1" = 250;  # RTX 3090 mining
+        "0" = 130;  # RTX 3060 Ti (currently not used for mining)
+        "1" = 250;  # RTX 3090 mining (GPU1 used for AI when llama-server runs)
       };
     };
   };
