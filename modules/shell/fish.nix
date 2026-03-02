@@ -67,6 +67,9 @@
       update = "sudo nixos-rebuild switch --flake /etc/nixos";
       build = "sudo nixos-rebuild build --flake /etc/nixos";
       try = "sudo nixos-rebuild test --flake /etc/nixos";
+
+      # AI/LLM aliases
+      lms = "~/.lmstudio/bin/lms";
     };
   };
 }

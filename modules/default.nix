@@ -2,6 +2,9 @@
 # Modules are organized into logical subdirectories for better maintainability
 {...}: {
   imports = [
+    # Network configuration
+    ./network-constants.nix
+
     # System-level configuration
     ./system/nix-config.nix
     ./system/users.nix
@@ -19,6 +22,10 @@
     ./gaming/gaming-hdr.nix
     ./gaming/scopebuddy.nix
 
+    # Mining
+    ./mining/mining.nix
+    #./mining/mining-plasmoid.nix  # TODO: Requires plasmoids/mining-monitor which doesn't exist
+
     # Development
     ./development/tools.nix
     ./development/lsp.nix
@@ -27,5 +34,15 @@
     # Services
     ./services/lm-studio.nix
     ./services/stability-matrix.nix
+
+    # Monitoring
+    ./services/monitoring/default.nix
+    ./services/monitoring/prometheus.nix
+    ./services/monitoring/grafana.nix
+    ./services/monitoring/node-exporter.nix
+
+    # Exporters
+    ./services/gpu-exporters.nix
+    ./services/mining-exporter.nix
   ];
 }
