@@ -46,9 +46,11 @@
   networking.hostName = "sentry";
 
   # ============================================================================
-  # MONITORING STACK - Exporters for sentry (central Prometheus on zephyr)
+  # MONITORING STACK - Central Prometheus + Grafana
   # ============================================================================
   services.monitoring.node-exporter.enable = true;
+  services.monitoring.prometheus.enable = true;
+  services.monitoring.grafana.enable = true;
   # Note: gpu-exporters module is NVIDIA-specific. AMD GPU metrics (amdgpu-exporter)
   # are not yet implemented as a module. Enable manually if needed.
   # services.gpu-exporters.enable = false;

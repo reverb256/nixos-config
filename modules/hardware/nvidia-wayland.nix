@@ -26,7 +26,7 @@ in {
 
     powerManagement = lib.mkOption {
       type = lib.types.bool;
-      default = true; # Enabled - freeze issue resolved with NVIDIA 560+ open modules + proper KWIN_DRM_DEVICES
+      default = false; # Disabled by default - user can enable if needed
       description = "Enable NVIDIA power management (reduces idle power/heat for Ampere GPUs)";
     };
 
@@ -75,20 +75,21 @@ in {
       open = cfg.openModules;
 
       # Required for Wayland
-      modesetting.enable = true;
+      modesetting.enable = lib.mkDefault true;
 
       # NVIDIA settings GUI
-      nvidiaSettings = true;
+      nvidiaSettings = lib.mkDefault true;
 
-      # Power management
-      powerManagement.enable = cfg.powerManagement;
-      powerManagement.finegrained = false;
+      # Power management - user can override
+      powerManagement.enable = lib.mkDefault cfg.powerManagement;
+      powerManagement.finegrained = lib.mkDefault false;
 
-      # GSP firmware - must be enabled when using open-source modules
-      gsp.enable = cfg.openModules;
+      # GSP firmware - required for driver 560+ on Ampere GPUs (both open and proprietary)
+      # Proprietary driver includes GSP firmware in the driver package
+      gsp.enable = lib.mkDefault true;
 
       # Disable PRIME offload (Wayland uses direct rendering)
-      prime.offload.enable = false;
+      prime.offload.enable = lib.mkDefault false;
     };
 
     # Include NVIDIA firmware when using open modules (required for GSP)
@@ -141,6 +142,12 @@ in {
 
         # Enable Wayland for Ozone-based applications (Chrome, Electron, etc.)
         NIXOS_OZONE_WL = "1";
+
+        # Disable accessibility to prevent QAccessible segfaults in Qt 6.10.1
+        QT_ACCESSIBILITY = "0";
+
+        # Disable explicit sync to prevent FD leaks in notification system
+        KWIN_EXPLICIT_SYNC = "0";
 
         # ========================================================================
         # VULKAN (DLSS 4 / Frame Generation support)
@@ -245,8 +252,9 @@ in {
         # NVIDIA DRM CONFIGURATION
         # ========================================================================
         "nvidia-drm.modeset=1"
-        # Disable fbdev to prevent "pageflip timeout" errors on driver 570+
-        "nvidia-drm.fbdev=0"
+        # Enable fbdev as fallback display (GRACEFUL DEGRADATION)
+        # If NVIDIA driver fails, kernel can use framebuffer for basic console
+        "nvidia-drm.fbdev=1"
 
         # ========================================================================
         # AMPERE-SPECIFIC MEMORY MANAGEMENT
@@ -566,7 +574,7 @@ in {
     # This file is sourced by plasma-workspace before KWin starts
     # CRITICAL: KWin 6.6 doesn't parse colon-separated KWIN_DRM_DEVICES correctly
     # Only the primary display GPU should be set (secondary GPU is for compute only)
-    systemd.user.services.kwin-drm-config = lib.mkIf cfg.multiGpu.enable {
+    systemd.user.services.kwin-drm-config = lib.mkIf (cfg.multiGpu.enable && !cfg.multiGpu.autoDetect && cfg.multiGpu.primaryCard != null) {
       description = "Configure KWin DRM devices for Plasma Wayland";
       wantedBy = ["plasma-workspace.target"];
       before = ["plasma-workspace.target"];

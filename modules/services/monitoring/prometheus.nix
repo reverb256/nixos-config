@@ -85,6 +85,22 @@ in
             }
           ];
         }
+
+        # Llama.cpp AI Inference Server (Zephyr)
+        {
+          job_name = "llama-server";
+          static_configs = [
+            {
+              targets = ["10.1.1.110:8001"];
+              labels = {
+                host = "zephyr";
+                service = "llama-server";
+              };
+            }
+          ];
+          scheme = "http";
+          metrics_path = "/metrics";
+        }
       ];
     };
 

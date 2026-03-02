@@ -81,6 +81,9 @@ in {
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = "yes";
+          # FIX: Force gamemoded to use card1 (RTX 3090) instead of default card0
+          # System has card1 (RTX 3090) and card2 (RTX 3060 Ti), not card0
+          Environment = "GPU_DEVICE=card1";
           ExecStart = "${pkgs.gamemode}/bin/gamemoded --daemonize";
           ExecStop = "${pkgs.coreutils}/bin/kill -TERM $MAINPID";
           TimeoutStopSec = 10;

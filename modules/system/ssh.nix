@@ -97,23 +97,41 @@
       # Build machines - use j_kro user for distributed builds
       # These override the default user for distributed builds
       # Support both local IP and Tailscale IP for mosh compatibility
+      # GRACEFUL DEGRADATION: Fast timeouts for quick fallback
       Host nexus 10.1.1.120 100.86.158.18
         HostName 100.86.158.18
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_nixbuild
+        IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+        # Fast timeouts for Nix builds (fail quick, fall back to local)
+        ConnectTimeout 3
+        ServerAliveInterval 10
+        ServerAliveCountMax 2
 
       Host forge 10.1.1.130 100.95.222.45
         HostName 100.95.222.45
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_nixbuild
+        IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+        # Fast timeouts for Nix builds (fail quick, fall back to local)
+        ConnectTimeout 3
+        ServerAliveInterval 10
+        ServerAliveCountMax 2
 
       Host sentry 10.1.1.140 100.82.210.39
         HostName 100.82.210.39
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_nixbuild
+        IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+        # Fast timeouts for Nix builds (fail quick, fall back to local)
+        ConnectTimeout 3
+        ServerAliveInterval 10
+        ServerAliveCountMax 2
+
+      # Nix builder connections (low overhead)
+      Match Host "nexus|forge|sentry" Exec "nix-build"
+        Compression no
+        ControlMaster no
 
       # GitHub - for CI/CD deploys
       Host github.com

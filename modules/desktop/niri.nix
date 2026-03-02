@@ -1,7 +1,7 @@
 # Niri Module - Scrollable-Tiling Wayland Compositor
 # Rust-based compositor with unique scrollable tiling approach
 # Import this module and enable with: programs.niri.enable = true;
-{pkgs, ...}: {
+{pkgs, config, ...}: {
   # Required packages for Niri
   environment.systemPackages = with pkgs; [
     # Core Niri
@@ -31,8 +31,10 @@
 
     # Gtkgreet for graphical login
     gtkgreet
-
-    # Notifications
+  ] ++ lib.optionals config.programs.niri.enable [
+    # Notifications - only when Niri is enabled
+    # Note: This module should only be imported in Niri-specific configurations
+    # (e.g., hyprland-niri specialization) to avoid conflicts with Plasma
     mako
   ];
 

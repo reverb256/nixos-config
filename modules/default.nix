@@ -15,8 +15,8 @@
 
     # Desktop environment
     ./hardware/rgb.nix # RGB lighting control (Corsair, Razer, Gigabyte/Aorus, MSI, EVGA)
-    ./desktop/stylix-rgb-sync.nix # Sync Stylix colors to OpenRGB hardware
-    ./desktop/synapse-theme.nix # Synapse theme generation from Stylix colors
+    # TEMPORARILY DISABLED: ./desktop/stylix-rgb-sync.nix # Sync Stylix colors to OpenRGB hardware
+    # TEMPORARILY DISABLED: ./desktop/synapse-theme.nix # Synapse theme generation from Stylix colors
     ./desktop/keyboard-shortcuts.nix # Keyboard shortcuts configuration
     ./desktop/hyprland.nix # Hyprland window manager
 
