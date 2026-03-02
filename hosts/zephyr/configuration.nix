@@ -81,12 +81,41 @@
   # ============================================================================
   services.mining.enable = true;
 
-  # NVIDIA GPU configuration for RTX 3090
+  # NVIDIA GPU configuration for dual GPU setup
   services.mining.lolminer.nvidia = {
     enable = true;
-    devices = "0";  # Single RTX 3090
-    powerLimit = 250;  # 250W power limit (RTX 3090 default is 350W+)
+    devices = "0,1";  # Both GPUs: RTX 3060 Ti (0) and RTX 3090 (1)
+    powerLimit = 250;  # Default power limit (overridden by per-GPU services below)
     apiPort = 4068;
+  };
+
+  # ============================================================================
+  # PER-GPU POWER LIMITS
+  # ============================================================================
+  # RTX 3060 Ti (GPU 0): 130W for efficient mining
+  systemd.services."gpu-0-power-limit" = {
+    description = "Set RTX 3060 Ti power limit to 130W";
+    wantedBy = ["multi-user.target"];
+    before = ["lolminer-nvidia.service"];
+    requiredBy = ["lolminer-nvidia.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 0 -pl 130";
+    };
+  };
+
+  # RTX 3090 (GPU 1): 250W for balanced performance/efficiency
+  systemd.services."gpu-1-power-limit" = {
+    description = "Set RTX 3090 power limit to 250W";
+    wantedBy = ["multi-user.target"];
+    before = ["lolminer-nvidia.service"];
+    requiredBy = ["lolminer-nvidia.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 1 -pl 250";
+    };
   };
 
   # Mining plasmoid for KDE Plasma
