@@ -6,7 +6,11 @@
     # Hardware configuration
     ./hardware-configuration.nix
 
-    # Modules
+    # Hardware modules (NVIDIA GPU)
+    ../../modules/hardware/nvidia-common.nix
+    ../../modules/hardware/nvidia-wayland.nix
+
+    # Modules (all other modules)
     ../../modules/default.nix
   ];
 
