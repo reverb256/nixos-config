@@ -23,5 +23,9 @@
     ./development/tools.nix
     ./development/lsp.nix
     ./development/programming-languages.nix
+
+    # Services
+    ./services/lm-studio.nix
+    ./services/stability-matrix.nix
   ];
 }
