@@ -19,10 +19,35 @@
       l = "eza --group-directories-first --icons=auto";
       lt = "eza --tree --level=2 --long --icons --git";
 
-      # NixOS aliases
-      update = "sudo nixos-rebuild switch --flake /etc/nixos";
-      build = "sudo nixos-rebuild build --flake /etc/nixos";
-      try = "sudo nixos-rebuild test --flake /etc/nixos";
+      # File viewing aliases - modern replacements
+      cat = "bat --paging=always";
+      less = "bat --paging=always";
+      more = "bat --paging=always";
+
+      # Process monitoring
+      top = "btop";
+      htop = "btop";
+
+      # Search aliases - modern replacements
+      grep = "rg";
+      find = "fd";
+      locate = "fd";
+
+      # Diff viewing
+      diff = "delta";
+
+      # Disk usage
+      du = "dust";
+      df = "duf";
+
+      # JSON/YAML processing
+      jq = "jq";  # Already jq, keeping for consistency
+
+      # Editor aliases
+      vi = "nvim";
+      vim = "nvim";
+      ex = "nvim";
+      view = "nvim -R";
 
       # Git aliases
       g = "git";
@@ -30,6 +55,18 @@
       gc = "git commit";
       gp = "git push";
       gl = "git log --oneline -10";
+      lg = "lazygit";
+
+      # Build tool aliases
+      make = "just";
+
+      # Directory navigation (zoxide)
+      cd = "z";
+
+      # NixOS aliases
+      update = "sudo nixos-rebuild switch --flake /etc/nixos";
+      build = "sudo nixos-rebuild build --flake /etc/nixos";
+      try = "sudo nixos-rebuild test --flake /etc/nixos";
     };
   };
 }
