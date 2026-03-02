@@ -71,6 +71,12 @@
   programs.wavey-launcher.enable = true;
 
   # ============================================================================
+  # AI SERVICES - LM Studio & Stability Matrix
+  # ============================================================================
+  programs.lm-studio.enable = true;
+  programs.stability-matrix.enable = true;
+
+  # ============================================================================
   # TAILSCALE
   # ============================================================================
   services.tailscale.enable = true;
