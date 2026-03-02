@@ -11,8 +11,11 @@
   boot.kernelModules = [ "nvidia_drm" ];
 
   # NVIDIA environment variables for Wayland
+  # NOTE: __NV_PRIME_RENDER_OFFLOAD is NOT set because:
+  # - This system has multiple discrete NVIDIA GPUs (not hybrid graphics)
+  # - PRIME offload is for iGPU + dGPU setups (Intel + NVIDIA)
+  # - Setting this breaks EGL initialization on multi-NVIDIA systems
   environment.sessionVariables = {
-    __NV_PRIME_RENDER_OFFLOAD = "1";
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     __GL_THREADED_OPTIMIZATIONS = "1";
   };
