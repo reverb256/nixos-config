@@ -293,6 +293,26 @@
         WantedBy = [ "graphical-session.target" ];
       };
     };
+
+    # Fix nixcord's read-only symlink issue
+    # Vesktop needs to write to settings/settings.json but nixcord creates
+    # a read-only symlink to Nix store. This service removes it after activation.
+    systemd.user.services.fix-vesktop-symlink = {
+      Unit = {
+        Description = "Remove nixcord's read-only vesktop symlink";
+        After = [ "home-manager-activate.service" ];
+      };
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.writeShellScript "fix-vesktop-symlink" ''
+          # Remove the problematic symlink if it exists
+          if [ -L "$HOME/.config/vesktop/settings/settings.json" ]; then
+            rm "$HOME/.config/vesktop/settings/settings.json"
+            echo "Removed nixcord symlink for vesktop settings.json"
+          fi
+        ''}";
+      };
+    };
   };
 
   # ============================================================================
