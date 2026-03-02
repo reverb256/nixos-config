@@ -32,9 +32,12 @@
       url = "github:OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nixcord = {
+      url = "github:FlameFlag/nixcord";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, zen-browser, firefox-addons, aagl, claude-native, nixpkgs-xr, scopebuddy }:
+  outputs = { self, nixpkgs, home-manager, zen-browser, firefox-addons, aagl, claude-native, nixpkgs-xr, scopebuddy, nixcord }:
     {
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
 
@@ -44,7 +47,7 @@
         system = "x86_64-linux";
         specialArgs = {
           inputs = {
-            inherit nixpkgs home-manager zen-browser firefox-addons aagl claude-native nixpkgs-xr scopebuddy self;
+            inherit nixpkgs home-manager zen-browser firefox-addons aagl claude-native nixpkgs-xr scopebuddy nixcord self;
           };
         };
         modules = [

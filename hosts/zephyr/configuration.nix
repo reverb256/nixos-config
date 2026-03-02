@@ -118,7 +118,10 @@
   # HOME MANAGER - Zen Browser with Extensions
   # ============================================================================
   home-manager.users.j_kro = { pkgs, lib, ... }: {
-    imports = [ inputs.zen-browser.homeModules.twilight ];
+    imports = [
+      inputs.zen-browser.homeModules.twilight
+      inputs.nixcord.homeModules.nixcord
+    ];
     home.stateVersion = "26.05";
     programs.zen-browser = {
       enable = true;
@@ -157,6 +160,66 @@
           cookie-autodelete
           privacy-pass
         ];
+      };
+    };
+
+    # ============================================================================
+    # NIXCORD - Declarative Discord/Vesktop Configuration
+    # ============================================================================
+    programs.nixcord = {
+      enable = true;
+      discord.enable = false;
+      vesktop.enable = true;
+
+      # Plugins
+      vesktopConfig = {
+        plugins = {
+          XSOverlay = {
+            enable = true;
+            dmNotifications = true;
+            groupDmNotifications = true;
+            serverNotifications = true;
+            callNotifications = true;
+            channelPingColor = "#8a2be2";
+            pingColor = "#7289da";
+            timeout = 3;
+            volume = 0.2;
+            opacity = 1.0;
+          };
+          fakeNitro = {
+            enable = true;
+            enableEmojiBypass = true;
+            enableStickerBypass = true;
+            enableStreamBypass = true;
+            emojiSize = 48.0;
+          };
+          USRBG = {
+            enable = true;
+            nitroFirst = true;
+            voiceBackground = true;
+          };
+          ReviewDB = {
+            enable = true;
+          };
+        };
+      };
+    };
+
+    # Autostart Vesktop on login
+    systemd.user.services.vesktop-autostart = {
+      Unit = {
+        Description = "Vesktop autostart";
+        After = [ "graphical-session-pre.target" ];
+        PartOf = [ "graphical-session.target" ];
+      };
+      Service = {
+        Type = "simple";
+        ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-features=UseOzonePlatform --ozone-platform-hint=auto";
+        Restart = "on-failure";
+        RestartSec = 5;
+      };
+      Install = {
+        WantedBy = [ "graphical-session.target" ];
       };
     };
   };
