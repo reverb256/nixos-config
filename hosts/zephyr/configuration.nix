@@ -77,6 +77,42 @@
   programs.stability-matrix.enable = true;
 
   # ============================================================================
+  # MINING - GPU Mining (RTX 3090)
+  # ============================================================================
+  services.mining.enable = true;
+
+  # NVIDIA GPU configuration for RTX 3090
+  services.mining.lolminer.nvidia = {
+    enable = true;
+    devices = "0";  # Single RTX 3090
+    powerLimit = 250;  # 250W power limit (RTX 3090 default is 350W+)
+    apiPort = 4068;
+  };
+
+  # Mining plasmoid for KDE Plasma
+  #programs.mining-plasmoid.enable = true;  # TODO: Requires plasmoids/mining-monitor
+
+  # ============================================================================
+  # MONITORING - Full monitoring stack
+  # ============================================================================
+  # System metrics
+  services.monitoring.node-exporter.enable = true;
+
+  # GPU metrics exporter (NVIDIA RTX 3090)
+  services.gpu-exporters.enable = true;
+
+  # Mining metrics exporter (XMRig + lolMiner)
+  services.mining-exporter.enable = true;
+
+  # Prometheus server - central metrics collection
+  services.monitoring.prometheus.enable = true;
+  services.monitoring.prometheus.retentionDays = 30;
+  services.monitoring.prometheus.scrapeInterval = "15s";
+
+  # Grafana dashboards
+  services.monitoring.grafana.enable = true;
+
+  # ============================================================================
   # TAILSCALE
   # ============================================================================
   services.tailscale.enable = true;
