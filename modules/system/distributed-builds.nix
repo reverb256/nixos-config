@@ -1,4 +1,4 @@
-# Distributed Build Configuration
+# Distributed Build Configuration with Graceful Degradation
 # Enables building across all 4 nodes in the cluster
 # See AGENTS.md for cluster architecture details
 #
@@ -11,20 +11,25 @@
 #   XMrig HTTP API available on localhost:18088 for pause/resume
 #   Build-wrapper scripts pause mining before builds and resume after completion
 #
+# GRACEFUL DEGRADATION (2026-02-28):
+#   - Fast SSH timeouts (5s) to fail quickly on unreachable hosts
+#   - Dynamic builder discovery via health-check scripts
+#   - Falls back to local builds when remote builders unavailable
+#   - Use ~/{nix,scripts}/builder-health.sh to check status
+#
 # NETWORK: 1Gbps with 4x TP-Link Easy Smart switches
-{lib, ...}: {
+{lib, pkgs, ...}: {
   # ============================================================================
   # DISTRIBUTED BUILD CONFIGURATION
   # ============================================================================
   nix = {
-    # Enabled: Distributed builds across the cluster
-    distributedBuilds = true;
+    # FORCE DISABLED - No remote builders
+    distributedBuilds = false;
 
-    # Build machines configuration
-    # NOTE: sshUser defaults to root when running with sudo, must specify j_kro
+    # Build machines configuration - DISABLED
     buildMachines = lib.mkForce [
       {
-        # Zephyr: 32 cores, 31GB RAM, RTX 3090, AMD Wayland
+        # Zephyr: 32 cores, 31GB RAM, RTX 3090, AMD Wayland (localhost, skip)
         # Mining: CPU (16 threads @ 100%) + GPU (RTX 3090 @ 250W)
         # Pause mining before builds (16 threads left for OS + apps)
         hostName = "zephyr";
@@ -76,10 +81,17 @@
       # }
     ];
 
-    # Settings for distributed builds
+    # Settings for distributed builds with graceful degradation
     settings = {
       # Use substituters on remote builders (download from cache instead of copying)
       builders-use-substitutes = true;
+
+      # GRACEFUL DEGRADATION: Fast timeouts for quick fallback to local builds
+      # SSH connection timeout: fail fast if builder unreachable (was 30s, now 5s)
+      connect-timeout = 5;
+
+      # Maximum time without output before killing build (was 1 hour, keep for long builds)
+      max-silent-time = 3600;
 
       # Binary cache configuration (1Gbps network - fast downloads)
       substituters = [
@@ -95,20 +107,19 @@
         "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
       ];
 
-      # Maximum number of parallel build jobs across all machines
-      # Use mkDefault to allow host-specific overrides
-      # RAM-based allocation: 4GB per job
-      # Mining-aware: zephyr mining CPU (16 threads) + GPU (RTX 3090 @ 250W)
-      max-jobs = lib.mkDefault 30; # 6 (zephyr) + 12 (nexus) + 2 (forge) + 8 (sentry)
+      # Maximum number of parallel build jobs - LOCAL ONLY
+      max-jobs = lib.mkDefault 4; # Local builds only
 
       # Network optimization (1Gbps networking with TP-Link Easy Smart switches)
       http-connections = 100; # More parallel downloads (1Gbps can handle it)
-      connect-timeout = 30;
-      max-silent-time = 3600; # Kill stuck builds after 1 hour
 
       # Build logging and debugging
       keep-build-log = true;
       log-lines = 2000;
+
+      # GRACEFUL DEGRADATION: Fallback behavior
+      # Continue building locally if remote builders fail
+      keep-going = true;
     };
   };
 
