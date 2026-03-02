@@ -1,0 +1,170 @@
+# LSP and Development Tools Module
+# Language servers and development tools for multiple languages
+{pkgs, ...}: {
+  # Install LSP servers and development tools
+  environment.systemPackages = with pkgs; [
+    # ============================================================================
+    # LANGUAGE SERVERS & LSP
+    # ============================================================================
+
+    # Rust
+    rust-analyzer
+    taplo # TOML
+
+    # Python
+    python312Packages.python-lsp-server
+    python312Packages.black
+    python312Packages.isort
+    python312Packages.mypy
+    python312Packages.ruff
+
+    # JavaScript/TypeScript
+    nodePackages.typescript
+    nodePackages.typescript-language-server
+    nodePackages.vscode-langservers-extracted
+    nodePackages."@tailwindcss/language-server"
+    eslint
+    prettier
+
+    # Nix
+    nil # Nix language server
+    nixd
+    nixfmt
+    nixpkgs-fmt
+
+    # Lua
+    lua-language-server
+    stylua
+
+    # YAML
+    nodePackages.yaml-language-server
+    yamllint
+
+    # JSON
+    nodePackages.vscode-json-languageserver
+
+    # Markdown
+    markdownlint-cli
+
+    # Bash/Shell
+    nodePackages.bash-language-server
+    shellcheck
+    shfmt
+
+    # SQL
+    sqls
+
+    # C/C++
+    clang-tools
+    cmake
+    ninja
+    gnumake
+
+    # Go
+    gopls
+    go-tools
+    gotools
+
+    # Terraform
+    terraform-ls
+    tflint
+
+    # Dockerfile
+    dockerfile-language-server
+    hadolint
+
+    # ============================================================================
+    # DEVELOPMENT TOOLS
+    # ============================================================================
+
+    # Version control
+    git
+    git-lfs
+    lazygit
+    gh
+
+    # Editing
+    neovim
+    helix
+
+    # Search & navigation
+    ripgrep
+    fzf
+    fd
+    tealdeer
+    zoxide
+
+    # Build tools
+    gnumake
+    cmake
+    meson
+    ninja
+
+    # Debugging
+    gdb
+    ltrace
+    strace
+
+    # Performance analysis
+    perf-tools
+    hyperfine
+
+    # Network tools
+    curl
+    wget
+    httpie
+    restic
+
+    # Database tools
+    sqlite
+    postgresql
+
+    # Container tools
+    dive # Docker image explorer
+    lazydocker # Docker/Podman TUI
+
+    # Documentation
+    man-pages
+
+    # Misc tools
+    jq
+    yq
+    delta
+    bat
+    eza
+    duf
+    dust
+  ];
+
+  # ============================================================================
+  # DEVELOPMENT ENVIRONMENT VARIABLES
+  # ============================================================================
+
+  environment.sessionVariables = {
+    # Editor
+    EDITOR = "nvim";
+    VISUAL = "nvim";
+
+    # Language-specific overrides
+    PYTHONPATH = "/var/lib/ai/python";
+
+    # Go
+    GOPATH = "$HOME/go";
+    GOBIN = "$GOPATH/bin";
+
+    # Rust
+    CARGO_HOME = "$HOME/.cargo";
+  };
+
+  # ============================================================================
+  # GIT CONFIGURATION
+  # ============================================================================
+
+  programs.git = {
+    enable = true;
+    config = {
+      # Common git settings
+      init.defaultBranch = "main";
+    };
+  };
+}

@@ -18,5 +18,10 @@
     ./gaming/gaming.nix
     ./gaming/gaming-hdr.nix
     ./gaming/scopebuddy.nix
+
+    # Development
+    ./development/tools.nix
+    ./development/lsp.nix
+    ./development/programming-languages.nix
   ];
 }
