@@ -119,7 +119,7 @@ in {
     documentation.doc.enable = true;
 
     # ============================================================================
-    VERIFICATION COMMANDS
+    # VERIFICATION COMMANDS
     # ============================================================================
     # After rebuild, test GStreamer with these commands:
     #

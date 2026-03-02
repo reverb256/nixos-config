@@ -408,13 +408,7 @@ in {
         libjpeg
         libtiff
       ];
-      hardware.graphics.extraPackages32 = with pkgs.pkgsi686Linux; [
-        freetype
-        fontconfig
-        libpng
-        libjpeg
-        libtiff
-      ];
+      # NOTE: extraPackages32 removed - breaks Wayland on multi-NVIDIA
     })
   ];
 }
