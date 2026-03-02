@@ -199,7 +199,7 @@
       # NixOS aliases
       update = "sudo nixos-rebuild switch --flake /etc/nixos";
       build = "sudo nixos-rebuild build --flake /etc/nixos";
-      test = "sudo nixos-rebuild test --flake /etc/nixos";
+      try = "sudo nixos-rebuild test --flake /etc/nixos";
 
       # Git aliases
       g = "git";
