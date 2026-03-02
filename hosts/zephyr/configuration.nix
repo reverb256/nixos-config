@@ -12,6 +12,9 @@
 
     # Modules (all other modules)
     ../../modules/default.nix
+
+    # Multimedia modules
+    ../../modules/multimedia/gstreamer.nix
   ];
 
   # ============================================================================
@@ -80,6 +83,11 @@
   # MINING - GPU Mining (RTX 3090)
   # ============================================================================
   services.mining.enable = true;
+
+  # ============================================================================
+  # MULTIMEDIA - GStreamer support for Qt/KDE applications
+  # ============================================================================
+  services.multimedia.gstreamer.enable = true;
 
   # NVIDIA GPU configuration for RTX 3090 only
   services.mining.lolminer.nvidia = {
@@ -194,6 +202,17 @@
       inputs.nixcord.homeModules.nixcord
     ];
     home.stateVersion = "26.05";
+
+    # Mask Vesktop XDG autostart file to prevent SIGILL crash
+    # The XDG autostart uses the wrong Electron binary (unwrapped vs wrapped)
+    # We use systemd user service instead for proper autostart
+    xdg.configFile."autostart/vesktop.desktop".text = ''
+      [Desktop Entry]
+      Hidden=true
+      X-GNOME-Autostart-enabled=false
+      X-KDE-autostart-after-panel=false
+    '';
+
     programs.zen-browser = {
       enable = true;
       suppressXdgMigrationWarning = true;
@@ -280,12 +299,14 @@
     systemd.user.services.vesktop-autostart = {
       Unit = {
         Description = "Vesktop autostart";
-        After = [ "graphical-session-pre.target" ];
+        After = [ "graphical-session-pre.target" "fix-vesktop-symlink.service" ];
         PartOf = [ "graphical-session.target" ];
+        Wants = [ "fix-vesktop-symlink.service" ];
+        XDG-Autostart = "true";  # Enable as XDG autostart
       };
       Service = {
         Type = "simple";
-        ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-features=UseOzonePlatform --ozone-platform-hint=auto";
+        ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-speech-dispatcher --enable-features=UseOzonePlatform --ozone-platform-hint=auto --start-minimized";
         Restart = "on-failure";
         RestartSec = 5;
       };
@@ -301,6 +322,8 @@
       Unit = {
         Description = "Remove nixcord's read-only vesktop symlink";
         After = [ "home-manager-activate.service" ];
+        Before = [ "vesktop-autostart.service" ];
+        Requires = [ "home-manager-activate.service" ];
       };
       Service = {
         Type = "oneshot";
