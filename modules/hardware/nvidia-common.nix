@@ -3,9 +3,10 @@
 { config, lib, pkgs, ... }:
 {
   # Enable OpenGL
+  # NOTE: enable32Bit is disabled because it breaks Wayland on multi-GPU NVIDIA systems
+  # KWin cannot open DRM devices when 32-bit OpenGL is enabled with multiple GPUs
   hardware.graphics = {
     enable = true;
-    enable32Bit = true;
   };
 
   # Load nvidia driver for Xorg and Wayland
