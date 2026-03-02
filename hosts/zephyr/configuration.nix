@@ -8,7 +8,7 @@
 
     # Hardware modules (NVIDIA GPU)
     ../../modules/hardware/nvidia-common.nix
-    ../../modules/hardware/nvidia-wayland.nix
+    #../../modules/hardware/nvidia-wayland.nix  # DISABLED: Causes KWin EGL crashes with multi-GPU
 
     # Modules (all other modules)
     ../../modules/default.nix
