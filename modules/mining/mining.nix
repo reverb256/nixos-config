@@ -156,6 +156,10 @@ in {
       "vm.nr_hugepages" = 1280;
     };
 
+    # Load MSR module for CPU mining performance
+    # Required by xmrig for CPU MSR access (RandomX optimization)
+    boot.kernelModules = [ "msr" ];
+
     environment.systemPackages = [pkgs.lolminer];
 
     systemd.tmpfiles.rules = [
@@ -173,8 +177,9 @@ in {
           enabled = true;
           host = "127.0.0.1";
           port = 8081;
-          "access-token-file" = cfg.xmrig.httpTokenFile;
-          restricted = true;
+          # Note: restricted disabled to allow local mining exporter access
+          # For production, set restricted=true and configure token
+          restricted = false;
         };
         pools = [
           {
@@ -294,8 +299,10 @@ in {
             ReadOnlyPaths = "/";
             ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
             LimitMEMLOCK = "4G";
-            CapabilityBoundingSet = "";
-            AmbientCapabilities = "";
+            # Allow MSR access for CPU performance optimization
+            # CAP_SYS_RAWIO required for Model-Specific Register access
+            CapabilityBoundingSet = "CAP_SYS_RAWIO";
+            AmbientCapabilities = "CAP_SYS_RAWIO";
           };
         };
       };
