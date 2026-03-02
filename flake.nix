@@ -24,24 +24,35 @@
       url = "github:ryoppippi/claude-code-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-  };
-
-  outputs = { self, nixpkgs, home-manager, zen-browser, firefox-addons, aagl, claude-native }: {
-    packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
-    
-    overlays.default = import ./overlay.nix;
-    
-    nixosConfigurations.zephyr = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      specialArgs = { 
-        inputs = { inherit nixpkgs home-manager zen-browser firefox-addons aagl claude-native self; }; 
-      };
-      modules = [ 
-        ./configuration.nix 
-        home-manager.nixosModules.home-manager 
-        aagl.nixosModules.default
-        { nixpkgs.overlays = [ self.overlays.default ]; }
-      ];
+    nixpkgs-xr = {
+      url = "github:nix-community/nixpkgs-xr";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    scopebuddy = {
+      url = "github:OpenGamingCollective/ScopeBuddy";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
+
+  outputs = { self, nixpkgs, home-manager, zen-browser, firefox-addons, aagl, claude-native, nixpkgs-xr, scopebuddy }:
+    {
+      packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
+
+      overlays.default = import ./overlay.nix;
+
+      nixosConfigurations.zephyr = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = {
+          inputs = {
+            inherit nixpkgs home-manager zen-browser firefox-addons aagl claude-native nixpkgs-xr scopebuddy self;
+          };
+        };
+        modules = [
+          ./hosts/zephyr/configuration.nix
+          home-manager.nixosModules.home-manager
+          aagl.nixosModules.default
+          {nixpkgs.overlays = [ self.overlays.default ];}
+        ];
+      };
+    };
 }
