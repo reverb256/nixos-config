@@ -88,8 +88,10 @@ in {
     environment.sessionVariables = {
       QT_MEDIA_BACKEND = "gstreamer";
 
-      # Help Qt find GStreamer plugins
-      GST_PLUGIN_SYSTEM_PATH = "${pkgs.gst_all_1.gstreamer}/lib/gstreamer-1.0";
+      # Help Qt find GStreamer plugins at runtime
+      # Note: Use /run/current-system/sw path for runtime discovery
+      GST_PLUGIN_PATH = "/run/current-system/sw/lib/gstreamer-1.0";
+      GST_PLUGIN_SYSTEM_PATH = "/run/current-system/sw/lib/gstreamer-1.0";
 
       # Enable GStreamer debug logging (useful for troubleshooting)
       # Uncomment to debug:
