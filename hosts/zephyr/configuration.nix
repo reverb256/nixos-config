@@ -81,11 +81,11 @@
   # ============================================================================
   services.mining.enable = true;
 
-  # NVIDIA GPU configuration for dual GPU setup
+  # NVIDIA GPU configuration for RTX 3090 only
   services.mining.lolminer.nvidia = {
     enable = true;
-    devices = "0,1";  # Both GPUs: RTX 3060 Ti (0) and RTX 3090 (1)
-    powerLimit = 250;  # Default power limit (overridden by per-GPU services below)
+    devices = "1";  # RTX 3090 only (GPU 1) - 3060 Ti disabled for gaming
+    powerLimit = 250;  # Power limit for RTX 3090 (250W recommended for efficiency)
     apiPort = 4068;
   };
 
