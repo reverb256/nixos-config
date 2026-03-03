@@ -84,8 +84,10 @@ in {
     # ============================================================================
     # ENVIRONMENT CONFIGURATION
     # ============================================================================
-    # Ensure Qt Multimedia uses GStreamer backend
-    environment.sessionVariables = {
+    # Ensure Qt Multimedia and GStreamer can find plugins everywhere
+    # Using environment.variables (global) instead of sessionVariables
+    # to ensure availability in all contexts: shells, GUI apps, systemd services, etc.
+    environment.variables = {
       QT_MEDIA_BACKEND = "gstreamer";
 
       # Help Qt find GStreamer plugins at runtime
