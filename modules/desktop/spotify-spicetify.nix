@@ -250,6 +250,11 @@ in {
       };
     };
 
-    # TODO: Add implementation in next tasks
+    environment.systemPackages = with pkgs; [
+      (writeShellScriptBin "spotify-spicetify" ''
+        #!${pkgs.bash}/bin/bash
+        ${patchManagerScript} "$@"
+      '')
+    ];
   };
 }
