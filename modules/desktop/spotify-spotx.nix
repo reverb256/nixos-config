@@ -99,7 +99,7 @@ let
         if curl -fsSL "$url" -o "$output"; then return 0; fi
         retries=$((retries + 1))
         if [ $retries -lt $MAX_RETRIES ]; then
-          warn "Download failed (attempt $retries/$MAX_RETRIES), retrying in ${RETRY_DELAY}s..."
+          warn "Download failed (attempt $retries/$MAX_RETRIES), retrying in $RETRY_DELAY s..."
           sleep $RETRY_DELAY
         fi
       done
@@ -226,10 +226,5 @@ in {
         ${patchManagerScript} "$@"
       '')
     ];
-  };
-
-  meta = {
-    maintainers = with lib.maintainers; [ ];
-    doc = ./README.md;
   };
 }

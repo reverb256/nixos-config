@@ -19,6 +19,9 @@
 
     # Multimedia modules
     ../../modules/multimedia/gstreamer.nix
+
+    # Desktop modules
+    ../../modules/desktop/spotify-spotx.nix
   ];
 
   # ============================================================================
@@ -92,6 +95,9 @@
   # MULTIMEDIA - GStreamer support for Qt/KDE applications
   # ============================================================================
   services.multimedia.gstreamer.enable = true;
+
+  # Spotify with SpotX patch
+  services.spotify-spotx.enable = true;
 
   # ============================================================================
   # FLATPAK - Flatpak support with Discover and Flathub
