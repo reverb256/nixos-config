@@ -20,6 +20,10 @@
       url = "github:ezKEa/aagl-gtk-on-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     claude-native = {
       url = "github:ryoppippi/claude-code-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -37,7 +41,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, zen-browser, firefox-addons, aagl, claude-native, nixpkgs-xr, scopebuddy, nixcord }:
+  outputs = { self, nixpkgs, home-manager, zen-browser, firefox-addons, aagl, nur, claude-native, nixpkgs-xr, scopebuddy, nixcord }:
     {
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
 
@@ -47,7 +51,7 @@
         system = "x86_64-linux";
         specialArgs = {
           inputs = {
-            inherit nixpkgs home-manager zen-browser firefox-addons aagl claude-native nixpkgs-xr scopebuddy nixcord self;
+            inherit nixpkgs home-manager zen-browser firefox-addons aagl nur claude-native nixpkgs-xr scopebuddy nixcord self;
           };
         };
         modules = [
