@@ -39,9 +39,13 @@
     nixcord = {
       url = "github:FlameFlag/nixcord";
     };
+    spicetify-nix = {
+      url = "github:Gerg-L/spicetify-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, zen-browser, firefox-addons, aagl, nur, claude-native, nixpkgs-xr, scopebuddy, nixcord }:
+  outputs = { self, nixpkgs, home-manager, spicetify-nix, zen-browser, firefox-addons, aagl, nur, claude-native, nixpkgs-xr, scopebuddy, nixcord }:
     {
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
 
@@ -51,7 +55,7 @@
         system = "x86_64-linux";
         specialArgs = {
           inputs = {
-            inherit nixpkgs home-manager zen-browser firefox-addons aagl nur claude-native nixpkgs-xr scopebuddy nixcord self;
+            inherit nixpkgs home-manager spicetify-nix zen-browser firefox-addons aagl nur claude-native nixpkgs-xr scopebuddy nixcord self;
           };
         };
         modules = [
