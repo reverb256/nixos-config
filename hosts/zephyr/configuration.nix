@@ -695,7 +695,7 @@
           discord.enable = false;
           vesktop.enable = true;
 
-          # Plugins
+          # Base Vencord/Vesktop settings (plugins, themes, etc.)
           vesktopConfig = {
             plugins = {
               XSOverlay = {
@@ -727,50 +727,45 @@
               };
             };
           };
+
+          # Extra Vesktop settings that aren't exposed as nixcord options
+          # These are merged into the generated settings.json
+          extraConfig = {
+            # Tray icon settings - required for system tray functionality
+            minimizeToTray = true;
+            openHidden = true;
+            trayIcon = true;
+            tray = true;
+            autostart = true;
+          };
         };
 
-        # Autostart Vesktop on login
+        # Autostart Vesktop on login with X11 backend for tray icon support
+        # Note: nixcord manages plugins and settings declaratively - no additional service needed
         systemd.user.services.vesktop-autostart = {
           Unit = {
             Description = "Vesktop autostart";
-            After = [
-              "graphical-session-pre.target"
-              "fix-vesktop-symlink.service"
-            ];
+            After = [ "graphical-session-pre.target" ];
             PartOf = [ "graphical-session.target" ];
-            Wants = [ "fix-vesktop-symlink.service" ];
             XDG-Autostart = "true"; # Enable as XDG autostart
           };
           Service = {
             Type = "simple";
-            ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-speech-dispatcher --enable-features=UseOzonePlatform --ozone-platform-hint=auto --start-minimized";
+            Environment = [
+              # Force X11 backend for StatusNotifierItem/tray icon support
+              # This is required for KDE Plasma 6 on Wayland
+              "XDG_CURRENT_DESKTOP=KDE"
+              "ELECTRON_OZONE_PLATFORM_HINT=x11"
+            ];
+            # Use XWayland for proper tray icon support on Wayland
+            # --enable-features=UseOzonePlatform --ozone-platform-hint=x11 enables StatusNotifierItem
+            # --start-minimized works because tray icon is configured via nixcord
+            ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-speech-dispatcher --enable-features=UseOzonePlatform --ozone-platform-hint=x11 --start-minimized";
             Restart = "on-failure";
             RestartSec = 5;
           };
           Install = {
             WantedBy = [ "graphical-session.target" ];
-          };
-        };
-
-        # Fix nixcord's read-only symlink issue
-        # Vesktop needs to write to settings/settings.json but nixcord creates
-        # a read-only symlink to Nix store. This service removes it after activation.
-        systemd.user.services.fix-vesktop-symlink = {
-          Unit = {
-            Description = "Remove nixcord's read-only vesktop symlink";
-            After = [ "home-manager-activate.service" ];
-            Before = [ "vesktop-autostart.service" ];
-            Requires = [ "home-manager-activate.service" ];
-          };
-          Service = {
-            Type = "oneshot";
-            ExecStart = "${pkgs.writeShellScript "fix-vesktop-symlink" ''
-              # Remove the problematic symlink if it exists
-              if [ -L "$HOME/.config/vesktop/settings/settings.json" ]; then
-                rm "$HOME/.config/vesktop/settings/settings.json"
-                echo "Removed nixcord symlink for vesktop settings.json"
-              fi
-            ''}";
           };
         };
       };
