@@ -225,6 +225,17 @@ in {
       };
     };
 
+    systemd.timers.spotify-spicetify = mkIf cfg.autoApply {
+      description = "Spotify Spicetify Auto-Theme Timer";
+      wantedBy = [ "timers.target" ];
+      partOf = [ "spotify-spicetify.service" ];
+      timerConfig = {
+        OnCalendar = cfg.checkInterval;
+        Unit = "spotify-spicetify.service";
+        Persistent = true;
+      };
+    };
+
     # TODO: Add implementation in next tasks
   };
 }
