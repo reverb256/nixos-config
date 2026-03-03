@@ -84,6 +84,11 @@ in {
   };
 
   config = mkIf cfg.enable {
+    systemd.tmpfiles.rules = [
+      "d ${stateDir} 0755 root root -"
+      "d ${stateDir}/backups 0755 root root -"
+    ];
+
     # TODO: Add implementation in next tasks
   };
 }
