@@ -58,7 +58,7 @@
           ./hosts/zephyr/configuration.nix
           home-manager.nixosModules.home-manager
           aagl.nixosModules.default
-          nur.nixosModules.nur
+          nur.modules.nixos.default
           {nixpkgs.overlays = [ self.overlays.default ];}
         ];
       };
