@@ -8,74 +8,66 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.gpu-exporters;
+  inherit (lib) mkEnableOption mkOption types mkIf;
 
-  # Host GPU configuration from network-constants
-  hosts = {
-    zephyr = {
-      nvidia = true;
-      amd = false;
-    };
-    nexus = {
-      nvidia = true;
-      amd = false;
-    };
-    forge = {
-      nvidia = true;
-      amd = true;
-    };
-    sentry = {
-      nvidia = false;
-      amd = true;
-    };
-  };
-
-  currentHost = config.networking.hostName;
-  hostGpus =
-    hosts.${
-      currentHost
-    } or {
-      nvidia = false;
-      amd = false;
-    };
 in {
   options.services.gpu-exporters = {
-    enable = lib.mkEnableOption "GPU metrics exporters for Prometheus";
+    enable = mkEnableOption "GPU metrics exporters for Prometheus";
 
-    nvidiaPort = lib.mkOption {
-      type = lib.types.port;
-      default = 9400;
-      description = "Port for NVIDIA GPU exporter";
+    # NVIDIA GPU configuration
+    nvidia = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable NVIDIA GPU exporter";
+      };
+
+      port = mkOption {
+        type = types.port;
+        default = 9400;
+        description = "Port for NVIDIA GPU exporter";
+      };
     };
 
-    amdPort = lib.mkOption {
-      type = lib.types.port;
-      default = 9104;
-      description = "Port for AMD GPU exporter";
+    # AMD GPU configuration
+    amd = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable AMD GPU exporter";
+      };
+
+      port = mkOption {
+        type = types.port;
+        default = 9104;
+        description = "Port for AMD GPU exporter (via node-exporter textfile collector)";
+      };
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     # ============================================================================
-    # NVIDIA GPU EXPORTER (zephyr, nexus, forge)
+    # NVIDIA GPU EXPORTER
     # ============================================================================
     # Disable the built-in exporter that has duplicate flag issues
-    services.prometheus.exporters.nvidia-gpu.enable = lib.mkIf hostGpus.nvidia false;
+    services.prometheus.exporters.nvidia-gpu.enable = mkIf cfg.nvidia.enable false;
 
     # Use custom service instead of prometheus.exporters.nvidia-gpu to avoid
     # duplicate nvidia-smi-command flag issues when multiple NVIDIA packages exist
-    systemd.services.prometheus-nvidia-gpu-exporter = lib.mkIf hostGpus.nvidia {
+    systemd.services.prometheus-nvidia-gpu-exporter = mkIf cfg.nvidia.enable {
       description = "Prometheus NVIDIA GPU Metrics Exporter";
-      wantedBy = ["multi-user.target"];
-      after = ["network.target"];
+      wantedBy = [ "multi-user.target" ];
+      after = [ "network.target" ];
 
       serviceConfig = {
         Type = "simple";
         User = "nvidia-gpu-exporter";
         Group = "nvidia-gpu-exporter";
         DynamicUser = true;
-        ExecStart = "${pkgs.prometheus-nvidia-gpu-exporter}/bin/nvidia_gpu_exporter --web.listen-address 127.0.0.1:${toString cfg.nvidiaPort} --nvidia-smi-command ${config.hardware.nvidia.package.bin}/bin/nvidia-smi";
+        ExecStart = "${pkgs.prometheus-nvidia-gpu-exporter}/bin/nvidia_gpu_exporter --web.listen-address 127.0.0.1:${toString cfg.nvidia.port} --nvidia-smi-command ${config.hardware.nvidia.package.bin}/bin/nvidia-smi";
 
         Restart = "always";
         RestartSec = "10s";
@@ -113,20 +105,20 @@ in {
     };
 
     # Create user/group for the exporter (matches upstream module)
-    users.users.nvidia-gpu-exporter = lib.mkIf hostGpus.nvidia {
+    users.users.nvidia-gpu-exporter = mkIf cfg.nvidia.enable {
       isSystemUser = true;
       group = "nvidia-gpu-exporter";
     };
-    users.groups.nvidia-gpu-exporter = lib.mkIf hostGpus.nvidia {};
+    users.groups.nvidia-gpu-exporter = mkIf cfg.nvidia.enable { };
 
     # ============================================================================
-    # AMD GPU EXPORTER (forge, sentry)
+    # AMD GPU EXPORTER
     # ============================================================================
     # Use textfile collector with a script that polls rocm-smi
-    systemd.services.prometheus-amdgpu-exporter = lib.mkIf hostGpus.amd {
+    systemd.services.prometheus-amdgpu-exporter = mkIf cfg.amd.enable {
       description = "Prometheus AMD GPU Metrics Exporter";
-      wantedBy = ["multi-user.target"];
-      after = ["network.target"];
+      wantedBy = [ "multi-user.target" ];
+      after = [ "network.target" ];
 
       serviceConfig = {
         Type = "simple";
@@ -138,7 +130,7 @@ in {
           "PATH=/run/current-system/sw/bin:/run/wrappers/bin"
         ];
         # Add supplementary groups for GPU access
-        SupplementaryGroups = ["video" "render"];
+        SupplementaryGroups = [ "video" "render" ];
         # Allow access to GPU devices
         PrivateDevices = false;
         ExecStart = pkgs.writers.writeBash "amdgpu-exporter" ''
@@ -279,11 +271,11 @@ in {
       "d /var/lib/prometheus/node-exporter/textfile-collector 0775 node-exporter node-exporter -"
     ];
 
-    # Open firewall ports for NVIDIA exporter only (AMD uses node-exporter textfile)
+    # Open firewall ports for NVIDIA exporter (AMD uses node-exporter textfile)
     networking.firewall.interfaces."tailscale0".allowedTCPPorts =
-      lib.optional hostGpus.nvidia cfg.nvidiaPort;
+      lib.optional cfg.nvidia.enable cfg.nvidia.port;
 
     # Also open on main LAN interface for local prometheus scraping
-    networking.firewall.allowedTCPPorts = lib.optional hostGpus.nvidia cfg.nvidiaPort;
+    networking.firewall.allowedTCPPorts = lib.optional cfg.nvidia.enable cfg.nvidia.port;
   };
 }
