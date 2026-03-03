@@ -22,6 +22,7 @@
 
     # Desktop modules
     ../../modules/desktop/spotify-spotx.nix
+    ../../modules/desktop/spotify-spicetify.nix
   ];
 
   # ============================================================================
@@ -98,6 +99,14 @@
 
   # Spotify with SpotX patch
   services.spotify-spotx.enable = true;
+
+  # Spotify with Spicetify theming (requires SpotX)
+  services.spotify-spicetify = {
+    enable = true;
+    theme = "Dribbblish";
+    colorScheme = "nord-dark";
+    extensions = [ "adblock" "shuffle+" ];
+  };
 
   # ============================================================================
   # FLATPAK - Flatpak support with Discover and Flathub
