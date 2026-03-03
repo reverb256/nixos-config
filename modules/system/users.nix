@@ -10,7 +10,6 @@
       kdePackages.kate
       gh  # GitHub CLI
       nodejs  # Node.js runtime
-      kdePackages.audiotube
     ];
   };
 

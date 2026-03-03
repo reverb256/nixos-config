@@ -1,0 +1,182 @@
+# AI Inference Monitor - Prometheus metrics exporter
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+
+let
+  cfg = config.services.ai-inference;
+  inherit (lib) mkIf mkDefault;
+
+  # Python environment for the monitor
+  pythonEnv = pkgs.python3.withPackages (ps: [
+    ps.prometheus-client
+    ps.httpx
+  ]);
+
+  # Monitor metrics exporter (standalone, in addition to gateway metrics)
+  monitorPackage = pkgs.writeTextFile {
+    name = "ai-inference-monitor.py";
+    text = ''
+      #!${pythonEnv}/bin/python3
+      """
+      AI Inference Monitor - Standalone metrics exporter
+      Provides detailed metrics beyond what the gateway exports
+      """
+      import os
+      import time
+      import json
+      import subprocess
+      from prometheus_client import (
+          Gauge, Counter, Histogram, CollectorRegistry, generate_latest,
+          CONTENT_TYPE_LATEST
+      )
+      from prometheus_client.exposition import start_http_server
+
+      # Configuration
+      BACKEND_URL = os.getenv("BACKEND_URL", "${cfg.backend.url}")
+      GATEWAY_URL = os.getenv("GATEWAY_URL", "http://${cfg.gateway.host}:${toString cfg.gateway.port}")
+      NVIDIA_SMI = os.getenv("NVIDIA_SMI", "${pkgs.linuxPackages.nvidia_x11}/bin/nvidia-smi")
+      GPU_IDS = os.getenv("GPU_IDS", "0,1").split(",")
+
+      # Metrics
+      gpu_vram_used = Gauge('ai_inference_gpu_vram_used_mb', 'VRAM used per GPU', ['gpu_id'])
+      gpu_vram_total = Gauge('ai_inference_gpu_vram_total_mb', 'Total VRAM per GPU', ['gpu_id'])
+      gpu_utilization = Gauge('ai_inference_gpu_utilization_percent', 'GPU utilization', ['gpu_id'])
+      gpu_temperature = Gauge('ai_inference_gpu_temperature_c', 'GPU temperature', ['gpu_id'])
+      gpu_power_draw = Gauge('ai_inference_gpu_power_draw_w', 'GPU power draw', ['gpu_id'])
+
+      backend_latency = Histogram('ai_inference_backend_latency_seconds', 'Backend request latency')
+      backend_healthy = Gauge('ai_inference_backend_healthy', 'Backend health status')
+
+      model_loaded = Gauge('ai_inference_model_loaded', 'Model loaded status', ['model'])
+
+      def get_gpu_metrics():
+          """Get GPU metrics from nvidia-smi"""
+          try:
+              result = subprocess.run([
+                  NVIDIA_SMI,
+                  '--query-gpu=index,memory.used,memory.total,utilization.gpu,temperature.gpu,power.draw',
+                  '--format=csv,noheader,nounits'
+              ], capture_output=True, text=True, timeout=5)
+
+              if result.returncode != 0:
+                  return
+
+              for line in result.stdout.strip().split('\n'):
+                  if not line:
+                      continue
+                  parts = [p.strip() for p in line.split(',')]
+                  if len(parts) < 6:
+                      continue
+
+                  gpu_id, mem_used, mem_total, util, temp, power = parts[:6]
+
+                  try:
+                      gpu_vram_used.labels(gpu_id=gpu_id).set(float(mem_used))
+                      gpu_vram_total.labels(gpu_id=gpu_id).set(float(mem_total))
+                      gpu_utilization.labels(gpu_id=gpu_id).set(float(util))
+                      gpu_temperature.labels(gpu_id=gpu_id).set(float(temp))
+                      gpu_power_draw.labels(gpu_id=gpu_id).set(float(power))
+                  except ValueError:
+                      continue
+
+          except Exception as e:
+              print(f"Error getting GPU metrics: {e}")
+
+      def check_backend_health():
+          """Check backend health"""
+          try:
+              import httpx
+              with httpx.Client(timeout=5.0) as client:
+                  resp = client.get(f"{BACKEND_URL}/v1/models")
+                  backend_healthy.set(1 if resp.status_code == 200 else 0)
+
+                  # Track loaded models
+                  if resp.status_code == 200:
+                      data = resp.json()
+                      models = data.get("data", [])
+                      # Reset all models
+                      for m in ["qwen3.5-2b", "qwen3.5-4b", "qwen3.5-35b-a3b"]:
+                          model_loaded.labels(model=m).set(0)
+                      # Set loaded models
+                      for m in models:
+                          model_id = m.get("id", "")
+                          # Map to known models
+                          for known in ["qwen3.5-2b", "qwen3.5-4b", "qwen3.5-35b-a3b"]:
+                              if known in model_id:
+                                  model_loaded.labels(model=known).set(1)
+
+          except Exception as e:
+              backend_healthy.set(0)
+              print(f"Error checking backend: {e}")
+
+      def main():
+          """Main monitoring loop"""
+          print(f"Starting AI Inference Monitor on port ${toString cfg.monitoring.port}")
+          print(f"Backend: {BACKEND_URL}")
+
+          # Start HTTP server
+          start_http_server(int(os.getenv("METRICS_PORT", "${toString cfg.monitoring.port}")))
+
+          # Initial collection
+          get_gpu_metrics()
+          check_backend_health()
+
+          # Collection loop
+          while True:
+              time.sleep(15)  # Collect every 15 seconds
+              get_gpu_metrics()
+              check_backend_health()
+
+      if __name__ == "__main__":
+          main()
+    '';
+    executable = true;
+  };
+
+in {
+  config = mkIf (cfg.enable && cfg.monitoring.enable) {
+    # Systemd service for the monitor
+    systemd.services.ai-inference-monitor = {
+      description = "AI Inference Metrics Monitor";
+      after = [ "network.target" ];
+      wantedBy = [ "multi-user.target" ];
+
+      environment = {
+        BACKEND_URL = cfg.backend.url;
+        GATEWAY_URL = "http://${cfg.gateway.host}:${toString cfg.gateway.port}";
+        METRICS_PORT = toString cfg.monitoring.port;
+        NVIDIA_SMI = "${pkgs.linuxPackages.nvidia_x11}/bin/nvidia-smi";
+      };
+
+      serviceConfig = {
+        ExecStart = monitorPackage;
+
+        Restart = "on-failure";
+        RestartSec = "10s";
+
+        # Security
+        User = "ai-inference";
+        Group = "ai-inference";
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+
+        # Capabilities
+        CapabilityBoundingSet = [ "" ];
+
+        # Logging
+        StandardOutput = "journal";
+        StandardError = "journal";
+        SyslogIdentifier = "ai-monitor";
+      };
+    };
+
+    # Grafana dashboard (optional - disabled for now)
+    # TODO: Fix Grafana dashboard provisioning option path
+  };
+}
