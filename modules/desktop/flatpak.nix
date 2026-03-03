@@ -102,6 +102,8 @@ in {
         ExecStart = "${pkgs.flatpak}/bin/flatpak update --assumeyes";
         User = "root";
       };
+      # Trigger SpotX patching after Flatpak updates
+      wantedBy = ["spotx-patch.service"];
     };
   };
 }
