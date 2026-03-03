@@ -4,13 +4,15 @@
   pkgs,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.services.mining;
   hostname = config.networking.hostName;
   defaultWallet = "krxXVNVMM7.${hostname}";
 
   # Helper to build lolMiner command arguments
-  mkLolminerArgs = deviceCfg:
+  mkLolminerArgs =
+    deviceCfg:
     concatStringsSep " " [
       "--algo ${cfg.lolminer.algorithm}"
       "--pool ${cfg.lolminer.pool}"
@@ -32,7 +34,10 @@ with lib; let
     ProtectSystem = "strict";
     ProtectHome = true;
     ReadOnlyPaths = "/";
-    ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
+    ReadWritePaths = [
+      "/var/lib/mining"
+      "/var/log/mining"
+    ];
     CapabilityBoundingSet = "CAP_SYS_NICE";
     AmbientCapabilities = "CAP_SYS_NICE";
   };
@@ -45,24 +50,8 @@ with lib; let
     nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
     echo "NVIDIA GPU power limit set successfully"
   '';
-
-  # System watchdog script - reboots if load stays high
-  nexusWatchdogScript = pkgs.writeShellScript "nexus-watchdog" ''
-    export PATH=/run/current-system/sw/bin:$PATH
-    while true; do
-      load=$(cat /proc/loadavg | awk "{print \$1}" | cut -d. -f1)
-      if [ "$load" -gt 20 ]; then
-        sleep 120
-        load2=$(cat /proc/loadavg | awk "{print \$1}" | cut -d. -f1)
-        if [ "$load2" -gt 20 ]; then
-          echo "High load persists, rebooting..."
-          /run/current-system/sw/bin/reboot
-        fi
-      fi
-      sleep 60
-    done
-  '';
-in {
+in
+{
   options.services.mining = {
     enable = mkEnableOption "Robust Mining Services";
     user = mkOption {
@@ -150,7 +139,7 @@ in {
       isSystemUser = true;
       group = "mining";
     };
-    users.groups.mining = {};
+    users.groups.mining = { };
 
     boot.kernel.sysctl = {
       "vm.nr_hugepages" = 1280;
@@ -160,7 +149,13 @@ in {
     # Required by xmrig for CPU MSR access (RandomX optimization)
     boot.kernelModules = [ "msr" ];
 
-    environment.systemPackages = [pkgs.lolminer];
+    # Set permissions on MSR devices for mining user
+    # Allows xmrig to access CPU MSRs for performance optimization
+    services.udev.extraRules = ''
+      KERNEL=="msr", MODE="0660", GROUP="mining"
+    '';
+
+    environment.systemPackages = [ pkgs.lolminer ];
 
     systemd.tmpfiles.rules = [
       "d /var/lib/mining 0750 ${cfg.user} mining - -"
@@ -215,23 +210,12 @@ in {
 
     systemd = {
       services = {
-        nexus-watchdog = {
-          description = "System Watchdog for Stability";
-          wantedBy = ["multi-user.target"];
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = nexusWatchdogScript;
-            Restart = "always";
-            RestartSec = "10s";
-          };
-        };
-
         # NVIDIA GPU power limit service (runs before lolminer)
         nvidia-gpu-power-limit = mkIf cfg.lolminer.nvidia.enable {
           description = "Set NVIDIA GPU Power Limit for Mining";
-          wantedBy = ["multi-user.target"];
-          before = ["lolminer-nvidia.service"];
-          requiredBy = ["lolminer-nvidia.service"];
+          wantedBy = [ "multi-user.target" ];
+          before = [ "lolminer-nvidia.service" ];
+          requiredBy = [ "lolminer-nvidia.service" ];
           serviceConfig = {
             Type = "oneshot";
             ExecStart = nvidiaGpuPowerLimitScript;
@@ -241,63 +225,72 @@ in {
 
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
-          wantedBy = ["multi-user.target"];
-          after = ["network.target" "nvidia-gpu-power-limit.service"];
-          requires = ["nvidia-gpu-power-limit.service"];
-          serviceConfig =
-            {
-              User = cfg.user;
-              Group = "mining";
-              Slice = "mining.slice";
-              ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.nvidia}";
-              Restart = "always";
-              RestartSec = "30s";
-              Environment = [
-                "GPU_MAX_HEAP_SIZE=100"
-                "GPU_MAX_ALLOC_PERCENT=100"
-              ];
-              LimitMEMLOCK = "4G";
-            }
-            // lolminerHardening;
-        };
-
-        lolminer-amd = mkIf cfg.lolminer.amd.enable {
-          description = "lolMiner AMD Mining Service";
-          wantedBy = ["multi-user.target"];
-          after = ["network.target" "amd-gpu-power-mgmt.service"];
-          serviceConfig =
-            {
-              User = cfg.user;
-              Group = "mining";
-              Slice = "mining.slice";
-              ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.amd}";
-              Restart = "always";
-              RestartSec = "30s";
-              LimitMEMLOCK = "8G";
-            }
-            // lolminerHardening;
-        };
-
-        xmrig = mkIf cfg.xmrig.enable {
-          description = "XMRig CPU Mining Service";
-          wantedBy = ["multi-user.target"];
-          after = ["network.target"];
+          wantedBy = [ "multi-user.target" ];
+          after = [
+            "network.target"
+            "nvidia-gpu-power-limit.service"
+          ];
+          requires = [ "nvidia-gpu-power-limit.service" ];
           serviceConfig = {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.xmrig}/bin/xmrig -c /etc/xmrig/config.json --randomx-1gb-pages";
+            ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.nvidia}";
             Restart = "always";
-            NoNewPrivileges = true;
+            RestartSec = "30s";
+            Environment = [
+              "GPU_MAX_HEAP_SIZE=100"
+              "GPU_MAX_ALLOC_PERCENT=100"
+            ];
+            LimitMEMLOCK = "4G";
+          }
+          // lolminerHardening;
+        };
+
+        lolminer-amd = mkIf cfg.lolminer.amd.enable {
+          description = "lolMiner AMD Mining Service";
+          wantedBy = [ "multi-user.target" ];
+          after = [
+            "network.target"
+            "amd-gpu-power-mgmt.service"
+          ];
+          serviceConfig = {
+            User = cfg.user;
+            Group = "mining";
+            Slice = "mining.slice";
+            ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.amd}";
+            Restart = "always";
+            RestartSec = "30s";
+            LimitMEMLOCK = "8G";
+          }
+          // lolminerHardening;
+        };
+
+        xmrig = mkIf cfg.xmrig.enable {
+          description = "XMRig CPU Mining Service";
+          wantedBy = [ "multi-user.target" ];
+          after = [ "network.target" ];
+          serviceConfig = {
+            User = cfg.user;
+            Group = "mining";
+            Slice = "mining.slice";
+            ExecStart = "${pkgs.xmrig}/bin/xmrig -c /etc/xmrig/config.json --randomx-1gb-pages --threads=${toString cfg.xmrig.threads}";
+            Restart = "always";
+            # NoNewPrivileges must be false to allow CAP_SYS_RAWIO for MSR access
+            NoNewPrivileges = false;
             PrivateTmp = true;
-            ProtectKernelTunables = true;
+            # ProtectKernelTunables must be off for MSR device access
+            ProtectKernelTunables = false;
             ProtectControlGroups = true;
             ProtectHostname = true;
             RestrictRealtime = true;
             ProtectSystem = "strict";
             ProtectHome = true;
             ReadOnlyPaths = "/";
-            ReadWritePaths = ["/var/lib/mining" "/var/log/mining"];
+            ReadWritePaths = [
+              "/var/lib/mining"
+              "/var/log/mining"
+            ];
             LimitMEMLOCK = "4G";
             # Allow MSR access for CPU performance optimization
             # CAP_SYS_RAWIO required for Model-Specific Register access

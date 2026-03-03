@@ -143,9 +143,6 @@ in {
     # 5. List all available plugins:
     #    gst-inspect-1.0 | grep -E "(videoconvert|audioconvert)"
     #
-    # 6. Run Audiotube and check for GStreamer errors:
-    #    audiotube 2>&1 | grep -i gstreamer
-    #
     # ============================================================================
   };
 }

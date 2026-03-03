@@ -16,7 +16,7 @@ let
     };
     tailscale.domain = "ts.krogh.dev";
   };
-  grafanaPasswordFile = "/var/lib/secrets/grafana-admin-password";
+  grafanaPasswordFile = "/var/lib/grafana/admin-password";
   dashboardsDir = "/var/lib/grafana/dashboards";
 
   # Helper function to create a panel
@@ -1866,8 +1866,10 @@ in
     systemd.services.grafana.after = [ "auto-secret-grafana-admin-password.service" ];
     systemd.services.grafana.requires = [ "auto-secret-grafana-admin-password.service" ];
 
-    # Allow grafana to read the password file
-    systemd.services.grafana.serviceConfig.ReadOnlyPaths = [ grafanaPasswordFile ];
+    # Bind mount secret into grafana's directory (avoids /var/lib/secrets traversal issues)
+    systemd.services.grafana.serviceConfig.BindPaths = [
+      "/var/lib/secrets/grafana-admin-password:/var/lib/grafana/admin-password"
+    ];
 
     services.grafana = {
       enable = true;
