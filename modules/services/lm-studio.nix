@@ -33,11 +33,10 @@ in {
     ];
 
     # NVIDIA GPU environment variables
-    # NOTE: CUDA_VISIBLE_DEVICES is NOT set to allow all GPUs to be used
-    environment.variables = {
-      __NV_PRIME_RENDER_OFFLOAD = "1";
-      __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-      VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
-    };
+    # LM Studio will automatically detect and use available CUDA GPUs
+    # environment.variables = {
+    #   __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+    #   VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+    # };
   };
 }
