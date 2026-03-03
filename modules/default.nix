@@ -12,6 +12,7 @@
     # Desktop environment
     ./desktop/plasma6.nix
     ./desktop/wayland-common.nix
+    ./desktop/flatpak.nix
 
     # Shell configuration
     ./shell/fish.nix
