@@ -72,9 +72,26 @@ let
         log "Backup created: $backup_name"
       fi
 
-      # Apply Spicetify via spicetify-nix
+      # Find user with Spotify installation
+      local spotify_user=""
+      for user_home in /home/*; do
+        local user=$(basename "$user_home")
+        if [ -d "$user_home/.var/app/com.spotify.Client" ]; then
+          spotify_user="$user"
+          break
+        fi
+      done
+
+      if [ -z "$spotify_user" ]; then
+        error "Could not find user with Spotify installed"
+        return 1
+      fi
+
+      log "Running Spicetify as user: $spotify_user"
+
+      # Apply Spicetify as the Spotify user (backup + apply)
       log "Applying Spicetify theme and extensions..."
-      if ${pkgs.spicetify-cli}/bin/spicetify apply; then
+      if su - "$spotify_user" -c "${pkgs.spicetify-cli}/bin/spicetify backup apply"; then
         echo "$current_version" > "$VERSION_MARKER"
         log "Spicetify applied successfully!"
         return 0
