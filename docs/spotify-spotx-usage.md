@@ -8,6 +8,21 @@
 
 This module provides automated SpotX-Bash patching for Spotify Flatpak. SpotX removes ads, unlocks premium features, and enables experimental features in the Spotify desktop client.
 
+## Spicetify Integration
+
+This module works seamlessly with the `services.spotify-spicetify` module for complete Spotify customization:
+
+- **SpotX** (this module): Removes ads, unlocks premium features
+- **Spicetify**: Applies custom themes, extensions, and UI enhancements
+
+Both modules can run side-by-side:
+```nix
+services.spotify-spotx.enable = true;    # Ad-blocking
+services.spotify-spicetify.enable = true; # Theming
+```
+
+See [Spotify + Spicetify Usage Guide](./spotify-spicetify-usage.md) for complete theming documentation.
+
 ## What's Automated
 
 - ✅ Initial Spotify Flatpak installation and patching
