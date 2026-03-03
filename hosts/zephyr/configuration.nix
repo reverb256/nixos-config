@@ -92,6 +92,14 @@
   # ============================================================================
   services.multimedia.gstreamer.enable = true;
 
+  # ============================================================================
+  # FLATPAK - Flatpak support with Discover and Flathub
+  # ============================================================================
+  services.flatpak-kde = {
+    enable = true;
+    autoUpdate = true;
+  };
+
   # NVIDIA GPU configuration for RTX 3090 only
   services.mining.lolminer.nvidia = {
     enable = true;
@@ -194,6 +202,9 @@
 
     # Desktop
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
+
+    # Music
+    spotube
   ];
 
   # ============================================================================
