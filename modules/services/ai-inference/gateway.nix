@@ -18,6 +18,7 @@ let
     ps.pyjwt
     ps.cryptography
     ps.python-multipart
+    ps.uvloop
   ]);
 
   # Gateway application
@@ -182,9 +183,9 @@ let
                   ).inc()
                   raise HTTPException(status_code=403, detail="Authentication failed")
 
-              # Get request body
+              # Get request body - pass through model as specified by client
               body = await request.json()
-              model = body.get("model", "${cfg.routing.defaultModel}")
+              model = body.get("model", "default")
               stream = body.get("stream", False)
 
               # Route to backend
@@ -310,12 +311,17 @@ let
     executable = true;
   };
 
-in {
+in
+{
   config = mkIf (cfg.enable && cfg.gateway.enable) {
     # Systemd service for the gateway
     systemd.services.ai-inference-gateway = {
       description = "AI Inference API Gateway";
-      after = [ "network.target" "network-online.target" "lm-studio.service" ];
+      after = [
+        "network.target"
+        "network-online.target"
+        "lm-studio.service"
+      ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
 
@@ -328,12 +334,11 @@ in {
       };
 
       serviceConfig = {
-        ExecStart = "${gatewayEnv}/bin/uvicorn ${gatewayApp}:app "
+        ExecStart =
+          "${gatewayEnv}/bin/uvicorn ${gatewayApp}:app "
           + "--host ${cfg.gateway.host} "
           + "--port ${toString cfg.gateway.port} "
           + "--workers ${toString cfg.gateway.workers} "
-          + "--loop uvloop "
-          + "--http httptools "
           + "--log-level info";
 
         ExecReload = "/bin/kill -HUP $MAINPID";
@@ -348,7 +353,7 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-       ReadWritePaths = [ "/tmp" ];
+        ReadWritePaths = [ "/tmp" ];
 
         # Resource limits
         MemoryLimit = "2G";
