@@ -7,20 +7,33 @@
 }:
 {
   imports = [
-    # Hardware configuration
+    # ========================================================================
+    # BASE MODULES
+    # ========================================================================
+
+    # Hardware configuration (generated)
     ./hardware-configuration.nix
 
     # Hardware modules (NVIDIA GPU)
     ../../modules/hardware/nvidia-common.nix
     #../../modules/hardware/nvidia-wayland.nix  # DISABLED: Causes KWin EGL crashes with multi-GPU
 
-    # Modules (all other modules)
+    # Core module aggregator - imports all modules in modules/default.nix
+    # This includes: system, desktop, shell, gaming, development, and most services
     ../../modules/default.nix
+
+    # ========================================================================
+    # OPTIONAL MODULES
+    # These are NOT in default.nix and must be explicitly imported:
+    # - multimedia/gstreamer.nix (optional codec support)
+    # - desktop/spotify-*.nix (Spotify customization - optional per-host)
+    # ========================================================================
 
     # Multimedia modules
     ../../modules/multimedia/gstreamer.nix
 
-    # Desktop modules
+    # Desktop modules (Spotify customization)
+    # Note: These modules are host-specific because not all hosts may want Spotify customization
     ../../modules/desktop/spotify-spotx.nix
     ../../modules/desktop/spotify-spicetify.nix
   ];
@@ -86,6 +99,23 @@
   # ============================================================================
   programs.lm-studio.enable = true;
   programs.stability-matrix.enable = true;
+
+  # ============================================================================
+  # AI INFERENCE SERVICE - vLLM for RTX 3090
+  # ============================================================================
+  services.vllm = {
+    enable = true;
+    model = "Qwen/Qwen3.5-7B-Instruct";
+    port = 8000;
+    host = "127.0.0.1";
+    tensorParallelSize = 1;
+    gpuMemoryUtilization = 0.90;
+    maxModelLen = 32768;
+    args = [
+      "--enable-prefix-caching"
+      "--disable-log-requests"
+    ];
+  };
 
   # ============================================================================
   # AI INFERENCE SERVICE - Gateway with authentication and metrics
@@ -192,7 +222,11 @@
   services.monitoring.node-exporter.enable = true;
 
   # GPU metrics exporter (NVIDIA RTX 3090)
-  services.gpu-exporters.enable = true;
+  services.gpu-exporters = {
+    enable = true;
+    nvidia.enable = true;  # RTX 3090
+    amd.enable = false;
+  };
 
   # Mining metrics exporter (XMRig + lolMiner)
   services.mining-exporter.enable = true;
@@ -774,21 +808,37 @@
   # ============================================================================
   # FIREWALL
   # ============================================================================
+  # Note: Many ports are declared here for clarity. Some modules also declare
+  # their own firewall ports (e.g., ai-inference, gpu-exporters).
+  #
+  # Port Reference:
+  # - 9757/9758/9759/9947: WiVRn (VR streaming for Quest Pro)
+  # - 18789/18790: Steam Remote Play
+  # - 19898: Moonlight (NVIDIA GameStream)
+  # - 27031/27036: Steam network ports
+  # - 5353: mDNS (service discovery)
+  # - 8000: vLLM inference server (also declared in vllm module)
+  #
+  # AI Inference ports (auto-configured by modules):
+  # - 8080: AI inference gateway (ai-inference module)
+  # - 9190: AI inference metrics (ai-inference module)
+  # - 9400: NVIDIA GPU exporter (gpu-exporters module)
   networking.firewall = {
     allowedTCPPorts = [
-      9757 # WiVRn
-      18789
-      18790
-      19898
+      9757   # WiVRn main port
+      18789  # Steam Remote Play
+      18790  # Steam Remote Play (secondary)
+      19898  # Moonlight/GameStream
+      8000   # vLLM inference server
     ];
     allowedUDPPorts = [
-      9757 # WiVRn
-      9758
-      9759
-      27031
-      27036
-      5353 # mDNS
-      9947 # WiVRn
+      9757   # WiVRn
+      9758   # WiVRn
+      9759   # WiVRn
+      27031  # Steam UDP
+      27036  # Steam UDP
+      5353   # mDNS
+      9947   # WiVRn
     ];
     interfaces."tailscale0".allowedTCPPorts = [
       18789

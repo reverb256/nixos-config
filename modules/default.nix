@@ -1,6 +1,7 @@
 # Default module imports for all submodules
 # Modules are organized into logical subdirectories for better maintainability
-{...}: {
+{ ... }:
+{
   imports = [
     # Network configuration
     ./network-constants.nix
@@ -35,6 +36,7 @@
     # Services
     ./services/lm-studio.nix
     ./services/stability-matrix.nix
+    ./services/vllm.nix
     ./services/ai-inference/default.nix
 
     # Monitoring
