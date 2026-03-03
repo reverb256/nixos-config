@@ -95,15 +95,15 @@ in {
 
     systemd.services.flatpak-update = mkIf cfg.autoUpdate {
       description = "Update Flatpak packages";
-      after = ["network-online.target"];
-      wants = ["network-online.target"];
+      after = ["network-online.target" "spotx-patch.service"];
+      wants = ["network-online.target" "spotx-patch.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${pkgs.flatpak}/bin/flatpak update --assumeyes";
         User = "root";
       };
       # Trigger SpotX patching after Flatpak updates
-      wantedBy = ["spotx-patch.service"];
+      # SpotX will run after flatpak-update completes (see spotx-patch.service After=)
     };
   };
 }
