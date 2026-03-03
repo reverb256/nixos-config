@@ -4,350 +4,195 @@ with lib;
 
 let
   cfg = config.services.spotify-spotx;
+  stateDir = "/var/lib/spotx";
 
-  # SpotX patch script
-  spotxPatchScript = pkgs.writeShellScript "spotx-patch" ''
+  setupScript = pkgs.writeShellScript "setup-spotify.sh" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
+    SPOTIFY_HOME="''${HOME}/.config/spotify"
+    APPS_DIR="$SPOTIFY_HOME/Apps"
+    XPUI_DIR="$APPS_DIR/xpui"
+    log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"; }
+    if [ ! -d "$SPOTIFY_HOME" ]; then
+      log "Creating Spotify directory structure..."
+      mkdir -p "$SPOTIFY_HOME" "$APPS_DIR" "$XPUI_DIR"
+    fi
+    log "Setup complete"
+  '';
 
-    # Color output
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    NC='\033[0m' # No Color
-
-    log() {
-      echo -e "''${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]''${NC} $1"
-    }
-
-    error() {
-      echo -e "''${RED}[ERROR]''${NC} $1" >&2
-    }
-
-    warn() {
-      echo -e "''${YELLOW}[WARN]''${NC} $1"
-    }
-
-    # Configuration
-    SPOTIFY_DIR="${cfg.spotifyDir}"
-    APPS_DIR="$SPOTIFY_DIR/Apps"
+  patchManagerScript = pkgs.writeShellScript "patch-manager.sh" ''
+    #!${pkgs.bash}/bin/bash
+    set -euo pipefail
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+    log() { echo -e "''${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]''${NC} $1"; }
+    error() { echo -e "''${RED}[ERROR]''${NC} $1" >&2; }
+    warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; }
+    SPOTIFY_HOME="''${HOME}/.config/spotify"
+    APPS_DIR="$SPOTIFY_HOME/Apps"
     PATCH_MARKER="$APPS_DIR/.spotx_patched"
     SPOTIFY_VERSION_FILE="$APPS_DIR/.spotify_version"
     XPUI_DIR="$APPS_DIR/xpui"
     XPUI_BUNDLE="$XPUI_DIR/xpui.js"
-    BACKUP_DIR="${cfg.backupDir}"
-    PATCH_URL="${cfg.patchUrl}"
-
-    # Ensure directories exist
+    BACKUP_DIR="${stateDir}/backups"
+    PATCH_URL="https://spotx-official.github.io/spotx-download/install.sh"
+    MAX_RETRIES=3
+    RETRY_DELAY=5
     mkdir -p "$BACKUP_DIR"
-
-    # Function to get current Spotify version
     get_spotify_version() {
-      if [ -f "$SPOTIFY_VERSION_FILE" ]; then
-        cat "$SPOTIFY_VERSION_FILE"
-      else
-        echo "unknown"
-      fi
+      if [ -f "$SPOTIFY_VERSION_FILE" ]; then cat "$SPOTIFY_VERSION_FILE"; else echo "unknown"; fi
     }
-
-    # Function to check if patch is already applied
     is_patched() {
       [ -f "$PATCH_MARKER" ] && grep -q "SpotX" "$XPUI_BUNDLE" 2>/dev/null
     }
-
-    # Function to backup file
     backup_file() {
-      local file=$1
-      local timestamp=$(date +%Y%m%d_%H%M%S)
-      local filename=$(basename "$file")
+      local file=$1 timestamp=$(date +%Y%m%d_%H%M%S) filename=$(basename "$file")
       cp "$file" "$BACKUP_DIR/''${filename}.''${timestamp}.bak"
-      log "Backed up $filename to $BACKUP_DIR"
+      log "Backed up $filename"
     }
-
-    # Function to restore from backup
     restore_backup() {
       local latest_backup=$(ls -t "$BACKUP_DIR"/xpui.js.*.bak 2>/dev/null | head -n1)
       if [ -n "$latest_backup" ]; then
         cp "$latest_backup" "$XPUI_BUNDLE"
-        log "Restored from backup: $latest_backup"
+        log "Restored from backup"
         return 0
       else
-        error "No backup found!"
-        return 1
+        error "No backup found!"; return 1
       fi
     }
-
-    # Function to download and apply patch
+    download_with_retry() {
+      local url=$1 output=$2 retries=0
+      while [ $retries -lt $MAX_RETRIES ]; do
+        if curl -fsSL "$url" -o "$output"; then return 0; fi
+        retries=$((retries + 1))
+        if [ $retries -lt $MAX_RETRIES ]; then
+          warn "Download failed (attempt $retries/$MAX_RETRIES), retrying in ${RETRY_DELAY}s..."
+          sleep $RETRY_DELAY
+        fi
+      done
+      error "Failed to download after $MAX_RETRIES attempts"; return 1
+    }
     apply_patch() {
-      log "Starting SpotX patching process..."
-
-      # Check if Spotify is installed
-      if [ ! -d "$SPOTIFY_DIR" ]; then
-        error "Spotify directory not found: $SPOTIFY_DIR"
-        error "Please install Spotify first"
-        exit 1
+      log "Starting SpotX patching..."
+      if [ ! -d "$SPOTIFY_HOME" ]; then
+        error "Spotify directory not found"; exit 1
       fi
-
-      # Check if xpui.js exists
       if [ ! -f "$XPUI_BUNDLE" ]; then
-        error "xpui.js not found at: $XPUI_BUNDLE"
-        error "Spotify may not be fully installed yet"
-        exit 1
+        error "xpui.js not found. Run Spotify first."; exit 1
       fi
-
-      # Store current version
-      ${pkgs.spotify}/bin/spotify --version 2>/dev/null | head -n1 > "$SPOTIFY_VERSION_FILE" || true
+      if command -v spotify &>/dev/null; then
+        spotify --version 2>/dev/null | head -n1 > "$SPOTIFY_VERSION_FILE" || true
+      fi
       local current_version=$(get_spotify_version)
-      log "Detected Spotify version: $current_version"
-
-      # Check if already patched
-      if is_patched; then
-        log "SpotX is already applied"
-        return 0
-      fi
-
-      # Create backup
-      log "Creating backup of xpui.js..."
+      log "Spotify version: $current_version"
+      if is_patched; then log "SpotX already applied"; return 0; fi
+      log "Creating backup..."
       backup_file "$XPUI_BUNDLE"
-
-      # Download patch
       log "Downloading SpotX patch..."
       local temp_patch=$(mktemp)
-
-      if ! curl -fsSL "$PATCH_URL" -o "$temp_patch"; then
-        error "Failed to download patch from $PATCH_URL"
-        rm -f "$temp_patch"
-        exit 1
-      fi
-
-      # Apply patch
+      if ! download_with_retry "$PATCH_URL" "$temp_patch"; then rm -f "$temp_patch"; exit 1; fi
       log "Applying patch..."
-      if ${pkgs.bash}/bin/bash "$temp_patch" --app-folder "$SPOTIFY_DIR"; then
-        # Verify patch was applied
+      if ${pkgs.bash}/bin/bash "$temp_patch" --app-folder "$SPOTIFY_HOME"; then
         if grep -q "SpotX" "$XPUI_BUNDLE" 2>/dev/null; then
-          # Create marker
-          touch "$PATCH_MARKER"
-          echo "$current_version" > "$PATCH_MARKER"
-          log "SpotX patch applied successfully!"
-          rm -f "$temp_patch"
-          return 0
+          touch "$PATCH_MARKER"; echo "$current_version" > "$PATCH_MARKER"
+          log "SpotX applied successfully!"; rm -f "$temp_patch"; return 0
         else
-          error "Patch verification failed - SpotX signature not found"
-          restore_backup
-          rm -f "$temp_patch"
-          exit 1
+          error "Patch verification failed"; restore_backup; rm -f "$temp_patch"; exit 1
         fi
       else
-        error "Patch application failed"
-        restore_backup
-        rm -f "$temp_patch"
-        exit 1
+        error "Patch application failed"; restore_backup; rm -f "$temp_patch"; exit 1
       fi
     }
-
-    # Function to remove patch
     remove_patch() {
-      log "Removing SpotX patch..."
-
-      if ! is_patched; then
-        log "SpotX is not applied"
-        return 0
-      fi
-
-      # Restore from backup
-      if restore_backup; then
-        rm -f "$PATCH_MARKER"
-        log "SpotX patch removed successfully"
-        return 0
-      else
-        error "Failed to remove patch"
-        exit 1
-      fi
+      log "Removing SpotX..."
+      if ! is_patched; then log "SpotX not applied"; return 0; fi
+      if restore_backup; then rm -f "$PATCH_MARKER"; log "SpotX removed"; return 0; fi
+      error "Failed to remove patch"; exit 1
     }
-
-    # Main logic
     case "''${1:-patch}" in
-      patch)
-        apply_patch
-        ;;
-      unpatch|remove)
-        remove_patch
-        ;;
-      restore)
-        restore_backup
-        ;;
+      patch) apply_patch ;;
+      unpatch|remove) remove_patch ;;
+      restore) restore_backup ;;
       status)
-        if is_patched; then
-          echo "SpotX: applied (version: $(get_spotify_version))"
-          exit 0
-        else
-          echo "SpotX: not applied"
-          exit 1
-        fi
-        ;;
-      *)
-        echo "Usage: $0 {patch|unpatch|restore|status}"
-        exit 1
-        ;;
+        if is_patched; then echo "SpotX: applied (version: $(get_spotify_version))"; exit 0; fi
+        echo "SpotX: not applied"; exit 1 ;;
+      *) echo "Usage: $0 {patch|unpatch|restore|status}"; exit 1 ;;
     esac
-  '';
-
-  # Setup script to prepare Spotify directory
-  setupScript = pkgs.writeShellScript "spotify-spotx-setup" ''
-    #!${pkgs.bash}/bin/bash
-    set -euo pipefail
-
-    SPOTIFY_DIR="${cfg.spotifyDir}"
-    APPS_DIR="$SPOTIFY_DIR/Apps"
-    XPUI_DIR="$APPS_DIR/xpui"
-
-    log() {
-      echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
-    }
-
-    # Ensure Spotify has been run at least once to create the directory structure
-    if [ ! -d "$SPOTIFY_DIR" ]; then
-      log "Creating Spotify directory structure..."
-      mkdir -p "$SPOTIFY_DIR"
-      mkdir -p "$APPS_DIR"
-      mkdir -p "$XPUI_DIR"
-    fi
-
-    # Copy xpui.js from package if not present
-    if [ ! -f "$XPUI_DIR/xpui.js" ] && [ -d "${pkgs.spotify}/share/spotify" ]; then
-      log "Initializing xpui.js from package..."
-      # This may not exist in all Spotify versions, so don't fail
-      cp -r ${pkgs.spotify}/share/spotify/* "$SPOTIFY_DIR/" 2>/dev/null || true
-    fi
-
-    log "Setup complete"
   '';
 
 in {
   options.services.spotify-spotx = {
     enable = mkEnableOption "Spotify with SpotX patch";
-
-    user = mkOption {
-      type = types.str;
-      default = "root";
-      description = "User account under which Spotify runs";
-    };
-
-    group = mkOption {
-      type = types.str;
-      default = "root";
-      description = "Group under which Spotify runs";
-    };
-
     autoPatch = mkOption {
       type = types.bool;
       default = true;
-      description = ''
-        Automatically apply SpotX patch when Spotify is updated.
-      '';
+      description = "Automatically apply SpotX patch when Spotify is updated.";
     };
-
-    spotifyDir = mkOption {
-      type = types.path;
-      default = "\${HOME}/.config/spotify";
-      example = "\${HOME}/.config/spotify";
-      description = ''
-        Directory where Spotify stores its data.
-      '';
-    };
-
-    backupDir = mkOption {
-      type = types.path;
-      default = "\${HOME}/.config/spotify/backups";
-      example = "\${HOME}/.config/spotify/backups";
-      description = ''
-        Directory to store backups of original files.
-      '';
-    };
-
-    patchUrl = mkOption {
-      type = types.str;
-      default = "https://spotx-official.github.io/spotx-download/install.sh";
-      description = ''
-        URL to download the SpotX patch script from.
-      '';
-    };
-
-    patchInterval = mkOption {
+    patchCheckInterval = mkOption {
       type = types.str;
       default = "daily";
-      description = ''
-        How often to check and re-apply the patch (systemd timer format).
-        Set to null to disable automatic re-patching.
-      '';
+      description = "How often to check and re-apply the patch (systemd timer format).";
     };
   };
 
   config = mkIf cfg.enable {
-    # Create tmpfiles entries for directories
     systemd.tmpfiles.rules = [
-      "d ${cfg.spotifyDir} 0755 ${cfg.user} ${cfg.group} -"
-      "d ${cfg.backupDir} 0755 ${cfg.user} ${cfg.group} -"
-      "d ${cfg.spotifyDir}/Apps 0755 ${cfg.user} ${cfg.group} -"
-      "d ${cfg.spotifyDir}/Apps/xpui 0755 ${cfg.user} ${cfg.group} -"
+      "d ${stateDir} 0755 root root -"
+      "d ${stateDir}/backups 0755 root root -"
     ];
 
-    # Setup service to prepare Spotify directory
-    systemd.services.spotify-spotx-setup = {
-      description = "Spotify SpotX Setup";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+    environment.etc."spotx/setup-spotify.sh".source = setupScript;
+    environment.etc."spotx/patch-manager.sh".source = patchManagerScript;
+    environment.etc."spotx/patch-manager.sh".mode = "0755";
 
-      serviceConfig = {
-        Type = "oneshot";
-        User = cfg.user;
-        Group = cfg.group;
-        ExecStart = "${setupScript}";
-        RemainAfterExit = true;
-      };
-    };
-
-    # Patch service
-    systemd.services.spotify-spotx-patch = {
+    systemd.services.spotx-patch = {
       description = "Spotify SpotX Patch Service";
-      after = [ "spotify-spotx-setup.service" ];
-      wants = [ "spotify-spotx-setup.service" ];
-
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
       serviceConfig = {
         Type = "oneshot";
-        User = cfg.user;
-        Group = cfg.group;
-        ExecStart = "${spotxPatchScript} patch";
+        ExecStart = "${patchManagerScript} patch";
         StandardOutput = "journal";
         StandardError = "journal";
+        User = "root";
+        Group = "root";
       };
     };
 
-    # Timer for automatic patching
-    systemd.timers.spotify-spotx-patch = mkIf cfg.autoPatch {
+    systemd.timers.spotx-patch = mkIf cfg.autoPatch {
       description = "Spotify SpotX Auto-Patch Timer";
       wantedBy = [ "timers.target" ];
-      partOf = [ "spotify-spotx-patch.service" ];
+      partOf = [ "spotx-patch.service" ];
       timerConfig = {
-        OnCalendar = cfg.patchInterval;
-        Unit = "spotify-spotx-patch.service";
+        OnCalendar = cfg.patchCheckInterval;
+        Unit = "spotx-patch.service";
         Persistent = true;
       };
     };
 
-    # Add convenience aliases
-    environment.systemPackages = mkIf cfg.enable (
-      with pkgs; [
-        (writeShellScriptBin "spotify-spotx" ''
-          #!${bash}/bin/bash
-          ${spotxPatchScript} "$@"
-        '')
-      ]
-    );
+    systemd.services.flatpak-update-after = mkIf config.services.flatpak.enable {
+      description = "Run SpotX patch after Flatpak updates";
+      after = [ "flatpak-update.service" ];
+      wants = [ "flatpak-update.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${patchManagerScript} patch";
+        StandardOutput = "journal";
+        StandardError = "journal";
+        User = "root";
+        Group = "root";
+      };
+    };
+
+    environment.systemPackages = with pkgs; [
+      (writeShellScriptBin "spotify-spotx" ''
+        #!${bash}/bin/bash
+        ${patchManagerScript} "$@"
+      '')
+    ];
   };
 
   meta = {
-    maintainers = with maintainers; [ ];
+    maintainers = with lib.maintainers; [ ];
     doc = ./README.md;
   };
 }
