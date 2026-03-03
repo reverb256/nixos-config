@@ -9,147 +9,134 @@ let
   setupScript = pkgs.writeShellScript "setup-spotify.sh" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
-    # Find actual user with Spotify installation by checking common home directories
-    for user_home in /home/* /root; do
-      if [ -d "$user_home/.config/spotify" ] || [ -d "$user_home/.var/app/com.spotify.Client/config/spotify" ]; then
-        SPOTIFY_USER=$(basename "$user_home")
-        SPOTIFY_HOME="$user_home/.config/spotify"
-        break
-      fi
-    done
-    # Fallback to first regular user if no Spotify installation found
-    if [ -z "$SPOTIFY_USER" ]; then
-      SPOTIFY_USER=$(getent passwd 1000 | cut -d: -f1)
-      SPOTIFY_HOME="/home/$SPOTIFY_USER/.config/spotify"
+
+    clr='\033[0m'
+    red='\033[0;31m'
+    green='\033[0;32m'
+
+    log() { echo -e "''${green}[$(date +'%Y-%m-%d %H:%M:%S')]''${clr} $1"; }
+    error() { echo -e "''${red}[ERROR]''${clr} $1" >&2; }
+
+    log "=== Spotify + SpotX Initial Setup ==="
+
+    # Ensure Flathub is available
+    if ! ${pkgs.flatpak}/bin/flatpak remote-list | grep -q flathub; then
+      error "Flathub remote not found. Enable Flatpak module first."
+      exit 1
     fi
-    APPS_DIR="$SPOTIFY_HOME/Apps"
-    XPUI_DIR="$APPS_DIR/xpui"
-    log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"; }
-    if [ ! -d "$SPOTIFY_HOME" ]; then
-      log "Creating Spotify directory structure for user $SPOTIFY_USER..."
-      mkdir -p "$SPOTIFY_HOME" "$APPS_DIR" "$XPUI_DIR"
-      chown -R "$SPOTIFY_USER:users" "$SPOTIFY_HOME"
+
+    # Install Spotify Flatpak if not present
+    if ! ${pkgs.flatpak}/bin/flatpak list | grep -q "com.spotify.Client"; then
+      log "Installing Spotify Flatpak from Flathub..."
+      ${pkgs.flatpak}/bin/flatpak install -y flathub com.spotify.Client
     fi
-    log "Setup complete for user: $SPOTIFY_USER"
+
+    # Get Spotify Flatpak installation path
+    SPOTIFY_PATH="$(${pkgs.flatpak}/bin/flatpak info com.spotify.Client --show-location 2>/dev/null)"
+    SPOTIFY_DIR="''${SPOTIFY_PATH}/files/extra/share/spotify"
+
+    if [ ! -d "$SPOTIFY_DIR" ]; then
+      error "Spotify directory not found at: $SPOTIFY_DIR"
+      exit 1
+    fi
+
+    # Apply SpotX-Bash patch (with -f flag to force re-patch if already installed)
+    log "Applying SpotX-Bash patch for Spotify at $SPOTIFY_DIR..."
+    if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$SPOTIFY_DIR" -f; then
+      log "✓ SpotX patch applied successfully!"
+    else
+      error "SpotX patch application failed"
+      exit 1
+    fi
+
+    log "✓ Setup complete! Launch with: flatpak run com.spotify.Client"
   '';
 
   patchManagerScript = pkgs.writeShellScript "patch-manager.sh" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
+    # Include system packages for SpotX-Bash dependencies
+    PATH="/run/current-system/sw/bin:$PATH"
     RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
     log() { echo -e "''${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]''${NC} $1"; }
     error() { echo -e "''${RED}[ERROR]''${NC} $1" >&2; }
     warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; }
-    # Find actual user with Spotify installation
-    for user_home in /home/* /root; do
-      if [ -d "$user_home/.config/spotify" ] || [ -d "$user_home/.var/app/com.spotify.Client/config/spotify" ]; then
-        SPOTIFY_USER=$(basename "$user_home")
-        SPOTIFY_HOME="$user_home/.config/spotify"
-        break
-      fi
-    done
-    # Fallback to first regular user
-    if [ -z "$SPOTIFY_USER" ]; then
-      SPOTIFY_USER=$(getent passwd 1000 | cut -d: -f1)
-      SPOTIFY_HOME="/home/$SPOTIFY_USER/.config/spotify"
-    fi
-    APPS_DIR="$SPOTIFY_HOME/Apps"
-    PATCH_MARKER="$APPS_DIR/.spotx_patched"
-    SPOTIFY_VERSION_FILE="$APPS_DIR/.spotify_version"
-    XPUI_DIR="$APPS_DIR/xpui"
-    XPUI_BUNDLE="$XPUI_DIR/xpui.js"
+
+    # Get Spotify Flatpak installation path
+    SPOTIFY_PATH="$(flatpak info com.spotify.Client --show-location 2>/dev/null)"
+    SPOTIFY_DIR="''${SPOTIFY_PATH}/files/extra/share/spotify"
     BACKUP_DIR="${stateDir}/backups"
-    # SECURITY: Downloading script from official SpotX GitHub repository
-    # The script is executed in a controlled environment and only modifies Spotify files
-    PATCH_URL="https://spotx-official.github.io/spotx-download/install.sh"
-    MAX_RETRIES=3
-    RETRY_DELAY=5
-    # Create backup directory atomically to avoid race conditions
+    PATCH_MARKER="$SPOTIFY_DIR/Apps/.spotx_patched"
+
+    # Create backup directory
     if [ ! -d "$BACKUP_DIR" ]; then
       mkdir -p "$BACKUP_DIR"
       chmod 755 "$BACKUP_DIR"
     fi
+
     get_spotify_version() {
-      if [ -f "$SPOTIFY_VERSION_FILE" ]; then cat "$SPOTIFY_VERSION_FILE"; else echo "unknown"; fi
+      flatpak info com.spotify.Client 2>/dev/null | grep "Version:" | awk '{print $2}' || echo "unknown"
     }
+
     is_patched() {
-      [ -f "$PATCH_MARKER" ] && grep -q "SpotX" "$XPUI_BUNDLE" 2>/dev/null
+      [ -f "$PATCH_MARKER" ] && ${pkgs.flatpak}/bin/flatpak list | grep -q "com.spotify.Client"
     }
-    backup_file() {
-      local file=$1 timestamp=$(date +%Y%m%d_%H%M%S) filename=$(basename "$file")
-      local backup_file="$BACKUP_DIR/''${filename}.''${timestamp}.bak"
-      # Use atomic copy with temp file to avoid race conditions
-      local temp_backup="$backup_file.tmp"
-      cp "$file" "$temp_backup" && mv "$temp_backup" "$backup_file"
-      log "Backed up $filename"
-    }
-    restore_backup() {
-      local latest_backup=$(ls -t "$BACKUP_DIR"/xpui.js.*.bak 2>/dev/null | head -n1)
-      if [ -n "$latest_backup" ]; then
-        cp "$latest_backup" "$XPUI_BUNDLE"
-        log "Restored from backup"
-        return 0
-      else
-        error "No backup found!"; return 1
-      fi
-    }
-    download_with_retry() {
-      local url=$1 output=$2 retries=0
-      while [ $retries -lt $MAX_RETRIES ]; do
-        if curl -fsSL "$url" -o "$output"; then return 0; fi
-        retries=$((retries + 1))
-        if [ $retries -lt $MAX_RETRIES ]; then
-          warn "Download failed (attempt $retries/$MAX_RETRIES), retrying in $RETRY_DELAY s..."
-          sleep $RETRY_DELAY
-        fi
-      done
-      error "Failed to download after $MAX_RETRIES attempts"; return 1
-    }
+
     apply_patch() {
       log "Starting SpotX patching..."
-      if [ ! -d "$SPOTIFY_HOME" ]; then
-        error "Spotify directory not found"; exit 1
-      fi
-      if [ ! -f "$XPUI_BUNDLE" ]; then
-        error "xpui.js not found. Run Spotify first."; exit 1
-      fi
-      if command -v spotify &>/dev/null; then
-        spotify --version 2>/dev/null | head -n1 > "$SPOTIFY_VERSION_FILE" || true
+      if [ ! -d "$SPOTIFY_DIR" ]; then
+        error "Spotify directory not found at: $SPOTIFY_DIR"
+        exit 1
       fi
       local current_version=$(get_spotify_version)
       log "Spotify version: $current_version"
-      if is_patched; then log "SpotX already applied"; return 0; fi
-      log "Creating backup..."
-      backup_file "$XPUI_BUNDLE"
-      log "Downloading SpotX patch..."
-      local temp_patch=$(mktemp)
-      if ! download_with_retry "$PATCH_URL" "$temp_patch"; then rm -f "$temp_patch"; exit 1; fi
-      log "Applying patch..."
-      if ${pkgs.bash}/bin/bash "$temp_patch" --app-folder "$SPOTIFY_HOME"; then
-        if grep -q "SpotX" "$XPUI_BUNDLE" 2>/dev/null; then
-          touch "$PATCH_MARKER"; echo "$current_version" > "$PATCH_MARKER"
-          log "SpotX applied successfully!"; rm -f "$temp_patch"; return 0
-        else
-          error "Patch verification failed"; restore_backup; rm -f "$temp_patch"; exit 1
+      if [ -f "$PATCH_MARKER" ]; then
+        local patched_version=$(cat "$PATCH_MARKER" 2>/dev/null || echo "unknown")
+        if [ "$patched_version" = "$current_version" ]; then
+          log "SpotX already applied for version $current_version"
+          return 0
         fi
+        log "Spotify updated from $patched_version to $current_version, re-patching..."
+      fi
+      log "Applying SpotX-Bash patch..."
+      if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$SPOTIFY_DIR" -f; then
+        echo "$current_version" > "$PATCH_MARKER"
+        log "SpotX applied successfully!"
+        return 0
       else
-        error "Patch application failed"; restore_backup; rm -f "$temp_patch"; exit 1
+        error "SpotX patch application failed"
+        exit 1
       fi
     }
+
     remove_patch() {
-      log "Removing SpotX..."
-      if ! is_patched; then log "SpotX not applied"; return 0; fi
-      if restore_backup; then rm -f "$PATCH_MARKER"; log "SpotX removed"; return 0; fi
-      error "Failed to remove patch"; exit 1
+      log "SpotX removal not supported with SpotX-Bash"
+      log "Please reinstall Spotify Flatpak to remove SpotX"
+      exit 1
     }
+
+    show_status() {
+      local current_version=$(get_spotify_version)
+      if [ -f "$PATCH_MARKER" ]; then
+        local patched_version=$(cat "$PATCH_MARKER" 2>/dev/null || echo "unknown")
+        if [ "$patched_version" = "$current_version" ]; then
+          echo "SpotX: applied (version: $current_version)"
+          return 0
+        else
+          echo "SpotX: version mismatch (patched: $patched_version, current: $current_version)"
+          return 1
+        fi
+      else
+        echo "SpotX: not applied"
+        return 1
+      fi
+    }
+
     case "''${1:-patch}" in
       patch) apply_patch ;;
       unpatch|remove) remove_patch ;;
-      restore) restore_backup ;;
-      status)
-        if is_patched; then echo "SpotX: applied (version: $(get_spotify_version))"; exit 0; fi
-        echo "SpotX: not applied"; exit 1 ;;
-      *) echo "Usage: $0 {patch|unpatch|restore|status}"; exit 1 ;;
+      status) show_status ;;
+      *) echo "Usage: $0 {patch|unpatch|status}"; exit 1 ;;
     esac
   '';
 
@@ -187,8 +174,7 @@ in {
         ExecStart = "${patchManagerScript} patch";
         StandardOutput = "journal";
         StandardError = "journal";
-        # Run as root to access any user's Spotify installation
-        # This allows the service to patch Spotify regardless of which user installed it
+        # Run as root to access system Flatpak installation
         User = "root";
         Group = "root";
       };
@@ -214,7 +200,7 @@ in {
         ExecStart = "${patchManagerScript} patch";
         StandardOutput = "journal";
         StandardError = "journal";
-        # Run as root to access any user's Spotify installation
+        # Run as root to access system Flatpak installation
         User = "root";
         Group = "root";
       };
