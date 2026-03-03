@@ -1,35 +1,35 @@
+# Spotify Theming via Spicetify
+# Applies custom themes and extensions to Spotify Flatpak
+# Refactored to use spotify-common library
 { config, lib, pkgs, ... }:
 
 with lib;
 
 let
   cfg = config.services.spotify-spicetify;
-  stateDir = "/var/lib/spicetify";
 
+  # Import common Spotify utilities
+  spotifyLib = import ./lib/spotify-common.nix { inherit lib pkgs; };
+
+  stateDir = spotifyLib.mkSpotifyStateDir "spicetify";
+  versionMarker = "${stateDir}/version";
+  disabledMarker = "${stateDir}/disabled";
+
+  # Patch manager script
   patchManagerScript = pkgs.writeShellScript "spicetify-patch-manager.sh" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
     PATH="/run/current-system/sw/bin:$PATH"
 
-    RED='\\033[0;31m'; GREEN='\\033[0;32m'; YELLOW='\\033[1;33m'; NC='\\033[0m'
-    log() { echo -e "''${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]''${NC} $1"; }
-    error() { echo -e "''${RED}[ERROR]''${NC} $1" >&2; }
-    warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; }
+    ${spotifyLib.mkSpotifyLogging}
 
-    SPOTIFY_PATH="$(flatpak info com.spotify.Client --show-location 2>/dev/null)"
-    SPOTIFY_DIR="''${SPOTIFY_PATH}/files/extra/share/spotify"
+    ${spotifyLib.mkSpotifyPaths}
+
     BACKUP_DIR="${stateDir}/backups"
-    VERSION_MARKER="${stateDir}/version"
-    DISABLED_MARKER="${stateDir}/disabled"
-    CONFIG_HASH="${stateDir}/config-applied"
+    VERSION_MARKER="${versionMarker}"
+    DISABLED_MARKER="${disabledMarker}"
 
-    get_spotify_version() {
-      flatpak info com.spotify.Client 2>/dev/null | grep "Version:" | awk '{print $2}' || echo "unknown"
-    }
-
-    is_patched() {
-      [ -f "$VERSION_MARKER" ] && ${pkgs.flatpak}/bin/flatpak list | grep -q "com.spotify.Client"
-    }
+    ${spotifyLib.mkSpotifyVersionDetector}
 
     apply_spicetify() {
       log "Starting Spicetify theming..."
@@ -223,11 +223,10 @@ in {
   };
 
   config = mkIf cfg.enable {
-    systemd.tmpfiles.rules = [
-      "d ${stateDir} 0755 root root -"
-      "d ${stateDir}/backups 0755 root root -"
-    ];
+    # Create state directories
+    systemd.tmpfiles.rules = spotifyLib.mkSpotifyTmpfiles "spicetify";
 
+    # Main Spicetify service
     systemd.services.spotify-spicetify = {
       description = "Spotify Spicetify Theme Service";
       after = [ "spotx-patch.service" "network-online.target" ];
@@ -242,6 +241,7 @@ in {
       };
     };
 
+    # Auto-apply timer
     systemd.timers.spotify-spicetify = mkIf cfg.autoApply {
       description = "Spotify Spicetify Auto-Theme Timer";
       wantedBy = [ "timers.target" ];
@@ -253,6 +253,7 @@ in {
       };
     };
 
+    # Run after Flatpak updates
     systemd.services.spotify-spicetify-after-flatpak = mkIf config.services.flatpak.enable {
       description = "Run Spicetify after Flatpak updates";
       after = [ "flatpak-update.service" ];
@@ -267,11 +268,12 @@ in {
       };
     };
 
-    environment.systemPackages = with pkgs; [
-      (writeShellScriptBin "spotify-spicetify" ''
-        #!${pkgs.bash}/bin/bash
-        ${patchManagerScript} "$@"
-      '')
+    # CLI wrapper
+    environment.systemPackages = [
+      (spotifyLib.mkSpotifyCliWrapper {
+        name = "spotify-spicetify";
+        script = "exec ${patchManagerScript} \"\$@\"";
+      })
     ];
   };
 }
