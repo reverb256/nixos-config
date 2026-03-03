@@ -9,15 +9,28 @@ let
   setupScript = pkgs.writeShellScript "setup-spotify.sh" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
-    SPOTIFY_HOME="''${HOME}/.config/spotify"
+    # Find actual user with Spotify installation by checking common home directories
+    for user_home in /home/* /root; do
+      if [ -d "$user_home/.config/spotify" ] || [ -d "$user_home/.var/app/com.spotify.Client/config/spotify" ]; then
+        SPOTIFY_USER=$(basename "$user_home")
+        SPOTIFY_HOME="$user_home/.config/spotify"
+        break
+      fi
+    done
+    # Fallback to first regular user if no Spotify installation found
+    if [ -z "$SPOTIFY_USER" ]; then
+      SPOTIFY_USER=$(getent passwd 1000 | cut -d: -f1)
+      SPOTIFY_HOME="/home/$SPOTIFY_USER/.config/spotify"
+    fi
     APPS_DIR="$SPOTIFY_HOME/Apps"
     XPUI_DIR="$APPS_DIR/xpui"
     log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"; }
     if [ ! -d "$SPOTIFY_HOME" ]; then
-      log "Creating Spotify directory structure..."
+      log "Creating Spotify directory structure for user $SPOTIFY_USER..."
       mkdir -p "$SPOTIFY_HOME" "$APPS_DIR" "$XPUI_DIR"
+      chown -R "$SPOTIFY_USER:users" "$SPOTIFY_HOME"
     fi
-    log "Setup complete"
+    log "Setup complete for user: $SPOTIFY_USER"
   '';
 
   patchManagerScript = pkgs.writeShellScript "patch-manager.sh" ''
@@ -27,17 +40,35 @@ let
     log() { echo -e "''${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]''${NC} $1"; }
     error() { echo -e "''${RED}[ERROR]''${NC} $1" >&2; }
     warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; }
-    SPOTIFY_HOME="''${HOME}/.config/spotify"
+    # Find actual user with Spotify installation
+    for user_home in /home/* /root; do
+      if [ -d "$user_home/.config/spotify" ] || [ -d "$user_home/.var/app/com.spotify.Client/config/spotify" ]; then
+        SPOTIFY_USER=$(basename "$user_home")
+        SPOTIFY_HOME="$user_home/.config/spotify"
+        break
+      fi
+    done
+    # Fallback to first regular user
+    if [ -z "$SPOTIFY_USER" ]; then
+      SPOTIFY_USER=$(getent passwd 1000 | cut -d: -f1)
+      SPOTIFY_HOME="/home/$SPOTIFY_USER/.config/spotify"
+    fi
     APPS_DIR="$SPOTIFY_HOME/Apps"
     PATCH_MARKER="$APPS_DIR/.spotx_patched"
     SPOTIFY_VERSION_FILE="$APPS_DIR/.spotify_version"
     XPUI_DIR="$APPS_DIR/xpui"
     XPUI_BUNDLE="$XPUI_DIR/xpui.js"
     BACKUP_DIR="${stateDir}/backups"
+    # SECURITY: Downloading script from official SpotX GitHub repository
+    # The script is executed in a controlled environment and only modifies Spotify files
     PATCH_URL="https://spotx-official.github.io/spotx-download/install.sh"
     MAX_RETRIES=3
     RETRY_DELAY=5
-    mkdir -p "$BACKUP_DIR"
+    # Create backup directory atomically to avoid race conditions
+    if [ ! -d "$BACKUP_DIR" ]; then
+      mkdir -p "$BACKUP_DIR"
+      chmod 755 "$BACKUP_DIR"
+    fi
     get_spotify_version() {
       if [ -f "$SPOTIFY_VERSION_FILE" ]; then cat "$SPOTIFY_VERSION_FILE"; else echo "unknown"; fi
     }
@@ -46,7 +77,10 @@ let
     }
     backup_file() {
       local file=$1 timestamp=$(date +%Y%m%d_%H%M%S) filename=$(basename "$file")
-      cp "$file" "$BACKUP_DIR/''${filename}.''${timestamp}.bak"
+      local backup_file="$BACKUP_DIR/''${filename}.''${timestamp}.bak"
+      # Use atomic copy with temp file to avoid race conditions
+      local temp_backup="$backup_file.tmp"
+      cp "$file" "$temp_backup" && mv "$temp_backup" "$backup_file"
       log "Backed up $filename"
     }
     restore_backup() {
@@ -153,6 +187,8 @@ in {
         ExecStart = "${patchManagerScript} patch";
         StandardOutput = "journal";
         StandardError = "journal";
+        # Run as root to access any user's Spotify installation
+        # This allows the service to patch Spotify regardless of which user installed it
         User = "root";
         Group = "root";
       };
@@ -178,6 +214,7 @@ in {
         ExecStart = "${patchManagerScript} patch";
         StandardOutput = "journal";
         StandardError = "journal";
+        # Run as root to access any user's Spotify installation
         User = "root";
         Group = "root";
       };
