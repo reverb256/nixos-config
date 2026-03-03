@@ -211,6 +211,20 @@ in {
       "d ${stateDir}/backups 0755 root root -"
     ];
 
+    systemd.services.spotify-spicetify = {
+      description = "Spotify Spicetify Theme Service";
+      after = [ "spotx-patch.service" "network-online.target" ];
+      wants = [ "spotx-patch.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${patchManagerScript} apply";
+        StandardOutput = "journal";
+        StandardError = "journal";
+        User = "root";
+        Group = "root";
+      };
+    };
+
     # TODO: Add implementation in next tasks
   };
 }
