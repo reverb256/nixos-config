@@ -236,6 +236,20 @@ in {
       };
     };
 
+    systemd.services.spotify-spicetify-after-flatpak = mkIf config.services.flatpak.enable {
+      description = "Run Spicetify after Flatpak updates";
+      after = [ "flatpak-update.service" ];
+      wants = [ "flatpak-update.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${patchManagerScript} apply";
+        StandardOutput = "journal";
+        StandardError = "journal";
+        User = "root";
+        Group = "root";
+      };
+    };
+
     # TODO: Add implementation in next tasks
   };
 }
