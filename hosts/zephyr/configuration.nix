@@ -88,6 +88,62 @@
   programs.stability-matrix.enable = true;
 
   # ============================================================================
+  # AI INFERENCE SERVICE - Gateway with authentication and metrics
+  # ============================================================================
+  services.ai-inference = {
+    enable = true;
+
+    # Backend: LM Studio (already running)
+    backend = {
+      url = "http://127.0.0.1:1234";  # LM Studio default
+      type = "lm-studio";
+    };
+
+    # Gateway configuration
+    gateway = {
+      enable = true;
+      host = "127.0.0.1";  # Local only initially
+      port = 8080;
+      workers = 4;
+    };
+
+    # Intelligent routing
+    routing = {
+      enable = true;
+      defaultModel = "qwen3.5-4b";
+      rules = [
+        {
+          minTokens = 0;
+          maxTokens = 4096;
+          model = "qwen3.5-2b";
+          priority = 10;
+        }
+        {
+          minTokens = 4097;
+          maxTokens = 32768;
+          model = "qwen3.5-4b";
+          priority = 20;
+        }
+        {
+          minTokens = 32769;
+          maxTokens = 999999;
+          model = "qwen3.5-35b-a3b@q4_k_m";
+          priority = 30;
+        }
+      ];
+    };
+
+    # Authentication: start with none (local)
+    auth.mode = "none";
+
+    # Monitoring: integrate with existing Prometheus
+    monitoring = {
+      enable = true;
+      port = 9090;
+    };
+  };
+
+  # ============================================================================
   # MINING - GPU Mining (RTX 3090)
   # ============================================================================
   services.mining.enable = true;
@@ -105,7 +161,10 @@
     enable = true;
     theme = "Dribbblish";
     colorScheme = "nord-dark";
-    extensions = [ "adblock" "shuffle+" ];
+    extensions = [
+      "adblock"
+      "shuffle+"
+    ];
   };
 
   # ============================================================================
@@ -123,6 +182,9 @@
     powerLimit = 250; # Power limit for RTX 3090 (250W recommended for efficiency)
     apiPort = 4068;
   };
+
+  # XMRig CPU mining
+  services.mining.xmrig.enable = true;
 
   # ============================================================================
   # PER-GPU POWER LIMITS
