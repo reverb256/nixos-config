@@ -17,6 +17,7 @@ from ai_inference_gateway.middleware.observability import ObservabilityMiddlewar
 from ai_inference_gateway.middleware.security_filter import SecurityFilterMiddleware
 from ai_inference_gateway.middleware.rate_limiter import RateLimiterMiddleware
 from ai_inference_gateway.middleware.circuit_breaker import CircuitBreaker
+from ai_inference_gateway.middleware.concurrency_limiter import ConcurrencyLimiter
 
 # Try to import prometheus_client for metrics endpoint
 try:
@@ -183,6 +184,14 @@ def build_middleware_pipeline(
         pipeline.add(rate_limiter)
         logger.info("Added RateLimiterMiddleware")
 
+    # Add concurrency limiter
+    if config.middleware.concurrency_limiter.enabled:
+        concurrency_limiter = ConcurrencyLimiter(
+            max_concurrency=config.middleware.concurrency_limiter.max_concurrency
+        )
+        pipeline.add(concurrency_limiter)
+        logger.info(f"Added ConcurrencyLimiter (max_concurrency={config.middleware.concurrency_limiter.max_concurrency})")
+
     # Add circuit breaker
     if config.middleware.circuit_breaker.enabled:
         circuit_breaker = CircuitBreaker(
@@ -286,8 +295,15 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Check if streaming is requested
         stream = body.get("stream", False)
 
+        # Extract model for concurrency limiting
+        model = body.get("model", "default")
+
         # Create context for middleware
-        context = {"request_body": body, "request_headers": dict(request.headers)}
+        context = {
+            "request_body": body,
+            "request_headers": dict(request.headers),
+            "model": model,  # Add model for concurrency limiter
+        }
 
         # Process request through middleware pipeline
         should_continue, error = await state.pipeline.process_request(request, context)
