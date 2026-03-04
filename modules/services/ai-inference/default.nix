@@ -109,8 +109,33 @@ in
 
         baseUrl = mkOption {
           type = types.str;
-          default = "https://api.z.ai/v1";
-          description = "ZAI API base URL";
+          default = "https://api.z.ai/api/coding/paas/v4";
+          description = "ZAI API base URL (matches OpenCode configuration)";
+        };
+
+        # Advanced retry configuration
+        maxRetries = mkOption {
+          type = types.int;
+          default = 3;
+          description = "Maximum retry attempts for ZAI requests";
+        };
+
+        retryDelay = mkOption {
+          type = types.float;
+          default = 1.0;
+          description = "Initial retry delay in seconds (exponential backoff)";
+        };
+
+        timeout = mkOption {
+          type = types.float;
+          default = 300.0;
+          description = "Request timeout in seconds";
+        };
+
+        enableRetry = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Enable automatic retry with exponential backoff for ZAI requests";
         };
 
         models = mkOption {
@@ -303,25 +328,27 @@ in
       enable = mkEnableOption "MCP broker for aggregating tools from multiple MCP servers";
 
       servers = mkOption {
-        type = types.attrsOf (types.submodule {
-          options = {
-            url = mkOption {
-              type = types.str;
-              description = "MCP server URL";
+        type = types.attrsOf (
+          types.submodule {
+            options = {
+              url = mkOption {
+                type = types.str;
+                description = "MCP server URL";
+              };
+              headers = mkOption {
+                type = types.attrsOf types.str;
+                default = { };
+                description = "HTTP headers for authentication";
+              };
+              enabled = mkOption {
+                type = types.bool;
+                default = true;
+                description = "Whether this server is enabled";
+              };
             };
-            headers = mkOption {
-              type = types.attrsOf types.str;
-              default = {};
-              description = "HTTP headers for authentication";
-            };
-            enabled = mkOption {
-              type = types.bool;
-              default = true;
-              description = "Whether this server is enabled";
-            };
-          };
-        });
-        default = {};
+          }
+        );
+        default = { };
         example = literalExpression ''
           {
             web-search = {
@@ -338,13 +365,13 @@ in
     security = {
       maxRequestSize = mkOption {
         type = types.int;
-        default = 10485760;  # 10MB
+        default = 10485760; # 10MB
         description = "Maximum request size in bytes";
       };
 
       enableProxy = mkOption {
         type = types.bool;
-        default = false;  # Disabled by default for code assistants
+        default = false; # Disabled by default for code assistants
         description = "Enable security proxy (blocks code snippets with certain patterns)";
       };
     };
@@ -459,7 +486,20 @@ in
 
         keywords = mkOption {
           type = types.listOf types.str;
-          default = [ "what" "how" "explain" "describe" "tell me about" "find" "search" "lookup" "who" "when" "where" "why" ];
+          default = [
+            "what"
+            "how"
+            "explain"
+            "describe"
+            "tell me about"
+            "find"
+            "search"
+            "lookup"
+            "who"
+            "when"
+            "where"
+            "why"
+          ];
           description = "Keywords that trigger RAG retrieval";
         };
       };
@@ -473,35 +513,37 @@ in
 
     # LM Studio headless service (optional)
     lm-studio-headless = mkOption {
-      type = types.nullOr (types.submodule {
-        options = {
-          enable = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable LM Studio headless service";
+      type = types.nullOr (
+        types.submodule {
+          options = {
+            enable = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Enable LM Studio headless service";
+            };
+            port = mkOption {
+              type = types.port;
+              default = 1234;
+              description = "Port for LM Studio API server";
+            };
+            host = mkOption {
+              type = types.str;
+              default = "127.0.0.1";
+              description = "Host address to bind to";
+            };
+            user = mkOption {
+              type = types.str;
+              default = "j_kro";
+              description = "User to run LM Studio as";
+            };
+            openFirewall = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Open firewall for the configured port";
+            };
           };
-          port = mkOption {
-            type = types.port;
-            default = 1234;
-            description = "Port for LM Studio API server";
-          };
-          host = mkOption {
-            type = types.str;
-            default = "127.0.0.1";
-            description = "Host address to bind to";
-          };
-          user = mkOption {
-            type = types.str;
-            default = "j_kro";
-            description = "User to run LM Studio as";
-          };
-          openFirewall = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Open firewall for the configured port";
-          };
-        };
-      });
+        }
+      );
       default = null;
       description = "LM Studio headless service configuration (optional)";
     };
@@ -558,12 +600,14 @@ in
     ];
 
     # LM Studio headless service (optional)
-    services.lm-studio-headless = mkIf (cfg.lm-studio-headless != null && cfg.lm-studio-headless.enable) {
-      enable = true;
-      port = cfg.lm-studio-headless.port;
-      host = cfg.lm-studio-headless.host;
-      user = cfg.lm-studio-headless.user;
-      openFirewall = cfg.lm-studio-headless.openFirewall;
-    };
+    services.lm-studio-headless =
+      mkIf (cfg.lm-studio-headless != null && cfg.lm-studio-headless.enable)
+        {
+          enable = true;
+          port = cfg.lm-studio-headless.port;
+          host = cfg.lm-studio-headless.host;
+          user = cfg.lm-studio-headless.user;
+          openFirewall = cfg.lm-studio-headless.openFirewall;
+        };
   };
 }
