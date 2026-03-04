@@ -11,6 +11,15 @@
 
       # Set greeting to empty
       set -g fish_greeting ""
+
+      # Hugging Face CLI - symlink agenix secret to expected HF token path
+      set -l hf_token_dir "$HOME/.cache/huggingface"
+      set -l hf_token_file "$hf_token_dir/token"
+
+      if test -r /run/agenix/huggingface-token
+        mkdir -p $hf_token_dir
+        ln -sf /run/agenix/huggingface-token $hf_token_file
+      end
     '';
     shellAliases = {
       # List aliases - modern replacements
