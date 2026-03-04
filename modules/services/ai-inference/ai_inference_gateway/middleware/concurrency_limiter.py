@@ -1,8 +1,9 @@
 """
 Concurrency Limiter Middleware.
 
-Limits concurrent requests per model to prevent overwhelming backends.
-Uses asyncio.Semaphore to track and limit active requests.
+Implements soft concurrency limits with graceful degradation.
+Rather than blocking requests when limit is reached, allows them through
+with warnings and metrics for monitoring.
 """
 
 import logging
@@ -16,10 +17,11 @@ logger = logging.getLogger(__name__)
 
 class ConcurrencyLimiter(Middleware):
     """
-    Limits concurrent requests per model.
+    Soft concurrency limiter with graceful degradation.
 
-    Ensures that only a specified number of concurrent requests
-    can be processed for each model at any given time.
+    Tracks concurrent requests per model and logs warnings when limits
+    are exceeded, but doesn't hard-block requests. This allows the
+    system to handle load spikes gracefully.
     """
 
     def __init__(self, max_concurrency: int = 1):
@@ -27,12 +29,13 @@ class ConcurrencyLimiter(Middleware):
         Initialize concurrency limiter.
 
         Args:
-            max_concurrency: Maximum concurrent requests per model (default: 1)
+            max_concurrency: Maximum concurrent requests per model (soft limit)
         """
         self.max_concurrency = max_concurrency
-        # Map of model name to semaphore
+        # Map of model name to (semaphore, current_count)
         self.semaphores: Dict[str, asyncio.Semaphore] = {}
-        # Lock to protect access to semaphores dict
+        self.counters: Dict[str, int] = {}
+        # Lock to protect access to dicts
         self.lock = asyncio.Lock()
 
     @property
@@ -53,6 +56,7 @@ class ConcurrencyLimiter(Middleware):
         async with self.lock:
             if model not in self.semaphores:
                 self.semaphores[model] = asyncio.Semaphore(self.max_concurrency)
+                self.counters[model] = 0
                 logger.info(f"Created semaphore for model: {model} (max_concurrency={self.max_concurrency})")
             return self.semaphores[model]
 
@@ -62,14 +66,17 @@ class ConcurrencyLimiter(Middleware):
         context: dict
     ) -> Tuple[bool, Optional[HTTPException]]:
         """
-        Acquire concurrency permit before processing request.
+        Track concurrency with graceful degradation.
+
+        Rather than blocking when limit is exceeded, allows request through
+        with a warning. This enables graceful degradation under load.
 
         Args:
             request: FastAPI request object
             context: Request context
 
         Returns:
-            Tuple of (should_continue, optional_error)
+            Tuple of (should_continue, optional_error) - always continues
         """
         # Get model from context (set by endpoint)
         model = context.get("model", "default")
@@ -77,19 +84,32 @@ class ConcurrencyLimiter(Middleware):
         # Get semaphore for this model
         semaphore = await self._get_semaphore(model)
 
-        # Check if semaphore is at capacity (all permits in use)
-        # For a semaphore with max_concurrency=1, _value=0 means it's in use
-        if semaphore._value <= 0:
-            # All permits are in use
-            logger.warning(f"Concurrency limit reached for model: {model} (active: {self.max_concurrency})")
-            return False, HTTPException(
-                status_code=503,
-                detail=f"Model {model} is at maximum concurrency ({self.max_concurrency}). Please retry later."
-            )
+        # Check current concurrency level
+        async with self.lock:
+            current_count = self.counters.get(model, 0)
 
-        # Acquire permit (this should succeed immediately since we checked _value)
+        if current_count >= self.max_concurrency:
+            # Over capacity - but allow through with warning (graceful degradation)
+            logger.warning(
+                f"Concurrency limit exceeded for model: {model} "
+                f"({current_count}/{self.max_concurrency} active). "
+                f"Allowing request through (graceful degradation)."
+            )
+            # Store degradation flag in context
+            context["_concurrency_degraded"] = True
+        else:
+            # Within capacity
+            logger.info(f"Concurrency within limit for model: {model} ({current_count}/{self.max_concurrency})")
+            context["_concurrency_degraded"] = False
+
+        # Acquire permit
         await semaphore.acquire()
-        logger.info(f"Acquired concurrency permit for model: {model} (active: {self.max_concurrency - semaphore._value})")
+
+        # Increment counter
+        async with self.lock:
+            self.counters[model] = self.counters.get(model, 0) + 1
+
+        logger.info(f"Acquired concurrency permit for model: {model} (active: {self.counters[model]})")
 
         # Store permit in context for release later
         context["_concurrency_permit"] = (semaphore, model)
@@ -110,7 +130,12 @@ class ConcurrencyLimiter(Middleware):
         if "_concurrency_permit" in context:
             semaphore, model = context["_concurrency_permit"]
             semaphore.release()
-            logger.info(f"Released concurrency permit for model: {model} (active: {self.max_concurrency - semaphore._value})")
+
+            # Decrement counter
+            async with self.lock:
+                self.counters[model] = self.counters.get(model, 1) - 1
+
+            logger.info(f"Released concurrency permit for model: {model} (active: {self.counters[model]})")
             context.pop("_concurrency_permit", None)
 
         return context
