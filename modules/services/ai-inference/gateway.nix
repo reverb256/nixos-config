@@ -907,8 +907,6 @@ Requirements:
                 "content": json.dumps({"error": f"Tool {function_name} not implemented"})
             }
 
-    tools_handler = ToolsHandler(mcp_broker)
-
     # ============================================================================
     # PREDICTION STATS TRACKER
     # ============================================================================
@@ -1259,9 +1257,11 @@ Requirements:
                 # Record completion time
                 prediction_stats.end_time = time.time()
 
+                # Extract choices from result
+                choices = result.get("choices", [])
+
                 # Process structured output response
                 if structured_metadata.get("structured_output"):
-                    choices = result.get("choices", [])
                     if choices:
                         content = choices[0].get("message", {}).get("content", "")
                         processed_content, is_valid = structured_output_handler.process_response(content, structured_metadata)
@@ -1274,7 +1274,7 @@ Requirements:
                     prediction_stats.prompt_tokens = usage.get("prompt_tokens", 0)
                     prediction_stats.completion_tokens = usage.get("completion_tokens", 0)
                     prediction_stats.total_tokens = usage.get("total_tokens", 0)
-                    prediction_stats.stop_reason = choices[0].get("finish_reason", "unknown") if result.get("choices") else "unknown"
+                    prediction_stats.stop_reason = choices[0].get("finish_reason", "unknown") if choices else "unknown"
 
                     if usage:
                         tokens_generated.labels(model=selected_model, backend=effective_backend.url).inc(
@@ -1513,6 +1513,9 @@ Requirements:
             self.client_cache.clear()
 
     mcp_broker = MCPBroker()
+
+    # Initialize tools handler after MCP broker is defined
+    tools_handler = ToolsHandler(mcp_broker)
 
     # ============================================================================
     # RAG ENGINE WITH HYBRID SEARCH
