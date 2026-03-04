@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 import httpx
 
 from ai_inference_gateway.config import GatewayConfig
@@ -19,7 +19,14 @@ from ai_inference_gateway.middleware.circuit_breaker import CircuitBreaker
 
 # Try to import prometheus_client for metrics endpoint
 try:
-    from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+    from prometheus_client import (
+        Counter,
+        Histogram,
+        Gauge,
+        generate_latest,
+        CONTENT_TYPE_LATEST,
+    )
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -45,7 +52,7 @@ class GatewayState:
         self,
         config: GatewayConfig,
         redis_client: Optional[RedisClient] = None,
-        pipeline: Optional[MiddlewarePipeline] = None
+        pipeline: Optional[MiddlewarePipeline] = None,
     ):
         self.config = config
         self.redis_client = redis_client
@@ -63,14 +70,31 @@ def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
     Returns:
         Headers dictionary for backend request
     """
-    # Start with client headers (excluding host)
-    headers = {k: v for k, v in request_headers.items() if k.lower() != "host"}
+    # Headers to exclude from forwarding (they'll be regenerated)
+    excluded_headers = {
+        "host",
+        "content-length",
+        "content-encoding",
+        "transfer-encoding",
+    }
 
-    # Add backend authentication
-    if config.backend_type == "lm-studio" and config.lm_studio_api_key:
-        headers["Authorization"] = f"Bearer {config.lm_studio_api_key}"
-    elif config.backend_type == "zai" and config.zai_api_key:
-        headers["Authorization"] = f"Bearer {config.zai_api_key}"
+    # Start with client headers (excluding problematic headers)
+    headers = {
+        k: v
+        for k, v in request_headers.items()
+        if k.lower() not in excluded_headers
+    }
+
+    # Only add backend authentication if client didn't provide one
+    if "authorization" not in {k.lower() for k in headers.keys()}:
+        if config.backend_type == "lm-studio":
+            api_key = config.get_lm_studio_api_key()
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+        elif config.backend_type == "zai":
+            api_key = config.get_zai_api_key()
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
 
     return headers
 
@@ -101,8 +125,7 @@ async def lifespan(app: FastAPI):
     state.pipeline = build_middleware_pipeline(state.config, state.redis_client)
 
     logger.info(
-        "Middleware pipeline initialized with %d middleware",
-        state.pipeline.count
+        "Middleware pipeline initialized with %d middleware", state.pipeline.count
     )
 
     # Startup complete
@@ -121,8 +144,7 @@ async def lifespan(app: FastAPI):
 
 
 def build_middleware_pipeline(
-    config: GatewayConfig,
-    redis_client: Optional[RedisClient]
+    config: GatewayConfig, redis_client: Optional[RedisClient]
 ) -> MiddlewarePipeline:
     """
     Build the middleware pipeline from configuration.
@@ -149,8 +171,7 @@ def build_middleware_pipeline(
     # Add rate limiter
     if config.middleware.rate_limiting.enabled:
         rate_limiter = RateLimiterMiddleware(
-            config=config.middleware.rate_limiting,
-            redis_client=redis_client
+            config=config.middleware.rate_limiting, redis_client=redis_client
         )
         pipeline.add(rate_limiter)
         logger.info("Added RateLimiterMiddleware")
@@ -160,7 +181,7 @@ def build_middleware_pipeline(
         circuit_breaker = CircuitBreaker(
             service_id="backend",
             config=config.middleware.circuit_breaker,
-            redis_client=redis_client
+            redis_client=redis_client,
         )
         pipeline.add(circuit_breaker)
         logger.info("Added CircuitBreaker")
@@ -179,7 +200,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         Configured FastAPI application
     """
     if config is None:
-        config = GatewayConfig.load_from_env()
+        config = GatewayConfig()
 
     # Initialize gateway state
     gateway_state = GatewayState(config=config)
@@ -189,7 +210,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         title="AI Inference Gateway",
         description="Advanced gateway for AI inference backends with middleware",
         version=GATEWAY_VERSION,
-        lifespan=lifespan
+        lifespan=lifespan,
     )
 
     # Store gateway state in app
@@ -204,39 +225,50 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "gateway": {
                 "version": GATEWAY_VERSION,
                 "host": config.gateway_host,
-                "port": config.gateway_port
+                "port": config.gateway_port,
             },
             "backend": {
                 "url": config.backend_url,
                 "type": config.backend_type,
-                "healthy": True  # TODO: Implement actual health check
-            }
+                "healthy": True,  # TODO: Implement actual health check
+            },
         }
 
     # Add models endpoint
     @app.get("/v1/models")
-    async def list_models():
+    async def list_models(request: Request):
         """List available models from backend."""
         state: GatewayState = app.state.gateway
 
-        # Build headers with authentication
-        backend_headers = build_backend_headers(state.config, {})
+        # Build headers with authentication (include original request headers)
+        backend_headers = build_backend_headers(state.config, dict(request.headers))
 
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.get(
                     f"{state.config.backend_url}/v1/models",
                     headers=backend_headers,
-                    timeout=30.0
+                    timeout=30.0,
                 )
+
+                # Check for authentication errors
+                if response.status_code == 401:
+                    logger.error("Backend authentication failed for /v1/models")
+                    raise HTTPException(
+                        status_code=503,
+                        detail="Backend authentication failed - check API key configuration",
+                    )
+
                 response.raise_for_status()
                 return response.json()
-            except httpx.HTTPError as e:
+            except httpx.HTTPStatusError as e:
                 logger.error(f"Error fetching models: {e}")
                 raise HTTPException(
-                    status_code=503,
-                    detail=f"Backend unavailable: {str(e)}"
+                    status_code=503, detail=f"Backend unavailable: {str(e)}"
                 )
+            except httpx.HTTPError as e:
+                logger.error(f"Network error fetching models: {e}")
+                raise HTTPException(status_code=503, detail=f"Network error: {str(e)}")
 
     # Add chat completions endpoint
     @app.post("/v1/chat/completions")
@@ -244,19 +276,18 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         """
         Chat completions endpoint with middleware processing.
 
-        Forwards requests to the backend after processing through
-        the middleware pipeline.
+        Supports both streaming and non-streaming requests.
         """
         state: GatewayState = app.state.gateway
 
         # Read request body
         body = await request.json()
 
+        # Check if streaming is requested
+        stream = body.get("stream", False)
+
         # Create context for middleware
-        context = {
-            "request_body": body,
-            "request_headers": dict(request.headers)
-        }
+        context = {"request_body": body, "request_headers": dict(request.headers)}
 
         # Process request through middleware pipeline
         should_continue, error = await state.pipeline.process_request(request, context)
@@ -271,75 +302,34 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Build headers with authentication
         backend_headers = build_backend_headers(state.config, dict(request.headers))
 
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    f"{state.config.backend_url}/v1/chat/completions",
-                    json=body,
-                    headers=backend_headers,
-                    timeout=300.0  # 5 minute timeout for inference
-                )
+        if stream:
+            # Handle streaming response
+            return StreamingResponse(
+                stream_backend_response(
+                    state.config.backend_url,
+                    body,
+                    backend_headers,
+                    state.pipeline,
+                    context,
+                    state.config,
+                ),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                },
+            )
+        else:
+            # Handle non-streaming response
+            return await handle_non_streaming_request(
+                state.config.backend_url,
+                body,
+                backend_headers,
+                state.pipeline,
+                context,
+                state.config,
+            )
 
-                # Check for HTTP errors
-                if response.status_code >= 400:
-                    error_detail = f"Backend error {response.status_code}"
-
-                    # Try to extract error details from response
-                    try:
-                        error_json = response.json()
-                        if "error" in error_json:
-                            error_msg = error_json["error"].get("message", str(error_json["error"]))
-                            error_detail = f"{error_detail}: {error_msg}"
-                        else:
-                            error_detail = f"{error_detail}: {error_json}"
-                    except Exception:
-                        # If response isn't JSON, use text
-                        if response.text:
-                            error_detail = f"{error_detail}: {response.text[:200]}"
-
-                    logger.error(f"Backend error: {error_detail}")
-
-                    # Notify circuit breaker of failure
-                    if state.config.middleware.circuit_breaker.enabled:
-                        for middleware in state.pipeline.middleware:
-                            if isinstance(middleware, CircuitBreaker):
-                                await middleware.on_failure()
-
-                    # Return appropriate status code
-                    status_code = 503 if response.status_code >= 500 else response.status_code
-                    raise HTTPException(status_code=status_code, detail=error_detail)
-
-                # Parse JSON response
-                try:
-                    response_data = response.json()
-                except Exception as e:
-                    logger.error(f"Failed to parse backend response as JSON: {e}")
-                    logger.error(f"Response text: {response.text[:500]}")
-                    raise HTTPException(
-                        status_code=502,
-                        detail=f"Invalid response from backend: {str(e)}"
-                    )
-
-                # Process response through middleware pipeline (reverse order)
-                response_data = await state.pipeline.process_response(response_data, context)
-
-                return JSONResponse(content=response_data, status_code=response.status_code)
-
-            except httpx.HTTPError as e:
-                logger.error(f"Network error forwarding request: {e}")
-
-                # Notify circuit breaker of failure
-                if state.config.middleware.circuit_breaker.enabled:
-                    for middleware in state.pipeline.middleware:
-                        if isinstance(middleware, CircuitBreaker):
-                            await middleware.on_failure()
-
-                raise HTTPException(
-                    status_code=503,
-                    detail=f"Network error: {str(e)}"
-                )
-
-    # Add messages endpoint (Anthropic-compatible)
     @app.post("/v1/messages")
     async def messages(request: Request):
         """
@@ -370,7 +360,11 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 openai_messages.append({"role": role, "content": content})
             elif isinstance(content, list):
                 # Handle content blocks (text, images, etc.)
-                text_blocks = [block.get("text", "") for block in content if block.get("type") == "text"]
+                text_blocks = [
+                    block.get("text", "")
+                    for block in content
+                    if block.get("type") == "text"
+                ]
                 combined_content = "\n".join(text_blocks)
                 openai_messages.append({"role": role, "content": combined_content})
 
@@ -379,7 +373,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "model": model,
             "messages": openai_messages,
             "max_tokens": max_tokens,
-            "stream": stream
+            "stream": stream,
         }
 
         if system:
@@ -389,7 +383,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         context = {
             "request_body": openai_request,
             "request_headers": dict(request.headers),
-            "original_format": "anthropic"
+            "original_format": "anthropic",
         }
 
         # Process request through middleware pipeline
@@ -410,14 +404,16 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     f"{state.config.backend_url}/v1/chat/completions",
                     json=openai_request,
                     headers=backend_headers,
-                    timeout=300.0
+                    timeout=300.0,
                 )
                 response.raise_for_status()
 
                 response_data = response.json()
 
                 # Process response through middleware pipeline
-                response_data = await state.pipeline.process_response(response_data, context)
+                response_data = await state.pipeline.process_response(
+                    response_data, context
+                )
 
                 # Translate back to Anthropic format if needed
                 if context.get("original_format") == "anthropic":
@@ -433,14 +429,22 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                         "model": response_data.get("model", model),
                         "stop_reason": choice.get("finish_reason", "stop"),
                         "usage": {
-                            "input_tokens": response_data.get("usage", {}).get("prompt_tokens", 0),
-                            "output_tokens": response_data.get("usage", {}).get("completion_tokens", 0)
-                        }
+                            "input_tokens": response_data.get("usage", {}).get(
+                                "prompt_tokens", 0
+                            ),
+                            "output_tokens": response_data.get("usage", {}).get(
+                                "completion_tokens", 0
+                            ),
+                        },
                     }
 
-                    return JSONResponse(content=anthropic_response, status_code=response.status_code)
+                    return JSONResponse(
+                        content=anthropic_response, status_code=response.status_code
+                    )
 
-                return JSONResponse(content=response_data, status_code=response.status_code)
+                return JSONResponse(
+                    content=response_data, status_code=response.status_code
+                )
 
             except httpx.HTTPError as e:
                 logger.error(f"Error forwarding request: {e}")
@@ -451,41 +455,199 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                         if isinstance(middleware, CircuitBreaker):
                             await middleware.on_failure()
 
-                raise HTTPException(
-                    status_code=503,
-                    detail=f"Backend error: {str(e)}"
-                )
+                raise HTTPException(status_code=503, detail=f"Backend error: {str(e)}")
 
     # Add metrics endpoint for Prometheus
     if PROMETHEUS_AVAILABLE:
+
         @app.get("/metrics")
         async def metrics():
             """Prometheus metrics endpoint."""
             return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
     else:
+
         @app.get("/metrics")
         async def metrics():
             """Prometheus metrics endpoint (not available)."""
             raise HTTPException(
                 status_code=501,
-                detail="Prometheus metrics not available. Install prometheus-client package."
+                detail="Prometheus metrics not available. Install prometheus-client package.",
             )
 
     return app
+
+
+async def stream_backend_response(
+    backend_url: str,
+    body: dict,
+    headers: dict,
+    pipeline: MiddlewarePipeline,
+    context: dict,
+    config: GatewayConfig,
+):
+    """
+    Stream backend response line by line.
+
+    Args:
+        backend_url: Backend URL
+        body: Request body
+        headers: Request headers
+        pipeline: Middleware pipeline
+        context: Request context
+        config: Gateway configuration
+
+    Yields:
+        SSE formatted response chunks
+    """
+    async with httpx.AsyncClient(timeout=300.0) as client:
+        try:
+            async with client.stream(
+                "POST", f"{backend_url}/v1/chat/completions", json=body, headers=headers
+            ) as response:
+                # Check for HTTP errors
+                if response.status_code >= 400:
+                    error_text = await response.aread()
+                    error_detail = f"Backend error {response.status_code}: {error_text.decode()[:200]}"
+
+                    # Notify circuit breaker of failure
+                    if config.middleware.circuit_breaker.enabled:
+                        for middleware in pipeline.middleware:
+                            if isinstance(middleware, CircuitBreaker):
+                                await middleware.on_failure()
+
+                    # Yield error as SSE comment
+                    yield f" data: {{'error': '{error_detail}'}}\n\n"
+                    return
+
+                # Stream response line by line
+                async for line in response.aiter_lines():
+                    if line:
+                        # Pass through SSE format
+                        yield f"{line}\n"
+
+                # Notify circuit breaker of success
+                if config.middleware.circuit_breaker.enabled:
+                    for middleware in pipeline.middleware:
+                        if isinstance(middleware, CircuitBreaker):
+                            await middleware.on_success()
+
+        except httpx.HTTPError as e:
+            logger.error(f"Network error in streaming request: {e}")
+
+            # Notify circuit breaker of failure
+            if config.middleware.circuit_breaker.enabled:
+                for middleware in pipeline.middleware:
+                    if isinstance(middleware, CircuitBreaker):
+                        await middleware.on_failure()
+
+            yield f" data: {{'error': 'Network error: {str(e)}'}}\n\n"
+
+
+async def handle_non_streaming_request(
+    backend_url: str,
+    body: dict,
+    headers: dict,
+    pipeline: MiddlewarePipeline,
+    context: dict,
+    config: GatewayConfig,
+):
+    """
+    Handle non-streaming request.
+
+    Args:
+        backend_url: Backend URL
+        body: Request body
+        headers: Request headers
+        pipeline: Middleware pipeline
+        context: Request context
+        config: Gateway configuration
+
+    Returns:
+        JSON response
+    """
+    async with httpx.AsyncClient(timeout=300.0) as client:
+        try:
+            response = await client.post(
+                f"{backend_url}/v1/chat/completions", json=body, headers=headers
+            )
+
+            # Check for HTTP errors
+            if response.status_code >= 400:
+                error_detail = f"Backend error {response.status_code}"
+
+                # Try to extract error details from response
+                try:
+                    error_json = response.json()
+                    if "error" in error_json:
+                        error_msg = error_json["error"].get(
+                            "message", str(error_json["error"])
+                        )
+                        error_detail = f"{error_detail}: {error_msg}"
+                    else:
+                        error_detail = f"{error_detail}: {error_json}"
+                except Exception:
+                    # If response isn't JSON, use text
+                    if response.text:
+                        error_detail = f"{error_detail}: {response.text[:200]}"
+
+                logger.error(f"Backend error: {error_detail}")
+
+                # Notify circuit breaker of failure
+                if config.middleware.circuit_breaker.enabled:
+                    for middleware in pipeline.middleware:
+                        if isinstance(middleware, CircuitBreaker):
+                            await middleware.on_failure()
+
+                # Return appropriate status code
+                status_code = (
+                    503 if response.status_code >= 500 else response.status_code
+                )
+                raise HTTPException(status_code=status_code, detail=error_detail)
+
+            # Parse JSON response
+            try:
+                response_data = response.json()
+            except Exception as e:
+                logger.error(f"Failed to parse backend response as JSON: {e}")
+                logger.error(f"Response text: {response.text[:500]}")
+                raise HTTPException(
+                    status_code=502, detail=f"Invalid response from backend: {str(e)}"
+                )
+
+            # Process response through middleware pipeline (reverse order)
+            response_data = await pipeline.process_response(response_data, context)
+
+            # Notify circuit breaker of success
+            if config.middleware.circuit_breaker.enabled:
+                for middleware in pipeline.middleware:
+                    if isinstance(middleware, CircuitBreaker):
+                        await middleware.on_success()
+
+            return JSONResponse(content=response_data, status_code=response.status_code)
+
+        except httpx.HTTPError as e:
+            logger.error(f"Network error forwarding request: {e}")
+
+            # Notify circuit breaker of failure
+            if config.middleware.circuit_breaker.enabled:
+                for middleware in pipeline.middleware:
+                    if isinstance(middleware, CircuitBreaker):
+                        await middleware.on_failure()
+
+            raise HTTPException(status_code=503, detail=f"Network error: {str(e)}")
+
+    # Add messages endpoint (Anthropic-compatible)
 
 
 def main():
     """Main entry point for running the gateway."""
     import uvicorn
 
-    config = GatewayConfig.load_from_env()
+    config = GatewayConfig()
     app = create_app(config)
 
     uvicorn.run(
-        app,
-        host=config.gateway_host,
-        port=config.gateway_port,
-        log_level="info"
+        app, host=config.gateway_host, port=config.gateway_port, log_level="info"
     )
 
 
@@ -494,4 +656,13 @@ if __name__ == "__main__":
 
 # Create app for uvicorn when imported as module
 # This is needed when uvicorn imports with: ai_inference_gateway.main:app
-app = create_app()
+try:
+    app = create_app()
+    if app is None:
+        raise RuntimeError("Failed to create FastAPI app - check logs for errors")
+except Exception as e:
+    print(f"ERROR: Failed to create app: {e}")
+    import traceback
+
+    traceback.print_exc()
+    raise

@@ -38,7 +38,7 @@
     ../../modules/desktop/spotify-spicetify.nix
 
     # Network modules
-    # ../../modules/network/switch-orchestration.nix  # TODO: Fix string escaping issues
+    # ../../modules/network/switch-orchestration.nix  # Temporarily disabled due to errors
   ];
 
   # ============================================================================
@@ -152,6 +152,11 @@
   # };
 
   # ============================================================================
+  # REDIS - For gateway rate limiting and caching
+  # ============================================================================
+  services.redis.servers."".enable = true;
+
+  # ============================================================================
   # AI INFERENCE SERVICE - Gateway with authentication and metrics
   # Gateway routes to LM Studio backend with API token authentication
   # Backend: LM Studio on port 1234
@@ -201,7 +206,7 @@
   # DISABLED: Mining conflicts with AI inference services (LM Studio)
   # Re-enable when AI services are not in use
   # ============================================================================
-  services.mining.enable = false;
+  services.mining.enable = true;
 
   # ============================================================================
   # MULTIMEDIA - GStreamer support for Qt/KDE applications
@@ -238,8 +243,11 @@
     apiPort = 4068;
   };
 
-  # XMRig CPU mining
-  services.mining.xmrig.enable = true;
+  # XMRig CPU mining (16 threads)
+  services.mining.xmrig = {
+    enable = true;
+    threads = 16;
+  };
 
   # ============================================================================
   # PER-GPU POWER LIMITS
@@ -301,7 +309,6 @@
   services.monitoring.grafana.enable = true;
 
   # TP-Link Switch Orchestration
-  # TODO: Re-enable after fixing string escaping issues in switch-orchestration.nix
   # networking.switch-orchestration = {
   #   enable = true;
   #   credentials.username = "admin";
