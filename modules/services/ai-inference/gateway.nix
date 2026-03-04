@@ -2391,9 +2391,15 @@ let
                     return {"hit": False}
 
                 except Exception as e:
-                    print("⚠ Semantic cache get error: {}".format(e))
+                    logger.error(
+                        "Semantic cache get failed",
+                        extra={"error": str(e), "cache_type": "semantic"}
+                    )
                     import traceback
-                    print("⚠ Traceback: {}".format(traceback.format_exc()))
+                    logger.debug(
+                        "Exception traceback",
+                        extra={"traceback": traceback.format_exc()}
+                    )
                     cache_misses.labels(cache_type="semantic").inc()
                     return {"hit": False}
 

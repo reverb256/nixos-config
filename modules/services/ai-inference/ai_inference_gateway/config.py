@@ -294,15 +294,3 @@ class GatewayConfig(BaseSettings):
                 return None
 
         return None
-
-    class Config:
-        """Configuration for Pydantic settings"""
-
-        # Allow extra fields for forward compatibility
-        extra = "ignore"
-
-        # Validate on assignment
-        validate_assignment = True
-
-        # Use enum values
-        use_enum_values = True
