@@ -27,6 +27,7 @@ let
     ps.sentence-transformers
     ps.rank-bm25
     ps.numpy
+    ps.redis
   ]);
 
   # Gateway main.py v2
@@ -157,6 +158,48 @@ let
         ['model', 'format_type'], registry=registry)
     tool_calls = Counter('ai_inference_tool_calls_total', 'Tool/function calls',
         ['model', 'tool_name'], registry=registry)
+
+    # ============================================================================
+    # USAGE ANALYTICS - Enhanced metrics for dashboard
+    # ============================================================================
+
+    # Token usage metrics
+    total_tokens = Counter('ai_inference_total_tokens_total',
+        'Total tokens processed', ['model', 'backend', 'token_type'], registry=registry)
+
+    tokens_per_request = Histogram('ai_inference_tokens_per_request',
+        'Tokens per request', ['model'],
+        buckets=[100, 500, 1000, 2000, 4000, 8000, 16000, 32000], registry=registry)
+
+    # Cost tracking (estimated costs per 1M tokens)
+    cost_tracker = Counter('ai_inference_cost_usd_total',
+        'Estimated cost in USD', ['model', 'backend'],
+        registry=registry)
+
+    # Cache performance
+    cache_hits = Counter('ai_inference_cache_hits_total',
+        'Cache hits', ['cache_type'], registry=registry)
+    cache_misses = Counter('ai_inference_cache_misses_total',
+        'Cache misses', ['cache_type'], registry=registry)
+
+    # Error tracking
+    errors_total = Counter('ai_inference_errors_total',
+        'Total errors', ['model', 'backend', 'error_type'], registry=registry)
+
+    # Rate limiting
+    rate_limit_hits = Counter('ai_inference_rate_limit_hits_total',
+        'Rate limit violations', ['client_ip'], registry=registry)
+
+    # Model usage patterns
+    model_switches = Counter('ai_inference_model_switches_total',
+        'Model routing decisions', ['from_model', 'to_model', 'reason'], registry=registry)
+
+    # Streaming metrics
+    streaming_chunks = Counter('ai_inference_streaming_chunks_total',
+        'Streaming chunks sent', ['model'], registry=registry)
+    streaming_duration = Histogram('ai_inference_streaming_duration_seconds',
+        'Streaming duration', ['model'],
+        buckets=[1.0, 5.0, 10.0, 30.0, 60.0, 120.0], registry=registry)
 
     # ============================================================================
     # SECURITY LAYER
@@ -481,6 +524,29 @@ let
             )
 
     router = Router()
+
+    # Simple latency tracker for routing optimization
+    class SimpleLatencyTracker:
+        """Track model response times for latency-aware routing."""
+        def __init__(self):
+            self.latencies = {}
+
+        async def record_latency(self, model: str, latency_ms: float):
+            """Record a latency measurement."""
+            if model not in self.latencies:
+                self.latencies[model] = []
+            self.latencies[model].append(latency_ms)
+            # Keep only last 100 measurements
+            if len(self.latencies[model]) > 100:
+                self.latencies[model] = self.latencies[model][-100:]
+
+        async def get_avg_latency(self, model: str):
+            """Get average latency for a model."""
+            if model not in self.latencies or not self.latencies[model]:
+                return None
+            return sum(self.latencies[model]) / len(self.latencies[model])
+
+    latency_tracker = SimpleLatencyTracker()
 
     # ============================================================================
     # BACKEND POOL & CIRCUIT BREAKER
@@ -1051,6 +1117,135 @@ Requirements:
 
         return JSONResponse(health_data)
 
+    @app.get("/usage")
+    async def usage_analytics(
+        start_date: str = None,
+        end_date: str = None,
+        model: str = None,
+        backend: str = None
+    ):
+        """
+        Usage analytics endpoint.
+
+        Query parameters:
+        - start_date: Start date (ISO format)
+        - end_date: End date (ISO format)
+        - model: Filter by model
+        - backend: Filter by backend
+        """
+        # This would typically query a time-series database
+        # For now, return current Prometheus metrics summary
+        from prometheus_client import Counter as PrometheusCounter
+
+        def get_counter_value(counter: PrometheusCounter, labels: dict = None) -> float:
+            """Get current value of a counter metric using proper API."""
+            try:
+                if labels:
+                    metric = counter.labels(**labels)
+                    samples = list(metric.collect())[0].samples
+                    return samples[0].value if samples else 0.0
+                else:
+                    # Get all samples and sum them
+                    samples = list(counter.collect())[0].samples
+                    return sum(s.value for s in samples)
+            except Exception:
+                return 0.0
+
+        usage_data = {
+            "period": {
+                "start": start_date or "last 24 hours",
+                "end": end_date or "now"
+            },
+            "summary": {
+                "total_requests": int(get_counter_value(request_counter)),
+                "active_requests": int(active_requests._value.get() if hasattr(active_requests, '_value') else 0),
+                "total_prompt_tokens": int(get_counter_value(prompt_tokens)),
+                "total_completion_tokens": int(get_counter_value(completion_tokens)),
+                "estimated_cost_usd": round(float(get_counter_value(cost_tracker)), 4)
+            },
+            "by_model": {},
+            "by_backend": {},
+            "errors": {
+                "total": int(get_counter_value(errors_total)),
+                "by_type": {}
+            },
+            "performance": {
+                "avg_request_duration": "N/A",
+                "avg_tokens_per_second": "N/A",
+                "p95_request_duration": "N/A"
+            }
+        }
+
+        # Add per-model breakdown
+        try:
+            for model_name in [selected_model]:
+                if model_name and (not model or model == model_name):
+                    usage_data["by_model"][model_name] = {
+                        "requests": int(get_counter_value(request_counter, {"model": model_name})),
+                        "prompt_tokens": int(get_counter_value(prompt_tokens, {"model": model_name})),
+                        "completion_tokens": int(get_counter_value(completion_tokens, {"model": model_name}))
+                    }
+        except Exception:
+            pass
+
+        return JSONResponse(usage_data)
+
+    # ============================================================================
+    # SEMANTIC CACHE MANAGEMENT ENDPOINTS
+    # ============================================================================
+
+    @app.get("/cache/stats")
+    async def cache_stats():
+        """Get semantic cache statistics."""
+        if not semantic_cache or not semantic_cache.enabled:
+            return JSONResponse({"enabled": False, "message": "Semantic cache not enabled"})
+
+        stats = await semantic_cache.get_stats()
+
+        # Get cache metrics using proper Prometheus API
+        def get_metric_value(metric, labels_dict):
+            try:
+                labeled_metric = metric.labels(**labels_dict)
+                samples = list(labeled_metric.collect())[0].samples
+                return int(samples[0].value) if samples else 0
+            except Exception:
+                return 0
+
+        stats["metrics"] = {
+            "hits": get_metric_value(cache_hits, {"cache_type": "semantic"}),
+            "misses": get_metric_value(cache_misses, {"cache_type": "semantic"})
+        }
+        if stats["metrics"]["hits"] or stats["metrics"]["misses"]:
+            stats["hit_rate"] = stats["metrics"]["hits"] / (stats["metrics"]["hits"] + stats["metrics"]["misses"])
+        else:
+            stats["hit_rate"] = 0.0
+
+        return JSONResponse(stats)
+
+    @app.post("/cache/invalidate")
+    async def cache_invalidate(
+        model: str = None,
+        older_than: int = None
+    ):
+        """Invalidate cache entries.
+
+        Parameters:
+        - model: Only invalidate entries for this model
+        - older_than: Invalidate entries older than this many seconds
+        """
+        if not semantic_cache or not semantic_cache.enabled:
+            raise HTTPException(status_code=400, detail="Semantic cache not enabled")
+
+        await semantic_cache.invalidate(model=model, older_than=older_than)
+
+        return JSONResponse({
+            "status": "success",
+            "invalidated": {
+                "model": model or "all",
+                "older_than_seconds": older_than or "all"
+            }
+        })
+
     @app.get("/metrics")
     async def metrics():
         """Prometheus metrics."""
@@ -1205,20 +1400,60 @@ Requirements:
 
                         if retrieval_result.chunks:
                             rag_context = rag_engine.format_context(retrieval_result)
-                            rag_used = True
 
-                            # Inject context into messages
-                            system_prompt = body.get("rag_system_prompt",
-                                "Use the following retrieved context to answer the user's question. " +
-                                "If the context doesn't contain relevant information, say so.")
+            # Semantic Caching: Check for similar cached responses
+            use_cache = body.get("use_cache", True)  # Enable by default
+            cache_result = None
 
-                            context_message = {
-                                "role": "system",
-                                "content": f"{system_prompt}\n\nRetrieved Context:\n{rag_context}"
-                            }
+            if use_cache and semantic_cache is not None and semantic_cache.enabled:
+                # Generate query embedding from messages
+                query_text = " ".join(["{}: {}".format(msg.get("role", ""), msg.get("content", "")) for msg in messages[-3:]])
+                query_embedding = await rag_engine.embed_text(query_text)
 
-                            # Insert context before user messages
-                            body["messages"] = [context_message] + messages
+                if query_embedding:
+                    # Check cache
+                    cache_result = await semantic_cache.get(
+                        query_embedding=query_embedding,
+                        model=selected_model,
+                        threshold=0.75  # Lower threshold for more cache hits
+                    )
+
+                    if cache_result and cache_result.get("hit"):
+                        print("  ✓ Cache hit! (score: {:.3f})".format(cache_result["score"]))
+
+                        # Return cached response
+                        cached_response = cache_result["response"]
+
+                        # Update metadata
+                        cached_response.setdefault("usage", {})["cache_hit"] = True
+                        cached_response.setdefault("usage", {})["cache_score"] = cache_result["score"]
+                        cached_response.setdefault("usage", {})["cached_at"] = cache_result["cached_at"]
+
+                        request_counter.labels(
+                            model=selected_model,
+                            status="cache_hit",
+                            backend="semantic_cache",
+                            auth_mode=auth_result["tier"]
+                        ).inc()
+
+                        return JSONResponse(cached_response, status_code=200)
+
+            # RAG: Inject retrieved context into messages
+            if rag_context:
+                rag_used = True
+
+                # Inject context into messages
+                system_prompt = body.get("rag_system_prompt",
+                    "Use the following retrieved context to answer the user's question. " +
+                    "If the context doesn't contain relevant information, say so.")
+
+                context_message = {
+                    "role": "system",
+                    "content": "{}\n\nRetrieved Context:\n{}".format(system_prompt, rag_context)
+                }
+
+                # Insert context before user messages
+                body["messages"] = [context_message] + messages
 
             # Make request with fallback
             stream = body.get("stream", False)
@@ -1287,13 +1522,39 @@ Requirements:
                             usage.get("completion_tokens", 0)
                         )
 
-                    # Record prediction stats
-                    time_to_first_token.labels(model=selected_model, backend=effective_backend.url).observe(
-                        prediction_stats.time_to_first_token
-                    )
-                    tokens_per_second.labels(model=selected_model, backend=effective_backend.url).observe(
-                        prediction_stats.tokens_per_second
-                    )
+                        # Enhanced usage analytics (temporarily disabled due to metric conflicts)
+                        # TODO: Fix metric label conflicts and re-enable
+                        # total_tokens.labels(
+                        #     model=selected_model,
+                        #     backend=effective_backend.url,
+                        #     token_type="prompt"
+                        # ).inc(usage.get("prompt_tokens", 0))
+                        #
+                        # total_tokens.labels(
+                        #     model=selected_model,
+                        #     backend=effective_backend.url,
+                        #     token_type="completion"
+                        # ).inc(usage.get("completion_tokens", 0))
+                        #
+                        # tokens_per_request.labels(model=selected_model).observe(
+                        #     usage.get("total_tokens", 0)
+                        # )
+                        #
+                        # # Cost estimation
+                        # cost_per_million = 0.0
+                        # if "zai" in effective_backend.url.lower():
+                        #     cost_per_million = 2.0
+                        #
+                        # total_prompt_tokens = usage.get("prompt_tokens", 0)
+                        # total_completion_tokens = usage.get("completion_tokens", 0)
+                        # estimated_cost = (
+                        #     (total_prompt_tokens / 1_000_000) * cost_per_million +
+                        #     (total_completion_tokens / 1_000_000) * cost_per_million * 2
+                        # )
+                        # cost_tracker.labels(
+                        #     model=selected_model,
+                        #     backend=effective_backend.url
+                        # ).inc(estimated_cost)
 
                 duration = time.time() - start_time
                 request_duration.labels(model=selected_model, backend=effective_backend.url).observe(duration)
@@ -1340,6 +1601,28 @@ Requirements:
 
                     # Prediction statistics
                     result["prediction_stats"] = prediction_stats.to_dict()
+
+                # Semantic Caching: Store successful responses
+                if use_cache and semantic_cache is not None and semantic_cache.enabled and backend_resp.status_code == 200:
+                    # Generate query embedding for caching
+                    query_text = " ".join(["{}: {}".format(msg.get("role", ""), msg.get("content", "")) for msg in messages[-3:]])
+                    query_embedding = await rag_engine.embed_text(query_text)
+
+                    if query_embedding:
+                        # Store in cache asynchronously (don't block response)
+                        import asyncio
+                        asyncio.create_task(
+                            semantic_cache.set(
+                                query_embedding=query_embedding,
+                                response=result,
+                                model=selected_model,
+                                metadata={
+                                    "prompt_tokens": prediction_stats.prompt_tokens,
+                                    "completion_tokens": prediction_stats.completion_tokens,
+                                    "request_id": request_id
+                                }
+                            )
+                        )
 
                 return JSONResponse(result, status_code=backend_resp.status_code)
 
@@ -1922,6 +2205,183 @@ Requirements:
 
             return "\n\n".join(context_parts)
 
+    class SemanticCache:
+        """Semantic caching layer for LLM responses using Qdrant."""
+
+        def __init__(self, qdrant_url: str, embedding_model_name: str):
+            self.qdrant_url = qdrant_url
+            self.embedding_model_name = embedding_model_name
+            self.embedding_model = None
+            self.qdrant_client = None
+            self.cache_collection = "semantic_cache"
+            self.enabled = True
+            self._initialize()
+
+        def _initialize(self):
+            """Initialize semantic cache."""
+            try:
+                from sentence_transformers import SentenceTransformer
+                from qdrant_client import QdrantClient
+                from qdrant_client.models import Distance, VectorParams, PointStruct
+
+                print("🔄 Initializing semantic cache...")
+
+                # Share embedding model with RAG
+                self.embedding_model = SentenceTransformer(self.embedding_model_name)
+                self.qdrant_client = QdrantClient(url=self.qdrant_url)
+
+                # Create cache collection if it doesn't exist
+                collections = self.qdrant_client.get_collections().collections
+                collection_names = [c.name for c in collections]
+
+                if self.cache_collection not in collection_names:
+                    self.qdrant_client.create_collection(
+                        collection_name=self.cache_collection,
+                        vectors_config=VectorParams(size=768, distance=Distance.COSINE)
+                    )
+                    print(f"  ✓ Created cache collection: {self.cache_collection}")
+
+                print("✓ Semantic cache initialized")
+
+            except Exception as e:
+                print(f"⚠ Semantic cache initialization failed: {e}")
+                self.enabled = False
+
+        async def get_cache_key(self, messages: List[Dict], model: str, params: Dict) -> str:
+            """Generate a cache key from request parameters."""
+            # Include messages, model, and key params in the key
+            key_data = {
+                "model": model,
+                "temperature": params.get("temperature", 1.0),
+                "max_tokens": params.get("max_tokens", 4096),
+                "messages": messages
+            }
+            return hashlib.sha256(json.dumps(key_data, sort_keys=True).encode()).hexdigest()
+
+        async def get(self, query_embedding: List[float], model: str, threshold: float = 0.85) -> Dict:
+            """Retrieve cached response if semantically similar query exists."""
+            if not self.enabled:
+                return None
+
+            try:
+                from qdrant_client.models import Filter, FieldCondition, MatchValue
+
+                # Use query_points with proper filter syntax
+                search_results = self.qdrant_client.query_points(
+                    collection_name=self.cache_collection,
+                    query=query_embedding,
+                    limit=1,
+                    with_payload=True,
+                    score_threshold=threshold
+                )
+
+                # Check if we got results and filter by model in Python
+                if search_results.points:
+                    for point in search_results.points:
+                        # Check if this point matches our model
+                        if point.payload.get("model") == model and point.score >= threshold:
+                            cache_hits.labels(cache_type="semantic").inc()
+
+                            return {
+                                "hit": True,
+                                "score": point.score,
+                                "response": json.loads(point.payload.get("response", "{}")),
+                                "cached_at": point.payload.get("cached_at"),
+                                "cache_id": point.id
+                            }
+
+                cache_misses.labels(cache_type="semantic").inc()
+                return {"hit": False}
+
+            except Exception as e:
+                print("⚠ Semantic cache get error: {}".format(e))
+                import traceback
+                print("⚠ Traceback: {}".format(traceback.format_exc()))
+                cache_misses.labels(cache_type="semantic").inc()
+                return {"hit": False}
+
+        async def set(self, query_embedding: List[float], response: Dict, model: str, metadata: Dict = None):
+            """Store response in semantic cache."""
+            if not self.enabled:
+                return
+
+            try:
+                from qdrant_client.models import PointStruct
+                import time
+                import uuid
+
+                # Create cache point with UUID (Qdrant requires UUID or int IDs)
+                point_id = str(uuid.uuid4())
+
+                cache_point = PointStruct(
+                    id=point_id,
+                    vector=query_embedding,
+                    payload={
+                        "response": json.dumps(response),
+                        "model": model,
+                        "cached_at": time.time(),
+                        **(metadata or {})
+                    }
+                )
+
+                self.qdrant_client.upsert(
+                    collection_name=self.cache_collection,
+                    points=[cache_point]
+                )
+
+                print("  ✓ Cached response (ID: {}...)".format(point_id[:8]))
+
+            except Exception as e:
+                print("⚠ Semantic cache set error: {}".format(e))
+                import traceback
+                print("⚠ Traceback: {}".format(traceback.format_exc()))
+
+        async def invalidate(self, model: str = None, older_than: int = None):
+            """Invalidate cache entries."""
+            if not self.enabled:
+                return
+
+            try:
+                from qdrant_client.models import Filter, FieldCondition, MatchValue, Range
+
+                filters = []
+                if model:
+                    filters.append(FieldCondition(key="model", match=MatchValue(value=model)))
+
+                if older_than:
+                    cutoff_time = time.time() - older_than
+                    filters.append(
+                        FieldCondition(key="cached_at", range=Range(lt=cutoff_time))
+                    )
+
+                if filters:
+                    self.qdrant_client.delete(
+                        collection_name=self.cache_collection,
+                        points_selector=Filter(must=filters)
+                    )
+                    print("  ✓ Invalidated cache entries")
+
+            except Exception as e:
+                print("⚠ Cache invalidation error: {}".format(e))
+
+        async def get_stats(self) -> Dict:
+            """Get cache statistics."""
+            if not self.enabled:
+                return {"enabled": False}
+
+            try:
+                collection_info = self.qdrant_client.get_collection(self.cache_collection)
+                return {
+                    "enabled": True,
+                    "total_entries": collection_info.points_count,
+                    "collection": self.cache_collection
+                }
+            except Exception as e:
+                return {"enabled": True, "error": str(e)}
+
+    # Initialize semantic cache with updated Qdrant API
+    semantic_cache = SemanticCache(QDRANT_URL, EMBEDDING_MODEL) if RAG_ENABLED else None
+
     rag_engine = RAGEngine()
 
     # ============================================================================
@@ -2189,6 +2649,508 @@ Requirements:
             "total": len(mcp_broker.servers),
             "healthy": sum(1 for h in health.values() if h == "healthy")
         })
+
+    # ============================================================================
+    # ANTHROPIC MESSAGES API (Claude Code Compatibility)
+    # ============================================================================
+
+    @app.post("/v1/messages")
+    async def anthropic_messages(request: Request):
+        """
+        Anthropic Messages API endpoint for Claude Code compatibility.
+
+        This endpoint accepts Anthropic's Messages API format and translates it
+        to OpenAI format for the backend, then translates responses back.
+
+        Claude Code can use this endpoint to access the gateway with full
+        Anthropic API compatibility while the gateway routes to LM Studio or ZAI.
+        """
+        start_time = time.time()
+
+        try:
+            # Validate Anthropic headers
+            anthropic_version = request.headers.get("anthropic-version", "2023-06-01")
+
+            # Authentication (use same auth as gateway)
+            auth_result = await verify_auth(request)
+            if not auth_result.get("allowed"):
+                request_counter.labels(
+                    model="claude-code",
+                    status="unauthorized",
+                    backend="none",
+                    auth_mode=AUTH_MODE
+                ).inc()
+                raise HTTPException(
+                    status_code=401,
+                    detail={
+                        "type": "authentication_error",
+                        "message": "Invalid authentication"
+                    }
+                )
+
+            # Rate limiting
+            client_ip = request.client.host
+            allowed, limit_msg = await rate_limiter.check(client_ip)
+            if not allowed:
+                request_counter.labels(
+                    model="claude-code",
+                    status="rate_limited",
+                    backend="none",
+                    auth_mode=AUTH_MODE
+                ).inc()
+                raise HTTPException(
+                    status_code=429,
+                    detail={
+                        "type": "rate_limit_error",
+                        "message": limit_msg
+                    }
+                )
+
+            # Parse Anthropic request
+            body = await request.json()
+
+            # Validate required fields
+            if "model" not in body:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "type": "invalid_request_error",
+                        "message": "Missing required field: model"
+                    }
+                )
+
+            if "max_tokens" not in body:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "type": "invalid_request_error",
+                        "message": "Missing required field: max_tokens"
+                    }
+                )
+
+            if "messages" not in body or not body["messages"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "type": "invalid_request_error",
+                        "message": "Missing required field: messages"
+                    }
+                )
+
+            # Map Claude model names to available models
+            claude_model = body.get("model", "")
+            model_mapping = {
+                "claude-sonnet-4-20250514": "magnum-opus-35b-a3b-i1",
+                "claude-opus-4-20250514": "magnum-opus-35b-a3b-i1",
+                "claude-sonnet-4": "glm-5",
+                "claude-3-5-sonnet-20250514": "qwen3.5-35b-a3b@q4_k_m",
+            }
+
+            # Get the actual model to use
+            selected_model = model_mapping.get(claude_model, claude_model)
+
+            # Translate Anthropic format to OpenAI format
+            messages = body.get("messages", [])
+            system_prompt = body.get("system", None)
+            tools = body.get("tools", [])
+            tool_choice = body.get("tool_choice", "auto")
+
+            # Convert Anthropic tools format to OpenAI format
+            openai_tools = []
+            if tools:
+                for tool in tools:
+                    openai_tool = {
+                        "type": "function",
+                        "function": {
+                            "name": tool.get("name", ""),
+                            "description": tool.get("description", ""),
+                            "parameters": tool.get("input_schema", {})
+                        }
+                    }
+                    openai_tools.append(openai_tool)
+
+            # Convert tool_choice from Anthropic to OpenAI format
+            # Anthropic: {"type": "auto"} or {"type": "any"} or {"type": "tool", "name": "tool_name"}
+            # OpenAI: "auto" or "any" or {"type": "function", "function": {"name": "tool_name"}}
+            openai_tool_choice = tool_choice
+            if isinstance(tool_choice, dict):
+                choice_type = tool_choice.get("type", "auto")
+                if choice_type == "auto":
+                    openai_tool_choice = "auto"
+                elif choice_type == "any":
+                    openai_tool_choice = "required"
+                elif choice_type == "tool" and "name" in tool_choice:
+                    openai_tool_choice = {
+                        "type": "function",
+                        "function": {"name": tool_choice["name"]}
+                    }
+
+            # Convert messages - handle tool_result content blocks
+            openai_messages = []
+            if system_prompt:
+                openai_messages.append({
+                    "role": "system",
+                    "content": system_prompt
+                })
+
+            for msg in messages:
+                role = msg.get("role")
+                content = msg.get("content")
+
+                # Handle tool_result blocks (Anthropic) → tool messages (OpenAI)
+                if isinstance(content, list):
+                    tool_results = []
+                    text_content = []
+
+                    for block in content:
+                        if block.get("type") == "tool_result":
+                            tool_results.append({
+                                "tool_call_id": block.get("tool_use_id", ""),
+                                "role": "tool",
+                                "content": json.dumps(block.get("content", {}))
+                            })
+                        elif block.get("type") == "text":
+                            text_content.append(block.get("text", ""))
+
+                    # Add text content if any
+                    if text_content:
+                        openai_messages.append({
+                            "role": role,
+                            "content": "\n".join(text_content)
+                        })
+
+                    # Add tool results
+                    for tr in tool_results:
+                        openai_messages.append(tr)
+
+                elif isinstance(content, str):
+                    # Regular text message
+                    openai_messages.append({
+                        "role": role,
+                        "content": content
+                    })
+                else:
+                    # Fallback for other content types
+                    openai_messages.append({
+                        "role": role,
+                        "content": str(content)
+                    })
+
+            openai_body = {
+                "model": selected_model,
+                "messages": openai_messages,
+                "max_tokens": body.get("max_tokens", 4096),
+                "temperature": body.get("temperature", 1.0),
+                "stream": body.get("stream", False)
+            }
+
+            # Add tools if present
+            if openai_tools:
+                openai_body["tools"] = openai_tools
+                openai_body["tool_choice"] = openai_tool_choice
+
+            # Model routing
+            if ROUTING_ENABLED:
+                route_decision = router.select_model(openai_messages, selected_model)
+                selected_model = route_decision.model
+                target_backend = route_decision.backend
+            else:
+                target_backend = "lm-studio" if selected_model in ["magnum-opus-35b-a3b-i1", "qwen3.5-35b-a3b@q4_k_m"] else "zai"
+
+            # Update request with selected model
+            openai_body["model"] = selected_model
+
+            # Determine backend
+            if target_backend == "zai" and backend.fallback:
+                effective_backend = backend.fallback
+            elif target_backend == "lm-studio":
+                effective_backend = backend.primary
+            else:
+                effective_backend = backend.primary if not backend.fallback_used else backend.fallback
+
+            # Make request to backend
+            stream = openai_body.get("stream", False)
+
+            if stream:
+                # Streaming response with proper Anthropic SSE format conversion
+                import uuid
+                import json
+
+                # Generate message ID upfront
+                message_id = f"msg_{uuid.uuid4().hex[:24]}"
+
+                # Estimate input tokens from messages (rough approximation)
+                input_text = " ".join([m.get("content", "") for m in openai_messages])
+                estimated_input_tokens = max(1, len(input_text) // 4)
+
+                async def generate_anthropic_stream():
+                    """Convert OpenAI SSE format to Anthropic SSE format."""
+                    nonlocal estimated_input_tokens
+                    content_buffer = ""
+                    output_tokens = 0
+                    message_started = False
+                    content_block_started = False
+
+                    try:
+                        async with effective_backend.client.stream(
+                            "POST", "/v1/chat/completions",
+                            json=openai_body,
+                            headers={"Content-Type": "application/json"}
+                        ) as backend_resp:
+                            # Send message_start event first
+                            message_start_event = {
+                                "type": "message_start",
+                                "message": {
+                                    "id": message_id,
+                                    "type": "message",
+                                    "role": "assistant",
+                                    "content": [],
+                                    "model": claude_model,
+                                    "stop_reason": None,
+                                    "stop_sequence": None,
+                                    "usage": {
+                                        "input_tokens": estimated_input_tokens,
+                                        "output_tokens": 0
+                                    }
+                                }
+                            }
+                            yield f"event: message_start\n"
+                            yield f"data: {json.dumps(message_start_event)}\n\n"
+
+                            # Send content_block_start event
+                            content_block_start_event = {
+                                "type": "content_block_start",
+                                "index": 0,
+                                "content_block": {
+                                    "type": "text",
+                                    "text": ""
+                                }
+                            }
+                            yield f"event: content_block_start\n"
+                            yield f"data: {json.dumps(content_block_start_event)}\n\n"
+                            content_block_started = True
+                            message_started = True
+
+                            # Process OpenAI SSE stream
+                            async for chunk_bytes in backend_resp.aiter_bytes():
+                                chunk_str = chunk_bytes.decode("utf-8", errors="ignore")
+
+                                # Parse OpenAI SSE format
+                                for line in chunk_str.split("\n"):
+                                    if line.startswith("data: "):
+                                        data_str = line[6:]  # Remove "data: " prefix
+
+                                        # Check for stream end
+                                        if data_str.strip() == "[DONE]":
+                                            continue
+
+                                        try:
+                                            data = json.loads(data_str)
+                                            choices = data.get("choices", [])
+
+                                            if choices:
+                                                delta = choices[0].get("delta", {})
+                                                content = delta.get("content", "")
+
+                                                if content:
+                                                    # Send content_block_delta event
+                                                    content_block_delta_event = {
+                                                        "type": "content_block_delta",
+                                                        "index": 0,
+                                                        "delta": {
+                                                            "type": "text_delta",
+                                                            "text": content
+                                                        }
+                                                    }
+                                                    yield f"event: content_block_delta\n"
+                                                    yield f"data: {json.dumps(content_block_delta_event)}\n\n"
+
+                                                    content_buffer += content
+                                                    # Approximate token count (rough estimate: ~4 chars per token)
+                                                    output_tokens = len(content_buffer) // 4
+
+                                        except json.JSONDecodeError:
+                                            # Skip invalid JSON lines
+                                            continue
+
+                            # Send content_block_stop event
+                            content_block_stop_event = {
+                                "type": "content_block_stop",
+                                "index": 0
+                            }
+                            yield f"event: content_block_stop\n"
+                            yield f"data: {json.dumps(content_block_stop_event)}\n\n"
+
+                            # Send message_delta event with usage
+                            message_delta_event = {
+                                "type": "message_delta",
+                                "delta": {
+                                    "stop_reason": "end_turn",
+                                    "stop_sequence": None
+                                },
+                                "usage": {
+                                    "output_tokens": output_tokens
+                                }
+                            }
+                            yield f"event: message_delta\n"
+                            yield f"data: {json.dumps(message_delta_event)}\n\n"
+
+                            # Send message_stop event
+                            message_stop_event = {
+                                "type": "message_stop"
+                            }
+                            yield f"event: message_stop\n"
+                            yield f"data: {json.dumps(message_stop_event)}\n\n"
+
+                    except Exception as e:
+                        print(f"Stream error: {e}")
+                        # Send error event if stream fails
+                        if message_started:
+                            error_event = {
+                                "type": "error",
+                                "error": {
+                                    "type": "internal_error",
+                                    "message": str(e)
+                                }
+                            }
+                            yield f"event: error\n"
+                            yield f"data: {json.dumps(error_event)}\n\n"
+                    finally:
+                        duration = time.time() - start_time
+                        latency_ms = duration * 1000
+                        await latency_tracker.record_latency(selected_model, latency_ms)
+
+                return StreamingResponse(generate_anthropic_stream(), media_type="text/event-stream")
+
+            else:
+                # Non-streaming response
+                backend_resp = await effective_backend.request("POST", "/v1/chat/completions", json=openai_body)
+                openai_response = backend_resp.json()
+
+                duration = time.time() - start_time
+
+                # Track latency
+                latency_ms = duration * 1000
+                await latency_tracker.record_latency(selected_model, latency_ms)
+
+                # Translate OpenAI response to Anthropic format
+                choices = openai_response.get("choices", [])
+                if choices:
+                    message = choices[0].get("message", {})
+                    content = message.get("content", "")
+                    tool_calls = message.get("tool_calls", [])
+
+                    # Generate Anthropic-style message ID
+                    import uuid
+                    message_id = f"msg_{uuid.uuid4().hex[:24]}"
+
+                    # Detect and handle tool calls
+                    if tool_calls:
+                        # Convert OpenAI tool_calls to Anthropic content blocks with tool_use
+                        anthropic_content = []
+                        if content:
+                            # Add text content first
+                            anthropic_content.append({
+                                "type": "text",
+                                "text": content
+                            })
+
+                        # Convert each tool call to tool_use block
+                        for tool_call in tool_calls:
+                            tool_call_id = tool_call.get("id", f"toolu_{uuid.uuid4().hex[:24]}")
+                            function = tool_call.get("function", {})
+                            tool_name = function.get("name", "")
+                            arguments_str = function.get("arguments", "{}")
+
+                            # Parse arguments if they're a string
+                            try:
+                                if isinstance(arguments_str, str):
+                                    arguments = json.loads(arguments_str)
+                                else:
+                                    arguments = arguments_str
+                            except:
+                                arguments = {}
+
+                            anthropic_content.append({
+                                "type": "tool_use",
+                                "id": tool_call_id,
+                                "name": tool_name,
+                                "input": arguments
+                            })
+
+                            # Track tool calls in metrics
+                            tool_calls.labels(model=selected_model, tool_name=tool_name).inc()
+
+                        anthropic_response = {
+                            "id": message_id,
+                            "type": "message",
+                            "role": "assistant",
+                            "content": anthropic_content,
+                            "model": claude_model,
+                            "stop_reason": "tool_calls",
+                            "usage": openai_response.get("usage", {}),
+                            "_gateway": openai_response.get("gateway_routing", {
+                                "backend": "zai" if effective_backend == backend.fallback else "lm-studio",
+                                "backend_url": effective_backend.url,
+                                "model": selected_model,
+                                "routing_reason": f"Claude model '{claude_model}' mapped to {selected_model}",
+                                "tool_calls_detected": len(tool_calls),
+                                "tool_names": [tc.get("function", {}).get("name", "") for tc in tool_calls]
+                            })
+                        }
+                    else:
+                        # Regular text response
+                        anthropic_response = {
+                            "id": message_id,
+                            "type": "message",
+                            "role": "assistant",
+                            "content": content,
+                            "model": claude_model,
+                            "stop_reason": choices[0].get("finish_reason", "end_turn"),
+                            "usage": openai_response.get("usage", {}),
+                            "_gateway": openai_response.get("gateway_routing", {
+                                "backend": "zai" if effective_backend == backend.fallback else "lm-studio",
+                                "backend_url": effective_backend.url,
+                                "model": selected_model,
+                                "routing_reason": f"Claude model '{claude_model}' mapped to {selected_model}"
+                            })
+                        }
+                else:
+                    # Error response
+                    anthropic_response = {
+                        "type": "error",
+                        "error": {
+                            "type": "internal_error",
+                            "message": "No response from backend"
+                        }
+                    }
+
+                request_counter.labels(
+                    model=selected_model,
+                    status="success" if backend_resp.status_code == 200 else "error",
+                    backend=effective_backend.url,
+                    auth_mode=auth_result["tier"]
+                ).inc()
+
+                return JSONResponse(anthropic_response, status_code=backend_resp.status_code)
+
+        except HTTPException as e:
+            raise e
+        except Exception as e:
+            print(f"Anthropic API error: {e}")
+            request_counter.labels(
+                model="claude-code",
+                status="error",
+                backend="none",
+                auth_mode=AUTH_MODE
+            ).inc()
+            return JSONResponse({
+                "type": "error",
+                "error": {
+                    "type": "internal_error",
+                    "message": str(e)
+                }
+            }, status_code=500)
 
     @app.on_event("shutdown")
     async def shutdown_mcp():
