@@ -76,6 +76,11 @@ in
       };
       nvidia = {
         enable = mkEnableOption "NVIDIA GPU Mining";
+        autostart = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Whether to automatically start the service at boot. If false, service can be controlled imperatively via systemctl.";
+        };
         devices = mkOption {
           type = types.str;
           default = "0";
@@ -92,6 +97,11 @@ in
 
       amd = {
         enable = mkEnableOption "AMD GPU Mining";
+        autostart = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Whether to automatically start the service at boot. If false, service can be controlled imperatively via systemctl.";
+        };
         devices = mkOption {
           type = types.str;
           default = "1";
@@ -109,6 +119,11 @@ in
 
     xmrig = {
       enable = mkEnableOption "XMRig Service";
+      autostart = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Whether to automatically start the service at boot. If false, service can be controlled imperatively via systemctl.";
+      };
       pool = mkOption {
         type = types.str;
         default = "xtm-rx-us.kryptex.network:8038";
@@ -225,7 +240,7 @@ in
 
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
-          wantedBy = [ "multi-user.target" ];
+          wantedBy = mkIf cfg.lolminer.nvidia.autostart [ "multi-user.target" ];
           after = [
             "network.target"
             "nvidia-gpu-power-limit.service"
@@ -249,7 +264,7 @@ in
 
         lolminer-amd = mkIf cfg.lolminer.amd.enable {
           description = "lolMiner AMD Mining Service";
-          wantedBy = [ "multi-user.target" ];
+          wantedBy = mkIf cfg.lolminer.amd.autostart [ "multi-user.target" ];
           after = [
             "network.target"
             "amd-gpu-power-mgmt.service"
@@ -268,7 +283,7 @@ in
 
         xmrig = mkIf cfg.xmrig.enable {
           description = "XMRig CPU Mining Service";
-          wantedBy = [ "multi-user.target" ];
+          wantedBy = mkIf cfg.xmrig.autostart [ "multi-user.target" ];
           after = [ "network.target" ];
           serviceConfig = {
             User = cfg.user;
