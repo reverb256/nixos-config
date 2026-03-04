@@ -7,10 +7,35 @@
 let
   inherit (lib) mkOption types optionalString;
 
-in {
   # ============================================================================
-  # HELPER FUNCTIONS
+  # HELPER FUNCTIONS (defined in let for mutual reference)
   # ============================================================================
+
+  /**
+    mkSpotifyStateDir
+    -----------------
+    Returns a state directory path for Spotify modules.
+
+    Example:
+      mkSpotifyStateDir "spotx"  => "/var/lib/spotx"
+      mkSpotifyStateDir "spicetify" => "/var/lib/spicetify"
+  */
+  mkSpotifyStateDir = name: "/var/lib/${name}";
+
+  /**
+    mkSpotifyTmpfiles
+    -----------------
+    Creates tmpfiles.rules for a Spotify module's state directory.
+
+    Example:
+      mkSpotifyTmpfiles "spotx"
+      => [ "d /var/lib/spotx 0755 root root -"
+         "d /var/lib/spotx/backups 0755 root root -" ]
+  */
+  mkSpotifyTmpfiles = name: [
+    "d ${mkSpotifyStateDir name} 0755 root root -"
+    "d ${mkSpotifyStateDir name}/backups 0755 root root -"
+  ];
 
   /**
     mkSpotifyLogging
@@ -64,32 +89,6 @@ in {
   '';
 
   /**
-    mkSpotifyStateDir
-    -----------------
-    Returns a state directory path for Spotify modules.
-
-    Example:
-      mkSpotifyStateDir "spotx"  => "/var/lib/spotx"
-      mkSpotifyStateDir "spicetify" => "/var/lib/spicetify"
-  */
-  mkSpotifyStateDir = name: "/var/lib/${name}";
-
-  /**
-    mkSpotifyTmpfiles
-    -----------------
-    Creates tmpfiles.rules for a Spotify module's state directory.
-
-    Example:
-      mkSpotifyTmpfiles "spotx"
-      => [ "d /var/lib/spotx 0755 root root -"
-         "d /var/lib/spotx/backups 0755 root root -" ]
-  */
-  mkSpotifyTmpfiles = name: [
-    "d ${mkSpotifyStateDir name} 0755 root root -"
-    "d ${mkSpotifyStateDir name}/backups 0755 root root -"
-  ];
-
-  /**
     mkSpotifySystemdService
     -----------------------
     Creates a base systemd service configuration for Spotify modules.
@@ -128,7 +127,7 @@ in {
       name: Timer name (should match service name)
       description: Human-readable description
       onCalendar: Calendar schedule (e.g., "daily")
-      partOf: Service name this timer belongs to
+      partOf: Service name this timer belongs to (will be wrapped in a list)
   */
   mkSpotifySystemdTimer = {
     name,
@@ -138,7 +137,7 @@ in {
   }: {
     inherit description;
     wantedBy = [ "timers.target" ];
-    inherit partOf;
+    partOf = [ partOf ];
     timerConfig = {
       OnCalendar = onCalendar;
       Unit = partOf;
@@ -184,4 +183,18 @@ in {
       description = "How often to check and re-apply (systemd timer format).";
     };
   };
+
+in {
+  inherit
+    mkSpotifyLogging
+    mkSpotifyPaths
+    mkSpotifyVersionDetector
+    mkSpotifyPatchChecker
+    mkSpotifyStateDir
+    mkSpotifyTmpfiles
+    mkSpotifySystemdService
+    mkSpotifySystemdTimer
+    mkSpotifyCliWrapper
+    spotifyAutoUpdateOptions
+    ;
 }
