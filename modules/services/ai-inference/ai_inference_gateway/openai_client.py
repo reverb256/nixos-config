@@ -41,6 +41,7 @@ class OpenAIClientWrapper:
         fallback_url: Optional[str] = None,
         fallback_api_key: Optional[str] = None,
         timeout: float = 300.0,
+        zai_models: Optional[list[str]] = None,
     ):
         """
         Initialize OpenAI client wrapper.
@@ -51,12 +52,15 @@ class OpenAIClientWrapper:
             fallback_url: Fallback backend URL (e.g., ZAI)
             fallback_api_key: API key for fallback backend
             timeout: Request timeout in seconds
+            zai_models: List of ZAI models to try (in order)
         """
         self.primary_url = primary_url.rstrip("/")
         self.primary_api_key = primary_api_key or "not-needed"  # LM Studio doesn't need key
         self.fallback_url = fallback_url.rstrip("/") if fallback_url else None
         self.fallback_api_key = fallback_api_key
         self.timeout = timeout
+        # ZAI models to try in order (from fastest to most capable)
+        self.zai_models = zai_models or ["glm-4.6", "glm-4.7", "glm-5"]
 
         # Initialize primary client
         self.primary_client = AsyncOpenAI(
@@ -75,6 +79,7 @@ class OpenAIClientWrapper:
                 timeout=timeout,
             )
             logger.info(f"Initialized ZAI fallback client: {self.fallback_url}")
+            logger.info(f"ZAI model fallback order: {self.zai_models}")
 
     async def chat_completion(
         self,
@@ -103,14 +108,14 @@ class OpenAIClientWrapper:
 
         # Try primary backend first
         try:
-            logger.info(f"Attempting primary backend: {self.primary_url}")
+            logger.info(f"Attempting primary backend: {self.primary_url} with model: {model}")
             response = await self.primary_client.chat.completions.create(
                 messages=messages,
                 model=model,
                 stream=stream,
                 **kwargs,
             )
-            logger.info(f"Primary backend succeeded")
+            logger.info(f"Primary backend succeeded with model: {model}")
             return response
 
         except Exception as e:
@@ -121,19 +126,32 @@ class OpenAIClientWrapper:
             # or an application error (should not failover)
             if self._should_failover(error_msg):
                 if self.fallback_client:
-                    try:
-                        logger.info(f"Attempting fallback backend: {self.fallback_url}")
-                        response = await self.fallback_client.chat.completions.create(
-                            messages=messages,
-                            model=model,
-                            stream=stream,
-                            **kwargs,
-                        )
-                        logger.info(f"Fallback backend succeeded")
-                        return response
-                    except Exception as fallback_error:
-                        logger.error(f"Fallback backend failed: {str(fallback_error)}")
-                        raise OpenAIBackendError(f"All backends failed. Last error: {str(fallback_error)}")
+                    # Try multiple ZAI models in sequence
+                    last_error = None
+                    for zai_model in self.zai_models:
+                        try:
+                            logger.info(f"Attempting ZAI fallback with model: {zai_model}")
+                            response = await self.fallback_client.chat.completions.create(
+                                messages=messages,
+                                model=zai_model,
+                                stream=stream,
+                                **kwargs,
+                            )
+                            logger.info(f"ZAI fallback succeeded with model: {zai_model}")
+                            return response
+                        except Exception as model_error:
+                            last_error = model_error
+                            model_error_msg = str(model_error)
+                            logger.warning(f"ZAI model {zai_model} failed: {model_error_msg}")
+
+                            # Don't try more models if it's not a retryable error
+                            if not self._should_try_next_model(model_error_msg):
+                                logger.error(f"ZAI model {zai_model} failed with non-retryable error, stopping fallback")
+                                raise OpenAIBackendError(f"ZAI backend error: {model_error_msg}")
+
+                    # All models failed
+                    logger.error(f"All ZAI models failed. Last error: {str(last_error)}")
+                    raise OpenAIBackendError(f"All ZAI models failed. Last error: {str(last_error)}")
                 else:
                     logger.warning("No fallback backend configured")
                     raise OpenAIBackendError(f"Primary backend failed: {error_msg}")
@@ -167,6 +185,59 @@ class OpenAIClientWrapper:
 
         error_lower = error_message.lower()
         return any(err in error_lower for err in connection_errors)
+
+    def _should_try_next_model(self, error_message: str) -> bool:
+        """
+        Determine if we should try the next ZAI model.
+
+        Retryable errors that suggest trying a different model:
+        - Rate limiting (429)
+        - Model unloaded
+        - Insufficient balance
+        - Model-specific errors
+
+        Non-retryable errors that should stop immediately:
+        - Authentication errors (401)
+        - Invalid request format (400)
+        - Context length exceeded
+        - Other client errors
+
+        Args:
+            error_message: Error message string
+
+        Returns:
+            True if we should try the next model
+        """
+        # Retryable errors - try next model
+        retryable_errors = [
+            "rate limit",  # 429 rate limiting
+            "429",  # HTTP 429 status code
+            "too many requests",  # Rate limiting message
+            "model unloaded",  # Model not loaded
+            "no models loaded",  # No models available
+            "insufficient balance",  # Balance issues
+            "error code: 400",  # ZAI returns 400 for model issues
+            "unknown model",  # Model doesn't exist
+        ]
+
+        # Non-retryable errors - stop immediately
+        non_retryable_errors = [
+            "401",  # Authentication - won't help to switch models
+            "unauthorized",  # Auth failure
+            "invalid api key",  # Auth failure
+            "context length",  # Request too long - won't help to switch models
+            "maximum context length",  # Request too long
+            "this model's maximum context length",  # Request too long
+        ]
+
+        error_lower = error_message.lower()
+
+        # Check non-retryable first (these should stop immediately)
+        if any(err in error_lower for err in non_retryable_errors):
+            return False
+
+        # Check retryable (these should try next model)
+        return any(err in error_lower for err in retryable_errors)
 
     async def close(self):
         """Close all client connections."""
