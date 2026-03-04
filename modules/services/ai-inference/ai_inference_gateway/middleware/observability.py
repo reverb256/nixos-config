@@ -97,13 +97,14 @@ class ObservabilityMiddleware(Middleware):
         if start_time:
             processing_time_ms = (time.time() - start_time) * 1000
 
-        # Build gateway metadata
-        metadata = {
+        # Build gateway metadata (merge with existing if present)
+        metadata = response.get("gateway_metadata", {})
+        metadata.update({
             "request_id": context.get("request_id", "unknown"),
             "processing_time_ms": round(processing_time_ms, 2)
-        }
+        })
 
-        # Add metadata to response
+        # Add/merge metadata to response
         response["gateway_metadata"] = metadata
 
         if self.config.structured_logging:
