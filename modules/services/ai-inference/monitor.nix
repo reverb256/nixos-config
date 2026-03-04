@@ -35,10 +35,36 @@ let
       )
       from prometheus_client.exposition import start_http_server
 
+      import logging
+
+      # Setup logging
+      logging.basicConfig(
+          level=logging.INFO,
+          format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      )
+      logger = logging.getLogger("ai-inference-monitor")
+
       # Configuration
       BACKEND_URL = os.getenv("BACKEND_URL", "${cfg.backend.url}")
       GATEWAY_URL = os.getenv("GATEWAY_URL", "http://${cfg.gateway.host}:${toString cfg.gateway.port}")
-      NVIDIA_SMI = os.getenv("NVIDIA_SMI", "${pkgs.linuxPackages.nvidia_x11}/bin/nvidia-smi")
+
+      # Try multiple nvidia-smi locations
+      NVIDIA_SMI_PATHS = [
+          "/run/opengl-driver/bin/nvidia-smi",  # Standard NixOS path
+          "/usr/bin/nvidia-smi",  # FHS path
+          "${pkgs.linuxPackages.nvidia_x11}/bin/nvidia-smi",  # Nix store path
+      ]
+
+      NVIDIA_SMI = None
+      for path in NVIDIA_SMI_PATHS:
+          if os.path.exists(path):
+              NVIDIA_SMI = path
+              logger.info(f"Found nvidia-smi at: {path}")
+              break
+
+      if not NVIDIA_SMI:
+          logger.warning("nvidia-smi not found, GPU monitoring disabled")
+
       GPU_IDS = os.getenv("GPU_IDS", "0,1").split(",")
 
       # Metrics
@@ -55,6 +81,9 @@ let
 
       def get_gpu_metrics():
           """Get GPU metrics from nvidia-smi"""
+          if not NVIDIA_SMI:
+              return  # GPU monitoring disabled
+          
           try:
               result = subprocess.run([
                   NVIDIA_SMI,
@@ -63,6 +92,9 @@ let
               ], capture_output=True, text=True, timeout=5)
 
               if result.returncode != 0:
+                  logger.warning(f"nvidia-smi returned non-zero exit code: {result.returncode}")
+                  if result.stderr:
+                      logger.debug(f"nvidia-smi stderr: {result.stderr}")
                   return
 
               for line in result.stdout.strip().split('\n'):
@@ -80,11 +112,16 @@ let
                       gpu_utilization.labels(gpu_id=gpu_id).set(float(util))
                       gpu_temperature.labels(gpu_id=gpu_id).set(float(temp))
                       gpu_power_draw.labels(gpu_id=gpu_id).set(float(power))
-                  except ValueError:
+                  except ValueError as e:
+                      logger.warning(f"Failed to parse GPU metrics for GPU {gpu_id}: {e}")
                       continue
 
+          except FileNotFoundError:
+              logger.error(f"nvidia-smi not found at {NVIDIA_SMI}")
+          except subprocess.TimeoutExpired:
+              logger.warning("nvidia-smi command timed out")
           except Exception as e:
-              print(f"Error getting GPU metrics: {e}")
+              logger.exception(f"Unexpected error getting GPU metrics: {e}")
 
       def check_backend_health():
           """Check backend health"""
@@ -108,15 +145,17 @@ let
                           for known in ["qwen3.5-2b", "qwen3.5-4b", "qwen3.5-35b-a3b"]:
                               if known in model_id:
                                   model_loaded.labels(model=known).set(1)
+                                  logger.debug(f"Model {known} is loaded")
 
           except Exception as e:
               backend_healthy.set(0)
-              print(f"Error checking backend: {e}")
+              logger.error(f"Backend health check failed: {e}")
 
       def main():
           """Main monitoring loop"""
-          print(f"Starting AI Inference Monitor on port ${toString cfg.monitoring.port}")
-          print(f"Backend: {BACKEND_URL}")
+          logger.info(f"Starting AI Inference Monitor on port ${toString cfg.monitoring.port}")
+          logger.info(f"Backend: {BACKEND_URL}")
+          logger.info(f"Gateway: {GATEWAY_URL}")
 
           # Start HTTP server
           start_http_server(int(os.getenv("METRICS_PORT", "${toString cfg.monitoring.port}")))
@@ -126,6 +165,7 @@ let
           check_backend_health()
 
           # Collection loop
+          logger.info("Starting metrics collection loop (15s interval)")
           while True:
               time.sleep(15)  # Collect every 15 seconds
               get_gpu_metrics()
@@ -137,7 +177,8 @@ let
     executable = true;
   };
 
-in {
+in
+{
   config = mkIf (cfg.enable && cfg.monitoring.enable) {
     # Systemd service for the monitor
     systemd.services.ai-inference-monitor = {
@@ -149,7 +190,7 @@ in {
         BACKEND_URL = cfg.backend.url;
         GATEWAY_URL = "http://${cfg.gateway.host}:${toString cfg.gateway.port}";
         METRICS_PORT = toString cfg.monitoring.port;
-        NVIDIA_SMI = "${pkgs.linuxPackages.nvidia_x11}/bin/nvidia-smi";
+        # NVIDIA_SMI is now auto-detected in Python
       };
 
       serviceConfig = {
