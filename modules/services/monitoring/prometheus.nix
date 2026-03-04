@@ -113,6 +113,46 @@ in
           ];
         }
 
+        # TP-Link Switches (SNMP)
+        {
+          job_name = "switches";
+          static_configs = [
+            {
+              targets = [
+                "10.1.1.10"
+                "10.1.1.11"
+                "10.1.1.12"
+                "10.1.1.13"
+              ];
+              labels = {
+                environment = "production";
+              };
+            }
+          ];
+          relabel_configs = [
+            {
+              source_labels = [ "__address__" ];
+              target_label = "__param_target";
+            }
+            {
+              source_labels = [ "__param_target" ];
+              target_label = "instance";
+            }
+            {
+              source_labels = [ "__address__" ];
+              regex = "(.*)";
+              target_label = "__address__";
+              replacement = "127.0.0.1:9116";
+            }
+            {
+              source_labels = [ "__param_target" ];
+              target_label = "module";
+              replacement = "tplink_easy_smart";
+            }
+          ];
+          metrics_path = "/snmp";
+        }
+
         # Prometheus self-monitoring
         {
           job_name = "prometheus";
