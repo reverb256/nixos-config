@@ -124,7 +124,7 @@ class ConcurrencyLimiter(Middleware):
             context: Request context
 
         Returns:
-            Modified context
+            Modified response (not context!)
         """
         # Release permit if it was acquired
         if "_concurrency_permit" in context:
@@ -138,4 +138,4 @@ class ConcurrencyLimiter(Middleware):
             logger.info(f"Released concurrency permit for model: {model} (active: {self.counters[model]})")
             context.pop("_concurrency_permit", None)
 
-        return context
+        return response
