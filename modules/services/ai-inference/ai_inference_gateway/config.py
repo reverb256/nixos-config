@@ -82,6 +82,8 @@ class GatewayConfig:
     gateway_port: int = 8080
     backend_url: str = "http://127.0.0.1:1234"
     backend_type: str = "lm-studio"
+    lm_studio_api_key: Optional[str] = None
+    zai_api_key: Optional[str] = None
     middleware: MiddlewareConfig = field(default_factory=MiddlewareConfig)
 
     @classmethod
@@ -120,10 +122,44 @@ class GatewayConfig:
         middleware.observability.enabled = os.getenv("OBSERVABILITY_ENABLED", "true").lower() == "true"
         middleware.observability.structured_logging = os.getenv("STRUCTURED_LOGGING", "true").lower() == "true"
 
+        # Load API keys
+        lm_studio_api_key = None
+        zai_api_key = None
+
+        # Try LM_STUDIO_API_KEY_FILE first, then LM_STUDIO_API_KEY
+        lm_studio_api_key_file = os.getenv("LM_STUDIO_API_KEY_FILE", "")
+        if lm_studio_api_key_file:
+            try:
+                with open(lm_studio_api_key_file, 'r') as f:
+                    lm_studio_api_key = f.read().strip()
+            except Exception as e:
+                logger = __import__("logging").getLogger(__name__)
+                logger.warning(f"Failed to read LM_STUDIO_API_KEY_FILE: {e}")
+
+        if not lm_studio_api_key:
+            lm_studio_api_key = os.getenv("LM_STUDIO_API_KEY", "")
+            lm_studio_api_key = lm_studio_api_key if lm_studio_api_key else None
+
+        # Try ZAI_API_KEY_FILE first, then ZAI_API_KEY
+        zai_api_key_file = os.getenv("ZAI_API_KEY_FILE", "")
+        if zai_api_key_file:
+            try:
+                with open(zai_api_key_file, 'r') as f:
+                    zai_api_key = f.read().strip()
+            except Exception as e:
+                logger = __import__("logging").getLogger(__name__)
+                logger.warning(f"Failed to read ZAI_API_KEY_FILE: {e}")
+
+        if not zai_api_key:
+            zai_api_key = os.getenv("ZAI_API_KEY", "")
+            zai_api_key = zai_api_key if zai_api_key else None
+
         return cls(
             gateway_host=os.getenv("GATEWAY_HOST", "127.0.0.1"),
             gateway_port=int(os.getenv("GATEWAY_PORT", "8080")),
             backend_url=os.getenv("BACKEND_URL", "http://127.0.0.1:1234"),
             backend_type=os.getenv("BACKEND_TYPE", "lm-studio"),
+            lm_studio_api_key=lm_studio_api_key,
+            zai_api_key=zai_api_key,
             middleware=middleware
         )

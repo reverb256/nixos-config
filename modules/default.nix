@@ -5,8 +5,8 @@
   imports = [
     # Network configuration
     ./network-constants.nix
-    ./network/wifi.nix
-    ./network/bluetooth.nix
+    # ./network/wifi.nix  # TODO: Fix module before enabling
+    # ./network/bluetooth.nix  # TODO: Fix module before enabling
 
     # System-level configuration
     ./system/nix-config.nix

@@ -25,7 +25,7 @@ in
 
   config = mkIf cfg.enable {
     # Enable BlueZ Bluetooth stack
-    services.bluez = {
+    services.bluetooth = {
       enable = true;
       # Enable experimental features for newer Bluetooth devices
       experimental = true;
