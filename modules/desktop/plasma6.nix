@@ -8,6 +8,12 @@
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
 
+  # Enable auto-login for j_kro
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "j_kro";
+  };
+
   # Configure keymap in X11
   services.xserver.xkb = {
     layout = "us";
