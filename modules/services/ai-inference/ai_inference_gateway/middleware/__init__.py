@@ -16,3 +16,9 @@ try:
     __all__.append("SecurityFilterMiddleware")
 except ImportError:
     pass
+
+try:
+    from .rate_limiter import RateLimiterMiddleware
+    __all__.append("RateLimiterMiddleware")
+except ImportError:
+    pass
