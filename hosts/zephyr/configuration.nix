@@ -44,6 +44,12 @@
   networking.hostName = "zephyr";
   networking.networkmanager.enable = true;
 
+  # ============================================================================
+  # WIRELESS HARDWARE
+  # ============================================================================
+  networking.wifi.enable = true;
+  networking.bluetooth.enable = true;
+
   # Timezone and locale
   time.timeZone = "America/Winnipeg";
   i18n.defaultLocale = "en_CA.UTF-8";
