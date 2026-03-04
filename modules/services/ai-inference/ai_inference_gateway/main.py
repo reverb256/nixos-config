@@ -755,6 +755,8 @@ async def handle_non_streaming_request(
                     "expected_latency_ms": route_decision.expected_latency_ms,
                 }
             }
+            # Remove route_decision from context to avoid serialization issues
+            context.pop("route_decision", None)
 
         # Process response through middleware pipeline (reverse order)
         response_data = await pipeline.process_response(response_data, context)
