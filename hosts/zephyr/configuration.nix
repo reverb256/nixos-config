@@ -156,7 +156,7 @@
         "zai"
       ];
     };
-    auth.mode = "api-key"; # Requires LM Studio API key
+    auth.mode = "none"; # Disabled for testing - change back to "api-key" for production
     monitoring.enable = true;
     # Disable security proxy for local development (too aggressive for code)
     rateLimit.enable = false;
