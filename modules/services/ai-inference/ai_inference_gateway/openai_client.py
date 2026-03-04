@@ -86,6 +86,7 @@ class OpenAIClientWrapper:
         messages: list[Dict[str, Any]],
         model: str,
         stream: bool = False,
+        backend: Optional[str] = None,
         **kwargs,
     ) -> ChatCompletion | AsyncStream[ChatCompletionChunk]:
         """
@@ -95,6 +96,7 @@ class OpenAIClientWrapper:
             messages: Chat messages
             model: Model name
             stream: Whether to stream response
+            backend: Backend to use ("lm-studio", "zai", or None for auto-detection)
             **kwargs: Additional OpenAI parameters
 
         Returns:
@@ -106,7 +108,37 @@ class OpenAIClientWrapper:
         # Remove 'stream' from kwargs to avoid duplicate parameter error
         kwargs.pop('stream', None)
 
-        # Try primary backend first
+        # If backend is specified, use it directly
+        if backend == "zai" and self.fallback_client:
+            logger.info(f"Using ZAI backend directly for model: {model}")
+            try:
+                response = await self.fallback_client.chat.completions.create(
+                    messages=messages,
+                    model=model,
+                    stream=stream,
+                    **kwargs,
+                )
+                logger.info(f"ZAI backend succeeded with model: {model}")
+                return response
+            except Exception as e:
+                logger.error(f"ZAI backend failed: {str(e)}")
+                raise OpenAIBackendError(f"ZAI backend error: {str(e)}")
+        elif backend == "lm-studio":
+            logger.info(f"Using LM Studio backend directly for model: {model}")
+            try:
+                response = await self.primary_client.chat.completions.create(
+                    messages=messages,
+                    model=model,
+                    stream=stream,
+                    **kwargs,
+                )
+                logger.info(f"LM Studio backend succeeded with model: {model}")
+                return response
+            except Exception as e:
+                logger.error(f"LM Studio backend failed: {str(e)}")
+                raise OpenAIBackendError(f"LM Studio backend error: {str(e)}")
+
+        # Auto-detect: try primary backend first
         try:
             logger.info(f"Attempting primary backend: {self.primary_url} with model: {model}")
             response = await self.primary_client.chat.completions.create(
