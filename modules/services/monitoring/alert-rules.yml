@@ -1,0 +1,268 @@
+# Prometheus Alerting Rules
+# Critical and warning alerts for cluster monitoring
+groups:
+  - name: cluster_critical
+    interval: 30s
+    rules:
+      # Service down alerts
+      - alert: NodeDown
+        expr: up{job="node"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Node {{ $labels.host }} is down"
+          description: "Node {{ $labels.host }} has been down for more than 2 minutes."
+
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus has been down for more than 2 minutes."
+
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana has been down for more than 5 minutes."
+
+      - alert: AlertmanagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Alertmanager is down"
+          description: "Alertmanager has been down for more than 5 minutes."
+
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Loki is down"
+          description: "Loki has been down for more than 5 minutes."
+
+      - alert: MiningExporterDown
+        expr: up{job="mining"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Mining exporter is down on {{ $labels.host }}"
+          description: "Mining exporter has been down for more than 5 minutes on {{ $labels.host }}."
+
+      - alert: GPUExporterDown
+        expr: up{job="nvidia"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "GPU exporter is down on {{ $labels.instance }}"
+          description: "NVIDIA GPU exporter has been down for more than 5 minutes on {{ $labels.instance }}."
+
+      - alert: AIInferenceDown
+        expr: up{job="ai-inference"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "AI Inference service is down"
+          description: "AI Inference gateway/monitor has been down for more than 2 minutes."
+
+      # Disk space alerts
+      - alert: DiskSpaceCritical
+        expr: |
+          (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"}
+           / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          category: storage
+        annotations:
+          summary: "Disk space critical on {{ $labels.host }}"
+          description: "Disk usage on {{ $labels.host }} is {{ $value | humanizePercentage }}, exceeding 90% threshold."
+
+      # GPU overheating alerts
+      - alert: GPUOverheating
+        expr: nvidia_smi_temperature_gpu > 85
+        for: 5m
+        labels:
+          severity: critical
+          category: hardware
+        annotations:
+          summary: "GPU {{ $labels.instance }} overheating"
+          description: "GPU {{ $labels.instance }} temperature is {{ $value }}°C, exceeding 85°C threshold."
+
+      - alert: GPUPowerExcessive
+        expr: nvidia_smi_power_draw_watts > 350
+        for: 10m
+        labels:
+          severity: critical
+          category: hardware
+        annotations:
+          summary: "GPU {{ $labels.instance }} power draw excessive"
+          description: "GPU {{ $labels.instance }} power draw is {{ $value }}W, exceeding 350W threshold."
+
+  - name: cluster_warning
+    interval: 1m
+    rules:
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High memory usage on {{ $labels.host }}"
+          description: "Memory usage on {{ $labels.host }} is {{ $value | humanizePercentage }}, exceeding 80% threshold."
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage on {{ $labels.instance }} is {{ $value | humanizePercentage }}, exceeding 85% threshold."
+
+      # Disk space warning
+      - alert: DiskSpaceWarning
+        expr: |
+          (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"}
+           / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          category: storage
+        annotations:
+          summary: "Disk space warning on {{ $labels.host }}"
+          description: "Disk usage on {{ $labels.host }} is {{ $value | humanizePercentage }}, exceeding 80% threshold."
+
+      # High GPU temperature warning
+      - alert: GPUHighTemperature
+        expr: nvidia_smi_temperature_gpu > 70
+        for: 15m
+        labels:
+          severity: warning
+          category: hardware
+        annotations:
+          summary: "GPU {{ $labels.instance }} high temperature"
+          description: "GPU {{ $labels.instance }} temperature is {{ $value }}°C, exceeding 70°C threshold."
+
+      # High load average
+      - alert: HighLoadAverage
+        expr: |
+          node_load1 / count without (mode) (count without (cpu, mode) (node_cpu_seconds_total)) > 2
+        for: 10m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High load average on {{ $labels.instance }}"
+          description: "1-minute load average on {{ $labels.instance }} is {{ $value }}x, exceeding 2x CPU cores."
+
+      # Network errors
+      - alert: NetworkErrors
+        expr: |
+          sum by(instance) (rate(node_network_receive_errs_total[5m])) > 0
+          or
+          sum by(instance) (rate(node_network_transmit_errs_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "Network errors detected on {{ $labels.instance }}"
+          description: "Network errors are occurring on {{ $labels.instance }}."
+
+      # Mining hashrate drop
+      - alert: MiningHashrateDrop
+        expr: |
+          mining_xmrig_hashrate_total < 1000
+          and on (host) min_over_time(mining_xmrig_hashrate_total, 1h) > 2000
+        for: 15m
+        labels:
+          severity: warning
+          category: mining
+        annotations:
+          summary: "Mining hashrate dropped on {{ $labels.host }}"
+          description: "XMRig hashrate on {{ $labels.host }} dropped to {{ $value | humanize }}H/s from previous average."
+
+      # Mining shares rejected
+      - alert: MiningHighRejectionRate
+        expr: |
+          rate(mining_xmrig_shares_rejected[5m])
+          / (rate(mining_xmrig_shares_rejected[5m]) + rate(mining_xmrig_shares_accepted[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          category: mining
+        annotations:
+          summary: "High mining share rejection rate on {{ $labels.host }}"
+          description: "Mining rejection rate on {{ $labels.host }} is {{ $value | humanizePercentage }}, exceeding 10%."
+
+      # AI backend unhealthy
+      - alert: AIBackendUnhealthy
+        expr: ai_inference_backend_healthy == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: ai
+        annotations:
+          summary: "AI inference backend unhealthy"
+          description: "AI inference backend health check failed."
+
+      # Insufficient cluster nodes
+      - alert: InsufficientClusterNodes
+        expr: count(up{job="node"} == 1) < 3
+        for: 5m
+        labels:
+          severity: warning
+          category: cluster
+        annotations:
+          summary: "Insufficient cluster nodes online"
+          description: "Only {{ $value }} nodes are online, expected at least 3."
+
+  - name: cluster_info
+    interval: 5m
+    rules:
+      # Record rules for easier querying
+      - record: cluster:cpu_usage
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+
+      - record: cluster:memory_usage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+
+      - record: cluster:disk_usage
+        expr: |
+          (1 - node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"}
+           / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"}) * 100
+
+      - record: cluster:gpu_temperature
+        expr: nvidia_smi_temperature_gpu
+
+      - record: cluster:mining_hashrate_total
+        expr: sum(mining_xmrig_hashrate_total)

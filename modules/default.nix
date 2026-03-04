@@ -35,6 +35,7 @@
 
     # Services
     ./services/lm-studio.nix
+    ./services/lm-studio-headless.nix
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
 
