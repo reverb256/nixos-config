@@ -34,3 +34,9 @@ try:
     __all__.extend(["LoadBalancerMiddleware", "BackendInstance", "BackendState"])
 except ImportError:
     pass
+
+try:
+    from .concurrency_limiter import ConcurrencyLimiter
+    __all__.append("ConcurrencyLimiter")
+except ImportError:
+    pass
