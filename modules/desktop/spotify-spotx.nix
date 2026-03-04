@@ -60,6 +60,10 @@ in
         exit 1
       fi
 
+      # Ensure directory is writable to avoid SpotX-Bash's sudo check
+      log "Setting write permissions on Spotify directory..."
+      chmod -R u+rw "$SPOTIFY_DIR" 2>/dev/null || true
+
       # Apply SpotX-Bash patch (with -f flag to force re-patch if already installed)
       log "Applying SpotX-Bash patch for Spotify at $SPOTIFY_DIR..."
       if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$SPOTIFY_DIR" -f; then
@@ -111,6 +115,11 @@ in
           fi
           log "Spotify updated from $patched_version to $current_version, re-patching..."
         fi
+
+        # Ensure directory is writable to avoid SpotX-Bash's sudo check
+        log "Setting write permissions on Spotify directory..."
+        chmod -R u+rw "$SPOTIFY_DIR" 2>/dev/null || true
+
         log "Applying SpotX-Bash patch..."
         if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$SPOTIFY_DIR" -f; then
           echo "$current_version" > "$PATCH_MARKER"
