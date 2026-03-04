@@ -100,50 +100,76 @@
   programs.lm-studio.enable = true;
   programs.stability-matrix.enable = true;
 
-  # ============================================================================
-  # AI INFERENCE SERVICE - vLLM for RTX 3090
-  # ============================================================================
-  services.vllm = {
-    enable = true;
-    model = "Qwen/Qwen3.5-7B-Instruct";
-    port = 8000;
-    host = "127.0.0.1";
-    tensorParallelSize = 1;
-    gpuMemoryUtilization = 0.90;
-    maxModelLen = 32768;
-    args = [
-      "--enable-prefix-caching"
-      "--disable-log-requests"
-    ];
+  # Agenix secrets for AI services
+  age.identityPaths = ["/home/j_kro/.age/key.txt"];
+
+  age.secrets.lm-studio-api-key = {
+    file = "${inputs.self}/secrets/lm-studio-api-key.age";
+    mode = "440";
+    owner = "ai-inference";
+    group = "ai-inference";
+  };
+
+  age.secrets.huggingface-token = {
+    file = "${inputs.self}/secrets/huggingface-token.age";
+    mode = "440";
+    owner = "j_kro";
+  };
+
+  age.secrets.zai-api-key = {
+    file = "${inputs.self}/secrets/zai-api-key.age";
+    mode = "440";
+    owner = "j_kro";
+    group = "ai-inference";
   };
 
   # ============================================================================
   # AI INFERENCE SERVICE - Gateway with authentication and metrics
+  # Gateway routes to LM Studio backend with API token authentication
+  # Backend: LM Studio on port 1234
+  # Gateway: OpenAI-compatible API on port 8080
   # ============================================================================
   services.ai-inference = {
     enable = true;
     backend = {
-      url = "http://127.0.0.1:1234";
+      url = "http://127.0.0.1:1234"; # LM Studio on port 1234
       type = "lm-studio";
+      lmStudio.apiKeyFile = "/run/agenix/lm-studio-api-key";
+      # ZAI backend configuration (for fallback routing)
+      zai = {
+        enable = true;
+        apiKeyFile = "/run/agenix/zai-api-key";
+      };
     };
     gateway = {
       enable = true;
       host = "127.0.0.1";
       port = 8080;
-      workers = 2;
+      workers = 1; # Single worker for now (multi-worker has import issues)
     };
     routing = {
       enable = true;
-      defaultModel = "qwen3.5-4b";
+      defaultModel = "magnum-opus-35b-a3b-i1";
+      fallbackChain = ["vllm" "lm-studio" "zai"];
     };
-    auth.mode = "none";
+    auth.mode = "api-key";  # Requires LM Studio API key
     monitoring.enable = true;
+    # Disable security proxy for local development (too aggressive for code)
+    rateLimit.enable = false;
+    # RAG configuration
+    rag = {
+      enable = true;
+      qdrant.enable = true;  # Enable Qdrant service
+      qdrant.memoryLimit = "4G";
+    };
   };
 
   # ============================================================================
   # MINING - GPU Mining (RTX 3090)
+  # DISABLED: Mining conflicts with AI inference services (LM Studio)
+  # Re-enable when AI services are not in use
   # ============================================================================
-  services.mining.enable = true;
+  services.mining.enable = false;
 
   # ============================================================================
   # MULTIMEDIA - GStreamer support for Qt/KDE applications
@@ -212,6 +238,9 @@
     };
   };
 
+  # lolminer-nvidia: don't auto-start (enable manually with systemctl enable)
+  systemd.services.lolminer-nvidia.wantedBy = [];
+
   # Mining plasmoid for KDE Plasma
   #programs.mining-plasmoid.enable = true;  # TODO: Requires plasmoids/mining-monitor
 
@@ -224,7 +253,7 @@
   # GPU metrics exporter (NVIDIA RTX 3090)
   services.gpu-exporters = {
     enable = true;
-    nvidia.enable = true;  # RTX 3090
+    nvidia.enable = true; # RTX 3090
     amd.enable = false;
   };
 
@@ -274,6 +303,8 @@
     # AI & ML
     llama-cpp
     whisper-cpp
+    pipx
+    pkgs.python312Packages.huggingface-hub  # HF CLI: hf download/upload/login
 
     # Mining (manual only, no auto-start)
     xmrig
@@ -296,6 +327,11 @@
           inputs.nixcord.homeModules.nixcord
         ];
         home.stateVersion = "26.05";
+
+        # systemd user environment for secrets (available in all shells)
+        systemd.user.sessionVariables = {
+          HF_TOKEN = "/run/agenix/huggingface-token";
+        };
 
         # Mask Vesktop XDG autostart file to prevent SIGILL crash
         # The XDG autostart uses the wrong Electron binary (unwrapped vs wrapped)
@@ -731,6 +767,11 @@
 
           # Base Vencord/Vesktop settings (plugins, themes, etc.)
           vesktopConfig = {
+            # Disable Vencord-side tray settings (managed in writable ~/.config/vesktop/settings.json)
+            tray = false;
+            trayIcon = false;
+            openHidden = false;
+
             plugins = {
               XSOverlay = {
                 enable = true;
@@ -762,16 +803,9 @@
             };
           };
 
-          # Extra Vesktop settings that aren't exposed as nixcord options
-          # These are merged into the generated settings.json
-          extraConfig = {
-            # Tray icon settings - required for system tray functionality
-            minimizeToTray = true;
-            openHidden = true;
-            trayIcon = true;
-            tray = true;
-            autostart = true;
-          };
+          # Note: Tray settings (minimizeToTray, trayIcon, etc.) are managed in
+          # ~/.config/vesktop/settings.json (writable), not here. Only plugins
+          # and Vencord settings are managed declaratively via nixcord.
         };
 
         # Autostart Vesktop on login with X11 backend for tray icon support
@@ -779,9 +813,9 @@
         systemd.user.services.vesktop-autostart = {
           Unit = {
             Description = "Vesktop autostart";
-            After = [ "graphical-session-pre.target" ];
+            After = [ "graphical-session-pre.target" "plasma-plasmashell.service" ];
             PartOf = [ "graphical-session.target" ];
-            XDG-Autostart = "true"; # Enable as XDG autostart
+            Wants = [ "plasma-plasmashell.service" ];  # Ensure plasma tray is ready
           };
           Service = {
             Type = "simple";
@@ -793,7 +827,7 @@
             ];
             # Use XWayland for proper tray icon support on Wayland
             # --enable-features=UseOzonePlatform --ozone-platform-hint=x11 enables StatusNotifierItem
-            # --start-minimized works because tray icon is configured via nixcord
+            # --start-minimized: tray settings are in ~/.config/vesktop/settings.json (writable)
             ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-speech-dispatcher --enable-features=UseOzonePlatform --ozone-platform-hint=x11 --start-minimized";
             Restart = "on-failure";
             RestartSec = 5;
@@ -817,7 +851,6 @@
   # - 19898: Moonlight (NVIDIA GameStream)
   # - 27031/27036: Steam network ports
   # - 5353: mDNS (service discovery)
-  # - 8000: vLLM inference server (also declared in vllm module)
   #
   # AI Inference ports (auto-configured by modules):
   # - 8080: AI inference gateway (ai-inference module)
@@ -825,20 +858,21 @@
   # - 9400: NVIDIA GPU exporter (gpu-exporters module)
   networking.firewall = {
     allowedTCPPorts = [
-      9757   # WiVRn main port
-      18789  # Steam Remote Play
-      18790  # Steam Remote Play (secondary)
-      19898  # Moonlight/GameStream
-      8000   # vLLM inference server
+      9757 # WiVRn main port
+      18789 # Steam Remote Play
+      18790 # Steam Remote Play (secondary)
+      19898 # Moonlight/GameStream
+      1234 # LM Studio API server
+      8080 # AI Inference Gateway
     ];
     allowedUDPPorts = [
-      9757   # WiVRn
-      9758   # WiVRn
-      9759   # WiVRn
-      27031  # Steam UDP
-      27036  # Steam UDP
-      5353   # mDNS
-      9947   # WiVRn
+      9757 # WiVRn
+      9758 # WiVRn
+      9759 # WiVRn
+      27031 # Steam UDP
+      27036 # Steam UDP
+      5353 # mDNS
+      9947 # WiVRn
     ];
     interfaces."tailscale0".allowedTCPPorts = [
       18789
