@@ -73,6 +73,317 @@ OpenAI-compatible API gateway with intelligent routing, circuit breaker failover
 | **RAG Engine** | Hybrid vector + BM25 search with token-scoped knowledge bases |
 | **MCP Broker** | Aggregate tools from multiple MCP servers |
 | **Metrics** | Prometheus export for monitoring |
+| **Modular Middleware Pipeline** | Extensible middleware architecture with observability, security, rate limiting, circuit breaker, and load balancing |
+
+## Middleware Architecture
+
+The gateway v2 features a modular middleware pipeline that provides a clean, extensible architecture for request processing. Each middleware component can be independently enabled, configured, and monitored.
+
+### Pipeline Overview
+
+```
+Incoming Request
+       │
+       ▼
+┌─────────────────────────────────────────────────────────┐
+│  1. Observability Middleware                            │
+│  - Generates/preserves X-Request-ID for tracing        │
+│  - Records start time for latency tracking             │
+│  - Adds gateway_metadata to responses                  │
+└──────────────┬──────────────────────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│  2. Security Filter Middleware                          │
+│  - Request size validation (max 10MB default)          │
+│  - PII redaction (optional)                            │
+│  - Input sanitization                                  │
+│  - Blocks malicious requests                           │
+└──────────────┬──────────────────────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│  3. Rate Limiter Middleware                             │
+│  - Token-based rate limiting (TPM/TPH/TPD)             │
+│  - Request-based rate limiting (RPM)                   │
+│  - Redis or in-memory backend                          │
+│  - Configurable limits per API key                     │
+└──────────────┬──────────────────────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│  4. Circuit Breaker Middleware                          │
+│  - Prevents cascading failures                         │
+│  - Automatic failover on failures                      │
+│  - Health monitoring with auto-recovery                │
+│  - Configurable thresholds and timeouts                │
+└──────────────┬──────────────────────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────────────────────┐
+│  5. Load Balancer Middleware (Optional)                 │
+│  - Weighted round-robin backend selection              │
+│  - Periodic health checks                              │
+│  - Connection limits per backend                       │
+│  - Automatic failover to healthy backends              │
+└──────────────┬──────────────────────────────────────────┘
+               │
+               ▼
+         Router & Backend
+```
+
+### Middleware Configuration
+
+All middleware is configured via environment variables or NixOS configuration:
+
+#### Observability
+
+```nix
+services.ai-inference.gateway.middleware.observability = {
+  enable = true;  # Default: true
+  structuredLogging = true;  # Default: true
+  requestIdHeader = "X-Request-ID";  # Default
+};
+```
+
+**Environment Variables:**
+- `OBSERVABILITY_ENABLED=true|false`
+- `STRUCTURED_LOGGING=true|false`
+
+#### Security Filter
+
+```nix
+services.ai-inference.gateway.middleware.security = {
+  enable = true;  # Default: true
+  piiRedaction = true;  # Default: true
+  maxRequestSize = 10485760;  # 10MB default
+};
+```
+
+**Environment Variables:**
+- `SECURITY_ENABLED=true|false`
+- `PII_REDACTION=true|false`
+- `MAX_REQUEST_SIZE=10485760`
+
+#### Rate Limiter
+
+```nix
+services.ai-inference.gateway.middleware.rateLimiting = {
+  enable = false;  # Default: false
+  backend = "memory";  # "redis" or "memory"
+  tokensPerMinute = 10000;
+  tokensPerHour = 50000;
+  tokensPerDay = 500000;
+  rpm = 60;  # Legacy request-based limit
+};
+```
+
+**Environment Variables:**
+- `RATE_LIMIT_ENABLED=true|false`
+- `RATE_LIMIT_BACKEND=redis|memory`
+- `RATE_LIMIT_TPM=10000`
+- `RATE_LIMIT_TPH=50000`
+- `RATE_LIMIT_TPD=500000`
+- `RATE_LIMIT_RPM=60`
+
+#### Circuit Breaker
+
+```nix
+services.ai-inference.gateway.middleware.circuitBreaker = {
+  enable = true;  # Default: true
+  failureThreshold = 5;  # Failures before opening
+  successThreshold = 2;  # Successes to close
+  timeoutSeconds = 60;  # Seconds before attempting recovery
+  healthCheckInterval = 10;  # Seconds between checks
+};
+```
+
+**Environment Variables:**
+- `CIRCUIT_BREAKER_ENABLED=true|false`
+- `CIRCUIT_FAILURE_THRESHOLD=5`
+- `CIRCUIT_TIMEOUT=60`
+
+#### Load Balancer
+
+```nix
+services.ai-inference.gateway.middleware.loadBalancer = {
+  enable = false;  # Default: false (single backend)
+  # Backends configured via main gateway.backend.url
+};
+```
+
+For multiple backends, configure in the gateway service:
+
+```nix
+services.ai-inference.gateway = {
+  enable = true;
+  backends = [
+    {
+      name = "backend1";
+      url = "http://127.0.0.1:1234";
+      weight = 100;
+      maxConcurrentRequests = 100;
+    }
+    {
+      name = "backend2";
+      url = "http://127.0.0.1:1235";
+      weight = 200;  # Gets 2x traffic
+      maxConcurrentRequests = 50;
+    }
+  ];
+};
+```
+
+### Metrics and Monitoring
+
+All middleware components integrate with Prometheus metrics:
+
+**Available Metrics:**
+- `gateway_http_requests_total` - Total HTTP requests (by method, endpoint, status)
+- `gateway_http_request_duration_seconds` - Request latency histogram
+- `gateway_middleware_duration_seconds` - Middleware processing time
+- `gateway_rate_limit_denied_total` - Rate limit denials (by type)
+- `gateway_security_blocked_total` - Security blocks (by reason)
+- `gateway_circuit_breaker_state` - Circuit breaker state (0=closed, 1=open, 2=half_open)
+- `gateway_backend_health` - Backend health status
+- `gateway_load_balancer_selections_total` - Backend selection count
+
+**Access Metrics:**
+```bash
+curl http://127.0.0.1:8080/metrics
+```
+
+### Testing Guide
+
+#### Test Middleware Functionality
+
+```bash
+# Test full middleware pipeline
+./test-all.sh
+
+# Test specific components
+curl -X POST http://127.0.0.1:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: test-123" \
+  -d '{
+    "model": "qwen3.5-4b",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }' | jq '.gateway_metadata'
+```
+
+Expected response includes:
+```json
+{
+  "gateway_metadata": {
+    "request_id": "test-123",
+    "processing_time_ms": 45.23,
+    "load_balancer": {
+      "backend_name": "backend1",
+      "backend_latency_ms": 42.1
+    }
+  }
+}
+```
+
+#### Test Rate Limiting
+
+```bash
+# Enable rate limiting
+export RATE_LIMIT_ENABLED=true
+export RATE_LIMIT_TPM=100
+
+# Send requests until limited
+for i in {1..150}; do
+  curl -s -X POST http://127.0.0.1:8080/v1/chat/completions \
+    -H "Content-Type: application/json" \
+    -d '{"model":"qwen3.5-4b","messages":[{"role":"user","content":"Hi"}]}' \
+    | jq -r '.error // "success"'
+done
+```
+
+#### Test Circuit Breaker
+
+```bash
+# Configure circuit breaker with low threshold
+export CIRCUIT_FAILURE_THRESHOLD=2
+export CIRCUIT_TIMEOUT=30
+
+# Trigger circuit breaker with failing requests
+# (Requires backend to be down or returning errors)
+```
+
+#### Test Security Filter
+
+```bash
+# Test request size limit
+export MAX_REQUEST_SIZE=100
+
+curl -X POST http://127.0.0.1:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d "$(python3 -c 'print("{\"model\":\"qwen3.5-4b\",\"messages\":[{\"role\":\"user\",\"content\":\"" + "x"*1000 + "\"}]}')") \
+  | jq '.error'
+```
+
+### Troubleshooting
+
+#### Middleware Not Processing Requests
+
+**Problem:** Requests bypass middleware entirely.
+
+**Solution:**
+1. Check middleware is enabled in config
+2. Verify middleware appears in gateway startup logs
+3. Check for import errors in gateway logs
+
+```bash
+journalctl -u ai-inference-gateway -n 50 | grep middleware
+```
+
+#### Rate Limiter Not Enforcing Limits
+
+**Problem:** Rate limits not being applied.
+
+**Solution:**
+1. Verify `RATE_LIMIT_ENABLED=true`
+2. Check Redis connection if using Redis backend
+3. Verify token counting in metrics: `curl http://127.0.0.1:8080/metrics | grep rate_limit`
+
+#### Circuit Breaker Stuck Open
+
+**Problem:** Circuit breaker remains open after backend recovers.
+
+**Solution:**
+1. Check `CIRCUIT_TIMEOUT` setting (default 60s)
+2. Manually reset by restarting gateway
+3. Adjust `CIRCUIT_FAILURE_THRESHOLD` if too sensitive
+
+```bash
+# Check circuit breaker state
+curl http://127.0.0.1:8080/metrics | grep circuit_breaker_state
+```
+
+#### Load Balancer Not Distributing
+
+**Problem:** All requests go to single backend.
+
+**Solution:**
+1. Verify multiple backends configured
+2. Check backend health status
+3. Review backend weights in configuration
+
+```bash
+# Check backend selection distribution
+curl http://127.0.0.1:8080/metrics | grep load_balancer_selections
+```
+
+#### High Middleware Latency
+
+**Problem:** Gateway adding significant latency.
+
+**Solution:**
+1. Check metrics for slow middleware: `curl http://127.0.0.1:8080/metrics | grep middleware_duration`
+2. Disable unnecessary middleware
+3. Optimize middleware configuration (e.g., reduce circuit breaker health check interval)
 
 ### Quick Start
 
