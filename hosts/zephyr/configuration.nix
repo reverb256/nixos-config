@@ -381,6 +381,7 @@
     GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1"; # Critical for heterogeneous GPU support
     GGML_CUDA_GPU_MEMORY_FRACTION = "0.9"; # Use 90% of GPU VRAM (leave headroom)
     LLAMA_GRAPH_POOL_SIZE = "0.2"; # CUDA Graphs pool (20% of VRAM)
+    # KV cache quantization (Q4_0) is configured per-model in LM Studio GUI
   };
 
   # ============================================================================
