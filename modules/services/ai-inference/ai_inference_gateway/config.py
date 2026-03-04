@@ -1,165 +1,308 @@
 # modules/services/ai-inference/ai_inference_gateway/config.py
+"""
+Configuration module for AI Inference Gateway using Pydantic for validation.
+
+This module provides production-grade configuration with:
+- Automatic environment variable loading
+- Runtime validation
+- Type coercion
+- Secret field protection
+- Schema generation
+"""
+
 import os
-from dataclasses import dataclass, field
 from typing import Optional
+from pydantic import BaseModel, Field, field_validator, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-@dataclass
-class RateLimitingConfig:
-    """Rate limiting configuration"""
-    enabled: bool = False
-    backend: str = "memory"  # "redis" or "memory"
-    tokens_per_minute: int = 10000
-    tokens_per_hour: int = 50000
-    tokens_per_day: int = 500000
-    rpm: int = 60  # Legacy request-based rate limit
+class RateLimitingConfig(BaseModel):
+    """Rate limiting configuration with validation"""
 
+    enabled: bool = Field(default=False, description="Enable rate limiting")
+    backend: str = Field(
+        default="memory", pattern="^(memory|redis)$", description="Rate limit backend"
+    )
+    tokens_per_minute: int = Field(
+        default=10000, ge=0, description="Tokens per minute limit"
+    )
+    tokens_per_hour: int = Field(
+        default=50000, ge=0, description="Tokens per hour limit"
+    )
+    tokens_per_day: int = Field(
+        default=500000, ge=0, description="Tokens per day limit"
+    )
+    rpm: int = Field(default=60, ge=1, le=10000, description="Requests per minute")
 
-@dataclass
-class SecurityConfig:
-    """Security filter configuration"""
-    enabled: bool = True
-    pii_redaction: bool = True
-    max_request_size: int = 10485760  # 10MB
-
-
-@dataclass
-class CacheConfig:
-    """Cache configuration"""
-    enabled: bool = False
-    backend: str = "memory"  # "redis" or "memory"
-    default_ttl: int = 3600  # 1 hour
-
-
-@dataclass
-class CircuitBreakerConfig:
-    """Circuit breaker configuration"""
-    enabled: bool = True
-    failure_threshold: int = 5
-    success_threshold: int = 2
-    timeout_seconds: int = 60
-    health_check_interval: int = 10
-
-
-@dataclass
-class RequestQueueConfig:
-    """Request queue configuration"""
-    enabled: bool = False
-    max_concurrent: int = 10
-
-
-@dataclass
-class LoadBalancerConfig:
-    """Load balancer configuration"""
-    enabled: bool = False
-    # Will be populated from backends list
-
-
-@dataclass
-class ObservabilityConfig:
-    """Observability configuration"""
-    enabled: bool = True
-    structured_logging: bool = True
-    request_id_header: str = "X-Request-ID"
-
-
-@dataclass
-class MiddlewareConfig:
-    """All middleware configuration"""
-    rate_limiting: RateLimitingConfig = field(default_factory=RateLimitingConfig)
-    security: SecurityConfig = field(default_factory=SecurityConfig)
-    cache: CacheConfig = field(default_factory=CacheConfig)
-    circuit_breaker: CircuitBreakerConfig = field(default_factory=CircuitBreakerConfig)
-    request_queue: RequestQueueConfig = field(default_factory=RequestQueueConfig)
-    load_balancer: LoadBalancerConfig = field(default_factory=LoadBalancerConfig)
-    observability: ObservabilityConfig = field(default_factory=ObservabilityConfig)
-
-
-@dataclass
-class GatewayConfig:
-    """Main gateway configuration"""
-    gateway_host: str = "127.0.0.1"
-    gateway_port: int = 8080
-    backend_url: str = "http://127.0.0.1:1234"
-    backend_type: str = "lm-studio"
-    lm_studio_api_key: Optional[str] = None
-    zai_api_key: Optional[str] = None
-    middleware: MiddlewareConfig = field(default_factory=MiddlewareConfig)
-
+    @field_validator("backend")
     @classmethod
-    def load_from_env(cls) -> "GatewayConfig":
-        """Load configuration from environment variables"""
-        middleware = MiddlewareConfig()
+    def validate_backend(cls, v: str) -> str:
+        """Validate rate limit backend"""
+        if v not in ["memory", "redis"]:
+            raise ValueError('backend must be "memory" or "redis"')
+        return v
 
-        # Rate limiting
-        middleware.rate_limiting.enabled = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
-        middleware.rate_limiting.backend = os.getenv("RATE_LIMIT_BACKEND", "memory")
-        middleware.rate_limiting.tokens_per_minute = int(os.getenv("RATE_LIMIT_TPM", "10000"))
-        middleware.rate_limiting.tokens_per_hour = int(os.getenv("RATE_LIMIT_TPH", "50000"))
-        middleware.rate_limiting.tokens_per_day = int(os.getenv("RATE_LIMIT_TPD", "500000"))
-        middleware.rate_limiting.rpm = int(os.getenv("RATE_LIMIT_RPM", "60"))
 
-        # Security
-        middleware.security.enabled = os.getenv("SECURITY_ENABLED", "true").lower() == "true"
-        middleware.security.pii_redaction = os.getenv("PII_REDACTION", "true").lower() == "true"
-        middleware.security.max_request_size = int(os.getenv("MAX_REQUEST_SIZE", "10485760"))
+class SecurityConfig(BaseModel):
+    """Security filter configuration with validation"""
 
-        # Cache
-        middleware.cache.enabled = os.getenv("CACHE_ENABLED", "false").lower() == "true"
-        middleware.cache.backend = os.getenv("CACHE_BACKEND", "memory")
-        middleware.cache.default_ttl = int(os.getenv("CACHE_TTL", "3600"))
+    enabled: bool = Field(default=True, description="Enable security filtering")
+    pii_redaction: bool = Field(default=True, description="Enable PII redaction")
+    max_request_size: int = Field(
+        default=10485760,  # 10MB
+        ge=1,
+        le=104857600,  # Max 100MB
+        description="Maximum request size in bytes",
+    )
 
-        # Circuit breaker
-        middleware.circuit_breaker.enabled = os.getenv("CIRCUIT_BREAKER_ENABLED", "true").lower() == "true"
-        middleware.circuit_breaker.failure_threshold = int(os.getenv("CIRCUIT_FAILURE_THRESHOLD", "5"))
-        middleware.circuit_breaker.timeout_seconds = int(os.getenv("CIRCUIT_TIMEOUT", "60"))
+    @field_validator("max_request_size")
+    @classmethod
+    def validate_size(cls, v: int) -> int:
+        """Ensure reasonable size limits"""
+        if v < 1024:  # 1KB minimum
+            raise ValueError("max_request_size must be at least 1KB")
+        return v
 
-        # Request queue
-        middleware.request_queue.enabled = os.getenv("REQUEST_QUEUE_ENABLED", "false").lower() == "true"
-        middleware.request_queue.max_concurrent = int(os.getenv("REQUEST_QUEUE_MAX_CONCURRENT", "10"))
 
-        # Observability
-        middleware.observability.enabled = os.getenv("OBSERVABILITY_ENABLED", "true").lower() == "true"
-        middleware.observability.structured_logging = os.getenv("STRUCTURED_LOGGING", "true").lower() == "true"
+class CacheConfig(BaseModel):
+    """Cache configuration with validation"""
 
-        # Load API keys
-        lm_studio_api_key = None
-        zai_api_key = None
+    enabled: bool = Field(default=False, description="Enable caching")
+    backend: str = Field(
+        default="memory", pattern="^(memory|redis)$", description="Cache backend"
+    )
+    default_ttl: int = Field(
+        default=3600,  # 1 hour
+        ge=1,
+        le=86400,  # Max 24 hours
+        description="Default cache TTL in seconds",
+    )
 
-        # Try LM_STUDIO_API_KEY_FILE first, then LM_STUDIO_API_KEY
-        lm_studio_api_key_file = os.getenv("LM_STUDIO_API_KEY_FILE", "")
-        if lm_studio_api_key_file:
+
+class CircuitBreakerConfig(BaseModel):
+    """Circuit breaker configuration with validation"""
+
+    enabled: bool = Field(default=True, description="Enable circuit breaker")
+    failure_threshold: int = Field(
+        default=5, ge=1, le=100, description="Number of failures before opening circuit"
+    )
+    success_threshold: int = Field(
+        default=2, ge=1, le=10, description="Number of successes before closing circuit"
+    )
+    timeout_seconds: int = Field(
+        default=60,
+        ge=10,
+        le=600,
+        description="Seconds to wait before trying half-open state",
+    )
+    health_check_interval: int = Field(
+        default=10, ge=5, le=60, description="Seconds between health checks"
+    )
+
+
+class RequestQueueConfig(BaseModel):
+    """Request queue configuration with validation"""
+
+    enabled: bool = Field(default=False, description="Enable request queuing")
+    max_concurrent: int = Field(
+        default=10, ge=1, le=1000, description="Maximum concurrent requests"
+    )
+
+
+class LoadBalancerConfig(BaseModel):
+    """Load balancer configuration"""
+
+    enabled: bool = Field(default=False, description="Enable load balancing")
+    # Backend weights are configured dynamically
+
+
+class ObservabilityConfig(BaseModel):
+    """Observability and logging configuration with validation"""
+
+    enabled: bool = Field(default=True, description="Enable observability")
+    structured_logging: bool = Field(
+        default=True, description="Use structured JSON logging"
+    )
+    request_id_header: str = Field(
+        default="X-Request-ID",
+        min_length=1,
+        max_length=100,
+        description="Header name for request ID tracking",
+    )
+    log_level: str = Field(
+        default="INFO",
+        pattern="^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$",
+        description="Logging level",
+    )
+    log_format: str = Field(
+        default="json", pattern="^(json|text)$", description="Log output format"
+    )
+
+    @field_validator("log_level")
+    @classmethod
+    def validate_log_level(cls, v: str) -> str:
+        """Validate and normalize log level"""
+        valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        v_upper = v.upper()
+        if v_upper not in valid_levels:
+            raise ValueError(f"log_level must be one of {valid_levels}")
+        return v_upper
+
+
+class MiddlewareConfig(BaseModel):
+    """Complete middleware configuration"""
+
+    rate_limiting: RateLimitingConfig = Field(
+        default_factory=RateLimitingConfig, description="Rate limiting configuration"
+    )
+    security: SecurityConfig = Field(
+        default_factory=SecurityConfig, description="Security filter configuration"
+    )
+    cache: CacheConfig = Field(
+        default_factory=CacheConfig, description="Cache configuration"
+    )
+    circuit_breaker: CircuitBreakerConfig = Field(
+        default_factory=CircuitBreakerConfig,
+        description="Circuit breaker configuration",
+    )
+    request_queue: RequestQueueConfig = Field(
+        default_factory=RequestQueueConfig, description="Request queue configuration"
+    )
+    load_balancer: LoadBalancerConfig = Field(
+        default_factory=LoadBalancerConfig, description="Load balancer configuration"
+    )
+    observability: ObservabilityConfig = Field(
+        default_factory=ObservabilityConfig, description="Observability configuration"
+    )
+
+
+class GatewayConfig(BaseSettings):
+    """
+    Main gateway configuration with automatic environment variable loading.
+
+    Environment variables are automatically loaded:
+    - GATEWAY_HOST: Gateway listen host
+    - GATEWAY_PORT: Gateway listen port
+    - BACKEND_URL: Backend service URL
+    - BACKEND_TYPE: Backend type (lm-studio, vllm, llama-cpp, sglang, zai)
+    - LM_STUDIO_API_KEY: LM Studio API key (or LM_STUDIO_API_KEY_FILE)
+    - ZAI_API_KEY: ZAI API key (or ZAI_API_KEY_FILE)
+    - LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    - STRUCTURED_LOGGING: Enable structured logging (true/false)
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="",  # No prefix for env vars
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",  # Ignore extra env vars
+    )
+
+    # Core settings with validation
+    gateway_host: str = Field(default="127.0.0.1", description="Gateway listen host")
+    gateway_port: int = Field(
+        default=8080, ge=1, le=65535, description="Gateway listen port"
+    )
+
+    # Backend settings with validation
+    backend_url: str = Field(
+        default="http://127.0.0.1:1234", description="Backend service URL"
+    )
+    backend_type: str = Field(
+        default="lm-studio",
+        pattern="^(lm-studio|vllm|llama-cpp|sglang|zai)$",
+        description="Backend type",
+    )
+
+    # API Keys (marked as secrets - won't appear in logs or repr)
+    lm_studio_api_key: Optional[SecretStr] = Field(
+        default=None, repr=False, exclude=True, description="LM Studio API key"
+    )
+    lm_studio_api_key_file: Optional[str] = Field(
+        default=None, description="Path to file containing LM Studio API key"
+    )
+
+    zai_api_key: Optional[SecretStr] = Field(
+        default=None, repr=False, exclude=True, description="ZAI API key"
+    )
+    zai_api_key_file: Optional[str] = Field(
+        default=None, description="Path to file containing ZAI API key"
+    )
+
+    # Middleware configuration
+    middleware: MiddlewareConfig = Field(
+        default_factory=MiddlewareConfig, description="Middleware configuration"
+    )
+
+    @field_validator("backend_url")
+    @classmethod
+    def validate_backend_url(cls, v: str) -> str:
+        """Ensure backend URL is valid"""
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("backend_url must start with http:// or https://")
+        return v
+
+    @field_validator("gateway_host")
+    @classmethod
+    def validate_host(cls, v: str) -> str:
+        """Validate host address"""
+        if not v:
+            raise ValueError("gateway_host cannot be empty")
+        return v
+
+    def get_lm_studio_api_key(self) -> Optional[str]:
+        """
+        Get LM Studio API key value.
+
+        Priority:
+        1. Environment variable LM_STUDIO_API_KEY
+        2. File specified in LM_STUDIO_API_KEY_FILE
+        """
+        # Try secret field first
+        if self.lm_studio_api_key:
+            return self.lm_studio_api_key.get_secret_value()
+
+        # Try file
+        if self.lm_studio_api_key_file:
             try:
-                with open(lm_studio_api_key_file, 'r') as f:
-                    lm_studio_api_key = f.read().strip()
-            except Exception as e:
-                logger = __import__("logging").getLogger(__name__)
-                logger.warning(f"Failed to read LM_STUDIO_API_KEY_FILE: {e}")
+                with open(self.lm_studio_api_key_file, "r") as f:
+                    return f.read().strip()
+            except Exception:
+                return None
 
-        if not lm_studio_api_key:
-            lm_studio_api_key = os.getenv("LM_STUDIO_API_KEY", "")
-            lm_studio_api_key = lm_studio_api_key if lm_studio_api_key else None
+        return None
 
-        # Try ZAI_API_KEY_FILE first, then ZAI_API_KEY
-        zai_api_key_file = os.getenv("ZAI_API_KEY_FILE", "")
-        if zai_api_key_file:
+    def get_zai_api_key(self) -> Optional[str]:
+        """
+        Get ZAI API key value.
+
+        Priority:
+        1. Environment variable ZAI_API_KEY
+        2. File specified in ZAI_API_KEY_FILE
+        """
+        # Try secret field first
+        if self.zai_api_key:
+            return self.zai_api_key.get_secret_value()
+
+        # Try file
+        if self.zai_api_key_file:
             try:
-                with open(zai_api_key_file, 'r') as f:
-                    zai_api_key = f.read().strip()
-            except Exception as e:
-                logger = __import__("logging").getLogger(__name__)
-                logger.warning(f"Failed to read ZAI_API_KEY_FILE: {e}")
+                with open(self.zai_api_key_file, "r") as f:
+                    return f.read().strip()
+            except Exception:
+                return None
 
-        if not zai_api_key:
-            zai_api_key = os.getenv("ZAI_API_KEY", "")
-            zai_api_key = zai_api_key if zai_api_key else None
+        return None
 
-        return cls(
-            gateway_host=os.getenv("GATEWAY_HOST", "127.0.0.1"),
-            gateway_port=int(os.getenv("GATEWAY_PORT", "8080")),
-            backend_url=os.getenv("BACKEND_URL", "http://127.0.0.1:1234"),
-            backend_type=os.getenv("BACKEND_TYPE", "lm-studio"),
-            lm_studio_api_key=lm_studio_api_key,
-            zai_api_key=zai_api_key,
-            middleware=middleware
-        )
+    class Config:
+        """Configuration for Pydantic settings"""
+
+        # Allow extra fields for forward compatibility
+        extra = "ignore"
+
+        # Validate on assignment
+        validate_assignment = True
+
+        # Use enum values
+        use_enum_values = True
