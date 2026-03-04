@@ -43,9 +43,13 @@
       url = "github:Gerg-L/spicetify-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, spicetify-nix, zen-browser, firefox-addons, aagl, nur, claude-native, nixpkgs-xr, scopebuddy, nixcord }:
+  outputs = { self, nixpkgs, home-manager, spicetify-nix, zen-browser, firefox-addons, aagl, nur, claude-native, nixpkgs-xr, scopebuddy, nixcord, agenix }:
     {
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
 
@@ -55,7 +59,7 @@
         system = "x86_64-linux";
         specialArgs = {
           inputs = {
-            inherit nixpkgs home-manager spicetify-nix zen-browser firefox-addons aagl nur claude-native nixpkgs-xr scopebuddy nixcord self;
+            inherit nixpkgs home-manager spicetify-nix zen-browser firefox-addons aagl nur claude-native nixpkgs-xr scopebuddy nixcord agenix self;
           };
         };
         modules = [
@@ -63,6 +67,7 @@
           home-manager.nixosModules.home-manager
           aagl.nixosModules.default
           nur.modules.nixos.default
+          agenix.nixosModules.default
           {nixpkgs.overlays = [ self.overlays.default ];}
         ];
       };
