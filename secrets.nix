@@ -7,4 +7,5 @@ let
 in
 {
   "huggingface-token.age".publicKeys = [users.j_kro];
+  "lm-studio-api-key.age".publicKeys = [users.j_kro];
 }
