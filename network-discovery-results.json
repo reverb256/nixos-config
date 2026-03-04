@@ -1,0 +1,47 @@
+{
+  "discovered_at": "2026-03-04T10:40:00Z",
+  "switches": [
+    {
+      "ip": "10.1.1.10",
+      "name": "switch1",
+      "description": "Gaming Zone",
+      "status": "UP",
+      "http_status": 200,
+      "server": "unknown",
+      "model": "Unknown",
+      "login_endpoint": "/logon.cgi"
+    },
+    {
+      "ip": "10.1.1.11",
+      "name": "switch2",
+      "description": "Mining Zone",
+      "status": "UP",
+      "http_status": 200,
+      "server": "unknown",
+      "model": "Unknown",
+      "login_endpoint": "/logon.cgi"
+    },
+    {
+      "ip": "10.1.1.12",
+      "name": "switch3",
+      "description": "Backup Storage",
+      "status": "UP",
+      "http_status": 200,
+      "server": "unknown",
+      "model": "Unknown",
+      "login_endpoint": "/logon.cgi"
+    },
+    {
+      "ip": "10.1.1.13",
+      "name": "switch4",
+      "description": "Management Network",
+      "status": "UP",
+      "http_status": 200,
+      "server": "unknown",
+      "model": "Unknown",
+      "login_endpoint": "/logon.cgi"
+    }
+  ],
+  "credentials_stored": false,
+  "notes": "Credentials need to be stored securely via agenix"
+}

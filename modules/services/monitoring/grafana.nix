@@ -218,8 +218,8 @@ let
         };
         targets = [
           {
-            expr = "sum without (cpu, mode) (count without (mode) (node_cpu_seconds_total))";
-            legendFormat = "Cores";
+            expr = "count(node_cpu_seconds_total{mode=\"idle\"}) by (host)";
+            legendFormat = "{{host}}";
             refId = "A";
           }
         ];

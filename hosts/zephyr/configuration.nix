@@ -47,8 +47,11 @@
   # ============================================================================
   # WIRELESS HARDWARE
   # ============================================================================
-  networking.wifi.enable = true;
-  networking.bluetooth.enable = true;
+  # WiFi support via wpa_supplicant (works with NetworkManager)
+  networking.wireless.enable = true;
+
+  # Bluetooth support via BlueZ
+  hardware.bluetooth.enable = true;
 
   # Timezone and locale
   time.timeZone = "America/Winnipeg";
