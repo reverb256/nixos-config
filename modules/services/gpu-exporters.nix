@@ -67,7 +67,7 @@ in {
         User = "nvidia-gpu-exporter";
         Group = "nvidia-gpu-exporter";
         DynamicUser = true;
-        ExecStart = "${pkgs.prometheus-nvidia-gpu-exporter}/bin/nvidia_gpu_exporter --web.listen-address 127.0.0.1:${toString cfg.nvidia.port} --nvidia-smi-command ${config.hardware.nvidia.package.bin}/bin/nvidia-smi";
+        ExecStart = "${pkgs.prometheus-nvidia-gpu-exporter}/bin/nvidia_gpu_exporter --web.listen-address 0.0.0.0:${toString cfg.nvidia.port} --nvidia-smi-command ${config.hardware.nvidia.package.bin}/bin/nvidia-smi";
 
         Restart = "always";
         RestartSec = "10s";
