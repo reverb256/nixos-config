@@ -11,6 +11,7 @@ from ai_inference_gateway.config import GatewayConfig
 from ai_inference_gateway.pipeline import MiddlewarePipeline
 from ai_inference_gateway.utils.redis_client import RedisClient
 from ai_inference_gateway.openai_client import create_openai_client, OpenAIBackendError
+from ai_inference_gateway.router import create_default_router, RouteDecision
 
 # Import middleware
 from ai_inference_gateway.middleware.observability import ObservabilityMiddleware
@@ -47,7 +48,7 @@ class GatewayState:
     Gateway application state.
 
     Stores shared state across the application including config,
-    Redis client, middleware pipeline, and OpenAI client wrapper.
+    Redis client, middleware pipeline, OpenAI client wrapper, and router.
     """
 
     def __init__(
@@ -56,11 +57,13 @@ class GatewayState:
         redis_client: Optional[RedisClient] = None,
         pipeline: Optional[MiddlewarePipeline] = None,
         openai_client=None,
+        router=None,
     ):
         self.config = config
         self.redis_client = redis_client
         self.pipeline = pipeline
         self.openai_client = openai_client
+        self.router = router
 
 
 def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
@@ -131,6 +134,10 @@ async def lifespan(app: FastAPI):
     logger.info(
         "Middleware pipeline initialized with %d middleware", state.pipeline.count
     )
+
+    # Initialize router
+    state.router = create_default_router()
+    logger.info("Router initialized with %d models", len(state.router.models))
 
     # Startup complete
     logger.info("Gateway startup complete")
@@ -283,9 +290,10 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     @app.post("/v1/chat/completions")
     async def chat_completions(request: Request):
         """
-        Chat completions endpoint with middleware processing.
+        Chat completions endpoint with middleware processing and intelligent routing.
 
         Supports both streaming and non-streaming requests.
+        Uses router for intelligent model selection based on request analysis.
         """
         state: GatewayState = app.state.gateway
 
@@ -295,14 +303,32 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Check if streaming is requested
         stream = body.get("stream", False)
 
-        # Extract model for concurrency limiting
-        model = body.get("model", "default")
+        # Get messages for routing
+        messages = body.get("messages", [])
+
+        # Use router to select best model
+        requested_model = body.get("model", None)
+        route_decision: RouteDecision = await state.router.route(
+            messages=messages,
+            requested_model=requested_model,
+            urgency="normal",  # Could be made configurable
+        )
+
+        # Update model in body based on routing decision
+        body["model"] = route_decision.model
+
+        logger.info(
+            f"Routed request to model: {route_decision.model} "
+            f"(backend: {route_decision.backend}, "
+            f"specialization: {route_decision.specialization})"
+        )
 
         # Create context for middleware
         context = {
             "request_body": body,
             "request_headers": dict(request.headers),
-            "model": model,  # Add model for concurrency limiter
+            "model": route_decision.model,  # Use routed model for concurrency limiter
+            "route_decision": route_decision,  # Store routing decision
         }
 
         # Process request through middleware pipeline
@@ -714,6 +740,21 @@ async def handle_non_streaming_request(
 
         # Convert OpenAI response object to dict for JSON serialization
         response_data = response.model_dump()
+
+        # Add gateway metadata including routing information
+        route_decision = context.get("route_decision")
+        if route_decision:
+            response_data["gateway_metadata"] = {
+                "processing_time_ms": 0,  # TODO: Track actual processing time
+                "router": {
+                    "model": route_decision.model,
+                    "backend": route_decision.backend,
+                    "reason": route_decision.reason,
+                    "specialization": route_decision.specialization.value if route_decision.specialization else None,
+                    "estimated_tokens": route_decision.estimated_tokens,
+                    "expected_latency_ms": route_decision.expected_latency_ms,
+                }
+            }
 
         # Process response through middleware pipeline (reverse order)
         response_data = await pipeline.process_response(response_data, context)
