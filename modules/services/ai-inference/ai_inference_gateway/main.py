@@ -10,6 +10,7 @@ import httpx
 from ai_inference_gateway.config import GatewayConfig
 from ai_inference_gateway.pipeline import MiddlewarePipeline
 from ai_inference_gateway.utils.redis_client import RedisClient
+from ai_inference_gateway.openai_client import create_openai_client, OpenAIBackendError
 
 # Import middleware
 from ai_inference_gateway.middleware.observability import ObservabilityMiddleware
@@ -45,7 +46,7 @@ class GatewayState:
     Gateway application state.
 
     Stores shared state across the application including config,
-    Redis client, and middleware pipeline.
+    Redis client, middleware pipeline, and OpenAI client wrapper.
     """
 
     def __init__(
@@ -53,10 +54,12 @@ class GatewayState:
         config: GatewayConfig,
         redis_client: Optional[RedisClient] = None,
         pipeline: Optional[MiddlewarePipeline] = None,
+        openai_client=None,
     ):
         self.config = config
         self.redis_client = redis_client
         self.pipeline = pipeline
+        self.openai_client = openai_client
 
 
 def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
@@ -140,6 +143,10 @@ async def lifespan(app: FastAPI):
         await state.redis_client.close()
         logger.info("Redis connection closed")
 
+    if state.openai_client:
+        await state.openai_client.close()
+        logger.info("OpenAI clients closed")
+
     logger.info("Gateway shutdown complete")
 
 
@@ -202,8 +209,12 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     if config is None:
         config = GatewayConfig()
 
-    # Initialize gateway state
-    gateway_state = GatewayState(config=config)
+    # Initialize gateway state with OpenAI client wrapper
+    openai_client = create_openai_client(config)
+    gateway_state = GatewayState(
+        config=config,
+        openai_client=openai_client,
+    )
 
     # Create FastAPI app
     app = FastAPI(
@@ -240,26 +251,24 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         """List available models from backend with automatic failover."""
         state: GatewayState = app.state.gateway
 
-        # Build headers with authentication (include original request headers)
-        backend_headers = build_backend_headers(state.config, dict(request.headers))
-
         try:
-            # Try backends in order (primary + fallbacks)
-            response, actual_backend_url = await try_backends_with_failover(
-                config=state.config,
-                request_headers=backend_headers,
-                endpoint="/v1/models",
-                method="GET",
-                timeout=30.0,
-            )
+            # Use OpenAI SDK to list models with automatic failover
+            models = await state.openai_client.primary_client.models.list()
 
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPError as e:
+            # Convert to dict for JSON response
+            return JSONResponse(content=models.model_dump())
+
+        except OpenAIBackendError as e:
             logger.error(f"Error fetching models: {e}")
             raise HTTPException(
                 status_code=503, detail=f"Backend unavailable: {str(e)}"
             )
+        except Exception as e:
+            logger.error(f"Unexpected error fetching models: {e}")
+            raise HTTPException(
+                status_code=500, detail=f"Error fetching models: {str(e)}"
+            )
+
 
     # Add chat completions endpoint
     @app.post("/v1/chat/completions")
@@ -289,17 +298,13 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 raise error
             raise HTTPException(status_code=403, detail="Request blocked by middleware")
 
-        # Forward to backend
-        # Build headers with authentication
-        backend_headers = build_backend_headers(state.config, dict(request.headers))
-
+        # Forward to backend using OpenAI SDK
         if stream:
             # Handle streaming response
             return StreamingResponse(
                 stream_backend_response(
-                    state.config.backend_url,
+                    state.openai_client,
                     body,
-                    backend_headers,
                     state.pipeline,
                     context,
                     state.config,
@@ -313,9 +318,8 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         else:
             # Handle non-streaming response
             return await handle_non_streaming_request(
-                state.config.backend_url,
+                state.openai_client,
                 body,
-                backend_headers,
                 state.pipeline,
                 context,
                 state.config,
@@ -469,20 +473,18 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
 
 async def stream_backend_response(
-    backend_url: str,
+    openai_client,
     body: dict,
-    headers: dict,
     pipeline: MiddlewarePipeline,
     context: dict,
     config: GatewayConfig,
 ):
     """
-    Stream backend response line by line.
+    Stream backend response using OpenAI SDK with automatic failover.
 
     Args:
-        backend_url: Backend URL
+        openai_client: OpenAI client wrapper
         body: Request body
-        headers: Request headers
         pipeline: Middleware pipeline
         context: Request context
         config: Gateway configuration
@@ -490,48 +492,54 @@ async def stream_backend_response(
     Yields:
         SSE formatted response chunks
     """
-    async with httpx.AsyncClient(timeout=300.0) as client:
-        try:
-            async with client.stream(
-                "POST", f"{backend_url}/v1/chat/completions", json=body, headers=headers
-            ) as response:
-                # Check for HTTP errors
-                if response.status_code >= 400:
-                    error_text = await response.aread()
-                    error_detail = f"Backend error {response.status_code}: {error_text.decode()[:200]}"
+    try:
+        # Extract parameters from request body
+        messages = body.get("messages", [])
+        model = body.get("model", "default")
+        extra_params = {k: v for k, v in body.items() if k not in ["messages", "model"]}
 
-                    # Notify circuit breaker of failure
-                    if config.middleware.circuit_breaker.enabled:
-                        for middleware in pipeline.middleware:
-                            if isinstance(middleware, CircuitBreaker):
-                                await middleware.on_failure()
+        # Create streaming chat completion with automatic failover
+        stream = await openai_client.chat_completion(
+            messages=messages,
+            model=model,
+            stream=True,
+            **extra_params,
+        )
 
-                    # Yield error as SSE comment
-                    yield f" data: {{'error': '{error_detail}'}}\n\n"
-                    return
+        # Stream response chunks
+        async for chunk in stream:
+            # Format as SSE
+            chunk_str = chunk.model_dump_json()
+            yield f"data: {chunk_str}\n\n"
 
-                # Stream response line by line
-                async for line in response.aiter_lines():
-                    if line:
-                        # Pass through SSE format
-                        yield f"{line}\n"
+        # Notify circuit breaker of success
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_success()
 
-                # Notify circuit breaker of success
-                if config.middleware.circuit_breaker.enabled:
-                    for middleware in pipeline.middleware:
-                        if isinstance(middleware, CircuitBreaker):
-                            await middleware.on_success()
+    except OpenAIBackendError as e:
+        logger.error(f"Backend error in streaming request: {e}")
 
-        except httpx.HTTPError as e:
-            logger.error(f"Network error in streaming request: {e}")
+        # Notify circuit breaker of failure
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_failure()
 
-            # Notify circuit breaker of failure
-            if config.middleware.circuit_breaker.enabled:
-                for middleware in pipeline.middleware:
-                    if isinstance(middleware, CircuitBreaker):
-                        await middleware.on_failure()
+        # Yield error as SSE comment
+        yield f"data: {{'error': '{str(e)}'}}\n\n"
+    except Exception as e:
+        logger.error(f"Unexpected error in streaming request: {e}")
 
-            yield f" data: {{'error': 'Network error: {str(e)}'}}\n\n"
+        # Notify circuit breaker of failure
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_failure()
+
+        yield f"data: {{'error': 'Unexpected error: {str(e)}'}}\n\n"
+
 
 
 async def try_backends_with_failover(
@@ -572,9 +580,16 @@ async def try_backends_with_failover(
         try:
             logger.info(f"Attempting {backend_type_name} backend: {backend_url}")
 
-            # Build headers for this backend
+            # Build headers for this backend, preserving User-Agent
             headers = {k: v for k, v in request_headers.items()
                       if k.lower() not in {"host", "content-length", "content-encoding", "transfer-encoding"}}
+
+            # Log User-Agent for debugging
+            if "user-agent" in {k.lower(): k for k in headers.keys()}:
+                ua_key = next(k for k in headers.keys() if k.lower() == "user-agent")
+                logger.info(f"[DEBUG] Forwarding User-Agent: {headers[ua_key][:100]}")
+            else:
+                logger.warning(f"[DEBUG] No User-Agent header in request")
 
             # Add authentication for this backend
             if "authorization" not in {k.lower() for k in headers.keys()}:
@@ -600,7 +615,11 @@ async def try_backends_with_failover(
                 else:
                     url = f"{backend_url}{endpoint}"
 
-                logger.info(f"Making request to {backend_type_name} backend: {url}")
+                # Comprehensive logging for ZAI debugging
+                if backend_api_type == "zai":
+                    logger.info(f"[ZAI DEBUG] URL: {url}")
+                    logger.info(f"[ZAI DEBUG] Headers: Authorization={headers.get('Authorization', 'MISSING')[:30]}...")
+                    logger.info(f"[ZAI DEBUG] Body model: {content.get('model', 'NO_MODEL')}")
 
                 if method.upper() == "POST":
                     response = await client.post(
@@ -616,6 +635,15 @@ async def try_backends_with_failover(
 
                 # Log response status
                 logger.info(f"{backend_type_name} backend response: HTTP {response.status_code}")
+
+                # Extra logging for ZAI responses
+                if backend_api_type == "zai":
+                    logger.info(f"[ZAI DEBUG] Response status: {response.status_code}")
+                    if response.status_code != 200:
+                        try:
+                            logger.info(f"[ZAI DEBUG] Response body: {response.text[:500]}")
+                        except:
+                            pass
 
                 # If we got here, the request succeeded (connected, even if 4xx/5xx)
                 return response, backend_url
@@ -635,20 +663,18 @@ async def try_backends_with_failover(
 
 
 async def handle_non_streaming_request(
-    backend_url: str,
+    openai_client,
     body: dict,
-    headers: dict,
     pipeline: MiddlewarePipeline,
     context: dict,
     config: GatewayConfig,
 ):
     """
-    Handle non-streaming request.
+    Handle non-streaming request using OpenAI SDK with automatic failover.
 
     Args:
-        backend_url: Backend URL
+        openai_client: OpenAI client wrapper
         body: Request body
-        headers: Request headers
         pipeline: Middleware pipeline
         context: Request context
         config: Gateway configuration
@@ -657,58 +683,21 @@ async def handle_non_streaming_request(
         JSON response
     """
     try:
-        # Try backends in order (primary + fallbacks)
-        response, actual_backend_url = await try_backends_with_failover(
-            config=config,
-            request_headers=headers,
-            endpoint="/v1/chat/completions",
-            method="POST",
-            content=body,
-            timeout=300.0,
+        # Extract parameters from request body
+        messages = body.get("messages", [])
+        model = body.get("model", "default")
+        extra_params = {k: v for k, v in body.items() if k not in ["messages", "model"]}
+
+        # Create chat completion with automatic failover
+        response = await openai_client.chat_completion(
+            messages=messages,
+            model=model,
+            stream=False,
+            **extra_params,
         )
 
-        # Check for HTTP errors
-        if response.status_code >= 400:
-                error_detail = f"Backend error {response.status_code}"
-
-                # Try to extract error details from response
-                try:
-                    error_json = response.json()
-                    if "error" in error_json:
-                        error_msg = error_json["error"].get(
-                            "message", str(error_json["error"])
-                        )
-                        error_detail = f"{error_detail}: {error_msg}"
-                    else:
-                        error_detail = f"{error_detail}: {error_json}"
-                except Exception:
-                    # If response isn't JSON, use text
-                    if response.text:
-                        error_detail = f"{error_detail}: {response.text[:200]}"
-
-                logger.error(f"Backend error: {error_detail}")
-
-                # Notify circuit breaker of failure
-                if config.middleware.circuit_breaker.enabled:
-                    for middleware in pipeline.middleware:
-                        if isinstance(middleware, CircuitBreaker):
-                            await middleware.on_failure()
-
-                # Return appropriate status code
-                status_code = (
-                    503 if response.status_code >= 500 else response.status_code
-                )
-                raise HTTPException(status_code=status_code, detail=error_detail)
-
-        # Parse JSON response
-        try:
-            response_data = response.json()
-        except Exception as e:
-            logger.error(f"Failed to parse backend response as JSON: {e}")
-            logger.error(f"Response text: {response.text[:500]}")
-            raise HTTPException(
-                status_code=502, detail=f"Invalid response from backend: {str(e)}"
-            )
+        # Convert OpenAI response object to dict for JSON serialization
+        response_data = response.model_dump()
 
         # Process response through middleware pipeline (reverse order)
         response_data = await pipeline.process_response(response_data, context)
@@ -719,10 +708,10 @@ async def handle_non_streaming_request(
                 if isinstance(middleware, CircuitBreaker):
                     await middleware.on_success()
 
-        return JSONResponse(content=response_data, status_code=response.status_code)
+        return JSONResponse(content=response_data, status_code=200)
 
-    except httpx.HTTPError as e:
-        logger.error(f"Network error after all backends failed: {e}")
+    except OpenAIBackendError as e:
+        logger.error(f"Backend error: {e}")
 
         # Notify circuit breaker of failure
         if config.middleware.circuit_breaker.enabled:
@@ -730,7 +719,27 @@ async def handle_non_streaming_request(
                 if isinstance(middleware, CircuitBreaker):
                     await middleware.on_failure()
 
-        raise HTTPException(status_code=503, detail=f"All backends unavailable: {str(e)}")
+        # Extract status code from error message if possible
+        error_str = str(e)
+        status_code = 503
+        if "401" in error_str:
+            status_code = 401
+        elif "429" in error_str:
+            status_code = 429
+
+        raise HTTPException(status_code=status_code, detail=str(e))
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+
+        # Notify circuit breaker of failure
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_failure()
+
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
 
     # Add messages endpoint (Anthropic-compatible)
 
