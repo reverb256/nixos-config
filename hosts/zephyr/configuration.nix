@@ -101,7 +101,7 @@
   programs.stability-matrix.enable = true;
 
   # Agenix secrets for AI services
-  age.identityPaths = ["/home/j_kro/.age/key.txt"];
+  age.identityPaths = [ "/home/j_kro/.age/key.txt" ];
 
   age.secrets.lm-studio-api-key = {
     file = "${inputs.self}/secrets/lm-studio-api-key.age";
@@ -150,16 +150,20 @@
     routing = {
       enable = true;
       defaultModel = "magnum-opus-35b-a3b-i1";
-      fallbackChain = ["vllm" "lm-studio" "zai"];
+      fallbackChain = [
+        "vllm"
+        "lm-studio"
+        "zai"
+      ];
     };
-    auth.mode = "api-key";  # Requires LM Studio API key
+    auth.mode = "api-key"; # Requires LM Studio API key
     monitoring.enable = true;
     # Disable security proxy for local development (too aggressive for code)
     rateLimit.enable = false;
     # RAG configuration
     rag = {
       enable = true;
-      qdrant.enable = true;  # Enable Qdrant service
+      qdrant.enable = true; # Enable Qdrant service
       qdrant.memoryLimit = "4G";
     };
   };
@@ -239,7 +243,7 @@
   };
 
   # lolminer-nvidia: don't auto-start (enable manually with systemctl enable)
-  systemd.services.lolminer-nvidia.wantedBy = [];
+  systemd.services.lolminer-nvidia.wantedBy = [ ];
 
   # Mining plasmoid for KDE Plasma
   #programs.mining-plasmoid.enable = true;  # TODO: Requires plasmoids/mining-monitor
@@ -295,6 +299,16 @@
     networkmanager
     dbus-broker
 
+    # Network discovery & mapping
+    nmap
+    netdiscover
+    arp-scan
+    iproute2 # ip, ss, route commands
+    iputils # ping, traceroute
+    dnsutils # dig, nslookup
+    whois
+    net-tools # arp, ifconfig, route
+
     # Development
     nodejs
     gh
@@ -304,7 +318,7 @@
     llama-cpp
     whisper-cpp
     pipx
-    pkgs.python312Packages.huggingface-hub  # HF CLI: hf download/upload/login
+    pkgs.python312Packages.huggingface-hub # HF CLI: hf download/upload/login
 
     # Mining (manual only, no auto-start)
     xmrig
@@ -813,9 +827,12 @@
         systemd.user.services.vesktop-autostart = {
           Unit = {
             Description = "Vesktop autostart";
-            After = [ "graphical-session-pre.target" "plasma-plasmashell.service" ];
+            After = [
+              "graphical-session-pre.target"
+              "plasma-plasmashell.service"
+            ];
             PartOf = [ "graphical-session.target" ];
-            Wants = [ "plasma-plasmashell.service" ];  # Ensure plasma tray is ready
+            Wants = [ "plasma-plasmashell.service" ]; # Ensure plasma tray is ready
           };
           Service = {
             Type = "simple";
