@@ -237,38 +237,29 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     # Add models endpoint
     @app.get("/v1/models")
     async def list_models(request: Request):
-        """List available models from backend."""
+        """List available models from backend with automatic failover."""
         state: GatewayState = app.state.gateway
 
         # Build headers with authentication (include original request headers)
         backend_headers = build_backend_headers(state.config, dict(request.headers))
 
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.get(
-                    f"{state.config.backend_url}/v1/models",
-                    headers=backend_headers,
-                    timeout=30.0,
-                )
+        try:
+            # Try backends in order (primary + fallbacks)
+            response, actual_backend_url = await try_backends_with_failover(
+                config=state.config,
+                request_headers=backend_headers,
+                endpoint="/v1/models",
+                method="GET",
+                timeout=30.0,
+            )
 
-                # Check for authentication errors
-                if response.status_code == 401:
-                    logger.error("Backend authentication failed for /v1/models")
-                    raise HTTPException(
-                        status_code=503,
-                        detail="Backend authentication failed - check API key configuration",
-                    )
-
-                response.raise_for_status()
-                return response.json()
-            except httpx.HTTPStatusError as e:
-                logger.error(f"Error fetching models: {e}")
-                raise HTTPException(
-                    status_code=503, detail=f"Backend unavailable: {str(e)}"
-                )
-            except httpx.HTTPError as e:
-                logger.error(f"Network error fetching models: {e}")
-                raise HTTPException(status_code=503, detail=f"Network error: {str(e)}")
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"Error fetching models: {e}")
+            raise HTTPException(
+                status_code=503, detail=f"Backend unavailable: {str(e)}"
+            )
 
     # Add chat completions endpoint
     @app.post("/v1/chat/completions")
@@ -543,6 +534,98 @@ async def stream_backend_response(
             yield f" data: {{'error': 'Network error: {str(e)}'}}\n\n"
 
 
+async def try_backends_with_failover(
+    config: GatewayConfig,
+    request_headers: dict,
+    endpoint: str,
+    method: str = "POST",
+    content: dict = None,
+    timeout: float = 300.0,
+) -> tuple[httpx.Response, str]:
+    """
+    Try primary and fallback backends in order until one succeeds.
+
+    Args:
+        config: Gateway configuration
+        request_headers: Original request headers
+        endpoint: API endpoint (e.g., "/v1/chat/completions")
+        method: HTTP method
+        content: Request body for POST requests
+        timeout: Request timeout in seconds
+
+    Returns:
+        Tuple of (response, backend_url_used)
+
+    Raises:
+        httpx.HTTPError: If all backends fail
+    """
+    # Build list of backends to try
+    backends_to_try = [("primary", config.backend_url, config.backend_type)]
+
+    # Add fallback backends (assuming they're ZAI for now)
+    for i, fallback_url in enumerate(config.get_backend_fallback_urls()):
+        backends_to_try.append(("fallback", fallback_url, "zai"))
+
+    last_error = None
+
+    for backend_type_name, backend_url, backend_api_type in backends_to_try:
+        try:
+            logger.info(f"Attempting {backend_type_name} backend: {backend_url}")
+
+            # Build headers for this backend
+            headers = {k: v for k, v in request_headers.items()
+                      if k.lower() not in {"host", "content-length", "content-encoding", "transfer-encoding"}}
+
+            # Add authentication for this backend
+            if "authorization" not in {k.lower() for k in headers.keys()}:
+                if backend_api_type == "lm-studio":
+                    api_key = config.get_lm_studio_api_key()
+                    if api_key:
+                        headers["Authorization"] = f"Bearer {api_key}"
+                elif backend_api_type == "zai":
+                    api_key = config.get_zai_api_key()
+                    if api_key:
+                        headers["Authorization"] = f"Bearer {api_key}"
+
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                # For ZAI, convert OpenAI-style endpoints to ZAI format
+                if backend_api_type == "zai":
+                    # ZAI uses /chat/completions instead of /v1/chat/completions
+                    zai_endpoint = endpoint.replace("/v1/", "/") if endpoint.startswith("/v1/") else endpoint
+                    url = f"{backend_url}{zai_endpoint}"
+                else:
+                    url = f"{backend_url}{endpoint}"
+
+                if method.upper() == "POST":
+                    response = await client.post(
+                        url,
+                        json=content,
+                        headers=headers,
+                    )
+                else:  # GET
+                    response = await client.get(
+                        url,
+                        headers=headers,
+                    )
+
+                # If we got here, the request succeeded
+                logger.info(f"Successfully connected to {backend_type_name} backend: {backend_url}")
+                return response, backend_url
+
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.ConnectTimeout) as e:
+            logger.warning(f"{backend_type_name} backend {backend_url} failed: {str(e)}")
+            last_error = e
+            continue
+        except Exception as e:
+            logger.warning(f"{backend_type_name} backend {backend_url} failed with unexpected error: {str(e)}")
+            last_error = e
+            continue
+
+    # All backends failed
+    logger.error(f"All backends failed. Last error: {last_error}")
+    raise last_error or httpx.ConnectError("All backends unavailable")
+
+
 async def handle_non_streaming_request(
     backend_url: str,
     body: dict,
@@ -565,14 +648,19 @@ async def handle_non_streaming_request(
     Returns:
         JSON response
     """
-    async with httpx.AsyncClient(timeout=300.0) as client:
-        try:
-            response = await client.post(
-                f"{backend_url}/v1/chat/completions", json=body, headers=headers
-            )
+    try:
+        # Try backends in order (primary + fallbacks)
+        response, actual_backend_url = await try_backends_with_failover(
+            config=config,
+            request_headers=headers,
+            endpoint="/v1/chat/completions",
+            method="POST",
+            content=body,
+            timeout=300.0,
+        )
 
-            # Check for HTTP errors
-            if response.status_code >= 400:
+        # Check for HTTP errors
+        if response.status_code >= 400:
                 error_detail = f"Backend error {response.status_code}"
 
                 # Try to extract error details from response
@@ -604,37 +692,37 @@ async def handle_non_streaming_request(
                 )
                 raise HTTPException(status_code=status_code, detail=error_detail)
 
-            # Parse JSON response
-            try:
-                response_data = response.json()
-            except Exception as e:
-                logger.error(f"Failed to parse backend response as JSON: {e}")
-                logger.error(f"Response text: {response.text[:500]}")
-                raise HTTPException(
-                    status_code=502, detail=f"Invalid response from backend: {str(e)}"
-                )
+        # Parse JSON response
+        try:
+            response_data = response.json()
+        except Exception as e:
+            logger.error(f"Failed to parse backend response as JSON: {e}")
+            logger.error(f"Response text: {response.text[:500]}")
+            raise HTTPException(
+                status_code=502, detail=f"Invalid response from backend: {str(e)}"
+            )
 
-            # Process response through middleware pipeline (reverse order)
-            response_data = await pipeline.process_response(response_data, context)
+        # Process response through middleware pipeline (reverse order)
+        response_data = await pipeline.process_response(response_data, context)
 
-            # Notify circuit breaker of success
-            if config.middleware.circuit_breaker.enabled:
-                for middleware in pipeline.middleware:
-                    if isinstance(middleware, CircuitBreaker):
-                        await middleware.on_success()
+        # Notify circuit breaker of success
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_success()
 
-            return JSONResponse(content=response_data, status_code=response.status_code)
+        return JSONResponse(content=response_data, status_code=response.status_code)
 
-        except httpx.HTTPError as e:
-            logger.error(f"Network error forwarding request: {e}")
+    except httpx.HTTPError as e:
+        logger.error(f"Network error after all backends failed: {e}")
 
-            # Notify circuit breaker of failure
-            if config.middleware.circuit_breaker.enabled:
-                for middleware in pipeline.middleware:
-                    if isinstance(middleware, CircuitBreaker):
-                        await middleware.on_failure()
+        # Notify circuit breaker of failure
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_failure()
 
-            raise HTTPException(status_code=503, detail=f"Network error: {str(e)}")
+        raise HTTPException(status_code=503, detail=f"All backends unavailable: {str(e)}")
 
     # Add messages endpoint (Anthropic-compatible)
 

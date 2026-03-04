@@ -200,7 +200,11 @@ in
 
   config = mkIf cfg.enable {
     networking.firewall.allowedTCPPorts = [ 80 ];
-    networking.firewall.allowedUDPPorts = [ 161 ];
+    networking.firewall.allowedUDPPorts = [
+      161
+      29808
+      29809
+    ];
     networking.firewall.allowedTCPPortRanges = [
       {
         from = 9116;
