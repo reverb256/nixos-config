@@ -22,3 +22,9 @@ try:
     __all__.append("RateLimiterMiddleware")
 except ImportError:
     pass
+
+try:
+    from .circuit_breaker import CircuitBreaker, CircuitBreakerState, CircuitBreakerOpenError
+    __all__.extend(["CircuitBreaker", "CircuitBreakerState", "CircuitBreakerOpenError"])
+except ImportError:
+    pass
