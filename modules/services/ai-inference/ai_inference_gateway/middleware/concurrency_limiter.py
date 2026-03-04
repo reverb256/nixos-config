@@ -77,16 +77,17 @@ class ConcurrencyLimiter(Middleware):
         # Get semaphore for this model
         semaphore = await self._get_semaphore(model)
 
-        # Try to acquire permit without blocking
-        if semaphore.locked():
+        # Check if semaphore is at capacity (all permits in use)
+        # For a semaphore with max_concurrency=1, _value=0 means it's in use
+        if semaphore._value <= 0:
             # All permits are in use
-            logger.warning(f"Concurrency limit reached for model: {model}")
+            logger.warning(f"Concurrency limit reached for model: {model} (active: {self.max_concurrency})")
             return False, HTTPException(
                 status_code=503,
                 detail=f"Model {model} is at maximum concurrency ({self.max_concurrency}). Please retry later."
             )
 
-        # Acquire permit
+        # Acquire permit (this should succeed immediately since we checked _value)
         await semaphore.acquire()
         logger.info(f"Acquired concurrency permit for model: {model} (active: {self.max_concurrency - semaphore._value})")
 
