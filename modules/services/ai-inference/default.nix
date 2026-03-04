@@ -184,6 +184,27 @@ in
         default = 4;
         description = "Number of uvicorn workers";
       };
+
+      # Middleware configuration
+      middleware = {
+        redis = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable Redis for middleware features";
+          };
+          host = mkOption {
+            type = types.str;
+            default = "127.0.0.1";
+            description = "Redis host";
+          };
+          port = mkOption {
+            type = types.int;
+            default = 6379;
+            description = "Redis port";
+          };
+        };
+      };
     };
 
     # Model routing configuration
@@ -609,5 +630,12 @@ in
           user = cfg.lm-studio-headless.user;
           openFirewall = cfg.lm-studio-headless.openFirewall;
         };
+
+    # Redis for gateway middleware (caching, rate limiting, circuit breaker)
+    services.redis.servers.ai-gateway = {
+      enable = cfg.gateway.middleware.redis.enable;
+      bind = "127.0.0.1";
+      port = 6379;
+    };
   };
 }
