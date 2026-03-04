@@ -116,6 +116,15 @@ class LoadBalancerConfig(BaseModel):
     # Backend weights are configured dynamically
 
 
+class ConcurrencyLimiterConfig(BaseModel):
+    """Concurrency limiter configuration"""
+
+    enabled: bool = Field(default=True, description="Enable concurrency limiting")
+    max_concurrency: int = Field(
+        default=1, ge=1, le=100, description="Maximum concurrent requests per model"
+    )
+
+
 class ObservabilityConfig(BaseModel):
     """Observability and logging configuration with validation"""
 
@@ -170,6 +179,9 @@ class MiddlewareConfig(BaseModel):
     )
     load_balancer: LoadBalancerConfig = Field(
         default_factory=LoadBalancerConfig, description="Load balancer configuration"
+    )
+    concurrency_limiter: ConcurrencyLimiterConfig = Field(
+        default_factory=ConcurrencyLimiterConfig, description="Concurrency limiter configuration"
     )
     observability: ObservabilityConfig = Field(
         default_factory=ObservabilityConfig, description="Observability configuration"
