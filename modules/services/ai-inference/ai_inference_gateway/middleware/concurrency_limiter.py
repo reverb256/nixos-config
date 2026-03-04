@@ -8,12 +8,12 @@ Uses asyncio.Semaphore to track and limit active requests.
 import logging
 import asyncio
 from typing import Dict
-from .base import MiddlewareBase
+from .base import Middleware
 
 logger = logging.getLogger(__name__)
 
 
-class ConcurrencyLimiter(MiddlewareBase):
+class ConcurrencyLimiter(Middleware):
     """
     Limits concurrent requests per model.
 
