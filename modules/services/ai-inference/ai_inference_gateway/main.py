@@ -540,11 +540,16 @@ async def stream_backend_response(
         model = body.get("model", "default")
         extra_params = {k: v for k, v in body.items() if k not in ["messages", "model", "stream"]}
 
+        # Get backend from route decision if available
+        route_decision = context.get("route_decision")
+        backend = route_decision.backend if route_decision else None
+
         # Create streaming chat completion with automatic failover
         stream = await openai_client.chat_completion(
             messages=messages,
             model=model,
             stream=True,
+            backend=backend,
             **extra_params,
         )
 
@@ -730,11 +735,16 @@ async def handle_non_streaming_request(
         model = body.get("model", "default")
         extra_params = {k: v for k, v in body.items() if k not in ["messages", "model", "stream"]}
 
+        # Get backend from route decision if available
+        route_decision = context.get("route_decision")
+        backend = route_decision.backend if route_decision else None
+
         # Create chat completion with automatic failover
         response = await openai_client.chat_completion(
             messages=messages,
             model=model,
             stream=False,
+            backend=backend,
             **extra_params,
         )
 
