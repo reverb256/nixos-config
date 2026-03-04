@@ -207,13 +207,23 @@ class GatewayConfig(BaseSettings):
 
     # Backend settings with validation
     backend_url: str = Field(
-        default="http://127.0.0.1:1234", description="Backend service URL"
+        default="http://127.0.0.1:1234", description="Primary backend service URL"
+    )
+    backend_fallback_urls: str = Field(
+        default="",
+        description="Fallback backend URLs (comma-separated)"
     )
     backend_type: str = Field(
         default="lm-studio",
         pattern="^(lm-studio|vllm|llama-cpp|sglang|zai)$",
-        description="Backend type",
+        description="Primary backend type",
     )
+
+    def get_backend_fallback_urls(self) -> list[str]:
+        """Get backend fallback URLs as a list."""
+        if not self.backend_fallback_urls:
+            return []
+        return [url.strip() for url in self.backend_fallback_urls.split(",") if url.strip()]
 
     # API Keys (marked as secrets - won't appear in logs or repr)
     lm_studio_api_key: Optional[SecretStr] = Field(

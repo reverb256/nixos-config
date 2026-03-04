@@ -3319,6 +3319,9 @@ in
       environment = {
         BACKEND_URL = cfg.backend.url;
         BACKEND_TYPE = cfg.backend.type;
+        BACKEND_FALLBACK_URLS = lib.strings.concatMapStringsSep "," (url: url) (
+          lib.optional (cfg.backend.zai.enable) cfg.backend.zai.baseUrl
+        );
         GATEWAY_HOST = cfg.gateway.host;
         PORT = toString cfg.gateway.port;
         AUTH_MODE = cfg.auth.mode;
