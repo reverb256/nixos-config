@@ -586,6 +586,10 @@ async def try_backends_with_failover(
                     api_key = config.get_zai_api_key()
                     if api_key:
                         headers["Authorization"] = f"Bearer {api_key}"
+                    else:
+                        logger.warning(f"ZAI API key not found for fallback backend")
+
+            logger.info(f"Request headers for {backend_type_name} backend: Authorization={'Bearer ' + (headers.get('Authorization', 'NO-AUTH')[:20] + '...' if 'Authorization' in headers else 'NOT SET')}")
 
             async with httpx.AsyncClient(timeout=timeout) as client:
                 # For ZAI, convert OpenAI-style endpoints to ZAI format
@@ -595,6 +599,8 @@ async def try_backends_with_failover(
                     url = f"{backend_url}{zai_endpoint}"
                 else:
                     url = f"{backend_url}{endpoint}"
+
+                logger.info(f"Making request to {backend_type_name} backend: {url}")
 
                 if method.upper() == "POST":
                     response = await client.post(
@@ -608,8 +614,10 @@ async def try_backends_with_failover(
                         headers=headers,
                     )
 
-                # If we got here, the request succeeded
-                logger.info(f"Successfully connected to {backend_type_name} backend: {backend_url}")
+                # Log response status
+                logger.info(f"{backend_type_name} backend response: HTTP {response.status_code}")
+
+                # If we got here, the request succeeded (connected, even if 4xx/5xx)
                 return response, backend_url
 
         except (httpx.ConnectError, httpx.TimeoutException, httpx.ConnectTimeout) as e:
