@@ -201,8 +201,18 @@ in
   config = mkIf cfg.enable {
     networking.firewall.allowedTCPPorts = [ 80 ];
     networking.firewall.allowedUDPPorts = [ 161 ];
+    networking.firewall.allowedTCPPortRanges = [
+      {
+        from = 9116;
+        to = 9116;
+      }
+    ];
 
     environment.systemPackages = with pkgs; [
+      # Python TP-Link switch management library
+      (pkgs.python3.withPackages (ps: with ps; [ requests ]))
+
+      # CLI Tools
       (pkgs.writeShellScriptBin "switch-discover" ''
         #!/usr/bin/env bash
         set -euo pipefail
@@ -292,9 +302,178 @@ in
         echo "  sentry-monitoring: 10.1.1.12 Port 1 (VLAN: monitoring)"
       '')
 
+      (pkgs.writeShellScriptBin "switch-ctl" ''
+                #!/usr/bin/env bash
+                set -euo pipefail
+
+                # switch-ctl - TP-Link Switch Management CLI
+                # Usage: switch-ctl <command> [options]
+
+                SCRIPT_DIR="$(cd "$(dirname "''${BASH_SOURCE[0]}")" && pwd)"
+                PYTHON_LIB="''${SCRIPT_DIR}/../packages/tplink-switch/tplink_switch"
+
+                # Default credentials from agenix secret
+                CRED_FILE="/run/agenix/switch-admin"
+                USERNAME="admin"
+                PASSWORD=""
+
+                # Read credentials from agenix secret
+                if [[ -f "$CRED_FILE" ]]; then
+                  PASSWORD=$(grep "^password=" "$CRED_FILE" | cut -d= -f2)
+                fi
+
+                # If no password found, use command line argument
+                if [[ -z "$PASSWORD" ]]; then
+                  echo "Warning: No password found in $CRED_FILE"
+                  echo "Usage: switch-ctl <command> --password <password>"
+                  exit 1
+                fi
+
+                usage() {
+                  echo "switch-ctl - TP-Link Switch Management CLI"
+                  echo ""
+                  echo "Usage: switch-ctl <command> [options]"
+                  echo ""
+                  echo "Commands:"
+                  echo "  status <ip>              Show switch status"
+                  echo "  ports <ip>               Show port status"
+                  echo "  vlan <ip>                Show VLAN configuration"
+                  echo "  info <ip>                Show system information"
+                  echo "  reboot <ip>              Reboot switch"
+                  echo "  port-set <ip> <port> <0|1>  Enable (1) or disable (0) port"
+                  echo "  discover                 Discover switches on network"
+                  echo ""
+                  echo "Options:"
+                  echo "  --password <password>    Override password from secret"
+                  echo "  --username <username>    Override username (default: admin)"
+                  echo ""
+                  echo "Examples:"
+                  echo "  switch-ctl status 10.1.1.10"
+                  echo "  switch-ctl ports 10.1.1.10"
+                  echo "  switch-ctl vlan 10.1.1.10"
+                  echo "  switch-ctl reboot 10.1.1.11"
+                  echo "  switch-ctl port-set 10.1.1.10 3 1  # Enable port 3"
+                }
+
+                # Parse arguments
+                COMMAND="''${1:-}"
+                shift || true
+
+                case "$COMMAND" in
+                  status|ports|vlan|info|reboot|port-set)
+                    ;;
+                  discover)
+                    # Use Python discover function
+                    python3 -c "
+        import sys
+        sys.path.insert(0, '/etc/nixos/packages/tplink-switch')
+        from tplink_switch import discover_switches
+        switches = discover_switches()
+        for s in switches:
+            print(f'IP: {s['ip']}, MAC: {s['mac']}, Type: {s['type']}')"
+                    exit 0
+                    ;;
+                  -h|--help|help)
+                    usage
+                    exit 0
+                    ;;
+                  "")
+                    usage
+                    exit 1
+                    ;;
+                  *)
+                    echo "Unknown command: $COMMAND"
+                    usage
+                    exit 1
+                    ;;
+                esac
+
+                # Parse optional password/username overrides
+                while [[ $# -gt 0 ]]; do
+                  case "$1" in
+                    --password)
+                      PASSWORD="''${2:-}"
+                      shift 2
+                      ;;
+                    --username)
+                      USERNAME="''${2:-}"
+                      shift 2
+                      ;;
+                    *)
+                      break
+                      ;;
+                  esac
+                done
+
+                # Get IP address
+                IP="''${1:-}"
+                if [[ -z "$IP" ]]; then
+                  echo "Error: IP address required"
+                  usage
+                  exit 1
+                fi
+
+                # Execute command
+                python3 -c "
+        import sys
+        sys.path.insert(0, '/etc/nixos/packages/tplink-switch')
+        from tplink_switch import TPLinkSwitch
+
+        switch = TPLinkSwitch('$IP', '$USERNAME', '$PASSWORD')
+
+        if switch.login():
+            print('Connected to $IP')
+            command = '$COMMAND'
+
+            if command == 'status':
+                info = switch.get_system_info()
+                print(f'Model: {info.get(\"model\", \"Unknown\")}')
+                print(f'Hostname: {info.get(\"hostname\", \"Unknown\")}')
+                print(f'IP: {info.get(\"ip\", \"Unknown\")}')
+                print(f'MAC: {info.get(\"mac\", \"Unknown\")}')
+                print(f'Firmware: {info.get(\"firmware\", \"Unknown\")}')
+            elif command == 'ports':
+                ports = switch.get_port_status()
+                print('Port Status:')
+                for p in ports:
+                    status = 'UP' if p['status'] == 'up' else 'DOWN'
+                    print(f'  Port {p[\"port\"]}: {status} ({p[\"speed\"]} Mbps)')
+            elif command == 'vlan':
+                vlans = switch.get_vlan_config()
+                print('VLAN Configuration:')
+                for vid, vlan in vlans.items():
+                    print(f'  VLAN {vid}: {vlan[\"name\"]}')
+            elif command == 'info':
+                info = switch.get_system_info()
+                for k, v in info.items():
+                    print(f'{k}: {v}')
+            elif command == 'reboot':
+                if switch.reboot():
+                    print('Switch reboot initiated')
+                else:
+                    print('Failed to reboot switch')
+                    sys.exit(1)
+            elif command == 'port-set':
+                import sys
+                port = sys.argv[4]
+                state = sys.argv[5]
+                if switch.set_port_state(int(port), state == '1'):
+                    print(f'Port {port} set to {state}')
+                else:
+                    print(f'Failed to set port {port}')
+                    sys.exit(1)
+
+            switch.logout()
+        else:
+            print('Failed to connect to switch')
+            sys.exit(1)
+        " "$@"
+      '')
+
+      # SNMP monitoring tools
+      prometheus-snmp-exporter
       python3
       python3Packages.requests
-      python3Packages.snmp-tools
     ];
 
     systemd.services = {
@@ -311,6 +490,87 @@ in
           ''}";
         };
       };
+
+      # SNMP Exporter for TP-Link switches
+      "snmp-exporter-switches" = {
+        description = "Prometheus SNMP Exporter for TP-Link Switches";
+        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${pkgs.prometheus-snmp-exporter}/bin/snmp_exporter --config.file=/etc/snmp-exporter/switches.yml";
+          Restart = "on-failure";
+          RestartSec = "10s";
+        };
+      };
     };
+
+    # SNMP Exporter configuration for TP-Link switches
+    environment.etc."snmp-exporter/switches.yml".text = ''
+      modules:
+        tplink_easy_smart:
+          walk:
+            - 1.3.6.1.2.1.1.1.0  # sysDescr
+            - 1.3.6.1.2.1.1.5.0  # sysName
+            - 1.3.6.1.2.1.1.6.0  # sysLocation
+            - 1.3.6.1.2.1.2.2.1.2  # ifDescr
+            - 1.3.6.1.2.1.2.2.1.5  # ifSpeed
+            - 1.3.6.1.2.1.2.2.1.7  # ifAdminStatus
+            - 1.3.6.1.2.1.2.2.1.8  # ifOperStatus
+            - 1.3.6.1.2.1.2.2.1.10  # ifInOctets
+            - 1.3.6.1.2.1.2.2.1.11  # ifInUcastPkts
+            - 1.3.6.1.2.1.2.2.1.12  # ifInDiscards
+            - 1.3.6.1.2.1.2.2.1.13  # ifInErrors
+            - 1.3.6.1.2.1.2.2.1.14  # ifInUnknownProtos
+            - 1.3.6.1.2.1.2.2.1.16  # ifOutOctets
+            - 1.3.6.1.2.1.2.2.1.17  # ifOutUcastPkts
+            - 1.3.6.1.2.1.2.2.1.18  # ifOutDiscards
+            - 1.3.6.1.2.1.2.2.1.19  # ifOutErrors
+            - 1.3.6.1.2.1.2.2.1.20  # ifOutQLen
+          metrics:
+            - name: sysDescr
+              oid: 1.3.6.1.2.1.1.1.0
+              type: DisplayString
+            - name: sysName
+              oid: 1.3.6.1.2.1.1.5.0
+              type: DisplayString
+            - name: ifDescr
+              oid: 1.3.6.1.2.1.2.2.1.2
+              type: DisplayString
+              indexes:
+                - labelname: ifIndex
+                  type: gauge
+            - name: ifSpeed
+              oid: 1.3.6.1.2.1.2.2.1.5
+              type: gauge
+              indexes:
+                - labelname: ifIndex
+                  type: gauge
+            - name: ifAdminStatus
+              oid: 1.3.6.1.2.1.2.2.1.7
+              type: gauge
+              indexes:
+                - labelname: ifIndex
+                  type: gauge
+            - name: ifOperStatus
+              oid: 1.3.6.1.2.1.2.2.1.8
+              type: gauge
+              indexes:
+                - labelname: ifIndex
+                  type: gauge
+            - name: ifInOctets
+              oid: 1.3.6.1.2.1.2.2.1.10
+              type: counter
+              indexes:
+                - labelname: ifIndex
+                  type: gauge
+            - name: ifOutOctets
+              oid: 1.3.6.1.2.1.2.2.1.16
+              type: counter
+              indexes:
+                - labelname: ifIndex
+                  type: gauge
+    '';
   };
 }
