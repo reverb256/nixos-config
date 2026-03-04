@@ -5,7 +5,7 @@
     isNormalUser = true;
     description = "Jeremy Kroeker";
     shell = pkgs.fish;
-    extraGroups = [ "networkmanager" "wheel" "render" "video" "libinput" ];
+    extraGroups = [ "networkmanager" "wheel" "render" "video" "libinput" "ai-inference" ];
     packages = with pkgs; [
       kdePackages.kate
       gh  # GitHub CLI
