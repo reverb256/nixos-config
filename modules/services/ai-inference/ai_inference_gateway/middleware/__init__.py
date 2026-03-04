@@ -10,3 +10,9 @@ try:
     __all__.append("ObservabilityMiddleware")
 except ImportError:
     pass
+
+try:
+    from .security_filter import SecurityFilterMiddleware
+    __all__.append("SecurityFilterMiddleware")
+except ImportError:
+    pass
