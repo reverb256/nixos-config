@@ -254,7 +254,7 @@ in
           name="''${entry##*:}"
           echo "Switch: $switch ($name)"
           ping -c 2 -W 1 $switch 2>/dev/null && echo "  Status: ONLINE" || echo "  Status: OFFLINE"
-          timeout 2 bash -c "echo >/dev/tcp/$switch/80" 2>/dev/null" && echo "  Web UI: ACCESSIBLE" || echo "  Web UI: UNREACHABLE"
+          timeout 2 bash -c "echo >/dev/tcp/$switch/80" 2>/dev/null && echo "  Web UI: ACCESSIBLE" || echo "  Web UI: UNREACHABLE"
           echo ""
         done
       '')
