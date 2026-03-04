@@ -7,9 +7,17 @@
 }:
 let
   # Monitor configuration script with TV detection
+  # NOTE: Full implementation pending - being worked on by another AI
   monitorSetupScript = pkgs.writeShellScript "plasma-monitor-setup" ''
     #!/usr/bin/env bash
-    # Placeholder - another AI is fixing the full implementation
+    # Placeholder - monitor setup will be implemented by another AI
+    exit 0
+  '';
+
+  # System-level script that runs before display manager
+  bootMonitorScript = pkgs.writeShellScript "boot-monitor-setup" ''
+    #!/usr/bin/env bash
+    # Placeholder - monitor setup will be implemented by another AI
     exit 0
   '';
 in
@@ -122,11 +130,8 @@ in
     TopLeft=None
   '';
 
-  # Udev rule to handle monitor hotplug gracefully
-  services.udev.extraRules = ''
-    # Handle monitor hotplug events gracefully
-    ACTION=="change", SUBSYSTEM=="drm", ENV{HOTPLUG}=="1", RUN+="/run/current-system/sw/bin/logger -t monitor-hotplug 'Display hotplug detected'"
-  '';
+  # Udev rules - monitor hotplug is handled by KScreen automatically
+  # No custom rules needed - kscreen-doctor handles connected displays gracefully
 
   # ============================================================================
   # SDDM LOGIN SCREEN CONFIGURATION
