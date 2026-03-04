@@ -36,7 +36,6 @@
     # Services
     ./services/lm-studio.nix
     ./services/stability-matrix.nix
-    ./services/vllm.nix
     ./services/ai-inference/default.nix
 
     # Monitoring
