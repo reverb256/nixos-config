@@ -470,6 +470,41 @@ in
         description = "Scope knowledge bases by API token (multi-tenancy)";
       };
     };
+
+    # LM Studio headless service (optional)
+    lm-studio-headless = mkOption {
+      type = types.nullOr (types.submodule {
+        options = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable LM Studio headless service";
+          };
+          port = mkOption {
+            type = types.port;
+            default = 1234;
+            description = "Port for LM Studio API server";
+          };
+          host = mkOption {
+            type = types.str;
+            default = "127.0.0.1";
+            description = "Host address to bind to";
+          };
+          user = mkOption {
+            type = types.str;
+            default = "j_kro";
+            description = "User to run LM Studio as";
+          };
+          openFirewall = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Open firewall for the configured port";
+          };
+        };
+      });
+      default = null;
+      description = "LM Studio headless service configuration (optional)";
+    };
   };
 
   # Import submodules at module level
@@ -521,5 +556,14 @@ in
         ];
       }
     ];
+
+    # LM Studio headless service (optional)
+    services.lm-studio-headless = mkIf (cfg.lm-studio-headless != null && cfg.lm-studio-headless.enable) {
+      enable = true;
+      port = cfg.lm-studio-headless.port;
+      host = cfg.lm-studio-headless.host;
+      user = cfg.lm-studio-headless.user;
+      openFirewall = cfg.lm-studio-headless.openFirewall;
+    };
   };
 }

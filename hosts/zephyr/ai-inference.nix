@@ -19,10 +19,17 @@ in {
   services.ai-inference = {
     enable = true;
 
-    # Backend: LM Studio (already running)
+    # Backend: LM Studio headless (runs via systemd)
     backend = {
       url = "http://127.0.0.1:1234";  # LM Studio default
       type = "lm-studio";
+    };
+
+    # Enable LM Studio headless service
+    lm-studio-headless = {
+      enable = true;
+      port = 1234;
+      host = "127.0.0.1";
     };
 
     # Gateway configuration
