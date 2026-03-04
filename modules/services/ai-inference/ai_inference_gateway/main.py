@@ -398,3 +398,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Create app for uvicorn when imported as module
+# This is needed when uvicorn imports with: ai_inference_gateway.main:app
+app = create_app()

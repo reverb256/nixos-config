@@ -3163,9 +3163,10 @@ Requirements:
     __version__ = "2.0.0"
   '';
 
-  # Gateway package directory
-  gatewayPkg =
-    pkgs.runCommand "ai-inference-gateway-pkg"
+  # Gateway package directory (OLD - monolithic)
+  # Kept for rollback if needed
+  gatewayPkgOld =
+    pkgs.runCommand "ai-inference-gateway-pkg-old"
       {
         preferLocalBuild = true;
       }
@@ -3177,10 +3178,10 @@ Requirements:
       '';
 
   # Modular gateway package (NEW - with middleware pipeline architecture)
-  # This will eventually replace the embedded gatewayMain above
+  # Production-ready with rate limiting, circuit breaker, security, observability
   modularGatewayPkg =
     let
-      gatewaySrc = /etc/nixos/modules/services/ai-inference/ai_inference_gateway;
+      gatewaySrc = ./ai_inference_gateway;
     in
     pkgs.runCommand "ai-inference-gateway-modular-pkg"
       {
@@ -3196,6 +3197,9 @@ Requirements:
         find $out -name "*.pyc" -delete
         find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
       '';
+
+  # Use modular gateway by default (set to false to use old monolithic version)
+  gatewayPkg = modularGatewayPkg;
 
 in
 {
@@ -3260,7 +3264,7 @@ in
       };
 
       serviceConfig = {
-        ExecStart = "${gatewayPython}/bin/uvicorn ai_inference.main:app --host ${cfg.gateway.host} --port ${toString cfg.gateway.port} --workers ${toString cfg.gateway.workers} --log-level info --app-dir ${gatewayPkg}";
+        ExecStart = "${gatewayPython}/bin/uvicorn ai_inference_gateway.main:app --host ${cfg.gateway.host} --port ${toString cfg.gateway.port} --workers ${toString cfg.gateway.workers} --log-level info --app-dir ${gatewayPkg}";
         ExecReload = "/bin/kill -HUP $MAINPID";
         Restart = "on-failure";
         RestartSec = "10s";
