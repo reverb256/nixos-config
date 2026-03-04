@@ -15,6 +15,7 @@ let
     ps.fastapi
     ps.uvicorn
     ps.httpx
+    ps.openai  # OpenAI SDK for proper API communication
     ps.prometheus-client
     ps.pyjwt
     ps.cryptography
@@ -3282,23 +3283,28 @@ let
 
   # Modular gateway package (NEW - with middleware pipeline architecture)
   # Production-ready with rate limiting, circuit breaker, security, observability
+  # Now using OpenAI SDK for better backend communication
   modularGatewayPkg =
     let
       gatewaySrc = ./ai_inference_gateway;
     in
-    pkgs.runCommand "ai-inference-gateway-modular-pkg"
+    pkgs.runCommand "ai-inference-gateway-modular-pkg-v6"
       {
         preferLocalBuild = true;
+        passAsFile = [ "buildScript" ];
+        buildScript = ''
+          mkdir -p $out/ai_inference_gateway
+          # Copy the entire modular gateway package
+          cp -r ${gatewaySrc}/. $out/ai_inference_gateway/
+          # Fix permissions
+          chmod -R u+w $out/ai_inference_gateway
+          # Remove compiled Python files
+          find $out -name "*.pyc" -delete
+          find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+        '';
       }
       ''
-        mkdir -p $out/ai_inference_gateway
-        # Copy the entire modular gateway package
-        cp -r ${gatewaySrc}/* $out/ai_inference_gateway/
-        # Fix permissions
-        chmod -R u+w $out/ai_inference_gateway
-        # Remove compiled Python files
-        find $out -name "*.pyc" -delete
-        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+        . $buildScriptPath
       '';
 
   # Use modular gateway by default (set to false to use old monolithic version)
