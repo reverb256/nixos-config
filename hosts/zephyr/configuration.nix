@@ -38,6 +38,8 @@
     ../../modules/desktop/spotify-spicetify.nix
 
     # Network modules
+    ../../modules/network/cluster-hosts.nix
+    ../../modules/services/unbound-cluster.nix
     # ../../modules/network/switch-orchestration.nix  # Temporarily disabled due to errors
   ];
 
@@ -46,6 +48,20 @@
   # ============================================================================
   networking.hostName = "zephyr";
   networking.networkmanager.enable = true;
+
+  # DNS - Use local unbound resolver for cluster hostnames
+  services.unbound-cluster = {
+    enable = true;
+  };
+
+  # Configure NetworkManager to use local unbound via connection settings
+  networking.networkmanager.dns = "none";
+
+  # Cluster hosts - populate /etc/hosts from cluster configuration
+  networking.cluster-hosts = {
+    enable = true;
+    populateLocal = true;
+  };
 
   # ============================================================================
   # WIRELESS HARDWARE

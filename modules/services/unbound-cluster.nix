@@ -45,13 +45,12 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Disable systemd-resolved to use unbound directly
-    systemd.resolved.enable = false;
+    # Disable systemd-resolved's stub resolver to use unbound directly
+    services.resolved.enable = lib.mkForce false;
 
     services.unbound = {
       enable = true;
       settings = {
-        # Server settings
         server = {
           # Listen on local IP (not just localhost)
           interface = [
@@ -80,24 +79,22 @@ in
 
           # Performance
           num-threads = 2;
+
+          # Local zone for cluster hostnames
+          local-zone = ''"cluster.local" static'';
+
+          # Local data records for cluster hosts
+          local-data = [
+            ''"zephyr.cluster.local. IN A 10.1.1.110"''
+            ''"zephyr IN A 10.1.1.110"''
+            ''"nexus.cluster.local. IN A 10.1.1.120"''
+            ''"nexus IN A 10.1.1.120"''
+            ''"forge.cluster.local. IN A 10.1.1.130"''
+            ''"forge IN A 10.1.1.130"''
+            ''"sentry.cluster.local. IN A 10.1.1.140"''
+            ''"sentry IN A 10.1.1.140"''
+          ];
         };
-
-        # Local zone for cluster hostnames
-        local-zone = [
-          "\"cluster.local\" static"
-        ];
-
-        # Local data records for cluster hosts
-        local-data = [
-          "zephyr.cluster.local. IN A 10.1.1.110"
-          "zephyr IN A 10.1.1.110"
-          "nexus.cluster.local. IN A 10.1.1.120"
-          "nexus IN A 10.1.1.120"
-          "forge.cluster.local. IN A 10.1.1.130"
-          "forge IN A 10.1.1.130"
-          "sentry.cluster.local. IN A 10.1.1.140"
-          "sentry IN A 10.1.1.140"
-        ];
 
         # Forward all other queries to upstream
         forward-zone = [
