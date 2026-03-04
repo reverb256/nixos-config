@@ -254,6 +254,7 @@
   # NVIDIA GPU configuration for RTX 3090 only
   services.mining.lolminer.nvidia = {
     enable = true;
+    autostart = false; # Manual control via systemctl
     devices = "1"; # RTX 3090 only (GPU 1) - 3060 Ti disabled for gaming
     powerLimit = 250; # Power limit for RTX 3090 (250W recommended for efficiency)
     apiPort = 4068;
@@ -262,6 +263,7 @@
   # XMRig CPU mining (16 threads)
   services.mining.xmrig = {
     enable = true;
+    autostart = false; # Manual control via systemctl
     threads = 16;
   };
 
@@ -293,9 +295,6 @@
       ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 1 -pl 250";
     };
   };
-
-  # lolminer-nvidia: don't auto-start (enable manually with systemctl enable)
-  systemd.services.lolminer-nvidia.wantedBy = [];
 
   # Mining plasmoid for KDE Plasma
   #programs.mining-plasmoid.enable = true;  # TODO: Requires plasmoids/mining-monitor
