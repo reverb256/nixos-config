@@ -7,7 +7,8 @@ Uses asyncio.Semaphore to track and limit active requests.
 
 import logging
 import asyncio
-from typing import Dict
+from typing import Dict, Tuple, Optional
+from fastapi import Request, HTTPException
 from .base import Middleware
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,11 @@ class ConcurrencyLimiter(Middleware):
         # Lock to protect access to semaphores dict
         self.lock = asyncio.Lock()
 
+    @property
+    def enabled(self) -> bool:
+        """Check if this middleware is enabled."""
+        return True
+
     async def _get_semaphore(self, model: str) -> asyncio.Semaphore:
         """
         Get or create semaphore for a model.
@@ -50,7 +56,11 @@ class ConcurrencyLimiter(Middleware):
                 logger.info(f"Created semaphore for model: {model} (max_concurrency={self.max_concurrency})")
             return self.semaphores[model]
 
-    async def process_request(self, request, context: dict) -> dict:
+    async def process_request(
+        self,
+        request: Request,
+        context: dict
+    ) -> Tuple[bool, Optional[HTTPException]]:
         """
         Acquire concurrency permit before processing request.
 
@@ -59,14 +69,9 @@ class ConcurrencyLimiter(Middleware):
             context: Request context
 
         Returns:
-            Modified context
-
-        Raises:
-            HTTPException: If concurrency limit is reached
+            Tuple of (should_continue, optional_error)
         """
-        from fastapi import HTTPException
-
-        # Get model from context (set by previous middleware)
+        # Get model from context (set by endpoint)
         model = context.get("model", "default")
 
         # Get semaphore for this model
@@ -76,7 +81,7 @@ class ConcurrencyLimiter(Middleware):
         if semaphore.locked():
             # All permits are in use
             logger.warning(f"Concurrency limit reached for model: {model}")
-            raise HTTPException(
+            return False, HTTPException(
                 status_code=503,
                 detail=f"Model {model} is at maximum concurrency ({self.max_concurrency}). Please retry later."
             )
@@ -87,14 +92,14 @@ class ConcurrencyLimiter(Middleware):
 
         # Store permit in context for release later
         context["_concurrency_permit"] = (semaphore, model)
-        return context
+        return True, None
 
-    async def process_response(self, response, context: dict) -> dict:
+    async def process_response(self, response: dict, context: dict) -> dict:
         """
         Release concurrency permit after request completes.
 
         Args:
-            response: Response object
+            response: Response dict
             context: Request context
 
         Returns:
@@ -108,18 +113,3 @@ class ConcurrencyLimiter(Middleware):
             context.pop("_concurrency_permit", None)
 
         return context
-
-    async def on_error(self, error: Exception, context: dict):
-        """
-        Release concurrency permit on error.
-
-        Args:
-            error: Exception that occurred
-            context: Request context
-        """
-        # Release permit if it was acquired
-        if "_concurrency_permit" in context:
-            semaphore, model = context["_concurrency_permit"]
-            semaphore.release()
-            logger.warning(f"Released concurrency permit for model: {model} due to error (active: {self.max_concurrency - semaphore._value})")
-            context.pop("_concurrency_permit", None)
