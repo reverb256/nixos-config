@@ -5,6 +5,8 @@
   imports = [
     # Network configuration
     ./network-constants.nix
+    ./network/wifi.nix
+    ./network/bluetooth.nix
 
     # System-level configuration
     ./system/nix-config.nix
