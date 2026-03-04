@@ -3176,6 +3176,27 @@ Requirements:
         cp ${gatewayInit} $out/ai_inference/__init__.py
       '';
 
+  # Modular gateway package (NEW - with middleware pipeline architecture)
+  # This will eventually replace the embedded gatewayMain above
+  modularGatewayPkg =
+    let
+      gatewaySrc = /etc/nixos/modules/services/ai-inference/ai_inference_gateway;
+    in
+    pkgs.runCommand "ai-inference-gateway-modular-pkg"
+      {
+        preferLocalBuild = true;
+      }
+      ''
+        mkdir -p $out/ai_inference_gateway
+        # Copy the entire modular gateway package
+        cp -r ${gatewaySrc}/* $out/ai_inference_gateway/
+        # Fix permissions
+        chmod -R u+w $out/ai_inference_gateway
+        # Remove compiled Python files
+        find $out -name "*.pyc" -delete
+        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+      '';
+
 in
 {
   config = mkIf (cfg.enable && cfg.gateway.enable) {
