@@ -28,3 +28,9 @@ try:
     __all__.extend(["CircuitBreaker", "CircuitBreakerState", "CircuitBreakerOpenError"])
 except ImportError:
     pass
+
+try:
+    from .load_balancer import LoadBalancerMiddleware, BackendInstance, BackendState
+    __all__.extend(["LoadBalancerMiddleware", "BackendInstance", "BackendState"])
+except ImportError:
+    pass
