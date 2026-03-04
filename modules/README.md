@@ -105,13 +105,13 @@ modules/services/ai-inference/
 | Namespace | Usage | Examples |
 |-----------|-------|----------|
 | `config.programs.*` | Interactive GUI applications | `programs.lm-studio`, `programs.stability-matrix` |
-| `config.services.*` | Background daemons/systemd services | `services.vllm`, `services.ai-inference` |
+| `config.services.*` | Background daemons/systemd services | `services.ai-inference`, `services.gpu-exporters` |
 
 ### File Naming
 
 - Use kebab-case for filenames: `spotify-spotx.nix`, `gpu-exporters.nix`
 - Match directory structure to namespace:
-  - `services/vllm.nix` → `services.vllm`
+  - `services/lm-studio.nix` → `programs.lm-studio`
   - `desktop/spotify-spotx.nix` → `services.spotify-spotx`
 
 ---
@@ -251,7 +251,6 @@ Background services and daemons.
 
 | Module | Namespace | Description |
 |--------|-----------|-------------|
-| `vllm.nix` | `services.vllm` | vLLM inference server |
 | `ai-inference/` | `services.ai-inference` | AI gateway with routing |
 | `lm-studio.nix` | `programs.lm-studio` | LM Studio GUI |
 | `stability-matrix.nix` | `programs.stability-matrix` | SD package manager |
@@ -343,7 +342,8 @@ These ports are documented in host configurations:
 
 | Port | Service | Description |
 |------|---------|-------------|
-| 8000 | vLLM | Inference server |
+| 1234 | LM Studio | Inference API server |
+| 8080 | ai-inference | API Gateway |
 | 9757-9759 | WiVRn | VR streaming |
 | 9947 | WiVRn | VR streaming |
 | 18789-18790 | Steam | Remote Play |
