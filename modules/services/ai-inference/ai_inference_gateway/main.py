@@ -771,6 +771,65 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         result = await state.mcp_broker.warm_up_cache()
         return result
 
+    @app.get("/retry/metrics")
+    async def get_retry_metrics():
+        """
+        Get retry handler metrics.
+
+        Returns retry statistics including attempts, successes,
+        failures, and breakdown by failure reason.
+        """
+        state: GatewayState = app.state.gateway
+
+        # Collect metrics from all router clients
+        all_metrics = {}
+
+        for model_id, model_info in state.router.models.items():
+            client = getattr(model_info, "client", None)
+            if client and hasattr(client, "get_retry_metrics"):
+                metrics = client.get_retry_metrics()
+                if metrics:
+                    all_metrics[model_id] = metrics
+
+        if not all_metrics:
+            return {
+                "message": "No retry metrics available (retry may be disabled)",
+                "models": {}
+            }
+
+        return {
+            "models": all_metrics,
+            "summary": {
+                "total_models_with_retries": len(all_metrics),
+                "total_retry_attempts": sum(
+                    m.get("total_retries", 0) for m in all_metrics.values()
+                ),
+                "total_success_after_retry": sum(
+                    m.get("total_success", 0) for m in all_metrics.values()
+                ),
+                "total_failures_after_retry": sum(
+                    m.get("total_failures", 0) for m in all_metrics.values()
+                )
+            }
+        }
+
+    @app.post("/retry/reset-metrics")
+    async def reset_retry_metrics():
+        """Reset all retry metrics across all model clients."""
+        state: GatewayState = app.state.gateway
+
+        reset_count = 0
+        for model_id, model_info in state.router.models.items():
+            client = getattr(model_info, "client", None)
+            if client and hasattr(client, "reset_retry_metrics"):
+                client.reset_retry_metrics()
+                reset_count += 1
+
+        return {
+            "message": f"Reset metrics for {reset_count} model clients",
+            "models_reset": reset_count
+        }
+
     @app.post("/mcp/call")
     async def call_mcp_tool(request: Request):
         """Call an MCP tool on a specific server."""
