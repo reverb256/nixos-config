@@ -28,6 +28,22 @@ except ImportError as e:
     SemanticCache = None
     CacheConfig = None
 
+# Import RAG ingestion
+try:
+    from ai_inference_gateway.rag.ingestion import (
+        URLIngestionService,
+        IngestionConfig,
+        IngestionSource,
+        create_ingestion_service
+    )
+    RAG_INGESTION_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"RAG ingestion not available: {e}")
+    RAG_INGESTION_AVAILABLE = False
+    URLIngestionService = None
+    IngestionConfig = None
+    IngestionSource = None
+
 # Initialize logger early (needed for import error handling)
 logger = logging.getLogger(__name__)
 
@@ -123,6 +139,8 @@ class GatewayState:
         self.semantic_cache = None
         # MCP broker (initialized if enabled)
         self.mcp_broker = None
+        # RAG ingestion service (initialized if enabled)
+        self.rag_ingestion = None
 
 
 def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
@@ -263,6 +281,49 @@ async def lifespan(app: FastAPI):
             )
 
             logger.info("RAG service initialized successfully")
+
+            # Initialize RAG ingestion service if enabled
+            rag_ingestion_enabled = os.getenv("RAG_INGESTION_ENABLED", "false").lower() == "true"
+
+            if RAG_INGESTION_AVAILABLE and rag_ingestion_enabled:
+                try:
+                    logger.info("Initializing RAG ingestion service...")
+
+                    # Get environment variables
+                    allowed_domains_str = os.getenv("RAG_ALLOWED_DOMAINS", "")
+                    blocked_domains_str = os.getenv("RAG_BLOCKED_DOMAINS", "")
+
+                    allowed_domains = [d.strip() for d in allowed_domains_str.split(",") if d.strip()]
+                    blocked_domains = [d.strip() for d in blocked_domains_str.split(",") if d.strip()]
+
+                    # Get RAG components
+                    from ai_inference_gateway.rag.chunker import Chunker
+                    from ai_inference_gateway.rag.qdrant_client import get_qdrant_manager
+
+                    chunker = Chunker(state.rag_config.chunking)
+                    qdrant_manager = get_qdrant_manager(state.rag_config.qdrant_url)
+
+                    # Create ingestion service
+                    state.rag_ingestion = create_ingestion_service(
+                        rag_config=state.rag_config,
+                        embedder=embedder,
+                        chunker=chunker,
+                        qdrant=qdrant_manager,
+                        mcp_broker=state.mcp_broker,
+                        allowed_domains=allowed_domains,
+                        blocked_domains=blocked_domains
+                    )
+
+                    logger.info(
+                        f"RAG ingestion service initialized: "
+                        f"allowed_domains={len(allowed_domains)}, "
+                        f"blocked_domains={len(blocked_domains)}"
+                    )
+                except Exception as e:
+                    logger.warning(f"RAG ingestion service initialization failed: {e}")
+                    state.rag_ingestion = None
+            else:
+                logger.info("RAG ingestion service disabled (set RAG_INGESTION_ENABLED=true to enable)")
         except Exception as e:
             logger.error(f"RAG initialization failed: {e}")
             import traceback
@@ -320,6 +381,10 @@ async def lifespan(app: FastAPI):
     if state.semantic_cache:
         await state.semantic_cache.close()
         logger.info("Semantic cache connections closed")
+
+    if state.rag_ingestion:
+        await state.rag_ingestion.close()
+        logger.info("RAG ingestion service closed")
 
     if state.openai_client:
         await state.openai_client.close()
@@ -947,6 +1012,116 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         state.semantic_cache.reset_metrics()
 
         return {"message": "Cache metrics reset"}
+
+    @app.post("/rag/ingest")
+    async def ingest_rag_url(request: Request):
+        """
+        Ingest document from URL into RAG system.
+
+        Body: {
+            "url": "https://example.com/document",
+            "collection": "default",  // optional
+            "source": "mcp_web_reader" | "http_direct"  // optional
+        }
+
+        Returns ingestion result with chunks stored.
+        """
+        state: GatewayState = app.state.gateway
+
+        if not hasattr(state, "rag_ingestion") or not state.rag_ingestion:
+            raise HTTPException(
+                status_code=501,
+                detail="RAG ingestion service not enabled"
+            )
+
+        body = await request.json()
+        url = body.get("url")
+        collection = body.get("collection", "default")
+        source_str = body.get("source", "mcp_web_reader")
+
+        if not url:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing required field: url"
+            )
+
+        # Parse source preference
+        try:
+            source = IngestionSource(source_str) if RAG_INGESTION_AVAILABLE else IngestionSource.HTTP_DIRECT
+        except ValueError:
+            source = IngestionSource.HTTP_DIRECT
+
+        # Ingest URL
+        result = await state.rag_ingestion.ingest_url(url, collection, source)
+
+        return {
+            "url": result.url,
+            "success": result.success,
+            "source": result.source.value,
+            "title": result.title,
+            "content_length": len(result.content),
+            "chunks_count": len(result.chunks),
+            "ingested_at": result.ingested_at.isoformat(),
+            "error": result.error
+        }
+
+    @app.post("/rag/ingest/batch")
+    async def ingest_rag_urls(request: Request):
+        """
+        Ingest multiple documents from URLs into RAG system.
+
+        Body: {
+            "urls": ["https://example.com/doc1", "https://example.com/doc2"],
+            "collection": "default",  // optional
+            "source": "mcp_web_reader" | "http_direct"  // optional
+        }
+
+        Returns batch ingestion results.
+        """
+        state: GatewayState = app.state.gateway
+
+        if not hasattr(state, "rag_ingestion") or not state.rag_ingestion:
+            raise HTTPException(
+                status_code=501,
+                detail="RAG ingestion service not enabled"
+            )
+
+        body = await request.json()
+        urls = body.get("urls", [])
+        collection = body.get("collection", "default")
+        source_str = body.get("source", "mcp_web_reader")
+
+        if not urls:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing required field: urls"
+            )
+
+        # Parse source preference
+        try:
+            source = IngestionSource(source_str) if RAG_INGESTION_AVAILABLE else IngestionSource.HTTP_DIRECT
+        except ValueError:
+            source = IngestionSource.HTTP_DIRECT
+
+        # Ingest URLs
+        results = await state.rag_ingestion.ingest_urls(urls, collection, source)
+
+        return {
+            "total": len(results),
+            "successful": sum(1 for r in results if r.success),
+            "failed": sum(1 for r in results if not r.success),
+            "results": [
+                {
+                    "url": r.url,
+                    "success": r.success,
+                    "source": r.source.value,
+                    "title": r.title,
+                    "chunks_count": len(r.chunks),
+                    "error": r.error
+                }
+                for r in results
+            ]
+        }
 
     @app.post("/mcp/call")
     async def call_mcp_tool(request: Request):
