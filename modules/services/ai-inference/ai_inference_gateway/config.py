@@ -11,7 +11,7 @@ This module provides production-grade configuration with:
 """
 
 import os
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any, Union
 from pydantic import BaseModel, Field, field_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -214,6 +214,17 @@ class MiddlewareConfig(BaseModel):
     mcp: MCPConfig = Field(
         default_factory=MCPConfig, description="MCP broker configuration"
     )
+
+    # RAG configuration (optional - loaded from environment variables)
+    # These use the exact env var names from gateway.nix for compatibility
+    RAG_ENABLED: bool = Field(default=False, description="Enable RAG functionality")
+    QDRANT_URL: str = Field(default="http://127.0.0.1:6333", description="Qdrant URL")
+    EMBEDDING_MODEL: str = Field(default="BAAI/bge-m3", description="Embedding model")
+    CHUNK_SIZE: int = Field(default=512, description="Chunk size")
+    CHUNK_OVERLAP: int = Field(default=50, description="Chunk overlap")
+    RAG_TOP_K: int = Field(default=5, description="Default top-K results")
+    HYBRID_SEARCH_ENABLED: bool = Field(default=True, description="Enable hybrid search")
+    RERANKER_ENABLED: bool = Field(default=True, description="Enable reranking")
 
 
 class GatewayConfig(BaseSettings):
