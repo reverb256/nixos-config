@@ -18,6 +18,16 @@ from ai_inference_gateway.mcp_broker import create_mcp_broker_from_config
 from ai_inference_gateway.metrics import ModelMetricsTracker, RoutingMetricsTracker
 from ai_inference_gateway.response_format import transform_request, validate_response
 
+# Import semantic cache
+try:
+    from ai_inference_gateway.semantic_cache import SemanticCache, CacheConfig, get_default_cache
+    SEMANTIC_CACHE_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Semantic cache not available: {e}")
+    SEMANTIC_CACHE_AVAILABLE = False
+    SemanticCache = None
+    CacheConfig = None
+
 # Initialize logger early (needed for import error handling)
 logger = logging.getLogger(__name__)
 
@@ -109,6 +119,10 @@ class GatewayState:
         # RAG service (initialized if enabled)
         self.rag_search = None
         self.rag_config = None
+        # Semantic cache (initialized if enabled)
+        self.semantic_cache = None
+        # MCP broker (initialized if enabled)
+        self.mcp_broker = None
 
 
 def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
@@ -255,6 +269,42 @@ async def lifespan(app: FastAPI):
             traceback.print_exc()
             state.rag_search = None
 
+    # Initialize semantic cache if enabled
+    if SEMANTIC_CACHE_AVAILABLE:
+        try:
+            # Check if semantic cache is enabled via environment variable
+            semantic_cache_enabled = os.getenv("SEMANTIC_CACHE_ENABLED", "false").lower() == "true"
+
+            if semantic_cache_enabled:
+                logger.info("Initializing semantic cache...")
+
+                # Get environment variables
+                redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+                qdrant_url = os.getenv("QDRANT_URL", "http://127.0.0.1:6333")
+                similarity_threshold = float(os.getenv("SEMANTIC_CACHE_SIMILARITY_THRESHOLD", "0.85"))
+                exact_ttl = int(os.getenv("EXACT_CACHE_TTL_SECONDS", "3600"))
+                semantic_ttl = int(os.getenv("SEMANTIC_CACHE_TTL_SECONDS", "86400"))
+
+                cache_config = CacheConfig(
+                    redis_url=redis_url,
+                    qdrant_url=qdrant_url,
+                    similarity_threshold=similarity_threshold,
+                    exact_ttl_seconds=exact_ttl,
+                    semantic_ttl_seconds=semantic_ttl,
+                    enable_exact_cache=True,
+                    enable_semantic_cache=True
+                )
+
+                state.semantic_cache = SemanticCache(config=cache_config)
+                logger.info("Semantic cache initialized (Redis + Qdrant)")
+            else:
+                logger.info("Semantic cache disabled (set SEMANTIC_CACHE_ENABLED=true to enable)")
+        except Exception as e:
+            logger.warning(f"Semantic cache initialization failed: {e}")
+            state.semantic_cache = None
+    else:
+        logger.info("Semantic cache not available (install redis, qdrant-client)")
+
     # Startup complete
     logger.info("Gateway startup complete")
 
@@ -266,6 +316,10 @@ async def lifespan(app: FastAPI):
     if state.redis_client:
         await state.redis_client.close()
         logger.info("Redis connection closed")
+
+    if state.semantic_cache:
+        await state.semantic_cache.close()
+        logger.info("Semantic cache connections closed")
 
     if state.openai_client:
         await state.openai_client.close()
@@ -829,6 +883,70 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "message": f"Reset metrics for {reset_count} model clients",
             "models_reset": reset_count
         }
+
+    @app.get("/cache/metrics")
+    async def get_cache_metrics():
+        """
+        Get semantic cache metrics.
+
+        Returns cache performance statistics including
+        hit rates for exact and semantic cache layers.
+        """
+        state: GatewayState = app.state.gateway
+
+        if not hasattr(state, "semantic_cache") or not state.semantic_cache:
+            return {
+                "error": "Semantic cache not enabled",
+                "message": "Enable Redis and Qdrant for semantic caching"
+            }
+
+        metrics = state.semantic_cache.get_metrics()
+
+        if metrics is None:
+            return {"error": "Cache metrics not available"}
+
+        return metrics
+
+    @app.post("/cache/invalidate")
+    async def invalidate_cache(request: Request):
+        """
+        Invalidate semantic cache entries.
+
+        Body: {"model": "optional_model_name"}
+        If model is omitted, invalidates all cache entries.
+        """
+        state: GatewayState = app.state.gateway
+
+        if not hasattr(state, "semantic_cache") or not state.semantic_cache:
+            raise HTTPException(
+                status_code=501,
+                detail="Semantic cache not enabled"
+            )
+
+        body = await request.json()
+        model = body.get("model")
+
+        count = await state.semantic_cache.invalidate(model)
+
+        return {
+            "message": f"Invalidated {count} cache entries",
+            "model": model or "all"
+        }
+
+    @app.post("/cache/reset-metrics")
+    async def reset_cache_metrics():
+        """Reset semantic cache metrics."""
+        state: GatewayState = app.state.gateway
+
+        if not hasattr(state, "semantic_cache") or not state.semantic_cache:
+            raise HTTPException(
+                status_code=501,
+                detail="Semantic cache not enabled"
+            )
+
+        state.semantic_cache.reset_metrics()
+
+        return {"message": "Cache metrics reset"}
 
     @app.post("/mcp/call")
     async def call_mcp_tool(request: Request):
