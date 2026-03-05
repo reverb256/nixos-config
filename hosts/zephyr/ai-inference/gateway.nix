@@ -2865,7 +2865,11 @@ in
         "network-online.target"
         "nvidia-disable-autoboost.service"
       ];
-      wants = [ "network-online.target" ];
+      wants = [
+        "network-online.target"
+        "nvidia-persistence-mode.service"
+        "nvidia-disable-autoboost.service"
+      ];
       wantedBy = [ "multi-user.target" ];
 
       environment = {
