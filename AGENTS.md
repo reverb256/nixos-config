@@ -127,3 +127,163 @@ home-manager.users.j_kro = { pkgs, lib, ... }: {
 - Run `nix flake update` before making changes
 - Check `nix flake show` for available configurations
 - Build/test/switch require root/sudo
+
+---
+
+## MCP (Model Context Protocol) Integration
+
+### Overview
+The AI inference gateway includes an MCP broker that aggregates tools from multiple MCP servers, enabling AI agents to call external tools through the gateway.
+
+### MCP Server Configuration
+MCP servers are configured in `configuration.nix` under `services.ai-inference.mcp`:
+
+```nix
+services.ai-inference.mcp = {
+  enable = true;
+  servers = {
+    web-search-prime = {
+      url = "https://api.z.ai/api/mcp/web_search_prime/mcp";
+      headers = {
+        Authorization = "Bearer /run/agenix/zai-api-key";
+      };
+    };
+    # Add more servers...
+  };
+};
+```
+
+### Key Implementation Insights
+
+**1. MCP Protocol Structure**
+- Uses JSON-RPC 2.0 format over HTTP/SSE
+- Methods: `initialize`, `tools/list`, `tools/call`
+- Responses come in Server-Sent Events (SSE) format
+- Requires specific `Accept` header: `application/json, text/event-stream`
+
+**2. Authentication Pattern**
+```python
+# Headers with file paths need special handling
+"Authorization": "Bearer /run/agenix/zai-api-key"
+
+# Python code to load actual key:
+if header_value.startswith("Bearer "):
+    file_path = header_value.split(" ", 1)[1].strip()
+    with open(file_path, "r") as f:
+        api_key = f.read().strip()
+        headers[header_name] = f"Bearer {api_key}"
+```
+
+**3. SSE Response Parsing**
+```python
+# ZAI MCP servers return SSE format:
+# id:1
+# event:message
+# data:{"jsonrpc":"2.0","id":1,"result":{...}}
+
+# Parse SSE:
+async for line in response.aiter_lines():
+    if line.startswith("data:"):
+        data = json.loads(line[5:].strip())
+        # Handle data["result"] or data["error"]
+```
+
+**4. Tool Name Discovery**
+- Tool names are **case-sensitive** (e.g., `webSearchPrime` not `web_search`)
+- Always fetch tool names via `tools/list` before calling
+- Different servers may have different tool names for similar functionality
+
+**5. Accept Header Requirements**
+```python
+headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json, text/event-stream"  # Required by ZAI MCP servers
+}
+```
+
+### MCP Endpoints
+```
+GET  /mcp/servers              # List configured MCP servers with health status
+GET  /mcp/tools               # List available tools from all servers
+POST /mcp/call                # Call an MCP tool
+GET  /mcp/health/{server_name}  # Check MCP server health
+```
+
+### Testing MCP Integration
+
+**Direct Server Test:**
+```bash
+curl -X POST "https://api.z.ai/api/mcp/web_search_prime/mcp" \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list"
+  }'
+```
+
+**Through Gateway:**
+```bash
+curl -X POST http://127.0.0.1:8080/mcp/call \
+  -H "Content-Type: application/json" \
+  -d '{
+    "server": "web-search-prime",
+    "tool": "webSearchPrime",
+    "arguments": {"search_query": "test"}
+  }'
+```
+
+### Common Pitfalls
+
+**❌ Wrong Tool Name**
+```json
+{"tool": "web_search"}  // 404 Not Found
+```
+
+**✅ Correct Tool Name**
+```json
+{"tool": "webSearchPrime"}  // Works!
+```
+
+**❌ Missing Accept Header**
+```bash
+# Returns: "Accept header must include both application/json and text/event-stream"
+curl -H "Accept: application/json" ...
+```
+
+**✅ Correct Accept Header**
+```bash
+curl -H "Accept: application/json, text/event-stream" ...
+```
+
+**❌ Not Reading API Key File**
+```python
+headers = {"Authorization": "Bearer /run/agenix/zai-api-key"}  # Literal string
+```
+
+**✅ Reading API Key from File**
+```python
+# Extract file path and read contents
+if "/run/" in header_value:
+    with open(file_path, "r") as f:
+        api_key = f.read().strip()
+    headers = {"Authorization": f"Bearer {api_key}"}
+```
+
+### ZAI MCP Servers
+
+| Server | URL | Tool Names | Purpose |
+|--------|-----|------------|---------|
+| web-search-prime | `/api/mcp/web_search_prime/mcp` | `webSearchPrime` | Web search |
+| web-reader | `/api/mcp/web_reader/mcp` | `fetch_url` | URL content fetching |
+| zread | `/api/mcp/zread/mcp` | `github_repo`, `github_file` | GitHub analysis |
+| 4-5v-mcp-server | `/api/mcp/4_5v/mcp` | `analyze_image` | Image analysis |
+
+### Debugging Tips
+
+1. **Test Directly First**: Always test MCP servers directly before testing through gateway
+2. **Check Response Format**: Use `curl -v` to see actual response headers and format
+3. **Enable Debug Logging**: Set `LOG_LEVEL=DEBUG` in environment for verbose logs
+4. **Verify File Permissions**: Ensure service user can read agenix secret files
+5. **Test JSON-RPC Methods**: Try `initialize` → `tools/list` → `tools/call` in order
