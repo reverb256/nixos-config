@@ -33,7 +33,7 @@ class ModelInfo:
     """Information about an available model."""
     id: str
     name: str
-    context_length: int = 32768
+    context_length: int = 262144  # Qwen3.5 supports 256K!
     priority: int = 0
     specializations: List[TaskSpecialization] = field(default_factory=list)
     cost_tier: int = 1
@@ -448,7 +448,7 @@ def create_default_router() -> Router:
         ModelInfo(
             id="qwen/qwen3.5-9b",
             name="Qwen 3.5 9B",
-            context_length=32768,
+            context_length=262144,  # 256K
             priority=8,
             specializations=[TaskSpecialization.GENERAL, TaskSpecialization.FAST],
             cost_tier=1,
@@ -458,7 +458,7 @@ def create_default_router() -> Router:
         ModelInfo(
             id="qwen3.5-35b-a3b",
             name="Qwen 3.5 35B A3B",
-            context_length=32768,
+            context_length=262144,  # 256K
             priority=9,
             specializations=[TaskSpecialization.GENERAL, TaskSpecialization.AGENTIC],
             cost_tier=2,

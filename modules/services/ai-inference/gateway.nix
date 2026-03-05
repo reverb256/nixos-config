@@ -151,7 +151,7 @@ let
 
         BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:1234")
         BACKEND_TYPE = os.getenv("BACKEND_TYPE", "lm-studio")
-        GATEWAY_HOST = os.getenv("GATEWAY_HOST", "127.0.0.1")
+        GATEWAY_HOST = os.getenv("GATEWAY_HOST", "0.0.0.0")
         AUTH_MODE = os.getenv("AUTH_MODE", "none")
 
         # Load LM Studio API key from environment or file
@@ -441,7 +441,7 @@ let
         class ModelInfo:
             id: str
             name: str
-            context_length: int = 32768
+            context_length: int = 262144  # Qwen3.5 supports 256K!
             priority: int = 0
             capabilities: List[str] = field(default_factory=list)
             estimated_tokens_per_second: float = 50.0
@@ -471,7 +471,7 @@ let
                     model_id = model.get("id", "")
                     if model_id:
                         # Extract model info
-                        context_len = model.get("context_length", 32768)
+                        context_len = model.get("context_length", 262144)  # Default to 256K for Qwen3.5
                         self.models[model_id] = ModelInfo(
                             id=model_id,
                             name=model.get("id", model_id),
@@ -3370,6 +3370,9 @@ in
         BM25_WEIGHT = builtins.toString cfg.rag.hybridSearch.bm25Weight;
         AUTO_RAG_ENABLED = lib.boolToString cfg.rag.autoRag.enable;
         TOKEN_SCOPED_COLLECTIONS = lib.boolToString cfg.rag.tokenScopedCollections;
+        # Reranker configuration
+        RERANKER_ENABLED = lib.boolToString cfg.rag.reranker.enable;
+        RERANKER_MODEL = cfg.rag.reranker.model;
         # Cache directories for sentence-transformers
         TRANSFORMERS_CACHE = "/var/cache/ai-inference";
         HF_HOME = "/var/cache/ai-inference";

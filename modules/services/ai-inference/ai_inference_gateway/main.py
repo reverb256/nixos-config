@@ -214,6 +214,7 @@ async def lifespan(app: FastAPI):
             top_k = int(os.getenv("RAG_TOP_K", "5"))
             hybrid_search = os.getenv("HYBRID_SEARCH_ENABLED", "true").lower() == "true"
             reranker_enabled = os.getenv("RERANKER_ENABLED", "true").lower() == "true"
+            reranker_model = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-v2-m3")
 
             state.rag_config = RAGConfig(
                 enable=True,
@@ -232,7 +233,7 @@ async def lifespan(app: FastAPI):
                 ),
                 reranker=RerankerConfig(
                     enable=reranker_enabled,
-                    model="BAAI/bge-reranker-v2-base"
+                    model=reranker_model
                 )
             )
 
