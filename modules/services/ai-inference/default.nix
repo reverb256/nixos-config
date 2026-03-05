@@ -169,8 +169,8 @@ in
 
       host = mkOption {
         type = types.str;
-        default = "127.0.0.1";
-        description = "Gateway listen address (use Tailscale IP for network access)";
+        default = "0.0.0.0";  # Listen on all interfaces for Spacebot integration
+        description = "Gateway listen address (use 0.0.0.0 for all interfaces or Tailscale IP for network access)";
       };
 
       port = mkOption {
@@ -248,35 +248,36 @@ in
                 default = 0;
                 description = "Priority (higher = preferred)";
               };
+              contextLength = mkOption {
+                type = types.int;
+                default = 262144;  # 256K for Qwen3.5
+                description = "Context window size in tokens";
+              };
             };
           }
         );
         default = [
           {
             minTokens = 0;
-            maxTokens = 4096;
-            model = "qwen3.5-2b";
+            maxTokens = 131072;  # Up to 128K tokens
+            model = "magnum-opus-35b-a3b-i1";
             priority = 10;
+            contextLength = 262144;  # 256K context
           }
           {
-            minTokens = 4097;
-            maxTokens = 32768;
-            model = "qwen3.5-4b";
-            priority = 20;
-          }
-          {
-            minTokens = 32769;
+            minTokens = 131073;  # 128K+ tokens
             maxTokens = 999999;
-            model = "qwen3.5-35b-a3b@q4_k_m";
-            priority = 30;
+            model = "qwen/qwen3.5-9b";
+            priority = 20;
+            contextLength = 262144;  # 256K context
           }
         ];
-        description = "Model routing rules by token count";
+        description = "Model routing rules by token count (Qwen3.5 supports 256K)";
       };
 
       defaultModel = mkOption {
         type = types.str;
-        default = "qwen3.5-4b";
+        default = "magnum-opus-35b-a3b-i1";
         description = "Default model when routing is disabled or no rule matches";
       };
     };
@@ -530,6 +531,20 @@ in
         default = true;
         description = "Scope knowledge bases by API token (multi-tenancy)";
       };
+
+      reranker = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Enable cross-encoder reranking for better RAG precision";
+        };
+
+        model = mkOption {
+          type = types.str;
+          default = "BAAI/bge-reranker-v2-m3";
+          description = "Reranker model name (BAAI/bge-reranker-v2-m3 recommended)";
+        };
+      };
     };
 
     # LM Studio headless service (optional)
@@ -575,6 +590,7 @@ in
     ./gateway.nix
     ./router.nix
     ./monitor.nix
+    ./health-monitor.nix
     ./auth
     ./qdrant.nix
   ];
