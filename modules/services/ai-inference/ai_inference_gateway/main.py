@@ -12,6 +12,7 @@ from ai_inference_gateway.pipeline import MiddlewarePipeline
 from ai_inference_gateway.utils.redis_client import RedisClient
 from ai_inference_gateway.openai_client import create_openai_client, OpenAIBackendError
 from ai_inference_gateway.router import create_default_router, RouteDecision
+from ai_inference_gateway.reranker import create_reranker, Document
 
 # Import middleware
 from ai_inference_gateway.middleware.observability import ObservabilityMiddleware
@@ -58,12 +59,14 @@ class GatewayState:
         pipeline: Optional[MiddlewarePipeline] = None,
         openai_client=None,
         router=None,
+        reranker=None,
     ):
         self.config = config
         self.redis_client = redis_client
         self.pipeline = pipeline
         self.openai_client = openai_client
         self.router = router
+        self.reranker = reranker
 
 
 def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
@@ -138,6 +141,15 @@ async def lifespan(app: FastAPI):
     # Initialize router
     state.router = create_default_router()
     logger.info("Router initialized with %d models", len(state.router.models))
+
+    # Initialize reranker
+    reranker_type = getattr(state.config, 'reranker_type', 'dummy')
+    reranker_model = getattr(state.config, 'reranker_model', None)
+    state.reranker = create_reranker(
+        reranker_type=reranker_type,
+        model_name=reranker_model,
+    )
+    logger.info("Reranker initialized: type=%s", state.reranker.reranker_type.value)
 
     # Startup complete
     logger.info("Gateway startup complete")
