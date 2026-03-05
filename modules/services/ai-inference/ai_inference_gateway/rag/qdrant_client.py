@@ -14,7 +14,6 @@ from typing import List, Optional, Dict, Any, Tuple
 from dataclasses import dataclass
 
 from qdrant_client import AsyncQdrantClient, models
-from qdrant_client.async_client import AsyncQdrantClient
 from qdrant_client.models import (
     Distance,
     VectorParams,
@@ -159,21 +158,29 @@ class QdrantManager:
             points = []
 
             for chunk in chunks:
-                point = PointStruct(
-                    id=chunk["chunk_id"],
-                    vector=chunk["dense_embedding"],
-                    sparse_vectors={
-                        "text": SparseVector(
-                            indices=list(chunk["sparse_embedding"].keys()),
-                            values=list(chunk["sparse_embedding"].values())
-                        )
-                    },
-                    payload={
+                # Build sparse vector only if it has content
+                sparse_vector = None
+                if chunk["sparse_embedding"]:
+                    sparse_vector = SparseVector(
+                        indices=list(chunk["sparse_embedding"].keys()),
+                        values=list(chunk["sparse_embedding"].values())
+                    )
+
+                point_data = {
+                    "id": chunk["chunk_id"],
+                    "vector": chunk["dense_embedding"],
+                    "payload": {
                         "content": chunk["content"],
                         "document_id": chunk.get("document_id", ""),
                         "metadata": chunk.get("metadata", {})
                     }
-                )
+                }
+
+                # Only add sparse vector if it has content
+                if sparse_vector:
+                    point_data["sparse_vectors"] = {"text": sparse_vector}
+
+                point = PointStruct(**point_data)
                 points.append(point)
 
             # Batch insert
@@ -209,11 +216,12 @@ class QdrantManager:
             List of search results
         """
         try:
-            results = await self._client.search(
+            response = await self._client.query_points(
                 collection_name=collection_name,
-                query_vector=query_vector,
+                query=query_vector,  # Pass vector directly as query parameter
                 limit=limit,
-                score_threshold=score_threshold
+                score_threshold=score_threshold,
+                with_payload=["content", "metadata"]
             )
 
             return [
@@ -223,7 +231,7 @@ class QdrantManager:
                     score=hit.score,
                     metadata=hit.payload.get("metadata", {})
                 )
-                for hit in results
+                for hit in response.points
             ]
 
         except Exception as e:
@@ -248,13 +256,21 @@ class QdrantManager:
             List of search results
         """
         try:
-            results = await self._client.search(
+            # Convert dict to SparseVector object if not empty
+            if not query_sparse:
+                return []
+
+            from qdrant_client.models import SparseVector
+            sparse_vector = SparseVector(
+                indices=list(query_sparse.keys()),
+                values=list(query_sparse.values())
+            )
+
+            # Use query_points with sparse vector
+            response = await self._client.query_points(
                 collection_name=collection_name,
-                query_vector=None,
-                sparse_vector=SparseVector(
-                    indices=list(query_sparse.keys()),
-                    values=list(query_sparse.values())
-                ),
+                query=sparse_vector,
+                using="text",  # Use the sparse vector named "text"
                 limit=limit,
                 with_payload=["content", "metadata"]
             )
@@ -267,7 +283,7 @@ class QdrantManager:
                     metadata=hit.payload.get("metadata", {}),
                     sparse_score=hit.score
                 )
-                for hit in results
+                for hit in response.points
             ]
 
         except Exception as e:
