@@ -136,6 +136,30 @@
   programs.lm-studio.enable = true;
   programs.stability-matrix.enable = true;
 
+  # Podman container runtime (for Spacebot) - Temporarily disabled
+  # services.podman = {
+  #   enable = true;
+  #   dockerCompat = true;
+  #   compose = true;
+  #   rootless = true;
+  # };
+
+  # Spacebot AI agent (integrated with AI Gateway)
+  services.spacebot = {
+    enable = true;
+    useGateway = true;
+    gatewayUrl = "http://127.0.0.1:8080";
+    host = "127.0.0.1";
+    port = 19898;
+    memory = "4G";
+    cpu = "2";
+
+    # Discord integration - you need to set up the bot token
+    discord.enable = true;
+    discord.tokenFile = "/run/agenix/spacebot-discord-token";
+    # discord.guildId = "YOUR_GUILD_ID";  # Optional: restrict to specific server
+  };
+
   # Agenix secrets for AI services
   age.identityPaths = ["/home/j_kro/.age/key.txt"];
 
@@ -157,6 +181,14 @@
     mode = "440";
     owner = "j_kro";
     group = "ai-inference";
+  };
+
+  # Spacebot Discord bot token
+  age.secrets.spacebot-discord-token = {
+    file = "${inputs.self}/secrets/spacebot-discord-token.age";
+    mode = "440";
+    owner = "root";
+    group = "root";
   };
 
   # TODO: Re-enable switch-admin secret after fixing switch-orchestration module
@@ -954,7 +986,7 @@
       9757 # WiVRn main port
       18789 # Steam Remote Play
       18790 # Steam Remote Play (secondary)
-      19898 # Moonlight/GameStream
+      19898 # Moonlight/GameStream AND Spacebot Web UI
       1234 # LM Studio API server
       8080 # AI Inference Gateway
     ];

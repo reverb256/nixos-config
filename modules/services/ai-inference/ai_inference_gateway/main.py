@@ -12,7 +12,7 @@ from ai_inference_gateway.pipeline import MiddlewarePipeline
 from ai_inference_gateway.utils.redis_client import RedisClient
 from ai_inference_gateway.openai_client import create_openai_client, OpenAIBackendError
 from ai_inference_gateway.router import create_default_router, RouteDecision
-from ai_inference_gateway.reranker import create_reranker, Document
+from ai_inference_gateway.mcp_broker import create_mcp_broker_from_config
 
 # Import middleware
 from ai_inference_gateway.middleware.observability import ObservabilityMiddleware
@@ -44,6 +44,25 @@ logger = logging.getLogger(__name__)
 GATEWAY_VERSION = "2.0.0"
 
 
+async def check_backend_health(url: str, timeout: float = 5.0) -> bool:
+    """
+    Check if backend is healthy by querying the models endpoint.
+
+    Args:
+        url: Backend URL
+        timeout: Request timeout in seconds
+
+    Returns:
+        True if backend is healthy, False otherwise
+    """
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.get(f"{url}/v1/models")
+            return response.status_code == 200
+    except Exception:
+        return False
+
+
 class GatewayState:
     """
     Gateway application state.
@@ -59,14 +78,18 @@ class GatewayState:
         pipeline: Optional[MiddlewarePipeline] = None,
         openai_client=None,
         router=None,
-        reranker=None,
     ):
         self.config = config
         self.redis_client = redis_client
         self.pipeline = pipeline
         self.openai_client = openai_client
         self.router = router
-        self.reranker = reranker
+        # Backend health cache to avoid checking on every request
+        self.backend_health_cache = {
+            "healthy": True,
+            "last_check": 0,
+            "ttl": 30  # Cache health status for 30 seconds
+        }
 
 
 def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
@@ -142,14 +165,14 @@ async def lifespan(app: FastAPI):
     state.router = create_default_router()
     logger.info("Router initialized with %d models", len(state.router.models))
 
-    # Initialize reranker
-    reranker_type = getattr(state.config, 'reranker_type', 'dummy')
-    reranker_model = getattr(state.config, 'reranker_model', None)
-    state.reranker = create_reranker(
-        reranker_type=reranker_type,
-        model_name=reranker_model,
-    )
-    logger.info("Reranker initialized: type=%s", state.reranker.reranker_type.value)
+    # Initialize MCP broker if enabled
+    state.mcp_broker = None
+    try:
+        state.mcp_broker = await create_mcp_broker_from_config(state.config)
+        if state.mcp_broker:
+            logger.info("MCP broker initialized")
+    except Exception as e:
+        logger.warning(f"MCP broker initialization failed: {e}")
 
     # Startup complete
     logger.info("Gateway startup complete")
@@ -258,7 +281,29 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     # Add health endpoint
     @app.get("/health")
     async def health_check():
-        """Health check endpoint."""
+        """Health check endpoint with actual backend health status."""
+        import time
+
+        state: GatewayState = app.state.gateway
+
+        # Check if cached health status is still valid
+        now = time.time()
+        cache_age = now - state.backend_health_cache["last_check"]
+
+        if cache_age > state.backend_health_cache["ttl"]:
+            # Cache expired, check actual backend health
+            is_healthy = await check_backend_health(state.config.backend_url)
+            state.backend_health_cache = {
+                "healthy": is_healthy,
+                "last_check": now,
+                "ttl": 30
+            }
+            logger.info(f"Backend health check: {is_healthy}")
+            # Recalculate cache_age after updating
+            cache_age = 0
+
+        backend_healthy = state.backend_health_cache["healthy"]
+
         return {
             "status": "healthy",
             "gateway": {
@@ -269,7 +314,8 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "backend": {
                 "url": config.backend_url,
                 "type": config.backend_type,
-                "healthy": True,  # TODO: Implement actual health check
+                "healthy": backend_healthy,
+                "cache_age_seconds": int(cache_age),
             },
         }
 
@@ -307,6 +353,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         Supports both streaming and non-streaming requests.
         Uses router for intelligent model selection based on request analysis.
         """
+        import time
+        request_start = time.time()
+
         state: GatewayState = app.state.gateway
 
         # Read request body
@@ -328,6 +377,16 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         # Update model in body based on routing decision
         body["model"] = route_decision.model
+
+        # Track request start for smart load balancing
+        import uuid
+        request_id = str(uuid.uuid4())
+        state.router.track_request_start(
+            request_id=request_id,
+            model=route_decision.model,
+            backend=route_decision.backend,
+            stream=stream
+        )
 
         logger.info(
             f"Routed request to model: {route_decision.model} "
@@ -362,6 +421,8 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     state.pipeline,
                     context,
                     state.config,
+                    state.router,
+                    request_id,
                 ),
                 media_type="text/event-stream",
                 headers={
@@ -371,13 +432,18 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             )
         else:
             # Handle non-streaming response
-            return await handle_non_streaming_request(
-                state.openai_client,
-                body,
-                state.pipeline,
-                context,
-                state.config,
-            )
+            try:
+                response = await handle_non_streaming_request(
+                    state.openai_client,
+                    body,
+                    state.pipeline,
+                    context,
+                    state.config,
+                )
+                return response
+            finally:
+                # Always clean up request tracking
+                state.router.track_request_end(request_id)
 
     @app.post("/v1/messages")
     async def messages(request: Request):
@@ -506,6 +572,82 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
                 raise HTTPException(status_code=503, detail=f"Backend error: {str(e)}")
 
+    # ============================================================================
+    # MCP Broker Endpoints
+    # ============================================================================
+
+    @app.get("/mcp/servers")
+    async def list_mcp_servers():
+        """List all configured MCP servers."""
+        state: GatewayState = app.state.gateway
+
+        if not state.mcp_broker:
+            return {"servers": [], "message": "MCP broker not enabled"}
+
+        servers = await state.mcp_broker.list_servers()
+        return {"servers": servers}
+
+    @app.get("/mcp/tools")
+    async def list_mcp_tools(server: Optional[str] = None):
+        """List available MCP tools from all servers or a specific server."""
+        state: GatewayState = app.state.gateway
+
+        if not state.mcp_broker:
+            raise HTTPException(
+                status_code=501,
+                detail="MCP broker not enabled"
+            )
+
+        tools = await state.mcp_broker.get_tools(server)
+        return {"tools": tools}
+
+    @app.post("/mcp/call")
+    async def call_mcp_tool(request: Request):
+        """Call an MCP tool on a specific server."""
+        state: GatewayState = app.state.gateway
+
+        if not state.mcp_broker:
+            raise HTTPException(
+                status_code=501,
+                detail="MCP broker not enabled"
+            )
+
+        body = await request.json()
+        server_name = body.get("server")
+        tool_name = body.get("tool")
+        arguments = body.get("arguments", {})
+
+        if not server_name or not tool_name:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing required fields: server, tool"
+            )
+
+        result = await state.mcp_broker.call_tool(
+            server_name=server_name,
+            tool_name=tool_name,
+            arguments=arguments
+        )
+        return result
+
+    @app.get("/mcp/health/{server_name}")
+    async def mcp_server_health(server_name: str):
+        """Check MCP server health."""
+        state: GatewayState = app.state.gateway
+
+        if not state.mcp_broker:
+            raise HTTPException(
+                status_code=501,
+                detail="MCP broker not enabled"
+            )
+
+        is_healthy = await state.mcp_broker.health_check(server_name)
+        return {
+            "server": server_name,
+            "healthy": is_healthy,
+            "exists": server_name in state.mcp_broker.servers
+        }
+
     # Add metrics endpoint for Prometheus
     if PROMETHEUS_AVAILABLE:
 
@@ -532,6 +674,8 @@ async def stream_backend_response(
     pipeline: MiddlewarePipeline,
     context: dict,
     config: GatewayConfig,
+    router,
+    request_id: str,
 ):
     """
     Stream backend response using OpenAI SDK with automatic failover.
@@ -542,6 +686,8 @@ async def stream_backend_response(
         pipeline: Middleware pipeline
         context: Request context
         config: Gateway configuration
+        router: Router instance for tracking requests
+        request_id: Request ID for tracking
 
     Yields:
         SSE formatted response chunks
@@ -598,7 +744,9 @@ async def stream_backend_response(
                     await middleware.on_failure()
 
         yield f"data: {{'error': 'Unexpected error: {str(e)}'}}\n\n"
-
+    finally:
+        # Always clean up request tracking
+        router.track_request_end(request_id)
 
 
 async def try_backends_with_failover(
@@ -643,12 +791,10 @@ async def try_backends_with_failover(
             headers = {k: v for k, v in request_headers.items()
                       if k.lower() not in {"host", "content-length", "content-encoding", "transfer-encoding"}}
 
-            # Log User-Agent for debugging
+            # Log User-Agent for debugging (only at DEBUG level)
             if "user-agent" in {k.lower(): k for k in headers.keys()}:
                 ua_key = next(k for k in headers.keys() if k.lower() == "user-agent")
-                logger.info(f"[DEBUG] Forwarding User-Agent: {headers[ua_key][:100]}")
-            else:
-                logger.warning(f"[DEBUG] No User-Agent header in request")
+                logger.debug(f"Forwarding User-Agent: {headers[ua_key][:100]}")
 
             # Add authentication for this backend
             if "authorization" not in {k.lower() for k in headers.keys()}:
@@ -674,11 +820,11 @@ async def try_backends_with_failover(
                 else:
                     url = f"{backend_url}{endpoint}"
 
-                # Comprehensive logging for ZAI debugging
-                if backend_api_type == "zai":
-                    logger.info(f"[ZAI DEBUG] URL: {url}")
-                    logger.info(f"[ZAI DEBUG] Headers: Authorization={headers.get('Authorization', 'MISSING')[:30]}...")
-                    logger.info(f"[ZAI DEBUG] Body model: {content.get('model', 'NO_MODEL')}")
+                # Debug logging for ZAI (only at DEBUG level)
+                if backend_api_type == "zai" and logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"ZAI URL: {url}")
+                    logger.debug(f"ZAI Headers: Authorization={headers.get('Authorization', 'MISSING')[:30]}...")
+                    logger.debug(f"ZAI Body model: {content.get('model', 'NO_MODEL')}")
 
                 if method.upper() == "POST":
                     response = await client.post(
@@ -695,12 +841,12 @@ async def try_backends_with_failover(
                 # Log response status
                 logger.info(f"{backend_type_name} backend response: HTTP {response.status_code}")
 
-                # Extra logging for ZAI responses
-                if backend_api_type == "zai":
-                    logger.info(f"[ZAI DEBUG] Response status: {response.status_code}")
+                # Debug logging for ZAI responses (only at DEBUG level)
+                if backend_api_type == "zai" and logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"ZAI Response status: {response.status_code}")
                     if response.status_code != 200:
                         try:
-                            logger.info(f"[ZAI DEBUG] Response body: {response.text[:500]}")
+                            logger.debug(f"ZAI Response body: {response.text[:500]}")
                         except:
                             pass
 
@@ -741,6 +887,9 @@ async def handle_non_streaming_request(
     Returns:
         JSON response
     """
+    import time
+    start_time = time.time()
+
     try:
         # Extract parameters from request body
         messages = body.get("messages", [])
@@ -763,11 +912,14 @@ async def handle_non_streaming_request(
         # Convert OpenAI response object to dict for JSON serialization
         response_data = response.model_dump()
 
+        # Calculate actual processing time
+        processing_time_ms = (time.time() - start_time) * 1000
+
         # Add gateway metadata including routing information
         route_decision = context.get("route_decision")
         if route_decision:
             response_data["gateway_metadata"] = {
-                "processing_time_ms": 0,  # TODO: Track actual processing time
+                "processing_time_ms": round(processing_time_ms, 2),
                 "router": {
                     "model": route_decision.model,
                     "backend": route_decision.backend,

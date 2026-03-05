@@ -11,7 +11,7 @@ This module provides production-grade configuration with:
 """
 
 import os
-from typing import Optional
+from typing import Optional, List, Dict
 from pydantic import BaseModel, Field, field_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -119,9 +119,34 @@ class LoadBalancerConfig(BaseModel):
 class ConcurrencyLimiterConfig(BaseModel):
     """Concurrency limiter configuration"""
 
-    enabled: bool = Field(default=True, description="Enable concurrency limiting")
+    enabled: bool = Field(default=False, description="Enable concurrency limiting")
     max_concurrency: int = Field(
         default=1, ge=1, le=100, description="Maximum concurrent requests per model"
+    )
+
+
+class MCPServerConfig(BaseModel):
+    """Configuration for an MCP server."""
+
+    name: str = Field(..., description="Server name")
+    type: str = Field(
+        default="local",
+        pattern="^(local|remote)$",
+        description="Server type (local or remote)"
+    )
+    command: Optional[List[str]] = Field(default=None, description="Command for local servers")
+    url: Optional[str] = Field(default=None, description="URL for remote servers")
+    headers: Dict[str, str] = Field(default_factory=dict, description="HTTP headers for remote servers")
+    environment: Dict[str, str] = Field(default_factory=dict, description="Environment variables for local servers")
+
+
+class MCPConfig(BaseModel):
+    """MCP broker configuration."""
+
+    enabled: bool = Field(default=False, description="Enable MCP broker")
+    servers: List[MCPServerConfig] = Field(
+        default_factory=list,
+        description="Configured MCP servers"
     )
 
 
@@ -185,6 +210,9 @@ class MiddlewareConfig(BaseModel):
     )
     observability: ObservabilityConfig = Field(
         default_factory=ObservabilityConfig, description="Observability configuration"
+    )
+    mcp: MCPConfig = Field(
+        default_factory=MCPConfig, description="MCP broker configuration"
     )
 
 

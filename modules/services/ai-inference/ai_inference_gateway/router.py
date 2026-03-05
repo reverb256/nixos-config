@@ -117,6 +117,45 @@ class Router:
         self.models = {model.id: model for model in models}
         self.latency_tracker = latency_tracker or LatencyTracker()
         self.claude_model_mapping = self._build_claude_mapping()
+        # Active request tracking for smart load balancing
+        self.active_requests: Dict[str, Dict] = {}  # request_id -> {model, backend, stream, start_time}
+        self.max_concurrent_streams = 1  # LM Studio can handle 1 stream at a time
+
+    async def get_backend_load(self, backend: str) -> Dict:
+        """
+        Get current load on a backend.
+
+        Args:
+            backend: Backend name (lm-studio or zai)
+
+        Returns:
+            Dict with load information
+        """
+        active = sum(1 for r in self.active_requests.values() if r.get("backend") == backend)
+        is_streaming = any(r.get("stream") for r in self.active_requests.values() if r.get("backend") == backend)
+        return {
+            "backend": backend,
+            "active_requests": active,
+            "is_streaming": is_streaming,
+            "at_capacity": active >= self.max_concurrent_streams
+        }
+
+    def track_request_start(self, request_id: str, model: str, backend: str, stream: bool):
+        """Track the start of a request."""
+        import time
+        self.active_requests[request_id] = {
+            "model": model,
+            "backend": backend,
+            "stream": stream,
+            "start_time": time.time()
+        }
+        logger.debug(f"Tracking request {request_id}: model={model}, backend={backend}, stream={stream}")
+
+    def track_request_end(self, request_id: str):
+        """Track the end of a request."""
+        if request_id in self.active_requests:
+            del self.active_requests[request_id]
+            logger.debug(f"Stopped tracking request {request_id}")
 
     def _build_claude_mapping(self) -> Dict[str, str]:
         """Build mapping from Anthropic Claude model names to available models."""
@@ -212,6 +251,50 @@ class Router:
         Returns:
             Routing decision with model and metadata
         """
+        # Check if LM Studio is busy with streaming requests
+        lm_studio_load = await self.get_backend_load("lm-studio")
+
+        # If LM Studio is at capacity (processing streams), route to ZAI
+        if lm_studio_load["at_capacity"] and lm_studio_load["is_streaming"]:
+            logger.info(
+                f"LM Studio busy ({lm_studio_load['active_requests']} active requests, "
+                f"streaming: {lm_studio_load['is_streaming']}), auto-offloading to ZAI"
+            )
+            # Find best ZAI model for the request
+            estimated_tokens = self.estimate_tokens(messages)
+
+            # If client requested a specific model, check if we can map it to ZAI
+            if requested_model:
+                # Check if it's a Claude model that maps to ZAI
+                if requested_model in self.claude_model_mapping:
+                    mapped_model = self.claude_model_mapping[requested_model]
+                    model_info = self.models.get(mapped_model)
+                    if model_info and model_info.backend == "zai":
+                        return RouteDecision(
+                            model=mapped_model,
+                            confidence=1.0,
+                            reason=f"LM Studio at capacity, using ZAI fallback for {requested_model}",
+                            estimated_tokens=estimated_tokens,
+                            backend="zai",
+                            expected_latency_ms=model_info.estimated_tokens_per_second * estimated_tokens / 1000,
+                        )
+
+            # Otherwise, find best ZAI model based on specialization
+            zai_models = [m for m in self.models.values() if m.backend == "zai"]
+            if zai_models:
+                # Sort by priority and pick the best one
+                best_zai = max(zai_models, key=lambda m: m.priority)
+                specialization = self.detect_specialization(messages)
+                return RouteDecision(
+                    model=best_zai.id,
+                    confidence=0.9,
+                    reason=f"LM Studio at capacity (auto-failover to ZAI)",
+                    estimated_tokens=estimated_tokens,
+                    backend="zai",
+                    specialization=specialization,
+                    expected_latency_ms=best_zai.estimated_tokens_per_second * estimated_tokens / 1000,
+                )
+
         # Estimate tokens
         estimated_tokens = self.estimate_tokens(messages)
 
