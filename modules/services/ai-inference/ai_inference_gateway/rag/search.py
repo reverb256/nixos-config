@@ -332,12 +332,55 @@ class HybridSearchService:
             Deletion result
         """
         try:
-            # Find all points for this document
-            # (This requires searching by document_id metadata)
-            # For now, return not implemented
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
+
+            # Find all points for this document using metadata filter
+            # Note: We can't use query_points with filter easily, so we'll scroll
+            # For simplicity, we'll return a message about the limitation
+
+            # Better approach: Use scroll to find points by document_id
+            from qdrant_client import models
+
+            # Scroll through points to find matching document_id
+            offset = None
+            point_ids = []
+
+            while True:
+                records, offset = await self.qdrant._client.scroll(
+                    collection_name=collection,
+                    limit=100,
+                    offset=offset,
+                    with_payload=["document_id"],
+                    scroll_filter=Filter(
+                        must=[
+                            FieldCondition(
+                                key="metadata.document_id",
+                                match=MatchValue(value=document_id)
+                            )
+                        ]
+                    )
+                )
+
+                if records:
+                    point_ids.extend([r.id for r in records])
+
+                if offset is None:
+                    break
+
+            if not point_ids:
+                return {
+                    "success": False,
+                    "error": f"No documents found with ID: {document_id}"
+                }
+
+            # Delete the points
+            deleted = await self.qdrant.delete_points(collection, point_ids)
+
             return {
-                "success": False,
-                "error": "Document deletion not yet implemented"
+                "success": True,
+                "document_id": document_id,
+                "points_deleted": deleted,
+                "collection": collection
             }
 
         except Exception as e:
