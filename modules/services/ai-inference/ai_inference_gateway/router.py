@@ -363,6 +363,26 @@ def create_default_router() -> Router:
     models = [
         # LM Studio models
         ModelInfo(
+            id="qwen/qwen3.5-9b",
+            name="Qwen 3.5 9B",
+            context_length=32768,
+            priority=8,
+            specializations=[TaskSpecialization.GENERAL, TaskSpecialization.FAST],
+            cost_tier=1,
+            estimated_tokens_per_second=60.0,
+            backend="lm-studio",
+        ),
+        ModelInfo(
+            id="qwen3.5-35b-a3b",
+            name="Qwen 3.5 35B A3B",
+            context_length=32768,
+            priority=9,
+            specializations=[TaskSpecialization.GENERAL, TaskSpecialization.AGENTIC],
+            cost_tier=2,
+            estimated_tokens_per_second=40.0,
+            backend="lm-studio",
+        ),
+        ModelInfo(
             id="magnum-opus-35b-a3b-i1",
             name="Magnum Opus 35B A3B",
             context_length=256000,
