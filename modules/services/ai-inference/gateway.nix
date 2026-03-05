@@ -3356,6 +3356,7 @@ in
         RATE_LIMIT_RPM = toString cfg.rateLimit.requestsPerMinute;
         MAX_REQUEST_SIZE = toString cfg.security.maxRequestSize;
         SECURITY_PROXY_ENABLED = lib.boolToString cfg.security.enableProxy;
+        MCP_ENABLED = lib.boolToString cfg.mcp.enable;
         MCP_SERVERS = lib.generators.toJSON { } cfg.mcp.servers;
         # RAG configuration
         RAG_ENABLED = lib.boolToString cfg.rag.enable;
@@ -3390,7 +3391,8 @@ in
           "/var/cache/ai-inference"
         ]
         ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
-        ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile);
+        ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
+        ++ lib.optional (cfg.mcp.enable) (dirOf "/run/agenix/zai-api-key");
         MemoryMax = "2G";
         CPUWeight = 100;
         IOWeight = 100;

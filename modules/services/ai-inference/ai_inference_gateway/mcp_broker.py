@@ -98,31 +98,87 @@ class MCPBroker:
 
             server = self.servers[name]
 
-            # For remote servers, we'd need to implement the actual MCP protocol
-            # For now, return placeholder tools for known servers
-            if server.type == MCPServerType.REMOTE:
-                # Placeholder tools for known remote servers
-                known_tools = {
-                    "web-search-prime": ["web_search"],
-                    "web-reader": ["fetch_url"],
-                    "zread": ["github_repo", "github_file"],
-                    "zai-mcp-server": ["zai_analyze", "zai_query"],
-                }
-                for tool in known_tools.get(name, []):
-                    all_tools.append({
-                        "server": name,
-                        "name": tool,
-                        "description": f"Tool from {name}",
-                        "type": "remote"
-                    })
+            # For remote servers, use MCP protocol to list tools
+            if server.type == MCPServerType.REMOTE and server.url:
+                try:
+                    headers = {"Content-Type": "application/json"}
+                    if server.headers:
+                        headers.update(server.headers)
+
+                    # Use MCP JSON-RPC protocol to list tools
+                    mcp_request = {
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "tools/list"
+                    }
+
+                    async with httpx.AsyncClient(timeout=10.0) as client:
+                        response = await client.post(
+                            server.url,
+                            json=mcp_request,
+                            headers=headers
+                        )
+
+                        if response.status_code == 200:
+                            # Check if response is SSE format
+                            content_type = response.headers.get("content-type", "")
+                            if "text/event-stream" in content_type:
+                                # Parse SSE response to get tools list
+                                async for line in response.aiter_lines():
+                                    if line.startswith("data:"):
+                                        try:
+                                            data = json.loads(line[5:].strip())
+                                            if "result" in data and "tools" in data["result"]:
+                                                for tool in data["result"]["tools"]:
+                                                    all_tools.append({
+                                                        "server": name,
+                                                        "name": tool.get("name"),
+                                                        "description": tool.get("description", ""),
+                                                        "type": "remote"
+                                                    })
+                                                break  # Got the tools, stop parsing
+                                        except json.JSONDecodeError:
+                                            continue
+                            else:
+                                result = response.json()
+                                # Check for JSON-RPC error
+                                if "error" in result:
+                                    logger.warning(f"MCP server {name} returned error: {result['error']}")
+                                elif "result" in result and "tools" in result["result"]:
+                                    # Extract tools from MCP response
+                                    for tool in result["result"]["tools"]:
+                                        all_tools.append({
+                                            "server": name,
+                                            "name": tool.get("name"),
+                                            "description": tool.get("description", ""),
+                                            "type": "remote"
+                                        })
+                                else:
+                                    logger.warning(f"Unexpected response from MCP server {name}")
+                        else:
+                            logger.warning(f"Failed to list tools from {name}: HTTP {response.status_code}")
+
+                except Exception as e:
+                    logger.error(f"Error listing tools from {name}: {e}")
+                    # Fallback to known tools for ZAI servers
+                    known_tools = {
+                        "web-search-prime": [{"name": "web_search", "description": "Web search via ZAI"}],
+                        "web-reader": [{"name": "fetch_url", "description": "Fetch URL content"}],
+                        "zread": [
+                            {"name": "github_repo", "description": "GitHub repository analysis"},
+                            {"name": "github_file", "description": "GitHub file reader"}
+                        ],
+                        "4-5v-mcp-server": [{"name": "analyze_image", "description": "Image analysis"}]
+                    }
+                    if name in known_tools:
+                        for tool in known_tools[name]:
+                            all_tools.append({
+                                "server": name,
+                                **tool
+                            })
             else:
                 # Local server - would need to implement stdio communication
-                all_tools.append({
-                    "server": name,
-                    "name": "local_tool",
-                    "description": f"Tool from local server {name}",
-                    "type": "local"
-                })
+                logger.warning(f"Local MCP server {name} not yet supported")
 
         return all_tools
 
@@ -163,7 +219,7 @@ class MCPBroker:
 
     async def _call_remote_tool(self, server: MCPServer, tool_name: str, arguments: Dict) -> Dict:
         """
-        Call a tool on a remote MCP server via HTTP.
+        Call a tool on a remote MCP server via HTTP using MCP JSON-RPC protocol.
 
         Args:
             server: MCP server configuration
@@ -181,20 +237,75 @@ class MCPBroker:
             if server.headers:
                 headers.update(server.headers)
 
-            # Make HTTP call to the MCP server
-            # Note: This is a simplified implementation. Real MCP protocol would use
-            # the proper JSON-RPC format and endpoints.
+            # Use standard MCP JSON-RPC protocol
+            # https://modelcontextprotocol.io/beta/docs/specification/
+            mcp_request = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            }
+
+            # ZAI MCP servers require SSE-capable Accept header
+            headers["Accept"] = "application/json, text/event-stream"
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    f"{server.url}/tools/{tool_name}",
-                    json=arguments,
+                    server.url,
+                    json=mcp_request,
                     headers=headers
                 )
-                response.raise_for_status()
-                return response.json()
+
+                # Handle SSE response from ZAI MCP servers
+                if response.status_code == 200:
+                    # Check if response is SSE format
+                    content_type = response.headers.get("content-type", "")
+                    if "text/event-stream" in content_type:
+                        # Parse SSE response
+                        async for line in response.aiter_lines():
+                            if line.startswith("data:"):
+                                try:
+                                    data = json.loads(line[5:].strip())
+                                    # Check for JSON-RPC response
+                                    if "result" in data:
+                                        return data["result"]
+                                    elif "error" in data:
+                                        return {
+                                            "error": data["error"],
+                                            "server": server.name,
+                                            "tool": tool_name
+                                        }
+                                except json.JSONDecodeError:
+                                    continue
+                        return {
+                            "error": "No valid data in SSE response",
+                            "server": server.name,
+                            "tool": tool_name
+                        }
+                    else:
+                        # Regular JSON response
+                        result = response.json()
+                        # Check for JSON-RPC error response
+                        if "error" in result:
+                            return {
+                                "error": result["error"],
+                                "server": server.name,
+                                "tool": tool_name
+                            }
+                        # Return the result part of JSON-RPC response
+                        return result.get("result", result)
+                else:
+                    return {
+                        "error": f"HTTP {response.status_code}: {response.text[:200]}",
+                        "server": server.name,
+                        "tool": tool_name
+                    }
 
         except httpx.HTTPError as e:
-            logger.error(f"Error calling remote tool {tool_name} on {server.name}: {e}")
+            logger.error(f"HTTP error calling remote tool {tool_name} on {server.name}: {e}")
             return {
                 "error": str(e),
                 "server": server.name,
@@ -225,13 +336,38 @@ class MCPBroker:
 
         if server.type == MCPServerType.REMOTE and server.url:
             try:
+                headers = {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream"
+                }
+                if server.headers:
+                    headers.update(server.headers)
+
+                # Try to ping the server using MCP initialize method
+                mcp_request = {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {},
+                        "clientInfo": {
+                            "name": "ai-inference-gateway",
+                            "version": "2.0.0"
+                        }
+                    }
+                }
+
                 async with httpx.AsyncClient(timeout=5.0) as client:
-                    response = await client.get(
-                        f"{server.url}/health",
-                        headers=server.headers or {}
+                    response = await client.post(
+                        server.url,
+                        json=mcp_request,
+                        headers=headers
                     )
-                    return response.status_code == 200
-            except Exception:
+                    # Accept any 2xx response as healthy
+                    return 200 <= response.status_code < 300
+            except Exception as e:
+                logger.debug(f"Health check failed for {server_name}: {e}")
                 return False
         else:
             # For local servers, we'd check if the process is running
@@ -248,27 +384,87 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
     Returns:
         MCPBroker instance or None if MCP is disabled
     """
-    # Check if MCP broker is enabled
-    if not hasattr(config, 'mcp') or not config.mcp.enabled:
+    import os
+    import json
+
+    # Check if MCP broker is enabled via config
+    mcp_enabled = False
+    if hasattr(config, 'mcp') and hasattr(config.mcp, 'enabled'):
+        mcp_enabled = config.mcp.enabled
+
+    # Also check environment variable for Nix-based configuration
+    if os.getenv("MCP_ENABLED"):
+        mcp_enabled = os.getenv("MCP_ENABLED").lower() == "true"
+
+    if not mcp_enabled:
         logger.info("MCP broker disabled in configuration")
         return None
 
     servers = []
 
-    # Add configured servers
-    for server_config in config.mcp.servers:
-        server_type = MCPServerType.LOCAL if server_config.type == "local" else MCPServerType.REMOTE
+    # Try to load from environment variable (Nix format)
+    mcp_servers_json = os.getenv("MCP_SERVERS")
+    if mcp_servers_json:
+        try:
+            mcp_servers_dict = json.loads(mcp_servers_json)
+            logger.info(f"Loading MCP servers from environment: {list(mcp_servers_dict.keys())}")
 
-        server = MCPServer(
-            name=server_config.name,
-            type=server_type,
-            command=server_config.command,
-            url=server_config.url,
-            headers=server_config.headers,
-            environment=server_config.environment
-        )
-        servers.append(server)
-        logger.info(f"Added MCP server: {server.name} ({server_type.value})")
+            for server_name, server_config in mcp_servers_dict.items():
+                # Check if server is enabled
+                if not server_config.get("enabled", True):
+                    continue
+
+                # Read API key from file if specified in headers
+                headers = dict(server_config.get("headers", {}))
+                for header_name, header_value in list(headers.items()):
+                    if isinstance(header_value, str) and "/run/" in header_value and "-key" in header_value:
+                        try:
+                            # Extract file path from "Bearer /path/to/key" or just "/path/to/key"
+                            if header_value.startswith("Bearer "):
+                                file_path = header_value.split(" ", 1)[1].strip()
+                                use_bearer = True
+                            else:
+                                file_path = header_value
+                                use_bearer = False
+
+                            with open(file_path, "r") as f:
+                                api_key = f.read().strip()
+                                if use_bearer:
+                                    headers[header_name] = f"Bearer {api_key}"
+                                else:
+                                    headers[header_name] = api_key
+                            logger.info(f"Loaded API key from {file_path} for {server_name}/{header_name}")
+                        except Exception as e:
+                            logger.warning(f"Failed to read API key from {header_value}: {e}")
+
+                server = MCPServer(
+                    name=server_name,
+                    type=MCPServerType.REMOTE,  # Nix config only supports remote servers
+                    url=server_config.get("url"),
+                    headers=headers,
+                    command=None,
+                    environment=None
+                )
+                servers.append(server)
+                logger.info(f"Added MCP server: {server.name} (remote)")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse MCP_SERVERS environment variable: {e}")
+            return None
+    elif hasattr(config, 'mcp') and hasattr(config.mcp, 'servers'):
+        # Fallback to config object (Python-based configuration)
+        for server_config in config.mcp.servers:
+            server_type = MCPServerType.LOCAL if server_config.type == "local" else MCPServerType.REMOTE
+
+            server = MCPServer(
+                name=server_config.name,
+                type=server_type,
+                command=server_config.command,
+                url=server_config.url,
+                headers=server_config.headers,
+                environment=server_config.environment
+            )
+            servers.append(server)
+            logger.info(f"Added MCP server: {server.name} ({server_type.value})")
 
     if not servers:
         logger.warning("MCP broker enabled but no servers configured")
