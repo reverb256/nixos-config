@@ -16,6 +16,7 @@ from ai_inference_gateway.openai_client import create_openai_client, OpenAIBacke
 from ai_inference_gateway.router import create_default_router, RouteDecision
 from ai_inference_gateway.mcp_broker import create_mcp_broker_from_config
 from ai_inference_gateway.metrics import ModelMetricsTracker, RoutingMetricsTracker
+from ai_inference_gateway.response_format import transform_request, validate_response
 
 # Initialize logger early (needed for import error handling)
 logger = logging.getLogger(__name__)
@@ -448,6 +449,12 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         # Read request body
         body = await request.json()
+
+        # Transform response_format to LM Studio instructions
+        # (OpenAI JSON mode -> LM Studio system prompts)
+        if "response_format" in body:
+            body = await transform_request(body)
+            logger.debug(f"Transformed response_format request for model: {body.get('model')}")
 
         # Check if streaming is requested
         stream = body.get("stream", False)
