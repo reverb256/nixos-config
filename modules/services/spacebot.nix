@@ -79,7 +79,7 @@ in
       type = types.attrsOf (types.nullOr (types.either types.str types.path));
       default = {
         ZAI_CODING_PLAN_KEY = null;
-        # KILO_API_KEY is managed via Spacebot UI (saved in config.toml)
+        KILO_API_KEY = null;
         # Additional providers can be added here if needed:
         # ANTHROPIC_API_KEY = null;
         # OPENAI_API_KEY = null;
@@ -87,6 +87,7 @@ in
       };
       example = {
         ZAI_CODING_PLAN_KEY = "/run/agenix/zai-api-key";
+        KILO_API_KEY = "/run/agenix/kilo-api-key";
       };
       description = ''
         Provider API keys to pass as environment variables.
@@ -96,10 +97,10 @@ in
 
         Supported environment variables:
         - ZAI_CODING_PLAN_KEY (ZAI coding plan access)
-        - KILO_API_KEY (Kilo provider - also saved in config.toml by UI)
+        - KILO_API_KEY (Kilo Code provider for GLM models)
 
-        Note: Some keys like KILO_API_KEY can be managed via Spacebot UI
-        and will persist in config.toml across rebuilds.
+        Note: Keys can also be managed via Spacebot UI and will persist
+        in config.toml across rebuilds.
       '';
     };
 
@@ -337,6 +338,7 @@ in
             -v /run/agenix:/run/agenix:ro \
             -e SPACEBOT_DATA_DIR=/data \
             ${lib.optionalString (cfg.providerKeys.ZAI_CODING_PLAN_KEY != null) "-e ZAI_CODING_PLAN_KEY=''$(cat ${cfg.providerKeys.ZAI_CODING_PLAN_KEY})''"} \
+            ${lib.optionalString (cfg.providerKeys.KILO_API_KEY != null) "-e KILO_API_KEY=''$(cat ${cfg.providerKeys.KILO_API_KEY})''"} \
             -e OLLAMA_BASE_URL=${cfg.gatewayUrl} \
             ${lib.optionalString (cfg.discord.token != null) "-e DISCORD_BOT_TOKEN=${cfg.discord.token}"} \
             ${lib.optionalString (cfg.slack.token != null) "-e SLACK_BOT_TOKEN=${cfg.slack.token}"} \
