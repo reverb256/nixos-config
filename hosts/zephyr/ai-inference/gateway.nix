@@ -2863,6 +2863,7 @@ in
       after = [
         "network.target"
         "network-online.target"
+        "nvidia-disable-autoboost.service"
       ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
