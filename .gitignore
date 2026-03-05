@@ -1,2 +1,6 @@
 result
 __pycache__/
+
+# Agenix encrypted secrets (never commit these, even though encrypted)
+secrets/
+*.age

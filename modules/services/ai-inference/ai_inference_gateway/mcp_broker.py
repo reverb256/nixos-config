@@ -112,6 +112,9 @@ class MCPBroker:
                         "method": "tools/list"
                     }
 
+                    # ZAI MCP servers require SSE-capable Accept header
+                    headers["Accept"] = "application/json, text/event-stream"
+
                     async with httpx.AsyncClient(timeout=10.0) as client:
                         response = await client.post(
                             server.url,
