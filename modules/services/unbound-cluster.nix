@@ -24,11 +24,19 @@ in
     upstream = mkOption {
       type = types.listOf types.str;
       default = [
-        "100.100.100.100" # Tailscale DNS
-        "1.1.1.1" # Cloudflare fallback
-        "8.8.8.8" # Google fallback
+        "100.100.100.100" # Tailscale DNS (non-TLS)
       ];
-      description = "Upstream DNS servers";
+      description = "Upstream DNS servers (non-TLS)";
+    };
+
+    upstreamTls = mkOption {
+      type = types.listOf types.str;
+      default = [
+        "9.9.9.9@853"   # Quad9 DNS-over-TLS (security-focused, blocks malicious domains)
+        "1.1.1.1@853"   # Cloudflare DNS-over-TLS (privacy-focused)
+        "8.8.8.8@853"   # Google DNS-over-TLS (global reach)
+      ];
+      description = "Upstream DNS servers with TLS (port 853 for DoT)";
     };
 
     listenAddress = mkOption {
@@ -80,8 +88,27 @@ in
           # Performance
           num-threads = 2;
 
-          # Local zone for cluster hostnames
-          local-zone = ''"cluster.local" static'';
+          # Security - prevent forwarding private network queries to upstream DNS
+          # These domains will NEVER be forwarded to external resolvers
+          private-domain = [
+            ''"cluster.local"''
+            ''"10.in-addr.arpa"''
+            ''"168.192.in-addr.arpa"''
+            ''"16.172.in-addr.arpa"''
+            ''"tigris-ule.ts.net"''  # Tailscale domain
+          ];
+
+          # Local zones - never forward these to upstream DNS
+          # Cluster hostname zone
+          local-zone = [
+            ''"cluster.local" static''
+            # Private network zones (RFC 1918) - prevent leaking local network queries
+            ''"10.in-addr.arpa" static''  # 10.0.0.0/8 reverse DNS
+            ''"168.192.in-addr.arpa" static''  # 192.168.0.0/16 reverse DNS
+            ''"16.172.in-addr.arpa" static''  # 172.16.0.0/12 reverse DNS
+            # Tailscale network zone (CGNAT)
+            ''"tigris-ule.ts.net" static''
+          ];
 
           # Local data records for cluster hosts
           local-data = [
@@ -96,11 +123,12 @@ in
           ];
         };
 
-        # Forward all other queries to upstream
+        # Forward zone - mix of TLS and non-TLS upstreams
+        # Unbound automatically uses TLS for @853 ports, plain DNS for others
         forward-zone = [
           {
             name = ".";
-            forward-addr = cfg.upstream;
+            forward-addr = cfg.upstream ++ cfg.upstreamTls;
             forward-tls-upstream = true;
           }
         ];
