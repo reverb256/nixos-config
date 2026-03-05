@@ -268,6 +268,22 @@ in
     AnimationSpeed=3
   '';
 
+  # Window rules for Genshin Impact to always open on TV
+  environment.etc."xdg/kwinrulesrc".text = ''
+    [General]
+    count=1
+
+    [1]
+    Description=Genshin Impact - Always on TV (HDMI-A-2)
+    wmclass=.*GenshinImpact.*
+    wmclassmatch=2
+    screen=3
+    screenrule=3
+    fullscreen=true
+    fullscreenrule=3
+    types=1
+  '';
+
   # Disable KScreen backend launcher
   systemd.user.services."kscreen_backend_launcher".enable = false;
 
