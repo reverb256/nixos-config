@@ -14,7 +14,7 @@
       subnet = "10.1.1.0/24";
       gateway = "10.1.1.1";
       dns = [
-        "127.0.0.1"
+        "127.0.0.1"  # Local Unbound resolver (now with proper DoT)
         "::1"
       ];
 
