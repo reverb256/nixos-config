@@ -36,12 +36,15 @@ let
             return max(1, len(text) // divisor)
 
         def recommend_model(token_count: int) -> str:
-            if token_count <= 4096:
+            """Recommend model based on estimated token count (Qwen3.5 supports 256K)."""
+            if token_count <= 16384:  # Up to 16K tokens
                 return "qwen3.5-2b"
-            elif token_count <= 32768:
+            elif token_count <= 65536:  # Up to 64K tokens
                 return "qwen3.5-4b"
-            else:
-                return "qwen3.5-35b-a3b@q4_k_m"
+            elif token_count <= 131072:  # Up to 128K tokens
+                return "qwen/qwen3.5-9b"
+            else:  # 128K+ tokens (up to 256K)
+                return "magnum-opus-35b-a3b-i1"
 
         if len(sys.argv) > 1:
             text = sys.argv[1]
