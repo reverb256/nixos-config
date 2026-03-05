@@ -45,8 +45,6 @@
   # Reduces initialization latency for AI inference requests
   systemd.services.nvidia-persistence-mode = {
     description = "Enable NVIDIA GPU persistence mode for AI workloads";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "multi-user.target" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -58,8 +56,7 @@
   # Prevents dynamic clock scaling that causes inconsistent inference performance
   systemd.services.nvidia-disable-autoboost = {
     description = "Disable GPU auto-boost for consistent AI performance";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "multi-user.target" "nvidia-persistence-mode.service" ];
+    after = [ "nvidia-persistence-mode.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
