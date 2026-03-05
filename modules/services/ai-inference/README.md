@@ -75,6 +75,32 @@ OpenAI-compatible API gateway with intelligent routing, circuit breaker failover
 | **Metrics** | Prometheus export for monitoring |
 | **Modular Middleware Pipeline** | Extensible middleware architecture with observability, security, rate limiting, circuit breaker, and load balancing |
 
+## Implemented Features
+
+### Core Features
+- [x] OpenAI-compatible `/v1/chat/completions` endpoint
+- [x] Streaming responses
+- [x] Intelligent routing with model specialization
+- [x] ZAI fallback with automatic failover
+- [x] Circuit breaker for backend protection
+- [x] Prometheus metrics at `/metrics`
+- [x] Health check at `/health` (with actual backend health status)
+- [x] Model listing at `/v1/models`
+- [x] Anthropic Messages API compatibility (`/v1/messages`)
+- [x] Modular middleware pipeline (observability, security, rate limiting, circuit breaker)
+
+### Not Implemented (Needs Implementation)
+- [ ] RAG endpoints (use LM Studio RAG directly for now)
+- [ ] MCP broker (planned for future release)
+- [ ] Reranker integration (removed - unused dead code)
+
+## Known Limitations
+
+- **No RAG endpoints**: RAG is handled directly by LM Studio (can be added later if needed)
+- **Backend health**: Cached with 30-second TTL, not real-time (prevents excessive health checks)
+- **Processing time tracking**: Currently returns 0ms (will be fixed in Phase 2)
+- **MCP broker**: Not yet implemented (use MCP directly with clients for now)
+
 ## Middleware Architecture
 
 The gateway v2 features a modular middleware pipeline that provides a clean, extensible architecture for request processing. Each middleware component can be independently enabled, configured, and monitored.
@@ -463,118 +489,25 @@ curl http://127.0.0.1:8080/v1/chat/completions \
 
 ### Overview
 
-The gateway includes production-grade RAG with:
-- **Hybrid Search**: Combines semantic vector search with BM25 keyword matching (5-10% recall improvement)
-- **Token-Scoped Collections**: Each API key gets isolated knowledge bases for multi-tenancy
-- **Auto-RAG**: Intelligently detects when to retrieve based on query analysis
-- **Flexible Embedding**: Uses local sentence-transformers models (default: all-MiniLM-L6-v2)
+RAG functionality is available through LM Studio directly. The gateway does not currently implement RAG endpoints.
 
 ### RAG Configuration
 
+To use RAG, enable it directly in LM Studio or use LM Studio's built-in RAG features.
+
 ```nix
-services.ai-inference.rag = {
+services.ai-inference = {
   enable = true;
-  qdrantUrl = "http://127.0.0.1:6333";
-  embeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
-  chunkSize = 512;
-  chunkOverlap = 50;
-  topK = 5;
-
-  # Hybrid search weights
-  hybridSearch = {
-    enable = true;
-    vectorWeight = 0.7;
-    bm25Weight = 0.3;
+  backend = {
+    url = "http://127.0.0.1:1234";
+    type = "lm-studio";
   };
-
-  # Auto-detection settings
-  autoRag = {
-    enable = true;
-    keywords = ["what", "how", "explain", "describe", "find"];
-  };
-
-  # Multi-tenancy
-  tokenScopedCollections = true;
 };
 ```
 
-### RAG Endpoints
+### Using RAG
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/rag/documents` | POST | Add a document to the knowledge base |
-| `/rag/search` | POST | Search the knowledge base |
-| `/rag/collections` | GET | List collections (scoped to API token) |
-| `/rag/collections/{name}` | DELETE | Delete a collection |
-
-### Adding Documents
-
-```bash
-# Add a document
-curl -X POST http://127.0.0.1:8080/rag/documents \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "text": "NixOS is a Linux distribution built on the Nix package manager...",
-    "doc_id": "nixos-doc",
-    "collection": "docs",
-    "metadata": {"source": "README", "topic": "nixos"}
-  }'
-```
-
-### Using RAG in Chat Completions
-
-RAG can be used automatically (keyword-based detection) or explicitly:
-
-```bash
-# Auto-RAG (detected by keywords like "what", "how", "explain")
-curl http://127.0.0.1:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "qwen3.5-4b",
-    "messages": [{"role": "user", "content": "What is NixOS?"}]
-  }'
-
-# Explicit RAG
-curl http://127.0.0.1:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "qwen3.5-4b",
-    "messages": [{"role": "user", "content": "Tell me about the gateway"}],
-    "use_rag": true,
-    "rag_collection": "docs",
-    "rag_top_k": 3
-  }'
-```
-
-The response includes RAG metadata:
-```json
-{
-  "choices": [...],
-  "usage": {
-    "total_tokens": 150,
-    "rag_sources_used": 2
-  },
-  "rag_metadata": {
-    "enabled": true,
-    "retrieval_method": "hybrid",
-    "context_length": 1234
-  }
-}
-```
-
-### Manual Search
-
-```bash
-curl -X POST http://127.0.0.1:8080/rag/search \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "query": "How does the circuit breaker work?",
-    "collection": "docs",
-    "top_k": 5
-  }'
-```
+Use LM Studio's RAG features directly, or implement RAG at the application level.
 
 ## Enhanced Intelligent Routing
 
@@ -1153,29 +1086,6 @@ For optimal experience, route ZAI models through the gateway too:
 4. **Circuit breaking** - Protection against ZAI outages
 5. **Metrics aggregation** - All requests in one dashboard
 6. **Structured output** - Consistent JSON/schema enforcement
-7. **Function calling** - Tool support through gateway's MCP broker
-
-### MCP Integration
-
-Your gateway's MCP broker aggregates these servers:
-
-| MCP Server | Type | Purpose |
-|------------|------|---------|
-| **zai-mcp-server** | Local | ZAI-specific tools and functions |
-| **web-search-prime** | Remote | Web search capabilities |
-| **web-reader** | Remote | URL content fetching |
-| **zread** | Remote | GitHub repository analysis |
-
-All MCP tools are available through the gateway:
-```bash
-# List available MCP tools
-curl http://127.0.0.1:8080/mcp/tools
-
-# Call an MCP tool
-curl -X POST http://127.0.0.1:8080/mcp/call \
-  -H "Content-Type: application/json" \
-  -d '{"server": "web-search-prime", "tool": "web_search", "arguments": {"query": "NixOS"}}'
-```
 
 ## Why LM Studio instead of vLLM/SGLang?
 
