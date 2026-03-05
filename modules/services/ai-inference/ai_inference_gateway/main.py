@@ -946,33 +946,35 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     "ollama-gen"
                 ):
                     # Transform SSE to Ollama format
-                    if b'"content"' in chunk:
-                        import json
-                        try:
-                            # Extract content from OpenAI SSE format
-                            chunk_str = chunk.decode('utf-8')
-                            if '"content"' in chunk_str:
-                                # Parse and transform
-                                lines = chunk_str.split('\n')
-                                for line in lines:
-                                    if line.startswith('data: ') and line != 'data: [DONE]':
-                                        try:
-                                            data = json.loads(line[6:])
-                                            if 'choices' in data and len(data['choices']) > 0:
-                                                delta = data['choices'][0].get('delta', {})
-                                                content = delta.get('content', '')
-                                                if content:
-                                                    ollama_chunk = {
-                                                        "model": model,
-                                                        "created_at": datetime.now().isoformat(),
-                                                        "response": content,
-                                                        "done": False
-                                                    }
-                                                    yield f"data: {json.dumps(ollama_chunk)}\n\n"
-                                        except:
-                                            pass
-                        except:
+                    try:
+                        chunk_str = chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk
+                        if '"content"' in chunk_str:
+                            import json
+                            # Parse and transform
+                            lines = chunk_str.split('\n')
+                            for line in lines:
+                                if line.startswith('data: ') and line != 'data: [DONE]':
+                                    try:
+                                        data = json.loads(line[6:])
+                                        if 'choices' in data and len(data['choices']) > 0:
+                                            delta = data['choices'][0].get('delta', {})
+                                            content = delta.get('content', '')
+                                            if content:
+                                                ollama_chunk = {
+                                                    "model": model,
+                                                    "created_at": datetime.now().isoformat(),
+                                                    "response": content,
+                                                    "done": False
+                                                }
+                                                yield f"data: {json.dumps(ollama_chunk)}\n\n"
+                                    except:
+                                        pass
+                    except:
+                        # If transformation fails, pass through as-is
+                        if isinstance(chunk, bytes):
                             yield chunk
+                        else:
+                            yield chunk.encode('utf-8') if isinstance(chunk, str) else chunk
 
                 # Send final done signal
                 done_chunk = {
@@ -1055,35 +1057,38 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     "ollama-chat"
                 ):
                     # Transform SSE to Ollama format
-                    if b'"content"' in chunk:
-                        import json
-                        try:
-                            chunk_str = chunk.decode('utf-8')
-                            if '"content"' in chunk_str:
-                                lines = chunk_str.split('\n')
-                                for line in lines:
-                                    if line.startswith('data: ') and line != 'data: [DONE]':
-                                        try:
-                                            data = json.loads(line[6:])
-                                            if 'choices' in data and len(data['choices']) > 0:
-                                                delta = data['choices'][0].get('delta', {})
-                                                content = delta.get('content', '')
-                                                if content:
-                                                    role = delta.get('role', 'assistant')
-                                                    ollama_chunk = {
-                                                        "model": model,
-                                                        "created_at": datetime.now().isoformat(),
-                                                        "message": {
-                                                            "role": role,
-                                                            "content": content
-                                                        },
-                                                        "done": False
-                                                    }
-                                                    yield f"data: {json.dumps(ollama_chunk)}\n\n"
-                                        except:
-                                            pass
-                        except:
+                    try:
+                        chunk_str = chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk
+                        if '"content"' in chunk_str:
+                            import json
+                            lines = chunk_str.split('\n')
+                            for line in lines:
+                                if line.startswith('data: ') and line != 'data: [DONE]':
+                                    try:
+                                        data = json.loads(line[6:])
+                                        if 'choices' in data and len(data['choices']) > 0:
+                                            delta = data['choices'][0].get('delta', {})
+                                            content = delta.get('content', '')
+                                            if content:
+                                                role = delta.get('role', 'assistant')
+                                                ollama_chunk = {
+                                                    "model": model,
+                                                    "created_at": datetime.now().isoformat(),
+                                                    "message": {
+                                                        "role": role,
+                                                        "content": content
+                                                    },
+                                                    "done": False
+                                                }
+                                                yield f"data: {json.dumps(ollama_chunk)}\n\n"
+                                    except:
+                                        pass
+                    except:
+                        # If transformation fails, pass through as-is
+                        if isinstance(chunk, bytes):
                             yield chunk
+                        else:
+                            yield chunk.encode('utf-8') if isinstance(chunk, str) else chunk
 
                 # Send final done signal
                 done_chunk = {
