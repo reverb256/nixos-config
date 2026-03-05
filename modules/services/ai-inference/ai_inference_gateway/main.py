@@ -713,6 +713,64 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         tools = await state.mcp_broker.get_tools(server)
         return {"tools": tools}
 
+    @app.post("/mcp/cache/invalidate")
+    async def invalidate_mcp_cache(request: Request):
+        """
+        Invalidate cached MCP tool schemas.
+
+        Body: {"server": "optional_server_name"}
+        If server is omitted, invalidates all caches.
+        """
+        state: GatewayState = app.state.gateway
+
+        if not state.mcp_broker:
+            raise HTTPException(
+                status_code=501,
+                detail="MCP broker not enabled"
+            )
+
+        body = await request.json()
+        server_name = body.get("server")
+
+        result = await state.mcp_broker.invalidate_cache(server_name)
+        return result
+
+    @app.get("/mcp/cache/metrics")
+    async def get_mcp_cache_metrics():
+        """Get MCP cache performance metrics."""
+        state: GatewayState = app.state.gateway
+
+        if not state.mcp_broker:
+            raise HTTPException(
+                status_code=501,
+                detail="MCP broker not enabled"
+            )
+
+        metrics = state.mcp_broker.get_cache_metrics()
+
+        if metrics is None:
+            return {"error": "Cache is not enabled"}
+
+        return metrics
+
+    @app.post("/mcp/cache/warmup")
+    async def warmup_mcp_cache():
+        """
+        Trigger cache warm-up for all MCP servers.
+
+        Pre-fetches tool schemas from all remote servers.
+        """
+        state: GatewayState = app.state.gateway
+
+        if not state.mcp_broker:
+            raise HTTPException(
+                status_code=501,
+                detail="MCP broker not enabled"
+            )
+
+        result = await state.mcp_broker.warm_up_cache()
+        return result
+
     @app.post("/mcp/call")
     async def call_mcp_tool(request: Request):
         """Call an MCP tool on a specific server."""
