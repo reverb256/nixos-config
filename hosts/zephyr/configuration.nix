@@ -154,6 +154,12 @@
     memory = "4G";
     cpu = "2";
 
+    # Provider API keys for LLM backends
+    providerKeys = {
+      ZAI_CODING_PLAN_KEY = "/run/agenix/zai-api-key";
+      KILO_API_KEY = "/run/agenix/kilo-api-key";
+    };
+
     # Discord integration - you need to set up the bot token
     # TEMPORARILY DISABLED: Secret file not yet created
     discord.enable = false;
@@ -182,6 +188,13 @@
     mode = "440";
     owner = "j_kro";
     group = "ai-inference";
+  };
+
+  # Kilo API key - Kilo Code provider for Spacebot
+  age.secrets.kilo-api-key = {
+    file = "${inputs.self}/secrets/kilo-api-key.age";
+    mode = "440";
+    owner = "j_kro";
   };
 
   # Spacebot Discord bot token
@@ -218,10 +231,15 @@
       url = "http://127.0.0.1:1234"; # LM Studio on port 1234
       type = "lm-studio";
       lmStudio.apiKeyFile = "/run/agenix/lm-studio-api-key";
-      # ZAI backend configuration (for fallback routing)
+      # ZAI Coding Plan Max configuration
+      # IMPORTANT: Use the dedicated Coding endpoint for GLM Coding Plan
+      # Coding endpoint: https://api.z.ai/api/coding/paas/v4
+      # General endpoint: https://api.z.ai/api/paas/v4 (billed separately, not Coding Plan)
       zai = {
         enable = true;
         apiKeyFile = "/run/agenix/zai-api-key";
+        # Use coding endpoint for Coding Plan Max quota
+        baseUrl = "https://api.z.ai/api/coding/paas/v4";
       };
     };
     gateway = {
@@ -244,32 +262,36 @@
     # Disable security proxy for local development (too aggressive for code)
     rateLimit.enable = false;
 
-    # MCP Broker configuration
+    # MCP Broker configuration for ZAI Coding Plan Max
+    # These match the coding-helper configuration for Claude Code and OpenCode
+    # MCP Endpoint: https://api.z.ai/api/mcp/... (glm_coding_plan_global)
+    # Note: ZAI has separate endpoints for chat API vs MCP servers
     mcp = {
       enable = true;
       servers = {
-        # Web search prime - remote MCP server
+        # Web Search MCP - included in Coding Plan Max
         web-search-prime = {
           url = "https://api.z.ai/api/mcp/web_search_prime/mcp";
           headers = {
             Authorization = "Bearer /run/agenix/zai-api-key";
           };
         };
-        # Web reader - remote MCP server
+        # Web Reader MCP - included in Coding Plan Max
         web-reader = {
           url = "https://api.z.ai/api/mcp/web_reader/mcp";
           headers = {
             Authorization = "Bearer /run/agenix/zai-api-key";
           };
         };
-        # Zread - GitHub repository analysis
+        # Zread MCP - included in Coding Plan Max
         zread = {
           url = "https://api.z.ai/api/mcp/zread/mcp";
           headers = {
             Authorization = "Bearer /run/agenix/zai-api-key";
           };
         };
-        # 4.5v image analysis
+        # Vision/Image analysis - available via @z_ai/mcp-server (stdio)
+        # ZAI Coding Plan Max includes Vision Understanding
         "4-5v-mcp-server" = {
           url = "https://api.z.ai/api/mcp/4_5v/mcp";
           headers = {

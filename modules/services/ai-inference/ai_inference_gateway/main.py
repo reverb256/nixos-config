@@ -15,6 +15,7 @@ from ai_inference_gateway.utils.redis_client import RedisClient
 from ai_inference_gateway.openai_client import create_openai_client, OpenAIBackendError
 from ai_inference_gateway.router import create_default_router, RouteDecision
 from ai_inference_gateway.mcp_broker import create_mcp_broker_from_config
+from ai_inference_gateway.metrics import ModelMetricsTracker, RoutingMetricsTracker
 
 # Initialize logger early (needed for import error handling)
 logger = logging.getLogger(__name__)
@@ -408,6 +409,14 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             # Use OpenAI SDK to list models with automatic failover
             models = await state.openai_client.primary_client.models.list()
 
+            # Update model availability metrics
+            try:
+                from ai_inference_gateway.metrics import update_model_availability
+                model_ids = [m.id for m in models.data]
+                update_model_availability(model_ids)
+            except Exception as metrics_error:
+                logger.warning(f"Failed to update model availability metrics: {metrics_error}")
+
             # Convert to dict for JSON response
             return JSONResponse(content=models.model_dump())
 
@@ -473,12 +482,27 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             f"specialization: {route_decision.specialization})"
         )
 
+        # Create metrics tracker for this request
+        metrics_tracker = ModelMetricsTracker(
+            model=route_decision.model,
+            backend=route_decision.backend,
+            requested_model=requested_model
+        )
+
+        # Record routing decision metadata
+        metrics_tracker.record_routing_decision(
+            confidence=route_decision.confidence,
+            reason=route_decision.reason,
+            specialization=route_decision.specialization.value if route_decision.specialization else None
+        )
+
         # Create context for middleware
         context = {
             "request_body": body,
             "request_headers": dict(request.headers),
             "model": route_decision.model,  # Use routed model for concurrency limiter
             "route_decision": route_decision,  # Store routing decision
+            "metrics_tracker": metrics_tracker,  # Metrics tracker
         }
 
         # Process request through middleware pipeline
@@ -502,6 +526,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     state.config,
                     state.router,
                     request_id,
+                    metrics_tracker,
                 ),
                 media_type="text/event-stream",
                 headers={
@@ -518,6 +543,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     state.pipeline,
                     context,
                     state.config,
+                    metrics_tracker,
                 )
                 return response
             finally:
@@ -1206,6 +1232,7 @@ async def stream_backend_response(
     config: GatewayConfig,
     router,
     request_id: str,
+    metrics_tracker: ModelMetricsTracker,
 ):
     """
     Stream backend response using OpenAI SDK with automatic failover.
@@ -1218,6 +1245,7 @@ async def stream_backend_response(
         config: Gateway configuration
         router: Router instance for tracking requests
         request_id: Request ID for tracking
+        metrics_tracker: Metrics tracker for this request
 
     Yields:
         SSE formatted response chunks
@@ -1242,10 +1270,38 @@ async def stream_backend_response(
         )
 
         # Stream response chunks
+        input_tokens = 0
+        output_tokens = 0
+        first_chunk = True
         async for chunk in stream:
+            # Record first token time
+            if first_chunk:
+                metrics_tracker.record_first_token()
+                first_chunk = False
+
+            # Track tokens if usage info available
+            if hasattr(chunk, 'usage') and chunk.usage:
+                if chunk.usage.prompt_tokens:
+                    input_tokens = max(input_tokens, chunk.usage.prompt_tokens)
+                if chunk.usage.completion_tokens:
+                    output_tokens = max(output_tokens, chunk.usage.completion_tokens)
+
             # Format as SSE
             chunk_str = chunk.model_dump_json()
             yield f"data: {chunk_str}\n\n"
+
+        # Record success metrics (streaming complete)
+        total_tokens = input_tokens + output_tokens
+        if total_tokens > 0:
+            # Calculate latency from the tracker's start time
+            import time
+            latency_ms = (time.time() - metrics_tracker.start_time) * 1000
+            metrics_tracker.record_success(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
+                latency_ms=latency_ms,
+            )
 
         # Notify circuit breaker of success
         if config.middleware.circuit_breaker.enabled:
@@ -1255,6 +1311,9 @@ async def stream_backend_response(
 
     except OpenAIBackendError as e:
         logger.error(f"Backend error in streaming request: {e}")
+
+        # Record error metrics
+        metrics_tracker.record_error("backend_error")
 
         # Notify circuit breaker of failure
         if config.middleware.circuit_breaker.enabled:
@@ -1266,6 +1325,9 @@ async def stream_backend_response(
         yield f"data: {{'error': '{str(e)}'}}\n\n"
     except Exception as e:
         logger.error(f"Unexpected error in streaming request: {e}")
+
+        # Record error metrics
+        metrics_tracker.record_error("unexpected_error")
 
         # Notify circuit breaker of failure
         if config.middleware.circuit_breaker.enabled:
@@ -1403,6 +1465,7 @@ async def handle_non_streaming_request(
     pipeline: MiddlewarePipeline,
     context: dict,
     config: GatewayConfig,
+    metrics_tracker: ModelMetricsTracker,
 ):
     """
     Handle non-streaming request using OpenAI SDK with automatic failover.
@@ -1413,6 +1476,7 @@ async def handle_non_streaming_request(
         pipeline: Middleware pipeline
         context: Request context
         config: Gateway configuration
+        metrics_tracker: Metrics tracker for this request
 
     Returns:
         JSON response
@@ -1445,6 +1509,20 @@ async def handle_non_streaming_request(
         # Calculate actual processing time
         processing_time_ms = (time.time() - start_time) * 1000
 
+        # Record success metrics
+        # Extract token usage from response
+        usage = response_data.get("usage", {})
+        input_tokens = usage.get("prompt_tokens", 0)
+        output_tokens = usage.get("completion_tokens", 0)
+        total_tokens = usage.get("total_tokens", input_tokens + output_tokens)
+
+        metrics_tracker.record_success(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            latency_ms=processing_time_ms,
+        )
+
         # Add gateway metadata including routing information
         route_decision = context.get("route_decision")
         if route_decision:
@@ -1476,6 +1554,9 @@ async def handle_non_streaming_request(
     except OpenAIBackendError as e:
         logger.error(f"Backend error: {e}")
 
+        # Record error metrics
+        metrics_tracker.record_error("backend_error")
+
         # Notify circuit breaker of failure
         if config.middleware.circuit_breaker.enabled:
             for middleware in pipeline.middleware:
@@ -1494,6 +1575,9 @@ async def handle_non_streaming_request(
 
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
+
+        # Record error metrics
+        metrics_tracker.record_error("unexpected_error")
 
         # Notify circuit breaker of failure
         if config.middleware.circuit_breaker.enabled:
