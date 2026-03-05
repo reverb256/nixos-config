@@ -1,0 +1,271 @@
+{
+  "skill_name": "agenix-secrets",
+  "evals": [
+    {
+      "id": 1,
+      "name": "add-single-secret",
+      "prompt": "I need to add a new API key for the OpenAI service. The key is sk-abc123xyz and it should be accessible on the zephyr host. I'm user j_kro.",
+      "expected_output": "The agent should guide through adding the secret: creating the encrypted .age file, updating secrets.nix with both path entries, adding age.secrets.openai-api-key to zephyr's configuration.nix, and providing rebuild commands.",
+      "assertions": [
+        {
+          "text": "Response mentions creating encrypted .age file with agenix",
+          "type": "contains_keyword",
+          "keyword": "agenix"
+        },
+        {
+          "text": "Response mentions updating secrets.nix",
+          "type": "contains_keyword",
+          "keyword": "secrets.nix"
+        },
+        {
+          "text": "Response mentions adding both path entries (with and without secrets/ prefix)",
+          "type": "contains_keyword",
+          "keyword": "secrets/openai-api-key.age"
+        },
+        {
+          "text": "Response mentions age.secrets configuration",
+          "type": "contains_keyword",
+          "keyword": "age.secrets"
+        },
+        {
+          "text": "Response mentions rebuilding with nixos-rebuild",
+          "type": "contains_keyword",
+          "keyword": "nixos-rebuild"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "setup-host-keys",
+      "prompt": "I need to set up host keys for all my NixOS hosts so secrets can decrypt automatically. I have 4 hosts: zephyr, forge, nexus, and sentry.",
+      "expected_output": "The agent should explain how to get SSH host keys using ssh-to-age, add them to secrets.nix in a hosts section, and then re-encrypt secrets with the new host keys.",
+      "assertions": [
+        {
+          "text": "Response mentions ssh-to-age command",
+          "type": "contains_keyword",
+          "keyword": "ssh-to-age"
+        },
+        {
+          "text": "Response mentions adding hosts section to secrets.nix",
+          "type": "contains_keyword",
+          "keyword": "hosts"
+        },
+        {
+          "text": "Response mentions getting SSH host key",
+          "type": "contains_keyword",
+          "keyword": "ssh_host_ed25519_key.pub"
+        },
+        {
+          "text": "Response mentions re-encrypting secrets",
+          "type": "contains_keyword",
+          "keyword": "re-encrypt"
+        },
+        {
+          "text": "Response mentions setup_host_keys.py helper script",
+          "type": "contains_keyword",
+          "keyword": "setup_host_keys.py"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "shared-secret-multihost",
+      "prompt": "I want to share a database password between multiple hosts. The password is 'db-pass-123' and it needs to be on zephyr, forge, and nexus.",
+      "expected_output": "The agent should use add_secret_multihost.py or guide through creating a shared secret encrypted for all three hosts, updating secrets.nix with all recipient keys, and adding age.secrets.db-password to each host's configuration.nix.",
+      "assertions": [
+        {
+          "text": "Response mentions add_secret_multihost.py or multi-host encryption",
+          "type": "contains_any",
+          "keywords": ["add_secret_multihost.py", "multi-host", "--hosts"]
+        },
+        {
+          "text": "Response mentions encrypting for multiple recipients",
+          "type": "contains_keyword",
+          "keyword": "recipients"
+        },
+        {
+          "text": "Response mentions updating all three hosts",
+          "type": "contains_all",
+          "keywords": ["zephyr", "forge", "nexus"]
+        },
+        {
+          "text": "Response mentions hosts.* in secrets.nix publicKeys",
+          "type": "contains_keyword",
+          "keyword": "hosts."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "debug-missing-attribute",
+      "prompt": "I'm getting an error: 'attribute 'api-key.age' missing' when trying to use agenix. What's wrong?",
+      "expected_output": "The agent should explain that the secret needs to be registered in secrets.nix with both 'api-key.age' and 'secrets/api-key.age' entries, and show the correct format.",
+      "assertions": [
+        {
+          "text": "Response explains the missing attribute error",
+          "type": "contains_keyword",
+          "keyword": "secrets.nix"
+        },
+        {
+          "text": "Response mentions both path entries are needed",
+          "type": "contains_any",
+          "keywords": ["both entries", "two entries", ".age and secrets/"]
+        },
+        {
+          "text": "Response shows correct format example",
+          "type": "contains_keyword",
+          "keyword": "publicKeys"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "validate-configuration",
+      "prompt": "I need to validate my agenix configuration to make sure all secrets are properly set up across all hosts.",
+      "expected_output": "The agent should run validate.py and interpret the results, checking that secrets.nix entries match .age files and that host configurations are consistent.",
+      "assertions": [
+        {
+          "text": "Response mentions validate.py script",
+          "type": "contains_keyword",
+          "keyword": "validate.py"
+        },
+        {
+          "text": "Response explains what validation checks",
+          "type": "contains_any",
+          "keywords": ["consistency", "matching", "configuration"]
+        },
+        {
+          "text": "Response mentions checking .age files exist",
+          "type": "contains_keyword",
+          "keyword": ".age"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "list-secrets-distribution",
+      "prompt": "Show me a summary of all secrets and which hosts can access them.",
+      "expected_output": "The agent should run list_secrets.py to show secrets grouped by name or by host, with details about which users/hosts can decrypt each secret and where it's deployed.",
+      "assertions": [
+        {
+          "text": "Response mentions list_secrets.py script",
+          "type": "contains_keyword",
+          "keyword": "list_secrets.py"
+        },
+        {
+          "text": "Response shows or mentions different view options",
+          "type": "contains_any",
+          "keywords": ["--by-host", "--matrix", "--summary"]
+        },
+        {
+          "text": "Response explains what information is shown",
+          "type": "contains_any",
+          "keywords": ["hosts", "access", "deployed"]
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "add-new-host",
+      "prompt": "I'm adding a new host called 'terran' to my cluster. What do I need to do to make my existing secrets work on it?",
+      "expected_output": "The agent should explain: get the host's SSH key with ssh-to-age, add to secrets.nix hosts section, re-encrypt secrets with the new host key, update secret entries to include hosts.terran, add age.secrets.* to terran's configuration.nix, and rebuild.",
+      "assertions": [
+        {
+          "text": "Response mentions getting host key with ssh-to-age",
+          "type": "contains_keyword",
+          "keyword": "ssh-to-age"
+        },
+        {
+          "text": "Response mentions adding to secrets.nix hosts section",
+          "type": "contains_keyword",
+          "keyword": "hosts."
+        },
+        {
+          "text": "Response mentions re-encrypting secrets",
+          "type": "contains_any",
+          "keywords": ["re-encrypt", "agenix -r"]
+        },
+        {
+          "text": "Response mentions updating configuration.nix for new host",
+          "type": "contains_keyword",
+          "keyword": "configuration.nix"
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "rotate-user-key",
+      "prompt": "I need to change my age key and re-encrypt all my secrets with the new key.",
+      "expected_output": "The agent should explain updating the user key in secrets.nix, then running agenix -r to re-encrypt all secrets with the new key.",
+      "assertions": [
+        {
+          "text": "Response mentions updating user key in secrets.nix",
+          "type": "contains_keyword",
+          "keyword": "users."
+        },
+        {
+          "text": "Response mentions re-encrypting with agenix",
+          "type": "contains_any",
+          "keywords": ["agenix -r", "re-encrypt"]
+        },
+        {
+          "text": "Response mentions rekey_secrets.py helper",
+          "type": "contains_any",
+          "keywords": ["rekey", "helper"]
+        }
+      ],
+      "files": []
+    }
+  ]
+}
+    {
+      "id": 2,
+      "prompt": "I need to set up host keys for all my NixOS hosts so secrets can decrypt automatically. I have 4 hosts: zephyr, forge, nexus, and sentry.",
+      "expected_output": "The agent should explain how to get SSH host keys using ssh-to-age, add them to secrets.nix in a hosts section, and then re-encrypt secrets with the new host keys.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I want to share a database password between multiple hosts. The password is 'db-pass-123' and it needs to be on zephyr, forge, and nexus.",
+      "expected_output": "The agent should use add_secret_multihost.py or guide through creating a shared secret encrypted for all three hosts, updating secrets.nix with all recipient keys, and adding age.secrets.db-password to each host's configuration.nix.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I'm getting an error: 'attribute 'api-key.age' missing' when trying to use agenix. What's wrong?",
+      "expected_output": "The agent should explain that the secret needs to be registered in secrets.nix with both 'api-key.age' and 'secrets/api-key.age' entries, and show the correct format.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I need to validate my agenix configuration to make sure all secrets are properly set up across all hosts.",
+      "expected_output": "The agent should run validate.py and interpret the results, checking that secrets.nix entries match .age files and that host configurations are consistent.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Show me a summary of all secrets and which hosts can access them.",
+      "expected_output": "The agent should run list_secrets.py to show secrets grouped by name or by host, with details about which users/hosts can decrypt each secret and where it's deployed.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I'm adding a new host called 'terran' to my cluster. What do I need to do to make my existing secrets work on it?",
+      "expected_output": "The agent should explain: get the host's SSH key with ssh-to-age, add to secrets.nix hosts section, re-encrypt secrets with the new host key, update secret entries to include hosts.terran, add age.secrets.* to terran's configuration.nix, and rebuild.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "I need to change my age key and re-encrypt all my secrets with the new key.",
+      "expected_output": "The agent should explain updating the user key in secrets.nix, then running agenix -r to re-encrypt all secrets with the new key.",
+      "files": []
+    }
+  ]
+}
