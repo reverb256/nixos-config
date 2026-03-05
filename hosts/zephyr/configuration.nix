@@ -137,13 +137,12 @@
   programs.lm-studio.enable = true;
   programs.stability-matrix.enable = true;
 
-  # Podman container runtime (for Spacebot) - Temporarily disabled due to module issues
-  # services.podman = {
-  #   enable = true;
-  #   dockerCompat = true;
-  #   compose = true;
-  #   rootless = false; # Rootful mode to support non-root containers
-  # };
+  # Podman container runtime (for Spacebot)
+  virtualisation.podman = {
+    enable = true;
+    dockerCompat = true;
+    dockerSocket.enable = true;
+  };
 
   # Spacebot AI agent (integrated with AI Gateway)
   services.spacebot = {
@@ -451,6 +450,7 @@
     networkmanager
     dbus-broker
     slirp4netns # Required for Spacebot/Podman networking
+    podman-compose # Docker Compose compatibility for Podman
     (pkgs.writeShellScriptBin "spacebot" ''
       #!${pkgs.bash}/bin/bash
       # Spacebot CLI wrapper - connects to local Spacebot service

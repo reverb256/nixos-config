@@ -74,6 +74,35 @@ in
       description = "File containing API key (if not using gateway)";
     };
 
+    # Provider API Keys (passed as environment variables to container)
+    providerKeys = mkOption {
+      type = types.attrsOf (types.nullOr (types.either types.str types.path));
+      default = {
+        ZAI_CODING_PLAN_KEY = null;
+        # KILO_API_KEY is managed via Spacebot UI (saved in config.toml)
+        # Additional providers can be added here if needed:
+        # ANTHROPIC_API_KEY = null;
+        # OPENAI_API_KEY = null;
+        # OPENROUTER_API_KEY = null;
+      };
+      example = {
+        ZAI_CODING_PLAN_KEY = "/run/agenix/zai-api-key";
+      };
+      description = ''
+        Provider API keys to pass as environment variables.
+        Values can be:
+        - A string literal (the key itself)
+        - A path to a file (will be read and contents passed as env var)
+
+        Supported environment variables:
+        - ZAI_CODING_PLAN_KEY (ZAI coding plan access)
+        - KILO_API_KEY (Kilo provider - also saved in config.toml by UI)
+
+        Note: Some keys like KILO_API_KEY can be managed via Spacebot UI
+        and will persist in config.toml across rebuilds.
+      '';
+    };
+
     # Discord configuration
     discord = {
       enable = mkEnableOption "Discord integration";
@@ -304,8 +333,11 @@ in
             --network slirp4netns:allow_host_loopback=true \
             -p ${cfg.host}:${toString cfg.port}:19898 \
             -v ${cfg.dataDir}:/data:Z \
-            -v ${cfg.dataDir}/config.toml:/data/config.toml:ro,Z \
+            -v ${cfg.dataDir}/config.toml:/data/config.toml:Z \
+            -v /run/agenix:/run/agenix:ro \
             -e SPACEBOT_DATA_DIR=/data \
+            ${lib.optionalString (cfg.providerKeys.ZAI_CODING_PLAN_KEY != null) "-e ZAI_CODING_PLAN_KEY=''$(cat ${cfg.providerKeys.ZAI_CODING_PLAN_KEY})''"} \
+            -e OLLAMA_BASE_URL=${cfg.gatewayUrl} \
             ${lib.optionalString (cfg.discord.token != null) "-e DISCORD_BOT_TOKEN=${cfg.discord.token}"} \
             ${lib.optionalString (cfg.slack.token != null) "-e SLACK_BOT_TOKEN=${cfg.slack.token}"} \
             ${lib.optionalString (cfg.telegram.token != null) "-e TELEGRAM_BOT_TOKEN=${cfg.telegram.token}"} \
