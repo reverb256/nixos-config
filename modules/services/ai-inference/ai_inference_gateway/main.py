@@ -1,7 +1,9 @@
 # modules/services/ai-inference/ai_inference_gateway/main.py
 import logging
+import json
 from contextlib import asynccontextmanager
 from typing import Optional
+from datetime import datetime
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, Response, StreamingResponse
@@ -849,6 +851,326 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             )
 
             return result
+
+    # Ollama-compatible API endpoints for Spacebot integration
+    @app.get("/api/tags")
+    async def ollama_list_models():
+        """
+        List available models (Ollama-compatible).
+
+        Compatible with: GET /api/tags
+        Ollama equivalent: ollama list
+        """
+        state: GatewayState = app.state.gateway
+
+        # Get models from backend
+        try:
+            models = await state.openai_client.primary_client.models.list()
+        except Exception as e:
+            logger.error(f"Failed to list models: {e}")
+            # Return default models list
+            return {
+                "models": [
+                    {
+                        "name": "qwen/qwen3.5-9b",
+                        "modified_at": "2024-01-01T00:00:00Z",
+                        "size": 0,
+                        "digest": "gateway-proxy"
+                    }
+                ]
+            }
+
+        # Transform to Ollama format
+        ollama_models = []
+        for model in models.data:
+            # Extract base name without organization prefix
+            model_name = model.id.split('/')[-1] if '/' in model.id else model.id
+
+            ollama_models.append({
+                "name": model.id,
+                "modified_at": "2024-01-01T00:00:00Z",
+                "size": 0,  # Not tracked
+                "digest": "gateway-proxy",
+                "details": {
+                    "parent_model": "",
+                    "format": "gguf",
+                    "family": "gateway-proxy",
+                    "families": None,
+                    "parameter_size": "unknown",
+                    "quantization_level": "unknown"
+                }
+            })
+
+        return {"models": ollama_models}
+
+    @app.post("/api/generate")
+    async def ollama_generate(request: Request):
+        """
+        Generate text completion (Ollama-compatible).
+
+        Compatible with: POST /api/generate
+        Transforms to OpenAI format and forwards to backend.
+        """
+        state: GatewayState = app.state.gateway
+
+        # Parse Ollama request
+        body = await request.json()
+        model = body.get("model", "qwen/qwen3.5-9b")
+        prompt = body.get("prompt", "")
+        stream = body.get("stream", False)
+
+        # Extract options
+        options = body.get("options", {})
+        max_tokens = options.get("num_predict", options.get("max_tokens", 2048))
+        temperature = options.get("temperature", 0.7)
+
+        # Transform to OpenAI format
+        openai_request = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": stream,
+            "max_tokens": max_tokens,
+            "temperature": temperature
+        }
+
+        if stream:
+            # Streaming response
+            async def generate_stream():
+                async for chunk in stream_backend_response(
+                    state.openai_client,
+                    openai_request,
+                    state.pipeline,
+                    {"ollama": True},
+                    state.config,
+                    state.router,
+                    "ollama-gen"
+                ):
+                    # Transform SSE to Ollama format
+                    if b'"content"' in chunk:
+                        import json
+                        try:
+                            # Extract content from OpenAI SSE format
+                            chunk_str = chunk.decode('utf-8')
+                            if '"content"' in chunk_str:
+                                # Parse and transform
+                                lines = chunk_str.split('\n')
+                                for line in lines:
+                                    if line.startswith('data: ') and line != 'data: [DONE]':
+                                        try:
+                                            data = json.loads(line[6:])
+                                            if 'choices' in data and len(data['choices']) > 0:
+                                                delta = data['choices'][0].get('delta', {})
+                                                content = delta.get('content', '')
+                                                if content:
+                                                    ollama_chunk = {
+                                                        "model": model,
+                                                        "created_at": datetime.now().isoformat(),
+                                                        "response": content,
+                                                        "done": False
+                                                    }
+                                                    yield f"data: {json.dumps(ollama_chunk)}\n\n"
+                                        except:
+                                            pass
+                        except:
+                            yield chunk
+
+                # Send final done signal
+                done_chunk = {
+                    "model": model,
+                    "created_at": datetime.now().isoformat(),
+                    "response": "",
+                    "done": True,
+                    "context": [0, 1]  # Placeholder
+                }
+                yield f"data: {json.dumps(done_chunk)}\n\n"
+
+            return StreamingResponse(
+                generate_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                }
+            )
+        else:
+            # Non-streaming response
+            response = await state.openai_client.chat_completion(
+                messages=openai_request["messages"],
+                model=openai_request["model"],
+                max_tokens=openai_request["max_tokens"],
+                temperature=openai_request["temperature"],
+                stream=False
+            )
+
+            # Transform to Ollama format
+            content = response.choices[0].message.content
+
+            return {
+                "model": model,
+                "created_at": datetime.now().isoformat(),
+                "response": content,
+                "done": True
+            }
+
+    @app.post("/api/chat")
+    async def ollama_chat(request: Request):
+        """
+        Chat completion endpoint (Ollama-compatible).
+
+        Compatible with: POST /api/chat
+        This is the main endpoint used by Spacebot.
+        """
+        state: GatewayState = app.state.gateway
+
+        # Parse Ollama request
+        body = await request.json()
+        model = body.get("model", "qwen/qwen3.5-9b")
+        messages = body.get("messages", [])
+        stream = body.get("stream", False)
+
+        # Extract options
+        options = body.get("options", {})
+        max_tokens = options.get("num_predict", options.get("max_tokens", 2048))
+        temperature = options.get("temperature", 0.7)
+
+        # Transform to OpenAI format (already compatible)
+        openai_request = {
+            "model": model,
+            "messages": messages,
+            "stream": stream,
+            "max_tokens": max_tokens,
+            "temperature": temperature
+        }
+
+        if stream:
+            # Streaming response
+            async def chat_stream():
+                async for chunk in stream_backend_response(
+                    state.openai_client,
+                    openai_request,
+                    state.pipeline,
+                    {"ollama": True},
+                    state.config,
+                    state.router,
+                    "ollama-chat"
+                ):
+                    # Transform SSE to Ollama format
+                    if b'"content"' in chunk:
+                        import json
+                        try:
+                            chunk_str = chunk.decode('utf-8')
+                            if '"content"' in chunk_str:
+                                lines = chunk_str.split('\n')
+                                for line in lines:
+                                    if line.startswith('data: ') and line != 'data: [DONE]':
+                                        try:
+                                            data = json.loads(line[6:])
+                                            if 'choices' in data and len(data['choices']) > 0:
+                                                delta = data['choices'][0].get('delta', {})
+                                                content = delta.get('content', '')
+                                                if content:
+                                                    role = delta.get('role', 'assistant')
+                                                    ollama_chunk = {
+                                                        "model": model,
+                                                        "created_at": datetime.now().isoformat(),
+                                                        "message": {
+                                                            "role": role,
+                                                            "content": content
+                                                        },
+                                                        "done": False
+                                                    }
+                                                    yield f"data: {json.dumps(ollama_chunk)}\n\n"
+                                        except:
+                                            pass
+                        except:
+                            yield chunk
+
+                # Send final done signal
+                done_chunk = {
+                    "model": model,
+                    "created_at": datetime.now().isoformat(),
+                    "message": {
+                        "role": "assistant",
+                        "content": ""
+                    },
+                    "done": True,
+                    "context": [0, 1]  # Placeholder
+                }
+                yield f"data: {json.dumps(done_chunk)}\n\n"
+
+            return StreamingResponse(
+                chat_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                }
+            )
+        else:
+            # Non-streaming response - use existing endpoint logic
+            response = await state.openai_client.chat_completion(
+                messages=openai_request["messages"],
+                model=openai_request["model"],
+                max_tokens=openai_request["max_tokens"],
+                temperature=openai_request["temperature"],
+                stream=False
+            )
+
+            # Transform to Ollama format
+            message = response.choices[0].message
+
+            return {
+                "model": model,
+                "created_at": datetime.now().isoformat(),
+                "message": {
+                    "role": message.role,
+                    "content": message.content
+                },
+                "done": True
+            }
+
+    @app.get("/api/version")
+    async def ollama_version():
+        """
+        Get Ollama version information (gateway-compatible).
+
+        Compatible with: GET /api/version
+        """
+        return {
+            "version": "2.0.0-gateway",
+            "details": {
+                "backend": "gateway-proxy",
+                "committed": True,
+                "features": ["ollama-api", "openai-api", "rag", "mcp"]
+            }
+        }
+
+    @app.post("/api/embeddings")
+    async def ollama_embeddings(request: Request):
+        """
+        Generate embeddings (Ollama-compatible).
+
+        Compatible with: POST /api/embeddings
+        Uses RAG embedding service if available.
+        """
+        state: GatewayState = app.state.gateway
+
+        if not state.rag_search or not state.rag_search.embedder:
+            raise HTTPException(
+                status_code=501,
+                detail="Embeddings not enabled. Set RAG_ENABLED=true"
+            )
+
+        body = await request.json()
+        model = body.get("model", "BAAI/bge-m3")
+        prompt = body.get("prompt", "")
+
+        # Generate embedding
+        embedding = await state.rag_search.embedder.embed_single(prompt)
+
+        return {
+            "embedding": embedding
+        }
 
     # Add metrics endpoint for Prometheus
     if PROMETHEUS_AVAILABLE:
