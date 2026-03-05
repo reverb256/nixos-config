@@ -26,6 +26,7 @@ class TaskSpecialization(Enum):
     GENERAL = "general"
     FAST = "fast"
     LARGE_CONTEXT = "large_context"
+    VISION = "vision"
 
 
 @dataclass
@@ -501,7 +502,11 @@ def create_default_router() -> Router:
             name="GLM-4.6v",
             context_length=200000,
             priority=7,
-            specializations=[TaskSpecialization.CODING, TaskSpecialization.FAST],
+            specializations=[
+                TaskSpecialization.CODING,
+                TaskSpecialization.FAST,
+                TaskSpecialization.VISION,
+            ],
             cost_tier=2,
             estimated_tokens_per_second=60.0,
             backend="zai",
