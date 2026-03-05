@@ -255,12 +255,19 @@ class MCPBroker:
             # ZAI MCP servers require SSE-capable Accept header
             headers["Accept"] = "application/json, text/event-stream"
 
+            # Debug logging
+            logger.debug(f"Calling MCP tool: {server.name}.{tool_name}")
+            logger.debug(f"Request URL: {server.url}")
+            logger.debug(f"Request headers: {headers}")
+            logger.debug(f"Request body: {mcp_request}")
+
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     server.url,
                     json=mcp_request,
                     headers=headers
                 )
+                logger.debug(f"Response status: {response.status_code}")
 
                 # Handle SSE response from ZAI MCP servers
                 if response.status_code == 200:
