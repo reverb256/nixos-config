@@ -1610,56 +1610,55 @@ let
                         prediction_stats.stop_reason = choices[0].get("finish_reason", "unknown") if choices else "unknown"
 
                         if usage:
-                            tokens_generated.labels(model=selected_model, backend=effective_backend.url).inc(
+                            tokens_generated.labels(model=selected_model, backend=effective_backend.type).inc(
                                 usage.get("completion_tokens", 0)
                             )
-                            prompt_tokens.labels(model=selected_model, backend=effective_backend.url).inc(
+                            prompt_tokens.labels(model=selected_model, backend=effective_backend.type).inc(
                                 usage.get("prompt_tokens", 0)
                             )
-                            completion_tokens.labels(model=selected_model, backend=effective_backend.url).inc(
+                            completion_tokens.labels(model=selected_model, backend=effective_backend.type).inc(
                                 usage.get("completion_tokens", 0)
                             )
 
-                            # Enhanced usage analytics (temporarily disabled due to metric conflicts)
-                            # TODO: Fix metric label conflicts and re-enable
-                            # total_tokens.labels(
-                            #     model=selected_model,
-                            #     backend=effective_backend.url,
-                            #     token_type="prompt"
-                            # ).inc(usage.get("prompt_tokens", 0))
-                            #
-                            # total_tokens.labels(
-                            #     model=selected_model,
-                            #     backend=effective_backend.url,
-                            #     token_type="completion"
-                            # ).inc(usage.get("completion_tokens", 0))
-                            #
-                            # tokens_per_request.labels(model=selected_model).observe(
-                            #     usage.get("total_tokens", 0)
-                            # )
-                            #
-                            # # Cost estimation
-                            # cost_per_million = 0.0
-                            # if "zai" in effective_backend.url.lower():
-                            #     cost_per_million = 2.0
-                            #
-                            # total_prompt_tokens = usage.get("prompt_tokens", 0)
-                            # total_completion_tokens = usage.get("completion_tokens", 0)
-                            # estimated_cost = (
-                            #     (total_prompt_tokens / 1_000_000) * cost_per_million +
-                            #     (total_completion_tokens / 1_000_000) * cost_per_million * 2
-                            # )
-                            # cost_tracker.labels(
-                            #     model=selected_model,
-                            #     backend=effective_backend.url
-                            # ).inc(estimated_cost)
+                            # Enhanced usage analytics (re-enabled with low-cardinality backend.type labels)
+                            total_tokens.labels(
+                                model=selected_model,
+                                backend=effective_backend.type,
+                                token_type="prompt"
+                            ).inc(usage.get("prompt_tokens", 0))
+
+                            total_tokens.labels(
+                                model=selected_model,
+                                backend=effective_backend.type,
+                                token_type="completion"
+                            ).inc(usage.get("completion_tokens", 0))
+
+                            tokens_per_request.labels(model=selected_model).observe(
+                                usage.get("total_tokens", 0)
+                            )
+
+                            # Cost estimation
+                            cost_per_million = 0.0
+                            if effective_backend.type == "zai":
+                                cost_per_million = 2.0
+
+                            total_prompt_tokens = usage.get("prompt_tokens", 0)
+                            total_completion_tokens = usage.get("completion_tokens", 0)
+                            estimated_cost = (
+                                (total_prompt_tokens / 1_000_000) * cost_per_million +
+                                (total_completion_tokens / 1_000_000) * cost_per_million * 2
+                            )
+                            cost_tracker.labels(
+                                model=selected_model,
+                                backend=effective_backend.type
+                            ).inc(estimated_cost)
 
                     duration = time.time() - start_time
-                    request_duration.labels(model=selected_model, backend=effective_backend.url).observe(duration)
+                    request_duration.labels(model=selected_model, backend=effective_backend.type).observe(duration)
                     request_counter.labels(
                         model=selected_model,
                         status="success" if backend_resp.status_code == 200 else "error",
-                        backend=effective_backend.url,
+                        backend=effective_backend.type,
                         auth_mode=auth_result["tier"]
                     ).inc()
 
