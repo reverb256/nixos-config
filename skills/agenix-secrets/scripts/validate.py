@@ -82,7 +82,16 @@ def parse_host_configurations():
             content = f.read()
 
         # Find all age.secrets.* declarations
-        for match in re.finditer(r'age\.secrets\.(\w+)\s*=\s*\{([^}]+)\};', content, re.DOTALL):
+        # Match from secret name to the closing }; (handles nested ${} in file paths)
+        for match in re.finditer(r'^\s*age\.secrets\.([\w-]+)\s*=\s*\{(.*?)^  \};', content, re.DOTALL | re.MULTILINE):
+            # Skip commented lines (check if line starts with # before age.secrets)
+            start_pos = match.start()
+            # Get the line containing the match start
+            line_start = content.rfind('\n', 0, start_pos) + 1
+            line_before = content[line_start:start_pos].strip()
+            if line_before.startswith('#'):
+                continue  # Skip commented secrets
+
             secret_name = match.group(1)
             secret_config = match.group(2)
 
