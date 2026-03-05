@@ -14,6 +14,21 @@ from ai_inference_gateway.openai_client import create_openai_client, OpenAIBacke
 from ai_inference_gateway.router import create_default_router, RouteDecision
 from ai_inference_gateway.mcp_broker import create_mcp_broker_from_config
 
+# Initialize logger early (needed for import error handling)
+logger = logging.getLogger(__name__)
+
+# RAG imports
+try:
+    from ai_inference_gateway.rag import RAGConfig
+    from ai_inference_gateway.rag.embeddings import create_embedding_service
+    from ai_inference_gateway.rag.qdrant_client import get_qdrant_manager
+    from ai_inference_gateway.rag.search import create_search_service
+    RAG_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"RAG module not available: {e}")
+    RAG_AVAILABLE = False
+    RAGConfig = None
+
 # Import middleware
 from ai_inference_gateway.middleware.observability import ObservabilityMiddleware
 from ai_inference_gateway.middleware.security_filter import SecurityFilterMiddleware
@@ -36,9 +51,6 @@ except ImportError:
     PROMETHEUS_AVAILABLE = False
     generate_latest = None
     CONTENT_TYPE_LATEST = None
-
-
-logger = logging.getLogger(__name__)
 
 
 GATEWAY_VERSION = "2.0.0"
@@ -90,6 +102,9 @@ class GatewayState:
             "last_check": 0,
             "ttl": 30  # Cache health status for 30 seconds
         }
+        # RAG service (initialized if enabled)
+        self.rag_search = None
+        self.rag_config = None
 
 
 def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
@@ -173,6 +188,67 @@ async def lifespan(app: FastAPI):
             logger.info("MCP broker initialized")
     except Exception as e:
         logger.warning(f"MCP broker initialization failed: {e}")
+
+    # Initialize RAG if enabled
+    state.rag_search = None
+    state.rag_config = None
+
+    # Check if RAG is enabled via environment variable
+    import os
+    rag_enabled = os.getenv("RAG_ENABLED", "false").lower() == "true"
+
+    if RAG_AVAILABLE and rag_enabled:
+        try:
+            logger.info("Initializing RAG service...")
+
+            # Build RAG config from environment variables
+            from ai_inference_gateway.rag.config import RAGConfig, EmbeddingConfig, ChunkingConfig, SearchConfig, RerankerConfig
+
+            # Get environment variables
+            qdrant_url = os.getenv("QDRANT_URL", "http://127.0.0.1:6333")
+            embedding_model = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
+            chunk_size = int(os.getenv("CHUNK_SIZE", "512"))
+            chunk_overlap = int(os.getenv("CHUNK_OVERLAP", "50"))
+            top_k = int(os.getenv("RAG_TOP_K", "5"))
+            hybrid_search = os.getenv("HYBRID_SEARCH_ENABLED", "true").lower() == "true"
+            reranker_enabled = os.getenv("RERANKER_ENABLED", "true").lower() == "true"
+
+            state.rag_config = RAGConfig(
+                enable=True,
+                qdrant_url=qdrant_url,
+                embedding=EmbeddingConfig(
+                    model=embedding_model,
+                    device="cuda"  # Use CUDA by default
+                ),
+                chunking=ChunkingConfig(
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap
+                ),
+                search=SearchConfig(
+                    default_top_k=top_k,
+                    hybrid_search=hybrid_search
+                ),
+                reranker=RerankerConfig(
+                    enable=reranker_enabled,
+                    model="BAAI/bge-reranker-v2-base"
+                )
+            )
+
+            # Initialize components
+            embedder = await create_embedding_service(state.rag_config.embedding)
+            qdrant = await get_qdrant_manager(state.rag_config)
+            state.rag_search = await create_search_service(
+                state.rag_config,
+                embedder,
+                qdrant
+            )
+
+            logger.info("RAG service initialized successfully")
+        except Exception as e:
+            logger.error(f"RAG initialization failed: {e}")
+            import traceback
+            traceback.print_exc()
+            state.rag_search = None
 
     # Startup complete
     logger.info("Gateway startup complete")
@@ -647,6 +723,132 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "healthy": is_healthy,
             "exists": server_name in state.mcp_broker.servers
         }
+
+    # ============================================================================
+    # RAG ENDPOINTS
+    # ============================================================================
+    if RAG_AVAILABLE:
+
+        @app.post("/rag/documents")
+        async def ingest_document(request: Request):
+            """Ingest document into RAG knowledge base."""
+            state: GatewayState = app.state.gateway
+
+            if not state.rag_search:
+                raise HTTPException(
+                    status_code=501,
+                    detail="RAG service not enabled"
+                )
+
+            body = await request.json()
+            collection = body.get("collection", "default")
+            documents = body.get("documents", [])
+
+            if not documents:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No documents provided"
+                )
+
+            # Ingest each document
+            results = []
+            for doc in documents:
+                content = doc.get("content", "")
+                metadata = doc.get("metadata", {})
+                document_id = doc.get("document_id")
+
+                result = await state.rag_search.ingest_document(
+                    collection=collection,
+                    content=content,
+                    metadata=metadata,
+                    document_id=document_id
+                )
+                results.append(result)
+
+            # Return summary
+            total_chunks = sum(r.get("chunks_created", 0) for r in results if r.get("success"))
+            return {
+                "success": True,
+                "documents_ingested": len(results),
+                "chunks_created": total_chunks,
+                "collection": collection,
+                "results": results
+            }
+
+        @app.get("/rag/search")
+        async def search_knowledge_base(request: Request):
+            """Search RAG knowledge base."""
+            state: GatewayState = app.state.gateway
+
+            if not state.rag_search:
+                raise HTTPException(
+                    status_code=501,
+                    detail="RAG service not enabled"
+                )
+
+            query = request.query_params.get("query", "")
+            if not query:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Missing required parameter: query"
+                )
+
+            collection = request.query_params.get("collection", "default")
+            top_k = int(request.query_params.get("top_k", 5))
+            rerank = request.query_params.get("rerank", "true").lower() == "true"
+
+            result = await state.rag_search.search(
+                query=query,
+                collection=collection,
+                top_k=top_k,
+                rerank=rerank
+            )
+
+            return result
+
+        @app.get("/rag/collections")
+        async def list_collections(request: Request):
+            """List all RAG collections."""
+            state: GatewayState = app.state.gateway
+
+            if not state.rag_search:
+                raise HTTPException(
+                    status_code=501,
+                    detail="RAG service not enabled"
+                )
+
+            collections = await state.rag_search.get_collections()
+            return {
+                "collections": collections
+            }
+
+        @app.delete("/rag/documents")
+        async def delete_document(request: Request):
+            """Delete document from RAG knowledge base."""
+            state: GatewayState = app.state.gateway
+
+            if not state.rag_search:
+                raise HTTPException(
+                    status_code=501,
+                    detail="RAG service not enabled"
+                )
+
+            body = await request.json()
+            collection = body.get("collection", "default")
+            document_id = body.get("document_id")
+
+            if not document_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Missing required field: document_id"
+                )
+
+            result = await state.rag_search.delete_document(
+                collection=collection,
+                document_id=document_id
+            )
+
+            return result
 
     # Add metrics endpoint for Prometheus
     if PROMETHEUS_AVAILABLE:
