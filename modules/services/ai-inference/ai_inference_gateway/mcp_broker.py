@@ -19,6 +19,14 @@ from dataclasses import dataclass
 from enum import Enum
 import httpx
 
+# Import tool schema caching
+try:
+    from ai_inference_gateway.mcp_cache import ToolSchemaCache, get_cache
+    CACHE_AVAILABLE = True
+except ImportError:
+    logger.warning("MCP cache module not available")
+    CACHE_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,16 +55,34 @@ class MCPBroker:
     Provides unified access to MCP tools from multiple servers.
     """
 
-    def __init__(self, servers: List[MCPServer]):
+    def __init__(
+        self,
+        servers: List[MCPServer],
+        cache_ttl_seconds: int = 300,
+        enable_cache: bool = True
+    ):
         """
         Initialize MCP broker.
 
         Args:
             servers: List of MCP server configurations
+            cache_ttl_seconds: TTL for cached tool schemas (default: 300s = 5 min)
+            enable_cache: Enable tool schema caching
         """
         self.servers = {server.name: server for server in servers}
         self.active_connections: Dict[str, Any] = {}
-        logger.info(f"MCP Broker initialized with {len(servers)} servers")
+
+        # Initialize tool schema cache
+        self.enable_cache = enable_cache and CACHE_AVAILABLE
+        if self.enable_cache:
+            self.tool_cache = get_cache(ttl_seconds=cache_ttl_seconds)
+            logger.info(
+                f"MCP Broker initialized with {len(servers)} servers "
+                f"(cache enabled, TTL={cache_ttl_seconds}s)"
+            )
+        else:
+            self.tool_cache = None
+            logger.info(f"MCP Broker initialized with {len(servers)} servers (cache disabled)")
 
     async def list_servers(self) -> List[Dict]:
         """
@@ -77,7 +103,7 @@ class MCPBroker:
 
     async def get_tools(self, server_name: Optional[str] = None) -> List[Dict]:
         """
-        Get available tools from server(s).
+        Get available tools from server(s) with caching support.
 
         Args:
             server_name: Optional server name. If None, returns tools from all servers.
@@ -98,92 +124,236 @@ class MCPBroker:
 
             server = self.servers[name]
 
-            # For remote servers, use MCP protocol to list tools
-            if server.type == MCPServerType.REMOTE and server.url:
-                try:
-                    headers = {"Content-Type": "application/json"}
-                    if server.headers:
-                        headers.update(server.headers)
+            # Use cache if enabled for remote servers
+            if self.enable_cache and server.type == MCPServerType.REMOTE:
+                # Define fetch function for this server
+                async def fetch_func():
+                    return await self._fetch_tools_from_server(name, server)
 
-                    # Use MCP JSON-RPC protocol to list tools
-                    mcp_request = {
-                        "jsonrpc": "2.0",
-                        "id": 1,
-                        "method": "tools/list"
-                    }
+                # Use cache to get tools
+                tools = await self.tool_cache.get_tools(
+                    server_name=name,
+                    fetch_func=fetch_func,
+                    force_refresh=False
+                )
 
-                    # ZAI MCP servers require SSE-capable Accept header
-                    headers["Accept"] = "application/json, text/event-stream"
-
-                    async with httpx.AsyncClient(timeout=10.0) as client:
-                        response = await client.post(
-                            server.url,
-                            json=mcp_request,
-                            headers=headers
-                        )
-
-                        if response.status_code == 200:
-                            # Check if response is SSE format
-                            content_type = response.headers.get("content-type", "")
-                            if "text/event-stream" in content_type:
-                                # Parse SSE response to get tools list
-                                async for line in response.aiter_lines():
-                                    if line.startswith("data:"):
-                                        try:
-                                            data = json.loads(line[5:].strip())
-                                            if "result" in data and "tools" in data["result"]:
-                                                for tool in data["result"]["tools"]:
-                                                    all_tools.append({
-                                                        "server": name,
-                                                        "name": tool.get("name"),
-                                                        "description": tool.get("description", ""),
-                                                        "type": "remote"
-                                                    })
-                                                break  # Got the tools, stop parsing
-                                        except json.JSONDecodeError:
-                                            continue
-                            else:
-                                result = response.json()
-                                # Check for JSON-RPC error
-                                if "error" in result:
-                                    logger.warning(f"MCP server {name} returned error: {result['error']}")
-                                elif "result" in result and "tools" in result["result"]:
-                                    # Extract tools from MCP response
-                                    for tool in result["result"]["tools"]:
-                                        all_tools.append({
-                                            "server": name,
-                                            "name": tool.get("name"),
-                                            "description": tool.get("description", ""),
-                                            "type": "remote"
-                                        })
-                                else:
-                                    logger.warning(f"Unexpected response from MCP server {name}")
-                        else:
-                            logger.warning(f"Failed to list tools from {name}: HTTP {response.status_code}")
-
-                except Exception as e:
-                    logger.error(f"Error listing tools from {name}: {e}")
-                    # Fallback to known tools for ZAI servers
-                    known_tools = {
-                        "web-search-prime": [{"name": "web_search", "description": "Web search via ZAI"}],
-                        "web-reader": [{"name": "fetch_url", "description": "Fetch URL content"}],
-                        "zread": [
-                            {"name": "github_repo", "description": "GitHub repository analysis"},
-                            {"name": "github_file", "description": "GitHub file reader"}
-                        ],
-                        "4-5v-mcp-server": [{"name": "analyze_image", "description": "Image analysis"}]
-                    }
-                    if name in known_tools:
-                        for tool in known_tools[name]:
-                            all_tools.append({
-                                "server": name,
-                                **tool
-                            })
+                if tools:
+                    all_tools.extend(tools)
             else:
-                # Local server - would need to implement stdio communication
-                logger.warning(f"Local MCP server {name} not yet supported")
+                # No cache - fetch directly
+                tools = await self._fetch_tools_from_server(name, server)
+                if tools:
+                    all_tools.extend(tools)
 
         return all_tools
+
+    async def _fetch_tools_from_server(
+        self,
+        name: str,
+        server: MCPServer
+    ) -> Optional[List[Dict]]:
+        """
+        Fetch tools from a specific MCP server.
+
+        Args:
+            name: Server name
+            server: Server configuration
+
+        Returns:
+            List of tool definitions, or None if fetch fails
+        """
+        # For remote servers, use MCP protocol to list tools
+        if server.type == MCPServerType.REMOTE and server.url:
+            try:
+                headers = {"Content-Type": "application/json"}
+                if server.headers:
+                    headers.update(server.headers)
+
+                # Use MCP JSON-RPC protocol to list tools
+                mcp_request = {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "tools/list"
+                }
+
+                # ZAI MCP servers require SSE-capable Accept header
+                headers["Accept"] = "application/json, text/event-stream"
+
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.post(
+                        server.url,
+                        json=mcp_request,
+                        headers=headers
+                    )
+
+                    if response.status_code == 200:
+                        # Check if response is SSE format
+                        content_type = response.headers.get("content-type", "")
+                        if "text/event-stream" in content_type:
+                            # Parse SSE response to get tools list
+                            tools = await self._parse_sse_tools_response(response, name)
+                        else:
+                            # Parse JSON response
+                            tools = await self._parse_json_tools_response(response, name)
+
+                        if tools:
+                            return tools
+                        else:
+                            logger.warning(f"No tools found in response from {name}")
+
+                    else:
+                        logger.warning(f"Failed to list tools from {name}: HTTP {response.status_code}")
+                        return None
+
+            except Exception as e:
+                logger.error(f"Error listing tools from {name}: {e}")
+                # Fallback to known tools for ZAI servers
+                return await self._get_fallback_tools(name)
+
+        else:
+            # Local server - would need to implement stdio communication
+            logger.warning(f"Local MCP server {name} not yet supported")
+            return None
+
+        return None
+
+    async def _parse_sse_tools_response(
+        self,
+        response: httpx.Response,
+        server_name: str
+    ) -> Optional[List[Dict]]:
+        """Parse SSE (Server-Sent Events) response for tools."""
+        tools = []
+
+        try:
+            async for line in response.aiter_lines():
+                if line.startswith("data:"):
+                    try:
+                        data = json.loads(line[5:].strip())
+                        if "result" in data and "tools" in data["result"]:
+                            for tool in data["result"]["tools"]:
+                                tools.append({
+                                    "server": server_name,
+                                    "name": tool.get("name"),
+                                    "description": tool.get("description", ""),
+                                    "type": "remote"
+                                })
+                            break  # Got the tools, stop parsing
+                    except json.JSONDecodeError:
+                        continue
+        except Exception as e:
+            logger.error(f"Error parsing SSE response from {server_name}: {e}")
+
+        return tools if tools else None
+
+    async def _parse_json_tools_response(
+        self,
+        response: httpx.Response,
+        server_name: str
+    ) -> Optional[List[Dict]]:
+        """Parse JSON response for tools."""
+        try:
+            result = response.json()
+
+            # Check for JSON-RPC error
+            if "error" in result:
+                logger.warning(f"MCP server {server_name} returned error: {result['error']}")
+                return None
+
+            # Extract tools from MCP response
+            if "result" in result and "tools" in result["result"]:
+                tools = []
+                for tool in result["result"]["tools"]:
+                    tools.append({
+                        "server": server_name,
+                        "name": tool.get("name"),
+                        "description": tool.get("description", ""),
+                        "type": "remote"
+                    })
+                return tools
+
+            logger.warning(f"Unexpected response from MCP server {server_name}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error parsing JSON response from {server_name}: {e}")
+            return None
+
+    async def _get_fallback_tools(self, server_name: str) -> Optional[List[Dict]]:
+        """Get fallback tools for known ZAI servers."""
+        # Known tools for ZAI servers (when MCP endpoint is unavailable)
+        known_tools = {
+            "web-search-prime": [{"name": "web_search", "description": "Web search via ZAI"}],
+            "web-reader": [{"name": "fetch_url", "description": "Fetch URL content"}],
+            "zread": [
+                {"name": "github_repo", "description": "GitHub repository analysis"},
+                {"name": "github_file", "description": "GitHub file reader"}
+            ],
+            "4-5v-mcp-server": [{"name": "analyze_image", "description": "Image analysis"}]
+        }
+
+        if server_name in known_tools:
+            logger.info(f"Using fallback tools for {server_name}")
+            return [
+                {"server": server_name, **tool}
+                for tool in known_tools[server_name]
+            ]
+
+        return None
+
+    async def invalidate_cache(self, server_name: Optional[str] = None) -> Dict[str, bool]:
+        """
+        Invalidate cached tool schemas.
+
+        Args:
+            server_name: Specific server to invalidate, or None for all servers
+
+        Returns:
+            Dict of {server_name: success_status}
+        """
+        if not self.enable_cache:
+            return {"error": "Cache is not enabled"}
+
+        if server_name:
+            success = await self.tool_cache.invalidate(server_name)
+            return {server_name: success}
+        else:
+            count = await self.tool_cache.invalidate_all()
+            logger.info(f"Invalidated all {count} cached servers")
+            return {"all_servers": True, "count": count}
+
+    def get_cache_metrics(self) -> Optional[Dict[str, Any]]:
+        """
+        Get cache performance metrics.
+
+        Returns:
+            Cache metrics dict, or None if cache disabled
+        """
+        if not self.enable_cache:
+            return None
+
+        return self.tool_cache.get_metrics()
+
+    async def warm_up_cache(self) -> Dict[str, bool]:
+        """
+        Warm up cache by fetching tools from all servers.
+
+        Returns:
+            Dict of {server_name: success_status}
+        """
+        if not self.enable_cache:
+            return {"error": "Cache is not enabled"}
+
+        # Build fetch functions for all remote servers
+        servers = {}
+        for name, server in self.servers.items():
+            if server.type == MCPServerType.REMOTE and server.url:
+                servers[name] = lambda n=name, s=server: self._fetch_tools_from_server(n, s)
+
+        if servers:
+            return await self.tool_cache.warm_up(servers, max_concurrency=5)
+
+        return {}
 
     async def call_tool(
         self,
@@ -222,7 +392,203 @@ class MCPBroker:
 
     async def _call_remote_tool(self, server: MCPServer, tool_name: str, arguments: Dict) -> Dict:
         """
-        Call a tool on a remote MCP server via HTTP using MCP JSON-RPC protocol.
+        Call a tool on a remote MCP server.
+
+        For ZAI MCP servers, routes through Chat API instead of direct MCP protocol
+        to avoid 401 authentication errors.
+
+        Args:
+            server: MCP server configuration
+            tool_name: Name of the tool to call
+            arguments: Tool arguments
+
+        Returns:
+            Tool execution result
+        """
+        # Check if this is a ZAI MCP server that needs Chat API routing
+        if server.url and "api.z.ai/api/mcp" in server.url:
+            logger.info(f"Routing {server.name}.{tool_name} through ZAI Chat API")
+            return await self._call_via_chat_api(server, tool_name, arguments)
+        else:
+            # For non-ZAI MCP servers, use direct MCP protocol
+            return await self._call_direct_mcp(server, tool_name, arguments)
+
+    async def _call_via_chat_api(self, server: MCPServer, tool_name: str, arguments: Dict) -> Dict:
+        """
+        Call a ZAI MCP tool through the Chat API instead of direct MCP protocol.
+
+        This avoids 401 authentication errors by using ZAI's Chat API which properly
+        handles tool calling with the same API key.
+
+        Args:
+            server: MCP server configuration
+            tool_name: Name of the tool to call
+            arguments: Tool arguments
+
+        Returns:
+            Tool execution result
+        """
+        try:
+            # Map MCP tool names to Chat API tool definitions
+            tool_mapping = {
+                "webSearchPrime": {
+                    "type": "web_search",
+                    "web_search": {
+                        "search_query": arguments.get("search_query", "")
+                    }
+                },
+                "webReader": {
+                    "type": "web_reader",
+                    "web_reader": {
+                        "url": arguments.get("url", "")
+                    }
+                },
+                "search_doc": {
+                    "type": "github_search",
+                    "github_search": {
+                        "query": arguments.get("query", ""),
+                        "repo_name": arguments.get("repo_name", "")
+                    }
+                },
+                "read_file": {
+                    "type": "github_file",
+                    "github_file": {
+                        "repo_name": arguments.get("repo_name", ""),
+                        "file_path": arguments.get("file_path", "")
+                    }
+                },
+                "get_repo_structure": {
+                    "type": "github_repo",
+                    "github_repo": {
+                        "repo_name": arguments.get("repo_name", ""),
+                        "dir_path": arguments.get("dir_path", "/")
+                    }
+                }
+            }
+
+            if tool_name not in tool_mapping:
+                return {
+                    "error": f"Tool {tool_name} not mapped for Chat API routing",
+                    "server": server.name,
+                    "available_tools": list(tool_mapping.keys())
+                }
+
+            # Build headers with API key
+            headers = {"Content-Type": "application/json"}
+            if server.headers:
+                # Read API key from file if needed
+                for header_name, header_value in server.headers.items():
+                    if isinstance(header_value, str) and "/run/" in header_value and "-key" in header_value:
+                        try:
+                            if header_value.startswith("Bearer "):
+                                file_path = header_value.split(" ", 1)[1].strip()
+                                use_bearer = True
+                            else:
+                                file_path = header_value
+                                use_bearer = False
+
+                            with open(file_path, "r") as f:
+                                api_key = f.read().strip()
+                                if use_bearer:
+                                    headers[header_name] = f"Bearer {api_key}"
+                                else:
+                                    headers[header_name] = api_key
+                        except Exception as e:
+                            logger.error(f"Failed to read API key: {e}")
+                            return {"error": f"Failed to read API key: {e}"}
+                    else:
+                        headers[header_name] = header_value
+
+            # Use ZAI Coding API endpoint
+            chat_url = "https://api.z.ai/api/coding/paas/v4/chat/completions"
+
+            # Build Chat API request with tool
+            chat_request = {
+                "model": "glm-4.7",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": f"Please use the {tool_name} tool with these arguments: {arguments}"
+                    }
+                ],
+                "tools": [tool_mapping[tool_name]],
+                "tool_choice": "auto",
+                "stream": False
+            }
+
+            logger.debug(f"Calling Chat API for {server.name}.{tool_name}")
+            logger.debug(f"Request URL: {chat_url}")
+            logger.debug(f"Request headers: {headers}")
+            logger.debug(f"Request body: {chat_request}")
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    chat_url,
+                    json=chat_request,
+                    headers=headers
+                )
+                logger.debug(f"Response status: {response.status_code}")
+
+                if response.status_code == 200:
+                    result = response.json()
+
+                    # Extract tool call result from Chat API response
+                    if "choices" in result and len(result["choices"]) > 0:
+                        choice = result["choices"][0]
+
+                        # Check for tool calls in response
+                        if "message" in choice and "tool_calls" in choice["message"]:
+                            tool_calls = choice["message"]["tool_calls"]
+                            if tool_calls and len(tool_calls) > 0:
+                                tool_call = tool_calls[0]
+                                if "output" in tool_call:
+                                    return {
+                                        "result": tool_call["output"],
+                                        "server": server.name,
+                                        "tool": tool_name,
+                                        "routed_via": "chat_api"
+                                    }
+
+                        # Check if content has the result
+                        if "message" in choice and "content" in choice["message"]:
+                            return {
+                                "result": choice["message"]["content"],
+                                "server": server.name,
+                                "tool": tool_name,
+                                "routed_via": "chat_api"
+                            }
+
+                    return {
+                        "error": "No tool result in Chat API response",
+                        "server": server.name,
+                        "tool": tool_name,
+                        "response": result
+                    }
+                else:
+                    return {
+                        "error": f"HTTP {response.status_code}: {response.text[:200]}",
+                        "server": server.name,
+                        "tool": tool_name
+                    }
+
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error calling Chat API for {tool_name} on {server.name}: {e}")
+            return {
+                "error": str(e),
+                "server": server.name,
+                "tool": tool_name
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error calling Chat API: {e}")
+            return {
+                "error": f"Unexpected error: {str(e)}",
+                "server": server.name,
+                "tool": tool_name
+            }
+
+    async def _call_direct_mcp(self, server: MCPServer, tool_name: str, arguments: Dict) -> Dict:
+        """
+        Call a tool on a non-ZAI MCP server via direct MCP JSON-RPC protocol.
 
         Args:
             server: MCP server configuration
