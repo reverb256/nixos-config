@@ -156,8 +156,9 @@
     cpu = "2";
 
     # Discord integration - you need to set up the bot token
-    discord.enable = true;
-    discord.tokenFile = "/run/agenix/spacebot-discord-token";
+    # TEMPORARILY DISABLED: Secret file not yet created
+    discord.enable = false;
+    # discord.tokenFile = "/run/agenix/spacebot-discord-token";
     # discord.guildId = "YOUR_GUILD_ID";  # Optional: restrict to specific server
   };
 
@@ -185,12 +186,13 @@
   };
 
   # Spacebot Discord bot token
-  age.secrets.spacebot-discord-token = {
-    file = "${inputs.self}/secrets/spacebot-discord-token.age";
-    mode = "440";
-    owner = "root";
-    group = "root";
-  };
+  # TEMPORARILY DISABLED: Secret file not yet created
+  # age.secrets.spacebot-discord-token = {
+  #   file = "${inputs.self}/secrets/spacebot-discord-token.age";
+  #   mode = "440";
+  #   owner = "root";
+  #   group = "root";
+  # };
 
   # TODO: Re-enable switch-admin secret after fixing switch-orchestration module
   # age.secrets.switch-admin = {
@@ -275,6 +277,29 @@
             Authorization = "Bearer /run/agenix/zai-api-key";
           };
         };
+
+        # ========================================================================
+        # LOCAL MCP SERVERS (stdio-based)
+        # TEMPORARILY DISABLED: Module structure needs investigation
+        # ========================================================================
+
+        # # Filesystem MCP server - safe file access to NixOS configuration
+        # filesystem = {
+        #   type = "local";
+        #   command = "npx -y @modelcontextprotocol/server-filesystem /etc/nixos";
+        # };
+
+        # # NixOS MCP server - real-time NixOS package data (prevents hallucinations)
+        # nixos = {
+        #   type = "local";
+        #   command = "nix run --extra-experimental-features 'nix-command flakes' github:utensils/mcp-nixos --";
+        # };
+
+        # # Git MCP server - version control for NixOS configurations
+        # git = {
+        #   type = "local";
+        #   command = "npx -y @modelcontextprotocol/server-git /etc/nixos";
+        # };
       };
     };
 
@@ -425,6 +450,12 @@
     tailscale
     networkmanager
     dbus-broker
+    slirp4netns # Required for Spacebot/Podman networking
+    (pkgs.writeShellScriptBin "spacebot" ''
+      #!${pkgs.bash}/bin/bash
+      # Spacebot CLI wrapper - connects to local Spacebot service
+      exec ${pkgs.curl}/bin/curl --data-binary @- http://127.0.0.1:19898/api/run "$@"
+    '')
 
     # Network discovery & mapping
     nmap
