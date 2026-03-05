@@ -16,6 +16,17 @@ from typing import Optional, List, Dict, Any, Union, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+# Import retry handler
+try:
+    from ai_inference_gateway.retry_handler import (
+        RetryHandler,
+        RetryConfig,
+        execute_with_retry
+    )
+    RETRY_AVAILABLE = True
+except ImportError:
+    RETRY_AVAILABLE = False
+
 
 # ============================================================================
 # REQUEST MODELS
@@ -262,11 +273,42 @@ class LMStudioClient:
         self,
         base_url: str = "http://localhost:1234",
         api_token: Optional[str] = None,
-        timeout: float = 120.0
+        timeout: float = 120.0,
+        retry_handler: Optional[RetryHandler] = None,
+        enable_retry: bool = True
     ):
+        """
+        Initialize LM Studio client.
+
+        Args:
+            base_url: Base URL of LM Studio API
+            api_token: Optional API token for authentication
+            timeout: Request timeout in seconds
+            retry_handler: Optional custom retry handler
+            enable_retry: Enable retry logic (requires tenacity package)
+        """
         self.base_url = base_url.rstrip("/")
         self.api_token = api_token
         self.timeout = timeout
+        self.enable_retry = enable_retry and RETRY_AVAILABLE
+
+        # Initialize retry handler
+        if retry_handler:
+            self.retry_handler = retry_handler
+        elif self.enable_retry:
+            # Use default retry handler with production settings
+            retry_config = RetryConfig(
+                max_attempts=5,
+                base_wait_seconds=1.0,
+                max_wait_seconds=60.0,
+                retry_on_429=True,
+                retry_on_5xx=True,
+                retry_on_timeout=True,
+                retry_on_connection_error=True
+            )
+            self.retry_handler = RetryHandler(config=retry_config)
+        else:
+            self.retry_handler = None
 
     def _get_headers(self) -> Dict[str, str]:
         """Get request headers with authentication."""
@@ -334,24 +376,38 @@ class LMStudioClient:
             previous_response_id=previous_response_id,
         )
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                f"{self.base_url}/api/v1/chat",
-                headers=self._get_headers(),
-                content=request.model_dump_json(exclude_none=True),
-            )
-            response.raise_for_status()
-            return ChatResponse.model_validate_json(response.content)
+        # Make HTTP request with optional retry logic
+        async def _make_request():
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/v1/chat",
+                    headers=self._get_headers(),
+                    content=request.model_dump_json(exclude_none=True),
+                )
+                response.raise_for_status()
+                return ChatResponse.model_validate_json(response.content)
+
+        if self.enable_retry and self.retry_handler:
+            return await self.retry_handler.execute_with_retry(_make_request)
+        else:
+            return await _make_request()
 
     async def list_models(self) -> ModelsResponse:
         """List all loaded models."""
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(
-                f"{self.base_url}/api/v1/models",
-                headers=self._get_headers(),
-            )
-            response.raise_for_status()
-            return ModelsResponse.model_validate_json(response.content)
+
+        async def _make_request():
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/api/v1/models",
+                    headers=self._get_headers(),
+                )
+                response.raise_for_status()
+                return ModelsResponse.model_validate_json(response.content)
+
+        if self.enable_retry and self.retry_handler:
+            return await self.retry_handler.execute_with_retry(_make_request)
+        else:
+            return await _make_request()
 
     async def load_model(
         self,
@@ -385,14 +441,20 @@ class LMStudioClient:
             options=options,
         )
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                f"{self.base_url}/api/v1/models/load",
-                headers=self._get_headers(),
-                content=request.model_dump_json(exclude_none=True),
-            )
-            response.raise_for_status()
-            return LoadModelResponse.model_validate_json(response.content)
+        async def _make_request():
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/v1/models/load",
+                    headers=self._get_headers(),
+                    content=request.model_dump_json(exclude_none=True),
+                )
+                response.raise_for_status()
+                return LoadModelResponse.model_validate_json(response.content)
+
+        if self.enable_retry and self.retry_handler:
+            return await self.retry_handler.execute_with_retry(_make_request)
+        else:
+            return await _make_request()
 
     async def unload_model(self, instance_id: str) -> UnloadModelResponse:
         """
@@ -406,14 +468,20 @@ class LMStudioClient:
         """
         request = UnloadModelRequest(instance_id=instance_id)
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                f"{self.base_url}/api/v1/models/unload",
-                headers=self._get_headers(),
-                content=request.model_dump_json(),
-            )
-            response.raise_for_status()
-            return UnloadModelResponse.model_validate_json(response.content)
+        async def _make_request():
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/v1/models/unload",
+                    headers=self._get_headers(),
+                    content=request.model_dump_json(),
+                )
+                response.raise_for_status()
+                return UnloadModelResponse.model_validate_json(response.content)
+
+        if self.enable_retry and self.retry_handler:
+            return await self.retry_handler.execute_with_retry(_make_request)
+        else:
+            return await _make_request()
 
     async def download_model(
         self,
@@ -434,14 +502,20 @@ class LMStudioClient:
         if quantization:
             payload["quantization"] = quantization
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                f"{self.base_url}/api/v1/models/download",
-                headers=self._get_headers(),
-                json=payload,
-            )
-            response.raise_for_status()
-            return DownloadResponse.model_validate_json(response.content)
+        async def _make_request():
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/v1/models/download",
+                    headers=self._get_headers(),
+                    json=payload,
+                )
+                response.raise_for_status()
+                return DownloadResponse.model_validate_json(response.content)
+
+        if self.enable_retry and self.retry_handler:
+            return await self.retry_handler.execute_with_retry(_make_request)
+        else:
+            return await _make_request()
 
     async def get_download_status(self, job_id: str) -> DownloadStatusResponse:
         """
@@ -453,13 +527,20 @@ class LMStudioClient:
         Returns:
             DownloadStatusResponse with progress
         """
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(
-                f"{self.base_url}/api/v1/models/download/status/{job_id}",
-                headers=self._get_headers(),
-            )
-            response.raise_for_status()
-            return DownloadStatusResponse.model_validate_json(response.content)
+
+        async def _make_request():
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/api/v1/models/download/status/{job_id}",
+                    headers=self._get_headers(),
+                )
+                response.raise_for_status()
+                return DownloadStatusResponse.model_validate_json(response.content)
+
+        if self.enable_retry and self.retry_handler:
+            return await self.retry_handler.execute_with_retry(_make_request)
+        else:
+            return await _make_request()
 
     async def chat_with_mcp(
         self,
@@ -504,6 +585,22 @@ class LMStudioClient:
             context_length=context_length,
             **kwargs
         )
+
+    def get_retry_metrics(self) -> Optional[Dict[str, Any]]:
+        """
+        Get retry metrics from the retry handler.
+
+        Returns:
+            Metrics dict with hit/miss/error rates, or None if retry disabled
+        """
+        if self.retry_handler:
+            return self.retry_handler.get_metrics()
+        return None
+
+    def reset_retry_metrics(self):
+        """Reset retry metrics."""
+        if self.retry_handler:
+            self.retry_handler.reset_metrics()
 
 
 # ============================================================================
