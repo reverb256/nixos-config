@@ -24,13 +24,15 @@ def parse_secrets_nix(secrets_nix_path="/etc/nixos/secrets.nix"):
     secrets = {}
 
     # Find all secret entries
-    for match in re.finditer(r'"([^"]+\.age)"\.publicKeys\s*=\s*\[([^\]]+)\];', content):
+    for match in re.finditer(
+        r'"([^"]+\.age)"\.publicKeys\s*=\s*\[([^\]]+)\];', content
+    ):
         secret_name = match.group(1)
         keys_content = match.group(2)
 
         # Parse the keys (users.xxx or hosts.xxx)
         keys = []
-        for key_match in re.finditer(r'(users\.|hosts\.)(\w+)', keys_content):
+        for key_match in re.finditer(r"(users\.|hosts\.)(\w+)", keys_content):
             key_type, key_name = key_match.groups()
             keys.append((key_type, key_name))
 
@@ -83,13 +85,17 @@ def parse_host_configurations():
 
         # Find all age.secrets.* declarations
         # Match from secret name to the closing }; (handles nested ${} in file paths)
-        for match in re.finditer(r'^\s*age\.secrets\.([\w-]+)\s*=\s*\{(.*?)^  \};', content, re.DOTALL | re.MULTILINE):
+        for match in re.finditer(
+            r"^\s*age\.secrets\.([\w-]+)\s*=\s*\{(.*?)^  \};",
+            content,
+            re.DOTALL | re.MULTILINE,
+        ):
             # Skip commented lines (check if line starts with # before age.secrets)
             start_pos = match.start()
             # Get the line containing the match start
-            line_start = content.rfind('\n', 0, start_pos) + 1
+            line_start = content.rfind("\n", 0, start_pos) + 1
             line_before = content[line_start:start_pos].strip()
-            if line_before.startswith('#'):
+            if line_before.startswith("#"):
                 continue  # Skip commented secrets
 
             secret_name = match.group(1)
@@ -101,11 +107,13 @@ def parse_host_configurations():
                 file_path = file_match.group(1)
                 # Extract just the filename
                 file_name = os.path.basename(file_path)
-                host_secrets[hostname].append({
-                    "name": secret_name,
-                    "file": file_name,
-                    "config": secret_config.strip(),
-                })
+                host_secrets[hostname].append(
+                    {
+                        "name": secret_name,
+                        "file": file_name,
+                        "config": secret_config.strip(),
+                    }
+                )
 
     return host_secrets
 
@@ -132,7 +140,7 @@ def validate_secret_entries(secrets_from_nix, age_files, verbose=False):
         if not file_exists:
             issues.append(f"✗ Missing .age file: {secret_name}")
             if verbose:
-                print(f"  Entry exists in secrets.nix but file not found")
+                print("  Entry exists in secrets.nix but file not found")
         else:
             if verbose:
                 print(f"✓ {secret_name}: File exists")
@@ -148,7 +156,7 @@ def validate_secret_entries(secrets_from_nix, age_files, verbose=False):
         if base_name not in all_secret_names:
             issues.append(f"⚠ Orphaned .age file: {file_name} (not in secrets.nix)")
             if verbose:
-                print(f"  File exists but no entry in secrets.nix")
+                print("  File exists but no entry in secrets.nix")
 
     return issues
 
@@ -167,7 +175,9 @@ def validate_host_consistency(secrets_from_nix, host_secrets, verbose=False):
 
             # Check if file is in secrets.nix
             if file_name not in secrets_from_nix:
-                issues.append(f"✗ {hostname}: age.secrets.{secret_name} uses {file_name} not in secrets.nix")
+                issues.append(
+                    f"✗ {hostname}: age.secrets.{secret_name} uses {file_name} not in secrets.nix"
+                )
                 if verbose:
                     print(f"  ✗ {secret_name}: {file_name} not in secrets.nix")
                 continue
@@ -275,11 +285,10 @@ def validate_decryption(secrets_from_nix, test_one=False, verbose=False):
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Validate agenix secret configuration"
-    )
+    parser = argparse.ArgumentParser(description="Validate agenix secret configuration")
     parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Show detailed validation output",
     )

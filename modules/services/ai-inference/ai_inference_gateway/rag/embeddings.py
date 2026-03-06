@@ -10,7 +10,7 @@ Handles text embedding using BGE-M3 model with support for:
 
 import asyncio
 import logging
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from sentence_transformers import SentenceTransformer
 import torch
 
@@ -54,7 +54,9 @@ class EmbeddingService:
                 # Determine device
                 if self.config.device == "cuda" and torch.cuda.is_available():
                     self._device = "cuda"
-                    logger.info(f"Using CUDA for embeddings (GPU: {torch.cuda.get_device_name(0)})")
+                    logger.info(
+                        f"Using CUDA for embeddings (GPU: {torch.cuda.get_device_name(0)})"
+                    )
                 else:
                     self._device = "cpu"
                     logger.info("Using CPU for embeddings")
@@ -63,10 +65,7 @@ class EmbeddingService:
                 loop = asyncio.get_event_loop()
                 self._model = await loop.run_in_executor(
                     None,
-                    lambda: SentenceTransformer(
-                        self.config.model,
-                        device=self._device
-                    )
+                    lambda: SentenceTransformer(self.config.model, device=self._device),
                 )
 
                 # Verify dimensions
@@ -78,7 +77,9 @@ class EmbeddingService:
                     )
                     self.config.dimensions = actual_dims
 
-                logger.info(f"Embedding model loaded successfully (dims: {actual_dims})")
+                logger.info(
+                    f"Embedding model loaded successfully (dims: {actual_dims})"
+                )
 
             except Exception as e:
                 logger.error(f"Failed to load embedding model: {e}")
@@ -106,8 +107,8 @@ class EmbeddingService:
                     texts,
                     batch_size=self.config.batch_size,
                     show_progress_bar=False,
-                    normalize_embeddings=True  # Important for cosine similarity
-                )
+                    normalize_embeddings=True,  # Important for cosine similarity
+                ),
             )
 
             # Convert to list of lists
@@ -143,8 +144,8 @@ class EmbeddingService:
                     texts,
                     batch_size=self.config.batch_size,
                     output_value="sparse",
-                    show_progress_bar=False
-                )
+                    show_progress_bar=False,
+                ),
             )
 
             # Convert sparse matrix to list of dicts

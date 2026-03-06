@@ -45,9 +45,7 @@ class MiddlewarePipeline:
         return self
 
     async def process_request(
-        self,
-        request: Request,
-        context: dict
+        self, request: Request, context: dict
     ) -> Tuple[bool, Optional[HTTPException]]:
         """
         Process an incoming request through all middleware.
@@ -70,11 +68,15 @@ class MiddlewarePipeline:
         for middleware in self._middleware:
             # Skip disabled middleware
             if not middleware.enabled:
-                logger.debug(f"Skipping disabled middleware: {middleware.__class__.__name__}")
+                logger.debug(
+                    f"Skipping disabled middleware: {middleware.__class__.__name__}"
+                )
                 continue
 
             try:
-                should_continue, error = await middleware.process_request(request, context)
+                should_continue, error = await middleware.process_request(
+                    request, context
+                )
 
                 if not should_continue:
                     logger.info(
@@ -84,12 +86,11 @@ class MiddlewarePipeline:
             except Exception as e:
                 logger.error(
                     f"Error in middleware {middleware.__class__.__name__}: {e}",
-                    exc_info=True
+                    exc_info=True,
                 )
                 # On exception, block the request
                 return False, HTTPException(
-                    status_code=500,
-                    detail=f"Middleware error: {str(e)}"
+                    status_code=500, detail=f"Middleware error: {str(e)}"
                 )
 
         logger.debug("Request processed successfully through all middleware")
@@ -124,7 +125,7 @@ class MiddlewarePipeline:
                 logger.error(
                     f"Error in middleware {middleware.__class__.__name__} "
                     f"response processing: {e}",
-                    exc_info=True
+                    exc_info=True,
                 )
                 # Continue processing other middleware on error
 

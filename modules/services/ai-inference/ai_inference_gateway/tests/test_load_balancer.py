@@ -10,7 +10,7 @@ from fastapi import Request, HTTPException
 from ai_inference_gateway.middleware.load_balancer import (
     LoadBalancerMiddleware,
     BackendInstance,
-    BackendState
+    BackendState,
 )
 from ai_inference_gateway.config import LoadBalancerConfig
 
@@ -24,7 +24,7 @@ class TestBackendInstance:
             name="backend1",
             url="http://localhost:8001",
             weight=150,
-            health_check_url="/health"
+            health_check_url="/health",
         )
 
         assert backend.name == "backend1"
@@ -37,10 +37,7 @@ class TestBackendInstance:
 
     def test_is_available(self):
         """Test is_available property."""
-        backend = BackendInstance(
-            name="backend1",
-            url="http://localhost:8001"
-        )
+        backend = BackendInstance(name="backend1", url="http://localhost:8001")
 
         assert backend.is_available
 
@@ -55,10 +52,7 @@ class TestBackendInstance:
 
     def test_success_rate(self):
         """Test success rate calculation."""
-        backend = BackendInstance(
-            name="backend1",
-            url="http://localhost:8001"
-        )
+        backend = BackendInstance(name="backend1", url="http://localhost:8001")
 
         # No requests yet
         assert backend.success_rate == 1.0
@@ -73,10 +67,7 @@ class TestBackendInstance:
 
     def test_record_request_start(self):
         """Test recording request start."""
-        backend = BackendInstance(
-            name="backend1",
-            url="http://localhost:8001"
-        )
+        backend = BackendInstance(name="backend1", url="http://localhost:8001")
 
         backend.record_request_start()
         assert backend.total_requests == 1
@@ -84,10 +75,7 @@ class TestBackendInstance:
 
     def test_record_request_success(self):
         """Test recording request success."""
-        backend = BackendInstance(
-            name="backend1",
-            url="http://localhost:8001"
-        )
+        backend = BackendInstance(name="backend1", url="http://localhost:8001")
 
         backend.current_connections = 1
         backend.record_request_success(100.0)
@@ -103,10 +91,7 @@ class TestBackendInstance:
 
     def test_record_request_failure(self):
         """Test recording request failure."""
-        backend = BackendInstance(
-            name="backend1",
-            url="http://localhost:8001"
-        )
+        backend = BackendInstance(name="backend1", url="http://localhost:8001")
 
         backend.current_connections = 1
         backend.record_request_failure("Connection refused")
@@ -124,7 +109,7 @@ class TestLoadBalancerMiddleware:
         config = LoadBalancerConfig(enabled=True)
         backends = [
             BackendInstance(name="backend1", url="http://localhost:8001"),
-            BackendInstance(name="backend2", url="http://localhost:8002")
+            BackendInstance(name="backend2", url="http://localhost:8002"),
         ]
 
         lb = LoadBalancerMiddleware(config, backends)
@@ -136,9 +121,7 @@ class TestLoadBalancerMiddleware:
     def test_enabled_false(self):
         """Test middleware when disabled."""
         config = LoadBalancerConfig(enabled=False)
-        backends = [
-            BackendInstance(name="backend1", url="http://localhost:8001")
-        ]
+        backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
 
         lb = LoadBalancerMiddleware(config, backends)
 
@@ -149,7 +132,7 @@ class TestLoadBalancerMiddleware:
         config = LoadBalancerConfig(enabled=True)
         backends = [
             BackendInstance(name="backend1", url="http://localhost:8001", weight=100),
-            BackendInstance(name="backend2", url="http://localhost:8002", weight=200)
+            BackendInstance(name="backend2", url="http://localhost:8002", weight=200),
         ]
 
         lb = LoadBalancerMiddleware(config, backends)
@@ -167,9 +150,7 @@ class TestLoadBalancerMiddleware:
     def test_select_backend_no_available_backends(self):
         """Test backend selection when none are available."""
         config = LoadBalancerConfig(enabled=True)
-        backends = [
-            BackendInstance(name="backend1", url="http://localhost:8001")
-        ]
+        backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
 
         lb = LoadBalancerMiddleware(config, backends)
 
@@ -184,11 +165,9 @@ class TestLoadBalancerMiddleware:
         config = LoadBalancerConfig(enabled=True)
         backends = [
             BackendInstance(
-                name="backend1",
-                url="http://localhost:8001",
-                max_concurrent_requests=1
+                name="backend1", url="http://localhost:8001", max_concurrent_requests=1
             ),
-            BackendInstance(name="backend2", url="http://localhost:8002")
+            BackendInstance(name="backend2", url="http://localhost:8002"),
         ]
 
         lb = LoadBalancerMiddleware(config, backends)
@@ -203,9 +182,7 @@ class TestLoadBalancerMiddleware:
     def test_process_request_success(self):
         """Test successful request processing."""
         config = LoadBalancerConfig(enabled=True)
-        backends = [
-            BackendInstance(name="backend1", url="http://localhost:8001")
-        ]
+        backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
 
         lb = LoadBalancerMiddleware(config, backends)
 
@@ -223,9 +200,7 @@ class TestLoadBalancerMiddleware:
     def test_process_request_no_backends(self):
         """Test request processing when no backends available."""
         config = LoadBalancerConfig(enabled=True)
-        backends = [
-            BackendInstance(name="backend1", url="http://localhost:8001")
-        ]
+        backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
 
         lb = LoadBalancerMiddleware(config, backends)
 
@@ -244,9 +219,7 @@ class TestLoadBalancerMiddleware:
     def test_process_response_success(self):
         """Test successful response processing."""
         config = LoadBalancerConfig(enabled=True)
-        backends = [
-            BackendInstance(name="backend1", url="http://localhost:8001")
-        ]
+        backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
 
         lb = LoadBalancerMiddleware(config, backends)
 
@@ -256,7 +229,7 @@ class TestLoadBalancerMiddleware:
         response = {}
         context = {
             "load_balancer_backend": backend,
-            "load_balancer_start_time": 0.0  # Will calculate latency
+            "load_balancer_start_time": 0.0,  # Will calculate latency
         }
 
         result = await lb.process_response(response, context)
@@ -270,9 +243,7 @@ class TestLoadBalancerMiddleware:
     def test_process_response_error_status(self):
         """Test response processing with error status."""
         config = LoadBalancerConfig(enabled=True)
-        backends = [
-            BackendInstance(name="backend1", url="http://localhost:8001")
-        ]
+        backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
 
         lb = LoadBalancerMiddleware(config, backends)
 
@@ -280,10 +251,7 @@ class TestLoadBalancerMiddleware:
         backend.current_connections = 1
 
         response = {"status": 500}
-        context = {
-            "load_balancer_backend": backend,
-            "load_balancer_start_time": 0.0
-        }
+        context = {"load_balancer_backend": backend, "load_balancer_start_time": 0.0}
 
         await lb.process_response(response, context)
 
@@ -294,15 +262,8 @@ class TestLoadBalancerMiddleware:
         """Test getting backend statistics."""
         config = LoadBalancerConfig(enabled=True)
         backends = [
-            BackendInstance(
-                name="backend1",
-                url="http://localhost:8001",
-                weight=150
-            ),
-            BackendInstance(
-                name="backend2",
-                url="http://localhost:8002"
-            )
+            BackendInstance(name="backend1", url="http://localhost:8001", weight=150),
+            BackendInstance(name="backend2", url="http://localhost:8002"),
         ]
 
         lb = LoadBalancerMiddleware(config, backends)
@@ -329,18 +290,16 @@ class TestLoadBalancerMiddleware:
     async def test_health_check_loop(self):
         """Test health check loop runs periodically."""
         config = LoadBalancerConfig(enabled=True)
-        backends = [
-            BackendInstance(name="backend1", url="http://localhost:8001")
-        ]
+        backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
 
         lb = LoadBalancerMiddleware(
-            config,
-            backends,
-            health_check_interval=1  # 1 second for testing
+            config, backends, health_check_interval=1  # 1 second for testing
         )
 
         # Mock the health check method
-        with patch.object(lb, '_check_all_backends', new_callable=AsyncMock) as mock_check:
+        with patch.object(
+            lb, "_check_all_backends", new_callable=AsyncMock
+        ) as mock_check:
             # Start health checks
             await lb.start_health_checks()
 
@@ -356,9 +315,7 @@ class TestLoadBalancerMiddleware:
     def test_disabled_middleware_passthrough(self):
         """Test that disabled middleware allows requests through."""
         config = LoadBalancerConfig(enabled=False)
-        backends = [
-            BackendInstance(name="backend1", url="http://localhost:8001")
-        ]
+        backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
 
         lb = LoadBalancerMiddleware(config, backends)
 

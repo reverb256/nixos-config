@@ -15,7 +15,7 @@ def run_command(cmd, description):
     print(f"\n{'='*70}")
     print(f"Running: {description}")
     print(f"Command: {' '.join(cmd)}")
-    print('='*70)
+    print("=" * 70)
 
     result = subprocess.run(cmd)
 
@@ -33,11 +33,7 @@ def main():
     project_dir = script_dir.parent
 
     # Base pytest command
-    pytest_cmd = [
-        sys.executable, "-m", "pytest",
-        str(script_dir),
-        "-v"
-    ]
+    pytest_cmd = [sys.executable, "-m", "pytest", str(script_dir), "-v"]
 
     # Parse arguments
     args = sys.argv[1:]
@@ -45,29 +41,24 @@ def main():
     if not args or args[0] == "all":
         """Run all tests"""
         success = run_command(
-            pytest_cmd + [
+            pytest_cmd
+            + [
                 "--cov=ai_inference_gateway",
                 "--cov-report=term-missing",
                 "--cov-report=html",
             ],
-            "All Tests with Coverage"
+            "All Tests with Coverage",
         )
         return 0 if success else 1
 
     elif args[0] == "unit":
         """Run unit tests only (fast, isolated)"""
-        success = run_command(
-            pytest_cmd + ["-m", "unit", "--tb=short"],
-            "Unit Tests"
-        )
+        success = run_command(pytest_cmd + ["-m", "unit", "--tb=short"], "Unit Tests")
         return 0 if success else 1
 
     elif args[0] == "integration":
         """Run integration tests"""
-        success = run_command(
-            pytest_cmd + ["-m", "integration"],
-            "Integration Tests"
-        )
+        success = run_command(pytest_cmd + ["-m", "integration"], "Integration Tests")
         return 0 if success else 1
 
     elif args[0] == "phase1":
@@ -76,31 +67,34 @@ def main():
             "test_response_format.py",
             "test_mcp_cache.py",
             "test_pii_redactor.py",
-            "test_moderation.py"
+            "test_moderation.py",
         ]
 
         success = run_command(
-            pytest_cmd + phase1_tests + [
+            pytest_cmd
+            + phase1_tests
+            + [
                 "--cov=ai_inference_gateway.response_format",
                 "--cov=ai_inference_gateway.mcp_cache",
                 "--cov=ai_inference_gateway.pii_redactor",
                 "--cov=ai_inference_gateway.moderation",
                 "--cov-report=term-missing",
             ],
-            "Phase 1 Feature Tests"
+            "Phase 1 Feature Tests",
         )
         return 0 if success else 1
 
     elif args[0] == "coverage":
         """Generate coverage report"""
         success = run_command(
-            pytest_cmd + [
+            pytest_cmd
+            + [
                 "--cov=ai_inference_gateway",
                 "--cov-report=html",
                 "--cov-report=term",
-                "--html=htmlcov/index.html"
+                "--html=htmlcov/index.html",
             ],
-            "Coverage Report"
+            "Coverage Report",
         )
 
         if success:
@@ -111,8 +105,7 @@ def main():
     elif args[0] == "fast":
         """Run fast tests only (exclude slow)"""
         success = run_command(
-            pytest_cmd + ["-m", "not slow"],
-            "Fast Tests (Excluding Slow)"
+            pytest_cmd + ["-m", "not slow"], "Fast Tests (Excluding Slow)"
         )
         return 0 if success else 1
 
@@ -122,20 +115,14 @@ def main():
         print("Press Ctrl+C to stop")
 
         try:
-            subprocess.run(
-                pytest_cmd + ["-f", "--tb=short"],
-                cwd=script_dir
-            )
+            subprocess.run(pytest_cmd + ["-f", "--tb=short"], cwd=script_dir)
         except KeyboardInterrupt:
             print("\n⏹️  Watch mode stopped")
             return 0
 
     else:
         """Run specific test file or pattern"""
-        success = run_command(
-            pytest_cmd + args,
-            f"Custom Tests: {' '.join(args)}"
-        )
+        success = run_command(pytest_cmd + args, f"Custom Tests: {' '.join(args)}")
         return 0 if success else 1
 
 

@@ -6,11 +6,10 @@ Implements TTL-based caching with warm-up and manual invalidation.
 """
 
 import asyncio
-import json
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CachedSchema:
     """Cached tool schema with metadata."""
+
     schema: List[Dict[str, Any]]
     cached_at: datetime
     ttl: timedelta
@@ -45,11 +45,7 @@ class ToolSchemaCache:
     - Warm-up on startup
     """
 
-    def __init__(
-        self,
-        default_ttl_seconds: int = 300,
-        enable_metrics: bool = True
-    ):
+    def __init__(self, default_ttl_seconds: int = 300, enable_metrics: bool = True):
         """
         Initialize tool schema cache.
 
@@ -76,10 +72,7 @@ class ToolSchemaCache:
         return f"tools:{server_name}"
 
     async def get_tools(
-        self,
-        server_name: str,
-        fetch_func: callable,
-        force_refresh: bool = False
+        self, server_name: str, fetch_func: callable, force_refresh: bool = False
     ) -> Optional[List[Dict[str, Any]]]:
         """
         Get tools from cache or fetch from server.
@@ -127,7 +120,7 @@ class ToolSchemaCache:
                     schema=tools,
                     cached_at=datetime.now(),
                     ttl=self.default_ttl,
-                    server_name=server_name
+                    server_name=server_name,
                 )
 
                 logger.info(
@@ -188,9 +181,7 @@ class ToolSchemaCache:
         return count
 
     async def warm_up(
-        self,
-        servers: Dict[str, callable],
-        max_concurrency: int = 5
+        self, servers: Dict[str, callable], max_concurrency: int = 5
     ) -> Dict[str, bool]:
         """
         Pre-fetch tool schemas for all servers.
@@ -223,17 +214,12 @@ class ToolSchemaCache:
                     results[name] = False
 
         # Run all warm-ups in parallel
-        tasks = [
-            warm_server(name, fetch_func)
-            for name, fetch_func in servers.items()
-        ]
+        tasks = [warm_server(name, fetch_func) for name, fetch_func in servers.items()]
 
         await asyncio.gather(*tasks, return_exceptions=True)
 
         successful = sum(1 for success in results.values() if success)
-        logger.info(
-            f"Cache warm-up complete: {successful}/{len(servers)} successful"
-        )
+        logger.info(f"Cache warm-up complete: {successful}/{len(servers)} successful")
 
         return results
 
@@ -261,7 +247,7 @@ class ToolSchemaCache:
             "hit_rate_percent": hit_rate,
             "miss_rate_percent": miss_rate,
             "cache_size": len(self.cache),
-            "cached_servers": list(self.cache.keys())
+            "cached_servers": list(self.cache.keys()),
         }
 
     def get_cache_info(self, server_name: str) -> Optional[Dict[str, Any]]:
@@ -288,7 +274,7 @@ class ToolSchemaCache:
             "ttl_seconds": cached.ttl.total_seconds(),
             "is_fresh": cached.is_fresh(),
             "tool_count": len(cached.schema),
-            "etag": cached.etag
+            "etag": cached.etag,
         }
 
 
@@ -296,10 +282,7 @@ class ToolSchemaCache:
 _cache: Optional[ToolSchemaCache] = None
 
 
-def get_cache(
-    ttl_seconds: int = 300,
-    enable_metrics: bool = True
-) -> ToolSchemaCache:
+def get_cache(ttl_seconds: int = 300, enable_metrics: bool = True) -> ToolSchemaCache:
     """
     Get or create the singleton cache instance.
 
@@ -314,8 +297,7 @@ def get_cache(
 
     if _cache is None:
         _cache = ToolSchemaCache(
-            default_ttl_seconds=ttl_seconds,
-            enable_metrics=enable_metrics
+            default_ttl_seconds=ttl_seconds, enable_metrics=enable_metrics
         )
 
     return _cache

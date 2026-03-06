@@ -57,13 +57,13 @@ class ConcurrencyLimiter(Middleware):
             if model not in self.semaphores:
                 self.semaphores[model] = asyncio.Semaphore(self.max_concurrency)
                 self.counters[model] = 0
-                logger.info(f"Created semaphore for model: {model} (max_concurrency={self.max_concurrency})")
+                logger.info(
+                    f"Created semaphore for model: {model} (max_concurrency={self.max_concurrency})"
+                )
             return self.semaphores[model]
 
     async def process_request(
-        self,
-        request: Request,
-        context: dict
+        self, request: Request, context: dict
     ) -> Tuple[bool, Optional[HTTPException]]:
         """
         Track concurrency with graceful degradation.
@@ -99,7 +99,9 @@ class ConcurrencyLimiter(Middleware):
             context["_concurrency_degraded"] = True
         else:
             # Within capacity
-            logger.info(f"Concurrency within limit for model: {model} ({current_count}/{self.max_concurrency})")
+            logger.info(
+                f"Concurrency within limit for model: {model} ({current_count}/{self.max_concurrency})"
+            )
             context["_concurrency_degraded"] = False
 
         # Acquire permit
@@ -109,7 +111,9 @@ class ConcurrencyLimiter(Middleware):
         async with self.lock:
             self.counters[model] = self.counters.get(model, 0) + 1
 
-        logger.info(f"Acquired concurrency permit for model: {model} (active: {self.counters[model]})")
+        logger.info(
+            f"Acquired concurrency permit for model: {model} (active: {self.counters[model]})"
+        )
 
         # Store permit in context for release later
         context["_concurrency_permit"] = (semaphore, model)
@@ -135,7 +139,9 @@ class ConcurrencyLimiter(Middleware):
             async with self.lock:
                 self.counters[model] = self.counters.get(model, 1) - 1
 
-            logger.info(f"Released concurrency permit for model: {model} (active: {self.counters[model]})")
+            logger.info(
+                f"Released concurrency permit for model: {model} (active: {self.counters[model]})"
+            )
             context.pop("_concurrency_permit", None)
 
         return response

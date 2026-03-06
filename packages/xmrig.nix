@@ -1,13 +1,13 @@
-{
-  lib,
-  stdenv,
-  fetchurl,
-  autoPatchelfHook,
-  glibc,
-  zlib,
-  openssl,
-  libuv,
-  steam-run,
+{ lib
+, stdenv
+, fetchurl
+, autoPatchelfHook
+, glibc
+, zlib
+, openssl
+, libuv
+, steam-run
+,
 }:
 stdenv.mkDerivation rec {
   pname = "xmrig";
@@ -18,7 +18,7 @@ stdenv.mkDerivation rec {
     sha256 = "1cw7ivgyr72gsgig5hxj9is73aj7vpj4sz2hmkfc7pbham4m7dh6";
   };
 
-  nativeBuildInputs = [autoPatchelfHook];
+  nativeBuildInputs = [ autoPatchelfHook ];
 
   buildInputs = [
     glibc

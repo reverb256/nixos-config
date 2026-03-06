@@ -18,9 +18,7 @@ class Middleware(ABC):
 
     @abstractmethod
     async def process_request(
-        self,
-        request: Request,
-        context: dict
+        self, request: Request, context: dict
     ) -> Tuple[bool, Optional[HTTPException]]:
         """
         Process an incoming request.

@@ -7,7 +7,7 @@ based on model size and capabilities.
 Based on: docs/qwen3.5-best-practices.md
 """
 
-from typing import Dict, Optional, Any
+from typing import Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,6 @@ MODEL_DEFAULTS = {
         "quantization": "Q4_K_M",
         "kv_cache_quant": "Q4_0",  # Required for 256K context
     },
-
     # 27B - Dense quality priority
     "27b": {
         "temperature": 0.6,
@@ -45,7 +44,6 @@ MODEL_DEFAULTS = {
         "use_case": "high_quality",
         "quantization": "Q4_K_M",
     },
-
     # 9B models (base + distilled) - General reasoning
     "9b": {
         "temperature": 0.6,  # Lower for reasoning
@@ -56,7 +54,6 @@ MODEL_DEFAULTS = {
         "use_case": "general",
         "quantization": "IQ4_NL",
     },
-
     # Distilled 9B variants (Claude-style)
     "9b-claude": {
         "temperature": 0.6,
@@ -68,7 +65,6 @@ MODEL_DEFAULTS = {
         "quantization": "IQ4_NL",
         "prompt_style": "claude",
     },
-
     # CROW 9B distill
     "crow-9b": {
         "temperature": 0.6,
@@ -80,7 +76,6 @@ MODEL_DEFAULTS = {
         "quantization": "IQ4_NL",
         "prompt_style": "cot",
     },
-
     # 4B - Multimodal agents, modest GPUs
     "4b": {
         "temperature": 0.6,
@@ -91,7 +86,6 @@ MODEL_DEFAULTS = {
         "use_case": "multimodal",
         "quantization": "Q4_K_S",
     },
-
     # 2B - Edge devices, basic tasks
     "2b": {
         "temperature": 1.0,  # Higher for text
@@ -102,7 +96,6 @@ MODEL_DEFAULTS = {
         "use_case": "edge",
         "quantization": "IQ4_NL",
     },
-
     # 0.8B - Edge devices, simple tasks
     "0.8b": {
         "temperature": 1.0,
@@ -141,7 +134,9 @@ def get_model_defaults(model_id: str) -> Dict[str, Any]:
             return defaults.copy()
 
     # Fallback to sensible defaults
-    logger.warning(f"No specific defaults for model '{model_id}', using generic defaults")
+    logger.warning(
+        f"No specific defaults for model '{model_id}', using generic defaults"
+    )
     return {
         "temperature": 0.7,
         "top_p": 0.95,
@@ -156,7 +151,7 @@ def apply_model_defaults(
     model_id: str,
     request_params: Dict[str, Any],
     override: bool = False,
-    is_vision_request: bool = False
+    is_vision_request: bool = False,
 ) -> Dict[str, Any]:
     """
     Apply model-specific defaults to request parameters.
@@ -179,7 +174,9 @@ def apply_model_defaults(
         for pattern, vision_temp in VISION_TEMPERATURE_OVERRIDES.items():
             if pattern in model_id.lower():
                 defaults["temperature"] = vision_temp
-                logger.debug(f"Using vision-specific temperature {vision_temp} for {model_id}")
+                logger.debug(
+                    f"Using vision-specific temperature {vision_temp} for {model_id}"
+                )
                 break
 
     # Apply defaults
@@ -203,7 +200,7 @@ def apply_model_defaults(
         f"temperature={result.get('temperature')}, "
         f"top_p={result.get('top_p')}, "
         f"max_tokens={result.get('max_tokens')}"
-        + (f" [vision request]" if is_vision_request else "")
+        + (" [vision request]" if is_vision_request else "")
     )
 
     return result
@@ -252,7 +249,10 @@ def suggest_model_for_task(task: str, context_length: int = 4096) -> str:
         return "qwen3.5-35b-a3b"  # Best for 256K context
 
     # Complex reasoning
-    if any(keyword in task_lower for keyword in ["reasoning", "complex", "analysis", "cortex"]):
+    if any(
+        keyword in task_lower
+        for keyword in ["reasoning", "complex", "analysis", "cortex"]
+    ):
         if context_length > 64000:
             return "qwen3.5-35b-a3b"
         return "qwen3.5-9b-claude-4.6-opus-distilled-32k"
@@ -275,9 +275,9 @@ def suggest_model_for_task(task: str, context_length: int = 4096) -> str:
 
 # Export for use in other modules
 __all__ = [
-    'get_model_defaults',
-    'apply_model_defaults',
-    'get_model_recommendation',
-    'suggest_model_for_task',
-    'MODEL_DEFAULTS',
+    "get_model_defaults",
+    "apply_model_defaults",
+    "get_model_recommendation",
+    "suggest_model_for_task",
+    "MODEL_DEFAULTS",
 ]

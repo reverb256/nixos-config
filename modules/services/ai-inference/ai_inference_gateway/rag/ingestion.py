@@ -27,6 +27,7 @@ from bs4 import BeautifulSoup
 
 try:
     from ai_inference_gateway.mcp_broker import MCPBroker
+
     MCP_BROKER_AVAILABLE = True
 except ImportError:
     MCP_BROKER_AVAILABLE = False
@@ -42,6 +43,7 @@ logger = logging.getLogger(__name__)
 
 class IngestionSource(Enum):
     """Document ingestion source types."""
+
     HTTP_DIRECT = "http_direct"  # Direct HTTP fetch
     MCP_WEB_READER = "mcp_web_reader"  # MCP web-reader tool
     FILE = "file"  # Local file upload
@@ -61,6 +63,7 @@ class IngestionConfig:
         enable_mcp_web_reader: Use MCP web-reader if available
         batch_size: Number of URLs to process in parallel (default: 5)
     """
+
     allowed_domains: Set[str] = field(default_factory=set)
     blocked_domains: Set[str] = field(default_factory=set)
     max_file_size_bytes: int = 10 * 1024 * 1024  # 10MB
@@ -86,6 +89,7 @@ class IngestionConfig:
 @dataclass
 class IngestedDocument:
     """Result of document ingestion."""
+
     url: str
     source: IngestionSource
     title: Optional[str] = None
@@ -115,7 +119,7 @@ class URLIngestionService:
         embedder: EmbeddingService,
         chunker: Chunker,
         qdrant: QdrantManager,
-        mcp_broker: Optional[MCPBroker] = None
+        mcp_broker: Optional[MCPBroker] = None,
     ):
         """
         Initialize URL ingestion service.
@@ -151,7 +155,7 @@ class URLIngestionService:
             self._http_client = httpx.AsyncClient(
                 timeout=self.config.timeout_seconds,
                 headers={"User-Agent": self.config.user_agent},
-                follow_redirects=True
+                follow_redirects=True,
             )
         return self._http_client
 
@@ -159,7 +163,7 @@ class URLIngestionService:
         self,
         url: str,
         collection: str = "default",
-        source_preference: IngestionSource = IngestionSource.MCP_WEB_READER
+        source_preference: IngestionSource = IngestionSource.MCP_WEB_READER,
     ) -> IngestedDocument:
         """
         Ingest document from URL.
@@ -181,21 +185,19 @@ class URLIngestionService:
                 return IngestedDocument(
                     url=url,
                     source=IngestionSource.HTTP_DIRECT,
-                    error=f"Domain not allowed: {domain}"
+                    error=f"Domain not allowed: {domain}",
                 )
 
             if parsed.scheme not in ("http", "https"):
                 return IngestedDocument(
                     url=url,
                     source=IngestionSource.HTTP_DIRECT,
-                    error=f"Unsupported scheme: {parsed.scheme}"
+                    error=f"Unsupported scheme: {parsed.scheme}",
                 )
 
         except Exception as e:
             return IngestedDocument(
-                url=url,
-                source=IngestionSource.HTTP_DIRECT,
-                error=f"Invalid URL: {e}"
+                url=url, source=IngestionSource.HTTP_DIRECT, error=f"Invalid URL: {e}"
             )
 
         # Try preferred source first
@@ -223,7 +225,7 @@ class URLIngestionService:
         self,
         urls: List[str],
         collection: str = "default",
-        source_preference: IngestionSource = IngestionSource.MCP_WEB_READER
+        source_preference: IngestionSource = IngestionSource.MCP_WEB_READER,
     ) -> List[IngestedDocument]:
         """
         Ingest multiple URLs in batches.
@@ -240,12 +242,11 @@ class URLIngestionService:
 
         # Process in batches
         for i in range(0, len(urls), self.config.batch_size):
-            batch = urls[i:i + self.config.batch_size]
+            batch = urls[i : i + self.config.batch_size]
 
             # Process batch in parallel
             tasks = [
-                self.ingest_url(url, collection, source_preference)
-                for url in batch
+                self.ingest_url(url, collection, source_preference) for url in batch
             ]
             batch_results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -254,11 +255,13 @@ class URLIngestionService:
                 if isinstance(result, Exception):
                     logger.error(f"Error ingesting URL: {result}")
                     # Create error document
-                    results.append(IngestedDocument(
-                        url="unknown",
-                        source=IngestionSource.HTTP_DIRECT,
-                        error=str(result)
-                    ))
+                    results.append(
+                        IngestedDocument(
+                            url="unknown",
+                            source=IngestionSource.HTTP_DIRECT,
+                            error=str(result),
+                        )
+                    )
                 else:
                     results.append(result)
 
@@ -270,22 +273,20 @@ class URLIngestionService:
             return IngestedDocument(
                 url=url,
                 source=IngestionSource.MCP_WEB_READER,
-                error="MCP broker not available"
+                error="MCP broker not available",
             )
 
         try:
             # Call web-reader MCP tool
             result = await self.mcp_broker.call_tool(
-                server_name="web-reader",
-                tool_name="webReader",
-                arguments={"url": url}
+                server_name="web-reader", tool_name="webReader", arguments={"url": url}
             )
 
             if "error" in result:
                 return IngestedDocument(
                     url=url,
                     source=IngestionSource.MCP_WEB_READER,
-                    error=result.get("error")
+                    error=result.get("error"),
                 )
 
             # Extract content from result
@@ -294,7 +295,7 @@ class URLIngestionService:
                 return IngestedDocument(
                     url=url,
                     source=IngestionSource.MCP_WEB_READER,
-                    error="No content returned from web-reader"
+                    error="No content returned from web-reader",
                 )
 
             # Parse title if available
@@ -305,15 +306,13 @@ class URLIngestionService:
                 source=IngestionSource.MCP_WEB_READER,
                 title=title,
                 content=content,
-                metadata={"ingestion_method": "mcp_web_reader"}
+                metadata={"ingestion_method": "mcp_web_reader"},
             )
 
         except Exception as e:
             logger.error(f"Error ingesting via MCP: {e}")
             return IngestedDocument(
-                url=url,
-                source=IngestionSource.MCP_WEB_READER,
-                error=f"MCP error: {e}"
+                url=url, source=IngestionSource.MCP_WEB_READER, error=f"MCP error: {e}"
             )
 
     async def _ingest_via_http(self, url: str) -> IngestedDocument:
@@ -332,7 +331,7 @@ class URLIngestionService:
                     return IngestedDocument(
                         url=url,
                         source=IngestionSource.HTTP_DIRECT,
-                        error=f"File too large: {size} bytes (max: {self.config.max_file_size_bytes})"
+                        error=f"File too large: {size} bytes (max: {self.config.max_file_size_bytes})",
                     )
 
             # Check response status
@@ -340,7 +339,7 @@ class URLIngestionService:
                 return IngestedDocument(
                     url=url,
                     source=IngestionSource.HTTP_DIRECT,
-                    error=f"HTTP {response.status_code}"
+                    error=f"HTTP {response.status_code}",
                 )
 
             # Parse HTML
@@ -367,7 +366,7 @@ class URLIngestionService:
                 return IngestedDocument(
                     url=url,
                     source=IngestionSource.HTTP_DIRECT,
-                    error="No content extracted"
+                    error="No content extracted",
                 )
 
             return IngestedDocument(
@@ -377,30 +376,22 @@ class URLIngestionService:
                 content=content,
                 metadata={
                     "content_type": response.headers.get("content-type"),
-                    "content_length": len(response.content)
-                }
+                    "content_length": len(response.content),
+                },
             )
 
         except httpx.HTTPError as e:
             logger.error(f"HTTP error fetching {url}: {e}")
             return IngestedDocument(
-                url=url,
-                source=IngestionSource.HTTP_DIRECT,
-                error=f"HTTP error: {e}"
+                url=url, source=IngestionSource.HTTP_DIRECT, error=f"HTTP error: {e}"
             )
         except Exception as e:
             logger.error(f"Error ingesting via HTTP: {e}")
             return IngestedDocument(
-                url=url,
-                source=IngestionSource.HTTP_DIRECT,
-                error=f"Error: {e}"
+                url=url, source=IngestionSource.HTTP_DIRECT, error=f"Error: {e}"
             )
 
-    async def _store_document(
-        self,
-        doc: IngestedDocument,
-        collection: str
-    ):
+    async def _store_document(self, doc: IngestedDocument, collection: str):
         """Store ingested document in Qdrant."""
         try:
             # Chunk document
@@ -413,18 +404,20 @@ class URLIngestionService:
             points = []
             for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                 point_id = f"{doc.url}_{i}".encode().hex()
-                points.append({
-                    "id": point_id,
-                    "vector": embedding,
-                    "payload": {
-                        "text": chunk,
-                        "url": doc.url,
-                        "title": doc.title,
-                        "chunk_index": i,
-                        "source": doc.source.value,
-                        "ingested_at": doc.ingested_at.isoformat()
+                points.append(
+                    {
+                        "id": point_id,
+                        "vector": embedding,
+                        "payload": {
+                            "text": chunk,
+                            "url": doc.url,
+                            "title": doc.title,
+                            "chunk_index": i,
+                            "source": doc.source.value,
+                            "ingested_at": doc.ingested_at.isoformat(),
+                        },
                     }
-                })
+                )
 
             # Upsert to Qdrant
             await self.qdrant.upsert_points(collection, points)
@@ -485,7 +478,7 @@ def create_ingestion_service(
     qdrant: QdrantManager,
     mcp_broker: Optional[MCPBroker] = None,
     allowed_domains: Optional[List[str]] = None,
-    blocked_domains: Optional[List[str]] = None
+    blocked_domains: Optional[List[str]] = None,
 ) -> URLIngestionService:
     """
     Create URL ingestion service.
@@ -504,7 +497,7 @@ def create_ingestion_service(
     """
     config = IngestionConfig(
         allowed_domains=set(allowed_domains or []),
-        blocked_domains=set(blocked_domains or [])
+        blocked_domains=set(blocked_domains or []),
     )
 
     return URLIngestionService(
@@ -513,5 +506,5 @@ def create_ingestion_service(
         embedder=embedder,
         chunker=chunker,
         qdrant=qdrant,
-        mcp_broker=mcp_broker
+        mcp_broker=mcp_broker,
     )

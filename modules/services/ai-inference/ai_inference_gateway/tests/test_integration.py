@@ -9,17 +9,23 @@ error scenarios, and metrics collection.
 import pytest
 import asyncio
 import time
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock
 from fastapi import Request, HTTPException
-from fastapi.responses import JSONResponse
 
 from ai_inference_gateway.config import GatewayConfig
 from ai_inference_gateway.pipeline import MiddlewarePipeline
 from ai_inference_gateway.middleware.observability import ObservabilityMiddleware
 from ai_inference_gateway.middleware.security_filter import SecurityFilterMiddleware
 from ai_inference_gateway.middleware.rate_limiter import RateLimiterMiddleware
-from ai_inference_gateway.middleware.circuit_breaker import CircuitBreaker, CircuitBreakerState
-from ai_inference_gateway.middleware.load_balancer import LoadBalancerMiddleware, BackendInstance, BackendState
+from ai_inference_gateway.middleware.circuit_breaker import (
+    CircuitBreaker,
+    CircuitBreakerState,
+)
+from ai_inference_gateway.middleware.load_balancer import (
+    LoadBalancerMiddleware,
+    BackendInstance,
+    BackendState,
+)
 from ai_inference_gateway.utils.metrics import MetricsHelper
 
 
@@ -33,7 +39,7 @@ class TestIntegration:
             gateway_host="127.0.0.1",
             gateway_port=8080,
             backend_url="http://127.0.0.1:1234",
-            backend_type="lm-studio"
+            backend_type="lm-studio",
         )
 
     @pytest.fixture
@@ -63,37 +69,26 @@ class TestIntegration:
         5. Load Balancer (selects backend)
         """
         # Create middleware
-        observability = ObservabilityMiddleware(
-            sample_config.middleware.observability
-        )
-        security = SecurityFilterMiddleware(
-            sample_config.middleware.security
-        )
+        observability = ObservabilityMiddleware(sample_config.middleware.observability)
+        security = SecurityFilterMiddleware(sample_config.middleware.security)
         rate_limiter = RateLimiterMiddleware(
-            sample_config.middleware.rate_limiting,
-            metrics_helper=metrics_helper
+            sample_config.middleware.rate_limiting, metrics_helper=metrics_helper
         )
         circuit_breaker = CircuitBreaker(
             "test_backend",
             sample_config.middleware.circuit_breaker,
-            metrics_helper=metrics_helper
+            metrics_helper=metrics_helper,
         )
         load_balancer = LoadBalancerMiddleware(
             sample_config.middleware.load_balancer,
-            [
-                BackendInstance(name="backend1", url="http://localhost:8001")
-            ],
-            metrics_helper=metrics_helper
+            [BackendInstance(name="backend1", url="http://localhost:8001")],
+            metrics_helper=metrics_helper,
         )
 
         # Create pipeline
-        pipeline = MiddlewarePipeline([
-            observability,
-            security,
-            rate_limiter,
-            circuit_breaker,
-            load_balancer
-        ])
+        pipeline = MiddlewarePipeline(
+            [observability, security, rate_limiter, circuit_breaker, load_balancer]
+        )
 
         # Track execution order
         execution_order = []
@@ -128,12 +123,8 @@ class TestIntegration:
         config = GatewayConfig()
         config.middleware.security.max_request_size = 100  # Very small limit
 
-        observability = ObservabilityMiddleware(
-            config.middleware.observability
-        )
-        security = SecurityFilterMiddleware(
-            config.middleware.security
-        )
+        observability = ObservabilityMiddleware(config.middleware.observability)
+        security = SecurityFilterMiddleware(config.middleware.security)
 
         pipeline = MiddlewarePipeline([observability, security])
 
@@ -162,13 +153,10 @@ class TestIntegration:
         When an error occurs, all middleware should still get a chance
         to clean up via process_response.
         """
-        observability = ObservabilityMiddleware(
-            sample_config.middleware.observability
-        )
+        observability = ObservabilityMiddleware(sample_config.middleware.observability)
 
         circuit_breaker = CircuitBreaker(
-            "test_backend",
-            sample_config.middleware.circuit_breaker
+            "test_backend", sample_config.middleware.circuit_breaker
         )
 
         # Force circuit breaker open
@@ -205,12 +193,8 @@ class TestIntegration:
         - Errors are counted
         - Middleware-specific metrics are updated
         """
-        observability = ObservabilityMiddleware(
-            sample_config.middleware.observability
-        )
-        security = SecurityFilterMiddleware(
-            sample_config.middleware.security
-        )
+        observability = ObservabilityMiddleware(sample_config.middleware.observability)
+        security = SecurityFilterMiddleware(sample_config.middleware.security)
 
         # Track metrics
         initial_request_count = 0
@@ -226,7 +210,9 @@ class TestIntegration:
         async def mock_handler(request, context):
             metrics_helper.inc_http_requests("POST", "/v1/chat/completions", 200)
             metrics_helper.observe_middleware_duration("observability", "request", 0.01)
-            metrics_helper.observe_middleware_duration("security_filter", "request", 0.005)
+            metrics_helper.observe_middleware_duration(
+                "security_filter", "request", 0.005
+            )
             return {"status": 200, "data": "test"}
 
         async def run_pipeline():
@@ -250,9 +236,7 @@ class TestIntegration:
         - Backend is selected by load balancer
         - Context is available in response processing
         """
-        observability = ObservabilityMiddleware(
-            sample_config.middleware.observability
-        )
+        observability = ObservabilityMiddleware(sample_config.middleware.observability)
 
         # Enable load balancer
         config = GatewayConfig()
@@ -262,8 +246,8 @@ class TestIntegration:
             config.middleware.load_balancer,
             [
                 BackendInstance(name="backend1", url="http://localhost:8001"),
-                BackendInstance(name="backend2", url="http://localhost:8002")
-            ]
+                BackendInstance(name="backend2", url="http://localhost:8002"),
+            ],
         )
 
         pipeline = MiddlewarePipeline([observability, load_balancer])
@@ -300,9 +284,7 @@ class TestIntegration:
         - Context is not shared between requests
         - Metrics are updated correctly
         """
-        observability = ObservabilityMiddleware(
-            sample_config.middleware.observability
-        )
+        observability = ObservabilityMiddleware(sample_config.middleware.observability)
 
         pipeline = MiddlewarePipeline([observability])
 
@@ -322,10 +304,7 @@ class TestIntegration:
 
         async def run_concurrent():
             # Process 10 concurrent requests
-            tasks = [
-                process_single_request(f"req-{i}")
-                for i in range(10)
-            ]
+            tasks = [process_single_request(f"req-{i}") for i in range(10)]
             return await asyncio.gather(*tasks)
 
         results = asyncio.run(run_concurrent())
@@ -346,15 +325,11 @@ class TestIntegration:
         - Response metadata is added
         - Processing time is calculated
         """
-        observability = ObservabilityMiddleware(
-            sample_config.middleware.observability
-        )
+        observability = ObservabilityMiddleware(sample_config.middleware.observability)
 
         load_balancer = LoadBalancerMiddleware(
             sample_config.middleware.load_balancer,
-            [
-                BackendInstance(name="backend1", url="http://localhost:8001")
-            ]
+            [BackendInstance(name="backend1", url="http://localhost:8001")],
         )
 
         pipeline = MiddlewarePipeline([observability, load_balancer])
@@ -394,13 +369,9 @@ class TestIntegration:
         config = GatewayConfig()
         config.middleware.rate_limiting.enabled = False
 
-        rate_limiter = RateLimiterMiddleware(
-            config.middleware.rate_limiting
-        )
+        rate_limiter = RateLimiterMiddleware(config.middleware.rate_limiting)
 
-        observability = ObservabilityMiddleware(
-            config.middleware.observability
-        )
+        observability = ObservabilityMiddleware(config.middleware.observability)
 
         pipeline = MiddlewarePipeline([rate_limiter, observability])
 
@@ -436,20 +407,17 @@ class TestIntegration:
 
         backends = [
             BackendInstance(name="backend1", url="http://localhost:8001"),
-            BackendInstance(name="backend2", url="http://localhost:8002", weight=200)
+            BackendInstance(name="backend2", url="http://localhost:8002", weight=200),
         ]
 
         # Mark backend1 as unhealthy
         backends[0].state = BackendState.UNHEALTHY
 
         load_balancer = LoadBalancerMiddleware(
-            config.middleware.load_balancer,
-            backends
+            config.middleware.load_balancer, backends
         )
 
-        observability = ObservabilityMiddleware(
-            config.middleware.observability
-        )
+        observability = ObservabilityMiddleware(config.middleware.observability)
 
         pipeline = MiddlewarePipeline([observability, load_balancer])
 
@@ -486,21 +454,16 @@ class TestErrorScenarios:
         config = GatewayConfig()
         config.middleware.load_balancer.enabled = True
 
-        backends = [
-            BackendInstance(name="backend1", url="http://localhost:8001")
-        ]
+        backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
 
         # Mark backend as unhealthy
         backends[0].state = BackendState.UNHEALTHY
 
         load_balancer = LoadBalancerMiddleware(
-            config.middleware.load_balancer,
-            backends
+            config.middleware.load_balancer, backends
         )
 
-        observability = ObservabilityMiddleware(
-            config.middleware.observability
-        )
+        observability = ObservabilityMiddleware(config.middleware.observability)
 
         pipeline = MiddlewarePipeline([observability, load_balancer])
 
@@ -530,17 +493,14 @@ class TestErrorScenarios:
         config = GatewayConfig()
 
         circuit_breaker = CircuitBreaker(
-            "test_backend",
-            config.middleware.circuit_breaker
+            "test_backend", config.middleware.circuit_breaker
         )
 
         # Force open
         circuit_breaker._state = CircuitBreakerState.OPEN
         circuit_breaker._open_until = time.time() + 60
 
-        observability = ObservabilityMiddleware(
-            config.middleware.observability
-        )
+        observability = ObservabilityMiddleware(config.middleware.observability)
 
         pipeline = MiddlewarePipeline([observability, circuit_breaker])
 
@@ -570,13 +530,9 @@ class TestErrorScenarios:
         config = GatewayConfig()
         config.middleware.security.max_request_size = 100
 
-        security = SecurityFilterMiddleware(
-            config.middleware.security
-        )
+        security = SecurityFilterMiddleware(config.middleware.security)
 
-        observability = ObservabilityMiddleware(
-            config.middleware.observability
-        )
+        observability = ObservabilityMiddleware(config.middleware.observability)
 
         pipeline = MiddlewarePipeline([observability, security])
 

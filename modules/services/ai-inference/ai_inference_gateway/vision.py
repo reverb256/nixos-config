@@ -16,7 +16,6 @@ import logging
 import base64
 import re
 from typing import Dict, List, Optional, Any, Union
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +58,9 @@ def detect_vision_content(messages: List[Dict[str, Any]]) -> bool:
     return False
 
 
-def extract_images_from_message(content: Union[str, List[Dict]]) -> List[Dict[str, str]]:
+def extract_images_from_message(
+    content: Union[str, List[Dict]],
+) -> List[Dict[str, str]]:
     """
     Extract image URLs from message content.
 
@@ -85,7 +86,7 @@ def extract_images_from_message(content: Union[str, List[Dict]]) -> List[Dict[st
     elif isinstance(content, str):
         # Extract base64 images from text
         # Pattern: data:image/[format];base64,[data]
-        pattern = r'data:image/([^;]+);base64,([A-Za-z0-9+/=]+)'
+        pattern = r"data:image/([^;]+);base64,([A-Za-z0-9+/=]+)"
         matches = re.findall(pattern, content)
         for img_format, b64_data in matches:
             images.append(f"data:image/{img_format};base64,{b64_data}")
@@ -94,7 +95,7 @@ def extract_images_from_message(content: Union[str, List[Dict]]) -> List[Dict[st
 
 
 def convert_to_lmstudio_vision_format(
-    messages: List[Dict[str, Any]]
+    messages: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """
     Convert OpenAI multimodal messages to LM Studio format.
@@ -132,10 +133,9 @@ def convert_to_lmstudio_vision_format(
                 block_type = block.get("type")
 
                 if block_type == "text":
-                    lmstudio_content.append({
-                        "type": "text",
-                        "text": block.get("text", "")
-                    })
+                    lmstudio_content.append(
+                        {"type": "text", "text": block.get("text", "")}
+                    )
 
                 elif block_type == "image_url":
                     # Extract URL (might be nested dict)
@@ -143,15 +143,11 @@ def convert_to_lmstudio_vision_format(
                     if isinstance(url, dict):
                         url = url.get("url", "")
 
-                    lmstudio_content.append({
-                        "type": "image",
-                        "image_url": {"url": url}
-                    })
+                    lmstudio_content.append(
+                        {"type": "image", "image_url": {"url": url}}
+                    )
 
-            lmstudio_messages.append({
-                "role": role,
-                "content": lmstudio_content
-            })
+            lmstudio_messages.append({"role": role, "content": lmstudio_content})
 
     return lmstudio_messages
 
@@ -176,8 +172,7 @@ def is_vision_capable_model(model_id: str) -> bool:
 
 
 def recommend_vision_model(
-    available_models: List[str],
-    quality_priority: bool = False
+    available_models: List[str], quality_priority: bool = False
 ) -> Optional[str]:
     """
     Recommend the best vision model from available options.
@@ -191,10 +186,7 @@ def recommend_vision_model(
         Recommended model ID or None
     """
     # Filter to vision-capable models
-    vision_models = [
-        m for m in available_models
-        if is_vision_capable_model(m)
-    ]
+    vision_models = [m for m in available_models if is_vision_capable_model(m)]
 
     if not vision_models:
         return None
@@ -203,9 +195,9 @@ def recommend_vision_model(
         # Prefer larger models
         priority_order = [
             "35b-a3b",  # Best quality, 256K context
-            "27b",      # High quality
-            "9b",       # Balanced
-            "4b",       # Faster
+            "27b",  # High quality
+            "9b",  # Balanced
+            "4b",  # Faster
         ]
 
         for priority in priority_order:
@@ -215,9 +207,9 @@ def recommend_vision_model(
     else:
         # Prefer faster models
         priority_order = [
-            "4b",       # Fastest
-            "9b",       # Balanced
-            "27b",      # High quality
+            "4b",  # Fastest
+            "9b",  # Balanced
+            "27b",  # High quality
             "35b-a3b",  # Best quality
         ]
 
@@ -260,7 +252,7 @@ def validate_image_url(url: str) -> bool:
             return True
 
         except Exception:
-            logger.warning(f"Invalid base64 image data")
+            logger.warning("Invalid base64 image data")
             return False
 
     # Check for HTTP/HTTPS URL
@@ -283,21 +275,20 @@ def get_vision_model_recommendation(task_description: str = "") -> str:
     task_lower = task_description.lower()
 
     # Complex analysis or high quality required
-    if any(keyword in task_lower for keyword in [
-        "detailed", "analyze", "complex", "professional"
-    ]):
+    if any(
+        keyword in task_lower
+        for keyword in ["detailed", "analyze", "complex", "professional"]
+    ):
         return "qwen3.5-35b-a3b"
 
     # General vision tasks
-    if any(keyword in task_lower for keyword in [
-        "describe", "what", "identify", "ocr"
-    ]):
+    if any(
+        keyword in task_lower for keyword in ["describe", "what", "identify", "ocr"]
+    ):
         return "qwen3.5-9b"
 
     # Fast responses needed
-    if any(keyword in task_lower for keyword in [
-        "fast", "quick", "simple"
-    ]):
+    if any(keyword in task_lower for keyword in ["fast", "quick", "simple"]):
         return "qwen3.5-4b"
 
     # Default: balanced option
@@ -306,12 +297,12 @@ def get_vision_model_recommendation(task_description: str = "") -> str:
 
 # Export for use in other modules
 __all__ = [
-    'detect_vision_content',
-    'extract_images_from_message',
-    'convert_to_lmstudio_vision_format',
-    'is_vision_capable_model',
-    'recommend_vision_model',
-    'validate_image_url',
-    'get_vision_model_recommendation',
-    'VISION_CAPABLE_MODELS',
+    "detect_vision_content",
+    "extract_images_from_message",
+    "convert_to_lmstudio_vision_format",
+    "is_vision_capable_model",
+    "recommend_vision_model",
+    "validate_image_url",
+    "get_vision_model_recommendation",
+    "VISION_CAPABLE_MODELS",
 ]

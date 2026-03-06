@@ -1,6 +1,6 @@
-{
-  appimageTools,
-  fetchurl,
+{ appimageTools
+, fetchurl
+,
 }:
 appimageTools.wrapType2 rec {
   pname = "lmstudio";

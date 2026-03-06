@@ -10,8 +10,7 @@ This module provides production-grade configuration with:
 - Schema generation
 """
 
-import os
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict
 from pydantic import BaseModel, Field, field_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -132,12 +131,18 @@ class MCPServerConfig(BaseModel):
     type: str = Field(
         default="local",
         pattern="^(local|remote)$",
-        description="Server type (local or remote)"
+        description="Server type (local or remote)",
     )
-    command: Optional[List[str]] = Field(default=None, description="Command for local servers")
+    command: Optional[List[str]] = Field(
+        default=None, description="Command for local servers"
+    )
     url: Optional[str] = Field(default=None, description="URL for remote servers")
-    headers: Dict[str, str] = Field(default_factory=dict, description="HTTP headers for remote servers")
-    environment: Dict[str, str] = Field(default_factory=dict, description="Environment variables for local servers")
+    headers: Dict[str, str] = Field(
+        default_factory=dict, description="HTTP headers for remote servers"
+    )
+    environment: Dict[str, str] = Field(
+        default_factory=dict, description="Environment variables for local servers"
+    )
 
 
 class MCPConfig(BaseModel):
@@ -145,8 +150,7 @@ class MCPConfig(BaseModel):
 
     enabled: bool = Field(default=False, description="Enable MCP broker")
     servers: List[MCPServerConfig] = Field(
-        default_factory=list,
-        description="Configured MCP servers"
+        default_factory=list, description="Configured MCP servers"
     )
 
 
@@ -206,7 +210,8 @@ class MiddlewareConfig(BaseModel):
         default_factory=LoadBalancerConfig, description="Load balancer configuration"
     )
     concurrency_limiter: ConcurrencyLimiterConfig = Field(
-        default_factory=ConcurrencyLimiterConfig, description="Concurrency limiter configuration"
+        default_factory=ConcurrencyLimiterConfig,
+        description="Concurrency limiter configuration",
     )
     observability: ObservabilityConfig = Field(
         default_factory=ObservabilityConfig, description="Observability configuration"
@@ -223,7 +228,9 @@ class MiddlewareConfig(BaseModel):
     CHUNK_SIZE: int = Field(default=512, description="Chunk size")
     CHUNK_OVERLAP: int = Field(default=50, description="Chunk overlap")
     RAG_TOP_K: int = Field(default=5, description="Default top-K results")
-    HYBRID_SEARCH_ENABLED: bool = Field(default=True, description="Enable hybrid search")
+    HYBRID_SEARCH_ENABLED: bool = Field(
+        default=True, description="Enable hybrid search"
+    )
     RERANKER_ENABLED: bool = Field(default=True, description="Enable reranking")
 
 
@@ -261,8 +268,7 @@ class GatewayConfig(BaseSettings):
         default="http://127.0.0.1:1234", description="Primary backend service URL"
     )
     backend_fallback_urls: str = Field(
-        default="",
-        description="Fallback backend URLs (comma-separated)"
+        default="", description="Fallback backend URLs (comma-separated)"
     )
     backend_type: str = Field(
         default="lm-studio",
@@ -274,7 +280,9 @@ class GatewayConfig(BaseSettings):
         """Get backend fallback URLs as a list."""
         if not self.backend_fallback_urls:
             return []
-        return [url.strip() for url in self.backend_fallback_urls.split(",") if url.strip()]
+        return [
+            url.strip() for url in self.backend_fallback_urls.split(",") if url.strip()
+        ]
 
     # API Keys (marked as secrets - won't appear in logs or repr)
     lm_studio_api_key: Optional[SecretStr] = Field(

@@ -1,8 +1,7 @@
 # modules/services/ai-inference/ai_inference_gateway/tests/test_observability.py
 import pytest
-import time
 from unittest.mock import Mock
-from fastapi import Request, HTTPException
+from fastapi import Request
 from ai_inference_gateway.middleware.observability import ObservabilityMiddleware
 from ai_inference_gateway.config import ObservabilityConfig
 
@@ -115,7 +114,7 @@ async def test_observability_preserves_existing_response_data():
 
     response = {
         "choices": [{"message": {"content": "test response"}}],
-        "usage": {"total_tokens": 100}
+        "usage": {"total_tokens": 100},
     }
     result = await middleware.process_response(response, context)
 

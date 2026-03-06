@@ -13,7 +13,7 @@ Comprehensive implementation of all LM Studio REST API endpoints:
 
 import httpx
 from typing import Optional, List, Dict, Any, Union, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from datetime import datetime
 
 # Import retry handler
@@ -21,8 +21,9 @@ try:
     from ai_inference_gateway.retry_handler import (
         RetryHandler,
         RetryConfig,
-        execute_with_retry
+        execute_with_retry,
     )
+
     RETRY_AVAILABLE = True
 except ImportError:
     RETRY_AVAILABLE = False
@@ -32,20 +33,24 @@ except ImportError:
 # REQUEST MODELS
 # ============================================================================
 
+
 class TextInput(BaseModel):
     """Text input for messages."""
+
     type: Literal["message"] = "message"
     content: str
 
 
 class ImageInput(BaseModel):
     """Image input for multimodal models."""
+
     type: Literal["image"] = "image"
     data_url: str  # base64-encoded data URL
 
 
 class IntegrationPlugin(BaseModel):
     """Plugin integration specification."""
+
     type: Literal["plugin"] = "plugin"
     id: str  # Plugin ID (e.g., "mcp/playwright")
     allowed_tools: Optional[List[str]] = None  # If None, all tools allowed
@@ -53,6 +58,7 @@ class IntegrationPlugin(BaseModel):
 
 class EphemeralMCP(BaseModel):
     """Ephemeral MCP server specification."""
+
     type: Literal["ephemeral_mcp"] = "ephemeral_mcp"
     server_label: str
     server_url: str
@@ -65,6 +71,7 @@ Integration = Union[str, IntegrationPlugin, EphemeralMCP]
 
 class ChatRequest(BaseModel):
     """Request for /api/v1/chat endpoint."""
+
     model: str
     input: Union[str, List[Union[TextInput, ImageInput]]]
     system_prompt: Optional[str] = None
@@ -86,8 +93,10 @@ class ChatRequest(BaseModel):
 # RESPONSE MODELS
 # ============================================================================
 
+
 class ProviderInfo(BaseModel):
     """Tool provider information."""
+
     type: Literal["plugin", "ephemeral_mcp"]
     plugin_id: Optional[str] = None
     server_label: Optional[str] = None
@@ -95,6 +104,7 @@ class ProviderInfo(BaseModel):
 
 class ToolCall(BaseModel):
     """A tool call made by the model."""
+
     type: Literal["tool_call"] = "tool_call"
     tool: str
     arguments: Dict[str, Any]
@@ -104,18 +114,21 @@ class ToolCall(BaseModel):
 
 class MessageOutput(BaseModel):
     """A text message from the model."""
+
     type: Literal["message"] = "message"
     content: str
 
 
 class ReasoningOutput(BaseModel):
     """Reasoning content from the model."""
+
     type: Literal["reasoning"] = "reasoning"
     content: str
 
 
 class InvalidToolCall(BaseModel):
     """An invalid tool call made by the model."""
+
     type: Literal["invalid_tool_call"] = "invalid_tool_call"
     reason: str
     metadata: Dict[str, Any]
@@ -129,6 +142,7 @@ OutputItem = Union[ToolCall, MessageOutput, ReasoningOutput, InvalidToolCall]
 
 class ChatStats(BaseModel):
     """Token usage and performance metrics."""
+
     input_tokens: float
     total_output_tokens: float
     reasoning_output_tokens: float = 0
@@ -139,6 +153,7 @@ class ChatStats(BaseModel):
 
 class ChatResponse(BaseModel):
     """Response from /api/v1/chat endpoint."""
+
     model_instance_id: str
     output: List[OutputItem]
     stats: ChatStats
@@ -149,8 +164,10 @@ class ChatResponse(BaseModel):
 # MODELS ENDPOINT
 # ============================================================================
 
+
 class ModelInfo(BaseModel):
     """Information about a loaded model."""
+
     id: str
     instance_id: str
     loaded_at: datetime
@@ -159,6 +176,7 @@ class ModelInfo(BaseModel):
 
 class ModelsResponse(BaseModel):
     """Response from GET /api/v1/models."""
+
     models: List[ModelInfo]
 
 
@@ -166,8 +184,10 @@ class ModelsResponse(BaseModel):
 # LOAD MODEL
 # ============================================================================
 
+
 class LoadModelRequest(BaseModel):
     """Request for POST /api/v1/models/load."""
+
     model: str
     # Configuration options vary by backend
     # For llama.cpp/GGUF:
@@ -181,6 +201,7 @@ class LoadModelRequest(BaseModel):
 
 class LoadModelResponse(BaseModel):
     """Response from POST /api/v1/models/load."""
+
     instance_id: str
     model: str
     loaded_at: datetime
@@ -190,13 +211,16 @@ class LoadModelResponse(BaseModel):
 # UNLOAD MODEL
 # ============================================================================
 
+
 class UnloadModelRequest(BaseModel):
     """Request for POST /api/v1/models/unload."""
+
     instance_id: str
 
 
 class UnloadModelResponse(BaseModel):
     """Response from POST /api/v1/models/unload."""
+
     instance_id: str
 
 
@@ -204,11 +228,14 @@ class UnloadModelResponse(BaseModel):
 # DOWNLOAD MODEL
 # ============================================================================
 
-DownloadStatus = Literal["downloading", "paused", "completed", "failed", "already_downloaded"]
+DownloadStatus = Literal[
+    "downloading", "paused", "completed", "failed", "already_downloaded"
+]
 
 
 class DownloadResponse(BaseModel):
     """Response from POST /api/v1/models/download."""
+
     job_id: Optional[str] = None  # Absent when status is "already_downloaded"
     status: DownloadStatus
     completed_at: Optional[datetime] = None
@@ -218,10 +245,13 @@ class DownloadResponse(BaseModel):
 
 class DownloadStatusResponse(BaseModel):
     """Response from GET /api/v1/models/download/status/:job_id."""
+
     job_id: str
     status: DownloadStatus
     bytes_per_second: Optional[float] = None  # Present when status is "downloading"
-    estimated_completion: Optional[datetime] = None  # Present when status is "downloading"
+    estimated_completion: Optional[datetime] = (
+        None  # Present when status is "downloading"
+    )
     completed_at: Optional[datetime] = None
     total_size_bytes: Optional[int] = None
     downloaded_bytes: Optional[int] = None
@@ -231,6 +261,7 @@ class DownloadStatusResponse(BaseModel):
 # ============================================================================
 # CLIENT
 # ============================================================================
+
 
 class LMStudioClient:
     """
@@ -275,7 +306,7 @@ class LMStudioClient:
         api_token: Optional[str] = None,
         timeout: float = 120.0,
         retry_handler: Optional[RetryHandler] = None,
-        enable_retry: bool = True
+        enable_retry: bool = True,
     ):
         """
         Initialize LM Studio client.
@@ -304,7 +335,7 @@ class LMStudioClient:
                 retry_on_429=True,
                 retry_on_5xx=True,
                 retry_on_timeout=True,
-                retry_on_connection_error=True
+                retry_on_connection_error=True,
             )
             self.retry_handler = RetryHandler(config=retry_config)
         else:
@@ -548,7 +579,7 @@ class LMStudioClient:
         message: str,
         mcp_servers: List[Dict[str, Any]],
         context_length: int = 8000,
-        **kwargs
+        **kwargs,
     ) -> ChatResponse:
         """
         Convenience method for chat with MCP integration.
@@ -566,24 +597,28 @@ class LMStudioClient:
         integrations = []
         for server in mcp_servers:
             if "url" in server:
-                integrations.append(EphemeralMCP(
-                    server_label=server.get("label", "mcp"),
-                    server_url=server["url"],
-                    allowed_tools=server.get("allowed_tools"),
-                    headers=server.get("headers"),
-                ))
+                integrations.append(
+                    EphemeralMCP(
+                        server_label=server.get("label", "mcp"),
+                        server_url=server["url"],
+                        allowed_tools=server.get("allowed_tools"),
+                        headers=server.get("headers"),
+                    )
+                )
             elif "plugin_id" in server:
-                integrations.append(IntegrationPlugin(
-                    id=server["plugin_id"],
-                    allowed_tools=server.get("allowed_tools"),
-                ))
+                integrations.append(
+                    IntegrationPlugin(
+                        id=server["plugin_id"],
+                        allowed_tools=server.get("allowed_tools"),
+                    )
+                )
 
         return await self.chat(
             model=model,
             input=message,
             integrations=integrations,
             context_length=context_length,
-            **kwargs
+            **kwargs,
         )
 
     def get_retry_metrics(self) -> Optional[Dict[str, Any]]:
@@ -607,32 +642,41 @@ class LMStudioClient:
 # SYNC CLIENT WRAPPER
 # ============================================================================
 
+
 class LMStudioClientSync:
     """Synchronous wrapper for LMStudioClient."""
 
-    def __init__(self, base_url: str = "http://localhost:1234", api_token: Optional[str] = None):
+    def __init__(
+        self, base_url: str = "http://localhost:1234", api_token: Optional[str] = None
+    ):
         self.async_client = LMStudioClient(base_url=base_url, api_token=api_token)
 
     def chat(self, *args, **kwargs) -> ChatResponse:
         import asyncio
+
         return asyncio.run(self.async_client.chat(*args, **kwargs))
 
     def list_models(self) -> ModelsResponse:
         import asyncio
+
         return asyncio.run(self.async_client.list_models())
 
     def load_model(self, *args, **kwargs) -> LoadModelResponse:
         import asyncio
+
         return asyncio.run(self.async_client.load_model(*args, **kwargs))
 
     def unload_model(self, *args, **kwargs) -> UnloadModelResponse:
         import asyncio
+
         return asyncio.run(self.async_client.unload_model(*args, **kwargs))
 
     def download_model(self, *args, **kwargs) -> DownloadResponse:
         import asyncio
+
         return asyncio.run(self.async_client.download_model(*args, **kwargs))
 
     def get_download_status(self, *args, **kwargs) -> DownloadStatusResponse:
         import asyncio
+
         return asyncio.run(self.async_client.get_download_status(*args, **kwargs))

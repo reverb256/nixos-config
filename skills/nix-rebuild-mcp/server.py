@@ -8,7 +8,6 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 from pathlib import Path
-import subprocess
 import os
 
 try:

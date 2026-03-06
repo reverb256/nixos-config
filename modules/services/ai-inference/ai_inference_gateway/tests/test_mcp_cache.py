@@ -8,18 +8,14 @@ for MCP tool schemas to reduce network calls.
 import pytest
 import asyncio
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, Mock, patch
 
-from ai_inference_gateway.mcp_cache import (
-    ToolSchemaCache,
-    CachedSchema,
-    get_cache
-)
+from ai_inference_gateway.mcp_cache import ToolSchemaCache, CachedSchema, get_cache
 
 
 # ============================================================================
 # Test Cache Basic Operations
 # ============================================================================
+
 
 class TestToolSchemaCacheBasic:
     """Tests for basic cache operations."""
@@ -27,10 +23,7 @@ class TestToolSchemaCacheBasic:
     @pytest.fixture
     def cache(self):
         """Create cache instance for testing."""
-        return ToolSchemaCache(
-            default_ttl_seconds=60,
-            enable_metrics=True
-        )
+        return ToolSchemaCache(default_ttl_seconds=60, enable_metrics=True)
 
     @pytest.mark.asyncio
     async def test_cache_hit(self, cache):
@@ -94,6 +87,7 @@ class TestToolSchemaCacheBasic:
 # Test TTL and Expiration
 # ============================================================================
 
+
 class TestCacheTTL:
     """Tests for TTL-based cache expiration."""
 
@@ -101,8 +95,7 @@ class TestCacheTTL:
     def short_ttl_cache(self):
         """Create cache with short TTL for testing."""
         return ToolSchemaCache(
-            default_ttl_seconds=1,  # 1 second TTL
-            enable_metrics=True
+            default_ttl_seconds=1, enable_metrics=True  # 1 second TTL
         )
 
     @pytest.mark.asyncio
@@ -125,7 +118,6 @@ class TestCacheTTL:
     @pytest.mark.asyncio
     async def test_cache_expiration(self, short_ttl_cache):
         """Test cache expiration after TTL."""
-        import time
 
         server_name = "test-server"
         tools = [{"name": "tool1"}]
@@ -175,6 +167,7 @@ class TestCacheTTL:
 # Test Cache Invalidation
 # ============================================================================
 
+
 class TestCacheInvalidation:
     """Tests for cache invalidation operations."""
 
@@ -198,13 +191,13 @@ class TestCacheInvalidation:
             schema=tools1,
             cached_at=datetime.now(),
             ttl=timedelta(seconds=60),
-            server_name="server1"
+            server_name="server1",
         )
         cache.cache["tools:server2"] = CachedSchema(
             schema=tools2,
             cached_at=datetime.now(),
             ttl=timedelta(seconds=60),
-            server_name="server2"
+            server_name="server2",
         )
 
         return cache
@@ -238,6 +231,7 @@ class TestCacheInvalidation:
 # ============================================================================
 # Test Cache Metrics
 # ============================================================================
+
 
 class TestCacheMetrics:
     """Tests for cache metrics tracking."""
@@ -333,6 +327,7 @@ class TestCacheMetrics:
 # Test Cache Warm-up
 # ============================================================================
 
+
 class TestCacheWarmup:
     """Tests for cache warm-up functionality."""
 
@@ -344,7 +339,7 @@ class TestCacheWarmup:
         servers = {
             "server1": lambda: [{"name": "tool1"}],
             "server2": lambda: [{"name": "tool2"}],
-            "server3": lambda: [{"name": "tool3"}]
+            "server3": lambda: [{"name": "tool3"}],
         }
 
         # Wrap in async functions
@@ -357,11 +352,7 @@ class TestCacheWarmup:
         async def fetch3():
             return servers["server3"]()
 
-        servers_async = {
-            "server1": fetch1,
-            "server2": fetch2,
-            "server3": fetch3
-        }
+        servers_async = {"server1": fetch1, "server2": fetch2, "server3": fetch3}
 
         results = await cache.warm_up(servers)
 
@@ -381,10 +372,7 @@ class TestCacheWarmup:
         async def fetch_failure():
             raise Exception("Fetch failed")
 
-        servers = {
-            "server1": fetch_success,
-            "server2": fetch_failure
-        }
+        servers = {"server1": fetch_success, "server2": fetch_failure}
 
         results = await cache.warm_up(servers)
 
@@ -395,7 +383,6 @@ class TestCacheWarmup:
     @pytest.mark.asyncio
     async def test_warm_up_concurrency(self):
         """Test that warm-up runs concurrently."""
-        import time
 
         cache = ToolSchemaCache(enable_metrics=False)
 
@@ -403,10 +390,7 @@ class TestCacheWarmup:
             await asyncio.sleep(0.1)
             return [{"name": "tool"}]
 
-        servers = {
-            f"server{i}": slow_fetch
-            for i in range(5)
-        }
+        servers = {f"server{i}": slow_fetch for i in range(5)}
 
         start = datetime.now()
         await cache.warm_up(servers, max_concurrency=5)
@@ -421,6 +405,7 @@ class TestCacheWarmup:
 # ============================================================================
 # Test Error Handling
 # ============================================================================
+
 
 class TestErrorHandling:
     """Tests for error handling in cache operations."""
@@ -480,6 +465,7 @@ class TestErrorHandling:
 # ============================================================================
 # Test Singleton
 # ============================================================================
+
 
 class TestSingleton:
     """Tests for singleton cache instance."""
