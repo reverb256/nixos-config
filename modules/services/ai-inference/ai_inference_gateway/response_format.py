@@ -217,7 +217,7 @@ Requirements:
     def _validate_json_object(self, content: str) -> tuple[bool, Optional[str]]:
         """Validate response is valid JSON."""
         try:
-            parsed = json.loads(content)
+            json.loads(content)
             return True, None
         except json.JSONDecodeError as e:
             return False, f"Invalid JSON: {str(e)}"

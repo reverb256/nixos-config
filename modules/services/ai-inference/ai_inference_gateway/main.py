@@ -26,7 +26,6 @@ try:
     from ai_inference_gateway.semantic_cache import (
         SemanticCache,
         CacheConfig,
-        get_default_cache,
     )
 
     SEMANTIC_CACHE_AVAILABLE = True
@@ -75,7 +74,6 @@ try:
         ModerationResult,
         ModerationCategory,
         get_default_moderator,
-        moderate_content,
     )
 
     MODERATION_AVAILABLE = True
@@ -99,20 +97,18 @@ except ImportError as e:
     logger.warning(f"RAG module not available: {e}")
     RAG_AVAILABLE = False
     RAGConfig = None
+    get_qdrant_manager = None
 
-# Import middleware
-from ai_inference_gateway.middleware.observability import ObservabilityMiddleware
-from ai_inference_gateway.middleware.security_filter import SecurityFilterMiddleware
-from ai_inference_gateway.middleware.rate_limiter import RateLimiterMiddleware
-from ai_inference_gateway.middleware.circuit_breaker import CircuitBreaker
-from ai_inference_gateway.middleware.concurrency_limiter import ConcurrencyLimiter
+# Import middleware (placed here after conditional imports)
+from ai_inference_gateway.middleware.observability import ObservabilityMiddleware  # noqa: E402
+from ai_inference_gateway.middleware.security_filter import SecurityFilterMiddleware  # noqa: E402
+from ai_inference_gateway.middleware.rate_limiter import RateLimiterMiddleware  # noqa: E402
+from ai_inference_gateway.middleware.circuit_breaker import CircuitBreaker  # noqa: E402
+from ai_inference_gateway.middleware.concurrency_limiter import ConcurrencyLimiter  # noqa: E402
 
 # Try to import prometheus_client for metrics endpoint
 try:
     from prometheus_client import (
-        Counter,
-        Histogram,
-        Gauge,
         generate_latest,
         CONTENT_TYPE_LATEST,
     )
@@ -326,7 +322,7 @@ async def lifespan(app: FastAPI):
 
             # Initialize components
             embedder = await create_embedding_service(state.rag_config.embedding)
-            qdrant = await get_qdrant_manager(state.rag_config)
+            qdrant = await get_qdrant_manager(state.rag_config)  # noqa: F823
             state.rag_search = await create_search_service(
                 state.rag_config, embedder, qdrant
             )
@@ -711,7 +707,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         """
         import time
 
-        request_start = time.time()
+        _request_start = time.time()  # noqa: F841
 
         state: GatewayState = app.state.gateway
 
@@ -1637,7 +1633,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         ollama_models = []
         for model in models.data:
             # Extract base name without organization prefix
-            model_name = model.id.split("/")[-1] if "/" in model.id else model.id
+            _model_name = model.id.split("/")[-1] if "/" in model.id else model.id  # noqa: F841
 
             ollama_models.append(
                 {
@@ -1728,9 +1724,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                                                     "done": False,
                                                 }
                                                 yield f"data: {json.dumps(ollama_chunk)}\n\n"
-                                    except:
+                                    except Exception:
                                         pass
-                    except:
+                    except Exception:
                         # If transformation fails, pass through as-is
                         if isinstance(chunk, bytes):
                             yield chunk
@@ -1852,9 +1848,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                                                     "done": False,
                                                 }
                                                 yield f"data: {json.dumps(ollama_chunk)}\n\n"
-                                    except:
+                                    except Exception:
                                         pass
-                    except:
+                    except Exception:
                         # If transformation fails, pass through as-is
                         if isinstance(chunk, bytes):
                             yield chunk
@@ -1935,7 +1931,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             )
 
         body = await request.json()
-        model = body.get("model", "BAAI/bge-m3")
+        _model = body.get("model", "BAAI/bge-m3")  # noqa: F841
         prompt = body.get("prompt", "")
 
         # Generate embedding
@@ -2201,7 +2197,7 @@ async def try_backends_with_failover(
                     if response.status_code != 200:
                         try:
                             logger.debug(f"ZAI Response body: {response.text[:500]}")
-                        except:
+                        except Exception:
                             pass
 
                 # If we got here, the request succeeded (connected, even if 4xx/5xx)

@@ -352,7 +352,7 @@ class TestCacheWarmup:
         async def fetch3():
             return servers["server3"]()
 
-        servers_async = {"server1": fetch1, "server2": fetch2, "server3": fetch3}
+        _servers_async = {"server1": fetch1, "server2": fetch2, "server3": fetch3}  # noqa: F841
 
         results = await cache.warm_up(servers)
 

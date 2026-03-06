@@ -197,7 +197,7 @@ class TestIntegration:
         security = SecurityFilterMiddleware(sample_config.middleware.security)
 
         # Track metrics
-        initial_request_count = 0
+        _ = 0  # Placeholder for initial request count
 
         pipeline = MiddlewarePipeline([observability, security])
 

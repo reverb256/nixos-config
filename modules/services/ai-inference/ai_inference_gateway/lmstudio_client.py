@@ -21,7 +21,6 @@ try:
     from ai_inference_gateway.retry_handler import (
         RetryHandler,
         RetryConfig,
-        execute_with_retry,
     )
 
     RETRY_AVAILABLE = True

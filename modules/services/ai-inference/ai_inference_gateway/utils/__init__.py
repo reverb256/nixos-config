@@ -4,7 +4,7 @@ __all__ = ["RedisClient"]
 
 # Optional imports
 try:
-    from .metrics import MetricsHelper
+    from .metrics import MetricsHelper  # noqa: F401
 
     __all__.append("MetricsHelper")
 except ImportError:
