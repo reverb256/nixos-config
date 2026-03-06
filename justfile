@@ -18,30 +18,34 @@ verify-db:
 # DEPLOYMENT COMMANDS
 # ============================================================================
 # Deploy to all hosts via colmena
+# Note: Remote hosts use 'boot' goal to avoid switch inhibitors (e.g., dbus changes)
 deploy:
     just verify-db
     @echo "Deploying to all hosts..."
-    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- apply --on @all --keep-result
+    @echo "Deploying to zephyr (local)..."
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
+    @echo "Deploying to remote hosts (nexus, forge, sentry)..."
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry boot
 
 # Deploy to zephyr only
 zephyr:
     @echo "Deploying to zephyr..."
-    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
 
 # Deploy to nexus only
 nexus:
     @echo "Deploying to nexus..."
-    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- apply --on nexus
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus boot
 
 # Deploy to forge only
 forge:
     @echo "Deploying to forge..."
-    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- apply --on forge
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge boot
 
 # Deploy to sentry only
 sentry:
     @echo "Deploying to sentry..."
-    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- apply --on sentry
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry boot
 
 # ============================================================================
 # LOCAL OPERATIONS (no colmena)
@@ -56,7 +60,7 @@ test:
     @echo "Testing configuration..."
     cd {{FLAKE_PATH}} && nix flake check
     @echo "Building all hosts (dry run)..."
-    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- build
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- build
 
 # ============================================================================
 # UTILITIES
