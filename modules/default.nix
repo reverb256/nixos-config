@@ -10,6 +10,7 @@
     # System-level configuration
     ./system/nix-config.nix
     ./system/users.nix
+    ./system/ssh.nix
     ./system/mosh.nix
 
     # Desktop environment
