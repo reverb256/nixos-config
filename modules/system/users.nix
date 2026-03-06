@@ -8,6 +8,7 @@
     extraGroups = [ "networkmanager" "wheel" "render" "video" "libinput" "ai-inference" ];
     packages = with pkgs; [
       kdePackages.kate
+      kdePackages.yakuake  # Drop-down terminal emulator
       gh  # GitHub CLI
       nodejs  # Node.js runtime
     ];
