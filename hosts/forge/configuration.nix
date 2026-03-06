@@ -514,11 +514,11 @@
   networking.useDHCP = false;
 
   # ============================================================================
-  # FIREWALL (Minimal - no VR ports)
+  # FIREWALL (Minimal - SSH for management, no VR ports)
   # ============================================================================
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [];
+    allowedTCPPorts = [22];  # SSH for remote management
     allowedUDPPorts = [];
   };
 
