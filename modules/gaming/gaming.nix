@@ -188,6 +188,8 @@ in {
         MANGOHUD_CONFIG = "fps,frametime,cpu_stats,gpu_stats,vram,ram,cpu_temp,gpu_temp,core_load,background_alpha=0.5,position=top-left,toggle_hud=Shift_R+F12";
         # Auto-reload GameMode config when launching games
         GAMEMODE_AUTO_RELOAD_CONFIG = "1";
+        # SDL2 GameControllerDB path for custom controller mappings and deadzones
+        SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
       };
 
       # ============================================================================
@@ -316,7 +318,37 @@ in {
         "d /var/cache/nvidia-shader-cache 0755 root root - -"
         # ldconfig is in glibc.bin output, not glibc.out
         "L /sbin/ldconfig - - - - ${lib.getBin pkgs.glibc}/sbin/ldconfig"
+        # Joystick calibration directory
+        "d /etc/joystick 0755 root root - -"
       ];
+
+      # ============================================================================
+      # DUALSENSE DEADZONE CONFIGURATION
+      # ============================================================================
+      # System-wide minimal deadzone for DualSense controller right stick
+      # Applied via evdev at kernel level - affects all games
+
+      environment.etc."joystick/DualSense Wireless Controller".source = pkgs.writeText "dualsense-deadzone" ''
+        # Sony DualSense Wireless Controller
+        # Minimal deadzone: 2% (prevents phantom touches, maintains sensitivity)
+        # Right stick (Rx/Ry): Used for camera in most games
+
+        # evdev calibration format
+        evdev ABS_X 2   # Left stick X
+        evdev ABS_Y 2   # Left stick Y
+        evdev ABS_RX 2  # Right stick X (horizontal camera)
+        evdev ABS_RY 2  # Right stick Y (vertical camera)
+      '';
+
+      # SDL2 GameControllerDB with deadzone hints
+      environment.etc."SDL_gamecontrollerdb".source = pkgs.writeText "sdl2-dualsense-db" ''
+        # SDL2 GameControllerDB entry for DualSense with deadzone hints
+        # Format: SDL_GAMECONTROLLERDB_V2
+        # Deadzone hint format: Deadzone:percentage  (e.g., Deadzone:2 = 2%)
+
+        0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,
+        0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,Deadzone:2,
+      '';
     })
 
     # VR configuration (only when vr.enable = true)

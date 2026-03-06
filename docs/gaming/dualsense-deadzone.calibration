@@ -1,0 +1,19 @@
+# Sony DualSense Wireless Controller
+# Global calibration with minimal deadzones
+# Applied at system level, affects all games/applications
+
+# Minimal deadzone configuration (extremely small - 2%)
+# Prevents phantom touches without impacting sensitivity
+DualSense Wireless Controller
+# Left stick (X/Y - primary movement)
+evdev ABS_X 2  # 2% deadzone on left stick X
+evdev ABS_Y 2  # 2% deadzone on left stick Y
+
+# Right stick (Rx/Ry - camera)
+evdev ABS_RX 2  # 2% deadzone on right stick X (horizontal)
+evdev ABS_RY 2  # 2% deadzone on right stick Y (vertical)
+
+# Alternative calibration using joystick utility
+# This file can be used with jscalibrator or similar tools
+# To test: jstest /dev/input/js0
+# To recalibrate: jscalibrator --device /dev/input/js0 --calibrate
