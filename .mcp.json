@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "mcp-filesystem",
+      "args": ["/etc/nixos", "/home/j_kro"]
+    },
+    "git": {
+      "command": "mcp-git"
+    },
+    "fetch": {
+      "command": "mcp-fetch"
+    },
+    "context7": {
+      "command": "mcp-context7"
+    },
+    "grep-app": {
+      "command": "mcp-grep-app"
+    },
+    "chrome-devtools": {
+      "command": "mcp-chrome-devtools"
+    },
+    "playwright": {
+      "command": "mcp-playwright"
+    }
+  }
+}
