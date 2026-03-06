@@ -181,6 +181,7 @@
     file = "${inputs.self}/secrets/huggingface-token.age";
     mode = "440";
     owner = "j_kro";
+    group = "users";
   };
 
   age.secrets.zai-api-key = {
@@ -195,6 +196,7 @@
     file = "${inputs.self}/secrets/kilo-api-key.age";
     mode = "440";
     owner = "j_kro";
+    group = "users";
   };
 
   # Spacebot Discord bot token
