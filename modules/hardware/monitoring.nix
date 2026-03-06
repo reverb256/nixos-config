@@ -76,7 +76,7 @@ in
       after = [ "multi-user.target" "sensors.service" ];
       wants = [ "sensors.service" ];
       serviceConfig = {
-        ExecStart = "/etc/nixos/scripts/simple-fancontrol.py";
+        ExecStart = "${pkgs.python3}/bin/python3 /etc/nixos/scripts/simple-fancontrol.py";
         Restart = "always";
         RestartSec = "5s";
         # Custom fancontrol script handles PWM directly
