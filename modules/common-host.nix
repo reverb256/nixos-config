@@ -17,6 +17,9 @@
     # Shared defaults (stateVersion, logind, displayManager)
     ./common-host-defaults.nix
 
+    # SSH access for remote deployment
+    ./system/ssh.nix
+
     # Desktop environment (Plasma 6 + Wayland)
     # NOTE: Not in default.nix since some hosts might be headless
     ./desktop/desktop.nix
