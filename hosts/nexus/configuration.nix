@@ -1,6 +1,9 @@
 # Nexus Host Configuration - Build and Backup Node
 # 10.1.1.120 - 24 cores, 2x RTX 3060 Ti
 # Features: Gaming + VR, MCP Servers
+#
+# Module imports: Gaming, mining, monitoring, opencode are already imported
+# via commonModules in flake.nix (./modules/default.nix)
 {pkgs, ...}: {
   imports = [
     # Monitoring configuration
@@ -10,12 +13,6 @@
 
     # Common host imports (desktop, gaming, networking, etc.)
     ../../modules/common-host.nix
-
-    # Gaming support
-    ../../modules/gaming/gaming.nix
-
-    # Mining support
-    ../../modules/mining/mining.nix
 
     # NVIDIA GPU support (common + wayland-specific)
     ../../modules/hardware/nvidia-common.nix
