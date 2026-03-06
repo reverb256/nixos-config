@@ -47,9 +47,15 @@
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Colmena - Multi-host deployment
+    colmena = {
+      url = "github:zhaofengli/colmena";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, spicetify-nix, zen-browser, firefox-addons, aagl, nur, claude-native, nixpkgs-xr, scopebuddy, nixcord, agenix }:
+  outputs = { self, nixpkgs, home-manager, spicetify-nix, zen-browser, firefox-addons, aagl, nur, claude-native, nixpkgs-xr, scopebuddy, nixcord, agenix, colmena }:
     {
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
 
