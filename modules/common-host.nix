@@ -48,5 +48,13 @@
     # Speech-to-text dictation (desktop environments)
     # NOTE: Not in default.nix since only desktop hosts need audio/keyboard injection
     ./services/whisper-dictation.nix
+
+    # Network configuration
+    # NOTE: Cluster-wide network constants (IPs, ports, host definitions)
+    ./network-constants.nix
+
+    # Mosh for unreliable connections
+    # NOTE: Better SSH for mobile/unstable networks, useful for remote deployment
+    ./system/mosh.nix
   ];
 }
