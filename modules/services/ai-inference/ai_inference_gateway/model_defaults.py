@@ -13,6 +13,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# Vision-specific temperature overrides
+VISION_TEMPERATURE_OVERRIDES = {
+    "0.8b": 0.7,  # Vision requires lower temp for consistency
+    "2b": 0.7,
+}
+
+
 # Model parameter patterns
 # These map model name patterns to their optimal defaults
 MODEL_DEFAULTS = {
@@ -148,7 +155,8 @@ def get_model_defaults(model_id: str) -> Dict[str, Any]:
 def apply_model_defaults(
     model_id: str,
     request_params: Dict[str, Any],
-    override: bool = False
+    override: bool = False,
+    is_vision_request: bool = False
 ) -> Dict[str, Any]:
     """
     Apply model-specific defaults to request parameters.
@@ -158,12 +166,21 @@ def apply_model_defaults(
         request_params: Original request parameters
         override: If True, defaults override user params.
                    If False (default), only fill missing values.
+        is_vision_request: If True, use vision-specific temperature
 
     Returns:
         Updated request parameters with defaults applied
     """
     defaults = get_model_defaults(model_id)
     result = request_params.copy()
+
+    # For vision requests, override temperature to be more conservative
+    if is_vision_request:
+        for pattern, vision_temp in VISION_TEMPERATURE_OVERRIDES.items():
+            if pattern in model_id.lower():
+                defaults["temperature"] = vision_temp
+                logger.debug(f"Using vision-specific temperature {vision_temp} for {model_id}")
+                break
 
     # Apply defaults
     if override:
@@ -186,6 +203,7 @@ def apply_model_defaults(
         f"temperature={result.get('temperature')}, "
         f"top_p={result.get('top_p')}, "
         f"max_tokens={result.get('max_tokens')}"
+        + (f" [vision request]" if is_vision_request else "")
     )
 
     return result
