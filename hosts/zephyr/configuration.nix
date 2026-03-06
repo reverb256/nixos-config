@@ -37,9 +37,9 @@
 
   # Corsair hardware support (AIO cooler, RGB, Commander)
   hardware.corsair.enable = true;
-  hardware.corsair.aio.enable = true;         # Corsair H115i AIO control
-  hardware.corsair.rgb.enable = true;         # OpenRGB for RGB control
-  hardware.corsair.autoStartRgb = false;      # Don't auto-start (conflicts with liquidctl)
+  hardware.corsair.aio.enable = true; # Corsair H115i AIO control
+  hardware.corsair.rgb.enable = true; # OpenRGB for RGB control
+  hardware.corsair.autoStartRgb = false; # Don't auto-start (conflicts with liquidctl)
 
   networking.networkmanager.enable = true;
 
@@ -295,8 +295,37 @@
         };
 
         # ========================================================================
-        # LOCAL MCP SERVERS (stdio-based)
-        # TEMPORARILY DISABLED: Module structure needs investigation
+        # NIXOS SKILLS MCP SERVERS (Local stdio-based)
+        # These convert Claude Code skills to MCP servers for OpenCode integration
+        # ========================================================================
+
+        # nix-rebuild skill - Safe NixOS rebuilding workflow
+        nix-rebuild = {
+          type = "local";
+          command = [
+            "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+            "/etc/nixos/skills/nix-rebuild-mcp/server.py"
+          ];
+          environment = {
+            NIX_HOST = "zephyr";
+          };
+          enabled = true;
+        };
+
+        # add-service skill - Create systemd service modules
+        add-service = {
+          type = "local";
+          command = [
+            "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+            "/etc/nixos/skills/add-service-mcp/server.py"
+          ];
+          environment = { };
+          enabled = true;
+        };
+
+        # ========================================================================
+        # ADDITIONAL LOCAL MCP SERVERS (TEMPORARILY DISABLED)
+        # Module structure needs investigation
         # ========================================================================
 
         # # Filesystem MCP server - safe file access to NixOS configuration
