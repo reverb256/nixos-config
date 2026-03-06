@@ -37,8 +37,9 @@
 
   # Corsair hardware support (AIO cooler, RGB, Commander)
   hardware.corsair.enable = true;
-  hardware.corsair.aio.enable = true;    # Corsair H115i AIO control
-  hardware.corsair.rgb.enable = true;    # OpenRGB for RGB control
+  hardware.corsair.aio.enable = true;         # Corsair H115i AIO control
+  hardware.corsair.rgb.enable = true;         # OpenRGB for RGB control
+  hardware.corsair.autoStartRgb = false;      # Don't auto-start (conflicts with liquidctl)
 
   networking.networkmanager.enable = true;
 
@@ -531,6 +532,18 @@
       #!${pkgs.bash}/bin/bash
       # Corsair AIO cooler status
       exec /etc/nixos/scripts/corsair-status.sh
+    '')
+
+    (pkgs.writeShellScriptBin "corsair-rgb" ''
+      #!${pkgs.bash}/bin/bash
+      # Start OpenRGB GUI for Corsair RGB control
+      exec /etc/nixos/scripts/corsair-rgb
+    '')
+
+    (pkgs.writeShellScriptBin "corsair-rgb-server" ''
+      #!${pkgs.bash}/bin/bash
+      # Start OpenRGB server for programmatic RGB control
+      exec /etc/nixos/scripts/corsair-rgb-server
     '')
 
     # Network discovery & mapping

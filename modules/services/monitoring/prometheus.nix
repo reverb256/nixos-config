@@ -53,10 +53,10 @@ in
           static_configs = [
             {
               targets = [
-                "${hosts.zephyr.ip}:${toString ports.node-exporter}"
-                "${hosts.nexus.ip}:${toString ports.node-exporter}"
-                "${hosts.forge.ip}:${toString ports.node-exporter}"
-                "${hosts.sentry.ip}:${toString ports.node-exporter}"
+                "zephyr:${toString ports.node-exporter}"
+                "nexus:${toString ports.node-exporter}"
+                "forge:${toString ports.node-exporter}"
+                "sentry:${toString ports.node-exporter}"
               ];
               labels = {
                 environment = "production";
@@ -71,10 +71,10 @@ in
           static_configs = [
             {
               targets = [
-                "${hosts.zephyr.ip}:9105"
-                "${hosts.nexus.ip}:9105"
-                "${hosts.forge.ip}:9105"
-                "${hosts.sentry.ip}:9105"
+                "zephyr:9105"
+                "nexus:9105"
+                "forge:9105"
+                "sentry:9105"
               ];
               labels = {
                 environment = "production";
@@ -89,9 +89,9 @@ in
           static_configs = [
             {
               targets = [
-                "${hosts.zephyr.ip}:9400"
-                "${hosts.nexus.ip}:9400"
-                "${hosts.forge.ip}:9400"
+                "zephyr:9400"
+                "nexus:9400"
+                "forge:9400"
               ];
             }
           ];
@@ -102,7 +102,7 @@ in
           job_name = "prometheus";
           static_configs = [
             {
-              targets = [ "127.0.0.1:${toString ports.prometheus}" ];
+              targets = [ "localhost:${toString ports.prometheus}" ];
             }
           ];
         }

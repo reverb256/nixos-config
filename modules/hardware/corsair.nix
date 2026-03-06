@@ -23,14 +23,20 @@ in
     };
 
     # Kernel modules for Corsair devices
+    # Note: corsair-cwi is NOT loaded as it conflicts with liquidctl/OpenRGB
     kernelModules = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [
-        "corsair-cwi"      # Corsair USB input driver
         "usbhid"           # Generic USB HID support
-        "hid Corsair"       # Alternative HID module
       ];
       description = "Kernel modules for Corsair devices";
+    };
+
+    # OpenRGB auto-start service
+    autoStartRgb = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Auto-start OpenRGB server at boot (conflicts with liquidctl monitoring)";
     };
   };
 
@@ -39,11 +45,8 @@ in
     environment.systemPackages = with pkgs; [
       liquidctl    # Corsair AIO cooler control
       openrgb      # OpenRGB for RGB control
-    ] ++ lib.optionals cfg.aio.enable [
-      # Optional AIO tools
     ] ++ lib.optionals cfg.rgb.enable [
-      # OpenRGB plugins
-      openrgb-plugin-effects
+      openrgb-plugin-effects  # OpenRGB effects plugin
     ];
 
     # Load kernel modules for Corsair devices
@@ -72,9 +75,9 @@ in
       KERNEL=="hidraw*", ATTRS{idVendor}=="1b1c", TAG+="uaccess"
     '';
 
-    # Optional: OpenRGB service for auto-start
-    systemd.services.openrgb = lib.mkIf cfg.rgb.enable {
-      description = "OpenRGB RGB lighting control";
+    # OpenRGB service for auto-start (disabled by default to avoid conflicts with liquidctl)
+    systemd.services.openrgb = lib.mkIf (cfg.rgb.enable && cfg.autoStartRgb) {
+      description = "OpenRGB RGB lighting control server";
       wantedBy = [ "multi-user.target" ];
       after = [ "graphical-session.target" ];
       serviceConfig = {
@@ -82,5 +85,65 @@ in
         Restart = "on-failure";
       };
     };
+
+    # Helper script: AIO status and monitoring
+    environment.etc."corsair-status.sh".source = pkgs.writeShellScriptBin "corsair-status" ''
+      #!/usr/bin/env bash
+      # Corsair AIO and RGB Status
+
+      echo "╔══════════════════════════════════════════════════════════════════╗"
+      echo "║              Corsair Device Status                                ║"
+      echo "╚══════════════════════════════════════════════════════════════════╝"
+      echo ""
+
+      # Color codes
+      RED='\033[0;31m'
+      YELLOW='\033[1;33m'
+      GREEN='\033[0;32m'
+      BLUE='\033[0;34m'
+      CYAN='\033[0;36m'
+      NC='\033[0m'
+
+      if ! command -v liquidctl &> /dev/null; then
+          echo -e "''${RED}Error: liquidctl not found!''${NC}"
+          exit 1
+      fi
+
+      # Check if OpenRGB is running and stop it temporarily
+      OPENRGB_RUNNING=false
+      if systemctl is-active --quiet openrgb 2>/dev/null; then
+          echo -e "''${YELLOW}Stopping OpenRGB service temporarily...''${NC}"
+          systemctl stop openrgb
+          OPENRGB_RUNNING=true
+          sleep 1
+      fi
+
+      echo -e "''${CYAN}=== Corsair Devices ===''${NC}"
+      liquidctl list
+      echo ""
+
+      echo -e "''${CYAN}=== AIO Cooler Status ===''${NC}"
+      if liquidctl status &>/dev/null; then
+          liquidctl status
+      else
+          echo "No AIO devices found or unavailable"
+      fi
+      echo ""
+
+      # Restart OpenRGB if it was running
+      if [ "$OPENRGB_RUNNING" = true ]; then
+          echo -e "''${CYAN}Restarting OpenRGB service...''${NC}"
+          systemctl start openrgb
+          echo ""
+      fi
+
+      echo -e "''${CYAN}=== Commands ===''${NC}"
+      echo "  liquidctl list           - List all Corsair devices"
+      echo "  liquidctl status         - Show AIO cooler status"
+      echo "  liquidctl initialize     - Initialize all devices"
+      echo "  corsair-rgb              - Start OpenRGB GUI"
+      echo "  corsair-rgb-server       - Start OpenRGB server mode"
+      echo ""
+    '';
   };
 }
