@@ -52,6 +52,11 @@
 
   services.xserver.videoDrivers = ["amdgpu"];
 
+  # Hardware monitoring (lm-sensors for CPU/motherboard temps)
+  hardware.monitoring.enable = true;
+  hardware.monitoring.autoDetect = true; # Auto-detect sensor chips
+  hardware.monitoring.fanControl = false; # BIOS fan control for now
+
   # ============================================================================
   # PLASMA WAYLAND
   # ============================================================================
