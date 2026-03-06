@@ -1,10 +1,9 @@
 # Nix Configuration Module
 # Binary caches, experimental features, and Nix settings
-{ config, lib, pkgs, ... }:
-{
+_: {
   # Enable nix-command and flakes
   nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
+    experimental-features = ["nix-command" "flakes"];
 
     # Binary caches
     substituters = [
@@ -21,7 +20,7 @@
       "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
     ];
 
-    trusted-users = [ "root" "j_kro" ];
+    trusted-users = ["root" "j_kro"];
   };
 
   # Allow unfree packages

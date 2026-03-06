@@ -6,19 +6,16 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-    }:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+  }:
     flake-utils.lib.eachDefaultSystem (
-      system:
-      let
+      system: let
         pkgs = nixpkgs.legacyPackages.${system};
         python = pkgs.python3;
-      in
-      {
+      in {
         packages.default = python.pkgs.buildPythonPackage rec {
           pname = "smrt";
           version = "1.0.0";
@@ -41,7 +38,7 @@
             description = "Python package to control TP-Link Easy Smart switches";
             homepage = "https://github.com/pklaus/smrt";
             license = licenses.gpl3;
-            maintainers = [ ];
+            maintainers = [];
             platforms = platforms.linux ++ platforms.darwin;
           };
         };
@@ -49,9 +46,10 @@
         devShells.default = pkgs.mkShell {
           buildInputs = [
             (python.withPackages (
-              ps: with ps; [
-                netifaces
-              ]
+              ps:
+                with ps; [
+                  netifaces
+                ]
             ))
           ];
         };

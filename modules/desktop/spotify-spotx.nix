@@ -1,18 +1,20 @@
 # Spotify with SpotX Patch
 # Removes ads, enables DRM bypass, and unlocks premium features
 # Refactored to use spotify-common library
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.spotify-spotx;
   inherit (lib) mkIf mkEnableOption mkOption types;
 
   # Import common Spotify utilities
-  spotifyLib = import ./lib/spotify-common.nix { inherit lib pkgs; };
+  spotifyLib = import ./lib/spotify-common.nix {inherit lib pkgs;};
 
   stateDir = spotifyLib.mkSpotifyStateDir "spotx";
-in
-{
+in {
   options.services.spotify-spotx = {
     enable = mkEnableOption "Spotify with SpotX patch (ad-free, premium features)";
 
@@ -182,8 +184,8 @@ in
     # Run after Flatpak updates
     systemd.services.flatpak-update-after-spotx = lib.mkIf config.services.flatpak.enable {
       description = "Run SpotX patch after Flatpak updates";
-      after = [ "flatpak-update.service" ];
-      wants = [ "flatpak-update.service" ];
+      after = ["flatpak-update.service"];
+      wants = ["flatpak-update.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "/etc/spotx/patch-manager.sh patch";

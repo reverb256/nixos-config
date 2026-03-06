@@ -1,10 +1,13 @@
 # NVIDIA Common Configuration Module
 # Base NVIDIA driver configuration for all NVIDIA GPUs
-{ config, lib, pkgs, ... }:
-let
-  cfg = config.hardware.nvidia-common;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.hardware.nvidia-common;
+in {
   options.hardware.nvidia-common.enable = lib.mkEnableOption "NVIDIA GPU support";
 
   config = lib.mkIf cfg.enable {
@@ -13,7 +16,7 @@ in
     # LM Studio GUI works fine without it. CLI has 32-bit lib issues but GUI is primary use.
     hardware.graphics = {
       enable = true;
-      enable32Bit = lib.mkForce false;  # Keep disabled for Wayland stability
+      enable32Bit = lib.mkForce false; # Keep disabled for Wayland stability
 
       extraPackages = with pkgs; [
         vulkan-loader
@@ -22,7 +25,7 @@ in
     };
 
     # Load nvidia driver for Xorg and Wayland
-    services.xserver.videoDrivers = [ "nvidia" ];
+    services.xserver.videoDrivers = ["nvidia"];
 
     hardware.nvidia = {
       # Modesetting is required for Wayland

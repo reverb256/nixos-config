@@ -1,11 +1,8 @@
 # TV Monitor Daemon - Automatically manage TV display and audio
-{
-  config, lib, pkgs, ...
-}:
-let
+{pkgs, ...}: let
   tvMonitorDaemon = pkgs.writeShellApplication {
     name = "tv-monitor-daemon";
-    runtimeInputs = with pkgs; [ kdePackages.kscreen libnotify wireplumber ];
+    runtimeInputs = with pkgs; [kdePackages.kscreen libnotify wireplumber];
     text = ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -131,16 +128,15 @@ let
       done
     '';
   };
-in
-{
+in {
   # Add the daemon to system packages
-  environment.systemPackages = [ tvMonitorDaemon ];
+  environment.systemPackages = [tvMonitorDaemon];
 
   # Systemd user service for the TV monitor daemon
   systemd.user.services.tv-monitor-daemon = {
     description = "Monitor TV power state and manage display/audio";
-    wantedBy = [ "graphical-session.target" ];
-    after = [ "plasma-plasmashell.service" "graphical-session.target" ];
+    wantedBy = ["graphical-session.target"];
+    after = ["plasma-plasmashell.service" "graphical-session.target"];
     serviceConfig = {
       Type = "simple";
       ExecStart = "${tvMonitorDaemon}/bin/tv-monitor-daemon";

@@ -4,22 +4,18 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
-  outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-    }:
-    let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
-    in
-    flake-utils.lib.eachSystem [ system ] (
-      system:
-      let
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+  }: let
+    system = "x86_64-linux";
+    pkgs = nixpkgs.legacyPackages.${system};
+  in
+    flake-utils.lib.eachSystem [system] (
+      system: let
         inherit pkgs system;
-      in
-      {
+      in {
         packages.${system} = {
           # NixOS Skills MCP Server Package
           nixos-skills-mcp = pkgs.python312Packages.buildPythonPackage rec {

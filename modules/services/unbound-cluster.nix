@@ -3,21 +3,17 @@
 {
   config,
   lib,
-  pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.unbound-cluster;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     ;
-in
-
-{
+in {
   options.services.unbound-cluster = {
     enable = mkEnableOption "Unbound DNS resolver for local cluster network";
 
@@ -32,9 +28,9 @@ in
     upstreamTls = mkOption {
       type = types.listOf types.str;
       default = [
-        "9.9.9.9@853"   # Quad9 DNS-over-TLS (security-focused, blocks malicious domains)
-        "1.1.1.1@853"   # Cloudflare DNS-over-TLS (privacy-focused)
-        "8.8.8.8@853"   # Google DNS-over-TLS (global reach)
+        "9.9.9.9@853" # Quad9 DNS-over-TLS (security-focused, blocks malicious domains)
+        "1.1.1.1@853" # Cloudflare DNS-over-TLS (privacy-focused)
+        "8.8.8.8@853" # Google DNS-over-TLS (global reach)
       ];
       description = "Upstream DNS servers with TLS (port 853 for DoT)";
     };
@@ -65,7 +61,7 @@ in
             "127.0.0.1"
             cfg.listenAddress
           ];
-          port = cfg.port;
+          inherit (cfg) port;
 
           # Access control - allow local network
           access-control = [
@@ -95,7 +91,7 @@ in
             ''"10.in-addr.arpa"''
             ''"168.192.in-addr.arpa"''
             ''"16.172.in-addr.arpa"''
-            ''"tigris-ule.ts.net"''  # Tailscale domain
+            ''"tigris-ule.ts.net"'' # Tailscale domain
           ];
 
           # Local zones - never forward these to upstream DNS
@@ -103,9 +99,9 @@ in
           local-zone = [
             ''"cluster.local" static''
             # Private network zones (RFC 1918) - prevent leaking local network queries
-            ''"10.in-addr.arpa" static''  # 10.0.0.0/8 reverse DNS
-            ''"168.192.in-addr.arpa" static''  # 192.168.0.0/16 reverse DNS
-            ''"16.172.in-addr.arpa" static''  # 172.16.0.0/12 reverse DNS
+            ''"10.in-addr.arpa" static'' # 10.0.0.0/8 reverse DNS
+            ''"168.192.in-addr.arpa" static'' # 192.168.0.0/16 reverse DNS
+            ''"16.172.in-addr.arpa" static'' # 172.16.0.0/12 reverse DNS
             # Tailscale network zone (CGNAT)
             ''"tigris-ule.ts.net" static''
           ];
@@ -136,7 +132,7 @@ in
     };
 
     # Firewall - allow DNS from local network
-    networking.firewall.allowedUDPPorts = [ cfg.port ];
-    networking.firewall.allowedTCPPorts = [ cfg.port ];
+    networking.firewall.allowedUDPPorts = [cfg.port];
+    networking.firewall.allowedTCPPorts = [cfg.port];
   };
 }

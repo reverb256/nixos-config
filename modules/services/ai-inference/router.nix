@@ -4,11 +4,9 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.ai-inference;
-  inherit (lib) mkIf mkDefault;
+  inherit (lib) mkIf;
 
   # Router logic (embedded in gateway, but config is here)
   # The routing rules are applied in the gateway before forwarding to backend
@@ -60,12 +58,10 @@ let
       '')
     ];
   };
-
-
 in {
   config = mkIf (cfg.enable && cfg.routing.enable) {
     # Add routing utilities to system packages
-    environment.systemPackages = [ tokenEstimator ];
+    environment.systemPackages = [tokenEstimator];
 
     # The routing logic is embedded in the gateway
     # This module primarily provides configuration and utilities

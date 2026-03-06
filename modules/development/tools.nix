@@ -1,10 +1,6 @@
 # Development Tools Module
 # General development tools and utilities (expanded from XNM1)
-{
-  pkgs,
-  lib,
-  ...
-}: {
+{pkgs, ...}: {
   # ============================================================================
   # ENVIRONMENT MANAGEMENT
   # ============================================================================

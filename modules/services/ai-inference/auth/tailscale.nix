@@ -4,32 +4,32 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.ai-inference;
   authCfg = config.services.ai-inference.auth;
   inherit (lib) mkIf mkDefault;
-
 in {
   config = mkIf (cfg.enable && authCfg.mode == "tailscale") {
     # Ensure Tailscale is enabled
     services.tailscale = {
       enable = true;
-      extraUpFlags = [ "--accept-routes" ];
+      extraUpFlags = ["--accept-routes"];
     };
 
     # Configure gateway to listen on Tailscale IP
     # Note: The actual IP needs to be configured by the user
     # as Tailscale IPs are assigned dynamically
-    services.ai-inference.gateway.host = mkDefault "100.64.0.1";  # Example, user should override
+    services.ai-inference.gateway.host = mkDefault "100.64.0.1"; # Example, user should override
 
     # Nginx reverse proxy for Tailscale authentication (optional)
     services.nginx = mkIf (builtins.length authCfg.tailscale.aclTags > 0) {
       enable = true;
       virtualHosts."ai-inference-tailscale" = {
         listen = [
-          { addr = "100.64.0.1"; port = 8080; }  # Tailscale IP
+          {
+            addr = "100.64.0.1";
+            port = 8080;
+          } # Tailscale IP
         ];
         locations."/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.gateway.port}";
@@ -56,15 +56,15 @@ in {
 
     # Open Tailscale firewall
     networking.firewall = {
-      allowedTCPPorts = [ 41641 ];  # Tailscale port
-      trustedInterfaces = [ "tailscale0" ];
+      allowedTCPPorts = [41641]; # Tailscale port
+      trustedInterfaces = ["tailscale0"];
     };
 
     # Systemd service to detect Tailscale IP
     systemd.services.ai-inference-tailscale-ip = {
       description = "Detect and configure Tailscale IP for AI inference";
-      after = [ "tailscale.service" "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["tailscale.service" "network-online.target"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "oneshot";

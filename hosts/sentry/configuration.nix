@@ -8,8 +8,6 @@
 {
   lib,
   pkgs,
-  inputs,
-  config,
   ...
 }: {
   imports = [

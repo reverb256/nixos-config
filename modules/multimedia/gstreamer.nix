@@ -1,8 +1,12 @@
 # GStreamer Multimedia Support
 # Provides GStreamer plugins and codec support for Qt/KDE multimedia applications
 # Fixes issues with Audiotube and other Qt Multimedia apps on NixOS
-{ config, lib, pkgs, ... }:
-
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib; let
   cfg = config.services.multimedia.gstreamer;
 in {
@@ -54,7 +58,8 @@ in {
 
         # Base plugins - REQUIRED for videoconvert/audioconvert
         # These provide fundamental elements that Qt Multimedia depends on
-      ] ++ optionals cfg.codecs.enableBase [
+      ]
+      ++ optionals cfg.codecs.enableBase [
         gst_all_1.gst-plugins-base
 
         # Development headers (for building apps that use GStreamer)

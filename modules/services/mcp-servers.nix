@@ -18,6 +18,7 @@
       ${lib.concatStringsSep "\n" (lib.mapAttrsToList (k: v: "export ${k}=\"${v}\"") env)}
       exec ${pkgs.nodejs_22}/bin/npx -y ${package} ${lib.concatStringsSep " " args} "$@"
     '';
+  # Helper to create MCP server packages via Python uvx
 in {
   options.services.mcp-servers = {
     enable = lib.mkEnableOption "MCP (Model Context Protocol) servers for all AI tools (OpenCode, Qwen, Kimi, )";
@@ -38,6 +39,84 @@ in {
 
       playwright = {
         enable = lib.mkEnableOption "Playwright MCP server for browser automation" // {default = true;};
+
+        browser = lib.mkOption {
+          type = lib.types.enum ["chrome" "firefox" "webkit" "msedge"];
+          default = "chrome";
+          description = "Browser to use for Playwright automation";
+        };
+
+        capabilities = lib.mkOption {
+          type = lib.types.listOf (lib.types.enum ["vision" "pdf"]);
+          default = [];
+          description = "Additional capabilities to enable (vision, pdf)";
+        };
+
+        headless = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Run browser in headless mode";
+        };
+
+        device = lib.mkOption {
+          type = lib.types.str;
+          default = "";
+          description = "Device to emulate (e.g., 'iPhone 15', 'Desktop Chrome')";
+        };
+
+        viewportSize = lib.mkOption {
+          type = lib.types.str;
+          default = "1280x720";
+          description = "Browser viewport size in pixels (e.g., '1920x1080')";
+        };
+
+        userAgent = lib.mkOption {
+          type = lib.types.str;
+          default = "";
+          description = "Custom user agent string";
+        };
+
+        timeoutAction = lib.mkOption {
+          type = lib.types.int;
+          default = 5000;
+          description = "Action timeout in milliseconds";
+        };
+
+        timeoutNavigation = lib.mkOption {
+          type = lib.types.int;
+          default = 60000;
+          description = "Navigation timeout in milliseconds";
+        };
+
+        ignoreHttpsErrors = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Ignore HTTPS certificate errors";
+        };
+
+        blockServiceWorkers = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Block service workers";
+        };
+
+        saveTrace = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Save Playwright trace for debugging";
+        };
+
+        saveVideo = lib.mkOption {
+          type = lib.types.str;
+          default = "";
+          description = "Save video recording (e.g., '1920x1080')";
+        };
+
+        grantPermissions = lib.mkOption {
+          type = lib.types.listOf (lib.types.str);
+          default = [];
+          description = "Permissions to grant (geolocation, clipboard-read, clipboard-write, etc.)";
+        };
       };
 
       puppeteer = {
@@ -58,7 +137,9 @@ in {
       };
 
       grep-app = {
-        enable = lib.mkEnableOption "Grep.app MCP server for code search" // {default = true;};
+        enable = lib.mkEnableOption "Grep.app MCP server for code search" // {default = false;};
+        # NOTE: Package @grepapp/mcp-server doesn't exist on npm
+        # This server is disabled until a working package is found
       };
 
       brave-search = {
@@ -160,8 +241,72 @@ in {
             echo "[playwright] Using profile directory: $PWMCP_PROFILES_DIR_FOR_TEST"
           fi
 
+          # Build Playwright MCP arguments from NixOS configuration
+          args=()
+
+          # Browser selection (chrome, firefox, webkit, msedge)
+          args+=(--browser "${cfg.servers.playwright.browser}")
+
+          # Additional capabilities (vision, pdf)
+          ${lib.concatStringsSep "\n" (map (cap: "args+=(--caps ${cap})") cfg.servers.playwright.capabilities)}
+
+          # Headless mode
+          ${lib.optionalString cfg.servers.playwright.headless "args+=(--headless)"}
+
+          # Device emulation
+          ${lib.optionalString (cfg.servers.playwright.device != "") "args+=(--device \"${cfg.servers.playwright.device}\")"}
+
+          # Viewport size
+          args+=(--viewport-size "${cfg.servers.playwright.viewportSize}")
+
+          # User agent
+          ${lib.optionalString (cfg.servers.playwright.userAgent != "") "args+=(--user-agent \"${cfg.servers.playwright.userAgent}\")"}
+
+          # Timeouts
+          args+=(--timeout-action "${toString cfg.servers.playwright.timeoutAction}")
+          args+=(--timeout-navigation "${toString cfg.servers.playwright.timeoutNavigation}")
+
+          # Ignore HTTPS errors
+          ${lib.optionalString cfg.servers.playwright.ignoreHttpsErrors "args+=(--ignore-https-errors)"}
+
+          # Block service workers
+          ${lib.optionalString cfg.servers.playwright.blockServiceWorkers "args+=(--block-service-workers)"}
+
+          # Save trace for debugging
+          ${lib.optionalString cfg.servers.playwright.saveTrace "args+=(--save-trace)"}
+
+          # Save video
+          ${lib.optionalString (cfg.servers.playwright.saveVideo != "") "args+=(--save-video \"${cfg.servers.playwright.saveVideo}\")"}
+
+          # Grant permissions
+          ${lib.optionalString (cfg.servers.playwright.grantPermissions != [])
+            "args+=(--grant-permissions ${lib.concatStringsSep " " cfg.servers.playwright.grantPermissions})"}
+
           # Execute Playwright MCP server
-          exec ${pkgs.playwright-mcp}/bin/mcp-server-playwright "$@"
+          exec ${pkgs.playwright-mcp}/bin/mcp-server-playwright "''${args[@]}" "$@"
+        '')
+
+        # Additional browser-specific wrappers for convenience
+        (pkgs.writeShellScriptBin "mcp-playwright-chrome" ''
+          exec mcp-playwright --browser chrome "$@"
+        '')
+
+        (pkgs.writeShellScriptBin "mcp-playwright-firefox" ''
+          exec mcp-playwright --browser firefox "$@"
+        '')
+
+        (pkgs.writeShellScriptBin "mcp-playwright-webkit" ''
+          exec mcp-playwright --browser webkit "$@"
+        '')
+
+        # Headless mode wrapper
+        (pkgs.writeShellScriptBin "mcp-playwright-headless" ''
+          exec mcp-playwright --headless "$@"
+        '')
+
+        # Vision capability wrapper (for image analysis)
+        (pkgs.writeShellScriptBin "mcp-playwright-vision" ''
+          exec mcp-playwright --caps vision "$@"
         '')
       ]
       ++ [
@@ -171,30 +316,35 @@ in {
           args = cfg.servers.filesystem.allowedPaths;
         })
 
-        (mkNpmMcpServer {
-          name = "git";
-          package = "@modelcontextprotocol/server-git";
-        })
+        # Git server is Python-based, use uvx
+        (pkgs.writeShellScriptBin "mcp-git" ''
+          export PATH="${pkgs.uv}/bin:$PATH"
+          exec ${pkgs.uv}/bin/uvx --from mcp-server-git mcp-server-git "$@"
+        '')
 
         (mkNpmMcpServer {
           name = "puppeteer";
           package = "@modelcontextprotocol/server-puppeteer";
         })
 
-        (mkNpmMcpServer {
-          name = "fetch";
-          package = "@modelcontextprotocol/server-fetch";
-        })
+        # Fetch server is Python-based, use uvx
+        (pkgs.writeShellScriptBin "mcp-fetch" ''
+          export PATH="${pkgs.uv}/bin:$PATH"
+          exec ${pkgs.uv}/bin/uvx --from mcp-server-fetch mcp-server-fetch "$@"
+        '')
 
+        # Context7 - fixed package name
         (mkNpmMcpServer {
           name = "context7";
-          package = "@context7/context7-mcp";
+          package = "@upstash/context7-mcp";
         })
 
-        (mkNpmMcpServer {
-          name = "grep-app";
-          package = "@grepapp/mcp-server";
-        })
+        # Grep-app server - package doesn't exist, disabled
+        # TODO: Find correct package or alternative
+        # (mkNpmMcpServer {
+        #   name = "grep-app";
+        #   package = "@grepapp/mcp-server";
+        # })
 
         (mkNpmMcpServer {
           name = "brave-search";
@@ -252,11 +402,38 @@ in {
        | filesystem | `mcp-filesystem` | Local filesystem access |
        | git | `mcp-git` | Git operations |
         | playwright | `mcp-playwright` | Browser automation (uses Nix-provided browsers) |
+        | playwright (chrome) | `mcp-playwright-chrome` | Browser automation with Chrome |
+        | playwright (firefox) | `mcp-playwright-firefox` | Browser automation with Firefox |
+        | playwright (webkit) | `mcp-playwright-webkit` | Browser automation with WebKit |
+        | playwright (headless) | `mcp-playwright-headless` | Browser automation in headless mode |
+        | playwright (vision) | `mcp-playwright-vision` | Browser automation with vision/AI capabilities |
        | fetch | `mcp-fetch` | Web fetching |
        | context7 | `mcp-context7` | Documentation search |
        | grep-app | `mcp-grep-app` | Code search |
         | chrome-devtools | `mcp-chrome-devtools` | Chrome debugging |
         | github | `mcp-github` | GitHub integration |
+
+       ## Playwright Configuration
+
+       The Playwright MCP server can be configured via NixOS:
+
+       ```nix
+       services.mcp-servers.playwright = {
+         enable = true;
+         browser = "chrome";  # chrome, firefox, webkit, msedge
+         capabilities = ["vision" "pdf"];  # Additional capabilities
+         headless = false;
+         device = "";  # e.g., "iPhone 15"
+         viewportSize = "1280x720";
+         timeoutAction = 5000;
+         timeoutNavigation = 60000;
+         ignoreHttpsErrors = false;
+         blockServiceWorkers = false;
+         saveTrace = false;
+         saveVideo = "";  # e.g., "1920x1080"
+         grantPermissions = ["geolocation"];
+       };
+       ```
 
        ## Configuration
 

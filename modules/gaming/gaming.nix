@@ -460,12 +460,12 @@ in {
 
       systemd.services.gpu-workload-monitor = {
         description = "Autonomous GPU workload monitor and profile manager";
-        after = [ "nvidia-persistence-mode.service" "network.target" ];
-        wantedBy = [ "multi-user.target" ];
+        after = ["nvidia-persistence-mode.service" "network.target"];
+        wantedBy = ["multi-user.target"];
         path = with pkgs; [
           # System utilities
-          procps  # pgrep
-          systemd  # systemctl
+          procps # pgrep
+          systemd # systemctl
         ];
         serviceConfig = {
           Type = "simple";
@@ -671,7 +671,7 @@ in {
           Restart = "on-failure";
           RestartSec = "10s";
           # Allow access to nvidia-smi and systemd
-          AmbientCapabilities = [ "CAP_NET_ADMIN" ];
+          AmbientCapabilities = ["CAP_NET_ADMIN"];
         };
       };
 
@@ -680,7 +680,6 @@ in {
       # ============================================================================
       # GameMode provides automatic detection when games start/stop
       # and runs our custom scripts to switch GPU profiles
-
 
       # ============================================================================
       # GPU PROFILE COMMANDS

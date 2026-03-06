@@ -251,7 +251,7 @@ in {
             ${lib.optionalString (
             hostConfig.amd && hostConfig ? lolminerAmdPort
           ) "fetch_lolminer ${toString hostConfig.lolminerAmdPort} amd"}
-            ${lib.optionalString (hostConfig.cpu) "fetch_xmrig ${toString hostConfig.xmrigPort}"}
+            ${lib.optionalString hostConfig.cpu "fetch_xmrig ${toString hostConfig.xmrigPort}"}
 
             # Atomic move to final location
             mv "$METRICS_FILE" "$FINAL_METRICS"

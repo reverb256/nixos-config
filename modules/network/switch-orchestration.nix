@@ -1,24 +1,20 @@
 # NixOS Network Switch Orchestration Module
 # TP-Link Switch Management and Topology Discovery
-
 {
   config,
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.networking.switch-orchestration;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     ;
-
-in
-{
+in {
   options.networking.switch-orchestration = {
     enable = mkEnableOption "TP-Link switch orchestration and management";
 
@@ -93,7 +89,7 @@ in
           };
         };
       };
-      default = { };
+      default = {};
     };
 
     vlans = mkOption {
@@ -199,7 +195,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    networking.firewall.allowedTCPPorts = [ 80 ];
+    networking.firewall.allowedTCPPorts = [80];
     networking.firewall.allowedUDPPorts = [
       161
       29808
@@ -214,7 +210,7 @@ in
 
     environment.systemPackages = with pkgs; [
       # Python TP-Link switch management library
-      (pkgs.python3.withPackages (ps: with ps; [ requests ]))
+      (pkgs.python3.withPackages (ps: with ps; [requests]))
 
       # CLI Tools
       (pkgs.writeShellScriptBin "switch-discover" ''
@@ -483,8 +479,8 @@ in
     systemd.services = {
       "switch-discovery" = {
         description = "TP-Link Switch Discovery Service";
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${pkgs.writeShellScript "switch-discovery-run" ''
@@ -498,9 +494,9 @@ in
       # SNMP Exporter for TP-Link switches
       "snmp-exporter-switches" = {
         description = "Prometheus SNMP Exporter for TP-Link Switches";
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
-        wantedBy = [ "multi-user.target" ];
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
+        wantedBy = ["multi-user.target"];
         serviceConfig = {
           Type = "simple";
           ExecStart = "${pkgs.prometheus-snmp-exporter}/bin/snmp_exporter --config.file=/etc/snmp-exporter/switches.yml";

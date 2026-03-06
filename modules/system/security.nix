@@ -1,29 +1,13 @@
 # Security Module
 # Comprehensive security hardening with Podman, USBGuard, Fail2Ban, and Firejail
-{config, pkgs, lib, ...}: let
-  # Hardcoded cluster IPs to prevent infinite recursion
-  cluster = {
-    hosts = {
-      zephyr.ip = "10.1.1.110";
-      nexus.ip = "10.1.1.120";
-      forge.ip = "10.1.1.130";
-      sentry.ip = "10.1.1.140";
-    };
-    tailscale = {
-      zephyr = "100.81.182.5";
-      nexus = "100.86.158.18";
-      forge = "100.95.222.45";
-      sentry = "100.82.210.39";
-    };
-  };
-in {
+{pkgs, ...}: {
   # Install security packages
   environment.systemPackages = with pkgs; [
     # Security tools
     fail2ban
     usbguard
     firejail
-    bubblewrap        # Bubblewrap - modern sandboxing
+    bubblewrap # Bubblewrap - modern sandboxing
 
     # Audit and analysis
     lynis
@@ -65,18 +49,18 @@ in {
     ignoreIP = [
       "127.0.0.1"
       "::1"
-      "10.1.1.0/24"      # Local network
-      "100.64.0.0/10"      # Tailscale CGNAT range
+      "10.1.1.0/24" # Local network
+      "100.64.0.0/10" # Tailscale CGNAT range
       # Individual host IPs
-      "10.1.1.110"  # zephyr
-      "10.1.1.120"  # nexus
-      "10.1.1.130"  # forge
-      "10.1.1.140"  # sentry
+      "10.1.1.110" # zephyr
+      "10.1.1.120" # nexus
+      "10.1.1.130" # forge
+      "10.1.1.140" # sentry
       # Tailscale IPs
-      "100.81.182.5"   # zephyr
-      "100.86.158.18"  # nexus
-      "100.95.222.45"  # forge
-      "100.82.210.39"  # sentry
+      "100.81.182.5" # zephyr
+      "100.86.158.18" # nexus
+      "100.95.222.45" # forge
+      "100.82.210.39" # sentry
     ];
 
     # Jails for common services

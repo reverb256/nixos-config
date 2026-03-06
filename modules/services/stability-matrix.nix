@@ -7,8 +7,7 @@
   config,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.programs.stability-matrix;
   inherit (pkgs) appimageTools fetchzip;
 
@@ -93,8 +92,7 @@ let
     cd "$SM_DATA"
     exec ${pkgs.steam-run}/bin/steam-run ${wrappedApp}/bin/${pname} "$@"
   '';
-in
-{
+in {
   options.programs.stability-matrix = {
     enable = lib.mkEnableOption "StabilityMatrix - Package Manager for Stable Diffusion";
 

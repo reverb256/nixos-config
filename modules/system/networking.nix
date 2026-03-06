@@ -67,8 +67,17 @@
     };
     # Security hardening: restrict to wired interfaces only
     # Override per-host with allowInterfaces/denyInterfaces if needed
-    allowInterfaces = ["enp38s0" "enp7s0"]; # zephyr and nexus wired NICs
-    denyInterfaces = ["tailscale0" "wlan*" "docker*" "virbr*" "wg*"];
+    allowInterfaces = [
+      "enp38s0"
+      "enp7s0"
+    ]; # zephyr and nexus wired NICs
+    denyInterfaces = [
+      "tailscale0"
+      "wlan*"
+      "docker*"
+      "virbr*"
+      "wg*"
+    ];
     # Extra config for security hardening
     extraConfig = ''
       [wide-area]
@@ -92,7 +101,10 @@
     enable = true;
     settings = {
       server = {
-        interface = ["127.0.0.1" "::1"];
+        interface = [
+          "127.0.0.1"
+          "::1"
+        ];
         port = 53;
         access-control = [
           "127.0.0.0/8 allow"
@@ -124,6 +136,17 @@
 
       # Forward all other queries to upstream DNS with TLS
       forward-zone = [
+        # ASUS-specific forward zone for BIOS downloads
+        {
+          name = "asus-cdn";
+          forward-addr = [
+            "52.85.12.13"
+            "52.85.12.97"
+            "52.85.12.88"
+            "52.85.12.65"
+          ];
+        }
+        # General DNS forwarding with DoT
         {
           name = ".";
           forward-addr = [
@@ -141,7 +164,10 @@
   };
 
   # Use local unbound as DNS resolver
-  networking.nameservers = ["127.0.0.1" "::1"];
+  networking.nameservers = [
+    "127.0.0.1"
+    "::1"
+  ];
 
   # ============================================================================
   # SYSTEMD-TIMESYNGD - Modern NTP Client
@@ -149,8 +175,8 @@
   services.timesyncd = {
     enable = true;
     servers = [
-      "time.cloudflare.com"  # Cloudflare NTP (Anycast)
-      "time.google.com"      # Google NTP (Anycast)
+      "time.cloudflare.com" # Cloudflare NTP (Anycast)
+      "time.google.com" # Google NTP (Anycast)
     ];
   };
 
@@ -168,7 +194,13 @@
     enable = true;
     # Base allowed ports - all hosts get these
     allowedTCPPorts = [22]; # SSH (essential for cluster management)
-    allowedUDPPorts = [60001 60002 60003 60004 60005]; # Mosh (UDP range start)
+    allowedUDPPorts = [
+      60001
+      60002
+      60003
+      60004
+      60005
+    ]; # Mosh (UDP range start)
     # Additional ports can be added per-host in hosts/*/default.nix
   };
 

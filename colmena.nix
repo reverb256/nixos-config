@@ -3,7 +3,6 @@
 {
   inputs,
   self,
-  hosts,
   ...
 }: let
   # ========================================================================
@@ -20,7 +19,7 @@
     ./modules/default.nix
 
     # Overlays configuration - applies overlays.default to all hosts
-    { nixpkgs.overlays = [ self.overlays.default ]; }
+    {nixpkgs.overlays = [self.overlays.default];}
   ];
 
   # ========================================================================
@@ -29,10 +28,12 @@
   mkHost = {
     hostName,
     targetHost,
-  }: { ... }: {
-    imports = commonModules ++ [
-      ./hosts/${hostName}/configuration.nix
-    ];
+  }: {...}: {
+    imports =
+      commonModules
+      ++ [
+        ./hosts/${hostName}/configuration.nix
+      ];
 
     deployment = {
       inherit targetHost;
@@ -46,19 +47,18 @@
   # Uses Tailscale DNS for reliable cluster connectivity
   # ========================================================================
   hostDeployment = {
-    zephyr = { targetHost = null; };  # Local host - no SSH needed
-    nexus = { targetHost = "nexus"; };
-    forge = { targetHost = "forge"; };
-    sentry = { targetHost = "sentry"; };
+    zephyr = {targetHost = null;}; # Local host - no SSH needed
+    nexus = {targetHost = "nexus";};
+    forge = {targetHost = "forge";};
+    sentry = {targetHost = "sentry";};
   };
-
 in {
   meta = {
     nixpkgs = import inputs.nixpkgs {
       system = "x86_64-linux";
       config.allowUnfree = true;
     };
-    specialArgs = { inherit inputs self; };
+    specialArgs = {inherit inputs self;};
   };
 
   # ========================================================================
@@ -66,21 +66,21 @@ in {
   # ========================================================================
   zephyr = mkHost {
     hostName = "zephyr";
-    targetHost = hostDeployment.zephyr.targetHost;
+    inherit (hostDeployment.zephyr) targetHost;
   };
 
   nexus = mkHost {
     hostName = "nexus";
-    targetHost = hostDeployment.nexus.targetHost;
+    inherit (hostDeployment.nexus) targetHost;
   };
 
   forge = mkHost {
     hostName = "forge";
-    targetHost = hostDeployment.forge.targetHost;
+    inherit (hostDeployment.forge) targetHost;
   };
 
   sentry = mkHost {
     hostName = "sentry";
-    targetHost = hostDeployment.sentry.targetHost;
+    inherit (hostDeployment.sentry) targetHost;
   };
 }

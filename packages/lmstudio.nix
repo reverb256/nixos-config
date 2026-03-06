@@ -1,9 +1,7 @@
 {
   appimageTools,
   fetchurl,
-  lib,
 }:
-
 appimageTools.wrapType2 rec {
   pname = "lmstudio";
   version = "0.4.6-1";
@@ -13,11 +11,11 @@ appimageTools.wrapType2 rec {
     sha256 = "1yaz5i5qdf2nb7llaml2g3wdck2mwpgpw8kyr787ma5777iplxhl";
   };
 
-  extraPkgs = pkgs: with pkgs; [
-    fuse3
-    zlib
-    glib
-    gtk3
-  ];
+  extraPkgs = pkgs:
+    with pkgs; [
+      fuse3
+      zlib
+      glib
+      gtk3
+    ];
 }
-

@@ -3,9 +3,7 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   syncScript = pkgs.writeShellApplication {
     name = "opencode-sync-models";
     runtimeInputs = [
@@ -16,8 +14,7 @@ let
       exec ${./opencode-sync-models.py} "$@"
     '';
   };
-in
-{
+in {
   options.services.opencode-sync = {
     enable = lib.mkEnableOption "OpenCode model sync from AI Gateway";
 
@@ -38,7 +35,7 @@ in
   config = lib.mkIf config.services.opencode-sync.enable {
     systemd.timers.opencode-sync = {
       description = "Sync OpenCode models from AI Gateway";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnUnitActiveSec = config.services.opencode-sync.interval;
         OnBootSec = "1min";
