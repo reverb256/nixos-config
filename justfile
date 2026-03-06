@@ -1,72 +1,99 @@
-# NixOS Configuration Justfile
-# Run `just` to see available commands
+# NixOS Cluster Deployment - Single-Source-of-Truth Colmena
+# All deployment managed centrally from zephyr
 
-default:
+export NIX_SHOW_STATS := "0"
+FLAKE_PATH := "/etc/nixos"
+
+_default:
     @just --list
 
-# Check configuration syntax (no build)
-check:
-    nix flake check
+# ============================================================================
+# CRITICAL: Pre-deployment verification
+# ============================================================================
+verify-db:
+    @echo "Checking distributed builds..."
+    @sudo nix-show-config 2>/dev/null | grep -A 10 "builders" || echo "No builders configured"
 
-# Update all flake inputs
-update:
-    nix flake update
+# ============================================================================
+# DEPLOYMENT COMMANDS
+# ============================================================================
+# Deploy to all hosts via colmena
+deploy:
+    just verify-db
+    @echo "Deploying to all hosts..."
+    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- apply --on @all --keep-result
 
-# Show available configurations
-show:
-    nix flake show
+# Deploy to zephyr only
+zephyr:
+    @echo "Deploying to zephyr..."
+    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
 
-# Build configuration (dry-run, no system modification)
-build:
-    sudo nixos-rebuild build --flake .#zephyr
+# Deploy to nexus only
+nexus:
+    @echo "Deploying to nexus..."
+    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- apply --on nexus
 
-# Test configuration (applies changes, rollback on next boot)
-test:
-    sudo nixos-rebuild test --flake .#zephyr
+# Deploy to forge only
+forge:
+    @echo "Deploying to forge..."
+    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- apply --on forge
 
-# Switch to new configuration (persist across reboots)
+# Deploy to sentry only
+sentry:
+    @echo "Deploying to sentry..."
+    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- apply --on sentry
+
+# ============================================================================
+# LOCAL OPERATIONS (no colmena)
+# ============================================================================
+# Local switch (current host only)
 switch:
-    sudo nixos-rebuild switch --flake .#zephyr
+    @echo "Switching local system..."
+    cd /etc/nixos && sudo nixos-rebuild switch --flake ".#$(hostname -s)"
 
-# Format all .nix files
-fmt:
-    nix-shell -p nixpkgs-fmt --run "nixpkgs-fmt **/*.nix"
+# Test configuration (dry run)
+test:
+    @echo "Testing configuration..."
+    cd {{FLAKE_PATH}} && nix flake check
+    @echo "Building all hosts (dry run)..."
+    cd {{FLAKE_PATH}} && sudo -E nix run .#apps.x86_64-linux.colmena -- build
 
-# Format specific files
-fmt-files files:
-    nixpkgs-fmt {{files}}
-
-# Run update, check, and build in sequence
-verify: update check build
-
-# Show current git status
+# ============================================================================
+# UTILITIES
+# ============================================================================
+# Show git status on all nodes
 status:
-    @git status
+    @echo "Git status on all nodes..."
+    @echo "=== ZEPHYR (local) ==="
+    @cd {{FLAKE_PATH}} && git log -1 --oneline
+    @for host in nexus forge sentry; do \
+        echo "=== $$host ==="; \
+        ssh $$host "cd /etc/nixos && git log -1 --oneline" 2>/dev/null || echo "  unreachable"; \
+    done
 
-# Commit changes with message
-commit message:
-    git add .
-    git commit -m "{{message}}"
+# Sync all repos to current branch
+sync:
+    @echo "Syncing all nodes to $(git branch --show-current)..."
+    @for host in nexus forge sentry; do \
+        echo "Syncing $$host..."; \
+        ssh $$host "cd /etc/nixos && git fetch origin && git reset --hard origin/$(git branch --show-current)" 2>/dev/null || true; \
+    done
 
-# Clean up old generations (keeps last 5)
-clean:
-    sudo nix-collect-garbage -d
-
-# Garbage collect and optimize store
-gc:
-    sudo nix-collect-garbage --delete-old
-    sudo nix-store --optimize
-
-# Rebuild hardware configuration (DO NOT EDIT hardware-configuration.nix)
-regenerate-hardware:
-    sudo nixos-generate-config --root /mnt
-
-# Help message
-help:
-    @echo "Common workflow:"
-    @echo "  1. make changes to configuration"
-    @echo "  2. just fmt           # format files"
-    @echo "  3. just check         # validate syntax"
-    @echo "  4. just verify        # update, check, and build"
-    @echo "  5. just test          # test configuration"
-    @echo "  6. just switch        # apply permanently"
+# Show cluster status
+cluster-status:
+    #!/usr/bin/env bash
+    # Show connectivity status of all cluster nodes
+    set -euo pipefail
+    echo "Cluster Status:"
+    for host in zephyr nexus forge sentry; do
+        printf "%s: " "$host"
+        if [ "$host" = "$(hostname -s)" ]; then
+            echo "local"
+        else
+            if ssh -o ConnectTimeout=2 "$host" "true" >/dev/null 2>&1; then
+                echo "up"
+            else
+                echo "down"
+            fi
+        fi
+    done
