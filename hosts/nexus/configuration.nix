@@ -11,6 +11,12 @@
     # Common host imports (desktop, gaming, networking, etc.)
     ../../modules/common-host.nix
 
+    # Gaming support
+    ../../modules/gaming/gaming.nix
+
+    # Mining support
+    ../../modules/mining/mining.nix
+
     # NVIDIA GPU support (common + wayland-specific)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
