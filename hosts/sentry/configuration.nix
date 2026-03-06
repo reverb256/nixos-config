@@ -17,6 +17,12 @@
     # Common host imports (desktop, gaming, networking, etc.)
     ../../modules/common-host.nix
 
+    # Gaming support
+    ../../modules/gaming/gaming.nix
+
+    # Mining support
+    ../../modules/mining/mining.nix
+
     # AMD GPU Wayland optimizations (includes nvtopPackages.full)
     ../../modules/hardware/amdgpu-wayland.nix
 

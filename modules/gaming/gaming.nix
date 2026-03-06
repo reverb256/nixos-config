@@ -195,7 +195,7 @@ in {
       # ============================================================================
       # PIPEWIRE LOW-LATENCY - Lower latency for gaming
       # ============================================================================
-      services.pipewire.extraConfig = {
+      services.pipewire.extraConfig = lib.mkForce {
         pipewire."99-lowlatency"."context.properties" = {
           "default.clock.min-quantum" = 64;
           "default.clock.max-quantum" = 2048;

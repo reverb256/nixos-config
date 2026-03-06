@@ -11,8 +11,16 @@
     ./hardware-configuration.nix
 
     # Common host imports (desktop, networking, etc.)
-    # Note: gaming.nix is imported but not enabled (services.gaming.enable = false by default)
     ../../modules/common-host.nix
+
+    # Monitoring infrastructure (node-exporter, GPU exporters, mining exporter)
+    ../../modules/services/monitoring/default.nix
+
+    # Mining infrastructure
+    ../../modules/mining/mining.nix
+
+    # Development tools (OpenCode AI assistant)
+    ../../modules/development/opencode.nix
 
     # NVIDIA GPU support (common + wayland-specific)
     ../../modules/hardware/nvidia-common.nix
@@ -54,11 +62,6 @@
   services.monitoring.node-exporter.enable = true;
   services.gpu-exporters.enable = true;
   services.mining-exporter.enable = true;
-
-  # ============================================================================
-  # GAMING - DISABLED (Mining-focused host)
-  # ============================================================================
-  services.gaming.enable = false;
 
   # ============================================================================
   # KERNEL - Zen for better desktop responsiveness
