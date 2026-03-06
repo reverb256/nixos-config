@@ -56,6 +56,7 @@
 
     # Hardware modules
     ./hardware/nvidia-common.nix
+    ./hardware/monitoring.nix
 
     # Multimedia modules
     ./multimedia/gstreamer.nix

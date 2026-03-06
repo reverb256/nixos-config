@@ -28,6 +28,11 @@
   # NVIDIA GPU support (RTX 3090 + 3060 Ti)
   hardware.nvidia-common.enable = true;
 
+  # Hardware monitoring (lm-sensors, fan control for MSI X570)
+  hardware.monitoring.enable = true;
+  hardware.monitoring.autoDetect = false; # Skip auto-detect, we know the hardware
+  hardware.monitoring.fanControl = false; # BIOS fan control for now
+
   networking.networkmanager.enable = true;
 
   # DNS - Use local unbound resolver for cluster hostnames
@@ -461,6 +466,67 @@
       exec ${pkgs.curl}/bin/curl --data-binary @- http://127.0.0.1:19898/api/run "$@"
     '')
 
+    # Hardware monitoring & fan control helpers
+    (pkgs.writeShellScriptBin "fan-set" ''
+      #!${pkgs.bash}/bin/bash
+      # Set fan speed (0-255) for a specific fan
+      # Usage: fan-set <fan_number> <pwm_value>
+      # Example: fan-set 1 128 (sets fan 1 to 50%)
+      if [ "$#" -ne 2 ]; then
+        echo "Usage: fan-set <fan_number> <pwm_value (0-255)>"
+        echo "Example: fan-set 1 128  # Set fan 1 to 50%"
+        exit 1
+      fi
+      fan=$1
+      pwm=$2
+      pwm_file="/sys/class/hwmon/hwmon6/pwm$fan"
+      if [ ! -w "$pwm_file" ]; then
+        echo "Error: Cannot write to $pwm_file"
+        echo "You may need to disable BIOS fan control first"
+        exit 1
+      fi
+      echo "$pwm" > "$pwm_file"
+      echo "Set fan $fan to PWM $pwm ($(awk "BEGIN {printf \"%.0f\", $pwm/255*100}")%)"
+    '')
+
+    (pkgs.writeShellScriptBin "fan-get" ''
+      #!${pkgs.bash}/bin/bash
+      # Get current fan speed and PWM for all fans
+      echo "Fan Status for MSI X570 TOMAHAWK:"
+      echo "────────────────────────────────────────"
+      for i in 1 2 3 4 5 6 7; do
+        pwm_file="/sys/class/hwmon/hwmon6/pwm''$i"
+        rpm_file="/sys/class/hwmon/hwmon6/fan''${i}_input"
+        label_file="/sys/class/hwmon/hwmon6/fan''${i}_label"
+        if [ -f "$pwm_file" ]; then
+          pwm=$(cat "$pwm_file" 2>/dev/null || echo "N/A")
+          rpm=$(cat "$rpm_file" 2>/dev/null || echo "0")
+          label="Fan ''$i"
+          [ -f "$label_file" ] && label=$(cat "$label_file")
+          percent=$(awk "BEGIN {printf \"%.0f\", $pwm/255*100}")
+          printf "%-12s: %4d RPM  PWM: %3d (%3s%%)\n" "$label" "$rpm" "$pwm" "$percent"
+        fi
+      done
+    '')
+
+    (pkgs.writeShellScriptBin "temp-get" ''
+      #!${pkgs.bash}/bin/bash
+      # Get all temperature readings
+      echo "Temperature Readings:"
+      echo "────────────────────"
+      # AMD CPU temps
+      echo "AMD CPU (k10temp):"
+      ${pkgs.lm_sensors}/bin/sensors -j k10temp-pci-00c3 2>/dev/null | ${pkgs.jq}/bin/jq -r 'to_entries[] | "  \(.key): \(.value.value // .value | tonumber | floor)°C"' 2>/dev/null || ${pkgs.lm_sensors}/bin/sensors k10temp-pci-00c3
+      echo ""
+      # Motherboard temps
+      echo "Motherboard (NCT6775):"
+      ${pkgs.lm_sensors}/bin/sensors -j nct6797-isa-0a20 2>/dev/null | ${pkgs.jq}/bin/jq -r 'to_entries[] | select(.key | contains("temp")) | "  \(.key): \(.value.value // .value | tonumber | floor)°C"' 2>/dev/null || ${pkgs.lm_sensors}/bin/sensors nct6797-isa-0a20 | grep -E "SYSTIN|CPUTIN|TSI"
+      echo ""
+      # NVMe temps
+      echo "NVMe Drives:"
+      ${pkgs.lm_sensors}/bin/sensors -j 2>/dev/null | ${pkgs.jq}/bin/jq -r 'to_entries[] | select(.key | contains("nvme")) | "  \(.key): \(.value[\"Composite\"].value | tonumber | floor)°C"' 2>/dev/null || ${pkgs.lm_sensors}/bin/sensors | grep -A2 nvme
+    '')
+
     # Network discovery & mapping
     nmap
     netdiscover
@@ -474,6 +540,7 @@
     # Development
     nodejs
     gh
+    jq
     inputs.claude-native.packages.x86_64-linux.claude
 
     # AI & ML
