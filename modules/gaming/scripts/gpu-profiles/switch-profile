@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# GPU Profile Switcher
+# Usage: ./switch-profile [gaming|mining|ai|reset|status]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+show_status() {
+  echo "=== Current GPU Status ==="
+  echo ""
+  nvidia-smi --query-gpu=index,name,power.limit,power.draw,temperature.gpu,utilization.gpu,clocks.current.graphics,clocks.current.memory --format=csv,noheader | \
+  while IFS=, read -r idx name power_limit power_draw temp util gpu_clk mem_clk; do
+    echo "GPU $idx ($name):"
+    echo "  Power: ${power_draw} / ${power_limit}"
+    echo "  Temp:  ${temp}"
+    echo "  Util:  ${util}"
+    echo "  Clocks: GPU ${gpu_clk}, Mem ${mem_clk}"
+    echo ""
+  done
+
+  echo "=== Power Mizer Mode ==="
+  nvidia-settings -q [gpu:0]/GPUPowerMizerMode | grep "GPUPowerMizerMode" | head -1
+  nvidia-settings -q [gpu:1]/GPUPowerMizerMode | grep "GPUPowerMizerMode" | head -1
+
+  echo ""
+  echo "=== Clock Offsets ==="
+  echo "GPU 0 (3060 Ti):"
+  nvidia-settings -q [gpu:0]/GPUGraphicsClockOffset[3] 2>/dev/null || echo "  GPU offset: Unable to query"
+  nvidia-settings -q [gpu:0]/GPUMemoryClockOffset[3] 2>/dev/null || echo "  Mem offset: Unable to query"
+  echo "GPU 1 (3090):"
+  nvidia-settings -q [gpu:1]/GPUGraphicsClockOffset[3] 2>/dev/null || echo "  GPU offset: Unable to query"
+  nvidia-settings -q [gpu:1]/GPUMemoryClockOffset[3] 2>/dev/null || echo "  Mem offset: Unable to query"
+}
+
+case "${1:-status}" in
+  gaming)
+    exec bash "$SCRIPT_DIR/gaming.sh"
+    ;;
+  mining)
+    exec bash "$SCRIPT_DIR/mining.sh"
+    ;;
+  ai|inference)
+    exec bash "$SCRIPT_DIR/ai-inference.sh"
+    ;;
+  reset|default)
+    exec bash "$SCRIPT_DIR/reset.sh"
+    ;;
+  status|"")
+    show_status
+    ;;
+  *)
+    echo "Usage: $0 [gaming|mining|ai|reset|status]"
+    echo ""
+    echo "Profiles:"
+    echo "  gaming    - Maximum performance (max power, aggressive clocks)"
+    echo "  mining    - Maximum efficiency (reduced power, conservative clocks)"
+    echo "  ai        - Balanced for inference (moderate power, stable clocks)"
+    echo "  reset     - Reset to auto/default mode"
+    echo "  status    - Show current GPU status and settings"
+    exit 1
+    ;;
+esac

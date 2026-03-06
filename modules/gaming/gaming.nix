@@ -393,8 +393,7 @@ in {
       };
 
       # VR-specific packages
-      environment.systemPackages = with pkgs;
-        [
+      environment.systemPackages = with pkgs; ([
           wivrn
           openxr-loader
           opencomposite
@@ -411,7 +410,13 @@ in {
         ]
         ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
           inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
-        ];
+        ]
+        ++ [
+          # GPU profile command (merged here to avoid duplicate assignment)
+          (pkgs.writeShellScriptBin "gpu-profile" ''
+            exec ${./scripts/gpu-profiles/switch-profile} "$@"
+          '')
+        ]);
 
       # VR device udev rules
       services.udev.extraRules = ''
@@ -445,6 +450,40 @@ in {
         libtiff
       ];
       # NOTE: extraPackages32 removed - breaks Wayland on multi-NVIDIA
+
+      # ============================================================================
+      # AUTONOMOUS GPU WORKLOAD MONITOR
+      # ============================================================================
+      # Automatically detects workload type (gaming/AI/mining/idle)
+      # and switches GPU profiles accordingly
+      # Pauses mining when gaming or AI workloads are detected
+
+      systemd.services.gpu-workload-monitor = {
+        description = "Autonomous GPU workload monitor and profile manager";
+        after = [ "nvidia-persistence-mode.service" "network.target" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${./scripts/gpu-profiles/workload-monitor.sh}";
+          Restart = "on-failure";
+          RestartSec = "10s";
+          # Allow access to nvidia-smi and systemd
+          AmbientCapabilities = [ "CAP_NET_ADMIN" ];
+        };
+      };
+
+      # ============================================================================
+      # GAMEMODE INTEGRATION
+      # ============================================================================
+      # GameMode provides automatic detection when games start/stop
+      # and runs our custom scripts to switch GPU profiles
+
+
+      # ============================================================================
+      # GPU PROFILE COMMANDS
+      # ============================================================================
+      # Convenient aliases for manual profile switching
+      # NOTE: gpu-profile command merged with VR packages above to avoid duplicate assignment
     })
   ];
 }

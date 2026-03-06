@@ -3,12 +3,16 @@
 { config, lib, pkgs, ... }:
 {
   # Enable OpenGL
-  # NOTE: enable32Bit must be explicitly disabled because the gaming module
-  # sets extraPackages32 which auto-enables enable32Bit. This breaks Wayland
-  # on multi-GPU NVIDIA systems (KWin cannot open /dev/dri/card1).
+  # NOTE: enable32Bit disabled to prevent Wayland issues on multi-GPU systems.
+  # LM Studio GUI works fine without it. CLI has 32-bit lib issues but GUI is primary use.
   hardware.graphics = {
     enable = true;
-    enable32Bit = lib.mkForce false;  # Force override steam module
+    enable32Bit = lib.mkForce false;  # Keep disabled for Wayland stability
+
+    extraPackages = with pkgs; [
+      vulkan-loader
+      vulkan-tools
+    ];
   };
 
   # Load nvidia driver for Xorg and Wayland
@@ -52,19 +56,22 @@
     };
   };
 
-  # Disable auto-boost for all GPUs
-  # Prevents dynamic clock scaling that causes inconsistent inference performance
-  systemd.services.nvidia-disable-autoboost = {
-    description = "Disable GPU auto-boost for consistent AI performance";
-    after = [ "nvidia-persistence-mode.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      # Apply to GPU 0 (3060 Ti) and GPU 1 (3090)
-      ExecStart = ''
-        /run/current-system/sw/bin/nvidia-smi -i 0 --auto-boost-default=0 && \
-        /run/current-system/sw/bin/nvidia-smi -i 1 --auto-boost-default=0
-      '';
-    };
-  };
+  # ============================================================================
+  # GPU POWER/PERFORMANCE MODE NOTES
+  # ============================================================================
+  # GPUPowerMizerMode controls dynamic clock scaling:
+  # - 0 = Adaptive (default) - auto-scales based on load
+  # - 1 = Prefer Maximum Performance - always full clocks
+  # - 2 = Auto - same as Adaptive for RTX 30 series
+  #
+  # Current: Both GPUs at default (0=Adaptive)
+  # GPU 0 (3060 Ti): 210 MHz idle → 420 MHz max
+  # GPU 1 (3090): 240 MHz idle → 2130 MHz max
+  #
+  # To change mode (requires X/Wayland session):
+  #   nvidia-settings -a [gpu:0]/GPUPowerMizerMode=1  # Max performance
+  #   nvidia-settings -a [gpu:0]/GPUPowerMizerMode=0  # Adaptive (default)
+  #
+  # Note: nvidia-settings requires DISPLAY variable, so this cannot be set
+  # via systemd service at boot. Run manually after login or add to autostart.
 }
