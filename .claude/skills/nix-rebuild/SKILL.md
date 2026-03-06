@@ -1,63 +1,94 @@
 ---
 name: nix-rebuild
-description: Safely rebuild NixOS following the testing workflow (flake check -> build -> test -> switch)
+description: NixOS rebuild deploy apply switch test flake check build workflow. Use for: rebuild, deploy, apply changes, test config, nixos-rebuild, update system.
+disable-model-invocation: false
 ---
 
-# NixOS Rebuild
+# NixOS Rebuild Workflow
 
-Always follow this order when rebuilding NixOS:
+## Trigger Keywords
+rebuild, deploy, apply, switch, test, nixos-rebuild, flake, build, update, nixos
 
-## Workflow
+## Step 1: Ask User
+**Question**: Which host? (Options: zephyr, forge, nexus, sentry)
+**Default**: zephyr (if user doesn't specify)
 
-### 1. Check Syntax (fastest - 5 seconds)
+## Step 2: Run Workflow (IN ORDER)
+
+### Step 2.1: Check Syntax (5 seconds)
 ```bash
 nix flake check
 ```
+**Expected output**: "checking flake output..." (no errors)
 
-### 2. Build Only (validate without applying - 1-2 minutes)
+### Step 2.2: Build Only (1-2 minutes)
 ```bash
 sudo nixos-rebuild build --flake .#HOSTNAME
 ```
+**Expected output**: "building the system configuration..." followed by "Done."
 
-### 3. Test (apply temporarily, rolls back on reboot)
+### Step 2.3: Test (optional - rolls back on reboot)
 ```bash
 sudo nixos-rebuild test --flake .#HOSTNAME
 ```
+**Expected output**: "activating the configuration..."
 
-### 4. Switch (persistent application)
+### Step 2.4: Switch (permanent - ask user first)
 ```bash
 sudo nixos-rebuild switch --flake .#HOSTNAME
 ```
+**Expected output**: "setting up /etc..."
 
-## Available Hosts
+## Few-Shot Examples
 
-| Host | Role | Deploy Command |
-|------|------|----------------|
-| zephyr | Local (main) | `sudo nixos-rebuild switch --flake .#zephyr` |
-| forge | Remote GPU | `just forge` |
-| nexus | Remote storage | `just nexus` |
-| sentry | Remote monitor | `just sentry` |
-
-## Quick Reference
-
-```bash
-# Rebuild zephyr (default)
-nix flake check && sudo nixos-rebuild switch --flake .#zephyr
-
-# Deploy to all remote hosts
-just deploy
-
-# Deploy to specific remote host
-just forge  # or just nexus, just sentry
+### Example 1: User says "rebuild"
+```
+User: rebuild
+Model: [ASK] Which host? (default: zephyr)
+User: zephyr
+Model: [RUN] nix flake check
+      [RUN] sudo nixos-rebuild build --flake .#zephyr
+      [RUN] sudo nixos-rebuild switch --flake .#zephyr
 ```
 
-## Before Rebuilding
+### Example 2: User says "test my changes on forge"
+```
+User: test my changes on forge
+Model: [SKIP asking - host specified]
+      [RUN] nix flake check
+      [RUN] sudo nixos-rebuild test --flake .#forge
+```
 
-Ask the user: **Which host?** (default: zephyr)
+### Example 3: User says "apply to all hosts"
+```
+User: apply to all hosts
+Model: [RUN] just deploy
+      (This uses colmena to deploy to all hosts)
+```
 
-## Common Issues
+## Host Reference
 
-- **"attribute missing"**: Module not imported in `modules/default.nix`
-- **"undefined variable"**: Check Nix string escaping with `''${}`
-- **Build fails**: Run `nix flake check` first for syntax errors
-- **Service fails to start**: Check logs with `journalctl -u SERVICE_NAME`
+| Host | Type | Command |
+|------|------|---------|
+| zephyr | Local | `sudo nixos-rebuild switch --flake .#zephyr` |
+| forge | Remote | `just forge` |
+| nexus | Remote | `just nexus` |
+| sentry | Remote | `just sentry` |
+| all | Remote | `just deploy` |
+
+## Error Troubleshooting
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| "attribute missing" | Module not imported | Add to `modules/default.nix` |
+| "undefined variable" | Nix string escape | Use `''${variable}` not `${variable}` |
+| "permission denied" | Need sudo | Use `sudo nixos-rebuild` |
+| "flaky" | Build randomly fails | Run again (Nix caching issue) |
+| "service failed" | Service error | Check `journalctl -u SERVICE` |
+
+## Important Rules
+
+1. **ALWAYS run `nix flake check` first** - catches syntax errors fast
+2. **Ask before `switch`** - test mode is safer for experiments
+3. **Remote hosts use `just` commands** - not nixos-rebuild directly
+4. **zephyr is local** - use sudo nixos-rebuild directly

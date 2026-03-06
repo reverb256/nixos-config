@@ -1,17 +1,24 @@
 ---
 name: add-service
-description: Add a new systemd service module to modules/services/
+description: Add create new systemd service module NixOS. Use for: add service, create service, new service, systemd, daemon, background service, add module.
+disable-model-invocation: false
 ---
 
-# Add New Service
+# Add New Systemd Service
 
-Create a new systemd service module following NixOS conventions.
+## Trigger Keywords
+add service, create service, new service, systemd, daemon, background process, service module, add to modules
 
-## Step 1: Create Service Module
+## Step 1: Ask User for Details
+**Question 1**: What is the service name? (e.g., "redis", "my-api")
+**Question 2**: Which host should enable this? (default: zephyr)
+**Question 3**: What package/executable runs the service?
 
-Create the service at: `modules/services/SERVICE-NAME/SERVICE-NAME.nix`
+## Step 2: Create Module File
 
-## Template
+**Location**: `modules/services/SERVICE-NAME/SERVICE-NAME.nix`
+
+## Step 3: Fill Template (replace placeholders)
 
 ```nix
 { config, lib, pkgs, ... }:
@@ -21,110 +28,114 @@ in
 {
   options.services.SERVICE-NAME = {
     enable = lib.mkEnableOption "SERVICE-NAME service";
-
-    # Add service-specific options here
-    # port = lib.mkOption {
-    #   type = lib.types.port;
-    #   default = 8080;
-    #   description = "Port to listen on";
-    # };
   };
 
   config = lib.mkIf cfg.enable {
-    # Add packages
     environment.systemPackages = with pkgs; [
-      # package-name
+      PACKAGE-NAME
     ];
 
-    # Add systemd service
     systemd.services.SERVICE-NAME = {
       description = "SERVICE-NAME service";
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-
       serviceConfig = {
-        ExecStart = "${pkgs.package-name}/bin/binary";
+        ExecStart = "${pkgs.PACKAGE-NAME}/bin/BINARY-NAME";
         Restart = "on-failure";
         DynamicUser = true;
       };
     };
-
-    # Optional: Open firewall ports
-    # networking.firewall.allowedTCPPorts = [ cfg.port ];
   };
 }
 ```
 
-## Step 2: Register the Module
+## Step 4: Register Module
 
-Add to `modules/default.nix`:
+**File**: `modules/default.nix`
+**Add line**: `services.SERVICE-NAME = import ./services/SERVICE-NAME/SERVICE-NAME.nix;`
 
-```nix
-services.SERVICE-NAME = import ./services/SERVICE-NAME/SERVICE-NAME.nix;
-```
+## Step 5: Enable on Host
 
-## Step 3: Enable on Host
+**File**: `hosts/HOSTNAME/configuration.nix`
+**Add line**: `services.SERVICE-NAME.enable = true;`
 
-Add to `hosts/HOSTNAME/configuration.nix`:
-
-```nix
-services.SERVICE-NAME.enable = true;
-```
-
-## Step 4: Rebuild
+## Step 6: Rebuild
 
 ```bash
 nix flake check
 sudo nixos-rebuild switch --flake .#HOSTNAME
 ```
 
-## Service Management Commands
+## Few-Shot Examples
 
-```bash
-# Check status
-systemctl status SERVICE-NAME
-
-# View logs
-journalctl -u SERVICE-NAME -f
-
-# Restart service
-systemctl restart SERVICE-NAME
-
-# Enable/disable
-systemctl enable SERVICE-NAME
-systemctl disable SERVICE-NAME
+### Example 1: Simple service (no options)
+```
+User: Add a redis service
+Model: [CREATE] modules/services/redis/redis.nix
+      [REGISTER] in modules/default.nix
+      [ENABLE] services.redis.enable = true;
+      [REBUILD] nix flake check && nixos-rebuild switch
 ```
 
-## Example: Simple Web Service
+### Example 2: Service with port option
+```
+User: Create a web service on port 3000
+Model: [CREATE] modules/services/my-web/my-web.nix
+      [ADD] port option (default 3000)
+      [ADD] firewall rule for port
+      [REBUILD]
+```
 
+### Example 3: Background daemon
+```
+User: Add a monitoring daemon
+Model: [CREATE] modules/services/monitor-daemon/monitor-daemon.nix
+      [SET] wantedBy = multi-user.target
+      [SET] Restart = always
+      [REBUILD]
+```
+
+## Common Service Patterns
+
+### Pattern 1: Network Service (needs firewall)
 ```nix
-{ config, lib, pkgs, ... }:
-let
-  cfg = config.services.my-web-service;
-in
-{
-  options.services.my-web-service = {
-    enable = lib.mkEnableOption "my web service";
-    port = lib.mkOption {
-      type = lib.types.port;
-      default = 8080;
-      description = "Port to listen on";
-    };
-  };
+networking.firewall.allowedTCPPorts = [ 8080 ];
+```
 
-  config = lib.mkIf cfg.enable {
-    systemd.services.my-web-service = {
-      description = "My Web Service";
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        ExecStart = "${pkgs.my-web-package}/bin/my-web-server --port ${toString cfg.port}";
-        Restart = "on-failure";
-        DynamicUser = true;
-      };
-    };
+### Pattern 2: Database (needs state directory)
+```nix
+serviceConfig = {
+  StateDirectory = "SERVICE-NAME";
+  ExecStart = "... --data /var/lib/SERVICE-NAME";
+};
+```
 
-    networking.firewall.allowedTCPPorts = [ cfg.port ];
-  };
-}
+### Pattern 3: Service with config file
+```nix
+settings = {
+  configFile = pkgs.writeText "config.yaml" ''
+    key: value
+  '';
+};
+serviceConfig.ExecStart = "... --config ${cfg.settings.configFile}";
+```
+
+## Module Structure Reference
+
+```
+modules/
+└── services/
+    └── SERVICE-NAME/
+        ├── default.nix       (optional - exports)
+        ├── SERVICE-NAME.nix  (main module)
+        └── README.md         (optional docs)
+```
+
+## Service Commands (for user reference)
+
+```bash
+systemctl status SERVICE-NAME     # Check if running
+journalctl -u SERVICE-NAME -f     # View logs
+systemctl restart SERVICE-NAME    # Restart
+systemctl enable SERVICE-NAME     # Start on boot
 ```
