@@ -556,6 +556,56 @@ class SemanticCache:
         if self.metrics:
             self.metrics = CacheMetrics()
 
+    async def _check_redis_health(self) -> bool:
+        """
+        Check Redis connection health.
+
+        Returns:
+            True if Redis is healthy, False otherwise
+        """
+        if not self.config.enable_exact_cache:
+            return True  # Not enabled, consider healthy
+
+        try:
+            redis_client = await self._get_redis()
+            if not redis_client:
+                return False
+
+            # Ping Redis
+            await redis_client.ping()
+            return True
+        except Exception as e:
+            logger.warning(f"Redis health check failed: {e}")
+            return False
+
+    async def _check_qdrant_health(self) -> bool:
+        """
+        Check Qdrant connection health.
+
+        Returns:
+            True if Qdrant is healthy, False otherwise
+        """
+        if not self.config.enable_semantic_cache:
+            return True  # Not enabled, consider healthy
+
+        try:
+            qdrant_client = await self._get_qdrant()
+            if not qdrant_client:
+                return False
+
+            # Get collection info to verify connection
+            try:
+                qdrant_client.get_collection(self.config.qdrant_collection)
+                return True
+            except Exception:
+                # Collection might not exist, try to list collections
+                collections = qdrant_client.get_collections().collections
+                collection_names = [c.name for c in collections]
+                return self.config.qdrant_collection in collection_names
+        except Exception as e:
+            logger.warning(f"Qdrant health check failed: {e}")
+            return False
+
     async def close(self):
         """Close connections to Redis and Qdrant."""
         if self._redis:
