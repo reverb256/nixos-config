@@ -134,6 +134,7 @@ age.secrets.my-token = {
   file = "${inputs.self}/secrets/my-token.age";
   mode = "440";
   owner = "j_kro";
+  group = "users";
 };
 
 # 4. Rebuild the host
@@ -174,6 +175,7 @@ age.secrets.shared = {
   file = "${inputs.self}/secrets/shared.age";
   mode = "440";
   owner = "service-user";
+  group = "users";
 };
 
 # 5. Rebuild all hosts
@@ -356,6 +358,7 @@ age.secrets.db-password = {
   file = "${inputs.self}/secrets/db-password.age";
   mode = "440";
   owner = "postgres";
+  group = "postgres";
 };
 ```
 
@@ -409,21 +412,29 @@ systemd.services.my-script = {
    - `"secret.age"` - for running from `/etc/nixos/secrets/`
    - `"secrets/secret.age"` - for running from `/etc/nixos/`
 
-2. **Use host keys for production**: Add host keys so secrets decrypt automatically during builds
+2. **Always specify mode, owner, AND group**:
+   ```nix
+   age.secrets.my-secret = {
+     file = "${inputs.self}/secrets/my-secret.age";
+     mode = "440";       # Read-only for owner
+     owner = "j_kro";   # User who owns the file  
+     group = "users";   # ALWAYS include group!
+   };
+   ```
 
-3. **Group related secrets**: Use `group` in age.secrets.* to share secrets between services
+3. **Use multi-recipient encryption**: Encrypt with BOTH user AND host keys for redundancy
 
-4. **Validate before deploying**: Run `validate.py` to catch configuration issues
+4. **Commit .age files**: They're encrypted and safe to track in git for reproducibility
 
-5. **Test decryption**: Use `test_secrets.py` to verify secrets can be decrypted
+5. **Use host keys for production**: Add host keys so secrets decrypt automatically during builds
 
-6. **Document secret purpose**: Add comments in secrets.nix explaining what each secret is for
+6. **Validate before deploying**: Run `validate.py` to catch configuration issues
 
-7. **Rotate regularly**: Rekey secrets periodically and when adding/removing hosts
+7. **Test decryption**: Use `test_secrets.py` to verify secrets can be decrypted
 
-8. **Keep secrets.nix in git**: It's safe to commit (only contains public keys)
+8. **Document secret purpose**: Add comments in secrets.nix explaining what each secret is for
 
-9. **Never commit .age files**: Already in .gitignore, but double-check
+9. **Rotate regularly**: Rekey secrets periodically and when adding/removing hosts
 
 10. **Use descriptive names**: `service-api-key.age` not `key1.age`
 
@@ -452,6 +463,7 @@ age.secrets.special = lib.mkIf (config.networking.hostName == "zephyr") {
   file = "${inputs.self}/secrets/special.age";
   mode = "440";
   owner = "j_kro";
+  group = "users";
 };
 ```
 
