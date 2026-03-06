@@ -9,7 +9,6 @@ import os
 import re
 from pathlib import Path
 from collections import defaultdict
-from typing import Dict, List, Tuple
 
 
 def parse_secrets_nix(secrets_nix_path="/etc/nixos/secrets.nix"):
@@ -24,13 +23,15 @@ def parse_secrets_nix(secrets_nix_path="/etc/nixos/secrets.nix"):
     secrets = {}
 
     # Find all secret entries
-    for match in re.finditer(r'"([^"]+\.age)"\.publicKeys\s*=\s*\[([^\]]+)\];', content):
+    for match in re.finditer(
+        r'"([^"]+\.age)"\.publicKeys\s*=\s*\[([^\]]+)\];', content
+    ):
         secret_name = match.group(1)
         keys_content = match.group(2)
 
         # Parse the keys (users.xxx or hosts.xxx)
         keys = []
-        for key_match in re.finditer(r'(users\.|hosts\.)(\w+)', keys_content):
+        for key_match in re.finditer(r"(users\.|hosts\.)(\w+)", keys_content):
             key_type, key_name = key_match.groups()
             keys.append((key_type, key_name))
 
@@ -70,13 +71,17 @@ def parse_host_configurations():
 
         # Find all age.secrets.* declarations
         # Match from secret name to the closing }; (handles nested ${} in file paths)
-        for match in re.finditer(r'^\s*age\.secrets\.([\w-]+)\s*=\s*\{(.*?)^  \};', content, re.DOTALL | re.MULTILINE):
+        for match in re.finditer(
+            r"^\s*age\.secrets\.([\w-]+)\s*=\s*\{(.*?)^  \};",
+            content,
+            re.DOTALL | re.MULTILINE,
+        ):
             # Skip commented lines (check if line starts with # before age.secrets)
             start_pos = match.start()
             # Get the line containing the match start
-            line_start = content.rfind('\n', 0, start_pos) + 1
+            line_start = content.rfind("\n", 0, start_pos) + 1
             line_before = content[line_start:start_pos].strip()
-            if line_before.startswith('#'):
+            if line_before.startswith("#"):
                 continue  # Skip commented secrets
 
             secret_name = match.group(1)
@@ -121,7 +126,7 @@ def list_by_secret(secrets_data, host_secrets):
         users = [name for type, name in keys if type == "users"]
         hosts_with_access = [name for type, name in keys if type == "hosts"]
 
-        print(f"  Can be decrypted by:")
+        print("  Can be decrypted by:")
         if users:
             print(f"    Users: {', '.join(users)}")
         if hosts_with_access:
@@ -138,7 +143,7 @@ def list_by_secret(secrets_data, host_secrets):
         if deployed_on:
             print(f"  Deployed on: {', '.join(sorted(deployed_on))}")
         else:
-            print(f"  ⚠ Not deployed on any host!")
+            print("  ⚠ Not deployed on any host!")
 
 
 def list_by_host(secrets_data, host_secrets):
@@ -189,7 +194,12 @@ def show_summary(secrets_data, host_secrets):
     print("=" * 80)
 
     total_secrets = len(secrets_data)
-    unique_secrets = len(set(name.replace("secrets/", "").replace(".age", "") for name in secrets_data.keys()))
+    unique_secrets = len(
+        set(
+            name.replace("secrets/", "").replace(".age", "")
+            for name in secrets_data.keys()
+        )
+    )
     total_hosts = len(host_secrets)
 
     print(f"\nTotal unique secrets: {unique_secrets}")
@@ -197,13 +207,13 @@ def show_summary(secrets_data, host_secrets):
     print(f"Total hosts configured: {total_hosts}")
 
     # Count per-host
-    print(f"\nSecrets per host:")
+    print("\nSecrets per host:")
     for hostname in sorted(host_secrets.keys()):
         count = len(host_secrets[hostname])
         print(f"  {hostname}: {count}")
 
     # Count recipients
-    print(f"\nRecipient summary:")
+    print("\nRecipient summary:")
     all_users = set()
     all_hosts = set()
     for keys in secrets_data.values():
@@ -226,10 +236,12 @@ def show_matrix(secrets_data, host_secrets):
     print("=" * 80)
 
     # Get list of unique secret names
-    secret_names = sorted(set(
-        name.replace("secrets/", "").replace(".age", "")
-        for name in secrets_data.keys()
-    ))
+    secret_names = sorted(
+        set(
+            name.replace("secrets/", "").replace(".age", "")
+            for name in secrets_data.keys()
+        )
+    )
     hostnames = sorted(host_secrets.keys())
 
     if not secret_names or not hostnames:

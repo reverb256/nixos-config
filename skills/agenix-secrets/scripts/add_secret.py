@@ -46,7 +46,7 @@ def add_to_secrets_nix(secret_name, owner="j_kro"):
         content = f.read()
 
     if f'"{secret_name}".publicKeys' in content:
-        print(f"  Already exists")
+        print("  Already exists")
         return True
 
     new_entry = f'  "{secret_name}".publicKeys = [users.{owner}];\n'
@@ -58,7 +58,7 @@ def add_to_secrets_nix(secret_name, owner="j_kro"):
     with open("/etc/nixos/secrets.nix", "w") as f:
         f.write(content)
 
-    print(f"✓ Added to secrets.nix")
+    print("✓ Added to secrets.nix")
     return True
 
 
@@ -75,11 +75,12 @@ def add_to_config_nix(secret_name, owner="j_kro", group=None, host="zephyr"):
         content = f.read()
 
     if f"age.secrets.{secret_name}" in content:
-        print(f"  Already exists")
+        print("  Already exists")
         return True
 
     # Find a good insertion point (after another age.secrets entry)
     import re
+
     pattern = r"age\.secrets\.\w+\s*=\s*\{"
     matches = list(re.finditer(pattern, content))
 
@@ -162,7 +163,9 @@ def main():
 
     print("\n✓ All steps completed!")
     print("\nNext steps:")
-    print(f"1. Review the changes made to secrets.nix and hosts/{host}/configuration.nix")
+    print(
+        f"1. Review the changes made to secrets.nix and hosts/{host}/configuration.nix"
+    )
     print(f"2. Run: sudo nixos-rebuild build --flake .#{host}")
     print("3. Secret will be available at /run/agenix/" + secret_name)
 

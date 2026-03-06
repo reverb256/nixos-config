@@ -60,13 +60,7 @@ Requirements:
 - Your entire response must be parseable as JSON"""
 
     # PII patterns to redact from schemas (just in case)
-    PII_PATTERNS = [
-        r'password',
-        r'secret',
-        r'api[_-]?key',
-        r'token',
-        r'credential'
-    ]
+    PII_PATTERNS = [r"password", r"secret", r"api[_-]?key", r"token", r"credential"]
 
     def __init__(self, strict_mode: bool = False):
         """
@@ -106,8 +100,7 @@ Requirements:
 
         elif format_type == "json_schema":
             self._add_json_schema_instructions(
-                body,
-                response_format.get("json_schema", {})
+                body, response_format.get("json_schema", {})
             )
             del body["response_format"]
 
@@ -143,9 +136,7 @@ Requirements:
         logger.debug("Added JSON object mode instructions")
 
     def _add_json_schema_instructions(
-        self,
-        body: Dict[str, Any],
-        json_schema: Dict[str, Any]
+        self, body: Dict[str, Any], json_schema: Dict[str, Any]
     ) -> None:
         """
         Add instructions for structured output (JSON Schema mode).
@@ -199,9 +190,7 @@ Requirements:
         logger.debug(f"Added JSON Schema mode instructions for {schema_name}")
 
     def validate_response(
-        self,
-        response_content: str,
-        response_format: Dict[str, Any]
+        self, response_content: str, response_format: Dict[str, Any]
     ) -> tuple[bool, Optional[str]]:
         """
         Validate that response matches the requested format.
@@ -225,10 +214,7 @@ Requirements:
         # No validation for text mode
         return True, None
 
-    def _validate_json_object(
-        self,
-        content: str
-    ) -> tuple[bool, Optional[str]]:
+    def _validate_json_object(self, content: str) -> tuple[bool, Optional[str]]:
         """Validate response is valid JSON."""
         try:
             parsed = json.loads(content)
@@ -237,9 +223,7 @@ Requirements:
             return False, f"Invalid JSON: {str(e)}"
 
     def _validate_json_schema(
-        self,
-        content: str,
-        schema: Dict[str, Any]
+        self, content: str, schema: Dict[str, Any]
     ) -> tuple[bool, Optional[str]]:
         """Validate response matches JSON Schema."""
         try:
@@ -255,10 +239,7 @@ Requirements:
 
             # Required fields check
             required = schema.get("required", [])
-            missing_fields = [
-                field for field in required
-                if field not in parsed
-            ]
+            missing_fields = [field for field in required if field not in parsed]
 
             if missing_fields:
                 return False, f"Missing required fields: {missing_fields}"
@@ -275,19 +256,34 @@ Requirements:
                 prop_type = prop_def.get("type")
 
                 if prop_type == "string" and not isinstance(prop_value, str):
-                    return False, f"Field {prop_name}: expected string, got {type(prop_value).__name__}"
+                    return (
+                        False,
+                        f"Field {prop_name}: expected string, got {type(prop_value).__name__}",
+                    )
 
                 elif prop_type == "number" and not isinstance(prop_value, (int, float)):
-                    return False, f"Field {prop_name}: expected number, got {type(prop_value).__name__}"
+                    return (
+                        False,
+                        f"Field {prop_name}: expected number, got {type(prop_value).__name__}",
+                    )
 
                 elif prop_type == "boolean" and not isinstance(prop_value, bool):
-                    return False, f"Field {prop_name}: expected boolean, got {type(prop_value).__name__}"
+                    return (
+                        False,
+                        f"Field {prop_name}: expected boolean, got {type(prop_value).__name__}",
+                    )
 
                 elif prop_type == "array" and not isinstance(prop_value, list):
-                    return False, f"Field {prop_name}: expected array, got {type(prop_value).__name__}"
+                    return (
+                        False,
+                        f"Field {prop_name}: expected array, got {type(prop_value).__name__}",
+                    )
 
                 elif prop_type == "object" and not isinstance(prop_value, dict):
-                    return False, f"Field {prop_name}: expected object, got {type(prop_value).__name__}"
+                    return (
+                        False,
+                        f"Field {prop_name}: expected object, got {type(prop_value).__name__}",
+                    )
 
             return True, None
 
@@ -297,6 +293,7 @@ Requirements:
 
 # Singleton instance
 _transformer = None
+
 
 def get_transformer(strict_mode: bool = False) -> ResponseFormatTransformer:
     """Get or create the singleton transformer instance."""
@@ -323,8 +320,7 @@ async def transform_request(body: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def validate_response(
-    content: str,
-    response_format: Dict[str, Any]
+    content: str, response_format: Dict[str, Any]
 ) -> tuple[bool, Optional[str]]:
     """
     Validate response matches requested format.

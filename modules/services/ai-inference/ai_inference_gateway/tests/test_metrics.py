@@ -133,7 +133,7 @@ class TestMetricsHelper:
             metrics,
             metrics.observe_http_latency,
             method="POST",
-            endpoint="/v1/chat/completions"
+            endpoint="/v1/chat/completions",
         ):
             # Simulate work
             pass
@@ -150,7 +150,7 @@ class TestMetricsHelper:
                 metrics,
                 metrics.observe_http_latency,
                 method="POST",
-                endpoint="/v1/chat/completions"
+                endpoint="/v1/chat/completions",
             ):
                 raise ValueError("Test exception")
 

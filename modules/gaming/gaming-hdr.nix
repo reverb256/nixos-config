@@ -1,9 +1,8 @@
 # Gamescope HDR configuration - separate module for hosts with HDR displays
 # Import this on zephyr only (not nexus - no HDR display)
-{
-  config,
-  lib,
-  ...
+{ config
+, lib
+, ...
 }:
 with lib; let
   cfg = config.services.gaming;
@@ -20,7 +19,8 @@ with lib; let
     "--hdr-enabled"
     "--hdr-itm-enabled"
   ];
-in {
+in
+{
   options.services.gaming.hdr.enable =
     mkEnableOption "Enable HDR support in Gamescope (zephyr needs this, nexus doesn't)";
 

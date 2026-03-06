@@ -5,19 +5,16 @@ Tests the PIIRedactor which detects and redacts personally
 identifiable information from text.
 """
 
-import pytest
 from ai_inference_gateway.pii_redactor import (
     PIIRedactor,
     RedactionMode,
-    get_default_redactor,
-    redact_text,
-    PIIPattern
 )
 
 
 # ============================================================================
 # Test Email Redaction
 # ============================================================================
+
 
 class TestEmailRedaction:
     """Tests for email address detection and redaction."""
@@ -65,6 +62,7 @@ class TestEmailRedaction:
 # Test Phone Number Redaction
 # ============================================================================
 
+
 class TestPhoneRedaction:
     """Tests for phone number detection and redaction."""
 
@@ -102,6 +100,7 @@ class TestPhoneRedaction:
 # Test SSN Redaction
 # ============================================================================
 
+
 class TestSSNRedaction:
     """Tests for Social Security Number redaction."""
 
@@ -138,6 +137,7 @@ class TestSSNRedaction:
 # Test Credit Card Redaction
 # ============================================================================
 
+
 class TestCreditCardRedaction:
     """Tests for credit card number redaction."""
 
@@ -163,6 +163,7 @@ class TestCreditCardRedaction:
 # ============================================================================
 # Test IP Address Redaction
 # ============================================================================
+
 
 class TestIPRedaction:
     """Tests for IP address redaction."""
@@ -190,6 +191,7 @@ class TestIPRedaction:
 # ============================================================================
 # Test API Key Redaction
 # ============================================================================
+
 
 class TestAPIKeyRedaction:
     """Tests for API key and token redaction."""
@@ -219,6 +221,7 @@ class TestAPIKeyRedaction:
 # Test Password Redaction
 # ============================================================================
 
+
 class TestPasswordRedaction:
     """Tests for password redaction."""
 
@@ -245,6 +248,7 @@ class TestPasswordRedaction:
 # ============================================================================
 # Test Redaction Modes
 # ============================================================================
+
 
 class TestRedactionModes:
     """Tests for different redaction modes."""
@@ -294,6 +298,7 @@ class TestRedactionModes:
 # Test Message Redaction
 # ============================================================================
 
+
 class TestMessageRedaction:
     """Tests for redacting chat messages."""
 
@@ -303,13 +308,11 @@ class TestMessageRedaction:
         messages = [
             {"role": "system", "content": "You are helpful"},
             {"role": "user", "content": sample_pii_text},
-            {"role": "assistant", "content": "Here's my email: assistant@example.com"}
+            {"role": "assistant", "content": "Here's my email: assistant@example.com"},
         ]
 
         result = redactor.redact_messages(
-            messages,
-            redact_user=True,
-            redact_assistant=False
+            messages, redact_user=True, redact_assistant=False
         )
 
         # User message should be redacted
@@ -323,13 +326,11 @@ class TestMessageRedaction:
         redactor = PIIRedactor()
         messages = [
             {"role": "user", "content": sample_pii_text},
-            {"role": "assistant", "content": "Email: assistant@example.com"}
+            {"role": "assistant", "content": "Email: assistant@example.com"},
         ]
 
         result = redactor.redact_messages(
-            messages,
-            redact_user=True,
-            redact_assistant=True
+            messages, redact_user=True, redact_assistant=True
         )
 
         # Both should be redacted
@@ -340,6 +341,7 @@ class TestMessageRedaction:
 # ============================================================================
 # Test PII Detection
 # ============================================================================
+
 
 class TestPIIDetection:
     """Tests for PII detection without redaction."""
@@ -382,6 +384,7 @@ class TestPIIDetection:
 # Test Pattern Filtering
 # ============================================================================
 
+
 class TestPatternFiltering:
     """Tests for enabling/disabling specific patterns."""
 
@@ -414,6 +417,7 @@ class TestPatternFiltering:
 # Test Complex Scenarios
 # ============================================================================
 
+
 class TestComplexScenarios:
     """Tests for complex real-world scenarios."""
 
@@ -425,7 +429,7 @@ class TestComplexScenarios:
 
         # Should contain redaction markers
         assert "[EMAIL]" in result
-        assert ("[PHONE]" in result or "***" in result)
+        assert "[PHONE]" in result or "***" in result
         assert "[SSN]" in result
         assert "[CREDIT_CARD]" in result
         assert "[IP_ADDRESS]" in result
@@ -467,6 +471,7 @@ class TestComplexScenarios:
 # ============================================================================
 # Test Edge Cases
 # ============================================================================
+
 
 class TestEdgeCases:
     """Tests for edge cases."""

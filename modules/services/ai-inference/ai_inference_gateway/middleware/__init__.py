@@ -7,36 +7,46 @@ __all__ = [
 # Optional imports
 try:
     from .observability import ObservabilityMiddleware
+
     __all__.append("ObservabilityMiddleware")
 except ImportError:
     pass
 
 try:
     from .security_filter import SecurityFilterMiddleware
+
     __all__.append("SecurityFilterMiddleware")
 except ImportError:
     pass
 
 try:
     from .rate_limiter import RateLimiterMiddleware
+
     __all__.append("RateLimiterMiddleware")
 except ImportError:
     pass
 
 try:
-    from .circuit_breaker import CircuitBreaker, CircuitBreakerState, CircuitBreakerOpenError
+    from .circuit_breaker import (
+        CircuitBreaker,
+        CircuitBreakerState,
+        CircuitBreakerOpenError,
+    )
+
     __all__.extend(["CircuitBreaker", "CircuitBreakerState", "CircuitBreakerOpenError"])
 except ImportError:
     pass
 
 try:
     from .load_balancer import LoadBalancerMiddleware, BackendInstance, BackendState
+
     __all__.extend(["LoadBalancerMiddleware", "BackendInstance", "BackendState"])
 except ImportError:
     pass
 
 try:
     from .concurrency_limiter import ConcurrencyLimiter
+
     __all__.append("ConcurrencyLimiter")
 except ImportError:
     pass

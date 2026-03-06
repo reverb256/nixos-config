@@ -1,9 +1,8 @@
 # Desktop Module - Pure Wayland with XWayland Fallback
 # Optimized for Steam and gaming with Wayland-first approach
-{
-  pkgs,
-  lib,
-  ...
+{ pkgs
+, lib
+, ...
 }: {
   # ============================================================================
   # KDE PLASMA 6 (Pure Wayland with XWayland fallback for legacy apps)
@@ -51,20 +50,20 @@
           "gtk"
         ];
         # Screen cast: KDE implementation for better integration with Plasma
-        "org.freedesktop.impl.portal.ScreenCast" = ["kde"];
+        "org.freedesktop.impl.portal.ScreenCast" = [ "kde" ];
         # Screenshots: KDE implementation for better integration with Spectacle
-        "org.freedesktop.impl.portal.Screenshot" = ["kde"];
+        "org.freedesktop.impl.portal.Screenshot" = [ "kde" ];
         # Remote Desktop: KDE implementation for better integration
-        "org.freedesktop.impl.portal.RemoteDesktop" = ["kde"];
+        "org.freedesktop.impl.portal.RemoteDesktop" = [ "kde" ];
         # Settings: prefers KDE settings dialogs but falls back to GTK
         "org.freedesktop.impl.portal.Settings" = [
           "kde"
           "gtk"
         ];
         # Notifications: KDE implementation for better integration with Plasma
-        "org.freedesktop.impl.portal.Notification" = ["kde"];
+        "org.freedesktop.impl.portal.Notification" = [ "kde" ];
         # Window management: KDE implementation for better integration with KWin
-        "org.freedesktop.impl.portal.WindowManagement" = ["kde"];
+        "org.freedesktop.impl.portal.WindowManagement" = [ "kde" ];
         # Additional portal types commonly used
         "org.freedesktop.impl.portal.Print" = [
           "kde"
@@ -74,20 +73,20 @@
           "kde"
           "gtk"
         ];
-        "org.freedesktop.impl.portal.Inhibit" = ["kde"];
-        "org.freedesktop.impl.portal.Access" = ["kde"];
+        "org.freedesktop.impl.portal.Inhibit" = [ "kde" ];
+        "org.freedesktop.impl.portal.Access" = [ "kde" ];
         "org.freedesktop.impl.portal.Account" = [
           "kde"
           "gtk"
         ];
-        "org.freedesktop.impl.portal.Background" = ["kde"];
-        "org.freedesktop.impl.portal.GameMode" = ["kde"];
-        "org.freedesktop.impl.portal.LockScreen" = ["kde"];
+        "org.freedesktop.impl.portal.Background" = [ "kde" ];
+        "org.freedesktop.impl.portal.GameMode" = [ "kde" ];
+        "org.freedesktop.impl.portal.LockScreen" = [ "kde" ];
         # Realtime: DISABLE GTK portal (has pidns bug) - let PipeWire use RTKit directly
-        "org.freedesktop.impl.portal.Realtime" = [];
-        "org.freedesktop.impl.portal.NetworkMonitor" = ["kde"];
-        "org.freedesktop.impl.portal.ProxyResolver" = ["kde"];
-        "org.freedesktop.impl.portal.Trash" = ["kde"];
+        "org.freedesktop.impl.portal.Realtime" = [ ];
+        "org.freedesktop.impl.portal.NetworkMonitor" = [ "kde" ];
+        "org.freedesktop.impl.portal.ProxyResolver" = [ "kde" ];
+        "org.freedesktop.impl.portal.Trash" = [ "kde" ];
       };
     };
 
@@ -237,6 +236,6 @@
     # Qt6 Multimedia: Force PipeWire backend and fix library resolution
     # Fixes "qt.multimedia.symbolsresolver: Couldn't load pipewire-0.3 library"
     QT_MEDIA_BACKEND = "pipewire";
-    LD_LIBRARY_PATH = lib.mkBefore ["/run/current-system/sw/lib/pipewire-0.3"];
+    LD_LIBRARY_PATH = lib.mkBefore [ "/run/current-system/sw/lib/pipewire-0.3" ];
   };
 }

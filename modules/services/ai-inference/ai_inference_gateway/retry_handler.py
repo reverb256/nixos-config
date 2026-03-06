@@ -14,8 +14,7 @@ Features:
 
 import asyncio
 import logging
-import time
-from typing import Optional, Callable, Any, Dict, Union
+from typing import Optional, Callable, Any, Dict
 from dataclasses import dataclass
 from enum import Enum
 
@@ -30,6 +29,7 @@ try:
         before_sleep_log,
         RetryError,
     )
+
     TENACITY_AVAILABLE = True
 except ImportError:
     TENACITY_AVAILABLE = False
@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 class RetryStrategy(Enum):
     """Retry strategy types."""
+
     EXPONENTIAL_BACKOFF = "exponential_backoff"
     FIXED_DELAY = "fixed_delay"
     IMMEDIATE = "immediate"
@@ -61,6 +62,7 @@ class RetryConfig:
         retry_on_timeout: Retry on timeout errors (default: True)
         retry_on_connection_error: Retry on connection errors (default: True)
     """
+
     max_attempts: int = 5
     base_wait_seconds: float = 1.0
     max_wait_seconds: float = 60.0
@@ -85,11 +87,13 @@ class RetryConfig:
 
 class RetryableError(Exception):
     """Base exception for errors that should trigger retry."""
+
     pass
 
 
 class RateLimitError(RetryableError):
     """Rate limit exceeded (HTTP 429)."""
+
     def __init__(self, retry_after: Optional[float] = None):
         self.retry_after = retry_after
         super().__init__(f"Rate limit exceeded. Retry after: {retry_after}")
@@ -97,6 +101,7 @@ class RateLimitError(RetryableError):
 
 class ServerError(RetryableError):
     """Server error (HTTP 5xx)."""
+
     def __init__(self, status_code: int):
         self.status_code = status_code
         super().__init__(f"Server error: {status_code}")
@@ -104,6 +109,7 @@ class ServerError(RetryableError):
 
 class ConnectionError(RetryableError):
     """Connection error or timeout."""
+
     pass
 
 
@@ -143,7 +149,7 @@ class RetryMetrics:
                 self.total_success / (self.total_success + self.total_failures)
                 if (self.total_success + self.total_failures) > 0
                 else 0.0
-            )
+            ),
         }
 
 
@@ -155,9 +161,7 @@ class RetryHandler:
     """
 
     def __init__(
-        self,
-        config: Optional[RetryConfig] = None,
-        enable_metrics: bool = True
+        self, config: Optional[RetryConfig] = None, enable_metrics: bool = True
     ):
         """
         Initialize retry handler.
@@ -177,10 +181,7 @@ class RetryHandler:
             )
 
     async def execute_with_retry(
-        self,
-        func: Callable,
-        *args: Any,
-        **kwargs: Any
+        self, func: Callable, *args: Any, **kwargs: Any
     ) -> Any:
         """
         Execute a function with retry logic.
@@ -203,10 +204,7 @@ class RetryHandler:
             return await self._execute_with_fallback(func, *args, **kwargs)
 
     async def _execute_with_tenacity(
-        self,
-        func: Callable,
-        *args: Any,
-        **kwargs: Any
+        self, func: Callable, *args: Any, **kwargs: Any
     ) -> Any:
         """Execute with tenacity-based retry logic."""
         last_exception = None
@@ -254,11 +252,12 @@ class RetryHandler:
             wait=wait_exponential(
                 multiplier=self.config.base_wait_seconds,
                 max=self.config.max_wait_seconds,
-                exp_base=self.config.exponential_base
+                exp_base=self.config.exponential_base,
             ),
-            retry=retry_if_exception_type(Exception) & retry_if_exception_type(RetryableError),
+            retry=retry_if_exception_type(Exception)
+            & retry_if_exception_type(RetryableError),
             before_sleep=before_sleep_log(logger, logging.WARNING),
-            reraise=True
+            reraise=True,
         )
         async def _retry_wrapper():
             try:
@@ -279,7 +278,9 @@ class RetryHandler:
                     if retry_after:
                         try:
                             retry_after_seconds = float(retry_after)
-                            logger.info(f"Rate limited. Retry-After: {retry_after_seconds}s")
+                            logger.info(
+                                f"Rate limited. Retry-After: {retry_after_seconds}s"
+                            )
                             await asyncio.sleep(retry_after_seconds)
                         except ValueError:
                             pass
@@ -324,20 +325,19 @@ class RetryHandler:
             if self.metrics:
                 self.metrics.record_failure()
 
-            logger.error(f"All {self.config.max_attempts} retry attempts exhausted: {e}")
+            logger.error(
+                f"All {self.config.max_attempts} retry attempts exhausted: {e}"
+            )
             raise
 
-        except Exception as e:
+        except Exception:
             if self.metrics:
                 self.metrics.record_failure()
 
             raise
 
     async def _execute_with_fallback(
-        self,
-        func: Callable,
-        *args: Any,
-        **kwargs: Any
+        self, func: Callable, *args: Any, **kwargs: Any
     ) -> Any:
         """Execute with fallback retry implementation (no tenacity)."""
         last_exception = None
@@ -443,7 +443,7 @@ class RetryHandler:
                     self.metrics.record_failure()
                 raise
 
-            except Exception as e:
+            except Exception:
                 # Don't retry on other exceptions
                 if self.metrics:
                     self.metrics.record_failure()
@@ -454,7 +454,9 @@ class RetryHandler:
             self.metrics.record_failure()
 
         if last_exception:
-            raise RetryError(f"All {self.config.max_attempts} retry attempts exhausted") from last_exception
+            raise RetryError(
+                f"All {self.config.max_attempts} retry attempts exhausted"
+            ) from last_exception
 
         raise RetryError(f"All {self.config.max_attempts} retry attempts exhausted")
 
@@ -479,6 +481,7 @@ class RetryHandler:
         # Add jitter if enabled
         if self.config.jitter:
             import random
+
             jitter = wait_time * 0.1  # 10% jitter
             wait_time += random.uniform(-jitter, jitter)
             wait_time = max(0, wait_time)  # Ensure non-negative
@@ -516,10 +519,7 @@ def get_default_handler() -> RetryHandler:
 
 
 async def execute_with_retry(
-    func: Callable,
-    *args: Any,
-    config: Optional[RetryConfig] = None,
-    **kwargs: Any
+    func: Callable, *args: Any, config: Optional[RetryConfig] = None, **kwargs: Any
 ) -> Any:
     """
     Execute function with retry logic using default handler.

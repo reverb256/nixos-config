@@ -32,9 +32,7 @@ class ObservabilityMiddleware(Middleware):
         self.config = config
 
     async def process_request(
-        self,
-        request: Request,
-        context: dict
+        self, request: Request, context: dict
     ) -> Tuple[bool, Optional[HTTPException]]:
         """
         Process incoming request to add tracking information.
@@ -70,7 +68,7 @@ class ObservabilityMiddleware(Middleware):
         context["start_time"] = time.time()
 
         # Store in request state for access in endpoints
-        if hasattr(request, 'state'):
+        if hasattr(request, "state"):
             request.state.request_id = request_id
 
         return True, None
@@ -99,10 +97,12 @@ class ObservabilityMiddleware(Middleware):
 
         # Build gateway metadata (merge with existing if present)
         metadata = response.get("gateway_metadata", {})
-        metadata.update({
-            "request_id": context.get("request_id", "unknown"),
-            "processing_time_ms": round(processing_time_ms, 2)
-        })
+        metadata.update(
+            {
+                "request_id": context.get("request_id", "unknown"),
+                "processing_time_ms": round(processing_time_ms, 2),
+            }
+        )
 
         # Add/merge metadata to response
         response["gateway_metadata"] = metadata
@@ -112,8 +112,8 @@ class ObservabilityMiddleware(Middleware):
                 "Request completed",
                 extra={
                     "request_id": metadata["request_id"],
-                    "processing_time_ms": metadata["processing_time_ms"]
-                }
+                    "processing_time_ms": metadata["processing_time_ms"],
+                },
             )
 
         return response

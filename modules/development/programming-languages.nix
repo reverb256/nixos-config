@@ -1,6 +1,6 @@
 # Programming Languages Module
 # Comprehensive language runtimes and package managers
-{pkgs, ...}: {
+{ pkgs, ... }: {
   environment.systemPackages = with pkgs; [
     # ============================================================================
     # GO

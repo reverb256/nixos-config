@@ -1,15 +1,15 @@
-{
-  lib,
-  stdenv,
-  fetchurl,
-  autoPatchelfHook,
-  makeWrapper,
-  glibc,
-  zlib,
-  gcc-unwrapped,
-  libX11,
-  libxcb,
-  libXext,
+{ lib
+, stdenv
+, fetchurl
+, autoPatchelfHook
+, makeWrapper
+, glibc
+, zlib
+, gcc-unwrapped
+, libX11
+, libxcb
+, libXext
+,
 }:
 stdenv.mkDerivation rec {
   pname = "lolminer";
@@ -20,7 +20,7 @@ stdenv.mkDerivation rec {
     sha256 = "0avny9fshray40snp3p90svlijh0mx5dh37fqqqppip9ss9gby72";
   };
 
-  nativeBuildInputs = [autoPatchelfHook makeWrapper];
+  nativeBuildInputs = [ autoPatchelfHook makeWrapper ];
 
   buildInputs = [
     glibc

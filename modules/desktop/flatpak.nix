@@ -1,14 +1,14 @@
 # Flatpak Support for KDE Plasma
 # Enables Flatpak with Discover integration and Flathub remote
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }:
 with lib; let
   cfg = config.services.flatpak-kde;
-in {
+in
+{
   options.services.flatpak-kde = {
     enable = mkEnableOption "Flatpak support with Discover and Flathub";
 
@@ -20,7 +20,7 @@ in {
 
     extraRemotes = mkOption {
       type = types.listOf types.attrs;
-      default = [];
+      default = [ ];
       description = "Extra Flatpak remotes to add";
       example = literalExpression ''
         [
@@ -89,7 +89,7 @@ in {
     # Update Flatpak weekly
     systemd.timers.flatpak-update = mkIf cfg.autoUpdate {
       description = "Flatpak update timer";
-      wantedBy = ["timers.target"];
+      wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "weekly";
         Persistent = true;
@@ -99,8 +99,8 @@ in {
 
     systemd.services.flatpak-update = mkIf cfg.autoUpdate {
       description = "Update Flatpak packages";
-      after = ["network-online.target" "spotx-patch.service"];
-      wants = ["network-online.target" "spotx-patch.service"];
+      after = [ "network-online.target" "spotx-patch.service" ];
+      wants = [ "network-online.target" "spotx-patch.service" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${pkgs.flatpak}/bin/flatpak update --assumeyes";

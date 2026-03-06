@@ -22,6 +22,7 @@ import httpx
 # Import tool schema caching
 try:
     from ai_inference_gateway.mcp_cache import ToolSchemaCache, get_cache
+
     CACHE_AVAILABLE = True
 except ImportError:
     logger.warning("MCP cache module not available")
@@ -32,13 +33,15 @@ logger = logging.getLogger(__name__)
 
 class MCPServerType(Enum):
     """MCP server types."""
-    LOCAL = "local"   # stdio-based servers
-    REMOTE = "remote" # HTTP/SSE servers
+
+    LOCAL = "local"  # stdio-based servers
+    REMOTE = "remote"  # HTTP/SSE servers
 
 
 @dataclass
 class MCPServer:
     """MCP server configuration."""
+
     name: str
     type: MCPServerType
     command: Optional[List[str]] = None
@@ -59,7 +62,7 @@ class MCPBroker:
         self,
         servers: List[MCPServer],
         cache_ttl_seconds: int = 300,
-        enable_cache: bool = True
+        enable_cache: bool = True,
     ):
         """
         Initialize MCP broker.
@@ -82,7 +85,9 @@ class MCPBroker:
             )
         else:
             self.tool_cache = None
-            logger.info(f"MCP Broker initialized with {len(servers)} servers (cache disabled)")
+            logger.info(
+                f"MCP Broker initialized with {len(servers)} servers (cache disabled)"
+            )
 
     async def list_servers(self) -> List[Dict]:
         """
@@ -93,12 +98,14 @@ class MCPBroker:
         """
         servers_list = []
         for name, server in self.servers.items():
-            servers_list.append({
-                "name": server.name,
-                "type": server.type.value,
-                "url": server.url if server.type == MCPServerType.REMOTE else None,
-                "healthy": await self.health_check(name)
-            })
+            servers_list.append(
+                {
+                    "name": server.name,
+                    "type": server.type.value,
+                    "url": server.url if server.type == MCPServerType.REMOTE else None,
+                    "healthy": await self.health_check(name),
+                }
+            )
         return servers_list
 
     async def get_tools(self, server_name: Optional[str] = None) -> List[Dict]:
@@ -132,9 +139,7 @@ class MCPBroker:
 
                 # Use cache to get tools
                 tools = await self.tool_cache.get_tools(
-                    server_name=name,
-                    fetch_func=fetch_func,
-                    force_refresh=False
+                    server_name=name, fetch_func=fetch_func, force_refresh=False
                 )
 
                 if tools:
@@ -148,9 +153,7 @@ class MCPBroker:
         return all_tools
 
     async def _fetch_tools_from_server(
-        self,
-        name: str,
-        server: MCPServer
+        self, name: str, server: MCPServer
     ) -> Optional[List[Dict]]:
         """
         Fetch tools from a specific MCP server.
@@ -170,20 +173,14 @@ class MCPBroker:
                     headers.update(server.headers)
 
                 # Use MCP JSON-RPC protocol to list tools
-                mcp_request = {
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "tools/list"
-                }
+                mcp_request = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
 
                 # ZAI MCP servers require SSE-capable Accept header
                 headers["Accept"] = "application/json, text/event-stream"
 
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     response = await client.post(
-                        server.url,
-                        json=mcp_request,
-                        headers=headers
+                        server.url, json=mcp_request, headers=headers
                     )
 
                     if response.status_code == 200:
@@ -194,7 +191,9 @@ class MCPBroker:
                             tools = await self._parse_sse_tools_response(response, name)
                         else:
                             # Parse JSON response
-                            tools = await self._parse_json_tools_response(response, name)
+                            tools = await self._parse_json_tools_response(
+                                response, name
+                            )
 
                         if tools:
                             return tools
@@ -202,7 +201,9 @@ class MCPBroker:
                             logger.warning(f"No tools found in response from {name}")
 
                     else:
-                        logger.warning(f"Failed to list tools from {name}: HTTP {response.status_code}")
+                        logger.warning(
+                            f"Failed to list tools from {name}: HTTP {response.status_code}"
+                        )
                         return None
 
             except Exception as e:
@@ -217,9 +218,7 @@ class MCPBroker:
         return None
 
     async def _parse_sse_tools_response(
-        self,
-        response: httpx.Response,
-        server_name: str
+        self, response: httpx.Response, server_name: str
     ) -> Optional[List[Dict]]:
         """Parse SSE (Server-Sent Events) response for tools."""
         tools = []
@@ -231,12 +230,14 @@ class MCPBroker:
                         data = json.loads(line[5:].strip())
                         if "result" in data and "tools" in data["result"]:
                             for tool in data["result"]["tools"]:
-                                tools.append({
-                                    "server": server_name,
-                                    "name": tool.get("name"),
-                                    "description": tool.get("description", ""),
-                                    "type": "remote"
-                                })
+                                tools.append(
+                                    {
+                                        "server": server_name,
+                                        "name": tool.get("name"),
+                                        "description": tool.get("description", ""),
+                                        "type": "remote",
+                                    }
+                                )
                             break  # Got the tools, stop parsing
                     except json.JSONDecodeError:
                         continue
@@ -246,9 +247,7 @@ class MCPBroker:
         return tools if tools else None
 
     async def _parse_json_tools_response(
-        self,
-        response: httpx.Response,
-        server_name: str
+        self, response: httpx.Response, server_name: str
     ) -> Optional[List[Dict]]:
         """Parse JSON response for tools."""
         try:
@@ -256,19 +255,23 @@ class MCPBroker:
 
             # Check for JSON-RPC error
             if "error" in result:
-                logger.warning(f"MCP server {server_name} returned error: {result['error']}")
+                logger.warning(
+                    f"MCP server {server_name} returned error: {result['error']}"
+                )
                 return None
 
             # Extract tools from MCP response
             if "result" in result and "tools" in result["result"]:
                 tools = []
                 for tool in result["result"]["tools"]:
-                    tools.append({
-                        "server": server_name,
-                        "name": tool.get("name"),
-                        "description": tool.get("description", ""),
-                        "type": "remote"
-                    })
+                    tools.append(
+                        {
+                            "server": server_name,
+                            "name": tool.get("name"),
+                            "description": tool.get("description", ""),
+                            "type": "remote",
+                        }
+                    )
                 return tools
 
             logger.warning(f"Unexpected response from MCP server {server_name}")
@@ -282,25 +285,30 @@ class MCPBroker:
         """Get fallback tools for known ZAI servers."""
         # Known tools for ZAI servers (when MCP endpoint is unavailable)
         known_tools = {
-            "web-search-prime": [{"name": "web_search", "description": "Web search via ZAI"}],
+            "web-search-prime": [
+                {"name": "web_search", "description": "Web search via ZAI"}
+            ],
             "web-reader": [{"name": "fetch_url", "description": "Fetch URL content"}],
             "zread": [
                 {"name": "github_repo", "description": "GitHub repository analysis"},
-                {"name": "github_file", "description": "GitHub file reader"}
+                {"name": "github_file", "description": "GitHub file reader"},
             ],
-            "4-5v-mcp-server": [{"name": "analyze_image", "description": "Image analysis"}]
+            "4-5v-mcp-server": [
+                {"name": "analyze_image", "description": "Image analysis"}
+            ],
         }
 
         if server_name in known_tools:
             logger.info(f"Using fallback tools for {server_name}")
             return [
-                {"server": server_name, **tool}
-                for tool in known_tools[server_name]
+                {"server": server_name, **tool} for tool in known_tools[server_name]
             ]
 
         return None
 
-    async def invalidate_cache(self, server_name: Optional[str] = None) -> Dict[str, bool]:
+    async def invalidate_cache(
+        self, server_name: Optional[str] = None
+    ) -> Dict[str, bool]:
         """
         Invalidate cached tool schemas.
 
@@ -347,7 +355,9 @@ class MCPBroker:
         servers = {}
         for name, server in self.servers.items():
             if server.type == MCPServerType.REMOTE and server.url:
-                servers[name] = lambda n=name, s=server: self._fetch_tools_from_server(n, s)
+                servers[name] = lambda n=name, s=server: self._fetch_tools_from_server(
+                    n, s
+                )
 
         if servers:
             return await self.tool_cache.warm_up(servers, max_concurrency=5)
@@ -355,10 +365,7 @@ class MCPBroker:
         return {}
 
     async def call_tool(
-        self,
-        server_name: str,
-        tool_name: str,
-        arguments: Dict
+        self, server_name: str, tool_name: str, arguments: Dict
     ) -> Dict:
         """
         Call a tool on a specific MCP server.
@@ -374,7 +381,7 @@ class MCPBroker:
         if server_name not in self.servers:
             return {
                 "error": f"Server {server_name} not found",
-                "available_servers": list(self.servers.keys())
+                "available_servers": list(self.servers.keys()),
             }
 
         server = self.servers[server_name]
@@ -386,7 +393,9 @@ class MCPBroker:
             # For local servers, use stdio communication
             return await self._call_local_tool(server, tool_name, arguments)
 
-    async def _call_remote_tool(self, server: MCPServer, tool_name: str, arguments: Dict) -> Dict:
+    async def _call_remote_tool(
+        self, server: MCPServer, tool_name: str, arguments: Dict
+    ) -> Dict:
         """
         Call a tool on a remote MCP server.
 
@@ -411,15 +420,22 @@ class MCPBroker:
             return direct_result
 
         # If direct call failed with 401 and this is a ZAI server, try Chat API fallback
-        if (server.url and "api.z.ai/api/mcp" in server.url and
-            "401" in str(direct_result.get("error", ""))):
-            logger.info(f"Direct MCP call failed for {server.name}.{tool_name}, trying Chat API fallback")
+        if (
+            server.url
+            and "api.z.ai/api/mcp" in server.url
+            and "401" in str(direct_result.get("error", ""))
+        ):
+            logger.info(
+                f"Direct MCP call failed for {server.name}.{tool_name}, trying Chat API fallback"
+            )
             return await self._call_via_chat_api(server, tool_name, arguments)
 
         # Otherwise return the direct call error
         return direct_result
 
-    async def _call_via_chat_api(self, server: MCPServer, tool_name: str, arguments: Dict) -> Dict:
+    async def _call_via_chat_api(
+        self, server: MCPServer, tool_name: str, arguments: Dict
+    ) -> Dict:
         """
         Call a ZAI MCP tool through the Chat API instead of direct MCP protocol.
 
@@ -448,12 +464,12 @@ class MCPBroker:
                             "properties": {
                                 "search_query": {
                                     "type": "string",
-                                    "description": "The search query"
+                                    "description": "The search query",
                                 }
                             },
-                            "required": ["search_query"]
-                        }
-                    }
+                            "required": ["search_query"],
+                        },
+                    },
                 },
                 "webReader": {
                     "type": "function",
@@ -465,12 +481,12 @@ class MCPBroker:
                             "properties": {
                                 "url": {
                                     "type": "string",
-                                    "description": "The URL to read"
+                                    "description": "The URL to read",
                                 }
                             },
-                            "required": ["url"]
-                        }
-                    }
+                            "required": ["url"],
+                        },
+                    },
                 },
                 "search_doc": {
                     "type": "function",
@@ -482,16 +498,16 @@ class MCPBroker:
                             "properties": {
                                 "query": {
                                     "type": "string",
-                                    "description": "Search query"
+                                    "description": "Search query",
                                 },
                                 "repo_name": {
                                     "type": "string",
-                                    "description": "Repository name (e.g., owner/repo)"
-                                }
+                                    "description": "Repository name (e.g., owner/repo)",
+                                },
                             },
-                            "required": ["query", "repo_name"]
-                        }
-                    }
+                            "required": ["query", "repo_name"],
+                        },
+                    },
                 },
                 "read_file": {
                     "type": "function",
@@ -503,16 +519,16 @@ class MCPBroker:
                             "properties": {
                                 "repo_name": {
                                     "type": "string",
-                                    "description": "Repository name (e.g., owner/repo)"
+                                    "description": "Repository name (e.g., owner/repo)",
                                 },
                                 "file_path": {
                                     "type": "string",
-                                    "description": "Path to the file in the repository"
-                                }
+                                    "description": "Path to the file in the repository",
+                                },
                             },
-                            "required": ["repo_name", "file_path"]
-                        }
-                    }
+                            "required": ["repo_name", "file_path"],
+                        },
+                    },
                 },
                 "get_repo_structure": {
                     "type": "function",
@@ -524,24 +540,24 @@ class MCPBroker:
                             "properties": {
                                 "repo_name": {
                                     "type": "string",
-                                    "description": "Repository name (e.g., owner/repo)"
+                                    "description": "Repository name (e.g., owner/repo)",
                                 },
                                 "dir_path": {
                                     "type": "string",
-                                    "description": "Directory path (default: /)"
-                                }
+                                    "description": "Directory path (default: /)",
+                                },
                             },
-                            "required": ["repo_name"]
-                        }
-                    }
-                }
+                            "required": ["repo_name"],
+                        },
+                    },
+                },
             }
 
             if tool_name not in tool_mapping:
                 return {
                     "error": f"Tool {tool_name} not mapped for Chat API routing",
                     "server": server.name,
-                    "available_tools": list(tool_mapping.keys())
+                    "available_tools": list(tool_mapping.keys()),
                 }
 
             # Build headers with API key
@@ -549,7 +565,11 @@ class MCPBroker:
             if server.headers:
                 # Read API key from file if needed
                 for header_name, header_value in server.headers.items():
-                    if isinstance(header_value, str) and "/run/" in header_value and "-key" in header_value:
+                    if (
+                        isinstance(header_value, str)
+                        and "/run/" in header_value
+                        and "-key" in header_value
+                    ):
                         try:
                             if header_value.startswith("Bearer "):
                                 file_path = header_value.split(" ", 1)[1].strip()
@@ -580,12 +600,15 @@ class MCPBroker:
                 "messages": [
                     {
                         "role": "user",
-                        "content": f"Please use the {tool_def['function']['name']} tool with these arguments: {arguments}"
+                        "content": f"Please use the {tool_def['function']['name']} tool with these arguments: {arguments}",
                     }
                 ],
                 "tools": [tool_def],
-                "tool_choice": {"type": "function", "function": {"name": tool_def['function']['name']}},
-                "stream": False
+                "tool_choice": {
+                    "type": "function",
+                    "function": {"name": tool_def["function"]["name"]},
+                },
+                "stream": False,
             }
 
             logger.debug(f"Calling Chat API for {server.name}.{tool_name}")
@@ -595,9 +618,7 @@ class MCPBroker:
 
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    chat_url,
-                    json=chat_request,
-                    headers=headers
+                    chat_url, json=chat_request, headers=headers
                 )
                 logger.debug(f"Response status: {response.status_code}")
 
@@ -605,7 +626,9 @@ class MCPBroker:
                     result = response.json()
 
                     # Log the full response for debugging
-                    logger.info(f"Chat API response for {server.name}.{tool_name}: {json.dumps(result, indent=2)[:1000]}")
+                    logger.info(
+                        f"Chat API response for {server.name}.{tool_name}: {json.dumps(result, indent=2)[:1000]}"
+                    )
 
                     # Extract tool call result from Chat API response
                     if "choices" in result and len(result["choices"]) > 0:
@@ -622,12 +645,14 @@ class MCPBroker:
                                     func = tool_call["function"]
                                     # Some APIs return output directly in function
                                     if "output" in func or "result" in func:
-                                        output = func.get("output", func.get("result", ""))
+                                        output = func.get(
+                                            "output", func.get("result", "")
+                                        )
                                         return {
                                             "result": output,
                                             "server": server.name,
                                             "tool": tool_name,
-                                            "routed_via": "chat_api"
+                                            "routed_via": "chat_api",
                                         }
                                     # Check if arguments contain the result
                                     if "arguments" in func:
@@ -635,12 +660,14 @@ class MCPBroker:
                                             args = json.loads(func["arguments"])
                                             # Some APIs return results in arguments
                                             if "output" in args or "result" in args:
-                                                output = args.get("output", args.get("result", ""))
+                                                output = args.get(
+                                                    "output", args.get("result", "")
+                                                )
                                                 return {
                                                     "result": output,
                                                     "server": server.name,
                                                     "tool": tool_name,
-                                                    "routed_via": "chat_api"
+                                                    "routed_via": "chat_api",
                                                 }
                                         except json.JSONDecodeError:
                                             pass
@@ -653,38 +680,38 @@ class MCPBroker:
                                     "result": content,
                                     "server": server.name,
                                     "tool": tool_name,
-                                    "routed_via": "chat_api"
+                                    "routed_via": "chat_api",
                                 }
 
                     return {
                         "error": "No tool result in Chat API response",
                         "server": server.name,
                         "tool": tool_name,
-                        "response": result
+                        "response": result,
                     }
                 else:
                     return {
                         "error": f"HTTP {response.status_code}: {response.text[:200]}",
                         "server": server.name,
-                        "tool": tool_name
+                        "tool": tool_name,
                     }
 
         except httpx.HTTPError as e:
-            logger.error(f"HTTP error calling Chat API for {tool_name} on {server.name}: {e}")
-            return {
-                "error": str(e),
-                "server": server.name,
-                "tool": tool_name
-            }
+            logger.error(
+                f"HTTP error calling Chat API for {tool_name} on {server.name}: {e}"
+            )
+            return {"error": str(e), "server": server.name, "tool": tool_name}
         except Exception as e:
             logger.error(f"Unexpected error calling Chat API: {e}")
             return {
                 "error": f"Unexpected error: {str(e)}",
                 "server": server.name,
-                "tool": tool_name
+                "tool": tool_name,
             }
 
-    async def _call_direct_mcp(self, server: MCPServer, tool_name: str, arguments: Dict) -> Dict:
+    async def _call_direct_mcp(
+        self, server: MCPServer, tool_name: str, arguments: Dict
+    ) -> Dict:
         """
         Call a tool on a non-ZAI MCP server via direct MCP JSON-RPC protocol.
 
@@ -701,17 +728,23 @@ class MCPBroker:
 
         try:
             # Build headers
-            headers = {
-                "Content-Type": "application/json"
-            }
-            logger.info(f"Processing MCP call for {server.name}, server.headers: {server.headers}")
+            headers = {"Content-Type": "application/json"}
+            logger.info(
+                f"Processing MCP call for {server.name}, server.headers: {server.headers}"
+            )
 
             if server.headers:
                 # Read API key from file if needed
                 for header_name, header_value in server.headers.items():
-                    logger.info(f"Processing header {header_name}: {str(header_value)[:50]}...")
+                    logger.info(
+                        f"Processing header {header_name}: {str(header_value)[:50]}..."
+                    )
 
-                    if isinstance(header_value, str) and "/run/" in header_value and "-key" in header_value:
+                    if (
+                        isinstance(header_value, str)
+                        and "/run/" in header_value
+                        and "-key" in header_value
+                    ):
                         try:
                             logger.info(f"Detected API key file path in {header_name}")
                             if header_value.startswith("Bearer "):
@@ -728,9 +761,13 @@ class MCPBroker:
                                     headers[header_name] = f"Bearer {api_key}"
                                 else:
                                     headers[header_name] = api_key
-                            logger.info(f"Successfully loaded API key from {file_path} for {server.name}")
+                            logger.info(
+                                f"Successfully loaded API key from {file_path} for {server.name}"
+                            )
                         except Exception as e:
-                            logger.error(f"Failed to read API key from {header_value}: {e}")
+                            logger.error(
+                                f"Failed to read API key from {header_value}: {e}"
+                            )
                             return {"error": f"Failed to read API key: {e}"}
                     else:
                         headers[header_name] = header_value
@@ -741,10 +778,7 @@ class MCPBroker:
                 "jsonrpc": "2.0",
                 "id": 1,
                 "method": "tools/call",
-                "params": {
-                    "name": tool_name,
-                    "arguments": arguments
-                }
+                "params": {"name": tool_name, "arguments": arguments},
             }
 
             # ZAI MCP servers require SSE-capable Accept header
@@ -758,9 +792,7 @@ class MCPBroker:
 
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    server.url,
-                    json=mcp_request,
-                    headers=headers
+                    server.url, json=mcp_request, headers=headers
                 )
                 logger.debug(f"Response status: {response.status_code}")
 
@@ -774,7 +806,9 @@ class MCPBroker:
                             if line.startswith("data:"):
                                 try:
                                     data = json.loads(line[5:].strip())
-                                    logger.debug(f"Parsed SSE data: {json.dumps(data)[:500]}")
+                                    logger.debug(
+                                        f"Parsed SSE data: {json.dumps(data)[:500]}"
+                                    )
 
                                     # Check for JSON-RPC response
                                     if "result" in data:
@@ -782,11 +816,17 @@ class MCPBroker:
 
                                         # Extract content from MCP result format
                                         # MCP returns: {"content": [{"type": "text", "text": "..."}], "isError": false}
-                                        if "content" in result and len(result["content"]) > 0:
+                                        if (
+                                            "content" in result
+                                            and len(result["content"]) > 0
+                                        ):
                                             content_item = result["content"][0]
 
                                             # Handle text content
-                                            if content_item.get("type") == "text" and "text" in content_item:
+                                            if (
+                                                content_item.get("type") == "text"
+                                                and "text" in content_item
+                                            ):
                                                 text_content = content_item["text"]
 
                                                 # Try to parse nested JSON (some tools wrap results in JSON strings)
@@ -796,7 +836,7 @@ class MCPBroker:
                                                         "result": nested,
                                                         "server": server.name,
                                                         "tool": tool_name,
-                                                        "routed_via": "direct_mcp"
+                                                        "routed_via": "direct_mcp",
                                                     }
                                                 except json.JSONDecodeError:
                                                     # Return as plain text
@@ -804,7 +844,7 @@ class MCPBroker:
                                                         "result": text_content,
                                                         "server": server.name,
                                                         "tool": tool_name,
-                                                        "routed_via": "direct_mcp"
+                                                        "routed_via": "direct_mcp",
                                                     }
 
                                             # Handle other content types
@@ -812,7 +852,7 @@ class MCPBroker:
                                                 "result": content_item,
                                                 "server": server.name,
                                                 "tool": tool_name,
-                                                "routed_via": "direct_mcp"
+                                                "routed_via": "direct_mcp",
                                             }
 
                                         # Return raw result if no content field
@@ -820,14 +860,14 @@ class MCPBroker:
                                             "result": result,
                                             "server": server.name,
                                             "tool": tool_name,
-                                            "routed_via": "direct_mcp"
+                                            "routed_via": "direct_mcp",
                                         }
 
                                     elif "error" in data:
                                         return {
                                             "error": data["error"],
                                             "server": server.name,
-                                            "tool": tool_name
+                                            "tool": tool_name,
                                         }
                                 except json.JSONDecodeError:
                                     continue
@@ -835,7 +875,7 @@ class MCPBroker:
                         return {
                             "error": "No valid data in SSE response",
                             "server": server.name,
-                            "tool": tool_name
+                            "tool": tool_name,
                         }
                     else:
                         # Regular JSON response
@@ -845,7 +885,7 @@ class MCPBroker:
                             return {
                                 "error": result["error"],
                                 "server": server.name,
-                                "tool": tool_name
+                                "tool": tool_name,
                             }
                         # Return the result part of JSON-RPC response
                         return result.get("result", result)
@@ -853,22 +893,20 @@ class MCPBroker:
                     return {
                         "error": f"HTTP {response.status_code}: {response.text[:200]}",
                         "server": server.name,
-                        "tool": tool_name
+                        "tool": tool_name,
                     }
 
         except httpx.HTTPError as e:
-            logger.error(f"HTTP error calling remote tool {tool_name} on {server.name}: {e}")
-            return {
-                "error": str(e),
-                "server": server.name,
-                "tool": tool_name
-            }
+            logger.error(
+                f"HTTP error calling remote tool {tool_name} on {server.name}: {e}"
+            )
+            return {"error": str(e), "server": server.name, "tool": tool_name}
         except Exception as e:
             logger.error(f"Unexpected error calling remote tool: {e}")
             return {
                 "error": f"Unexpected error: {str(e)}",
                 "server": server.name,
-                "tool": tool_name
+                "tool": tool_name,
             }
 
     async def health_check(self, server_name: str) -> bool:
@@ -890,7 +928,7 @@ class MCPBroker:
             try:
                 headers = {
                     "Content-Type": "application/json",
-                    "Accept": "application/json, text/event-stream"
+                    "Accept": "application/json, text/event-stream",
                 }
                 if server.headers:
                     headers.update(server.headers)
@@ -905,16 +943,14 @@ class MCPBroker:
                         "capabilities": {},
                         "clientInfo": {
                             "name": "ai-inference-gateway",
-                            "version": "2.0.0"
-                        }
-                    }
+                            "version": "2.0.0",
+                        },
+                    },
                 }
 
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     response = await client.post(
-                        server.url,
-                        json=mcp_request,
-                        headers=headers
+                        server.url, json=mcp_request, headers=headers
                     )
                     # Accept any 2xx response as healthy
                     return 200 <= response.status_code < 300
@@ -948,6 +984,7 @@ class MCPBroker:
             env = None
             if server.environment:
                 import os
+
                 env = os.environ.copy()
                 env.update(server.environment)
 
@@ -957,7 +994,7 @@ class MCPBroker:
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                env=env
+                env=env,
             )
 
             # Initialize the MCP server
@@ -968,11 +1005,8 @@ class MCPBroker:
                 "params": {
                     "protocolVersion": "2024-11-05",
                     "capabilities": {},
-                    "clientInfo": {
-                        "name": "ai-inference-gateway",
-                        "version": "2.0.0"
-                    }
-                }
+                    "clientInfo": {"name": "ai-inference-gateway", "version": "2.0.0"},
+                },
             }
 
             init_response = await self._send_local_request(server, init_request)
@@ -980,7 +1014,9 @@ class MCPBroker:
                 logger.info(f"Successfully initialized local MCP server {server.name}")
                 return True
             else:
-                logger.warning(f"Failed to initialize local MCP server {server.name}: {init_response}")
+                logger.warning(
+                    f"Failed to initialize local MCP server {server.name}: {init_response}"
+                )
                 # Terminate the process if initialization failed
                 if server.process:
                     server.process.terminate()
@@ -993,9 +1029,7 @@ class MCPBroker:
             return False
 
     async def _send_local_request(
-        self,
-        server: MCPServer,
-        request: Dict
+        self, server: MCPServer, request: Dict
     ) -> Optional[Dict]:
         """
         Send a JSON-RPC request to a local MCP server via stdio.
@@ -1020,8 +1054,7 @@ class MCPBroker:
 
             # Read response line by line
             response_line = await asyncio.wait_for(
-                server.process.stdout.readline(),
-                timeout=30.0
+                server.process.stdout.readline(), timeout=30.0
             )
 
             if not response_line:
@@ -1032,22 +1065,27 @@ class MCPBroker:
 
             # Check for JSON-RPC error
             if "error" in response:
-                logger.warning(f"Local MCP server {server.name} returned error: {response['error']}")
+                logger.warning(
+                    f"Local MCP server {server.name} returned error: {response['error']}"
+                )
 
             return response
 
         except asyncio.TimeoutError:
-            logger.warning(f"Timeout waiting for response from local MCP server {server.name}")
+            logger.warning(
+                f"Timeout waiting for response from local MCP server {server.name}"
+            )
             return None
         except Exception as e:
-            logger.error(f"Error communicating with local MCP server {server.name}: {e}")
+            logger.error(
+                f"Error communicating with local MCP server {server.name}: {e}"
+            )
             # Process may have died, mark it as None so we respawn next time
             server.process = None
             return None
 
     async def _fetch_tools_from_local_server(
-        self,
-        server: MCPServer
+        self, server: MCPServer
     ) -> Optional[List[Dict]]:
         """
         Fetch tools from a local MCP server.
@@ -1064,41 +1102,38 @@ class MCPBroker:
                 return None
 
         # Request tools list
-        request = {
-            "jsonrpc": "2.0",
-            "id": 2,
-            "method": "tools/list"
-        }
+        request = {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}
 
         response = await self._send_local_request(server, request)
         if not response:
             return None
 
         if "error" in response:
-            logger.warning(f"Local MCP server {server.name} returned error: {response['error']}")
+            logger.warning(
+                f"Local MCP server {server.name} returned error: {response['error']}"
+            )
             return None
 
         # Extract tools from response
         if "result" in response and "tools" in response["result"]:
             tools = []
             for tool in response["result"]["tools"]:
-                tools.append({
-                    "server": server.name,
-                    "name": tool.get("name"),
-                    "description": tool.get("description", ""),
-                    "type": "local",
-                    "inputSchema": tool.get("inputSchema", {})
-                })
+                tools.append(
+                    {
+                        "server": server.name,
+                        "name": tool.get("name"),
+                        "description": tool.get("description", ""),
+                        "type": "local",
+                        "inputSchema": tool.get("inputSchema", {}),
+                    }
+                )
             return tools
 
         logger.warning(f"Unexpected response from local MCP server {server.name}")
         return None
 
     async def _call_local_tool(
-        self,
-        server: MCPServer,
-        tool_name: str,
-        arguments: Dict
+        self, server: MCPServer, tool_name: str, arguments: Dict
     ) -> Dict:
         """
         Call a tool on a local MCP server.
@@ -1116,10 +1151,7 @@ class MCPBroker:
             "jsonrpc": "2.0",
             "id": 3,
             "method": "tools/call",
-            "params": {
-                "name": tool_name,
-                "arguments": arguments
-            }
+            "params": {"name": tool_name, "arguments": arguments},
         }
 
         response = await self._send_local_request(server, request)
@@ -1127,14 +1159,14 @@ class MCPBroker:
             return {
                 "error": f"Failed to communicate with local MCP server {server.name}",
                 "server": server.name,
-                "tool": tool_name
+                "tool": tool_name,
             }
 
         if "error" in response:
             return {
                 "error": response["error"],
                 "server": server.name,
-                "tool": tool_name
+                "tool": tool_name,
             }
 
         # Return the result
@@ -1152,32 +1184,28 @@ class MCPBroker:
                 return {
                     "server": server.name,
                     "tool": tool_name,
-                    "result": "\n".join(content)
+                    "result": "\n".join(content),
                 }
             elif isinstance(result, dict):
                 if result.get("type") == "text":
                     return {
                         "server": server.name,
                         "tool": tool_name,
-                        "result": result.get("text", "")
+                        "result": result.get("text", ""),
                     }
                 else:
                     return {
                         "server": server.name,
                         "tool": tool_name,
-                        "result": json.dumps(result)
+                        "result": json.dumps(result),
                     }
             else:
-                return {
-                    "server": server.name,
-                    "tool": tool_name,
-                    "result": str(result)
-                }
+                return {"server": server.name, "tool": tool_name, "result": str(result)}
 
         return {
             "error": "Unexpected response from local MCP server",
             "server": server.name,
-            "tool": tool_name
+            "tool": tool_name,
         }
 
     async def _check_local_server_health(self, server: MCPServer) -> bool:
@@ -1197,7 +1225,9 @@ class MCPBroker:
         # Check if process is still running
         if server.process.returncode is not None:
             # Process died, try to respawn
-            logger.warning(f"Local MCP server {server.name} process died (exit code {server.process.returncode})")
+            logger.warning(
+                f"Local MCP server {server.name} process died (exit code {server.process.returncode})"
+            )
             server.process = None
             return await self._spawn_local_server(server)
 
@@ -1236,7 +1266,7 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
 
     # Check if MCP broker is enabled via config
     mcp_enabled = False
-    if hasattr(config, 'mcp') and hasattr(config.mcp, 'enabled'):
+    if hasattr(config, "mcp") and hasattr(config.mcp, "enabled"):
         mcp_enabled = config.mcp.enabled
 
     # Also check environment variable for Nix-based configuration
@@ -1254,7 +1284,9 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
     if mcp_servers_json:
         try:
             mcp_servers_dict = json.loads(mcp_servers_json)
-            logger.info(f"Loading MCP servers from environment: {list(mcp_servers_dict.keys())}")
+            logger.info(
+                f"Loading MCP servers from environment: {list(mcp_servers_dict.keys())}"
+            )
 
             for server_name, server_config in mcp_servers_dict.items():
                 # Check if server is enabled
@@ -1263,7 +1295,11 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
 
                 # Determine server type (defaults to remote for backward compatibility)
                 server_type_str = server_config.get("type", "remote")
-                server_type = MCPServerType.LOCAL if server_type_str == "local" else MCPServerType.REMOTE
+                server_type = (
+                    MCPServerType.LOCAL
+                    if server_type_str == "local"
+                    else MCPServerType.REMOTE
+                )
 
                 if server_type == MCPServerType.LOCAL:
                     # Local server configuration
@@ -1271,7 +1307,9 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
                     environment = server_config.get("environment", {})
 
                     if not command:
-                        logger.warning(f"Local MCP server {server_name} missing command, skipping")
+                        logger.warning(
+                            f"Local MCP server {server_name} missing command, skipping"
+                        )
                         continue
 
                     server = MCPServer(
@@ -1280,21 +1318,29 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
                         command=command,
                         environment=environment,
                         url=None,
-                        headers=None
+                        headers=None,
                     )
                     servers.append(server)
-                    logger.info(f"Added MCP server: {server.name} (local, command={' '.join(command)})")
+                    logger.info(
+                        f"Added MCP server: {server.name} (local, command={' '.join(command)})"
+                    )
                 else:
                     # Remote server configuration
                     url = server_config.get("url")
                     if not url:
-                        logger.warning(f"Remote MCP server {server_name} missing url, skipping")
+                        logger.warning(
+                            f"Remote MCP server {server_name} missing url, skipping"
+                        )
                         continue
 
                     # Read API key from file if specified in headers
                     headers = dict(server_config.get("headers", {}))
                     for header_name, header_value in list(headers.items()):
-                        if isinstance(header_value, str) and "/run/" in header_value and "-key" in header_value:
+                        if (
+                            isinstance(header_value, str)
+                            and "/run/" in header_value
+                            and "-key" in header_value
+                        ):
                             try:
                                 # Extract file path from "Bearer /path/to/key" or just "/path/to/key"
                                 if header_value.startswith("Bearer "):
@@ -1310,9 +1356,13 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
                                         headers[header_name] = f"Bearer {api_key}"
                                     else:
                                         headers[header_name] = api_key
-                                logger.info(f"Loaded API key from {file_path} for {server_name}/{header_name}")
+                                logger.info(
+                                    f"Loaded API key from {file_path} for {server_name}/{header_name}"
+                                )
                             except Exception as e:
-                                logger.warning(f"Failed to read API key from {header_value}: {e}")
+                                logger.warning(
+                                    f"Failed to read API key from {header_value}: {e}"
+                                )
 
                     server = MCPServer(
                         name=server_name,
@@ -1320,17 +1370,21 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
                         url=url,
                         headers=headers,
                         command=None,
-                        environment=None
+                        environment=None,
                     )
                     servers.append(server)
                     logger.info(f"Added MCP server: {server.name} (remote)")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse MCP_SERVERS environment variable: {e}")
             return None
-    elif hasattr(config, 'mcp') and hasattr(config.mcp, 'servers'):
+    elif hasattr(config, "mcp") and hasattr(config.mcp, "servers"):
         # Fallback to config object (Python-based configuration)
         for server_config in config.mcp.servers:
-            server_type = MCPServerType.LOCAL if server_config.type == "local" else MCPServerType.REMOTE
+            server_type = (
+                MCPServerType.LOCAL
+                if server_config.type == "local"
+                else MCPServerType.REMOTE
+            )
 
             server = MCPServer(
                 name=server_config.name,
@@ -1338,7 +1392,7 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
                 command=server_config.command,
                 url=server_config.url,
                 headers=server_config.headers,
-                environment=server_config.environment
+                environment=server_config.environment,
             )
             servers.append(server)
             logger.info(f"Added MCP server: {server.name} ({server_type.value})")

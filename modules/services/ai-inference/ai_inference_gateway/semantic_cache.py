@@ -14,17 +14,17 @@ Features:
 - Configurable similarity thresholds
 """
 
-import asyncio
 import hashlib
 import json
 import logging
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 
 try:
     import redis.asyncio as redis
+
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
@@ -33,9 +33,14 @@ except ImportError:
 try:
     from qdrant_client import QdrantClient
     from qdrant_client.models import (
-        Distance, VectorParams, PointStruct,
-        Filter, FieldCondition, MatchValue
+        Distance,
+        VectorParams,
+        PointStruct,
+        Filter,
+        FieldCondition,
+        MatchValue,
     )
+
     QDRANT_AVAILABLE = True
 except ImportError:
     QDRANT_AVAILABLE = False
@@ -46,8 +51,9 @@ logger = logging.getLogger(__name__)
 
 class CacheLayer(Enum):
     """Cache layer types."""
-    EXACT = "exact"       # Redis exact match
-    SEMANTIC = "semantic" # Qdrant vector similarity
+
+    EXACT = "exact"  # Redis exact match
+    SEMANTIC = "semantic"  # Qdrant vector similarity
 
 
 @dataclass
@@ -66,6 +72,7 @@ class CacheConfig:
         enable_exact_cache: Enable exact match caching
         enable_semantic_cache: Enable semantic caching
     """
+
     redis_url: str = "redis://localhost:6379"
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "ai-responses"
@@ -80,6 +87,7 @@ class CacheConfig:
 @dataclass
 class CacheHit:
     """Cache hit result."""
+
     layer: CacheLayer
     response: Dict[str, Any]
     similarity_score: Optional[float] = None
@@ -89,6 +97,7 @@ class CacheHit:
 @dataclass
 class CacheMetrics:
     """Cache performance metrics."""
+
     exact_hits: int = 0
     exact_misses: int = 0
     semantic_hits: int = 0
@@ -113,7 +122,7 @@ class CacheMetrics:
         if self.total_requests == 0:
             return 0.0
         hits = self.exact_hits + self.semantic_hits
-        return (hits / self.total_requests * 100)
+        return hits / self.total_requests * 100
 
 
 class SemanticCache:
@@ -125,9 +134,7 @@ class SemanticCache:
     """
 
     def __init__(
-        self,
-        config: Optional[CacheConfig] = None,
-        enable_metrics: bool = True
+        self, config: Optional[CacheConfig] = None, enable_metrics: bool = True
     ):
         """
         Initialize semantic cache.
@@ -148,9 +155,7 @@ class SemanticCache:
 
         # Check dependencies
         if not REDIS_AVAILABLE:
-            logger.warning(
-                "Redis not available. Install redis: pip install redis"
-            )
+            logger.warning("Redis not available. Install redis: pip install redis")
             self.config.enable_exact_cache = False
 
         if not QDRANT_AVAILABLE:
@@ -173,9 +178,7 @@ class SemanticCache:
         if self._redis is None:
             try:
                 self._redis = await redis.from_url(
-                    self.config.redis_url,
-                    encoding="utf-8",
-                    decode_responses=True
+                    self.config.redis_url, encoding="utf-8", decode_responses=True
                 )
                 logger.info(f"Connected to Redis: {self.config.redis_url}")
             except Exception as e:
@@ -200,11 +203,17 @@ class SemanticCache:
                 if self.config.qdrant_collection not in collection_names:
                     self._qdrant.create_collection(
                         collection_name=self.config.qdrant_collection,
-                        vectors_config=VectorParams(size=1536, distance=Distance.COSINE)  # Ada-002 dimension
+                        vectors_config=VectorParams(
+                            size=1536, distance=Distance.COSINE
+                        ),  # Ada-002 dimension
                     )
-                    logger.info(f"Created Qdrant collection: {self.config.qdrant_collection}")
+                    logger.info(
+                        f"Created Qdrant collection: {self.config.qdrant_collection}"
+                    )
                 else:
-                    logger.info(f"Using existing Qdrant collection: {self.config.qdrant_collection}")
+                    logger.info(
+                        f"Using existing Qdrant collection: {self.config.qdrant_collection}"
+                    )
 
             except Exception as e:
                 logger.error(f"Failed to connect to Qdrant: {e}")
@@ -213,10 +222,7 @@ class SemanticCache:
         return self._qdrant
 
     def _make_cache_key(
-        self,
-        model: str,
-        messages: List[Dict[str, str]],
-        **kwargs
+        self, model: str, messages: List[Dict[str, str]], **kwargs
     ) -> str:
         """
         Generate cache key from request parameters.
@@ -233,7 +239,7 @@ class SemanticCache:
         cache_dict = {
             "model": model,
             "messages": messages,
-            **{k: v for k, v in kwargs.items() if k not in ["stream", "n"]}
+            **{k: v for k, v in kwargs.items() if k not in ["stream", "n"]},
         }
         cache_str = json.dumps(cache_dict, sort_keys=True)
 
@@ -241,10 +247,7 @@ class SemanticCache:
         return hashlib.sha256(cache_str.encode()).hexdigest()
 
     async def get(
-        self,
-        model: str,
-        messages: List[Dict[str, str]],
-        **kwargs
+        self, model: str, messages: List[Dict[str, str]], **kwargs
     ) -> Optional[CacheHit]:
         """
         Get cached response.
@@ -273,7 +276,7 @@ class SemanticCache:
                 return CacheHit(
                     layer=CacheLayer.EXACT,
                     response=exact_hit,
-                    metadata={"cache_key": cache_key}
+                    metadata={"cache_key": cache_key},
                 )
             else:
                 if self.enable_metrics:
@@ -307,10 +310,7 @@ class SemanticCache:
 
         return None
 
-    async def _get_semantic(
-        self,
-        messages: List[Dict[str, str]]
-    ) -> Optional[CacheHit]:
+    async def _get_semantic(self, messages: List[Dict[str, str]]) -> Optional[CacheHit]:
         """Get response from semantic cache (Qdrant)."""
         qdrant_client = await self._get_qdrant()
         if not qdrant_client:
@@ -325,7 +325,7 @@ class SemanticCache:
                 collection_name=self.config.qdrant_collection,
                 query_vector=query_embedding,
                 limit=1,
-                score_threshold=self.config.similarity_threshold
+                score_threshold=self.config.similarity_threshold,
             )
 
             if results and results[0].score >= self.config.similarity_threshold:
@@ -335,8 +335,8 @@ class SemanticCache:
                     similarity_score=results[0].score,
                     metadata={
                         "point_id": results[0].id,
-                        "similarity": results[0].score
-                    }
+                        "similarity": results[0].score,
+                    },
                 )
 
         except Exception as e:
@@ -349,7 +349,7 @@ class SemanticCache:
         model: str,
         messages: List[Dict[str, str]],
         response: Dict[str, Any],
-        **kwargs
+        **kwargs,
     ) -> bool:
         """
         Store response in cache.
@@ -377,11 +377,7 @@ class SemanticCache:
 
         return True
 
-    async def _set_exact(
-        self,
-        cache_key: str,
-        response: Dict[str, Any]
-    ):
+    async def _set_exact(self, cache_key: str, response: Dict[str, Any]):
         """Store response in exact cache (Redis)."""
         redis_client = await self._get_redis()
         if not redis_client:
@@ -389,17 +385,13 @@ class SemanticCache:
 
         try:
             await redis_client.setex(
-                cache_key,
-                self.config.exact_ttl_seconds,
-                json.dumps(response)
+                cache_key, self.config.exact_ttl_seconds, json.dumps(response)
             )
         except Exception as e:
             logger.error(f"Error writing to Redis: {e}")
 
     async def _set_semantic(
-        self,
-        messages: List[Dict[str, str]],
-        response: Dict[str, Any]
+        self, messages: List[Dict[str, str]], response: Dict[str, Any]
     ):
         """Store response in semantic cache (Qdrant)."""
         qdrant_client = await self._get_qdrant()
@@ -421,18 +413,15 @@ class SemanticCache:
                         payload={
                             "messages": messages,
                             "response": response,
-                            "timestamp": datetime.now().isoformat()
-                        }
+                            "timestamp": datetime.now().isoformat(),
+                        },
                     )
-                ]
+                ],
             )
         except Exception as e:
             logger.error(f"Error writing to Qdrant: {e}")
 
-    async def _generate_embedding(
-        self,
-        messages: List[Dict[str, str]]
-    ) -> List[float]:
+    async def _generate_embedding(self, messages: List[Dict[str, str]]) -> List[float]:
         """
         Generate embedding for messages.
 
@@ -452,13 +441,12 @@ class SemanticCache:
         # 3. Use LM Studio's embedding endpoint if available
 
         # Placeholder: return zero vector
-        logger.warning("Using placeholder embeddings - semantic cache won't work properly")
+        logger.warning(
+            "Using placeholder embeddings - semantic cache won't work properly"
+        )
         return [0.0] * 1536
 
-    async def invalidate(
-        self,
-        model: Optional[str] = None
-    ) -> int:
+    async def invalidate(self, model: Optional[str] = None) -> int:
         """
         Invalidate cache entries.
 
@@ -512,11 +500,13 @@ class SemanticCache:
                         # Recreate collection
                         qdrant_client.create_collection(
                             collection_name=self.config.qdrant_collection,
-                            vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
+                            vectors_config=VectorParams(
+                                size=1536, distance=Distance.COSINE
+                            ),
                         )
                         count += 1  # Approximate
 
-                    logger.info(f"Invalidated semantic cache")
+                    logger.info("Invalidated semantic cache")
 
                 except Exception as e:
                     logger.error(f"Error invalidating Qdrant cache: {e}")
@@ -547,8 +537,8 @@ class SemanticCache:
                 "semantic_cache_enabled": self.config.enable_semantic_cache,
                 "similarity_threshold": self.config.similarity_threshold,
                 "exact_ttl_seconds": self.config.exact_ttl_seconds,
-                "semantic_ttl_seconds": self.config.semantic_ttl_seconds
-            }
+                "semantic_ttl_seconds": self.config.semantic_ttl_seconds,
+            },
         }
 
     def reset_metrics(self):

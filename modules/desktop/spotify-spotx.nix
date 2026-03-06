@@ -1,20 +1,21 @@
 # Spotify with SpotX Patch
 # Removes ads, enables DRM bypass, and unlocks premium features
 # Refactored to use spotify-common library
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: let
+{ config
+, lib
+, pkgs
+, ...
+}:
+let
   cfg = config.services.spotify-spotx;
   inherit (lib) mkIf mkEnableOption mkOption types;
 
   # Import common Spotify utilities
-  spotifyLib = import ./lib/spotify-common.nix {inherit lib pkgs;};
+  spotifyLib = import ./lib/spotify-common.nix { inherit lib pkgs; };
 
   stateDir = spotifyLib.mkSpotifyStateDir "spotx";
-in {
+in
+{
   options.services.spotify-spotx = {
     enable = mkEnableOption "Spotify with SpotX patch (ad-free, premium features)";
 
@@ -168,14 +169,12 @@ in {
 
     # Main patch service
     systemd.services.spotx-patch = spotifyLib.mkSpotifySystemdService {
-      name = "spotx-patch";
       description = "Spotify SpotX Patch Service";
       execStart = "/etc/spotx/patch-manager.sh patch";
     };
 
     # Auto-patch timer
     systemd.timers.spotx-patch = lib.mkIf cfg.autoPatch (spotifyLib.mkSpotifySystemdTimer {
-      name = "spotx-patch";
       description = "Spotify SpotX Auto-Patch Timer";
       onCalendar = cfg.patchCheckInterval;
       partOf = "spotx-patch.service";
@@ -184,8 +183,8 @@ in {
     # Run after Flatpak updates
     systemd.services.flatpak-update-after-spotx = lib.mkIf config.services.flatpak.enable {
       description = "Run SpotX patch after Flatpak updates";
-      after = ["flatpak-update.service"];
-      wants = ["flatpak-update.service"];
+      after = [ "flatpak-update.service" ];
+      wants = [ "flatpak-update.service" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "/etc/spotx/patch-manager.sh patch";

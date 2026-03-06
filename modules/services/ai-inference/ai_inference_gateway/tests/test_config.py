@@ -1,6 +1,5 @@
 # modules/services/ai-inference/ai_inference_gateway/tests/test_config.py
 import os
-import pytest
 from ai_inference_gateway.config import GatewayConfig, MiddlewareConfig
 
 
@@ -65,7 +64,9 @@ def test_boolean_env_parsing():
     for value, expected in test_cases:
         os.environ["RATE_LIMIT_ENABLED"] = value
         config = GatewayConfig.load_from_env()
-        assert config.middleware.rate_limiting.enabled is expected, f"Failed for value: {value}"
+        assert (
+            config.middleware.rate_limiting.enabled is expected
+        ), f"Failed for value: {value}"
 
     # Cleanup
     if "RATE_LIMIT_ENABLED" in os.environ:

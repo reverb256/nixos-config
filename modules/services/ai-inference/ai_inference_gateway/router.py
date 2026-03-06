@@ -13,7 +13,7 @@ import logging
 import re
 import asyncio
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class TaskSpecialization(Enum):
     """Task specialization types for intelligent routing."""
+
     CODING = "coding"
     AGENTIC = "agentic"
     GENERAL = "general"
@@ -32,6 +33,7 @@ class TaskSpecialization(Enum):
 @dataclass
 class ModelInfo:
     """Information about an available model."""
+
     id: str
     name: str
     context_length: int = 262144  # Qwen3.5 supports 256K!
@@ -45,6 +47,7 @@ class ModelInfo:
 @dataclass
 class ModelCandidate:
     """Candidate model for reranking."""
+
     model: str
     backend: str
     score: float
@@ -56,6 +59,7 @@ class ModelCandidate:
 @dataclass
 class RouteDecision:
     """Routing decision with metadata."""
+
     model: str
     confidence: float
     reason: str
@@ -80,7 +84,7 @@ class LatencyTracker:
                 self.latencies[model] = []
             self.latencies[model].append(latency_ms)
             if len(self.latencies[model]) > self.window_size:
-                self.latencies[model] = self.latencies[model][-self.window_size:]
+                self.latencies[model] = self.latencies[model][-self.window_size :]
 
     async def get_avg_latency(self, model: str) -> Optional[float]:
         """Get average latency for a model."""
@@ -119,7 +123,9 @@ class Router:
         self.latency_tracker = latency_tracker or LatencyTracker()
         self.claude_model_mapping = self._build_claude_mapping()
         # Active request tracking for smart load balancing
-        self.active_requests: Dict[str, Dict] = {}  # request_id -> {model, backend, stream, start_time}
+        self.active_requests: Dict[str, Dict] = (
+            {}
+        )  # request_id -> {model, backend, stream, start_time}
         self.max_concurrent_streams = 1  # LM Studio can handle 1 stream at a time
 
     async def get_backend_load(self, backend: str) -> Dict:
@@ -132,25 +138,36 @@ class Router:
         Returns:
             Dict with load information
         """
-        active = sum(1 for r in self.active_requests.values() if r.get("backend") == backend)
-        is_streaming = any(r.get("stream") for r in self.active_requests.values() if r.get("backend") == backend)
+        active = sum(
+            1 for r in self.active_requests.values() if r.get("backend") == backend
+        )
+        is_streaming = any(
+            r.get("stream")
+            for r in self.active_requests.values()
+            if r.get("backend") == backend
+        )
         return {
             "backend": backend,
             "active_requests": active,
             "is_streaming": is_streaming,
-            "at_capacity": active >= self.max_concurrent_streams
+            "at_capacity": active >= self.max_concurrent_streams,
         }
 
-    def track_request_start(self, request_id: str, model: str, backend: str, stream: bool):
+    def track_request_start(
+        self, request_id: str, model: str, backend: str, stream: bool
+    ):
         """Track the start of a request."""
         import time
+
         self.active_requests[request_id] = {
             "model": model,
             "backend": backend,
             "stream": stream,
-            "start_time": time.time()
+            "start_time": time.time(),
         }
-        logger.debug(f"Tracking request {request_id}: model={model}, backend={backend}, stream={stream}")
+        logger.debug(
+            f"Tracking request {request_id}: model={model}, backend={backend}, stream={stream}"
+        )
 
     def track_request_end(self, request_id: str):
         """Track the end of a request."""
@@ -208,6 +225,7 @@ class Router:
         # Check for vision content FIRST (highest priority)
         try:
             from ai_inference_gateway.vision import detect_vision_content
+
             if detect_vision_content(messages):
                 logger.info("Vision content detected in request")
                 return TaskSpecialization.VISION
@@ -216,20 +234,35 @@ class Router:
 
         # Combine all message content
         text = " ".join(
-            msg.get("content", "") for msg in messages if isinstance(msg.get("content", ""), str)
+            msg.get("content", "")
+            for msg in messages
+            if isinstance(msg.get("content", ""), str)
         ).lower()
 
         # Check for code/programming
         code_patterns = [
-            r"```\w*", r"def\s+\w+", r"function\s+\w+",
-            r"class\s+\w+", r"import\s+\w+", r"from\s+\w+\s+import",
-            r"λ\s*->", r"=>\s*{", r"@\[|for\s+\w+\s+in"
+            r"```\w*",
+            r"def\s+\w+",
+            r"function\s+\w+",
+            r"class\s+\w+",
+            r"import\s+\w+",
+            r"from\s+\w+\s+import",
+            r"λ\s*->",
+            r"=>\s*{",
+            r"@\[|for\s+\w+\s+in",
         ]
         if any(re.search(pattern, text) for pattern in code_patterns):
             return TaskSpecialization.CODING
 
         # Check for agentic/multi-step tasks
-        agentic_keywords = ["agent", "workflow", "multi-step", "step by step", "plan", "analyze then"]
+        agentic_keywords = [
+            "agent",
+            "workflow",
+            "multi-step",
+            "step by step",
+            "plan",
+            "analyze then",
+        ]
         if any(keyword in text for keyword in agentic_keywords):
             return TaskSpecialization.AGENTIC
 
@@ -286,7 +319,9 @@ class Router:
                             reason=f"LM Studio at capacity, using ZAI fallback for {requested_model}",
                             estimated_tokens=estimated_tokens,
                             backend="zai",
-                            expected_latency_ms=model_info.estimated_tokens_per_second * estimated_tokens / 1000,
+                            expected_latency_ms=model_info.estimated_tokens_per_second
+                            * estimated_tokens
+                            / 1000,
                         )
 
             # Otherwise, find best ZAI model based on specialization
@@ -298,11 +333,13 @@ class Router:
                 return RouteDecision(
                     model=best_zai.id,
                     confidence=0.9,
-                    reason=f"LM Studio at capacity (auto-failover to ZAI)",
+                    reason="LM Studio at capacity (auto-failover to ZAI)",
                     estimated_tokens=estimated_tokens,
                     backend="zai",
                     specialization=specialization,
-                    expected_latency_ms=best_zai.estimated_tokens_per_second * estimated_tokens / 1000,
+                    expected_latency_ms=best_zai.estimated_tokens_per_second
+                    * estimated_tokens
+                    / 1000,
                 )
 
         # Estimate tokens
@@ -321,7 +358,9 @@ class Router:
                         reason=f"Claude model mapped to {mapped_model}",
                         estimated_tokens=estimated_tokens,
                         backend=model_info.backend,
-                        expected_latency_ms=model_info.estimated_tokens_per_second * estimated_tokens / 1000,
+                        expected_latency_ms=model_info.estimated_tokens_per_second
+                        * estimated_tokens
+                        / 1000,
                     )
             # Check if it's a direct model ID
             elif requested_model in self.models:
@@ -332,7 +371,9 @@ class Router:
                     reason=f"Requested model {requested_model}",
                     estimated_tokens=estimated_tokens,
                     backend=model_info.backend,
-                    expected_latency_ms=model_info.estimated_tokens_per_second * estimated_tokens / 1000,
+                    expected_latency_ms=model_info.estimated_tokens_per_second
+                    * estimated_tokens
+                    / 1000,
                 )
 
         # Detect task specialization
@@ -403,7 +444,9 @@ class Router:
                 score += 1.5
 
             # Estimate latency
-            expected_latency_ms = (estimated_tokens / model_info.estimated_tokens_per_second) * 1000
+            expected_latency_ms = (
+                estimated_tokens / model_info.estimated_tokens_per_second
+            ) * 1000
 
             candidates.append(
                 ModelCandidate(
@@ -442,10 +485,10 @@ class Router:
             # Urgency adjustment
             if urgency == "fast":
                 # Prefer faster models
-                candidate.score /= (candidate.expected_latency_ms / 1000)
+                candidate.score /= candidate.expected_latency_ms / 1000
             elif urgency == "quality":
                 # Prefer higher cost tier (better quality)
-                candidate.score *= (1 + model_info.cost_tier * 0.1)
+                candidate.score *= 1 + model_info.cost_tier * 0.1
 
         # Sort by score descending
         return sorted(candidates, key=lambda c: c.score, reverse=True)
@@ -463,7 +506,7 @@ def create_default_router() -> Router:
             specializations=[
                 TaskSpecialization.GENERAL,
                 TaskSpecialization.FAST,
-                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
             ],
             cost_tier=1,
             estimated_tokens_per_second=60.0,
@@ -477,7 +520,7 @@ def create_default_router() -> Router:
             specializations=[
                 TaskSpecialization.GENERAL,
                 TaskSpecialization.FAST,
-                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
             ],
             cost_tier=1,
             estimated_tokens_per_second=60.0,
@@ -505,7 +548,7 @@ def create_default_router() -> Router:
             priority=8,
             specializations=[
                 TaskSpecialization.GENERAL,
-                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
             ],
             cost_tier=2,
             estimated_tokens_per_second=50.0,
@@ -518,7 +561,7 @@ def create_default_router() -> Router:
             priority=8,
             specializations=[
                 TaskSpecialization.GENERAL,
-                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
             ],
             cost_tier=2,
             estimated_tokens_per_second=50.0,
@@ -531,7 +574,7 @@ def create_default_router() -> Router:
             priority=7,
             specializations=[
                 TaskSpecialization.FAST,
-                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
             ],
             cost_tier=1,
             estimated_tokens_per_second=80.0,
@@ -544,7 +587,7 @@ def create_default_router() -> Router:
             priority=7,
             specializations=[
                 TaskSpecialization.FAST,
-                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
             ],
             cost_tier=1,
             estimated_tokens_per_second=80.0,
@@ -555,7 +598,10 @@ def create_default_router() -> Router:
             name="Magnum Opus 35B A3B",
             context_length=256000,
             priority=10,
-            specializations=[TaskSpecialization.LARGE_CONTEXT, TaskSpecialization.AGENTIC],
+            specializations=[
+                TaskSpecialization.LARGE_CONTEXT,
+                TaskSpecialization.AGENTIC,
+            ],
             cost_tier=3,
             estimated_tokens_per_second=30.0,
             backend="lm-studio",

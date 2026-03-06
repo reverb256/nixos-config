@@ -9,7 +9,13 @@ Implements production-ready RAG with:
 - Async Qdrant integration with gRPC
 """
 
-from .config import RAGConfig, EmbeddingConfig, ChunkingConfig, SearchConfig, RerankerConfig
+from .config import (
+    RAGConfig,
+    EmbeddingConfig,
+    ChunkingConfig,
+    SearchConfig,
+    RerankerConfig,
+)
 from .embeddings import EmbeddingService
 from .chunker import DocumentChunker
 from .qdrant_client import QdrantManager

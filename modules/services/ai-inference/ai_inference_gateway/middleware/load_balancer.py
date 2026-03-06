@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class BackendState(Enum):
     """Backend health state."""
+
     HEALTHY = "healthy"
     UNHEALTHY = "unhealthy"
     DRAINING = "draining"  # Temporarily not accepting new connections
@@ -47,6 +48,7 @@ class BackendInstance:
         last_health_check: Timestamp of last health check
         last_error: Last error message (if any)
     """
+
     name: str
     url: str
     weight: int = 100
@@ -67,8 +69,8 @@ class BackendInstance:
     def is_available(self) -> bool:
         """Check if backend is available for requests."""
         return (
-            self.state == BackendState.HEALTHY and
-            self.current_connections < self.max_concurrent_requests
+            self.state == BackendState.HEALTHY
+            and self.current_connections < self.max_concurrent_requests
         )
 
     @property
@@ -92,8 +94,7 @@ class BackendInstance:
             self.average_latency_ms = latency_ms
         else:
             self.average_latency_ms = (
-                alpha * latency_ms +
-                (1 - alpha) * self.average_latency_ms
+                alpha * latency_ms + (1 - alpha) * self.average_latency_ms
             )
 
     def record_request_failure(self, error: str) -> None:
@@ -126,7 +127,7 @@ class LoadBalancerMiddleware(Middleware):
         backends: List[BackendInstance],
         health_check_interval: int = 30,
         health_check_timeout: int = 5,
-        metrics_helper=None
+        metrics_helper=None,
     ):
         """
         Initialize load balancer middleware.
@@ -194,26 +195,20 @@ class LoadBalancerMiddleware(Middleware):
         """Check health of all backends."""
         async with httpx.AsyncClient() as client:
             tasks = [
-                self._check_backend_health(backend, client)
-                for backend in self.backends
+                self._check_backend_health(backend, client) for backend in self.backends
             ]
             await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _check_backend_health(
-        self,
-        backend: BackendInstance,
-        client: httpx.AsyncClient
+        self, backend: BackendInstance, client: httpx.AsyncClient
     ) -> None:
         """Check health of a single backend."""
-        health_url = backend.url.rstrip('/') + backend.health_check_url
+        health_url = backend.url.rstrip("/") + backend.health_check_url
         was_healthy = backend.state == BackendState.HEALTHY
 
         try:
             start_time = time.time()
-            response = await client.get(
-                health_url,
-                timeout=self.health_check_timeout
-            )
+            response = await client.get(health_url, timeout=self.health_check_timeout)
             latency_ms = (time.time() - start_time) * 1000
 
             if response.status_code == 200:
@@ -225,8 +220,7 @@ class LoadBalancerMiddleware(Middleware):
                 if self.metrics_helper:
                     self.metrics_helper.set_backend_health(backend.name, True)
                     self.metrics_helper.observe_backend_latency(
-                        backend.name,
-                        latency_ms / 1000
+                        backend.name, latency_ms / 1000
                     )
 
                 if not was_healthy:
@@ -298,9 +292,7 @@ class LoadBalancerMiddleware(Middleware):
         return best_backend
 
     async def process_request(
-        self,
-        request: Request,
-        context: dict
+        self, request: Request, context: dict
     ) -> Tuple[bool, Optional[HTTPException]]:
         """
         Process incoming request to select backend.
@@ -323,8 +315,7 @@ class LoadBalancerMiddleware(Middleware):
         if backend is None:
             logger.error("No healthy backends available")
             return False, HTTPException(
-                status_code=503,
-                detail="No healthy backends available"
+                status_code=503, detail="No healthy backends available"
             )
 
         # Store backend in context for later use
@@ -375,7 +366,7 @@ class LoadBalancerMiddleware(Middleware):
                 "backend_name": backend.name,
                 "backend_url": backend.url,
                 "backend_latency_ms": round(latency_ms, 2),
-                "backend_connections": backend.current_connections
+                "backend_connections": backend.current_connections,
             }
 
             # Add to gateway_metadata if it exists
@@ -409,7 +400,7 @@ class LoadBalancerMiddleware(Middleware):
                 "success_rate": round(b.success_rate, 3),
                 "average_latency_ms": round(b.average_latency_ms, 2),
                 "last_error": b.last_error,
-                "is_available": b.is_available
+                "is_available": b.is_available,
             }
             for b in self.backends
         ]

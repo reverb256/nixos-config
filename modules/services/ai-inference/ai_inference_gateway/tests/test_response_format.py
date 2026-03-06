@@ -5,19 +5,18 @@ Tests the ResponseFormatTransformer which converts OpenAI response_format
 requests to LM Studio-compatible system prompts.
 """
 
-import pytest
-import json
 from ai_inference_gateway.response_format import (
     ResponseFormatTransformer,
     transform_request,
     validate_response,
-    get_transformer
+    get_transformer,
 )
 
 
 # ============================================================================
 # Test JSON Object Mode
 # ============================================================================
+
 
 class TestJSONObjectMode:
     """Tests for json_object response_format mode."""
@@ -39,7 +38,7 @@ class TestJSONObjectMode:
         request = {
             "model": "test",
             "messages": [{"role": "user", "content": "test"}],
-            "response_format": {"type": "json_object"}
+            "response_format": {"type": "json_object"},
         }
 
         result = transform_request(request)
@@ -55,7 +54,7 @@ class TestJSONObjectMode:
         request = {
             "model": "test",
             "messages": [{"role": "user", "content": "test"}],
-            "response_format": {"type": "json_object"}
+            "response_format": {"type": "json_object"},
         }
 
         result = transformer.transform_request(request)
@@ -78,7 +77,7 @@ class TestJSONObjectMode:
     def test_validate_json_object_failure(self):
         """Test validation of invalid JSON response."""
         response_format = {"type": "json_object"}
-        content = 'This is not JSON'
+        content = "This is not JSON"
 
         is_valid, error = validate_response(content, response_format)
 
@@ -90,6 +89,7 @@ class TestJSONObjectMode:
 # ============================================================================
 # Test JSON Schema Mode
 # ============================================================================
+
 
 class TestJSONSchemaMode:
     """Tests for json_schema response_format mode."""
@@ -159,6 +159,7 @@ class TestJSONSchemaMode:
 # Test Text Mode
 # ============================================================================
 
+
 class TestTextMode:
     """Tests for text mode (no transformation)."""
 
@@ -167,7 +168,7 @@ class TestTextMode:
         request = {
             "model": "test",
             "messages": [{"role": "user", "content": "test"}],
-            "response_format": {"type": "text"}
+            "response_format": {"type": "text"},
         }
 
         result = transform_request(request)
@@ -179,10 +180,7 @@ class TestTextMode:
 
     def test_no_response_format_no_transformation(self):
         """Test that missing response_format doesn't modify request."""
-        request = {
-            "model": "test",
-            "messages": [{"role": "user", "content": "test"}]
-        }
+        request = {"model": "test", "messages": [{"role": "user", "content": "test"}]}
 
         result = transform_request(request)
 
@@ -195,6 +193,7 @@ class TestTextMode:
 # Test Edge Cases
 # ============================================================================
 
+
 class TestEdgeCases:
     """Tests for edge cases and error conditions."""
 
@@ -203,7 +202,7 @@ class TestEdgeCases:
         request = {
             "model": "test",
             "messages": [{"role": "user", "content": "test"}],
-            "response_format": {"type": "unknown_type"}
+            "response_format": {"type": "unknown_type"},
         }
 
         # Should not raise exception, just log warning
@@ -215,7 +214,7 @@ class TestEdgeCases:
         request = {
             "model": "test",
             "messages": [],
-            "response_format": {"type": "json_object"}
+            "response_format": {"type": "json_object"},
         }
 
         result = transform_request(request)
@@ -230,9 +229,9 @@ class TestEdgeCases:
             "model": "test",
             "messages": [
                 {"role": "system", "content": "You are helpful."},
-                {"role": "user", "content": "test"}
+                {"role": "user", "content": "test"},
             ],
-            "response_format": {"type": "json_object"}
+            "response_format": {"type": "json_object"},
         }
 
         result = transform_request(request)
@@ -250,9 +249,9 @@ class TestEdgeCases:
                 {"role": "system", "content": "Original system"},
                 {"role": "user", "content": "Question 1"},
                 {"role": "assistant", "content": "Answer 1"},
-                {"role": "user", "content": "Question 2"}
+                {"role": "user", "content": "Question 2"},
             ],
-            "response_format": {"type": "json_object"}
+            "response_format": {"type": "json_object"},
         }
 
         result = transform_request(request)
@@ -265,6 +264,7 @@ class TestEdgeCases:
 # ============================================================================
 # Test Singleton
 # ============================================================================
+
 
 class TestSingleton:
     """Tests for singleton transformer instance."""
