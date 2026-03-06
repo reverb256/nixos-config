@@ -491,7 +491,8 @@ def create_default_router() -> Router:
             specializations=[
                 TaskSpecialization.GENERAL,
                 TaskSpecialization.AGENTIC,
-                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.LARGE_CONTEXT,
+                # Note: VISION may not work if mmproj not loaded in LM Studio
             ],
             cost_tier=2,
             estimated_tokens_per_second=40.0,

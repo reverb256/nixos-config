@@ -2880,7 +2880,7 @@ in
         AUTH_MODE = cfg.auth.mode;
         LM_STUDIO_API_KEY =
           if cfg.backend.lmStudio.apiKeyFile != null then
-            "" # Will be loaded from file by gateway
+            null # Will be loaded from file by gateway
           else
             cfg.backend.lmStudio.apiKey;
         LM_STUDIO_API_KEY_FILE = lib.optionalString (
