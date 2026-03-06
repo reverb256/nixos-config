@@ -72,9 +72,9 @@ class EmbeddingService:
                 # Verify dimensions
                 actual_dims = self._model.get_sentence_embedding_dimension()
                 if actual_dims != self.config.dimensions:
-                    logger.warning(
-                        f"Model dimension mismatch: expected {self.config.dimensions}, "
-                        f"got {actual_dims}. Using actual dimensions."
+                    logger.info(
+                        f"Embedding model dimensions: {actual_dims} (configured: {self.config.dimensions}). "
+                        f"Using actual dimensions from model."
                     )
                     self.config.dimensions = actual_dims
 

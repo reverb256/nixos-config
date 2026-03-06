@@ -516,14 +516,18 @@ def update_model_availability(models: list):
     Args:
         models: List of model IDs that are currently loaded
     """
-    # Reset all models to 0 (not loaded)
-    for model in model_loaded._metrics.keys():
-        if model[0].labels.get('model'):
-            model_loaded.labels(model=model[0].labels['model']).set(0)
-
-    # Set loaded models to 1
+    # Reset all provided models to 0 first, then set loaded ones to 1
+    # This avoids issues with iterating over prometheus metric samples
     for model in models:
-        model_loaded.labels(model=model).set(1)
+        try:
+            model_loaded.labels(model=str(model)).set(0)
+        except Exception:
+            # Model might not exist yet, that's okay
+            pass
+
+    # Set currently loaded models to 1
+    for model in models:
+        model_loaded.labels(model=str(model)).set(1)
 
 
 # ============================================================================
