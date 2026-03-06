@@ -5,19 +5,16 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.programs.lm-studio;
-in
-{
+in {
   options.programs.lm-studio = {
     enable = lib.mkEnableOption "LM Studio - Local LLM runner with GPU acceleration";
   };
 
   config = lib.mkIf cfg.enable {
     # Allow unfree package (LM Studio is proprietary)
-    nixpkgs.config.allowUnfreePredicate =
-      pkg:
+    nixpkgs.config.allowUnfreePredicate = pkg:
       builtins.elem (lib.getName pkg) [
         "lmstudio"
       ];

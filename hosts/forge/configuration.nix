@@ -518,7 +518,7 @@
   # ============================================================================
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [22];  # SSH for remote management
+    allowedTCPPorts = [22]; # SSH for remote management
     allowedUDPPorts = [];
   };
 
@@ -547,11 +547,11 @@
     opencode.enable = true;
 
     ollama = {
-    enable = true;
-    package = pkgs.ollama-cuda;
-    environmentVariables = {
-      OLLAMA_KEEP_ALIVE = "24h";
-    };
+      enable = true;
+      package = pkgs.ollama-cuda;
+      environmentVariables = {
+        OLLAMA_KEEP_ALIVE = "24h";
+      };
     };
   };
 }

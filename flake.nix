@@ -55,79 +55,94 @@
     };
   };
 
-  outputs = inputs @ { self, nixpkgs, home-manager, spicetify-nix, zen-browser, firefox-addons, aagl, nur, claude-native, nixpkgs-xr, scopebuddy, nixcord, agenix, colmena }:
-    let
-      # ========================================================================
-      # COMMON MODULES - Shared across all hosts (single source of truth)
-      # ========================================================================
-      commonModules = [
-        # External modules
-        home-manager.nixosModules.home-manager
-        aagl.nixosModules.default
-        nur.modules.nixos.default
-        agenix.nixosModules.default
+  outputs = inputs @ {
+    self,
+    nixpkgs,
+    home-manager,
+    aagl,
+    nur,
+    claude-native,
+    agenix,
+    colmena,
+    ...
+  }: let
+    # ========================================================================
+    # COMMON MODULES - Shared across all hosts (single source of truth)
+    # ========================================================================
+    commonModules = [
+      # External modules
+      home-manager.nixosModules.home-manager
+      aagl.nixosModules.default
+      nur.modules.nixos.default
+      agenix.nixosModules.default
 
-        # Internal modules (auto-imports all subdirectories)
-        ./modules/default.nix
+      # Internal modules (auto-imports all subdirectories)
+      ./modules/default.nix
 
-        # Overlays configuration - applies overlays.default to all hosts
-        { nixpkgs.overlays = [ self.overlays.default ]; }
-      ];
+      # Overlays configuration - applies overlays.default to all hosts
+      {nixpkgs.overlays = [self.overlays.default];}
+    ];
 
-      # ========================================================================
-      # HELPER FUNCTION - Create NixOS system (eliminates duplication)
-      # ========================================================================
-      mkNixosSystem = { hostName, extraModules ? [] }:
-        nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = { inherit inputs; };
-          modules = commonModules ++ [
+    # ========================================================================
+    # HELPER FUNCTION - Create NixOS system (eliminates duplication)
+    # ========================================================================
+    mkNixosSystem = {
+      hostName,
+      extraModules ? [],
+    }:
+      nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = {inherit inputs;};
+        modules =
+          commonModules
+          ++ [
             ./hosts/${hostName}/configuration.nix
-          ] ++ extraModules;
-        };
-
-      # ========================================================================
-      # HOST DEFINITIONS - Single source of truth
-      # ========================================================================
-      hosts = {
-        zephyr = { hostName = "zephyr"; };
-        nexus = { hostName = "nexus"; };
-        forge = { hostName = "forge"; };
-        sentry = { hostName = "sentry"; };
+          ]
+          ++ extraModules;
       };
 
-    in {
-      # ========================================================================
-      # OUTPUT 1: nixosConfigurations (for local nixos-rebuild)
-      # ========================================================================
-      nixosConfigurations = builtins.mapAttrs
-        (name: value: mkNixosSystem { inherit (value) hostName; })
-        hosts;
-
-      # ========================================================================
-      # OUTPUT 2: colmena (raw hive configuration)
-      # ========================================================================
-      colmena = import ./colmena.nix {
-        inherit inputs self;
-        inherit hosts;
-      };
-
-      # ========================================================================
-      # OUTPUT 3: colmenaHive (for multi-host deployment)
-      # Wraps the raw hive configuration with makeHive for proper schema
-      # ========================================================================
-      colmenaHive = colmena.lib.makeHive self.outputs.colmena;
-
-      # ========================================================================
-      # EXISTING OUTPUTS (maintain compatibility)
-      # ========================================================================
-      packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
-
-      overlays.default = import ./overlay.nix;
-
-      apps.x86_64-linux.colmena = {
-        type = "app";
-        program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
-      };
+    # ========================================================================
+    # HOST DEFINITIONS - Single source of truth
+    # ========================================================================
+    hosts = {
+      zephyr = {hostName = "zephyr";};
+      nexus = {hostName = "nexus";};
+      forge = {hostName = "forge";};
+      sentry = {hostName = "sentry";};
     };
+  in {
+    # ========================================================================
+    # OUTPUT 1: nixosConfigurations (for local nixos-rebuild)
+    # ========================================================================
+    nixosConfigurations =
+      builtins.mapAttrs
+      (_name: value: mkNixosSystem {inherit (value) hostName;})
+      hosts;
+
+    # ========================================================================
+    # OUTPUT 2: colmena (raw hive configuration)
+    # ========================================================================
+    colmena = import ./colmena.nix {
+      inherit inputs self;
+      inherit hosts;
+    };
+
+    # ========================================================================
+    # OUTPUT 3: colmenaHive (for multi-host deployment)
+    # Wraps the raw hive configuration with makeHive for proper schema
+    # ========================================================================
+    colmenaHive = colmena.lib.makeHive self.outputs.colmena;
+
+    # ========================================================================
+    # EXISTING OUTPUTS (maintain compatibility)
+    # ========================================================================
+    packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
+
+    overlays.default = import ./overlay.nix;
+
+    apps.x86_64-linux.colmena = {
+      type = "app";
+      program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
+    };
+  };
 }

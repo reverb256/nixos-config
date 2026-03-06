@@ -1,10 +1,13 @@
 # Corsair Hardware Support Module
 # Provides support for Corsair AIO coolers, RGB controllers, and fan controllers
-{ config, lib, pkgs, ... }:
-let
-  cfg = config.hardware.corsair;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.hardware.corsair;
+in {
   options.hardware.corsair = {
     enable = lib.mkEnableOption "Corsair hardware support (AIO, RGB, fan controllers)";
 
@@ -27,7 +30,7 @@ in
     kernelModules = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [
-        "usbhid"           # Generic USB HID support
+        "usbhid" # Generic USB HID support
       ];
       description = "Kernel modules for Corsair devices";
     };
@@ -42,12 +45,14 @@ in
 
   config = lib.mkIf cfg.enable {
     # Install Corsair-related packages
-    environment.systemPackages = with pkgs; [
-      liquidctl    # Corsair AIO cooler control
-      openrgb      # OpenRGB for RGB control
-    ] ++ lib.optionals cfg.rgb.enable [
-      openrgb-plugin-effects  # OpenRGB effects plugin
-    ];
+    environment.systemPackages = with pkgs;
+      [
+        liquidctl # Corsair AIO cooler control
+        openrgb # OpenRGB for RGB control
+      ]
+      ++ lib.optionals cfg.rgb.enable [
+        openrgb-plugin-effects # OpenRGB effects plugin
+      ];
 
     # Load kernel modules for Corsair devices
     boot.kernelModules = cfg.kernelModules;
@@ -78,8 +83,8 @@ in
     # OpenRGB service for auto-start (disabled by default to avoid conflicts with liquidctl)
     systemd.services.openrgb = lib.mkIf (cfg.rgb.enable && cfg.autoStartRgb) {
       description = "OpenRGB RGB lighting control server";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "graphical-session.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["graphical-session.target"];
       serviceConfig = {
         ExecStart = "${pkgs.openrgb}/bin/openrgb --server";
         Restart = "on-failure";

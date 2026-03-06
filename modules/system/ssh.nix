@@ -1,6 +1,6 @@
 # Common SSH Configuration
 # Uses network-constants.nix for host IPs
-{config, pkgs, ...}: let
+{pkgs, ...}: let
   # Hardcoded cluster IPs to prevent infinite recursion
   hosts = {
     nexus = {

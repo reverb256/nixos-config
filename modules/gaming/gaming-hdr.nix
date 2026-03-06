@@ -5,8 +5,7 @@
   lib,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.services.gaming;
   baseArgs = [
     "--immediate-flips"
@@ -21,8 +20,7 @@ let
     "--hdr-enabled"
     "--hdr-itm-enabled"
   ];
-in
-{
+in {
   options.services.gaming.hdr.enable =
     mkEnableOption "Enable HDR support in Gamescope (zephyr needs this, nexus doesn't)";
 

@@ -1,5 +1,5 @@
 # Sentry Monitoring Configuration
-{ config, pkgs, ... }: {
+{...}: {
   imports = [
     ../../modules/services/monitoring/default.nix
   ];

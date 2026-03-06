@@ -1,10 +1,6 @@
 # Starship Prompt Module
 # Enhanced starship configuration for productivity
-{
-  pkgs,
-  config,
-  ...
-}: {
+_: {
   # Enable Starship prompt
   programs.starship = {
     enable = true;

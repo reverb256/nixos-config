@@ -1,11 +1,8 @@
 # KDE Plasma 6 Desktop Environment
-{
-  config, lib, pkgs, ...
-}:
-let
+{pkgs, ...}: let
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";
-    runtimeInputs = with pkgs; [ kdePackages.kscreen libnotify ];
+    runtimeInputs = with pkgs; [kdePackages.kscreen libnotify];
     text = ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -83,45 +80,6 @@ let
     '';
   };
 
-  # ============================================================================
-  # KDE CACHE REBUILDER - Fix Plasma crashes from missing KSycoca database
-  # ============================================================================
-  # Plasma crashes when KSycoca database is missing/corrupted after NixOS rebuilds
-  # This service ensures the cache is always rebuilt before Plasma starts
-
-  kdeCacheRebuilder = pkgs.writeShellScriptBin "kde-cache-rebuilder" ''
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    CACHE_DIR="$HOME/.cache"
-    LOGFILE="$CACHE_DIR/kde-cache-rebuild.log"
-
-    mkdir -p "$CACHE_DIR"
-
-    log() {
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOGFILE"
-    }
-
-    # Remove stale/inconsistent KSycoca caches
-    log "Cleaning up stale KDE system caches..."
-    rm -f "$CACHE_DIR"/ksycoca* 2>/dev/null || true
-
-    # Rebuild KDE system cache
-    log "Rebuilding KDE system cache (kbuildsycoca6)..."
-    if ${pkgs.libsForQt5.kservice}/bin/kbuildsycoca6 --noincremental; then
-        log "SUCCESS: KDE system cache rebuilt"
-    else
-        log "WARNING: kbuildsycoca6 failed, but continuing..."
-    fi
-
-    # Verify cache was created
-    if ls "$CACHE_DIR"/ksycoca* >/dev/null 2>&1; then
-        log "Verified: KSycoca cache files exist"
-    else
-        log "ERROR: KSycoca cache files still missing!"
-    fi
-  '';
-
   bootMonitorScript = pkgs.writeShellScript "boot-monitor-setup" ''
     sleep 2
     ${monitorSetupScript}/bin/plasma-monitor-setup
@@ -130,7 +88,7 @@ let
   # TV Monitor Daemon for automatic TV power management
   tvMonitorDaemon = pkgs.writeShellApplication {
     name = "tv-monitor-daemon";
-    runtimeInputs = with pkgs; [ kdePackages.kscreen libnotify wireplumber ];
+    runtimeInputs = with pkgs; [kdePackages.kscreen libnotify wireplumber];
     text = ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -259,8 +217,14 @@ in {
   services.xserver.enable = true;
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
-  services.displayManager.autoLogin = { enable = true; user = "j_kro"; };
-  services.xserver.xkb = { layout = "us"; variant = ""; };
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "j_kro";
+  };
+  services.xserver.xkb = {
+    layout = "us";
+    variant = "";
+  };
 
   environment.sessionVariables = {
     QT_QPA_PLATFORM = "wayland;xcb";
@@ -271,11 +235,11 @@ in {
     KWIN_DRM_DEVICE = "/dev/dri/card0";
     KWIN_DRM_PRIMARY = "1";
   };
-  environment.systemPackages = [ monitorSetupScript pkgs.libnotify kdeCacheRebuilder ];
+  environment.systemPackages = [monitorSetupScript pkgs.libnotify];
   systemd.services.boot-monitor-setup = {
     description = "Configure monitors at boot";
-    wantedBy = [ "display-manager.service" ];
-    before = [ "display-manager.service" "sddm.service" ];
+    wantedBy = ["display-manager.service"];
+    before = ["display-manager.service" "sddm.service"];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = bootMonitorScript;
@@ -285,8 +249,8 @@ in {
   };
   systemd.user.services.plasma-monitor-setup = {
     description = "Apply monitor configuration";
-    wantedBy = [ "graphical-session.target" ];
-    after = [ "plasma-plasmashell.service" "graphical-session.target" ];
+    wantedBy = ["graphical-session.target"];
+    after = ["plasma-plasmashell.service" "graphical-session.target"];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${monitorSetupScript}/bin/plasma-monitor-setup";
@@ -333,30 +297,6 @@ in {
     Enabled=false
   '';
 
-  # Systemd user service to rebuild cache before Plasma starts
-  systemd.user.services.kde-cache-rebuild = {
-    description = "Rebuild KDE system cache before Plasma starts";
-    wantedBy = [ "plasma-plasmashell.service" ];
-    before = [ "plasma-plasmashell.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${kdeCacheRebuilder}/bin/kde-cache-rebuilder";
-      RemainAfterExit = true;
-    };
-  };
-
-  # Also run cache rebuild at session start as backup
-  systemd.user.services.kde-cache-rebuild-session = {
-    description = "Rebuild KDE cache at session start";
-    wantedBy = [ "graphical-session.target" ];
-    after = [ "graphical-session.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${kdeCacheRebuilder}/bin/kde-cache-rebuild";
-      RemainAfterExit = true;
-    };
-  };
-
   services.displayManager.sddm.settings.General.DisplayServer = "wayland";
 
   environment.etc."xdg/autostart/plasma-monitor-setup.desktop".text = ''
@@ -374,8 +314,8 @@ in {
 
   systemd.user.services.tv-monitor-daemon = {
     description = "Monitor TV power state and auto-disable/enable";
-    wantedBy = [ "graphical-session.target" ];
-    after = [ "plasma-plasmashellell.service" "graphical-session.target" ];
+    wantedBy = ["graphical-session.target"];
+    after = ["plasma-plasmashellell.service" "graphical-session.target"];
     serviceConfig = {
       Type = "simple";
       ExecStart = "${tvMonitorDaemon}/bin/tv-monitor-daemon";

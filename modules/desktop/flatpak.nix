@@ -1,9 +1,12 @@
 # Flatpak Support for KDE Plasma
 # Enables Flatpak with Discover integration and Flathub remote
-{ config, lib, pkgs, ... }:
-
-with lib;
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+with lib; let
   cfg = config.services.flatpak-kde;
 in {
   options.services.flatpak-kde = {
@@ -65,9 +68,10 @@ in {
 
       # Add extra remotes
       ${lib.concatMapStrings (remote: ''
-        ${pkgs.flatpak}/bin/flatpak remote-list --system | grep -q ${remote.name} || \
-          ${pkgs.flatpak}/bin/flatpak remote-add --if-not-exists --system ${remote.name} ${remote.location}
-      '') cfg.extraRemotes}
+          ${pkgs.flatpak}/bin/flatpak remote-list --system | grep -q ${remote.name} || \
+            ${pkgs.flatpak}/bin/flatpak remote-add --if-not-exists --system ${remote.name} ${remote.location}
+        '')
+        cfg.extraRemotes}
     '';
 
     # Polkit rules for Flatpak system-wide operations

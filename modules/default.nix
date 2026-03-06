@@ -1,7 +1,6 @@
 # Default module imports for all submodules
 # Modules are organized into logical subdirectories for better maintainability
-{ ... }:
-{
+{...}: {
   imports = [
     # Network configuration
     ./network-constants.nix
@@ -38,6 +37,7 @@
     ./development/opencode.nix
 
     # Services
+    ./services/mcp-servers.nix
     ./services/lm-studio.nix
     ./services/lm-studio-headless.nix
     ./services/stability-matrix.nix

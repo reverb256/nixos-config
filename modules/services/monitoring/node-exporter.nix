@@ -5,16 +5,17 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.monitoring.node-exporter;
   # Use centralized network constants
   port = config.networking.cluster.ports.node-exporter;
-  currentHost = config.networking.cluster.hosts.${config.networking.hostName} or {
-    ip = "0.0.0.0";
-  };
-in
-{
+  currentHost =
+    config.networking.cluster.hosts.${
+      config.networking.hostName
+    } or {
+      ip = "0.0.0.0";
+    };
+in {
   options.services.monitoring.node-exporter = {
     enable = lib.mkEnableOption "Prometheus node exporter";
 
@@ -28,8 +29,8 @@ in
   config = lib.mkIf cfg.enable {
     services.prometheus.exporters.node = {
       enable = true;
-      port = port;
-      listenAddress = cfg.listenAddress;
+      inherit port;
+      inherit (cfg) listenAddress;
 
       # Collectors enabled
       enabledCollectors = [
@@ -65,8 +66,8 @@ in
     # Fix race condition: wait for network to be fully online before starting
     # This ensures static IPs are assigned before node-exporter tries to bind
     systemd.services.prometheus-node-exporter = {
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
     };
 
     # Open firewall for Prometheus to scrape metrics

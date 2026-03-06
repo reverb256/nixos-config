@@ -6,8 +6,7 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.monitoring.grafana;
   cluster = {
     ports = {
@@ -20,93 +19,18 @@ let
   dashboardsDir = "/var/lib/grafana/dashboards";
 
   # Helper function to create a panel
-  mkPanel =
-    {
-      type,
-      title,
-      expr,
-      legendFormat ? "{{instance}}",
-      unit ? "short",
-      gridPos,
-      ...
-    }@args:
-    {
-      datasource = {
-        type = "prometheus";
-        uid = "prometheus";
-      };
-      fieldConfig = {
-        defaults = {
-          color = {
-            mode = args.colorMode or "palette-classic";
-          };
-          unit = unit;
-          min = args.min or null;
-          max = args.max or null;
-          thresholds =
-            args.thresholds or {
-              steps = [
-                {
-                  color = "green";
-                  value = null;
-                }
-              ];
-            };
-        };
-      };
-      gridPos = gridPos;
-      id = args.id or 100;
-      options =
-        args.options or {
-          legend = {
-            calcs = [
-              "mean"
-              "max"
-            ];
-            displayMode = "table";
-            placement = "bottom";
-            showLegend = true;
-          };
-          tooltip = {
-            mode = "multi";
-            sort = "desc";
-          };
-        };
-      targets = [
-        {
-          inherit expr legendFormat;
-          refId = "A";
-        }
-      ];
-      title = title;
-      type = type;
-    }
-    // (builtins.removeAttrs args [
-      "type"
-      "title"
-      "expr"
-      "legendFormat"
-      "unit"
-      "gridPos"
-      "id"
-      "options"
-      "colorMode"
-      "min"
-      "max"
-      "thresholds"
-    ]);
 
   # Comprehensive cluster dashboard
   clusterDashboard = builtins.toJSON {
     annotations = {
-      list = [ ];
+      list = [];
     };
     description = "Reverb-OS NixOS Cluster - Complete Infrastructure Monitoring";
     editable = true;
     fiscalYearStartMonth = 0;
     graphTooltip = 1;
     id = null;
-    links = [ ];
+    links = [];
     liveNow = false;
     panels = [
       # ========== ROW: CLUSTER STATUS ==========
@@ -119,7 +43,7 @@ let
           y = 0;
         };
         id = 1;
-        panels = [ ];
+        panels = [];
         title = "📊 Cluster Status";
         type = "row";
       }
@@ -134,7 +58,7 @@ let
             color = {
               mode = "thresholds";
             };
-            mappings = [ ];
+            mappings = [];
             thresholds = {
               steps = [
                 {
@@ -165,7 +89,7 @@ let
           colorMode = "background";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -211,7 +135,7 @@ let
           colorMode = "background";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -257,7 +181,7 @@ let
           colorMode = "background";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -315,7 +239,7 @@ let
           colorMode = "background";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -361,7 +285,7 @@ let
           colorMode = "background";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -407,7 +331,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -433,7 +357,7 @@ let
           y = 5;
         };
         id = 2;
-        panels = [ ];
+        panels = [];
         title = "🖥️ CPU Monitoring";
         type = "row";
       }
@@ -625,7 +549,7 @@ let
           y = 14;
         };
         id = 3;
-        panels = [ ];
+        panels = [];
         title = "💾 Memory Monitoring";
         type = "row";
       }
@@ -778,7 +702,7 @@ let
         id = 21;
         options = {
           legend = {
-            calcs = [ "mean" ];
+            calcs = ["mean"];
             displayMode = "table";
             placement = "bottom";
             showLegend = true;
@@ -809,7 +733,7 @@ let
           y = 23;
         };
         id = 4;
-        panels = [ ];
+        panels = [];
         title = "💿 Disk & Storage";
         type = "row";
       }
@@ -868,7 +792,7 @@ let
           fullHighlight = false;
           groupWidth = 0.7;
           legend = {
-            calcs = [ ];
+            calcs = [];
             displayMode = "list";
             placement = "bottom";
             showLegend = true;
@@ -956,7 +880,7 @@ let
         id = 31;
         options = {
           legend = {
-            calcs = [ "mean" ];
+            calcs = ["mean"];
             displayMode = "list";
             placement = "bottom";
             showLegend = true;
@@ -992,7 +916,7 @@ let
           y = 32;
         };
         id = 5;
-        panels = [ ];
+        panels = [];
         title = "🌐 Network";
         type = "row";
       }
@@ -1058,7 +982,7 @@ let
         id = 40;
         options = {
           legend = {
-            calcs = [ "mean" ];
+            calcs = ["mean"];
             displayMode = "table";
             placement = "bottom";
             showLegend = true;
@@ -1149,7 +1073,7 @@ let
         id = 41;
         options = {
           legend = {
-            calcs = [ "sum" ];
+            calcs = ["sum"];
             displayMode = "list";
             placement = "bottom";
             showLegend = true;
@@ -1185,7 +1109,7 @@ let
           y = 41;
         };
         id = 6;
-        panels = [ ];
+        panels = [];
         title = "🎮 NVIDIA GPU Monitoring";
         type = "row";
       }
@@ -1374,7 +1298,7 @@ let
             color = {
               mode = "thresholds";
             };
-            mappings = [ ];
+            mappings = [];
             max = 100;
             min = 0;
             thresholds = {
@@ -1407,7 +1331,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1464,7 +1388,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1491,7 +1415,7 @@ let
           y = 56;
         };
         id = 7;
-        panels = [ ];
+        panels = [];
         title = "⛏️ Mining Status";
         type = "row";
       }
@@ -1698,7 +1622,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1748,7 +1672,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1794,7 +1718,7 @@ let
           colorMode = "value";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1819,13 +1743,13 @@ let
       "reverb-os"
     ];
     templating = {
-      list = [ ];
+      list = [];
     };
     time = {
       from = "now-1h";
       to = "now";
     };
-    timepicker = { };
+    timepicker = {};
     timezone = "";
     title = "Reverb-OS Cluster Overview";
     uid = "reverb-os-cluster";
@@ -1836,14 +1760,14 @@ let
   # AI Inference Dashboard
   aiDashboard = builtins.toJSON {
     annotations = {
-      list = [ ];
+      list = [];
     };
     description = "Reverb-OS AI Inference Monitoring - LM Studio, Gateway, and Model Performance";
     editable = true;
     fiscalYearStartMonth = 0;
     graphTooltip = 1;
     id = null;
-    links = [ ];
+    links = [];
     liveNow = false;
     panels = [
       # ========== ROW: AI GATEWAY STATUS ==========
@@ -1856,7 +1780,7 @@ let
           y = 0;
         };
         id = 1;
-        panels = [ ];
+        panels = [];
         title = "🤖 AI Gateway Status";
         type = "row";
       }
@@ -1893,7 +1817,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1949,7 +1873,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -2001,7 +1925,7 @@ let
           colorMode = "background";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -2049,7 +1973,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -2107,7 +2031,7 @@ let
           colorMode = "background";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -2159,7 +2083,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -2185,7 +2109,7 @@ let
           y = 5;
         };
         id = 2;
-        panels = [ ];
+        panels = [];
         title = "📈 Request Performance";
         type = "row";
       }
@@ -2380,7 +2304,7 @@ let
           y = 14;
         };
         id = 3;
-        panels = [ ];
+        panels = [];
         title = "🎯 Token Performance";
         type = "row";
       }
@@ -2580,7 +2504,7 @@ let
           y = 23;
         };
         id = 4;
-        panels = [ ];
+        panels = [];
         title = "🎮 GPU Performance";
         type = "row";
       }
@@ -2801,7 +2725,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -2857,7 +2781,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -2913,7 +2837,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -2939,7 +2863,7 @@ let
           y = 36;
         };
         id = 5;
-        panels = [ ];
+        panels = [];
         title = "💾 Cache & Security";
         type = "row";
       }
@@ -3111,21 +3035,20 @@ let
       "reverb-os"
     ];
     templating = {
-      list = [ ];
+      list = [];
     };
     time = {
       from = "now-1h";
       to = "now";
     };
-    timepicker = { };
+    timepicker = {};
     timezone = "";
     title = "Reverb-OS AI Inference";
     uid = "reverb-os-ai-inference";
     version = 1;
     weekStart = "";
   };
-in
-{
+in {
   options.services.monitoring.grafana = {
     enable = lib.mkEnableOption "Grafana dashboard server";
 
@@ -3155,8 +3078,8 @@ in
     };
 
     # Ensure grafana starts after password is generated
-    systemd.services.grafana.after = [ "auto-secret-grafana-admin-password.service" ];
-    systemd.services.grafana.requires = [ "auto-secret-grafana-admin-password.service" ];
+    systemd.services.grafana.after = ["auto-secret-grafana-admin-password.service"];
+    systemd.services.grafana.requires = ["auto-secret-grafana-admin-password.service"];
 
     # Bind mount secret into grafana's directory (avoids /var/lib/secrets traversal issues)
     systemd.services.grafana.serviceConfig.BindPaths = [
@@ -3169,7 +3092,7 @@ in
         server = {
           http_addr = "127.0.0.1";
           http_port = cluster.ports.grafana;
-          domain = cfg.domain;
+          inherit (cfg) domain;
           root_url = "https://%(domain)s/";
         };
 
@@ -3237,7 +3160,7 @@ in
       isSystemUser = true;
       group = "grafana";
     };
-    users.groups.grafana = { };
+    users.groups.grafana = {};
 
     # Create dashboards directory
     systemd.tmpfiles.settings."grafana-setup" = {
@@ -3253,9 +3176,9 @@ in
     # Provision dashboard
     systemd.services.grafana-dashboard-provision = {
       description = "Provision Grafana dashboards";
-      wantedBy = [ "multi-user.target" ];
-      before = [ "grafana.service" ];
-      after = [ "local-fs.target" ];
+      wantedBy = ["multi-user.target"];
+      before = ["grafana.service"];
+      after = ["local-fs.target"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -3270,6 +3193,6 @@ in
     };
 
     # Open firewall
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ cluster.ports.grafana ];
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cluster.ports.grafana];
   };
 }

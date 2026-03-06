@@ -4,18 +4,15 @@
   config,
   lib,
   ...
-}:
-let
-  inherit (lib)
+}: let
+  inherit
+    (lib)
     mkEnableOption
     mkIf
-    attrValues
-    mapAttrs'
     ;
 
   cfg = config.networking.cluster-hosts;
-in
-{
+in {
   options.networking.cluster-hosts = {
     enable = mkEnableOption "populate /etc/hosts from cluster configuration";
 
@@ -28,7 +25,8 @@ in
       lib.concatStringsSep "\n" (
         lib.mapAttrsToList (
           name: host: "${host.ip} ${name}"
-        ) config.networking.cluster.hosts
+        )
+        config.networking.cluster.hosts
       )
     );
   };

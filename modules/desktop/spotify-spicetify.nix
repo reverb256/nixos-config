@@ -1,15 +1,17 @@
 # Spotify Theming via Spicetify
 # Applies custom themes and extensions to Spotify Flatpak
 # Refactored to use spotify-common library
-{ config, lib, pkgs, ... }:
-
-with lib;
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+with lib; let
   cfg = config.services.spotify-spicetify;
 
   # Import common Spotify utilities
-  spotifyLib = import ./lib/spotify-common.nix { inherit lib pkgs; };
+  spotifyLib = import ./lib/spotify-common.nix {inherit lib pkgs;};
 
   stateDir = spotifyLib.mkSpotifyStateDir "spicetify";
   versionMarker = "${stateDir}/version";
@@ -144,7 +146,6 @@ let
       *) echo "Usage: $0 {apply|status|disable|enable}"; exit 1 ;;
     esac
   '';
-
 in {
   options.services.spotify-spicetify = {
     enable = mkEnableOption "Spotify theming and extensions via Spicetify";
@@ -175,13 +176,13 @@ in {
 
     extensions = mkOption {
       type = types.listOf types.str;
-      default = [ "adblock" "shuffle+" ];
+      default = ["adblock" "shuffle+"];
       description = "List of extension names to enable";
     };
 
     customApps = mkOption {
       type = types.listOf types.str;
-      default = [ ];
+      default = [];
       description = "List of custom apps to add";
     };
 
@@ -198,7 +199,7 @@ in {
     };
 
     onFailure = mkOption {
-      type = types.enum [ "disable" "notify-only" "ignore" ];
+      type = types.enum ["disable" "notify-only" "ignore"];
       default = "disable";
       description = "Behavior when Spicetify fails";
     };
@@ -229,8 +230,8 @@ in {
     # Main Spicetify service
     systemd.services.spotify-spicetify = {
       description = "Spotify Spicetify Theme Service";
-      after = [ "spotx-patch.service" "network-online.target" ];
-      wants = [ "spotx-patch.service" ];
+      after = ["spotx-patch.service" "network-online.target"];
+      wants = ["spotx-patch.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${patchManagerScript} apply";
@@ -244,8 +245,8 @@ in {
     # Auto-apply timer
     systemd.timers.spotify-spicetify = mkIf cfg.autoApply {
       description = "Spotify Spicetify Auto-Theme Timer";
-      wantedBy = [ "timers.target" ];
-      partOf = [ "spotify-spicetify.service" ];
+      wantedBy = ["timers.target"];
+      partOf = ["spotify-spicetify.service"];
       timerConfig = {
         OnCalendar = cfg.checkInterval;
         Unit = "spotify-spicetify.service";
@@ -256,8 +257,8 @@ in {
     # Run after Flatpak updates
     systemd.services.spotify-spicetify-after-flatpak = mkIf config.services.flatpak.enable {
       description = "Run Spicetify after Flatpak updates";
-      after = [ "flatpak-update.service" ];
-      wants = [ "flatpak-update.service" ];
+      after = ["flatpak-update.service"];
+      wants = ["flatpak-update.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${patchManagerScript} apply";

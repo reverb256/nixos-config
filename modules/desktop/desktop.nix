@@ -1,6 +1,10 @@
 # Desktop Module - Pure Wayland with XWayland Fallback
 # Optimized for Steam and gaming with Wayland-first approach
-{pkgs, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   # ============================================================================
   # KDE PLASMA 6 (Pure Wayland with XWayland fallback for legacy apps)
   # ============================================================================
@@ -30,13 +34,22 @@
     config = {
       common = {
         # Common defaults for all desktop environments
-        default = ["kde" "gtk"];
+        default = [
+          "kde"
+          "gtk"
+        ];
       };
       kde = {
         # Specific KDE configuration - KDE portals first, GTK as fallback
-        default = ["kde" "gtk"];
+        default = [
+          "kde"
+          "gtk"
+        ];
         # File chooser: prefers KDE (native feel in Dolphin) but falls back to GTK for compatibility
-        "org.freedesktop.impl.portal.FileChooser" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.FileChooser" = [
+          "kde"
+          "gtk"
+        ];
         # Screen cast: KDE implementation for better integration with Plasma
         "org.freedesktop.impl.portal.ScreenCast" = ["kde"];
         # Screenshots: KDE implementation for better integration with Spectacle
@@ -44,17 +57,29 @@
         # Remote Desktop: KDE implementation for better integration
         "org.freedesktop.impl.portal.RemoteDesktop" = ["kde"];
         # Settings: prefers KDE settings dialogs but falls back to GTK
-        "org.freedesktop.impl.portal.Settings" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.Settings" = [
+          "kde"
+          "gtk"
+        ];
         # Notifications: KDE implementation for better integration with Plasma
         "org.freedesktop.impl.portal.Notification" = ["kde"];
         # Window management: KDE implementation for better integration with KWin
         "org.freedesktop.impl.portal.WindowManagement" = ["kde"];
         # Additional portal types commonly used
-        "org.freedesktop.impl.portal.Print" = ["kde" "gtk"];
-        "org.freedesktop.impl.portal.Email" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.Print" = [
+          "kde"
+          "gtk"
+        ];
+        "org.freedesktop.impl.portal.Email" = [
+          "kde"
+          "gtk"
+        ];
         "org.freedesktop.impl.portal.Inhibit" = ["kde"];
         "org.freedesktop.impl.portal.Access" = ["kde"];
-        "org.freedesktop.impl.portal.Account" = ["kde" "gtk"];
+        "org.freedesktop.impl.portal.Account" = [
+          "kde"
+          "gtk"
+        ];
         "org.freedesktop.impl.portal.Background" = ["kde"];
         "org.freedesktop.impl.portal.GameMode" = ["kde"];
         "org.freedesktop.impl.portal.LockScreen" = ["kde"];
@@ -142,7 +167,10 @@
         "context.modules" = [
           {
             name = "libpipewire-module-rt";
-            flags = ["ifexists" "nofail"];
+            flags = [
+              "ifexists"
+              "nofail"
+            ];
             args = {
               "nice.level" = -15;
               "rt.prio" = 19;
@@ -205,5 +233,10 @@
 
     # GTK apps should use portal for better KDE integration
     GTK_USE_PORTAL = "1";
+
+    # Qt6 Multimedia: Force PipeWire backend and fix library resolution
+    # Fixes "qt.multimedia.symbolsresolver: Couldn't load pipewire-0.3 library"
+    QT_MEDIA_BACKEND = "pipewire";
+    LD_LIBRARY_PATH = lib.mkBefore ["/run/current-system/sw/lib/pipewire-0.3"];
   };
 }

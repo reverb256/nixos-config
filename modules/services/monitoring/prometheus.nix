@@ -4,16 +4,12 @@
 {
   config,
   lib,
-  pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.monitoring.prometheus;
   # Use centralized network constants to avoid duplication
-  hosts = config.networking.cluster.hosts;
-  ports = config.networking.cluster.ports;
-in
-{
+  inherit (config.networking.cluster) ports;
+in {
   options.services.monitoring.prometheus = {
     enable = lib.mkEnableOption "Prometheus monitoring server";
 
@@ -102,7 +98,7 @@ in
           job_name = "prometheus";
           static_configs = [
             {
-              targets = [ "localhost:${toString ports.prometheus}" ];
+              targets = ["localhost:${toString ports.prometheus}"];
             }
           ];
         }
@@ -139,7 +135,7 @@ in
       isSystemUser = true;
       group = "prometheus";
     };
-    users.groups.prometheus = { };
+    users.groups.prometheus = {};
 
     # Open firewall for internal access
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [

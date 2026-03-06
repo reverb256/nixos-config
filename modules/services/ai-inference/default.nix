@@ -4,19 +4,15 @@
   config,
   lib,
   pkgs,
-  options,
   ...
-}:
-
-let
+}: let
   cfg = config.services.ai-inference;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     mkIf
-    mkDefault
     types
-    optionalString
     literalExpression
     ;
 
@@ -36,9 +32,7 @@ let
     ps.rank-bm25
     ps.numpy
   ]);
-
-in
-{
+in {
   options.services.ai-inference = {
     enable = mkEnableOption "AI Inference Service (integrates with LM Studio)";
 
@@ -169,7 +163,7 @@ in
 
       host = mkOption {
         type = types.str;
-        default = "0.0.0.0";  # Listen on all interfaces for Spacebot integration
+        default = "0.0.0.0"; # Listen on all interfaces for Spacebot integration
         description = "Gateway listen address (use 0.0.0.0 for all interfaces or Tailscale IP for network access)";
       };
 
@@ -217,7 +211,7 @@ in
 
       # Graceful degradation fallback chain
       fallbackChain = mkOption {
-        type = types.listOf (types.str);
+        type = types.listOf types.str;
         default = [
           "vllm"
           "lm-studio"
@@ -250,7 +244,7 @@ in
               };
               contextLength = mkOption {
                 type = types.int;
-                default = 262144;  # 256K for Qwen3.5
+                default = 262144; # 256K for Qwen3.5
                 description = "Context window size in tokens";
               };
             };
@@ -259,17 +253,17 @@ in
         default = [
           {
             minTokens = 0;
-            maxTokens = 131072;  # Up to 128K tokens
+            maxTokens = 131072; # Up to 128K tokens
             model = "magnum-opus-35b-a3b-i1";
             priority = 10;
-            contextLength = 262144;  # 256K context
+            contextLength = 262144; # 256K context
           }
           {
-            minTokens = 131073;  # 128K+ tokens
+            minTokens = 131073; # 128K+ tokens
             maxTokens = 999999;
             model = "qwen/qwen3.5-9b";
             priority = 20;
-            contextLength = 262144;  # 256K context
+            contextLength = 262144; # 256K context
           }
         ];
         description = "Model routing rules by token count (Qwen3.5 supports 256K)";
@@ -298,7 +292,7 @@ in
       tailscale = {
         aclTags = mkOption {
           type = types.listOf types.str;
-          default = [ ];
+          default = [];
           example = [
             "tag:ai-inference"
             "tag:trusted"
@@ -351,35 +345,70 @@ in
 
       servers = mkOption {
         type = types.attrsOf (
-          types.submodule {
+          types.submodule ({config, ...}: {
             options = {
-              url = mkOption {
-                type = types.str;
-                description = "MCP server URL";
+              type = mkOption {
+                type = types.enum ["local" "remote"];
+                default = "remote";
+                description = "MCP server type: local (stdio subprocess) or remote (HTTP)";
               };
+
+              url = mkOption {
+                type = types.nullOr types.str;
+                default =
+                  if config.type == "remote"
+                  then null
+                  else null;
+                description = "MCP server URL (required for remote type)";
+              };
+
+              command = mkOption {
+                type = types.nullOr (types.listOf types.str);
+                default = null;
+                example = literalExpression ''[ "${pkgs.python3}/bin/python3" "/etc/nixos/skills/my-skill/server.py" ]'';
+                description = "Command to run for local MCP servers (required for local type)";
+              };
+
+              environment = mkOption {
+                type = types.attrsOf types.str;
+                default = {};
+                example = {NIX_HOST = "zephyr";};
+                description = "Environment variables for local MCP servers";
+              };
+
               headers = mkOption {
                 type = types.attrsOf types.str;
-                default = { };
-                description = "HTTP headers for authentication";
+                default = {};
+                example = {Authorization = "Bearer token";};
+                description = "HTTP headers for authentication (remote type only)";
               };
+
               enabled = mkOption {
                 type = types.bool;
                 default = true;
                 description = "Whether this server is enabled";
               };
             };
-          }
+          })
         );
-        default = { };
+        default = {};
         example = literalExpression ''
           {
+            # Remote HTTP MCP server
             web-search = {
+              type = "remote";
               url = "https://api.example.com/mcp/search";
               headers = { Authorization = "Bearer token"; };
             };
+            # Local stdio MCP server
+            nix-rebuild = {
+              type = "local";
+              command = [ "${pkgs.python3}/bin/python3" "/etc/nixos/skills/nix-rebuild/server.py" ];
+              environment = { NIX_HOST = "zephyr"; };
+            };
           }
         '';
-        description = "MCP servers to connect to";
+        description = "MCP servers to connect to (both local and remote)";
       };
     };
 
@@ -615,10 +644,11 @@ in
     ];
 
     # Open firewall for gateway and metrics
-    networking.firewall.allowedTCPPorts = [
-      cfg.gateway.port
-    ]
-    ++ (lib.optional cfg.monitoring.enable cfg.monitoring.port);
+    networking.firewall.allowedTCPPorts =
+      [
+        cfg.gateway.port
+      ]
+      ++ (lib.optional cfg.monitoring.enable cfg.monitoring.port);
 
     # Prometheus scrape configuration
     services.prometheus.scrapeConfigs = mkIf cfg.monitoring.enable [
@@ -626,7 +656,7 @@ in
         job_name = "ai-inference-${config.networking.hostName}";
         static_configs = [
           {
-            targets = [ "${cfg.gateway.host}:${toString cfg.monitoring.port}" ];
+            targets = ["${cfg.gateway.host}:${toString cfg.monitoring.port}"];
             labels = {
               instance = config.networking.hostName;
               backend = cfg.backend.type;
@@ -639,17 +669,17 @@ in
     # LM Studio headless service (optional)
     services.lm-studio-headless =
       mkIf (cfg.lm-studio-headless != null && cfg.lm-studio-headless.enable)
-        {
-          enable = true;
-          port = cfg.lm-studio-headless.port;
-          host = cfg.lm-studio-headless.host;
-          user = cfg.lm-studio-headless.user;
-          openFirewall = cfg.lm-studio-headless.openFirewall;
-        };
+      {
+        enable = true;
+        inherit (cfg.lm-studio-headless) port;
+        inherit (cfg.lm-studio-headless) host;
+        inherit (cfg.lm-studio-headless) user;
+        inherit (cfg.lm-studio-headless) openFirewall;
+      };
 
     # Redis for gateway middleware (caching, rate limiting, circuit breaker)
     services.redis.servers.ai-gateway = {
-      enable = cfg.gateway.middleware.redis.enable;
+      inherit (cfg.gateway.middleware.redis) enable;
       bind = "127.0.0.1";
       port = 6379;
     };

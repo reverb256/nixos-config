@@ -4,27 +4,24 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.ai-inference.auth;
-  inherit (lib) mkIf mkEnableOption;
-
+  inherit (lib) mkIf;
 in {
   imports = [
     ./tailscale.nix
     # ./web3.nix  # Future: Web3 + passkey authentication
   ];
 
-  config = mkIf (config.services.ai-inference.enable) {
+  config = mkIf config.services.ai-inference.enable {
     # Authentication is handled in the gateway
     # This module provides supporting configuration
 
     # API key file validation (if configured)
     systemd.services.ai-inference-validate-keys = mkIf (cfg.mode == "api-key" && cfg.apiKeyFile != null) {
       description = "Validate AI inference API keys";
-      wantedBy = [ "multi-user.target" ];
-      before = [ "ai-inference-gateway.service" ];
+      wantedBy = ["multi-user.target"];
+      before = ["ai-inference-gateway.service"];
 
       serviceConfig = {
         Type = "oneshot";

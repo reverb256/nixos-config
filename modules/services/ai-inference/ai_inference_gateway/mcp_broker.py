@@ -211,9 +211,8 @@ class MCPBroker:
                 return await self._get_fallback_tools(name)
 
         else:
-            # Local server - would need to implement stdio communication
-            logger.warning(f"Local MCP server {name} not yet supported")
-            return None
+            # Local server - use stdio communication
+            return await self._fetch_tools_from_local_server(server)
 
         return None
 
@@ -384,11 +383,8 @@ class MCPBroker:
             # For remote servers, make HTTP call
             return await self._call_remote_tool(server, tool_name, arguments)
         else:
-            # For local servers, would need to implement stdio communication
-            return {
-                "error": "Local MCP servers not yet implemented",
-                "note": "This is a foundational implementation. Local stdio-based MCP servers need full protocol implementation."
-            }
+            # For local servers, use stdio communication
+            return await self._call_local_tool(server, tool_name, arguments)
 
     async def _call_remote_tool(self, server: MCPServer, tool_name: str, arguments: Dict) -> Dict:
         """
@@ -926,8 +922,303 @@ class MCPBroker:
                 logger.debug(f"Health check failed for {server_name}: {e}")
                 return False
         else:
-            # For local servers, we'd check if the process is running
-            return server.process is not None if server.process else False
+            # For local servers, check if the process is running
+            return await self._check_local_server_health(server)
+
+    # ========================================================================
+    # LOCAL MCP SERVER METHODS (stdio-based communication)
+    # ========================================================================
+
+    async def _spawn_local_server(self, server: MCPServer) -> bool:
+        """
+        Spawn a local MCP server subprocess.
+
+        Args:
+            server: MCP server configuration
+
+        Returns:
+            True if spawn succeeded, False otherwise
+        """
+        if server.process and not server.process.returncode:
+            # Process already running
+            return True
+
+        try:
+            # Prepare environment variables
+            env = None
+            if server.environment:
+                import os
+                env = os.environ.copy()
+                env.update(server.environment)
+
+            # Spawn the subprocess
+            server.process = await asyncio.create_subprocess_exec(
+                *server.command,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env
+            )
+
+            # Initialize the MCP server
+            init_request = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {
+                        "name": "ai-inference-gateway",
+                        "version": "2.0.0"
+                    }
+                }
+            }
+
+            init_response = await self._send_local_request(server, init_request)
+            if init_response and "error" not in init_response:
+                logger.info(f"Successfully initialized local MCP server {server.name}")
+                return True
+            else:
+                logger.warning(f"Failed to initialize local MCP server {server.name}: {init_response}")
+                # Terminate the process if initialization failed
+                if server.process:
+                    server.process.terminate()
+                    server.process = None
+                return False
+
+        except Exception as e:
+            logger.error(f"Failed to spawn local MCP server {server.name}: {e}")
+            server.process = None
+            return False
+
+    async def _send_local_request(
+        self,
+        server: MCPServer,
+        request: Dict
+    ) -> Optional[Dict]:
+        """
+        Send a JSON-RPC request to a local MCP server via stdio.
+
+        Args:
+            server: MCP server configuration
+            request: JSON-RPC request object
+
+        Returns:
+            JSON-RPC response or None if communication failed
+        """
+        # Ensure the server is running
+        if not server.process or server.process.returncode is not None:
+            if not await self._spawn_local_server(server):
+                return None
+
+        try:
+            # Send request
+            request_json = json.dumps(request) + "\n"
+            server.process.stdin.write(request_json.encode())
+            await server.process.stdin.drain()
+
+            # Read response line by line
+            response_line = await asyncio.wait_for(
+                server.process.stdout.readline(),
+                timeout=30.0
+            )
+
+            if not response_line:
+                logger.warning(f"No response from local MCP server {server.name}")
+                return None
+
+            response = json.loads(response_line.decode().strip())
+
+            # Check for JSON-RPC error
+            if "error" in response:
+                logger.warning(f"Local MCP server {server.name} returned error: {response['error']}")
+
+            return response
+
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout waiting for response from local MCP server {server.name}")
+            return None
+        except Exception as e:
+            logger.error(f"Error communicating with local MCP server {server.name}: {e}")
+            # Process may have died, mark it as None so we respawn next time
+            server.process = None
+            return None
+
+    async def _fetch_tools_from_local_server(
+        self,
+        server: MCPServer
+    ) -> Optional[List[Dict]]:
+        """
+        Fetch tools from a local MCP server.
+
+        Args:
+            server: MCP server configuration
+
+        Returns:
+            List of tool definitions or None if fetch fails
+        """
+        # Ensure the server is running
+        if not server.process or server.process.returncode is not None:
+            if not await self._spawn_local_server(server):
+                return None
+
+        # Request tools list
+        request = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/list"
+        }
+
+        response = await self._send_local_request(server, request)
+        if not response:
+            return None
+
+        if "error" in response:
+            logger.warning(f"Local MCP server {server.name} returned error: {response['error']}")
+            return None
+
+        # Extract tools from response
+        if "result" in response and "tools" in response["result"]:
+            tools = []
+            for tool in response["result"]["tools"]:
+                tools.append({
+                    "server": server.name,
+                    "name": tool.get("name"),
+                    "description": tool.get("description", ""),
+                    "type": "local",
+                    "inputSchema": tool.get("inputSchema", {})
+                })
+            return tools
+
+        logger.warning(f"Unexpected response from local MCP server {server.name}")
+        return None
+
+    async def _call_local_tool(
+        self,
+        server: MCPServer,
+        tool_name: str,
+        arguments: Dict
+    ) -> Dict:
+        """
+        Call a tool on a local MCP server.
+
+        Args:
+            server: MCP server configuration
+            tool_name: Name of the tool to call
+            arguments: Tool arguments
+
+        Returns:
+            Tool execution result
+        """
+        # Request tool call
+        request = {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {
+                "name": tool_name,
+                "arguments": arguments
+            }
+        }
+
+        response = await self._send_local_request(server, request)
+        if not response:
+            return {
+                "error": f"Failed to communicate with local MCP server {server.name}",
+                "server": server.name,
+                "tool": tool_name
+            }
+
+        if "error" in response:
+            return {
+                "error": response["error"],
+                "server": server.name,
+                "tool": tool_name
+            }
+
+        # Return the result
+        if "result" in response:
+            # Handle different response formats
+            result = response["result"]
+            if isinstance(result, list):
+                # Format content blocks
+                content = []
+                for item in result:
+                    if item.get("type") == "text":
+                        content.append(item.get("text", ""))
+                    else:
+                        content.append(str(item))
+                return {
+                    "server": server.name,
+                    "tool": tool_name,
+                    "result": "\n".join(content)
+                }
+            elif isinstance(result, dict):
+                if result.get("type") == "text":
+                    return {
+                        "server": server.name,
+                        "tool": tool_name,
+                        "result": result.get("text", "")
+                    }
+                else:
+                    return {
+                        "server": server.name,
+                        "tool": tool_name,
+                        "result": json.dumps(result)
+                    }
+            else:
+                return {
+                    "server": server.name,
+                    "tool": tool_name,
+                    "result": str(result)
+                }
+
+        return {
+            "error": "Unexpected response from local MCP server",
+            "server": server.name,
+            "tool": tool_name
+        }
+
+    async def _check_local_server_health(self, server: MCPServer) -> bool:
+        """
+        Check if a local MCP server process is healthy.
+
+        Args:
+            server: MCP server configuration
+
+        Returns:
+            True if server is healthy, False otherwise
+        """
+        if not server.process:
+            # Try to spawn the server
+            return await self._spawn_local_server(server)
+
+        # Check if process is still running
+        if server.process.returncode is not None:
+            # Process died, try to respawn
+            logger.warning(f"Local MCP server {server.name} process died (exit code {server.process.returncode})")
+            server.process = None
+            return await self._spawn_local_server(server)
+
+        return True
+
+    async def close_local_servers(self):
+        """Close all local MCP server processes."""
+        for server in self.servers.values():
+            if server.type == MCPServerType.LOCAL and server.process:
+                try:
+                    server.process.terminate()
+                    await asyncio.wait_for(server.process.wait(), timeout=5.0)
+                    logger.info(f"Closed local MCP server {server.name}")
+                except asyncio.TimeoutError:
+                    server.process.kill()
+                    await server.process.wait()
+                    logger.warning(f"Force killed local MCP server {server.name}")
+                except Exception as e:
+                    logger.error(f"Error closing local MCP server {server.name}: {e}")
+                finally:
+                    server.process = None
 
 
 async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
@@ -970,39 +1261,69 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
                 if not server_config.get("enabled", True):
                     continue
 
-                # Read API key from file if specified in headers
-                headers = dict(server_config.get("headers", {}))
-                for header_name, header_value in list(headers.items()):
-                    if isinstance(header_value, str) and "/run/" in header_value and "-key" in header_value:
-                        try:
-                            # Extract file path from "Bearer /path/to/key" or just "/path/to/key"
-                            if header_value.startswith("Bearer "):
-                                file_path = header_value.split(" ", 1)[1].strip()
-                                use_bearer = True
-                            else:
-                                file_path = header_value
-                                use_bearer = False
+                # Determine server type (defaults to remote for backward compatibility)
+                server_type_str = server_config.get("type", "remote")
+                server_type = MCPServerType.LOCAL if server_type_str == "local" else MCPServerType.REMOTE
 
-                            with open(file_path, "r") as f:
-                                api_key = f.read().strip()
-                                if use_bearer:
-                                    headers[header_name] = f"Bearer {api_key}"
+                if server_type == MCPServerType.LOCAL:
+                    # Local server configuration
+                    command = server_config.get("command")
+                    environment = server_config.get("environment", {})
+
+                    if not command:
+                        logger.warning(f"Local MCP server {server_name} missing command, skipping")
+                        continue
+
+                    server = MCPServer(
+                        name=server_name,
+                        type=MCPServerType.LOCAL,
+                        command=command,
+                        environment=environment,
+                        url=None,
+                        headers=None
+                    )
+                    servers.append(server)
+                    logger.info(f"Added MCP server: {server.name} (local, command={' '.join(command)})")
+                else:
+                    # Remote server configuration
+                    url = server_config.get("url")
+                    if not url:
+                        logger.warning(f"Remote MCP server {server_name} missing url, skipping")
+                        continue
+
+                    # Read API key from file if specified in headers
+                    headers = dict(server_config.get("headers", {}))
+                    for header_name, header_value in list(headers.items()):
+                        if isinstance(header_value, str) and "/run/" in header_value and "-key" in header_value:
+                            try:
+                                # Extract file path from "Bearer /path/to/key" or just "/path/to/key"
+                                if header_value.startswith("Bearer "):
+                                    file_path = header_value.split(" ", 1)[1].strip()
+                                    use_bearer = True
                                 else:
-                                    headers[header_name] = api_key
-                            logger.info(f"Loaded API key from {file_path} for {server_name}/{header_name}")
-                        except Exception as e:
-                            logger.warning(f"Failed to read API key from {header_value}: {e}")
+                                    file_path = header_value
+                                    use_bearer = False
 
-                server = MCPServer(
-                    name=server_name,
-                    type=MCPServerType.REMOTE,  # Nix config only supports remote servers
-                    url=server_config.get("url"),
-                    headers=headers,
-                    command=None,
-                    environment=None
-                )
-                servers.append(server)
-                logger.info(f"Added MCP server: {server.name} (remote)")
+                                with open(file_path, "r") as f:
+                                    api_key = f.read().strip()
+                                    if use_bearer:
+                                        headers[header_name] = f"Bearer {api_key}"
+                                    else:
+                                        headers[header_name] = api_key
+                                logger.info(f"Loaded API key from {file_path} for {server_name}/{header_name}")
+                            except Exception as e:
+                                logger.warning(f"Failed to read API key from {header_value}: {e}")
+
+                    server = MCPServer(
+                        name=server_name,
+                        type=MCPServerType.REMOTE,
+                        url=url,
+                        headers=headers,
+                        command=None,
+                        environment=None
+                    )
+                    servers.append(server)
+                    logger.info(f"Added MCP server: {server.name} (remote)")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse MCP_SERVERS environment variable: {e}")
             return None

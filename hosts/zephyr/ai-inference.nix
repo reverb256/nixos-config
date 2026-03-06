@@ -1,20 +1,9 @@
 # AI Inference Service Configuration for Zephyr
 # RTX 3090 (24GB) + RTX 3060 Ti (8GB)
 # Primary node for large context models
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-
-let
-  # Get Tailscale IP dynamically (for reference, actual detection happens at runtime)
-  # Check current Tailscale IP with: ip -4 addr show tailscale0
-in
-{
+{...}: {
   # Import the AI inference module
-  imports = [ ../../modules/services/ai-inference ];
+  imports = [../../modules/services/ai-inference];
 
   # Enable AI inference service
   services.ai-inference = {

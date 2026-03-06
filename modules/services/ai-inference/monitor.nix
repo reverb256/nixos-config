@@ -4,11 +4,9 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.ai-inference;
-  inherit (lib) mkIf mkDefault;
+  inherit (lib) mkIf;
 
   # Python environment for the monitor
   pythonEnv = pkgs.python3.withPackages (ps: [
@@ -83,7 +81,7 @@ let
           """Get GPU metrics from nvidia-smi"""
           if not NVIDIA_SMI:
               return  # GPU monitoring disabled
-          
+
           try:
               result = subprocess.run([
                   NVIDIA_SMI,
@@ -176,15 +174,13 @@ let
     '';
     executable = true;
   };
-
-in
-{
+in {
   config = mkIf (cfg.enable && cfg.monitoring.enable) {
     # Systemd service for the monitor
     systemd.services.ai-inference-monitor = {
       description = "AI Inference Metrics Monitor";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
 
       environment = {
         BACKEND_URL = cfg.backend.url;
@@ -208,7 +204,7 @@ in
         ProtectHome = true;
 
         # Capabilities
-        CapabilityBoundingSet = [ "" ];
+        CapabilityBoundingSet = [""];
 
         # Logging
         StandardOutput = "journal";

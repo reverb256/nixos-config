@@ -1,10 +1,8 @@
 {
   lib,
   python3,
-  fetchFromGitHub,
   buildPythonPackage,
 }:
-
 buildPythonPackage rec {
   pname = "tplink-switch";
   version = "0.1.0";
@@ -17,12 +15,12 @@ buildPythonPackage rec {
     urllib3
   ];
 
-  pythonImportsCheck = [ "tplink_switch" ];
+  pythonImportsCheck = ["tplink_switch"];
 
   meta = with lib; {
     description = "Python library for managing TP-Link Easy Smart Switches via HTTP";
     homepage = "https://github.com/nixos-config/tplink-switch";
     license = licenses.mit;
-    maintainers = [ "j_kro" ];
+    maintainers = ["j_kro"];
   };
 }

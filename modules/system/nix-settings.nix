@@ -1,6 +1,6 @@
 # Nix Settings Module
 # Nix configuration, auto-upgrade, and system settings
-{lib, pkgs, ...}: {
+{lib, ...}: {
   nix = {
     # Automatic garbage collection
     gc = {
