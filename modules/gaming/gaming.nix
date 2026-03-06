@@ -299,8 +299,9 @@ in {
       # Disable DualSense/DualShock touchpad to prevent drift in games
       services.udev.extraRules = ''
         # Disable DualSense (PS5) touchpad
-        KERNEL=="event*", SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
-        KERNEL=="event*", SUBSYSTEM=="input", ATTRS{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+        # Use CONTNAME wildcard for better matching (matches full device name)
+        SUBSYSTEM=="input", ATTR{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+        SUBSYSTEM=="input", ATTR{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
 
         # DualSense (PS5) hidraw access for Wine/Proton controller support
         KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", MODE="0660", GROUP="plugdev", TAG+="uaccess"
