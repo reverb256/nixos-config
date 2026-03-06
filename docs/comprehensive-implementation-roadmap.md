@@ -126,6 +126,144 @@ This comprehensive roadmap transforms the AI Inference Gateway into a full-featu
 
 ---
 
+### Phase 0.5: Multi-GPU Architecture Setup ⚡ **NEW**
+
+**Priority**: HIGH
+**Estimated**: 7-11 hours
+**Owner**: Infrastructure Team
+**Status**: Design Complete, Ready for Implementation
+
+**Goal**: Distribute LM Studio across 3 machines (5 GPUs, 56GB VRAM) for optimal Spacebot performance
+
+**Architecture Overview:**
+```
+                    AI Inference Gateway (zephyr:8080)
+                                 │
+                ┌────────────────┼────────────────┐
+                │                │                │
+         Zephyr (32GB)      Forge (16GB)      Nexus (8GB)
+         ─────────────      ─────────────      ─────────────
+         3090: 24GB         4060 #1: 8GB       3060 Ti: 8GB
+         3060 Ti: 8GB       4060 #2: 8GB
+         Multi-GPU ✅       Multi-GPU ✅       Single GPU
+         75/25 split        50/50 split
+```
+
+#### Implementation Tasks
+
+**Step 1: Configure Forge (1-2 hours)**
+- [ ] Install LM Studio on forge
+- [ ] Configure hardware-config.json (50/50 split)
+- [ ] Download qwen3.5-9b-IQ4_NL.gguf (5.1GB)
+- [ ] Configure context length (64K), KV cache quantization
+- [ ] Enable API server on port 1234
+- [ ] Test connectivity from zephyr: `curl http://forge:1234/v1/models`
+- [ ] Verify model loading: `nvidia-smi` on forge
+
+**Step 2: Configure Nexus (1-2 hours)**
+- [ ] Install LM Studio on nexus
+- [ ] Download qwen3.5-4b-IQ4_NL.gguf (2.5GB)
+- [ ] Configure context length (32K), KV cache quantization
+- [ ] Enable API server on port 1234
+- [ ] Test connectivity from zephyr: `curl http://nexus:1234/v1/models`
+- [ ] Verify model loading: `nvidia-smi` on nexus
+
+**Step 3: Update Gateway Configuration (2-3 hours)**
+- [ ] Create multi-backend NixOS module
+- [ ] Update gateway.nix with tier1/tier2/tier3 backends
+- [ ] Implement model-to-backend mapping in router.py
+- [ ] Add overflow logic for tier2/tier3 models
+- [ ] Add health checks for all backends
+- [ ] Test gateway rebuild: `sudo nixos-rebuild test`
+
+**Step 4: Testing & Validation (2-3 hours)**
+- [ ] Test Cortex → Zephyr (35B, 256K context)
+- [ ] Test Workers → Zephyr (27B)
+- [ ] Test Channels → Forge (9B, 32K context)
+- [ ] Test Compactor → Nexus (4B, 16K context)
+- [ ] Measure throughput for each backend
+- [ ] Test overflow scenarios (forge full → zephyr)
+- [ ] Monitor VRAM usage during peak load
+- [ ] Validate failover to Z.ai
+
+**Step 5: Spacebot Integration (1 hour)**
+- [ ] Update Spacebot configuration for new routing
+- [ ] Test each Spacebot process with gateway
+- [ ] Monitor performance metrics
+- [ ] Validate end-to-end workflows
+
+#### Model Assignment by Spacebot Process
+
+| Spacebot Process | Primary Model | Context | Backend | Speed | Priority |
+|------------------|---------------|---------|---------|-------|----------|
+| **Cortex** | qwen3.5-35b-a3b | 256K | Zephyr | 110 t/s | High quality |
+| **Workers (complex)** | qwen3.5-35b-a3b | 256K | Zephyr | 110 t/s | Multi-step tasks |
+| **Workers (standard)** | qwen3.5-27b | 128K | Zephyr | 150 t/s | Quality + speed |
+| **Workers (fast)** | qwen3.5-9b | 64K | Forge | 200 t/s | Quick responses |
+| **Channels** | qwen3.5-9b | 32K | Forge | 200 t/s | Interactive |
+| **Branches** | qwen3.5-9b-claude-4.6-opus | 64K | Forge | 200 t/s | Reasoning chains |
+| **Compactor** | qwen3.5-4b | 16K | Nexus | 300 t/s | Summarization |
+
+#### Expected Performance
+
+| Backend | Model | Context | Speed | Concurrent | Total Throughput |
+|---------|-------|---------|-------|------------|------------------|
+| **Zephyr** | qwen3.5-35b-a3b | 256K | 110 t/s | 1 | 110 t/s |
+| **Zephyr** | qwen3.5-27b | 256K | 150 t/s | 1 | 150 t/s |
+| **Forge** | qwen3.5-9b | 64K | 200 t/s | 2 | 400 t/s |
+| **Nexus** | qwen3.5-4b | 32K | 300 t/s | 3 | 900 t/s |
+| **Total** | - | - | - | - | **~1500 t/s** |
+
+#### Network Configuration
+
+```nix
+# /etc/nixos/modules/network/cluster-hosts.nix
+services.cluster-hosts = {
+  enable = true;
+  hosts = {
+    "forge" = {
+      ip = "192.168.1.100";  # Replace with actual IP
+      aliases = ["forge.local"];
+    };
+    "nexus" = {
+      ip = "192.168.1.101";  # Replace with actual IP
+      aliases = ["nexus.local"];
+    };
+    "zephyr" = {
+      ip = "127.0.0.1";
+      aliases = ["zephyr.local"];
+    };
+  };
+};
+```
+
+#### Success Criteria
+
+- [ ] All three LM Studio instances running (zephyr, forge, nexus)
+- [ ] All backends reachable from gateway
+- [ ] All models loaded and accessible
+- [ ] Gateway routing configured correctly
+- [ ] Cortex gets 110 t/s with 256K context
+- [ ] Channels get 200 t/s with 32K context
+- [ ] Compactor gets 300 t/s with 16K context
+- [ ] Total throughput > 1000 t/s
+- [ ] No backend exceeds 90% VRAM utilization
+- [ ] Overflow routing works (forge → zephyr, nexus → forge)
+- [ ] Health checks detect backend failures
+- [ ] All Spacebot processes route correctly
+- [ ] Zero downtime during model swaps
+
+#### Documentation
+
+**Design Document**: `/etc/nixos/docs/plans/2026-03-05-multi-gpu-lmstudio-architecture.md`
+
+**Related Files**:
+- Gateway configuration: `modules/services/ai-inference/gateway.nix`
+- Router logic: `modules/services/ai-inference/ai_inference_gateway/router.py`
+- Cluster hosts: `modules/network/cluster-hosts.nix`
+
+---
+
 ### Phase 1: Production Readiness (Weeks 2-3)
 
 **Goal**: Critical features for production deployment
