@@ -205,6 +205,15 @@ class Router:
         Returns:
             Detected task specialization
         """
+        # Check for vision content FIRST (highest priority)
+        try:
+            from ai_inference_gateway.vision import detect_vision_content
+            if detect_vision_content(messages):
+                logger.info("Vision content detected in request")
+                return TaskSpecialization.VISION
+        except ImportError:
+            logger.warning("Vision module not available, skipping vision detection")
+
         # Combine all message content
         text = " ".join(
             msg.get("content", "") for msg in messages if isinstance(msg.get("content", ""), str)
@@ -451,7 +460,25 @@ def create_default_router() -> Router:
             name="Qwen 3.5 9B",
             context_length=262144,  # 256K
             priority=8,
-            specializations=[TaskSpecialization.GENERAL, TaskSpecialization.FAST],
+            specializations=[
+                TaskSpecialization.GENERAL,
+                TaskSpecialization.FAST,
+                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+            ],
+            cost_tier=1,
+            estimated_tokens_per_second=60.0,
+            backend="lm-studio",
+        ),
+        ModelInfo(
+            id="qwen3.5-9b",
+            name="Qwen 3.5 9B",
+            context_length=262144,  # 256K
+            priority=8,
+            specializations=[
+                TaskSpecialization.GENERAL,
+                TaskSpecialization.FAST,
+                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+            ],
             cost_tier=1,
             estimated_tokens_per_second=60.0,
             backend="lm-studio",
@@ -461,9 +488,65 @@ def create_default_router() -> Router:
             name="Qwen 3.5 35B A3B",
             context_length=262144,  # 256K
             priority=9,
-            specializations=[TaskSpecialization.GENERAL, TaskSpecialization.AGENTIC],
+            specializations=[
+                TaskSpecialization.GENERAL,
+                TaskSpecialization.AGENTIC,
+                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+            ],
             cost_tier=2,
             estimated_tokens_per_second=40.0,
+            backend="lm-studio",
+        ),
+        ModelInfo(
+            id="qwen/qwen3.5-27b",
+            name="Qwen 3.5 27B",
+            context_length=262144,  # 256K
+            priority=8,
+            specializations=[
+                TaskSpecialization.GENERAL,
+                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+            ],
+            cost_tier=2,
+            estimated_tokens_per_second=50.0,
+            backend="lm-studio",
+        ),
+        ModelInfo(
+            id="qwen3.5-27b",
+            name="Qwen 3.5 27B",
+            context_length=262144,  # 256K
+            priority=8,
+            specializations=[
+                TaskSpecialization.GENERAL,
+                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+            ],
+            cost_tier=2,
+            estimated_tokens_per_second=50.0,
+            backend="lm-studio",
+        ),
+        ModelInfo(
+            id="qwen/qwen3.5-4b",
+            name="Qwen 3.5 4B",
+            context_length=32768,  # 32K
+            priority=7,
+            specializations=[
+                TaskSpecialization.FAST,
+                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+            ],
+            cost_tier=1,
+            estimated_tokens_per_second=80.0,
+            backend="lm-studio",
+        ),
+        ModelInfo(
+            id="qwen3.5-4b",
+            name="Qwen 3.5 4B",
+            context_length=32768,  # 32K
+            priority=7,
+            specializations=[
+                TaskSpecialization.FAST,
+                TaskSpecialization.VISION  # Vision capable (mmproj-F32.gguf)
+            ],
+            cost_tier=1,
+            estimated_tokens_per_second=80.0,
             backend="lm-studio",
         ),
         ModelInfo(

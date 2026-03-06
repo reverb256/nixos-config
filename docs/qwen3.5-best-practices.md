@@ -24,6 +24,77 @@ Qwen3.5 models require different configurations based on size, quantization, and
 
 ---
 
+## Vision Support
+
+**Vision-Capable Models** (have `mmproj` files):
+- ✅ **qwen3.5-35b-a3b** (mmproj-F32.gguf) - Best quality, 256K context
+- ✅ **qwen3.5-27b** (mmproj-F32.gguf) - High quality
+- ✅ **qwen3.5-9b** (mmproj-F32.gguf) - Balanced
+- ✅ **qwen3.5-4b** (mmproj-F32.gguf) - Fast
+- ✅ **crow-9b-opus-4.6-distill-heretic_qwen3.5** (mmproj-f16.gguf)
+
+**Vision Temperature Guidelines**:
+- **0.8B/2B**: 0.7 (more conservative for vision)
+- **4B+**: Use standard temperature (0.6-1.0)
+- Vision requires more deterministic outputs than text
+
+**OpenAI API Format** (Multimodal Messages):
+```python
+# Include images in message content
+messages = [
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "What's in this image?"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."  # or HTTP URL
+                }
+            }
+        ]
+    }
+]
+```
+
+**Gateway Auto-Routing**:
+```python
+# Gateway automatically detects vision and routes to capable models
+# Vision tasks automatically prioritize vision-capable models
+# Quality priority → 35B-A3B (best understanding)
+# Speed priority → 4B (fastest response)
+```
+
+**Best Practices**:
+- Use base64 encoding for local images (`data:image/...;base64,...`)
+- Use HTTP URLs for remote images (gateway will fetch)
+- Lower temperature for vision (0.7 for 0.8B/2B)
+- Vision doesn't benefit from long context (8-16K sufficient)
+
+**Example Request**:
+```bash
+curl -X POST http://127.0.0.1:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen3.5-9b",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {"type": "text", "text": "Describe this image."},
+          {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}
+        ]
+      }
+    ],
+    "max_tokens": 100
+  }'
+```
+
+---
+
 ## Model-Specific Configurations
 
 ### 0.8B / 2B Models
@@ -41,11 +112,12 @@ Qwen3.5 models require different configurations based on size, quantization, and
 }
 ```
 
-**Vision-Language (VL) Tasks**:
+**Vision Tasks**:
 ```python
 {
     "temperature": 0.7,          # Lower temperature for vision
     "top_p": 1.0,                # Deterministic vision outputs
+    "context_length": 8192,      # Vision doesn't need long context
 }
 ```
 
