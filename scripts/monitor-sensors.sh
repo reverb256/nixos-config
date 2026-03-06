@@ -72,6 +72,45 @@ while true; do
     done
 
     echo ""
+    echo -e "${CYAN}AIO Cooler Status${NC}"
+    echo "─────────────────────────────────────────────────────────────────"
+    if command -v liquidctl &>/dev/null; then
+        # Get AIO status - need to stop OpenRGB temporarily if running
+        OPENRGB_RUNNING=false
+        if systemctl is-active --quiet openrgb 2>/dev/null; then
+            systemctl stop openrgb 2>/dev/null
+            OPENRGB_RUNNING=true
+            sleep 0.5
+        fi
+
+        # Get liquid temp and pump speed - use sed to clean Unicode and extract values
+        aio_output=$(liquidctl --match "Hydro" status 2>/dev/null)
+        liquid_temp=$(echo "$aio_output" | grep "Liquid temperature" | sed 's/[^0-9.]//g' | awk '{printf "%.1f", $1}')
+        pump_speed=$(echo "$aio_output" | grep "Pump speed" | grep -oE '[0-9]{2,5}' | head -1)
+
+        # Restart OpenRGB if it was running
+        if [ "$OPENRGB_RUNNING" = true ]; then
+            systemctl start openrgb 2>/dev/null
+        fi
+
+        if [ -n "$liquid_temp" ]; then
+            if (( $(echo "$liquid_temp > 45" | bc -l) )); then
+                aio_color=$RED
+            elif (( $(echo "$liquid_temp > 38" | bc -l) )); then
+                aio_color=$YELLOW
+            else
+                aio_color=$GREEN
+            fi
+            echo -e "  Liquid Temp:  ${aio_color}${liquid_temp}°C${NC}"
+            echo -e "  Pump Speed:   ${pump_speed} RPM"
+        else
+            echo -e "  ${YELLOW}AIO not detected${NC}"
+        fi
+    else
+        echo -e "  ${YELLOW}liquidctl not available${NC}"
+    fi
+
+    echo ""
     echo -e "${CYAN}Fan Status${NC}"
     echo "─────────────────────────────────────────────────────────────────"
     printf "  %-10s  %6s  %5s  %6s\n" "Fan" "RPM" "PWM" "Percent"

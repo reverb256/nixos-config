@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Wrapper to start OpenRGB GUI
+# Stops any conflicting liquidctl operations and starts OpenRGB
+
+echo "Starting OpenRGB..."
+
+# Stop OpenRGB server if running
+if systemctl is-active --quiet openrgb 2>/dev/null; then
+    echo "Stopping OpenRGB server..."
+    sudo systemctl stop openrgb
+fi
+
+# Start OpenRGB GUI
+exec /run/current-system/sw/bin/openrgb "$@"

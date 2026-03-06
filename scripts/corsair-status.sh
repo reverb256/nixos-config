@@ -3,7 +3,7 @@
 # Shows pump speed, liquid temperature, and fan status for Corsair AIO coolers
 
 echo "╔══════════════════════════════════════════════════════════════════╗"
-echo "║              Corsair AIO Cooler Status                               ║"
+echo "║              Corsair Device Status                                ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -21,6 +21,15 @@ if ! command -v liquidctl &> /dev/null; then
     exit 1
 fi
 
+# Check if OpenRGB is running and stop it temporarily
+OPENRGB_RUNNING=false
+if systemctl is-active --quiet openrgb 2>/dev/null; then
+    echo -e "${YELLOW}Stopping OpenRGB service temporarily...${NC}"
+    sudo systemctl stop openrgb
+    OPENRGB_RUNNING=true
+    sleep 1
+fi
+
 echo -e "${CYAN}Scanning for Corsair devices...${NC}"
 echo ""
 
@@ -28,7 +37,7 @@ echo ""
 liquidctl list
 
 echo ""
-echo -e "${CYAN}=== Corsair AIO Status ===${NC}"
+echo -e "${CYAN}=== AIO Cooler Status ===${NC}"
 echo ""
 
 # Get device status
@@ -64,16 +73,21 @@ for hwmon in /sys/class/hwmon/hwmon*; do
     esac
 done
 
-echo ""
-echo -e "${CYAN}=== USB Devices ===${NC}"
-echo "Corsair USB devices:"
-lsusb -d 1b1c: 2>/dev/null || echo "  lsusb not available"
-echo ""
+# Restart OpenRGB if it was running
+if [ "$OPENRGB_RUNNING" = true ]; then
+    echo ""
+    echo -e "${CYAN}Restarting OpenRGB service...${NC}"
+    sudo systemctl start openrgb
+    echo ""
+fi
 
-echo "Commands:"
+echo ""
+echo -e "${CYAN}=== Commands ===${NC}"
 echo "  liquidctl list           - List all supported devices"
 echo "  liquidctl status         - Show device status"
 echo "  liquidctl initialize     - Initialize devices"
-echo "  liquidctl set pump speed 500 - Set pump speed (requires support)"
+echo "  corsair-rgb              - Start OpenRGB GUI"
+echo "  corsair-rgb-server       - Start OpenRGB server"
+echo "  aio-status               - Show this status"
 echo ""
-echo "For RGB control, use: openrgb"
+echo "For RGB control, use: corsair-rgb"
