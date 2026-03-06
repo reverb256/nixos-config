@@ -35,11 +35,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Install lm-sensors package
+    # Install lm-sensors package (includes fancontrol)
     environment.systemPackages = with pkgs; [
       lm_sensors
-    ] ++ lib.optionals cfg.fanControl [
-      fancontrol
     ];
 
     # Load hardware monitoring kernel modules
@@ -75,11 +73,14 @@ in
     systemd.services.fancontrol = lib.mkIf cfg.fanControl {
       description = "Fan speed regulator";
       wantedBy = [ "multi-user.target" ];
-      after = [ "multi-user.target" ];
+      after = [ "multi-user.target" "sensors.service" ];
+      wants = [ "sensors.service" ];
       serviceConfig = {
-        ExecStart = "${pkgs.fancontrol}/bin/fancontrol";
+        ExecStart = "${pkgs.lm_sensors}/bin/fancontrol";
         PIDFile = "/run/fancontrol.pid";
         RestartSec = "5s";
+        # fancontrol needs to read /etc/fancontrol config
+        # Run pwmconfig to generate this file
       };
     };
 
