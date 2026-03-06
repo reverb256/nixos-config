@@ -277,5 +277,6 @@ Or ensure it's in your NixOS configuration (it should be if you're using secrets
 2. **Host keys**: SSH host keys are less secure than dedicated age keys but more convenient.
 3. **Secrets at rest**: Encrypted with multiple recipients for redundancy.
 4. **Secrets at runtime**: Decrypted to `/run/agenix/*` (RAM only, not disk).
-5. **Git safety**: `.age` files are in `.gitignore`. Never commit them.
+5. **Git safety**: ✅ DO commit `.age` files - they're encrypted and safe for reproducibility
 6. **secrets.nix**: Safe to commit (contains only public keys).
+7. **Always specify group**: Always include `mode`, `owner`, AND `group` in declarations.

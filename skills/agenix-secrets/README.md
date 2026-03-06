@@ -177,13 +177,15 @@ Run tests with the skill-creator framework.
 
 ## Security Best Practices
 
-1. **Never commit .age files**: They're in .gitignore for a reason
-2. **Keep private key secure**: Your `~/.age/key.txt` is sensitive
-3. **Use restrictive permissions**: Always use mode "440" or "400"
-4. **Validate before deploying**: Run `validate.py` before rebuilding
-5. **Rotate keys regularly**: Re-encrypt after adding/removing hosts
-6. **Use host keys for production**: Enables automatic decryption
-7. **Document secret purpose**: Add comments in secrets.nix
+1. **✅ DO commit .age files**: They're encrypted and safe to track in git for reproducibility
+2. **❌ NEVER commit**: Decrypted files, private keys, or plaintext backups
+3. **Keep private key secure**: Your `~/.age/key.txt` is sensitive - never share it
+4. **Use restrictive permissions**: Always use `mode = "440"`, plus `owner` AND `group`
+5. **Validate before deploying**: Run `validate.py` before rebuilding
+6. **Rotate keys regularly**: Re-encrypt after adding/removing hosts
+7. **Use host keys for production**: Enables automatic decryption at build time
+8. **Document secret purpose**: Add comments in secrets.nix
+9. **Use multi-recipient encryption**: Encrypt with both user AND host keys for redundancy
 
 ## Troubleshooting
 
@@ -200,8 +202,20 @@ Run tests with the skill-creator framework.
 
 ### Per-Environment Secrets
 ```nix
+# Development - only zephyr
 "api-key-dev.age".publicKeys = [users.j_kro hosts.zephyr];
 "api-key-prod.age".publicKeys = [users.j_kro hosts.forge hosts.nexus];
+```
+
+### Best Practice: Always Include Group
+```nix
+# ALWAYS specify mode, owner, AND group
+age.secrets.my-api-key = {
+  file = "${inputs.self}/secrets/my-api-key.age";
+  mode = "440";       # Read-only for owner
+  owner = "j_kro";   # User who owns the file
+  group = "users";   # Group access (always include!)
+};
 ```
 
 ### Conditional Secret Loading
@@ -210,6 +224,7 @@ age.secrets.special = lib.mkIf (config.networking.hostName == "zephyr") {
   file = "${inputs.self}/secrets/special.age";
   mode = "440";
   owner = "j_kro";
+  group = "users";
 };
 ```
 
