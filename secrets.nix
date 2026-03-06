@@ -42,4 +42,11 @@ in {
   # Switch admin password - Network switch management
   "switch-admin.age".publicKeys = [users.j_kro];
   "secrets/switch-admin.age".publicKeys = [users.j_kro];
+
+  # ========================================================================
+  # MONITORING SECRETS
+  # ========================================================================
+
+  # Grafana admin password - Monitoring dashboard access
+  "secrets/grafana-admin.age".publicKeys = [users.j_kro hosts.zephyr];
 }

@@ -3066,24 +3066,17 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Enable auto-secrets for password generation
-    services.auto-secrets = {
-      enable = true;
-      secrets.grafana-admin-password = {
-        owner = "grafana";
-        group = "grafana";
-        mode = "0400";
-        length = 64;
-      };
+    # Use agenix for admin password (reliable secret management)
+    age.secrets.grafana-admin = {
+      file = ../../../secrets/grafana-admin.age;
+      owner = "grafana";
+      group = "grafana";
+      mode = "0400";
     };
 
-    # Ensure grafana starts after password is generated
-    systemd.services.grafana.after = ["auto-secret-grafana-admin-password.service"];
-    systemd.services.grafana.requires = ["auto-secret-grafana-admin-password.service"];
-
-    # Bind mount secret into grafana's directory (avoids /var/lib/secrets traversal issues)
+    # Bind mount secret into grafana's directory
     systemd.services.grafana.serviceConfig.BindPaths = [
-      "/var/lib/secrets/grafana-admin-password:/var/lib/grafana/admin-password"
+      "/run/agenix/grafana-admin:/var/lib/grafana/admin-password"
     ];
 
     services.grafana = {

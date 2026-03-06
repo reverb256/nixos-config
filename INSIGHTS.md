@@ -268,3 +268,92 @@ services.prometheus.scrapeConfigs = [
   }
 ];
 ```
+
+## Grafana Admin Password Recovery (2026-03-06)
+
+### When Login Fails
+
+**Symptom**: "Invalid username or password" even after reset
+**Cause**: Grafana temporarily locks accounts after too many failed attempts
+
+**Recovery Procedure**:
+```bash
+# 1. Clear login attempts from database
+sudo sqlite3 /var/lib/grafana/data/grafana.db "DELETE FROM login_attempt WHERE username = 'admin';"
+
+# 2. Reset password using Grafana CLI
+sudo -u grafana /nix/store/*-grafana-*/bin/grafana cli \
+  --homepath /var/lib/grafana \
+  admin reset-admin-password NewPassword123
+
+# 3. Restart Grafana
+sudo systemctl restart grafana
+
+# 4. Test login
+curl -s -X POST http://127.0.0.1:3001/login \
+  -H "Content-Type: application/json" \
+  -d '{"user":"admin","password":"NewPassword123"}'
+```
+
+### Agenix Secret Management
+
+```bash
+# Create new secret
+echo "password" | nix run github:ryantm/agenix -- -e secrets/secret-name.age
+
+# Edit existing secret
+nix run github:ryantm/agenix -- -e secrets/secret-name.age
+
+# Re-encrypt for new hosts
+# Update secrets.nix with new host keys, then:
+nix run github:ryantm/agenix -- -r
+```
+
+### Grafana Configuration with Agenix
+
+```nix
+# In grafana.nix
+age.secrets.grafana-admin = {
+  file = ./secrets/grafana-admin.age;
+  owner = "grafana";
+  group = "grafana";
+  mode = "0400";
+};
+
+services.grafana.settings.security.admin_password = "$__file{/run/agenix/grafana-admin}";
+```
+
+## Monitoring Cluster Status (2026-03-06)
+
+### Cluster Nodes
+
+| Host | Node Exporter (9100) | Mining Exporter (9105) | NVIDIA GPU (9400) | Status |
+|------|---------------------|----------------------|-------------------|--------|
+| **zephyr** | ✅ UP | ✅ UP | ✅ UP | Healthy |
+| **sentry** | ✅ UP | ❌ DOWN | N/A (AMD) | Mining exporter needs fix |
+| **forge** | ✅ UP | ✅ UP | ✅ UP | Healthy |
+| **nexus** | ❌ DOWN | ❌ DOWN | ❌ DOWN | Host offline |
+
+### Services
+
+- **Prometheus** (zephyr:9090): Running, scraping all targets
+- **Grafana** (zephyr:3001): Running, credentials secured via agenix
+- **Node Exporter**: Running on zephyr, sentry, forge
+- **Mining Exporter**: Running on zephyr, forge; needs fix on sentry
+- **NVIDIA Exporter**: Running on zephyr, forge
+
+### Known Issues
+
+1. **Sentry Mining Exporter**: Service not running on port 9105
+   - Host is reachable (ping, node-exporter work)
+   - Mining exporter enabled in config but service not starting
+   - Requires investigation on sentry host
+
+2. **Nexus Host**: All exporters timing out
+   - Host appears to be offline (Tailscale timeout)
+   - Needs to be brought back online
+
+3. **Grafana Access**: Tailscale interface only
+   - Local access: http://127.0.0.1:3001
+   - Via Tailscale: https://grafana.ts.krogh.dev/
+   - Credentials stored in agenix: `secrets/grafana-admin.age`
