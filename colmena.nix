@@ -7,13 +7,30 @@
   ...
 }: let
   # ========================================================================
+  # COMMON MODULES - Shared across all hosts (matches flake.nix)
+  # ========================================================================
+  commonModules = [
+    # External modules
+    inputs.home-manager.nixosModules.home-manager
+    inputs.aagl.nixosModules.default
+    inputs.nur.modules.nixos.default
+    inputs.agenix.nixosModules.default
+
+    # Internal modules (auto-imports all subdirectories)
+    ./modules/default.nix
+
+    # Overlays configuration - applies overlays.default to all hosts
+    { nixpkgs.overlays = [ self.overlays.default ]; }
+  ];
+
+  # ========================================================================
   # HELPER FUNCTION - Add deployment metadata to host config
   # ========================================================================
   mkHost = {
     hostName,
     targetHost,
   }: { ... }: {
-    imports = [
+    imports = commonModules ++ [
       ./hosts/${hostName}/configuration.nix
     ];
 
