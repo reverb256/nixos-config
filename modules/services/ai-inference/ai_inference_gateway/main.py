@@ -713,13 +713,22 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Update model in body based on routing decision
         body["model"] = route_decision.model
 
+        # Detect if this is a vision request
+        is_vision_request = False
+        try:
+            from ai_inference_gateway.vision import detect_vision_content
+            is_vision_request = detect_vision_content(messages)
+        except ImportError:
+            pass  # Vision module not available, continue without detection
+
         # Apply model-specific defaults for optimal parameters
         try:
             from ai_inference_gateway.model_defaults import apply_model_defaults
             body = apply_model_defaults(
                 model_id=route_decision.model,
                 request_params=body,
-                override=False  # Only fill missing values, don't override user params
+                override=False,  # Only fill missing values, don't override user params
+                is_vision_request=is_vision_request
             )
         except Exception as defaults_error:
             logger.warning(f"Failed to apply model defaults: {defaults_error}")
@@ -838,14 +847,8 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             if isinstance(content, str):
                 openai_messages.append({"role": role, "content": content})
             elif isinstance(content, list):
-                # Handle content blocks (text, images, etc.)
-                text_blocks = [
-                    block.get("text", "")
-                    for block in content
-                    if block.get("type") == "text"
-                ]
-                combined_content = "\n".join(text_blocks)
-                openai_messages.append({"role": role, "content": combined_content})
+                # Handle content blocks (text, images, etc.) - PRESERVE VISION CONTENT
+                openai_messages.append({"role": role, "content": content})
 
         # Build OpenAI-format request
         openai_request = {
