@@ -14,34 +14,9 @@
     # Hardware configuration (generated)
     ./hardware-configuration.nix
 
-    # Hardware modules (NVIDIA GPU)
-    ../../modules/hardware/nvidia-common.nix
-    #../../modules/hardware/nvidia-wayland.nix  # DISABLED: Causes KWin EGL crashes with multi-GPU
-
-    # Core module aggregator - imports all modules in modules/default.nix
-    # This includes: system, desktop, shell, gaming, development, and most services
+    # All other modules auto-imported via ../../modules/default.nix
+    # This includes: system, desktop, shell, gaming, development, services
     ../../modules/default.nix
-
-    # ========================================================================
-    # OPTIONAL MODULES
-    # These are NOT in default.nix and must be explicitly imported:
-    # - multimedia/gstreamer.nix (optional codec support)
-    # - desktop/spotify-*.nix (Spotify customization - optional per-host)
-    # - network/switch-orchestration.nix (TP-Link switch management)
-    # ========================================================================
-
-    # Multimedia modules
-    ../../modules/multimedia/gstreamer.nix
-
-    # Desktop modules (Spotify customization)
-    # Note: These modules are host-specific because not all hosts may want Spotify customization
-    ../../modules/desktop/spotify-spotx.nix
-    ../../modules/desktop/spotify-spicetify.nix
-
-    # Network modules
-    ../../modules/network/cluster-hosts.nix
-    ../../modules/services/unbound-cluster.nix
-    # ../../modules/network/switch-orchestration.nix  # Temporarily disabled due to errors
   ];
 
   # ============================================================================
