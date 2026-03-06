@@ -33,7 +33,7 @@
   # Hardware monitoring (lm-sensors, fan control for MSI X570)
   hardware.monitoring.enable = true;
   hardware.monitoring.autoDetect = false; # Skip auto-detect, we know the hardware
-  hardware.monitoring.fanControl = false; # BIOS fan control for now
+  hardware.monitoring.fanControl = true; # Automatic fan curve control
 
   networking.networkmanager.enable = true;
 
