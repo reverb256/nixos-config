@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Wrapper to start OpenRGB in server mode
+# Useful for programmatic RGB control
+
+echo "Starting OpenRGB server on port 6742..."
+
+# Stop any existing instance first
+if systemctl is-active --quiet openrgb 2>/dev/null; then
+    echo "Stopping existing OpenRGB service..."
+    sudo systemctl stop openrgb
+fi
+
+exec /run/current-system/sw/bin/openrgb --server "$@"

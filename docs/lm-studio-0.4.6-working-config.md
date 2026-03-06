@@ -110,12 +110,20 @@ in {
     environment.systemPackages = with pkgs; [
       lmstudio
 
-      # Wrapper for GUI launcher (points to lmstudio binary)
+      # Wrapper for GUI launcher (handles /tmp directory change and NVML library)
       (pkgs.writeShellScriptBin "lm-studio" ''
         #!/bin/bash
         # LM Studio GUI launcher
         # Changes to /tmp to avoid bwrap issues with /etc/nixos
         cd /tmp
+
+        # Find NVIDIA library directory and add to LD_LIBRARY_PATH
+        # This ensures LM Studio can find NVML (libnvidia-ml.so.1) for GPU VRAM queries
+        NVIDIA_LIB_DIR=$(dirname $(find /nix/store -name "libnvidia-ml.so.1" 2>/dev/null | grep -v "lib32" | head -1))
+        if [ -n "$NVIDIA_LIB_DIR" ]; then
+          export LD_LIBRARY_PATH="$NVIDIA_LIB_DIR''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        fi
+
         exec ${pkgs.lmstudio}/bin/lmstudio "$@"
       '')
     ];
@@ -216,6 +224,7 @@ TypeError: fetch failed
 3. ❌ **steam-run wrapper** - libfuse.so.2 not found
 4. ❌ **Complex overrideAttrs** - circular symlink issues
 5. ❌ **Running from /etc/nixos** - bubblewrap chdir errors
+6. ❌ **Creating /usr/lib symlinks** - bubblewrap mount namespace isolation
 
 ### What Worked
 
@@ -224,6 +233,7 @@ TypeError: fetch failed
 3. ✅ **Simple package structure** - no complex overrides
 4. ✅ **Running from /tmp** - avoids bubblewrap issues
 5. ✅ **Alias in overlay** - both `lmstudio` and `lm-studio` work
+6. ✅ **`LD_LIBRARY_PATH` for NVML** - enables GPU VRAM queries
 
 ---
 
@@ -287,7 +297,29 @@ ls -la /run/current-system/sw/share/applications/ | grep -i lm
 nvidia-smi
 
 # Test with single GPU
-CUDA_VISIBLE_DEVICES=1 lmstudio  # 3090 only
+CUDA_VISIBLE_DEVICES=1 lm-studio  # 3090 only
+```
+
+### GPU VRAM Query Error ("Cannot obtain free VRAM bytes")
+
+**Error message**:
+```
+Failed to load the model
+Could not calculate augmented gpu offload layers to respect strict GPU VRAM cap.
+Error: Cannot obtain free VRAM bytes for GPU0: NVIDIA GeForce RTX 3090
+```
+
+**Root cause**: LM Studio cannot find the NVML (NVIDIA Management Library) to query GPU information.
+
+**Solution**: The `lm-studio` wrapper now automatically sets `LD_LIBRARY_PATH` to include the NVIDIA library directory. Make sure you're using the `lm-studio` wrapper (not `lmstudio` directly).
+
+**Verification**:
+```bash
+# Check that the wrapper sets the library path
+cat /run/current-system/sw/bin/lm-studio | grep LD_LIBRARY_PATH
+
+# Verify NVIDIA libraries exist
+ls /nix/store/*-nvidia-x11-*/lib/libnvidia-ml.so.1
 ```
 
 ---
@@ -327,7 +359,11 @@ CUDA_VISIBLE_DEVICES=1 lmstudio  # 3090 only
 
 ## Changelog
 
-### 2026-03-06
+### 2026-03-06 (Later)
+- ✅ **Fixed NVML/GPU VRAM query error** - Added `LD_LIBRARY_PATH` to wrapper for NVIDIA library access
+- ✅ Models can now load successfully with GPU VRAM detection working
+
+### 2026-03-06 (Earlier)
 - ✅ Updated LM Studio from 0.4.5-2 → 0.4.6-1
 - ✅ Fixed AppImage packaging with `appimageTools.wrapType2`
 - ✅ Added working configuration to nixpkgs overlay
