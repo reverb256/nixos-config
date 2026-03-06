@@ -76,11 +76,10 @@ in
       after = [ "multi-user.target" "sensors.service" ];
       wants = [ "sensors.service" ];
       serviceConfig = {
-        ExecStart = "${pkgs.lm_sensors}/bin/fancontrol";
-        PIDFile = "/run/fancontrol.pid";
+        ExecStart = "/etc/nixos/scripts/simple-fancontrol.py";
+        Restart = "always";
         RestartSec = "5s";
-        # fancontrol needs to read /etc/fancontrol config
-        # Run pwmconfig to generate this file
+        # Custom fancontrol script handles PWM directly
       };
     };
 
