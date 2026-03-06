@@ -34,6 +34,7 @@
     ./development/tools.nix
     ./development/lsp.nix
     ./development/programming-languages.nix
+    ./development/opencode.nix
 
     # Services
     ./services/lm-studio.nix
