@@ -1,6 +1,10 @@
 # Sentry Host Configuration - Monitoring Server
 # 10.1.1.140 - 16 cores, RX 5600 XT
 # Features: Gaming only (no VR), CPU mining, ROCm
+#
+# Module imports: Gaming, mining, monitoring, opencode are already imported
+# via commonModules in flake.nix (./modules/default.nix)
+# Gaming module is used here for Plasma desktop gaming optimizations
 {
   lib,
   pkgs,
@@ -16,12 +20,6 @@
 
     # Common host imports (desktop, gaming, networking, etc.)
     ../../modules/common-host.nix
-
-    # Gaming support
-    ../../modules/gaming/gaming.nix
-
-    # Mining support
-    ../../modules/mining/mining.nix
 
     # AMD GPU Wayland optimizations (includes nvtopPackages.full)
     ../../modules/hardware/amdgpu-wayland.nix

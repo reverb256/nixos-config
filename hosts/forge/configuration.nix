@@ -1,6 +1,10 @@
 # Forge Host Configuration - GPU Mining Rig
 # 10.1.1.130 - 6 cores, 2x RTX 4060 + 2x RX 5700 XT
 # Features: Mining only (no gaming/VR), ROCm + CUDA
+#
+# Module imports: Gaming, mining, monitoring, opencode are already imported
+# via commonModules in flake.nix (./modules/default.nix)
+# Note: Gaming module imported globally but gaming.enable=false for this host
 {
   lib,
   pkgs,
@@ -12,15 +16,6 @@
 
     # Common host imports (desktop, networking, etc.)
     ../../modules/common-host.nix
-
-    # Monitoring infrastructure (node-exporter, GPU exporters, mining exporter)
-    ../../modules/services/monitoring/default.nix
-
-    # Mining infrastructure
-    ../../modules/mining/mining.nix
-
-    # Development tools (OpenCode AI assistant)
-    ../../modules/development/opencode.nix
 
     # NVIDIA GPU support (common + wayland-specific)
     ../../modules/hardware/nvidia-common.nix
