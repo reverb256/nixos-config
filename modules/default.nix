@@ -53,5 +53,19 @@
     # Exporters
     ./services/gpu-exporters.nix
     ./services/mining-exporter.nix
+
+    # Hardware modules
+    ./hardware/nvidia-common.nix
+
+    # Multimedia modules
+    ./multimedia/gstreamer.nix
+
+    # Desktop modules (Spotify customization)
+    ./desktop/spotify-spotx.nix
+    ./desktop/spotify-spicetify.nix
+
+    # Network modules
+    ./network/cluster-hosts.nix
+    ./services/unbound-cluster.nix
   ];
 }
