@@ -120,7 +120,7 @@
     };
 
     firewall = {
-      allowedTCPPorts = [9757 18789 18790];
+      allowedTCPPorts = [22 9757 18789 18790];  # Added SSH port 22
       allowedUDPPorts = [9757 9758 9759];
       interfaces."tailscale0".allowedTCPPorts = [18789 18790];
     };
