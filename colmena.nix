@@ -46,7 +46,7 @@
   # Uses Tailscale DNS for reliable cluster connectivity
   # ========================================================================
   hostDeployment = {
-    zephyr = { targetHost = "zephyr"; };
+    zephyr = { targetHost = null; };  # Local host - no SSH needed
     nexus = { targetHost = "nexus"; };
     forge = { targetHost = "forge"; };
     sentry = { targetHost = "sentry"; };
