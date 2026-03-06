@@ -58,6 +58,35 @@
   hardware.monitoring.fanControl = false; # BIOS fan control for now
 
   # ============================================================================
+  # ROCm SETUP (for AMD GPU monitoring)
+  # ============================================================================
+  environment.variables = {
+    ROC_ENABLE_PRE_VEGA = "1";
+    LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
+    OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
+  };
+
+  environment.systemPackages = with pkgs; [
+    rocmPackages.rocm-smi
+  ];
+
+  systemd.tmpfiles.rules = let
+    rocmEnv = pkgs.symlinkJoin {
+      name = "rocm-combined";
+      paths = with pkgs.rocmPackages; [
+        clr
+        clr.icd
+        rocblas
+        hipblas
+        rpp
+      ];
+    };
+  in [
+    "L+ /opt/rocm - - - - ${rocmEnv}"
+    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+  ];
+
+  # ============================================================================
   # PLASMA WAYLAND
   # ============================================================================
   services.displayManager.sddm.enable = true;
@@ -124,6 +153,49 @@
     TS_ROUTES = "";
     TS_SSH = "true";
   };
+
+  # ============================================================================
+  # NIX-LD (For ROCm and mining software compatibility)
+  # ============================================================================
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    # AMD/ROCm libraries
+    rocmPackages.clr
+    rocmPackages.clr.icd
+    rocmPackages.rocminfo
+    rocmPackages.rocm-smi
+    rocmPackages.rocm-runtime
+    rocmPackages.rocblas
+    rocmPackages.hipblas
+    rocmPackages.hipsparse
+    rocmPackages.rocfft
+    rocmPackages.rocrand
+    rocmPackages.rocthrust
+
+    # OpenCL
+    ocl-icd
+    opencl-headers
+    clinfo
+
+    # System libraries
+    zlib
+    libpng
+    libjpeg
+    freetype
+    fontconfig
+    xorg.libX11
+    xorg.libXext
+    xorg.libXrender
+    xorg.libxcb
+    xorg.libXau
+    xorg.libXdmcp
+    SDL2
+    alsa-lib
+    systemd
+    libusb1
+    curl
+    openssl
+  ];
 
   # ============================================================================
   # CI/CD

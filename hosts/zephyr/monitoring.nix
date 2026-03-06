@@ -14,6 +14,6 @@
     amd.enable = false;
   };
 
-  # Zephyr doesn't run mining operations
-  services.mining-exporter.enable = false;
+  # Mining exporter (for mining operations on zephyr)
+  services.mining-exporter.enable = true;
 }
