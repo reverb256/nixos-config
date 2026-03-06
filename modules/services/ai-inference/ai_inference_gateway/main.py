@@ -18,6 +18,9 @@ from ai_inference_gateway.mcp_broker import create_mcp_broker_from_config
 from ai_inference_gateway.metrics import ModelMetricsTracker, RoutingMetricsTracker
 from ai_inference_gateway.response_format import transform_request, validate_response
 
+# Initialize logger early (needed for import error handling)
+logger = logging.getLogger(__name__)
+
 # Import semantic cache
 try:
     from ai_inference_gateway.semantic_cache import SemanticCache, CacheConfig, get_default_cache
@@ -58,8 +61,23 @@ except ImportError as e:
     PIIRedactor = None
     RedactionMode = None
 
-# Initialize logger early (needed for import error handling)
-logger = logging.getLogger(__name__)
+# Import content moderation
+try:
+    from ai_inference_gateway.moderation import (
+        ContentModerator,
+        ModerationResult,
+        ModerationCategory,
+        get_default_moderator,
+        moderate_content
+    )
+    MODERATION_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Content moderation not available: {e}")
+    MODERATION_AVAILABLE = False
+    ContentModerator = None
+    ModerationResult = None
+    ModerationCategory = None
+
 
 # RAG imports
 try:
@@ -1234,6 +1252,106 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         return {
             "patterns": redactor.get_patterns(),
             "total_count": len(redactor.get_patterns())
+        }
+
+    @app.post("/moderation/check")
+    async def check_content_moderation(request: Request):
+        """
+        Check content for policy violations.
+
+        Body: {
+            "text": "Content to check",
+            "strictness": "low" | "medium" | "high",  // optional
+            "threshold": 0.7  // optional, overrides strictness
+        }
+
+        Returns moderation results.
+        """
+        if not MODERATION_AVAILABLE:
+            raise HTTPException(
+                status_code=501,
+                detail="Content moderation not available"
+            )
+
+        body = await request.json()
+        text = body.get("text", "")
+        strictness = body.get("strictness", "medium")
+        threshold = body.get("threshold")
+
+        # Create moderator with specified settings
+        moderator = ContentModerator(
+            strictness=strictness,
+            threshold=threshold
+        )
+
+        # Check content
+        result = moderator.moderate(text)
+
+        return {
+            "flagged": result.flagged,
+            "safe": result.safe,
+            "categories": [c.value for c in result.categories],
+            "scores": result.scores,
+            "strictness": strictness,
+            "threshold": moderator.threshold
+        }
+
+    @app.post("/moderation/check-messages")
+    async def check_messages_moderation(request: Request):
+        """
+        Check chat messages for policy violations.
+
+        Body: {
+            "messages": [
+                {"role": "user", "content": "..."},
+                {"role": "assistant", "content": "..."}
+            ],
+            "strictness": "low" | "medium" | "high"  // optional
+        }
+
+        Returns filtered messages and moderation result.
+        """
+        if not MODERATION_AVAILABLE:
+            raise HTTPException(
+                status_code=501,
+                detail="Content moderation not available"
+            )
+
+        body = await request.json()
+        messages = body.get("messages", [])
+        strictness = body.get("strictness", "medium")
+
+        # Create moderator
+        moderator = ContentModerator(strictness=strictness)
+
+        # Check messages
+        filtered_messages, result = moderator.moderate_messages(messages)
+
+        return {
+            "flagged": result.flagged,
+            "safe": result.safe,
+            "categories": [c.value for c in result.categories],
+            "scores": result.scores,
+            "original_count": len(messages),
+            "filtered_count": len(filtered_messages),
+            "messages": filtered_messages,
+            "strictness": strictness
+        }
+
+    @app.get("/moderation/categories")
+    async def get_moderation_categories():
+        """Get available moderation categories."""
+        if not MODERATION_AVAILABLE:
+            raise HTTPException(
+                status_code=501,
+                detail="Content moderation not available"
+            )
+
+        moderator = get_default_moderator()
+
+        return {
+            "categories": moderator.get_categories(),
+            "total_count": len(moderator.get_categories())
         }
 
     @app.post("/mcp/call")
