@@ -6,6 +6,11 @@
 ## Root Cause
 The **DualSense touchpad** is being detected as a mouse device and sending input to the game, causing camera drift.
 
+**Key Diagnostic Clue**: Issue **only occurs when controller is plugged in via USB**, not Bluetooth!
+- **USB mode**: Creates full device tree including touchpad as `mouse1` device
+- **Bluetooth mode**: Often simplifies device enumeration, touchpad may not be exposed
+- This is why the issue appears in some games/configurations but not others
+
 ### Evidence
 ```bash
 $ ls -la /dev/input/by-id/ | grep DualSense
@@ -37,33 +42,42 @@ Handlers=event261 mouse1  # ← Being used as a mouse!
 ### 1. Updated udev Rules ✅
 **File**: `/etc/nixos/modules/gaming/gaming.nix`
 
-Changed from:
+**The Fix**:
 ```nix
-KERNEL=="event*", SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+# Match by device name from parent (ATTRS) and unique touchpad capabilities
+SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+SUBSYSTEM=="input", ATTRS{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+# Fallback: Match by capability signature if name matching fails
+SUBSYSTEM=="input", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", ATTRS{capabilities/abs}=="260800000000003", ENV{LIBINPUT_IGNORE_DEVICE}="1"
 ```
 
-To:
-```nix
-SUBSYSTEM=="input", ATTR{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
-```
+**Why This Works**:
+- **`ATTRS` (plural)**: Matches parent device attributes, not just the device itself
+- **Capability signature**: The touchpad has unique `ABS=260800000000003` that no other DualSense input device has
+- **Dual approach**: Name matching + capability matching = maximum reliability
 
-**Why**: `ATTRS` doesn't match on all systems. `ATTR` with `name` attribute is more reliable.
+**Previous Failed Attempts**:
+- ❌ `KERNEL=="event*", ATTRS{name}=="..."` - Wrong device level
+- ❌ `ATTR{name}=="..."` - Only matches device's own attributes, not parent
 
 ### 2. Apply the Fix
 ```bash
 # Rebuild with new udev rules
 sudo nixos-rebuild switch --flake .#zephyr
 
-# Verify the touchpad is now ignored
-udevadm info --name=/dev/input/event261 | grep LIBINPUT_IGNORE_DEVICE
-# Should show: LIBINPUT_IGNORE_DEVICE=1
+# Reload udev rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
 ```
 
-### 3. Reconnect Controller
+### 3. Reconnect Controller ⚠️ CRITICAL STEP
 ```bash
-# After rebuild, unplug and replug your DualSense
-# Or toggle Bluetooth off/on
+# The new rules ONLY apply after reconnecting the controller!
+# Unplug the DualSense USB cable and plug it back in
+# Or if using Bluetooth: toggle Bluetooth off/on
 ```
+
+**Why reconnect is required**: udev rules are applied when devices are initialized. The controller must re-initialize for new rules to take effect.
 
 ### 4. Verify in Game
 - Launch Honkai Star Rail

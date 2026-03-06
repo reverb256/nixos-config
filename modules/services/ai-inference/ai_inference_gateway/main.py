@@ -713,6 +713,18 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Update model in body based on routing decision
         body["model"] = route_decision.model
 
+        # Apply model-specific defaults for optimal parameters
+        try:
+            from ai_inference_gateway.model_defaults import apply_model_defaults
+            body = apply_model_defaults(
+                model_id=route_decision.model,
+                request_params=body,
+                override=False  # Only fill missing values, don't override user params
+            )
+        except Exception as defaults_error:
+            logger.warning(f"Failed to apply model defaults: {defaults_error}")
+            # Continue without defaults - not critical
+
         # Track request start for smart load balancing
         import uuid
         request_id = str(uuid.uuid4())

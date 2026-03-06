@@ -1122,9 +1122,9 @@ let
                 await asyncio.sleep(60)
                 await model_cache.refresh_multi(backend.primary, backend.fallback)
                 models_cache_age.set(model_cache.age())
-                backend_health.labels(backend_url=BACKEND_URL).set(1 if backend.primary.circuit_breaker.is_healthy() else 0)
+                backend_health.labels(backend_type="lm-studio").set(1 if backend.primary.circuit_breaker.is_healthy() else 0)
                 if backend.fallback:
-                    backend_health.labels(backend_url=ZAI_BASE_URL).set(1 if backend.fallback.circuit_breaker.is_healthy() else 0)
+                    backend_health.labels(backend_type="zai").set(1 if backend.fallback.circuit_breaker.is_healthy() else 0)
 
         # ============================================================================
         # FASTAPI APP
@@ -1348,7 +1348,7 @@ let
         async def metrics():
             """Prometheus metrics."""
             models_cache_age.set(model_cache.age())
-            backend_health.labels(backend_url=BACKEND_URL).set(1 if backend_client.circuit_breaker.is_healthy() else 0)
+            backend_health.labels(backend_type=BACKEND_TYPE).set(1 if backend_client.circuit_breaker.is_healthy() else 0)
             return Response(generate_latest(registry), media_type=CONTENT_TYPE_LATEST)
 
         # ============================================================================
