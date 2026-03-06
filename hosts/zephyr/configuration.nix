@@ -11,6 +11,8 @@
     # BASE MODULES
     # ========================================================================
 
+    # Monitoring configuration
+    ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
 
@@ -404,16 +406,6 @@
   # ============================================================================
   # MONITORING - Full monitoring stack
   # ============================================================================
-  # System metrics
-  services.monitoring.node-exporter.enable = true;
-
-  # GPU metrics exporter (NVIDIA RTX 3090)
-  services.gpu-exporters = {
-    enable = true;
-    nvidia.enable = true; # RTX 3090
-    amd.enable = false;
-  };
-
   # Mining metrics exporter (XMRig + lolMiner)
   services.mining-exporter.enable = true;
 
