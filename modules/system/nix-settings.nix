@@ -1,12 +1,12 @@
 # Nix Settings Module
 # Nix configuration, auto-upgrade, and system settings
-{pkgs, ...}: {
+{lib, pkgs, ...}: {
   nix = {
     # Automatic garbage collection
     gc = {
       automatic = true;
       dates = "weekly";
-      options = "--delete-older-than 7d";
+      options = lib.mkDefault "--delete-older-than 7d";
     };
 
     # Nix channel settings
