@@ -38,9 +38,9 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   # ============================================================================
-  # KERNEL - Standard kernel for stability
+  # KERNEL - Zen for better desktop responsiveness (matches other cluster hosts)
   # ============================================================================
-  boot.kernelPackages = pkgs.linuxPackages;
+  boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # ============================================================================
   # GPU CONFIGURATION (AMD RX 5600 XT)
