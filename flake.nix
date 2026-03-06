@@ -105,12 +105,18 @@
         hosts;
 
       # ========================================================================
-      # OUTPUT 2: colmenaHive (for multi-host deployment)
+      # OUTPUT 2: colmena (raw hive configuration)
       # ========================================================================
-      colmenaHive = import ./colmena.nix {
+      colmena = import ./colmena.nix {
         inherit inputs self;
         inherit hosts;
       };
+
+      # ========================================================================
+      # OUTPUT 3: colmenaHive (for multi-host deployment)
+      # Wraps the raw hive configuration with makeHive for proper schema
+      # ========================================================================
+      colmenaHive = colmena.lib.makeHive self.outputs.colmena;
 
       # ========================================================================
       # EXISTING OUTPUTS (maintain compatibility)
