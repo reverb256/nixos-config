@@ -394,8 +394,9 @@ class MCPBroker:
         """
         Call a tool on a remote MCP server.
 
-        For ZAI MCP servers, routes through Chat API instead of direct MCP protocol
-        to avoid 401 authentication errors.
+        Uses a hybrid approach:
+        1. First tries direct MCP protocol call (faster, simpler)
+        2. Falls back to Chat API routing for ZAI servers if direct call fails
 
         Args:
             server: MCP server configuration
@@ -405,13 +406,22 @@ class MCPBroker:
         Returns:
             Tool execution result
         """
-        # Check if this is a ZAI MCP server that needs Chat API routing
-        if server.url and "api.z.ai/api/mcp" in server.url:
-            logger.info(f"Routing {server.name}.{tool_name} through ZAI Chat API")
+        # Try direct MCP protocol first
+        logger.debug(f"Attempting direct MCP call for {server.name}.{tool_name}")
+        direct_result = await self._call_direct_mcp(server, tool_name, arguments)
+
+        # If direct call succeeded, return the result
+        if "error" not in direct_result:
+            return direct_result
+
+        # If direct call failed with 401 and this is a ZAI server, try Chat API fallback
+        if (server.url and "api.z.ai/api/mcp" in server.url and
+            "401" in str(direct_result.get("error", ""))):
+            logger.info(f"Direct MCP call failed for {server.name}.{tool_name}, trying Chat API fallback")
             return await self._call_via_chat_api(server, tool_name, arguments)
-        else:
-            # For non-ZAI MCP servers, use direct MCP protocol
-            return await self._call_direct_mcp(server, tool_name, arguments)
+
+        # Otherwise return the direct call error
+        return direct_result
 
     async def _call_via_chat_api(self, server: MCPServer, tool_name: str, arguments: Dict) -> Dict:
         """
@@ -429,39 +439,104 @@ class MCPBroker:
             Tool execution result
         """
         try:
-            # Map MCP tool names to Chat API tool definitions
+            # Map MCP tool names to Chat API function definitions
+            # ZAI Chat API uses standard function calling format
             tool_mapping = {
                 "webSearchPrime": {
-                    "type": "web_search",
-                    "web_search": {
-                        "search_query": arguments.get("search_query", "")
+                    "type": "function",
+                    "function": {
+                        "name": "web_search",
+                        "description": "Search the web for information",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "search_query": {
+                                    "type": "string",
+                                    "description": "The search query"
+                                }
+                            },
+                            "required": ["search_query"]
+                        }
                     }
                 },
                 "webReader": {
-                    "type": "web_reader",
-                    "web_reader": {
-                        "url": arguments.get("url", "")
+                    "type": "function",
+                    "function": {
+                        "name": "web_reader",
+                        "description": "Read and extract content from a URL",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "url": {
+                                    "type": "string",
+                                    "description": "The URL to read"
+                                }
+                            },
+                            "required": ["url"]
+                        }
                     }
                 },
                 "search_doc": {
-                    "type": "github_search",
-                    "github_search": {
-                        "query": arguments.get("query", ""),
-                        "repo_name": arguments.get("repo_name", "")
+                    "type": "function",
+                    "function": {
+                        "name": "github_search",
+                        "description": "Search documentation in a GitHub repository",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "string",
+                                    "description": "Search query"
+                                },
+                                "repo_name": {
+                                    "type": "string",
+                                    "description": "Repository name (e.g., owner/repo)"
+                                }
+                            },
+                            "required": ["query", "repo_name"]
+                        }
                     }
                 },
                 "read_file": {
-                    "type": "github_file",
-                    "github_file": {
-                        "repo_name": arguments.get("repo_name", ""),
-                        "file_path": arguments.get("file_path", "")
+                    "type": "function",
+                    "function": {
+                        "name": "github_file",
+                        "description": "Read a file from a GitHub repository",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "repo_name": {
+                                    "type": "string",
+                                    "description": "Repository name (e.g., owner/repo)"
+                                },
+                                "file_path": {
+                                    "type": "string",
+                                    "description": "Path to the file in the repository"
+                                }
+                            },
+                            "required": ["repo_name", "file_path"]
+                        }
                     }
                 },
                 "get_repo_structure": {
-                    "type": "github_repo",
-                    "github_repo": {
-                        "repo_name": arguments.get("repo_name", ""),
-                        "dir_path": arguments.get("dir_path", "/")
+                    "type": "function",
+                    "function": {
+                        "name": "github_repo",
+                        "description": "Get the structure of a GitHub repository",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "repo_name": {
+                                    "type": "string",
+                                    "description": "Repository name (e.g., owner/repo)"
+                                },
+                                "dir_path": {
+                                    "type": "string",
+                                    "description": "Directory path (default: /)"
+                                }
+                            },
+                            "required": ["repo_name"]
+                        }
                     }
                 }
             }
@@ -502,17 +577,18 @@ class MCPBroker:
             # Use ZAI Coding API endpoint
             chat_url = "https://api.z.ai/api/coding/paas/v4/chat/completions"
 
-            # Build Chat API request with tool
+            # Build Chat API request with tool definition
+            tool_def = tool_mapping[tool_name]
             chat_request = {
                 "model": "glm-4.7",
                 "messages": [
                     {
                         "role": "user",
-                        "content": f"Please use the {tool_name} tool with these arguments: {arguments}"
+                        "content": f"Please use the {tool_def['function']['name']} tool with these arguments: {arguments}"
                     }
                 ],
-                "tools": [tool_mapping[tool_name]],
-                "tool_choice": "auto",
+                "tools": [tool_def],
+                "tool_choice": {"type": "function", "function": {"name": tool_def['function']['name']}},
                 "stream": False
             }
 
@@ -532,6 +608,9 @@ class MCPBroker:
                 if response.status_code == 200:
                     result = response.json()
 
+                    # Log the full response for debugging
+                    logger.info(f"Chat API response for {server.name}.{tool_name}: {json.dumps(result, indent=2)[:1000]}")
+
                     # Extract tool call result from Chat API response
                     if "choices" in result and len(result["choices"]) > 0:
                         choice = result["choices"][0]
@@ -541,22 +620,45 @@ class MCPBroker:
                             tool_calls = choice["message"]["tool_calls"]
                             if tool_calls and len(tool_calls) > 0:
                                 tool_call = tool_calls[0]
-                                if "output" in tool_call:
-                                    return {
-                                        "result": tool_call["output"],
-                                        "server": server.name,
-                                        "tool": tool_name,
-                                        "routed_via": "chat_api"
-                                    }
+
+                                # Check if tool call has function result
+                                if "function" in tool_call:
+                                    func = tool_call["function"]
+                                    # Some APIs return output directly in function
+                                    if "output" in func or "result" in func:
+                                        output = func.get("output", func.get("result", ""))
+                                        return {
+                                            "result": output,
+                                            "server": server.name,
+                                            "tool": tool_name,
+                                            "routed_via": "chat_api"
+                                        }
+                                    # Check if arguments contain the result
+                                    if "arguments" in func:
+                                        try:
+                                            args = json.loads(func["arguments"])
+                                            # Some APIs return results in arguments
+                                            if "output" in args or "result" in args:
+                                                output = args.get("output", args.get("result", ""))
+                                                return {
+                                                    "result": output,
+                                                    "server": server.name,
+                                                    "tool": tool_name,
+                                                    "routed_via": "chat_api"
+                                                }
+                                        except json.JSONDecodeError:
+                                            pass
 
                         # Check if content has the result
                         if "message" in choice and "content" in choice["message"]:
-                            return {
-                                "result": choice["message"]["content"],
-                                "server": server.name,
-                                "tool": tool_name,
-                                "routed_via": "chat_api"
-                            }
+                            content = choice["message"]["content"]
+                            if content and content.strip():
+                                return {
+                                    "result": content,
+                                    "server": server.name,
+                                    "tool": tool_name,
+                                    "routed_via": "chat_api"
+                                }
 
                     return {
                         "error": "No tool result in Chat API response",
@@ -598,13 +700,44 @@ class MCPBroker:
         Returns:
             Tool execution result
         """
+        logger.info(f"=== _call_direct_mcp called for {server.name}.{tool_name} ===")
+        logger.info(f"server.headers = {server.headers}")
+
         try:
             # Build headers
             headers = {
                 "Content-Type": "application/json"
             }
+            logger.info(f"Processing MCP call for {server.name}, server.headers: {server.headers}")
+
             if server.headers:
-                headers.update(server.headers)
+                # Read API key from file if needed
+                for header_name, header_value in server.headers.items():
+                    logger.info(f"Processing header {header_name}: {str(header_value)[:50]}...")
+
+                    if isinstance(header_value, str) and "/run/" in header_value and "-key" in header_value:
+                        try:
+                            logger.info(f"Detected API key file path in {header_name}")
+                            if header_value.startswith("Bearer "):
+                                file_path = header_value.split(" ", 1)[1].strip()
+                                use_bearer = True
+                            else:
+                                file_path = header_value
+                                use_bearer = False
+
+                            logger.info(f"Reading API key from {file_path}")
+                            with open(file_path, "r") as f:
+                                api_key = f.read().strip()
+                                if use_bearer:
+                                    headers[header_name] = f"Bearer {api_key}"
+                                else:
+                                    headers[header_name] = api_key
+                            logger.info(f"Successfully loaded API key from {file_path} for {server.name}")
+                        except Exception as e:
+                            logger.error(f"Failed to read API key from {header_value}: {e}")
+                            return {"error": f"Failed to read API key: {e}"}
+                    else:
+                        headers[header_name] = header_value
 
             # Use standard MCP JSON-RPC protocol
             # https://modelcontextprotocol.io/beta/docs/specification/
@@ -645,9 +778,55 @@ class MCPBroker:
                             if line.startswith("data:"):
                                 try:
                                     data = json.loads(line[5:].strip())
+                                    logger.debug(f"Parsed SSE data: {json.dumps(data)[:500]}")
+
                                     # Check for JSON-RPC response
                                     if "result" in data:
-                                        return data["result"]
+                                        result = data["result"]
+
+                                        # Extract content from MCP result format
+                                        # MCP returns: {"content": [{"type": "text", "text": "..."}], "isError": false}
+                                        if "content" in result and len(result["content"]) > 0:
+                                            content_item = result["content"][0]
+
+                                            # Handle text content
+                                            if content_item.get("type") == "text" and "text" in content_item:
+                                                text_content = content_item["text"]
+
+                                                # Try to parse nested JSON (some tools wrap results in JSON strings)
+                                                try:
+                                                    nested = json.loads(text_content)
+                                                    return {
+                                                        "result": nested,
+                                                        "server": server.name,
+                                                        "tool": tool_name,
+                                                        "routed_via": "direct_mcp"
+                                                    }
+                                                except json.JSONDecodeError:
+                                                    # Return as plain text
+                                                    return {
+                                                        "result": text_content,
+                                                        "server": server.name,
+                                                        "tool": tool_name,
+                                                        "routed_via": "direct_mcp"
+                                                    }
+
+                                            # Handle other content types
+                                            return {
+                                                "result": content_item,
+                                                "server": server.name,
+                                                "tool": tool_name,
+                                                "routed_via": "direct_mcp"
+                                            }
+
+                                        # Return raw result if no content field
+                                        return {
+                                            "result": result,
+                                            "server": server.name,
+                                            "tool": tool_name,
+                                            "routed_via": "direct_mcp"
+                                        }
+
                                     elif "error" in data:
                                         return {
                                             "error": data["error"],
@@ -656,6 +835,7 @@ class MCPBroker:
                                         }
                                 except json.JSONDecodeError:
                                     continue
+
                         return {
                             "error": "No valid data in SSE response",
                             "server": server.name,
