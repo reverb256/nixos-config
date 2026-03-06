@@ -11,6 +11,8 @@
   ...
 }: {
   imports = [
+    # Monitoring configuration
+    ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
 
@@ -50,13 +52,6 @@
   # ============================================================================
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-
-  # ============================================================================
-  # MONITORING - Node exporter, GPU (NVIDIA + AMD) and Mining metrics exporters
-  # ============================================================================
-  services.monitoring.node-exporter.enable = true;
-  services.gpu-exporters.enable = true;
-  services.mining-exporter.enable = true;
 
   # ============================================================================
   # KERNEL - Zen for better desktop responsiveness
