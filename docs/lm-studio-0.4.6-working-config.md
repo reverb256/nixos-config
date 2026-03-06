@@ -117,11 +117,21 @@ in {
         # Changes to /tmp to avoid bwrap issues with /etc/nixos
         cd /tmp
 
-        # Find NVIDIA library directory and add to LD_LIBRARY_PATH
-        # This ensures LM Studio can find NVML (libnvidia-ml.so.1) for GPU VRAM queries
+        # Find system NVIDIA library directory (for NVML access)
         NVIDIA_LIB_DIR=$(dirname $(find /nix/store -name "libnvidia-ml.so.1" 2>/dev/null | grep -v "lib32" | head -1))
-        if [ -n "$NVIDIA_LIB_DIR" ]; then
-          export LD_LIBRARY_PATH="$NVIDIA_LIB_DIR''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+        # LM Studio's bundled CUDA vendor directory (where it sets LD_LIBRARY_PATH)
+        LMSTUDIO_CUDA_DIR="$HOME/.lmstudio/extensions/backends/vendor/linux-llama-cuda12-vendor-v1"
+
+        # Create symlink to system NVML library in LM Studio's CUDA directory
+        # This works because LM Studio sets LD_LIBRARY_PATH to this directory for its worker process
+        if [ -n "$NVIDIA_LIB_DIR" ] && [ -d "$LMSTUDIO_CUDA_DIR" ]; then
+          # Create symlinks for all NVIDIA libraries that might be needed
+          for lib in "$NVIDIA_LIB_DIR"/libnvidia-ml.so* "$NVIDIA_LIB_DIR"/libnvidia-ptxjitcompiler.so*; do
+            if [ -e "$lib" ]; then
+              ln -sf "$lib" "$LMSTUDIO_CUDA_DIR"/$(basename "$lib")
+            fi
+          done
         fi
 
         exec ${pkgs.lmstudio}/bin/lmstudio "$@"
@@ -225,6 +235,7 @@ TypeError: fetch failed
 4. ❌ **Complex overrideAttrs** - circular symlink issues
 5. ❌ **Running from /etc/nixos** - bubblewrap chdir errors
 6. ❌ **Creating /usr/lib symlinks** - bubblewrap mount namespace isolation
+7. ❌ **Setting LD_LIBRARY_PATH in wrapper** - LM Studio overrides it in worker process
 
 ### What Worked
 
@@ -233,7 +244,7 @@ TypeError: fetch failed
 3. ✅ **Simple package structure** - no complex overrides
 4. ✅ **Running from /tmp** - avoids bubblewrap issues
 5. ✅ **Alias in overlay** - both `lmstudio` and `lm-studio` work
-6. ✅ **`LD_LIBRARY_PATH` for NVML** - enables GPU VRAM queries
+6. ✅ **Symlinks in LM Studio's CUDA directory** - enables NVML/GPU VRAM queries
 
 ---
 
@@ -309,17 +320,18 @@ Could not calculate augmented gpu offload layers to respect strict GPU VRAM cap.
 Error: Cannot obtain free VRAM bytes for GPU0: NVIDIA GeForce RTX 3090
 ```
 
-**Root cause**: LM Studio cannot find the NVML (NVIDIA Management Library) to query GPU information.
+**Root cause**: LM Studio's bundled CUDA libraries don't include NVML (NVIDIA Management Library), which is required to query GPU VRAM information.
 
-**Solution**: The `lm-studio` wrapper now automatically sets `LD_LIBRARY_PATH` to include the NVIDIA library directory. Make sure you're using the `lm-studio` wrapper (not `lmstudio` directly).
+**Solution**: The `lm-studio` wrapper creates symlinks from the system NVIDIA libraries into LM Studio's bundled CUDA vendor directory (`~/.lmstudio/extensions/backends/vendor/linux-llama-cuda12-vendor-v1`). This works because LM Studio sets `LD_LIBRARY_PATH` to that directory for its worker process.
+
+**Why symlinks work when LD_LIBRARY_PATH doesn't**: LM Studio overrides `LD_LIBRARY_PATH` when spawning its worker process, so wrapper environment variables are ignored. By placing symlinks in the directory LM Studio uses for its library path, we ensure the system NVML library is found.
 
 **Verification**:
 ```bash
-# Check that the wrapper sets the library path
-cat /run/current-system/sw/bin/lm-studio | grep LD_LIBRARY_PATH
+# Check symlinks exist
+ls -la ~/.lmstudio/extensions/backends/vendor/linux-llama-cuda12-vendor-v1/libnvidia-ml.so*
 
-# Verify NVIDIA libraries exist
-ls /nix/store/*-nvidia-x11-*/lib/libnvidia-ml.so.1
+# Should show symlinks pointing to /nix/store/*-nvidia-x11-*/lib/libnvidia-ml.so.1
 ```
 
 ---
@@ -359,9 +371,10 @@ ls /nix/store/*-nvidia-x11-*/lib/libnvidia-ml.so.1
 
 ## Changelog
 
-### 2026-03-06 (Later)
-- ✅ **Fixed NVML/GPU VRAM query error** - Added `LD_LIBRARY_PATH` to wrapper for NVIDIA library access
+### 2026-03-06 (Later - Final Fix)
+- ✅ **Fixed NVML/GPU VRAM query error** - Created symlinks in LM Studio's bundled CUDA directory
 - ✅ Models can now load successfully with GPU VRAM detection working
+- ℹ️ **Why symlinks work**: LM Studio overrides LD_LIBRARY_PATH in its worker process, but symlinks in its own library directory persist and are found
 
 ### 2026-03-06 (Earlier)
 - ✅ Updated LM Studio from 0.4.5-2 → 0.4.6-1
