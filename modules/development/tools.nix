@@ -1,11 +1,10 @@
 # Development Tools Module
-# General development tools and utilities
+# General development tools and utilities (expanded from XNM1)
 {
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   # ============================================================================
   # ENVIRONMENT MANAGEMENT
   # ============================================================================
@@ -80,7 +79,7 @@
     lrzip
 
     # ============================================================================
-    # BUILD TOOLS
+    # BUILD TOOLS (from XNM1)
     # ============================================================================
     # Linkers and compilers
     mold # Modern linker (faster than ld)
@@ -106,7 +105,7 @@
     mise
 
     # ============================================================================
-    # DATABASE TOOLS
+    # DATABASE TOOLS (from XNM1)
     # ============================================================================
     sqlx-cli # SQLx command line
     surrealdb # Distributed database
@@ -114,7 +113,7 @@
     surrealist # SurrealDB GUI
 
     # ============================================================================
-    # NETWORK / API TOOLS
+    # NETWORK / API TOOLS (from XNM1)
     # ============================================================================
     hurl # HTTP testing tool
     grex # Regex generator
