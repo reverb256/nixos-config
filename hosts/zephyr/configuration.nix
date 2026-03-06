@@ -15,7 +15,8 @@
     ./hardware-configuration.nix
 
     # All other modules auto-imported via ../../modules/default.nix
-    # This includes: system, desktop, shell, gaming, development, services
+    # This includes: system, desktop, shell, gaming, development, services,
+    # plus zephyr-specific modules (nvidia-common, gstreamer, spotify, cluster networking)
     ../../modules/default.nix
   ];
 
@@ -23,6 +24,10 @@
   # HOST IDENTIFICATION
   # ============================================================================
   networking.hostName = "zephyr";
+
+  # NVIDIA GPU support (RTX 3090 + 3060 Ti)
+  hardware.nvidia-common.enable = true;
+
   networking.networkmanager.enable = true;
 
   # DNS - Use local unbound resolver for cluster hostnames
