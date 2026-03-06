@@ -1,6 +1,7 @@
 # modules/services/ai-inference/ai_inference_gateway/main.py
 import logging
 import json
+import os
 from contextlib import asynccontextmanager
 from typing import Optional
 from datetime import datetime
@@ -118,20 +119,26 @@ except ImportError:
 GATEWAY_VERSION = "2.0.0"
 
 
-async def check_backend_health(url: str, timeout: float = 5.0) -> bool:
+async def check_backend_health(url: str, timeout: float = 5.0, api_key: Optional[str] = None, backend_type: str = "unknown") -> bool:
     """
     Check if backend is healthy by querying the models endpoint.
 
     Args:
         url: Backend URL
         timeout: Request timeout in seconds
+        api_key: Optional API key for authentication
+        backend_type: Type of backend (lm-studio, zai, etc.)
 
     Returns:
         True if backend is healthy, False otherwise
     """
     try:
+        headers = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.get(f"{url}/v1/models")
+            response = await client.get(f"{url}/v1/models", headers=headers)
             return response.status_code == 200
     except Exception:
         return False
@@ -205,6 +212,8 @@ def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
     if "authorization" not in {k.lower() for k in headers.keys()}:
         if config.backend_type == "lm-studio":
             api_key = config.get_lm_studio_api_key()
+            # DEBUG: Log what we got
+            logger.info(f"[DEBUG] LM Studio API key: repr={repr(api_key)}, len={len(api_key) if api_key else 0}, auth_mode={os.getenv('AUTH_MODE', 'not-set')}")
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
         elif config.backend_type == "zai":
@@ -513,7 +522,16 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     # Add health endpoint
     @app.get("/health")
     async def health_check():
-        """Health check endpoint with actual backend health status."""
+        """
+        Health check endpoint with actual backend health status.
+
+        Returns comprehensive health information including:
+        - Gateway status
+        - Backend health (with cached status)
+        - Circuit breaker state
+        - Qdrant status (if RAG is enabled)
+        - Redis status (if semantic cache is enabled)
+        """
         import time
 
         state: GatewayState = app.state.gateway
@@ -524,7 +542,12 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         if cache_age > state.backend_health_cache["ttl"]:
             # Cache expired, check actual backend health
-            is_healthy = await check_backend_health(state.config.backend_url)
+            api_key = state.config.get_lm_studio_api_key() if state.config.backend_type == "lm-studio" else None
+            is_healthy = await check_backend_health(
+                state.config.backend_url,
+                api_key=api_key,
+                backend_type=state.config.backend_type
+            )
             state.backend_health_cache = {
                 "healthy": is_healthy,
                 "last_check": now,
@@ -536,8 +559,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         backend_healthy = state.backend_health_cache["healthy"]
 
-        return {
-            "status": "healthy",
+        # Build health response
+        health_response = {
+            "status": "healthy" if backend_healthy else "degraded",
             "gateway": {
                 "version": GATEWAY_VERSION,
                 "host": config.gateway_host,
@@ -550,6 +574,71 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 "cache_age_seconds": int(cache_age),
             },
         }
+
+        # Add circuit breaker state if enabled
+        if config.middleware.circuit_breaker.enabled:
+            try:
+                # Get circuit breaker from middleware pipeline
+                for middleware in state.pipeline.middleware:
+                    if hasattr(middleware, '_state'):
+                        from ai_inference_gateway.middleware.circuit_breaker import CircuitBreakerState
+                        state_name = middleware._state.name if hasattr(middleware._state, 'name') else str(middleware._state)
+                        health_response["circuit_breaker"] = {
+                            "state": state_name,
+                            "service_id": getattr(middleware, 'service_id', 'backend')
+                        }
+                        break
+            except Exception as e:
+                logger.warning(f"Failed to get circuit breaker state: {e}")
+
+        # Add Qdrant status if RAG is enabled
+        if SEMANTIC_CACHE_AVAILABLE and state.semantic_cache:
+            try:
+                # Check Qdrant connection
+                qdrant_healthy = await state.semantic_cache._check_qdrant_health()
+                health_response["qdrant"] = {
+                    "healthy": qdrant_healthy,
+                    "url": state.semantic_cache.config.qdrant_url,
+                    "collection": state.semantic_cache.config.qdrant_collection
+                }
+            except Exception as e:
+                logger.warning(f"Failed to check Qdrant health: {e}")
+                health_response["qdrant"] = {
+                    "healthy": False,
+                    "error": str(e)
+                }
+
+        # Add Redis status if semantic cache is enabled
+        if SEMANTIC_CACHE_AVAILABLE and state.semantic_cache:
+            try:
+                # Check Redis connection
+                redis_healthy = await state.semantic_cache._check_redis_health()
+                health_response["redis"] = {
+                    "healthy": redis_healthy,
+                    "url": state.semantic_cache.config.redis_url
+                }
+            except Exception as e:
+                logger.warning(f"Failed to check Redis health: {e}")
+                health_response["redis"] = {
+                    "healthy": False,
+                    "error": str(e)
+                }
+
+        # Add RAG ingestion service status if enabled
+        if RAG_INGESTION_AVAILABLE and state.rag_ingestion:
+            try:
+                health_response["rag_ingestion"] = {
+                    "healthy": True,
+                    "enabled": True
+                }
+            except Exception as e:
+                logger.warning(f"Failed to check RAG ingestion health: {e}")
+                health_response["rag_ingestion"] = {
+                    "healthy": False,
+                    "error": str(e)
+                }
+
+        return health_response
 
     # Add models endpoint
     @app.get("/v1/models")
