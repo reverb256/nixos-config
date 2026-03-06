@@ -36,9 +36,6 @@ try:
         Distance,
         VectorParams,
         PointStruct,
-        Filter,
-        FieldCondition,
-        MatchValue,
     )
 
     QDRANT_AVAILABLE = True

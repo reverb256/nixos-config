@@ -207,7 +207,6 @@ class RetryHandler:
         self, func: Callable, *args: Any, **kwargs: Any
     ) -> Any:
         """Execute with tenacity-based retry logic."""
-        last_exception = None
 
         def should_retry_exception(exception: Exception) -> bool:
             """Determine if exception should trigger retry."""

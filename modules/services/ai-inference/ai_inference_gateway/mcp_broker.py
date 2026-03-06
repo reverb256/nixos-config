@@ -19,16 +19,16 @@ from dataclasses import dataclass
 from enum import Enum
 import httpx
 
+logger = logging.getLogger(__name__)
+
 # Import tool schema caching
 try:
-    from ai_inference_gateway.mcp_cache import ToolSchemaCache, get_cache
+    from ai_inference_gateway.mcp_cache import get_cache  # noqa: F401
 
     CACHE_AVAILABLE = True
 except ImportError:
     logger.warning("MCP cache module not available")
     CACHE_AVAILABLE = False
-
-logger = logging.getLogger(__name__)
 
 
 class MCPServerType(Enum):

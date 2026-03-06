@@ -1,4 +1,5 @@
 # modules/services/ai-inference/ai_inference_gateway/tests/test_observability.py
+import asyncio
 import pytest
 from unittest.mock import Mock
 from fastapi import Request
@@ -201,7 +202,3 @@ async def test_observability_generates_unique_request_ids():
 
     # All request IDs should be unique
     assert len(request_ids) == 10
-
-
-# Import asyncio for sleep test
-import asyncio

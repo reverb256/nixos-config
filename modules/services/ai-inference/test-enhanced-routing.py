@@ -303,7 +303,7 @@ class EnhancedRouter:
         """Select best model for given request with enhanced routing."""
         analysis = self.analyze_prompt(messages)
         estimated_tokens = analysis["estimated_tokens"]
-        task_type = analysis["task_type"]
+        _task_type = analysis["task_type"]  # noqa: F841
 
         # Check Claude model mapping
         if requested_model and requested_model.startswith("claude-"):
@@ -446,7 +446,7 @@ async def test_routing():
 
     # Initialize components
     latency_tracker = LatencyTracker()
-    reranker = Reranker(latency_tracker)
+    _reranker = Reranker(latency_tracker)  # noqa: F841
     router = EnhancedRouter()
 
     # Test scenarios

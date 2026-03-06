@@ -149,7 +149,7 @@ def update_secrets_nix(
         return True
 
     # Build the publicKeys list
-    keys_data = parse_secrets_nix(secrets_nix_path)
+    _keys_data = parse_secrets_nix(secrets_nix_path)  # noqa: F841
     public_keys_list = [f"users.{owner}"]
     public_keys_list.extend([f"hosts.{host}" for host in recipients.keys()])
     public_keys = " ".join(public_keys_list)

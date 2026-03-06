@@ -103,7 +103,7 @@ class CircuitBreaker(Middleware):
             if state_data:
                 parts = state_data.split(":")
                 if len(parts) >= 2:
-                    state_str, timestamp = parts[0], parts[1]
+                    state_str, _timestamp = parts[0], parts[1]
                     self._state = CircuitBreakerState(state_str)
 
                     # Load counts
