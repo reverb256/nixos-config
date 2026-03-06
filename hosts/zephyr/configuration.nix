@@ -35,6 +35,11 @@
   hardware.monitoring.autoDetect = false; # Skip auto-detect, we know the hardware
   hardware.monitoring.fanControl = true; # Custom fan curve control
 
+  # Corsair hardware support (AIO cooler, RGB, Commander)
+  hardware.corsair.enable = true;
+  hardware.corsair.aio.enable = true;    # Corsair H115i AIO control
+  hardware.corsair.rgb.enable = true;    # OpenRGB for RGB control
+
   networking.networkmanager.enable = true;
 
   # DNS - Use local unbound resolver for cluster hostnames
@@ -520,6 +525,12 @@
       #!${pkgs.bash}/bin/bash
       # Comprehensive system monitoring dashboard
       exec /etc/nixos/scripts/monitor-sensors.sh
+    '')
+
+    (pkgs.writeShellScriptBin "aio-status" ''
+      #!${pkgs.bash}/bin/bash
+      # Corsair AIO cooler status
+      exec /etc/nixos/scripts/corsair-status.sh
     '')
 
     # Network discovery & mapping
