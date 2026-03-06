@@ -1,5 +1,5 @@
 # LM Studio - Local LLM runner with GPU support
-# Uses the nixpkgs lmstudio package (version 0.4.5-2)
+# Uses the custom lmstudio package (version 0.4.6-1)
 {
   config,
   lib,
@@ -22,21 +22,14 @@ in {
     environment.systemPackages = with pkgs; [
       lmstudio
 
-      # Wrapper for GUI launcher
+      # Wrapper for GUI launcher (handles /tmp directory change)
       (pkgs.writeShellScriptBin "lm-studio" ''
         #!/bin/bash
         # LM Studio GUI launcher
         # Changes to /tmp to avoid bwrap issues with /etc/nixos
         cd /tmp
-        exec ${pkgs.lmstudio}/bin/lm-studio "$@"
+        exec ${pkgs.lmstudio}/bin/lmstudio "$@"
       '')
     ];
-
-    # NVIDIA GPU environment variables
-    # LM Studio will automatically detect and use available CUDA GPUs
-    # environment.variables = {
-    #   __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-    #   VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
-    # };
   };
 }
