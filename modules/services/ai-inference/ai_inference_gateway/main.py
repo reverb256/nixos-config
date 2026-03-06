@@ -44,6 +44,20 @@ except ImportError as e:
     IngestionConfig = None
     IngestionSource = None
 
+# Import PII redactor
+try:
+    from ai_inference_gateway.pii_redactor import (
+        PIIRedactor,
+        RedactionMode,
+        get_default_redactor
+    )
+    PII_REDACTOR_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"PII redactor not available: {e}")
+    PII_REDACTOR_AVAILABLE = False
+    PIIRedactor = None
+    RedactionMode = None
+
 # Initialize logger early (needed for import error handling)
 logger = logging.getLogger(__name__)
 
@@ -1121,6 +1135,105 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 }
                 for r in results
             ]
+        }
+
+    @app.post("/pii/redact")
+    async def redact_pii(request: Request):
+        """
+        Redact PII from text.
+
+        Body: {
+            "text": "User input with PII",
+            "mode": "redact" | "hash" | "mask" | "remove",  // optional
+            "enabled_patterns": ["email", "phone", "ssn", ...]  // optional
+        }
+
+        Returns text with PII redacted.
+        """
+        if not PII_REDACTOR_AVAILABLE:
+            raise HTTPException(
+                status_code=501,
+                detail="PII redactor not available"
+            )
+
+        body = await request.json()
+        text = body.get("text", "")
+        mode_str = body.get("mode", "redact")
+        enabled_patterns = body.get("enabled_patterns")
+
+        # Parse mode
+        try:
+            mode = RedactionMode(mode_str) if mode_str else None
+        except ValueError:
+            mode = None
+
+        # Create redactor with custom patterns if specified
+        if enabled_patterns:
+            redactor = PIIRedactor(enabled_patterns=enabled_patterns)
+        else:
+            redactor = get_default_redactor()
+
+        # Redact text
+        redacted_text = redactor.redact(text, mode=mode)
+
+        return {
+            "original": text,
+            "redacted": redacted_text,
+            "mode": mode_str,
+            "patterns_used": [p["name"] for p in redactor.get_patterns()]
+        }
+
+    @app.post("/pii/detect")
+    async def detect_pii(request: Request):
+        """
+        Detect PII in text without redacting.
+
+        Body: {
+            "text": "User input to analyze",
+            "enabled_patterns": ["email", "phone", "ssn", ...]  // optional
+        }
+
+        Returns detected PII instances.
+        """
+        if not PII_REDACTOR_AVAILABLE:
+            raise HTTPException(
+                status_code=501,
+                detail="PII redactor not available"
+            )
+
+        body = await request.json()
+        text = body.get("text", "")
+        enabled_patterns = body.get("enabled_patterns")
+
+        # Create redactor with custom patterns if specified
+        if enabled_patterns:
+            redactor = PIIRedactor(enabled_patterns=enabled_patterns)
+        else:
+            redactor = get_default_redactor()
+
+        # Detect PII
+        detections = redactor.detect(text)
+
+        return {
+            "text": text,
+            "detections": detections,
+            "total_count": sum(len(matches) for matches in detections.values())
+        }
+
+    @app.get("/pii/patterns")
+    async def get_pii_patterns():
+        """Get available PII patterns."""
+        if not PII_REDACTOR_AVAILABLE:
+            raise HTTPException(
+                status_code=501,
+                detail="PII redactor not available"
+            )
+
+        redactor = get_default_redactor()
+
+        return {
+            "patterns": redactor.get_patterns(),
+            "total_count": len(redactor.get_patterns())
         }
 
     @app.post("/mcp/call")
