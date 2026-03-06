@@ -406,9 +406,6 @@
   # ============================================================================
   # MONITORING - Full monitoring stack
   # ============================================================================
-  # Mining metrics exporter (XMRig + lolMiner)
-  services.mining-exporter.enable = true;
-
   # Prometheus server - central metrics collection
   services.monitoring.prometheus.enable = true;
   services.monitoring.prometheus.retentionDays = 30;
