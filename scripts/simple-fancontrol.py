@@ -13,14 +13,14 @@ INTERVAL = 5  # seconds
 
 # Fan configurations: (pwm_num, temp_input_num, min_temp, max_temp, min_pwm, max_pwm)
 FAN_CONFIGS = [
-    # CPU fans - use temp13 (AMD TSI core temp)
-    {"pwm": 1, "temp": 13, "min_temp": 50, "max_temp": 85, "min_pwm": 60, "max_pwm": 255},
-    {"pwm": 2, "temp": 13, "min_temp": 50, "max_temp": 85, "min_pwm": 60, "max_pwm": 255},
-    # Case fans - use temp1 (SYSTIN)
-    {"pwm": 3, "temp": 1, "min_temp": 40, "max_temp": 70, "min_pwm": 50, "max_pwm": 200},
-    {"pwm": 4, "temp": 1, "min_temp": 40, "max_temp": 70, "min_pwm": 50, "max_pwm": 200},
-    {"pwm": 5, "temp": 1, "min_temp": 40, "max_temp": 70, "min_pwm": 50, "max_pwm": 200},
-    {"pwm": 6, "temp": 1, "min_temp": 40, "max_temp": 70, "min_pwm": 50, "max_pwm": 200},
+    # CPU fans - use temp13 (AMD TSI core temp) - more aggressive curve
+    {"pwm": 1, "temp": 13, "min_temp": 45, "max_temp": 80, "min_pwm": 70, "max_pwm": 255},
+    {"pwm": 2, "temp": 13, "min_temp": 45, "max_temp": 80, "min_pwm": 70, "max_pwm": 255},
+    # Case fans - use temp1 (SYSTIN) - respond to system temp
+    {"pwm": 3, "temp": 1, "min_temp": 35, "max_temp": 65, "min_pwm": 75, "max_pwm": 200},
+    {"pwm": 4, "temp": 1, "min_temp": 35, "max_temp": 65, "min_pwm": 75, "max_pwm": 200},
+    {"pwm": 5, "temp": 1, "min_temp": 35, "max_temp": 65, "min_pwm": 75, "max_pwm": 200},
+    {"pwm": 6, "temp": 1, "min_temp": 35, "max_temp": 65, "min_pwm": 75, "max_pwm": 200},
 ]
 
 def read_int(path: Path) -> int:

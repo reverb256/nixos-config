@@ -38,6 +38,51 @@
   hardware.monitoring.fanControl = false; # BIOS fan control for now
 
   # ============================================================================
+  # STORAGE CONFIGURATION
+  # ============================================================================
+  # Nexus has additional storage beyond the root filesystem:
+  # - nvme1n1 (223.6GB) - "worn-storage" for high-write workloads
+  # - bcache0 (3.6TB + 465GB cache) - "nexus-storage" with organized subvolumes
+
+  # Mount worn-storage (worn NVMe - suitable for high-write workloads)
+  fileSystems."/data/worn" = {
+    device = "/dev/disk/by-uuid/2056c7e4-cd6c-4a67-9b3d-001178a70eaa";
+    fsType = "btrfs";
+    options = ["compress=zstd" "ssd" "discard=async"];
+  };
+
+  # Mount nexus-storage subvolumes (large bcache device)
+  fileSystems."/data/home" = {
+    device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+    fsType = "btrfs";
+    options = ["subvol=home" "compress=zstd" "ssd" "discard=async"];
+  };
+
+  fileSystems."/data/shared" = {
+    device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+    fsType = "btrfs";
+    options = ["subvol=shared" "compress=zstd" "ssd" "discard=async"];
+  };
+
+  fileSystems."/data/backups" = {
+    device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+    fsType = "btrfs";
+    options = ["subvol=backups" "compress=zstd" "ssd" "discard=async"];
+  };
+
+  fileSystems."/data/media" = {
+    device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+    fsType = "btrfs";
+    options = ["subvol=media" "compress=zstd" "ssd" "discard=async"];
+  };
+
+  fileSystems."/var/lib/containers" = {
+    device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+    fsType = "btrfs";
+    options = ["subvol=containers" "compress=zstd" "ssd" "discard=async"];
+  };
+
+  # ============================================================================
   # BOOTLOADER
   # ============================================================================
   boot.loader.systemd-boot.enable = true;

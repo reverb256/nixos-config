@@ -218,8 +218,8 @@ let
         };
         targets = [
           {
-            expr = "count(node_cpu_seconds_total{mode=\"idle\"}) by (host)";
-            legendFormat = "{{host}}";
+            expr = "count(node_cpu_seconds_total{mode=\"idle\"})";
+            legendFormat = "Cores";
             refId = "A";
           }
         ];
@@ -517,7 +517,7 @@ let
         targets = [
           {
             expr = "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -602,12 +602,12 @@ let
         targets = [
           {
             expr = "node_load1";
-            legendFormat = "{{host}} 1m";
+            legendFormat = "{{instance}} 1m";
             refId = "A";
           }
           {
             expr = "node_load5";
-            legendFormat = "{{host}} 5m";
+            legendFormat = "{{instance}} 5m";
             refId = "B";
           }
         ];
@@ -709,7 +709,7 @@ let
         targets = [
           {
             expr = "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -791,7 +791,7 @@ let
         targets = [
           {
             expr = "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes";
-            legendFormat = "{{host}} Used";
+            legendFormat = "{{instance}} Used";
             refId = "A";
           }
         ];
@@ -887,7 +887,7 @@ let
         targets = [
           {
             expr = "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"})) * 100";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -1573,7 +1573,7 @@ let
         targets = [
           {
             expr = "mining_xmrig_hashrate_total";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -1660,7 +1660,7 @@ let
         targets = [
           {
             expr = "mining_xmrig_cpu_percent";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -1706,7 +1706,7 @@ let
         targets = [
           {
             expr = "mining_xmrig_shares_accepted";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -1756,7 +1756,7 @@ let
         targets = [
           {
             expr = "mining_xmrig_shares_rejected";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -1802,7 +1802,7 @@ let
         targets = [
           {
             expr = "mining_xmrig_uptime_seconds";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];

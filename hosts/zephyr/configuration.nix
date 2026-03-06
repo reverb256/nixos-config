@@ -516,6 +516,12 @@
       ${pkgs.lm_sensors}/bin/sensors -j 2>/dev/null | ${pkgs.jq}/bin/jq -r 'to_entries[] | select(.key | contains("nvme")) | "  \(.key): \(.value[\"Composite\"].value | tonumber | floor)°C"' 2>/dev/null || ${pkgs.lm_sensors}/bin/sensors | grep -A2 nvme
     '')
 
+    (pkgs.writeShellScriptBin "sys-mon" ''
+      #!${pkgs.bash}/bin/bash
+      # Comprehensive system monitoring dashboard
+      exec /etc/nixos/scripts/monitor-sensors.sh
+    '')
+
     # Network discovery & mapping
     nmap
     netdiscover
