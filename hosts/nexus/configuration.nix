@@ -32,6 +32,11 @@
   # NVIDIA GPU support (2x RTX 3060 Ti)
   hardware.nvidia-common.enable = true;
 
+  # Hardware monitoring (lm-sensors for CPU/motherboard temps)
+  hardware.monitoring.enable = true;
+  hardware.monitoring.autoDetect = true; # Auto-detect sensor chips
+  hardware.monitoring.fanControl = false; # BIOS fan control for now
+
   # ============================================================================
   # BOOTLOADER
   # ============================================================================
