@@ -215,9 +215,13 @@ in
                                         mkdir -p ${cfg.dataDir}/{data,ingest,skills}
                                         chmod 700 ${cfg.dataDir}
 
-                                        # Create Podman container storage directory (required for ReadWritePaths)
+                                        # Create Podman container storage directories (required for ReadWritePaths)
                                         mkdir -p /var/lib/containers
                                         chmod 700 /var/lib/containers
+
+                                        # Create /run/containers for runtime container state
+                                        mkdir -p /run/containers
+                                        chmod 700 /run/containers
 
                                         # Pull latest image
                                         ${pkgs.podman}/bin/podman pull ${cfg.image}
@@ -404,6 +408,8 @@ in
       "d ${cfg.dataDir}/ingest 0700 root root - -"
       "d ${cfg.dataDir}/skills 0700 root root - -"
       "d ${cfg.dataDir}/podman-storage 0700 root root - -"
+      "d /run/containers 0700 root root - -"
+      "d /var/lib/containers 0700 root root - -"
     ];
 
     # ============================================================================
