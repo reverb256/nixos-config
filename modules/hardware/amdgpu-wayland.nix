@@ -69,7 +69,8 @@ in {
     # ============================================================================
     environment.sessionVariables = {
       # Force Wayland backend for Qt applications (Plasma 6)
-      QT_QPA_PLATFORM = "wayland";
+      # Use mkDefault to allow Plasma 6 module to override with "wayland;xcb" fallback
+      QT_QPA_PLATFORM = lib.mkDefault "wayland";
 
       # Enable Wayland for Ozone-based applications (Chrome, Electron, etc.)
       NIXOS_OZONE_WL = "1";
