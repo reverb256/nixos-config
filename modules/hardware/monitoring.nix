@@ -68,7 +68,7 @@ in {
         Type = "oneshot";
         RemainAfterExit = true;
         # Run sensors-detect in auto-mode and load detected modules
-        ExecStart = "${pkgs.lm_sensors}/sbin/sensors-detect --auto";
+        ExecStart = "${pkgs.lm_sensors}/bin/sensors-detect --auto";
       };
     };
 

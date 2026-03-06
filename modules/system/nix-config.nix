@@ -20,7 +20,15 @@ _: {
       "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
     ];
 
-    trusted-users = ["root" "j_kro"];
+    trusted-users = ["root" "@wheel"];
+
+    # Allow unsigned paths for local cluster deployment
+    # This enables colmena to deploy between hosts without requiring signature setup
+    require-sigs = false;
+
+    # Accept substituters from all cluster hosts
+    # (Host keys are added via dynamic discovery)
+    accept-flake-config = true;
   };
 
   # Allow unfree packages

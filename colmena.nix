@@ -44,13 +44,15 @@
 
   # ========================================================================
   # DEPLOYMENT METADATA - Target host addresses
-  # Uses Tailscale DNS for reliable cluster connectivity
+  # Notes:
+  # - nexus/forge: Use local network IPs (SSH works reliably)
+  # - sentry: Use Tailscale IP (SSH blocked on local network)
   # ========================================================================
   hostDeployment = {
-    zephyr = {targetHost = null;}; # Local host - no SSH needed
-    nexus = {targetHost = "nexus";};
-    forge = {targetHost = "forge";};
-    sentry = {targetHost = "sentry";};
+    zephyr = {targetHost = null;};         # Local host - no SSH needed
+    nexus = {targetHost = "10.1.1.120";};   # Local network IP
+    forge = {targetHost = "10.1.1.130";};   # Local network IP
+    sentry = {targetHost = "100.81.171.24";}; # Tailscale IP (local SSH blocked)
   };
 in {
   meta = {
