@@ -340,9 +340,18 @@ in
             -v ${cfg.dataDir}:/data:Z \
             -v ${cfg.dataDir}/config.toml:/data/config.toml:Z \
             -v /run/agenix:/run/agenix:ro \
+            -v /var/run/docker.sock:/var/run/docker.sock:Z \
             -e SPACEBOT_DATA_DIR=/data \
-            ${lib.optionalString (cfg.providerKeys.ZAI_CODING_PLAN_KEY != null) "-e ZAI_CODING_PLAN_KEY=''$(cat ${cfg.providerKeys.ZAI_CODING_PLAN_KEY})''"} \
-            ${lib.optionalString (cfg.providerKeys.KILO_API_KEY != null) "-e KILO_API_KEY=''$(cat ${cfg.providerKeys.KILO_API_KEY})''"} \
+            ${
+              lib.optionalString (
+                cfg.providerKeys.ZAI_CODING_PLAN_KEY != null
+              ) "-e ZAI_CODING_PLAN_KEY=''$(cat ${cfg.providerKeys.ZAI_CODING_PLAN_KEY})''"
+            } \
+            ${
+              lib.optionalString (
+                cfg.providerKeys.KILO_API_KEY != null
+              ) "-e KILO_API_KEY=''$(cat ${cfg.providerKeys.KILO_API_KEY})''"
+            } \
             -e OLLAMA_BASE_URL=${cfg.gatewayUrl} \
             ${lib.optionalString (cfg.discord.token != null) "-e DISCORD_BOT_TOKEN=${cfg.discord.token}"} \
             ${lib.optionalString (cfg.slack.token != null) "-e SLACK_BOT_TOKEN=${cfg.slack.token}"} \

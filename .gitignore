@@ -1,6 +1,17 @@
 result
 __pycache__/
 
-# Agenix encrypted secrets (never commit these, even though encrypted)
-secrets/
-*.age
+# Agenix secrets - Best Practices
+# ✅ DO commit: .age files are encrypted and safe to track for reproducibility
+# ✅ DO commit: secrets.nix contains only public keys
+# ❌ NEVER commit: decrypted files or private keys
+
+# Only ignore decrypted/plaintext variants (if they exist)
+secrets/*.key
+secrets/*.secret
+secrets/*.txt
+secrets/*.plaintext
+
+# Never ignore encrypted secrets - they should be tracked
+# secrets/*.age
+# secrets/secrets.nix
