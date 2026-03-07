@@ -1,5 +1,5 @@
-# Service Gateway - Auto-generated subdomains for self-hosted services (Caddy)
-# Maps services like: nextcloud.zephyr.cluster.local -> localhost:8080
+# Service Gateway - Simple human-friendly URLs for self-hosted services (Caddy)
+# Maps services like: ai.zephyr, cloud.zephyr → localhost:PORT
 {
   config,
   lib,
@@ -19,14 +19,14 @@
     concatMapStringsSep
     ;
 
-  # Get the current hostname for generating full service FQDNs
+  # Get the current hostname for generating short service URLs
   hostname = config.networking.hostName or "localhost";
 
   # Build Caddyfile entries for each service
   buildCaddyConfig = services:
     concatMapStringsSep "\n" (name: service:
       let
-        fqdn = "${name}.${hostname}.cluster.local";
+        fqdn = "${name}.${hostname}";
         backendUrl = "http://${service.backend}:${toString service.port}";
       in ''
         # ${service.description}
@@ -59,19 +59,18 @@
       ''
     ) (lib.attrValues services);
 
-  # Build DNS local-data entries for all services
+  # Build DNS local-data entries for all services (short format: name.hostname)
   buildDnsEntries = services:
     concatStringsSep "\n"
     (mapAttrsToList (name: service:
-      # Create both short and full hostname records
+      # Short format: ai.zephyr, cloud.zephyr, etc.
       ''
-        "${name}.${hostname}.cluster.local. IN A ${cfg.listenAddress}"
-        "${name}.${hostname} IN A ${cfg.listenAddress}"
+        "${name}.${hostname}. IN A ${cfg.listenAddress}"
       ''
     ) services);
 in {
   options.services.service-gateway = {
-    enable = mkEnableOption "Service Gateway - auto subdomain routing for self-hosted services (Caddy)";
+    enable = mkEnableOption "Service Gateway - simple URLs for self-hosted services (e.g., ai.zephyr)";
 
     port = mkOption {
       type = types.port;
@@ -153,22 +152,26 @@ in {
       default = {};
       example = literalExpression ''
         {
-          nextcloud = {
+          ai = {
+            description = "AI Inference Gateway";
+            port = 8080;
+          };
+          cloud = {
             description = "Nextcloud file sharing";
             port = 8080;
           };
-          synapse = {
-            description = "AI Command Center";
-            port = 3000;
-            websocket = true;
-          };
         }
       '';
-      description = "Services to register with the gateway";
+      description = "Services to register with the gateway (use short names like 'ai', 'cloud')";
     };
   };
 
   config = mkIf cfg.enable {
+    # ============================================================================
+    # DNS SEARCH DOMAIN - enables short URLs like "ai" instead of "ai.zephyr"
+    # ============================================================================
+    networking.searchDomains = [hostname];
+
     # ============================================================================
     # CADDY REVERSE PROXY
     # ============================================================================
@@ -180,11 +183,8 @@ in {
         # Auto-HTTPS will be off for internal domains
         auto_https off
 
-        # Admin API for dynamic config (optional)
-        # admin localhost:2019
-
-        # Default SNI for HTTP/1.1 without SNI
-        default_sni ${hostname}.cluster.local
+        # Default SNI
+        default_sni ${hostname}
 
         # Logging
         {
@@ -202,13 +202,18 @@ in {
     # ============================================================================
     services.unbound.settings.server = mkIf config.services.unbound-cluster.enable {
       # Add service hostnames to local zone
-      local-zone = [ "services.cluster.local static" ];
+      local-zone = [ "${hostname} static" ];
 
-      # Add DNS records for each service
+      # Add DNS records for each service (short format)
       local-data = mapAttrsToList (name: service:
-        "${name}.${hostname}.cluster.local. IN A ${cfg.listenAddress}"
+        "${name}.${hostname}. IN A ${cfg.listenAddress}"
       ) cfg.services;
     };
+
+    # Add to /etc/hosts for local resolution (fallback if DNS isn't running)
+    networking.extraHosts = concatStringsSep "\n" (mapAttrsToList (name: service:
+      "${cfg.listenAddress} ${name}.${hostname}"
+    ) cfg.services);
 
     # ============================================================================
     # FIREWALL
@@ -221,20 +226,25 @@ in {
     # CLI TOOLS
     # ============================================================================
     environment.systemPackages = with pkgs; [
-      (pkgs.writeShellScriptBin "svc-gateway" ''
-        # Service Gateway CLI
+      (pkgs.writeShellScriptBin "svc" ''
+        # Service Gateway CLI - short command
         set -euo pipefail
 
-        echo "=== Service Gateway (${hostname}.cluster.local) ==="
+        echo "=== Services (${hostname}) ==="
         echo ""
         ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
-          echo "• ${name}"
-          echo "  URL:         http${lib.optionalString service.https "s"}://${name}.${hostname}.cluster.local"
-          echo "  Backend:     ${service.backend}:${toString service.port}"
-          echo "  Description: ${service.description}"
+          echo "• ${name}.${hostname}"
+          echo "  → ${service.backend}:${toString service.port}"
+          echo "  ${service.description}"
           echo ""
         '') cfg.services)}
-        echo "Total services: ${toString (builtins.attrNames cfg.services)}"
+        echo "Total: ${toString (builtins.attrNames cfg.services)}"
+        echo ""
+        echo "Type just '${hostname}' is your search domain, so you can use:"
+        echo "  http://${hostname}     (this machine)"
+        ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
+        echo "  http://${name}.${hostname}    (${service.description})"
+        '') cfg.services)}
       '')
     ];
 
@@ -242,43 +252,46 @@ in {
     # DOCUMENTATION
     # ============================================================================
     environment.etc."service-gateway-readme.md".text = ''
-      # Service Gateway (Caddy)
+      # Service Gateway - Simple URLs
 
-      Your self-hosted services are accessible via subdomains:
+      Your services are accessible at short, memorable URLs:
 
+      | Service | URL | Backend |
+      |---------|-----|---------|
       ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
-      ## ${service.description}
-
-      **URL:** http${lib.optionalString service.https "s"}://${name}.${hostname}.cluster.local
-
-      **Backend:** ${service.backend}:${toString service.port}
+      | ${service.description} | http://${name}.${hostname} | ${service.backend}:${toString service.port} |
       '') cfg.services)}
 
-      ## Adding a New Service
+      ## Even Shorter URLs
 
-      Add to your NixOS configuration:
+      Because `${hostname}` is configured as your DNS search domain,
+      you can often omit it entirely on your local machine:
+
+      ```bash
+      # Instead of:
+      curl http://ai.${hostname}
+
+      # You can type:
+      ping ai
+      curl http://ai
+      ```
+
+      ## Adding a New Service
 
       ```nix
       services.service-gateway.services.my-service = {
         description = "My awesome service";
         port = 1234;
-        backend = "127.0.0.1";
-        websocket = true;  # if using WebSockets
-        https = true;      # enable TLS
       };
       ```
+
+      This makes it available at: `http://my-service.${hostname}`
 
       ## Caddy Management
 
       ```bash
-      # Reload Caddy (no restart needed)
-      systemctl reload caddy
-
-      # Validate Caddyfile syntax
-      caddy validate --config /etc/caddy/Caddyfile
-
-      # View Caddy logs
-      journalctl -u caddy -f
+      systemctl reload caddy      # Apply config changes
+      journalctl -u caddy -f      # View logs
       ```
     '';
   };
