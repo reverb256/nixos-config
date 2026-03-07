@@ -48,6 +48,7 @@
   # HARDWARE PROFILES
   # ============================================================================
   hardware.profiles = {
+    intel.enable = true;  # Intel CPU optimizations (Skylake)
     nvidia.enable = true;  # NVIDIA GPU support
     nvidia.multiGpu = true;  # 2x RTX 4060
     amdgpu.enable = true;  # AMD GPU support
@@ -58,7 +59,15 @@
   # ============================================================================
   # ROLE PROFILES
   # ============================================================================
-  profiles.role.mining = true;  # GPU/CPU mining only (no gaming/VR)
+  profiles.role = {
+    mining = true;  # GPU/CPU mining only (no gaming/VR)
+    aiInference = true;  # AI inference gateway + MCP + RAG
+  };
+
+  # ============================================================================
+  # NETWORK PROFILES
+  # ============================================================================
+  profiles.network.tailscale.enable = true;
 
   # ============================================================================
   # BOOTLOADER

@@ -68,6 +68,9 @@
     # Desktop modules (Spotify customization)
     ./desktop/spotify-spotx.nix
 
+    # Profile system
+    ./profiles/default.nix
+
     # Network modules
     ./network/cluster-hosts.nix
     ./services/unbound-cluster.nix
