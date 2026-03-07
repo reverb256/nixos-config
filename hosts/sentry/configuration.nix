@@ -9,7 +9,8 @@
   lib,
   pkgs,
   ...
-}: {
+}:
+{
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -35,10 +36,10 @@
   # HARDWARE PROFILES
   # ============================================================================
   hardware.profiles = {
-    amd.zen = true;  # Zen CPU optimizations
-    amdgpu.enable = true;  # AMD GPU support
-    amdgpu.wayland = true;  # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
-    monitoring.enable = true;  # Hardware monitoring
+    amd.zen = true; # Zen CPU optimizations
+    amdgpu.enable = true; # AMD GPU support
+    amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
+    monitoring.enable = true; # Hardware monitoring
   };
 
   # Hardware monitoring extras (not covered by profile)
@@ -49,8 +50,8 @@
   # ROLE PROFILES
   # ============================================================================
   profiles.role = {
-    mining = true;  # CPU mining only
-    aiInference = true;  # AI inference gateway + MCP + RAG
+    mining = true; # CPU mining only
+    aiInference = true; # AI inference gateway + MCP + RAG
   };
 
   # ============================================================================
@@ -71,7 +72,7 @@
 
   # Note: hardware.profiles.amdgpu.enable handles AMDGPU automatically
 
-  services.xserver.videoDrivers = ["amdgpu"];
+  services.xserver.videoDrivers = [ "amdgpu" ];
 
   # ============================================================================
   # ROCm SETUP (for AMD GPU monitoring)
@@ -86,21 +87,23 @@
     rocmPackages.rocm-smi
   ];
 
-  systemd.tmpfiles.rules = let
-    rocmEnv = pkgs.symlinkJoin {
-      name = "rocm-combined";
-      paths = with pkgs.rocmPackages; [
-        clr
-        clr.icd
-        rocblas
-        hipblas
-        rpp
-      ];
-    };
-  in [
-    "L+ /opt/rocm - - - - ${rocmEnv}"
-    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-  ];
+  systemd.tmpfiles.rules =
+    let
+      rocmEnv = pkgs.symlinkJoin {
+        name = "rocm-combined";
+        paths = with pkgs.rocmPackages; [
+          clr
+          clr.icd
+          rocblas
+          hipblas
+          rpp
+        ];
+      };
+    in
+    [
+      "L+ /opt/rocm - - - - ${rocmEnv}"
+      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+    ];
 
   # ============================================================================
   # PLASMA WAYLAND
@@ -115,7 +118,7 @@
   fileSystems."/storage" = {
     device = "/dev/disk/by-uuid/4cc9468d-166d-4479-9846-6224c80d9566";
     fsType = "btrfs";
-    options = ["subvol=@data"];
+    options = [ "subvol=@data" ];
   };
 
   # ============================================================================
@@ -175,6 +178,14 @@
         };
         ipv6.method = "auto";
       };
+    };
+
+    firewall = {
+      allowedTCPPorts = [
+        22
+        53317
+      ]; # SSH for remote management, LocalSend
+      allowedUDPPorts = [ 53317 ]; # LocalSend (multicast discovery)
     };
   };
 
