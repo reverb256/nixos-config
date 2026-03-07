@@ -229,6 +229,8 @@ let
       "$HOME/.cache/kcookiejar"
       "$HOME/.cache/plasma-sv"
       "$HOME/.cache/ksycoca"
+      "$HOME/.cache/kdesycoca*"
+      "$HOME/.cache/sycoca"
     )
 
     for dir in "''${CACHE_DIRS[@]}"; do
@@ -239,6 +241,30 @@ let
 
     # Ensure cache directory structure exists
     mkdir -p "$HOME/.cache"
+  '';
+
+  # Script to rebuild KSycoca cache after Plasma starts
+  # Must run AFTER plasma-plasmashell is fully initialized
+  kdeSycocaRebuildScript = pkgs.writeShellScriptBin "kde-sycoca-rebuild" ''
+    #!${pkgs.bash}/bin/bash
+    # Rebuild KDE KSycoca cache after Plasma starts
+    # This runs after Plasma is fully initialized to ensure proper cache rebuild
+
+    # Wait for Plasma to be fully ready
+    for i in {1..30}; do
+      if pgrep -f "plasmashell" > /dev/null 2>&1; then
+        # Plasma is running, give it a moment to stabilize
+        sleep 2
+        break
+      fi
+      sleep 1
+    done
+
+    # Rebuild the cache (non-incremental for clean rebuild)
+    ${pkgs.kdePackages.plasma-workspace}/bin/kbuildsycoca6 --noincremental 2>/dev/null || true
+
+    # Log completion for debugging
+    echo "[$(date)] KSycoca cache rebuilt" >> "$HOME/.cache/kdesycoca-rebuild.log"
   '';
 in
 {
@@ -263,7 +289,59 @@ in
     KWIN_DRM_DEVICE = "/dev/dri/card0";
     KWIN_DRM_PRIMARY = "1";
   };
-  environment.systemPackages = [ monitorSetupScript pkgs.libnotify ];
+  environment.systemPackages = with pkgs.kdePackages; [
+    # Core Plasma Desktop
+    plasma-workspace
+    plasma-desktop
+    plasma-systemmonitor
+
+    # Full Plasma Applications Suite
+    # Discover - Software Center (what user was missing!)
+    discover
+    # File manager
+    dolphin
+    dolphin-plugins
+    # Terminal
+    konsole
+    # Text editor
+    kate
+    # Archive manager
+    ark
+    # Image viewer
+    gwenview
+    # PDF viewer
+    okular
+    # System settings additional modules
+    kde-gtk-config
+    # Audio volume control
+    plasma-pa
+    # Network manager applet
+    plasma-nm
+    # Bluetooth
+    bluedevil
+    # Spectacle - Screenshots
+    spectacle
+    # Markdown viewer (may not be available in all versions)
+    # kmarkdownview
+    # Extra desktop widgets
+    kdeplasma-addons
+    # Web browser
+    kate
+    # Disk usage analyzer
+    filelight
+
+    # Utilities
+    kde-cli-tools
+    kde-inotify-survey
+
+    # Monitor setup script
+    monitorSetupScript
+    pkgs.libnotify
+
+    # KDE cache management scripts
+    kdeSycocaRebuildScript
+    kdeCacheClearScript
+  ];
   systemd.services.boot-monitor-setup = {
     description = "Configure monitors at boot";
     wantedBy = [ "display-manager.service" ];
@@ -303,10 +381,37 @@ in
   # Window rules for specific applications
   environment.etc."xdg/kwinrulesrc".text = ''
     [General]
-    count=1
+    count=2
+
+    # Spotify - Force server-side decorations to fix broken close button on Wayland
+    # Spotify's Electron CSD don't work properly on Wayland, causing SIGTRAP in libcef.so
+    [1]
+    Description=Spotify - Force SSD decorations for working close button
+    wmclass=spotify
+    wmclasscomplete=true
+    wmclassmatch=1
+    title=
+    titlematch=0
+    types=1
+    nonswitch=true
+    acceptfocus=true
+    autotype=true
+    closeable=true
+    fullscreen=false
+    fullscreenrule=0
+    maximize=true
+    maximizerule=0
+    minimize=true
+    minimizerule=0
+    noborder=false
+    noborderrule=3
+    skippager=false
+    skipswitcher=false
+    skiptaskbar=false
+    abovenoborder=true
 
     # Genshin Impact - Always open on TV (HDMI-A-2)
-    [1]
+    [2]
     Description=Genshin Impact - Always on TV (HDMI-A-2)
     wmclass=.*GenshinImpact.*
     wmclassmatch=2
@@ -342,6 +447,35 @@ in
       RemainAfterExit = true;
     };
   };
+
+  # User service to rebuild KSycoca cache AFTER Plasma starts
+  # This ensures the cache is rebuilt with current Nix store paths
+  systemd.user.services.kde-sycoca-rebuild = {
+    description = "Rebuild KDE KSycoca cache after Plasma starts";
+    wantedBy = [ "graphical-session.target" ];
+    after = [ "plasma-plasmashell.service" "graphical-session.target" ];
+    # Run with a slight delay to ensure Plasma is fully initialized
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${kdeSycocaRebuildScript}/bin/kde-sycoca-rebuild";
+      RemainAfterExit = true;
+      # Low priority since this is maintenance, not user-facing
+      Nice = 19;
+      IOSchedulingClass = "idle";
+    };
+  };
+
+  # Also add as autostart desktop file for redundancy
+  environment.etc."xdg/autostart/kde-sycoca-rebuild.desktop".text = ''
+    [Desktop Entry]
+    Type=Application
+    Name=KDE Cache Rebuild
+    Exec=${kdeSycocaRebuildScript}/bin/kde-sycoca-rebuild
+    X-KDE-autostart-phase=2
+    X-KDE-startup-timeout=30
+    NoDisplay=true
+    OnlyShowIn=KDE
+  '';
 
   services.displayManager.sddm.settings.General.DisplayServer = "wayland";
 
