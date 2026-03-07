@@ -34,37 +34,53 @@ xmrig_api_available() {
     >/dev/null 2>&1
 }
 
-# Stop XMRig service via systemctl
-stop_xmrig() {
+# Pause XMRig via HTTP API (faster than systemctl stop)
+pause_xmrig() {
   if systemctl is-active --quiet xmrig.service; then
-    # Optional: health check before stopping
     if xmrig_api_available; then
-      echo "  📡 XMRig API healthy - stopping service..."
+      local token
+      token="$(get_xmrig_token)"
+      echo "  ⏸️  Pausing XMRig via API..."
+      # Use JSON-RPC pause method
+      curl -sf -X POST "http://${XMRIG_API_HOST}:${XMRIG_API_PORT}/json_rpc" \
+        -H "Authorization: Bearer $token" \
+        -H "Content-Type: application/json" \
+        -d '{"id":1,"jsonrpc":"2.0","method":"pause"}' >/dev/null 2>&1
+      echo "  ✅ XMRig paused"
+      return 0
     else
-      echo "  Stopping XMRig service..."
+      # Fallback to systemctl if API unavailable
+      echo "  Stopping XMRig service (API unavailable)..."
+      systemctl stop xmrig.service
+      echo "  ✅ XMRig stopped"
+      return 0
     fi
-    systemctl stop xmrig.service
-    echo "  ✅ XMRig stopped"
-    return 0
   fi
   return 1
 }
 
-# Start XMRig service via systemctl
-start_xmrig() {
-  if ! systemctl is-active --quiet xmrig.service; then
+# Resume XMRig via HTTP API (faster than systemctl start)
+resume_xmrig() {
+  if systemctl is-active --quiet xmrig.service; then
+    if xmrig_api_available; then
+      local token
+      token="$(get_xmrig_token)"
+      echo "  ▶️  Resuming XMRig via API..."
+      # Use JSON-RPC resume method
+      curl -sf -X POST "http://${XMRIG_API_HOST}:${XMRIG_API_PORT}/json_rpc" \
+        -H "Authorization: Bearer $token" \
+        -H "Content-Type: application/json" \
+        -d '{"id":1,"jsonrpc":"2.0","method":"resume"}' >/dev/null 2>&1
+      echo "  ✅ XMRig resumed"
+      return 0
+    fi
+  else
+    # Service not running, start it
     echo "  Starting XMRig service..."
     systemctl start xmrig.service 2>/dev/null || true
-
-    # Wait briefly and verify
     sleep 2
     if systemctl is-active --quiet xmrig.service; then
-      # Verify API is responsive if token is available
-      if xmrig_api_available; then
-        echo "  ✅ XMRig started (API verified)"
-      else
-        echo "  ✅ XMRig started"
-      fi
+      echo "  ✅ XMRig started"
       return 0
     fi
   fi
@@ -103,35 +119,35 @@ start_lolminer() {
   return $started
 }
 
-# Function to check and stop mining services
+# Function to pause mining services
 stop_mining() {
-  echo "🛑 Stopping mining services for build..."
-  local stopped=0
+  echo "🛑 Pausing mining services for build..."
+  local paused=0
 
-  # Stop XMRig
-  stop_xmrig && stopped=$((stopped + 1))
+  # Pause XMRig
+  pause_xmrig && paused=$((paused + 1))
 
-  # Stop lolMiner
-  stop_lolminer && stopped=$((stopped + 1))
+  # Stop lolMiner (no API available, use systemctl)
+  stop_lolminer && paused=$((paused + 1))
 
-  if [ $stopped -eq 0 ]; then
+  if [ $paused -eq 0 ]; then
     echo "  No active mining services found"
   fi
   echo "✅ Mining paused"
 }
 
-# Function to restart mining services
+# Function to resume mining services
 start_mining() {
-  echo "▶️  Restarting mining services..."
-  local started=0
+  echo "▶️  Resuming mining services..."
+  local resumed=0
 
-  # Start XMRig
-  start_xmrig && started=$((started + 1))
+  # Resume XMRig
+  resume_xmrig && resumed=$((resumed + 1))
 
   # Start lolMiner
-  start_lolminer && started=$((started + 1))
+  start_lolminer && resumed=$((resumed + 1))
 
-  if [ $started -eq 0 ]; then
+  if [ $resumed -eq 0 ]; then
     echo "  All mining services already running"
   fi
   echo "✅ Mining resumed"
