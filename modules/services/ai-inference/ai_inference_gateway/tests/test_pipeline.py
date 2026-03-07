@@ -1,6 +1,6 @@
 # modules/services/ai-inference/ai_inference_gateway/tests/test_pipeline.py
 import pytest
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock
 from fastapi import Request, HTTPException
 
 from ai_inference_gateway.pipeline import MiddlewarePipeline
@@ -189,6 +189,7 @@ class TestMiddlewarePipeline:
     @pytest.mark.asyncio
     async def test_context_passed_between_middleware(self):
         """Context dict is shared between middleware."""
+
         class ContextMiddleware(Middleware):
             def __init__(self, name: str, key: str, value: any):
                 self.name = name
@@ -245,6 +246,7 @@ class TestMiddlewarePipeline:
     @pytest.mark.asyncio
     async def test_response_modifications_accumulate(self):
         """Response modifications from all middleware accumulate."""
+
         class ResponseModifier(Middleware):
             def __init__(self, name: str, header: str):
                 self.name = name
@@ -350,6 +352,6 @@ class TestMiddlewarePipeline:
             "third_request",
             "third_response",
             "second_response",
-            "first_response"
+            "first_response",
         ]
         assert execution_order == expected

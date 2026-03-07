@@ -7,7 +7,6 @@ Implements recursive character text splitting with:
 - Metadata attachment
 """
 
-import re
 import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
@@ -47,9 +46,7 @@ class DocumentChunker:
         self.config = config
 
     def chunk_text(
-        self,
-        text: str,
-        metadata: Optional[Dict[str, Any]] = None
+        self, text: str, metadata: Optional[Dict[str, Any]] = None
     ) -> List[DocumentChunk]:
         """
         Split text into chunks.
@@ -84,7 +81,7 @@ class DocumentChunker:
                         metadata=metadata or {},
                         chunk_index=chunk_index,
                         start_pos=current_pos - len(current_chunk),
-                        end_pos=current_pos
+                        end_pos=current_pos,
                     )
                     chunks.append(chunk)
                     chunk_index += 1
@@ -103,7 +100,7 @@ class DocumentChunker:
                                 metadata=metadata or {},
                                 chunk_index=chunk_index,
                                 start_pos=current_pos,
-                                end_pos=current_pos + len(sub_chunk)
+                                end_pos=current_pos + len(sub_chunk),
                             )
                             chunks.append(chunk)
                             chunk_index += 1
@@ -122,11 +119,13 @@ class DocumentChunker:
                 metadata=metadata or {},
                 chunk_index=chunk_index,
                 start_pos=current_pos - len(current_chunk),
-                end_pos=current_pos
+                end_pos=current_pos,
             )
             chunks.append(chunk)
 
-        logger.info(f"Chunked text into {len(chunks)} chunks (avg size: {sum(len(c.content) for c in chunks) // len(chunks)} chars)")
+        logger.info(
+            f"Chunked text into {len(chunks)} chunks (avg size: {sum(len(c.content) for c in chunks) // len(chunks)} chars)"
+        )
         return chunks
 
     def _recursive_split(self, text: str, separators: List[str]) -> List[str]:
@@ -178,7 +177,7 @@ class DocumentChunker:
         for sep in [". ", "! ", "? ", "\n"]:
             last_sep = text[:overlap_end].rfind(sep)
             if last_sep > overlap_end // 2:  # Found a good boundary
-                return text[last_sep + len(sep):]
+                return text[last_sep + len(sep) :]
 
         # Fallback: return last N characters
         return text[-overlap_end:]
@@ -204,7 +203,7 @@ class DocumentChunker:
             if end < len(text):
                 last_space = chunk.rfind(" ")
                 if last_space > self.config.chunk_size // 2:
-                    chunk = text[start:start + last_space]
+                    chunk = text[start : start + last_space]
 
             chunks.append(chunk)
             start += len(chunk)

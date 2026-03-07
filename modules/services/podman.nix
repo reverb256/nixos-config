@@ -5,18 +5,16 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.podman;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     ;
-
-in
-{
+in {
   options.services.podman = {
     enable = mkEnableOption "Podman container runtime";
 
@@ -48,7 +46,7 @@ in
     # ============================================================================
     virtualisation.podman = {
       enable = true;
-      dockerCompat = cfg.dockerCompat;
+      inherit (cfg) dockerCompat;
       defaultNetwork.settings.dns_enabled = true;
     };
 
@@ -56,10 +54,10 @@ in
     # ROOTLESS PODMAN (optional)
     # ============================================================================
     users.users.j_kro = mkIf cfg.rootless {
-      extraGroups = [ "podman" ];
+      extraGroups = ["podman"];
     };
 
-    boot.kernelParams = mkIf cfg.rootless [ "user_namespace.enable=1" ];
+    boot.kernelParams = mkIf cfg.rootless ["user_namespace.enable=1"];
 
     # ============================================================================
     # NETWORKING (optional)
@@ -69,8 +67,7 @@ in
     # ============================================================================
     # PODMAN COMPOSE & UTILITIES
     # ============================================================================
-    environment.systemPackages =
-      with pkgs;
+    environment.systemPackages = with pkgs;
       [
         podman-compose # docker-compose replacement
         podman-tui # Terminal UI for Podman

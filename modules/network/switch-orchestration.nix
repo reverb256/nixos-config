@@ -1,22 +1,19 @@
 # NixOS Network Switch Orchestration Module
 # TP-Link Switch Management and Topology Discovery
-
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }:
-
 let
   cfg = config.networking.switch-orchestration;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     ;
-
 in
 {
   options.networking.switch-orchestration = {

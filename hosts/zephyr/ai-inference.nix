@@ -1,19 +1,9 @@
 # AI Inference Service Configuration for Zephyr
 # RTX 3090 (24GB) + RTX 3060 Ti (8GB)
 # Primary node for large context models
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-
-let
-  # Get Tailscale IP dynamically (for reference, actual detection happens at runtime)
-  # Check current Tailscale IP with: ip -4 addr show tailscale0
-in {
+{...}: {
   # Import the AI inference module
-  imports = [ ../../modules/services/ai-inference ];
+  imports = [../../modules/services/ai-inference];
 
   # Enable AI inference service
   services.ai-inference = {
@@ -21,8 +11,11 @@ in {
 
     # Backend: LM Studio headless (runs via systemd)
     backend = {
-      url = "http://127.0.0.1:1234";  # LM Studio default
+      url = "http://127.0.0.1:1234"; # LM Studio default
       type = "lm-studio";
+      lmStudio = {
+        apiKeyFile = "/run/agenix/lm-studio-api-key"; # Load token from agenix
+      };
     };
 
     # Enable LM Studio headless service
@@ -35,7 +28,7 @@ in {
     # Gateway configuration
     gateway = {
       enable = true;
-      host = "127.0.0.1";  # Local only initially
+      host = "127.0.0.1"; # Local only initially
       port = 8080;
       workers = 4;
     };
@@ -68,7 +61,7 @@ in {
 
     # Authentication: start with none (local), switch to tailscale for network access
     auth = {
-      mode = "none";  # Change to "tailscale" for network access
+      mode = "none"; # Change to "tailscale" for network access
       # For Tailscale, the gateway will need to be updated to listen on Tailscale IP
     };
 

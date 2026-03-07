@@ -7,10 +7,10 @@
   };
 
   outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
+    { self
+    , nixpkgs
+    , flake-utils
+    ,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -49,9 +49,10 @@
         devShells.default = pkgs.mkShell {
           buildInputs = [
             (python.withPackages (
-              ps: with ps; [
-                netifaces
-              ]
+              ps:
+                with ps; [
+                  netifaces
+                ]
             ))
           ];
         };

@@ -1,7 +1,6 @@
 # NixOS Configuration - Entry Point for Zephyr
 # This file imports the modular configuration from hosts/zephyr
-{ config, pkgs, inputs, ... }:
-{
+{inputs, ...}: {
   imports = [
     # Import the host-specific configuration
     ./hosts/zephyr/configuration.nix
@@ -13,7 +12,7 @@
     inputs.aagl.nixosModules.default
 
     # Overlay
-    { nixpkgs.overlays = [ (import ./overlay.nix) ]; }
+    {nixpkgs.overlays = [(import ./overlay.nix)];}
   ];
 
   # ============================================================================

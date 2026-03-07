@@ -1,7 +1,6 @@
 # modules/services/ai-inference/ai_inference_gateway/tests/test_rate_limiter.py
 import pytest
-import time
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock
 from fastapi import Request, HTTPException
 from ai_inference_gateway.middleware.rate_limiter import RateLimiterMiddleware
 from ai_inference_gateway.config import RateLimitingConfig
@@ -24,10 +23,7 @@ async def test_rate_limiter_estimates_tokens():
 async def test_rate_limiter_allows_within_limits():
     """Test that rate limiter allows requests within limits"""
     config = RateLimitingConfig(
-        enabled=True,
-        tokens_per_minute=100,
-        tokens_per_hour=1000,
-        tokens_per_day=10000
+        enabled=True, tokens_per_minute=100, tokens_per_hour=1000, tokens_per_day=10000
     )
     middleware = RateLimiterMiddleware(config)
 
@@ -35,11 +31,7 @@ async def test_rate_limiter_allows_within_limits():
     request.headers = {"Authorization": "Bearer test-key"}
     request.state = Mock()
 
-    context = {
-        "request_body": {
-            "messages": [{"role": "user", "content": "Hello"}]
-        }
-    }
+    context = {"request_body": {"messages": [{"role": "user", "content": "Hello"}]}}
 
     should_continue, error = await middleware.process_request(request, context)
 
@@ -54,7 +46,7 @@ async def test_rate_limiter_blocks_over_minute_limit():
         enabled=True,
         tokens_per_minute=10,  # Very low limit for testing
         tokens_per_hour=1000,
-        tokens_per_day=10000
+        tokens_per_day=10000,
     )
     middleware = RateLimiterMiddleware(config)
 
@@ -102,7 +94,7 @@ async def test_rate_limiter_blocks_over_hour_limit():
         enabled=True,
         tokens_per_minute=1000,
         tokens_per_hour=20,  # Very low limit for testing
-        tokens_per_day=10000
+        tokens_per_day=10000,
     )
     middleware = RateLimiterMiddleware(config)
 
@@ -135,7 +127,7 @@ async def test_rate_limiter_blocks_over_day_limit():
         enabled=True,
         tokens_per_minute=1000,
         tokens_per_hour=1000,
-        tokens_per_day=15  # Very low limit for testing
+        tokens_per_day=15,  # Very low limit for testing
     )
     middleware = RateLimiterMiddleware(config)
 
@@ -164,10 +156,7 @@ async def test_rate_limiter_blocks_over_day_limit():
 @pytest.mark.asyncio
 async def test_rate_limiter_per_api_key_limits():
     """Test that rate limiter tracks limits per API key"""
-    config = RateLimitingConfig(
-        enabled=True,
-        tokens_per_minute=10
-    )
+    config = RateLimitingConfig(enabled=True, tokens_per_minute=10)
     middleware = RateLimiterMiddleware(config)
 
     # Request with key1
@@ -222,10 +211,7 @@ async def test_rate_limiter_per_api_key_limits():
 @pytest.mark.asyncio
 async def test_rate_limiter_custom_quotas():
     """Test that rate limiter supports custom quotas per API key"""
-    config = RateLimitingConfig(
-        enabled=True,
-        tokens_per_minute=10
-    )
+    config = RateLimitingConfig(enabled=True, tokens_per_minute=10)
     middleware = RateLimiterMiddleware(config)
 
     # Set custom quota for specific key
@@ -259,9 +245,7 @@ async def test_rate_limiter_disabled_skips_checking():
     # Make many requests without any limits
     for i in range(100):
         context = {
-            "request_body": {
-                "messages": [{"role": "user", "content": "x" * 1000}]
-            }
+            "request_body": {"messages": [{"role": "user", "content": "x" * 1000}]}
         }
         should_continue, error = await middleware.process_request(request, context)
         assert should_continue is True
@@ -289,11 +273,7 @@ async def test_rate_limiter_handles_missing_auth():
     request.headers = {}  # No auth header
     request.state = Mock()
 
-    context = {
-        "request_body": {
-            "messages": [{"role": "user", "content": "Hello"}]
-        }
-    }
+    context = {"request_body": {"messages": [{"role": "user", "content": "Hello"}]}}
 
     should_continue, error = await middleware.process_request(request, context)
 
@@ -327,7 +307,7 @@ async def test_rate_limiter_redis_fallback():
     config = RateLimitingConfig(
         enabled=True,
         backend="redis",
-        redis_url="redis://invalid:9999"  # Invalid URL to force fallback
+        redis_url="redis://invalid:9999",  # Invalid URL to force fallback
     )
     middleware = RateLimiterMiddleware(config)
     await middleware.connect()
@@ -337,11 +317,7 @@ async def test_rate_limiter_redis_fallback():
     request.headers = {"Authorization": "Bearer test-key"}
     request.state = Mock()
 
-    context = {
-        "request_body": {
-            "messages": [{"role": "user", "content": "Hello"}]
-        }
-    }
+    context = {"request_body": {"messages": [{"role": "user", "content": "Hello"}]}}
 
     should_continue, error = await middleware.process_request(request, context)
 

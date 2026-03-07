@@ -5,14 +5,10 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.ai-inference.health-monitor;
-  inherit (lib) mkEnableOption mkIf types optionalString;
-
-in
-{
+  inherit (lib) mkEnableOption mkIf types;
+in {
   options.services.ai-inference.health-monitor = {
     enable = mkEnableOption "AI Inference Gateway health monitoring for OpenCode";
 
@@ -46,7 +42,7 @@ in
     # Systemd timer for periodic health checks
     systemd.timers.opencode-gateway-health = {
       description = "OpenCode Gateway Health Check Timer";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnBootSec = "1min";
         OnUnitActiveSec = cfg.interval;
@@ -66,7 +62,8 @@ in
     };
 
     # Update oh-my-opencode config to use all available models
-    system.activationScripts.updateOpenCodeConfig = lib.stringAfter [ "users" ]
+    system.activationScripts.updateOpenCodeConfig =
+      lib.stringAfter ["users"]
       ''
         # Ensure OpenCode config is up to date
         if [ -f /home/j_kro/.config/opencode/opencode.json ]; then

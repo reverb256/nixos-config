@@ -1,12 +1,7 @@
 # Network Constants Module
 # Centralized network configuration for all cluster hosts
 # This eliminates hardcoded IPs scattered across host configurations
-{
-  lib,
-  config,
-  ...
-}:
-{
+{lib, ...}: {
   options.networking.cluster = lib.mkOption {
     type = lib.types.attrs;
     default = {
@@ -14,7 +9,7 @@
       subnet = "10.1.1.0/24";
       gateway = "10.1.1.1";
       dns = [
-        "127.0.0.1"  # Local Unbound resolver (now with proper DoT)
+        "127.0.0.1" # Local Unbound resolver (now with proper DoT)
         "::1"
       ];
 
@@ -34,7 +29,7 @@
             "ai"
           ];
           # Advertises subnet route on Tailscale (gateway for cluster)
-          advertiseRoutes = [ "10.1.1.0/24" ];
+          advertiseRoutes = ["10.1.1.0/24"];
         };
 
         nexus = {
@@ -50,7 +45,7 @@
             "storage"
           ];
           # Does not advertise routes (zephyr handles that)
-          advertiseRoutes = [ ];
+          advertiseRoutes = [];
         };
 
         forge = {
@@ -62,7 +57,7 @@
             "build"
           ];
           # Advertises subnet route on Tailscale (backup gateway)
-          advertiseRoutes = [ "10.1.1.0/24" ];
+          advertiseRoutes = ["10.1.1.0/24"];
         };
 
         sentry = {
@@ -74,7 +69,7 @@
             "build"
           ];
           # Advertises subnet route on Tailscale (backup gateway)
-          advertiseRoutes = [ "10.1.1.0/24" ];
+          advertiseRoutes = ["10.1.1.0/24"];
         };
       };
 

@@ -188,12 +188,14 @@ in {
         MANGOHUD_CONFIG = "fps,frametime,cpu_stats,gpu_stats,vram,ram,cpu_temp,gpu_temp,core_load,background_alpha=0.5,position=top-left,toggle_hud=Shift_R+F12";
         # Auto-reload GameMode config when launching games
         GAMEMODE_AUTO_RELOAD_CONFIG = "1";
+        # SDL2 GameControllerDB path for custom controller mappings and deadzones
+        SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
       };
 
       # ============================================================================
       # PIPEWIRE LOW-LATENCY - Lower latency for gaming
       # ============================================================================
-      services.pipewire.extraConfig = {
+      services.pipewire.extraConfig = lib.mkForce {
         pipewire."99-lowlatency"."context.properties" = {
           "default.clock.min-quantum" = 64;
           "default.clock.max-quantum" = 2048;
@@ -299,8 +301,12 @@ in {
       # Disable DualSense/DualShock touchpad to prevent drift in games
       services.udev.extraRules = ''
         # Disable DualSense (PS5) touchpad
-        KERNEL=="event*", SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
-        KERNEL=="event*", SUBSYSTEM=="input", ATTRS{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+        # Match by device name from parent (ATTRS) and unique touchpad capabilities
+        # The touchpad has unique ABS capabilities: 260800000000003
+        SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+        SUBSYSTEM=="input", ATTRS{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+        # Fallback: Match by capability signature if name matching fails
+        SUBSYSTEM=="input", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", ATTRS{capabilities/abs}=="260800000000003", ENV{LIBINPUT_IGNORE_DEVICE}="1"
 
         # DualSense (PS5) hidraw access for Wine/Proton controller support
         KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", MODE="0660", GROUP="plugdev", TAG+="uaccess"
@@ -315,7 +321,37 @@ in {
         "d /var/cache/nvidia-shader-cache 0755 root root - -"
         # ldconfig is in glibc.bin output, not glibc.out
         "L /sbin/ldconfig - - - - ${lib.getBin pkgs.glibc}/sbin/ldconfig"
+        # Joystick calibration directory
+        "d /etc/joystick 0755 root root - -"
       ];
+
+      # ============================================================================
+      # DUALSENSE DEADZONE CONFIGURATION
+      # ============================================================================
+      # System-wide minimal deadzone for DualSense controller right stick
+      # Applied via evdev at kernel level - affects all games
+
+      environment.etc."joystick/DualSense Wireless Controller".source = pkgs.writeText "dualsense-deadzone" ''
+        # Sony DualSense Wireless Controller
+        # Minimal deadzone: 2% (prevents phantom touches, maintains sensitivity)
+        # Right stick (Rx/Ry): Used for camera in most games
+
+        # evdev calibration format
+        evdev ABS_X 2   # Left stick X
+        evdev ABS_Y 2   # Left stick Y
+        evdev ABS_RX 2  # Right stick X (horizontal camera)
+        evdev ABS_RY 2  # Right stick Y (vertical camera)
+      '';
+
+      # SDL2 GameControllerDB with deadzone hints
+      environment.etc."SDL_gamecontrollerdb".source = pkgs.writeText "sdl2-dualsense-db" ''
+        # SDL2 GameControllerDB entry for DualSense with deadzone hints
+        # Format: SDL_GAMECONTROLLERDB_V2
+        # Deadzone hint format: Deadzone:percentage  (e.g., Deadzone:2 = 2%)
+
+        0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,
+        0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,Deadzone:2,
+      '';
     })
 
     # VR configuration (only when vr.enable = true)
@@ -357,8 +393,7 @@ in {
       };
 
       # VR-specific packages
-      environment.systemPackages = with pkgs;
-        [
+      environment.systemPackages = with pkgs; ([
           wivrn
           openxr-loader
           opencomposite
@@ -375,7 +410,13 @@ in {
         ]
         ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
           inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
-        ];
+        ]
+        ++ [
+          # GPU profile command (merged here to avoid duplicate assignment)
+          (pkgs.writeShellScriptBin "gpu-profile" ''
+            exec ${./scripts/gpu-profiles/switch-profile} "$@"
+          '')
+        ]);
 
       # VR device udev rules
       services.udev.extraRules = ''
@@ -409,6 +450,242 @@ in {
         libtiff
       ];
       # NOTE: extraPackages32 removed - breaks Wayland on multi-NVIDIA
+
+      # ============================================================================
+      # AUTONOMOUS GPU WORKLOAD MONITOR
+      # ============================================================================
+      # Automatically detects workload type (gaming/AI/mining/idle)
+      # and switches GPU profiles accordingly
+      # Pauses mining when gaming or AI workloads are detected
+
+      systemd.services.gpu-workload-monitor = {
+        description = "Autonomous GPU workload monitor and profile manager";
+        after = ["nvidia-persistence-mode.service" "network.target"];
+        wantedBy = ["multi-user.target"];
+        path = with pkgs; [
+          # System utilities
+          procps # pgrep
+          systemd # systemctl
+        ];
+        serviceConfig = {
+          Type = "simple";
+          Environment = "PATH=${lib.makeBinPath (with pkgs; [procps systemd])}:/run/current-system/sw/bin";
+          ExecStart = "${pkgs.writeShellScriptBin "gpu-workload-monitor" ''
+            # Autonomous GPU Workload Monitor
+            # Detects workload type and adjusts GPU profiles automatically
+            # Manages mining pauses when AI/Gaming workloads detected
+
+            set -euo pipefail
+
+            LOG_FILE="/var/log/gpu-workload-monitor.log"
+            MINING_SERVICE="lolminer-nvidia"
+            AI_PROCESSES=("lmstudio" "ollama" "python.*llm" "ai-inference-gateway")
+            GAMING_PROCESSES=("steam" "lutris" "heroic" "wine" "proton")
+
+            log() {
+                echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
+            }
+
+            check_process_running() {
+                local process="$1"
+                pgrep -f "$process" >/dev/null
+            }
+
+            get_workload_type() {
+                # Priority: Gaming > AI > Mining > Idle
+
+                # Check for gaming
+                for proc in "''${GAMING_PROCESSES[@]}"; do
+                    if check_process_running "$proc"; then
+                        echo "gaming"
+                        return
+                    fi
+                done
+
+                # Check for AI workloads
+                for proc in "''${AI_PROCESSES[@]}"; do
+                    if check_process_running "$proc"; then
+                        echo "ai"
+                        return
+                    fi
+                done
+
+                # Check for active mining
+                if systemctl is-active --quiet "$MINING_SERVICE"; then
+                    # Mining is only active if no higher priority workload
+                    echo "mining"
+                    return
+                fi
+
+                echo "idle"
+            }
+
+            apply_gaming_profile() {
+                echo "=== Applying GPU GAMING profile ==="
+
+                # Max power limits (liquid cooling can handle it)
+                nvidia-smi -i 0 -pl 200  # 3060 Ti
+                nvidia-smi -i 1 -pl 350  # 3090
+
+                # Lock clocks for max gaming performance
+                # 3060 Ti: Max clocks (full performance)
+                nvidia-smi -i 0 -lgc 2100
+                nvidia-smi -i 0 -lmc 7000
+                # 3090: Aggressive GPU (liquid cooled), conservative VRAM (backside uncooled)
+                nvidia-smi -i 1 -lgc 2050
+                nvidia-smi -i 1 -lmc 7500
+
+                echo "GAMING profile applied:"
+                echo "  GPU 0 (3060 Ti):  2100 MHz GPU, 7000 MHz mem, 200W limit"
+                echo "  GPU 1 (3090):     2050 MHz GPU (liquid-cooled), 7500 MHz mem (backside VRAM-safe), 350W limit"
+                echo "  Mode: Maximum performance with VRAM thermal safety"
+            }
+
+            apply_ai_profile() {
+                echo "=== Applying GPU AI INFERENCE profile ==="
+
+                # Moderate power limits (sweet spot for perf/watt)
+                nvidia-smi -i 0 -pl 110  # 3060 Ti (55%)
+                nvidia-smi -i 1 -pl 300  # 3090 (85% - liquid cooled, can push harder)
+
+                # Balanced clocks: strong GPU, conservative VRAM for backside thermal safety
+                # 3060 Ti: 1950 MHz GPU, 6200 MHz memory (balanced)
+                nvidia-smi -i 0 -lgc 1950
+                nvidia-smi -i 0 -lmc 6200
+                # 3090: 1900 MHz GPU (liquid-cooled), 7000 MHz memory (backside VRAM-safe)
+                nvidia-smi -i 1 -lgc 1900
+                nvidia-smi -i 1 -lmc 7000
+
+                echo "AI INFERENCE profile applied:"
+                echo "  GPU 0 (3060 Ti):  1950 MHz GPU, 6200 MHz mem, 110W limit"
+                echo "  GPU 1 (3090):     1900 MHz GPU (liquid-cooled), 7000 MHz mem (backside VRAM-safe), 300W limit"
+                echo "  Mode: Balanced performance with VRAM thermal safety"
+                echo ""
+                echo "This profile optimizes for:"
+                echo "  - Consistent inference latency"
+                echo "  - Strong GPU performance (liquid cooling utilized)"
+                echo "  - Conservative VRAM for backside thermal safety"
+                echo "  - Power efficiency for sustained workloads"
+            }
+
+            apply_mining_profile() {
+                echo "=== Applying GPU MINING profile ==="
+
+                # Reduced power limits for efficiency
+                nvidia-smi -i 0 -pl 100  # 3060 Ti (50% - efficiency sweet spot)
+                nvidia-smi -i 1 -pl 270  # 3090 (77% - can push more with liquid cooling)
+
+                # Mining optimization: high memory throughput with thermal safety
+                # 3060 Ti: 1700 MHz GPU, 5200 MHz memory (efficiency-focused)
+                nvidia-smi -i 0 -lgc 1700
+                nvidia-smi -i 0 -lmc 5200
+                # 3090: 1750 MHz GPU (liquid-cooled), 6500 MHz memory (backside VRAM temperature-safe)
+                # Note: Mining is VRAM-intensive, keeping memory conservative for uncooled backside modules
+                nvidia-smi -i 1 -lgc 1750
+                nvidia-smi -i 1 -lmc 6500
+
+                echo "MINING profile applied:"
+                echo "  GPU 0 (3060 Ti):   1700 MHz GPU, 5200 MHz mem, 100W limit"
+                echo "  GPU 1 (3090):      1750 MHz GPU (liquid-cooled), 6500 MHz mem (backside VRAM-safe), 270W limit"
+                echo "  Mode: Efficiency-optimized with thermal safety"
+                echo ""
+                echo "NOTE: Monitor temps and hashrate. 3090 backside VRAM kept conservative."
+            }
+
+            apply_idle_profile() {
+                echo "=== Resetting GPUs to DEFAULT/AUTO profile ==="
+
+                # Reset power limits to defaults
+                nvidia-smi -i 0 -pl 200  # 3060 Ti default
+                nvidia-smi -i 1 -pl 350  # 3090 default
+
+                # Reset locked clocks back to auto/adaptive mode
+                nvidia-smi -i 0 -rgc
+                nvidia-smi -i 0 -rmc
+                nvidia-smi -i 1 -rgc
+                nvidia-smi -i 1 -rmc
+
+                echo "RESET to defaults applied:"
+                echo "  Power limits reset to configured defaults"
+                echo "  Clocks unlocked - GPUs will auto-scale"
+                echo "  Mode: Adaptive (auto)"
+                echo ""
+                echo "GPUs will now auto-scale based on workload."
+            }
+
+            apply_profile() {
+                local profile="$1"
+                log "Applying profile: $profile"
+
+                case "$profile" in
+                    gaming)
+                        apply_gaming_profile
+                        # Pause mining if running
+                        if systemctl is-active --quiet "$MINING_SERVICE"; then
+                            log "Pausing mining for gaming"
+                            systemctl stop "$MINING_SERVICE"
+                        fi
+                        ;;
+                    ai)
+                        apply_ai_profile
+                        # Pause mining if running
+                        if systemctl is-active --quiet "$MINING_SERVICE"; then
+                            log "Pausing mining for AI inference"
+                            systemctl stop "$MINING_SERVICE"
+                        fi
+                        ;;
+                    mining)
+                        apply_mining_profile
+                        # Start mining if not running
+                        if ! systemctl is-active --quiet "$MINING_SERVICE"; then
+                            log "Starting mining (no other workloads detected)"
+                            systemctl start "$MINING_SERVICE"
+                        fi
+                        ;;
+                    idle)
+                        apply_idle_profile
+                        # Don't auto-start mining, stay idle
+                        log "System idle, GPUs in adaptive mode"
+                        ;;
+                esac
+            }
+
+            # State tracking
+            CURRENT_WORKLOAD="idle"
+            CHECK_INTERVAL=10  # Check every 10 seconds
+
+            log "Starting GPU workload monitor (check interval: ''${CHECK_INTERVAL}s)"
+
+            while true; do
+                new_workload=$(get_workload_type)
+
+                if [ "$new_workload" != "$CURRENT_WORKLOAD" ]; then
+                    log "Workload changed: $CURRENT_WORKLOAD -> $new_workload"
+                    CURRENT_WORKLOAD="$new_workload"
+                    apply_profile "$new_workload"
+                fi
+
+                sleep "$CHECK_INTERVAL"
+            done
+          ''}/bin/gpu-workload-monitor";
+          Restart = "on-failure";
+          RestartSec = "10s";
+          # Allow access to nvidia-smi and systemd
+          AmbientCapabilities = ["CAP_NET_ADMIN"];
+        };
+      };
+
+      # ============================================================================
+      # GAMEMODE INTEGRATION
+      # ============================================================================
+      # GameMode provides automatic detection when games start/stop
+      # and runs our custom scripts to switch GPU profiles
+
+      # ============================================================================
+      # GPU PROFILE COMMANDS
+      # ============================================================================
+      # Convenient aliases for manual profile switching
+      # NOTE: gpu-profile command merged with VR packages above to avoid duplicate assignment
     })
   ];
 }

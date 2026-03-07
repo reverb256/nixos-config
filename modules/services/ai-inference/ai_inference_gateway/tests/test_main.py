@@ -16,7 +16,7 @@ class TestCreateApp:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         app = create_app(config)
@@ -28,7 +28,7 @@ class TestCreateApp:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         app = create_app(config)
@@ -46,7 +46,7 @@ class TestCreateApp:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         app = create_app(config)
@@ -63,7 +63,7 @@ class TestCreateApp:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         app = create_app(config)
@@ -76,7 +76,7 @@ class TestCreateApp:
             mock_response.json.return_value = {
                 "data": [
                     {"id": "model-1", "object": "model"},
-                    {"id": "model-2", "object": "model"}
+                    {"id": "model-2", "object": "model"},
                 ]
             }
 
@@ -100,7 +100,7 @@ class TestMiddlewarePipeline:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
         config.middleware.observability.enabled = True
         config.middleware.security.enabled = True
@@ -118,7 +118,7 @@ class TestMiddlewarePipeline:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
         config.middleware.observability.enabled = False
         config.middleware.security.enabled = False
@@ -137,7 +137,7 @@ class TestChatCompletionsEndpoint:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         app = create_app(config)
@@ -150,18 +150,17 @@ class TestChatCompletionsEndpoint:
             mock_response.json.return_value = {
                 "id": "test-1",
                 "object": "chat.completion",
-                "choices": [{
-                    "message": {
-                        "role": "assistant",
-                        "content": "Hello!"
-                    },
-                    "finish_reason": "stop"
-                }],
+                "choices": [
+                    {
+                        "message": {"role": "assistant", "content": "Hello!"},
+                        "finish_reason": "stop",
+                    }
+                ],
                 "usage": {
                     "prompt_tokens": 10,
                     "completion_tokens": 5,
-                    "total_tokens": 15
-                }
+                    "total_tokens": 15,
+                },
             }
 
             mock_http_client = AsyncMock()
@@ -172,8 +171,8 @@ class TestChatCompletionsEndpoint:
                 "/v1/chat/completions",
                 json={
                     "model": "test-model",
-                    "messages": [{"role": "user", "content": "Hello"}]
-                }
+                    "messages": [{"role": "user", "content": "Hello"}],
+                },
             )
 
             assert response.status_code == 200
@@ -186,7 +185,7 @@ class TestChatCompletionsEndpoint:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
         config.middleware.security.enabled = True
         config.middleware.observability.enabled = True
@@ -201,18 +200,17 @@ class TestChatCompletionsEndpoint:
             mock_response.json.return_value = {
                 "id": "test-1",
                 "object": "chat.completion",
-                "choices": [{
-                    "message": {
-                        "role": "assistant",
-                        "content": "Hello!"
-                    },
-                    "finish_reason": "stop"
-                }],
+                "choices": [
+                    {
+                        "message": {"role": "assistant", "content": "Hello!"},
+                        "finish_reason": "stop",
+                    }
+                ],
                 "usage": {
                     "prompt_tokens": 10,
                     "completion_tokens": 5,
-                    "total_tokens": 15
-                }
+                    "total_tokens": 15,
+                },
             }
 
             mock_http_client = AsyncMock()
@@ -223,8 +221,8 @@ class TestChatCompletionsEndpoint:
                 "/v1/chat/completions",
                 json={
                     "model": "test-model",
-                    "messages": [{"role": "user", "content": "Hello"}]
-                }
+                    "messages": [{"role": "user", "content": "Hello"}],
+                },
             )
 
             # If middleware pipeline is working, request should still succeed
@@ -241,7 +239,7 @@ class TestLifespanManagement:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         app = create_app(config)
@@ -257,7 +255,7 @@ class TestLifespanManagement:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         app = create_app(config)
@@ -274,7 +272,7 @@ class TestGatewayState:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         state = GatewayState(config=config)
@@ -286,7 +284,7 @@ class TestGatewayState:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         redis_client = Mock()
@@ -300,7 +298,7 @@ class TestGatewayState:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         pipeline = Mock()
@@ -313,13 +311,16 @@ class TestGatewayState:
 class TestEnvironmentConfig:
     """Test configuration loading from environment."""
 
-    @patch.dict("os.environ", {
-        "GATEWAY_HOST": "0.0.0.0",
-        "GATEWAY_PORT": "9000",
-        "BACKEND_URL": "http://backend:9999",
-        "SECURITY_ENABLED": "false",
-        "OBSERVABILITY_ENABLED": "true"
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "GATEWAY_HOST": "0.0.0.0",
+            "GATEWAY_PORT": "9000",
+            "BACKEND_URL": "http://backend:9999",
+            "SECURITY_ENABLED": "false",
+            "OBSERVABILITY_ENABLED": "true",
+        },
+    )
     def test_loads_config_from_environment(self):
         """App loads configuration from environment variables."""
         config = GatewayConfig.load_from_env()
@@ -349,7 +350,7 @@ class TestErrorHandling:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
 
         app = create_app(config)
@@ -360,9 +361,7 @@ class TestErrorHandling:
             mock_response = Mock()
             mock_response.status_code = 500
             mock_response.json.return_value = {
-                "error": {
-                    "message": "Internal server error"
-                }
+                "error": {"message": "Internal server error"}
             }
 
             mock_http_client = AsyncMock()
@@ -373,8 +372,8 @@ class TestErrorHandling:
                 "/v1/chat/completions",
                 json={
                     "model": "test-model",
-                    "messages": [{"role": "user", "content": "Hello"}]
-                }
+                    "messages": [{"role": "user", "content": "Hello"}],
+                },
             )
 
             # Should propagate the error
@@ -386,7 +385,7 @@ class TestErrorHandling:
         config = GatewayConfig(
             gateway_host="127.0.0.1",
             gateway_port=8080,
-            backend_url="http://test-backend:1234"
+            backend_url="http://test-backend:1234",
         )
         config.middleware.security.enabled = True
         config.middleware.security.max_request_size = 1  # Very small limit
@@ -401,8 +400,8 @@ class TestErrorHandling:
             "/v1/chat/completions",
             json={
                 "model": "test-model",
-                "messages": [{"role": "user", "content": large_content}]
-            }
+                "messages": [{"role": "user", "content": large_content}],
+            },
         )
 
         # Should be blocked by security middleware

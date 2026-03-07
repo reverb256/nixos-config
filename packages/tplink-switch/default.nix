@@ -1,10 +1,8 @@
-{
-  lib,
-  python3,
-  fetchFromGitHub,
-  buildPythonPackage,
+{ lib
+, python3
+, buildPythonPackage
+,
 }:
-
 buildPythonPackage rec {
   pname = "tplink-switch";
   version = "0.1.0";

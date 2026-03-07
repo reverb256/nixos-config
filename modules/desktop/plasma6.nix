@@ -1,7 +1,5 @@
 # KDE Plasma 6 Desktop Environment
-{
-  config, lib, pkgs, ...
-}:
+{ pkgs, ... }:
 let
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";
@@ -82,6 +80,7 @@ let
       log "=== Completed ==="
     '';
   };
+
   bootMonitorScript = pkgs.writeShellScript "boot-monitor-setup" ''
     sleep 2
     ${monitorSetupScript}/bin/plasma-monitor-setup
@@ -220,8 +219,15 @@ in
   services.xserver.enable = true;
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
-  services.displayManager.autoLogin = { enable = true; user = "j_kro"; };
-  services.xserver.xkb = { layout = "us"; variant = ""; };
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "j_kro";
+  };
+  services.xserver.xkb = {
+    layout = "us";
+    variant = "";
+  };
+
   environment.sessionVariables = {
     QT_QPA_PLATFORM = "wayland;xcb";
     QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
@@ -292,7 +298,9 @@ in
     [Module-kscreen]
     Enabled=false
   '';
+
   services.displayManager.sddm.settings.General.DisplayServer = "wayland";
+
   environment.etc."xdg/autostart/plasma-monitor-setup.desktop".text = ''
     [Desktop Entry]
     Type=Application

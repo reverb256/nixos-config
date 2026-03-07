@@ -1,11 +1,12 @@
 # Spotify Theming via Spicetify
 # Applies custom themes and extensions to Spotify Flatpak
 # Refactored to use spotify-common library
-{ config, lib, pkgs, ... }:
-
-with lib;
-
-let
+{ config
+, lib
+, pkgs
+, ...
+}:
+with lib; let
   cfg = config.services.spotify-spicetify;
 
   # Import common Spotify utilities
@@ -144,8 +145,8 @@ let
       *) echo "Usage: $0 {apply|status|disable|enable}"; exit 1 ;;
     esac
   '';
-
-in {
+in
+{
   options.services.spotify-spicetify = {
     enable = mkEnableOption "Spotify theming and extensions via Spicetify";
 

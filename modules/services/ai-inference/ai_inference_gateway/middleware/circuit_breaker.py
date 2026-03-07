@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 class CircuitBreakerState(Enum):
     """Circuit breaker states."""
+
     CLOSED = "CLOSED"
     OPEN = "OPEN"
     HALF_OPEN = "HALF_OPEN"
@@ -26,8 +27,7 @@ class CircuitBreakerOpenError(HTTPException):
 
     def __init__(self, service_id: str, retry_after: Optional[int] = None):
         super().__init__(
-            status_code=503,
-            detail=f"Circuit breaker is open for service: {service_id}"
+            status_code=503, detail=f"Circuit breaker is open for service: {service_id}"
         )
         self.service_id = service_id
         self.retry_after = retry_after
@@ -53,7 +53,7 @@ class CircuitBreaker(Middleware):
         self,
         service_id: str,
         config: CircuitBreakerConfig,
-        redis_client: Optional[object] = None
+        redis_client: Optional[object] = None,
     ):
         """
         Initialize circuit breaker.
@@ -103,7 +103,7 @@ class CircuitBreaker(Middleware):
             if state_data:
                 parts = state_data.split(":")
                 if len(parts) >= 2:
-                    state_str, timestamp = parts[0], parts[1]
+                    state_str, _timestamp = parts[0], parts[1]
                     self._state = CircuitBreakerState(state_str)
 
                     # Load counts
@@ -134,12 +134,20 @@ class CircuitBreaker(Middleware):
         try:
             # Save state with timestamp
             state_data = f"{self._state.value}:{time.time()}"
-            await self._redis.set(self._state_key, state_data, ex=self.config.timeout_seconds)
+            await self._redis.set(
+                self._state_key, state_data, ex=self.config.timeout_seconds
+            )
 
             # Save counts
-            await self._redis.set(self._failure_count_key, str(self._failure_count), ex=3600)
-            await self._redis.set(self._success_count_key, str(self._success_count), ex=3600)
-            await self._redis.set(self._last_failure_time_key, str(self._last_failure_time), ex=3600)
+            await self._redis.set(
+                self._failure_count_key, str(self._failure_count), ex=3600
+            )
+            await self._redis.set(
+                self._success_count_key, str(self._success_count), ex=3600
+            )
+            await self._redis.set(
+                self._last_failure_time_key, str(self._last_failure_time), ex=3600
+            )
         except Exception as e:
             logger.warning(f"Failed to save circuit breaker state: {e}")
 
@@ -157,7 +165,9 @@ class CircuitBreaker(Middleware):
         if self._state == CircuitBreakerState.OPEN:
             time_since_failure = time.time() - self._last_failure_time
             if time_since_failure >= self.config.timeout_seconds:
-                logger.info(f"Circuit breaker transitioning to HALF_OPEN for {self.service_id}")
+                logger.info(
+                    f"Circuit breaker transitioning to HALF_OPEN for {self.service_id}"
+                )
                 self._state = CircuitBreakerState.HALF_OPEN
                 self._success_count = 0
                 await self._save_state()
@@ -229,9 +239,7 @@ class CircuitBreaker(Middleware):
                 await self._save_state()
 
     async def process_request(
-        self,
-        request: Request,
-        context: dict
+        self, request: Request, context: dict
     ) -> Tuple[bool, Optional[HTTPException]]:
         """
         Process incoming request.
@@ -249,7 +257,7 @@ class CircuitBreaker(Middleware):
         # Add circuit breaker info to context
         context["circuit_breaker"] = {
             "service_id": self.service_id,
-            "state": self._state.value
+            "state": self._state.value,
         }
 
         # Check if request should be allowed
@@ -257,7 +265,8 @@ class CircuitBreaker(Middleware):
         if not allowed:
             retry_after = max(
                 0,
-                self.config.timeout_seconds - int(time.time() - self._last_failure_time)
+                self.config.timeout_seconds
+                - int(time.time() - self._last_failure_time),
             )
             error = CircuitBreakerOpenError(self.service_id, retry_after)
             return False, error
