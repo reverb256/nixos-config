@@ -32,6 +32,25 @@
   networking.hostName = "sentry";
 
   # ============================================================================
+  # HARDWARE PROFILES
+  # ============================================================================
+  hardware.profiles = {
+    amd.zen = true;  # Zen CPU optimizations
+    amdgpu.enable = true;  # AMD GPU support
+    amdgpu.wayland = true;  # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
+    monitoring.enable = true;  # Hardware monitoring
+  };
+
+  # Hardware monitoring extras (not covered by profile)
+  hardware.monitoring.autoDetect = true; # Auto-detect sensor chips
+  hardware.monitoring.fanControl = false; # BIOS fan control for now
+
+  # ============================================================================
+  # ROLE PROFILES
+  # ============================================================================
+  profiles.role.mining = true;  # CPU mining only
+
+  # ============================================================================
   # BOOTLOADER
   # ============================================================================
   boot.loader.systemd-boot.enable = true;
@@ -42,24 +61,15 @@
   # ============================================================================
   boot.kernelPackages = pkgs.linuxPackages_zen;
 
-  # ============================================================================
-  # GPU CONFIGURATION (AMD RX 5600 XT)
-  # ============================================================================
-  # Enable AMDGPU Wayland optimizations (includes nvtopPackages.full)
-  hardware.amdgpu.wayland.enable = true;
+  # Note: hardware.profiles.amdgpu.enable handles AMDGPU automatically
 
   services.xserver.videoDrivers = ["amdgpu"];
-
-  # Hardware monitoring (lm-sensors for CPU/motherboard temps)
-  hardware.monitoring.enable = true;
-  hardware.monitoring.autoDetect = true; # Auto-detect sensor chips
-  hardware.monitoring.fanControl = false; # BIOS fan control for now
 
   # ============================================================================
   # ROCm SETUP (for AMD GPU monitoring)
   # ============================================================================
+  # Note: hardware.profiles.amdgpu.wayland sets ROC_ENABLE_PRE_VEGA=1 automatically
   environment.variables = {
-    ROC_ENABLE_PRE_VEGA = "1";
     LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
     OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
   };
@@ -119,8 +129,8 @@
   # MINING (CPU only - 8 threads = 50% of 16 cores)
   # Uses defaults from mining.nix for pool URLs and wallet format
   # ============================================================================
+  # Note: profiles.role.mining enables services.mining automatically
   services.mining = {
-    enable = true;
     xmrig = {
       enable = true;
       autostart = true;
