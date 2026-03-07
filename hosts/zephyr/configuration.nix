@@ -219,6 +219,14 @@
     group = "root";
   };
 
+  # XMRig HTTP API token - For pause/resume via API during builds
+  age.secrets.xmrig-api-token = {
+    file = "${inputs.self}/secrets/xmrig-api-token.age";
+    mode = "440";
+    owner = "mining";
+    group = "mining";
+  };
+
   # Spacebot Discord bot token
   # TEMPORARILY DISABLED: Secret file not yet created
   # age.secrets.spacebot-discord-token = {
