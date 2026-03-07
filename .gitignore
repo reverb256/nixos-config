@@ -15,3 +15,4 @@ secrets/*.plaintext
 # Never ignore encrypted secrets - they should be tracked
 # secrets/*.age
 # secrets/secrets.nix
+.serena/
