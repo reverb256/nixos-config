@@ -265,7 +265,6 @@ in {
           wantedBy = mkIf cfg.lolminer.amd.autostart ["multi-user.target"];
           after = [
             "network.target"
-            "amd-gpu-power-mgmt.service"
           ];
           serviceConfig =
             {
