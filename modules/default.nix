@@ -49,7 +49,7 @@
     # ./services/podman.nix  # Temporarily disabled - has pre-existing issues
     ./services/spacebot.nix
     ./services/glitchtip-selfhosted.nix
-    # ./services/nextcloud.nix  # TODO: Fix module structure - config settings need proper wrapping
+    ./services/nextcloud.nix
     ./services/service-gateway.nix
     ./services/bolt-diy.nix
 

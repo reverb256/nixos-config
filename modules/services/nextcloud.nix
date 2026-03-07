@@ -14,6 +14,7 @@
     types
     mkIf
     mkMerge
+    mkDefault
     literalExpression
     ;
 in {
@@ -225,7 +226,6 @@ in {
       inherit (cfg) hostName https;
 
       # Use the local PostgreSQL database
-      database.create = cfg.database.create;
       config = {
         dbtype = "pgsql";
         dbuser = cfg.database.user;
@@ -234,10 +234,6 @@ in {
 
         adminuser = cfg.admin.user;
         adminpassFile = cfg.admin.passwordFile;
-
-        # Extra configuration
-        overwrite.cli.url = mkIf cfg.https "https://${cfg.hostName}";
-        default_phone_region = "US";
       };
 
       # PHP settings for large file uploads
@@ -249,40 +245,8 @@ in {
         "max_input_time" = toString cfg.php.maxExecutionTime;
       };
 
-      # Configure apps
-      apps = {
-        enable = cfg.apps.enable;
-
-        # Enable core apps based on configuration
-        inherit
-          (cfg.apps)
-          files
-          text
-          deck
-          calendar
-          contacts
-          tasks
-          notes
-          talk
-          ;
-
-        # OnlyOffice and Collabora require additional services
-        onlyoffice = mkIf cfg.apps.onlyoffice {
-          enable = true;
-          hostname = "${cfg.hostName}";
-        };
-
-        collabora = mkIf cfg.apps.collabora {
-          enable = true;
-          hostname = "${cfg.hostName}";
-        };
-      };
-
       # Auto-configure recommended settings
-      autoUpdateApps = {
-        enable = true;
-        at = "05:00:00";
-      };
+      autoUpdateApps.enable = true;
 
       caching = {
         redis = true;
