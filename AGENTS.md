@@ -1,8 +1,7 @@
 # NixOS Configuration - Agent Guidelines
 
 ## Project Overview
-This is a NixOS flake-based system configuration for host "zephyr" running Plasma 6 desktop.
-All system configurations are declarative and managed through Nix modules.
+This is a NixOS flake-based system configuration managing a 4-host Linux cluster. All system configurations are declarative and managed through Nix modules with a profile-based architecture for composable, reusable configurations.
 
 ---
 
@@ -10,10 +9,13 @@ All system configurations are declarative and managed through Nix modules.
 
 ### Essential Commands
 ```bash
-# Build configuration (dry-run, no system modification)
+# Fast syntax check (5 seconds) - ALWAYS RUN FIRST
+nix flake check
+
+# Build without applying (1-2 minutes)
 sudo nixos-rebuild build --flake .#zephyr
 
-# Test configuration (applies changes, rollback on next boot)
+# Test configuration (applies changes, rollback on reboot)
 sudo nixos-rebuild test --flake .#zephyr
 
 # Switch to new configuration (persist across reboots)
@@ -21,9 +23,32 @@ sudo nixos-rebuild switch --flake .#zephyr
 
 # Update all flake inputs
 nix flake update
+```
 
-# Check configuration syntax (no build)
-nix flake check
+### Fish Aliases (auto-pause mining)
+```bash
+nswitch      # nixos-rebuild switch
+nswitchu     # switch with --upgrade
+ntest        # nixos-rebuild test
+nbuild       # nixos-rebuild build
+ndry         # nixos-rebuild dry-activate
+```
+
+### Justfile Recipes
+```bash
+just switch          # Local switch (auto-pauses mining)
+just test            # Test configuration (flake check + colmena build)
+just deploy          # Deploy to all hosts
+just zephyr          # Deploy to zephyr only
+just nexus           # Deploy to nexus only
+just forge           # Deploy to forge only
+just sentry          # Deploy to sentry only
+```
+
+### Safe Rebuild Script
+```bash
+# Auto-pauses mining, runs rebuild, restarts mining
+sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake .#zephyr
 ```
 
 ### Testing Strategy
@@ -40,6 +65,7 @@ nix flake check
 - **2 spaces** for indentation (no tabs)
 - Blank lines between major sections
 - Comments use `#` prefix, place above setting not inline
+- Use trailing commas for multi-line attribute sets
 
 ### Attribute Sets & Lists
 ```nix
@@ -64,16 +90,134 @@ environment.systemPackages = with pkgs; [
 
 ## Project Structure
 
+### Flake Outputs
+```
+outputs:
+├── nixosConfigurations  # For local nixos-rebuild
+├── colmena              # Raw hive configuration
+├── colmenaHive          # Wrapped hive for multi-host deployment
+├── packages             # Custom packages (claude)
+├── overlays             # Package overlays
+└── apps                 # Colmena app
+```
+
+### Directory Structure
+```
+/etc/nixos/
+├── flake.nix                    # Main flake definition
+├── flake.lock                   # Auto-generated, DO NOT EDIT
+├── justfile                     # Just commands
+├── hosts/
+│   ├── zephyr/
+│   │   ├── configuration.nix    # Host-specific config (profiles)
+│   │   └── hardware-configuration.nix
+│   ├── nexus/
+│   ├── forge/
+│   └── sentry/
+├── lib/
+│   ├── attrs.nix                # Attribute utilities
+│   └── modules.nix              # Module discovery helpers
+├── modules/
+│   ├── default.nix              # Module aggregator
+│   ├── profiles/                # Profile system
+│   │   ├── hardware/            # Hardware profiles (CPU/GPU)
+│   │   ├── role/                # Role profiles (gaming, mining, AI)
+│   │   └── network/             # Network profiles (tailscale)
+│   ├── common-host.nix          # Shared host imports
+│   ├── desktop/                 # Desktop modules
+│   ├── gaming/                  # Gaming modules
+│   ├── hardware/                # Hardware-specific configs
+│   ├── mining/                  # Mining modules
+│   ├── services/                # Service modules
+│   └── shell/                   # Shell configuration
+├── scripts/
+│   └── nixos-rebuild-safe.sh    # Rebuild with mining pause
+└── secrets/
+    └── *.age                    # Agenix encrypted secrets
+```
+
 ### Files
 - **flake.nix**: Inputs and outputs (EDIT THIS)
-- **configuration.nix**: Main system config (EDIT THIS)
-- **hardware-configuration.nix**: Auto-generated (DO NOT EDIT)
+- **configuration.nix**: Legacy main config (use host-specific configs)
+- **hardware-configuration.nix**: Auto-generated per host (DO NOT EDIT)
 - **flake.lock**: Reproducibility lockfile (AUTO-GENERATED, DO NOT EDIT)
 
-### Adding Configurations
-- System settings → `configuration.nix`
-- User settings → `home-manager.users.j_kro` block
-- New flake inputs → `inputs` in flake.nix, pass via `specialArgs`
+---
+
+## Profile System
+
+Hosts use a declarative profile system for composable configuration:
+
+### Hardware Profiles
+| Profile | Description |
+|---------|-------------|
+| `amd.enable` | AMD CPU IOMMU |
+| `amd.zen` | Zen CPU optimizations |
+| `intel.enable` | Intel CPU optimizations |
+| `nvidia.enable` | NVIDIA GPU support |
+| `nvidia.multiGpu` | Multi-GPU CUDA settings |
+| `amdgpu.enable` | AMD GPU support |
+| `amdgpu.wayland` | ROC_ENABLE_PRE_VEGA |
+| `monitoring.enable` | lm-sensors |
+
+### Role Profiles
+| Profile | Description |
+|---------|-------------|
+| `workstation` | Desktop + development |
+| `gaming` | Steam, Lutris |
+| `vr` | WiVRn, SteamVR |
+| `mining` | GPU/CPU mining |
+| `aiInference` | AI gateway + MCP |
+| `desktop` | Plasma, Wayland |
+
+### Network Profiles
+| Profile | Description |
+|---------|-------------|
+| `tailscale.enable` | Enable Tailscale VPN |
+| `tailscale.advertiseRoutes` | Routes to advertise |
+
+### Host Definitions
+```nix
+# Example: hosts/zephyr/configuration.nix
+{ lib, pkgs, ... }: {
+  imports = [
+    ../../modules/default.nix
+    ../../modules/common-host.nix
+  ];
+
+  # Hardware profiles
+  hardware.profiles = {
+    amd.zen = true;
+    nvidia.enable = true;
+    nvidia.multiGpu = true;
+    corsair.enable = true;
+    monitoring.enable = true;
+  };
+
+  # Role profiles
+  profiles.role = {
+    workstation = true;
+    gaming = true;
+    vr = true;
+    mining = true;
+    aiInference = true;
+  };
+
+  # Network profiles
+  profiles.network.tailscale.enable = true;
+};
+```
+
+---
+
+## Hosts
+
+| Host | Hardware | Roles |
+|------|----------|-------|
+| **zephyr** | AMD Zen, NVIDIA multi-GPU (RTX 3090 + 3060 Ti), Corsair AIO+RGB | workstation, gaming, VR, mining, AI |
+| **nexus** | AMD Zen, NVIDIA multi-GPU (2x RTX 3060 Ti) | gaming, VR, mining, AI |
+| **forge** | Intel Skylake, NVIDIA multi-GPU (2x RTX 4060), AMD GPU | mining, AI |
+| **sentry** | AMD Zen, AMD GPU (Wayland) | mining, AI |
 
 ---
 
@@ -82,6 +226,7 @@ environment.systemPackages = with pkgs; [
 - Usernames: underscores for spaces (e.g., `j_kro`)
 - Flake inputs: lowercase with hyphens (e.g., `zen-browser`)
 - Service names: match systemd services (e.g., `tailscale`, `networkmanager`)
+- Profiles: camelCase for nested (e.g., `amd.zen`, `profiles.role`)
 
 ---
 
@@ -127,6 +272,31 @@ home-manager.users.j_kro = { pkgs, lib, ... }: {
 - Run `nix flake update` before making changes
 - Check `nix flake show` for available configurations
 - Build/test/switch require root/sudo
+- All new Python files MUST be added to git before rebuilding (Nix only packages git-tracked files)
+
+---
+
+## Multi-Host Deployment (Colmena)
+
+### Colmena Commands
+```bash
+# Build all hosts (dry run)
+nix run .#apps.x86_64-linux.colmena -- build
+
+# Apply to specific host
+nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
+
+# Apply to remote hosts (use 'boot' goal to avoid inhibitors)
+nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry boot
+
+# Deploy to all hosts
+just deploy
+```
+
+### Remote Deployment Notes
+- Remote hosts use `boot` goal to avoid switch inhibitors (e.g., dbus changes)
+- Local host (zephyr) uses `switch` goal
+- Mining auto-pauses on all hosts during deployment
 
 ---
 
@@ -136,21 +306,19 @@ home-manager.users.j_kro = { pkgs, lib, ... }: {
 The AI inference gateway includes an MCP broker that aggregates tools from multiple MCP servers, enabling AI agents to call external tools through the gateway.
 
 ### MCP Server Configuration
-MCP servers are configured in `configuration.nix` under `services.ai-inference.mcp`:
+MCP servers are configured in `.mcp.json`:
 
-```nix
-services.ai-inference.mcp = {
-  enable = true;
-  servers = {
-    web-search-prime = {
-      url = "https://api.z.ai/api/mcp/web_search_prime/mcp";
-      headers = {
-        Authorization = "Bearer /run/agenix/zai-api-key";
-      };
-    };
-    # Add more servers...
-  };
-};
+```json
+{
+  "mcpServers": {
+    "web-search-prime": {
+      "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+      "headers": {
+        "Authorization": "Bearer /run/agenix/zai-api-key"
+      }
+    }
+  }
+}
 ```
 
 ### Key Implementation Insights
@@ -276,8 +444,8 @@ if "/run/" in header_value:
 | Server | URL | Tool Names | Purpose |
 |--------|-----|------------|---------|
 | web-search-prime | `/api/mcp/web_search_prime/mcp` | `webSearchPrime` | Web search |
-| web-reader | `/api/mcp/web_reader/mcp` | `fetch_url` | URL content fetching |
-| zread | `/api/mcp/zread/mcp` | `github_repo`, `github_file` | GitHub analysis |
+| web-reader | `/api/mcp/web_reader/mcp` | `webReader` | URL content fetching |
+| zread | `/api/mcp/zread/mcp` | `get_repo_structure`, `read_file` | GitHub analysis |
 | 4-5v-mcp-server | `/api/mcp/4_5v/mcp` | `analyze_image` | Image analysis |
 
 ### Debugging Tips
@@ -287,3 +455,41 @@ if "/run/" in header_value:
 3. **Enable Debug Logging**: Set `LOG_LEVEL=DEBUG` in environment for verbose logs
 4. **Verify File Permissions**: Ensure service user can read agenix secret files
 5. **Test JSON-RPC Methods**: Try `initialize` → `tools/list` → `tools/call` in order
+
+---
+
+## Service Management
+
+```bash
+# Check service status
+systemctl status ai-inference-gateway
+
+# View service logs
+journalctl -u ai-inference-gateway -f
+
+# Restart service
+systemctl restart ai-inference-gateway
+
+# Check if service is running
+systemctl is-active ai-inference-gateway
+```
+
+---
+
+## Gateway Testing
+
+```bash
+# Health check
+curl http://127.0.0.1:8080/health | jq .
+
+# List models
+curl http://127.0.0.1:8080/v1/models | jq .
+
+# Simple completion test
+curl -X POST http://127.0.0.1:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"qwen/qwen3.5-9b","messages":[{"role":"user","content":"Hi"}],"max_tokens":10}' | jq .
+
+# MCP tools list
+curl http://127.0.0.1:8080/mcp/tools | jq .
+```
