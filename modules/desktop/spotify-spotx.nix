@@ -1,6 +1,7 @@
 # Spotify with SpotX Patch - Nixpkgs version
 # Removes ads, enables DRM bypass, and unlocks premium features
 # Uses pkgs.spotify (native) instead of Flatpak for better WM integration
+# Version: 2.0 - Fixed Nix string escaping
 { config
 , lib
 , pkgs
