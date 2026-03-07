@@ -1279,30 +1279,9 @@
 
   # ============================================================================
   # SYSTEM STATE
+  # Enable LobeHub AI workspace
+  desktop.lobehub.enable = true;
+
   # ============================================================================
   system.stateVersion = "26.05";
 }
-
-  # ============================================================================
-  # BOLT.DIY - AI-powered full-stack web development IDE
-  # Open source Bolt.new with local AI Gateway integration
-  # ============================================================================
-#  services.bolt-diy = {
-#    enable = true;
-#
-#    # Use AI Gateway (port 8080) for OpenAI-compatible API
-#    provider = {
-#      type = "openai-compatible";
-#      openaiCompatible = {
-#        baseUrl = "http://127.0.0.1:8080/v1";
-#        apiKey = "bolt-diy-local";
-#        modelName = "qwen3.5-35b-a3b";
-#      };
-#    };
-#
-#    # Container resources
-#    container = {
-#      memory = "4G";
-#      cpu = "2";
-#    };
-#  };
