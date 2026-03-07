@@ -1224,6 +1224,12 @@
   };
 
   # ============================================================================
+  # DESKTOP APPLICATIONS
+  # ============================================================================
+  # Enable LobeHub AI workspace desktop application
+  desktop.lobehub.enable = true;
+
+  # ============================================================================
   # FIREWALL
   # ============================================================================
   # Note: Many ports are declared here for clarity. Some modules also declare
