@@ -2,9 +2,66 @@
 
 This document contains insights and patterns for Claude Code agents working on this NixOS configuration, focusing on workflows, testing strategies, and common pitfalls.
 
+## Claude Code-Specific Features
+
+### Serena Semantic Coding Tools
+
+Claude Code has access to Serena, which provides semantic code understanding:
+
+- **find_symbol**: Find functions, classes, modules by name path
+- **find_referencing_symbols**: Find all references to a symbol
+- **get_symbols_overview**: Get file structure overview
+- **replace_symbol_body**: Replace entire function/class bodies
+- **replace_content**: Regex-based file editing
+- **search_for_pattern**: Fast pattern-based search
+
+### Onboarding System
+
+The project has Serena onboarding configured. Memory files provide:
+- `suggested_commands.md`: Development commands
+- `style_and_conventions.md`: Code style patterns
+- `task_completion.md`: Pre-completion checklist
+- `project_overview.md`: Architecture and structure
+
+### Multi-Server MCP Integration
+
+Claude Code can access MCP servers directly:
+- **Project MCPs** (.mcp.json): chrome-devtools, context7, fetch, filesystem, git, nixos, playwright
+- **User MCPs**: web-reader, web-search-prime, zai-mcp-server, zread
+- **Plugin MCPs**: pinecone, serena, sonatype-guide, etc.
+
 ---
 
-## Quick Start Commands
+---
+
+## Claude Code Workflow
+
+### Starting a Session
+
+1. **Activate the nixos project** in Serena
+2. **Check onboarding status** - memories are available for project context
+3. **Use semantic tools** for code navigation (find_symbol, search_for_pattern)
+4. **Read memories** before making major changes
+
+### Recommended Tool Usage
+
+| Task | Tool | Why |
+|------|------|-----|
+| Find a function | `find_symbol` | Fast, semantic search |
+| Find all references | `find_referencing_symbols` | Accurate cross-references |
+| Understand file structure | `get_symbols_overview` | Quick overview |
+| Edit specific function | `replace_symbol_body` | Precise, reliable |
+| Edit small section | `replace_content` | Regex-based, flexible |
+| Search for pattern | `search_for_pattern` | Fast code search |
+
+### Reading Strategy
+
+1. **Always check memories first** - `read_memory` for relevant topic
+2. **Use get_symbols_overview** before reading full files
+3. **Use find_symbol with include_body** for specific functions
+4. **Avoid reading entire files** unless absolutely necessary
+
+---
 
 ### Building & Testing
 ```bash
@@ -383,7 +440,41 @@ async def endpoint(request: Request):
 
 ---
 
-## Code Style Conventions
+## Claude Code MCP Integration
+
+### Available MCP Tools
+
+Claude Code can directly call MCP tools without going through the gateway:
+
+```bash
+# List all available MCP tools
+/mcp
+
+# NixOS MCP (mcp__nixos__nix)
+- Search packages, options, programs
+- Query flake inputs
+- Get package version history
+
+# Serena MCP (semantic coding)
+- find_symbol, find_referencing_symbols
+- replace_symbol_body, replace_content
+- search_for_pattern, get_symbols_overview
+```
+
+### Using MCP in Context
+
+```python
+# When you need to look up NixOS options
+mcp__nixos__nix(action="search", type="options", query="networking")
+
+# When you need to understand code structure
+get_symbols_overview(relative_path="modules/services/ai-inference/gateway.nix")
+
+# When you need to find references
+find_referencing_symbols(name_path="GatewayConfig", relative_path="modules/services/ai-inference/gateway.nix")
+```
+
+---
 
 ### Python
 - Use `logger.debug()` for debug info, not `logger.info("[DEBUG]")`

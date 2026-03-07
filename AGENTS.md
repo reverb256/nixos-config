@@ -1,5 +1,13 @@
 # NixOS Configuration - Agent Guidelines
 
+## Purpose
+
+This document provides guidelines for AI agents (OpenCode, Cursor, Copilot, etc.) working on this NixOS configuration. It focuses on workflows, testing strategies, and common patterns.
+
+**For Claude Code-specific patterns**, see `CLAUDE.md`.
+
+---
+
 ## Project Overview
 This is a NixOS flake-based system configuration managing a 4-host Linux cluster. All system configurations are declarative and managed through Nix modules with a profile-based architecture for composable, reusable configurations.
 
