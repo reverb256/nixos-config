@@ -45,7 +45,8 @@ in
         PATCHED="${patchedSpotifyDir}"
         STOCK="${spotifyShareDir}"
 
-        if [ -f "$PATCHED/spotify" ]; then
+        # Check if patch was applied (marker file exists)
+        if [ -f "$PATCHED/Apps/.spotx_patched" ]; then
           exec "$PATCHED/spotify" "$@"
         else
           exec "$STOCK/spotify" "$@"
@@ -74,8 +75,8 @@ in
 
       log "=== Spotify + SpotX Initial Setup (Nixpkgs) ==="
 
-      SOURCE_DIR="${spotifyShareDir}"
-      TARGET_DIR="${patchedSpotifyDir}"
+      SOURCE_DIR="''${spotifyShareDir}"
+      TARGET_DIR="''${patchedSpotifyDir}"
 
       # Check source Spotify exists
       if [ ! -d "$SOURCE_DIR" ]; then
@@ -119,9 +120,9 @@ in
       log() { echo -e "''${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]''${NC} $1"; }
       error() { echo -e "''${RED}[ERROR]''${NC} $1" >&2; }
 
-      SOURCE_DIR="${spotifyShareDir}"
-      TARGET_DIR="${patchedSpotifyDir}"
-      BACKUP_DIR="${spotifyStateDir}/backups"
+      SOURCE_DIR="''${spotifyShareDir}"
+      TARGET_DIR="''${patchedSpotifyDir}"
+      BACKUP_DIR="''${spotifyStateDir}/backups"
       PATCH_MARKER="''${TARGET_DIR}/Apps/.spotx_patched"
 
       apply_patch() {
