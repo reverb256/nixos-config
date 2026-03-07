@@ -1,7 +1,6 @@
 # Wayland Common Infrastructure
 # PipeWire, Bluetooth, and common Wayland desktop utilities
-{ config, lib, pkgs, ... }:
-{
+_: {
   # Enable sound with pipewire.
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;

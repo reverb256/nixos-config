@@ -25,10 +25,7 @@ class HybridSearchService:
     """
 
     def __init__(
-        self,
-        config: RAGConfig,
-        embedder: EmbeddingService,
-        qdrant: QdrantManager
+        self, config: RAGConfig, embedder: EmbeddingService, qdrant: QdrantManager
     ):
         """
         Initialize hybrid search service.
@@ -57,8 +54,7 @@ class HybridSearchService:
             # Load model in thread pool
             loop = asyncio.get_event_loop()
             self._reranker = await loop.run_in_executor(
-                None,
-                lambda: CrossEncoder(self.config.reranker.model)
+                None, lambda: CrossEncoder(self.config.reranker.model)
             )
 
             logger.info("Reranker loaded successfully")
@@ -73,7 +69,7 @@ class HybridSearchService:
         query: str,
         collection: str = "default",
         top_k: Optional[int] = None,
-        rerank: Optional[bool] = None
+        rerank: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Perform hybrid search.
@@ -93,8 +89,7 @@ class HybridSearchService:
         try:
             # Generate embeddings
             query_dense, query_sparse = await asyncio.gather(
-                self.embedder.embed_single(query),
-                self._get_sparse_embedding(query)
+                self.embedder.embed_single(query), self._get_sparse_embedding(query)
             )
 
             # Hybrid search
@@ -108,14 +103,12 @@ class HybridSearchService:
                     query_sparse=query_sparse,
                     limit=top_k,
                     dense_limit=recall_k,
-                    sparse_limit=recall_k
+                    sparse_limit=recall_k,
                 )
             else:
                 # Dense-only search
                 results = await self.qdrant.search_dense(
-                    collection_name=collection,
-                    query_vector=query_dense,
-                    limit=top_k
+                    collection_name=collection, query_vector=query_dense, limit=top_k
                 )
 
             # Rerank if enabled
@@ -129,13 +122,13 @@ class HybridSearchService:
                     {
                         "content": r.content,
                         "score": float(r.score),
-                        "metadata": r.metadata
+                        "metadata": r.metadata,
                     }
                     for r in results
                 ],
                 "total_results": len(results),
                 "collection": collection,
-                "reranked": rerank
+                "reranked": rerank,
             }
 
         except Exception as e:
@@ -145,7 +138,7 @@ class HybridSearchService:
                 "results": [],
                 "total_results": 0,
                 "collection": collection,
-                "error": str(e)
+                "error": str(e),
             }
 
     async def _get_sparse_embedding(self, text: str) -> Dict[int, float]:
@@ -166,9 +159,7 @@ class HybridSearchService:
             return {}
 
     async def _rerank_results(
-        self,
-        query: str,
-        results: List[SearchResult]
+        self, query: str, results: List[SearchResult]
     ) -> List[SearchResult]:
         """
         Rerank search results.
@@ -190,8 +181,7 @@ class HybridSearchService:
             # Run reranker in thread pool
             loop = asyncio.get_event_loop()
             scores = await loop.run_in_executor(
-                None,
-                lambda: self._reranker.predict(pairs)
+                None, lambda: self._reranker.predict(pairs)
             )
 
             # Update scores and sort
@@ -214,7 +204,7 @@ class HybridSearchService:
         collection: str,
         content: str,
         metadata: Dict[str, Any],
-        document_id: Optional[str] = None
+        document_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Ingest document into RAG system.
@@ -229,7 +219,7 @@ class HybridSearchService:
             Ingestion result
         """
         try:
-            from .chunker import DocumentChunker, create_document_chunker
+            from .chunker import create_document_chunker
             import uuid
 
             document_id = document_id or str(uuid.uuid4())
@@ -239,60 +229,53 @@ class HybridSearchService:
             chunks = chunker.chunk_text(content, metadata)
 
             if not chunks:
-                return {
-                    "success": False,
-                    "error": "No chunks generated"
-                }
+                return {"success": False, "error": "No chunks generated"}
 
             # Generate embeddings for all chunks
             texts = [chunk.content for chunk in chunks]
             dense_embeddings, sparse_embeddings = await asyncio.gather(
-                self.embedder.embed_dense(texts),
-                self.embedder.embed_sparse(texts)
+                self.embedder.embed_dense(texts), self.embedder.embed_sparse(texts)
             )
 
             # Prepare chunks for Qdrant
             qdrant_chunks = []
-            for chunk, dense_emb, sparse_emb in zip(chunks, dense_embeddings, sparse_embeddings):
-                qdrant_chunks.append({
-                    "chunk_id": chunk.chunk_id,
-                    "dense_embedding": dense_emb,
-                    "sparse_embedding": sparse_emb,
-                    "content": chunk.content,
-                    "document_id": document_id,
-                    "metadata": {
-                        **chunk.metadata,
-                        "chunk_index": chunk.chunk_index,
-                        "document_id": document_id
+            for chunk, dense_emb, sparse_emb in zip(
+                chunks, dense_embeddings, sparse_embeddings
+            ):
+                qdrant_chunks.append(
+                    {
+                        "chunk_id": chunk.chunk_id,
+                        "dense_embedding": dense_emb,
+                        "sparse_embedding": sparse_emb,
+                        "content": chunk.content,
+                        "document_id": document_id,
+                        "metadata": {
+                            **chunk.metadata,
+                            "chunk_index": chunk.chunk_index,
+                            "document_id": document_id,
+                        },
                     }
-                })
+                )
 
             # Ensure collection exists
             await self.qdrant.ensure_collection(
-                collection,
-                self.config.embedding.dimensions
+                collection, self.config.embedding.dimensions
             )
 
             # Ingest into Qdrant
-            points_inserted = await self.qdrant.ingest_chunks(
-                collection,
-                qdrant_chunks
-            )
+            points_inserted = await self.qdrant.ingest_chunks(collection, qdrant_chunks)
 
             return {
                 "success": True,
                 "document_id": document_id,
                 "chunks_created": len(chunks),
                 "points_inserted": points_inserted,
-                "collection": collection
+                "collection": collection,
             }
 
         except Exception as e:
             logger.error(f"Document ingestion failed: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
 
     async def get_collections(self) -> List[Dict[str, Any]]:
         """
@@ -317,9 +300,7 @@ class HybridSearchService:
             return []
 
     async def delete_document(
-        self,
-        collection: str,
-        document_id: str
+        self, collection: str, document_id: str
     ) -> Dict[str, Any]:
         """
         Delete document from collection.
@@ -339,7 +320,6 @@ class HybridSearchService:
             # For simplicity, we'll return a message about the limitation
 
             # Better approach: Use scroll to find points by document_id
-            from qdrant_client import models
 
             # Scroll through points to find matching document_id
             offset = None
@@ -355,10 +335,10 @@ class HybridSearchService:
                         must=[
                             FieldCondition(
                                 key="metadata.document_id",
-                                match=MatchValue(value=document_id)
+                                match=MatchValue(value=document_id),
                             )
                         ]
-                    )
+                    ),
                 )
 
                 if records:
@@ -370,7 +350,7 @@ class HybridSearchService:
             if not point_ids:
                 return {
                     "success": False,
-                    "error": f"No documents found with ID: {document_id}"
+                    "error": f"No documents found with ID: {document_id}",
                 }
 
             # Delete the points
@@ -380,21 +360,16 @@ class HybridSearchService:
                 "success": True,
                 "document_id": document_id,
                 "points_deleted": deleted,
-                "collection": collection
+                "collection": collection,
             }
 
         except Exception as e:
             logger.error(f"Document deletion failed: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
 
 
 async def create_search_service(
-    config: RAGConfig,
-    embedder: EmbeddingService,
-    qdrant: QdrantManager
+    config: RAGConfig, embedder: EmbeddingService, qdrant: QdrantManager
 ) -> HybridSearchService:
     """
     Create and initialize search service.

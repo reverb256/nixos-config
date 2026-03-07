@@ -37,6 +37,7 @@ HIGH PRIORITY (Production Readiness)
 └── Enhanced retry with exponential backoff
 
 MEDIUM PRIORITY (Enhanced Capabilities)
+├── **Multi-GPU distributed architecture** ⚡ **NEW**
 ├── RAG URL ingestion (web-reader integration)
 ├── Request governance (content moderation, PII redaction)
 ├── Multi-agent orchestration
@@ -341,6 +342,168 @@ mcp = {
 - [Azure AI Gateway MCP Governance](https://azure.microsoft.com/en-us/products/ai-services/ai-gateway)
 - [AgentGateway (Linux Foundation)](https://github.com/agentgateway/agentgateway)
 - [Redis Caching Patterns](https://redis.io/docs/manual/patterns/caching/)
+
+---
+
+### Phase 1.5: Multi-GPU Distributed Architecture ⚡ **NEW**
+
+**Goal**: Distribute LM Studio across 3 machines for optimal Spacebot performance
+**Estimated**: 7-11 hours
+**Status**: Design Complete, Ready for Implementation
+**Date Added**: 2026-03-05
+
+#### Architecture Overview
+
+Distribute LM Studio instances across 3 machines with 5 GPUs total (56GB VRAM):
+
+```
+                    AI Inference Gateway (zephyr:8080)
+                                 │
+                ┌────────────────┼────────────────┐
+                │                │                │
+         Zephyr (32GB)      Forge (16GB)      Nexus (8GB)
+         ─────────────      ─────────────      ─────────────
+         3090: 24GB         4060 #1: 8GB       3060 Ti: 8GB
+         3060 Ti: 8GB       4060 #2: 8GB
+         Multi-GPU ✅       Multi-GPU ✅       Single GPU
+         75/25 split        50/50 split
+```
+
+#### Problem
+
+- Single machine (zephyr) has 32GB VRAM limit
+- Spacebot's 5-process architecture needs varied model sizes
+- Cortex requires 256K context for long-term memory (35B models)
+- Channels/Workers need faster responses (9B/4B models)
+- No intelligent routing across multiple machines
+
+#### Solution - Three-Tier Model Distribution
+
+**Tier 1 - Large Models (Zephyr - 32GB):**
+- qwen3.5-35b-a3b (17GB + 8GB KV cache @ 256K) = 25GB ✅
+- qwen3.5-27b (15GB + 6GB KV cache @ 256K) = 21GB ✅
+- Context: 256K tokens with quantized KV cache
+- Speed: 110-150 tokens/sec
+- Target: Cortex, complex Workers
+
+**Tier 2 - Medium Models (Forge - 16GB):**
+- qwen3.5-9b (5.1GB + 2GB KV cache @ 64K) = 7.1GB per GPU ✅
+- crow-9b-opus-4.6-distill-heretic_qwen3.5 (5GB + 2GB KV cache) = 7GB per GPU ✅
+- Context: 64K tokens (configurable to 128K with multi-GPU)
+- Speed: ~200 tokens/sec
+- Target: Channels, Branches, standard Workers
+
+**Tier 3 - Small/Fast Models (Nexus - 8GB):**
+- qwen3.5-4b (2.5GB + 0.5GB KV cache @ 32K) = 3GB ✅
+- qwen3.5-2b (1.9GB + 0.2GB KV cache @ 16K) = 2.1GB ✅
+- Context: 16-32K tokens
+- Speed: 300-400 tokens/sec
+- Target: Compactor, quick tool execution
+
+#### Implementation
+
+**Step 1: Configure Forge (1-2 hours)**
+```bash
+# Install LM Studio
+# Configure hardware-config.json (50/50 split)
+# Download qwen3.5-9b-IQ4_NL.gguf
+# Enable API server on port 1234
+curl http://forge:1234/v1/models  # Verify
+```
+
+**Step 2: Configure Nexus (1-2 hours)**
+```bash
+# Install LM Studio
+# Download qwen3.5-4b-IQ4_NL.gguf
+# Enable API server on port 1234
+curl http://nexus:1234/v1/models  # Verify
+```
+
+**Step 3: Update Gateway (2-3 hours)**
+
+Create multi-backend NixOS module:
+```nix
+services.ai-inference.backend = {
+  type = "multi-backend";
+
+  tier1 = {  # Zephyr
+    enable = true;
+    url = "http://127.0.0.1:1234";
+    maxModelSize = "32GB";
+    models = ["qwen3.5-35b-a3b", "qwen3.5-27b"];
+  };
+
+  tier2 = {  # Forge
+    enable = true;
+    url = "http://forge:1234";
+    maxModelSize = "16GB";
+    models = ["qwen3.5-9b", "crow-9b-*"];
+  };
+
+  tier3 = {  # Nexus
+    enable = true;
+    url = "http://nexus:1234";
+    maxModelSize = "8GB";
+    models = ["qwen3.5-4b", "qwen3.5-2b"];
+  };
+};
+```
+
+Update router.py with model-to-backend mapping:
+```python
+MODEL_BACKENDS = {
+    "qwen3.5-35b-a3b": {"backend": "tier1", "url": "http://127.0.0.1:1234"},
+    "qwen3.5-27b": {"backend": "tier1", "url": "http://127.0.0.1:1234"},
+    "qwen3.5-9b": {"backend": "tier2", "url": "http://forge:1234", "overflow": "tier1"},
+    "qwen3.5-4b": {"backend": "tier3", "url": "http://nexus:1234", "overflow": "tier2"},
+}
+```
+
+**Step 4: Testing (2-3 hours)**
+- Test each Spacebot process routing
+- Measure throughput (target: >1000 t/s total)
+- Test overflow scenarios
+- Validate failover
+
+#### Per-Spacebot-Process Model Assignment
+
+| Process | Model | Context | Backend | Speed |
+|---------|-------|---------|---------|-------|
+| Cortex | qwen3.5-35b-a3b | 256K | Zephyr | 110 t/s |
+| Workers (complex) | qwen3.5-35b-a3b | 256K | Zephyr | 110 t/s |
+| Workers (standard) | qwen3.5-27b | 128K | Zephyr | 150 t/s |
+| Channels | qwen3.5-9b | 32K | Forge | 200 t/s |
+| Branches | qwen3.5-9b-claude-4.6-opus | 64K | Forge | 200 t/s |
+| Compactor | qwen3.5-4b | 16K | Nexus | 300 t/s |
+
+#### Expected Performance
+
+| Backend | Model | Context | Speed | Concurrent | Total |
+|---------|-------|---------|-------|------------|-------|
+| Zephyr | 35B A3B | 256K | 110 t/s | 1 | 110 t/s |
+| Zephyr | 27B | 256K | 150 t/s | 1 | 150 t/s |
+| Forge | 9B | 64K | 200 t/s | 2 | 400 t/s |
+| Nexus | 4B | 32K | 300 t/s | 3 | 900 t/s |
+| **Total** | - | - | - | - | **~1500 t/s** |
+
+#### Acceptance Criteria
+
+- [ ] All three LM Studio instances running
+- [ ] Gateway routing configured correctly
+- [ ] Cortex gets 110 t/s with 256K context ✅
+- [ ] Channels get 200 t/s with 32K context ✅
+- [ ] Compactor gets 300 t/s with 16K context ✅
+- [ ] Overflow routing works (forge → zephyr, nexus → forge)
+- [ ] Health checks detect backend failures
+- [ ] All Spacebot processes functional
+- [ ] Total throughput > 1000 t/s
+- [ ] No backend exceeds 90% VRAM utilization
+
+#### Related Documentation
+
+- **Design Document**: `docs/plans/2026-03-05-multi-gpu-lmstudio-architecture.md`
+- **LM Studio Multi-GPU**: `~/.lmstudio/MULTI_GPU_QUICK_START.md`
+- **Spacebot Integration**: `docs/gateway-spacebot-compatibility-analysis.md`
 
 ---
 

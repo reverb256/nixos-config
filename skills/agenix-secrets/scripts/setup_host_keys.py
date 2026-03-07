@@ -32,12 +32,7 @@ def get_host_age_key(hostname=None, ssh_key_path="/etc/ssh/ssh_host_ed25519_key.
         print("Reading local host key...")
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         age_key = result.stdout.strip()
         if age_key.startswith("age1"):
             return age_key
@@ -68,7 +63,7 @@ def parse_secrets_nix(secrets_nix_path="/etc/nixos/secrets.nix"):
     result = {"users": {}, "hosts": {}}
 
     # Parse users section
-    users_match = re.search(r'users\s*=\s*{([^}]+)};', content, re.DOTALL)
+    users_match = re.search(r"users\s*=\s*{([^}]+)};", content, re.DOTALL)
     if users_match:
         users_section = users_match.group(1)
         for match in re.finditer(r'(\w+)\s*=\s*"([^"]+)"', users_section):
@@ -76,7 +71,7 @@ def parse_secrets_nix(secrets_nix_path="/etc/nixos/secrets.nix"):
             result["users"][name] = key
 
     # Parse hosts section
-    hosts_match = re.search(r'hosts\s*=\s*{([^}]+)};', content, re.DOTALL)
+    hosts_match = re.search(r"hosts\s*=\s*{([^}]+)};", content, re.DOTALL)
     if hosts_match:
         hosts_section = hosts_match.group(1)
         for match in re.finditer(r'(\w+)\s*=\s*"([^"]+)"', hosts_section):
@@ -123,23 +118,24 @@ def update_secrets_nix_hosts(hosts_dict, secrets_nix_path="/etc/nixos/secrets.ni
             return "\n".join(hosts_lines)
 
         content = re.sub(
-            r'hosts\s*=\s*\{([^}]+)\};',
-            replace_hosts,
-            content,
-            flags=re.DOTALL
+            r"hosts\s*=\s*\{([^}]+)\};", replace_hosts, content, flags=re.DOTALL
         )
     else:
         # Add new hosts section after users section
         hosts_lines = ["\n  # Host keys for automatic decryption"]
         for name, key in sorted(hosts_dict.items()):
-            hosts_lines.append(f'  hosts = {{')
+            hosts_lines.append("  hosts = {")
             hosts_lines.append(f'    {name} = "{key}";')
-            hosts_lines.append(f'  }};')
+            hosts_lines.append("  };")
 
         # Insert after users section
         users_end = content.find("};", content.find("users = {"))
         if users_end != -1:
-            content = content[:users_end + 2] + "\n".join(hosts_lines) + content[users_end + 2:]
+            content = (
+                content[: users_end + 2]
+                + "\n".join(hosts_lines)
+                + content[users_end + 2 :]
+            )
         else:
             print("Error: Could not find users section in secrets.nix")
             return False
@@ -204,6 +200,7 @@ def main():
         age_key = get_host_age_key()
         if age_key:
             import socket
+
             hostname = socket.gethostname()
             hosts_to_setup[hostname] = age_key
             print(f"✓ {hostname}: {age_key}")

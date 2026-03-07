@@ -6,8 +6,7 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.monitoring.grafana;
   cluster = {
     ports = {
@@ -20,93 +19,18 @@ let
   dashboardsDir = "/var/lib/grafana/dashboards";
 
   # Helper function to create a panel
-  mkPanel =
-    {
-      type,
-      title,
-      expr,
-      legendFormat ? "{{instance}}",
-      unit ? "short",
-      gridPos,
-      ...
-    }@args:
-    {
-      datasource = {
-        type = "prometheus";
-        uid = "prometheus";
-      };
-      fieldConfig = {
-        defaults = {
-          color = {
-            mode = args.colorMode or "palette-classic";
-          };
-          unit = unit;
-          min = args.min or null;
-          max = args.max or null;
-          thresholds =
-            args.thresholds or {
-              steps = [
-                {
-                  color = "green";
-                  value = null;
-                }
-              ];
-            };
-        };
-      };
-      gridPos = gridPos;
-      id = args.id or 100;
-      options =
-        args.options or {
-          legend = {
-            calcs = [
-              "mean"
-              "max"
-            ];
-            displayMode = "table";
-            placement = "bottom";
-            showLegend = true;
-          };
-          tooltip = {
-            mode = "multi";
-            sort = "desc";
-          };
-        };
-      targets = [
-        {
-          inherit expr legendFormat;
-          refId = "A";
-        }
-      ];
-      title = title;
-      type = type;
-    }
-    // (builtins.removeAttrs args [
-      "type"
-      "title"
-      "expr"
-      "legendFormat"
-      "unit"
-      "gridPos"
-      "id"
-      "options"
-      "colorMode"
-      "min"
-      "max"
-      "thresholds"
-    ]);
 
   # Comprehensive cluster dashboard
   clusterDashboard = builtins.toJSON {
     annotations = {
-      list = [ ];
+      list = [];
     };
     description = "Reverb-OS NixOS Cluster - Complete Infrastructure Monitoring";
     editable = true;
     fiscalYearStartMonth = 0;
     graphTooltip = 1;
     id = null;
-    links = [ ];
+    links = [];
     liveNow = false;
     panels = [
       # ========== ROW: CLUSTER STATUS ==========
@@ -119,7 +43,7 @@ let
           y = 0;
         };
         id = 1;
-        panels = [ ];
+        panels = [];
         title = "📊 Cluster Status";
         type = "row";
       }
@@ -134,7 +58,7 @@ let
             color = {
               mode = "thresholds";
             };
-            mappings = [ ];
+            mappings = [];
             thresholds = {
               steps = [
                 {
@@ -165,7 +89,7 @@ let
           colorMode = "background";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -211,15 +135,15 @@ let
           colorMode = "background";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
         };
         targets = [
           {
-            expr = "count(node_cpu_seconds_total{mode=\"idle\"}) by (host)";
-            legendFormat = "{{host}}";
+            expr = "count(node_cpu_seconds_total{mode=\"idle\"})";
+            legendFormat = "Cores";
             refId = "A";
           }
         ];
@@ -257,7 +181,7 @@ let
           colorMode = "background";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -315,7 +239,7 @@ let
           colorMode = "background";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -361,7 +285,7 @@ let
           colorMode = "background";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -407,7 +331,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -433,7 +357,7 @@ let
           y = 5;
         };
         id = 2;
-        panels = [ ];
+        panels = [];
         title = "🖥️ CPU Monitoring";
         type = "row";
       }
@@ -517,7 +441,7 @@ let
         targets = [
           {
             expr = "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -602,12 +526,12 @@ let
         targets = [
           {
             expr = "node_load1";
-            legendFormat = "{{host}} 1m";
+            legendFormat = "{{instance}} 1m";
             refId = "A";
           }
           {
             expr = "node_load5";
-            legendFormat = "{{host}} 5m";
+            legendFormat = "{{instance}} 5m";
             refId = "B";
           }
         ];
@@ -625,7 +549,7 @@ let
           y = 14;
         };
         id = 3;
-        panels = [ ];
+        panels = [];
         title = "💾 Memory Monitoring";
         type = "row";
       }
@@ -709,7 +633,7 @@ let
         targets = [
           {
             expr = "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -778,7 +702,7 @@ let
         id = 21;
         options = {
           legend = {
-            calcs = [ "mean" ];
+            calcs = ["mean"];
             displayMode = "table";
             placement = "bottom";
             showLegend = true;
@@ -791,7 +715,7 @@ let
         targets = [
           {
             expr = "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes";
-            legendFormat = "{{host}} Used";
+            legendFormat = "{{instance}} Used";
             refId = "A";
           }
         ];
@@ -809,7 +733,7 @@ let
           y = 23;
         };
         id = 4;
-        panels = [ ];
+        panels = [];
         title = "💿 Disk & Storage";
         type = "row";
       }
@@ -868,7 +792,7 @@ let
           fullHighlight = false;
           groupWidth = 0.7;
           legend = {
-            calcs = [ ];
+            calcs = [];
             displayMode = "list";
             placement = "bottom";
             showLegend = true;
@@ -887,7 +811,7 @@ let
         targets = [
           {
             expr = "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"})) * 100";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -956,7 +880,7 @@ let
         id = 31;
         options = {
           legend = {
-            calcs = [ "mean" ];
+            calcs = ["mean"];
             displayMode = "list";
             placement = "bottom";
             showLegend = true;
@@ -992,7 +916,7 @@ let
           y = 32;
         };
         id = 5;
-        panels = [ ];
+        panels = [];
         title = "🌐 Network";
         type = "row";
       }
@@ -1058,7 +982,7 @@ let
         id = 40;
         options = {
           legend = {
-            calcs = [ "mean" ];
+            calcs = ["mean"];
             displayMode = "table";
             placement = "bottom";
             showLegend = true;
@@ -1149,7 +1073,7 @@ let
         id = 41;
         options = {
           legend = {
-            calcs = [ "sum" ];
+            calcs = ["sum"];
             displayMode = "list";
             placement = "bottom";
             showLegend = true;
@@ -1185,7 +1109,7 @@ let
           y = 41;
         };
         id = 6;
-        panels = [ ];
+        panels = [];
         title = "🎮 NVIDIA GPU Monitoring";
         type = "row";
       }
@@ -1374,7 +1298,7 @@ let
             color = {
               mode = "thresholds";
             };
-            mappings = [ ];
+            mappings = [];
             max = 100;
             min = 0;
             thresholds = {
@@ -1407,7 +1331,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1464,7 +1388,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1491,7 +1415,7 @@ let
           y = 56;
         };
         id = 7;
-        panels = [ ];
+        panels = [];
         title = "⛏️ Mining Status";
         type = "row";
       }
@@ -1573,7 +1497,7 @@ let
         targets = [
           {
             expr = "mining_xmrig_hashrate_total";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -1660,7 +1584,7 @@ let
         targets = [
           {
             expr = "mining_xmrig_cpu_percent";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -1698,7 +1622,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1706,7 +1630,7 @@ let
         targets = [
           {
             expr = "mining_xmrig_shares_accepted";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -1748,7 +1672,7 @@ let
           colorMode = "value";
           graphMode = "area";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1756,7 +1680,7 @@ let
         targets = [
           {
             expr = "mining_xmrig_shares_rejected";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -1794,7 +1718,7 @@ let
           colorMode = "value";
           graphMode = "none";
           reduceOptions = {
-            calcs = [ "lastNotNull" ];
+            calcs = ["lastNotNull"];
             fields = "";
             values = false;
           };
@@ -1802,7 +1726,7 @@ let
         targets = [
           {
             expr = "mining_xmrig_uptime_seconds";
-            legendFormat = "{{host}}";
+            legendFormat = "{{instance}}";
             refId = "A";
           }
         ];
@@ -1819,21 +1743,1312 @@ let
       "reverb-os"
     ];
     templating = {
-      list = [ ];
+      list = [];
     };
     time = {
       from = "now-1h";
       to = "now";
     };
-    timepicker = { };
+    timepicker = {};
     timezone = "";
     title = "Reverb-OS Cluster Overview";
     uid = "reverb-os-cluster";
     version = 1;
     weekStart = "";
   };
-in
-{
+
+  # AI Inference Dashboard
+  aiDashboard = builtins.toJSON {
+    annotations = {
+      list = [];
+    };
+    description = "Reverb-OS AI Inference Monitoring - LM Studio, Gateway, and Model Performance";
+    editable = true;
+    fiscalYearStartMonth = 0;
+    graphTooltip = 1;
+    id = null;
+    links = [];
+    liveNow = false;
+    panels = [
+      # ========== ROW: AI GATEWAY STATUS ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 0;
+        };
+        id = 1;
+        panels = [];
+        title = "🤖 AI Gateway Status";
+        type = "row";
+      }
+      # Total Requests
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "thresholds";
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+              ];
+            };
+            unit = "short";
+          };
+        };
+        gridPos = {
+          h = 4;
+          w = 4;
+          x = 0;
+          y = 1;
+        };
+        id = 100;
+        options = {
+          colorMode = "value";
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "ai_inference_requests_total";
+            legendFormat = "Total";
+            refId = "A";
+          }
+        ];
+        title = "📊 Total Requests";
+        type = "stat";
+      }
+      # Active Requests
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "thresholds";
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+                {
+                  color = "yellow";
+                  value = 5;
+                }
+                {
+                  color = "red";
+                  value = 10;
+                }
+              ];
+            };
+            unit = "short";
+          };
+        };
+        gridPos = {
+          h = 4;
+          w = 4;
+          x = 4;
+          y = 1;
+        };
+        id = 101;
+        options = {
+          colorMode = "value";
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "ai_inference_active_requests";
+            legendFormat = "Active";
+            refId = "A";
+          }
+        ];
+        title = "⚡ Active Requests";
+        type = "stat";
+      }
+      # Backend Health
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "thresholds";
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "red";
+                  value = null;
+                }
+                {
+                  color = "green";
+                  value = 1;
+                }
+              ];
+            };
+            unit = "short";
+          };
+        };
+        gridPos = {
+          h = 4;
+          w = 4;
+          x = 8;
+          y = 1;
+        };
+        id = 102;
+        options = {
+          colorMode = "background";
+          graphMode = "none";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "ai_inference_backend_health";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
+        ];
+        title = "💚 Backend Health";
+        type = "stat";
+      }
+      # Total Tokens
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "thresholds";
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "purple";
+                  value = null;
+                }
+              ];
+            };
+            unit = "short";
+          };
+        };
+        gridPos = {
+          h = 4;
+          w = 4;
+          x = 12;
+          y = 1;
+        };
+        id = 103;
+        options = {
+          colorMode = "value";
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "ai_inference_tokens_generated_total";
+            legendFormat = "Tokens";
+            refId = "A";
+          }
+        ];
+        title = "🎯 Tokens Generated";
+        type = "stat";
+      }
+      # Cache Hit Rate
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "thresholds";
+            };
+            max = 100;
+            min = 0;
+            thresholds = {
+              steps = [
+                {
+                  color = "red";
+                  value = null;
+                }
+                {
+                  color = "yellow";
+                  value = 30;
+                }
+                {
+                  color = "green";
+                  value = 70;
+                }
+              ];
+            };
+            unit = "percent";
+          };
+        };
+        gridPos = {
+          h = 4;
+          w = 4;
+          x = 16;
+          y = 1;
+        };
+        id = 104;
+        options = {
+          colorMode = "background";
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "(ai_inference_cache_hits_total / (ai_inference_cache_hits_total + ai_inference_cache_misses_total)) * 100";
+            legendFormat = "Hit Rate";
+            refId = "A";
+          }
+        ];
+        title = "💾 Cache Hit Rate";
+        type = "stat";
+      }
+      # Errors
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "thresholds";
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+                {
+                  color = "red";
+                  value = 1;
+                }
+              ];
+            };
+            unit = "short";
+          };
+        };
+        gridPos = {
+          h = 4;
+          w = 4;
+          x = 20;
+          y = 1;
+        };
+        id = 105;
+        options = {
+          colorMode = "value";
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "ai_inference_errors_total";
+            legendFormat = "Errors";
+            refId = "A";
+          }
+        ];
+        title = "❌ Errors";
+        type = "stat";
+      }
+
+      # ========== ROW: REQUEST METRICS ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 5;
+        };
+        id = 2;
+        panels = [];
+        title = "📈 Request Performance";
+        type = "row";
+      }
+      # Requests Over Time
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "palette-classic";
+            };
+            custom = {
+              axisBorderShow = false;
+              axisCenteredZero = false;
+              axisColorMode = "text";
+              axisPlacement = "auto";
+              barAlignment = 0;
+              drawStyle = "line";
+              fillOpacity = 10;
+              gradientMode = "none";
+              hideFrom = {
+                legend = false;
+                tooltip = false;
+                viz = false;
+              };
+              insertNulls = false;
+              lineInterpolation = "smooth";
+              lineWidth = 2;
+              pointSize = 5;
+              scaleDistribution = {
+                type = "linear";
+              };
+              showPoints = "never";
+              spanNulls = true;
+              stacking = {
+                group = "A";
+                mode = "none";
+              };
+              thresholdsStyle = {
+                mode = "off";
+              };
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+              ];
+            };
+            unit = "reqps";
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 6;
+        };
+        id = 10;
+        options = {
+          legend = {
+            calcs = [
+              "mean"
+              "max"
+            ];
+            displayMode = "table";
+            placement = "bottom";
+            showLegend = true;
+          };
+          tooltip = {
+            mode = "multi";
+            sort = "desc";
+          };
+        };
+        targets = [
+          {
+            expr = "sum by (model) (rate(ai_inference_requests_total[5m]))";
+            legendFormat = "{{model}}";
+            refId = "A";
+          }
+        ];
+        title = "Requests per Second";
+        type = "timeseries";
+      }
+      # Request Duration
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "palette-classic";
+            };
+            custom = {
+              axisBorderShow = false;
+              axisCenteredZero = false;
+              axisColorMode = "text";
+              axisPlacement = "auto";
+              barAlignment = 0;
+              drawStyle = "line";
+              fillOpacity = 10;
+              gradientMode = "none";
+              hideFrom = {
+                legend = false;
+                tooltip = false;
+                viz = false;
+              };
+              insertNulls = false;
+              lineInterpolation = "smooth";
+              lineWidth = 2;
+              pointSize = 5;
+              scaleDistribution = {
+                type = "linear";
+              };
+              showPoints = "never";
+              spanNulls = true;
+              stacking = {
+                group = "A";
+                mode = "none";
+              };
+              thresholdsStyle = {
+                mode = "off";
+              };
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+              ];
+            };
+            unit = "s";
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 6;
+        };
+        id = 11;
+        options = {
+          legend = {
+            calcs = [
+              "mean"
+              "max"
+            ];
+            displayMode = "table";
+            placement = "bottom";
+            showLegend = true;
+          };
+          tooltip = {
+            mode = "multi";
+            sort = "desc";
+          };
+        };
+        targets = [
+          {
+            expr = "histogram_quantile(0.50, sum by (le, model) (rate(ai_inference_request_duration_seconds_bucket[5m])))";
+            legendFormat = "{{model}} p50";
+            refId = "A";
+          }
+          {
+            expr = "histogram_quantile(0.95, sum by (le, model) (rate(ai_inference_request_duration_seconds_bucket[5m])))";
+            legendFormat = "{{model}} p95";
+            refId = "B";
+          }
+          {
+            expr = "histogram_quantile(0.99, sum by (le, model) (rate(ai_inference_request_duration_seconds_bucket[5m])))";
+            legendFormat = "{{model}} p99";
+            refId = "C";
+          }
+        ];
+        title = "Request Duration";
+        type = "timeseries";
+      }
+
+      # ========== ROW: TOKEN METRICS ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 14;
+        };
+        id = 3;
+        panels = [];
+        title = "🎯 Token Performance";
+        type = "row";
+      }
+      # Tokens per Second
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "palette-classic";
+            };
+            custom = {
+              axisBorderShow = false;
+              axisCenteredZero = false;
+              axisColorMode = "text";
+              axisPlacement = "auto";
+              barAlignment = 0;
+              drawStyle = "line";
+              fillOpacity = 10;
+              gradientMode = "none";
+              hideFrom = {
+                legend = false;
+                tooltip = false;
+                viz = false;
+              };
+              insertNulls = false;
+              lineInterpolation = "smooth";
+              lineWidth = 2;
+              pointSize = 5;
+              scaleDistribution = {
+                type = "linear";
+              };
+              showPoints = "never";
+              spanNulls = true;
+              stacking = {
+                group = "A";
+                mode = "none";
+              };
+              thresholdsStyle = {
+                mode = "off";
+              };
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+              ];
+            };
+            unit = "short";
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 15;
+        };
+        id = 20;
+        options = {
+          legend = {
+            calcs = [
+              "mean"
+              "max"
+            ];
+            displayMode = "table";
+            placement = "bottom";
+            showLegend = true;
+          };
+          tooltip = {
+            mode = "multi";
+            sort = "desc";
+          };
+        };
+        targets = [
+          {
+            expr = "histogram_quantile(0.50, sum by (le) (rate(ai_inference_tokens_per_second_bucket[5m])))";
+            legendFormat = "p50";
+            refId = "A";
+          }
+          {
+            expr = "histogram_quantile(0.95, sum by (le) (rate(ai_inference_tokens_per_second_bucket[5m])))";
+            legendFormat = "p95";
+            refId = "B";
+          }
+          {
+            expr = "histogram_quantile(0.99, sum by (le) (rate(ai_inference_tokens_per_second_bucket[5m])))";
+            legendFormat = "p99";
+            refId = "C";
+          }
+        ];
+        title = "Tokens per Second";
+        type = "timeseries";
+      }
+      # Time to First Token
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "palette-classic";
+            };
+            custom = {
+              axisBorderShow = false;
+              axisCenteredZero = false;
+              axisColorMode = "text";
+              axisPlacement = "auto";
+              barAlignment = 0;
+              drawStyle = "line";
+              fillOpacity = 10;
+              gradientMode = "none";
+              hideFrom = {
+                legend = false;
+                tooltip = false;
+                viz = false;
+              };
+              insertNulls = false;
+              lineInterpolation = "smooth";
+              lineWidth = 2;
+              pointSize = 5;
+              scaleDistribution = {
+                type = "linear";
+              };
+              showPoints = "never";
+              spanNulls = true;
+              stacking = {
+                group = "A";
+                mode = "none";
+              };
+              thresholdsStyle = {
+                mode = "off";
+              };
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+              ];
+            };
+            unit = "s";
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 15;
+        };
+        id = 21;
+        options = {
+          legend = {
+            calcs = [
+              "mean"
+              "max"
+            ];
+            displayMode = "table";
+            placement = "bottom";
+            showLegend = true;
+          };
+          tooltip = {
+            mode = "multi";
+            sort = "desc";
+          };
+        };
+        targets = [
+          {
+            expr = "histogram_quantile(0.50, sum by (le) (rate(ai_inference_time_to_first_token_seconds_bucket[5m])))";
+            legendFormat = "p50";
+            refId = "A";
+          }
+          {
+            expr = "histogram_quantile(0.95, sum by (le) (rate(ai_inference_time_to_first_token_seconds_bucket[5m])))";
+            legendFormat = "p95";
+            refId = "B";
+          }
+        ];
+        title = "Time to First Token";
+        type = "timeseries";
+      }
+
+      # ========== ROW: GPU METRICS ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 23;
+        };
+        id = 4;
+        panels = [];
+        title = "🎮 GPU Performance";
+        type = "row";
+      }
+      # GPU Utilization
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "palette-classic";
+            };
+            custom = {
+              axisBorderShow = false;
+              axisCenteredZero = false;
+              axisColorMode = "text";
+              axisPlacement = "auto";
+              barAlignment = 0;
+              drawStyle = "line";
+              fillOpacity = 10;
+              gradientMode = "none";
+              hideFrom = {
+                legend = false;
+                tooltip = false;
+                viz = false;
+              };
+              insertNulls = false;
+              lineInterpolation = "smooth";
+              lineWidth = 2;
+              pointSize = 5;
+              scaleDistribution = {
+                type = "linear";
+              };
+              showPoints = "never";
+              spanNulls = true;
+              stacking = {
+                group = "A";
+                mode = "none";
+              };
+              thresholdsStyle = {
+                mode = "off";
+              };
+            };
+            max = 100;
+            min = 0;
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+              ];
+            };
+            unit = "percent";
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 24;
+        };
+        id = 30;
+        options = {
+          legend = {
+            calcs = [
+              "mean"
+              "max"
+            ];
+            displayMode = "table";
+            placement = "bottom";
+            showLegend = true;
+          };
+          tooltip = {
+            mode = "multi";
+            sort = "desc";
+          };
+        };
+        targets = [
+          {
+            expr = "nvidia_smi_utilization_gpu_ratio * 100";
+            legendFormat = "{{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "GPU Utilization %";
+        type = "timeseries";
+      }
+      # GPU Memory
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "palette-classic";
+            };
+            custom = {
+              axisBorderShow = false;
+              axisCenteredZero = false;
+              axisColorMode = "text";
+              axisPlacement = "auto";
+              barAlignment = 0;
+              drawStyle = "line";
+              fillOpacity = 10;
+              gradientMode = "none";
+              hideFrom = {
+                legend = false;
+                tooltip = false;
+                viz = false;
+              };
+              insertNulls = false;
+              lineInterpolation = "smooth";
+              lineWidth = 2;
+              pointSize = 5;
+              scaleDistribution = {
+                type = "linear";
+              };
+              showPoints = "never";
+              spanNulls = true;
+              stacking = {
+                group = "A";
+                mode = "none";
+              };
+              thresholdsStyle = {
+                mode = "off";
+              };
+            };
+            max = 100;
+            min = 0;
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+              ];
+            };
+            unit = "percent";
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 24;
+        };
+        id = 31;
+        options = {
+          legend = {
+            calcs = [
+              "mean"
+              "max"
+            ];
+            displayMode = "table";
+            placement = "bottom";
+            showLegend = true;
+          };
+          tooltip = {
+            mode = "multi";
+            sort = "desc";
+          };
+        };
+        targets = [
+          {
+            expr = "nvidia_smi_utilization_memory_ratio * 100";
+            legendFormat = "{{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "GPU Memory %";
+        type = "timeseries";
+      }
+      # GPU Temperature
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "thresholds";
+            };
+            max = 100;
+            min = 0;
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+                {
+                  color = "yellow";
+                  value = 70;
+                }
+                {
+                  color = "red";
+                  value = 85;
+                }
+              ];
+            };
+            unit = "celsius";
+          };
+        };
+        gridPos = {
+          h = 4;
+          w = 8;
+          x = 0;
+          y = 32;
+        };
+        id = 32;
+        options = {
+          colorMode = "value";
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "nvidia_smi_temperature_gpu";
+            legendFormat = "{{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "GPU Temperature";
+        type = "stat";
+      }
+      # GPU Power
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "thresholds";
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "blue";
+                  value = null;
+                }
+                {
+                  color = "yellow";
+                  value = 150;
+                }
+                {
+                  color = "orange";
+                  value = 250;
+                }
+              ];
+            };
+            unit = "watt";
+          };
+        };
+        gridPos = {
+          h = 4;
+          w = 8;
+          x = 8;
+          y = 32;
+        };
+        id = 33;
+        options = {
+          colorMode = "value";
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "nvidia_smi_power_draw_watts";
+            legendFormat = "{{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "GPU Power (W)";
+        type = "stat";
+      }
+      # GPU Memory Used
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "thresholds";
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+                {
+                  color = "yellow";
+                  value = 14000;
+                }
+                {
+                  color = "red";
+                  value = 16000;
+                }
+              ];
+            };
+            unit = "decbytes";
+          };
+        };
+        gridPos = {
+          h = 4;
+          w = 8;
+          x = 16;
+          y = 32;
+        };
+        id = 34;
+        options = {
+          colorMode = "value";
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          {
+            expr = "nvidia_smi_memory_used_bytes";
+            legendFormat = "{{instance}}";
+            refId = "A";
+          }
+        ];
+        title = "GPU Memory Used";
+        type = "stat";
+      }
+
+      # ========== ROW: CACHE & RATE LIMITS ==========
+      {
+        collapsed = false;
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 36;
+        };
+        id = 5;
+        panels = [];
+        title = "💾 Cache & Security";
+        type = "row";
+      }
+      # Cache Hits/Misses
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "palette-classic";
+            };
+            custom = {
+              axisBorderShow = false;
+              axisCenteredZero = false;
+              axisColorMode = "text";
+              axisPlacement = "auto";
+              barAlignment = 0;
+              drawStyle = "line";
+              fillOpacity = 10;
+              gradientMode = "none";
+              hideFrom = {
+                legend = false;
+                tooltip = false;
+                viz = false;
+              };
+              insertNulls = false;
+              lineInterpolation = "smooth";
+              lineWidth = 2;
+              pointSize = 5;
+              scaleDistribution = {
+                type = "linear";
+              };
+              showPoints = "never";
+              spanNulls = true;
+              stacking = {
+                group = "A";
+                mode = "none";
+              };
+              thresholdsStyle = {
+                mode = "off";
+              };
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+              ];
+            };
+            unit = "short";
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 37;
+        };
+        id = 40;
+        options = {
+          legend = {
+            calcs = [
+              "mean"
+              "max"
+            ];
+            displayMode = "table";
+            placement = "bottom";
+            showLegend = true;
+          };
+          tooltip = {
+            mode = "multi";
+            sort = "desc";
+          };
+        };
+        targets = [
+          {
+            expr = "rate(ai_inference_cache_hits_total[5m])";
+            legendFormat = "Hits";
+            refId = "A";
+          }
+          {
+            expr = "rate(ai_inference_cache_misses_total[5m])";
+            legendFormat = "Misses";
+            refId = "B";
+          }
+        ];
+        title = "Cache Hits vs Misses";
+        type = "timeseries";
+      }
+      # Rate Limit & Security Blocks
+      {
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
+        fieldConfig = {
+          defaults = {
+            color = {
+              mode = "thresholds";
+            };
+            thresholds = {
+              steps = [
+                {
+                  color = "green";
+                  value = null;
+                }
+                {
+                  color = "red";
+                  value = 1;
+                }
+              ];
+            };
+            unit = "short";
+          };
+        };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 37;
+        };
+        id = 41;
+        options = {
+          legend = {
+            calcs = [
+              "sum"
+            ];
+            displayMode = "table";
+            placement = "bottom";
+            showLegend = true;
+          };
+          tooltip = {
+            mode = "multi";
+            sort = "desc";
+          };
+        };
+        targets = [
+          {
+            expr = "ai_inference_rate_limit_hits_total";
+            legendFormat = "Rate Limits";
+            refId = "A";
+          }
+          {
+            expr = "ai_inference_security_blocks_total";
+            legendFormat = "Security Blocks";
+            refId = "B";
+          }
+          {
+            expr = "ai_inference_circuit_breaker_trips_total";
+            legendFormat = "Circuit Breaker Trips";
+            refId = "C";
+          }
+        ];
+        title = "Rate Limits & Security";
+        type = "timeseries";
+      }
+    ];
+    refresh = "30s";
+    schemaVersion = 39;
+    style = "dark";
+    tags = [
+      "ai"
+      "inference"
+      "lm-studio"
+      "reverb-os"
+    ];
+    templating = {
+      list = [];
+    };
+    time = {
+      from = "now-1h";
+      to = "now";
+    };
+    timepicker = {};
+    timezone = "";
+    title = "Reverb-OS AI Inference";
+    uid = "reverb-os-ai-inference";
+    version = 1;
+    weekStart = "";
+  };
+in {
   options.services.monitoring.grafana = {
     enable = lib.mkEnableOption "Grafana dashboard server";
 
@@ -1851,24 +3066,17 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Enable auto-secrets for password generation
-    services.auto-secrets = {
-      enable = true;
-      secrets.grafana-admin-password = {
-        owner = "grafana";
-        group = "grafana";
-        mode = "0400";
-        length = 64;
-      };
+    # Use agenix for admin password (reliable secret management)
+    age.secrets.grafana-admin = {
+      file = ../../../secrets/grafana-admin.age;
+      owner = "grafana";
+      group = "grafana";
+      mode = "0400";
     };
 
-    # Ensure grafana starts after password is generated
-    systemd.services.grafana.after = [ "auto-secret-grafana-admin-password.service" ];
-    systemd.services.grafana.requires = [ "auto-secret-grafana-admin-password.service" ];
-
-    # Bind mount secret into grafana's directory (avoids /var/lib/secrets traversal issues)
+    # Bind mount secret into grafana's directory
     systemd.services.grafana.serviceConfig.BindPaths = [
-      "/var/lib/secrets/grafana-admin-password:/var/lib/grafana/admin-password"
+      "/run/agenix/grafana-admin:/var/lib/grafana/admin-password"
     ];
 
     services.grafana = {
@@ -1877,7 +3085,7 @@ in
         server = {
           http_addr = "127.0.0.1";
           http_port = cluster.ports.grafana;
-          domain = cfg.domain;
+          inherit (cfg) domain;
           root_url = "https://%(domain)s/";
         };
 
@@ -1945,7 +3153,7 @@ in
       isSystemUser = true;
       group = "grafana";
     };
-    users.groups.grafana = { };
+    users.groups.grafana = {};
 
     # Create dashboards directory
     systemd.tmpfiles.settings."grafana-setup" = {
@@ -1961,9 +3169,9 @@ in
     # Provision dashboard
     systemd.services.grafana-dashboard-provision = {
       description = "Provision Grafana dashboards";
-      wantedBy = [ "multi-user.target" ];
-      before = [ "grafana.service" ];
-      after = [ "local-fs.target" ];
+      wantedBy = ["multi-user.target"];
+      before = ["grafana.service"];
+      after = ["local-fs.target"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -1971,12 +3179,13 @@ in
       script = ''
         mkdir -p ${dashboardsDir}
         cp ${pkgs.writeText "cluster-overview.json" clusterDashboard} ${dashboardsDir}/cluster-overview.json
-        chown grafana:grafana ${dashboardsDir}/cluster-overview.json
-        chmod 644 ${dashboardsDir}/cluster-overview.json
+        cp ${pkgs.writeText "ai-inference.json" aiDashboard} ${dashboardsDir}/ai-inference.json
+        chown grafana:grafana ${dashboardsDir}/cluster-overview.json ${dashboardsDir}/ai-inference.json
+        chmod 644 ${dashboardsDir}/cluster-overview.json ${dashboardsDir}/ai-inference.json
       '';
     };
 
     # Open firewall
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ cluster.ports.grafana ];
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cluster.ports.grafana];
   };
 }

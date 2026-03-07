@@ -1,8 +1,11 @@
 # Spotify with SpotX Patch
 # Removes ads, enables DRM bypass, and unlocks premium features
 # Refactored to use spotify-common library
-{ config, lib, pkgs, ... }:
-
+{ config
+, lib
+, pkgs
+, ...
+}:
 let
   cfg = config.services.spotify-spotx;
   inherit (lib) mkIf mkEnableOption mkOption types;
@@ -166,14 +169,12 @@ in
 
     # Main patch service
     systemd.services.spotx-patch = spotifyLib.mkSpotifySystemdService {
-      name = "spotx-patch";
       description = "Spotify SpotX Patch Service";
       execStart = "/etc/spotx/patch-manager.sh patch";
     };
 
     # Auto-patch timer
     systemd.timers.spotx-patch = lib.mkIf cfg.autoPatch (spotifyLib.mkSpotifySystemdTimer {
-      name = "spotx-patch";
       description = "Spotify SpotX Auto-Patch Timer";
       onCalendar = cfg.patchCheckInterval;
       partOf = "spotx-patch.service";

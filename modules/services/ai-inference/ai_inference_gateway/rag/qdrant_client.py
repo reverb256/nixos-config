@@ -19,11 +19,7 @@ from qdrant_client.models import (
     VectorParams,
     SparseVectorParams,
     PointStruct,
-    SearchRequest,
     SparseVector,
-    Filter,
-    FieldCondition,
-    MatchValue,
 )
 
 from .config import RAGConfig
@@ -91,12 +87,14 @@ class QdrantManager:
             self._client = AsyncQdrantClient(
                 url=self.config.qdrant_url,
                 timeout=self.config.qdrant_timeout,
-                prefer_grpc=self.config.prefer_grpc
+                prefer_grpc=self.config.prefer_grpc,
             )
 
             # Test connection
             collections = await self._client.get_collections()
-            logger.info(f"Connected to Qdrant (collections: {len(collections.collections)})")
+            logger.info(
+                f"Connected to Qdrant (collections: {len(collections.collections)})"
+            )
 
             self._initialized = True
 
@@ -123,12 +121,9 @@ class QdrantManager:
                 await self._client.create_collection(
                     collection_name=collection_name,
                     vectors_config=VectorParams(
-                        size=dimensions,
-                        distance=Distance.COSINE
+                        size=dimensions, distance=Distance.COSINE
                     ),
-                    sparse_vectors_config={
-                        "text": SparseVectorParams()
-                    }
+                    sparse_vectors_config={"text": SparseVectorParams()},
                 )
 
                 logger.info(f"Collection created: {collection_name}")
@@ -140,9 +135,7 @@ class QdrantManager:
             raise
 
     async def ingest_chunks(
-        self,
-        collection_name: str,
-        chunks: List[Dict[str, Any]]
+        self, collection_name: str, chunks: List[Dict[str, Any]]
     ) -> int:
         """
         Ingest document chunks into Qdrant.
@@ -163,7 +156,7 @@ class QdrantManager:
                 if chunk["sparse_embedding"]:
                     sparse_vector = SparseVector(
                         indices=list(chunk["sparse_embedding"].keys()),
-                        values=list(chunk["sparse_embedding"].values())
+                        values=list(chunk["sparse_embedding"].values()),
                     )
 
                 point_data = {
@@ -172,8 +165,8 @@ class QdrantManager:
                     "payload": {
                         "content": chunk["content"],
                         "document_id": chunk.get("document_id", ""),
-                        "metadata": chunk.get("metadata", {})
-                    }
+                        "metadata": chunk.get("metadata", {}),
+                    },
                 }
 
                 # Only add sparse vector if it has content
@@ -184,10 +177,7 @@ class QdrantManager:
                 points.append(point)
 
             # Batch insert
-            await self._client.upsert(
-                collection_name=collection_name,
-                points=points
-            )
+            await self._client.upsert(collection_name=collection_name, points=points)
 
             logger.info(f"Inserted {len(points)} points into {collection_name}")
             return len(points)
@@ -201,7 +191,7 @@ class QdrantManager:
         collection_name: str,
         query_vector: List[float],
         limit: int = 10,
-        score_threshold: Optional[float] = None
+        score_threshold: Optional[float] = None,
     ) -> List[SearchResult]:
         """
         Dense vector search.
@@ -221,7 +211,7 @@ class QdrantManager:
                 query=query_vector,  # Pass vector directly as query parameter
                 limit=limit,
                 score_threshold=score_threshold,
-                with_payload=["content", "metadata"]
+                with_payload=["content", "metadata"],
             )
 
             return [
@@ -229,7 +219,7 @@ class QdrantManager:
                     id=str(hit.id),
                     content=hit.payload.get("content", ""),
                     score=hit.score,
-                    metadata=hit.payload.get("metadata", {})
+                    metadata=hit.payload.get("metadata", {}),
                 )
                 for hit in response.points
             ]
@@ -239,10 +229,7 @@ class QdrantManager:
             return []
 
     async def search_sparse(
-        self,
-        collection_name: str,
-        query_sparse: Dict[int, float],
-        limit: int = 10
+        self, collection_name: str, query_sparse: Dict[int, float], limit: int = 10
     ) -> List[SearchResult]:
         """
         Sparse vector search (BM25).
@@ -261,9 +248,9 @@ class QdrantManager:
                 return []
 
             from qdrant_client.models import SparseVector
+
             sparse_vector = SparseVector(
-                indices=list(query_sparse.keys()),
-                values=list(query_sparse.values())
+                indices=list(query_sparse.keys()), values=list(query_sparse.values())
             )
 
             # Use query_points with sparse vector
@@ -272,7 +259,7 @@ class QdrantManager:
                 query=sparse_vector,
                 using="text",  # Use the sparse vector named "text"
                 limit=limit,
-                with_payload=["content", "metadata"]
+                with_payload=["content", "metadata"],
             )
 
             return [
@@ -281,7 +268,7 @@ class QdrantManager:
                     content=hit.payload.get("content", ""),
                     score=hit.score,
                     metadata=hit.payload.get("metadata", {}),
-                    sparse_score=hit.score
+                    sparse_score=hit.score,
                 )
                 for hit in response.points
             ]
@@ -297,7 +284,7 @@ class QdrantManager:
         query_sparse: Dict[int, float],
         limit: int = 10,
         dense_limit: int = 30,
-        sparse_limit: int = 30
+        sparse_limit: int = 30,
     ) -> List[SearchResult]:
         """
         Hybrid search combining dense and sparse.
@@ -319,14 +306,12 @@ class QdrantManager:
             # Parallel searches
             dense_results, sparse_results = await asyncio.gather(
                 self.search_dense(collection_name, query_dense, dense_limit),
-                self.search_sparse(collection_name, query_sparse, sparse_limit)
+                self.search_sparse(collection_name, query_sparse, sparse_limit),
             )
 
             # Reciprocal Rank Fusion (RRF)
             fused = self._reciprocal_rank_fusion(
-                dense_results,
-                sparse_results,
-                k=self.config.search.rrf_k
+                dense_results, sparse_results, k=self.config.search.rrf_k
             )
 
             return fused[:limit]
@@ -339,7 +324,7 @@ class QdrantManager:
         self,
         dense_results: List[SearchResult],
         sparse_results: List[SearchResult],
-        k: int = 60
+        k: int = 60,
     ) -> List[SearchResult]:
         """
         Reciprocal Rank Fusion (RRF).
@@ -375,7 +360,7 @@ class QdrantManager:
         sorted_results = sorted(
             [(score, result) for score, result in scores.values()],
             key=lambda x: x[0],
-            reverse=True
+            reverse=True,
         )
 
         # Update scores in results
@@ -384,12 +369,14 @@ class QdrantManager:
                 id=result.id,
                 content=result.content,
                 score=score,  # RRF score
-                metadata=result.metadata
+                metadata=result.metadata,
             )
             for score, result in sorted_results
         ]
 
-    async def get_collection_info(self, collection_name: str) -> Optional[Dict[str, Any]]:
+    async def get_collection_info(
+        self, collection_name: str
+    ) -> Optional[Dict[str, Any]]:
         """
         Get collection information.
 
@@ -405,7 +392,7 @@ class QdrantManager:
                 "name": collection_name,
                 "vectors_count": info.points_count,
                 "segments_count": info.segments_count,
-                "status": info.status
+                "status": info.status,
             }
         except Exception as e:
             logger.error(f"Failed to get collection info: {e}")
@@ -425,11 +412,7 @@ class QdrantManager:
             logger.error(f"Failed to list collections: {e}")
             return []
 
-    async def delete_points(
-        self,
-        collection_name: str,
-        point_ids: List[str]
-    ) -> int:
+    async def delete_points(self, collection_name: str, point_ids: List[str]) -> int:
         """
         Delete points from collection.
 
@@ -443,7 +426,7 @@ class QdrantManager:
         try:
             await self._client.delete(
                 collection_name=collection_name,
-                points_selector=models.PointIdsList(points=point_ids)
+                points_selector=models.PointIdsList(points=point_ids),
             )
             logger.info(f"Deleted {len(point_ids)} points from {collection_name}")
             return len(point_ids)

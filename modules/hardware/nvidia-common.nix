@@ -1,70 +1,87 @@
 # NVIDIA Common Configuration Module
 # Base NVIDIA driver configuration for all NVIDIA GPUs
-{ config, lib, pkgs, ... }:
 {
-  # Enable OpenGL
-  # NOTE: enable32Bit must be explicitly disabled because the gaming module
-  # sets extraPackages32 which auto-enables enable32Bit. This breaks Wayland
-  # on multi-GPU NVIDIA systems (KWin cannot open /dev/dri/card1).
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = lib.mkForce false;  # Force override steam module
-  };
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.hardware.nvidia-common;
+in {
+  options.hardware.nvidia-common.enable = lib.mkEnableOption "NVIDIA GPU support";
 
-  # Load nvidia driver for Xorg and Wayland
-  services.xserver.videoDrivers = [ "nvidia" ];
+  config = lib.mkIf cfg.enable {
+    # Enable OpenGL
+    # NOTE: enable32Bit disabled to prevent Wayland issues on multi-GPU systems.
+    # LM Studio GUI works fine without it. CLI has 32-bit lib issues but GUI is primary use.
+    hardware.graphics = {
+      enable = true;
+      enable32Bit = lib.mkForce false; # Keep disabled for Wayland stability
 
-  hardware.nvidia = {
-    # Modesetting is required for Wayland
-    modesetting.enable = true;
-
-    # Power management (optional, can cause suspend issues)
-    powerManagement.enable = false;
-
-    # Use beta drivers (560+) for best Wayland/Plasma 6 support
-    # RTX 30 series (Ampere) is fully supported
-    package = config.boot.kernelPackages.nvidiaPackages.beta;
-
-    # Open source kernel module (optional for Turing+)
-    # Set to false for proprietary (recommended for gaming/CUDA)
-    open = false;
-
-    # Enable nvidia-settings
-    nvidiaSettings = true;
-  };
-
-  # ============================================================================
-  # GPU OPTIMIZATIONS FOR AI INFERENCE
-  # ============================================================================
-  # Enable persistence mode and disable auto-boost for consistent performance
-  # These optimizations reduce inference latency by 1-3 seconds per request
-  # and eliminate performance jitter during sustained workloads.
-
-  # Enable persistence mode for all GPUs
-  # Prevents GPU driver from unloading during idle periods
-  # Reduces initialization latency for AI inference requests
-  systemd.services.nvidia-persistence-mode = {
-    description = "Enable NVIDIA GPU persistence mode for AI workloads";
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "/run/current-system/sw/bin/nvidia-smi -pm 1";
+      extraPackages = with pkgs; [
+        vulkan-loader
+        vulkan-tools
+      ];
     };
-  };
 
-  # Disable auto-boost for all GPUs
-  # Prevents dynamic clock scaling that causes inconsistent inference performance
-  systemd.services.nvidia-disable-autoboost = {
-    description = "Disable GPU auto-boost for consistent AI performance";
-    after = [ "nvidia-persistence-mode.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      # Apply to GPU 0 (3060 Ti) and GPU 1 (3090)
-      ExecStart = ''
-        /run/current-system/sw/bin/nvidia-smi -i 0 --auto-boost-default=0 && \
-        /run/current-system/sw/bin/nvidia-smi -i 1 --auto-boost-default=0
-      '';
+    # Load nvidia driver for Xorg and Wayland
+    services.xserver.videoDrivers = ["nvidia"];
+
+    hardware.nvidia = {
+      # Modesetting is required for Wayland
+      modesetting.enable = true;
+
+      # Power management (optional, can cause suspend issues)
+      powerManagement.enable = false;
+
+      # Use beta drivers (560+) for best Wayland/Plasma 6 support
+      # RTX 30 series (Ampere) is fully supported
+      package = config.boot.kernelPackages.nvidiaPackages.beta;
+
+      # Open source kernel module (optional for Turing+)
+      # Set to false for proprietary (recommended for gaming/CUDA)
+      open = false;
+
+      # Enable nvidia-settings
+      nvidiaSettings = true;
     };
+
+    # ============================================================================
+    # GPU OPTIMIZATIONS FOR AI INFERENCE
+    # ============================================================================
+    # Enable persistence mode and disable auto-boost for consistent performance
+    # These optimizations reduce inference latency by 1-3 seconds per request
+    # and eliminate performance jitter during sustained workloads.
+
+    # Enable persistence mode for all GPUs
+    # Prevents GPU driver from unloading during idle periods
+    # Reduces initialization latency for AI inference requests
+    systemd.services.nvidia-persistence-mode = {
+      description = "Enable NVIDIA GPU persistence mode for AI workloads";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = "/run/current-system/sw/bin/nvidia-smi -pm 1";
+      };
+    };
+
+    # ============================================================================
+    # GPU POWER/PERFORMANCE MODE NOTES
+    # ============================================================================
+    # GPUPowerMizerMode controls dynamic clock scaling:
+    # - 0 = Adaptive (default) - auto-scales based on load
+    # - 1 = Prefer Maximum Performance - always full clocks
+    # - 2 = Auto - same as Adaptive for RTX 30 series
+    #
+    # Current: Both GPUs at default (0=Adaptive)
+    # GPU 0 (3060 Ti): 210 MHz idle → 420 MHz max
+    # GPU 1 (3090): 240 MHz idle → 2130 MHz max
+    #
+    # To change mode (requires X/Wayland session):
+    #   nvidia-settings -a [gpu:0]/GPUPowerMizerMode=1  # Max performance
+    #   nvidia-settings -a [gpu:0]/GPUPowerMizerMode=0  # Adaptive (default)
+    #
+    # Note: nvidia-settings requires DISPLAY variable, so this cannot be set
+    # via systemd service at boot. Run manually after login or add to autostart.
   };
 }

@@ -1,22 +1,17 @@
 # NixOS WiFi Module
 # Enables WiFi support via NetworkManager and wpa_supplicant
-
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }:
-
 let
   cfg = config.networking.wifi;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
-    mkOption
-    types
     mkIf
     ;
-
 in
 {
   options.networking.wifi = {

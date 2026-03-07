@@ -1,22 +1,17 @@
 # NixOS Bluetooth Module
 # Enables Bluetooth support via bluez
-
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }:
-
 let
   cfg = config.networking.bluetooth;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
-    mkOption
-    types
     mkIf
     ;
-
 in
 {
   options.networking.bluetooth = {

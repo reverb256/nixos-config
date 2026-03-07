@@ -8,11 +8,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.gpu-exporters;
   inherit (lib) mkEnableOption mkOption types mkIf;
-
 in {
   options.services.gpu-exporters = {
     enable = mkEnableOption "GPU metrics exporters for Prometheus";
@@ -59,8 +57,8 @@ in {
     # duplicate nvidia-smi-command flag issues when multiple NVIDIA packages exist
     systemd.services.prometheus-nvidia-gpu-exporter = mkIf cfg.nvidia.enable {
       description = "Prometheus NVIDIA GPU Metrics Exporter";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
       serviceConfig = {
         Type = "simple";
@@ -109,7 +107,7 @@ in {
       isSystemUser = true;
       group = "nvidia-gpu-exporter";
     };
-    users.groups.nvidia-gpu-exporter = mkIf cfg.nvidia.enable { };
+    users.groups.nvidia-gpu-exporter = mkIf cfg.nvidia.enable {};
 
     # ============================================================================
     # AMD GPU EXPORTER
@@ -117,8 +115,8 @@ in {
     # Use textfile collector with a script that polls rocm-smi
     systemd.services.prometheus-amdgpu-exporter = mkIf cfg.amd.enable {
       description = "Prometheus AMD GPU Metrics Exporter";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
       serviceConfig = {
         Type = "simple";
@@ -130,7 +128,7 @@ in {
           "PATH=/run/current-system/sw/bin:/run/wrappers/bin"
         ];
         # Add supplementary groups for GPU access
-        SupplementaryGroups = [ "video" "render" ];
+        SupplementaryGroups = ["video" "render"];
         # Allow access to GPU devices
         PrivateDevices = false;
         ExecStart = pkgs.writers.writeBash "amdgpu-exporter" ''

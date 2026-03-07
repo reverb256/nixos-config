@@ -1,13 +1,12 @@
 # modules/services/ai-inference/ai_inference_gateway/tests/test_circuit_breaker.py
 import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch
-from datetime import datetime, timedelta
+from unittest.mock import Mock, AsyncMock
 
 from ai_inference_gateway.middleware.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerState,
-    CircuitBreakerOpenError
+    CircuitBreakerOpenError,
 )
 from ai_inference_gateway.config import CircuitBreakerConfig
 
@@ -19,18 +18,13 @@ class TestCircuitBreakerStates:
     async def test_initial_state_is_closed(self):
         """Circuit breaker starts in CLOSED state."""
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=5,
-            success_threshold=2,
-            timeout_seconds=60
+            enabled=True, failure_threshold=5, success_threshold=2, timeout_seconds=60
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         assert cb.state == CircuitBreakerState.CLOSED
@@ -40,10 +34,7 @@ class TestCircuitBreakerStates:
     async def test_opens_after_failure_threshold(self):
         """Circuit opens after reaching failure threshold."""
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=3,
-            success_threshold=2,
-            timeout_seconds=60
+            enabled=True, failure_threshold=3, success_threshold=2, timeout_seconds=60
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
@@ -51,9 +42,7 @@ class TestCircuitBreakerStates:
         redis_client.incrby = AsyncMock(return_value=1)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         # Record failures up to threshold
@@ -71,7 +60,7 @@ class TestCircuitBreakerStates:
             enabled=True,
             failure_threshold=2,
             success_threshold=2,
-            timeout_seconds=1  # Short timeout for testing
+            timeout_seconds=1,  # Short timeout for testing
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
@@ -79,9 +68,7 @@ class TestCircuitBreakerStates:
         redis_client.incrby = AsyncMock(return_value=1)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         # Open the circuit
@@ -102,10 +89,7 @@ class TestCircuitBreakerStates:
     async def test_closes_after_success_threshold_in_half_open(self):
         """Circuit closes after reaching success threshold in HALF_OPEN."""
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=2,
-            success_threshold=2,
-            timeout_seconds=1
+            enabled=True, failure_threshold=2, success_threshold=2, timeout_seconds=1
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
@@ -114,9 +98,7 @@ class TestCircuitBreakerStates:
         redis_client.delete = AsyncMock()
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         # Open the circuit
@@ -140,10 +122,7 @@ class TestCircuitBreakerStates:
     async def test_reopens_on_failure_in_half_open(self):
         """Circuit reopens if failure occurs in HALF_OPEN."""
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=2,
-            success_threshold=2,
-            timeout_seconds=1
+            enabled=True, failure_threshold=2, success_threshold=2, timeout_seconds=1
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
@@ -151,9 +130,7 @@ class TestCircuitBreakerStates:
         redis_client.incrby = AsyncMock(return_value=1)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         # Open the circuit
@@ -180,10 +157,7 @@ class TestCircuitBreakerRedisIntegration:
     async def test_loads_state_from_redis(self):
         """Circuit breaker loads its state from Redis on initialization."""
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=5,
-            success_threshold=2,
-            timeout_seconds=60
+            enabled=True, failure_threshold=5, success_threshold=2, timeout_seconds=60
         )
         redis_client = Mock()
         # Simulate OPEN state in Redis
@@ -191,9 +165,7 @@ class TestCircuitBreakerRedisIntegration:
         redis_client.set = AsyncMock()
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         assert cb.state == CircuitBreakerState.OPEN
@@ -202,10 +174,7 @@ class TestCircuitBreakerRedisIntegration:
     async def test_saves_state_to_redis_on_failure(self):
         """Circuit breaker saves state to Redis on failure."""
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=1,
-            success_threshold=2,
-            timeout_seconds=60
+            enabled=True, failure_threshold=1, success_threshold=2, timeout_seconds=60
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
@@ -213,9 +182,7 @@ class TestCircuitBreakerRedisIntegration:
         redis_client.incrby = AsyncMock(return_value=1)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         # Trigger failure that opens circuit
@@ -230,10 +197,7 @@ class TestCircuitBreakerRedisIntegration:
     async def test_tracks_failure_count_in_redis(self):
         """Circuit breaker tracks failure count in Redis."""
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=5,
-            success_threshold=2,
-            timeout_seconds=60
+            enabled=True, failure_threshold=5, success_threshold=2, timeout_seconds=60
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
@@ -241,9 +205,7 @@ class TestCircuitBreakerRedisIntegration:
         redis_client.incrby = AsyncMock(return_value=1)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         # Record failures
@@ -261,18 +223,13 @@ class TestCircuitBreakerAllowRequest:
     async def test_allows_request_when_closed(self):
         """allow_request returns True when circuit is CLOSED."""
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=5,
-            success_threshold=2,
-            timeout_seconds=60
+            enabled=True, failure_threshold=5, success_threshold=2, timeout_seconds=60
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         assert await cb.allow_request() is True
@@ -281,10 +238,7 @@ class TestCircuitBreakerAllowRequest:
     async def test_blocks_request_when_open(self):
         """allow_request returns False when circuit is OPEN."""
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=2,
-            success_threshold=2,
-            timeout_seconds=60
+            enabled=True, failure_threshold=2, success_threshold=2, timeout_seconds=60
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
@@ -292,9 +246,7 @@ class TestCircuitBreakerAllowRequest:
         redis_client.incrby = AsyncMock(return_value=1)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         # Open the circuit
@@ -307,10 +259,7 @@ class TestCircuitBreakerAllowRequest:
     async def test_allows_single_request_when_half_open(self):
         """allow_request allows single request in HALF_OPEN state."""
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=2,
-            success_threshold=2,
-            timeout_seconds=1
+            enabled=True, failure_threshold=2, success_threshold=2, timeout_seconds=1
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
@@ -318,9 +267,7 @@ class TestCircuitBreakerAllowRequest:
         redis_client.incrby = AsyncMock(return_value=1)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         # Open the circuit
@@ -345,9 +292,7 @@ class TestCircuitBreakerDisabled:
         redis_client = Mock()
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         assert await cb.allow_request() is True
@@ -365,10 +310,7 @@ class TestCircuitBreakerMiddlewareIntegration:
         from fastapi import Request
 
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=2,
-            success_threshold=2,
-            timeout_seconds=60
+            enabled=True, failure_threshold=2, success_threshold=2, timeout_seconds=60
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
@@ -376,9 +318,7 @@ class TestCircuitBreakerMiddlewareIntegration:
         redis_client.incrby = AsyncMock(return_value=1)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         # Open the circuit
@@ -399,18 +339,13 @@ class TestCircuitBreakerMiddlewareIntegration:
         from fastapi import Request
 
         config = CircuitBreakerConfig(
-            enabled=True,
-            failure_threshold=5,
-            success_threshold=2,
-            timeout_seconds=60
+            enabled=True, failure_threshold=5, success_threshold=2, timeout_seconds=60
         )
         redis_client = Mock()
         redis_client.get = AsyncMock(return_value=None)
 
         cb = CircuitBreaker(
-            service_id="test-service",
-            config=config,
-            redis_client=redis_client
+            service_id="test-service", config=config, redis_client=redis_client
         )
 
         # Create mock request

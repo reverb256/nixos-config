@@ -1,12 +1,10 @@
 # Gamescope HDR configuration - separate module for hosts with HDR displays
 # Import this on zephyr only (not nexus - no HDR display)
-{
-  config,
-  lib,
-  ...
+{ config
+, lib
+, ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.services.gaming;
   baseArgs = [
     "--immediate-flips"

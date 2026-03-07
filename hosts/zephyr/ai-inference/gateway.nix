@@ -4,11 +4,9 @@
   lib,
   pkgs,
   ...
-}:
-
-let
+}: let
   cfg = config.services.ai-inference;
-  inherit (lib) mkIf mkOption types;
+  inherit (lib) mkIf;
 
   # Python environment with gateway dependencies (including RAG)
   gatewayPython = pkgs.python3.withPackages (ps: [
@@ -767,7 +765,7 @@ let
             async def refresh_multi(self, primary: BackendClient, fallback: BackendClient = None) -> bool:
                 """Refresh models from multiple backends and merge them."""
                 models_to_add = []
-                
+
                 # Refresh primary backend models
                 try:
                     resp = await primary.client.get("/v1/models", timeout=10.0)
@@ -777,7 +775,7 @@ let
                         for model in raw_models:
                             model["backend"] = "lm-studio"
                         models_to_add.extend(raw_models)
-                        
+
                         await primary.circuit_breaker.record_success()
                         print(f"✓ Refreshed LM Studio models: {len(raw_models)} models")
                     else:
@@ -786,7 +784,7 @@ let
                 except Exception as e:
                     await primary.circuit_breaker.record_failure()
                     print(f"✗ Failed to refresh LM Studio models: {e}")
-                
+
                 # Refresh fallback backend models
                 if fallback:
                     try:
@@ -797,7 +795,7 @@ let
                             for model in raw_models:
                                 model["backend"] = "zai"
                             models_to_add.extend(raw_models)
-                            
+
                             await fallback.circuit_breaker.record_success()
                             print(f"✓ Refreshed ZAI models: {len(raw_models)} models")
                         else:
@@ -806,7 +804,7 @@ let
                     except Exception as e:
                         await fallback.circuit_breaker.record_failure()
                         print(f"✗ Failed to refresh ZAI models: {e}")
-                
+
                 # Merge and update models
                 async with self._lock:
                     # Remove stale models by checking which backends are currently accessible
@@ -814,10 +812,10 @@ let
                     self.models.extend(models_to_add)
                     self.last_refresh = time.time()
                     models_cache_size.set(len(self.models))
-                    
+
                     # Update router with merged list
                     router.set_models(self.models)
-                    
+
                     return True
 
             async def refresh(self, client: BackendClient) -> bool:
@@ -2846,17 +2844,15 @@ let
   # Gateway package directory
   gatewayPkg =
     pkgs.runCommand "ai-inference-gateway-pkg"
-      {
-        preferLocalBuild = true;
-      }
-      ''
-        mkdir -p $out/ai_inference
-        cp ${gatewayMain} $out/ai_inference/main.py
-        cp ${gatewayInit} $out/ai_inference/__init__.py
-      '';
-
-in
-{
+    {
+      preferLocalBuild = true;
+    }
+    ''
+      mkdir -p $out/ai_inference
+      cp ${gatewayMain} $out/ai_inference/main.py
+      cp ${gatewayInit} $out/ai_inference/__init__.py
+    '';
+in {
   config = mkIf (cfg.enable && cfg.gateway.enable) {
     systemd.services.ai-inference-gateway = {
       description = "AI Inference API Gateway v2";
@@ -2870,7 +2866,7 @@ in
         "nvidia-persistence-mode.service"
         "nvidia-disable-autoboost.service"
       ];
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
 
       environment = {
         BACKEND_URL = cfg.backend.url;
@@ -2879,24 +2875,26 @@ in
         PORT = toString cfg.gateway.port;
         AUTH_MODE = cfg.auth.mode;
         LM_STUDIO_API_KEY =
-          if cfg.backend.lmStudio.apiKeyFile != null then
-            "" # Will be loaded from file by gateway
-          else
-            cfg.backend.lmStudio.apiKey;
-        LM_STUDIO_API_KEY_FILE = lib.optionalString (
-          cfg.backend.lmStudio.apiKeyFile != null
-        ) cfg.backend.lmStudio.apiKeyFile;
+          if cfg.backend.lmStudio.apiKeyFile != null
+          then null # Will be loaded from file by gateway
+          else cfg.backend.lmStudio.apiKey;
+        LM_STUDIO_API_KEY_FILE =
+          lib.optionalString (
+            cfg.backend.lmStudio.apiKeyFile != null
+          )
+          cfg.backend.lmStudio.apiKeyFile;
         # ZAI backend configuration
         ZAI_API_KEY =
-          if cfg.backend.zai.apiKeyFile != null then
-            "" # Will be loaded from file by gateway
-          else
-            cfg.backend.zai.apiKey;
-        ZAI_API_KEY_FILE = lib.optionalString (
-          cfg.backend.zai.apiKeyFile != null
-        ) cfg.backend.zai.apiKeyFile;
+          if cfg.backend.zai.apiKeyFile != null
+          then "" # Will be loaded from file by gateway
+          else cfg.backend.zai.apiKey;
+        ZAI_API_KEY_FILE =
+          lib.optionalString (
+            cfg.backend.zai.apiKeyFile != null
+          )
+          cfg.backend.zai.apiKeyFile;
         ZAI_BASE_URL = cfg.backend.zai.baseUrl;
-        ZAI_MODELS = lib.generators.toJSON { } cfg.backend.zai.models;
+        ZAI_MODELS = lib.generators.toJSON {} cfg.backend.zai.models;
         # ZAI advanced configuration
         ZAI_MAX_RETRIES = toString cfg.backend.zai.maxRetries;
         ZAI_RETRY_DELAY = builtins.toString cfg.backend.zai.retryDelay;
@@ -2909,7 +2907,7 @@ in
         RATE_LIMIT_RPM = toString cfg.rateLimit.requestsPerMinute;
         MAX_REQUEST_SIZE = toString cfg.security.maxRequestSize;
         SECURITY_PROXY_ENABLED = lib.boolToString cfg.security.enableProxy;
-        MCP_SERVERS = lib.generators.toJSON { } cfg.mcp.servers;
+        MCP_SERVERS = lib.generators.toJSON {} cfg.mcp.servers;
         # RAG configuration
         RAG_ENABLED = lib.boolToString cfg.rag.enable;
         QDRANT_URL = cfg.rag.qdrantUrl;
@@ -2938,12 +2936,13 @@ in
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [
-          "/tmp"
-          "/var/cache/ai-inference"
-        ]
-        ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
-        ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile);
+        ReadWritePaths =
+          [
+            "/tmp"
+            "/var/cache/ai-inference"
+          ]
+          ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
+          ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile);
         MemoryMax = "2G";
         CPUWeight = 100;
         IOWeight = 100;
@@ -2958,7 +2957,7 @@ in
       group = "ai-inference";
       description = "AI Inference Gateway";
     };
-    users.groups.ai-inference = { };
+    users.groups.ai-inference = {};
 
     # Create cache directory
     systemd.tmpfiles.rules = [

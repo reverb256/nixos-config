@@ -14,7 +14,7 @@ The OpenAI SDK handles:
 """
 
 import logging
-from typing import Optional, AsyncIterator, Dict, Any
+from typing import Optional, Dict, Any
 from openai import AsyncOpenAI, AsyncStream
 from openai.types.chat import ChatCompletion, ChatCompletionChunk
 
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class OpenAIBackendError(Exception):
     """Exception raised when backend request fails."""
+
     pass
 
 
@@ -55,7 +56,9 @@ class OpenAIClientWrapper:
             zai_models: List of ZAI models to try (in order)
         """
         self.primary_url = primary_url.rstrip("/")
-        self.primary_api_key = primary_api_key or "not-needed"  # LM Studio doesn't need key
+        self.primary_api_key = (
+            primary_api_key or "not-needed"
+        )  # LM Studio doesn't need key
         self.fallback_url = fallback_url.rstrip("/") if fallback_url else None
         self.fallback_api_key = fallback_api_key
         self.timeout = timeout
@@ -106,7 +109,7 @@ class OpenAIClientWrapper:
             OpenAIBackendError: If all backends fail
         """
         # Remove 'stream' from kwargs to avoid duplicate parameter error
-        kwargs.pop('stream', None)
+        kwargs.pop("stream", None)
 
         # If backend is specified, use it directly
         if backend == "zai" and self.fallback_client:
@@ -140,7 +143,9 @@ class OpenAIClientWrapper:
 
         # Auto-detect: try primary backend first
         try:
-            logger.info(f"Attempting primary backend: {self.primary_url} with model: {model}")
+            logger.info(
+                f"Attempting primary backend: {self.primary_url} with model: {model}"
+            )
             response = await self.primary_client.chat.completions.create(
                 messages=messages,
                 model=model,
@@ -162,45 +167,67 @@ class OpenAIClientWrapper:
                     # to avoid connection issues when switching models mid-stream
                     if stream:
                         try:
-                            logger.info(f"Attempting ZAI fallback with requested model: {model}")
-                            response = await self.fallback_client.chat.completions.create(
-                                messages=messages,
-                                model=model,
-                                stream=stream,
-                                **kwargs,
+                            logger.info(
+                                f"Attempting ZAI fallback with requested model: {model}"
+                            )
+                            response = (
+                                await self.fallback_client.chat.completions.create(
+                                    messages=messages,
+                                    model=model,
+                                    stream=stream,
+                                    **kwargs,
+                                )
                             )
                             logger.info(f"ZAI fallback succeeded with model: {model}")
                             return response
                         except Exception as fallback_error:
                             logger.error(f"ZAI fallback failed: {str(fallback_error)}")
-                            raise OpenAIBackendError(f"ZAI backend error: {str(fallback_error)}")
+                            raise OpenAIBackendError(
+                                f"ZAI backend error: {str(fallback_error)}"
+                            )
                     else:
                         # For non-streaming requests, try multiple ZAI models in sequence
                         last_error = None
                         for zai_model in self.zai_models:
                             try:
-                                logger.info(f"Attempting ZAI fallback with model: {zai_model}")
-                                response = await self.fallback_client.chat.completions.create(
-                                    messages=messages,
-                                    model=zai_model,
-                                    stream=stream,
-                                    **kwargs,
+                                logger.info(
+                                    f"Attempting ZAI fallback with model: {zai_model}"
                                 )
-                                logger.info(f"ZAI fallback succeeded with model: {zai_model}")
+                                response = (
+                                    await self.fallback_client.chat.completions.create(
+                                        messages=messages,
+                                        model=zai_model,
+                                        stream=stream,
+                                        **kwargs,
+                                    )
+                                )
+                                logger.info(
+                                    f"ZAI fallback succeeded with model: {zai_model}"
+                                )
                                 return response
                             except Exception as model_error:
                                 last_error = model_error
                                 model_error_msg = str(model_error)
-                                logger.warning(f"ZAI model {zai_model} failed: {model_error_msg}")
+                                logger.warning(
+                                    f"ZAI model {zai_model} failed: {model_error_msg}"
+                                )
 
                                 # Don't try more models if it's not a retryable error
                                 if not self._should_try_next_model(model_error_msg):
-                                    logger.error(f"ZAI model {zai_model} failed with non-retryable error, stopping fallback")
-                                    raise OpenAIBackendError(f"ZAI backend error: {model_error_msg}")
+                                    logger.error(
+                                        f"ZAI model {zai_model} failed with non-retryable error, stopping fallback"
+                                    )
+                                    raise OpenAIBackendError(
+                                        f"ZAI backend error: {model_error_msg}"
+                                    )
 
                         # All models failed
-                        logger.error(f"All ZAI models failed. Last error: {str(last_error)}")
-                        raise OpenAIBackendError(f"All ZAI models failed. Last error: {str(last_error)}")
+                        logger.error(
+                            f"All ZAI models failed. Last error: {str(last_error)}"
+                        )
+                        raise OpenAIBackendError(
+                            f"All ZAI models failed. Last error: {str(last_error)}"
+                        )
                 else:
                     logger.warning("No fallback backend configured")
                     raise OpenAIBackendError(f"Primary backend failed: {error_msg}")

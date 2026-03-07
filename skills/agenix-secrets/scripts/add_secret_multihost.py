@@ -8,7 +8,6 @@ import subprocess
 import sys
 import os
 import re
-from pathlib import Path
 
 
 def parse_secrets_nix(secrets_nix_path="/etc/nixos/secrets.nix"):
@@ -21,12 +20,12 @@ def parse_secrets_nix(secrets_nix_path="/etc/nixos/secrets.nix"):
 
     result = {"users": {}, "hosts": {}}
 
-    users_match = re.search(r'users\s*=\s*{([^}]+)};', content, re.DOTALL)
+    users_match = re.search(r"users\s*=\s*{([^}]+)};", content, re.DOTALL)
     if users_match:
         for match in re.finditer(r'(\w+)\s*=\s*"([^"]+)"', users_match.group(1)):
             result["users"][match.group(1)] = match.group(2)
 
-    hosts_match = re.search(r'hosts\s*=\s*{([^}]+)};', content, re.DOTALL)
+    hosts_match = re.search(r"hosts\s*=\s*{([^}]+)};", content, re.DOTALL)
     if hosts_match:
         for match in re.finditer(r'(\w+)\s*=\s*"([^"]+)"', hosts_match.group(1)):
             result["hosts"][match.group(1)] = match.group(2)
@@ -92,7 +91,13 @@ def create_encrypted_file(secret_name, secret_value, recipients, owner="j_kro"):
 
     # Create the encrypted file
     result = subprocess.run(
-        ["agenix", "-e", f"secrets/{secret_name}.age", "-i", f"/home/{owner}/.age/key.txt"],
+        [
+            "agenix",
+            "-e",
+            f"secrets/{secret_name}.age",
+            "-i",
+            f"/home/{owner}/.age/key.txt",
+        ],
         input=secret_value,
         text=True,
         cwd="/etc/nixos",
@@ -106,7 +111,11 @@ def create_encrypted_file(secret_name, secret_value, recipients, owner="j_kro"):
     # Move to secrets/ directory if created in wrong location
     if os.path.exists(f"/etc/nixos/{secret_name}.age"):
         subprocess.run(
-            ["mv", f"/etc/nixos/{secret_name}.age", f"/etc/nixos/secrets/{secret_name}.age"]
+            [
+                "mv",
+                f"/etc/nixos/{secret_name}.age",
+                f"/etc/nixos/secrets/{secret_name}.age",
+            ]
         )
 
     print(f"✓ Created: secrets/{secret_name}.age")
@@ -114,7 +123,9 @@ def create_encrypted_file(secret_name, secret_value, recipients, owner="j_kro"):
     return True
 
 
-def update_secrets_nix(secret_name, recipients, owner="j_kro", secrets_nix_path="/etc/nixos/secrets.nix"):
+def update_secrets_nix(
+    secret_name, recipients, owner="j_kro", secrets_nix_path="/etc/nixos/secrets.nix"
+):
     """
     Add secret to secrets.nix with proper recipient keys.
 
@@ -138,7 +149,7 @@ def update_secrets_nix(secret_name, recipients, owner="j_kro", secrets_nix_path=
         return True
 
     # Build the publicKeys list
-    keys_data = parse_secrets_nix(secrets_nix_path)
+    _keys_data = parse_secrets_nix(secrets_nix_path)  # noqa: F841
     public_keys_list = [f"users.{owner}"]
     public_keys_list.extend([f"hosts.{host}" for host in recipients.keys()])
     public_keys = " ".join(public_keys_list)
@@ -154,11 +165,13 @@ def update_secrets_nix(secret_name, recipients, owner="j_kro", secrets_nix_path=
     with open(secrets_nix_path, "w") as f:
         f.write(content)
 
-    print(f"✓ Added to secrets.nix")
+    print("✓ Added to secrets.nix")
     return True
 
 
-def update_host_configuration(secret_name, hosts_list, owner="j_kro", group=None, mode="440"):
+def update_host_configuration(
+    secret_name, hosts_list, owner="j_kro", group=None, mode="440"
+):
     """
     Add age.secrets.* declaration to each host's configuration.nix.
 
@@ -229,11 +242,13 @@ def update_host_configuration(secret_name, hosts_list, owner="j_kro", group=None
         else:
             print(f"  ✗ {hostname}: Could not find age.secrets section")
             print(f"    Manually add to {config_path}:")
-            print(f"""    age.secrets.{secret_name} = {{
+            print(
+                f"""    age.secrets.{secret_name} = {{
       file = "${{inputs.self}}/secrets/{secret_name}.age";
       mode = "{mode}";
       owner = "{owner}";
-    }};""")
+    }};"""
+            )
             success = False
 
     return success
@@ -299,13 +314,17 @@ def main():
             # Interpolate hostname in value
             secret_value = args.value.replace("{hostname}", hostname)
 
-            if not create_encrypted_file(secret_name, secret_value, host_recipients, args.owner):
+            if not create_encrypted_file(
+                secret_name, secret_value, host_recipients, args.owner
+            ):
                 sys.exit(1)
 
             if not update_secrets_nix(secret_name, host_recipients, args.owner):
                 sys.exit(1)
 
-            if not update_host_configuration(secret_name, [hostname], args.owner, args.group, args.mode):
+            if not update_host_configuration(
+                secret_name, [hostname], args.owner, args.group, args.mode
+            ):
                 sys.exit(1)
 
         print(f"\n✓ Created {len(hosts_list)} per-host secrets")
@@ -319,7 +338,9 @@ def main():
         if not update_secrets_nix(args.name, recipients, args.owner):
             sys.exit(1)
 
-        if not update_host_configuration(args.name, hosts_list, args.owner, args.group, args.mode):
+        if not update_host_configuration(
+            args.name, hosts_list, args.owner, args.group, args.mode
+        ):
             sys.exit(1)
 
         print("\n✓ Created shared secret")
@@ -328,8 +349,10 @@ def main():
     print("\n" + "=" * 60)
     print("Summary of changes:")
     print(f"  ✓ Created: secrets/{args.name}.age")
-    print(f"  ✓ Updated: secrets.nix")
-    print(f"  ✓ Updated: {', '.join([f'hosts/{h}/configuration.nix' for h in hosts_list])}")
+    print("  ✓ Updated: secrets.nix")
+    print(
+        f"  ✓ Updated: {', '.join([f'hosts/{h}/configuration.nix' for h in hosts_list])}"
+    )
 
     if not args.no_rebuild:
         print("\n" + "=" * 60)

@@ -1,7 +1,6 @@
 # Default module imports for all submodules
 # Modules are organized into logical subdirectories for better maintainability
-{ ... }:
-{
+{...}: {
   imports = [
     # Network configuration
     ./network-constants.nix
@@ -11,6 +10,8 @@
     # System-level configuration
     ./system/nix-config.nix
     ./system/users.nix
+    ./system/ssh.nix
+    ./system/mosh.nix
 
     # Desktop environment
     ./desktop/plasma6.nix
@@ -34,8 +35,10 @@
     ./development/tools.nix
     ./development/lsp.nix
     ./development/programming-languages.nix
+    ./development/opencode.nix
 
     # Services
+    ./services/mcp-servers.nix
     ./services/lm-studio.nix
     ./services/lm-studio-headless.nix
     ./services/stability-matrix.nix
@@ -52,5 +55,21 @@
     # Exporters
     ./services/gpu-exporters.nix
     ./services/mining-exporter.nix
+
+    # Hardware modules
+    ./hardware/nvidia-common.nix
+    ./hardware/monitoring.nix
+    ./hardware/corsair.nix
+
+    # Multimedia modules
+    ./multimedia/gstreamer.nix
+
+    # Desktop modules (Spotify customization)
+    ./desktop/spotify-spotx.nix
+    ./desktop/spotify-spicetify.nix
+
+    # Network modules
+    ./network/cluster-hosts.nix
+    ./services/unbound-cluster.nix
   ];
 }

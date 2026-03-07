@@ -4,16 +4,12 @@
 {
   config,
   lib,
-  pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.monitoring.prometheus;
   # Use centralized network constants to avoid duplication
-  hosts = config.networking.cluster.hosts;
-  ports = config.networking.cluster.ports;
-in
-{
+  inherit (config.networking.cluster) ports;
+in {
   options.services.monitoring.prometheus = {
     enable = lib.mkEnableOption "Prometheus monitoring server";
 
@@ -53,22 +49,14 @@ in
           static_configs = [
             {
               targets = [
-                "${hosts.zephyr.ip}:${toString ports.node-exporter}"
-                "${hosts.nexus.ip}:${toString ports.node-exporter}"
-                "${hosts.forge.ip}:${toString ports.node-exporter}"
-                "${hosts.sentry.ip}:${toString ports.node-exporter}"
+                "zephyr:${toString ports.node-exporter}"
+                "nexus:${toString ports.node-exporter}"
+                "forge:${toString ports.node-exporter}"
+                "sentry:${toString ports.node-exporter}"
               ];
               labels = {
                 environment = "production";
               };
-            }
-          ];
-          relabel_configs = [
-            {
-              source_labels = [ "__address__" ];
-              regex = "([^:]+):.*";
-              replacement = "\${1}";
-              target_label = "host";
             }
           ];
         }
@@ -79,22 +67,14 @@ in
           static_configs = [
             {
               targets = [
-                "${hosts.zephyr.ip}:9105"
-                "${hosts.nexus.ip}:9105"
-                "${hosts.forge.ip}:9105"
-                "${hosts.sentry.ip}:9105"
+                "zephyr:9105"
+                "nexus:9105"
+                "forge:9105"
+                "sentry:9105"
               ];
               labels = {
                 environment = "production";
               };
-            }
-          ];
-          relabel_configs = [
-            {
-              source_labels = [ "__address__" ];
-              regex = "([^:]+):.*";
-              replacement = "\${1}";
-              target_label = "host";
             }
           ];
         }
@@ -105,52 +85,12 @@ in
           static_configs = [
             {
               targets = [
-                "${hosts.zephyr.ip}:9400"
-                "${hosts.nexus.ip}:9400"
-                "${hosts.forge.ip}:9400"
+                "zephyr:9400"
+                "nexus:9400"
+                "forge:9400"
               ];
             }
           ];
-        }
-
-        # TP-Link Switches (SNMP)
-        {
-          job_name = "switches";
-          static_configs = [
-            {
-              targets = [
-                "10.1.1.10"
-                "10.1.1.11"
-                "10.1.1.12"
-                "10.1.1.13"
-              ];
-              labels = {
-                environment = "production";
-              };
-            }
-          ];
-          relabel_configs = [
-            {
-              source_labels = [ "__address__" ];
-              target_label = "__param_target";
-            }
-            {
-              source_labels = [ "__param_target" ];
-              target_label = "instance";
-            }
-            {
-              source_labels = [ "__address__" ];
-              regex = "(.*)";
-              target_label = "__address__";
-              replacement = "127.0.0.1:9116";
-            }
-            {
-              source_labels = [ "__param_target" ];
-              target_label = "module";
-              replacement = "tplink_easy_smart";
-            }
-          ];
-          metrics_path = "/snmp";
         }
 
         # Prometheus self-monitoring
@@ -158,7 +98,7 @@ in
           job_name = "prometheus";
           static_configs = [
             {
-              targets = [ "127.0.0.1:${toString ports.prometheus}" ];
+              targets = ["localhost:${toString ports.prometheus}"];
             }
           ];
         }
@@ -195,7 +135,7 @@ in
       isSystemUser = true;
       group = "prometheus";
     };
-    users.groups.prometheus = { };
+    users.groups.prometheus = {};
 
     # Open firewall for internal access
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [

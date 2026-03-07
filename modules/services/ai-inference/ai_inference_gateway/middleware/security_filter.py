@@ -49,7 +49,7 @@ class SecurityFilterMiddleware(Middleware):
         ],
         "CREDIT_CARD": [
             r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b",  # Credit card format
-        ]
+        ],
     }
 
     def __init__(self, config: SecurityConfig):
@@ -66,8 +66,7 @@ class SecurityFilterMiddleware(Middleware):
         """Compile regex patterns for efficiency."""
         # Compile injection patterns (case-insensitive)
         self._injection_patterns = [
-            re.compile(pattern, re.IGNORECASE)
-            for pattern in self.INJECTION_PATTERNS
+            re.compile(pattern, re.IGNORECASE) for pattern in self.INJECTION_PATTERNS
         ]
 
         # Compile PII patterns
@@ -75,8 +74,7 @@ class SecurityFilterMiddleware(Middleware):
         if self.config.pii_redaction:
             for pii_type, patterns in self.PII_PATTERNS.items():
                 self._pii_patterns[pii_type] = [
-                    re.compile(pattern, re.IGNORECASE)
-                    for pattern in patterns
+                    re.compile(pattern, re.IGNORECASE) for pattern in patterns
                 ]
 
     def _calculate_request_size(self, request_body: dict) -> int:
@@ -90,7 +88,7 @@ class SecurityFilterMiddleware(Middleware):
             Size in bytes
         """
         try:
-            return len(json.dumps(request_body).encode('utf-8'))
+            return len(json.dumps(request_body).encode("utf-8"))
         except Exception:
             # If we can't serialize, estimate
             return len(str(request_body))
@@ -125,17 +123,12 @@ class SecurityFilterMiddleware(Middleware):
 
         for pii_type, patterns in self._pii_patterns.items():
             for pattern in patterns:
-                redacted_text = pattern.sub(
-                    f"[REDACTED:{pii_type}]",
-                    redacted_text
-                )
+                redacted_text = pattern.sub(f"[REDACTED:{pii_type}]", redacted_text)
 
         return redacted_text
 
     async def process_request(
-        self,
-        request: Request,
-        context: dict
+        self, request: Request, context: dict
     ) -> Tuple[bool, Optional[HTTPException]]:
         """
         Process incoming request for security validation.
@@ -166,7 +159,7 @@ class SecurityFilterMiddleware(Middleware):
             )
             error = HTTPException(
                 status_code=413,
-                detail=f"Request entity too large: {request_size} bytes"
+                detail=f"Request entity too large: {request_size} bytes",
             )
             return False, error
 
@@ -176,8 +169,7 @@ class SecurityFilterMiddleware(Middleware):
             content = message.get("content", "")
             if isinstance(content, str) and self._detect_injection(content):
                 error = HTTPException(
-                    status_code=400,
-                    detail="Request blocked: prompt injection detected"
+                    status_code=400, detail="Request blocked: prompt injection detected"
                 )
                 return False, error
 

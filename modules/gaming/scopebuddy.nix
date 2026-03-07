@@ -7,19 +7,18 @@
   inputs ? null,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.programs.scopebuddy;
   scopebuddyCfg = config.services.gaming;
-  userName = "j_kro";  # TODO: Make configurable
-in
-{
+  userName = "j_kro"; # TODO: Make configurable
+in {
   options.programs.scopebuddy = {
     enable = mkEnableOption "ScopeBuddy - gamescope wrapper with maximum automation";
 
     package = mkOption {
       type = types.nullOr types.package;
-      default = if inputs != null && inputs ? scopebuddy
+      default =
+        if inputs != null && inputs ? scopebuddy
         then inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default
         else null;
       description = "ScopeBuddy package to use";
@@ -113,7 +112,7 @@ in
         cyberpunk2077 = {
           enable = true;
           gamescopeArgs = ["-f" "--rt" "--force-grab-cursor"];
-          envVars = { VKD3D_CONFIG = "dx12"; };
+          envVars = {VKD3D_CONFIG = "dx12";};
         };
       };
     };
@@ -128,165 +127,181 @@ in
 
   config = mkIf cfg.enable {
     # Core dependencies
-    environment.systemPackages = with pkgs; [
-      jq          # JSON parsing for config
-      wlr-randr   # Wayland display info
-    ]
-    ++ optionals cfg.performance.enableGameMode [ gamemode ]
-    ++ optionals cfg.performance.mangoHud [ mangohud ]
-    ++ optionals cfg.scripts [ (
-      pkgs.writeShellScriptBin "scopebuddy-detect" ''
-        #!/usr/bin/env bash
-        # Auto-detection script for ScopeBuddy
-        # Detects display capabilities and generates optimal config
+    environment.systemPackages = with pkgs;
+      [
+        jq # JSON parsing for config
+        wlr-randr # Wayland display info
+      ]
+      ++ optionals cfg.performance.enableGameMode [gamemode]
+      ++ optionals cfg.performance.mangoHud [mangohud]
+      ++ optionals cfg.scripts [
+        (
+          pkgs.writeShellScriptBin "scopebuddy-detect" ''
+            #!/usr/bin/env bash
+            # Auto-detection script for ScopeBuddy
+            # Detects display capabilities and generates optimal config
 
-        set -euo pipefail
+            set -euo pipefail
 
-        CONFIG_DIR="''${HOME}/.config/scopebuddy"
-        CONFIG_FILE="''${CONFIG_DIR}/scb.conf"
+            CONFIG_DIR="''${HOME}/.config/scopebuddy"
+            CONFIG_FILE="''${CONFIG_DIR}/scb.conf"
 
-        mkdir -p "''${CONFIG_DIR}"
+            mkdir -p "''${CONFIG_DIR}"
 
-        echo "[ScopeBuddy] Detecting display capabilities..."
+            echo "[ScopeBuddy] Detecting display capabilities..."
 
-        # Detect resolution using wlr-randr or fallback
-        if command -v wlr-randr &> /dev/null; then
-          RESOLUTION=$(wlr-randr --json | jq -r '.[0].modes | map(select(.current == true)) | .[0] | "\(.width)x\(.height)"')
-          echo "[ScopeBuddy] Detected resolution: ''${RESOLUTION}"
-        else
-          RESOLUTION="1920x1080"  # Fallback
-          echo "[ScopeBuddy] Using fallback resolution: ''${RESOLUTION}"
-        fi
-
-        # Detect HDR capability
-        HDR_CAPABLE=false
-        if command -v wlr-randr &> /dev/null; then
-          if wlr-randr --json | jq -e '.[0].enabled | not' > /dev/null; then
-            # Check for HDR in output properties
-            if wlr-randr --json | jq -e '.[0].hdr_enabled == true' > /dev/null 2>&1; then
-              HDR_CAPABLE=true
-              echo "[ScopeBuddy] HDR detected and will be enabled"
+            # Detect resolution using wlr-randr or fallback
+            if command -v wlr-randr &> /dev/null; then
+              RESOLUTION=$(wlr-randr --json | jq -r '.[0].modes | map(select(.current == true)) | .[0] | "\(.width)x\(.height)"')
+              echo "[ScopeBuddy] Detected resolution: ''${RESOLUTION}"
+            else
+              RESOLUTION="1920x1080"  # Fallback
+              echo "[ScopeBuddy] Using fallback resolution: ''${RESOLUTION}"
             fi
-          fi
-        fi
 
-        # Detect VRR/adaptive sync
-        VRR_CAPABLE=false
-        if command -v wlr-randr &> /dev/null; then
-          if wlr-randr --json | jq -e '.[0].adaptive_sync == true' > /dev/null 2>&1; then
-            VRR_CAPABLE=true
-            echo "[ScopeBuddy] VRR detected and will be enabled"
-          fi
-        fi
+            # Detect HDR capability
+            HDR_CAPABLE=false
+            if command -v wlr-randr &> /dev/null; then
+              if wlr-randr --json | jq -e '.[0].enabled | not' > /dev/null; then
+                # Check for HDR in output properties
+                if wlr-randr --json | jq -e '.[0].hdr_enabled == true' > /dev/null 2>&1; then
+                  HDR_CAPABLE=true
+                  echo "[ScopeBuddy] HDR detected and will be enabled"
+                fi
+              fi
+            fi
 
-        # Detect refresh rate
-        REFRESH_RATE=144  # Default
-        if command -v wlr-randr &> /dev/null; then
-          DETECTED_HZ=$(wlr-randr --json | jq -r '.[0].modes | map(select(.current == true)) | .[0].refresh // 144')
-          REFRESH_RATE=$(echo "''${DETECTED_HZ}" | cut -d'.' -f1)
-          echo "[ScopeBuddy] Detected refresh rate: ''${REFRESH_RATE} Hz"
-        fi
+            # Detect VRR/adaptive sync
+            VRR_CAPABLE=false
+            if command -v wlr-randr &> /dev/null; then
+              if wlr-randr --json | jq -e '.[0].adaptive_sync == true' > /dev/null 2>&1; then
+                VRR_CAPABLE=true
+                echo "[ScopeBuddy] VRR detected and will be enabled"
+              fi
+            fi
 
-        # Generate configuration
-        cat > "''${CONFIG_FILE}" << EOF
-        # Auto-generated by ScopeBuddy detection script
-        # Generated: $(date)
+            # Detect refresh rate
+            REFRESH_RATE=144  # Default
+            if command -v wlr-randr &> /dev/null; then
+              DETECTED_HZ=$(wlr-randr --json | jq -r '.[0].modes | map(select(.current == true)) | .[0].refresh // 144')
+              REFRESH_RATE=$(echo "''${DETECTED_HZ}" | cut -d'.' -f1)
+              echo "[ScopeBuddy] Detected refresh rate: ''${REFRESH_RATE} Hz"
+            fi
 
-        [Display]
-        Resolution=''${RESOLUTION}
-        RefreshRate=''${REFRESH_RATE}
+            # Generate configuration
+            cat > "''${CONFIG_FILE}" << EOF
+            # Auto-generated by ScopeBuddy detection script
+            # Generated: $(date)
 
-        [HDR]
-        Enabled=''${HDR_CAPABLE}
+            [Display]
+            Resolution=''${RESOLUTION}
+            RefreshRate=''${REFRESH_RATE}
 
-        [VRR]
-        Enabled=''${VRR_CAPABLE}
+            [HDR]
+            Enabled=''${HDR_CAPABLE}
 
-        [Scaling]
-        Method=FSR
-        Sharpness=5
-        EOF
+            [VRR]
+            Enabled=''${VRR_CAPABLE}
 
-        echo "[ScopeBuddy] Configuration written to ''${CONFIG_FILE}"
-        echo "[ScopeBuddy] Ready to launch with optimal settings!"
-      ''
-    ) (
-      pkgs.writeShellScriptBin "scopebuddy-launch" ''
-        #!/usr/bin/env bash
-        # Smart launcher with CPU governor and performance mode
+            [Scaling]
+            Method=FSR
+            Sharpness=5
+            EOF
 
-        set -euo pipefail
+            echo "[ScopeBuddy] Configuration written to ''${CONFIG_FILE}"
+            echo "[ScopeBuddy] Ready to launch with optimal settings!"
+          ''
+        )
+        (
+          pkgs.writeShellScriptBin "scopebuddy-launch" ''
+            #!/usr/bin/env bash
+            # Smart launcher with CPU governor and performance mode
 
-        # Save current CPU governor
-        CURR_GOVERNOR=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo "unknown")
+            set -euo pipefail
 
-        # Set performance mode if configured
-        ${optionalString (cfg.performance.cpuGovernor != null) ''
-        if [ "''${CURR_GOVERNOR}" != "${cfg.performance.cpuGovernor}" ]; then
-          echo "[ScopeBuddy] Setting CPU governor to ${cfg.performance.cpuGovernor}"
-          echo ${cfg.performance.cpuGovernor} | ${pkgs.sudo}/bin/sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor > /dev/null
-        fi
-        ''}
+            # Save current CPU governor
+            CURR_GOVERNOR=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo "unknown")
 
-        # Launch ScopeBuddy with the game
-        echo "[ScopeBuddy] Launching: $@"
-        ${if cfg.package != null then "${cfg.package}/bin/scopebuddy" else "scopebuddy"} "$@"
+            # Set performance mode if configured
+            ${optionalString (cfg.performance.cpuGovernor != null) ''
+              if [ "''${CURR_GOVERNOR}" != "${cfg.performance.cpuGovernor}" ]; then
+                echo "[ScopeBuddy] Setting CPU governor to ${cfg.performance.cpuGovernor}"
+                echo ${cfg.performance.cpuGovernor} | ${pkgs.sudo}/bin/sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor > /dev/null
+              fi
+            ''}
 
-        # Restore CPU governor after game exits
-        ${optionalString (cfg.performance.cpuGovernor != null) ''
-        if [ "''${CURR_GOVERNOR}" != "unknown" ]; then
-          echo "[ScopeBuddy] Restoring CPU governor to ''${CURR_GOVERNOR}"
-          echo "''${CURR_GOVERNOR}" | ${pkgs.sudo}/bin/sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor > /dev/null
-        fi
-        ''}
-      ''
-    ) ];
+            # Launch ScopeBuddy with the game
+            echo "[ScopeBuddy] Launching: $@"
+            ${
+              if cfg.package != null
+              then "${cfg.package}/bin/scopebuddy"
+              else "scopebuddy"
+            } "$@"
+
+            # Restore CPU governor after game exits
+            ${optionalString (cfg.performance.cpuGovernor != null) ''
+              if [ "''${CURR_GOVERNOR}" != "unknown" ]; then
+                echo "[ScopeBuddy] Restoring CPU governor to ''${CURR_GOVERNOR}"
+                echo "''${CURR_GOVERNOR}" | ${pkgs.sudo}/bin/sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor > /dev/null
+              fi
+            ''}
+          ''
+        )
+      ];
 
     # Shell aliases
     programs.fish.shellAliases = {
-      scb = if cfg.package != null then "${cfg.package}/bin/scopebuddy" else "scopebuddy";
-      scopebuddy = if cfg.package != null then "${cfg.package}/bin/scopebuddy" else "scopebuddy";
+      scb =
+        if cfg.package != null
+        then "${cfg.package}/bin/scopebuddy"
+        else "scopebuddy";
+      scopebuddy =
+        if cfg.package != null
+        then "${cfg.package}/bin/scopebuddy"
+        else "scopebuddy";
       scb-detect = "scopebuddy-detect";
       scb-launch = "scopebuddy-launch";
     };
 
     # Environment variables for auto-detection
-    environment.sessionVariables = {
-      SCB_CONFIG_PATH = "/home/${userName}/.config/scopebuddy/scb.conf";
-      SCB_PROFILES_PATH = "/home/${userName}/.config/scopebuddy/profiles";
-    }
-    // optionalAttrs cfg.autoDetect.resolution {
-      SCB_AUTO_RES = "1";
-    }
-    // optionalAttrs scopebuddyCfg.hdr.enable {
-      SCB_AUTO_HDR = "1";
-    }
-    // optionalAttrs cfg.autoDetect.vrr {
-      SCB_AUTO_VRR = "1";
-    }
-    // optionalAttrs cfg.autoDetect.refreshRate {
-      SCB_AUTO_HZ = "1";
-    }
-    // optionalAttrs cfg.autoDetect.scaling {
-      SCB_AUTO_SCALE = "1";
-    }
-    // optionalAttrs cfg.performance.enableGameMode {
-      SCB_GAMEMODE = "1";
-    }
-    // optionalAttrs cfg.performance.mangoHud {
-      SCB_MANGOHUD = "1";
-    };
+    environment.sessionVariables =
+      {
+        SCB_CONFIG_PATH = "/home/${userName}/.config/scopebuddy/scb.conf";
+        SCB_PROFILES_PATH = "/home/${userName}/.config/scopebuddy/profiles";
+      }
+      // optionalAttrs cfg.autoDetect.resolution {
+        SCB_AUTO_RES = "1";
+      }
+      // optionalAttrs scopebuddyCfg.hdr.enable {
+        SCB_AUTO_HDR = "1";
+      }
+      // optionalAttrs cfg.autoDetect.vrr {
+        SCB_AUTO_VRR = "1";
+      }
+      // optionalAttrs cfg.autoDetect.refreshRate {
+        SCB_AUTO_HZ = "1";
+      }
+      // optionalAttrs cfg.autoDetect.scaling {
+        SCB_AUTO_SCALE = "1";
+      }
+      // optionalAttrs cfg.performance.enableGameMode {
+        SCB_GAMEMODE = "1";
+      }
+      // optionalAttrs cfg.performance.mangoHud {
+        SCB_MANGOHUD = "1";
+      };
 
     # Create config directories
-    systemd.tmpfiles.rules = [
-      "d /home/${userName}/.config/scopebuddy 0755 ${userName} ${userName} -"
-      "d /home/${userName}/.config/scopebuddy/appid 0755 ${userName} ${userName} -"
-      "d /home/${userName}/.config/scopebuddy/profiles 0755 ${userName} ${userName} -"
-    ]
-    ++ optionals scopebuddyCfg.hdr.enable [
-      "f /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} ${userName} -"
-      "w /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} ${userName} -"
-    ];
+    systemd.tmpfiles.rules =
+      [
+        "d /home/${userName}/.config/scopebuddy 0755 ${userName} ${userName} -"
+        "d /home/${userName}/.config/scopebuddy/appid 0755 ${userName} ${userName} -"
+        "d /home/${userName}/.config/scopebuddy/profiles 0755 ${userName} ${userName} -"
+      ]
+      ++ optionals scopebuddyCfg.hdr.enable [
+        "f /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} ${userName} -"
+        "w /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} ${userName} -"
+      ];
 
     # GameMode configuration
     programs.gamemode = mkIf cfg.performance.enableGameMode {

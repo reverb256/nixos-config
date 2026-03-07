@@ -1,7 +1,5 @@
 # TV Monitor Daemon - Automatically manage TV display and audio
-{
-  config, lib, pkgs, ...
-}:
+{ pkgs, ... }:
 let
   tvMonitorDaemon = pkgs.writeShellApplication {
     name = "tv-monitor-daemon";

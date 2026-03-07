@@ -1,6 +1,5 @@
 # modules/services/ai-inference/ai_inference_gateway/tests/test_redis_client.py
 import pytest
-import asyncio
 from ai_inference_gateway.utils.redis_client import RedisClient, InMemoryFallback
 
 

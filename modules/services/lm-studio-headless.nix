@@ -1,7 +1,10 @@
 # LM Studio Headless Service
 # Runs LM Studio in headless mode using the lms CLI
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  ...
+}: let
   cfg = config.services.lm-studio-headless;
 in {
   options.services.lm-studio-headless = {
@@ -30,6 +33,13 @@ in {
       default = false;
       description = "Open firewall for the configured port";
     };
+
+    gpuDevice = lib.mkOption {
+      type = lib.types.nullOr lib.types.int;
+      default = null;
+      example = 1;
+      description = "GPU device ID to use (null = all GPUs, 0 = 3060Ti, 1 = 3090)";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -39,8 +49,8 @@ in {
     # Systemd service for LM Studio headless mode
     systemd.services.lm-studio-headless = {
       description = "LM Studio Headless Service";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -50,10 +60,12 @@ in {
         WorkingDirectory = "/home/${cfg.user}";
 
         # Add lms CLI to PATH
-        Environment = [
-          "PATH=/home/${cfg.user}/.lmstudio/bin:/run/current-system/sw/bin"
-          "LMS_SERVER_HOST=${cfg.host}"
-        ];
+        Environment =
+          [
+            "PATH=/home/${cfg.user}/.lmstudio/bin:/run/current-system/sw/bin"
+            "LMS_SERVER_HOST=${cfg.host}"
+          ]
+          ++ lib.optional (cfg.gpuDevice != null) "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
 
         # Start the server in headless mode
         ExecStart = "/home/${cfg.user}/.lmstudio/bin/lms server start --port ${toString cfg.port} --bind ${cfg.host}";

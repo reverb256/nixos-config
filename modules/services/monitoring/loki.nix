@@ -3,19 +3,17 @@
 {
   config,
   lib,
-  pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.loki;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     ;
-in
-{
+in {
   options.services.loki = {
     enable = mkEnableOption "Loki log aggregation server";
 
@@ -152,9 +150,9 @@ in
       group = "loki";
       description = "Loki log aggregation service";
     };
-    users.groups.loki = { };
+    users.groups.loki = {};
 
     # Firewall
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ cfg.port ];
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
   };
 }

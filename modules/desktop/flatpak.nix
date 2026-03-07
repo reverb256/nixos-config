@@ -1,11 +1,14 @@
 # Flatpak Support for KDE Plasma
 # Enables Flatpak with Discover integration and Flathub remote
-{ config, lib, pkgs, ... }:
-
-with lib;
-let
+{ config
+, lib
+, pkgs
+, ...
+}:
+with lib; let
   cfg = config.services.flatpak-kde;
-in {
+in
+{
   options.services.flatpak-kde = {
     enable = mkEnableOption "Flatpak support with Discover and Flathub";
 
@@ -17,7 +20,7 @@ in {
 
     extraRemotes = mkOption {
       type = types.listOf types.attrs;
-      default = [];
+      default = [ ];
       description = "Extra Flatpak remotes to add";
       example = literalExpression ''
         [
@@ -65,9 +68,10 @@ in {
 
       # Add extra remotes
       ${lib.concatMapStrings (remote: ''
-        ${pkgs.flatpak}/bin/flatpak remote-list --system | grep -q ${remote.name} || \
-          ${pkgs.flatpak}/bin/flatpak remote-add --if-not-exists --system ${remote.name} ${remote.location}
-      '') cfg.extraRemotes}
+          ${pkgs.flatpak}/bin/flatpak remote-list --system | grep -q ${remote.name} || \
+            ${pkgs.flatpak}/bin/flatpak remote-add --if-not-exists --system ${remote.name} ${remote.location}
+        '')
+        cfg.extraRemotes}
     '';
 
     # Polkit rules for Flatpak system-wide operations
@@ -85,7 +89,7 @@ in {
     # Update Flatpak weekly
     systemd.timers.flatpak-update = mkIf cfg.autoUpdate {
       description = "Flatpak update timer";
-      wantedBy = ["timers.target"];
+      wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "weekly";
         Persistent = true;
@@ -95,8 +99,8 @@ in {
 
     systemd.services.flatpak-update = mkIf cfg.autoUpdate {
       description = "Update Flatpak packages";
-      after = ["network-online.target" "spotx-patch.service"];
-      wants = ["network-online.target" "spotx-patch.service"];
+      after = [ "network-online.target" "spotx-patch.service" ];
+      wants = [ "network-online.target" "spotx-patch.service" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${pkgs.flatpak}/bin/flatpak update --assumeyes";
