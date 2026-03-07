@@ -45,12 +45,13 @@
     ./services/lm-studio-headless.nix
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
-    # ./services/bolt-diy.nix  # TODO: file not found
     ./services/nixos-share.nix
     # ./services/podman.nix  # Temporarily disabled - has pre-existing issues
     ./services/spacebot.nix
     ./services/glitchtip-selfhosted.nix
     # ./services/nextcloud.nix  # TODO: Fix module structure - config settings need proper wrapping
+    # ./services/bolt-diy.nix  # TODO: file not found
+    # ./desktop/lobehub.nix  # TODO: fix deprecated xg options
 
     # Monitoring
     ./services/monitoring/default.nix
