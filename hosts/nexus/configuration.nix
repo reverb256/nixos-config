@@ -4,8 +4,7 @@
 #
 # Module imports: Gaming, mining, monitoring, opencode are already imported
 # via commonModules in flake.nix (./modules/default.nix)
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -34,10 +33,10 @@
   # HARDWARE PROFILES
   # ============================================================================
   hardware.profiles = {
-    amd.zen = true; # Zen CPU optimizations
-    nvidia.enable = true; # NVIDIA GPU support
-    nvidia.multiGpu = true; # 2x RTX 3060 Ti
-    monitoring.enable = true; # Hardware monitoring
+    amd.zen = true;  # Zen CPU optimizations
+    nvidia.enable = true;  # NVIDIA GPU support
+    nvidia.multiGpu = true;  # 2x RTX 3060 Ti
+    monitoring.enable = true;  # Hardware monitoring
   };
 
   # Hardware monitoring extras (not covered by profile)
@@ -55,67 +54,38 @@
   fileSystems."/data/worn" = {
     device = "/dev/disk/by-uuid/2056c7e4-cd6c-4a67-9b3d-001178a70eaa";
     fsType = "btrfs";
-    options = [
-      "compress=zstd"
-      "ssd"
-      "discard=async"
-    ];
+    options = ["compress=zstd" "ssd" "discard=async"];
   };
 
   # Mount nexus-storage subvolumes (large bcache device)
   fileSystems."/data/home" = {
     device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
     fsType = "btrfs";
-    options = [
-      "subvol=home"
-      "compress=zstd"
-      "ssd"
-      "discard=async"
-    ];
+    options = ["subvol=home" "compress=zstd" "ssd" "discard=async"];
   };
 
   fileSystems."/data/shared" = {
     device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
     fsType = "btrfs";
-    options = [
-      "subvol=shared"
-      "compress=zstd"
-      "ssd"
-      "discard=async"
-    ];
+    options = ["subvol=shared" "compress=zstd" "ssd" "discard=async"];
   };
 
   fileSystems."/data/backups" = {
     device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
     fsType = "btrfs";
-    options = [
-      "subvol=backups"
-      "compress=zstd"
-      "ssd"
-      "discard=async"
-    ];
+    options = ["subvol=backups" "compress=zstd" "ssd" "discard=async"];
   };
 
   fileSystems."/data/media" = {
     device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
     fsType = "btrfs";
-    options = [
-      "subvol=media"
-      "compress=zstd"
-      "ssd"
-      "discard=async"
-    ];
+    options = ["subvol=media" "compress=zstd" "ssd" "discard=async"];
   };
 
   fileSystems."/var/lib/containers" = {
     device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
     fsType = "btrfs";
-    options = [
-      "subvol=containers"
-      "compress=zstd"
-      "ssd"
-      "discard=async"
-    ];
+    options = ["subvol=containers" "compress=zstd" "ssd" "discard=async"];
   };
 
   # ============================================================================
@@ -128,10 +98,10 @@
   # ROLE PROFILES
   # ============================================================================
   profiles.role = {
-    gaming = true; # Steam, Lutris, etc.
-    vr = true; # WiVRn, SteamVR, OpenXR
-    mining = true; # GPU/CPU mining
-    aiInference = true; # AI inference gateway + MCP + RAG
+    gaming = true;  # Steam, Lutris, etc.
+    vr = true;  # WiVRn, SteamVR, OpenXR
+    mining = true;  # GPU/CPU mining
+    aiInference = true;  # AI inference gateway + MCP + RAG
   };
 
   # Note: profiles.role.gaming enables services.gaming automatically
@@ -168,23 +138,9 @@
     };
 
     firewall = {
-      allowedTCPPorts = [
-        22
-        9757
-        18789
-        18790
-        53317
-      ]; # SSH, WiVRn, Steam Remote Play, LocalSend
-      allowedUDPPorts = [
-        9757
-        9758
-        9759
-        53317
-      ]; # WiVRn, LocalSend (multicast discovery)
-      interfaces."tailscale0".allowedTCPPorts = [
-        18789
-        18790
-      ];
+      allowedTCPPorts = [22 9757 18789 18790];  # Added SSH port 22
+      allowedUDPPorts = [9757 9758 9759];
+      interfaces."tailscale0".allowedTCPPorts = [18789 18790];
     };
   };
 
@@ -204,7 +160,7 @@
   # SERVICES
   # ============================================================================
   services = {
-    xserver.videoDrivers = [ "nvidia" ];
+    xserver.videoDrivers = ["nvidia"];
 
     garnix.enable = false;
     nixos-auto-update.enable = true;
@@ -255,14 +211,5 @@
   # ============================================================================
   # USER GROUPS
   # ============================================================================
-  users.users.j_kro.extraGroups = [
-    "plugdev"
-    "audio"
-    "input"
-    "docker"
-    "openrazer"
-    "tailscale"
-    "video"
-    "render"
-  ];
+  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale" "video" "render"];
 }

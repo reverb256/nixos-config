@@ -5,20 +5,18 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.nextcloud-module;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     types
     mkIf
     mkMerge
-    mkDefault
     literalExpression
     ;
-in
-{
+in {
   options.services.nextcloud-module = {
     enable = mkEnableOption "Nextcloud - Self-hosted collaboration platform";
 
@@ -209,7 +207,7 @@ in
     # ============================================================================
     services.postgresql = mkIf cfg.database.create {
       enable = true;
-      ensureDatabases = [ cfg.database.name ];
+      ensureDatabases = [cfg.database.name];
       ensureUsers = [
         {
           name = cfg.database.user;
@@ -256,7 +254,8 @@ in
         enable = cfg.apps.enable;
 
         # Enable core apps based on configuration
-        inherit (cfg.apps)
+        inherit
+          (cfg.apps)
           files
           text
           deck
@@ -378,10 +377,7 @@ in
     # FIREWALL
     # ============================================================================
     networking.firewall = mkIf cfg.https {
-      allowedTCPPorts = [
-        80
-        443
-      ];
+      allowedTCPPorts = [80 443];
     };
 
     # ============================================================================
@@ -444,15 +440,15 @@ in
 
       ## Synapse Integration
       ${mkIf cfg.synapseIntegration.enable ''
-        Synapse data directories:
-        - Agent logs: ${cfg.synapseIntegration.dataDir}/agent-logs
-        - Conversations: ${cfg.synapseIntegration.dataDir}/conversation-history
-        - Artifacts: ${cfg.synapseIntegration.dataDir}/project-artifacts
+      Synapse data directories:
+      - Agent logs: ${cfg.synapseIntegration.dataDir}/agent-logs
+      - Conversations: ${cfg.synapseIntegration.dataDir}/conversation-history
+      - Artifacts: ${cfg.synapseIntegration.dataDir}/project-artifacts
 
-        WebDAV mount in Synapse:
-        - URL: https://${cfg.hostName}/remote.php/webdav/
-        - Username: ${cfg.admin.user}
-        - Password: <your-password>
+      WebDAV mount in Synapse:
+      - URL: https://${cfg.hostName}/remote.php/webdav/
+      - Username: ${cfg.admin.user}
+      - Password: <your-password>
       ''}
     '';
   };

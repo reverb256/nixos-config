@@ -9,8 +9,7 @@
   lib,
   pkgs,
   ...
-}:
-{
+}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -49,20 +48,20 @@
   # HARDWARE PROFILES
   # ============================================================================
   hardware.profiles = {
-    intel.enable = true; # Intel CPU optimizations (Skylake)
-    nvidia.enable = true; # NVIDIA GPU support
-    nvidia.multiGpu = true; # 2x RTX 4060
-    amdgpu.enable = true; # AMD GPU support
-    amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
-    monitoring.enable = true; # Hardware monitoring
+    intel.enable = true;  # Intel CPU optimizations (Skylake)
+    nvidia.enable = true;  # NVIDIA GPU support
+    nvidia.multiGpu = true;  # 2x RTX 4060
+    amdgpu.enable = true;  # AMD GPU support
+    amdgpu.wayland = true;  # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
+    monitoring.enable = true;  # Hardware monitoring
   };
 
   # ============================================================================
   # ROLE PROFILES
   # ============================================================================
   profiles.role = {
-    mining = true; # GPU/CPU mining only (no gaming/VR)
-    aiInference = true; # AI inference gateway + MCP + RAG
+    mining = true;  # GPU/CPU mining only (no gaming/VR)
+    aiInference = true;  # AI inference gateway + MCP + RAG
   };
 
   # ============================================================================
@@ -96,11 +95,8 @@
   # Note: NVIDIA base config is in nvidia-common.nix
   # Note: hardware.profiles.amdgpu.enable handles AMDGPU automatically
   # ============================================================================
-  boot.kernelModules = [
-    "amdgpu"
-    "tun"
-  ];
-  boot.initrd.kernelModules = [ "amdgpu" ];
+  boot.kernelModules = ["amdgpu" "tun"];
+  boot.initrd.kernelModules = ["amdgpu"];
 
   # ============================================================================
   # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
@@ -135,11 +131,8 @@
   # ============================================================================
   systemd.services.amd-gpu-power-mgmt = {
     description = "AMD GPU Power Limit (140W for RX 5700 XT)";
-    wantedBy = [ "multi-user.target" ];
-    after = [
-      "basic.target"
-      "multi-user.target"
-    ];
+    wantedBy = ["multi-user.target"];
+    after = ["basic.target" "multi-user.target"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -180,11 +173,8 @@
   # ============================================================================
   systemd.services.nvidia-compute-mode = {
     description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
-    wantedBy = [ "multi-user.target" ];
-    after = [
-      "basic.target"
-      "multi-user.target"
-    ];
+    wantedBy = ["multi-user.target"];
+    after = ["basic.target" "multi-user.target"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -223,16 +213,8 @@
   # Also apply compute mode on resume from suspend/hibernate
   systemd.services.nvidia-compute-mode-resume = {
     description = "NVIDIA GPU Compute Mode on Resume";
-    after = [
-      "suspend.target"
-      "hibernate.target"
-      "hybrid-sleep.target"
-    ];
-    wantedBy = [
-      "suspend.target"
-      "hibernate.target"
-      "hybrid-sleep.target"
-    ];
+    after = ["suspend.target" "hibernate.target" "hybrid-sleep.target"];
+    wantedBy = ["suspend.target" "hibernate.target" "hybrid-sleep.target"];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = pkgs.writeShellScript "nvidia-compute-mode-resume" ''
@@ -246,16 +228,8 @@
   # Also apply power limit on resume from suspend/hibernate
   systemd.services.amd-gpu-power-mgmt-resume = {
     description = "AMD GPU Power Limit on Resume";
-    after = [
-      "suspend.target"
-      "hibernate.target"
-      "hybrid-sleep.target"
-    ];
-    wantedBy = [
-      "suspend.target"
-      "hibernate.target"
-      "hybrid-sleep.target"
-    ];
+    after = ["suspend.target" "hibernate.target" "hybrid-sleep.target"];
+    wantedBy = ["suspend.target" "hibernate.target" "hybrid-sleep.target"];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = pkgs.writeShellScript "amd-power-limit-resume" ''
@@ -280,11 +254,8 @@
   # - Gradual ramp changes
   systemd.services.amd-gpu-fan-curve = {
     description = "AMD GPU Dynamic Fan Curve Control";
-    wantedBy = [ "multi-user.target" ];
-    after = [
-      "network.target"
-      "amd-gpu-power-mgmt.service"
-    ];
+    wantedBy = ["multi-user.target"];
+    after = ["network.target" "amd-gpu-power-mgmt.service"];
     serviceConfig = {
       Type = "simple";
       Restart = "always";
@@ -485,32 +456,30 @@
     rocmPackages.rocm-smi
   ];
 
-  systemd.tmpfiles.rules =
-    let
-      rocmEnv = pkgs.symlinkJoin {
-        name = "rocm-combined";
-        paths = with pkgs.rocmPackages; [
-          clr
-          clr.icd
-          rocblas
-          hipblas
-          rpp
-        ];
-      };
-    in
-    [
-      "c /dev/net/tun 666 root root - - - -"
-      "L+ /opt/rocm - - - - ${rocmEnv}"
-      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-    ];
+  systemd.tmpfiles.rules = let
+    rocmEnv = pkgs.symlinkJoin {
+      name = "rocm-combined";
+      paths = with pkgs.rocmPackages; [
+        clr
+        clr.icd
+        rocblas
+        hipblas
+        rpp
+      ];
+    };
+  in [
+    "c /dev/net/tun 666 root root - - - -"
+    "L+ /opt/rocm - - - - ${rocmEnv}"
+    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+  ];
 
   # ============================================================================
   # AMD GPU HEALTH CHECKS
   # ============================================================================
   systemd.services."amd-gpu-check" = {
     description = "AMD GPU Detection and Health Check";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "basic.target" ];
+    wantedBy = ["multi-user.target"];
+    after = ["basic.target"];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
@@ -520,8 +489,8 @@
 
   systemd.services."amd-gpu-info" = {
     description = "AMD GPU Information Service";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "basic.target" ];
+    wantedBy = ["multi-user.target"];
+    after = ["basic.target"];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
@@ -610,7 +579,7 @@
 
   networking.networkmanager = {
     enable = true;
-    unmanaged = [ ];
+    unmanaged = [];
     ensureProfiles.profiles."Wired connection 1" = {
       connection = {
         id = "Wired connection 1";
@@ -633,11 +602,8 @@
   # ============================================================================
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [
-      22
-      53317
-    ]; # SSH for remote management, LocalSend
-    allowedUDPPorts = [ 53317 ]; # LocalSend (multicast discovery)
+    allowedTCPPorts = [22]; # SSH for remote management
+    allowedUDPPorts = [];
   };
 
   # ============================================================================
