@@ -34,15 +34,25 @@ in {
     ];
 
     # Create desktop entry for application menu
-    xdg.desktopEntries."lobehub" = {
-      name = "LobeHub";
-      genericName = "AI Agent Workspace";
-      comment = "Collaborate with AI agent teammates that grow with you";
-      exec = "lobehub-desktop %U";
-      icon = "lobehub";
-      terminal = false;
-      categories = ["Utility" "Development" "Office"];
-      keywords = ["AI" "Chat" "Agents" "LLM"];
+    xdg.mimeApps = {
+      defaultApplications = {
+        "x-scheme-handler/lobehub" = ["lobehub.desktop"];
+      };
     };
+
+    # Create .desktop file
+    environment.etc."xdg/autostart/lobehub.desktop".text = ''
+      [Desktop Entry]
+      Name=LobeHub
+      GenericName=AI Agent Workspace
+      Comment=Collaborate with AI agent teammates that grow with you
+      Exec=lobehub-desktop %U
+      Icon=lobehub
+      Terminal=false
+      Type=Application
+      Categories=Utility;Development;Office;
+      Keywords=AI;Chat;Agents;LLM;
+      MimeType=x-scheme-handler/lobehub;
+    '';
   };
 }
