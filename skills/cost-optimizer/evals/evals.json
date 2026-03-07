@@ -1,0 +1,23 @@
+{
+  "skill_name": "cost-optimizer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Is my mining profitable? I have 4 RTX 3090s and my electricity is $0.15/kWh",
+      "expected_output": "Calculate power costs (4 * 0.32kW * 24h * $0.15 = $4.61/day) and explain break-even revenue needed",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Set up automatic shutdown for my mining when it becomes unprofitable. My rate is $0.12/kWh and I want at least $0.10 profit per GPU per day.",
+      "expected_output": "Create/provide the setup-profit-monitor.sh script command with appropriate parameters",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "How much does mining cost me per day in electricity? I have 2 RTX 4090s at $0.18/kWh",
+      "expected_output": "Calculate: 2 * 0.42kW * 24h * $0.18 = $3.63/day power cost",
+      "files": []
+    }
+  ]
+}
