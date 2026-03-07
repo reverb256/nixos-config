@@ -154,6 +154,48 @@ class MCPConfig(BaseModel):
     )
 
 
+class SentryConfig(BaseModel):
+    """Sentry error tracking configuration."""
+
+    enabled: bool = Field(default=False, description="Enable Sentry error tracking")
+    dsn: Optional[str] = Field(
+        default=None, repr=False, exclude=True, description="Sentry DSN"
+    )
+    dsn_file: Optional[str] = Field(
+        default=None, description="Path to file containing Sentry DSN"
+    )
+    environment: str = Field(
+        default="production",
+        pattern="^(development|staging|production)$",
+        description="Sentry environment",
+    )
+    traces_sample_rate: float = Field(
+        default=0.1, ge=0.0, le=1.0, description="Sample rate for performance tracing"
+    )
+
+    def get_dsn(self) -> Optional[str]:
+        """
+        Get Sentry DSN value.
+
+        Priority:
+        1. Environment variable SENTRY_DSN
+        2. File specified in SENTRY_DSN_FILE
+        """
+        # Try direct value first
+        if self.dsn:
+            return self.dsn
+
+        # Try file
+        if self.dsn_file:
+            try:
+                with open(self.dsn_file, "r") as f:
+                    return f.read().strip()
+            except Exception:
+                return None
+
+        return None
+
+
 class ObservabilityConfig(BaseModel):
     """Observability and logging configuration with validation"""
 
@@ -302,6 +344,11 @@ class GatewayConfig(BaseSettings):
     # Middleware configuration
     middleware: MiddlewareConfig = Field(
         default_factory=MiddlewareConfig, description="Middleware configuration"
+    )
+
+    # Sentry error tracking configuration
+    sentry: SentryConfig = Field(
+        default_factory=SentryConfig, description="Sentry error tracking configuration"
     )
 
     @field_validator("backend_url")

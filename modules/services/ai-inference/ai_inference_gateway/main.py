@@ -13,10 +13,16 @@ from ai_inference_gateway.config import GatewayConfig
 from ai_inference_gateway.pipeline import MiddlewarePipeline
 from ai_inference_gateway.utils.redis_client import RedisClient
 from ai_inference_gateway.openai_client import create_openai_client, OpenAIBackendError
-from ai_inference_gateway.router import create_default_router, RouteDecision
+from ai_inference_gateway.router import (
+    create_default_router,
+    RouteDecision,
+    get_qwen_model_config,
+    get_optimal_qwen_params,
+)
 from ai_inference_gateway.mcp_broker import create_mcp_broker_from_config
 from ai_inference_gateway.metrics import ModelMetricsTracker
 from ai_inference_gateway.response_format import transform_request
+from ai_inference_gateway.claude_client import create_claude_client, ClaudeClient, ClaudeRequest
 
 # Initialize logger early (needed for import error handling)
 logger = logging.getLogger(__name__)
@@ -245,6 +251,42 @@ async def lifespan(app: FastAPI):
 
     logger.info("Starting AI Inference Gateway v%s", GATEWAY_VERSION)
 
+    # Initialize Sentry if enabled
+    if state.config.sentry.enabled:
+        sentry_dsn = state.config.sentry.get_dsn()
+        if sentry_dsn:
+            try:
+                import sentry_sdk
+
+                sentry_sdk.init(
+                    dsn=sentry_dsn,
+                    environment=state.config.sentry.environment,
+                    traces_sample_rate=state.config.sentry.traces_sample_rate,
+                    # FastAPI integration
+                    integrations=[
+                        sentry_sdk.integrations.fastapi.FastApiIntegration(),
+                        sentry_sdk.integrations.httpx.HttpxIntegration(),
+                    ],
+                    # Filter out common errors
+                    ignore_errors=[
+                        "KeyboardInterrupt",
+                        "httpx.ConnectError",
+                    ],
+                    # Send PII data (disabled by default, enable if needed)
+                    send_default_pii=False,
+                )
+                logger.info(
+                    "Sentry initialized (environment=%s, traces_sample_rate=%.2f)",
+                    state.config.sentry.environment,
+                    state.config.sentry.traces_sample_rate,
+                )
+            except ImportError:
+                logger.warning("sentry-sdk not available, skipping Sentry initialization")
+            except Exception as e:
+                logger.warning(f"Sentry initialization failed: {e}")
+        else:
+            logger.info("Sentry enabled but no DSN configured")
+
     # Initialize Redis client
     redis_url = "redis://localhost:6379"
     state.redis_client = RedisClient(redis_url=redis_url)
@@ -262,8 +304,11 @@ async def lifespan(app: FastAPI):
         "Middleware pipeline initialized with %d middleware", state.pipeline.count
     )
 
-    # Initialize router
-    state.router = create_default_router()
+    # Initialize router with LM Studio API key for health checks
+    lm_studio_key = None
+    if state.config.backend_type == "lm-studio":
+        lm_studio_key = state.config.get_lm_studio_api_key()
+    state.router = create_default_router(lm_studio_api_key=lm_studio_key)
     logger.info("Router initialized with %d models", len(state.router.models))
 
     # Initialize MCP broker if enabled
@@ -851,126 +896,348 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 # Always clean up request tracking
                 state.router.track_request_end(request_id)
 
+
+def is_reasoning_model(model_id: str) -> bool:
+    """Check if a model is a reasoning model that uses reasoning_content field.
+
+    These models have issues with LM Studio's /v1/messages endpoint,
+    so we need to use /v1/chat/completions and translate the response.
+    """
+    reasoning_indicators = [
+        "claude-4.6-opus-reasoning-distilled",
+        "claude-4.6-opus-distilled",
+        "claude-opus-reasoning",
+        "claude-opus-distilled",
+        "reasoning",
+        "deepseek-r1",
+    ]
+    model_lower = model_id.lower()
+    return any(indicator in model_lower for indicator in reasoning_indicators)
+
+
+def translate_openai_to_anthropic(openai_response: dict, original_model: str) -> dict:
+    """
+    Translate OpenAI chat/completions response to Anthropic messages format.
+
+    Handles reasoning_content field which is used by reasoning models.
+    Maps OpenAI's separate reasoning_content + content to Anthropic's content blocks.
+    """
+    choice = openai_response.get("choices", [{}])[0]
+    message = choice.get("message", {})
+
+    # Extract content from OpenAI response
+    reasoning_content = message.get("reasoning_content", "")
+    content_text = message.get("content", "")
+
+    # Build Anthropic content blocks
+    anthropic_content = []
+
+    # Add thinking block if reasoning_content exists
+    if reasoning_content:
+        anthropic_content.append({
+            "type": "thinking",
+            "thinking": reasoning_content
+        })
+
+    # Add text block if content exists
+    if content_text:
+        anthropic_content.append({
+            "type": "text",
+            "text": content_text
+        })
+
+    # If both are empty but we have output_tokens, something went wrong
+    # Put a placeholder text
+    if not anthropic_content:
+        usage = openai_response.get("usage", {})
+        if usage.get("completion_tokens", 0) > 0:
+            logger.warning(f"Model {original_model} generated tokens but no content returned")
+            anthropic_content.append({
+                "type": "text",
+                "text": ""
+            })
+
+    return {
+        "id": openai_response.get("id", f"msg_{openai_response.get('created', '')}"),
+        "type": "message",
+        "role": "assistant",
+        "content": anthropic_content,
+        "model": original_model,  # Use the originally requested Claude model ID
+        "stop_reason": choice.get("finish_reason", "stop"),
+        "stop_sequence": None,
+        "usage": {
+            "input_tokens": openai_response.get("usage", {}).get("prompt_tokens", 0),
+            "output_tokens": openai_response.get("usage", {}).get("completion_tokens", 0),
+            "cache_creation_input_tokens": openai_response.get("usage", {}).get("cache_creation_tokens", 0),
+            "cache_read_input_tokens": openai_response.get("usage", {}).get("cache_read_tokens", 0),
+        }
+    }
+
+
     @app.post("/v1/messages")
     async def messages(request: Request):
         """
-        Anthropic Messages API compatibility endpoint.
+        Anthropic Messages API endpoint - proxies to LM Studio's native Anthropic API.
 
-        Translates Anthropic-format requests to OpenAI format
-        and forwards to the backend.
+        LM Studio provides native Anthropic compatibility at /v1/messages.
+        This endpoint adds:
+        - Model selection by Claude model ID (haiku, sonnet, opus variants)
+        - Thinking effort levels (low/medium/high) that map to budget_tokens
+        - ZAI fallback when LM Studio unavailable
+        - Extended thinking support through LM Studio's native API
+
+        Model mapping (5 Claude options → 3 underlying local models):
+        - claude-haiku-4 → qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled
+        - claude-sonnet-4-20250514 → qwen3.5-9b-claude-4.6-opus-reasoning-distilled
+        - claude-sonnet-4-20250514-1m → qwen3.5-9b-claude-4.6-opus-reasoning-distilled (extended)
+        - claude-opus-4-20250514 → qwen3.5-35b-a3b
+        - claude-opus-4-20250514-1m → qwen3.5-35b-a3b (extended)
+
+        Thinking effort levels (map to budget_tokens):
+        - low → 5,000 tokens (quick responses)
+        - medium → 15,000 tokens (balanced reasoning)
+        - high → 50,000 tokens (deep analysis)
         """
+        import time
+        import uuid
+
         state: GatewayState = app.state.gateway
+        _request_start = time.time()
 
         # Read request body
         body = await request.json()
 
-        # Translate Anthropic format to OpenAI format
+        # Extract parameters
         model = body.get("model", "")
         max_tokens = body.get("max_tokens", 4096)
         messages = body.get("messages", [])
         system = body.get("system", None)
         stream = body.get("stream", False)
 
-        # Convert messages format
-        openai_messages = []
-        for msg in messages:
-            role = msg.get("role", "user")
-            content = msg.get("content")
+        # Extended thinking / thinking intensity parameters
+        # Effort levels (low/medium/high) map to budget_tokens, NOT model selection
+        thinking_budget = None
+        thinking_intensity = None
+        thinking_type = None  # LM Studio expects: "enabled" | "disabled" | "adaptive"
 
-            if isinstance(content, str):
-                openai_messages.append({"role": role, "content": content})
-            elif isinstance(content, list):
-                # Handle content blocks (text, images, etc.) - PRESERVE VISION CONTENT
-                openai_messages.append({"role": role, "content": content})
+        if "thinking" in body:
+            thinking = body["thinking"]
+            if isinstance(thinking, dict):
+                thinking_intensity = thinking.get("intensity", None)
+                thinking_budget = thinking.get("budget_tokens", None)
+                thinking_type = thinking.get("type", "enabled")
+            elif isinstance(thinking, str):
+                # String form like "low", "medium", "high" maps to intensity
+                thinking_intensity = thinking
+                thinking_type = "enabled"  # Default to enabled for string form
+        elif "thinking_intensity" in body:
+            thinking_intensity = body["thinking_intensity"]
+            thinking_type = "enabled"
 
-        # Build OpenAI-format request
-        openai_request = {
-            "model": model,
-            "messages": openai_messages,
-            "max_tokens": max_tokens,
-            "stream": stream,
-        }
+        # Map effort levels to budget_tokens if not explicitly set
+        if thinking_intensity and not thinking_budget:
+            effort_budget_map = {
+                "low": 5000,      # Quick responses, minimal reasoning
+                "medium": 15000,  # Balanced reasoning
+                "high": 50000,    # Deep analysis, extensive reasoning
+                "auto": None,     # Let backend decide
+            }
+            thinking_budget = effort_budget_map.get(thinking_intensity)
+            logger.info(f"Thinking intensity '{thinking_intensity}' → budget_tokens={thinking_budget}")
 
-        if system:
-            openai_request["messages"].insert(0, {"role": "system", "content": system})
+        # Build/update thinking dict in body for LM Studio compatibility
+        # LM Studio expects: {"type": "enabled"|"disabled"|"adaptive", "budget_tokens": int}
+        if thinking_budget is not None or thinking_type:
+            if "thinking" not in body or not isinstance(body["thinking"], dict):
+                body["thinking"] = {}
+            if thinking_type:
+                body["thinking"]["type"] = thinking_type
+            if thinking_budget is not None:
+                body["thinking"]["budget_tokens"] = thinking_budget
+            # Store original intensity for logging/metadata
+            if thinking_intensity:
+                body["thinking"]["intensity"] = thinking_intensity
 
-        # Create context for middleware
-        context = {
-            "request_body": openai_request,
-            "request_headers": dict(request.headers),
-            "original_format": "anthropic",
-        }
+        # Use router to determine the best model (based on model name only, not intensity)
+        route_decision: RouteDecision = await state.router.route(
+            messages=messages,
+            requested_model=model,
+            urgency="normal",
+        )
 
-        # Process request through middleware pipeline
-        should_continue, error = await state.pipeline.process_request(request, context)
+        # Apply prefill optimization limits based on model variant
+        # Base models get aggressive limits for faster TTFT, extended models get full context
+        trimmed_messages = state.router.apply_prefill_limits(messages, model)
+        body["messages"] = trimmed_messages
 
-        if not should_continue:
-            if error:
-                raise error
-            raise HTTPException(status_code=403, detail="Request blocked by middleware")
+        if len(trimmed_messages) != len(messages):
+            logger.info(
+                f"Prefill optimization: {len(messages)} → {len(trimmed_messages)} messages "
+                f"for model {model}"
+            )
 
-        # Forward to backend
+        # Update model in request
+        body["model"] = route_decision.model
+
+        # Create request ID for tracking
+        request_id = str(uuid.uuid4())
+        state.router.track_request_start(
+            request_id=request_id,
+            model=route_decision.model,
+            backend=route_decision.backend,
+            stream=stream,
+        )
+
+        logger.info(
+            f"Anthropic API request: original={model} → {route_decision.model} "
+            f"(intensity={thinking_intensity}, budget={thinking_budget}, backend={route_decision.backend})"
+        )
+
+        # Create metrics tracker
+        metrics_tracker = ModelMetricsTracker(
+            model=route_decision.model,
+            backend=route_decision.backend,
+            requested_model=model,
+        )
+
+        # Record routing decision
+        metrics_tracker.record_routing_decision(
+            confidence=route_decision.confidence,
+            reason=route_decision.reason,
+            specialization=(
+                route_decision.specialization.value
+                if route_decision.specialization
+                else None
+            ),
+        )
+
         # Build headers with authentication
         backend_headers = build_backend_headers(state.config, dict(request.headers))
 
-        async with httpx.AsyncClient() as client:
+        # Determine if we should use OpenAI format (for reasoning models)
+        # Reasoning models have issues with /v1/messages but work with /v1/chat/completions
+        use_openai_format = is_reasoning_model(route_decision.model)
+
+        # Try LM Studio backend
+        if route_decision.backend == "lm-studio":
             try:
-                response = await client.post(
-                    f"{state.config.backend_url}/v1/chat/completions",
-                    json=openai_request,
-                    headers=backend_headers,
-                    timeout=300.0,
-                )
-                response.raise_for_status()
+                if use_openai_format:
+                    # Use /v1/chat/completions (OpenAI format) for reasoning models
+                    # This properly returns reasoning_content which we'll translate to Anthropic format
+                    lm_studio_url = f"{state.config.backend_url}/v1/chat/completions"
+                    endpoint_type = "OpenAI-compatible (for reasoning model)"
 
-                response_data = response.json()
+                    # Translate Anthropic request to OpenAI format
+                    openai_request = {
+                        "model": route_decision.model,
+                        "messages": body.get("messages", []),
+                        "max_tokens": body.get("max_tokens", 4096),
+                        "temperature": body.get("temperature", 1.0),
+                        "stream": stream,
+                    }
 
-                # Process response through middleware pipeline
-                response_data = await state.pipeline.process_response(
-                    response_data, context
-                )
+                    # Add system prompt if present
+                    if system:
+                        openai_request["messages"] = [
+                            {"role": "system", "content": system}
+                        ] + openai_request["messages"]
 
-                # Translate back to Anthropic format if needed
-                if context.get("original_format") == "anthropic":
-                    # Convert OpenAI response to Anthropic format
-                    choice = response_data.get("choices", [{}])[0]
-                    message = choice.get("message", {})
+                    # Add tools if present
+                    if "tools" in body:
+                        openai_request["tools"] = body["tools"]
+                    if "tool_choice" in body:
+                        openai_request["tool_choice"] = body["tool_choice"]
 
-                    anthropic_response = {
-                        "id": response_data.get("id", "msg-1"),
-                        "type": "message",
-                        "role": "assistant",
-                        "content": message.get("content", ""),
-                        "model": response_data.get("model", model),
-                        "stop_reason": choice.get("finish_reason", "stop"),
-                        "usage": {
-                            "input_tokens": response_data.get("usage", {}).get(
-                                "prompt_tokens", 0
+                    logger.info(f"Using OpenAI format for reasoning model {route_decision.model}")
+
+                else:
+                    # Use /v1/messages (Anthropic format) for non-reasoning models
+                    lm_studio_url = f"{state.config.backend_url}/v1/messages"
+                    endpoint_type = "Anthropic-compatible"
+                    openai_request = None
+
+                async with httpx.AsyncClient(timeout=300.0) as client:
+                    response = await client.post(
+                        lm_studio_url,
+                        json=openai_request if openai_request else body,
+                        headers=backend_headers,
+                    )
+                    response.raise_for_status()
+
+                    if use_openai_format:
+                        # Translate OpenAI response to Anthropic format
+                        openai_response = response.json()
+                        response_data = translate_openai_to_anthropic(openai_response, model)
+                    else:
+                        response_data = response.json()
+
+                    # Add gateway metadata
+                    response_data["gateway_metadata"] = {
+                        "processing_time_ms": (time.time() - _request_start) * 1000,
+                        "router": {
+                            "model": route_decision.model,
+                            "backend": "lm-studio",
+                            "reason": f"LM Studio {endpoint_type}",
+                            "specialization": (
+                                route_decision.specialization.value
+                                if route_decision.specialization
+                                else None
                             ),
-                            "output_tokens": response_data.get("usage", {}).get(
-                                "completion_tokens", 0
-                            ),
+                        },
+                        "thinking": {
+                            "intensity": thinking_intensity,
+                            "budget_tokens": thinking_budget,
                         },
                     }
 
-                    return JSONResponse(
-                        content=anthropic_response, status_code=response.status_code
+                    # Record success metrics
+                    usage = response_data.get("usage", {})
+                    metrics_tracker.record_success(
+                        input_tokens=usage.get("input_tokens", 0),
+                        output_tokens=usage.get("output_tokens", 0),
+                        total_tokens=usage.get("total_tokens", 0),
+                        latency_ms=response_data.get("gateway_metadata", {}).get("processing_time_ms", 0),
                     )
 
-                return JSONResponse(
-                    content=response_data, status_code=response.status_code
-                )
+                    state.router.track_request_end(request_id)
 
-            except httpx.HTTPError as e:
-                logger.error(f"Error forwarding request: {e}")
+                    # Notify circuit breaker of success
+                    if state.config.middleware.circuit_breaker.enabled:
+                        for middleware in state.pipeline.middleware:
+                            if isinstance(middleware, CircuitBreaker):
+                                await middleware.on_success()
 
-                # Notify circuit breaker of failure
-                if state.config.middleware.circuit_breaker.enabled:
-                    for middleware in state.pipeline.middleware:
-                        if isinstance(middleware, CircuitBreaker):
-                            await middleware.on_failure()
+                    return JSONResponse(content=response_data, status_code=response.status_code)
 
+            except httpx.HTTPStatusError as e:
+                logger.error(f"LM Studio API error: {e.response.status_code} - {e.response.text}")
+
+                # Fall through to ZAI if enabled (check via backend_fallback_urls)
+                fallback_urls = state.config.get_backend_fallback_urls()
+                if fallback_urls:
+                    logger.info("Falling back to ZAI for Anthropic request")
+                    # TODO: Implement ZAI fallback for Anthropic format
+                    # For now, return the error
+                    state.router.track_request_end(request_id)
+                    raise HTTPException(
+                        status_code=e.response.status_code,
+                        detail=f"LM Studio error: {e.response.text}"
+                    )
+                else:
+                    state.router.track_request_end(request_id)
+                    raise
+            except Exception as e:
+                logger.error(f"Error calling LM Studio API: {e}")
+                state.router.track_request_end(request_id)
                 raise HTTPException(status_code=503, detail=f"Backend error: {str(e)}")
+
+        # ZAI backend - would need translation
+        # For now, not implemented for Anthropic format
+        state.router.track_request_end(request_id)
+        raise HTTPException(
+            status_code=501,
+            detail="Anthropic format not yet supported for ZAI backend"
+        )
 
     # ============================================================================
     # MCP Broker Endpoints
@@ -2356,7 +2623,301 @@ async def handle_non_streaming_request(
 
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
-    # Add messages endpoint (Anthropic-compatible)
+
+async def stream_anthropic_response(
+    openai_client,
+    body: dict,
+    pipeline: MiddlewarePipeline,
+    context: dict,
+    config: GatewayConfig,
+    original_model: str,
+    thinking_intensity: Optional[str],
+    request_id: str,
+    metrics_tracker: ModelMetricsTracker,
+):
+    """
+    Handle streaming Anthropic API response.
+
+    Converts OpenAI streaming chunks to Anthropic format.
+    """
+    import time
+    import json
+
+    start_time = time.time()
+    first_chunk_sent = False
+
+    try:
+        # Extract parameters
+        messages = body.get("messages", [])
+        model = body.get("model", "default")
+        extra_params = {
+            k: v for k, v in body.items() if k not in ["messages", "model", "stream"]
+        }
+
+        route_decision = context.get("route_decision")
+        backend = route_decision.backend if route_decision else None
+
+        # Get the streaming response from OpenAI client
+        async for chunk in await openai_client.stream_chat_completion(
+            messages=messages,
+            model=model,
+            backend=backend,
+            **extra_params,
+        ):
+            if not first_chunk_sent:
+                first_chunk_sent = True
+                # Send initial event with request metadata
+                event_data = {
+                    "type": "message_start",
+                    "message": {
+                        "id": f"msg_{request_id[:8]}",
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [],
+                        "model": original_model,
+                        "stop_reason": None,
+                    }
+                }
+                yield f"event: message_start\ndata: {json.dumps(event_data)}\n\n"
+
+            # Convert OpenAI chunk to Anthropic format
+            if chunk.get("choices"):
+                choice = chunk["choices"][0]
+                delta = choice.get("message", {})
+
+                # Content block
+                if "content" in delta and delta["content"]:
+                    content_event = {
+                        "type": "content_block_delta",
+                        "index": 0,
+                        "delta": {"type": "text", "text": delta["content"]},
+                    }
+                    yield f"event: content_block_delta\ndata: {json.dumps(content_event)}\n\n"
+
+                # Tool calls
+                if "tool_calls" in delta:
+                    for tool_call in delta["tool_calls"]:
+                        tool_event = {
+                            "type": "content_block_delta",
+                            "index": 0,
+                            "delta": {
+                                "type": "tool_use",
+                                "id": tool_call.get("id", ""),
+                                "name": tool_call.get("function", {}).get("name", ""),
+                                "input": tool_call.get("function", {}).get("arguments", "{}"),
+                            },
+                        }
+                        yield f"event: content_block_delta\ndata: {json.dumps(tool_event)}\n\n"
+
+                # Finish reason
+                if "finish_reason" in delta:
+                    stop_event = {
+                        "type": "content_block_stop",
+                        "index": 0,
+                    }
+                    yield f"event: content_block_stop\ndata: {json.dumps(stop_event)}\n\n"
+
+                    # Send message_stop event
+                    final_event = {
+                        "type": "message_stop",
+                        "message": {
+                            "id": f"msg_{request_id[:8]}",
+                            "type": "message",
+                            "role": "assistant",
+                            "content": [],
+                            "model": original_model,
+                            "stop_reason": delta["finish_reason"],
+                        },
+                    }
+                    yield f"event: message_stop\ndata: {json.dumps(final_event)}\n\n"
+
+        # Record metrics
+        processing_time_ms = (time.time() - start_time) * 1000
+        metrics_tracker.record_success(
+            input_tokens=0,  # Would need to accumulate from chunks
+            output_tokens=0,
+            total_tokens=0,
+            latency_ms=processing_time_ms,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Anthropic streaming: {e}")
+        metrics_tracker.record_error("streaming_error")
+
+        # Send error event
+        error_event = {
+            "type": "error",
+            "error": {
+                "type": "api_error",
+                "message": str(e),
+            }
+        }
+        yield f"event: error\ndata: {json.dumps(error_event)}\n\n"
+
+
+async def handle_anthropic_non_streaming(
+    openai_client,
+    body: dict,
+    pipeline: MiddlewarePipeline,
+    context: dict,
+    config: GatewayConfig,
+    original_model: str,
+    thinking_intensity: Optional[str],
+    metrics_tracker: ModelMetricsTracker,
+):
+    """
+    Handle non-streaming Anthropic API request.
+
+    Converts OpenAI response to Anthropic format with thinking support.
+    """
+    import time
+
+    start_time = time.time()
+
+    try:
+        # Extract parameters
+        messages = body.get("messages", [])
+        model = body.get("model", "default")
+        extra_params = {
+            k: v for k, v in body.items() if k not in ["messages", "model", "stream"]
+        }
+
+        route_decision = context.get("route_decision")
+        backend = route_decision.backend if route_decision else None
+
+        # Get response from OpenAI client
+        response = await openai_client.chat_completion(
+            messages=messages,
+            model=model,
+            stream=False,
+            backend=backend,
+            **extra_params,
+        )
+
+        # Convert to dict for processing
+        response_data = response.model_dump()
+
+        # Process through middleware pipeline
+        response_data = await pipeline.process_response(response_data, context)
+
+        # Calculate processing time
+        processing_time_ms = (time.time() - start_time) * 1000
+
+        # Extract usage for metrics
+        usage = response_data.get("usage", {})
+        metrics_tracker.record_success(
+            input_tokens=usage.get("prompt_tokens", 0),
+            output_tokens=usage.get("completion_tokens", 0),
+            total_tokens=usage.get("total_tokens", 0),
+            latency_ms=processing_time_ms,
+        )
+
+        # Convert to Anthropic format
+        choice = response_data.get("choices", [{}])[0]
+        message = choice.get("message", {})
+
+        # Build content blocks array
+        content_blocks = []
+
+        # Main text content
+        text_content = message.get("content", "")
+
+        # Handle reasoning_content - some models use this instead of content
+        if not text_content:
+            text_content = message.get("reasoning_content", "")
+
+        if text_content:
+            content_blocks.append({
+                "type": "text",
+                "text": text_content
+            })
+
+        # Tool calls
+        if message.get("tool_calls"):
+            for tool_call in message["tool_calls"]:
+                content_blocks.append({
+                    "type": "tool_use",
+                    "id": tool_call.get("id", ""),
+                    "name": tool_call.get("function", {}).get("name", ""),
+                    "input": tool_call.get("function", {}).get("arguments", "{}"),
+                })
+
+        # Handle extended thinking metadata (for Anthropic compatibility)
+        thinking_content = None
+        reasoning_text = message.get("reasoning_content", "")
+        if reasoning_text:
+            thinking_content = {
+                "thinking": reasoning_text,
+                "tokens": response_data.get("reasoning_tokens", len(reasoning_text) // 4),  # Rough estimate
+            }
+
+        # Build Anthropic response
+        anthropic_response = {
+            "id": response_data.get("id", f"msg_{time.time()}"),
+            "type": "message",
+            "role": "assistant",
+            "content": content_blocks,
+            "model": original_model,
+            "stop_reason": choice.get("finish_reason", "stop"),
+            "stop_sequence": None,
+            "usage": {
+                "input_tokens": usage.get("prompt_tokens", 0),
+                "output_tokens": usage.get("completion_tokens", 0),
+            },
+            "gateway_metadata": {
+                "processing_time_ms": round(processing_time_ms, 2),
+                "router": {
+                    "model": route_decision.model if route_decision else model,
+                    "backend": route_decision.backend if route_decision else "unknown",
+                    "reason": route_decision.reason if route_decision else "Anthropic API",
+                    "specialization": (
+                        route_decision.specialization.value
+                        if route_decision and route_decision.specialization
+                        else None
+                    ),
+                    "estimated_tokens": route_decision.estimated_tokens if route_decision else 0,
+                    "expected_latency_ms": route_decision.expected_latency_ms if route_decision else 0,
+                },
+                "thinking": {
+                    "intensity": thinking_intensity,
+                    "budget": context.get("thinking_budget"),
+                } if thinking_intensity else None,
+            },
+        }
+
+        # Add extended thinking if present
+        if thinking_content:
+            anthropic_response["extended_thinking"] = thinking_content
+
+        # Notify circuit breaker of success
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_success()
+
+        return JSONResponse(content=anthropic_response, status_code=200)
+
+    except OpenAIBackendError as e:
+        logger.error(f"Backend error in Anthropic request: {e}")
+        metrics_tracker.record_error("backend_error")
+
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_failure()
+
+        raise HTTPException(status_code=503, detail=str(e))
+
+    except Exception as e:
+        logger.error(f"Unexpected error in Anthropic request: {e}")
+        metrics_tracker.record_error("unexpected_error")
+
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_failure()
+
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
 def main():
