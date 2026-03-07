@@ -42,20 +42,12 @@ in
       (pkgs.symlinkJoin {
         name = "spotify-with-spotx";
         paths = [ spotifyPackage ];
+        buildInputs = [ pkgs.makeWrapper ];
         postBuild = ''
           rm $out/bin/spotify
-          cat > $out/bin/spotify <<'WRAPPER_EOF'
-          #!${pkgs.bash}/bin/bash
-          PATCHED="${patchedSpotifyDir}"
-          STOCK="${spotifyShareDir}"
-
-          if [ -f "$PATCHED/Apps/.spotx_patched" ]; then
-            exec "$PATCHED/spotify" "$@"
-          else
-            exec "$STOCK/spotify" "$@"
-          fi
-          WRAPPER_EOF
-          chmod +x $out/bin/spotify
+          makeWrapper ${pkgs.bash}/bin/bash $out/bin/spotify \
+            --add-flags "-c" \
+            --add-flags "if [ -f ${patchedSpotifyDir}/Apps/.spotx_patched ]; then exec ${patchedSpotifyDir}/spotify \"\$@\"; else exec ${spotifyShareDir}/spotify \"\$@\"; fi"
         '';
       })
       (pkgs.writeShellScriptBin "spotify-spotx" ''
