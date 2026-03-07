@@ -1,6 +1,6 @@
 # add-service MCP Server
 
-MCP server providing tools for creating systemd service modules.
+MCP server providing tools for creating systemd service modules in the NixOS configuration.
 
 ## Installation
 
@@ -12,7 +12,7 @@ pip install mcp
 
 ### 2. Register with AI Gateway
 
-Add to `hosts/zephyr/configuration.nix`:
+Add to `hosts/zephyr/configuration.nix` (or target host):
 
 ```nix
 services.ai-inference.mcp = {
@@ -31,8 +31,11 @@ services.ai-inference.mcp = {
 ### 3. Rebuild
 
 ```bash
+# Always test before applying
 nix flake check
-sudo nixos-rebuild switch --flake .#zephyr
+nbuild  # Uses nixos-rebuild-safe.sh (auto-pauses mining)
+ntest   # Test configuration
+nswitch # Apply persistently
 ```
 
 ## Available Tools
