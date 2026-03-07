@@ -50,10 +50,10 @@ sentry:
 # ============================================================================
 # LOCAL OPERATIONS (no colmena)
 # ============================================================================
-# Local switch (current host only)
+# Local switch (current host only) - pauses mining automatically
 switch:
-    @echo "Switching local system..."
-    cd /etc/nixos && sudo nixos-rebuild switch --flake ".#$(hostname -s)"
+    @echo "Switching local system (mining will auto-pause)..."
+    cd /etc/nixos && sudo ./scripts/nixos-rebuild-safe.sh switch --flake ".#$(hostname -s)"
 
 # Test configuration (dry run)
 test:
