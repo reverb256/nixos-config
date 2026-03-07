@@ -274,12 +274,25 @@ in
     AnimationSpeed=3
   '';
 
-  # Window rules for Genshin Impact to always open on TV
+  # Window rules for specific applications
   environment.etc."xdg/kwinrulesrc".text = ''
     [General]
-    count=1
+    count=2
 
+    # Spotify - Fix close button and window behavior for Flatpak
     [1]
+    Description=Spotify - Fix close button behavior
+    wmclass=spotify
+    wmclassmatch=1
+    title=.*
+    titlematch=1
+    types=1
+    skippager=false
+    skiptaskbar=false
+    skipswitcher=false
+
+    # Genshin Impact - Always open on TV (HDMI-A-2)
+    [2]
     Description=Genshin Impact - Always on TV (HDMI-A-2)
     wmclass=.*GenshinImpact.*
     wmclassmatch=2

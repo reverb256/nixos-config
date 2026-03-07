@@ -147,6 +147,12 @@
   # ============================================================================
   services.tailscale.enable = true;
 
+  # Mount /etc/nixos from zephyr (single-source-of-truth)
+  services.nixos-share = {
+    enable = true;
+    client.enable = true;
+  };
+
   systemd.services.tailscaled.environment = {
     TS_ADVERTISE_ROUTES = "10.1.1.0/24";
     TS_ROUTES = "";

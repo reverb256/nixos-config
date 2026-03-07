@@ -103,6 +103,12 @@
     hdr.enable = true; # HDR for 4K HDR TV
   };
 
+  # Share /etc/nixos via NFS for remote hosts (single-source-of-truth)
+  services.nixos-share = {
+    enable = true;
+    server.enable = true;
+  };
+
   # ============================================================================
   # SCOPEBUDDY - Gamescope wrapper
   # ============================================================================
@@ -376,19 +382,8 @@
   # ============================================================================
   services.multimedia.gstreamer.enable = true;
 
-  # Spotify with SpotX patch
+  # Spotify with SpotX patch (ad-free, premium features)
   services.spotify-spotx.enable = true;
-
-  # Spotify with Spicetify theming (requires SpotX)
-  services.spotify-spicetify = {
-    enable = true;
-    theme = "Dribbblish";
-    colorScheme = "nord-dark";
-    extensions = [
-      "adblock"
-      "shuffle+"
-    ];
-  };
 
   # ============================================================================
   # FLATPAK - Flatpak support with Discover and Flathub
@@ -492,6 +487,9 @@
     dbus-broker
     slirp4netns # Required for Spacebot/Podman networking
     podman-compose # Docker Compose compatibility for Podman
+
+    # Deployment
+    inputs.colmena.packages.${system}.colmena
     (pkgs.writeShellScriptBin "spacebot" ''
       #!${pkgs.bash}/bin/bash
       # Spacebot CLI wrapper - connects to local Spacebot service

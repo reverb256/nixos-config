@@ -66,7 +66,6 @@
 
     # Desktop modules (Spotify customization)
     ./desktop/spotify-spotx.nix
-    ./desktop/spotify-spicetify.nix
 
     # Network modules
     ./network/cluster-hosts.nix
