@@ -35,7 +35,7 @@ except ImportError:
 
 from .config import RAGConfig
 from .embeddings import EmbeddingService
-from .chunker import Chunker
+from .chunker import DocumentChunker
 from .qdrant_client import QdrantManager
 
 logger = logging.getLogger(__name__)
@@ -117,7 +117,7 @@ class URLIngestionService:
         config: IngestionConfig,
         rag_config: RAGConfig,
         embedder: EmbeddingService,
-        chunker: Chunker,
+        chunker: DocumentChunker,
         qdrant: QdrantManager,
         mcp_broker: Optional[MCPBroker] = None,
     ):
@@ -474,7 +474,7 @@ class URLIngestionService:
 def create_ingestion_service(
     rag_config: RAGConfig,
     embedder: EmbeddingService,
-    chunker: Chunker,
+    chunker: DocumentChunker,
     qdrant: QdrantManager,
     mcp_broker: Optional[MCPBroker] = None,
     allowed_domains: Optional[List[str]] = None,

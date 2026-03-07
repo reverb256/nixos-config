@@ -27,6 +27,7 @@
     ps.sentence-transformers
     ps.rank-bm25
     ps.numpy
+    ps.beautifulsoup4  # For RAG URL ingestion (HTML parsing)
     ps.redis
     ps.pydantic
     ps.pydantic-settings
