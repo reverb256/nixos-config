@@ -44,7 +44,9 @@ in {
       "/etc/nixos" = {
         device = "${cfg.client.serverHost}:/etc/nixos";
         fsType = "nfs";
-        options = ["ro" "noatime" "soft" "timeo=30" "retrans=3" "_netdev" "x-systemd.requires=network-online.target" "x-systemd.after=network-online.target" "x-systemd.after=tailscale.service"];
+        # Use nofail to prevent boot hang, bg for background mount
+        # x-systemd.mount-timeout=30s gives up quickly if server not ready
+        options = ["ro" "noatime" "soft" "timeo=5" "retrans=2" "_netdev" "nofail" "bg" "x-systemd.mount-timeout=30s"];
       };
     };
   };
