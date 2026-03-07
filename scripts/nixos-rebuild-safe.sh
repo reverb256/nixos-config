@@ -7,29 +7,51 @@
 set -euo pipefail
 
 MINING_SERVICES=(
-  "xmrig@*"
-  "lolminer-*"
+  "xmrig.service"
+  "xmrig@*.service"
+  "lolminer*.service"
 )
 
 # Function to check and stop mining services
 stop_mining() {
   echo "🛑 Stopping mining services for build..."
+  local stopped=0
   for svc in "${MINING_SERVICES[@]}"; do
-    systemctl stop "$svc" 2>/dev/null || true
+    # Expand glob patterns to actual service names
+    for unit in $(systemctl list-unit-files --all --no-legend | grep -E "^${svc//\./\\.}" | awk '{print $1}'); do
+      if systemctl is-active --quiet "$unit"; then
+        systemctl stop "$unit"
+        echo "  Stopped: $unit"
+        stopped=$((stopped + 1))
+      fi
+    done
   done
+  if [ $stopped -eq 0 ]; then
+    echo "  No active mining services found"
+  fi
   echo "✅ Mining paused"
 }
 
 # Function to restart mining services
 start_mining() {
   echo "▶️  Restarting mining services..."
+  local started=0
   for svc in "${MINING_SERVICES[@]}"; do
-    # Find actual services matching the pattern
-    systemctl list-units --all | grep -E "$svc" | \
-      awk '{print $1}' | while read -r unit; do
-      systemctl start "$unit" 2>/dev/null || true
+    # Expand glob patterns to actual service names
+    for unit in $(systemctl list-unit-files --all --no-legend | grep -E "^${svc//\./\\.}" | awk '{print $1}'); do
+      # Only start if not already running
+      if ! systemctl is-active --quiet "$unit"; then
+        systemctl start "$unit" 2>/dev/null || true
+        if systemctl is-active --quiet "$unit"; then
+          echo "  Started: $unit"
+          started=$((started + 1))
+        fi
+      fi
     done
   done
+  if [ $started -eq 0 ]; then
+    echo "  All mining services already running"
+  fi
   echo "✅ Mining resumed"
 }
 
