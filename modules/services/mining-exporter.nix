@@ -101,13 +101,6 @@ in {
   };
 
   config = lib.mkIf (cfg.enable && hostConfig != null) {
-    # Create prometheus user/group (for hosts without prometheus server)
-    users.users.prometheus = lib.mkIf (!config.services.prometheus.enable) {
-      isSystemUser = true;
-      group = "prometheus";
-    };
-    users.groups.prometheus = lib.mkIf (!config.services.prometheus.enable) {};
-
     # Mining exporter systemd service
     systemd.services.prometheus-mining-exporter = {
       description = "Prometheus Mining Metrics Exporter";
@@ -120,9 +113,8 @@ in {
 
       serviceConfig = {
         Type = "simple";
-        User = "prometheus";
-        Group = "prometheus";
-        RuntimeDirectory = "prometheus/mining-exporter";
+        DynamicUser = true;
+        RuntimeDirectory = "prometheus-mining-exporter";
         ExecStart = pkgs.writers.writeBash "mining-exporter" ''
           set -euo pipefail
 
@@ -130,7 +122,7 @@ in {
           HOSTNAME="$(${pkgs.hostname}/bin/hostname)"
           INTERVAL_SECONDS=15
 
-          METRICS_DIR="/run/prometheus/mining-exporter"
+          METRICS_DIR="/run/prometheus-mining-exporter"
           cd "$METRICS_DIR"
 
           # Helper to escape labels
@@ -293,7 +285,7 @@ in {
         ProtectSystem = "strict";
         ProtectHome = true;
         ReadOnlyPaths = "/";
-        ReadWritePaths = "/run/prometheus/mining-exporter";
+        ReadWritePaths = "/run/prometheus-mining-exporter";
       };
     };
 
