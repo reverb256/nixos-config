@@ -21,6 +21,10 @@
     },
     "playwright": {
       "command": "mcp-playwright"
+    },
+    "nixos": {
+      "command": "uvx",
+      "args": ["mcp-nixos"]
     }
   }
 }
