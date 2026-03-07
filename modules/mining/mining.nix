@@ -53,15 +53,14 @@ with lib; let
   xmrigWrapperScript = pkgs.writeShellScript "xmrig-wrapper" ''
     PATH=/run/current-system/sw/bin:$PATH
     TOKEN_FILE="${cfg.xmrig.httpTokenFile}"
+    RUNTIME_CONFIG="/run/xmrig/config.json"
 
-    # Check if token file exists
-    if [ -r "$TOKEN_FILE" ]; then
-      TOKEN=$(cat "$TOKEN_FILE")
-      exec ${pkgs.xmrig}/bin/xmrig -c /etc/xmrig/config.json --randomx-1gb-pages --threads=${toString cfg.xmrig.threads} --http-access-token="$TOKEN"
+    # Use runtime config with token if available, otherwise fallback to default config
+    CONFIG="''${RUNTIME_CONFIG:-/etc/xmrig/config.json}"
+
+    if [ -r "$CONFIG" ]; then
+      exec ${pkgs.xmrig}/bin/xmrig -c "$CONFIG" --randomx-1gb-pages --threads=${toString cfg.xmrig.threads}
     else
-      # Fallback: run without API token (API will be disabled)
-      echo "Warning: API token file not found at $TOKEN_FILE" >&2
-      echo "Starting XMRig without HTTP API authentication" >&2
       exec ${pkgs.xmrig}/bin/xmrig -c /etc/xmrig/config.json --randomx-1gb-pages --threads=${toString cfg.xmrig.threads}
     fi
   '';
@@ -189,21 +188,22 @@ in {
     systemd.tmpfiles.rules = [
       "d /var/lib/mining 0750 ${cfg.user} mining - -"
       "d /var/log/mining 0750 ${cfg.user} mining - -"
+      "d /run/xmrig 0750 ${cfg.user} mining - -"
     ];
 
     environment.etc."xmrig/config.json" = mkIf cfg.xmrig.enable {
       text = builtins.toJSON {
         api = {
           id = null;
-          "worker-id" = null;
+          worker-id = null;
         };
         http = {
           enabled = true;
           host = "127.0.0.1";
           port = 8081;
-          # restricted: true requires access-token for security
-          # Token is passed via --http-access-token command line option
-          restricted = true;
+          # restricted: false to allow pause/resume control endpoints
+          # Token will be injected at runtime via ExecStartPre
+          restricted = false;
         };
         pools = [
           {
@@ -304,7 +304,22 @@ in {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            # Use wrapper script that reads the API token at runtime
+            # Prepare runtime config with API token injected
+            ExecStartPre = pkgs.writeShellScript "xmrig-config-prep-v4" ''
+              TOKEN_FILE="${cfg.xmrig.httpTokenFile}"
+              CONFIG_DIR=/run/xmrig
+
+              if [ -r "$TOKEN_FILE" ]; then
+                TOKEN=$(cat "$TOKEN_FILE")
+                mkdir -p "$CONFIG_DIR"
+                # Inject token into config - double quotes allow shell expansion
+                ${pkgs.jq}/bin/jq ".http.\"access-token\" = \"$TOKEN\"" /etc/xmrig/config.json > "$CONFIG_DIR/config.json"
+              else
+                # Fallback without token
+                cp /etc/xmrig/config.json "$CONFIG_DIR/config.json"
+              fi
+            '';
+            # Use wrapper script that uses the runtime config
             ExecStart = xmrigWrapperScript;
             Restart = "always";
             # NoNewPrivileges must be false to allow CAP_SYS_RAWIO for MSR access
@@ -321,6 +336,7 @@ in {
             ReadWritePaths = [
               "/var/lib/mining"
               "/var/log/mining"
+              "/run/xmrig"  # Allow writing runtime config
             ];
             LimitMEMLOCK = "4G";
             # Allow MSR access for CPU performance optimization

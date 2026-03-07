@@ -395,12 +395,12 @@ async def lifespan(app: FastAPI):
                     ]
 
                     # Get RAG components
-                    from ai_inference_gateway.rag.chunker import Chunker
+                    from ai_inference_gateway.rag.chunker import DocumentChunker
                     from ai_inference_gateway.rag.qdrant_client import (
                         get_qdrant_manager,
                     )
 
-                    chunker = Chunker(state.rag_config.chunking)
+                    chunker = DocumentChunker(state.rag_config.chunking)
                     qdrant_manager = get_qdrant_manager(state.rag_config.qdrant_url)
 
                     # Create ingestion service
@@ -558,6 +558,83 @@ def build_middleware_pipeline(
     return pipeline
 
 
+def is_reasoning_model(model_id: str) -> bool:
+    """Check if a model is a reasoning model that uses reasoning_content field.
+
+    These models have issues with LM Studio's /v1/messages endpoint,
+    so we need to use /v1/chat/completions and translate the response.
+    """
+    reasoning_indicators = [
+        "claude-4.6-opus-reasoning-distilled",
+        "claude-4.6-opus-distilled",
+        "claude-opus-reasoning",
+        "claude-opus-distilled",
+        "reasoning",
+        "deepseek-r1",
+    ]
+    model_lower = model_id.lower()
+    return any(indicator in model_lower for indicator in reasoning_indicators)
+
+
+def translate_openai_to_anthropic(openai_response: dict, original_model: str) -> dict:
+    """
+    Translate OpenAI chat/completions response to Anthropic messages format.
+
+    Handles reasoning_content field which is used by reasoning models.
+    Maps OpenAI's separate reasoning_content + content to Anthropic's content blocks.
+    """
+    choice = openai_response.get("choices", [{}])[0]
+    message = choice.get("message", {})
+
+    # Extract content from OpenAI response
+    reasoning_content = message.get("reasoning_content", "")
+    content_text = message.get("content", "")
+
+    # Build Anthropic content blocks
+    anthropic_content = []
+
+    # Add thinking block if reasoning_content exists
+    if reasoning_content:
+        anthropic_content.append({
+            "type": "thinking",
+            "thinking": reasoning_content
+        })
+
+    # Add text block if content exists
+    if content_text:
+        anthropic_content.append({
+            "type": "text",
+            "text": content_text
+        })
+
+    # If both are empty but we have output_tokens, something went wrong
+    # Put a placeholder text
+    if not anthropic_content:
+        usage = openai_response.get("usage", {})
+        if usage.get("completion_tokens", 0) > 0:
+            logger.warning(f"Model {original_model} generated tokens but no content returned")
+            anthropic_content.append({
+                "type": "text",
+                "text": ""
+            })
+
+    return {
+        "id": openai_response.get("id", f"msg_{openai_response.get('created', '')}"),
+        "type": "message",
+        "role": "assistant",
+        "content": anthropic_content,
+        "model": original_model,  # Use the originally requested Claude model ID
+        "stop_reason": choice.get("finish_reason", "stop"),
+        "stop_sequence": None,
+        "usage": {
+            "input_tokens": openai_response.get("usage", {}).get("prompt_tokens", 0),
+            "output_tokens": openai_response.get("usage", {}).get("completion_tokens", 0),
+            "cache_creation_input_tokens": openai_response.get("usage", {}).get("cache_creation_tokens", 0),
+            "cache_read_input_tokens": openai_response.get("usage", {}).get("cache_read_tokens", 0),
+        }
+    }
+
+
 def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     """
     Create and configure the FastAPI application.
@@ -568,27 +645,42 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     Returns:
         Configured FastAPI application
     """
+    import sys
+    print("[DEBUG] create_app: Starting...", file=sys.stderr, flush=True)
+
     if config is None:
+        print("[DEBUG] create_app: Loading config from environment...", file=sys.stderr, flush=True)
         config = GatewayConfig()
+        print(f"[DEBUG] create_app: Config loaded, backend_url={config.backend_url}", file=sys.stderr, flush=True)
 
     # Initialize gateway state with OpenAI client wrapper
+    print("[DEBUG] create_app: Creating OpenAI client wrapper...", file=sys.stderr, flush=True)
     openai_client = create_openai_client(config)
+    print("[DEBUG] create_app: OpenAI client created", file=sys.stderr, flush=True)
+
+    print("[DEBUG] create_app: Creating GatewayState...", file=sys.stderr, flush=True)
     gateway_state = GatewayState(
         config=config,
         openai_client=openai_client,
     )
+    print("[DEBUG] create_app: GatewayState created", file=sys.stderr, flush=True)
 
     # Create FastAPI app
+    print("[DEBUG] create_app: Creating FastAPI app...", file=sys.stderr, flush=True)
     app = FastAPI(
         title="AI Inference Gateway",
         description="Advanced gateway for AI inference backends with middleware",
         version=GATEWAY_VERSION,
         lifespan=lifespan,
     )
+    print("[DEBUG] create_app: FastAPI app created", file=sys.stderr, flush=True)
 
     # Store gateway state in app
+    print("[DEBUG] create_app: Storing gateway state...", file=sys.stderr, flush=True)
     app.state.gateway = gateway_state
+    print("[DEBUG] create_app: Gateway state stored", file=sys.stderr, flush=True)
 
+    print("[DEBUG] create_app: Adding health endpoint...", file=sys.stderr, flush=True)
     # Add health endpoint
     @app.get("/health")
     async def health_check():
@@ -706,6 +798,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         return health_response
 
+    print("[DEBUG] create_app: Health endpoint added", file=sys.stderr, flush=True)
     # Add models endpoint
     @app.get("/v1/models")
     async def list_models(request: Request):
@@ -741,7 +834,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 status_code=500, detail=f"Error fetching models: {str(e)}"
             )
 
+    print("[DEBUG] create_app: Models endpoint added", file=sys.stderr, flush=True)
     # Add chat completions endpoint
+    print("[DEBUG] create_app: Adding chat completions endpoint...", file=sys.stderr, flush=True)
     @app.post("/v1/chat/completions")
     async def chat_completions(request: Request):
         """
@@ -806,6 +901,48 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         except Exception as defaults_error:
             logger.warning(f"Failed to apply model defaults: {defaults_error}")
             # Continue without defaults - not critical
+
+        # Apply Qwen3.5 optimal parameters automatically
+        # This enhances Qwen models with proper temperature, top_p, etc.
+        if "qwen" in route_decision.model.lower():
+            try:
+                # Determine if thinking is enabled (check for thinking params in request)
+                thinking_enabled = False
+                if "thinking" in body:
+                    thinking = body.get("thinking", {})
+                    if isinstance(thinking, dict):
+                        thinking_enabled = thinking.get("type", "disabled") != "disabled"
+                    elif isinstance(thinking, bool):
+                        thinking_enabled = thinking
+
+                # Detect task type from messages for better param selection
+                task_type = "general"
+                messages_text = " ".join([m.get("content", "") for m in messages])
+                if any(keyword in messages_text.lower() for keyword in ["code", "function", "debug", "fix"]):
+                    task_type = "coding"
+                elif any(keyword in messages_text.lower() for keyword in ["tool", "search", "call", "execute"]):
+                    task_type = "agentic"
+                elif len(messages_text) > 10000:  # Long conversation, prioritize speed
+                    task_type = "fast"
+
+                # Get optimal Qwen parameters
+                qwen_params = get_optimal_qwen_params(
+                    model_id=route_decision.model,
+                    thinking_enabled=thinking_enabled,
+                    task_type=task_type,
+                )
+
+                # Apply optimal params only if not explicitly set by user
+                for param, value in qwen_params.items():
+                    if param not in body:
+                        body[param] = value
+                        logger.debug(
+                            f"Applied Qwen optimal param: {param}={value} "
+                            f"(model={route_decision.model}, task={task_type})"
+                        )
+            except Exception as qwen_error:
+                logger.warning(f"Failed to apply Qwen optimal params: {qwen_error}")
+                # Continue without Qwen params - not critical
 
         # Track request start for smart load balancing
         import uuid
@@ -896,84 +1033,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 # Always clean up request tracking
                 state.router.track_request_end(request_id)
 
-
-def is_reasoning_model(model_id: str) -> bool:
-    """Check if a model is a reasoning model that uses reasoning_content field.
-
-    These models have issues with LM Studio's /v1/messages endpoint,
-    so we need to use /v1/chat/completions and translate the response.
-    """
-    reasoning_indicators = [
-        "claude-4.6-opus-reasoning-distilled",
-        "claude-4.6-opus-distilled",
-        "claude-opus-reasoning",
-        "claude-opus-distilled",
-        "reasoning",
-        "deepseek-r1",
-    ]
-    model_lower = model_id.lower()
-    return any(indicator in model_lower for indicator in reasoning_indicators)
-
-
-def translate_openai_to_anthropic(openai_response: dict, original_model: str) -> dict:
-    """
-    Translate OpenAI chat/completions response to Anthropic messages format.
-
-    Handles reasoning_content field which is used by reasoning models.
-    Maps OpenAI's separate reasoning_content + content to Anthropic's content blocks.
-    """
-    choice = openai_response.get("choices", [{}])[0]
-    message = choice.get("message", {})
-
-    # Extract content from OpenAI response
-    reasoning_content = message.get("reasoning_content", "")
-    content_text = message.get("content", "")
-
-    # Build Anthropic content blocks
-    anthropic_content = []
-
-    # Add thinking block if reasoning_content exists
-    if reasoning_content:
-        anthropic_content.append({
-            "type": "thinking",
-            "thinking": reasoning_content
-        })
-
-    # Add text block if content exists
-    if content_text:
-        anthropic_content.append({
-            "type": "text",
-            "text": content_text
-        })
-
-    # If both are empty but we have output_tokens, something went wrong
-    # Put a placeholder text
-    if not anthropic_content:
-        usage = openai_response.get("usage", {})
-        if usage.get("completion_tokens", 0) > 0:
-            logger.warning(f"Model {original_model} generated tokens but no content returned")
-            anthropic_content.append({
-                "type": "text",
-                "text": ""
-            })
-
-    return {
-        "id": openai_response.get("id", f"msg_{openai_response.get('created', '')}"),
-        "type": "message",
-        "role": "assistant",
-        "content": anthropic_content,
-        "model": original_model,  # Use the originally requested Claude model ID
-        "stop_reason": choice.get("finish_reason", "stop"),
-        "stop_sequence": None,
-        "usage": {
-            "input_tokens": openai_response.get("usage", {}).get("prompt_tokens", 0),
-            "output_tokens": openai_response.get("usage", {}).get("completion_tokens", 0),
-            "cache_creation_input_tokens": openai_response.get("usage", {}).get("cache_creation_tokens", 0),
-            "cache_read_input_tokens": openai_response.get("usage", {}).get("cache_read_tokens", 0),
-        }
-    }
-
-
+    print("[DEBUG] create_app: Adding /v1/messages endpoint...", file=sys.stderr, flush=True)
     @app.post("/v1/messages")
     async def messages(request: Request):
         """
@@ -1243,6 +1303,7 @@ def translate_openai_to_anthropic(openai_response: dict, original_model: str) ->
     # MCP Broker Endpoints
     # ============================================================================
 
+    print("[DEBUG] create_app: Adding MCP endpoints...", file=sys.stderr, flush=True)
     @app.get("/mcp/servers")
     async def list_mcp_servers():
         """List all configured MCP servers."""
@@ -1431,6 +1492,7 @@ def translate_openai_to_anthropic(openai_response: dict, original_model: str) ->
 
         return {"message": "Cache metrics reset"}
 
+    print("[DEBUG] create_app: Adding RAG ingestion endpoint...", file=sys.stderr, flush=True)
     @app.post("/rag/ingest")
     async def ingest_rag_url(request: Request):
         """
@@ -2206,6 +2268,7 @@ def translate_openai_to_anthropic(openai_response: dict, original_model: str) ->
 
         return {"embedding": embedding}
 
+    print("[DEBUG] create_app: Adding metrics endpoint...", file=sys.stderr, flush=True)
     # Add metrics endpoint for Prometheus
     if PROMETHEUS_AVAILABLE:
 
@@ -2224,6 +2287,7 @@ def translate_openai_to_anthropic(openai_response: dict, original_model: str) ->
                 detail="Prometheus metrics not available. Install prometheus-client package.",
             )
 
+    print("[DEBUG] create_app: About to return app", file=sys.stderr, flush=True)
     return app
 
 

@@ -48,6 +48,7 @@
     # ./services/podman.nix  # Temporarily disabled - has pre-existing issues
     ./services/spacebot.nix
     ./services/glitchtip-selfhosted.nix
+    ./services/nextcloud.nix
 
     # Monitoring
     ./services/monitoring/default.nix

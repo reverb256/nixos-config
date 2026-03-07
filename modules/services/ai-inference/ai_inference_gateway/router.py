@@ -57,62 +57,181 @@ MODEL_PREFILL_CONFIG = {
 # Qwen3.5 model-specific configuration
 # Based on: https://unsloth.ai/docs/models/qwen3.5
 QWEN_MODEL_CONFIG = {
-    # Small models (0.8B-9B): thinking disabled by default, enable via enable_thinking
+    # ========== ULTRA-TINY MODELS (0.8B-2B) ==========
+    # Fastest models, suitable for simple tasks and quick responses
     "qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 8192,
         "context_length": 262144,
-        "thinking_enabled_default": True,  # This is a reasoning-distilled model
+        "thinking_enabled_default": True,
         "supports_thinking_toggle": True,
+        "speed_tier": "ultra_fast",
+        "recommended_for": ["fast", "simple_qa"],
+    },
+    "qwen3.5-0.8b": {
+        "max_tokens": 8192,
+        "context_length": 262144,
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": False,
+        "speed_tier": "ultra_fast",
+        "recommended_for": ["fast", "simple_qa"],
+    },
+    "qwen3.5-2b": {
+        "max_tokens": 8192,
+        "context_length": 262144,
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": False,
+        "speed_tier": "ultra_fast",
+        "recommended_for": ["fast", "summarization"],
+    },
+    "qwen3.5-2b-claude-4.6-opus-reasoning-distilled": {
+        "max_tokens": 8192,
+        "context_length": 262144,
+        "thinking_enabled_default": True,
+        "supports_thinking_toggle": True,
+        "speed_tier": "fast",
+        "recommended_for": ["fast", "reasoning"],
+    },
+
+    # ========== SMALL MODELS (4B-9B) ==========
+    # Good balance of speed and quality
+    "qwen3.5-4b": {
+        "max_tokens": 8192,
+        "context_length": 262144,
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": False,
+        "speed_tier": "fast",
+        "recommended_for": ["general", "chat"],
+    },
+    "qwen3.5-4b-claude-4.6-opus-reasoning-distilled": {
+        "max_tokens": 16384,
+        "context_length": 262144,
+        "thinking_enabled_default": True,
+        "supports_thinking_toggle": True,
+        "speed_tier": "fast",
+        "recommended_for": ["coding", "reasoning"],
+    },
+    "qwen3.5-4b-claude-4.6-opus-distilled-32k@q8_0": {
+        "max_tokens": 16384,
+        "context_length": 32768,
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": False,
+        "speed_tier": "fast",
+        "recommended_for": ["general", "chat"],
+    },
+    "qwen3.5-9b": {
+        "max_tokens": 16384,
+        "context_length": 262144,
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": False,
+        "speed_tier": "balanced",
+        "recommended_for": ["general", "coding"],
     },
     "qwen3.5-9b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 16384,
         "context_length": 262144,
         "thinking_enabled_default": True,
         "supports_thinking_toggle": True,
+        "speed_tier": "balanced",
+        "recommended_for": ["coding", "complex_reasoning"],
     },
-    # 35B-A3B: Hybrid reasoning, always has thinking enabled
-    "qwen3.5-35b-a3b": {
-        "max_tokens": 32768,  # Adequate output length for most queries
+    "qwen3.5-9b-claude-4.6-opus-distilled-32k": {
+        "max_tokens": 16384,
+        "context_length": 32768,
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": False,
+        "speed_tier": "balanced",
+        "recommended_for": ["general", "long_context"],
+    },
+
+    # ========== LARGE MODELS (27B-35B) ==========
+    # Highest quality, slower but more capable
+    "qwen3.5-27b": {
+        "max_tokens": 32768,
+        "context_length": 262144,
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": False,
+        "speed_tier": "slow",
+        "recommended_for": ["complex_reasoning", "creative"],
+    },
+    "qwen3.5-27b-claude-4.6-opus-reasoning-distilled": {
+        "max_tokens": 32768,
         "context_length": 262144,
         "thinking_enabled_default": True,
         "supports_thinking_toggle": True,
+        "speed_tier": "slow",
+        "recommended_for": ["complex_reasoning", "agentic"],
+    },
+    "qwen3.5-35b-a3b": {
+        "max_tokens": 32768,
+        "context_length": 262144,
+        "thinking_enabled_default": True,
+        "supports_thinking_toggle": True,
+        "speed_tier": "slow",
+        "recommended_for": ["complex_reasoning", "agentic", "analysis"],
     },
 }
 
 
 # Optimal parameters for Qwen3.5 thinking vs non-thinking modes
 # Based on: https://unsloth.ai/docs/models/qwen3.5
+# Note: Only includes parameters supported by LM Studio's OpenAI-compatible API
 QWEN_OPTIMAL_PARAMS = {
     "thinking": {
+        # General purpose with thinking enabled
         "general": {
             "temperature": 1.0,
             "top_p": 0.95,
-            "top_k": 20,
             "presence_penalty": 1.5,
-            "repeat_penalty": 1.0,
         },
+        # Coding tasks with thinking
         "coding": {
             "temperature": 0.7,
             "top_p": 0.8,
-            "top_k": 20,
             "presence_penalty": 1.5,
-            "repeat_penalty": 1.0,
+        },
+        # Agentic tasks (tool-calling, multi-step reasoning)
+        "agentic": {
+            "temperature": 0.8,
+            "top_p": 0.9,
+            "presence_penalty": 1.2,
+        },
+        # Fast responses (still with thinking enabled but lower temp)
+        "fast": {
+            "temperature": 0.5,
+            "top_p": 0.85,
+            "presence_penalty": 0.5,
         },
     },
     "non_thinking": {
+        # General purpose without thinking
         "general": {
             "temperature": 0.6,
             "top_p": 0.95,
-            "top_k": 20,
             "presence_penalty": 0.0,
-            "repeat_penalty": 1.0,
         },
+        # Heavy reasoning without explicit thinking mode
         "reasoning": {
             "temperature": 1.0,
             "top_p": 0.95,
-            "top_k": 20,
             "presence_penalty": 0.0,
-            "repeat_penalty": 1.0,
+        },
+        # Coding without thinking mode
+        "coding": {
+            "temperature": 0.5,
+            "top_p": 0.85,
+            "presence_penalty": 0.0,
+        },
+        # Agentic tasks without thinking
+        "agentic": {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "presence_penalty": 0.8,
+        },
+        # Fast responses
+        "fast": {
+            "temperature": 0.4,
+            "top_p": 0.8,
+            "presence_penalty": 0.0,
         },
     },
 }
@@ -140,13 +259,14 @@ def get_optimal_qwen_params(
     Args:
         model_id: Qwen model identifier
         thinking_enabled: Whether thinking/reasoning mode is enabled
-        task_type: Task type ("general" or "coding")
+        task_type: Task type ("general", "coding", "agentic", "fast", or "reasoning")
 
     Returns:
-        Dict of optimal parameters
+        Dict of optimal parameters for the model and task type
     """
     mode = "thinking" if thinking_enabled else "non_thinking"
-    task = task_type if task_type in ("general", "coding") else "general"
+    valid_tasks = {"general", "coding", "agentic", "fast", "reasoning"}
+    task = task_type if task_type in valid_tasks else "general"
     return QWEN_OPTIMAL_PARAMS.get(mode, {}).get(task, {})
 
 
