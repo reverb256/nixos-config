@@ -49,4 +49,17 @@ in {
 
   # Grafana admin password - Monitoring dashboard access
   "secrets/grafana-admin.age".publicKeys = [users.j_kro hosts.zephyr];
+
+  # Sentry DSN - Error tracking for AI inference gateway
+  "secrets/sentry-dsn.age".publicKeys = [users.j_kro hosts.zephyr];
+
+  # ========================================================================
+  # GLITCHTIP SECRETS
+  # ========================================================================
+
+  # GlitchTip database password
+  "secrets/glitchtip-db-password.age".publicKeys = [users.j_kro hosts.zephyr];
+
+  # GlitchTip Django secret key
+  "secrets/glitchtip-secret-key.age".publicKeys = [users.j_kro hosts.zephyr];
 }
