@@ -64,6 +64,13 @@ in {
   "secrets/glitchtip-secret-key.age".publicKeys = [users.j_kro hosts.zephyr];
 
   # ========================================================================
+  # NEXTCLOUD SECRETS
+  # ========================================================================
+
+  # Nextcloud admin password
+  "secrets/nextcloud-admin.age".publicKeys = [users.j_kro hosts.zephyr];
+
+  # ========================================================================
   # MINING SECRETS
   # ========================================================================
 

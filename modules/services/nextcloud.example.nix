@@ -18,10 +18,10 @@
       user = "nextcloud";
     };
 
-    # Admin account (use Agenix for secrets!)
+    # Admin account (password managed by Agenix)
     admin = {
       user = "j_kro";  # Or "admin"
-      passwordFile = "/run/agenix/nextcloud-admin-pass";
+      passwordFile = "/run/agenix/nextcloud-admin";
     };
 
     # Storage
@@ -54,12 +54,6 @@
     # HTTPS
     https = true;
 
-    # Synapse integration
-    synapseIntegration = {
-      enable = true;  # Creates directories for AI agent data
-      dataDir = "/var/lib/nextcloud/data/synapse";
-    };
-
     # PHP tuning
     php = {
       memoryLimit = "512M";
@@ -70,9 +64,15 @@
   # ============================================================================
   # AGENIX SECRET (for admin password)
   # ============================================================================
-  # Create a secret file with:
-  # printf "your-secure-password" | agenix -e nextcloud-admin-pass
+  # The password is encrypted in:
+  #   /data/@projects/infra/nixos/secrets/nextcloud-admin.age
   #
-  # Then add to your secrets.nix:
-  # "nextcloud-admin-pass".file = ./secrets/nextcloud-admin-pass.age;
+  # Decrypted at runtime to: /run/agenix/nextcloud-admin
+  #
+  # To view the password:
+  #   age --decrypt /data/@projects/infra/nixos/secrets/nextcloud-admin.age
+  #
+  # To regenerate:
+  #   tr -dc 'A-Za-z0-9!@#$%^&*' < /dev/urandom | head -c 32 | \
+  #     age -R /path/to/recipients.txt > nextcloud-admin.age
 }
