@@ -34,9 +34,9 @@ in {
     # NFS Server configuration (for zephyr)
     services.nfs.server = lib.mkIf cfg.server.enable {
       enable = true;
-      exports = ''
-        /etc/nixos ${builtins.concatStringsSep " " cfg.server.allowedHosts}(ro,no_subtree_check,no_root_squash,async,nohide,insecure)
-      '';
+      exports = lib.concatMapStringsSep "\n" (host: ''
+        /etc/nixos ${host}(ro,no_subtree_check,no_root_squash,async,nohide,insecure)
+      '') cfg.server.allowedHosts;
     };
 
     # NFS Client configuration (for remote hosts)
