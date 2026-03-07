@@ -2,7 +2,7 @@
 # nixos-rebuild-safe.sh - Build with automatic mining pause
 #
 # Automatically stops mining services before build and restarts after.
-# Usage: sudo nixos-rebuild-safe.sh switch --flake .#zephyr
+# Usage: sudo nixos-rebuild-safe.sh switch --flake /etc/nixos#zephyr
 
 set -euo pipefail
 
@@ -40,8 +40,10 @@ trap start_mining EXIT
 stop_mining
 
 # Run the actual nixos-rebuild command
+# Note: --accept-flake-config allows nix to read git repo owned by another user
+# when running with sudo. This is safe for single-user systems.
 echo "🔨 Building: nixos-rebuild $*"
-sudo nixos-rebuild "$@"
+nixos-rebuild --accept-flake-config "$@"
 BUILD_STATUS=$?
 
 if [ $BUILD_STATUS -ne 0 ]; then
