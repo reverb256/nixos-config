@@ -1,0 +1,58 @@
+# NixOS Configuration Share Module
+# Allows remote hosts to mount /etc/nixos from zephyr for single-source-of-truth
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.services.nixos-share;
+in {
+  options.services.nixos-share = {
+    enable = lib.mkEnableOption "NixOS configuration sharing";
+
+    server = {
+      enable = lib.mkEnableOption "NFS server for sharing /etc/nixos";
+      allowedHosts = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = ["100.86.158.18" "100.95.222.45" "100.81.171.24"]; # nexus, forge, sentry
+        description = "IP addresses allowed to mount the NFS share";
+      };
+    };
+
+    client = {
+      enable = lib.mkEnableOption "NFS client for mounting /etc/nixos from zephyr";
+      serverHost = lib.mkOption {
+        type = lib.types.str;
+        default = "100.95.129.98"; # zephyr's Tailscale IP
+        description = "NFS server hostname or IP";
+      };
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    # NFS Server configuration (for zephyr)
+    services.nfs.server = lib.mkIf cfg.server.enable {
+      enable = true;
+      exports = ''
+        /etc/nixos ${builtins.concatStringsSep " " cfg.server.allowedHosts}(ro,no_subtree_check,no_root_squash,async,nohide,insecure)
+      '';
+    };
+
+    # NFS Client configuration (for remote hosts)
+    fileSystems = lib.mkIf cfg.client.enable {
+      "/etc/nixos" = {
+        device = "${cfg.client.serverHost}:/etc/nixos";
+        fsType = "nfs";
+        options = ["ro" "noatime" "soft" "timeo=30" "retrans=3" "_netdev"];
+      };
+    };
+
+    # Ensure network is ready before mounting NFS
+    systemd.mounts = lib.mkIf cfg.client.enable {
+      _netdev = true;
+      requires = ["network-online.target"];
+      after = ["network-online.target" "tailscale.service"];
+    };
+  };
+}

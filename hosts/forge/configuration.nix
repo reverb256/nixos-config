@@ -555,5 +555,11 @@
         OLLAMA_KEEP_ALIVE = "24h";
       };
     };
+
+    # Mount /etc/nixos from zephyr (single-source-of-truth)
+    nixos-share = {
+      enable = true;
+      client.enable = true;
+    };
   };
 }

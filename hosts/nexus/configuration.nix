@@ -173,6 +173,12 @@
       enable = true;
       servers.playwright.enable = true;
     };
+
+    # Mount /etc/nixos from zephyr (single-source-of-truth)
+    nixos-share = {
+      enable = true;
+      client.enable = true;
+    };
   };
 
   # ============================================================================
