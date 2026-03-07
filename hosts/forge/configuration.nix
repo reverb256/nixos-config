@@ -44,8 +44,21 @@
   # ============================================================================
   networking.hostName = "forge";
 
-  # NVIDIA GPU support (2x RTX 4060)
-  hardware.nvidia-common.enable = true;
+  # ============================================================================
+  # HARDWARE PROFILES
+  # ============================================================================
+  hardware.profiles = {
+    nvidia.enable = true;  # NVIDIA GPU support
+    nvidia.multiGpu = true;  # 2x RTX 4060
+    amdgpu.enable = true;  # AMD GPU support
+    amdgpu.wayland = true;  # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
+    monitoring.enable = true;  # Hardware monitoring
+  };
+
+  # ============================================================================
+  # ROLE PROFILES
+  # ============================================================================
+  profiles.role.mining = true;  # GPU/CPU mining only (no gaming/VR)
 
   # ============================================================================
   # BOOTLOADER
@@ -71,18 +84,15 @@
   # ============================================================================
   # GPU DRIVERS (Hybrid AMD + NVIDIA)
   # Note: NVIDIA base config is in nvidia-common.nix
+  # Note: hardware.profiles.amdgpu.enable handles AMDGPU automatically
   # ============================================================================
-  hardware.amdgpu = {
-    opencl.enable = true;
-  };
-
   boot.kernelModules = ["amdgpu" "tun"];
   boot.initrd.kernelModules = ["amdgpu"];
 
   # ============================================================================
   # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
   # ============================================================================
-  services.mining.enable = true;
+  # Note: profiles.role.mining enables services.mining automatically
 
   # NVIDIA GPUs (RTX 4060s)
   services.mining.lolminer.nvidia = {
@@ -367,8 +377,8 @@
   # ============================================================================
   # ROCm SETUP
   # ============================================================================
+  # Note: hardware.profiles.amdgpu.wayland sets ROC_ENABLE_PRE_VEGA=1 automatically
   environment.variables = {
-    ROC_ENABLE_PRE_VEGA = "1";
     LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
     OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
   };

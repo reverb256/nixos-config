@@ -29,11 +29,16 @@
   # ============================================================================
   networking.hostName = "nexus";
 
-  # NVIDIA GPU support (2x RTX 3060 Ti)
-  hardware.nvidia-common.enable = true;
+  # ============================================================================
+  # HARDWARE PROFILES
+  # ============================================================================
+  hardware.profiles = {
+    nvidia.enable = true;  # NVIDIA GPU support
+    nvidia.multiGpu = true;  # 2x RTX 3060 Ti
+    monitoring.enable = true;  # Hardware monitoring
+  };
 
-  # Hardware monitoring (lm-sensors for CPU/motherboard temps)
-  hardware.monitoring.enable = true;
+  # Hardware monitoring extras (not covered by profile)
   hardware.monitoring.autoDetect = true; # Auto-detect sensor chips
   hardware.monitoring.fanControl = false; # BIOS fan control for now
 
@@ -89,12 +94,20 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   # ============================================================================
-  # GAMING + VR (Full support - 2x RTX 3060 Ti)
+  # ROLE PROFILES
   # ============================================================================
-  services.gaming = {
-    enable = true;
-    vr.enable = true; # WiVRn, SteamVR, OpenXR
+  profiles.role = {
+    gaming = true;  # Steam, Lutris, etc.
+    vr = true;  # WiVRn, SteamVR, OpenXR
+    mining = true;  # GPU/CPU mining
   };
+
+  # Note: profiles.role.gaming enables services.gaming automatically
+
+  # ============================================================================
+  # NETWORK PROFILES
+  # ============================================================================
+  profiles.network.tailscale.enable = true;
 
   # Spotify with SpotX patch (ad-free, premium features)
   services.spotify-spotx.enable = true;
@@ -152,8 +165,8 @@
 
     # Mining configuration
     # Uses defaults from mining.nix for pool URLs and wallet format
+    # Note: profiles.role.mining enables services.mining automatically
     mining = {
-      enable = true;
       xmrig = {
         enable = true;
         autostart = true;
@@ -170,7 +183,7 @@
       };
     };
 
-    tailscale.enable = true;
+    # Note: tailscale now enabled via profiles.network.tailscale.enable
 
     mcp-servers = {
       enable = true;
