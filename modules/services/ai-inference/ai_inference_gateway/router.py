@@ -19,6 +19,137 @@ from enum import Enum
 logger = logging.getLogger(__name__)
 
 
+# Prefill optimization config for faster TTFT on base models
+# Extended context variants get full context, base models get aggressive limits
+MODEL_PREFILL_CONFIG = {
+    # Haiku - no base/extended distinction, just fast
+    "claude-haiku-4": {
+        "max_input_tokens": 30_000,
+        "max_history_messages": 10,
+    },
+    "claude-haiku-4-20250514": {
+        "max_input_tokens": 30_000,
+        "max_history_messages": 10,
+    },
+    # Sonnet base (200K equivalent) - aggressive limits for fast prefill
+    "claude-sonnet-4-20250514": {
+        "max_input_tokens": 50_000,
+        "max_history_messages": 20,
+    },
+    # Sonnet extended (256K equivalent) - full context
+    "claude-sonnet-4-20250514-1m": {
+        "max_input_tokens": 200_000,
+        "max_history_messages": None,  # No trimming
+    },
+    # Opus base (200K equivalent) - aggressive limits for fast prefill
+    "claude-opus-4-20250514": {
+        "max_input_tokens": 50_000,
+        "max_history_messages": 20,
+    },
+    # Opus extended (256K equivalent) - full context
+    "claude-opus-4-20250514-1m": {
+        "max_input_tokens": 256_000,
+        "max_history_messages": None,  # No trimming
+    },
+}
+
+
+# Qwen3.5 model-specific configuration
+# Based on: https://unsloth.ai/docs/models/qwen3.5
+QWEN_MODEL_CONFIG = {
+    # Small models (0.8B-9B): thinking disabled by default, enable via enable_thinking
+    "qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled": {
+        "max_tokens": 8192,
+        "context_length": 262144,
+        "thinking_enabled_default": True,  # This is a reasoning-distilled model
+        "supports_thinking_toggle": True,
+    },
+    "qwen3.5-9b-claude-4.6-opus-reasoning-distilled": {
+        "max_tokens": 16384,
+        "context_length": 262144,
+        "thinking_enabled_default": True,
+        "supports_thinking_toggle": True,
+    },
+    # 35B-A3B: Hybrid reasoning, always has thinking enabled
+    "qwen3.5-35b-a3b": {
+        "max_tokens": 32768,  # Adequate output length for most queries
+        "context_length": 262144,
+        "thinking_enabled_default": True,
+        "supports_thinking_toggle": True,
+    },
+}
+
+
+# Optimal parameters for Qwen3.5 thinking vs non-thinking modes
+# Based on: https://unsloth.ai/docs/models/qwen3.5
+QWEN_OPTIMAL_PARAMS = {
+    "thinking": {
+        "general": {
+            "temperature": 1.0,
+            "top_p": 0.95,
+            "top_k": 20,
+            "presence_penalty": 1.5,
+            "repeat_penalty": 1.0,
+        },
+        "coding": {
+            "temperature": 0.7,
+            "top_p": 0.8,
+            "top_k": 20,
+            "presence_penalty": 1.5,
+            "repeat_penalty": 1.0,
+        },
+    },
+    "non_thinking": {
+        "general": {
+            "temperature": 0.6,
+            "top_p": 0.95,
+            "top_k": 20,
+            "presence_penalty": 0.0,
+            "repeat_penalty": 1.0,
+        },
+        "reasoning": {
+            "temperature": 1.0,
+            "top_p": 0.95,
+            "top_k": 20,
+            "presence_penalty": 0.0,
+            "repeat_penalty": 1.0,
+        },
+    },
+}
+
+
+def get_qwen_model_config(model_id: str) -> Dict:
+    """Get Qwen model configuration, with fallback to defaults."""
+    model_key = model_id.split("/")[-1] if "/" in model_id else model_id
+    return QWEN_MODEL_CONFIG.get(model_key, {
+        "max_tokens": 4096,
+        "context_length": 262144,
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": False,
+    })
+
+
+def get_optimal_qwen_params(
+    model_id: str,
+    thinking_enabled: bool,
+    task_type: str = "general",
+) -> Dict:
+    """
+    Get optimal parameters for Qwen3.5 models.
+
+    Args:
+        model_id: Qwen model identifier
+        thinking_enabled: Whether thinking/reasoning mode is enabled
+        task_type: Task type ("general" or "coding")
+
+    Returns:
+        Dict of optimal parameters
+    """
+    mode = "thinking" if thinking_enabled else "non_thinking"
+    task = task_type if task_type in ("general", "coding") else "general"
+    return QWEN_OPTIMAL_PARAMS.get(mode, {}).get(task, {})
+
+
 class TaskSpecialization(Enum):
     """Task specialization types for intelligent routing."""
 
@@ -111,6 +242,7 @@ class Router:
         self,
         models: List[ModelInfo],
         latency_tracker: Optional[LatencyTracker] = None,
+        lm_studio_api_key: Optional[str] = None,
     ):
         """
         Initialize router.
@@ -118,15 +250,25 @@ class Router:
         Args:
             models: List of available models
             latency_tracker: Optional latency tracker for performance-based routing
+            lm_studio_api_key: Optional API key for LM Studio health checks
         """
         self.models = {model.id: model for model in models}
         self.latency_tracker = latency_tracker or LatencyTracker()
         self.claude_model_mapping = self._build_claude_mapping()
+        self.lm_studio_api_key = lm_studio_api_key
         # Active request tracking for smart load balancing
         self.active_requests: Dict[str, Dict] = (
             {}
         )  # request_id -> {model, backend, stream, start_time}
         self.max_concurrent_streams = 1  # LM Studio can handle 1 stream at a time
+
+        # Backend health cache
+        self._backend_health: Dict[str, bool] = {
+            "lm-studio": True,
+            "zai": True,
+        }
+        self._backend_health_check_time: Dict[str, float] = {}
+        self._health_check_ttl: float = 10.0  # Check health every 10 seconds
 
     async def get_backend_load(self, backend: str) -> Dict:
         """
@@ -175,14 +317,123 @@ class Router:
             del self.active_requests[request_id]
             logger.debug(f"Stopped tracking request {request_id}")
 
+    async def check_backend_health(self, backend: str, force_check: bool = False) -> bool:
+        """
+        Check if a backend is healthy.
+
+        Uses cached health status with TTL to avoid excessive health checks.
+        For lm-studio, we check if the backend is accepting connections.
+        For zai, we assume it's healthy (cloud service).
+
+        Args:
+            backend: Backend name (lm-studio or zai)
+            force_check: Force a new health check, bypassing cache
+
+        Returns:
+            True if backend is healthy, False otherwise
+        """
+        import time
+
+        # ZAI is assumed healthy (cloud service with own failover)
+        if backend == "zai":
+            return True
+
+        # Check cache for lm-studio
+        now = time.time()
+        last_check = self._backend_health_check_time.get(backend, 0)
+
+        if not force_check and (now - last_check) < self._health_check_ttl:
+            return self._backend_health.get(backend, True)
+
+        # Perform health check for lm-studio
+        try:
+            import httpx
+
+            # Try to connect to LM Studio
+            # Use a short timeout to avoid blocking
+            headers = {}
+            if self.lm_studio_api_key:
+                headers["Authorization"] = f"Bearer {self.lm_studio_api_key}"
+
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                # Try the health endpoint or models endpoint
+                for endpoint in ["/v1/models", "/health"]:
+                    try:
+                        response = await client.get(
+                            f"http://127.0.0.1:1234{endpoint}",
+                            headers=headers,
+                            timeout=1.0,
+                        )
+                        is_healthy = response.status_code == 200
+                        self._backend_health[backend] = is_healthy
+                        self._backend_health_check_time[backend] = now
+
+                        if is_healthy:
+                            logger.debug(f"Backend {backend} is healthy")
+                        else:
+                            logger.warning(
+                                f"Backend {backend} health check returned {response.status_code}"
+                            )
+
+                        return is_healthy
+                    except Exception:
+                        continue
+
+            # All health checks failed
+            logger.warning(f"Backend {backend} health check failed")
+            self._backend_health[backend] = False
+            self._backend_health_check_time[backend] = now
+            return False
+
+        except Exception as e:
+            logger.error(f"Error checking backend {backend} health: {e}")
+            self._backend_health[backend] = False
+            self._backend_health_check_time[backend] = now
+            return False
+
+    async def is_backend_healthy(self, backend: str) -> bool:
+        """
+        Check if backend is healthy (cached result).
+
+        Args:
+            backend: Backend name
+
+        Returns:
+            True if healthy, False otherwise
+        """
+        return self._backend_health.get(backend, True)
+
     def _build_claude_mapping(self) -> Dict[str, str]:
-        """Build mapping from Anthropic Claude model names to available models."""
+        """Build mapping from Anthropic Claude model names to available models.
+
+        LOCAL-FIRST STRATEGY: Maps Claude models to local Opus-distilled variants.
+
+        Model mapping (5 Claude options → 3 underlying local models):
+        - Opus → qwen3.5-35b-a3b (largest, highest quality)
+        - Opus (1M context) → qwen3.5-35b-a3b (same model, extended context variant)
+        - Sonnet → qwen3.5-9b-claude-4.6-opus-reasoning-distilled (balanced)
+        - Sonnet (1M context) → qwen3.5-9b-claude-4.6-opus-reasoning-distilled (same model, extended context variant)
+        - Haiku → qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled (fastest)
+
+        Note: "1M" context variants map to the same underlying model since Qwen models
+        support up to 256K context. The distinction is client-side metadata.
+
+        ZAI fallback chain (when LM Studio down/capacity): glm-5 → glm-4.7 → glm-4.5-air
+        """
         return {
-            "claude-sonnet-4-20250514": "magnum-opus-35b-a3b-i1",
-            "claude-opus-4-20250514": "magnum-opus-35b-a3b-i1",
-            "claude-sonnet-4": "glm-5",
-            "claude-sonnet-4-20250514-simplified": "glm-4.7",
-            "claude-haiku-4-20250514": "glm-4-flash",
+            # Haiku tier → Local 0.8B Opus reasoning distilled (fastest)
+            "claude-haiku-4": "qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled",
+            "claude-haiku-4-20250514": "qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled",
+            # Sonnet tier → Local 9B Opus reasoning distilled
+            "claude-sonnet-4-20250514": "qwen3.5-9b-claude-4.6-opus-reasoning-distilled",
+            "claude-sonnet-4": "qwen3.5-9b-claude-4.6-opus-reasoning-distilled",
+            # Sonnet extended context variant (same underlying model)
+            "claude-sonnet-4-20250514-1m": "qwen3.5-9b-claude-4.6-opus-reasoning-distilled",
+            # Opus tier → Local 35B (best quality local)
+            "claude-opus-4-20250514": "qwen3.5-35b-a3b",
+            "claude-opus-4": "qwen3.5-35b-a3b",
+            # Opus extended context variant (same underlying model)
+            "claude-opus-4-20250514-1m": "qwen3.5-35b-a3b",
         }
 
     def estimate_tokens(self, messages: List[Dict]) -> int:
@@ -211,6 +462,60 @@ class Router:
 
         divisor = CHARS_PER_TOKEN_CODE if has_code else CHARS_PER_TOKEN
         return max(1, total_chars // divisor)
+
+    def apply_prefill_limits(
+        self,
+        messages: List[Dict],
+        claude_model: Optional[str] = None,
+    ) -> List[Dict]:
+        """
+        Apply prefill optimization limits to reduce time-to-first-token.
+
+        Base models get aggressive limits (fewer input tokens = faster prefill).
+        Extended context variants get full context.
+
+        Args:
+            messages: List of message dicts
+            claude_model: Original Claude model ID requested
+
+        Returns:
+            Potentially trimmed messages list
+        """
+        if not claude_model or claude_model not in MODEL_PREFILL_CONFIG:
+            return messages
+
+        config = MODEL_PREFILL_CONFIG[claude_model]
+        trimmed_messages = messages
+        max_tokens = config.get("max_input_tokens")
+        max_history = config.get("max_history_messages")
+
+        # Apply history message limit if set
+        if max_history is not None and len(messages) > max_history:
+            # Keep system messages and trim user/assistant history
+            system_msgs = [m for m in messages if m.get("role") == "system"]
+            history_msgs = [m for m in messages if m.get("role") != "system"]
+
+            # Keep most recent history messages
+            trimmed_history = history_msgs[-max_history:]
+            trimmed_messages = system_msgs + trimmed_history
+
+            logger.debug(
+                f"Prefill trim: {len(messages)} → {len(trimmed_messages)} messages "
+                f"for {claude_model}"
+            )
+
+        # Apply token limit if set
+        if max_tokens is not None:
+            estimated = self.estimate_tokens(trimmed_messages)
+            if estimated > max_tokens:
+                logger.warning(
+                    f"Prefill limit: {estimated} > {max_tokens} tokens for {claude_model}, "
+                    f"consider using extended context variant"
+                )
+                # Could truncate here, but for now just warn
+                # Truncation could break conversation flow
+
+        return trimmed_messages
 
     def detect_specialization(self, messages: List[Dict]) -> TaskSpecialization:
         """
@@ -294,6 +599,61 @@ class Router:
         Returns:
             Routing decision with model and metadata
         """
+        # Check if LM Studio is healthy before routing
+        lm_studio_healthy = await self.check_backend_health("lm-studio")
+
+        # If LM Studio is down, route directly to ZAI
+        if not lm_studio_healthy:
+            logger.info("LM Studio is down, auto-failing over to ZAI")
+            estimated_tokens = self.estimate_tokens(messages)
+
+            # Get available ZAI models
+            zai_models = [m for m in self.models.values() if m.backend == "zai"]
+            if zai_models:
+                # Sort by priority and pick the best one
+                best_zai = max(zai_models, key=lambda m: m.priority)
+                specialization = self.detect_specialization(messages)
+
+                # If client requested a specific model, try to map it
+                if requested_model and requested_model in self.claude_model_mapping:
+                    mapped_model = self.claude_model_mapping[requested_model]
+                    model_info = self.models.get(mapped_model)
+                    if model_info and model_info.backend == "zai":
+                        return RouteDecision(
+                            model=mapped_model,
+                            confidence=1.0,
+                            reason=f"LM Studio down, using ZAI fallback for {requested_model}",
+                            estimated_tokens=estimated_tokens,
+                            backend="zai",
+                            specialization=specialization,
+                            expected_latency_ms=model_info.estimated_tokens_per_second
+                            * estimated_tokens
+                            / 1000,
+                        )
+
+                return RouteDecision(
+                    model=best_zai.id,
+                    confidence=0.95,
+                    reason="LM Studio down (auto-failover to ZAI)",
+                    estimated_tokens=estimated_tokens,
+                    backend="zai",
+                    specialization=specialization,
+                    expected_latency_ms=best_zai.estimated_tokens_per_second
+                    * estimated_tokens
+                    / 1000,
+                )
+            else:
+                # No ZAI models available - this is an error condition
+                logger.error("LM Studio down and no ZAI models available!")
+                # Return default model anyway (will likely fail)
+                return RouteDecision(
+                    model="qwen/qwen3.5-9b",
+                    confidence=0.1,
+                    reason="LM Studio down, no ZAI fallback available",
+                    estimated_tokens=estimated_tokens,
+                    backend="lm-studio",
+                )
+
         # Check if LM Studio is busy with streaming requests
         lm_studio_load = await self.get_backend_load("lm-studio")
 
@@ -395,7 +755,7 @@ class Router:
 
         if not ranked_candidates:
             # Fallback to default model
-            default_model = "magnum-opus-35b-a3b-i1"
+            default_model = "qwen3.5-35b-a3b"
             model_info = self.models[default_model]
             return RouteDecision(
                 model=default_model,
@@ -494,124 +854,185 @@ class Router:
         return sorted(candidates, key=lambda c: c.score, reverse=True)
 
 
-def create_default_router() -> Router:
-    """Create router with default model configuration."""
+def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
+    """Create router with default model configuration.
+
+    Args:
+        lm_studio_api_key: Optional API key for LM Studio health checks
+    """
     models = [
-        # LM Studio models
-        ModelInfo(
-            id="qwen/qwen3.5-9b",
-            name="Qwen 3.5 9B",
-            context_length=262144,  # 256K
-            priority=8,
-            specializations=[
-                TaskSpecialization.GENERAL,
-                TaskSpecialization.FAST,
-                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
-            ],
-            cost_tier=1,
-            estimated_tokens_per_second=60.0,
-            backend="lm-studio",
-        ),
-        ModelInfo(
-            id="qwen3.5-9b",
-            name="Qwen 3.5 9B",
-            context_length=262144,  # 256K
-            priority=8,
-            specializations=[
-                TaskSpecialization.GENERAL,
-                TaskSpecialization.FAST,
-                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
-            ],
-            cost_tier=1,
-            estimated_tokens_per_second=60.0,
-            backend="lm-studio",
-        ),
+        # ========================================================================
+        # LM Studio models - Primary local backends
+        # ========================================================================
+        # Qwen 3.5 35B A3B - Largest local model, best for complex tasks
         ModelInfo(
             id="qwen3.5-35b-a3b",
             name="Qwen 3.5 35B A3B",
             context_length=262144,  # 256K
-            priority=9,
+            priority=10,  # Highest priority local model
             specializations=[
-                TaskSpecialization.GENERAL,
-                TaskSpecialization.AGENTIC,
                 TaskSpecialization.LARGE_CONTEXT,
-                # Note: VISION may not work if mmproj not loaded in LM Studio
-            ],
-            cost_tier=2,
-            estimated_tokens_per_second=40.0,
-            backend="lm-studio",
-        ),
-        ModelInfo(
-            id="qwen/qwen3.5-27b",
-            name="Qwen 3.5 27B",
-            context_length=262144,  # 256K
-            priority=8,
-            specializations=[
+                TaskSpecialization.AGENTIC,
                 TaskSpecialization.GENERAL,
-                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.VISION,  # All Qwen 3.5 support vision
             ],
-            cost_tier=2,
-            estimated_tokens_per_second=50.0,
+            cost_tier=3,
+            estimated_tokens_per_second=35.0,
             backend="lm-studio",
         ),
+        # Qwen 3.5 27B - Large context, general purpose
         ModelInfo(
             id="qwen3.5-27b",
             name="Qwen 3.5 27B",
             context_length=262144,  # 256K
-            priority=8,
+            priority=9,
             specializations=[
                 TaskSpecialization.GENERAL,
-                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.LARGE_CONTEXT,
+                TaskSpecialization.VISION,  # All Qwen 3.5 support vision
             ],
             cost_tier=2,
-            estimated_tokens_per_second=50.0,
+            estimated_tokens_per_second=45.0,
             backend="lm-studio",
         ),
+        # CROW 9B Opus 4.6 Distill - Claude Opus distilled for reasoning
         ModelInfo(
-            id="qwen/qwen3.5-4b",
-            name="Qwen 3.5 4B",
+            id="crow-9b-opus-4.6-distill-heretic_qwen3.5-i1",
+            name="CROW 9B Opus 4.6 Distill Heretic",
+            context_length=32768,  # 32K
+            priority=8,
+            specializations=[
+                TaskSpecialization.CODING,
+                TaskSpecialization.AGENTIC,
+                TaskSpecialization.GENERAL,
+            ],
+            cost_tier=2,
+            estimated_tokens_per_second=55.0,
+            backend="lm-studio",
+        ),
+        # Qwen 3.5 9B Claude 4.6 Opus Reasoning Distilled
+        ModelInfo(
+            id="qwen3.5-9b-claude-4.6-opus-reasoning-distilled",
+            name="Qwen 3.5 9B Claude Opus Reasoning",
+            context_length=32768,  # 32K
+            priority=8,
+            specializations=[
+                TaskSpecialization.CODING,
+                TaskSpecialization.AGENTIC,
+                TaskSpecialization.GENERAL,
+                TaskSpecialization.VISION,  # All Qwen 3.5 support vision
+            ],
+            cost_tier=2,
+            estimated_tokens_per_second=58.0,
+            backend="lm-studio",
+        ),
+        # Qwen 3.5 9B - Standard base model
+        ModelInfo(
+            id="qwen3.5-9b",
+            name="Qwen 3.5 9B",
+            context_length=262144,  # 256K
+            priority=7,
+            specializations=[
+                TaskSpecialization.GENERAL,
+                TaskSpecialization.FAST,
+                TaskSpecialization.VISION,  # All Qwen 3.5 support vision
+            ],
+            cost_tier=1,
+            estimated_tokens_per_second=65.0,
+            backend="lm-studio",
+        ),
+        # Qwen 3.5 4B Claude 4.6 Opus Distilled (q8_0 - higher quality)
+        ModelInfo(
+            id="qwen3.5-4b-claude-4.6-opus-distilled-32k@q8_0",
+            name="Qwen 3.5 4B Claude Opus Distilled (q8)",
             context_length=32768,  # 32K
             priority=7,
             specializations=[
-                TaskSpecialization.FAST,
-                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.CODING,
+                TaskSpecialization.GENERAL,
+                TaskSpecialization.VISION,  # All Qwen 3.5 support vision
             ],
             cost_tier=1,
-            estimated_tokens_per_second=80.0,
+            estimated_tokens_per_second=70.0,
             backend="lm-studio",
         ),
+        # CROW 4B Opus 4.6 Distill - Small but capable
+        ModelInfo(
+            id="crow-4b-opus-4.6-distill-heretic_qwen3.5-i1",
+            name="CROW 4B Opus 4.6 Distill Heretic",
+            context_length=32768,  # 32K
+            priority=6,
+            specializations=[
+                TaskSpecialization.FAST,
+                TaskSpecialization.CODING,
+            ],
+            cost_tier=1,
+            estimated_tokens_per_second=75.0,
+            backend="lm-studio",
+        ),
+        # Qwen 3.5 4B - Fast general purpose
         ModelInfo(
             id="qwen3.5-4b",
             name="Qwen 3.5 4B",
             context_length=32768,  # 32K
-            priority=7,
+            priority=6,
             specializations=[
                 TaskSpecialization.FAST,
-                TaskSpecialization.VISION,  # Vision capable (mmproj-F32.gguf)
+                TaskSpecialization.GENERAL,
+                TaskSpecialization.VISION,  # All Qwen 3.5 support vision
             ],
             cost_tier=1,
             estimated_tokens_per_second=80.0,
             backend="lm-studio",
         ),
+        # Qwen 3.5 2B - Very fast
         ModelInfo(
-            id="magnum-opus-35b-a3b-i1",
-            name="Magnum Opus 35B A3B",
-            context_length=256000,
-            priority=10,
-            specializations=[
-                TaskSpecialization.LARGE_CONTEXT,
-                TaskSpecialization.AGENTIC,
-            ],
-            cost_tier=3,
-            estimated_tokens_per_second=30.0,
+            id="qwen3.5-2b-claude-4.6-opus-reasoning-distilled",
+            name="Qwen 3.5 2B Claude Reasoning",
+            context_length=32768,  # 32K
+            priority=5,
+            specializations=[TaskSpecialization.FAST, TaskSpecialization.VISION],  # All Qwen 3.5 support vision
+            cost_tier=1,
+            estimated_tokens_per_second=90.0,
             backend="lm-studio",
         ),
-        # ZAI models
+        ModelInfo(
+            id="qwen3.5-2b",
+            name="Qwen 3.5 2B",
+            context_length=32768,  # 32K
+            priority=5,
+            specializations=[TaskSpecialization.FAST, TaskSpecialization.VISION],  # All Qwen 3.5 support vision
+            cost_tier=1,
+            estimated_tokens_per_second=95.0,
+            backend="lm-studio",
+        ),
+        # Qwen 3.5 0.8B - Tiny, fastest
+        ModelInfo(
+            id="qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled",
+            name="Qwen 3.5 0.8B Claude Reasoning",
+            context_length=32768,  # 32K
+            priority=4,
+            specializations=[TaskSpecialization.FAST, TaskSpecialization.VISION],  # All Qwen 3.5 support vision
+            cost_tier=1,
+            estimated_tokens_per_second=100.0,
+            backend="lm-studio",
+        ),
+        ModelInfo(
+            id="qwen3.5-0.8b",
+            name="Qwen 3.5 0.8B",
+            context_length=32768,  # 32K
+            priority=4,
+            specializations=[TaskSpecialization.FAST, TaskSpecialization.VISION],  # All Qwen 3.5 support vision
+            cost_tier=1,
+            estimated_tokens_per_second=110.0,
+            backend="lm-studio",
+        ),
+        # ZAI models - Fallback priority order: glm-5 → glm-4.7 → glm-4.5-air
         ModelInfo(
             id="glm-5",
             name="GLM-5",
             context_length=200000,
-            priority=9,
+            priority=9,  # Highest ZAI priority (Opus tier fallback)
             specializations=[TaskSpecialization.AGENTIC, TaskSpecialization.GENERAL],
             cost_tier=4,
             estimated_tokens_per_second=40.0,
@@ -621,17 +1042,27 @@ def create_default_router() -> Router:
             id="glm-4.7",
             name="GLM-4.7",
             context_length=200000,
-            priority=8,
+            priority=8,  # Second ZAI priority (Sonnet tier fallback)
             specializations=[TaskSpecialization.CODING, TaskSpecialization.GENERAL],
             cost_tier=3,
             estimated_tokens_per_second=50.0,
             backend="zai",
         ),
         ModelInfo(
+            id="glm-4.5-air",
+            name="GLM-4.5 Air",
+            context_length=132000,
+            priority=7,  # Third ZAI priority (Haiku tier fallback)
+            specializations=[TaskSpecialization.FAST],
+            cost_tier=1,
+            estimated_tokens_per_second=80.0,
+            backend="zai",
+        ),
+        ModelInfo(
             id="glm-4.6v",
             name="GLM-4.6v",
             context_length=200000,
-            priority=7,
+            priority=6,  # Lower priority (vision specialist)
             specializations=[
                 TaskSpecialization.CODING,
                 TaskSpecialization.FAST,
@@ -642,20 +1073,10 @@ def create_default_router() -> Router:
             backend="zai",
         ),
         ModelInfo(
-            id="glm-4.5-air",
-            name="GLM-4.5 Air",
-            context_length=132000,
-            priority=5,
-            specializations=[TaskSpecialization.FAST],
-            cost_tier=1,
-            estimated_tokens_per_second=80.0,
-            backend="zai",
-        ),
-        ModelInfo(
             id="glm-4-flash",
             name="GLM-4 Flash",
             context_length=128000,
-            priority=6,
+            priority=5,  # Lowest ZAI priority
             specializations=[TaskSpecialization.FAST],
             cost_tier=1,
             estimated_tokens_per_second=80.0,
@@ -663,4 +1084,4 @@ def create_default_router() -> Router:
         ),
     ]
 
-    return Router(models=models)
+    return Router(models=models, lm_studio_api_key=lm_studio_api_key)

@@ -4,13 +4,53 @@ Model-specific default parameters for Qwen3.5 models.
 Provides optimal temperature, top_p, max_tokens, and other parameters
 based on model size and capabilities.
 
-Based on: docs/qwen3.5-best-practices.md
+Based on:
+- docs/qwen3.5-best-practices.md
+- https://unsloth.ai/docs/models/qwen3.5
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+# Qwen3.5 optimal parameters for thinking vs non-thinking modes
+# Based on Unsloth documentation: https://unsloth.ai/docs/models/qwen3.5
+QWEN_THINKING_MODE_PARAMS = {
+    "thinking": {
+        "general": {
+            "temperature": 1.0,
+            "top_p": 0.95,
+            "top_k": 20,
+            "presence_penalty": 1.5,
+            "repeat_penalty": 1.0,
+        },
+        "coding": {
+            "temperature": 0.7,
+            "top_p": 0.8,
+            "top_k": 20,
+            "presence_penalty": 1.5,
+            "repeat_penalty": 1.0,
+        },
+    },
+    "non_thinking": {
+        "general": {
+            "temperature": 0.6,
+            "top_p": 0.95,
+            "top_k": 20,
+            "presence_penalty": 0.0,
+            "repeat_penalty": 1.0,
+        },
+        "reasoning": {
+            "temperature": 1.0,
+            "top_p": 0.95,
+            "top_k": 20,
+            "presence_penalty": 0.0,
+            "repeat_penalty": 1.0,
+        },
+    },
+}
 
 
 # Vision-specific temperature overrides
@@ -22,87 +62,122 @@ VISION_TEMPERATURE_OVERRIDES = {
 
 # Model parameter patterns
 # These map model name patterns to their optimal defaults
+# Based on Unsloth documentation: https://unsloth.ai/docs/models/qwen3.5
 MODEL_DEFAULTS = {
-    # 35B-A3B (Mixture-of-Experts) - Best for Cortex, long context
+    # 35B-A3B (Mixture-of-Experts) - Best for long context, hybrid reasoning
+    # Maximum context: 262,144 tokens (256K), can extend to 1M via YaRN
+    # Adequate output length: 32,768 tokens for most queries
     "35b-a3b": {
-        "temperature": 0.6,
+        "temperature": 1.0,  # Thinking mode default
         "top_p": 0.95,
-        "max_tokens": 32768,
+        "top_k": 20,
+        "presence_penalty": 1.5,  # Thinking mode default (0.0-2.0 range)
+        "max_tokens": 32768,  # Adequate output length
         "context_length": 262144,  # 256K
-        "description": "Mixture-of-Experts, optimal for long-context reasoning",
-        "use_case": "cortex",
+        "thinking_enabled_default": True,
+        "supports_thinking_toggle": True,
+        "description": "Hybrid reasoning MoE, optimal for long-context tasks",
+        "use_case": "long_context_reasoning",
         "quantization": "Q4_K_M",
-        "kv_cache_quant": "Q4_0",  # Required for 256K context
     },
     # 27B - Dense quality priority
     "27b": {
-        "temperature": 0.6,
+        "temperature": 1.0,
         "top_p": 0.95,
+        "top_k": 20,
+        "presence_penalty": 1.5,
         "max_tokens": 32768,
         "context_length": 262144,  # 256K with KV cache
-        "description": "Dense quality priority",
+        "thinking_enabled_default": True,
+        "supports_thinking_toggle": True,
+        "description": "Dense quality priority, more accurate than 35B",
         "use_case": "high_quality",
         "quantization": "Q4_K_M",
     },
     # 9B models (base + distilled) - General reasoning
+    # Small models have reasoning DISABLED by default, enable via enable_thinking
     "9b": {
-        "temperature": 0.6,  # Lower for reasoning
+        "temperature": 0.6,  # Non-thinking default
         "top_p": 0.95,
-        "max_tokens": 32768,
-        "context_length": 32768,  # 32K (128K max)
-        "description": "General reasoning, chain-of-thought",
+        "top_k": 20,
+        "presence_penalty": 0.0,  # Non-thinking default
+        "max_tokens": 16384,  # Adequate for 9B
+        "context_length": 262144,  # 256K context
+        "thinking_enabled_default": False,  # Small models: disabled by default
+        "supports_thinking_toggle": True,
+        "description": "General reasoning, enable_thinking for reasoning mode",
         "use_case": "general",
         "quantization": "IQ4_NL",
     },
-    # Distilled 9B variants (Claude-style)
+    # Distilled 9B variants (Claude-style) - Reasoning distilled
     "9b-claude": {
-        "temperature": 0.6,
+        "temperature": 1.0,  # Thinking mode
         "top_p": 0.95,
-        "max_tokens": 32768,
-        "context_length": 32768,
-        "description": "Claude-distilled, use structured prompts",
+        "top_k": 20,
+        "presence_penalty": 1.5,
+        "max_tokens": 16384,
+        "context_length": 262144,
+        "thinking_enabled_default": True,  # Reasoning-distilled, enabled by default
+        "supports_thinking_toggle": True,
+        "description": "Claude-distilled reasoning, thinking enabled by default",
         "use_case": "reasoning",
         "quantization": "IQ4_NL",
         "prompt_style": "claude",
     },
     # CROW 9B distill
     "crow-9b": {
-        "temperature": 0.6,
+        "temperature": 1.0,
         "top_p": 0.95,
-        "max_tokens": 32768,
-        "context_length": 32768,
-        "description": "Jackrong's CROW distill, CoT with  tags",
+        "top_k": 20,
+        "presence_penalty": 1.5,
+        "max_tokens": 16384,
+        "context_length": 262144,
+        "thinking_enabled_default": True,
+        "supports_thinking_toggle": True,
+        "description": "Jackrong's CROW distill, CoT with <think> tags",
         "use_case": "reasoning",
         "quantization": "IQ4_NL",
         "prompt_style": "cot",
     },
     # 4B - Multimodal agents, modest GPUs
     "4b": {
-        "temperature": 0.6,
+        "temperature": 0.6,  # Non-thinking
         "top_p": 0.95,
-        "max_tokens": 16384,
-        "context_length": 32768,  # 32K
-        "description": "Multimodal agents, 8GB GPUs",
+        "top_k": 20,
+        "presence_penalty": 0.0,
+        "max_tokens": 8192,
+        "context_length": 262144,  # 256K context
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": True,
+        "description": "Multimodal agents, 8GB GPUs, enable_thinking for reasoning",
         "use_case": "multimodal",
         "quantization": "Q4_K_S",
     },
     # 2B - Edge devices, basic tasks
     "2b": {
-        "temperature": 1.0,  # Higher for text
+        "temperature": 0.6,
         "top_p": 0.95,
-        "max_tokens": 8192,
-        "context_length": 8192,  # 8K (32K max)
+        "top_k": 20,
+        "presence_penalty": 0.0,
+        "max_tokens": 4096,
+        "context_length": 262144,  # 256K context
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": True,
         "description": "Edge devices, basic tasks",
         "use_case": "edge",
         "quantization": "IQ4_NL",
     },
     # 0.8B - Edge devices, simple tasks
     "0.8b": {
-        "temperature": 1.0,
+        "temperature": 0.6,
         "top_p": 0.95,
-        "max_tokens": 4096,
-        "context_length": 8192,  # 8K
-        "description": "Edge devices, simple tasks",
+        "top_k": 20,
+        "presence_penalty": 0.0,
+        "max_tokens": 2048,
+        "context_length": 262144,  # 256K context
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": True,
+        "description": "Edge devices, simple tasks, enable_thinking for reasoning",
         "use_case": "edge",
         "quantization": "IQ4_NL",
     },
@@ -144,7 +219,75 @@ def get_model_defaults(model_id: str) -> Dict[str, Any]:
         "context_length": 8192,
         "description": "Generic defaults",
         "use_case": "unknown",
+        "thinking_enabled_default": False,
+        "supports_thinking_toggle": False,
     }
+
+
+def get_qwen_thinking_params(
+    thinking_enabled: bool,
+    task_type: str = "general",
+) -> Dict[str, Any]:
+    """
+    Get optimal Qwen3.5 parameters based on thinking mode and task type.
+
+    Based on Unsloth documentation:
+    https://unsloth.ai/docs/models/qwen3.5
+
+    Args:
+        thinking_enabled: Whether thinking/reasoning mode is enabled
+        task_type: Task type ("general", "coding", "reasoning")
+
+    Returns:
+        Dict with optimal parameters for the mode
+    """
+    mode = "thinking" if thinking_enabled else "non_thinking"
+    task = task_type if task_type in ("general", "coding", "reasoning") else "general"
+    return QWEN_THINKING_MODE_PARAMS.get(mode, {}).get(task, {})
+
+
+def detect_task_type(messages: list) -> str:
+    """
+    Detect task type from messages for optimal parameter selection.
+
+    Args:
+        messages: List of message dicts with 'content' and 'role'
+
+    Returns:
+        Task type: "coding", "general", or "reasoning"
+    """
+    # Combine all message content
+    all_content = ""
+    for msg in messages:
+        if isinstance(msg.get("content"), str):
+            all_content += msg["content"].lower()
+        elif isinstance(msg.get("content"), list):
+            for block in msg["content"]:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    all_content += block.get("text", "").lower()
+
+    # Coding indicators
+    coding_keywords = [
+        "code", "function", "class", "def ", "import ",
+        "programming", "debug", "syntax", "algorithm",
+        "implement", "refactor", "variable", "```",
+    ]
+
+    # Reasoning indicators
+    reasoning_keywords = [
+        "analyze", "compare", "evaluate", "explain why",
+        "reasoning", "logic", "inference", "conclusion",
+        "premise", "argument", "deduction",
+    ]
+
+    coding_score = sum(1 for kw in coding_keywords if kw in all_content)
+    reasoning_score = sum(1 for kw in reasoning_keywords if kw in all_content)
+
+    if coding_score >= 2:
+        return "coding"
+    elif reasoning_score >= 2:
+        return "reasoning"
+    return "general"
 
 
 def apply_model_defaults(
@@ -155,6 +298,8 @@ def apply_model_defaults(
 ) -> Dict[str, Any]:
     """
     Apply model-specific defaults to request parameters.
+
+    For Qwen3.5 models, also applies optimal parameters based on thinking mode.
 
     Args:
         model_id: Model identifier
@@ -169,6 +314,23 @@ def apply_model_defaults(
     defaults = get_model_defaults(model_id)
     result = request_params.copy()
 
+    # Detect if this is a Qwen model with thinking support
+    is_qwen = "qwen" in model_id.lower()
+    thinking_enabled = False
+
+    # Determine thinking mode from request or model default
+    if is_qwen:
+        # Check if thinking is explicitly requested
+        if "thinking" in result:
+            thinking_cfg = result["thinking"]
+            if isinstance(thinking_cfg, dict):
+                # Check for enable_thinking or type="enabled"
+                thinking_enabled = thinking_cfg.get("enable_thinking",
+                    thinking_cfg.get("type") == "enabled")
+        else:
+            # Use model default
+            thinking_enabled = defaults.get("thinking_enabled_default", False)
+
     # For vision requests, override temperature to be more conservative
     if is_vision_request:
         for pattern, vision_temp in VISION_TEMPERATURE_OVERRIDES.items():
@@ -179,11 +341,27 @@ def apply_model_defaults(
                 )
                 break
 
+    # Apply Qwen thinking mode optimal parameters
+    if is_qwen and "qwen" in model_id.lower():
+        messages = result.get("messages", [])
+        task_type = detect_task_type(messages)
+        thinking_params = get_qwen_thinking_params(thinking_enabled, task_type)
+
+        # Apply thinking mode parameters (only if not already set)
+        for param, value in thinking_params.items():
+            if override or param not in result:
+                result[param] = value
+                logger.debug(
+                    f"Applied Qwen thinking mode param: {param}={value} "
+                    f"(thinking={thinking_enabled}, task={task_type})"
+                )
+
     # Apply defaults
     if override:
         # Force defaults
         result.setdefault("temperature", defaults["temperature"])
         result.setdefault("top_p", defaults["top_p"])
+        result.setdefault("top_k", defaults.get("top_k", 20))
         result.setdefault("max_tokens", defaults["max_tokens"])
     else:
         # Only fill missing values
@@ -191,17 +369,33 @@ def apply_model_defaults(
             result["temperature"] = defaults["temperature"]
         if "top_p" not in result:
             result["top_p"] = defaults["top_p"]
+        if "top_k" not in result:
+            result["top_k"] = defaults.get("top_k", 20)
         if "max_tokens" not in result:
             result["max_tokens"] = defaults["max_tokens"]
 
+    # For small Qwen models, add enable_thinking to thinking dict if needed
+    if is_qwen and thinking_enabled:
+        if "thinking" not in result:
+            result["thinking"] = {}
+        if isinstance(result["thinking"], dict):
+            # Ensure enable_thinking is set for small models
+            if "enable_thinking" not in result["thinking"]:
+                result["thinking"]["enable_thinking"] = True
+
     # Log what we're using
-    logger.info(
-        f"Model '{model_id}': "
-        f"temperature={result.get('temperature')}, "
-        f"top_p={result.get('top_p')}, "
-        f"max_tokens={result.get('max_tokens')}"
-        + (" [vision request]" if is_vision_request else "")
-    )
+    log_parts = [
+        f"Model '{model_id}'",
+        f"temperature={result.get('temperature')}",
+        f"top_p={result.get('top_p')}",
+        f"max_tokens={result.get('max_tokens')}",
+    ]
+    if is_qwen:
+        log_parts.append(f"thinking={thinking_enabled}")
+    if is_vision_request:
+        log_parts.append("[vision request]")
+
+    logger.info(", ".join(log_parts))
 
     return result
 
@@ -279,5 +473,8 @@ __all__ = [
     "apply_model_defaults",
     "get_model_recommendation",
     "suggest_model_for_task",
+    "get_qwen_thinking_params",
+    "detect_task_type",
     "MODEL_DEFAULTS",
+    "QWEN_THINKING_MODE_PARAMS",
 ]
