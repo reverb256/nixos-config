@@ -18,7 +18,7 @@
     ./desktop/plasma6.nix
     ./desktop/wayland-common.nix
     ./desktop/flatpak.nix
-    ./desktop/lobehub.nix
+#    ./desktop/lobehub.nx
 
     # Shell configuration
     ./shell/fish.nix
@@ -50,8 +50,8 @@
     ./services/spacebot.nix
     ./services/glitchtip-selfhosted.nix
     # ./services/nextcloud.nix  # TODO: Fix module structure - config settings need proper wrapping
-    # ./services/bolt-diy.nix  # TODO: file not found
-    # ./desktop/lobehub.nix  # TODO: fix deprecated xg options
+# ./services/bolt-diy.nix  # TODO: file not found
+    
 
     # Monitoring
     ./services/monitoring/default.nix
