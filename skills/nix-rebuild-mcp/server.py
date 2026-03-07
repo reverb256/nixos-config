@@ -95,6 +95,15 @@ async def nixos_rebuild_switch(hostname: str) -> Dict[str, Any]:
     return result
 
 
+async def nixos_rebuild_safe_switch(hostname: str) -> Dict[str, Any]:
+    """Switch with mining auto-pause (recommended for production)."""
+    logger.info(f"Safe switching configuration for host: {hostname} (mining will auto-pause)")
+    result = await execute_command(
+        ["/etc/nixos/scripts/nixos-rebuild-safe.sh", "switch", "--flake", f".#{hostname}"]
+    )
+    return result
+
+
 async def nix_flake_update() -> Dict[str, Any]:
     """Update all flake inputs."""
     logger.info("Updating flake inputs...")
@@ -165,6 +174,22 @@ def create_server() -> Optional[Server]:
             },
         ),
         Tool(
+            name="nixos_rebuild_safe_switch",
+            description="Switch with mining auto-pause (recommended). Automatically stops mining, rebuilds, and restarts mining even on failure.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "hostname": {
+                        "type": "string",
+                        "description": "Hostname to switch for (default: zephyr)",
+                        "default": DEFAULT_HOST,
+                        "enum": ["zephyr", "forge", "nexus", "sentry"],
+                    }
+                },
+                "required": [],
+            },
+        ),
+        Tool(
             name="nix_flake_update",
             description="Update all flake inputs (fetches latest versions of dependencies)",
             inputSchema={"type": "object", "properties": {}, "required": []},
@@ -191,6 +216,9 @@ def create_server() -> Optional[Server]:
             elif name == "nixos_rebuild_switch":
                 hostname = arguments.get("hostname", DEFAULT_HOST)
                 result = await nixos_rebuild_switch(hostname)
+            elif name == "nixos_rebuild_safe_switch":
+                hostname = arguments.get("hostname", DEFAULT_HOST)
+                result = await nixos_rebuild_safe_switch(hostname)
             elif name == "nix_flake_update":
                 result = await nix_flake_update()
             else:
