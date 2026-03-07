@@ -204,6 +204,21 @@
     group = "users";
   };
 
+  # GlitchTip error tracking secrets
+  age.secrets.glitchtip-db-password = {
+    file = "${inputs.self}/secrets/glitchtip-db-password.age";
+    mode = "440";
+    owner = "root";
+    group = "root";
+  };
+
+  age.secrets.glitchtip-secret-key = {
+    file = "${inputs.self}/secrets/glitchtip-secret-key.age";
+    mode = "440";
+    owner = "root";
+    group = "root";
+  };
+
   # Spacebot Discord bot token
   # TEMPORARILY DISABLED: Secret file not yet created
   # age.secrets.spacebot-discord-token = {
@@ -257,7 +272,7 @@
     };
     routing = {
       enable = true;
-      defaultModel = "magnum-opus-35b-a3b-i1";
+      defaultModel = "qwen3.5-35b-a3b";
       fallbackChain = [
         "vllm"
         "lm-studio"
@@ -368,6 +383,22 @@
     };
   };
 
+  # LM Studio Headless Service (llmster daemon)
+  # Provides HTTP API on port 1234 for local LLM inference
+  # Based on: https://lmstudio.ai/docs/developer/core/headless_llmster
+  # ============================================================================
+  services.lm-studio-headless = {
+    enable = true;
+    user = "j_kro";
+    port = 1234;
+    host = "127.0.0.1";
+    # GPU configuration - null = use all GPUs (RTX 3090 + 3060 Ti)
+    gpuDevice = null;
+    # Optional: preload a model at startup (JIT loading if not set)
+    # preloadModel = "qwen/qwen3.5-9b-instruct";
+    # modelLoadArgs = ["--context-length" "32768"];
+  };
+
   # ============================================================================
   # MCP SERVERS - Model Context Protocol servers for AI tools
   # Provides unified MCP servers for Claude Code, OpenCode, and other AI tools
@@ -390,7 +421,11 @@
   services.multimedia.gstreamer.enable = true;
 
   # Spotify with SpotX patch (ad-free, premium features)
-  services.spotify-spotx.enable = true;
+  services.spotify-spotx = {
+    enable = true;
+    forceX11 = true;  # KWin rules didn't work, using XWayland backend
+    clearCacheOnPatch = true;
+  };
 
   # ============================================================================
   # FLATPAK - Flatpak support with Discover and Flathub
@@ -458,6 +493,18 @@
 
   # Grafana dashboards
   services.monitoring.grafana.enable = true;
+
+  # GlitchTip error tracking (self-hosted Sentry alternative)
+  services.glitchtip-selfhosted = {
+    enable = true;
+    host = "127.0.0.1";
+    port = 8000;
+    openFirewall = false;  # Local access only
+    database.passwordFile = "/run/agenix/glitchtip-db-password";
+    secretKeyFile = "/run/agenix/glitchtip-secret-key";
+    # Automatically configure AI gateway to use GlitchTip
+    enableForGateway = true;
+  };
 
   # TP-Link Switch Orchestration
   # networking.switch-orchestration = {
