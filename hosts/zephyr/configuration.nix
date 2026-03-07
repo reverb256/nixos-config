@@ -104,6 +104,7 @@
     gaming = true;  # Steam, Lutris, etc.
     vr = true;  # WiVRn for Quest Pro
     mining = true;  # GPU/CPU mining
+    aiInference = true;  # AI inference gateway + MCP + RAG
   };
 
   # Note: profiles.role.gaming enables services.gaming automatically

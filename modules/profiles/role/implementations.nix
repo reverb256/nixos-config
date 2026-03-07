@@ -22,5 +22,9 @@ in
     (lib.mkIf cfg.mining {
       services.mining.enable = true;
     })
+
+    (lib.mkIf cfg.aiInference {
+      services.ai-inference.enable = true;
+    })
   ];
 }

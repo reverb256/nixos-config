@@ -33,6 +33,7 @@
   # HARDWARE PROFILES
   # ============================================================================
   hardware.profiles = {
+    amd.zen = true;  # Zen CPU optimizations
     nvidia.enable = true;  # NVIDIA GPU support
     nvidia.multiGpu = true;  # 2x RTX 3060 Ti
     monitoring.enable = true;  # Hardware monitoring
@@ -100,6 +101,7 @@
     gaming = true;  # Steam, Lutris, etc.
     vr = true;  # WiVRn, SteamVR, OpenXR
     mining = true;  # GPU/CPU mining
+    aiInference = true;  # AI inference gateway + MCP + RAG
   };
 
   # Note: profiles.role.gaming enables services.gaming automatically
