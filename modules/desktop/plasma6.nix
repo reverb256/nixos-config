@@ -215,57 +215,8 @@ let
     '';
   };
 
-  # Script to clear stale KDE caches that cause crashes after rebuild
-  kdeCacheClearScript = pkgs.writeShellScriptBin "kde-cache-clear" ''
-    #!${pkgs.bash}/bin/bash
-    # Clear KDE system cache databases that become stale after nixos-rebuild
-    # This prevents KSycocaFactory errors and plasmashell crashes
-
-    CACHE_DIRS=(
-      "$HOME/.cache/ksycoca5"
-      "$HOME/.cache/kwin"
-      "$HOME/.cache/kwinrc"
-      "$HOME/.cache/khtml"
-      "$HOME/.cache/kcookiejar"
-      "$HOME/.cache/plasma-sv"
-      "$HOME/.cache/ksycoca"
-      "$HOME/.cache/kdesycoca*"
-      "$HOME/.cache/sycoca"
-    )
-
-    for dir in "''${CACHE_DIRS[@]}"; do
-      if [ -d "$dir" ] || [ -f "$dir" ]; then
-        rm -rf "$dir" 2>/dev/null || true
-      fi
-    done
-
-    # Ensure cache directory structure exists
-    mkdir -p "$HOME/.cache"
-  '';
-
-  # Script to rebuild KSycoca cache after Plasma starts
-  # Must run AFTER plasma-plasmashell is fully initialized
-  kdeSycocaRebuildScript = pkgs.writeShellScriptBin "kde-sycoca-rebuild" ''
-    #!${pkgs.bash}/bin/bash
-    # Rebuild KDE KSycoca cache after Plasma starts
-    # This runs after Plasma is fully initialized to ensure proper cache rebuild
-
-    # Wait for Plasma to be fully ready
-    for i in {1..30}; do
-      if pgrep -f "plasmashell" > /dev/null 2>&1; then
-        # Plasma is running, give it a moment to stabilize
-        sleep 2
-        break
-      fi
-      sleep 1
-    done
-
-    # Rebuild the cache (non-incremental for clean rebuild)
-    ${pkgs.kdePackages.plasma-workspace}/bin/kbuildsycoca6 --noincremental 2>/dev/null || true
-
-    # Log completion for debugging
-    echo "[$(date)] KSycoca cache rebuilt" >> "$HOME/.cache/kdesycoca-rebuild.log"
-  '';
+  # KDE cache management scripts removed - they were causing crashes
+  # KDE will auto-rebuild its cache as needed
 in
 {
   services.xserver.enable = true;
@@ -337,10 +288,6 @@ in
     # Monitor setup script
     monitorSetupScript
     pkgs.libnotify
-
-    # KDE cache management scripts
-    kdeSycocaRebuildScript
-    kdeCacheClearScript
   ];
   systemd.services.boot-monitor-setup = {
     description = "Configure monitors at boot";
@@ -431,51 +378,8 @@ in
     Enabled=false
   '';
 
-  # ============================================================================
-  # KDE CACHE CLEARING - Fix KSycoca crashes after nixos-rebuild
-  # ============================================================================
-
-  # User service to clear KDE cache before Plasma starts
-  # Runs at boot to prevent crashes after nixos-rebuild
-  systemd.user.services.kde-cache-clear = {
-    description = "Clear stale KDE cache before Plasma starts";
-    wantedBy = [ "graphical-session-pre.target" ];
-    before = [ "plasma-plasmashell.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${kdeCacheClearScript}/bin/kde-cache-clear";
-      RemainAfterExit = true;
-    };
-  };
-
-  # User service to rebuild KSycoca cache AFTER Plasma starts
-  # This ensures the cache is rebuilt with current Nix store paths
-  systemd.user.services.kde-sycoca-rebuild = {
-    description = "Rebuild KDE KSycoca cache after Plasma starts";
-    wantedBy = [ "graphical-session.target" ];
-    after = [ "plasma-plasmashell.service" "graphical-session.target" ];
-    # Run with a slight delay to ensure Plasma is fully initialized
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${kdeSycocaRebuildScript}/bin/kde-sycoca-rebuild";
-      RemainAfterExit = true;
-      # Low priority since this is maintenance, not user-facing
-      Nice = 19;
-      IOSchedulingClass = "idle";
-    };
-  };
-
-  # Also add as autostart desktop file for redundancy
-  environment.etc."xdg/autostart/kde-sycoca-rebuild.desktop".text = ''
-    [Desktop Entry]
-    Type=Application
-    Name=KDE Cache Rebuild
-    Exec=${kdeSycocaRebuildScript}/bin/kde-sycoca-rebuild
-    X-KDE-autostart-phase=2
-    X-KDE-startup-timeout=30
-    NoDisplay=true
-    OnlyShowIn=KDE
-  '';
+  # NOTE: KDE cache management removed - let KDE handle its own cache
+  # Auto-rebuild happens naturally when needed
 
   services.displayManager.sddm.settings.General.DisplayServer = "wayland";
 

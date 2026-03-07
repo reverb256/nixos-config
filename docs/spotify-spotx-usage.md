@@ -1,35 +1,50 @@
-# Spotify + SpotX Usage Guide
+# Spotify + SpotX Usage Guide (Flatpak)
 
-**Last Updated:** 2026-03-02
+**Last Updated:** 2026-03-07
 **Module:** `services.spotify-spotx`
 **Status:** Active
+**Spotify Source:** Flatpak (Flathub)
 
 ## Overview
 
 This module provides automated SpotX-Bash patching for Spotify Flatpak. SpotX removes ads, unlocks premium features, and enables experimental features in the Spotify desktop client.
 
-## Spicetify Integration
-
-This module works seamlessly with the `services.spotify-spicetify` module for complete Spotify customization:
-
-- **SpotX** (this module): Removes ads, unlocks premium features
-- **Spicetify**: Applies custom themes, extensions, and UI enhancements
-
-Both modules can run side-by-side:
-```nix
-services.spotify-spotx.enable = true;    # Ad-blocking
-services.spotify-spicetify.enable = true; # Theming
-```
-
-See [Spotify + Spicetify Usage Guide](./spotify-spicetify-usage.md) for complete theming documentation.
-
 ## What's Automated
 
-- ✅ Initial Spotify Flatpak installation and patching
+- ✅ Automatic Spotify Flatpak installation (optional)
+- ✅ Initial SpotX patch application
 - ✅ Daily patch checks (via systemd timer)
 - ✅ Automatic re-patching after Flatpak updates
 - ✅ Version tracking to avoid unnecessary re-patching
-- ✅ Backup creation before patching
+- ✅ Integration with system Flatpak update service
+
+## Quick Start
+
+### 1. Enable in Configuration
+
+```nix
+# /etc/nixos/hosts/<your-host>/configuration.nix
+services.spotify-spotx = {
+  enable = true;
+  forceX11 = true;  # Recommended for Wayland: fixes close button
+};
+```
+
+### 2. Rebuild
+
+```bash
+sudo nixos-rebuild switch --flake /etc/nixos
+```
+
+### 3. Launch Spotify
+
+```bash
+# Via CLI tool
+spotify-spotx launch
+
+# Or directly with Flatpak
+flatpak run com.spotify.Client
+```
 
 ## Service Status
 
@@ -43,41 +58,40 @@ systemctl status spotx-patch.service
 systemctl status spotx-patch.timer
 
 # Check Flatpak integration
-systemctl status flatpak-update-after.service
+systemctl status flatpak-update.service
 
 # View all SpotX timers
 systemctl list-timers | grep spotx
 ```
 
-## Manual Commands
+## CLI Commands
 
-### Check SpotX Status
+The `spotify-spotx` command provides all management functions:
 
 ```bash
+# Check status
 spotify-spotx status
-# Output: SpotX: applied (version: 1.2.82.428.g0ac8be2b)
+
+# Apply patch manually
+spotify-spotx patch
+
+# Install Spotify Flatpak
+spotify-spotx install
+
+# Launch Spotify
+spotify-spotx launch
+
+# Clear cache (fixes ads showing)
+spotify-spotx clear-cache
 ```
 
-### Manually Apply Patch
+### Status Output Example
 
-```bash
-sudo systemctl start spotx-patch.service
 ```
-
-### View Service Logs
-
-```bash
-# Recent logs
-journalctl -u spotx-patch.service -n 50
-
-# Follow logs in real-time
-journalctl -u spotx-patch.service -f
-
-# Today's logs
-journalctl -u spotx-patch.service --since today
-
-# Logs from last run
-journalctl -u spotx-patch.service --since "1 hour ago"
+$ spotify-spotx status
+Spotify Flatpak: installed (1.2.32.123.g0abcdef)
+Installation path: /var/lib/flatpak/app/com.spotify.Client/x86_64/stable/active/install
+SpotX: applied (version: 1.2.32.123.g0abcdef)
 ```
 
 ## How It Works
@@ -91,16 +105,18 @@ journalctl -u spotx-patch.service --since "1 hour ago"
    ↓
 3. spotx-patch.service runs
    ↓
-4. Gets current Spotify version
+4. Checks if Spotify Flatpak is installed
    ↓
-5. Compares with patched version (stored in /var/lib/spotx/...)
+5. Gets current Spotify version (flatpak info)
    ↓
-6a. If versions match: Skip patching (already patched)
-6b. If versions differ: Apply SpotX patch
+6. Compares with patched version (stored in /var/lib/spotx/.spotx_patched)
    ↓
-7. Update version marker
+7a. If versions match: Skip patching (already patched)
+7b. If versions differ: Apply SpotX patch
    ↓
-8. Log result to journal
+8. Update version marker
+   ↓
+9. Log result to journal
 ```
 
 ### Flatpak Update Integration
@@ -108,7 +124,7 @@ journalctl -u spotx-patch.service --since "1 hour ago"
 When you run `flatpak update` or the weekly `flatpak-update.service` runs:
 
 1. Flatpak updates all packages (including Spotify if available)
-2. `flatpak-update-after.service` automatically triggers
+2. `spotx-patch.service` automatically triggers (via `After=` dependency)
 3. SpotX patch is re-applied to the updated Spotify
 4. No manual intervention required
 
@@ -118,16 +134,61 @@ The module maintains state in `/var/lib/spotx/`:
 
 ```
 /var/lib/spotx/
-├── backups/           # Backup files created before patching
-└── (version marker stored in Spotify directory)
+├── backups/           # Backup directory (for future use)
+└── .spotx_patched     # Version marker (contains Spotify version)
 ```
 
-The version marker is stored at:
+## Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable` | bool | false | Enable the module |
+| `autoInstall` | bool | true | Auto-install Spotify Flatpak |
+| `autoPatch` | bool | true | Auto-apply patch on updates |
+| `patchCheckInterval` | str | "daily" | How often to check (systemd format) |
+| `forceX11` | bool | false | Force X11 backend (Wayland CSD fix) |
+| `clearCacheOnPatch` | bool | true | Clear cache after patching |
+
+### Example Configurations
+
+**Disable auto-installation:**
+```nix
+services.spotify-spotx = {
+  enable = true;
+  autoInstall = false;  # Install manually with: flatpak install flathub com.spotify.Client
+};
 ```
-/var/lib/flatpak/app/com.spotify.Client/.../Apps/.spotx_patched
+
+**Change patch check interval:**
+```nix
+services.spotify-spotx = {
+  enable = true;
+  patchCheckInterval = "hourly";  # Check every hour
+};
+```
+
+**Disable auto-patching (manual only):**
+```nix
+services.spotify-spotx = {
+  enable = true;
+  autoPatch = false;  # Run: spotify-spotx patch manually
+};
 ```
 
 ## Troubleshooting
+
+### Spotify Not Installed
+
+**Symptom:** `spotify-spotx status` shows "not installed"
+
+**Solution:**
+```bash
+# Install manually
+spotify-spotx install
+
+# Or via Flatpak directly
+flatpak install flathub com.spotify.Client
+```
 
 ### Spotify Not Patched
 
@@ -135,11 +196,11 @@ The version marker is stored at:
 
 **Solution:**
 ```bash
-# Check SpotX status
+# Check status
 spotify-spotx status
 
-# If "not applied", manually trigger patch
-sudo systemctl start spotx-patch.service
+# Manually apply patch
+spotify-spotx patch
 
 # Check logs for errors
 journalctl -u spotx-patch.service -n 50
@@ -156,75 +217,57 @@ journalctl -xeu spotx-patch.service
 
 # Common issues:
 # - No internet connection (SpotX downloads from GitHub)
-# - Spotify not installed (run initial setup)
-# - Outdated SpotX script (automatic retry with exponential backoff)
+# - Spotify not installed
+# - SpotX script incompatible with new Spotify version
 ```
 
-### Spotify Update Broke Patch
+### Wayland Close Button Not Working
 
-**Symptom:** Spotify updated but patch not re-applied
+**Symptom:** Close button doesn't work on Wayland
 
 **Solution:**
-```bash
-# The service should auto-detect version changes
-# Manually trigger if needed:
-sudo systemctl start spotx-patch.service
-
-# Verify
-spotify-spotx status
-```
-
-### Initial Setup Not Run
-
-**Symptom:** Module enabled but Spotify not installed
-
-**Solution:**
-```bash
-# Run initial setup manually
-sudo bash /etc/spotx/setup-spotify.sh
-
-# Or trigger the service
-sudo systemctl start spotx-patch.service
-```
-
-## Configuration
-
-### Disable Auto-Patching
-
-Edit your NixOS configuration:
-
 ```nix
-# /etc/nixos/hosts/<your-host>/configuration.nix
 services.spotify-spotx = {
   enable = true;
-  autoPatch = false;  # Disable automatic timer
+  forceX11 = true;  # Forces XWayland backend
 };
 ```
 
-Then rebuild:
+Then rebuild and re-patch:
 ```bash
 sudo nixos-rebuild switch --flake /etc/nixos
+spotify-spotx patch
 ```
 
-### Change Patch Check Interval
+### View Logs
 
-Edit your NixOS configuration:
+```bash
+# Recent logs
+journalctl -u spotx-patch.service -n 50
 
-```nix
-services.spotify-spotx = {
-  enable = true;
-  patchCheckInterval = "hourly";  # Or "weekly", "daily", etc.
-};
+# Follow logs in real-time
+journalctl -u spotx-patch.service -f
+
+# Today's logs
+journalctl -u spotx-patch.service --since today
+
+# Logs from last run
+journalctl -u spotx-patch.service --since "1 hour ago"
 ```
-
-See `man systemd.time` for valid time formats.
 
 ## Launching Spotify
 
 ### Command Line
 
 ```bash
+# Via the CLI tool
+spotify-spotx launch
+
+# Directly with Flatpak
 flatpak run com.spotify.Client
+
+# With XWayland (if forceX11 is enabled)
+flatpak run --env=OZONE_PLATFORM=x11 com.spotify.Client
 ```
 
 ### Desktop Menu
@@ -251,25 +294,27 @@ SpotX-Bash modifies Spotify to:
 
 ## Uninstalling
 
-To remove SpotX and revert to stock Spotify:
+### Disable Module Only
 
 ```nix
-# /etc/nixos/hosts/<your-host>/configuration.nix
 services.spotify-spotx.enable = false;
 ```
 
-Then rebuild:
 ```bash
 sudo nixos-rebuild switch --flake /etc/nixos
 ```
 
-To completely remove Spotify:
+### Completely Remove Spotify
+
 ```bash
 # Uninstall Spotify Flatpak
 flatpak uninstall com.spotify.Client
 
 # Remove state files
 sudo rm -rf /var/lib/spotx
+
+# Disable and remove services
+sudo systemctl disable spotx-patch.service spotx-patch.timer
 ```
 
 ## Security Notes
@@ -280,20 +325,18 @@ sudo rm -rf /var/lib/spotx
 - Runs as root to access system Flatpak installation
 - No user data is accessed or transmitted
 
+## Comparison: Nixpkgs vs Flatpak
+
+| Aspect | Nixpkgs (old) | Flatpak (current) |
+|--------|--------------|-------------------|
+| Updates | `nixos-rebuild` | `flatpak update` |
+| Source | `pkgs.spotify` | Flathub |
+| Path | `/nix/store/...` | `/var/lib/flatpak/...` |
+| Patching | Copy to `/var/lib/spotify-spotx/` | Direct in Flatpak dir |
+| Command | `spotify` | `flatpak run com.spotify.Client` |
+| Wrapper | Yes (symlinkJoin) | No (native Flatpak) |
+
 ## Getting Help
-
-### Logs
-
-```bash
-# All SpotX-related logs
-journalctl -u spotx-patch* -b
-
-# Flatpak update integration logs
-journalctl -u flatpak-update-after.service -b
-
-# System logs mentioning Spotify
-journalctl -b | grep -i spotify
-```
 
 ### Version Information
 
@@ -304,34 +347,43 @@ flatpak info com.spotify.Client
 # SpotX status
 spotify-spotx status
 
-# Module version
-grep "spotx" /etc/nixos/modules/desktop/spotify-spotx.nix | head -5
+# Check if Flatpak is working
+flatpak list | grep spotify
 ```
 
 ### Testing
 
 ```bash
 # Verify Spotify is patched
-flatpak run com.spotify.Client
+spotify-spotx launch
 # Play a song → should be no ads
 
 # Check service is scheduled
 systemctl list-timers | grep spotx
 
 # Force re-patch
-sudo rm /var/lib/flatpak/app/com.spotify.Client/*/files/extra/share/spotify/Apps/.spotx_patched
+sudo rm /var/lib/spotx/.spotx_patched
 sudo systemctl start spotx-patch.service
 ```
+
+## Spicetify Integration
+
+This module works alongside `services.spotify-spicetify` for complete Spotify customization:
+
+- **SpotX** (this module): Removes ads, unlocks premium features
+- **Spicetify**: Applies custom themes, extensions, and UI enhancements
+
+Both modules can run side-by-side:
+```nix
+services.spotify-spotx.enable = true;    # Ad-blocking
+services.spotify-spicetify.enable = true; # Theming
+```
+
+See [Spotify + Spicetify Usage Guide](./spotify-spicetify-usage.md) for complete theming documentation.
 
 ## References
 
 - [SpotX Official Website](https://spotx-official.github.io/)
 - [SpotX GitHub Repository](https://github.com/SpotX-Official/SpotX-Bash)
 - [Spotify Flatpak on Flathub](https://flathub.org/apps/com.spotify.Client)
-- [NixOS Flatpak Integration](/etc/nixos/docs/spotify-spotx-usage.md)
-
-## Module Documentation
-
-See the implementation plan for technical details:
-- `/etc/nixos/docs/plans/2026-03-02-spotify-spotx-cicd.md`
-- `/etc/nixos/docs/plans/2026-03-02-spotify-spotx-cicd-design.md`
+- [Flatpak Documentation](https://docs.flatpak.org)
