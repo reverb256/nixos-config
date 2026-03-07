@@ -46,6 +46,7 @@
     ./services/nixos-share.nix
     # ./services/podman.nix  # Temporarily disabled - has pre-existing issues
     ./services/spacebot.nix
+    ./services/glitchtip-selfhosted.nix
 
     # Monitoring
     ./services/monitoring/default.nix
