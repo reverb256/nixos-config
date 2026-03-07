@@ -214,6 +214,32 @@ let
       done
     '';
   };
+
+  # Script to clear stale KDE caches that cause crashes after rebuild
+  kdeCacheClearScript = pkgs.writeShellScriptBin "kde-cache-clear" ''
+    #!${pkgs.bash}/bin/bash
+    # Clear KDE system cache databases that become stale after nixos-rebuild
+    # This prevents KSycocaFactory errors and plasmashell crashes
+
+    CACHE_DIRS=(
+      "$HOME/.cache/ksycoca5"
+      "$HOME/.cache/kwin"
+      "$HOME/.cache/kwinrc"
+      "$HOME/.cache/khtml"
+      "$HOME/.cache/kcookiejar"
+      "$HOME/.cache/plasma-sv"
+      "$HOME/.cache/ksycoca"
+    )
+
+    for dir in "''${CACHE_DIRS[@]}"; do
+      if [ -d "$dir" ] || [ -f "$dir" ]; then
+        rm -rf "$dir" 2>/dev/null || true
+      fi
+    done
+
+    # Ensure cache directory structure exists
+    mkdir -p "$HOME/.cache"
+  '';
 in
 {
   services.xserver.enable = true;
@@ -277,22 +303,10 @@ in
   # Window rules for specific applications
   environment.etc."xdg/kwinrulesrc".text = ''
     [General]
-    count=2
-
-    # Spotify - Fix close button and window behavior for Flatpak
-    [1]
-    Description=Spotify - Fix close button behavior
-    wmclass=spotify
-    wmclassmatch=1
-    title=.*
-    titlematch=1
-    types=1
-    skippager=false
-    skiptaskbar=false
-    skipswitcher=false
+    count=1
 
     # Genshin Impact - Always open on TV (HDMI-A-2)
-    [2]
+    [1]
     Description=Genshin Impact - Always on TV (HDMI-A-2)
     wmclass=.*GenshinImpact.*
     wmclassmatch=2
@@ -311,6 +325,23 @@ in
     [Module-kscreen]
     Enabled=false
   '';
+
+  # ============================================================================
+  # KDE CACHE CLEARING - Fix KSycoca crashes after nixos-rebuild
+  # ============================================================================
+
+  # User service to clear KDE cache before Plasma starts
+  # Runs at boot to prevent crashes after nixos-rebuild
+  systemd.user.services.kde-cache-clear = {
+    description = "Clear stale KDE cache before Plasma starts";
+    wantedBy = [ "graphical-session-pre.target" ];
+    before = [ "plasma-plasmashell.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${kdeCacheClearScript}/bin/kde-cache-clear";
+      RemainAfterExit = true;
+    };
+  };
 
   services.displayManager.sddm.settings.General.DisplayServer = "wayland";
 

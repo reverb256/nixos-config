@@ -333,24 +333,25 @@ in {
 
       environment.etc."joystick/DualSense Wireless Controller".source = pkgs.writeText "dualsense-deadzone" ''
         # Sony DualSense Wireless Controller
-        # Minimal deadzone: 2% (prevents phantom touches, maintains sensitivity)
-        # Right stick (Rx/Ry): Used for camera in most games
+        # Left stick: 2% deadzone (movement, maintains sensitivity)
+        # Right stick: 2% horizontal, 5% vertical (camera - vertical only has drift)
 
         # evdev calibration format
         evdev ABS_X 2   # Left stick X
         evdev ABS_Y 2   # Left stick Y
-        evdev ABS_RX 2  # Right stick X (horizontal camera)
-        evdev ABS_RY 2  # Right stick Y (vertical camera)
+        evdev ABS_RX 2  # Right stick X (horizontal camera) - 2%
+        evdev ABS_RY 5  # Right stick Y (vertical camera) - 5%
       '';
 
       # SDL2 GameControllerDB with deadzone hints
+      # Note: SDL2 deadzone is global - right stick gets 5% in evdev layer
       environment.etc."SDL_gamecontrollerdb".source = pkgs.writeText "sdl2-dualsense-db" ''
         # SDL2 GameControllerDB entry for DualSense with deadzone hints
         # Format: SDL_GAMECONTROLLERDB_V2
         # Deadzone hint format: Deadzone:percentage  (e.g., Deadzone:2 = 2%)
 
         0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,
-        0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,Deadzone:2,
+        0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,Deadzone:5,
       '';
     })
 

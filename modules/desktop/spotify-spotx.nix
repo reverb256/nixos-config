@@ -1,6 +1,6 @@
-# Spotify with SpotX Patch
+# Spotify with SpotX Patch - Nixpkgs version
 # Removes ads, enables DRM bypass, and unlocks premium features
-# Refactored to use spotify-common library
+# Uses pkgs.spotify (native) instead of Flatpak for better WM integration
 { config
 , lib
 , pkgs
@@ -10,10 +10,13 @@ let
   cfg = config.services.spotify-spotx;
   inherit (lib) mkIf mkEnableOption mkOption types;
 
-  # Import common Spotify utilities
-  spotifyLib = import ./lib/spotify-common.nix { inherit lib pkgs; };
+  # Spotify package from Nixpkgs
+  spotifyPackage = pkgs.spotify;
+  spotifyShareDir = "${spotifyPackage}/share/spotify";
 
-  stateDir = spotifyLib.mkSpotifyStateDir "spotx";
+  # writable state directory for patched Spotify
+  spotifyStateDir = "/var/lib/spotify-spotx";
+  patchedSpotifyDir = "${spotifyStateDir}/spotify";
 in
 {
   options.services.spotify-spotx = {
@@ -33,99 +36,115 @@ in
   };
 
   config = mkIf cfg.enable {
+    # Install Spotify from Nixpkgs and wrapper scripts
+    environment.systemPackages = [
+      spotifyPackage
+      (pkgs.writeShellScriptBin "spotify" ''
+        #!${pkgs.bash}/bin/bash
+        # Launch patched Spotify if exists, otherwise launch stock
+        PATCHED="${patchedSpotifyDir}"
+        STOCK="${spotifyShareDir}"
+
+        if [ -f "$PATCHED/spotify" ]; then
+          exec "$PATCHED/spotify" "$@"
+        else
+          exec "$STOCK/spotify" "$@"
+        fi
+      '')
+      (pkgs.writeShellScriptBin "spotify-spotx" ''
+        #!${pkgs.bash}/bin/bash
+        exec /etc/spotx/patch-manager.sh "$@"
+      '')
+    ];
+
     # Create state directories
-    systemd.tmpfiles.rules = spotifyLib.mkSpotifyTmpfiles "spotx";
+    systemd.tmpfiles.rules = [
+      "d ${spotifyStateDir} 0755 root root -"
+      "d ${spotifyStateDir}/backups 0755 root root -"
+    ];
 
     # Setup script for initial installation
     environment.etc."spotx/setup-spotify.sh".source = pkgs.writeShellScript "setup-spotify.sh" ''
       #!${pkgs.bash}/bin/bash
       set -euo pipefail
-      ${spotifyLib.mkSpotifyLogging}
 
-      log "=== Spotify + SpotX Initial Setup ==="
+      RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+      log() { echo -e "''${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]''${NC} $1"; }
+      error() { echo -e "''${RED}[ERROR]''${NC} $1" >&2; }
 
-      # Ensure Flathub is available
-      if ! ${pkgs.flatpak}/bin/flatpak remote-list | grep -q flathub; then
-        error "Flathub remote not found. Enable Flatpak module first."
+      log "=== Spotify + SpotX Initial Setup (Nixpkgs) ==="
+
+      SOURCE_DIR="${spotifyShareDir}"
+      TARGET_DIR="${patchedSpotifyDir}"
+
+      # Check source Spotify exists
+      if [ ! -d "$SOURCE_DIR" ]; then
+        error "Spotify package not found at: $SOURCE_DIR"
         exit 1
       fi
 
-      # Install Spotify Flatpak if not present
-      if ! ${pkgs.flatpak}/bin/flatpak list | grep -q "com.spotify.Client"; then
-        log "Installing Spotify Flatpak from Flathub..."
-        ${pkgs.flatpak}/bin/flatpak install -y flathub com.spotify.Client
-      fi
+      log "Source Spotify: $SOURCE_DIR"
+      log "Target patched directory: $TARGET_DIR"
 
-      ${spotifyLib.mkSpotifyPaths}
+      # Create target directory and copy Spotify files
+      log "Copying Spotify files to writable location..."
+      mkdir -p "$TARGET_DIR"
+      cp -r "$SOURCE_DIR"/* "$TARGET_DIR"/ 2>/dev/null || true
 
-      if [ ! -d "$SPOTIFY_DIR" ]; then
-        error "Spotify directory not found at: $SPOTIFY_DIR"
-        exit 1
-      fi
+      # Ensure directory is writable
+      chmod -R u+rw "$TARGET_DIR" 2>/dev/null || true
 
-      # Ensure directory is writable to avoid SpotX-Bash's sudo check
-      log "Setting write permissions on Spotify directory..."
-      chmod -R u+rw "$SPOTIFY_DIR" 2>/dev/null || true
-
-      # Apply SpotX-Bash patch (with -f flag to force re-patch if already installed)
-      log "Applying SpotX-Bash patch for Spotify at $SPOTIFY_DIR..."
-      if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$SPOTIFY_DIR" -f; then
+      # Apply SpotX-Bash patch
+      log "Applying SpotX-Bash patch..."
+      if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$TARGET_DIR" -f; then
         log "✓ SpotX patch applied successfully!"
+
+        # Create marker
+        echo "patched" > "$TARGET_DIR/Apps/.spotx_patched"
       else
         error "SpotX patch application failed"
         exit 1
       fi
 
-      log "✓ Setup complete! Launch with: flatpak run com.spotify.Client"
+      log "✓ Setup complete!"
     '';
 
-    # Main patch management script
+    # Patch management script
     environment.etc."spotx/patch-manager.sh".source = pkgs.writeShellScript "patch-manager.sh" ''
       #!${pkgs.bash}/bin/bash
       set -euo pipefail
       PATH="/run/current-system/sw/bin:$PATH"
 
-      ${spotifyLib.mkSpotifyLogging}
+      RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+      log() { echo -e "''${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]''${NC} $1"; }
+      error() { echo -e "''${RED}[ERROR]''${NC} $1" >&2; }
 
-      ${spotifyLib.mkSpotifyPaths}
-
-      BACKUP_DIR="${stateDir}/backups"
-      PATCH_MARKER="''${SPOTIFY_DIR}/Apps/.spotx_patched"
-
-      # Create backup directory
-      if [ ! -d "$BACKUP_DIR" ]; then
-        mkdir -p "$BACKUP_DIR"
-        chmod 755 "$BACKUP_DIR"
-      fi
-
-      ${spotifyLib.mkSpotifyVersionDetector}
-
-      ${spotifyLib.mkSpotifyPatchChecker "$PATCH_MARKER"}
+      SOURCE_DIR="${spotifyShareDir}"
+      TARGET_DIR="${patchedSpotifyDir}"
+      BACKUP_DIR="${spotifyStateDir}/backups"
+      PATCH_MARKER="''${TARGET_DIR}/Apps/.spotx_patched"
 
       apply_patch() {
         log "Starting SpotX patching..."
-        if [ ! -d "$SPOTIFY_DIR" ]; then
-          error "Spotify directory not found at: $SPOTIFY_DIR"
+
+        if [ ! -d "$SOURCE_DIR" ]; then
+          error "Spotify package not found at: $SOURCE_DIR"
           exit 1
         fi
-        local current_version=$(get_spotify_version)
-        log "Spotify version: $current_version"
-        if [ -f "$PATCH_MARKER" ]; then
-          local patched_version=$(cat "$PATCH_MARKER" 2>/dev/null || echo "unknown")
-          if [ "$patched_version" = "$current_version" ]; then
-            log "SpotX already applied for version $current_version"
-            return 0
-          fi
-          log "Spotify updated from $patched_version to $current_version, re-patching..."
-        fi
 
-        # Ensure directory is writable to avoid SpotX-Bash's sudo check
-        log "Setting write permissions on Spotify directory..."
-        chmod -R u+rw "$SPOTIFY_DIR" 2>/dev/null || true
+        # Create fresh copy from Nix package
+        log "Copying fresh Spotify files from Nix package..."
+        mkdir -p "$TARGET_DIR"
+        rm -rf "$TARGET_DIR"/*
+        cp -r "$SOURCE_DIR"/* "$TARGET_DIR"/ 2>/dev/null || true
 
+        # Make writable
+        chmod -R u+rw "$TARGET_DIR" 2>/dev/null || true
+
+        # Apply SpotX-Bash patch
         log "Applying SpotX-Bash patch..."
-        if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$SPOTIFY_DIR" -f; then
-          echo "$current_version" > "$PATCH_MARKER"
+        if ${pkgs.bash}/bin/bash <(${pkgs.curl}/bin/curl -sSL https://raw.githubusercontent.com/SpotX-Official/SpotX-Bash/main/spotx.sh) -P "$TARGET_DIR" -f; then
+          echo "patched" > "$PATCH_MARKER"
           log "SpotX applied successfully!"
           return 0
         else
@@ -134,23 +153,10 @@ in
         fi
       }
 
-      remove_patch() {
-        log "SpotX removal not supported with SpotX-Bash"
-        log "Please reinstall Spotify Flatpak to remove SpotX"
-        exit 1
-      }
-
       show_status() {
-        local current_version=$(get_spotify_version)
         if [ -f "$PATCH_MARKER" ]; then
-          local patched_version=$(cat "$PATCH_MARKER" 2>/dev/null || echo "unknown")
-          if [ "$patched_version" = "$current_version" ]; then
-            echo "SpotX: applied (version: $current_version)"
-            return 0
-          else
-            echo "SpotX: version mismatch (patched: $patched_version, current: $current_version)"
-            return 1
-          fi
+          echo "SpotX: applied at $TARGET_DIR"
+          return 0
         else
           echo "SpotX: not applied"
           return 1
@@ -159,32 +165,18 @@ in
 
       case "''${1:-patch}" in
         patch) apply_patch ;;
-        unpatch|remove) remove_patch ;;
         status) show_status ;;
-        *) echo "Usage: $0 {patch|unpatch|status}"; exit 1 ;;
+        *) echo "Usage: $0 {patch|status}"; exit 1 ;;
       esac
     '';
 
     environment.etc."spotx/patch-manager.sh".mode = "0755";
 
-    # Main patch service
-    systemd.services.spotx-patch = spotifyLib.mkSpotifySystemdService {
+    # Main patch service - runs once at boot to ensure patch is applied
+    systemd.services.spotx-patch = {
       description = "Spotify SpotX Patch Service";
-      execStart = "/etc/spotx/patch-manager.sh patch";
-    };
-
-    # Auto-patch timer
-    systemd.timers.spotx-patch = lib.mkIf cfg.autoPatch (spotifyLib.mkSpotifySystemdTimer {
-      description = "Spotify SpotX Auto-Patch Timer";
-      onCalendar = cfg.patchCheckInterval;
-      partOf = "spotx-patch.service";
-    });
-
-    # Run after Flatpak updates
-    systemd.services.flatpak-update-after-spotx = lib.mkIf config.services.flatpak.enable {
-      description = "Run SpotX patch after Flatpak updates";
-      after = [ "flatpak-update.service" ];
-      wants = [ "flatpak-update.service" ];
+      wantedBy = [ "multi-user.target" ];
+      after = [ "network-online.target" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "/etc/spotx/patch-manager.sh patch";
@@ -192,15 +184,20 @@ in
         StandardError = "journal";
         User = "root";
         Group = "root";
+        RemainAfterExit = true;
       };
     };
 
-    # CLI wrapper
-    environment.systemPackages = [
-      (spotifyLib.mkSpotifyCliWrapper {
-        name = "spotify-spotx";
-        script = "exec /etc/spotx/patch-manager.sh \"\$@\"";
-      })
-    ];
+    # Auto-patch timer
+    systemd.timers.spotx-patch = lib.mkIf cfg.autoPatch {
+      description = "Spotify SpotX Auto-Patch Timer";
+      wantedBy = [ "timers.target" ];
+      partOf = [ "spotx-patch.service" ];
+      timerConfig = {
+        OnCalendar = cfg.patchCheckInterval;
+        Unit = "spotx-patch.service";
+        Persistent = true;
+      };
+    };
   };
 }

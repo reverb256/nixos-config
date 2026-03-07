@@ -15,7 +15,7 @@ in {
       enable = lib.mkEnableOption "NFS server for sharing /etc/nixos";
       allowedHosts = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = ["100.86.158.18" "100.95.222.45" "100.81.171.24"]; # nexus, forge, sentry
+        default = ["10.1.1.120" "10.1.1.130" "10.1.1.140"]; # nexus, forge, sentry (local network)
         description = "IP addresses allowed to mount the NFS share";
       };
     };
@@ -24,7 +24,7 @@ in {
       enable = lib.mkEnableOption "NFS client for mounting /etc/nixos from zephyr";
       serverHost = lib.mkOption {
         type = lib.types.str;
-        default = "100.95.129.98"; # zephyr's Tailscale IP
+        default = "10.1.1.110"; # zephyr's local network IP
         description = "NFS server hostname or IP";
       };
     };

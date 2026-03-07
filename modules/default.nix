@@ -43,6 +43,7 @@
     ./services/lm-studio-headless.nix
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
+    ./services/nixos-share.nix
     # ./services/podman.nix  # Temporarily disabled - has pre-existing issues
     ./services/spacebot.nix
 

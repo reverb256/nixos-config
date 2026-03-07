@@ -1196,6 +1196,9 @@
       18789
       18790
     ];
+    # NFS server - allow local network only
+    interfaces."enp38s0".allowedTCPPorts = [111 2049 20048]; # rpcbind, nfs, mountd
+    interfaces."enp38s0".allowedUDPPorts = [111 2049 20048];
   };
 
   # ============================================================================
