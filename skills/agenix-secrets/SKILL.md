@@ -67,10 +67,10 @@ A comprehensive skill for managing encrypted secrets across multiple NixOS hosts
 ### Multi-Host Setup
 
 Your infrastructure has 4 hosts:
-- **zephyr** - RTX 3090, Quest Pro, AI inference
-- **forge** - Build server
-- **nexus** - Services host
-- **sentry** - Monitoring/host
+- **zephyr** - AMD Zen, NVIDIA multi-GPU (RTX 3090 + 3060 Ti), Corsair AIO+RGB. Roles: workstation, gaming, VR (Quest Pro), mining, AI inference
+- **nexus** - AMD Zen, NVIDIA multi-GPU (2x RTX 3060 Ti). Roles: gaming, VR, mining, AI
+- **forge** - Intel Skylake, NVIDIA multi-GPU (2x RTX 4060), AMD GPU. Roles: mining, AI
+- **sentry** - AMD Zen, AMD GPU (Wayland). Roles: mining, AI
 
 Each host has its own `configuration.nix` that declares which secrets it needs.
 
