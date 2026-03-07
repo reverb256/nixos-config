@@ -44,13 +44,14 @@
 
   # ========================================================================
   # DEPLOYMENT METADATA - Target host addresses
-  # All hosts use Tailscale IPs for reliable SSH connectivity
+  # Using local network IPs (10.1.1.x) for reliable SSH connectivity
+  # Tailscale IPs kept as reference comment in case needed
   # ========================================================================
   hostDeployment = {
     zephyr = {targetHost = null;};         # Local host - no SSH needed
-    nexus = {targetHost = "100.86.158.18";}; # Tailscale IP
-    forge = {targetHost = "100.95.222.45";};  # Tailscale IP
-    sentry = {targetHost = "100.81.171.24";}; # Tailscale IP
+    nexus = {targetHost = "10.1.1.120";};   # Local network IP (TS: 100.86.158.18)
+    forge = {targetHost = "10.1.1.130";};   # Local network IP (TS: 100.95.222.45)
+    sentry = {targetHost = "10.1.1.140";};  # Local network IP (TS: 100.81.171.24)
   };
 in {
   meta = {
