@@ -14,6 +14,7 @@
     ps.uvicorn
     ps.httpx
     ps.openai # OpenAI SDK for proper API communication
+    ps.anthropic # Anthropic SDK for Claude API compatibility
     ps.prometheus-client
     ps.pyjwt
     ps.cryptography
@@ -29,6 +30,7 @@
     ps.redis
     ps.pydantic
     ps.pydantic-settings
+    ps.sentry-sdk
   ]);
 
   # Gateway main.py v2
@@ -133,6 +135,16 @@ in {
         # Cache directories for sentence-transformers
         TRANSFORMERS_CACHE = "/var/cache/ai-inference";
         HF_HOME = "/var/cache/ai-inference";
+        # Sentry error tracking
+        SENTRY_ENABLED = lib.boolToString cfg.sentry.enable;
+        SENTRY_DSN =
+          if cfg.sentry.dsnFile != null
+          then "" # Will be loaded from file by gateway
+          else cfg.sentry.dsn or "";
+        SENTRY_DSN_FILE =
+          lib.optionalString (cfg.sentry.dsnFile != null) cfg.sentry.dsnFile;
+        SENTRY_ENVIRONMENT = cfg.sentry.environment;
+        SENTRY_TRACES_SAMPLE_RATE = builtins.toString cfg.sentry.tracesSampleRate;
       };
 
       serviceConfig = {
@@ -153,7 +165,8 @@ in {
           ]
           ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
           ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
-          ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/zai-api-key");
+          ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/zai-api-key")
+          ++ lib.optional (lib.hasAttr "sentry" cfg && lib.hasAttr "dsnFile" cfg.sentry && cfg.sentry.dsnFile != null) (dirOf cfg.sentry.dsnFile);
         MemoryMax = "2G";
         CPUWeight = 100;
         IOWeight = 100;
