@@ -521,97 +521,197 @@ in {
                 echo "idle"
             }
 
+            # Helper function to get available GPU list
+            get_gpu_list() {
+                nvidia-smi --query-gpu=index --format=csv,noheader,nounits 2>/dev/null || echo ""
+            }
+
+            # Helper function to get GPU name
+            get_gpu_name() {
+                local gpu_id="$1"
+                nvidia-smi -i "$gpu_id" --query-gpu=name --format=csv,noheader 2>/dev/null || echo "Unknown"
+            }
+
+            # Helper to safely apply nvidia-smi command
+            nvidia_safe() {
+                "$@" 2>/dev/null || true
+            }
+
             apply_gaming_profile() {
                 echo "=== Applying GPU GAMING profile ==="
 
-                # Max power limits (liquid cooling can handle it)
-                nvidia-smi -i 0 -pl 200  # 3060 Ti
-                nvidia-smi -i 1 -pl 350  # 3090
+                local gpus=$(get_gpu_list)
+                local gpu_count=$(echo "$gpus" | wc -l)
 
-                # Lock clocks for max gaming performance
-                # 3060 Ti: Max clocks (full performance)
-                nvidia-smi -i 0 -lgc 2100
-                nvidia-smi -i 0 -lmc 7000
-                # 3090: Aggressive GPU (liquid cooled), conservative VRAM (backside uncooled)
-                nvidia-smi -i 1 -lgc 2050
-                nvidia-smi -i 1 -lmc 7500
+                if [ "$gpu_count" -eq 0 ]; then
+                    echo "WARNING: No NVIDIA GPUs detected"
+                    return 0
+                fi
 
-                echo "GAMING profile applied:"
-                echo "  GPU 0 (3060 Ti):  2100 MHz GPU, 7000 MHz mem, 200W limit"
-                echo "  GPU 1 (3090):     2050 MHz GPU (liquid-cooled), 7500 MHz mem (backside VRAM-safe), 350W limit"
-                echo "  Mode: Maximum performance with VRAM thermal safety"
+                echo "Detected $gpu_count GPU(s) for gaming profile"
+
+                for gpu_id in $gpus; do
+                    local gpu_name=$(get_gpu_name "$gpu_id")
+                    echo "Configuring GPU $gpu_id ($gpu_name)..."
+
+                    case "$gpu_name" in
+                        *"3060"*)
+                            # 3060 Ti: Max performance
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2100
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7000
+                            echo "  3060 Ti: 2100 MHz GPU, 7000 MHz mem, 200W limit"
+                            ;;
+                        *"3090"*)
+                            # 3090: Aggressive GPU (liquid cooled), conservative VRAM
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 350
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2050
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7500
+                            echo "  3090: 2050 MHz GPU (liquid-cooled), 7500 MHz mem, 350W limit"
+                            ;;
+                        *)
+                            # Default: Max performance
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 250
+                            nvidia_safe nvidia-smi -i "$gpu_id" -rgc
+                            nvidia_safe nvidia-smi -i "$gpu_id" -rmc
+                            echo "  $gpu_name: Default max performance profile"
+                            ;;
+                    esac
+                done
+
+                echo "GAMING profile applied: Mode: Maximum performance"
             }
 
             apply_ai_profile() {
                 echo "=== Applying GPU AI INFERENCE profile ==="
 
-                # Moderate power limits (sweet spot for perf/watt)
-                nvidia-smi -i 0 -pl 110  # 3060 Ti (55%)
-                nvidia-smi -i 1 -pl 300  # 3090 (85% - liquid cooled, can push harder)
+                local gpus=$(get_gpu_list)
+                local gpu_count=$(echo "$gpus" | wc -l)
 
-                # Balanced clocks: strong GPU, conservative VRAM for backside thermal safety
-                # 3060 Ti: 1950 MHz GPU, 6200 MHz memory (balanced)
-                nvidia-smi -i 0 -lgc 1950
-                nvidia-smi -i 0 -lmc 6200
-                # 3090: 1900 MHz GPU (liquid-cooled), 7000 MHz memory (backside VRAM-safe)
-                nvidia-smi -i 1 -lgc 1900
-                nvidia-smi -i 1 -lmc 7000
+                if [ "$gpu_count" -eq 0 ]; then
+                    echo "WARNING: No NVIDIA GPUs detected"
+                    return 0
+                fi
 
-                echo "AI INFERENCE profile applied:"
-                echo "  GPU 0 (3060 Ti):  1950 MHz GPU, 6200 MHz mem, 110W limit"
-                echo "  GPU 1 (3090):     1900 MHz GPU (liquid-cooled), 7000 MHz mem (backside VRAM-safe), 300W limit"
-                echo "  Mode: Balanced performance with VRAM thermal safety"
-                echo ""
-                echo "This profile optimizes for:"
-                echo "  - Consistent inference latency"
-                echo "  - Strong GPU performance (liquid cooling utilized)"
-                echo "  - Conservative VRAM for backside thermal safety"
-                echo "  - Power efficiency for sustained workloads"
+                echo "Detected $gpu_count GPU(s) for AI inference profile"
+
+                for gpu_id in $gpus; do
+                    local gpu_name=$(get_gpu_name "$gpu_id")
+                    echo "Configuring GPU $gpu_id ($gpu_name)..."
+
+                    case "$gpu_name" in
+                        *"3060"*)
+                            # 3060 Ti: Balanced
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 110
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1950
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6200
+                            echo "  3060 Ti: 1950 MHz GPU, 6200 MHz mem, 110W limit"
+                            ;;
+                        *"3090"*)
+                            # 3090: Liquid cooled, can push harder
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 300
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1900
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7000
+                            echo "  3090: 1900 MHz GPU (liquid-cooled), 7000 MHz mem, 300W limit"
+                            ;;
+                        *)
+                            # Default: Balanced
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
+                            nvidia_safe nvidia-smi -i "$gpu_id" -rgc
+                            nvidia_safe nvidia-smi -i "$gpu_id" -rmc
+                            echo "  $gpu_name: Default balanced profile"
+                            ;;
+                    esac
+                done
+
+                echo "AI INFERENCE profile applied: Mode: Balanced performance with thermal safety"
             }
 
             apply_mining_profile() {
                 echo "=== Applying GPU MINING profile ==="
 
-                # Reduced power limits for efficiency
-                nvidia-smi -i 0 -pl 100  # 3060 Ti (50% - efficiency sweet spot)
-                nvidia-smi -i 1 -pl 270  # 3090 (77% - can push more with liquid cooling)
+                local gpus=$(get_gpu_list)
+                local gpu_count=$(echo "$gpus" | wc -l)
 
-                # Mining optimization: high memory throughput with thermal safety
-                # 3060 Ti: 1700 MHz GPU, 5200 MHz memory (efficiency-focused)
-                nvidia-smi -i 0 -lgc 1700
-                nvidia-smi -i 0 -lmc 5200
-                # 3090: 1750 MHz GPU (liquid-cooled), 6500 MHz memory (backside VRAM temperature-safe)
-                # Note: Mining is VRAM-intensive, keeping memory conservative for uncooled backside modules
-                nvidia-smi -i 1 -lgc 1750
-                nvidia-smi -i 1 -lmc 6500
+                if [ "$gpu_count" -eq 0 ]; then
+                    echo "WARNING: No NVIDIA GPUs detected"
+                    return 0
+                fi
 
-                echo "MINING profile applied:"
-                echo "  GPU 0 (3060 Ti):   1700 MHz GPU, 5200 MHz mem, 100W limit"
-                echo "  GPU 1 (3090):      1750 MHz GPU (liquid-cooled), 6500 MHz mem (backside VRAM-safe), 270W limit"
-                echo "  Mode: Efficiency-optimized with thermal safety"
-                echo ""
-                echo "NOTE: Monitor temps and hashrate. 3090 backside VRAM kept conservative."
+                echo "Detected $gpu_count GPU(s) for mining profile"
+
+                for gpu_id in $gpus; do
+                    local gpu_name=$(get_gpu_name "$gpu_id")
+                    echo "Configuring GPU $gpu_id ($gpu_name)..."
+
+                    case "$gpu_name" in
+                        *"3060"*)
+                            # 3060 Ti: Efficiency-focused
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 100
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1700
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 5200
+                            echo "  3060 Ti: 1700 MHz GPU, 5200 MHz mem, 100W limit"
+                            ;;
+                        *"3090"*)
+                            # 3090: Efficiency with liquid cooling
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 270
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1750
+                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6500
+                            echo "  3090: 1750 MHz GPU (liquid-cooled), 6500 MHz mem, 270W limit"
+                            ;;
+                        *)
+                            # Default: Efficiency
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
+                            nvidia_safe nvidia-smi -i "$gpu_id" -rgc
+                            nvidia_safe nvidia-smi -i "$gpu_id" -rmc
+                            echo "  $gpu_name: Default efficiency profile"
+                            ;;
+                    esac
+                done
+
+                echo "MINING profile applied: Mode: Efficiency-optimized"
             }
 
             apply_idle_profile() {
                 echo "=== Resetting GPUs to DEFAULT/AUTO profile ==="
 
-                # Reset power limits to defaults
-                nvidia-smi -i 0 -pl 200  # 3060 Ti default
-                nvidia-smi -i 1 -pl 350  # 3090 default
+                local gpus=$(get_gpu_list)
+                local gpu_count=$(echo "$gpus" | wc -l)
 
-                # Reset locked clocks back to auto/adaptive mode
-                nvidia-smi -i 0 -rgc
-                nvidia-smi -i 0 -rmc
-                nvidia-smi -i 1 -rgc
-                nvidia-smi -i 1 -rmc
+                if [ "$gpu_count" -eq 0 ]; then
+                    echo "WARNING: No NVIDIA GPUs detected"
+                    return 0
+                fi
 
-                echo "RESET to defaults applied:"
-                echo "  Power limits reset to configured defaults"
-                echo "  Clocks unlocked - GPUs will auto-scale"
-                echo "  Mode: Adaptive (auto)"
-                echo ""
-                echo "GPUs will now auto-scale based on workload."
+                echo "Detected $gpu_count GPU(s), resetting to defaults"
+
+                for gpu_id in $gpus; do
+                    local gpu_name=$(get_gpu_name "$gpu_id")
+                    echo "Resetting GPU $gpu_id ($gpu_name)..."
+
+                    # Reset power limits based on GPU model
+                    case "$gpu_name" in
+                        *"3060"*)
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
+                            ;;
+                        *"3090"*)
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 350
+                            ;;
+                        *)
+                            # Try to get max power limit
+                            local max_power=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits 2>/dev/null | tr -d '.' || echo "300")
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl "''${max_power%.*}"
+                            ;;
+                    esac
+
+                    # Reset locked clocks
+                    nvidia_safe nvidia-smi -i "$gpu_id" -rgc
+                    nvidia_safe nvidia-smi -i "$gpu_id" -rmc
+
+                    echo "  GPU $gpu_id: Reset to defaults (adaptive mode)"
+                done
+
+                echo "RESET to defaults applied: Mode: Adaptive (auto)"
             }
 
             apply_profile() {

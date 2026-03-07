@@ -130,7 +130,7 @@ in {
             ${pkgs.gnused}/bin/sed 's/"/\\"/g; s/[^a-zA-Z0-9:_]/_/g'
           }
 
-          HOST_LABEL="\"$(echo "$HOSTNAME" | escape_label)\""
+          HOST_LABEL="\"$(echo "$HOSTNAME" | escape_label):${toString cfg.port}\""
 
           # Temporary file for accumulating metrics
           METRICS_FILE="$METRICS_DIR/metrics.tmp"
@@ -147,21 +147,21 @@ in {
             {
               echo "# HELP mining_lolminer_hashrate_total Total hashrate for lolminer"
               echo "# TYPE mining_lolminer_hashrate_total gauge"
-              HASHRATE=$(${pkgs.jq}/bin/jq -r '.hashrate_total[0] // 0' /tmp/lolminer_"$gpu_type".json 2>/dev/null || echo "0")
+              HASHRATE=$(${pkgs.jq}/bin/jq -r '.Algorithms[0].Total_Performance // 0' /tmp/lolminer_"$gpu_type".json 2>/dev/null || echo "0")
               echo "mining_lolminer_hashrate_total{instance=$HOST_LABEL,gpu_type=\"$gpu_type\"} $HASHRATE"
 
               echo "# HELP mining_lolminer_hashrate_per_gpu Hashrate per GPU"
               echo "# TYPE mining_lolminer_hashrate_per_gpu gauge"
-              ${pkgs.jq}/bin/jq -r '.GPU[] | "mining_lolminer_hashrate_per_gpu{instance=\\\""'"$HOSTNAME"'\\\",gpu_type=\\\""'"$gpu_type"'\\\",gpu_id=\\\"" + (.gpu | tostring) + "\\\"} " + (.hashrate[0][0] // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r '.Algorithms[0].Worker_Performance as $perf | .Workers as $workers | range(0; $workers | length) | "mining_lolminer_hashrate_per_gpu{instance=\\\""'"$HOSTNAME"'\\\"",gpu_type=\\\""'"$gpu_type"'\\\"",gpu_id=\\\"" + ($workers[.].Index | tostring) + "\\\",gpu_name=\\\"" + ($workers[.].Name // "unknown") + "\\\"} " + ($perf[.] // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
 
               echo "# HELP mining_lolminer_shares_accepted Total accepted shares"
               echo "# TYPE mining_lolminer_shares_accepted counter"
-              ACCEPTED=$(${pkgs.jq}/bin/jq -r '.Session.Shares[0] // 0' /tmp/lolminer_"$gpu_type".json 2>/dev/null || echo "0")
+              ACCEPTED=$(${pkgs.jq}/bin/jq -r '.Algorithms[0].Total_Accepted // 0' /tmp/lolminer_"$gpu_type".json 2>/dev/null || echo "0")
               echo "mining_lolminer_shares_accepted{instance=$HOST_LABEL,gpu_type=\"$gpu_type\"} $ACCEPTED"
 
               echo "# HELP mining_lolminer_shares_rejected Total rejected shares"
               echo "# TYPE mining_lolminer_shares_rejected counter"
-              REJECTED=$(${pkgs.jq}/bin/jq -r '.Session.Shares[1] // 0' /tmp/lolminer_"$gpu_type".json 2>/dev/null || echo "0")
+              REJECTED=$(${pkgs.jq}/bin/jq -r '.Algorithms[0].Total_Rejected // 0' /tmp/lolminer_"$gpu_type".json 2>/dev/null || echo "0")
               echo "mining_lolminer_shares_rejected{instance=$HOST_LABEL,gpu_type=\"$gpu_type\"} $REJECTED"
 
               echo "# HELP mining_lolminer_uptime_seconds Uptime in seconds"
@@ -171,11 +171,11 @@ in {
 
               echo "# HELP mining_lolminer_power_watts Power consumption"
               echo "# TYPE mining_lolminer_power_watts gauge"
-              ${pkgs.jq}/bin/jq -r '.GPU[] | "mining_lolminer_power_watts{instance=\\\""'"$HOSTNAME"'\\\",gpu_type=\\\""'"$gpu_type"'\\\",gpu_id=\\\"" + (.gpu | tostring) + "\\\"} " + (.power // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r '.Workers[] | "mining_lolminer_power_watts{instance=\\\""'"$HOSTNAME"'\\\"",gpu_type=\\\""'"$gpu_type"'\\\"",gpu_id=\\\"" + (.Index | tostring) + "\\\",gpu_name=\\\"" + (.Name // "unknown") + "\\\"} " + (.Power // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
 
               echo "# HELP mining_lolminer_temperature_celsius GPU temperature"
               echo "# TYPE mining_lolminer_temperature_celsius gauge"
-              ${pkgs.jq}/bin/jq -r '.GPU[] | "mining_lolminer_temperature_celsius{instance=\\\""'"$HOSTNAME"'\\\",gpu_type=\\\""'"$gpu_type"'\\\",gpu_id=\\\"" + (.gpu | tostring) + "\\\"} " + (.temperature // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r '.Workers[] | "mining_lolminer_temperature_celsius{instance=\\\""'"$HOSTNAME"'\\\"",gpu_type=\\\""'"$gpu_type"'\\\"",gpu_id=\\\"" + (.Index | tostring) + "\\\",gpu_name=\\\"" + (.Name // "unknown") + "\\\"} " + (.Core_Temp // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
 
               echo ""
             } >> "$METRICS_FILE"
@@ -185,7 +185,7 @@ in {
           fetch_xmrig() {
             local port=$1
 
-            if ! ${pkgs.curl}/bin/curl -s http://localhost:"$port"/1/summary > /tmp/xmrig.json 2>/dev/null; then
+            if ! ${pkgs.curl}/bin/curl -s http://localhost:"$port"/1/summary -H "Authorization: Bearer mining-exporter-token" > /tmp/xmrig.json 2>/dev/null; then
               return
             fi
 

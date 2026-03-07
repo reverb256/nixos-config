@@ -184,9 +184,10 @@ in {
           enabled = true;
           host = "127.0.0.1";
           port = 8081;
-          # Note: restricted disabled to allow local mining exporter access
-          # For production, set restricted=true and configure token
-          restricted = false;
+          # restricted: true requires access-token for security
+          # Mining exporter uses this token to fetch metrics
+          restricted = true;
+          access-token = "mining-exporter-token";
         };
         pools = [
           {
