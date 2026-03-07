@@ -153,12 +153,14 @@
       enable = true;
       xmrig = {
         enable = true;
+        autostart = true;
         threads = 12;
       };
       lolminer = {
         enable = true;
         nvidia = {
           enable = true;
+          autostart = true;
           devices = "0,1";
           powerLimit = 130;
         };

@@ -108,6 +108,7 @@
     enable = true;
     xmrig = {
       enable = true;
+      autostart = true;
       threads = 8;
     };
     lolminer.enable = false;
