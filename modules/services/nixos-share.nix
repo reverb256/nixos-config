@@ -44,15 +44,8 @@ in {
       "/etc/nixos" = {
         device = "${cfg.client.serverHost}:/etc/nixos";
         fsType = "nfs";
-        options = ["ro" "noatime" "soft" "timeo=30" "retrans=3" "_netdev"];
+        options = ["ro" "noatime" "soft" "timeo=30" "retrans=3" "_netdev" "x-systemd.requires=network-online.target" "x-systemd.after=network-online.target" "x-systemd.after=tailscale.service"];
       };
-    };
-
-    # Ensure network is ready before mounting NFS
-    systemd.mounts = lib.mkIf cfg.client.enable {
-      _netdev = true;
-      requires = ["network-online.target"];
-      after = ["network-online.target" "tailscale.service"];
     };
   };
 }
