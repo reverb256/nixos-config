@@ -254,14 +254,14 @@ in {
           {
             minTokens = 0;
             maxTokens = 131072; # Up to 128K tokens
-            model = "magnum-opus-35b-a3b-i1";
+            model = "qwen3.5-35b-a3b";
             priority = 10;
             contextLength = 262144; # 256K context
           }
           {
             minTokens = 131073; # 128K+ tokens
             maxTokens = 999999;
-            model = "qwen/qwen3.5-9b";
+            model = "qwen3.5-27b";
             priority = 20;
             contextLength = 262144; # 256K context
           }
@@ -271,7 +271,7 @@ in {
 
       defaultModel = mkOption {
         type = types.str;
-        default = "magnum-opus-35b-a3b-i1";
+        default = "qwen3.5-35b-a3b";
         description = "Default model when routing is disabled or no rule matches";
       };
     };
@@ -573,6 +573,40 @@ in {
           default = "BAAI/bge-reranker-v2-m3";
           description = "Reranker model name (BAAI/bge-reranker-v2-m3 recommended)";
         };
+      };
+    };
+
+    # Sentry error tracking
+    sentry = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable Sentry error tracking";
+      };
+
+      dsn = mkOption {
+        type = types.str;
+        default = "";
+        description = "Sentry DSN (Data Source Name)";
+      };
+
+      dsnFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        example = literalExpression "/run/agenix/sentry-dsn";
+        description = "Path to file containing Sentry DSN (takes precedence over dsn)";
+      };
+
+      environment = mkOption {
+        type = types.enum ["development" "staging" "production"];
+        default = "production";
+        description = "Sentry environment name";
+      };
+
+      tracesSampleRate = mkOption {
+        type = types.float;
+        default = 0.1;
+        description = "Sample rate for performance tracing (0.0 to 1.0)";
       };
     };
 
