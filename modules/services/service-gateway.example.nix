@@ -1,9 +1,9 @@
-# Example Service Gateway Configuration (Caddy)
+# Example Service Gateway Configuration - Simple Human URLs
 # Add this to your /etc/nixos/configuration.nix
 
 { config, ... }: {
   # ============================================================================
-  # SERVICE GATEWAY - Auto-generated subdomains for all services
+  # SERVICE GATEWAY - Simple URLs like ai.zephyr, cloud.zephyr
   # ============================================================================
   services.service-gateway = {
     enable = true;
@@ -13,9 +13,9 @@
 
     services = {
       # ============================================================
-      # AI / INFERENCE
+      # AI & INFERENCE
       # ============================================================
-      ai-gateway = {
+      ai = {
         description = "AI Inference Gateway - OpenAI-compatible API";
         port = 8080;
         websocket = true;
@@ -27,7 +27,7 @@
         websocket = true;
       };
 
-      lm-studio = {
+      lm = {
         description = "LM Studio - LLM API server";
         port = 1234;
         websocket = true;
@@ -43,80 +43,82 @@
       };
 
       # ============================================================
-      # MONITORING & OBSERVABILITY
+      # FILE & COLLABORATION
+      # ============================================================
+      cloud = {
+        description = "Nextcloud - File sync & collaboration";
+        port = 8080;
+      };
+
+      # ============================================================
+      # MONITORING
       # ============================================================
       grafana = {
         description = "Grafana - Metrics dashboard";
         port = 3001;
-        https = false;
       };
 
-      prometheus = {
+      prom = {
         description = "Prometheus - Metrics collector";
         port = 9090;
-        https = false;
       };
 
-      loki = {
+      logs = {
         description = "Loki - Log aggregation";
         port = 3100;
-        https = false;
       };
 
       # ============================================================
       # ERROR TRACKING
       # ============================================================
-      glitchtip = {
+      errors = {
         description = "GlitchTip - Error tracking web UI";
         port = 8000;
-        https = false;
-      };
-
-      glitchtip-api = {
-        description = "GlitchTip API";
-        port = 8081;
-        https = false;
       };
 
       # ============================================================
       # DEVELOPMENT
       # ============================================================
-      opencode = {
+      dev = {
         description = "OpenCode - Development environment";
         port = 5173;
-        https = false;
       };
     };
   };
 
   # ============================================================================
-  # DNS CONFIGURATION (via Unbound)
+  # WHAT YOU GET
   # ============================================================================
-  # The gateway automatically adds DNS entries to Unbound.
-  # Make sure unbound-cluster is enabled:
+  # Services accessible at short, memorable URLs:
   #
-  # services.unbound-cluster.enable = true;
+  #   http://ai.zephyr       → AI Inference Gateway (port 8080)
+  #   http://vllm.zephyr     → vLLM backend (port 8000)
+  #   http://lm.zephyr       → LM Studio (port 1234)
+  #   http://synapse.zephyr  → AI Command Center (port 3000)
+  #   http://cloud.zephyr    → Nextcloud (port 8080)
+  #   http://grafana.zephyr  → Metrics dashboard (port 3001)
+  #   http://prom.zephyr     → Prometheus (port 9090)
+  #   http://logs.zephyr     → Loki logs (port 3100)
+  #   http://errors.zephyr   → GlitchTip (port 8000)
+  #   http://dev.zephyr      → OpenCode (port 5173)
   #
-  # Services will be accessible at:
-  # - ai-gateway.zephyr.cluster.local → http://127.0.0.1:8080
-  # - vllm.zephyr.cluster.local → http://127.0.0.1:8000
-  # - synapse.zephyr.cluster.local → http://127.0.0.1:3000
-  # - grafana.zephyr.cluster.local → http://127.0.0.1:3001
-  # - etc.
-
+  # With DNS search domain configured, you can type even less:
+  #   http://ai      (works from zephyr)
+  #   http://cloud   (works from zephyr)
+  #
   # ============================================================================
   # QUICK START
   # ============================================================================
-  # After rebuild, list all registered services:
-  #   $ svc-gateway
+  # After rebuild:
+  #   $ sudo nixos-rebuild switch
+  #
+  # List all services:
+  #   $ svc
   #
   # Test a service:
-  #   $ curl http://ai-gateway.zephyr.cluster.local/health
+  #   $ curl http://ai.zephyr/health
+  #   $ curl http://ai.zephyr/v1/models
   #
-  # View the gateway readme:
+  # View the readme:
   #   $ cat /etc/service-gateway-readme.md
-  #
-  # Caddy management:
-  #   $ systemctl reload caddy  # Apply config changes
-  #   $ journalctl -u caddy -f   # View logs
 }
