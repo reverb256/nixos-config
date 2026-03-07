@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   # Centralized SYSTEM packages - only packages needed by system services
   # User packages belong in home.nix
   environment.systemPackages = with pkgs; [
@@ -32,7 +31,6 @@
     # System-level networking tools
     # ============================================================================
     networkmanager
-    localsend # Local network file sharing (AirDrop alternative)
 
     # ============================================================================
     # VERSION CONTROL AND BUILD TOOLS

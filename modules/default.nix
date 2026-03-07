@@ -73,7 +73,6 @@
 
     # Desktop modules (Spotify customization)
     ./desktop/spotify-spotx.nix
-    # ./desktop/lobehub.nix  # TODO: fix deprecated xg options
 
     # Profile system
     ./profiles/default.nix
