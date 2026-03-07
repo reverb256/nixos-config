@@ -26,16 +26,22 @@
   # ============================================================================
   networking.hostName = "zephyr";
 
-  # NVIDIA GPU support (RTX 3090 + 3060 Ti)
-  hardware.nvidia-common.enable = true;
+  # ============================================================================
+  # HARDWARE PROFILES
+  # ============================================================================
+  hardware.profiles = {
+    amd.zen = true;      # Zen CPU optimizations (kernel params)
+    nvidia.enable = true;  # NVIDIA GPU support
+    nvidia.multiGpu = true;  # Multi-GPU (RTX 3090 + 3060 Ti)
+    corsair.enable = true;   # Corsair AIO + RGB
+    monitoring.enable = true;  # Hardware monitoring
+  };
 
-  # Hardware monitoring (lm-sensors, fan control for MSI X570)
-  hardware.monitoring.enable = true;
+  # Hardware monitoring extras (not covered by profile)
   hardware.monitoring.autoDetect = false; # Skip auto-detect, we know the hardware
   hardware.monitoring.fanControl = true; # Custom fan curve control
 
-  # Corsair hardware support (AIO cooler, RGB, Commander)
-  hardware.corsair.enable = true;
+  # Corsair extras (not covered by profile)
   hardware.corsair.aio.enable = true; # Corsair H115i AIO control
   hardware.corsair.rgb.enable = true; # OpenRGB for RGB control
   hardware.corsair.autoStartRgb = false; # Don't auto-start (conflicts with liquidctl)
@@ -77,31 +83,31 @@
   boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # Multi-GPU kernel modules for RTX 3090 + 3060 Ti
+  # (Note: hardware.profiles.nvidia.enable adds nvidia modules automatically)
   boot.kernelModules = [
-    "nvidia"
     "nvidia_uvm" # Unified Memory (CRITICAL for multi-GPU!)
-    "nvidia_drm"
-    "nvidia_modeset"
   ];
 
   # Zephyr-specific kernel params for gaming
+  # (Note: hardware.profiles.amd.zen adds split_lock_detect, threadirqs, preempt)
   boot.kernelParams = [
-    "split_lock_detect=off"
-    "threadirqs"
-    "preempt=full"
     "processor.max_cstate=1"
     "intel_idle.max_cstate=1"
     "iommu=pt"
   ];
 
   # ============================================================================
-  # GAMING + VR (Full support - RTX 3090)
+  # ROLE PROFILES
   # ============================================================================
-  services.gaming = {
-    enable = true;
-    vr.enable = true; # WiVRn for Quest Pro
-    hdr.enable = true; # HDR for 4K HDR TV
+  profiles.role = {
+    workstation = true;  # Desktop + development
+    gaming = true;  # Steam, Lutris, etc.
+    vr = true;  # WiVRn for Quest Pro
+    mining = true;  # GPU/CPU mining
   };
+
+  # Note: profiles.role.gaming enables services.gaming automatically
+  services.gaming.hdr.enable = true; # HDR for 4K HDR TV
 
   # Share /etc/nixos via NFS for remote hosts (single-source-of-truth)
   services.nixos-share = {
@@ -375,7 +381,7 @@
   # DISABLED: Mining conflicts with AI inference services (LM Studio)
   # Re-enable when AI services are not in use
   # ============================================================================
-  services.mining.enable = true;
+  # Note: profiles.role.mining enables services.mining automatically
 
   # ============================================================================
   # MULTIMEDIA - GStreamer support for Qt/KDE applications
@@ -460,9 +466,9 @@
   # };
 
   # ============================================================================
-  # TAILSCALE
+  # NETWORK PROFILES
   # ============================================================================
-  services.tailscale.enable = true;
+  profiles.network.tailscale.enable = true;
 
   # ============================================================================
   # ADDITIONAL PACKAGES
