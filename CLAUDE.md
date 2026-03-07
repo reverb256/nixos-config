@@ -24,6 +24,30 @@ sudo nixos-rebuild switch --flake .#zephyr
 nix flake update
 ```
 
+### Safe Rebuild with Mining Pause
+
+**IMPORTANT**: All rebuild commands automatically pause mining to maximize build performance.
+
+```bash
+# Fish aliases (auto-pause mining)
+nswitch      # nixos-rebuild switch
+nswitchu     # switch with --upgrade
+ntest        # nixos-rebuild test
+nbuild       # nixos-rebuild build
+ndry         # nixos-rebuild dry-activate
+
+# Justfile recipe
+just switch  # Auto-pauses mining
+
+# Direct script
+sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake .#zephyr
+```
+
+The `nixos-rebuild-safe.sh` script:
+1. Stops `xmrig@*` and `lolminer-*` services
+2. Runs the nixos-rebuild command
+3. Automatically restarts mining (even if build fails)
+
 ### Service Management
 ```bash
 # Check service status
@@ -76,16 +100,16 @@ curl -X POST http://127.0.0.1:8080/mcp/call \
 nix flake check
 
 # Step 2: Build validation (1-2 minutes)
-sudo nixos-rebuild build --flake .#zephyr
+nbuild  # Uses nixos-rebuild-safe.sh (auto-pauses mining)
 
 # Step 3: Temporary application (safe, rolls back on reboot)
-sudo nixos-rebuild test --flake .#zephyr
+ntest  # Auto-pauses mining
 
 # Step 4: Verify manually
 curl http://127.0.0.1:8080/health
 
 # Step 5: Persistent application
-sudo nixos-rebuild switch --flake .#zephyr
+nswitch  # Auto-pauses mining
 ```
 
 ### 2. Service Files Must Be Tracked in Git
@@ -376,32 +400,116 @@ async def endpoint(request: Request):
 
 ---
 
+## Profile-Based Host Configuration
+
+Hosts use a **declarative profile system** for composable configuration. This eliminates repetitive setup and makes adding new hosts trivial.
+
+### Defining a Host
+
+```nix
+# hosts/<hostname>/configuration.nix
+{ lib, pkgs, ... }: {
+  imports = [
+    ../../modules/default.nix
+    ../../modules/common-host.nix
+    # ... other imports
+  ];
+
+  # Hardware profiles
+  hardware.profiles = {
+    amd.zen = true;        # Zen CPU optimizations
+    nvidia.enable = true;  # NVIDIA GPU
+    monitoring.enable = true;
+  };
+
+  # Role profiles
+  profiles.role = {
+    gaming = true;         # Enables gaming services
+    mining = true;         # Enables mining services
+    aiInference = true;    # Enables AI gateway
+  };
+
+  # Network profiles
+  profiles.network.tailscale.enable = true;
+}
+```
+
+### Available Profiles
+
+**Hardware** (`modules/profiles/hardware/`):
+| Profile | Description |
+|---------|-------------|
+| `amd.enable` | AMD CPU IOMMU |
+| `amd.zen` | Zen CPU optimizations |
+| `intel.enable` | Intel CPU optimizations |
+| `nvidia.enable` | NVIDIA GPU support |
+| `nvidia.multiGpu` | Multi-GPU CUDA settings |
+| `amdgpu.enable` | AMD GPU support |
+| `amdgpu.wayland` | ROC_ENABLE_PRE_VEGA |
+| `monitoring.enable` | lm-sensors |
+
+**Role** (`modules/profiles/role/`):
+| Profile | Description |
+|---------|-------------|
+| `workstation` | Desktop + development |
+| `gaming` | Steam, Lutris |
+| `vr` | WiVRn, SteamVR |
+| `mining` | GPU/CPU mining |
+| `aiInference` | AI gateway + MCP |
+| `desktop` | Plasma, Wayland |
+
+**Network** (`modules/profiles/network/`):
+| Profile | Description |
+|---------|-------------|
+| `tailscale.enable` | Enable Tailscale VPN |
+| `tailscale.advertiseRoutes` | Routes to advertise |
+
+### Current Hosts
+
+| Host | Hardware | Roles |
+|------|----------|-------|
+| **zephyr** | amd.zen, nvidia, multiGpu, corsair | workstation, gaming, vr, mining, ai |
+| **nexus** | amd.zen, nvidia, multiGpu | gaming, vr, mining, ai |
+| **forge** | intel, nvidia, multiGpu, amdgpu | mining, ai |
+| **sentry** | amd.zen, amdgpu | mining, ai |
+
+---
+
 ## File Organization
 
 ```
 /etc/nixos/
 ├── flake.nix                    # Main flake definition
 ├── flake.lock                   # Auto-generated, DO NOT EDIT
-├── AGENTS.md                    # This file - agent guidelines
+├── AGENTS.md                    # Agent guidelines
 ├── CLAUDE.md                    # Claude Code specific patterns
+├── justfile                     # Just commands
 ├── hosts/
-│   └── zephyr/
-│       ├── configuration.nix    # Host-specific config
-│       └── hardware-configuration.nix  # Auto-generated
+│   ├── zephyr/
+│   │   ├── configuration.nix    # Host-specific config (profiles)
+│   │   └── hardware-configuration.nix
+│   ├── nexus/
+│   ├── forge/
+│   └── sentry/
+├── lib/
+│   ├── attrs.nix                # Attribute utilities
+│   └── modules.nix              # Module discovery helpers
 ├── modules/
-│   ├── default.nix              # Module imports
-│   └── services/
-│       └── ai-inference/
-│           ├── gateway.nix      # Nix service definition
-│           ├── README.md        # Documentation
-│           └── ai_inference_gateway/
-│               ├── __init__.py
-│               ├── main.py      # FastAPI application
-│               ├── config.py    # Configuration models
-│               ├── router.py    # Request routing logic
-│               └── mcp_broker.py # MCP server aggregation
+│   ├── default.nix              # Module aggregator
+│   ├── profiles/                # Profile system
+│   │   ├── hardware/            # Hardware profiles (CPU/GPU)
+│   │   ├── role/                # Role profiles (gaming, mining, AI)
+│   │   └── network/             # Network profiles (tailscale)
+│   ├── common-host.nix          # Shared host imports
+│   ├── desktop/                 # Desktop modules
+│   ├── gaming/                  # Gaming modules
+│   ├── hardware/                # Hardware-specific configs
+│   ├── mining/                  # Mining modules
+│   ├── services/                # Service modules
+│   │   └── ai-inference/        # AI gateway
+│   └── shell/                   # Shell configuration
 └── scripts/
-    └── setup-spacebot-token.sh  # Utility scripts
+    └── nixos-rebuild-safe.sh    # Rebuild with mining pause
 ```
 
 ---

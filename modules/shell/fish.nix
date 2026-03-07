@@ -22,13 +22,15 @@
 
       # NixOS management aliases
       # ====================================
+      # Note: These use nixos-rebuild-safe.sh which automatically pauses mining
+      # during builds to maximize performance, then resumes mining afterward.
 
-      # System rebuild commands
-      alias nswitch "sudo nixos-rebuild switch --flake /etc/nixos"
-      alias nswitchu "sudo nixos-rebuild switch --flake /etc/nixos --upgrade"
-      alias ntest "sudo nixos-rebuild test --flake /etc/nixos"
-      alias nbuild "sudo nixos-rebuild build --flake /etc/nixos"
-      alias ndry "sudo nixos-rebuild dry-activate --flake /etc/nixos"
+      # System rebuild commands (with automatic mining pause)
+      alias nswitch "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos"
+      alias nswitchu "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos --upgrade"
+      alias ntest "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh test --flake /etc/nixos"
+      alias nbuild "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh build --flake /etc/nixos"
+      alias ndry "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh dry-activate --flake /etc/nixos"
 
       # Garbage collection
       alias nsgc "sudo nix-store --gc"

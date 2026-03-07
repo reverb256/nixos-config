@@ -5,6 +5,7 @@ This directory contains reusable NixOS modules for system configuration. Modules
 ## Table of Contents
 
 - [Architecture](#architecture)
+- [Profile System](#profile-system)
 - [Module Structure](#module-structure)
 - [Naming Conventions](#naming-conventions)
 - [Common Patterns](#common-patterns)
@@ -15,6 +16,75 @@ This directory contains reusable NixOS modules for system configuration. Modules
 ---
 
 ## Architecture
+
+### Profile-Based Configuration
+
+Hosts are configured using a **declarative profile system** inspired by [hlissner/dotfiles](https://github.com/hlissner/dotfiles). This pattern enables:
+
+- **Composable host definitions** - Mix and match hardware, role, and network profiles
+- **DRY configuration** - Common settings defined once in profile implementations
+- **Easy host additions** - New hosts only need to select appropriate profiles
+
+#### Profile Types
+
+| Type | Location | Purpose |
+|------|----------|---------|
+| **Hardware** | `modules/profiles/hardware/` | CPU, GPU, monitoring optimizations |
+| **Role** | `modules/profiles/role/` | Gaming, mining, AI inference, desktop |
+| **Network** | `modules/profiles/network/` | Tailscale, routes, VPN settings |
+
+#### Host Configuration Example
+
+```nix
+# hosts/zephyr/configuration.nix
+hardware.profiles = {
+  amd.zen = true;        # Zen CPU optimizations
+  nvidia.enable = true;  # NVIDIA GPU support
+  nvidia.multiGpu = true;
+  corsair.enable = true;
+  monitoring.enable = true;
+};
+
+profiles.role = {
+  workstation = true;    # Desktop + development
+  gaming = true;         # Steam, Lutris
+  vr = true;             # WiVRn, SteamVR
+  mining = true;         # GPU/CPU mining
+  aiInference = true;    # AI gateway + MCP
+};
+
+profiles.network.tailscale.enable = true;
+```
+
+#### Available Profiles
+
+**Hardware Profiles:**
+- `amd.enable` - AMD CPU IOMMU
+- `amd.zen` - Zen CPU optimizations (split_lock_detect, threadirqs)
+- `intel.enable` - Intel CPU optimizations
+- `nvidia.enable` - NVIDIA GPU support
+- `nvidia.multiGpu` - Multi-GPU CUDA settings
+- `amdgpu.enable` - AMD GPU support
+- `amdgpu.wayland` - ROC_ENABLE_PRE_VEGA for pre-Gear cards
+- `corsair.enable` - Corsair AIO cooler and RGB
+- `monitoring.enable` - lm-sensors hardware monitoring
+
+**Role Profiles:**
+- `workstation` - Desktop + development tools
+- `server` - Minimal desktop
+- `gaming` - Steam, Lutris, game launchers
+- `vr` - WiVRn, SteamVR, OpenXR
+- `desktop` - Plasma, Wayland
+- `mining` - GPU/CPU mining services
+- `aiInference` - AI gateway + MCP + RAG
+
+**Network Profiles:**
+- `tailscale.enable` - Enable Tailscale VPN
+- `tailscale.advertiseRoutes` - Routes to advertise (list of strings)
+
+---
+
+### Module Aggregation
 
 ### Module Aggregation
 
