@@ -87,6 +87,7 @@
   # NVIDIA GPUs (RTX 4060s)
   services.mining.lolminer.nvidia = {
     enable = true;
+    autostart = true;
     devices = "2,3";
     powerLimit = 90;
     apiPort = 4068;
@@ -95,6 +96,7 @@
   # AMD GPUs (RX 5700 XT)
   services.mining.lolminer.amd = {
     enable = true;
+    autostart = true;
     devices = "0,1";
     powerLimit = 140;
     apiPort = 4069;
