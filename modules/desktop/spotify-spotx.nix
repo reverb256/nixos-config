@@ -36,22 +36,27 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Install Spotify from Nixpkgs and wrapper scripts
+    # Custom Spotify package with wrapper that prefers patched version
     environment.systemPackages = [
-      spotifyPackage
-      (pkgs.writeShellScriptBin "spotify" ''
-        #!${pkgs.bash}/bin/bash
-        # Launch patched Spotify if exists, otherwise launch stock
-        PATCHED="${patchedSpotifyDir}"
-        STOCK="${spotifyShareDir}"
+      (pkgs.symlinkJoin {
+        name = "spotify-with-spotx";
+        paths = [ spotifyPackage ];
+        postBuild = ''
+          rm $out/bin/spotify
+          cat > $out/bin/spotify <<'WRAPPER_EOF'
+          #!${pkgs.bash}/bin/bash
+          PATCHED="${patchedSpotifyDir}"
+          STOCK="${spotifyShareDir}"
 
-        # Check if patch was applied (marker file exists)
-        if [ -f "$PATCHED/Apps/.spotx_patched" ]; then
-          exec "$PATCHED/spotify" "$@"
-        else
-          exec "$STOCK/spotify" "$@"
-        fi
-      '')
+          if [ -f "$PATCHED/Apps/.spotx_patched" ]; then
+            exec "$PATCHED/spotify" "$@"
+          else
+            exec "$STOCK/spotify" "$@"
+          fi
+          WRAPPER_EOF
+          chmod +x $out/bin/spotify
+        '';
+      })
       (pkgs.writeShellScriptBin "spotify-spotx" ''
         #!${pkgs.bash}/bin/bash
         exec /etc/spotx/patch-manager.sh "$@"
@@ -75,8 +80,8 @@ in
 
       log "=== Spotify + SpotX Initial Setup (Nixpkgs) ==="
 
-      SOURCE_DIR="''${spotifyShareDir}"
-      TARGET_DIR="''${patchedSpotifyDir}"
+      SOURCE_DIR="${spotifyShareDir}"
+      TARGET_DIR="${patchedSpotifyDir}"
 
       # Check source Spotify exists
       if [ ! -d "$SOURCE_DIR" ]; then
@@ -120,9 +125,9 @@ in
       log() { echo -e "''${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]''${NC} $1"; }
       error() { echo -e "''${RED}[ERROR]''${NC} $1" >&2; }
 
-      SOURCE_DIR="''${spotifyShareDir}"
-      TARGET_DIR="''${patchedSpotifyDir}"
-      BACKUP_DIR="''${spotifyStateDir}/backups"
+      SOURCE_DIR="${spotifyShareDir}"
+      TARGET_DIR="${patchedSpotifyDir}"
+      BACKUP_DIR="${spotifyStateDir}/backups"
       PATCH_MARKER="''${TARGET_DIR}/Apps/.spotx_patched"
 
       apply_patch() {

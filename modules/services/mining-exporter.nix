@@ -101,6 +101,13 @@ in {
   };
 
   config = lib.mkIf (cfg.enable && hostConfig != null) {
+    # Create prometheus user/group (for hosts without prometheus server)
+    users.users.prometheus = lib.mkIf (!config.services.prometheus.enable) {
+      isSystemUser = true;
+      group = "prometheus";
+    };
+    users.groups.prometheus = lib.mkIf (!config.services.prometheus.enable) {};
+
     # Mining exporter systemd service
     systemd.services.prometheus-mining-exporter = {
       description = "Prometheus Mining Metrics Exporter";

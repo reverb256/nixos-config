@@ -96,6 +96,9 @@
     vr.enable = true; # WiVRn, SteamVR, OpenXR
   };
 
+  # Spotify with SpotX patch (ad-free, premium features)
+  services.spotify-spotx.enable = true;
+
   # ============================================================================
   # NETWORKING
   # ============================================================================

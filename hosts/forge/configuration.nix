@@ -102,6 +102,9 @@
     apiPort = 4069;
   };
 
+  # Spotify with SpotX patch (ad-free, premium features)
+  services.spotify-spotx.enable = true;
+
   # ============================================================================
   # AMD GPU POWER MANAGEMENT
   # RX 5700 XT power limit set to 140W for stability and thermal management

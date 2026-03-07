@@ -101,6 +101,21 @@
   };
 
   # ============================================================================
+  # MONITORING SERVER (Prometheus + Grafana)
+  # Central metrics collection and visualization for the cluster
+  # ============================================================================
+  services.monitoring.prometheus = {
+    enable = true;
+    retentionDays = 30;
+    scrapeInterval = "15s";
+  };
+
+  services.monitoring.grafana = {
+    enable = true;
+    domain = "sentry.ts.krogh.dev";
+  };
+
+  # ============================================================================
   # MINING (CPU only - 8 threads = 50% of 16 cores)
   # Uses defaults from mining.nix for pool URLs and wallet format
   # ============================================================================
@@ -113,6 +128,9 @@
     };
     lolminer.enable = false;
   };
+
+  # Spotify with SpotX patch (ad-free, premium features)
+  services.spotify-spotx.enable = true;
 
   # ============================================================================
   # DISTRIBUTED BUILDS - DISABLED (local builds only)
