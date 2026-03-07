@@ -650,6 +650,457 @@
     weekStart = "";
   };
 
+  # AI Inference Gateway Dashboard
+  # Comprehensive metrics for LM Studio and ZAI backends
+  aiInferenceDashboard = builtins.toJSON {
+    annotations.list = [];
+    description = "AI Inference Gateway - Comprehensive metrics for LM Studio and ZAI backends";
+    editable = true;
+    fiscalYearStartMonth = 0;
+    graphTooltip = 1;
+    id = null;
+    links = [];
+    liveNow = false;
+    refresh = "10s";
+    schemaVersion = 38;
+    tags = ["ai" "inference" "gateway" "lm-studio" "zai"];
+    templating.list = [
+      {
+        name = "Backend";
+        type = "query";
+        query = {
+          query = "label_values(gateway_backend_requests_total, backend)";
+          refId = "BackendValues";
+          type = "query";
+        };
+        multi = true;
+        includeAll = true;
+        allValue = ".*";
+        current = {};
+        hide = 0;
+      }
+    ];
+    timezone = "browser";
+    weekStart = "";
+    time = { from = "now-1h"; to = "now"; };
+    timepicker = {};
+    title = "AI Inference Gateway";
+    uid = "ai-inference-gateway";
+    version = 1;
+    panels = [
+      # ========== ROW: OVERVIEW ==========
+      {
+        collapsed = false;
+        gridPos = { h = 1; w = 24; x = 0; y = 0; };
+        id = 100;
+        panels = [];
+        title = "📊 Overview";
+        type = "row";
+      }
+      # Backend Health Status
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "thresholds";
+          mappings = [];
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              { color = "red"; value = null; }
+              { color = "green"; value = 1; }
+            ];
+          };
+        };
+        gridPos = { h = 6; w = 6; x = 0; y = 1; };
+        id = 1;
+        options = {
+          colorMode = "background";
+          graphMode = "none";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          { expr = "gateway_backend_healthy"; legendFormat = "{{backend}}"; refId = "A"; }
+        ];
+        title = "Backend Health";
+        type = "stat";
+      }
+      # Total Requests
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          mappings = [];
+          thresholds.mode = "absolute";
+        };
+        gridPos = { h = 6; w = 6; x = 6; y = 1; };
+        id = 2;
+        options = {
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          { expr = "sum(rate(gateway_backend_requests_total[5m]))"; legendFormat = "Requests/sec"; refId = "A"; }
+        ];
+        title = "Request Rate";
+        type = "stat";
+      }
+      # Token Throughput
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          mappings = [];
+          unit = "tps";
+        };
+        gridPos = { h = 6; w = 6; x = 12; y = 1; };
+        id = 3;
+        options = {
+          graphMode = "area";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          { expr = "sum(rate(gateway_model_tokens_total[5m]))"; legendFormat = "Tokens/sec"; refId = "A"; }
+        ];
+        title = "Token Throughput";
+        type = "stat";
+      }
+      # Active Requests
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "thresholds";
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              { color = "green"; value = null; }
+              { color = "yellow"; value = 5; }
+              { color = "orange"; value = 10; }
+              { color = "red"; value = 20; }
+            ];
+          };
+        };
+        gridPos = { h = 6; w = 6; x = 18; y = 1; };
+        id = 4;
+        options = {
+          graphMode = "none";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          { expr = "gateway_active_requests"; legendFormat = "Active"; refId = "A"; }
+        ];
+        title = "Active Requests";
+        type = "stat";
+      }
+
+      # ========== ROW: LATENCY ==========
+      {
+        collapsed = false;
+        gridPos = { h = 1; w = 24; x = 0; y = 7; };
+        id = 200;
+        panels = [];
+        title = "⏱️ Latency & Performance";
+        type = "row";
+      }
+      # Request Duration Percentiles
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            spanNulls = true;
+          };
+          unit = "s";
+        };
+        gridPos = { h = 8; w = 12; x = 0; y = 8; };
+        id = 5;
+        options = {
+          legend = { calcs = ["mean" "max"]; displayMode = "table"; placement = "bottom"; };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          { expr = ''histogram_quantile(0.50, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))''; legendFormat = "{{model}} p50"; refId = "A"; }
+          { expr = ''histogram_quantile(0.95, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))''; legendFormat = "{{model}} p95"; refId = "B"; }
+          { expr = ''histogram_quantile(0.99, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))''; legendFormat = "{{model}} p99"; refId = "C"; }
+        ];
+        title = "Request Duration Percentiles";
+        type = "timeseries";
+      }
+      # Time to First Token
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            spanNulls = true;
+          };
+          unit = "s";
+        };
+        gridPos = { h = 8; w = 12; x = 12; y = 8; };
+        id = 6;
+        options = {
+          legend = { calcs = ["mean" "max"]; displayMode = "table"; placement = "bottom"; };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          { expr = "gateway_model_time_to_first_token_seconds"; legendFormat = "{{model}}"; refId = "A"; }
+        ];
+        title = "Time to First Token";
+        type = "timeseries";
+      }
+
+      # ========== ROW: TOKENS ==========
+      {
+        collapsed = false;
+        gridPos = { h = 1; w = 24; x = 0; y = 16; };
+        id = 300;
+        panels = [];
+        title = "🪙 Token Usage";
+        type = "row";
+      }
+      # Input/Output Token Rates
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            spanNulls = true;
+          };
+          unit = "tps";
+        };
+        gridPos = { h = 8; w = 12; x = 0; y = 17; };
+        id = 7;
+        options = {
+          legend = { calcs = ["mean" "last"]; displayMode = "table"; placement = "bottom"; };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          { expr = "sum(rate(gateway_model_input_tokens_total[5m])) by (model)"; legendFormat = "{{model}} input"; refId = "A"; }
+          { expr = "sum(rate(gateway_model_output_tokens_total[5m])) by (model)"; legendFormat = "{{model}} output"; refId = "B"; }
+        ];
+        title = "Input/Output Token Rates";
+        type = "timeseries";
+      }
+      # Total Tokens Distribution
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            hideFrom = { tooltip = false; vizLegend = false; yaxis = false; };
+          };
+        };
+        gridPos = { h = 8; w = 12; x = 12; y = 17; };
+        id = 8;
+        options = {
+          legend = { displayMode = "table"; placement = "right"; values = ["value" "percent"]; };
+          pieType = "donut";
+        };
+        targets = [
+          { expr = "sum(gateway_model_tokens_total) by (model)"; legendFormat = "{{model}}"; refId = "A"; }
+        ];
+        title = "Tokens Distribution by Model";
+        type = "piechart";
+      }
+
+      # ========== ROW: ERRORS ==========
+      {
+        collapsed = false;
+        gridPos = { h = 1; w = 24; x = 0; y = 25; };
+        id = 400;
+        panels = [];
+        title = "⚠️ Errors & Failures";
+        type = "row";
+      }
+      # Error Rate
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "thresholds";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            { color = "green"; value = null; }
+            { color = "yellow"; value = 0.01; }
+            { color = "orange"; value = 0.05; }
+            { color = "red"; value = 0.1; }
+          ];
+          unit = "percentunit";
+        };
+        gridPos = { h = 8; w = 12; x = 0; y = 26; };
+        id = 9;
+        options = {
+          legend = { calcs = ["last" "max"]; displayMode = "table"; placement = "bottom"; };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          { expr = ''sum(rate(gateway_model_requests_total{error!="none"}[5m])) / sum(rate(gateway_model_requests_total[5m]))''; legendFormat = "Error Rate"; refId = "A"; }
+        ];
+        title = "Error Rate";
+        type = "timeseries";
+      }
+      # Error Types
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            hideFrom = { tooltip = false; vizLegend = false; yaxis = false; };
+          };
+        };
+        gridPos = { h = 8; w = 12; x = 12; y = 26; };
+        id = 10;
+        options = {
+          legend = { displayMode = "table"; placement = "right"; values = ["value" "percent"]; };
+          pieType = "donut";
+        };
+        targets = [
+          { expr = "sum(gateway_model_requests_total) by (error)"; legendFormat = "{{error}}"; refId = "A"; }
+        ];
+        title = "Errors by Type";
+        type = "piechart";
+      }
+      # Circuit Breaker State
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "thresholds";
+          mappings = [
+            {
+              type = "value";
+              options = {
+                "0" = { color = "red"; text = "Open"; };
+                "1" = { color = "yellow"; text = "Half-Open"; };
+                "2" = { color = "green"; text = "Closed"; };
+              };
+            }
+          ];
+          thresholds.mode = "absolute";
+        };
+        gridPos = { h = 6; w = 12; x = 0; y = 34; };
+        id = 11;
+        options = {
+          graphMode = "none";
+          reduceOptions = {
+            calcs = ["lastNotNull"];
+            fields = "";
+            values = false;
+          };
+        };
+        targets = [
+          { expr = "gateway_circuit_breaker_state"; legendFormat = "{{backend}} {{model}}"; refId = "A"; }
+        ];
+        title = "Circuit Breaker State";
+        type = "stat";
+      }
+
+      # ========== ROW: ROUTING ==========
+      {
+        collapsed = false;
+        gridPos = { h = 1; w = 24; x = 0; y = 40; };
+        id = 500;
+        panels = [];
+        title = "🔀 Routing & Specialization";
+        type = "row";
+      }
+      # Backend Distribution
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            hideFrom = { tooltip = false; vizLegend = false; yaxis = false; };
+          };
+        };
+        gridPos = { h = 8; w = 8; x = 0; y = 41; };
+        id = 12;
+        options = {
+          legend = { displayMode = "table"; placement = "right"; values = ["value" "percent"]; };
+          pieType = "donut";
+        };
+        targets = [
+          { expr = "sum(gateway_backend_requests_total) by (backend)"; legendFormat = "{{backend}}"; refId = "A"; }
+        ];
+        title = "Requests by Backend";
+        type = "piechart";
+      }
+      # Model Scores
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "bars";
+            fillOpacity = 80;
+            gradientMode = "none";
+            lineInterpolation = "linear";
+            lineWidth = 1;
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+        };
+        gridPos = { h = 8; w = 16; x = 8; y = 41; };
+        id = 13;
+        options = {
+          legend = { calcs = ["mean" "max"]; displayMode = "table"; placement = "bottom"; };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          { expr = "gateway_model_score"; legendFormat = "{{model}}"; refId = "A"; }
+        ];
+        title = "Model Specialization Scores";
+        type = "timeseries";
+      }
+    ];
+  };
+
 in {
   options.services.monitoring.grafana = {
     enable = lib.mkEnableOption "Grafana dashboard server";
@@ -751,7 +1202,7 @@ in {
       };
     };
 
-    # Provision unified dashboard
+    # Provision dashboards
     systemd.services.grafana-dashboard-provision = {
       description = "Provision Grafana dashboards";
       wantedBy = ["multi-user.target"];
@@ -764,8 +1215,9 @@ in {
       script = ''
         mkdir -p ${dashboardsDir}
         cp ${pkgs.writeText "reverb-os-unified.json" unifiedDashboard} ${dashboardsDir}/reverb-os-unified.json
-        chown grafana:grafana ${dashboardsDir}/reverb-os-unified.json
-        chmod 644 ${dashboardsDir}/reverb-os-unified.json
+        cp ${pkgs.writeText "ai-inference-gateway.json" aiInferenceDashboard} ${dashboardsDir}/ai-inference-gateway.json
+        chown grafana:grafana ${dashboardsDir}/reverb-os-unified.json ${dashboardsDir}/ai-inference-gateway.json
+        chmod 644 ${dashboardsDir}/reverb-os-unified.json ${dashboardsDir}/ai-inference-gateway.json
       '';
     };
 
