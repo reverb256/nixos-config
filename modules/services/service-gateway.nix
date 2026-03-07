@@ -1,4 +1,4 @@
-# Service Gateway - Auto-generated subdomains for self-hosted services
+# Service Gateway - Auto-generated subdomains for self-hosted services (Caddy)
 # Maps services like: nextcloud.zephyr.cluster.local -> localhost:8080
 {
   config,
@@ -16,10 +16,48 @@
     literalExpression
     mapAttrsToList
     concatStringsSep
+    concatMapStringsSep
     ;
 
   # Get the current hostname for generating full service FQDNs
   hostname = config.networking.hostName or "localhost";
+
+  # Build Caddyfile entries for each service
+  buildCaddyConfig = services:
+    concatMapStringsSep "\n" (name: service:
+      let
+        fqdn = "${name}.${hostname}.cluster.local";
+        backendUrl = "http://${service.backend}:${toString service.port}";
+      in ''
+        # ${service.description}
+        ${fqdn}:${toString cfg.port} {
+          ${lib.optionalString service.https "tls internal"}
+
+          reverse_proxy ${backendUrl}${service.path or "/"} {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Host {host}
+            header_up X-Forwarded-Proto {scheme}
+
+            # WebSocket support
+            ${lib.optionalString (service.websocket or false) ''
+            header_up Connection {>Connection}
+            header_up Upgrade {>Upgrade}
+            ''}
+          }
+
+          # Security headers
+          header {
+            X-Frame-Options "${service.frameOptions or "SAMEORIGIN"}"
+            X-Content-Type-Options "nosniff"
+            -Server
+          }
+
+          ${lib.optionalString (service.extraConfig != "") "# Extra config\n${service.extraConfig}"}
+        }
+      ''
+    ) (lib.attrValues services);
 
   # Build DNS local-data entries for all services
   buildDnsEntries = services:
@@ -31,78 +69,26 @@
         "${name}.${hostname} IN A ${cfg.listenAddress}"
       ''
     ) services);
-
-  # Build nginx upstream entries for backend services
-  buildUpstreams = services:
-    concatStringsSep "\n"
-    (mapAttrsToList (name: service:
-      ''
-        upstream ${name} {
-          server ${service.backend}:${toString service.port};
-          ${lib.optionalString (service.healthCheck != null) "check interval=${service.healthCheck.interval or "30s"} rise=2 fall=3 timeout=2s;"}
-        }
-      ''
-    ) services);
-
-  # Build nginx server blocks for each service
-  buildServerBlocks = services:
-    mapAttrsToList (name: service: {
-      forceSSL = service.https;
-      enableACME = service.https;
-      serverName = "${name}.${hostname}.cluster.local";
-
-      locations = {
-        "/" = {
-          proxyPass = "http://${service.backend}:${toString service.port}${service.path or "/"}";
-          proxyWebsockets = service.websocket or false;
-
-          extraConfig = ''
-            # Standard proxy headers
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-
-            # Timeouts for long-lived connections
-            proxy_connect_timeout 60s;
-            proxy_send_timeout 60s;
-            proxy_read_timeout 60s;
-
-            # Buffer settings
-            proxy_buffering off;
-            proxy_request_buffering off;
-
-            # WebSocket support
-            ${lib.optionalString (service.websocket or false) ''
-              proxy_http_version 1.1;
-              proxy_set_header Upgrade $http_upgrade;
-              proxy_set_header Connection "upgrade";
-            ''}
-          '' + (service.extraConfig or "");
-        };
-      };
-
-      extraConfig = ''
-        # Security headers
-        ${lib.optionalString (service.https or false) ''
-          add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-        ''}
-        add_header X-Frame-Options "${service.frameOptions or "SAMEORIGIN"}" always;
-        add_header X-Content-Type-Options "nosniff" always;
-
-        # Logging
-        access_log /var/log/nginx/${name}-access.log;
-        error_log /var/log/nginx/${name}-error.log;
-      '';
-    }) services;
 in {
   options.services.service-gateway = {
-    enable = mkEnableOption "Service Gateway - auto subdomain routing for self-hosted services";
+    enable = mkEnableOption "Service Gateway - auto subdomain routing for self-hosted services (Caddy)";
+
+    port = mkOption {
+      type = types.port;
+      default = 80;
+      description = "Port for Caddy to listen on";
+    };
+
+    httpsPort = mkOption {
+      type = types.port;
+      default = 443;
+      description = "HTTPS port";
+    };
 
     listenAddress = mkOption {
       type = types.str;
       default = "127.0.0.1";
-      description = "IP address to bind DNS entries to (typically 127.0.0.1 or cluster IP)";
+      description = "IP address to bind DNS entries to";
     };
 
     publicAccess = mkOption {
@@ -141,8 +127,8 @@ in {
 
           https = mkOption {
             type = types.bool;
-            default = true;
-            description = "Enable HTTPS with ACME certificate";
+            default = false;
+            description = "Enable TLS (uses internal CA by default)";
           };
 
           websocket = mkOption {
@@ -151,24 +137,10 @@ in {
             description = "Enable WebSocket proxy support";
           };
 
-          healthCheck = mkOption {
-            type = types.nullOr (types.submodule {
-              options = {
-                interval = mkOption {
-                  type = types.str;
-                  default = "30s";
-                  description = "Health check interval";
-                };
-              };
-            });
-            default = null;
-            description = "Health check configuration";
-          };
-
           extraConfig = mkOption {
             type = types.lines;
             default = "";
-            description = "Extra nginx location configuration";
+            description = "Extra Caddy configuration";
           };
 
           frameOptions = mkOption {
@@ -198,28 +170,31 @@ in {
 
   config = mkIf cfg.enable {
     # ============================================================================
-    # NGINX REVERSE PROXY
+    # CADDY REVERSE PROXY
     # ============================================================================
-    services.nginx = {
+    services.caddy = {
       enable = true;
 
-      # Main nginx configuration
-      recommendedProxySettings = true;
-      recommendedTlsSettings = true;
-      recommendedOptimisation = true;
-      recommendedGzipSettings = true;
+      # Global options
+      globalConfig = ''
+        # Auto-HTTPS will be off for internal domains
+        auto_https off
 
-      # Add upstream configurations
-      appendHttpConfig = mkIf (cfg.services != {}) ''
-        # Service Gateway Upstreams
-        ${buildUpstreams cfg.services}
+        # Admin API for dynamic config (optional)
+        # admin localhost:2019
+
+        # Default SNI for HTTP/1.1 without SNI
+        default_sni ${hostname}.cluster.local
+
+        # Logging
+        {
+          output file
+          format json
+        }
       '';
 
       # Virtual hosts for each service
-      virtualHosts = builtins.listToAttrs (map (vhost: {
-        name = vhost.serverName;
-        value = lib.removeAttrs vhost.extraConfig vhost;
-      }) (buildServerBlocks cfg.services));
+      virtualHosts = buildCaddyConfig cfg.services;
     };
 
     # ============================================================================
@@ -239,7 +214,7 @@ in {
     # FIREWALL
     # ============================================================================
     networking.firewall = mkIf cfg.publicAccess {
-      allowedTCPPorts = [80 443];
+      allowedTCPPorts = [cfg.port cfg.httpsPort];
     };
 
     # ============================================================================
@@ -250,12 +225,15 @@ in {
         # Service Gateway CLI
         set -euo pipefail
 
-        ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
-          echo "• ${name}.${hostname}.cluster.local -> ${service.backend}:${toString service.port}"
-          echo "  ${service.description}"
-        '') cfg.services)}
-
+        echo "=== Service Gateway (${hostname}.cluster.local) ==="
         echo ""
+        ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
+          echo "• ${name}"
+          echo "  URL:         http${lib.optionalString service.https "s"}://${name}.${hostname}.cluster.local"
+          echo "  Backend:     ${service.backend}:${toString service.port}"
+          echo "  Description: ${service.description}"
+          echo ""
+        '') cfg.services)}
         echo "Total services: ${toString (builtins.attrNames cfg.services)}"
       '')
     ];
@@ -264,7 +242,7 @@ in {
     # DOCUMENTATION
     # ============================================================================
     environment.etc."service-gateway-readme.md".text = ''
-      # Service Gateway
+      # Service Gateway (Caddy)
 
       Your self-hosted services are accessible via subdomains:
 
@@ -286,8 +264,21 @@ in {
         port = 1234;
         backend = "127.0.0.1";
         websocket = true;  # if using WebSockets
-        https = true;      # enable SSL
+        https = true;      # enable TLS
       };
+      ```
+
+      ## Caddy Management
+
+      ```bash
+      # Reload Caddy (no restart needed)
+      systemctl reload caddy
+
+      # Validate Caddyfile syntax
+      caddy validate --config /etc/caddy/Caddyfile
+
+      # View Caddy logs
+      journalctl -u caddy -f
       ```
     '';
   };

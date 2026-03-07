@@ -1,4 +1,4 @@
-# Example Service Gateway Configuration
+# Example Service Gateway Configuration (Caddy)
 # Add this to your /etc/nixos/configuration.nix
 
 { config, ... }: {
@@ -13,28 +13,23 @@
 
     services = {
       # ============================================================
-      # COLLABORATION
-      # ============================================================
-      nextcloud = {
-        description = "Nextcloud - File sync & collaboration";
-        port = 8080;  # Adjust to your Nextcloud port
-        https = true;
-      };
-
-      # ============================================================
       # AI / INFERENCE
       # ============================================================
-      vllm = {
-        description = "vLLM - Local LLM inference";
-        port = 8000;
-        https = false;  # Local only
+      ai-gateway = {
+        description = "AI Inference Gateway - OpenAI-compatible API";
+        port = 8080;
         websocket = true;
       };
 
-      cc-router = {
-        description = "CC Router - LLM API router";
-        port = 3456;
-        https = false;
+      vllm = {
+        description = "vLLM - Local LLM inference backend";
+        port = 8000;
+        websocket = true;
+      };
+
+      lm-studio = {
+        description = "LM Studio - LLM API server";
+        port = 1234;
         websocket = true;
       };
 
@@ -44,17 +39,16 @@
       synapse = {
         description = "Synapse - AI Command Center";
         port = 3000;
-        https = false;
         websocket = true;
       };
 
       # ============================================================
-      # MONITORING
+      # MONITORING & OBSERVABILITY
       # ============================================================
       grafana = {
         description = "Grafana - Metrics dashboard";
         port = 3001;
-        https = true;
+        https = false;
       };
 
       prometheus = {
@@ -70,21 +64,27 @@
       };
 
       # ============================================================
+      # ERROR TRACKING
+      # ============================================================
+      glitchtip = {
+        description = "GlitchTip - Error tracking web UI";
+        port = 8000;
+        https = false;
+      };
+
+      glitchtip-api = {
+        description = "GlitchTip API";
+        port = 8081;
+        https = false;
+      };
+
+      # ============================================================
       # DEVELOPMENT
       # ============================================================
       opencode = {
         description = "OpenCode - Development environment";
         port = 5173;
         https = false;
-      };
-
-      # ============================================================
-      # OTHER SERVICES
-      # ============================================================
-      gltichtip = {
-        description = "GlitchTip - Error tracking";
-        port = 8000;
-        https = true;
       };
     };
   };
@@ -98,9 +98,10 @@
   # services.unbound-cluster.enable = true;
   #
   # Services will be accessible at:
-  # - nextcloud.zephyr.cluster.local
-  # - vllm.zephyr.cluster.local
-  # - synapse.zephyr.cluster.local
+  # - ai-gateway.zephyr.cluster.local → http://127.0.0.1:8080
+  # - vllm.zephyr.cluster.local → http://127.0.0.1:8000
+  # - synapse.zephyr.cluster.local → http://127.0.0.1:3000
+  # - grafana.zephyr.cluster.local → http://127.0.0.1:3001
   # - etc.
 
   # ============================================================================
@@ -110,8 +111,12 @@
   #   $ svc-gateway
   #
   # Test a service:
-  #   $ curl http://vllm.zephyr.cluster.local/v1/models
+  #   $ curl http://ai-gateway.zephyr.cluster.local/health
   #
   # View the gateway readme:
   #   $ cat /etc/service-gateway-readme.md
+  #
+  # Caddy management:
+  #   $ systemctl reload caddy  # Apply config changes
+  #   $ journalctl -u caddy -f   # View logs
 }
