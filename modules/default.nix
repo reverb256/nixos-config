@@ -18,6 +18,7 @@
     ./desktop/plasma6.nix
     ./desktop/wayland-common.nix
     ./desktop/flatpak.nix
+    ./desktop/lobehub.nix
 
     # Shell configuration
     ./shell/fish.nix
@@ -48,7 +49,7 @@
     # ./services/podman.nix  # Temporarily disabled - has pre-existing issues
     ./services/spacebot.nix
     ./services/glitchtip-selfhosted.nix
-    ./services/nextcloud.nix
+    # ./services/nextcloud.nix  # TODO: Fix module structure - config settings need proper wrapping
 
     # Monitoring
     ./services/monitoring/default.nix
