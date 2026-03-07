@@ -1,0 +1,44 @@
+# modules/profiles/hardware/default.nix --- Hardware profiles
+
+{ lib, ... }:
+
+let
+  inherit (lib) mkEnableOption mkOption types;
+in
+{
+  imports = [
+    ./implementations.nix
+  ];
+
+  options.hardware.profiles = {
+    # CPU profiles
+    amd = {
+      enable = mkEnableOption "AMD CPU optimizations";
+      zen = mkEnableOption "Zen CPU specific optimizations";
+    };
+
+    intel = {
+      enable = mkEnableOption "Intel CPU optimizations";
+    };
+
+    # GPU profiles
+    nvidia = {
+      enable = mkEnableOption "NVIDIA GPU support";
+      multiGpu = mkEnableOption "Multi-GPU configuration";
+    };
+
+    amdgpu = {
+      enable = mkEnableOption "AMD GPU support";
+      wayland = mkEnableOption "AMDGPU Wayland optimizations";
+    };
+
+    # Other hardware
+    corsair = {
+      enable = mkEnableOption "Corsair hardware (AIO, RGB)";
+    };
+
+    monitoring = {
+      enable = mkEnableOption "Hardware monitoring (lm-sensors)";
+    };
+  };
+}
