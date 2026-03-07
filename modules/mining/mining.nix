@@ -48,6 +48,23 @@ with lib; let
     nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
     echo "NVIDIA GPU power limit set successfully"
   '';
+
+  # XMRig wrapper script - reads API token and passes to xmrig
+  xmrigWrapperScript = pkgs.writeShellScript "xmrig-wrapper" ''
+    PATH=/run/current-system/sw/bin:$PATH
+    TOKEN_FILE="${cfg.xmrig.httpTokenFile}"
+
+    # Check if token file exists
+    if [ -r "$TOKEN_FILE" ]; then
+      TOKEN=$(cat "$TOKEN_FILE")
+      exec ${pkgs.xmrig}/bin/xmrig -c /etc/xmrig/config.json --randomx-1gb-pages --threads=${toString cfg.xmrig.threads} --http-access-token="$TOKEN"
+    else
+      # Fallback: run without API token (API will be disabled)
+      echo "Warning: API token file not found at $TOKEN_FILE" >&2
+      echo "Starting XMRig without HTTP API authentication" >&2
+      exec ${pkgs.xmrig}/bin/xmrig -c /etc/xmrig/config.json --randomx-1gb-pages --threads=${toString cfg.xmrig.threads}
+    fi
+  '';
 in {
   options.services.mining = {
     enable = mkEnableOption "Robust Mining Services";
@@ -139,8 +156,8 @@ in {
       };
       httpTokenFile = mkOption {
         type = types.path;
-        default = "/run/agenix/mining-api-token";
-        description = "Path to the HTTP API token file";
+        default = "/run/agenix/xmrig-api-token";
+        description = "Path to the HTTP API token file (managed by agenix)";
       };
     };
   };
@@ -185,9 +202,8 @@ in {
           host = "127.0.0.1";
           port = 8081;
           # restricted: true requires access-token for security
-          # Mining exporter uses this token to fetch metrics
+          # Token is passed via --http-access-token command line option
           restricted = true;
-          access-token = "mining-exporter-token";
         };
         pools = [
           {
@@ -288,7 +304,8 @@ in {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.xmrig}/bin/xmrig -c /etc/xmrig/config.json --randomx-1gb-pages --threads=${toString cfg.xmrig.threads}";
+            # Use wrapper script that reads the API token at runtime
+            ExecStart = xmrigWrapperScript;
             Restart = "always";
             # NoNewPrivileges must be false to allow CAP_SYS_RAWIO for MSR access
             NoNewPrivileges = false;

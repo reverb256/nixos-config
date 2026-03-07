@@ -62,4 +62,12 @@ in {
 
   # GlitchTip Django secret key
   "secrets/glitchtip-secret-key.age".publicKeys = [users.j_kro hosts.zephyr];
+
+  # ========================================================================
+  # MINING SECRETS
+  # ========================================================================
+
+  # XMRig HTTP API token - Used to pause/resume mining during builds
+  "xmrig-api-token.age".publicKeys = [users.j_kro hosts.zephyr];
+  "secrets/xmrig-api-token.age".publicKeys = [users.j_kro hosts.zephyr];
 }
