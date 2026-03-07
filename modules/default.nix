@@ -12,6 +12,7 @@
     ./system/users.nix
     ./system/ssh.nix
     ./system/mosh.nix
+    ./system/polkit-rules.nix
 
     # Desktop environment
     ./desktop/plasma6.nix
