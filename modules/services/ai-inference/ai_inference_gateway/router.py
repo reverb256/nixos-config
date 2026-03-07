@@ -130,8 +130,8 @@ def get_qwen_model_config(model_id: str) -> Dict:
 
 
 def get_optimal_qwen_params(
-    model_id: str,
-    thinking_enabled: bool,
+    model_id: str = "",
+    thinking_enabled: bool = False,
     task_type: str = "general",
 ) -> Dict:
     """
