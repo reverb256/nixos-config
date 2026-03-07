@@ -188,7 +188,7 @@
 
         # Wait for NVIDIA driver to be ready
         for i in {1..30}; do
-          if ${pkgs.nvidia-system-monitor}/bin/nvidia-smi &>/dev/null; then
+          if /run/current-system/sw/bin/nvidia-smi &>/dev/null; then
             log "NVIDIA driver ready"
             break
           fi
@@ -198,10 +198,10 @@
 
         # Set compute mode for all NVIDIA GPUs
         # EXCLUSIVE_PROCESS (3): Only one compute process can use each GPU
-        ${pkgs.nvidia-system-monitor}/bin/nvidia-smi -c 3
+        /run/current-system/sw/bin/nvidia-smi -c 3
 
         # Verify the setting
-        ${pkgs.nvidia-system-monitor}/bin/nvidia-smi --query-gpu=name,compute_mode --format=csv,noheader | while IFS=, read -r name mode; do
+        /run/current-system/sw/bin/nvidia-smi --query-gpu=name,compute_mode --format=csv,noheader | while IFS=, read -r name mode; do
           log "NVIDIA GPU ''${name// /}: Compute mode = ''${mode// /}"
         done
 
@@ -220,7 +220,7 @@
       ExecStart = pkgs.writeShellScript "nvidia-compute-mode-resume" ''
         #!/usr/bin/env bash
         sleep 3  # Wait for GPUs to wake up
-        ${pkgs.nvidia-system-monitor}/bin/nvidia-smi -c 3
+        /run/current-system/sw/bin/nvidia-smi -c 3
       '';
     };
   };
