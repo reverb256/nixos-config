@@ -51,7 +51,7 @@
     ./services/glitchtip-selfhosted.nix
     # ./services/nextcloud.nix  # TODO: Fix module structure - config settings need proper wrapping
     ./services/service-gateway.nix
-# ./services/bolt-diy.nix  # TODO: file not found
+    ./services/bolt-diy.nix
 
 
     # Monitoring

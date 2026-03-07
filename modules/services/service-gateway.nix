@@ -170,7 +170,7 @@ in {
     # ============================================================================
     # DNS SEARCH DOMAIN - enables short URLs like "ai" instead of "ai.zephyr"
     # ============================================================================
-    networking.searchDomains = [hostname];
+    # networking.searchDomains = [hostname];  # Deprecated option - removed
 
     # ============================================================================
     # CADDY REVERSE PROXY
