@@ -111,6 +111,18 @@ class OpenAIClientWrapper:
         # Remove 'stream' from kwargs to avoid duplicate parameter error
         kwargs.pop("stream", None)
 
+        # Filter out parameters not supported by OpenAI SDK
+        # These are used by LM Studio/Qwen models but not supported by OpenAI Python SDK
+        unsupported_params = [
+            "top_k",          # LM Studio sampling parameter
+            "repeat_penalty", # Qwen-specific penalty
+            "thinking",       # Qwen thinking mode flag
+            "thinking_enabled", # Qwen thinking mode
+            "supports_thinking_toggle", # Qwen capability flag
+        ]
+        for param in unsupported_params:
+            kwargs.pop(param, None)
+
         # If backend is specified, use it directly
         if backend == "zai" and self.fallback_client:
             logger.info(f"Using ZAI backend directly for model: {model}")
