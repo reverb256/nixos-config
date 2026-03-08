@@ -47,33 +47,35 @@ in {
 
           # Read stats from /proc/fs/nfsd/stats
           if [ -f "$PROC_DIR/stats" ]; then
-            # Parse the stats file
-            while IFS=' read -r line; do
-              case $line in
-                rc*)
-                  # Reply cache stats: rc hits misses nocache
-                  set -- $line
-                  hits=$2
-                  misses=$3
-                  nocache=$4
-                  echo "nfsd_rc_hits_total $hits"
-                  echo "nfsd_rc_misses_total $misses"
-                  echo "nfsd_rc_nocache_total $nocache"
-                  ;;
-                read*)
-                  # Read stats
-                  set -- $line
-                  ok=$2
-                  echo "nfsd_read_total $ok"
-                  ;;
-                write*)
-                  # Write stats
-                  set -- $line
-                  ok=$2
-                  echo "nfsd_write_total $ok"
-                  ;;
-              esac
-            done < "$PROC_DIR/stats" >> "$METRICS_FILE"
+            # Parse the stats file and append to metrics
+            {
+              while IFS= read -r line; do
+                case "$line" in
+                  rc*)
+                    # Reply cache stats: rc hits misses nocache
+                    set -- $line
+                    hits=$2
+                    misses=$3
+                    nocache=$4
+                    echo "nfsd_rc_hits_total $hits"
+                    echo "nfsd_rc_misses_total $misses"
+                    echo "nfsd_rc_nocache_total $nocache"
+                    ;;
+                  read*)
+                    # Read stats
+                    set -- $line
+                    ok=$2
+                    echo "nfsd_read_total $ok"
+                    ;;
+                  write*)
+                    # Write stats
+                    set -- $line
+                    ok=$2
+                    echo "nfsd_write_total $ok"
+                    ;;
+                esac
+              done < "$PROC_DIR/stats"
+            } >> "$METRICS_FILE"
           fi
 
           # Get NFS export info

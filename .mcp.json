@@ -20,7 +20,10 @@
       "command": "mcp-chrome-devtools"
     },
     "playwright": {
-      "command": "mcp-playwright"
+      "command": "mcp-playwright",
+      "env": {
+        "CHROMIUM_PATH": "/etc/nixos/node_modules/playwright-core/.local-browsers/chromium-1208/chrome-linux64/chrome"
+      }
     },
     "nixos": {
       "command": "uvx",
