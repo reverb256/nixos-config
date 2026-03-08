@@ -44,7 +44,7 @@ in {
 
         set -euo pipefail
 
-        IDENTITY_FILE="${1:-/home/j_kro/.age/key.txt}"
+        IDENTITY_FILE="''${1:-/home/j_kro/.age/key.txt}"
         SECRETS_DIR="/etc/nixos/secrets"
         MOUNT_POINT="/run/agenix.d/1"
 
@@ -65,7 +65,7 @@ in {
         # Decrypt each secret to the mount point
         for secret_file in "$SECRETS_DIR"/*.age; do
           if [ -f "$secret_file" ]; then
-            secret_name=$(basename "$secret_file" .age)
+            secret_name=''$(basename "$secret_file" .age)
             output_file="$MOUNT_POINT/$secret_name"
 
             echo "[agenix-rekey] Decrypting: $secret_name"
