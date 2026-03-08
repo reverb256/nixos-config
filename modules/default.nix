@@ -21,6 +21,7 @@
     ./system/fetch-tools.nix
     ./system/boot-error-fixes.nix
     ./system/agenix-fixes.nix
+    ./system/cluster-storage.nix
 
     # Desktop environment
     ./desktop/desktop.nix

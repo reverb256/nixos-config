@@ -63,12 +63,48 @@ Claude Code can access MCP servers directly:
 
 ---
 
-### Building & Testing
+### Building & Testing (Just Commands)
+
+**IMPORTANT**: Always use the `justfile` recipes for building and testing. The just commands handle:
+- Mining auto-pause during builds
+- Cluster-wide deployments via colmena
+- CI/CD pipeline integration
+- Proper error handling and rollback
+
 ```bash
-# Always run this first - fast syntax check
+# Primary development workflow
+just test              # Verify configuration (flake check + build all hosts)
+just switch            # Apply to local host (auto-pauses mining)
+just ci-local          # Run full CI pipeline locally
+just deploy            # Deploy to all cluster hosts
+
+# Single-host deployments
+just zephyr            # Deploy to zephyr (local)
+just nexus             # Deploy to nexus (remote)
+just forge             # Deploy to forge (remote)
+just sentry            # Deploy to sentry (remote)
+
+# Utilities
+just cluster-status    # Check connectivity of all nodes
+just status            # Show git status on all nodes
+just sync              # Sync all repos to current branch
+just health-check      # Run cluster health check
+
+# CI/CD
+just flake-update      # Update flake.lock
+just pre-commit-all    # Run pre-commit on all files
+just ci-status         # Show CI/CD status
+```
+
+### Direct nixos-rebuild Commands (For Reference)
+
+The just commands wrap these nixos-rebuild commands:
+
+```bash
+# Fast syntax check (5 seconds)
 nix flake check
 
-# Build without applying (fastest validation)
+# Build without applying (1-2 minutes)
 sudo nixos-rebuild build --flake .#zephyr
 
 # Test configuration (applies changes, rolls back on reboot)
@@ -148,10 +184,26 @@ curl -X POST http://127.0.0.1:8080/mcp/call \
 
 ### 1. Always Test Before Applying
 
-**Pattern**: `flake check` → `build` → `test` → `switch`
+**Pattern**: `just test` → `just zephyr` → `just deploy`
 
 **Why**: NixOS configurations can have complex dependencies. Testing incrementally catches errors early.
 
+```bash
+# Step 1: Fast syntax and build check (1-2 minutes)
+just test              # Flake check + build all hosts
+
+# Step 2: Deploy to single host (safe, test changes)
+just zephyr            # Deploy to local host
+just nexus             # Deploy to remote host (boot goal)
+
+# Step 3: Verify manually
+curl http://127.0.0.1:8080/health
+
+# Step 4: Deploy to all hosts
+just deploy            # Deploy to all cluster nodes
+```
+
+**Equivalent direct commands** (only if just is unavailable):
 ```bash
 # Step 1: Fast syntax check (5 seconds)
 nix flake check
