@@ -16,8 +16,8 @@
     # Hardware configuration (generated)
     ./hardware-configuration.nix
 
-    # Common host imports (desktop, gaming, networking, etc.)
-    ../../modules/common-host.nix
+    # All other modules (desktop, gaming, networking, services, etc.)
+    ../../modules/default.nix
 
     # AMD GPU Wayland optimizations (includes nvtopPackages.full)
     ../../modules/hardware/amdgpu-wayland.nix
@@ -122,16 +122,17 @@
   # MONITORING SERVER (Prometheus + Grafana)
   # Central metrics collection and visualization for the cluster
   # ============================================================================
-  services.monitoring.prometheus = {
-    enable = true;
-    retentionDays = 30;
-    scrapeInterval = "15s";
-  };
-
-  services.monitoring.grafana = {
-    enable = true;
-    domain = "sentry.ts.krogh.dev";
-  };
+  # TEMP: Disabled due to NixOS compatibility issues
+  # services.monitoring.prometheus = {
+  #   enable = true;
+  #   retentionDays = 30;
+  #   scrapeInterval = "15s";
+  # };
+  #
+  # services.monitoring.grafana = {
+  #   enable = true;
+  #   domain = "sentry.ts.krogh.dev";
+  # };
 
   # ============================================================================
   # MINING (CPU only - 8 threads = 50% of 16 cores)

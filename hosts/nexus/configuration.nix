@@ -11,8 +11,8 @@
     # Hardware configuration (generated)
     ./hardware-configuration.nix
 
-    # Common host imports (desktop, gaming, networking, etc.)
-    ../../modules/common-host.nix
+    # All other modules (desktop, gaming, networking, services, etc.)
+    ../../modules/default.nix
 
     # NVIDIA GPU support (common + wayland-specific)
     ../../modules/hardware/nvidia-common.nix

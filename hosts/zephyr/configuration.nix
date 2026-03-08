@@ -237,14 +237,6 @@
   #   group = "root";
   # };
 
-  # TODO: Re-enable switch-admin secret after fixing switch-orchestration module
-  # age.secrets.switch-admin = {
-  #   file = "${inputs.self}/secrets/switch-admin.age";
-  #   mode = "440";
-  #   owner = "root";
-  #   group = "wheel";
-  # };
-
   # ============================================================================
   # REDIS - For gateway rate limiting and caching
   # ============================================================================
@@ -418,6 +410,12 @@
   };
 
   # ============================================================================
+  # WEB TESTING - Playwright/Puppeteer system dependencies
+  # Provides GTK libraries and fonts for Chromium-based browsers
+  # ============================================================================
+  services.web-testing.enable = true;
+
+  # ============================================================================
   # CI/CD - Self-hosted GitHub Actions runner
   # ============================================================================
   services.ci-runner = {
@@ -500,16 +498,23 @@
   # Mining plasmoid for KDE Plasma
   #programs.mining-plasmoid.enable = true;  # TODO: Requires plasmoids/mining-monitor
 
+  # Systems Intelligence Plasmoid - Cluster monitoring widget
+  programs.systems-intelligence-plasmoid.enable = true;
+  programs.systems-intelligence-plasmoid.prometheusUrl = "http://127.0.0.1:9090";
+  programs.systems-intelligence-plasmoid.refreshInterval = 5000;
+  programs.systems-intelligence-plasmoid.clusterNodes = "zephyr,nexus,forge,sentry";
+
   # ============================================================================
   # MONITORING - Full monitoring stack
   # ============================================================================
+  # TEMP: Disabled due to NixOS compatibility issues
   # Prometheus server - central metrics collection
-  services.monitoring.prometheus.enable = true;
-  services.monitoring.prometheus.retentionDays = 30;
-  services.monitoring.prometheus.scrapeInterval = "15s";
+  # services.monitoring.prometheus.enable = true;
+  # services.monitoring.prometheus.retentionDays = 30;
+  # services.monitoring.prometheus.scrapeInterval = "15s";
 
   # Grafana dashboards
-  services.monitoring.grafana.enable = true;
+  # services.monitoring.grafana.enable = true;
 
   # GlitchTip error tracking (self-hosted Sentry alternative)
   services.glitchtip-selfhosted = {
@@ -522,13 +527,6 @@
     # Automatically configure AI gateway to use GlitchTip
     enableForGateway = true;
   };
-
-  # TP-Link Switch Orchestration
-  # networking.switch-orchestration = {
-  #   enable = true;
-  #   credentials.username = "admin";
-  #   credentials.passwordFile = "/run/agenix/switch-admin";
-  # };
 
   # ============================================================================
   # NETWORK PROFILES
@@ -1287,9 +1285,6 @@
 
   # ============================================================================
   # SYSTEM STATE
-  # Enable LobeHub AI workspace
-  desktop.lobehub.enable = true;
-
   # ============================================================================
   system.stateVersion = "26.05";
 }
