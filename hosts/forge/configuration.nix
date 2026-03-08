@@ -120,7 +120,7 @@
   systemd.services.amd-gpu-power-mgmt = {
     description = "AMD GPU Power Limit (140W for RX 5700 XT)";
     wantedBy = ["multi-user.target"];
-    after = ["basic.target" "multi-user.target"];
+    after = ["basic.target"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -162,7 +162,7 @@
   systemd.services.nvidia-compute-mode = {
     description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
     wantedBy = ["multi-user.target"];
-    after = ["basic.target" "multi-user.target"];
+    after = ["basic.target"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
