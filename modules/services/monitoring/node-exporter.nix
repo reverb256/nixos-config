@@ -55,6 +55,7 @@ in {
         "vmstat"
         "zfs"
         "textfile"
+        "nfs"  # NFS client metrics
       ];
 
       # Textfile collector directory for custom metrics (e.g., AMD GPU)

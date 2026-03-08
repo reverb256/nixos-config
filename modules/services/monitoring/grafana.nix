@@ -636,6 +636,155 @@
         title = "Network Traffic";
         type = "timeseries";
       }
+      # NFS RPC Retransmissions (error indicator)
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            { color = "green"; value = null; }
+            { color = "yellow"; value = 0.01; }
+            { color = "red"; value = 0.05; }
+          ];
+          unit = "none";
+        };
+        gridPos = { h = 8; w = 12; x = 0; y = 66; };
+        id = 17;
+        options = {
+          legend = { calcs = ["last" "max"]; displayMode = "table"; placement = "bottom"; };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          { expr = "rate(node_nfs_rpc_retransmissions_total[5m])"; legendFormat = "Retransmits {{instance}}"; refId = "A"; }
+        ];
+        title = "NFS RPC Retransmissions";
+        type = "timeseries";
+      }
+      # NFS Read/Write Latency
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            { color = "green"; value = null; }
+            { color = "yellow"; value = 0.001; }
+            { color = "orange"; value = 0.005; }
+            { color = "red"; value = 0.01; }
+          ];
+          unit = "s";
+        };
+        gridPos = { h = 8; w = 12; x = 12; y = 66; };
+        id = 18;
+        options = {
+          legend = { calcs = ["mean" "max" "p95"]; displayMode = "table"; placement = "bottom"; };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          { expr = "rate(node_nfs_latency_seconds_total{protocol=\"4\"}[5m])"; legendFormat = "Read {{instance}}"; refId = "A"; }
+          { expr = "rate(node_nfs_latency_seconds_total{protocol=\"4\", vers=\"-4\"}[5m])"; legendFormat = "Write {{instance}}"; refId = "B"; }
+        ];
+        title = "NFS Read/Write Latency";
+        type = "timeseries";
+      }
+      # NFS Server Operations (zephyr only)
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "palette-classic";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          thresholds.mode = "absolute";
+          thresholds.steps = [{ color = "green"; value = null; }];
+          unit = "ops";
+        };
+        gridPos = { h = 8; w = 12; x = 0; y = 74; };
+        id = 19;
+        options = {
+          legend = { calcs = ["mean" "last"]; displayMode = "table"; placement = "bottom"; };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          { expr = "rate(nfsd_read_total[5m])"; legendFormat = "Server Reads"; refId = "A"; }
+          { expr = "rate(nfsd_write_total[5m])"; legendFormat = "Server Writes"; refId = "B"; }
+        ];
+        title = "NFS Server Operations (zephyr:/etc/nixos)";
+        type = "timeseries";
+      }
+      # NFS Reply Cache Hit Rate
+      {
+        datasource = { type = "prometheus"; uid = "prometheus"; };
+        fieldConfig.defaults = {
+          color.mode = "continuous-GrYlRd";
+          custom = {
+            axisCenteredZero = false;
+            axisColorMode = "text";
+            drawStyle = "line";
+            fillOpacity = 10;
+            gradientMode = "scheme";
+            lineInterpolation = "smooth";
+            lineWidth = 2;
+            scaleDistribution.type = "linear";
+            spanNulls = true;
+          };
+          max = 1;
+          min = 0;
+          thresholds.mode = "absolute";
+          thresholds.steps = [
+            { color = "red"; value = null; }
+            { color = "yellow"; value = 0.7; }
+            { color = "green"; value = 0.85; }
+          ];
+          unit = "percentunit";
+        };
+        gridPos = { h = 8; w = 12; x = 12; y = 74; };
+        id = 20;
+        options = {
+          legend = { calcs = ["last"]; displayMode = "table"; placement = "bottom"; };
+          tooltip.mode = "multi";
+        };
+        targets = [
+          {
+            expr = "nfsd_rc_hits_total / (nfsd_rc_hits_total + nfsd_rc_misses_total + nfsd_rc_nocache_total)";
+            legendFormat = "Reply Cache Hit Rate";
+            refId = "A";
+          }
+        ];
+        title = "NFS Reply Cache Hit Rate";
+        type = "timeseries";
+      }
     ];
     refresh = "5s";
     schemaVersion = 38;

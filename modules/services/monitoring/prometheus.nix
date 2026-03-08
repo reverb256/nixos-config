@@ -93,6 +93,32 @@ in {
           ];
         }
 
+        # Redis metrics (AI Gateway cache)
+        {
+          job_name = "redis";
+          static_configs = [
+            {
+              targets = ["zephyr:9121"];
+              labels = {
+                role = "ai-gateway-cache";
+              };
+            }
+          ];
+        }
+
+        # S.M.A.R.T. disk health metrics
+        {
+          job_name = "smart";
+          static_configs = [
+            {
+              targets = ["zephyr:9633"];
+              labels = {
+                role = "disk-health";
+              };
+            }
+          ];
+        }
+
         # Prometheus self-monitoring
         {
           job_name = "prometheus";
