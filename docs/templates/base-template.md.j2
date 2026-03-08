@@ -1,0 +1,267 @@
+# {{ title }}
+
+## Purpose
+{{ purpose }}
+
+---
+
+## Quick Start
+
+{% if agent_type == "universal" %}
+**For AI Agents:**
+1. Use `just test` before making changes
+2. Use `just deploy` to apply changes
+3. See DOCUMENTATION_INDEX.md for comprehensive docs
+
+**For Humans:**
+1. Read this file for universal patterns
+2. Check CLAUDE.md or QWEN.md for agent-specific patterns
+3. Use `just` commands for all operations
+
+{% elif agent_type == "claude" %}
+1. Read `AGENTS.md` for universal cluster patterns
+2. Use Serena semantic tools for code understanding
+3. Launch async agents for parallel independent tasks
+4. Always use `just` commands for CI/CD integration
+
+{% elif agent_type == "qwen" %}
+1. Read `AGENTS.md` for universal cluster patterns
+2. Use Qwen framework patterns for agent workflows
+3. Configure MCP with Qwen-specific settings
+4. Follow universal deployment workflows
+
+{% endif %}
+
+---
+
+{% if agent_type == "universal" %}
+## Project Overview
+NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) with declarative configuration, profile-based architecture, and multi-host deployment via Colmena.
+
+**Cluster Resources**: 78 cores, 123GB RAM, 7 GPUs (5x NVIDIA + 2x AMD), 8.4TB storage
+
+**Architecture**:
+- **Declarative**: All configuration in Nix expressions
+- **Reproducible**: Same inputs → same output
+- **Composable**: Profile-based system
+- **Scalable**: Multi-host deployment
+
+{% endif %}
+
+{% if agent_type == "universal" %}
+{% include 'shared/build-test-commands.md' %}
+{% endif %}
+
+---
+
+{% if agent_type == "universal" %}
+
+## Code Style Guidelines
+- **2-space indentation**, trailing semicolons
+- **kebab-case** for files and modules
+- **Line length**: 80-100 chars (soft limit 120)
+
+## Project Structure
+```
+/etc/nixos/
+├── flake.nix              # Flake inputs/outputs
+├── hosts/                 # Per-host configs
+├── modules/               # Reusable modules
+│   ├── profiles/          # Profile-based configs
+│   └── system/            # System-level modules
+├── justfile               # CI/CD commands
+├── AGENTS.md              # Universal patterns
+├── CLAUDE.md              # Claude Code patterns
+└── ROADMAP.md             # Kubernetes plan
+```
+
+## Profile System
+Composable configurations for hardware, roles, and networking:
+```nix
+imports = [
+  ../../modules/profiles/hardware/amd-zen.nix
+  ../../modules/profiles/role/mining.nix
+  ../../modules/profiles/network/tailscale.nix
+];
+```
+
+**Profile Types**:
+- **Hardware**: CPU/GPU capabilities (amd-zen, nvidia-gpu, etc.)
+- **Role**: Host function (workstation, storage, mining, ai)
+- **Network**: Connectivity (tailscale, cluster)
+
+---
+{% endif %}
+
+{% if agent_type == "claude" %}
+## Claude Code-Specific Features
+
+### Serena Semantic Tools
+Powerful code understanding for navigating NixOS configurations:
+
+**find_symbol**: Locate symbols by name
+```
+find_symbol(name_path_pattern="ClusterStorage", relative_path="...")
+```
+
+**find_referencing_symbols**: Find all references
+```
+find_referencing_symbols(name_path="ensureStorageMounted", ...)
+```
+
+**get_symbols_overview**: Quick file structure
+```
+get_symbols_overview(relative_path="hosts/zephyr/...", depth=1)
+```
+
+### Async Agent Launching
+Launch multiple agents for parallel independent tasks:
+```python
+Agent(description="Analyze storage", prompt="...")
+Agent(description="Review GPU setup", prompt="...")
+```
+
+### Claude MCP Integration
+Always include Accept header for ZAI MCP:
+```bash
+curl -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer $(cat /run/agenix/zai-api-key)" \
+  https://api.z.ai/api/mcp/web_search_prime/mcp
+```
+
+See: `.claude/hookify.warn-mcp-accept-headers.local.md`
+
+---
+{% endif %}
+
+{% if agent_type == "qwen" %}
+## Qwen-Agent-Specific Features
+
+### Qwen Framework
+```bash
+pip install -U 'qwen-agent[mcp,rag,code_interpreter]'
+```
+
+### Tool Usage
+```python
+from qwen_agent import Agent
+
+agent = Agent(
+    llm={'model': 'qwen-turbo'},
+    function_list=[search_db, run_cmd]
+)
+```
+
+### MCP Integration
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/etc/nixos"]
+    }
+  }
+}
+```
+
+---
+{% endif %}
+
+{% if agent_type == "universal" %}
+{% include 'shared/deployment-workflows.md' %}
+{% endif %}
+
+---
+
+{% if agent_type == "universal" %}
+{% include 'shared/kubernetes-migration.md' %}
+{% endif %}
+
+---
+
+{% if agent_type == "universal" %}
+{% include 'shared/mcp-integration.md' %}
+{% endif %}
+
+---
+
+{% if agent_type == "universal" %}
+
+## Hookify Rules
+Safe deployment pattern enforcement in `.claude/hookify-*.md`:
+
+**Critical**: Block error suppression (`|| true`)
+
+**High Priority**:
+- Warn: Wrong deploy goals for remote hosts
+- Warn: Git sync before deploy
+
+**Medium Priority**:
+- Warn: Autogen file edits (flake.lock)
+- Warn: Git new files (remind to add)
+- Warn: Test before deploy
+
+## Service Management
+```bash
+systemctl status <service>
+journalctl -u <service> -f
+systemctl start/stop/restart/enable <service>
+```
+
+## Testing & Verification
+```bash
+just test                                    # Config test
+/data/@projects/infra/nixos/verify-cluster-storage.sh  # Storage
+just health-check                            # Service health
+```
+
+## Documentation
+- **DOCUMENTATION_INDEX.md**: Comprehensive index
+- **AGENTS.md**: Universal patterns (this file)
+- **CLAUDE.md**: Claude Code patterns
+- **QWEN.md**: Qwen-Agent patterns
+- **ROADMAP.md**: Kubernetes migration
+
+## Getting Help
+**AI Agents**: Read docs, use semantic tools, follow hookify guidance
+**Humans**: Start with DOCUMENTATION_INDEX.md, use `just status`, check `journalctl -xe`
+
+---
+
+**Version**: {{ version }} | **Updated**: {{ date }} | **Template**: `/etc/nixos/docs/templates/base-template.md.j2`
+
+{% endif %}
+
+{% if agent_type == "claude" or agent_type == "qwen" %}
+
+## See Also
+
+### Universal Documentation
+- **AGENTS.md**: Universal patterns for all agents
+  - Build & test commands (just commands)
+  - Deployment workflows (Colmena, multi-host)
+  - Kubernetes migration (9-week plan)
+  - MCP integration (protocol, troubleshooting)
+
+- **DOCUMENTATION_INDEX.md**: Comprehensive documentation index
+- **ROADMAP.md**: Complete Kubernetes migration plan
+
+### Cluster Information
+- **Hosts**: Zephyr (control plane), Nexus (storage), Forge (GPU), Sentry (monitoring)
+- **Resources**: 78 cores, 123GB RAM, 7 GPUs (5x NVIDIA + 2x AMD), 8.4TB storage
+- **Architecture**: NixOS flakes, profile-based, declarative configuration
+
+### Workflow Commands
+```bash
+just test              # Verify configuration
+just switch            # Apply to local host
+just deploy            # Deploy to all hosts
+just sync              # Sync all nodes to current branch
+```
+
+---
+
+**Version**: {{ version }} | **Updated**: {{ date }}
+**Generated from**: `/etc/nixos/docs/templates/base-template.md.j2`
+
+{% endif %}

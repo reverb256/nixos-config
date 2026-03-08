@@ -1,6 +1,6 @@
 # NixOS Cluster Documentation Index
 
-**Last Updated:** 2026-03-08 | **Cluster Version:** Pre-Kubernetes Migration
+**Last Updated:** 2026-03-08 | **Cluster Version:** Pre-Kubernetes Migration | **Agent Files:** Template-based v1.0
 
 This document provides a comprehensive index of all documentation for the NixOS cluster, including the ongoing Kubernetes migration.
 
@@ -8,9 +8,9 @@ This document provides a comprehensive index of all documentation for the NixOS 
 
 ## Quick Start
 
-**For AI Agents (Claude Code, Cursor, Copilot):**
-1. Read `/etc/nixos/CLAUDE.md` for Claude Code-specific patterns
-2. Read `/etc/nixos/AGENTS.md` for agent workflows and commands
+**For AI Agents (Claude Code, Cursor, Copilot, Qwen-Agent):**
+1. Read `/etc/nixos/AGENTS.md` for universal cluster patterns (all agents)
+2. Read agent-specific file: `CLAUDE.md` or `QWEN.md`
 3. Check `/etc/nixos/ROADMAP.md` for current migration status
 
 **For Human Operators:**
@@ -48,7 +48,53 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **When to Read:** Any time an agent works on this cluster
 **Location:** `/etc/nixos/AGENTS.md`
 
-### 3. ROADMAP.md
+### 1. AGENTS.md
+**Purpose:** Universal agent guidelines for ALL AI agents (Claude Code, Cursor, Copilot, Qwen-Agent, etc.)
+**Key Sections:**
+- Quick start for agents and humans
+- Project overview (4-host cluster, resources, architecture)
+- Build & test commands (just commands, CI/CD integration)
+- Code style guidelines (Nix language conventions)
+- Project structure (flake outputs, directory layout)
+- Profile system (hardware, role, network profiles)
+- Multi-host deployment (Colmena commands, storage verification)
+- Kubernetes migration (9-week roadmap, architecture, commands)
+- MCP integration (protocol, server configuration, troubleshooting)
+- Hookify rules (deployment pattern enforcement)
+- Service management and testing
+- Documentation index
+**Length:** 327 lines (template-generated)
+**When to Read:** First time working on this cluster (universal patterns)
+**Location:** `/etc/nixos/AGENTS.md`
+
+### 2. CLAUDE.md
+**Purpose:** Claude Code-specific patterns (extends AGENTS.md)
+**Key Sections:**
+- Quick start (refer to AGENTS.md for universal patterns)
+- Serena semantic tools (find_symbol, find_referencing_symbols, get_symbols_overview)
+- Async agent launching (parallel independent tasks)
+- Claude MCP integration (Accept header requirements)
+- Workflow patterns (Plan mode vs Editing mode)
+- See also (links to AGENTS.md and other docs)
+**Length:** 106 lines (template-generated)
+**When to Read:** Using Claude Code on this cluster
+**Location:** `/etc/nixos/CLAUDE.md`
+
+### 3. QWEN.md
+**Purpose:** Qwen-Agent-specific patterns (extends AGENTS.md)
+**Key Sections:**
+- Quick start (refer to AGENTS.md for universal patterns)
+- Qwen framework (installation, tool usage)
+- Function calling and code interpreter
+- MCP integration (Qwen-specific configuration)
+- RAG patterns (KnowledgeRetrieval)
+- Memory and multi-turn conversations
+- See also (links to AGENTS.md and other docs)
+**Length:** 98 lines (template-generated)
+**When to Read:** Using Qwen-Agent on this cluster
+**Location:** `/etc/nixos/QWEN.md`
+
+### 4. ROADMAP.md
 **Purpose:** Complete Kubernetes migration plan (9-week timeline)
 **Key Sections:**
 - Executive summary (goals, approach, timeline)
@@ -416,6 +462,54 @@ kubectl get nodes
 kubectl get pods --all-namespaces
 kubectl logs <pod-name> -n <namespace>
 ```
+
+---
+
+## Agent Instruction Files System
+
+### Template-Based Generation (NEW - 2026-03-08)
+
+#### MAINTENANCE.md
+**Purpose:** Guide for maintaining agent instruction files
+**Contents:**
+- Template system architecture
+- How to make changes (edit templates, regenerate, validate)
+- Separation of concerns (AGENTS.md vs CLAUDE.md vs QWEN.md)
+- Common tasks (add universal content, add agent-specific content)
+- Troubleshooting and script reference
+**When to Read:** When updating agent instruction files
+**Location:** `/etc/nixos/docs/MAINTENANCE.md`
+
+#### Agent Instruction Files Specification (Design Document)
+**Purpose:** Complete design specification for template-based generation system
+**Contents:**
+- File structure and purpose
+- Content boundaries and separation of concerns
+- Template-based generation system design
+- Length guidelines and best practices
+- Implementation plan and success criteria
+**When to Read:** Understanding the agent instruction file architecture
+**Location:** `/etc/nixos/docs/plans/2026-03-08-agent-instruction-files-spec-design.md`
+
+### Agent Instruction Files
+
+#### AGENTS.md (Universal - Template Generated)
+**Purpose:** Universal patterns for ALL AI agents
+**Length:** 327 lines (target: 500 lines)
+**Includes:** Build commands, deployment, Kubernetes, MCP, profiles, testing
+**Location:** `/etc/nixos/AGENTS.md`
+
+#### CLAUDE.md (Claude Code - Template Generated)
+**Purpose:** Claude Code-specific patterns (extends AGENTS.md)
+**Length:** 106 lines (target: 200 lines)
+**Includes:** Serena tools, async agents, Claude MCP, workflow patterns
+**Location:** `/etc/nixos/CLAUDE.md`
+
+#### QWEN.md (Qwen-Agent - Template Generated)
+**Purpose:** Qwen-Agent-specific patterns (extends AGENTS.md)
+**Length:** 98 lines (target: 200 lines)
+**Includes:** Qwen framework, function calling, MCP integration, RAG
+**Location:** `/etc/nixos/QWEN.md`
 
 ---
 
