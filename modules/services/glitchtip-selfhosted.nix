@@ -145,7 +145,7 @@ in {
       SECRET_KEY=$(${pkgs.coreutils}/bin/cat ${cfg.secretKeyFile})
 
       # Export for podman run
-      export DATABASE_URL="postgres://${cfg.database.user}:''${DB_PASS}@glitchtip-postgres:${toString cfg.database.port}/${cfg.database.name}"
+      export DATABASE_URL="postgres://${cfg.database.user}:$${DB_PASS}@glitchtip-postgres:${toString cfg.database.port}/${cfg.database.name}"
       export REDIS_URL="redis://glitchtip-redis:${toString cfg.redis.port}/0"
       export SECRET_KEY
       export PORT="8000"
@@ -197,7 +197,7 @@ in {
             --pod glitchtip \
             -e POSTGRES_DB=${cfg.database.name} \
             -e POSTGRES_USER=${cfg.database.user} \
-            -e POSTGRES_PASSWORD=''${DB_PASS} \
+            -e POSTGRES_PASSWORD=$${DB_PASS} \
             -v ${stateDir}/postgres:/var/lib/postgresql/data:Z \
             ${postgresImage}'
         '';
