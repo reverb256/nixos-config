@@ -45,5 +45,16 @@
 
     # ACPI revision override for better hardware compatibility
     "acpi_rev_override=5"
+
+    # ============================================================================
+    # ZSWAP - Compressed swap cache (better than traditional swap)
+    # ============================================================================
+    # Enables compressed swap in RAM (2:1 compression ratio = ~64GB effective)
+    # Falls back to real swap on SSD when cache is full
+    # Benefits: Faster than SSD swap, less SSD wear, better for AI/ML workloads
+    "zswap.enabled=1"
+    "zswap.compressor=zstd"  # Best compression ratio (zstd > lzo > lz4)
+    "zswap.max_pool_percent=20"  # Use up to 20% of RAM for compressed swap
+    "zswap.zpool=z3fold"  # Better allocator than default zbud
   ];
 }
