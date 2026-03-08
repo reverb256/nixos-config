@@ -52,6 +52,7 @@
     wget
     httpie
     restic
+    rclone  # Cloud storage sync (70+ providers)
 
     # Diff Tools
     delta
