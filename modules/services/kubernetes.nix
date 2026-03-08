@@ -20,64 +20,47 @@
 
   config = lib.mkIf config.services.kubernetes-module.enable {
     # ============================================================================
-    # KUBERNETES CONTROL PLANE & WORKER
+    # KUBERNETES API SERVER
     # ============================================================================
-    services.kubernetes = {
+    services.kubernetes.apiserver = {
       enable = true;
+      address = "https://10.1.1.110:6443";
+      securePort = 6443;
+    };
 
-      # Node roles
-      roles = config.services.kubernetes-module.roles;
+    # ============================================================================
+    # KUBERNETES SCHEDULER
+    # ============================================================================
+    services.kubernetes.scheduler = {
+      enable = true;
+    };
 
-      # Master address (for workers to join)
-      masterAddress = config.services.kubernetes-module.masterAddress;
+    # ============================================================================
+    # KUBERNETES CONTROLLER MANAGER
+    # ============================================================================
+    services.kubernetes.controllerManager = {
+      enable = true;
+    };
 
-      # API Server
-      apiserver.enable = true;
+    # ============================================================================
+    # KUBERNETES KUBELET
+    # ============================================================================
+    services.kubernetes.kubelet = {
+      enable = true;
+    };
 
-      # etcd (key-value store)
-      etcd.enable = true;
+    # ============================================================================
+    # KUBERNETES PROXY
+    # ============================================================================
+    services.kubernetes.proxy = {
+      enable = true;
+    };
 
-      # Scheduler
-      scheduler.enable = true;
-
-      # Controller Manager
-      controllerManager.enable = true;
-
-      # Kubelet
-      kubelet.enable = true;
-
-      # Proxy
-      proxy.enable = true;
-
-      # Flannel CNI
-      flannel.enable = true;
-
-      # EasyCerts for automatic TLS certificates
-      easyCerts = true;
-
-      # Cluster DNS domain
-      dnsDomain = "cluster.local";
-
-      # Pod network (Flannel VXLAN)
-      podNets = ["10.244.0.0/16"];
-
-      # Service network
-      serviceNets = ["10.96.0.0/12"];
-
-      # Kubernetes addons
-      addons = {
-        # CoreDNS for cluster DNS
-        dns.enable = true;
-
-        # Dashboard (disabled initially)
-        dashboard.enable = false;
-      };
-
-      # RBAC and authorization
-      rbac.enable = true;
-
-      # Token-based authentication
-      tokenAuth.enable = true;
+    # ============================================================================
+    # FLANNEL CNI
+    # ============================================================================
+    services.kubernetes.flannel = {
+      enable = true;
     };
 
     # ============================================================================

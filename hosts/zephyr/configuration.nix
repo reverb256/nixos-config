@@ -141,10 +141,8 @@
     server.enable = true;
   };
 
-  # Disable distributed builds (prevent remote builder issues)
-  nix = {
-    distributedBuilds = false;
-  };
+  # NOTE: Distributed builds configured in modules/system/distributed-builds.nix
+  # Do not override here to avoid conflicts
 
   # ============================================================================
   # SCOPEBUDDY - Gamescope wrapper
