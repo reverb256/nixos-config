@@ -1,12 +1,20 @@
 # Declarative Dashboard Registry
 # Imports all dashboard modules and provides them to Grafana
 {lib, ...}: let
-  # Import individual dashboard files
-  masterOverview = import ./master-overview.nix {inherit lib;};
-  deepInsights = import ./deep-insights.nix {inherit lib;};
-  mining = import ./mining.nix {inherit lib;};
-  gpuMonitoring = import ./gpu-monitoring.nix {inherit lib;};
-  aiInference = import ./ai-inference.nix {inherit lib;};
+  # Import dashboard library
+  dashboardLib = import ./lib.nix {inherit lib;};
+
+  # Extend lib with dashboard helpers for dashboard files
+  libExt = lib.extend (self: super: {
+    dashboard = dashboardLib;
+  });
+
+  # Import individual dashboard files with extended lib
+  masterOverview = import ./master-overview.nix {lib = libExt;};
+  deepInsights = import ./deep-insights.nix {lib = libExt;};
+  mining = import ./mining.nix {lib = libExt;};
+  gpuMonitoring = import ./gpu-monitoring.nix {lib = libExt;};
+  aiInference = import ./ai-inference.nix {lib = libExt;};
 
   # All dashboards as a list
   allDashboards = [

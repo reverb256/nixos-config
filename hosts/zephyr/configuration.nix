@@ -507,14 +507,17 @@
   # ============================================================================
   # MONITORING - Full monitoring stack
   # ============================================================================
-  # TEMP: Disabled due to NixOS compatibility issues
   # Prometheus server - central metrics collection
-  # services.monitoring.prometheus.enable = true;
-  # services.monitoring.prometheus.retentionDays = 30;
-  # services.monitoring.prometheus.scrapeInterval = "15s";
+  services.monitoring.prometheus.enable = true;
+  services.monitoring.prometheus.retentionDays = 30;
+  services.monitoring.prometheus.scrapeInterval = "15s";
+
+  # AlertManager - alert routing and management
+  services.monitoring.alertmanager.enable = true;
+  services.monitoring.alertmanager.retentionDays = 30;
 
   # Grafana dashboards
-  # services.monitoring.grafana.enable = true;
+  services.monitoring.grafana.enable = true;
 
   # GlitchTip error tracking (self-hosted Sentry alternative)
   services.glitchtip-selfhosted = {

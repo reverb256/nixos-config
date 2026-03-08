@@ -52,8 +52,10 @@ in {
         }
       ];
 
-      # Load alert rules from file
-      ruleFiles = ["/etc/prometheus/alert-rules.yml"];
+      # Alert rules (inline for NixOS)
+      ruleFiles = [ ];
+      # Note: AlertManager integration is configured via alertmanagers option above
+      # Custom alert rules should be added via services.prometheus.ruleFiles
 
       # Scrape configurations for cluster nodes
       scrapeConfigs = [
@@ -150,9 +152,6 @@ in {
           ];
         }
       ];
-
-      # Deploy alert rules file
-      environment.etc."prometheus/alert-rules.yml".source = ../monitoring/alert-rules.yml;
     };
 
     # Create prometheus user (systemd service runs as prometheus by default)

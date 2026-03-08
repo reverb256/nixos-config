@@ -1,5 +1,19 @@
 # Middleware Quick Reference Guide
 
+## What is Middleware?
+
+**Middleware** are processing components that sit between incoming requests and your AI backend. Each middleware component inspects, modifies, or monitors requests and responses as they pass through the gateway.
+
+**Why middleware matters:**
+- **Security**: Blocks malicious requests before they reach your models
+- **Observability**: Tracks request timing and errors for debugging
+- **Reliability**: Prevents cascading failures when backends fail
+- **Performance**: Manages load across multiple backend instances
+
+**How it works:** Requests pass through middleware in a defined order (pipeline). Each middleware can approve, block, or modify the request before forwarding it to the next component.
+
+---
+
 ## Middleware Execution Order
 
 ```
@@ -12,16 +26,16 @@ Response ← Observability ← Security ← Rate Limiter ← Circuit Breaker ←
 
 | Component | File Path | Purpose |
 |-----------|-----------|---------|
-| Base Interface | `middleware/base.py` | Abstract middleware class |
-| Observability | `middleware/observability.py` | Request ID, timing, logging |
-| Security | `middleware/security_filter.py` | Size limits, PII redaction |
-| Rate Limiter | `middleware/rate_limiter.py` | Token/rate limiting |
-| Circuit Breaker | `middleware/circuit_breaker.py` | Failover, health checks |
-| Load Balancer | `middleware/load_balancer.py` | Backend selection |
-| Pipeline | `pipeline.py` | Orchestrates middleware |
-| Config | `config.py` | Configuration dataclasses |
-| Metrics | `utils/metrics.py` | Prometheus metrics |
-| Redis Client | `utils/redis_client.py` | Async Redis wrapper |
+| **Base Interface** | `middleware/base.py` | Abstract middleware class that all middleware extend |
+| **Observability** | `middleware/observability.py` | Request ID generation, timing tracking, logging |
+| **Security** | `middleware/security_filter.py` | Request size validation, PII redaction, input sanitization |
+| **Rate Limiter** | `middleware/rate_limiter.py` | Token-based (TPM/TPH/TPD) and request-based (RPM) limits |
+| **Circuit Breaker** | `middleware/circuit_breaker.py` | Automatic failover when backends fail, health checks |
+| **Load Balancer** | `middleware/load_balancer.py` | Distributes requests across multiple backend instances |
+| **Pipeline** | `pipeline.py` | Orchestrates middleware execution order |
+| **Config** | `config.py` | Configuration dataclasses for all middleware |
+| **Metrics** | `utils/metrics.py` | Prometheus metrics export |
+| **Redis Client** | `utils/redis_client.py` | Async Redis wrapper for distributed caching |
 
 ## Environment Variables
 
@@ -44,10 +58,12 @@ RATE_LIMIT_TPD=500000
 RATE_LIMIT_RPM=60
 
 # Circuit Breaker
+# A circuit breaker stops sending requests to a failing backend
+# After the threshold is reached, requests fail fast instead of hanging
 CIRCUIT_BREAKER_ENABLED=true
-CIRCUIT_FAILURE_THRESHOLD=5
-CIRCUIT_SUCCESS_THRESHOLD=2
-CIRCUIT_TIMEOUT=60
+CIRCUIT_FAILURE_THRESHOLD=5   # Open circuit after 5 consecutive failures
+CIRCUIT_SUCCESS_THRESHOLD=2   # Close circuit after 2 consecutive successes
+CIRCUIT_TIMEOUT=60            # Wait 60 seconds before attempting recovery
 ```
 
 ## Common Operations
@@ -151,6 +167,10 @@ Every response includes `gateway_metadata`:
 ```
 
 ## Adding New Middleware
+
+**Prerequisites:** You should be familiar with Python async/await patterns and basic NixOS configuration.
+
+**Why add custom middleware:** Extend gateway behavior for your specific needs (custom logging, request transformation, authentication, etc.)
 
 1. Create `middleware/your_middleware.py`:
 ```python

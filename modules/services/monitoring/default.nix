@@ -4,7 +4,7 @@
   imports = [
     ./prometheus.nix
     ./alertmanager.nix
-    ./grafana.nix
+    ./grafana-v2.nix  # New modular dashboard system
     ./node-exporter.nix
     ./nfs-exporter.nix
     ./redis-exporter.nix

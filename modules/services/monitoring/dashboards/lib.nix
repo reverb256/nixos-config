@@ -1,6 +1,6 @@
 # Dashboard Library - Reusable Panel Builders
 # Provides composable functions for building Grafana dashboards
-{lib, ...}: {
+{lib, ...}: let
   # Common datasource reference
   prometheusDatasource = {
     type = "prometheus";
@@ -155,8 +155,8 @@
       unit ? "none",
       colorMode ? "value",
     }: {
-      datasource = lib.dashboard.prometheusDatasource;
-      fieldConfig.defaults = lib.dashboard.fieldConfigs.thresholdColor thresholds;
+      datasource = prometheusDatasource;
+      fieldConfig.defaults = fieldConfigs.thresholdColor thresholds;
       gridPos = gridPos;
       options = {
         graphMode = if colorMode == "background" then "none" else "area";
@@ -180,13 +180,24 @@
       legendFormat ? "",
       unit ? "none",
       custom ? null,
-    }: {
-      datasource = lib.dashboard.prometheusDatasource;
-      fieldConfig.defaults = {
+      thresholds ? null,
+    }: let
+      # Build field config defaults
+      baseFieldConfig = {
         color.mode = "palette-classic";
-        custom = if custom != null then custom else lib.dashboard.fieldConfigs.paletteClassic.custom;
+        custom = if custom != null then custom else fieldConfigs.paletteClassic.custom;
         unit = unit;
       };
+      fieldConfig = if thresholds != null
+        then baseFieldConfig // {
+          color.mode = "thresholds";
+          thresholds.mode = "absolute";
+          thresholds.steps = thresholds;
+        }
+        else baseFieldConfig;
+    in {
+      datasource = prometheusDatasource;
+      fieldConfig.defaults = fieldConfig;
       gridPos = gridPos;
       options = {
         legend = {calcs = ["mean" "max" "last"]; displayMode = "table"; placement = "bottom";};
@@ -209,7 +220,7 @@
       thresholds,
       unit ? "none",
     }: {
-      datasource = lib.dashboard.prometheusDatasource;
+      datasource = prometheusDatasource;
       fieldConfig.defaults = {
         color.mode = "thresholds";
         thresholds.mode = "absolute";
@@ -242,7 +253,7 @@
       unit ? "none",
       pieType ? "donut",
     }: {
-      datasource = lib.dashboard.prometheusDatasource;
+      datasource = prometheusDatasource;
       fieldConfig.defaults = {
         color.mode = "palette-classic";
         custom = {
@@ -267,7 +278,7 @@
       gridPos,
       columns ? ["instance" "job"],
     }: {
-      datasource = lib.dashboard.prometheusDatasource;
+      datasource = prometheusDatasource;
       gridPos = gridPos;
       options = {
         showHeader = true;
@@ -303,4 +314,14 @@
     timezone = "";
     weekStart = "";
   };
+in {
+  inherit
+    prometheusDatasource
+    fieldConfigs
+    thresholds
+    units
+    grid
+    panels
+    template
+    ;
 }
