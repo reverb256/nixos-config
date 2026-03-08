@@ -3,6 +3,7 @@
 {
   pkgs,
   inputs,
+  lib,
   ...
 }:
 {
@@ -15,6 +16,8 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
+    # Kubernetes module (for control plane)
+    ../../modules/services/kubernetes.nix
 
     # All other modules auto-imported via ../../modules/default.nix
     # This includes: system, desktop, shell, gaming, development, services,
@@ -26,6 +29,16 @@
   # HOST IDENTIFICATION
   # ============================================================================
   networking.hostName = "zephyr";
+
+  # ============================================================================
+  # KUBERNETES CONTROL PLANE
+  # ============================================================================
+  # Enable Kubernetes master (control plane) + worker role on Zephyr
+  services.kubernetes-module = {
+    enable = true;
+    masterAddress = "10.1.1.110";  # Zephyr's IP
+    roles = ["master" "node"];
+  };
 
   # ============================================================================
   # SECURITY AUDIT REMEDIATION
@@ -126,6 +139,11 @@
   services.nixos-share = {
     enable = true;
     server.enable = true;
+  };
+
+  # Disable distributed builds (prevent remote builder issues)
+  nix = {
+    distributedBuilds = false;
   };
 
   # ============================================================================
@@ -237,6 +255,14 @@
     mode = "440";
     owner = "mining";
     group = "mining";
+  };
+
+  # Tailscale API key - Tailscale service authentication
+  age.secrets.tailscale-api-key = {
+    file = "${inputs.self}/secrets/tailscale-api-key.age";
+    mode = "440";
+    owner = "j_kro";
+    group = "users";
   };
 
   # Spacebot Discord bot token
@@ -431,7 +457,7 @@
   # ============================================================================
   services.ci-runner = {
     enable = true;
-    repo = "username/nixos-config";  # Replace with actual repo
+    repo = "username/nixos-config"; # Replace with actual repo
   };
 
   # ============================================================================
@@ -540,7 +566,7 @@
   services.monitoring.prometheus.enable = true;
   services.monitoring.prometheus.retentionDays = 30;
   services.monitoring.prometheus.scrapeInterval = "15s";
-  services.monitoring.prometheus.enableAlertRules = true;  # Enable alert rules
+  services.monitoring.prometheus.enableAlertRules = true; # Enable alert rules
 
   # AlertManager - alert routing and management
   services.monitoring.alertmanager.enable = true;
