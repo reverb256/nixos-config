@@ -42,8 +42,9 @@ in {
         server.http_listen_port = cfg.port;
         server.http_listen_address = cfg.listenAddress;
 
-        # Data storage
+        # Common storage configuration
         common = {
+          path_prefix = cfg.dataDir;
           storage.filesystem = {
             chunks_directory = "${cfg.dataDir}/chunks";
             rules_directory = "${cfg.dataDir}/rules";
@@ -51,12 +52,12 @@ in {
           replication_factor = 1;
         };
 
-        # Schema configuration
+        # Schema configuration - use boltdb-shipper for compatibility
         schema_config = {
           configs = [
             {
               from = "2024-01-01";
-              store = "tsdb";
+              store = "boltdb-shipper";
               object_store = "filesystem";
               schema = "v13";
               index = {
@@ -67,33 +68,40 @@ in {
           ];
         };
 
+        # Storage configuration wrapper (required for boltdb-shipper)
+        storage_config = {
+          boltdb_shipper = {
+            active_index_directory = "${cfg.dataDir}/boltdb-shipper/index";
+            cache_location = "${cfg.dataDir}/boltdb-shipper/cache";
+          };
+        };
+
         # Retention policy
         limits_config = {
           retention_period = cfg.retentionPeriod;
-          retention_stream_max_age = cfg.retentionPeriod;
           per_stream_rate_limit = "10MB";
           per_stream_rate_limit_burst = "20MB";
+          # Disable structured metadata for boltdb-shipper compatibility
+          allow_structured_metadata = false;
         };
 
         # Ingester configuration
         ingester = {
           chunk_idle_period = "1h";
           max_chunk_age = "2h";
-          target_chunk_size = 1048576; # 1MB
         };
 
-        # Limits
+        # Compactor configuration
         compactor = {
           working_directory = "${cfg.dataDir}/compactor";
           retention_enabled = true;
           delete_request_cancel_period = "24h";
           compaction_interval = "10m";
+          delete_request_store = "filesystem";
         };
 
         # Ruler for alerting on logs
         ruler = {
-          enable = true;
-          enable_alertmanager = true;
           alertmanager_url = "http://127.0.0.1:9093";
           storage = {
             type = "local";
@@ -135,15 +143,31 @@ in {
           mode = "0750";
         };
       };
+      "${cfg.dataDir}/boltdb-shipper" = {
+        d = {
+          user = "loki";
+          group = "loki";
+          mode = "0750";
+        };
+      };
+      "${cfg.dataDir}/boltdb-shipper/index" = {
+        d = {
+          user = "loki";
+          group = "loki";
+          mode = "0750";
+        };
+      };
+      "${cfg.dataDir}/boltdb-shipper/cache" = {
+        d = {
+          user = "loki";
+          group = "loki";
+          mode = "0750";
+        };
+      };
     };
 
-    # User and group
-    users.users.loki = {
-      isSystemUser = true;
-      group = "loki";
-      description = "Loki log aggregation service";
-    };
-    users.groups.loki = {};
+    # Note: User and group are created by the built-in Loki service
+    # We only need to create the data directories
 
     # Firewall
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];

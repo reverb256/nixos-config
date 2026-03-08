@@ -424,6 +424,24 @@
   };
 
   # ============================================================================
+  # HOME ASSISTANT - Smart Home Automation Platform
+  # ============================================================================
+  services.home-assistant = {
+    enable = true;
+    openFirewall = true;
+    config = {
+      homeassistant = {
+        name = "Zephyr";
+        latitude = "49.8951"; # Winnipeg
+        longitude = "-97.1384";
+        temperature_unit = "C";
+        time_zone = "America/Winnipeg";
+        unit_system = "metric";
+      };
+    };
+  };
+
+  # ============================================================================
   # MINING - GPU Mining (RTX 3090)
   # DISABLED: Mining conflicts with AI inference services (LM Studio)
   # Re-enable when AI services are not in use
@@ -511,10 +529,15 @@
   services.monitoring.prometheus.enable = true;
   services.monitoring.prometheus.retentionDays = 30;
   services.monitoring.prometheus.scrapeInterval = "15s";
+  services.monitoring.prometheus.enableAlertRules = true;  # Enable alert rules
 
   # AlertManager - alert routing and management
   services.monitoring.alertmanager.enable = true;
   services.monitoring.alertmanager.retentionDays = 30;
+
+  # Loki - log aggregation
+  services.monitoring.loki.enable = true;
+  services.monitoring.loki.retentionPeriod = "30d";
 
   # Grafana dashboards
   services.monitoring.grafana.enable = true;

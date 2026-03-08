@@ -21,8 +21,8 @@ in {
 
     listenAddress = lib.mkOption {
       type = lib.types.str;
-      default = currentHost.ip;
-      description = "Address to listen on (defaults to host's cluster IP)";
+      default = "0.0.0.0";  # Listen on all interfaces (LAN + Tailscale)
+      description = "Address to listen on";
     };
   };
 

@@ -24,6 +24,12 @@ in {
       default = "15s";
       description = "Default scrape interval";
     };
+
+    enableAlertRules = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable cluster alert rules";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -52,10 +58,8 @@ in {
         }
       ];
 
-      # Alert rules (inline for NixOS)
-      ruleFiles = [ ];
-      # Note: AlertManager integration is configured via alertmanagers option above
-      # Custom alert rules should be added via services.prometheus.ruleFiles
+      # Note: Alert rules are configured by the alert-rules.nix module
+      # Enable with services.monitoring.prometheus.enableAlertRules = true
 
       # Scrape configurations for cluster nodes
       scrapeConfigs = [

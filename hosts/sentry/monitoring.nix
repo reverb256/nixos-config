@@ -11,11 +11,9 @@
   services.monitoring.smart-exporter.enable = true;
 
   # GPU exporters - AMD RX 5600 XT monitoring
-  # Note: AMD GPU metrics are exported via amdgpu exporter
-  # This is configured via hardware.profiles.amdgpu
+  services.gpu-exporters.enable = true;
+  services.gpu-exporters.amd.enable = true;
 
   # Mining exporter for CPU mining metrics
-  # Note: Mining metrics are exported via the mining-exporter module
-  # Enable if you want to track hashrate, power usage, etc.
-  # services.mining-exporter.enable = true;
+  services.mining-exporter.enable = true;
 }
