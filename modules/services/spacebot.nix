@@ -432,16 +432,6 @@ in {
     ];
 
     # ============================================================================
-    # SPACEBOT CLI WRAPPER
-    # ============================================================================
-    # Note: environment.systemPackages causes conflicts when defined in modules
-    # These packages should be added to the main configuration instead
-    # environment.systemPackages = with pkgs; [
-    #   slirp4netns  # Required for Podman networking
-    #   (pkgs.writeShellScriptBin "spacebot" '' ... '')
-    # ];
-
-    # ============================================================================
     # DATA DIRECTORY
     # ============================================================================
     systemd.tmpfiles.rules = [
@@ -454,19 +444,7 @@ in {
       "d /var/lib/containers 0700 root root - -"
     ];
 
-    # ============================================================================
-    # MONITORING INTEGRATION
-    # ============================================================================
     # Note: Spacebot exposes metrics at /metrics on port 19898
-    # Add to your Prometheus scrapeConfigs manually if needed:
-    # services.monitoring.prometheus.scrapeConfigs = [
-    #   {
-    #     job_name = "spacebot";
-    #     static_configs = [{
-    #       targets = ["${cfg.host}:${toString cfg.port}"];
-    #     }];
-    #     metrics_path = "/metrics";
-    #   }
-    # ];
+    # Add to Prometheus scrapeConfigs if needed
   };
 }

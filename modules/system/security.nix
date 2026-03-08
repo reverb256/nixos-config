@@ -1,6 +1,6 @@
 # Security Module
 # Comprehensive security hardening with Podman, USBGuard, Fail2Ban, and Firejail
-{pkgs, ...}: {
+{pkgs, lib, ...}: {
   # Install security packages
   environment.systemPackages = with pkgs; [
     # Security tools
@@ -11,6 +11,7 @@
 
     # Audit and analysis
     lynis
+    vulnix # Nix vulnerability scanner
 
     # Network security
     nmap
@@ -19,6 +20,7 @@
 
     # Password management
     pass
+    pass-wayland # Wayland-native pass frontend
 
     # Encryption
     age
@@ -127,16 +129,80 @@
   # Create wrapper profiles for common applications in per-host configs if needed
 
   # ============================================================================
+  # SUDO-RS - Rust-based sudo replacement (memory-safe, simpler)
+  # ============================================================================
+  security.sudo-rs = {
+    enable = true;
+    execWheelOnly = true; # Only wheel group can use sudo-rs
+  };
+  # Disable traditional sudo in favor of sudo-rs (override users.nix)
+  security.sudo.enable = lib.mkForce false;
+
+  # ============================================================================
+  # APPARMOR - Mandatory Access Control
+  # ============================================================================
+  security.apparmor = {
+    enable = true;
+    killUnconfinedConfinables = true; # Kill processes that should be confined
+    packages = with pkgs; [
+      apparmor-utils
+      apparmor-profiles
+    ];
+  };
+
+  # Enable AppArmor in PAM services
+  security.pam.services = {
+    login.enableAppArmor = true;
+    sshd.enableAppArmor = true;
+    sudo-rs.enableAppArmor = true;
+    su.enableAppArmor = true;
+  };
+
+  # AppArmor D-Bus integration
+  services.dbus.apparmor = "enabled";
+
+  # ============================================================================
+  # ROOT PASSWORD DISABLED
+  # ============================================================================
+  # Root login disabled entirely - use sudo-rs from wheel users
+  users.users.root.hashedPassword = "!";
+
+  # ============================================================================
+  # FIREJAIL EXTENDED WRAPPERS (from XNM1)
+  # ============================================================================
+  programs.firejail.wrappedBinaries = {
+    mpv = {
+      executable = "${pkgs.mpv}/bin/mpv";
+      profile = "${pkgs.firejail}/etc/firejail/mpv.profile";
+    };
+    discord = {
+      executable = "${pkgs.discord}/bin/discord";
+      profile = "${pkgs.firejail}/etc/firejail/discord.profile";
+    };
+    vscodium = {
+      executable = "${pkgs.vscodium}/bin/vscodium";
+      profile = "${pkgs.firejail}/etc/firejail/vscodium.profile";
+    };
+  };
+
+  # ============================================================================
   # SECURITY DAEMONS
   # ============================================================================
 
-  # Audit daemon (using auditd package directly - services.auditd doesn't exist in all versions)
-  # To enable: services.auditd.enable = true (if available)
-  # For now, just installing the package
+  # Automatic security updates (daily, with channel checks)
+  system.autoUpgrade = {
+    enable = true;
+    allowReboot = false;  # Don't auto-reboot, notify instead
+    dates = "daily";  # Check for updates daily
+    operation = "switch";  # Apply updates by switching to new generation
+  };
 
-  # Logwatch for log analysis
-  # services.logwatch.enable = true;
-
-  # Automatic security updates (disabled for stability)
-  # system.autoUpgrade.enable = true;
+  # Rebuild notification when updates available
+  systemd.services.nixos-upgrade-unit = {
+    description = "Notify about available NixOS upgrades";
+    serviceConfig.ExecStart = pkgs.writeShellScript "nixos-upgrade-notify" ''
+      ${pkgs.libnotify}/bin/notify-send "NixOS Updates Available" "Run 'sudo nixos-rebuild switch' to update" -i software-update-available
+    '';
+    wantedBy = ["multi-user.target"];
+  };
 }

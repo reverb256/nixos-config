@@ -93,7 +93,8 @@ in {
     # Using environment.variables (global) instead of sessionVariables
     # to ensure availability in all contexts: shells, GUI apps, systemd services, etc.
     environment.variables = {
-      QT_MEDIA_BACKEND = "gstreamer";
+      # Use mkForce to override the default "pipewire" value from NixOS shells-environment.nix
+      QT_MEDIA_BACKEND = lib.mkForce "gstreamer";
 
       # Help Qt find GStreamer plugins at runtime
       # Note: Use /run/current-system/sw path for runtime discovery

@@ -168,11 +168,6 @@ in {
 
   config = mkIf cfg.enable {
     # ============================================================================
-    # DNS SEARCH DOMAIN - enables short URLs like "ai" instead of "ai.zephyr"
-    # ============================================================================
-    # networking.searchDomains = [hostname];  # Deprecated option - removed
-
-    # ============================================================================
     # CADDY REVERSE PROXY
     # ============================================================================
     services.caddy = {

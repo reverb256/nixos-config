@@ -41,6 +41,20 @@ in {
         evaluation_interval = "1m";
       };
 
+      # AlertManager configuration
+      alertmanagers = [
+        {
+          static_configs = [
+            {
+              targets = ["127.0.0.1:${toString ports.alertmanager}"];
+            }
+          ];
+        }
+      ];
+
+      # Load alert rules from file
+      ruleFiles = ["/etc/prometheus/alert-rules.yml"];
+
       # Scrape configurations for cluster nodes
       scrapeConfigs = [
         # Node exporter for all hosts
@@ -115,33 +129,31 @@ in {
             }
           ];
         }
-      ];
-    };
 
-    # Alertmanager configuration - temporarily disabled
-    # services.prometheus.alertmanager = {
-    #   enable = true;
-    #   listenAddress = "127.0.0.1";
-    #   port = 9093;
-    #   configuration = {
-    #     global = {
-    #       resolve_timeout = "5m";
-    #     };
-    #     route = {
-    #       group_by = ["alertname" "severity"];
-    #       group_wait = "30s";
-    #       group_interval = "5m";
-    #       repeat_interval = "4h";
-    #       receiver = "default";
-    #     };
-    #     receivers = [
-    #       {
-    #         name = "default";
-    #         # Add notification methods here (email, slack, etc.)
-    #       }
-    #     ];
-    #   };
-    # };
+        # AlertManager self-monitoring
+        {
+          job_name = "alertmanager";
+          static_configs = [
+            {
+              targets = ["localhost:${toString ports.alertmanager}"];
+            }
+          ];
+        }
+
+        # Grafana metrics
+        {
+          job_name = "grafana";
+          static_configs = [
+            {
+              targets = ["localhost:${toString ports.grafana}"];
+            }
+          ];
+        }
+      ];
+
+      # Deploy alert rules file
+      environment.etc."prometheus/alert-rules.yml".source = ../monitoring/alert-rules.yml;
+    };
 
     # Create prometheus user (systemd service runs as prometheus by default)
     users.users.prometheus = {

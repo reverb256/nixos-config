@@ -1,6 +1,6 @@
 # Nix Configuration Module
 # Binary caches, experimental features, and Nix settings
-_: {
+{lib, ...}: {
   # Enable nix-command and flakes
   nix.settings = {
     experimental-features = ["nix-command" "flakes"];
@@ -33,4 +33,22 @@ _: {
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
+
+  # ============================================================================
+  # STORAGE OPTIMIZATION (from XNM1)
+  # ============================================================================
+  # Automatic store optimization and garbage collection
+  # Manual commands:
+  #   nix-store --optimize       # Eliminate redundant copies
+  #   nix-store --gc             # Remove unreferenced paths
+  #   nix-collect-garbage -d     # Delete old generations
+  nix.settings.auto-optimise-store = true;
+  nix.optimise.automatic = true;
+  nix.optimise.dates = "weekly";
+
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = lib.mkForce "--delete-older-than 14d";  # Override distributed-builds (30d)
+  };
 }

@@ -16,27 +16,15 @@
     # Hardware configuration (generated)
     ./hardware-configuration.nix
 
-    # Common host imports (desktop, networking, etc.)
-    ../../modules/common-host.nix
+    # All other modules (desktop, networking, services, etc.)
+    ../../modules/default.nix
 
     # NVIDIA GPU support (common + wayland-specific)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
+    ../../modules/hardware/amdgpu-wayland.nix
     ../../modules/system/security.nix
     ../../modules/services/podman-support.nix
-
-    # ============================================================================
-    # XNM1 MODULES - Minimal (mining-focused host)
-    # ============================================================================
-    # Shell (XNM1 - for administration)
-    ../../modules/shell/fish.nix
-    ../../modules/shell/starship.nix
-
-    # Development (XNM1 - essential tools)
-    ../../modules/development/tools.nix
-
-    # System (XNM1)
-    ../../modules/system/nix-settings.nix
   ];
 
   # ============================================================================

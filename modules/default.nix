@@ -2,10 +2,13 @@
 # Modules are organized into logical subdirectories for better maintainability
 {...}: {
   imports = [
+    # ============================================================================
+    # SHARED DEFAULTS
+    # ============================================================================
+    ./common-host-defaults.nix
+
     # Network configuration
     ./network-constants.nix
-    # ./network/wifi.nix  # TODO: Fix module before enabling
-    # ./network/bluetooth.nix  # TODO: Fix module before enabling
 
     # System-level configuration
     ./system/nix-config.nix
@@ -13,16 +16,27 @@
     ./system/ssh.nix
     ./system/mosh.nix
     ./system/polkit-rules.nix
+    ./system/tailscale.nix
+    ./system/kernel-hardening.nix
+    ./system/fetch-tools.nix
 
     # Desktop environment
-    ./desktop/plasma6.nix
+    ./desktop/desktop.nix
     ./desktop/wayland-common.nix
     ./desktop/flatpak.nix
-    ./desktop/lobehub.nix
+    ./desktop/hyprland.nix
+    ./desktop/systems-intelligence-plasmoid.nix
 
     # Shell configuration
     ./shell/fish.nix
     ./shell/starship.nix
+
+    # Development
+    ./development/tools.nix
+    ./development/lsp.nix
+    ./development/programming-languages.nix
+    ./development/opencode.nix
+    ./development/web-testing.nix
 
     # Gaming
     ./gaming/gaming.nix
@@ -31,13 +45,7 @@
 
     # Mining
     ./mining/mining.nix
-    #./mining/mining-plasmoid.nix  # TODO: Requires plasmoids/mining-monitor which doesn't exist
-
-    # Development
-    ./development/tools.nix
-    ./development/lsp.nix
-    ./development/programming-languages.nix
-    ./development/opencode.nix
+    ./mining/mining-build-wrapper.nix
 
     # Services
     ./services/mcp-servers.nix
@@ -46,20 +54,24 @@
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
     ./services/nixos-share.nix
-    # ./services/podman.nix  # Temporarily disabled - has pre-existing issues
     ./services/spacebot.nix
     ./services/glitchtip-selfhosted.nix
     ./services/nextcloud.nix
     ./services/service-gateway.nix
     ./services/bolt-diy.nix
     ./services/ci-runner.nix
-
+    ./services/garnix.nix
+    ./services/auto-update.nix
+    ./services/whisper-dictation.nix
+    ./services/unbound-cluster.nix
+    ./services/searxng.nix
+    ./services/n8n.nix
 
     # Monitoring
-    ./services/monitoring/default.nix
-    ./services/monitoring/prometheus.nix
-    ./services/monitoring/grafana.nix
-    ./services/monitoring/node-exporter.nix
+    # ./services/monitoring/default.nix  # TEMP: Compatibility issues with latest NixOS
+    # ./services/monitoring/prometheus.nix
+    # ./services/monitoring/grafana.nix
+    # ./services/monitoring/node-exporter.nix
 
     # Exporters
     ./services/gpu-exporters.nix
@@ -76,11 +88,13 @@
     # Desktop modules (Spotify customization)
     ./desktop/spotify-spotx.nix
 
+    # Distributed builds
+    ./system/distributed-builds.nix
+
     # Profile system
     ./profiles/default.nix
 
     # Network modules
     ./network/cluster-hosts.nix
-    ./services/unbound-cluster.nix
   ];
 }

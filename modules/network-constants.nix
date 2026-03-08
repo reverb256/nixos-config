@@ -116,6 +116,7 @@
 
         # Monitoring
         prometheus = 9090;
+        alertmanager = 9093;
         grafana = 3001;
         node-exporter = 9100;
         nvidia-exporter = 9400;
