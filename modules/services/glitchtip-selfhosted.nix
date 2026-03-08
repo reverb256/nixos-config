@@ -154,7 +154,7 @@ in {
       export GLITCHTIP_DOMAIN="http://${cfg.host}:${toString cfg.port}"
 
       # Start the container
-      exec ${pkgs.podman}/bin/podman run --rm --name glitchtip-web \
+      exec ${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-web \
         --pod glitchtip \
         -e DATABASE_URL \
         -e REDIS_URL \
@@ -193,7 +193,7 @@ in {
       serviceConfig = {
         ExecStart = ''
           ${pkgs.bash}/bin/sh -c 'DB_PASS=$(${pkgs.coreutils}/bin/cat ${cfg.database.passwordFile}) && \
-          ${pkgs.podman}/bin/podman run --rm --name glitchtip-postgres \
+          ${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-postgres \
             --pod glitchtip \
             -e POSTGRES_DB=${cfg.database.name} \
             -e POSTGRES_USER=${cfg.database.user} \
@@ -216,7 +216,7 @@ in {
       wantedBy = ["multi-user.target"];
       partOf = ["glitchtip-pod.service"];
       serviceConfig = {
-        ExecStart = "${pkgs.podman}/bin/podman run --rm --name glitchtip-redis --pod glitchtip -v ${stateDir}/redis:/data:Z ${redisImage}";
+        ExecStart = "${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-redis --pod glitchtip -v ${stateDir}/redis:/data:Z ${redisImage}";
         ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-redis";
         Restart = "always";
         RestartSec = "10s";

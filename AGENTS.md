@@ -458,6 +458,45 @@ if "/run/" in header_value:
 
 ### Debugging Tips
 
+**CRITICAL: Zero Tolerance Policy for Errors**
+
+This project has a **zero tolerance policy for errors and bugs**. ANY error encountered during builds, deployments, or operation MUST be investigated and resolved, never ignored.
+
+#### Core Debugging Workflow
+
+1. **Never Ignore Errors**: When ANY error occurs (build warnings, service failures, journal errors):
+   - Stop and investigate immediately
+   - Use async subagents to debug while continuing primary work
+   - Document root cause and resolution
+
+2. **Async Subagent Debugging Pattern**:
+   ```bash
+   # Launch async agent for debugging
+   Agent(tool="Agent", subagent_type="general-purpose", prompt="Investigate X error, find root cause, recommend fix", run_in_background=true)
+
+   # Continue with other tasks while debugging happens
+   # Agent notifies you when complete with findings
+   ```
+
+3. **During Builds/Deployments**:
+   - Monitor build output for warnings/errors
+   - Launch async agents to investigate ANY non-success result
+   - Verify fixes before considering build "complete"
+
+4. **Service Failures**:
+   - Check `journalctl -xe` immediately
+   - Review service status: `systemctl status <service>`
+   - Use async agent to trace dependency chains
+   - Verify fix didn't introduce new issues
+
+5. **Boot Errors**:
+   - Check `journalctl -b 0 --priority=err`
+   - Look for dependency cycles, missing modules, filesystem errors
+   - Use async agent to investigate boot process
+   - Test on all nodes after fixes
+
+#### MCP-Specific Debugging
+
 1. **Test Directly First**: Always test MCP servers directly before testing through gateway
 2. **Check Response Format**: Use `curl -v` to see actual response headers and format
 3. **Enable Debug Logging**: Set `LOG_LEVEL=DEBUG` in environment for verbose logs
