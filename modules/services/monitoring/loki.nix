@@ -89,6 +89,13 @@ in {
         ingester = {
           chunk_idle_period = "1h";
           max_chunk_age = "2h";
+          lifecycler = {
+            ring = {
+              kvstore = {
+                store = "inmemory";
+              };
+            };
+          };
         };
 
         # Compactor configuration
