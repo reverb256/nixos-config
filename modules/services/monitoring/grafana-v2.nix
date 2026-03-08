@@ -38,6 +38,24 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    # Generate admin password and secret key files
+    systemd.tmpfiles.settings."grafana-password" = {
+      "${grafanaPasswordFile}" = {
+        f = {
+          user = "grafana";
+          group = "grafana";
+          mode = "0400";
+        };
+      };
+      "${grafanaPasswordFile}.secret" = {
+        f = {
+          user = "grafana";
+          group = "grafana";
+          mode = "0400";
+        };
+      };
+    };
+
     services.grafana = {
       enable = true;
       settings = {
@@ -51,8 +69,7 @@ in {
         security = {
           admin_user = cfg.adminUser;
           admin_password = "$__file{${grafanaPasswordFile}}";
-          disable_initial_admin_creation = false;
-          secret_key = "$__file{${grafanaPasswordFile}}";
+          secret_key = "$__file{${grafanaPasswordFile}.secret}";
         };
 
         database = {
@@ -112,7 +129,7 @@ in {
     };
     users.groups.grafana = {};
 
-    # Create dashboards directory
+    # Create dashboards directory and password files
     systemd.tmpfiles.settings."grafana-setup" = {
       "${dashboardsDir}" = {
         d = {
@@ -123,12 +140,41 @@ in {
       };
     };
 
+    # Generate Grafana admin password and secret key
+    systemd.services.grafana-init-secrets = {
+      description = "Generate Grafana admin password and secret key";
+      wantedBy = ["multi-user.target"];
+      before = ["grafana.service"];
+      after = ["local-fs.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        User = "grafana";
+      };
+      script = ''
+        # Generate admin password if not exists
+        if [ ! -f "${grafanaPasswordFile}" ]; then
+          tr -dc A-Za-z0-9 < /dev/urandom | head -c 32 > "${grafanaPasswordFile}"
+          echo "Generated Grafana admin password in ${grafanaPasswordFile}"
+        fi
+
+        # Generate secret key if not exists
+        if [ ! -f "${grafanaPasswordFile}.secret" ]; then
+          tr -dc A-Za-z0-9 < /dev/urandom | head -c 64 > "${grafanaPasswordFile}.secret"
+          echo "Generated Grafana secret key in ${grafanaPasswordFile}.secret"
+        fi
+
+        chmod 0400 "${grafanaPasswordFile}" "${grafanaPasswordFile}.secret"
+      '';
+    };
+
     # Provision dashboards declaratively
     systemd.services.grafana-dashboard-provision = {
       description = "Provision Grafana dashboards";
       wantedBy = ["multi-user.target"];
       before = ["grafana.service"];
-      after = ["local-fs.target"];
+      after = ["grafana-init-secrets.service" "local-fs.target"];
+      requires = ["grafana-init-secrets.service"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
