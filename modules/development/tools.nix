@@ -53,6 +53,7 @@
     httpie
     restic
     rclone  # Cloud storage sync (70+ providers)
+    chromium  # Browser for Playwright MCP and web testing
 
     # Diff Tools
     delta
