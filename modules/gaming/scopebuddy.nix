@@ -294,13 +294,13 @@ in {
     # Create config directories
     systemd.tmpfiles.rules =
       [
-        "d /home/${userName}/.config/scopebuddy 0755 ${userName} ${userName} -"
-        "d /home/${userName}/.config/scopebuddy/appid 0755 ${userName} ${userName} -"
-        "d /home/${userName}/.config/scopebuddy/profiles 0755 ${userName} ${userName} -"
+        "d /home/${userName}/.config/scopebuddy 0755 ${userName} users -"
+        "d /home/${userName}/.config/scopebuddy/appid 0755 ${userName} users -"
+        "d /home/${userName}/.config/scopebuddy/profiles 0755 ${userName} users -"
       ]
       ++ optionals scopebuddyCfg.hdr.enable [
-        "f /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} ${userName} -"
-        "w /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} ${userName} -"
+        "f /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} users -"
+        "w /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} users -"
       ];
 
     # GameMode configuration

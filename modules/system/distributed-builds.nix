@@ -116,12 +116,23 @@
   # ============================================================================
   programs.ssh.startAgent = true;
 
-  # Ensure SSH key exists and has correct permissions
+  # Ensure SSH directories exist with correct permissions
   systemd.tmpfiles.rules = [
     "d /home/j_kro/.ssh 0700 j_kro users -"
+    "d /root/.ssh 0700 root root -"
   ];
 
-  # SSH client configuration for build machines is managed by modules/ssh.nix
+  # SSH config for root (nix-daemon) to use for distributed builds
+  environment.etc."ssh/ssh_config.d/50-build-machines.conf".text = ''
+    Host zephyr nexus forge sentry
+      User j_kro
+      IdentityFile /root/.ssh/id_ed25519
+      IdentitiesOnly yes
+      StrictHostKeyChecking accept-new
+      ConnectTimeout 30
+  '';
+
+  # SSH client configuration for user sessions is managed by modules/ssh.nix
 
   # ============================================================================
   # BUILD OPTIMIZATION
