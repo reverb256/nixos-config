@@ -21,11 +21,12 @@ in {
   };
 
   config = mkIf cfg.enable {
+    users.groups.${cfg.user} = {};
+
     users.users.${cfg.user} = {
       isSystemUser = true;
-      group = "nixos";
+      group = cfg.user;
       # Security: wheel removed - CI runner must not have sudo privileges
-      extraGroups = [ "nixos" ];
       description = "GitHub Actions runner";
     };
 
