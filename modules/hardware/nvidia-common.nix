@@ -25,10 +25,13 @@ in {
     };
 
     # CUDA runtime libraries for LM Studio and other AI tools
-    environment.systemPackages = with pkgs; [
-      # CUDA 12 runtime libraries (for LM Studio llama.cpp CUDA12 backend)
-      cudaPackages.cuda_cudart  # CUDA runtime library (libcudart.so.12)
-    ];
+    # NOTE: System CUDA packages disabled due to cuda_compat build failure in nixpkgs
+    # NVIDIA driver provides CUDA runtime, so LM Studio and AI tools work fine without these
+    # Re-enable once cuda_compat is fixed in nixpkgs or use cuda-redist overlay
+    # environment.systemPackages = with pkgs; [
+    #   # CUDA 12 runtime libraries
+    #   pkgs.cudaPackages_12.cuda_cudart  # BROKEN: depends on cuda_compat
+    # ];
 
     # Load nvidia driver for Xorg and Wayland
     services.xserver.videoDrivers = ["nvidia"];
