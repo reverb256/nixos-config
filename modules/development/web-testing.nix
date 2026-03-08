@@ -58,20 +58,20 @@ in {
       liberation_ttf
 
       # X11 libraries (for headless shell)
-      xorg.libX11
-      xorg.libXcomposite
-      xorg.libXcursor
-      xorg.libXdamage
-      xorg.libXext
-      xorg.libXfixes
-      xorg.libXi
-      xorg.libXrandr
-      xorg.libXrender
-      xorg.libXtst
-      xorg.libXScrnSaver
-      xorg.libxcb
-      xorg.libxkbfile
-      xorg.xorgproto
+      libx11
+      libxcomposite
+      libxcursor
+      libxdamage
+      libxext
+      libxfixes
+      libxi
+      libxrandr
+      libxrender
+      libxtst
+      libxscrnsaver
+      libxcb
+      libxkbfile
+      xorgproto
     ];
 
     # ============================================================================
@@ -123,20 +123,20 @@ in {
         libnotify
 
         # X11 libraries for headless shell
-        xorg.libX11
-        xorg.libXcomposite
-        xorg.libXcursor
-        xorg.libXdamage
-        xorg.libXext
-        xorg.libXfixes
-        xorg.libXi
-        xorg.libXrandr
-        xorg.libXrender
-        xorg.libXtst
-        xorg.libXScrnSaver
-        xorg.libxcb
-        xorg.libxkbfile
-        xorg.xorgproto
+        libx11
+        libxcomposite
+        libxcursor
+        libxdamage
+        libxext
+        libxfixes
+        libxi
+        libxrandr
+        libxrender
+        libxtst
+        libxscrnsaver
+        libxcb
+        libxkbfile
+        xorgproto
       ];
     };
 
@@ -144,7 +144,7 @@ in {
     # FONT CONFIGURATION
     # ============================================================================
     # Chromium needs fonts for proper rendering
-    fonts.fonts = with pkgs; [
+    fonts.packages = with pkgs; [
       corefonts
       dejavu_fonts
       liberation_ttf

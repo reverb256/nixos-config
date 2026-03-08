@@ -35,6 +35,7 @@ in {
     systemd.services.smart-metrics-exporter = {
       description = "SMART Metrics Exporter";
       wantedBy = ["multi-user.target"];
+      wants = ["network-online.target"];
       after = ["network-online.target" "prometheus-node-exporter.service"];
       serviceConfig = {
         Type = "oneshot";
