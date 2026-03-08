@@ -5,6 +5,9 @@
     ./prometheus.nix
     ./grafana.nix
     ./node-exporter.nix
+    ./nfs-exporter.nix
+    ./redis-exporter.nix
+    ./smart-exporter.nix
     ../gpu-exporters.nix
     ../mining-exporter.nix
     ../auto-secrets.nix

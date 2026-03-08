@@ -36,17 +36,34 @@ jobs:
 
       - name: Deploy to hosts
         run: |
-          cd /etc/nixos
+          # NFS-based deployment: config is already on hosts via NFS mount
+          # Just need to SSH and run nixos-rebuild on each target
+          
+          rebuild_host() {
+            local host=$1
+            echo "Deploying to $host..."
+            if [ "$host" = "zephyr" ]; then
+              # Local deployment
+              sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos#zephyr
+            else
+              # Remote deployment (config already mounted via NFS)
+              ssh $host "sudo nixos-rebuild switch --flake /etc/nixos#$host"
+            fi
+          }
+          
           if [ "${{ github.event.inputs.target }}" = "zephyr" ]; then
-            just zephyr
+            rebuild_host "zephyr"
           elif [ "${{ github.event.inputs.target }}" = "nexus" ]; then
-            just nexus
+            rebuild_host "nexus"
           elif [ "${{ github.event.inputs.target }}" = "forge" ]; then
-            just forge
+            rebuild_host "forge"
           elif [ "${{ github.event.inputs.target }}" = "sentry" ]; then
-            just sentry
+            rebuild_host "sentry"
           else
-            just deploy
+            # Deploy to all hosts
+            for host in zephyr nexus forge sentry; do
+              rebuild_host "$host"
+            done
           fi
 
       - name: Resume mining
