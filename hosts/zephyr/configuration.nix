@@ -28,6 +28,17 @@
   networking.hostName = "zephyr";
 
   # ============================================================================
+  # SECURITY AUDIT REMEDIATION
+  # ============================================================================
+  # Enables firewall, Tailscale SSH, and service hardening
+  security.clusterAudit = {
+    enable = true;
+    enableFirewall = true;
+    enableTailscaleSSH = true;
+    bindServicesToLocalhost = true;
+  };
+
+  # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
   hardware.profiles = {
