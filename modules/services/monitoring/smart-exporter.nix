@@ -37,7 +37,7 @@ in {
       # Collect S.M.A.R.T. metrics for Prometheus node_exporter textfile collector
 
       METRICS_FILE="${outputFile}"
-      SMARTCTL="${pkgs.smartmontools}/bin/smartctl"
+      SMARTCTL="smartctl"
 
       # Help header
       echo "# HELP smart_device_smart_healthy SMART overall health self-test status (1=passed, 0=failed)" > "$METRICS_FILE"
