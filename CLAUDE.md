@@ -298,7 +298,76 @@ headers = {
 
 ## Debugging Workflow
 
-### 1. Check Service Status
+**CRITICAL: Zero Tolerance Policy for Errors**
+
+This project maintains a **zero tolerance policy for errors and bugs**. ANY error encountered during development, building, deployment, or operation MUST be investigated and resolved. Never ignore errors, warnings, or unexpected behavior.
+
+### Core Debugging Principles
+
+1. **Never Ignore Errors**: When ANY error occurs:
+   - Build warnings
+   - Service failures
+   - Journal errors
+   - Test failures
+   - Unexpected behavior
+
+   **STOP** and investigate immediately. Do not proceed with the assumption that "it's probably fine."
+
+2. **Async Subagent Debugging Pattern**:
+
+   When you encounter an error, launch an async subagent to investigate while you continue with other tasks:
+
+   ```
+   Launch Agent(subagent_type="general-purpose" or "Explore",
+                prompt="Investigate [specific error]. Find root cause, affected components, and recommend fix.",
+                run_in_background=true)
+   ```
+
+   The agent will:
+   - Search for related errors in logs
+   - Check configuration files
+   - Trace dependency chains
+   - Test potential fixes
+   - Report back with findings
+
+3. **During NixOS Rebuilds**:
+   - Monitor for warnings/errors in build output
+   - Launch async agent to investigate ANY non-success result
+   - Don't proceed with deployment until build is clean
+   - Verify fixes on all affected nodes
+
+4. **Service Failures**:
+   ```bash
+   # Immediate triage
+   systemctl status <service>
+   journalctl -xe
+
+   # Launch async agent for deep investigation
+   Agent(subagent_type="general-purpose",
+         prompt="Debug <service> failure. Check logs, dependencies, configuration. Find root cause.",
+         run_in_background=true)
+   ```
+
+5. **Boot-Time Errors**:
+   ```bash
+   # Check for errors during boot
+   journalctl -b 0 --priority=err
+
+   # Launch async agent to investigate
+   Agent(subagent_type="Explore",
+         prompt="Find all boot errors on [node]. Check service dependencies, cyclic dependencies, missing modules.",
+         run_in_background=true)
+   ```
+
+6. **Verification After Fixes**:
+   - Always verify the fix actually resolved the issue
+   - Check for regressions (new errors introduced)
+   - Test on all nodes/hosts affected
+   - Document root cause and solution
+
+### Service-Specific Debugging
+
+#### 1. Check Service Status
 ```bash
 systemctl status ai-inference-gateway
 ```
@@ -736,16 +805,23 @@ curl -s -X POST http://127.0.0.1:8080/v1/chat/completions \
 
 ## Best Practices Summary
 
-1. **Always test incrementally**: `flake check` → `build` → `test` → `switch`
-2. **Track all new files in git**: Nix only packages git-tracked files
-3. **Read API key files at runtime**: Don't use literal file paths as credentials
-4. **Use low-cardinality labels**: Backend type, not URL, for Prometheus metrics
-5. **Cache expensive operations**: Health checks, DNS lookups, etc.
-6. **Handle SSE responses**: ZAI MCP servers use Server-Sent Events format
-7. **Include proper Accept headers**: `application/json, text/event-stream` for ZAI
-8. **Use logger.debug() not logger.info("[DEBUG])**: Prevent log spam
-9. **Test MCP servers directly first**: Bypass gateway to isolate issues
-10. **Check logs immediately after errors**: `journalctl -u ai-inference-gateway -n 100`
+**Zero Tolerance for Errors (CRITICAL)**:
+1. **Never ignore errors or warnings**: Debug ANY error immediately using async subagents
+2. **Launch async agents for debugging**: Investigate errors in parallel while continuing work
+3. **Verify all fixes**: Ensure errors are actually resolved and no regressions introduced
+4. **Test on all affected nodes**: Don't assume a fix on one node applies everywhere
+
+**Development Workflow**:
+5. **Always test incrementally**: `flake check` → `build` → `test` → `switch`
+6. **Track all new files in git**: Nix only packages git-tracked files
+7. **Read API key files at runtime**: Don't use literal file paths as credentials
+8. **Use low-cardinality labels**: Backend type, not URL, for Prometheus metrics
+9. **Cache expensive operations**: Health checks, DNS lookups, etc.
+10. **Handle SSE responses**: ZAI MCP servers use Server-Sent Events format
+11. **Include proper Accept headers**: `application/json, text/event-stream` for ZAI
+12. **Use logger.debug() not logger.info("[DEBUG])**: Prevent log spam
+13. **Test MCP servers directly first**: Bypass gateway to isolate issues
+14. **Check logs immediately after errors**: `journalctl -u ai-inference-gateway -n 100`
 
 ---
 

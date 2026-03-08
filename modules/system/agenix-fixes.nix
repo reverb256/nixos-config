@@ -40,20 +40,31 @@ in {
       mode = "0755";
       text = ''
         #!/run/current-system/sw/bin/bash
-        # Agenix automatic rekey service - Decrypts secrets at boot
+        # Agenix automatic rekey service - Verify secrets are decrypted
 
         set -euo pipefail
 
+        # Try multiple identity file locations (home may not be mounted yet)
         IDENTITY_FILE="''${1:-/home/j_kro/.age/key.txt}"
+        FALLBACK_IDENTITY="/etc/age/key.txt"
         SECRETS_DIR="/etc/nixos/secrets"
-        MOUNT_POINT="/run/agenix.d/1"
+        # Agenix creates random subdirectories (e.g., /run/agenix.d/5/)
+        # We'll detect the actual directory instead of hardcoding "/1"
+        AGENTX_BASE="/run/agenix.d"
 
-        echo "[agenix-rekey] Starting secret decryption..."
+        echo "[agenix-rekey] Verifying secret decryption..."
 
-        # Check if identity file exists
+        # Check if identity file exists, try fallback if not
         if [ ! -f "$IDENTITY_FILE" ]; then
-          echo "[agenix-rekey] ERROR: Identity file not found: $IDENTITY_FILE"
-          exit 1
+          echo "[agenix-rekey] Primary identity file not found: $IDENTITY_FILE"
+          if [ -f "$FALLBACK_IDENTITY" ]; then
+            echo "[agenix-rekey] Using fallback identity file: $FALLBACK_IDENTITY"
+            IDENTITY_FILE="$FALLBACK_IDENTITY"
+          else
+            echo "[agenix-rekey] ERROR: No identity file found"
+            echo "[agenix-rekey] Tried: $IDENTITY_FILE and $FALLBACK_IDENTITY"
+            exit 1
+          fi
         fi
 
         # Check if secrets directory exists
@@ -62,17 +73,54 @@ in {
           exit 1
         fi
 
-        # Decrypt each secret to the mount point
+        # Find the actual agenix mount subdirectory
+        AGENTX_DIR=''$(find "$AGENTX_BASE" -maxdepth 1 -type d ! -name "$AGENTX_BASE" -print0 | head -z -n 1 | xargs -0)
+        if [ -z "$AGENTX_DIR" ]; then
+          echo "[agenix-rekey] ERROR: No agenix mount subdirectory found in $AGENTX_BASE"
+          exit 1
+        fi
+
+        echo "[agenix-rekey] Using agenix mount: $AGENTX_DIR"
+
+        # Check if secrets are already decrypted (by agenix module)
+        # If yes, we're done. If no, decrypt them.
+        ALREADY_DECRYPTED=true
         for secret_file in "$SECRETS_DIR"/*.age; do
           if [ -f "$secret_file" ]; then
             secret_name=''$(basename "$secret_file" .age)
-            output_file="$MOUNT_POINT/$secret_name"
+
+            if [ ! -f "$AGENTX_DIR/$secret_name" ]; then
+              echo "[agenix-rekey] Secret not decrypted: $secret_name"
+              ALREADY_DECRYPTED=false
+              break
+            fi
+          fi
+        done
+
+        if [ "$ALREADY_DECRYPTED" = true ]; then
+          echo "[agenix-rekey] ✓ All secrets already decrypted by agenix module"
+          echo "[agenix-rekey] No additional decryption needed"
+          exit 0
+        fi
+
+        # Decrypt any missing secrets to the mount point
+        echo "[agenix-rekey] Decrypting missing secrets..."
+        for secret_file in "$SECRETS_DIR"/*.age; do
+          if [ -f "$secret_file" ]; then
+            secret_name=''$(basename "$secret_file" .age)
+            output_file="$AGENTX_DIR/$secret_name"
+
+            # Skip if already exists
+            if [ -f "$output_file" ]; then
+              echo "[agenix-rekey] ✓ Already exists: $secret_name"
+              continue
+            fi
 
             echo "[agenix-rekey] Decrypting: $secret_name"
 
             /run/current-system/sw/bin/age --decrypt \
-              --identity-file "$IDENTITY_FILE" \
-              --output "$output_file" \
+              -i "$IDENTITY_FILE" \
+              -o "$output_file" \
               "$secret_file" || {
               echo "[agenix-rekey] ERROR: Failed to decrypt $secret_name"
               continue
@@ -101,13 +149,13 @@ in {
           fi
         done
 
-        echo "[agenix-rekey] Secret decryption complete"
+        echo "[agenix-rekey] Secret verification complete"
       '';
     };
 
-    # Create systemd service for automatic decryption
+    # Create systemd service for secret verification
     systemd.services.agenix-rekey = {
-      description = "Agenix automatic secret decryption";
+      description = "Agenix secret verification and decryption";
       wantedBy = ["multi-user.target"];
       after = ["run-agenix.d.mount" "local-fs.target"];
       requires = ["run-agenix.d.mount"];
@@ -123,11 +171,13 @@ in {
         RemainAfterExit = true;
         ExecStart = "/etc/agenix-rekey-wrapper.sh ${config.services.agenix-fixes.identityFile}";
 
-        # Security
-        PrivateTmp = true;
+        # Security - removed PrivateTmp to allow access to /run/agenix.d
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = "/run/agenix.d/1";
+        # Allow read/write access to the entire /run/agenix.d hierarchy
+        ReadWritePaths = "/run/agenix.d";
+        # Don't create new mount namespace that isolates us from /run/agenix.d
+        PrivateTmp = false;
 
         # Logging
         StandardOutput = "journal";
@@ -140,5 +190,32 @@ in {
     # FIX: Add age CLI to system packages
     # ============================================================================
     environment.systemPackages = with pkgs; [age];
+
+    # ============================================================================
+    # ACTIVATION SCRIPT: Copy identity file to system location
+    # ============================================================================
+    # This ensures the identity file is available early in the boot process
+    # before the home directory is mounted
+    system.activationScripts.copy-age-key = lib.stringAfter [ "users" ] ''
+      # Create /etc/age directory
+      mkdir -p /etc/age
+
+      # Copy identity file from home directory if it exists
+      # and the system copy doesn't exist or is different
+      HOME_KEY="/home/j_kro/.age/key.txt"
+      SYSTEM_KEY="/etc/age/key.txt"
+
+      if [ -f "$HOME_KEY" ]; then
+        if [ ! -f "$SYSTEM_KEY" ] || ! cmp -s "$HOME_KEY" "$SYSTEM_KEY"; then
+          echo "[agenix] Copying age identity key to system location..."
+          cp "$HOME_KEY" "$SYSTEM_KEY"
+          chmod 600 "$SYSTEM_KEY"
+          chown root:root "$SYSTEM_KEY"
+          echo "[agenix] Identity key copied to $SYSTEM_KEY"
+        fi
+      else
+        echo "[agenix] Warning: Home identity key not found at $HOME_KEY"
+      fi
+    '';
   };
 }
