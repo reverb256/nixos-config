@@ -26,6 +26,7 @@ in {
     systemd.services.nfs-metrics-exporter = {
       description = "NFS Server Metrics Exporter";
       wantedBy = ["multi-user.target"];
+      wants = ["network-online.target"];
       after = ["network-online.target" "prometheus-node-exporter.service"];
       serviceConfig = {
         Type = "oneshot";
