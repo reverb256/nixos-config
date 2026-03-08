@@ -42,15 +42,41 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Install plasmoid system-wide
+    # Install plasmoid to user's local Plasma directory
+    systemd.tmpfiles.settings."plasmoid-${cfg.user}" = {
+      "/home/${cfg.user}/.local/share/plasma/plasmoids/${plasmoidName}" = {
+        d = {
+          user = cfg.user;
+          group = "users";
+          mode = "0755";
+        };
+      };
+    };
+
+    # Script to install/update plasmoid files
+    systemd.services."plasmoid-${cfg.user}" = {
+      description = "Install Systems Intelligence Plasmoid for ${cfg.user}";
+      wantedBy = ["multi-user.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        User = cfg.user;
+      };
+      script = ''
+        mkdir -p ~/.local/share/plasma/plasmoids/${plasmoidName}
+        cp -r ${plasmoidSrc}/* ~/.local/share/plasma/plasmoids/${plasmoidName}/
+        chmod -R 0755 ~/.local/share/plasma/plasmoids/${plasmoidName}
+      '';
+    };
+
+    # Add helper script to manually reload plasmoid
     environment.systemPackages = [
-      (pkgs.runCommand "${plasmoidName}" {} ''
-        mkdir -p $out/share/plasma/plasmoids/${plasmoidName}
-        cp -r ${plasmoidSrc}/* $out/share/plasma/plasmoids/${plasmoidName}/
+      (pkgs.writeShellScriptBin "install-plasmoid" ''
+        mkdir -p ~/.local/share/plasma/plasmoids/${plasmoidName}
+        cp -r ${plasmoidSrc}/* ~/.local/share/plasma/plasmoids/${plasmoidName}/
+        chmod -R 0755 ~/.local/share/plasma/plasmoids/${plasmoidName}
+        echo "Plasmoid installed. Reload Plasma widgets with: kquitapp5 plasmashell && kstart5 plasmashell"
       '')
     ];
-
-    # Ensure plasmoid can be discovered
-    environment.pathsToLink = ["/share/plasma/plasmoids"];
   };
 }
