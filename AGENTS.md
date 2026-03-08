@@ -15,18 +15,27 @@ This is a NixOS flake-based system configuration managing a 4-host Linux cluster
 
 ## Build & Test Commands
 
-### Essential Commands
+### ⭐ Primary Workflow: Just Commands
 ```bash
-# Fast syntax check (5 seconds) - ALWAYS RUN FIRST
+# ALWAYS use justfile commands for CI/CD integration
+just test              # Verify configuration (flake check + build all hosts)
+just switch            # Apply to local host (auto-pauses mining)
+just deploy            # Deploy to all cluster hosts
+just ci-local          # Run full CI pipeline locally
+```
+
+### Legacy Commands (Avoid when possible)
+```bash
+# Fast syntax check (5 seconds) - still useful
 nix flake check
 
-# Build without applying (1-2 minutes)
+# Build without applying (1-2 minutes) - for debugging
 sudo nixos-rebuild build --flake .#zephyr
 
-# Test configuration (applies changes, rollback on reboot)
+# Test configuration (rollback safe) - for testing
 sudo nixos-rebuild test --flake .#zephyr
 
-# Switch to new configuration (persist across reboots)
+# ⚠️ Use "just switch" instead (auto-pauses mining)
 sudo nixos-rebuild switch --flake .#zephyr
 
 # Update all flake inputs
@@ -51,7 +60,26 @@ just zephyr          # Deploy to zephyr only
 just nexus           # Deploy to nexus only
 just forge           # Deploy to forge only
 just sentry          # Deploy to sentry only
+just sync            # Sync all nodes to current branch
+just status          # Show cluster status and git commits
 ```
+
+### Cluster Storage Verification
+```bash
+# Verify all storage is mounted before deploying
+/data/@projects/infra/nixos/verify-cluster-storage.sh
+
+# Check specific node
+ssh nexus "df -h | grep -E '(worn|home|shared|backups|media|containers)'"
+```
+
+**Critical Storage Mounts**:
+- **Zephyr**: 1.85TB SSD (931GB + 922GB partitions)
+- **Nexus**: 4.7TB total (915GB + 3.6TB bcache0 + 224GB)
+  - `/data/worn`, `/data/home`, `/data/shared`, `/data/backups`, `/data/media`
+  - `/var/lib/containers` (Podman storage)
+- **Forge**: 446GB SSD
+- **Sentry**: 1.23TB (230GB SSD + 1TB HDD)
 
 ### Safe Rebuild Script
 ```bash
@@ -222,10 +250,12 @@ Hosts use a declarative profile system for composable configuration:
 
 | Host | Hardware | Roles |
 |------|----------|-------|
-| **zephyr** | AMD Zen, NVIDIA multi-GPU (RTX 3090 + 3060 Ti), Corsair AIO+RGB | workstation, gaming, VR, mining, AI |
-| **nexus** | AMD Zen, NVIDIA multi-GPU (2x RTX 3060 Ti) | gaming, VR, mining, AI |
-| **forge** | Intel Skylake, NVIDIA multi-GPU (2x RTX 4060), AMD GPU | mining, AI |
-| **sentry** | AMD Zen, AMD GPU (Wayland) | mining, AI |
+| **zephyr** | AMD 5950X (32 cores), 31GB RAM, NVIDIA (RTX 3090 + 3060 Ti), 1.85TB SSD | workstation, gaming, VR, mining, AI, Kubernetes control plane |
+| **nexus** | AMD Zen (24 cores), 46GB RAM, NVIDIA (1x RTX 3060 Ti), 4.7TB storage (915GB + 3.6TB bcache0 + 224GB) | storage, mining, AI, Kubernetes worker |
+| **forge** | Intel Skylake (6 cores), 15GB RAM, NVIDIA (2x RTX 4060) + AMD (2x RX 5700 XT), 446GB SSD | multi-GPU mining, AI, Kubernetes GPU worker |
+| **sentry** | AMD Zen (16 cores), 31GB RAM, AMD RX 5600 XT, 1.23TB (230GB SSD + 1TB HDD) | mining, AI, monitoring, Kubernetes worker |
+
+**See Also**: `/etc/nixos/ROADMAP.md` for complete Kubernetes migration plan
 
 ---
 
@@ -277,10 +307,38 @@ home-manager.users.j_kro = { pkgs, lib, ... }: {
 ## Important Notes
 - Keep `system.stateVersion` and `home.stateVersion` current
 - Never edit `hardware-configuration.nix` - regenerate with `nixos-generate-config`
+- Never edit `flake.lock` - regenerate with `nix flake update`
 - Run `nix flake update` before making changes
 - Check `nix flake show` for available configurations
 - Build/test/switch require root/sudo
 - All new Python files MUST be added to git before rebuilding (Nix only packages git-tracked files)
+- **Always use `just` commands instead of direct `nixos-rebuild`** for CI/CD integration
+- **Always run `just test` before `just deploy`** to catch configuration errors early
+- **Always run `just sync` before `just deploy`** to ensure all nodes have the same configuration
+- **Never suppress build errors** (no `2>&1 >/dev/null` or `|| true`) - errors must be investigated
+- **Check storage mounts after deployment** - all cluster storage must be available
+- **Hookify rules will warn about dangerous patterns** - see `.claude/hookify-*.md` files
+
+### Cluster Storage Module
+The `modules/system/cluster-storage.nix` module ensures all configured storage mounts are active on boot across all cluster nodes. This prevents issues like the Nexus 3.8TB bcache0 not being mounted.
+
+**What it does**:
+- Runs on boot after filesystems are mounted
+- Checks node-specific critical mounts (e.g., `/data/*` on Nexus)
+- Attempts to mount any missing filesystems
+- Logs status of all cluster storage mounts
+
+**Verify after deployment**:
+```bash
+# Check systemd service status
+systemctl status ensure-cluster-storage
+
+# View service logs
+journalctl -u ensure-cluster-storage -n 50
+
+# Manual verification script
+/data/@projects/infra/nixos/verify-cluster-storage.sh
+```
 
 ---
 
@@ -305,6 +363,286 @@ just deploy
 - Remote hosts use `boot` goal to avoid switch inhibitors (e.g., dbus changes)
 - Local host (zephyr) uses `switch` goal
 - Mining auto-pauses on all hosts during deployment
+
+---
+
+## Kubernetes Migration
+
+### Overview
+The cluster is migrating from NixOS systemd services to Kubernetes using `services.kubernetes` (full upstream Kubernetes, not K3s). See `/etc/nixos/ROADMAP.md` for the complete 9-week migration plan.
+
+### Migration Strategy
+- **Phase 1 (Week 1-2)**: Bootstrap single-node cluster on Zephyr
+- **Phase 2 (Week 2-3)**: Add worker nodes (Nexus, Forge, Sentry)
+- **Phase 3-4 (Week 3-4)**: Migrate stateful services (PostgreSQL, Redis)
+- **Phase 5-6 (Week 4-6)**: Migrate stateless services
+- **Phase 6-7 (Week 6-7)**: GPU workloads with device plugins
+- **Phase 7-8 (Week 7-8)**: Monitoring and observability
+- **Phase 8-9 (Week 8-9)**: Cleanup and optimization
+
+### Kubernetes Architecture
+
+**Control Plane (Zephyr)**:
+- API server, scheduler, controller manager
+- etcd (single-node initially, consider HA later)
+- Flannel CNI (VXLAN backend)
+- CoreDNS for cluster DNS
+
+**Worker Nodes**:
+- **Nexus**: Storage workloads, large local storage
+- **Forge**: GPU workloads (NVIDIA + AMD mixed vendor)
+- **Sentry**: Monitoring, logging, observability
+
+**Storage**:
+- Longhorn for distributed block storage
+- NFS for shared filesystem (nexus:/data/shared)
+- Local storage for databases
+
+**Networking**:
+- Tailscale VPN for cluster interconnect
+- Flannel VXLAN for pod networking
+- Caddy-based ingress for external access
+
+### GPU Passthrough Strategy
+
+**NVIDIA Nodes (Zephyr, Nexus)**:
+```nix
+# NVIDIA device plugin DaemonSet
+services.kubernetes.podNets = [ "10.244.0.0/16" ];
+virtualisation.docker.enable = true;
+hardware.graphics.nvidia.enable = true;
+```
+
+**AMD Nodes (Forge, Sentry)**:
+```nix
+# AMD GPU device plugin (different plugin!)
+services.kubernetes.kubelet.extraOpts = "--feature-gates=KubeletPodResources=false";
+hardware.graphics.amdgpu.enable = true;
+```
+
+**Mixed Vendor Challenge (Forge)**:
+- Deploy both NVIDIA and AMD device plugins
+- Use node selector: `accelerator: nvidia` or `accelerator: amd`
+- Separate resource requests: `nvidia.com/gpu` vs `amd.com/gpu`
+
+### Kubernetes Commands
+
+**Cluster Management**:
+```bash
+# Check cluster health
+kubectl get nodes
+kubectl get pods --all-namespaces
+
+# View service endpoints
+kubectl get endpoints
+kubectl describe service <service-name>
+
+# Debug pod issues
+kubectl logs <pod-name> -n <namespace>
+kubectl exec -it <pod-name> -n <namespace> -- /bin/sh
+
+# Check resource usage
+kubectl top nodes
+kubectl top pods -n <namespace>
+```
+
+**Deployment**:
+```bash
+# Apply manifests
+kubectl apply -f manifests/
+
+# Rollout restart
+kubectl rollout restart deployment/<name> -n <namespace>
+
+# Check rollout status
+kubectl rollout status deployment/<name> -n <namespace>
+```
+
+**Storage**:
+```bash
+# List PVs/PVCs
+kubectl get pv,pvc -n <namespace>
+
+# Check storage classes
+kubectl get storageclass
+
+# Describe volume
+kubectl describe pvc <pvc-name> -n <namespace>
+```
+
+### Migration Workflow for Services
+
+**1. Create Kubernetes Manifest**:
+```yaml
+# manifests/<service-name>.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-service
+  namespace: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-service
+  template:
+    metadata:
+      labels:
+        app: my-service
+    spec:
+      containers:
+      - name: my-service
+        image: registry.example.com/my-service:latest
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+```
+
+**2. Test in Development Namespace**:
+```bash
+kubectl apply -f manifests/my-service.yaml -n development
+kubectl port-forward -n development svc/my-service 8080:80
+```
+
+**3. Migrate Data (if stateful)**:
+```bash
+# Export data from systemd service
+systemctl stop my-service
+pg_dump mydb > backup.sql
+
+# Import into Kubernetes pod
+kubectl cp backup.sql my-pod:/tmp/backup.sql -n production
+kubectl exec my-pod -n production -- psql mydb < /tmp/backup.sql
+```
+
+**4. Switch Traffic**:
+```bash
+# Update ingress to point to Kubernetes service
+kubectl apply -f manifests/ingress.yaml
+
+# Verify traffic flowing
+kubectl logs -f deployment/my-service -n production
+
+# Disable systemd service
+systemctl disable --now my-service
+```
+
+**5. Monitor and Rollback**:
+```bash
+# If issues occur, rollback immediately
+kubectl rollout undo deployment/my-service -n production
+systemctl enable --now my-service
+```
+
+### NixOS Kubernetes Configuration
+
+**Enable Kubernetes**:
+```nix
+# hosts/zephyr/configuration.nix
+services.kubernetes = {
+  enable = true;
+  roles = ["master" "node"];
+  masterAddress = "zephyr";
+  apiserverAddress = "https://10.0.0.10:6443";
+  easyCerts = true;
+  dnsDomain = "cluster.local";
+  podNets = ["10.244.0.0/16"];
+  serviceNets = ["10.96.0.0/12"];
+};
+```
+
+**Enable Docker (required for Kubernetes)**:
+```nix
+virtualisation.docker = {
+  enable = true;
+  autoPrune = {
+    enable = true;
+    dates = "weekly";
+  };
+};
+```
+
+**Firewall Rules**:
+```nix
+networking.firewall.allowedTCPPorts = [
+  6443  # Kubernetes API server
+  2379  # etcd client
+  2380  # etcd peer
+  10250 # Kubelet API
+  10251 # Kube-scheduler
+  10252 # Kube-controller-manager
+];
+
+networking.firewall.allowedUDPPorts = [
+  8472  # Flannel VXLAN
+];
+```
+
+### Common Patterns
+
+**Node Selector for GPU Workloads**:
+```yaml
+spec:
+  nodeSelector:
+    gpu: "nvidia"  # or "amd"
+  containers:
+  - resources:
+      requests:
+        nvidia.com/gpu: 1  # or amd.com/gpu: 1
+```
+
+**Tolerations for System Pods**:
+```yaml
+spec:
+  tolerations:
+  - key: "node-role.kubernetes.io/master"
+    operator: "Exists"
+    effect: "NoSchedule"
+```
+
+**ConfigMaps and Secrets**:
+```bash
+# Create ConfigMap from file
+kubectl create configmap my-config --from-file=config.yaml -n production
+
+# Create Secret from literal
+kubectl create secret generic my-secret --from-literal=password=secret123 -n production
+```
+
+### Troubleshooting
+
+**Pod Not Starting**:
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+kubectl logs <pod-name> -n <namespace> --previous
+```
+
+**Service Not Reachable**:
+```bash
+kubectl get endpoints <service-name> -n <namespace>
+kubectl describe svc <service-name> -n <namespace>
+```
+
+**Storage Issues**:
+```bash
+kubectl describe pvc <pvc-name> -n <namespace>
+kubectl get pv
+```
+
+**Network Policies Blocking Traffic**:
+```bash
+kubectl get networkpolicies -n <namespace>
+kubectl describe networkpolicy <policy-name> -n <namespace>
+```
+
+### Documentation Links
+- **Full Migration Plan**: `/etc/nixos/ROADMAP.md`
+- **Kubernetes Docs**: https://kubernetes.io/docs/
+- **NixOS Kubernetes Module**: https://search.nixos.org/options?query=services.kubernetes
 
 ---
 

@@ -773,7 +773,6 @@
 
         programs.zen-browser = {
           enable = true;
-          suppressXdgMigrationWarning = true;
 
           # PWA Support - enables installing websites as native applications
           nativeMessagingHosts = [ pkgs.firefoxpwa ];
