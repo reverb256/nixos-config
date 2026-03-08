@@ -7,6 +7,10 @@
 }: {
   # Add polkit extra rules for systemd service management
   security.polkit.extraConfig = ''
+    polkit.addAdminRule(function(action, subject) {
+      return ["unix-group:wheel"];
+    });
+
     # Allow wheel group to manage systemd services without authentication
     # This prevents password prompts when using systemctl commands
     polkit.addRule(function(action, subject) {
