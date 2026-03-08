@@ -22,13 +22,6 @@
     # Kernel manager
     kmon       # Interactive Linux kernel manager
 
-    # GPU monitoring
-    # NOTE: nvtop temporarily disabled due to cuda_compat build failure in nixpkgs
-    # Use gpu-viewer, nvidia-smi (from driver), and btop for monitoring instead
-    # nvtopPackages.nvidia    # NVIDIA GPU monitoring - BROKEN DEPS
-    # nvtopPackages.intel     # Intel GPU monitoring
-    # nvtopPackages.amd       # AMD GPU monitoring
-
     # Display utilities
     wlr-randr               # Wayland display control
     gpu-viewer              # GPU information viewer
