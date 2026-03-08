@@ -101,3 +101,61 @@ cluster-status:
             fi
         fi
     done
+
+# ============================================================================
+# CI/CD - Local & Remote
+# ============================================================================
+# Run CI locally (simulate GitHub Actions)
+ci-local:
+    @echo "Running local CI..."
+    @echo "→ Quick check..."
+    nix flake check
+    @echo "→ Linting..."
+    statix check . || true
+    deadnix -f . || true
+    @echo "→ Building all hosts..."
+    nix run .#apps.x86_64-linux.colmena -- build
+    @echo "✅ Local CI passed!"
+
+# Run pre-commit checks on all files
+pre-commit-all:
+    @echo "Running pre-commit on all files..."
+    pre-commit run --all-files
+
+# Update flake.lock
+flake-update:
+    @echo "Updating flake.lock..."
+    nix flake update
+    @echo "✓ Flake updated. Run 'just ci-local' to verify."
+
+# Security scan locally
+security-scan:
+    @echo "Running security scan..."
+    nix-shell -p osv-scanner --run "osv-scanner --skip-git --recursive"
+
+# ============================================================================
+# CI/CD Status
+# ============================================================================
+# Show CI/CD status
+ci-status:
+    @echo "=== CI/CD Status ==="
+    @echo ""
+    @echo "Pre-commit:"
+    @pre-commit --version 2>/dev/null || echo "  Not installed"
+    @echo ""
+    @echo "Flake inputs age:"
+    @nix flake metadata | grep "Last modified" || true
+    @echo ""
+    @echo "Recent flake updates:"
+    @git log --oneline --all --grep="flake" -5 || echo "  None found"
+
+# ============================================================================
+# CI/CD Utilities
+# ============================================================================
+# Cluster health check
+health-check:
+    scripts/ci/health-check.sh
+
+# Rollback to previous generation
+rollback:
+    scripts/deploy/rollback.sh
