@@ -93,7 +93,7 @@ in {
       kanshi
 
       # GPU monitoring (supports AMD)
-      nvtopPackages.full
+      # nvtopPackages.full # DISABLED: broken cuda_compat dependency
     ];
   };
 }

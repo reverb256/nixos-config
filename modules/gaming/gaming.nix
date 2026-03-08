@@ -241,7 +241,7 @@ in {
         gamescope
         mangohud
         goverlay
-        nvtopPackages.full
+        # nvtopPackages.full # DISABLED: broken cuda_compat dependency
         gamemode
         scx.full
         (pkgs.writeShellScriptBin "launch-game" ''
