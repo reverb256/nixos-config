@@ -1,19 +1,21 @@
 # Nexus Monitoring Configuration
 {...}: {
   imports = [
-    # ../../modules/services/monitoring/default.nix  # TEMP: Compatibility issues
+    ../../modules/services/monitoring/default.nix
   ];
 
   # Node exporter for system metrics
-  # services.monitoring.node-exporter.enable = true;
+  services.monitoring.node-exporter.enable = true;
+
+  # SMART exporter for disk health monitoring
+  services.monitoring.smart-exporter.enable = true;
 
   # NVIDIA GPU exporter for RTX 3060 Ti (2x GPUs)
-  # services.gpu-exporters = {
-  #   enable = true;
-  #   nvidia.enable = true;
-  #   amd.enable = false;
-  # };
+  # Note: GPU metrics are already exported via nvidia-exporter on port 9400
+  # This is configured via hardware.profiles.nvidia
 
   # Mining exporter for xmrig/lolminer metrics
+  # Note: Mining metrics are exported via the mining-exporter module
+  # Enable if you want to track hashrate, power usage, etc.
   # services.mining-exporter.enable = true;
 }
