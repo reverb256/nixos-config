@@ -106,19 +106,6 @@ in {
           ];
         }
 
-        # S.M.A.R.T. disk health metrics
-        {
-          job_name = "smart";
-          static_configs = [
-            {
-              targets = ["zephyr:9633"];
-              labels = {
-                role = "disk-health";
-              };
-            }
-          ];
-        }
-
         # Prometheus self-monitoring
         {
           job_name = "prometheus";
