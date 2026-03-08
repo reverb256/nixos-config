@@ -418,6 +418,14 @@
   };
 
   # ============================================================================
+  # CI/CD - Self-hosted GitHub Actions runner
+  # ============================================================================
+  services.ci-runner = {
+    enable = true;
+    repo = "username/nixos-config";  # Replace with actual repo
+  };
+
+  # ============================================================================
   # MINING - GPU Mining (RTX 3090)
   # DISABLED: Mining conflicts with AI inference services (LM Studio)
   # Re-enable when AI services are not in use

@@ -52,6 +52,7 @@
     ./services/nextcloud.nix
     ./services/service-gateway.nix
     ./services/bolt-diy.nix
+    ./services/ci-runner.nix
 
 
     # Monitoring
