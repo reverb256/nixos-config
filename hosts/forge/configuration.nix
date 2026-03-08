@@ -71,11 +71,12 @@
   # ============================================================================
   # KERNEL PARAMETERS (Minimal - avoids storage conflicts)
   # ============================================================================
-  boot.kernelParams = lib.mkForce [
+  boot.kernelParams = [
     "loglevel=4"
     "lsm=landlock,yama,bpf"
     "simpledrm.disable=1"
     "nvidia-drm.modeset=1"
+    # zswap (from kernel-hardening.nix) will be appended automatically
   ];
 
   # ============================================================================
