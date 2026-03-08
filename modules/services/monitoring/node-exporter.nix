@@ -36,26 +36,26 @@ in {
       enabledCollectors = [
         "cpu"
         "diskstats"
-        "filesystem"
+        # "filesystem"  # Disabled - can hang on NFS mounts (NixOS shared /etc/nixos)
         "loadavg"
         "meminfo"
         "netdev"
-        "stat"
+        # "stat"  # Disabled - can hang on some systems
         "time"
         "uname"
-        "hwmon"
+        # "hwmon"  # Disabled - can hang on some systems
         "netclass"
-        "buddyinfo"
-        "ksmd"
-        "logind"
-        "pressure"
-        "processes"
-        "systemd"
+        # "buddyinfo"  # Disabled - can cause hangs on some systems
+        # "ksmd"  # Disabled - can cause hangs on some systems
+        # "logind"  # Disabled - can hang on some systems
+        # "pressure"  # Disabled - can cause hangs on some systems
+        # "processes"  # Disabled - can hang on some systems
+        # "systemd"  # Disabled - can hang on some systems
         "tcpstat"
         "vmstat"
-        "zfs"
+        # "zfs"  # Disabled - no ZFS pools in cluster
         "textfile"
-        "nfs"  # NFS client metrics
+        # "nfs"  # Disabled - causes metrics endpoint to hang on hosts with NFS mounts
       ];
 
       # Textfile collector directory for custom metrics (e.g., AMD GPU)
