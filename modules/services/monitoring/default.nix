@@ -5,6 +5,7 @@
     ./prometheus.nix
     ./alertmanager.nix
     ./grafana-v2.nix  # New modular dashboard system
+    ./alert-rules.nix  # Cluster alert rules
     ./node-exporter.nix
     ./nfs-exporter.nix
     ./redis-exporter.nix

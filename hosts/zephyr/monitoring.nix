@@ -17,11 +17,10 @@
   services.monitoring.smart-exporter.enable = true;
 
   # GPU metrics exporter (NVIDIA RTX 3090 + 3060 Ti)
-  # Note: GPU metrics are already being exported via nvidia-exporter on port 9400
-  # This is configured in the main configuration.nix via hardware.profiles.nvidia
+  services.gpu-exporters.enable = true;
+  services.gpu-exporters.nvidia.enable = true;
 
   # Mining exporter (for mining operations on zephyr)
-  # Note: Mining metrics are exported via the mining-exporter module
-  # Enable if you want to track hashrate, power usage, etc.
-  # services.mining-exporter.enable = true;
+  # Track hashrate, power usage, shares accepted/rejected
+  services.mining-exporter.enable = true;
 }
