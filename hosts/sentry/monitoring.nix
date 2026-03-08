@@ -16,4 +16,8 @@
 
   # Mining exporter for CPU mining metrics
   services.mining-exporter.enable = true;
+
+  # Promtail - ship logs to Loki on zephyr
+  services.monitoring.promtail.enable = true;
+  services.monitoring.promtail.lokiUrl = "http://100.81.182.5:3100";  # Zephyr's Tailscale IP
 }

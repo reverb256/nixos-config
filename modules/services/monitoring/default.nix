@@ -11,5 +11,6 @@
     ./redis-exporter.nix
     ./smart-exporter.nix
     ./loki.nix
+    ./promtail.nix  # Log aggregation to Loki
   ];
 }

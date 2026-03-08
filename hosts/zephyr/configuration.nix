@@ -539,6 +539,10 @@
   services.monitoring.loki.enable = true;
   services.monitoring.loki.retentionPeriod = "30d";
 
+  # Promtail - log shipping to Loki (systemd journals)
+  services.monitoring.promtail.enable = true;
+  services.monitoring.promtail.lokiUrl = "http://127.0.0.1:3100";
+
   # Grafana dashboards
   services.monitoring.grafana.enable = true;
 
