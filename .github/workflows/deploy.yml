@@ -1,0 +1,72 @@
+---
+name: Deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target host(s)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - zephyr
+          - nexus
+          - forge
+          - sentry
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Cluster
+    runs-on: [self-hosted, nixos]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pause mining
+        run: |
+          sudo systemctl stop xmrig@* || true
+          sudo systemctl stop lolminer-* || true
+
+      - name: Deploy to hosts
+        run: |
+          cd /etc/nixos
+          if [ "${{ github.event.inputs.target }}" = "zephyr" ]; then
+            just zephyr
+          elif [ "${{ github.event.inputs.target }}" = "nexus" ]; then
+            just nexus
+          elif [ "${{ github.event.inputs.target }}" = "forge" ]; then
+            just forge
+          elif [ "${{ github.event.inputs.target }}" = "sentry" ]; then
+            just sentry
+          else
+            just deploy
+          fi
+
+      - name: Resume mining
+        if: always()
+        run: |
+          sudo systemctl start xmrig@* || true
+          sudo systemctl start lolminer-* || true
+
+      - name: Health check
+        run: |
+          for host in zephyr nexus forge sentry; do
+            echo "Checking $host..."
+            if [ "$host" = "zephyr" ]; then
+              curl -f http://127.0.0.1:8080/health || true
+            else
+              ssh $host "curl -f http://127.0.0.1:8080/health" || true
+            fi
+          done
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Deployment failed! Check logs."
