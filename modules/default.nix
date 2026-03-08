@@ -19,6 +19,8 @@
     ./system/tailscale.nix
     ./system/kernel-hardening.nix
     ./system/fetch-tools.nix
+    ./system/boot-error-fixes.nix
+    ./system/agenix-fixes.nix
 
     # Desktop environment
     ./desktop/desktop.nix
