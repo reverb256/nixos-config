@@ -97,6 +97,9 @@
           commonModules
           ++ [
             ./hosts/${hostName}/configuration.nix
+
+            # Allow unsupported packages (CUDA 12 for LM Studio)
+            {nixpkgs.config.allowUnsupportedSystem = true;}
           ]
           ++ extraModules;
       };

@@ -22,6 +22,7 @@
     ./system/boot-error-fixes.nix
     ./system/agenix-fixes.nix
     ./system/cluster-storage.nix
+    ./system/security-hardening.nix
 
     # Desktop environment
     ./desktop/desktop.nix
