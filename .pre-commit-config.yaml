@@ -1,0 +1,40 @@
+---
+repos:
+  - repo: local
+    hooks:
+      - id: nix-flake-check
+        name: Nix flake check
+        entry: bash -c 'cd /etc/nixos && nix flake check'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: nix-lint-statix
+        name: Nix lint (statix)
+        entry: statix check
+        language: system
+        files: \.nix$
+
+      - id: nix-lint-deadnix
+        name: Nix lint (deadnix)
+        entry: deadnix -f
+        language: system
+        files: \.nix$
+
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        entry: trailing-whitespace-fixer
+        language: system
+        types: [text]
+
+      - id: end-of-file-fixer
+        name: Fix end of files
+        entry: end-of-file-fixer
+        language: system
+        types: [text]
+
+      - id: check-added-large-files
+        name: Check for large files
+        entry: check-added-large-files
+        language: system
+        args: [--maxkb=1000]
