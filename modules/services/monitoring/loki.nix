@@ -5,44 +5,37 @@
   lib,
   ...
 }: let
-  cfg = config.services.loki;
-  inherit
-    (lib)
-    mkEnableOption
-    mkOption
-    types
-    mkIf
-    ;
+  cfg = config.services.monitoring.loki;
 in {
-  options.services.loki = {
-    enable = mkEnableOption "Loki log aggregation server";
+  options.services.monitoring.loki = {
+    enable = lib.mkEnableOption "Loki log aggregation server";
 
-    dataDir = mkOption {
-      type = types.path;
+    dataDir = lib.mkOption {
+      type = lib.types.path;
       default = "/var/lib/loki";
       description = "Directory for Loki data storage";
     };
 
-    retentionPeriod = mkOption {
-      type = types.str;
+    retentionPeriod = lib.mkOption {
+      type = lib.types.str;
       default = "30d";
       description = "Log retention period (e.g., '30d', '168h')";
     };
 
-    listenAddress = mkOption {
-      type = types.str;
+    listenAddress = lib.mkOption {
+      type = lib.types.str;
       default = "127.0.0.1";
       description = "Address to listen on";
     };
 
-    port = mkOption {
-      type = types.port;
+    port = lib.mkOption {
+      type = lib.types.port;
       default = 3100;
       description = "Port for Loki HTTP server";
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     services.loki = {
       enable = true;
       configuration = {
