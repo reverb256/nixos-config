@@ -310,7 +310,28 @@
     panels = panels;
     tags = tags;
     title = title;
-    uid = builtins.replaceStrings [" " "/"] ["-" "_"] (lib.toLower title);
+    # Generate valid UID: remove emoji, replace spaces/slashes with dashes, lowercase
+    # Grafana UIDs can only contain: a-z, 0-9, -, _
+    uid = let
+      # Remove each emoji individually (replaceStrings requires equal length arrays)
+      # Include all emoji used in dashboard titles
+      s1 = builtins.replaceStrings ["🏠"] [""] title;
+      s2 = builtins.replaceStrings ["🔍"] [""] s1;
+      s3 = builtins.replaceStrings ["⛏️"] [""] s2;
+      s4 = builtins.replaceStrings ["🎮"] [""] s3;
+      s5 = builtins.replaceStrings ["🤖"] [""] s4;
+      s6 = builtins.replaceStrings ["📊"] [""] s5;
+      s7 = builtins.replaceStrings ["💾"] [""] s6;
+      s8 = builtins.replaceStrings ["🚀"] [""] s7;
+      s9 = builtins.replaceStrings ["⚡"] [""] s8;
+      s10 = builtins.replaceStrings ["🌡️"] [""] s9;
+      s11 = builtins.replaceStrings ["🔬"] [""] s10;
+      # Replace spaces and slashes with dashes
+      normalized = builtins.replaceStrings [" " "/"] ["-" "-"] s11;
+      # Strip leading/trailing dashes and whitespace, then lowercase
+      stripped = lib.strings.removePrefix "-" (lib.strings.removeSuffix "-" normalized);
+    in
+      lib.toLower (lib.strings.trim stripped);
     timezone = "";
     weekStart = "";
   };
