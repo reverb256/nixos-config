@@ -53,11 +53,13 @@ in {
           echo "# TYPE smart_device_temperature_celsius gauge" >> "$METRICS_FILE"
 
           # Devices to scan
-          ${if cfg.devices == [] then ''# Auto-detect all devices
+          ${lib.optionalString (cfg.devices == []) ''
+            # Auto-detect all devices
             DEVICES=$(smartctl --scan-open | grep -oE '/dev/(nvme[0-9]+|sd[a-z]+)' || true)
-          else
+          ''}${lib.optionalString (cfg.devices != []) ''
+            # Use specified devices
             DEVICES="${lib.concatStringsSep " " cfg.devices}"
-          fi''}
+          ''}
 
           for device in $DEVICES; do
             [ -e "$device" ] || continue
