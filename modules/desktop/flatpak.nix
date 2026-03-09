@@ -56,6 +56,7 @@ in {
       xdgOpenUsePortal = true;
       extraPortals = with pkgs; [
         xdg-desktop-portal-gtk
+        xdg-desktop-portal-kde  # Required for Spectacle screenshots on Wayland
       ];
     };
 
