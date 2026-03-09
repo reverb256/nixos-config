@@ -39,6 +39,45 @@
     };
 
     wireless.enable = true;
+
+    firewall = {
+      allowedTCPPorts = [
+        9757 # WiVRn main port
+        18789 # Steam Remote Play
+        18790 # Steam Remote Play (secondary)
+        19898 # Moonlight/GameStream AND Spacebot Web UI
+        1234 # LM Studio API server
+        8080 # AI Inference Gateway
+        53317 # LocalSend (file sharing)
+      ];
+      allowedUDPPorts = [
+        9757 # WiVRn
+        9758 # WiVRn
+        9759 # WiVRn
+        27031 # Steam UDP
+        27036 # Steam UDP
+        5353 # mDNS
+        9947 # WiVRn
+        53317 # LocalSend (multicast discovery)
+      ];
+      interfaces = {
+        "tailscale0".allowedTCPPorts = [
+          18789
+          18790
+        ];
+        # NFS server - allow local network only
+        "enp38s0".allowedTCPPorts = [
+          111
+          2049
+          20048
+        ]; # rpcbind, nfs, mountd
+        "enp38s0".allowedUDPPorts = [
+          111
+          2049
+          20048
+        ];
+      };
+    };
   };
 
   # ============================================================================
@@ -1324,60 +1363,6 @@
         };
       };
     };
-  };
-
-  # ============================================================================
-  # FIREWALL
-  # ============================================================================
-  # Note: Many ports are declared here for clarity. Some modules also declare
-  # their own firewall ports (e.g., ai-inference, gpu-exporters).
-  #
-  # Port Reference:
-  # - 9757/9758/9759/9947: WiVRn (VR streaming for Quest Pro)
-  # - 18789/18790: Steam Remote Play
-  # - 19898: Moonlight (NVIDIA GameStream)
-  # - 27031/27036: Steam network ports
-  # - 5353: mDNS (service discovery)
-  #
-  # AI Inference ports (auto-configured by modules):
-  # - 8080: AI inference gateway (ai-inference module)
-  # - 9190: AI inference metrics (ai-inference module)
-  # - 9400: NVIDIA GPU exporter (gpu-exporters module)
-  networking.firewall = {
-    allowedTCPPorts = [
-      9757 # WiVRn main port
-      18789 # Steam Remote Play
-      18790 # Steam Remote Play (secondary)
-      19898 # Moonlight/GameStream AND Spacebot Web UI
-      1234 # LM Studio API server
-      8080 # AI Inference Gateway
-      53317 # LocalSend (file sharing)
-    ];
-    allowedUDPPorts = [
-      9757 # WiVRn
-      9758 # WiVRn
-      9759 # WiVRn
-      27031 # Steam UDP
-      27036 # Steam UDP
-      5353 # mDNS
-      9947 # WiVRn
-      53317 # LocalSend (multicast discovery)
-    ];
-    interfaces."tailscale0".allowedTCPPorts = [
-      18789
-      18790
-    ];
-    # NFS server - allow local network only
-    interfaces."enp38s0".allowedTCPPorts = [
-      111
-      2049
-      20048
-    ]; # rpcbind, nfs, mountd
-    interfaces."enp38s0".allowedUDPPorts = [
-      111
-      2049
-      20048
-    ];
   };
 
   # ============================================================================

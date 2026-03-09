@@ -10,7 +10,7 @@ This document contains Claude Code-specific patterns and workflows for this NixO
 ## Quick Start
 
 1. Read `AGENTS.md` for universal cluster patterns
-2. Use Serena semantic tools for code understanding
+2. **Use Serena semantic tools for ALL code understanding** (see section below)
 3. Launch async agents for parallel independent tasks
 4. Always use `just` commands for CI/CD integration
 
@@ -18,6 +18,29 @@ This document contains Claude Code-specific patterns and workflows for this NixO
 ---
 
 
+
+---
+
+## When to Use Serena Semantic Tools
+
+**Use Serena for ALL complex code understanding tasks:**
+
+### ✅ Use Serena When:
+- **Understanding module structure** - `get_symbols_overview()` for file architecture
+- **Finding symbol definitions** - `find_symbol()` to locate functions, classes, options
+- **Tracing references** - `find_referencing_symbols()` to see where symbols are used
+- **Multi-step refactoring** - Symbol-aware edits preserve structure
+- **Cross-file analysis** - Understanding relationships between modules
+- **Large codebase navigation** - Quickly locate patterns without reading entire files
+
+### ❌ Use Standard Tools When:
+- **Simple file reading** - `Read` for single files you already know
+- **Basic pattern matching** - `Grep` for simple text searches
+- **File discovery** - `Glob` for finding files by pattern
+- **Quick fixes** - `Edit` for simple, localized changes
+
+### Key Principle:
+**Serena is DEFAULT for code understanding.** Only use Read/Grep/Glob when you have a clear, simple target. Serena's semantic understanding prevents errors in complex NixOS module structures.
 
 ---
 
@@ -100,6 +123,6 @@ just deploy            # Deploy to all hosts
 
 ---
 
-**Version**: 1.0 | **Updated**: 2026-03-08
+**Version**: 1.1 | **Updated**: 2026-03-09
 **Generated from**: `/etc/nixos/docs/templates/base-template.md.j2`
 
