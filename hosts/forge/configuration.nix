@@ -25,6 +25,9 @@
     ../../modules/hardware/amdgpu-wayland.nix
     ../../modules/system/security.nix
     ../../modules/services/podman-support.nix
+
+    # Home Manager integration
+    ../../modules/system/home-manager.nix
   ];
 
   # ============================================================================
@@ -634,10 +637,4 @@
     };
   };
 
-  # ============================================================================
-  # HOME MANAGER - Centralized user configuration
-  # ============================================================================
-  imports = [
-    ../../modules/system/home-manager.nix
-  ];
 }
