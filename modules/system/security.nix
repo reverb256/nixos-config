@@ -134,6 +134,7 @@
   security.sudo-rs = {
     enable = true;
     execWheelOnly = true; # Only wheel group can use sudo-rs
+    wheelNeedsPassword = false; # Passwordless sudo for wheel (CI/CD deployment)
   };
   # Disable traditional sudo in favor of sudo-rs (override users.nix)
   security.sudo.enable = lib.mkForce false;
