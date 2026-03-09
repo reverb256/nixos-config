@@ -5,7 +5,7 @@
   dashboardLib = import ./lib.nix {inherit lib;};
 
   # Extend lib with dashboard helpers for dashboard files
-  libExt = lib.extend (self: super: {
+  libExt = lib.extend (_self: _super: {
     dashboard = dashboardLib;
   });
 

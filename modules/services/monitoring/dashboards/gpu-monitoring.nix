@@ -1,7 +1,7 @@
 # GPU Monitoring Dashboard
 # Detailed GPU metrics including temperature, power, memory, and utilization
 {lib, ...}: let
-  inherit (lib.dashboard) panels template grid thresholds;
+  inherit (lib.dashboard) panels template thresholds;
 in {
   gpuMonitoring = template {
     title = "🎮 GPU Monitoring";
@@ -11,7 +11,7 @@ in {
       # ========== ROW: GPU OVERVIEW ==========
       (panels.row "🖥️ GPU Overview" false)
       # Active GPUs
-      (panels.stat {
+      (panels.statPanel {
         title = "Active GPUs";
         expr = "count(nvidia_smi_gpu_clocks_current_graphics_hz)";
         gridPos = {
@@ -23,7 +23,7 @@ in {
         colorMode = "value";
       })
       # Total Power Draw
-      (panels.stat {
+      (panels.statPanel {
         title = "Total Power Draw";
         expr = "sum(nvidia_smi_power_draw_watts)";
         gridPos = {
@@ -49,7 +49,7 @@ in {
         unit = "celsius";
       })
       # Total VRAM Used
-      (panels.stat {
+      (panels.statPanel {
         title = "Total VRAM Used";
         expr = "sum(nvidia_smi_memory_used_bytes) / 1024 / 1024 / 1024";
         gridPos = {

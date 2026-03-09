@@ -1,7 +1,7 @@
 # AI Inference Gateway Dashboard
 # Monitoring for the AI inference gateway - latency, throughput, errors
 {lib, ...}: let
-  inherit (lib.dashboard) panels template grid thresholds;
+  inherit (lib.dashboard) panels template thresholds;
 in {
   aiInference = template {
     title = "🤖 AI Inference Gateway";
@@ -11,7 +11,7 @@ in {
       # ========== ROW: GATEWAY STATUS ==========
       (panels.row "🚪 Gateway Status" false)
       # Backend Health
-      (panels.stat {
+      (panels.statPanel {
         title = "Backend Health";
         expr = "ai_inference_backend_healthy";
         gridPos = {
@@ -24,7 +24,7 @@ in {
         colorMode = "background";
       })
       # Active Requests
-      (panels.stat {
+      (panels.statPanel {
         title = "Active Requests";
         expr = "gateway_active_requests";
         gridPos = {
@@ -54,7 +54,7 @@ in {
         colorMode = "value";
       })
       # Request Rate
-      (panels.stat {
+      (panels.statPanel {
         title = "Request Rate";
         expr = "sum(rate(gateway_model_requests_total[5m])) * 60";
         gridPos = {

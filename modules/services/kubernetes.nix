@@ -109,10 +109,11 @@
     # ============================================================================
     # CNI CONFIGURATION - Flannel in proper .conflist format
     # ============================================================================
-    # Create writable CNI directory for Flannel config
+    # Create writable CNI directory for Flannel config and CDI spec
     systemd.tmpfiles.rules = [
       "d /var/lib/cni/net.d 0755 root root -"
       "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
+      "d /var/lib/cdi 0755 root root -"
     ];
 
     # Store the Flannel CNI config in a writable location
@@ -150,70 +151,63 @@
 
     # NVIDIA Container Toolkit for GPU passthrough
     # Configure CRI-O to support GPU devices
-    virtualisation.cri-o.settings = lib.mkForce {
-      crio.network = {
-        plugin_dirs = ["/opt/cni/bin"];
-      };
-      # Configure GPU device passthrough
-      crio.runtime = {
-        device_ownership_from_security_context = "false";
-        devices = [
-          "/dev/nvidia0"
-          "/dev/nvidia1"
-          "/dev/nvidiactl"
-          "/dev/nvidia-modeset"
-          "/dev/nvidia-uvm"
-          "/dev/nvidia-uvm-tools"
-        ];
-      };
+    environment.etc."crio/crio.conf.d/10-gpu-devices.conf".text = ''
+      [crio.runtime]
+      # Pass through NVIDIA GPU devices to all containers
+      # This is needed for the NVIDIA device plugin to detect GPUs
+      device_ownership_from_security_context = false
+      device_ownership = false
+      # Use CDI for device passthrough
+      cdi_spec_dirs = ["/var/lib/cdi"]
+    '';
+
+    # Write CDI spec via systemd service (CDI dir created by tmpfiles above)
+    systemd.services.nvidia-cdi = {
+      description = "NVIDIA GPU CDI Specification";
+      wantedBy = ["multi-user.target"];
+      before = ["crio.service"];
+      serviceConfig.Type = "oneshot";
+      script = ''
+            mkdir -p /var/lib/cdi
+            cat > /var/lib/cdi/nvidia-gpu.yaml <<'EOF'
+        cdiVersion: "0.3.0"
+        kind: nvidia.com/gpu
+        devices:
+        - containerEdits:
+          - env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: compute,utility
+          - deviceNodes:
+            - hostPath: /dev/nvidia0
+              permissions: rwm
+            - hostPath: /dev/nvidia1
+              permissions: rwm
+            - hostPath: /dev/nvidiactl
+              permissions: rwm
+            - hostPath: /dev/nvidia-modeset
+              permissions: rwm
+            - hostPath: /dev/nvidia-uvm
+              permissions: rwm
+            - hostPath: /dev/nvidia-uvm-tools
+              permissions: rwm
+            - hostPath: /dev/nvidia-caps
+              permissions: rwm
+          - mounts:
+            - hostPath: /run/opengl-driver/lib
+              containerPath: /run/opengl-driver/lib
+            - hostPath: /run/opengl-driver/lib64
+              containerPath: /run/opengl-driver/lib64
+            - hostPath: /run/opengl-driver
+              containerPath: /run/opengl-driver
+          name: all
+        EOF
+      '';
     };
 
-    # Create NVIDIA device plugin DaemonSet configuration
-    environment.etc."kubernetes-manifests/nvidia-device-plugin.yml".text = ''
-    apiVersion: apps/v1
-    kind: DaemonSet
-    metadata:
-      name: nvidia-device-plugin-daemonset
-      namespace: kube-system
-    spec:
-      selector:
-        matchLabels:
-          name: nvidia-device-plugin-ds
-      template:
-        metadata:
-          labels:
-            name: nvidia-device-plugin-ds
-        spec:
-          tolerations:
-          - key: nvidia.com/gpu
-            operator: Exists
-            effect: NoSchedule
-          containers:
-          - image: nvcr.io/nvidia/k8s-device-plugin:v1.35.0
-            name: nvidia-device-plugin-ctr
-            env:
-            - name: FAIL_ON_INIT_ERROR
-              value: "false"
-            securityContext:
-              allowPrivilegeEscalation: false
-            volumeMounts:
-            - name: device-plugin
-              mountPath: /var/lib/kubelet/device-plugins
-            - name: dev
-              mountPath: /dev
-            resources:
-              limits:
-                nvidia.com/gpu: 1
-          volumes:
-          - name: device-plugin
-            hostPath:
-              path: /var/lib/kubelet/device-plugins
-          - name: dev
-            hostPath:
-              path: /dev
-          nodeSelector:
-            accelerator: nvidia-tesla-k80
-    '';
+    # Alternative: Use CDI for GPU devices (if nvidia-ctk works)
+    # For now, we'll use the manifest-based approach with device mounts
 
     # ============================================================================
     # DOCKER (Optional - for non-Kubernetes container management)
@@ -258,7 +252,7 @@
     environment.systemPackages = with pkgs; [
       kubernetes
       nvidia-container-toolkit
-      cri-tools  # crictl for CRI debugging
+      cri-tools # crictl for CRI debugging
     ];
 
     # kubectl aliases

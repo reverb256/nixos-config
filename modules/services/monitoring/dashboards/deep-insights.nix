@@ -1,7 +1,7 @@
 # Deep Insights Dashboard
 # Resource analysis, anomaly detection, trend forecasting, capacity planning
 {lib, ...}: let
-  inherit (lib.dashboard) panels template grid thresholds;
+  inherit (lib.dashboard) panels template;
 in {
   deepInsights = template {
     title = "🔬 Deep Insights";
