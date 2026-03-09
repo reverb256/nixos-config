@@ -215,202 +215,232 @@
   };
   # KDE cache management scripts removed - they were causing crashes
   # KDE will auto-rebuild its cache as needed
+
+  # Cache clearing script for post-rebuild cleanup
+  clearKdeCacheScript = pkgs.writeShellScript "clear-kde-cache" ''
+    # Clear KDE/QML cache after nixos-rebuild (prevents desktop file errors)
+    # This fixes Spectacle "Unable to make service executable" errors
+    find ${XDG_CACHE_HOME:-$HOME/.cache}/**/qmlcache -type f -delete 2>/dev/null || true
+    rm -rf ~/.cache/kwin* ~/.cache/plasma* ~/.cache/ksycoca* 2>/dev/null || true
+  '';
 in {
-  services.xserver.enable = true;
-  services.displayManager.sddm.enable = true;
-  services.desktopManager.plasma6.enable = true;
-  services.displayManager.autoLogin = {
-    enable = true;
-    user = "j_kro";
-  };
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
-  };
-
-  environment.sessionVariables = {
-    QT_QPA_PLATFORM = "wayland;xcb";
-    QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
-    QT_AUTO_SCREEN_SCALE_FACTOR = "1";
-    QT_USE_RHI_GLES2 = "1";
-    QT_QPA_GL_VERSION = "2";
-    KWIN_DRM_DEVICE = "/dev/dri/card0";
-    KWIN_DRM_PRIMARY = "1";
-  };
-  environment.systemPackages = with pkgs.kdePackages; [
-    # Core Plasma Desktop
-    plasma-workspace
-    plasma-desktop
-    plasma-systemmonitor
-
-    # Full Plasma Applications Suite
-    # Discover - Software Center (what user was missing!)
-    discover
-    # File manager
-    dolphin
-    dolphin-plugins
-    # Terminal
-    konsole
-    # Text editor
-    kate
-    # Archive manager
-    ark
-    # Image viewer
-    gwenview
-    # PDF viewer
-    okular
-    # System settings additional modules
-    kde-gtk-config
-    # Audio volume control
-    plasma-pa
-    # Network manager applet
-    plasma-nm
-    # Bluetooth
-    bluedevil
-    # Spectacle - Screenshots
-    spectacle
-    # Markdown viewer (may not be available in all versions)
-    # kmarkdownview
-    # Extra desktop widgets
-    kdeplasma-addons
-    # Web browser
-    kate
-    # Disk usage analyzer
-    filelight
-
-    # Utilities
-    kde-cli-tools
-    kde-inotify-survey
-
-    # Monitor setup script
-    monitorSetupScript
-    pkgs.libnotify
-  ];
-  systemd.services.boot-monitor-setup = {
-    description = "Configure monitors at boot";
-    wantedBy = ["display-manager.service"];
-    before = ["display-manager.service" "sddm.service"];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = bootMonitorScript;
-      RemainAfterExit = true;
-      TimeoutStartSec = 10;
+  services = {
+    xserver = {
+      enable = true;
+      xkb = {
+        layout = "us";
+        variant = "";
+      };
     };
-  };
-  systemd.user.services.plasma-monitor-setup = {
-    description = "Apply monitor configuration";
-    wantedBy = ["graphical-session.target"];
-    after = ["plasma-plasmashell.service" "graphical-session.target"];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${monitorSetupScript}/bin/plasma-monitor-setup";
-      Restart = "on-failure";
-      RestartSec = 2;
+    displayManager = {
+      sddm.enable = true;
+      sddm.settings.General.DisplayServer = "wayland";
+      autoLogin = {
+        enable = true;
+        user = "j_kro";
+      };
     };
+    desktopManager.plasma6.enable = true;
   };
-  environment.etc."xdg/kscreenlockerrc".text = ''
-    [General]
-    [Screen]
-    AutoscreenDisabled=true
-    [Daemon]
-    AutoConfig=false
-  '';
-  environment.etc."xdg/kwinrc".text = ''
-    [Compositing]
-    AllowTearing=false
-    GLVSync=true
-    AnimationSpeed=3
-  '';
 
-  # Window rules for specific applications
-  environment.etc."xdg/kwinrulesrc".text = ''
-    [General]
-    count=2
+  environment = {
+    sessionVariables = {
+      QT_QPA_PLATFORM = "wayland;xcb";
+      QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
+      QT_AUTO_SCREEN_SCALE_FACTOR = "1";
+      QT_USE_RHI_GLES2 = "1";
+      QT_QPA_GL_VERSION = "2";
+      KWIN_DRM_DEVICE = "/dev/dri/card0";
+      KWIN_DRM_PRIMARY = "1";
+    };
 
-    # Spotify - Force server-side decorations to fix broken close button on Wayland
-    # Spotify's Electron CSD don't work properly on Wayland, causing SIGTRAP in libcef.so
-    [1]
-    Description=Spotify - Force SSD decorations for working close button
-    wmclass=spotify
-    wmclasscomplete=true
-    wmclassmatch=1
-    title=
-    titlematch=0
-    types=1
-    nonswitch=true
-    acceptfocus=true
-    autotype=true
-    closeable=true
-    fullscreen=false
-    fullscreenrule=0
-    maximize=true
-    maximizerule=0
-    minimize=true
-    minimizerule=0
-    noborder=false
-    noborderrule=3
-    skippager=false
-    skipswitcher=false
-    skiptaskbar=false
-    abovenoborder=true
+    systemPackages = with pkgs.kdePackages; [
+      # Core Plasma Desktop
+      plasma-workspace
+      plasma-desktop
+      plasma-systemmonitor
 
-    # Genshin Impact - Always open on TV (HDMI-A-2)
-    [2]
-    Description=Genshin Impact - Always on TV (HDMI-A-2)
-    wmclass=.*GenshinImpact.*
-    wmclassmatch=2
-    screen=3
-    screenrule=3
-    fullscreen=true
-    fullscreenrule=3
-    types=1
-  '';
+      # Full Plasma Applications Suite
+      # Discover - Software Center (what user was missing!)
+      discover
+      # File manager
+      dolphin
+      dolphin-plugins
+      # Terminal
+      konsole
+      # Text editor
+      kate
+      # Archive manager
+      ark
+      # Image viewer
+      gwenview
+      # PDF viewer
+      okular
+      # System settings additional modules
+      kde-gtk-config
+      # Audio volume control
+      plasma-pa
+      # Network manager applet
+      plasma-nm
+      # Bluetooth
+      bluedevil
+      # Spectacle - Screenshots
+      spectacle
+      # Extra desktop widgets
+      kdeplasma-addons
+      # Disk usage analyzer
+      filelight
 
-  # Disable KScreen backend launcher
-  systemd.user.services."kscreen_backend_launcher".enable = false;
+      # Utilities
+      kde-cli-tools
+      kde-inotify-survey
 
-  # Disable KScreen KDED module
-  environment.etc."xdg/kdedrc".text = ''
-    [Module-kscreen]
-    Enabled=false
-  '';
+      # Monitor setup script
+      monitorSetupScript
+      pkgs.libnotify
+    ];
 
-  # NOTE: KDE cache management removed - let KDE handle its own cache
-  # Auto-rebuild happens naturally when needed
+    etc = {
+      "xdg/kscreenlockerrc".text = ''
+        [General]
+        [Screen]
+        AutoscreenDisabled=true
+        [Daemon]
+        AutoConfig=false
+      '';
 
-  services.displayManager.sddm.settings.General.DisplayServer = "wayland";
+      "xdg/kwinrc".text = ''
+        [Compositing]
+        AllowTearing=false
+        GLVSync=true
+        AnimationSpeed=3
+      '';
 
-  environment.etc."xdg/autostart/plasma-monitor-setup.desktop".text = ''
-    [Desktop Entry]
-    Type=Application
-    Name=Monitor Setup
-    Exec=${monitorSetupScript}/bin/plasma-monitor-setup
-    X-KDE-autostart-phase=2
-    NoDisplay=true
-  '';
+      # Window rules for specific applications
+      "xdg/kwinrulesrc".text = ''
+        [General]
+        count=2
 
-  # ============================================================================
-  # TV MONITOR DAEMON - Auto manage TV power state
-  # ============================================================================
+        # Spotify - Force server-side decorations to fix broken close button on Wayland
+        # Spotify's Electron CSD don't work properly on Wayland, causing SIGTRAP in libcef.so
+        [1]
+        Description=Spotify - Force SSD decorations for working close button
+        wmclass=spotify
+        wmclasscomplete=true
+        wmclassmatch=1
+        title=
+        titlematch=0
+        types=1
+        nonswitch=true
+        acceptfocus=true
+        autotype=true
+        closeable=true
+        fullscreen=false
+        fullscreenrule=0
+        maximize=true
+        maximizerule=0
+        minimize=true
+        minimizerule=0
+        noborder=false
+        noborderrule=3
+        skippager=false
+        skipswitcher=false
+        skiptaskbar=false
+        abovenoborder=true
 
-  systemd.user.services.tv-monitor-daemon = {
-    description = "Monitor TV power state and auto-disable/enable";
-    wantedBy = ["graphical-session.target"];
-    after = ["plasma-plasmashellell.service" "graphical-session.target"];
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${tvMonitorDaemon}/bin/tv-monitor-daemon";
-      Restart = "always";
-      RestartSec = 5;
+        # Genshin Impact - Always open on TV (HDMI-A-2)
+        [2]
+        Description=Genshin Impact - Always on TV (HDMI-A-2)
+        wmclass=.*GenshinImpact.*
+        wmclassmatch=2
+        screen=3
+        screenrule=3
+        fullscreen=true
+        fullscreenrule=3
+        types=1
+      '';
+
+      # Disable KScreen KDED module
+      "xdg/kdedrc".text = ''
+        [Module-kscreen]
+        Enabled=false
+      '';
+
+      # NOTE: KDE cache management removed - let KDE handle its own cache
+      # Auto-rebuild happens naturally when needed
+
+      "xdg/autostart/plasma-monitor-setup.desktop".text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=Monitor Setup
+        Exec=${monitorSetupScript}/bin/plasma-monitor-setup
+        X-KDE-autostart-phase=2
+        NoDisplay=true
+      '';
+
+      "xdg/autostart/tv-monitor-daemon.desktop".text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=TV Monitor Daemon
+        Exec=${tvMonitorDaemon}/bin/tv-monitor-daemon
+        X-KDE-autostart-phase=3
+        NoDisplay=true
+      '';
     };
   };
 
-  environment.etc."xdg/autostart/tv-monitor-daemon.desktop".text = ''
-    [Desktop Entry]
-    Type=Application
-    Name=TV Monitor Daemon
-    Exec=${tvMonitorDaemon}/bin/tv-monitor-daemon
-    X-KDE-autostart-phase=3
-    NoDisplay=true
-  '';
+  systemd = {
+    services.clear-kde-cache-after-rebuild = {
+      description = "Clear KDE/QML cache after nixos-rebuild";
+      wantedBy = ["multi-user.target"];
+      after = ["nixos-rebuild.service"];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = clearKdeCacheScript;
+        RemainAfterExit = true;
+      };
+    };
+
+    services.boot-monitor-setup = {
+      description = "Configure monitors at boot";
+      wantedBy = ["display-manager.service"];
+      before = ["display-manager.service" "sddm.service"];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = bootMonitorScript;
+        RemainAfterExit = true;
+        TimeoutStartSec = 10;
+      };
+    };
+
+    user.services = {
+      plasma-monitor-setup = {
+        description = "Apply monitor configuration";
+        wantedBy = ["graphical-session.target"];
+        after = ["plasma-plasmashell.service" "graphical-session.target"];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${monitorSetupScript}/bin/plasma-monitor-setup";
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+      };
+
+      # Disable KScreen backend launcher
+      "kscreen_backend_launcher".enable = false;
+
+      # TV Monitor Daemon - Auto manage TV power state
+      tv-monitor-daemon = {
+        description = "Monitor TV power state and auto-disable/enable";
+        wantedBy = ["graphical-session.target"];
+        after = ["plasma-plasmashellell.service" "graphical-session.target"];
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${tvMonitorDaemon}/bin/tv-monitor-daemon";
+          Restart = "always";
+          RestartSec = 5;
+        };
+      };
+    };
+  };
 }
