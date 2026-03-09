@@ -257,4 +257,11 @@
       remote.origin.url = "git@github.com:reverb256/nixos-config.git";
     };
   };
+
+  # ============================================================================
+  # HOME MANAGER - Centralized user configuration
+  # ============================================================================
+  imports = [
+    ../../modules/system/home-manager.nix
+  ];
 }

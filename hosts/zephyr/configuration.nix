@@ -777,6 +777,7 @@
         imports = [
           inputs.zen-browser.homeModules.twilight
           inputs.nixcord.homeModules.nixcord
+          ../../modules/home-manager/fish.nix
         ];
         home.stateVersion = "26.05";
 

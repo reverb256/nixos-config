@@ -633,4 +633,11 @@
       client.enable = true;
     };
   };
+
+  # ============================================================================
+  # HOME MANAGER - Centralized user configuration
+  # ============================================================================
+  imports = [
+    ../../modules/system/home-manager.nix
+  ];
 }
