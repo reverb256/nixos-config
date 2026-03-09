@@ -61,6 +61,11 @@
   profiles.network.tailscale.enable = true;
 
   # ============================================================================
+  # DISTRIBUTED BUILDS - DISABLED (local builds only, nexus has CUDA bug)
+  # ============================================================================
+  nix.distributedBuilds = lib.mkForce false;
+
+  # ============================================================================
   # BOOTLOADER
   # ============================================================================
   boot.loader.systemd-boot.enable = true;
