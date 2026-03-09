@@ -31,19 +31,40 @@
     services.kubernetes.masterAddress = config.services.kubernetes-module.masterAddress;
 
     # ============================================================================
-    # KUBERNETES PKI (Certificates)
+    # POD NETWORK
     # ============================================================================
+    services.kubernetes.podNets = ["10.244.0.0/16"];
+
+    # ============================================================================
+    # KUBERNETES PKI (Certificates) - Auto-generate with easyCerts
+    # ============================================================================
+    services.kubernetes.easyCerts = true;
     services.kubernetes.caFile = "/etc/kubernetes/ca.crt";
     services.kubernetes.apiserver.serviceAccountSigningKeyFile = "/etc/kubernetes/service-account-key.pem";
     services.kubernetes.apiserver.serviceAccountKeyFile = "/etc/kubernetes/service-account-key.pem";
 
     # ============================================================================
-    # KUBERNETES COMPONENTS
+    # KUBERNETES APISERVER
     # ============================================================================
     services.kubernetes.apiserver = {
       enable = true;
       bindAddress = "10.1.1.110";
       securePort = 6443;
+      # Allow privileged pods (needed for some system components)
+      allowPrivileged = true;
+    };
+
+    # ============================================================================
+    # ETCD (Required for Kubernetes control plane)
+    # ============================================================================
+    services.etcd = {
+      enable = true;
+      listenClientUrls = ["http://127.0.0.1:2379"];
+      listenPeerUrls = ["http://10.1.1.110:2380"];
+      initialAdvertisePeerUrls = ["http://10.1.1.110:2380"];
+      initialCluster = ["zephyr=http://10.1.1.110:2380"];
+      initialClusterToken = "zephyr-etcd-cluster";
+      initialClusterState = "new";
     };
 
     services.kubernetes.scheduler = {
