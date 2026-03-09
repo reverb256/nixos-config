@@ -26,17 +26,17 @@ log_info() {
 
 log_success() {
     echo -e "${GREEN}✓${NC} $1"
-    ((CHECKS_PASSED++))
+    ((++CHECKS_PASSED)) || true
 }
 
 log_error() {
     echo -e "${RED}✗${NC} $1"
-    ((CHECKS_FAILED++))
+    ((++CHECKS_FAILED)) || true
 }
 
 log_warning() {
     echo -e "${YELLOW}⚠${NC} $1"
-    ((CHECKS_WARNING++))
+    ((++CHECKS_WARNING)) || true
 }
 
 section() {
