@@ -175,6 +175,12 @@ in {
       default = "2";
       description = "CPU quota for the container (e.g., '2' for 2 cores)";
     };
+
+    hideUpdateNotification = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Block GitHub API to hide update notifications in web UI";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -394,6 +400,7 @@ in {
             ${lib.optionalString (cfg.discord.token != null) "-e DISCORD_BOT_TOKEN=${cfg.discord.token}"} \
             ${lib.optionalString (cfg.slack.token != null) "-e SLACK_BOT_TOKEN=${cfg.slack.token}"} \
             ${lib.optionalString (cfg.telegram.token != null) "-e TELEGRAM_BOT_TOKEN=${cfg.telegram.token}"} \
+            ${lib.optionalString cfg.hideUpdateNotification "--add-host api.github.com:127.0.0.1"} \
             --memory=${cfg.memory} \
             --cpus=${cfg.cpu} \
             --hostname spacebot \

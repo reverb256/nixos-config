@@ -186,6 +186,7 @@
     port = 19898;
     memory = "4G";
     cpu = "2";
+    hideUpdateNotification = true;  # Block GitHub API to hide update notifications
 
     # Provider API keys for LLM backends
     providerKeys = {
