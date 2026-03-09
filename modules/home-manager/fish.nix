@@ -31,9 +31,6 @@
       # Initialize zoxide (smart cd)
       zoxide init fish | source
 
-      # Initialize starship prompt
-      starship init fish | source
-
       # ============================================================================
       # NIXOS MANAGEMENT ALIASES
       # ============================================================================

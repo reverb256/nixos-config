@@ -34,7 +34,7 @@
     # KUBERNETES PKI (Certificates) - Auto-generate with easyCerts
     # ============================================================================
     services.kubernetes.easyCerts = true;
-    services.kubernetes.caFile = lib.mkForce "/etc/kubernetes/ca.crt";
+    # Use module defaults for certificate paths
     services.kubernetes.apiserver.serviceAccountSigningKeyFile = lib.mkForce "/etc/kubernetes/service-account-key.pem";
     services.kubernetes.apiserver.serviceAccountKeyFile = lib.mkForce "/etc/kubernetes/service-account-key.pem";
 
@@ -57,7 +57,7 @@
       listenClientUrls = ["http://127.0.0.1:2379"];
       listenPeerUrls = ["http://10.1.1.110:2380"];
       initialAdvertisePeerUrls = ["http://10.1.1.110:2380"];
-      initialCluster = ["zephyr=http://10.1.1.110:2380"];
+      initialCluster = ["10.1.1.110=http://10.1.1.110:2380"];
       initialClusterToken = "zephyr-etcd-cluster";
       initialClusterState = "new";
     };
@@ -72,6 +72,13 @@
 
     services.kubernetes.kubelet = {
       enable = true;
+      hostname = "zephyr";
+      extraConfig = {
+        # Fail on swap disabled for mining workstation
+        failSwapOn = false;
+        # Use containerd as container runtime
+        containerd = "/run/containerd/containerd.sock";
+      };
     };
 
     services.kubernetes.proxy = {
