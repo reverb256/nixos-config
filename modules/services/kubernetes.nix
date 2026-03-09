@@ -31,11 +31,6 @@
     services.kubernetes.masterAddress = config.services.kubernetes-module.masterAddress;
 
     # ============================================================================
-    # POD NETWORK
-    # ============================================================================
-    services.kubernetes.podNets = ["10.244.0.0/16"];
-
-    # ============================================================================
     # KUBERNETES PKI (Certificates) - Auto-generate with easyCerts
     # ============================================================================
     services.kubernetes.easyCerts = true;
@@ -52,6 +47,8 @@
       securePort = 6443;
       # Allow privileged pods (needed for some system components)
       allowPrivileged = true;
+      # Pod network CIDR
+      clusterCIDR = "10.244.0.0/16";
     };
 
     # ============================================================================
