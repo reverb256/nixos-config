@@ -34,10 +34,8 @@
   # KUBERNETES CONTROL PLANE
   # ============================================================================
   # Enable Kubernetes master (control plane) + worker role on Zephyr
-  # NOTE: Temporarily disabled due to incomplete bootstrap configuration
-  # Re-enable after certificates and etcd are properly configured
   services.kubernetes-module = {
-    enable = false;  # Set back to true when Kubernetes is ready
+    enable = true;
     masterAddress = "10.1.1.110";  # Zephyr's IP
     roles = ["master" "node"];
   };
