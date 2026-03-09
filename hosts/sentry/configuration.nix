@@ -27,26 +27,53 @@
 
     # Home Manager integration
     ../../modules/system/home-manager.nix
+
+    # Kubernetes worker node
+    ../../modules/services/kubernetes.nix
   ];
 
   # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
-  networking.hostName = "sentry";
+  networking = {
+    hostName = "sentry";
+    networkmanager = {
+      enable = true;
+      ensureProfiles.profiles."Wired connection 1" = {
+        connection = {
+          id = "Wired connection 1";
+          type = "ethernet";
+          interface-name = "enp7s0";
+          autoconnect = true;
+        };
+        ipv4 = {
+          method = "manual";
+          address1 = "10.1.1.140/24";
+          gateway = "10.1.1.1";
+          dns = "127.0.0.1,::1";
+        };
+        ipv6.method = "auto";
+      };
+    };
+  };
 
   # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
-  hardware.profiles = {
-    amd.zen = true; # Zen CPU optimizations
-    amdgpu.enable = true; # AMD GPU support
-    amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
-    monitoring.enable = true; # Hardware monitoring
-  };
+  hardware = {
+    profiles = {
+      amd.zen = true; # Zen CPU optimizations
+      amdgpu.enable = true; # AMD GPU support
+      amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
+      monitoring.enable = true; # Hardware monitoring
+    };
 
-  # Hardware monitoring extras (not covered by profile)
-  hardware.monitoring.autoDetect = true; # Auto-detect sensor chips
-  hardware.monitoring.fanControl = false; # BIOS fan control for now
+    # Hardware monitoring extras (not covered by profile)
+    monitoring = {
+      autoDetect = true; # Auto-detect sensor chips
+      fanControl = false; # BIOS fan control for now
+    };
+  };
 
   # ============================================================================
   # ROLE PROFILES
@@ -64,17 +91,42 @@
   # ============================================================================
   # BOOTLOADER
   # ============================================================================
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
 
-  # ============================================================================
-  # KERNEL - Zen for better desktop responsiveness (matches other cluster hosts)
-  # ============================================================================
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+    # ============================================================================
+    # KERNEL - Zen for better desktop responsiveness (matches other cluster hosts)
+    # ============================================================================
+    kernelPackages = pkgs.linuxPackages_zen;
+  };
 
   # Note: hardware.profiles.amdgpu.enable handles AMDGPU automatically
 
-  services.xserver.videoDrivers = ["amdgpu"];
+  # ============================================================================
+  # KUBERNETES WORKER NODE
+  # ============================================================================
+  services.kubernetes-module = {
+    enable = true;
+    masterAddress = "10.1.1.110"; # Zephyr control plane
+    roles = ["node"]; # Worker node only
+  };
+
+  services = {
+    xserver.videoDrivers = ["amdgpu"];
+
+    # ============================================================================
+    # PLASMA WAYLAND
+    # ============================================================================
+    displayManager = {
+      sddm.enable = true;
+      defaultSession = "plasma";
+    };
+
+    desktopManager.plasma6.enable = true;
+  };
 
   # ============================================================================
   # ROCm SETUP (for AMD GPU monitoring)
@@ -104,13 +156,6 @@
     "L+ /opt/rocm - - - - ${rocmEnv}"
     "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
   ];
-
-  # ============================================================================
-  # PLASMA WAYLAND
-  # ============================================================================
-  services.displayManager.sddm.enable = true;
-  services.desktopManager.plasma6.enable = true;
-  services.displayManager.defaultSession = "plasma";
 
   # ============================================================================
   # SECONDARY STORAGE (sda - 1TB SSD)
@@ -158,29 +203,6 @@
   # DISTRIBUTED BUILDS - DISABLED (local builds only)
   # ============================================================================
   nix.distributedBuilds = lib.mkForce false;
-  # ============================================================================
-  # NETWORKING
-  # ============================================================================
-  networking = {
-    networkmanager = {
-      enable = true;
-      ensureProfiles.profiles."Wired connection 1" = {
-        connection = {
-          id = "Wired connection 1";
-          type = "ethernet";
-          interface-name = "enp7s0";
-          autoconnect = true;
-        };
-        ipv4 = {
-          method = "manual";
-          address1 = "10.1.1.140/24";
-          gateway = "10.1.1.1";
-          dns = "127.0.0.1,::1";
-        };
-        ipv6.method = "auto";
-      };
-    };
-  };
 
   # ============================================================================
   # TAILSCALE
@@ -193,6 +215,18 @@
     client.enable = true;
   };
 
+  # Kubernetes worker firewall rules
+  networking.firewall = {
+    allowedTCPPorts = [22 10250]; # SSH + Kubelet API
+    allowedTCPPortRanges = [
+      {
+        from = 30000;
+        to = 32767;
+      }
+    ];
+    allowedUDPPorts = [8472]; # Flannel VXLAN
+  };
+
   systemd.services.tailscaled.environment = {
     TS_ADVERTISE_ROUTES = "10.1.1.0/24";
     TS_ROUTES = "";
@@ -202,62 +236,55 @@
   # ============================================================================
   # NIX-LD (For ROCm and mining software compatibility)
   # ============================================================================
-  programs.nix-ld.enable = true;
-  programs.nix-ld.libraries = with pkgs; [
-    # AMD/ROCm libraries
-    rocmPackages.clr
-    rocmPackages.clr.icd
-    rocmPackages.rocminfo
-    rocmPackages.rocm-smi
-    rocmPackages.rocm-runtime
-    rocmPackages.rocblas
-    rocmPackages.hipblas
-    rocmPackages.hipsparse
-    rocmPackages.rocfft
-    rocmPackages.rocrand
-    rocmPackages.rocthrust
+  programs = {
+    nix-ld.enable = true;
+    nix-ld.libraries = with pkgs; [
+      # AMD/ROCm libraries
+      rocmPackages.clr
+      rocmPackages.clr.icd
+      rocmPackages.rocminfo
+      rocmPackages.rocm-smi
+      rocmPackages.rocm-runtime
+      rocmPackages.rocblas
+      rocmPackages.hipblas
+      rocmPackages.hipsparse
+      rocmPackages.rocfft
+      rocmPackages.rocrand
+      rocmPackages.rocthrust
 
-    # OpenCL
-    ocl-icd
-    opencl-headers
-    clinfo
+      # OpenCL
+      ocl-icd
+      opencl-headers
+      clinfo
 
-    # System libraries
-    zlib
-    libpng
-    libjpeg
-    freetype
-    fontconfig
-    xorg.libX11
-    xorg.libXext
-    xorg.libXrender
-    xorg.libxcb
-    xorg.libXau
-    xorg.libXdmcp
-    SDL2
-    alsa-lib
-    systemd
-    libusb1
-    curl
-    openssl
-  ];
+      # System libraries
+      zlib
+      libpng
+      libjpeg
+      freetype
+      fontconfig
+      xorg.libX11
+      xorg.libXext
+      xorg.libXrender
+      xorg.libxcb
+      xorg.libXau
+      xorg.libXdmcp
+      SDL2
+      alsa-lib
+      systemd
+      libusb1
+      curl
+      openssl
+    ];
 
-  # ============================================================================
-  # CI/CD
-  # ============================================================================
-  services.garnix.enable = false;
-  services.nixos-auto-update.enable = true;
-
-  # ============================================================================
-  # GIT CONFIGURATION
-  # ============================================================================
-  programs.git = {
-    enable = true;
-    config = {
-      user.name = "j_kro";
-      user.email = "j_kro@sentry";
-      init.defaultBranch = "main";
-      remote.origin.url = "git@github.com:reverb256/nixos-config.git";
+    git = {
+      enable = true;
+      config = {
+        user.name = "j_kro";
+        user.email = "j_kro@sentry";
+        init.defaultBranch = "main";
+        remote.origin.url = "git@github.com:reverb256/nixos-config.git";
+      };
     };
   };
 }

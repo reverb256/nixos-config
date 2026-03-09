@@ -15,7 +15,6 @@
     mkIf
     mkMerge
     mkDefault
-    literalExpression
     ;
 in {
   options.services.nextcloud-module = {
@@ -379,7 +378,7 @@ in {
       enable = true;
       url = "https://${cfg.hostName}";
       username = cfg.admin.user;
-      passwordFile = cfg.admin.passwordFile;
+      inherit (cfg.admin) passwordFile;
     };
 
     # ============================================================================

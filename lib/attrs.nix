@@ -3,7 +3,8 @@
 # Heavily inspired by hlissner/dotfiles
 # Provides helpers for working with nested attribute sets
 {lib}:
-with builtins; with lib; let
+with builtins;
+with lib; let
   # Flatten an attrset, concatenating names with '.'
   # flattenAttrs { a.b = 1; c = 2; } => { "a.b" = 1; c = 2; }
   flattenAttrs = prefix: attrs:

@@ -9,12 +9,6 @@
   cfg = config.services.monitoring.node-exporter;
   # Use centralized network constants
   port = config.networking.cluster.ports.node-exporter;
-  currentHost =
-    config.networking.cluster.hosts.${
-      config.networking.hostName
-    } or {
-      ip = "0.0.0.0";
-    };
 in {
   options.services.monitoring.node-exporter = {
     enable = lib.mkEnableOption "Prometheus node exporter";

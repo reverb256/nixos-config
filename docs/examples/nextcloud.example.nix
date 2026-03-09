@@ -1,10 +1,6 @@
 # Example configuration for Nextcloud module
 # Add this to your /etc/nixos/configuration.nix
-{
-  config,
-  pkgs,
-  ...
-}: {
+{...}: {
   # ============================================================================
   # NEXTCLOUD CONFIGURATION
   # ============================================================================

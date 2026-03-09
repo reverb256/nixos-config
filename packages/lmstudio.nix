@@ -19,7 +19,7 @@ in
     pname = "lmstudio";
     inherit version src;
 
-    extraPkgs = pkgs: [];
+    extraPkgs = _pkgs: [];
 
     extraInstallCommands = ''
           # Install the icon from the extracted AppImage

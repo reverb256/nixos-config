@@ -1,6 +1,6 @@
 # Starship Prompt Configuration (Home Manager)
 # Centralized starship settings for j_kro across all cluster nodes
-{pkgs, ...}: {
+{...}: {
   programs.starship = {
     enable = true;
 

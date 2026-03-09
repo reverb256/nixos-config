@@ -1,6 +1,6 @@
 # Example Service Gateway Configuration - Simple Human URLs
 # Add this to your /etc/nixos/configuration.nix
-{config, ...}: {
+{...}: {
   # ============================================================================
   # SERVICE GATEWAY - Simple URLs like ai.zephyr, cloud.zephyr
   # ============================================================================

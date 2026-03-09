@@ -22,69 +22,71 @@
     # SYSTEM LIBRARIES FOR CHROMIUM/PLAYWRIGHT
     # ============================================================================
     # Playwright bundles its own Chromium binary, which needs these libraries
-    environment.systemPackages = with pkgs; [
-      # Playwright CLI
-      playwright
-    ] ++ (with pkgs; [
-      # GTK/GNOME libraries required by Chromium
-      glib
-      glibc
-      gtk3
-      gtk4
-      gdk-pixbuf
-      pango
-      cairo
-      atk
-      cups
-      libdrm
-      libxkbcommon
-      libxrandr
-      libxcb
-      libxcomposite
-      libxcursor
-      libxdamage
-      libxext
-      libxfixes
-      libxi
-      libxrender
-      libxtst
-      libxscrnsaver
-      mesa
-      nspr
-      nss
-      alsa-lib
-      at-spi2-atk
-      at-spi2-core
-      dbus
-      expat
-      fontconfig
-      freetype
-      libpciaccess
+    environment.systemPackages = with pkgs;
+      [
+        # Playwright CLI
+        playwright
+      ]
+      ++ (with pkgs; [
+        # GTK/GNOME libraries required by Chromium
+        glib
+        glibc
+        gtk3
+        gtk4
+        gdk-pixbuf
+        pango
+        cairo
+        atk
+        cups
+        libdrm
+        libxkbcommon
+        libxrandr
+        libxcb
+        libxcomposite
+        libxcursor
+        libxdamage
+        libxext
+        libxfixes
+        libxi
+        libxrender
+        libxtst
+        libxscrnsaver
+        mesa
+        nspr
+        nss
+        alsa-lib
+        at-spi2-atk
+        at-spi2-core
+        dbus
+        expat
+        fontconfig
+        freetype
+        libpciaccess
 
-      # Additional libraries for newer Chromium versions
-      libgbm
-      libva
-      libnotify
-      speechd
-      xdg-utils
-      liberation_ttf
+        # Additional libraries for newer Chromium versions
+        libgbm
+        libva
+        libnotify
+        speechd
+        xdg-utils
+        liberation_ttf
 
-      # X11 libraries (for headless shell)
-      libx11
-      libxcomposite
-      libxcursor
-      libxdamage
-      libxext
-      libxfixes
-      libxi
-      libxrandr
-      libxrender
-      libxtst
-      libxscrnsaver
-      libxcb
-      libxkbfile
-      xorgproto
-    ]);
+        # X11 libraries (for headless shell)
+        libx11
+        libxcomposite
+        libxcursor
+        libxdamage
+        libxext
+        libxfixes
+        libxi
+        libxrandr
+        libxrender
+        libxtst
+        libxscrnsaver
+        libxcb
+        libxkbfile
+        xorgproto
+      ]);
 
     # ============================================================================
     # NIX-LD FOR DYNAMIC LIBRARY LOADING

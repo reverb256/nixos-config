@@ -113,7 +113,7 @@ in {
         };
 
         grantPermissions = lib.mkOption {
-          type = lib.types.listOf (lib.types.str);
+          type = lib.types.listOf lib.types.str;
           default = [];
           description = "Permissions to grant (geolocation, clipboard-read, clipboard-write, etc.)";
         };

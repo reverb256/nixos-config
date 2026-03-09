@@ -1,6 +1,6 @@
 # Kernel Hardening Module
 # Security-focused kernel parameters and settings from XNM1
-{pkgs, ...}: {
+{...}: {
   # ============================================================================
   # KERNEL SECURITY PARAMETERS (from XNM1)
   # ============================================================================

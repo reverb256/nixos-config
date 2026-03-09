@@ -1,23 +1,15 @@
 # lib/default.nix --- Custom library entry point
 #
 # Combines attrs and modules libraries, extends nixpkgs lib
-{
-  self,
-  lib,
-  pkgs,
-  ...
-}: let
+{lib, ...}: let
   inherit
     (builtins)
     mapAttrs
-    intersectAttrs
-    functionArgs
     attrValues
     ;
 
   inherit
     (lib)
-    foldl
     mapAttrs'
     nameValuePair
     ;

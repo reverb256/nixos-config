@@ -259,9 +259,12 @@
       gridPos,
       thresholds ? [],
       colorMode ? "value",
+      unit ? "none",
     }: {
       datasource = prometheusDatasource;
-      fieldConfig.defaults = fieldConfigs.thresholdColor thresholds;
+      fieldConfig.defaults = fieldConfigs.thresholdColor thresholds // {
+        inherit unit;
+      };
       inherit gridPos;
       options = {
         graphMode =

@@ -1,10 +1,6 @@
 # Virtualisation Module
 # Podman, containers, and virtualisation tools from XNM1
-{
-  pkgs,
-  lib,
-  ...
-}: {
+{pkgs, ...}: {
   # ============================================================================
   # PODMAN (Docker alternative)
   # ============================================================================

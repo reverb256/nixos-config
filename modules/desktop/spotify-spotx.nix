@@ -9,7 +9,7 @@
   ...
 }: let
   cfg = config.services.spotify-spotx;
-  inherit (lib) mkIf mkEnableOption mkOption types literalExpression;
+  inherit (lib) mkIf mkEnableOption mkOption types;
 
   # Import Spotify common library for helper functions
   spotify-common = import ./lib/spotify-common.nix {inherit lib pkgs;};

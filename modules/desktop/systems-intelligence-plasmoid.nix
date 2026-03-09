@@ -46,7 +46,7 @@ in {
     systemd.tmpfiles.settings."plasmoid-${cfg.user}" = {
       "/home/${cfg.user}/.local/share/plasma/plasmoids/${plasmoidName}" = {
         d = {
-          user = cfg.user;
+          inherit (cfg) user;
           group = "users";
           mode = "0755";
         };

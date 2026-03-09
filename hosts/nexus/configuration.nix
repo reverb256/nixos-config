@@ -25,26 +25,65 @@
 
     # Home Manager integration
     ../../modules/system/home-manager.nix
+
+    # Kubernetes worker node
+    ../../modules/services/kubernetes.nix
   ];
 
   # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
-  networking.hostName = "nexus";
+  networking = {
+    hostName = "nexus";
+    networkmanager = {
+      enable = true;
+      ensureProfiles.profiles."Wired connection 1" = {
+        connection = {
+          id = "Wired connection 1";
+          type = "ethernet";
+          interface-name = "enp7s0";
+          autoconnect = true;
+        };
+        ipv4 = {
+          method = "manual";
+          address1 = "10.1.1.120/24";
+          gateway = "10.1.1.1";
+          dns = "127.0.0.1,::1";
+        };
+        ipv6.method = "auto";
+      };
+    };
+
+    firewall = {
+      allowedTCPPorts = [22 9757 18789 18790 10250]; # Added SSH + Kubelet API
+      allowedTCPPortRanges = [
+        {
+          from = 30000;
+          to = 32767;
+        }
+      ];
+      allowedUDPPorts = [9757 9758 9759 8472]; # Added Flannel VXLAN
+      interfaces."tailscale0".allowedTCPPorts = [18789 18790];
+    };
+  };
 
   # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
-  hardware.profiles = {
-    amd.zen = true; # Zen CPU optimizations
-    nvidia.enable = true; # NVIDIA GPU support
-    nvidia.multiGpu = false; # Single RTX 3060 Ti
-    monitoring.enable = true; # Hardware monitoring
-  };
+  hardware = {
+    profiles = {
+      amd.zen = true; # Zen CPU optimizations
+      nvidia.enable = true; # NVIDIA GPU support
+      nvidia.multiGpu = false; # Single RTX 3060 Ti
+      monitoring.enable = true; # Hardware monitoring
+    };
 
-  # Hardware monitoring extras (not covered by profile)
-  hardware.monitoring.autoDetect = true; # Auto-detect sensor chips
-  hardware.monitoring.fanControl = false; # BIOS fan control for now
+    # Hardware monitoring extras (not covered by profile)
+    monitoring = {
+      autoDetect = true; # Auto-detect sensor chips
+      fanControl = false; # BIOS fan control for now
+    };
+  };
 
   # ============================================================================
   # STORAGE CONFIGURATION
@@ -53,49 +92,60 @@
   # - nvme1n1 (223.6GB) - "worn-storage" for high-write workloads
   # - bcache0 (3.6TB + 465GB cache) - "nexus-storage" with organized subvolumes
 
-  # Mount worn-storage (worn NVMe - suitable for high-write workloads)
-  fileSystems."/data/worn" = {
-    device = "/dev/disk/by-uuid/2056c7e4-cd6c-4a67-9b3d-001178a70eaa";
-    fsType = "btrfs";
-    options = ["compress=zstd" "ssd" "discard=async"];
-  };
+  fileSystems = {
+    # Mount worn-storage (worn NVMe - suitable for high-write workloads)
+    "/data/worn" = {
+      device = "/dev/disk/by-uuid/2056c7e4-cd6c-4a67-9b3d-001178a70eaa";
+      fsType = "btrfs";
+      options = ["compress=zstd" "ssd" "discard=async"];
+    };
 
-  # Mount nexus-storage subvolumes (large bcache device)
-  fileSystems."/data/home" = {
-    device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
-    fsType = "btrfs";
-    options = ["subvol=home" "compress=zstd" "ssd" "discard=async"];
-  };
+    # Mount nexus-storage subvolumes (large bcache device)
+    "/data/home" = {
+      device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+      fsType = "btrfs";
+      options = ["subvol=home" "compress=zstd" "ssd" "discard=async"];
+    };
 
-  fileSystems."/data/shared" = {
-    device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
-    fsType = "btrfs";
-    options = ["subvol=shared" "compress=zstd" "ssd" "discard=async"];
-  };
+    "/data/shared" = {
+      device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+      fsType = "btrfs";
+      options = ["subvol=shared" "compress=zstd" "ssd" "discard=async"];
+    };
 
-  fileSystems."/data/backups" = {
-    device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
-    fsType = "btrfs";
-    options = ["subvol=backups" "compress=zstd" "ssd" "discard=async"];
-  };
+    "/data/backups" = {
+      device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+      fsType = "btrfs";
+      options = ["subvol=backups" "compress=zstd" "ssd" "discard=async"];
+    };
 
-  fileSystems."/data/media" = {
-    device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
-    fsType = "btrfs";
-    options = ["subvol=media" "compress=zstd" "ssd" "discard=async"];
-  };
+    "/data/media" = {
+      device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+      fsType = "btrfs";
+      options = ["subvol=media" "compress=zstd" "ssd" "discard=async"];
+    };
 
-  fileSystems."/var/lib/containers" = {
-    device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
-    fsType = "btrfs";
-    options = ["subvol=containers" "compress=zstd" "ssd" "discard=async"];
+    "/var/lib/containers" = {
+      device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
+      fsType = "btrfs";
+      options = ["subvol=containers" "compress=zstd" "ssd" "discard=async"];
+    };
   };
 
   # ============================================================================
   # BOOTLOADER
   # ============================================================================
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
+
+    # ============================================================================
+    # KERNEL - Zen for better desktop responsiveness
+    # ============================================================================
+    kernelPackages = pkgs.linuxPackages_zen;
+  };
 
   # ============================================================================
   # ROLE PROFILES
@@ -118,46 +168,20 @@
   services.spotify-spotx.enable = true;
 
   # ============================================================================
-  # NETWORKING
-  # ============================================================================
-  networking = {
-    networkmanager = {
-      enable = true;
-      ensureProfiles.profiles."Wired connection 1" = {
-        connection = {
-          id = "Wired connection 1";
-          type = "ethernet";
-          interface-name = "enp7s0";
-          autoconnect = true;
-        };
-        ipv4 = {
-          method = "manual";
-          address1 = "10.1.1.120/24";
-          gateway = "10.1.1.1";
-          dns = "127.0.0.1,::1";
-        };
-        ipv6.method = "auto";
-      };
-    };
-
-    firewall = {
-      allowedTCPPorts = [22 9757 18789 18790]; # Added SSH port 22
-      allowedUDPPorts = [9757 9758 9759];
-      interfaces."tailscale0".allowedTCPPorts = [18789 18790];
-    };
-  };
-
-  # ============================================================================
-  # KERNEL - Zen for better desktop responsiveness
-  # ============================================================================
-  boot.kernelPackages = pkgs.linuxPackages_zen;
-
-  # ============================================================================
   # NVIDIA CONFIGURATION
   # Note: Base config is in nvidia-common.nix
   # ============================================================================
   # Nexus-specific kernel params (appended after nvidia-common.nix defaults)
   # No additional params needed beyond nvidia-common.nix defaults
+
+  # ============================================================================
+  # KUBERNETES WORKER NODE
+  # ============================================================================
+  services.kubernetes-module = {
+    enable = true;
+    masterAddress = "10.1.1.110"; # Zephyr control plane
+    roles = ["node"]; # Worker node only
+  };
 
   # ============================================================================
   # SERVICES

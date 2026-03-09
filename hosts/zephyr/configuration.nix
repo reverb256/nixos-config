@@ -3,7 +3,6 @@
 {
   pkgs,
   inputs,
-  lib,
   ...
 }: {
   imports = [
@@ -27,7 +26,20 @@
   # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
-  networking.hostName = "zephyr";
+  networking = {
+    hostName = "zephyr";
+    networkmanager = {
+      enable = true;
+      dns = "none";
+    };
+
+    cluster-hosts = {
+      enable = true;
+      populateLocal = true;
+    };
+
+    wireless.enable = true;
+  };
 
   # ============================================================================
   # KUBERNETES CONTROL PLANE
@@ -53,72 +65,69 @@
   # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
-  hardware.profiles = {
-    amd.zen = true; # Zen CPU optimizations (kernel params)
-    nvidia.enable = true; # NVIDIA GPU support
-    nvidia.multiGpu = true; # Multi-GPU (RTX 3090 + 3060 Ti)
-    corsair.enable = true; # Corsair AIO + RGB
-    monitoring.enable = true; # Hardware monitoring
+  hardware = {
+    profiles = {
+      amd.zen = true; # Zen CPU optimizations (kernel params)
+      nvidia.enable = true; # NVIDIA GPU support
+      nvidia.multiGpu = true; # Multi-GPU (RTX 3090 + 3060 Ti)
+      corsair.enable = true; # Corsair AIO + RGB
+      monitoring.enable = true; # Hardware monitoring
+    };
+
+    # Hardware monitoring extras (not covered by profile)
+    monitoring = {
+      autoDetect = false; # Skip auto-detect, we know the hardware
+      fanControl = true; # Custom fan curve control
+    };
+
+    # Corsair extras (not covered by profile)
+    corsair = {
+      aio.enable = true; # Corsair H115i AIO control
+      rgb.enable = true; # OpenRGB for RGB control
+      autoStartRgb = false; # Don't auto-start (conflicts with liquidctl)
+    };
+
+    # Bluetooth support via BlueZ
+    bluetooth.enable = true;
   };
-
-  # Hardware monitoring extras (not covered by profile)
-  hardware.monitoring.autoDetect = false; # Skip auto-detect, we know the hardware
-  hardware.monitoring.fanControl = true; # Custom fan curve control
-
-  # Corsair extras (not covered by profile)
-  hardware.corsair.aio.enable = true; # Corsair H115i AIO control
-  hardware.corsair.rgb.enable = true; # OpenRGB for RGB control
-  hardware.corsair.autoStartRgb = false; # Don't auto-start (conflicts with liquidctl)
-
-  networking.networkmanager.enable = true;
 
   # DNS - Use local unbound resolver for cluster hostnames
   services.unbound-cluster = {
     enable = true;
   };
 
-  # Configure NetworkManager to use local unbound via connection settings
-  networking.networkmanager.dns = "none";
-
-  # Cluster hosts - populate /etc/hosts from cluster configuration
-  networking.cluster-hosts = {
-    enable = true;
-    populateLocal = true;
-  };
-
   # ============================================================================
   # WIRELESS HARDWARE
   # ============================================================================
-  # WiFi support via wpa_supplicant (works with NetworkManager)
-  networking.wireless.enable = true;
-
-  # Bluetooth support via BlueZ
-  hardware.bluetooth.enable = true;
 
   # Timezone and locale
   time.timeZone = "America/Winnipeg";
   i18n.defaultLocale = "en_CA.UTF-8";
 
   # Bootloader
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
 
-  # Use latest kernel
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+    # Use latest kernel
+    kernelPackages = pkgs.linuxPackages_zen;
 
-  # Multi-GPU kernel modules for RTX 3090 + 3060 Ti
-  # (Note: hardware.profiles.nvidia.enable adds nvidia modules automatically)
-  boot.kernelModules = [
-    "nvidia_uvm" # Unified Memory (CRITICAL for multi-GPU!)
-  ];
+    # Multi-GPU kernel modules for RTX 3090 + 3060 Ti
+    # (Note: hardware.profiles.nvidia.enable adds nvidia modules automatically)
+    kernelModules = [
+      "nvidia_uvm" # Unified Memory (CRITICAL for multi-GPU!)
+    ];
 
-  # Zephyr-specific kernel params for gaming
-  # (Note: hardware.profiles.amd.zen adds split_lock_detect, threadirqs, preempt)
-  boot.kernelParams = [
-    "processor.max_cstate=1"
-    "intel_idle.max_cstate=1"
-    "iommu=pt"
-  ];
+    # Zephyr-specific kernel params for gaming
+    # (Note: hardware.profiles.amd.zen adds split_lock_detect, threadirqs, preempt)
+    kernelParams = [
+      "processor.max_cstate=1"
+      "intel_idle.max_cstate=1"
+      "iommu=pt"
+    ];
+  };
 
   # ============================================================================
   # ROLE PROFILES
@@ -144,30 +153,28 @@
   # Do not override here to avoid conflicts
 
   # ============================================================================
-  # SCOPEBUDDY - Gamescope wrapper
+  # PROGRAMS - SCOPEBUDDY, ANIME GAME LAUNCHERS, AI SERVICES
   # ============================================================================
-  programs.scopebuddy = {
-    enable = true;
-    autoDetect = {
-      resolution = true;
-      hdr = true;
-      vrr = true;
+  programs = {
+    scopebuddy = {
+      enable = true;
+      autoDetect = {
+        resolution = true;
+        hdr = true;
+        vrr = true;
+      };
     };
+
+    # Anime game launchers
+    anime-game-launcher.enable = true;
+    sleepy-launcher.enable = true;
+    honkers-railway-launcher.enable = true;
+    wavey-launcher.enable = true;
+
+    # AI services
+    lm-studio.enable = true;
+    stability-matrix.enable = true;
   };
-
-  # ============================================================================
-  # ANIME GAME LAUNCHERS
-  # ============================================================================
-  programs.anime-game-launcher.enable = true;
-  programs.sleepy-launcher.enable = true;
-  programs.honkers-railway-launcher.enable = true;
-  programs.wavey-launcher.enable = true;
-
-  # ============================================================================
-  # AI SERVICES - LM Studio & Stability Matrix
-  # ============================================================================
-  programs.lm-studio.enable = true;
-  programs.stability-matrix.enable = true;
 
   # Podman container runtime (for Spacebot)
   virtualisation.podman = {
@@ -205,85 +212,89 @@
   };
 
   # Agenix secrets for AI services
-  age.identityPaths = ["/home/j_kro/.age/key.txt"];
+  age = {
+    identityPaths = ["/home/j_kro/.age/key.txt"];
 
-  age.secrets.lm-studio-api-key = {
-    file = "${inputs.self}/secrets/lm-studio-api-key.age";
-    mode = "440";
-    owner = "ai-inference";
-    group = "ai-inference";
-  };
+    secrets = {
+      lm-studio-api-key = {
+        file = "${inputs.self}/secrets/lm-studio-api-key.age";
+        mode = "440";
+        owner = "ai-inference";
+        group = "ai-inference";
+      };
 
-  age.secrets.huggingface-token = {
-    file = "${inputs.self}/secrets/huggingface-token.age";
-    mode = "440";
-    owner = "j_kro";
-    group = "users";
-  };
+      huggingface-token = {
+        file = "${inputs.self}/secrets/huggingface-token.age";
+        mode = "440";
+        owner = "j_kro";
+        group = "users";
+      };
 
-  age.secrets.zai-api-key = {
-    file = "${inputs.self}/secrets/zai-api-key.age";
-    mode = "440";
-    owner = "j_kro";
-    group = "ai-inference";
-  };
+      zai-api-key = {
+        file = "${inputs.self}/secrets/zai-api-key.age";
+        mode = "440";
+        owner = "j_kro";
+        group = "ai-inference";
+      };
 
-  # Kilo API key - Kilo Code provider for Spacebot
-  age.secrets.kilo-api-key = {
-    file = "${inputs.self}/secrets/kilo-api-key.age";
-    mode = "440";
-    owner = "j_kro";
-    group = "users";
-  };
+      # Kilo API key - Kilo Code provider for Spacebot
+      kilo-api-key = {
+        file = "${inputs.self}/secrets/kilo-api-key.age";
+        mode = "440";
+        owner = "j_kro";
+        group = "users";
+      };
 
-  # GlitchTip error tracking secrets
-  age.secrets.glitchtip-db-password = {
-    file = "${inputs.self}/secrets/glitchtip-db-password.age";
-    mode = "440";
-    owner = "root";
-    group = "root";
-    symlink = true;
-  };
+      # GlitchTip error tracking secrets
+      glitchtip-db-password = {
+        file = "${inputs.self}/secrets/glitchtip-db-password.age";
+        mode = "440";
+        owner = "root";
+        group = "root";
+        symlink = true;
+      };
 
-  age.secrets.glitchtip-secret-key = {
-    file = "${inputs.self}/secrets/glitchtip-secret-key.age";
-    mode = "440";
-    owner = "root";
-    group = "root";
-    symlink = true;
-  };
+      glitchtip-secret-key = {
+        file = "${inputs.self}/secrets/glitchtip-secret-key.age";
+        mode = "440";
+        owner = "root";
+        group = "root";
+        symlink = true;
+      };
 
-  # XMRig HTTP API token - For pause/resume via API during builds
-  age.secrets.xmrig-api-token = {
-    file = "${inputs.self}/secrets/xmrig-api-token.age";
-    mode = "440";
-    owner = "mining";
-    group = "mining";
-  };
+      # XMRig HTTP API token - For pause/resume via API during builds
+      xmrig-api-token = {
+        file = "${inputs.self}/secrets/xmrig-api-token.age";
+        mode = "440";
+        owner = "mining";
+        group = "mining";
+      };
 
-  # Tailscale API key - Tailscale service authentication
-  age.secrets.tailscale-api-key = {
-    file = "${inputs.self}/secrets/tailscale-api-key.age";
-    mode = "440";
-    owner = "j_kro";
-    group = "users";
-  };
+      # Tailscale API key - Tailscale service authentication
+      tailscale-api-key = {
+        file = "${inputs.self}/secrets/tailscale-api-key.age";
+        mode = "440";
+        owner = "j_kro";
+        group = "users";
+      };
 
-  # Spacebot Discord bot token
-  # TEMPORARILY DISABLED: Secret file not yet created
-  # age.secrets.spacebot-discord-token = {
-  #   file = "${inputs.self}/secrets/spacebot-discord-token.age";
-  #   mode = "440";
-  #   owner = "root";
-  #   group = "root";
-  # };
+      # Spacebot Discord bot token
+      # TEMPORARILY DISABLED: Secret file not yet created
+      # spacebot-discord-token = {
+      #   file = "${inputs.self}/secrets/spacebot-discord-token.age";
+      #   mode = "440";
+      #   owner = "root";
+      #   group = "root";
+      # };
 
-  # Spacebot Telegram bot token - TrovesAndCoves client communication
-  age.secrets.spacebot-telegram-token = {
-    file = "${inputs.self}/secrets/spacebot-telegram-token.age";
-    mode = "440";
-    owner = "root";
-    group = "root";
+      # Spacebot Telegram bot token - TrovesAndCoves client communication
+      spacebot-telegram-token = {
+        file = "${inputs.self}/secrets/spacebot-telegram-token.age";
+        mode = "440";
+        owner = "root";
+        group = "root";
+      };
+    };
   };
 
   # ============================================================================

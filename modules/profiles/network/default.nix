@@ -4,7 +4,7 @@
   lib,
   ...
 }: let
-  inherit (lib) mkEnableOption mkOption types;
+  inherit (lib) mkEnableOption mkOption;
 in {
   options.profiles.network.tailscale = {
     enable = mkEnableOption "Tailscale VPN";
