@@ -418,3 +418,18 @@ channel = "slack"
 - **GitHub**: https://github.com/spacedriveapp/spacebot
 - **Discord**: https://discord.gg/gTaF2Z44f5
 - **Skills Registry**: https://skills.sh
+
+## Agent Federation (j-kro's Personal Setup)
+
+As of 2026-03-09, j-kro's Spacebot instance runs a 7-agent federation:
+
+1. **Flow** (hub) - Personal assistant, coordinates all agents
+2. **Infra** - NixOS, mining cluster, deployments
+3. **Dev** - Coding, debugging, feature development
+4. **Business** - Client comms, billing, project status
+5. **Agency** - Client portfolio manager
+6. **DevOps** - Deep technical/architectural work
+7. **TrovesAndCoves** - Robin's business assistant
+
+All agents accessible via Telegram bot or Web UI at http://localhost:19898.
+Default routing goes through Flow; use @agent_name for direct addressing.
