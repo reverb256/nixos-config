@@ -34,9 +34,9 @@
     # KUBERNETES PKI (Certificates) - Auto-generate with easyCerts
     # ============================================================================
     services.kubernetes.easyCerts = true;
-    services.kubernetes.caFile = "/etc/kubernetes/ca.crt";
-    services.kubernetes.apiserver.serviceAccountSigningKeyFile = "/etc/kubernetes/service-account-key.pem";
-    services.kubernetes.apiserver.serviceAccountKeyFile = "/etc/kubernetes/service-account-key.pem";
+    services.kubernetes.caFile = lib.mkForce "/etc/kubernetes/ca.crt";
+    services.kubernetes.apiserver.serviceAccountSigningKeyFile = lib.mkForce "/etc/kubernetes/service-account-key.pem";
+    services.kubernetes.apiserver.serviceAccountKeyFile = lib.mkForce "/etc/kubernetes/service-account-key.pem";
 
     # ============================================================================
     # KUBERNETES APISERVER
