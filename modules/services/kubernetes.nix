@@ -34,6 +34,9 @@
     # ============================================================================
     services.kubernetes.masterAddress = config.services.kubernetes-module.masterAddress;
 
+    # Check if this is a master node
+    isMaster = builtins.elem "master" config.services.kubernetes-module.roles;
+
     # ============================================================================
     # KUBERNETES PKI (Certificates) - Auto-generate with easyCerts
     # ============================================================================
@@ -43,40 +46,40 @@
     services.kubernetes.apiserver.serviceAccountKeyFile = lib.mkForce "/etc/kubernetes/service-account-key.pem";
 
     # ============================================================================
-    # KUBERNETES APISERVER
+    # KUBERNETES APISERVER (master only)
     # ============================================================================
-    services.kubernetes.apiserver = {
+    services.kubernetes.apiserver = lib.mkIf isMaster {
       enable = true;
-      bindAddress = "10.1.1.110";
+      bindAddress = config.services.kubernetes-module.masterAddress;
       securePort = 6443;
       # Allow privileged pods (needed for some system components)
       allowPrivileged = true;
     };
 
     # ============================================================================
-    # ETCD (Required for Kubernetes control plane)
+    # ETCD (master only)
     # ============================================================================
-    services.etcd = {
+    services.etcd = lib.mkIf isMaster {
       enable = true;
       listenClientUrls = ["http://127.0.0.1:2379"];
-      listenPeerUrls = ["http://10.1.1.110:2380"];
-      initialAdvertisePeerUrls = ["http://10.1.1.110:2380"];
-      initialCluster = ["10.1.1.110=http://10.1.1.110:2380"];
+      listenPeerUrls = ["http://${config.services.kubernetes-module.masterAddress}:2380"];
+      initialAdvertisePeerUrls = ["http://${config.services.kubernetes-module.masterAddress}:2380"];
+      initialCluster = ["${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380"];
       initialClusterToken = "zephyr-etcd-cluster";
       initialClusterState = "new";
     };
 
-    services.kubernetes.scheduler = {
+    services.kubernetes.scheduler = lib.mkIf isMaster {
       enable = true;
     };
 
-    services.kubernetes.controllerManager = {
+    services.kubernetes.controllerManager = lib.mkIf isMaster {
       enable = true;
     };
 
     services.kubernetes.kubelet = {
       enable = true;
-      hostname = "zephyr";
+      hostname = config.networking.hostName;
       extraConfig = {
         # Fail on swap disabled for mining workstation
         failSwapOn = false;
@@ -112,7 +115,7 @@
     # Create writable CNI directory for Flannel config and CDI spec
     systemd.tmpfiles.rules = [
       "d /var/lib/cni/net.d 0755 root root -"
-      "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
+      "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - - /etc/cni/flannel.conflist"
       "d /var/lib/cdi 0755 root root -"
     ];
 
@@ -162,7 +165,7 @@
     '';
 
     # Write CDI spec via systemd service (CDI dir created by tmpfiles above)
-    systemd.services.nvidia-cdi = {
+    systemd.services.nvidia-cdi = lib.mkIf (!isMaster) {
       description = "NVIDIA GPU CDI Specification";
       wantedBy = ["multi-user.target"];
       before = ["crio.service"];
@@ -206,9 +209,6 @@
       '';
     };
 
-    # Alternative: Use CDI for GPU devices (if nvidia-ctk works)
-    # For now, we'll use the manifest-based approach with device mounts
-
     # ============================================================================
     # DOCKER (Optional - for non-Kubernetes container management)
     # NOTE: Not used by Kubernetes - CRI-O is the cluster container runtime
@@ -226,7 +226,7 @@
     # ============================================================================
     # FIREWALL RULES
     # ============================================================================
-    networking.firewall = {
+    networking.firewall = lib.mkIf isMaster {
       allowedTCPPorts = [
         6443 # Kubernetes API server
         2379 # etcd client
@@ -243,6 +243,16 @@
         }
       ];
 
+      allowedUDPPorts = [8472]; # Flannel VXLAN
+    } // {
+      # Worker node firewall
+      allowedTCPPorts = [10250]; # Kubelet API
+      allowedTCPPortRanges = [
+        {
+          from = 30000;
+          to = 32767;
+        }
+      ];
       allowedUDPPorts = [8472]; # Flannel VXLAN
     };
 
