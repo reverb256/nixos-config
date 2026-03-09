@@ -21,6 +21,8 @@ verify-db:
 # Note: Remote hosts use 'boot' goal to avoid switch inhibitors (e.g., dbus changes)
 deploy:
     just verify-db
+    @echo "Running pre-deployment validation..."
+    @./scripts/pre-deploy-check.sh all
     @echo "Deploying to all hosts..."
     @echo "Deploying to zephyr (local)..."
     cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
@@ -29,21 +31,25 @@ deploy:
 
 # Deploy to zephyr only
 zephyr:
+    @./scripts/pre-deploy-check.sh zephyr
     @echo "Deploying to zephyr..."
     cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
 
 # Deploy to nexus only
 nexus:
+    @./scripts/pre-deploy-check.sh nexus
     @echo "Deploying to nexus..."
     cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus boot
 
 # Deploy to forge only
 forge:
+    @./scripts/pre-deploy-check.sh forge
     @echo "Deploying to forge..."
     cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge boot
 
 # Deploy to sentry only
 sentry:
+    @./scripts/pre-deploy-check.sh sentry
     @echo "Deploying to sentry..."
     cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry boot
 
@@ -61,6 +67,11 @@ test:
     cd {{FLAKE_PATH}} && nix flake check
     @echo "Building all hosts (dry run)..."
     cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- build
+
+# Pre-deployment validation (without building)
+validate:
+    @echo "Running pre-deployment validation..."
+    @./scripts/pre-deploy-check.sh all
 
 # ============================================================================
 # UTILITIES
