@@ -1,7 +1,7 @@
 # Master Overview Dashboard
 # High-level cluster health, alerts summary, and navigation hub
 {lib, ...}: let
-  inherit (lib.dashboard) panels template grid thresholds;
+  inherit (lib.dashboard) panels template thresholds;
 in {
   masterOverview = template {
     title = "🏠 Master Overview";
@@ -11,7 +11,7 @@ in {
       # ========== ROW: CLUSTER STATUS ==========
       (panels.row "🖥️ Cluster Status" false)
       # Node Health Stat
-      (panels.stat {
+      (panels.statPanel {
         title = "Nodes Online";
         expr = "count(up{job=\"node\"} == 1)";
         gridPos = {
@@ -24,7 +24,7 @@ in {
         colorMode = "background";
       })
       # Services Health Stat
-      (panels.stat {
+      (panels.statPanel {
         title = "Services Healthy";
         expr = "count(up == 1)";
         gridPos = {
@@ -37,7 +37,7 @@ in {
         colorMode = "background";
       })
       # Active Alerts Stat
-      (panels.stat {
+      (panels.statPanel {
         title = "Active Alerts";
         expr = "count(ALERTS{alertstate=\"firing\"})";
         gridPos = {
@@ -67,7 +67,7 @@ in {
         colorMode = "background";
       })
       # Total Hashrate
-      (panels.stat {
+      (panels.statPanel {
         title = "Total Hashrate";
         expr = "sum(mining_worker_hashrate)";
         gridPos = {

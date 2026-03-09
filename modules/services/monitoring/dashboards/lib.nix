@@ -239,7 +239,7 @@
   panels = {
     # Create a row header
     row = title: collapsed: {
-      collapsed = collapsed;
+      inherit collapsed;
       gridPos = {
         h = 1;
         w = 24;
@@ -247,29 +247,28 @@
         y = 0;
       };
       panels = [];
-      title = title;
+      inherit title;
       type = "row";
     };
 
     # Create a stat panel
-    stat = {
+    statPanel = {
       title,
       expr,
       legendFormat ? "",
       gridPos,
       thresholds ? [],
-      unit ? "none",
       colorMode ? "value",
     }: {
       datasource = prometheusDatasource;
       fieldConfig.defaults = fieldConfigs.thresholdColor thresholds;
-      gridPos = gridPos;
+      inherit gridPos;
       options = {
         graphMode =
           if colorMode == "background"
           then "none"
           else "area";
-        colorMode = colorMode;
+        inherit colorMode;
         reduceOptions = {
           calcs = ["lastNotNull"];
           fields = "";
@@ -278,12 +277,12 @@
       };
       targets = [
         {
-          expr = expr;
-          legendFormat = legendFormat;
+          inherit expr;
+          inherit legendFormat;
           refId = "A";
         }
       ];
-      title = title;
+      inherit title;
       type = "stat";
     };
 
@@ -304,7 +303,7 @@
           if custom != null
           then custom
           else fieldConfigs.paletteClassic.custom;
-        unit = unit;
+        inherit unit;
       };
       fieldConfig =
         if thresholds != null
@@ -319,7 +318,7 @@
     in {
       datasource = prometheusDatasource;
       fieldConfig.defaults = fieldConfig;
-      gridPos = gridPos;
+      inherit gridPos;
       options = {
         legend = {
           calcs = ["mean" "max" "last"];
@@ -331,20 +330,20 @@
       targets =
         if builtins.isList expr
         then
-          (lib.imap0 (i: e: {
+          (lib.imap0 (_i: e: {
               expr = e;
-              legendFormat = legendFormat;
+              inherit legendFormat;
               refId = lib.toUpper "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
             })
             expr)
         else [
           {
-            expr = expr;
-            legendFormat = legendFormat;
+            inherit expr;
+            inherit legendFormat;
             refId = "A";
           }
         ];
-      title = title;
+      inherit title;
       type = "timeseries";
     };
 
@@ -363,11 +362,11 @@
         color.mode = "thresholds";
         thresholds.mode = "absolute";
         thresholds.steps = thresholds;
-        unit = unit;
-        min = min;
-        max = max;
+        inherit unit;
+        inherit min;
+        inherit max;
       };
-      gridPos = gridPos;
+      inherit gridPos;
       options = {
         orientation = "auto";
         reduceOptions = {
@@ -380,12 +379,12 @@
       };
       targets = [
         {
-          expr = expr;
+          inherit expr;
           legendFormat = "";
           refId = "A";
         }
       ];
-      title = title;
+      inherit title;
       type = "gauge";
     };
 
@@ -407,25 +406,25 @@
             yaxis = false;
           };
         };
-        unit = unit;
+        inherit unit;
       };
-      gridPos = gridPos;
+      inherit gridPos;
       options = {
         legend = {
           displayMode = "table";
           placement = "right";
           values = ["value" "percent"];
         };
-        pieType = pieType;
+        inherit pieType;
       };
       targets = [
         {
-          expr = expr;
+          inherit expr;
           legendFormat = "{{{{ {0} }}}}";
           refId = "A";
         }
       ];
-      title = title;
+      inherit title;
       type = "piechart";
     };
 
@@ -434,21 +433,20 @@
       title,
       expr,
       gridPos,
-      columns ? ["instance" "job"],
     }: {
       datasource = prometheusDatasource;
-      gridPos = gridPos;
+      inherit gridPos;
       options = {
         showHeader = true;
       };
       targets = [
         {
-          expr = expr;
+          inherit expr;
           format = "table";
           refId = "A";
         }
       ];
-      title = title;
+      inherit title;
       transformations = [
         {
           id = "organize";
@@ -471,16 +469,16 @@
     panels ? [],
   }: {
     annotations.list = [];
-    description = description;
+    inherit description;
     editable = true;
     fiscalYearStartMonth = 0;
     graphTooltip = 1;
     id = null;
     links = [];
     liveNow = false;
-    panels = panels;
-    tags = tags;
-    title = title;
+    inherit panels;
+    inherit tags;
+    inherit title;
     # Generate valid UID: remove emoji, replace spaces/slashes with dashes, lowercase
     # Grafana UIDs can only contain: a-z, 0-9, -, _
     uid = let

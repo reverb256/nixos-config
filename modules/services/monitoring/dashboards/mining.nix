@@ -1,7 +1,7 @@
 # Mining Operations Dashboard
 # Comprehensive mining performance monitoring across all hosts
 {lib, ...}: let
-  inherit (lib.dashboard) panels template grid thresholds;
+  inherit (lib.dashboard) panels template thresholds;
 in {
   mining = template {
     title = "⛏️ Mining Operations";
@@ -11,7 +11,7 @@ in {
       # ========== ROW: OVERVIEW ==========
       (panels.row "📊 Mining Overview" false)
       # Total Hashrate
-      (panels.stat {
+      (panels.statPanel {
         title = "Total Hashrate";
         expr = "sum(mining_worker_hashrate)";
         gridPos = {
@@ -24,7 +24,7 @@ in {
         colorMode = "value";
       })
       # Active Workers
-      (panels.stat {
+      (panels.statPanel {
         title = "Active Workers";
         expr = "count(mining_worker_hashrate > 0)";
         gridPos = {
@@ -46,7 +46,7 @@ in {
         colorMode = "background";
       })
       # Total Shares
-      (panels.stat {
+      (panels.statPanel {
         title = "Shares (Last 5m)";
         expr = "sum(rate(mining_shares_accepted[5m]) * 300)";
         gridPos = {

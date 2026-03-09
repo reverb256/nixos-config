@@ -14,64 +14,73 @@ _default:
 # Deploy to all hosts
 deploy:
     #!/usr/bin/env bash
+    set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → all hosts"
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh all
-    _step "deploying → zephyr..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
-    _done "zephyr"
-    _step "deploying → nexus, forge, sentry..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry switch
-    _done "all hosts"
-    _time; echo ""
+
+    # Deploy sequentially - colmena output goes directly to terminal
+    for host in zephyr nexus forge sentry; do
+        echo ""
+        _step "building + deploying → $host"
+        cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host --verbose
+        _done "$host deployed"
+    done
+
+    _time; _header "all deployments complete"
+    echo ""
 
 # Deploy to zephyr only
 zephyr:
     #!/usr/bin/env bash
+    set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → zephyr"
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh zephyr
-    _step "deploying..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
-    _done "zephyr"
+    _step "building + deploying"
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr --verbose
+    _done "zephyr deployed"
     _time; echo ""
 
 # Deploy to nexus only
 nexus:
     #!/usr/bin/env bash
+    set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → nexus"
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh nexus
-    _step "deploying..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus switch
-    _done "nexus"
+    _step "building + deploying"
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus --verbose
+    _done "nexus deployed"
     _time; echo ""
 
 # Deploy to forge only
 forge:
     #!/usr/bin/env bash
+    set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → forge"
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh forge
-    _step "deploying..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge switch
-    _done "forge"
+    _step "building + deploying"
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge --verbose
+    _done "forge deployed"
     _time; echo ""
 
 # Deploy to sentry only
 sentry:
     #!/usr/bin/env bash
+    set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → sentry"
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh sentry
-    _step "deploying..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry switch
-    _done "sentry"
+    _step "building + deploying"
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry --verbose
+    _done "sentry deployed"
     _time; echo ""
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -81,10 +90,11 @@ sentry:
 # Local switch (mining auto-pauses)
 switch:
     #!/usr/bin/env bash
+    set -e
     source {{JUST_HELPERS}}
     _time; _header "local switch → $(hostname -s)"
     _info "mining will auto-pause during rebuild"
-    cd /etc/nixos && sudo ./scripts/nixos-rebuild-safe.sh switch --flake ".#$(hostname -s)"
+    cd /etc/nixos && sudo ./scripts/nixos-rebuild-safe.sh switch --flake ".#$(hostname -s)" 2>&1
     _done "switch complete"
     _time; echo ""
 
