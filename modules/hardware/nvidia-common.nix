@@ -38,13 +38,21 @@ in {
       # RTX 30 series (Ampere) is fully supported
       package = config.boot.kernelPackages.nvidiaPackages.beta;
 
-      # Open source kernel module (optional for Turing+)
-      # Set to false for proprietary (recommended for gaming/CUDA)
-      open = false;
+      # Open source kernel module (required for Turing+/RTX 30 series)
+      # Better Wayland/Plasma 6 stability, no kernel taint, better error handling
+      # GSP firmware still runs on GPU (required for Ampere/RTX 30 series)
+      open = true;
 
       # Enable nvidia-settings
       nvidiaSettings = true;
     };
+
+    # NVIDIA kernel module options via modprobe
+    boot.extraModprobeConfig = ''
+      # Enable GSP firmware (required for Ampere/RTX 30 series)
+      # GSP runs control firmware on the GPU for better performance
+      options nvidia NVreg_EnableGpuFirmware=1
+    '';
 
     # ============================================================================
     # GPU OPTIMIZATIONS FOR AI INFERENCE
