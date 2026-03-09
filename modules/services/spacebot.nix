@@ -374,6 +374,11 @@ in {
             -v ${cfg.dataDir}/config.toml:/data/config.toml:Z \
             -v /run/agenix:/run/agenix:ro \
             -v /var/run/docker.sock:/var/run/docker.sock:Z \
+            -v /var/run/podman/podman.sock:/var/run/docker.sock:Z \
+            -v /proc:/proc:ro \
+            -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+            -e CONTAINER_HOST_ENDPOINT=unix:///var/run/docker.sock \
+            -e DOCKER_HOST=unix:///var/run/docker.sock \
             -e SPACEBOT_DATA_DIR=/data \
             ${
             lib.optionalString (
@@ -411,6 +416,8 @@ in {
           "/var/lib/containers"
           "/run/containers"
           "/etc/containers"
+          "/var/run/docker.sock"
+          "/var/run/podman"
         ];
 
         # Restart policy
