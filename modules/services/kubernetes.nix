@@ -228,35 +228,40 @@
     # ============================================================================
     # FIREWALL RULES
     # ============================================================================
-    networking.firewall = lib.mkIf isMaster {
-      allowedTCPPorts = [
-        6443 # Kubernetes API server
-        2379 # etcd client
-        2380 # etcd peer
-        10250 # Kubelet API
-        10251 # Kube-scheduler
-        10252 # Kube-controller-manager
-      ];
+    networking.firewall = lib.mkMerge [
+      # Master node firewall
+      (lib.mkIf isMaster {
+        allowedTCPPorts = [
+          6443 # Kubernetes API server
+          2379 # etcd client
+          2380 # etcd peer
+          10250 # Kubelet API
+          10251 # Kube-scheduler
+          10252 # Kube-controller-manager
+        ];
 
-      allowedTCPPortRanges = [
-        {
-          from = 30000;
-          to = 32767;
-        }
-      ];
+        allowedTCPPortRanges = [
+          {
+            from = 30000;
+            to = 32767;
+          }
+        ];
 
-      allowedUDPPorts = [8472]; # Flannel VXLAN
-    } // {
-      # Worker node firewall
-      allowedTCPPorts = [10250]; # Kubelet API
-      allowedTCPPortRanges = [
-        {
-          from = 30000;
-          to = 32767;
-        }
-      ];
-      allowedUDPPorts = [8472]; # Flannel VXLAN
-    };
+        allowedUDPPorts = [8472]; # Flannel VXLAN
+      })
+
+      # Worker node firewall (applies to all nodes, but ports differ per role)
+      {
+        allowedTCPPorts = lib.mkIf (!isMaster) [10250]; # Kubelet API only for workers
+        allowedTCPPortRanges = [
+          {
+            from = 30000;
+            to = 32767;
+          }
+        ];
+        allowedUDPPorts = [8472]; # Flannel VXLAN
+      }
+    ];
 
     # ============================================================================
     # KUBERNETES TOOLS
