@@ -91,6 +91,8 @@
 
     # ============================================================================
     # DOCKER (Required for Kubernetes)
+    # NOTE: NVIDIA GPU passthrough handled via nvidia-container-toolkit package
+    # GPU devices are passed through directly by the kubelet/device plugin
     # ============================================================================
     virtualisation.docker = {
       enable = true;
@@ -99,6 +101,10 @@
         dates = "weekly";
       };
     };
+
+    # NVIDIA Container Toolkit for GPU passthrough
+    # This provides nvidia-container-cli for GPU container support
+    # The device plugin handles GPU discovery, not docker runtime
 
     # ============================================================================
     # FIREWALL RULES
@@ -126,7 +132,7 @@
     # ============================================================================
     # KUBERNETES TOOLS
     # ============================================================================
-    environment.systemPackages = [ pkgs.kubernetes ];
+    environment.systemPackages = with pkgs; [ kubernetes nvidia-container-toolkit ];
 
     # kubectl aliases
     programs.bash.shellAliases = {
