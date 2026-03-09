@@ -61,6 +61,7 @@
     ./services/ai-inference/default.nix
     ./services/nixos-share.nix
     ./services/spacebot.nix
+    ./services/podman-auto-update.nix
     ./services/glitchtip-selfhosted.nix
     ./services/nextcloud.nix
     ./services/service-gateway.nix
