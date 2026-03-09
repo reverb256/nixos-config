@@ -63,15 +63,17 @@ check_flake() {
 
     log_info "Running 'nix flake check' (with 5min timeout)..."
     # Use timeout to prevent hanging, --no-build to skip expensive builds
-    if timeout 300 nix flake check --no-build 2>&1 | tee /tmp/flake-check.log; then
+    # Capture to file first to avoid pipe exit code issues
+    if timeout 300 nix flake check --no-build > /tmp/flake-check.log 2>&1; then
+        cat /tmp/flake-check.log
         log_success "Flake check passed"
     else
         local exit_code=$?
+        cat /tmp/flake-check.log
         if [ $exit_code -eq 124 ]; then
             log_warning "Flake check timed out (continuing...)"
         else
             log_error "Flake check failed (exit code: $exit_code)"
-            cat /tmp/flake-check.log
             return 1
         fi
     fi
