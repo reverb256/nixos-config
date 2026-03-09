@@ -31,6 +31,9 @@
       # Initialize zoxide (smart cd)
       zoxide init fish | source
 
+      # Initialize starship prompt
+      starship init fish | source
+
       # ============================================================================
       # NIXOS MANAGEMENT ALIASES
       # ============================================================================
@@ -199,6 +202,7 @@
 
   # Install required packages
   home.packages = with pkgs; [
+    # Core tools
     eza
     bat
     btop
@@ -210,104 +214,13 @@
     fd
     fzf
     lazygit
+
+    # Wayland tools
+    wl-clipboard
+    grim
+    slurp
+
+    # Prompt
+    starship
   ];
-
-  # Starship prompt configuration
-  programs.starship = {
-    enable = true;
-    settings = {
-      add_newline = false;
-      character = {
-        success_symbol = "[❯](bold cyan)";
-        error_symbol = "[✗](bold red)";
-        vicmd_symbol = "[❮](bold green)";
-      };
-      format = "$hostname$username$directory$git_branch$git_status$kubernetes$character";
-      command_timeout = 10000;
-
-      hostname = {
-        ssh_only = false;
-        ssh_symbol = "🌐 ";
-        format = "[$hostname]($style) ";
-        style = "bold dimmed green";
-        disabled = false;
-      };
-
-      username = {
-        show_always = false;
-        format = "[$user]($style) ";
-        style_user = "bold yellow";
-        disabled = false;
-      };
-
-      directory = {
-        truncation_length = 3;
-        truncation_symbol = "…/";
-        repo_root_style = "bold cyan";
-        repo_root_format = "[$path]($style)[$read_only]($read_only_style) ";
-        read_only = " 🔒";
-        style = "bold cyan";
-      };
-
-      git_branch = {
-        format = "[$branch]($style) ";
-        style = "italic cyan";
-        symbol = " ";
-      };
-
-      git_status = {
-        format = "[$all_status]($style) ";
-        style = "cyan";
-        ahead = "⇡ ";
-        behind = "⇣ ";
-        diverged = "⇕ ";
-        conflicted = "✖";
-        untracked = "•";
-        modified = "▲";
-        staged = "●";
-        stashed = "≡";
-      };
-
-      kubernetes = {
-        symbol = "☸ ";
-        format = "[$context]($style) ";
-        style = "bold blue";
-        disabled = false;
-      };
-
-      nix_shell = {
-        symbol = "❄️ ";
-        format = "[$state]($style) ";
-        style = "bold purple";
-        disabled = false;
-        heuristic = true;
-      };
-
-      docker_context = {
-        symbol = "🐳 ";
-        format = "[$context]($style) ";
-        style = "bold blue";
-        disabled = false;
-      };
-
-      nodejs = {
-        symbol = "⬢ ";
-        format = "[$version]($style) ";
-        style = "bold green";
-        disabled = false;
-      };
-
-      # Disable unused modules
-      sudo.disabled = true;
-      python.disabled = true;
-      ruby.disabled = true;
-      golang.disabled = true;
-      rust.disabled = true;
-      terraform.disabled = true;
-      vagrant.disabled = true;
-      conda.disabled = true;
-      meson.disabled = true;
-      spack.disabled = true;
-    };
-  };
 }

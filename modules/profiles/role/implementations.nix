@@ -1,11 +1,11 @@
 # modules/profiles/role/implementations.nix --- Role profile implementations
-
-{ config, lib, ... }:
-
-let
-  cfg = config.profiles.role;
-in
 {
+  config,
+  lib,
+  ...
+}: let
+  cfg = config.profiles.role;
+in {
   config = lib.mkMerge [
     (lib.mkIf cfg.workstation {
       services.gaming.enable = true;

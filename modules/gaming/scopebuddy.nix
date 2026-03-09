@@ -299,8 +299,7 @@ in {
         "d /home/${userName}/.config/scopebuddy/profiles 0755 ${userName} users -"
       ]
       ++ optionals scopebuddyCfg.hdr.enable [
-        "f /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} users -"
-        "w /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} users -"
+        "f /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} users - -"
       ];
 
     # GameMode configuration

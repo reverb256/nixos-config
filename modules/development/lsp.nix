@@ -1,6 +1,6 @@
 # LSP and Development Tools Module
 # Language servers and development tools for multiple languages
-{ pkgs, ... }: {
+{pkgs, ...}: {
   # Install LSP servers and development tools
   environment.systemPackages = with pkgs; [
     # ============================================================================
@@ -150,7 +150,7 @@
 
     # Go
     GOPATH = "$HOME/go";
-    GOBIN = "$GOPATH/bin";
+    GOBIN = "$HOME/go/bin";
 
     # Rust
     CARGO_HOME = "$HOME/.cargo";

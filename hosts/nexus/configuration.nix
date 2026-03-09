@@ -1,5 +1,5 @@
 # Nexus Host Configuration - Build and Backup Node
-# 10.1.1.120 - 24 cores, 2x RTX 3060 Ti
+# 10.1.1.120 - 24 cores, 1x RTX 3060 Ti
 # Features: Gaming + VR, MCP Servers
 #
 # Module imports: Gaming, mining, monitoring, opencode are already imported
@@ -36,10 +36,10 @@
   # HARDWARE PROFILES
   # ============================================================================
   hardware.profiles = {
-    amd.zen = true;  # Zen CPU optimizations
-    nvidia.enable = true;  # NVIDIA GPU support
-    nvidia.multiGpu = true;  # 2x RTX 3060 Ti
-    monitoring.enable = true;  # Hardware monitoring
+    amd.zen = true; # Zen CPU optimizations
+    nvidia.enable = true; # NVIDIA GPU support
+    nvidia.multiGpu = false; # Single RTX 3060 Ti
+    monitoring.enable = true; # Hardware monitoring
   };
 
   # Hardware monitoring extras (not covered by profile)
@@ -101,10 +101,10 @@
   # ROLE PROFILES
   # ============================================================================
   profiles.role = {
-    gaming = true;  # Steam, Lutris, etc.
-    vr = true;  # WiVRn, SteamVR, OpenXR
-    mining = true;  # GPU/CPU mining
-    aiInference = true;  # AI inference gateway + MCP + RAG
+    gaming = true; # Steam, Lutris, etc.
+    vr = true; # WiVRn, SteamVR, OpenXR
+    mining = true; # GPU/CPU mining
+    aiInference = true; # AI inference gateway + MCP + RAG
   };
 
   # Note: profiles.role.gaming enables services.gaming automatically
@@ -141,7 +141,7 @@
     };
 
     firewall = {
-      allowedTCPPorts = [22 9757 18789 18790];  # Added SSH port 22
+      allowedTCPPorts = [22 9757 18789 18790]; # Added SSH port 22
       allowedUDPPorts = [9757 9758 9759];
       interfaces."tailscale0".allowedTCPPorts = [18789 18790];
     };
@@ -182,7 +182,7 @@
         nvidia = {
           enable = true;
           autostart = true;
-          devices = "0,1";
+          devices = "0";
           powerLimit = 130;
         };
       };
@@ -215,5 +215,4 @@
   # USER GROUPS
   # ============================================================================
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale" "video" "render"];
-
 }

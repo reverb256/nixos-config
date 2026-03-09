@@ -38,10 +38,10 @@
   # HARDWARE PROFILES
   # ============================================================================
   hardware.profiles = {
-    amd.zen = true;  # Zen CPU optimizations
-    amdgpu.enable = true;  # AMD GPU support
-    amdgpu.wayland = true;  # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
-    monitoring.enable = true;  # Hardware monitoring
+    amd.zen = true; # Zen CPU optimizations
+    amdgpu.enable = true; # AMD GPU support
+    amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
+    monitoring.enable = true; # Hardware monitoring
   };
 
   # Hardware monitoring extras (not covered by profile)
@@ -52,8 +52,8 @@
   # ROLE PROFILES
   # ============================================================================
   profiles.role = {
-    mining = true;  # CPU mining only
-    aiInference = true;  # AI inference gateway + MCP + RAG
+    mining = true; # CPU mining only
+    aiInference = true; # AI inference gateway + MCP + RAG
   };
 
   # ============================================================================
@@ -260,5 +260,4 @@
       remote.origin.url = "git@github.com:reverb256/nixos-config.git";
     };
   };
-
 }

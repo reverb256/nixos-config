@@ -1,6 +1,10 @@
 # Searxng Module
 # Privacy-respecting metasearch engine (from XNM1)
-{pkgs, config, ...}: {
+{
+  pkgs,
+  config,
+  ...
+}: {
   # ============================================================================
   # SEARXNG - Privacy-Focused Metasearch Engine
   # ============================================================================
@@ -9,8 +13,8 @@
     settings = {
       server = {
         port = 7777;
-        bind_address = "127.0.0.1";  # Localhost only - use reverse proxy for external access
-        secret_key = "@SEARX_SECRET_KEY@";  # Set via environmentFile
+        bind_address = "127.0.0.1"; # Localhost only - use reverse proxy for external access
+        secret_key = "@SEARX_SECRET_KEY@"; # Set via environmentFile
       };
       search = {
         formats = ["html" "json"];

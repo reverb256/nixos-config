@@ -1,7 +1,11 @@
 # Web Testing Module
 # Provides system libraries for Playwright, Puppeteer, and browser automation
-{ pkgs, lib, config, ... }:
-let
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}: let
   cfg = config.services.web-testing;
 in {
   options.services.web-testing = {

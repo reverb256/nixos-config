@@ -1,11 +1,10 @@
-{ config
-, lib
-, ...
-}:
-let
-  cfg = config.services.opencode;
-in
 {
+  config,
+  lib,
+  ...
+}: let
+  cfg = config.services.opencode;
+in {
   options.services.opencode = {
     enable = lib.mkEnableOption "Enable OpenCode configuration";
 
@@ -84,28 +83,28 @@ in
       type = lib.types.attrs;
       default = {
         typescript = {
-          command = [ "typescript-language-server" "--stdio" ];
-          extensions = [ ".ts" ".tsx" ".js" ".jsx" ".mjs" ".cjs" ];
+          command = ["typescript-language-server" "--stdio"];
+          extensions = [".ts" ".tsx" ".js" ".jsx" ".mjs" ".cjs"];
         };
         basedpyright = {
-          command = [ "basedpyright-langserver" "--stdio" ];
-          extensions = [ ".py" ".pyw" ".pyi" ];
+          command = ["basedpyright-langserver" "--stdio"];
+          extensions = [".py" ".pyw" ".pyi"];
         };
         gopls = {
-          command = [ "gopls" ];
-          extensions = [ ".go" ];
+          command = ["gopls"];
+          extensions = [".go"];
         };
         "ruby-lsp" = {
-          command = [ "ruby-lsp" ];
-          extensions = [ ".rb" ".erb" ];
+          command = ["ruby-lsp"];
+          extensions = [".rb" ".erb"];
         };
         vue = {
-          command = [ "vue-language-server" "--stdio" ];
-          extensions = [ ".vue" ];
+          command = ["vue-language-server" "--stdio"];
+          extensions = [".vue"];
         };
         biome = {
-          command = [ "biome" "lsp-proxy" ];
-          extensions = [ ".js" ".ts" ".jsx" ".tsx" ".json" ];
+          command = ["biome" "lsp-proxy"];
+          extensions = [".js" ".ts" ".jsx" ".tsx" ".json"];
         };
       };
       description = "LSP server configurations (extensible)";

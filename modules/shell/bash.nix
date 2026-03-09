@@ -105,7 +105,6 @@
   environment.systemPackages = with pkgs; [
     # Shell tools
     bash
-    starship
 
     # Navigation
     zoxide

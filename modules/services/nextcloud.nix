@@ -404,15 +404,15 @@ in {
 
       ## Synapse Integration
       ${mkIf cfg.synapseIntegration.enable ''
-      Synapse data directories:
-      - Agent logs: ${cfg.synapseIntegration.dataDir}/agent-logs
-      - Conversations: ${cfg.synapseIntegration.dataDir}/conversation-history
-      - Artifacts: ${cfg.synapseIntegration.dataDir}/project-artifacts
+        Synapse data directories:
+        - Agent logs: ${cfg.synapseIntegration.dataDir}/agent-logs
+        - Conversations: ${cfg.synapseIntegration.dataDir}/conversation-history
+        - Artifacts: ${cfg.synapseIntegration.dataDir}/project-artifacts
 
-      WebDAV mount in Synapse:
-      - URL: https://${cfg.hostName}/remote.php/webdav/
-      - Username: ${cfg.admin.user}
-      - Password: <your-password>
+        WebDAV mount in Synapse:
+        - URL: https://${cfg.hostName}/remote.php/webdav/
+        - Username: ${cfg.admin.user}
+        - Password: <your-password>
       ''}
     '';
   };

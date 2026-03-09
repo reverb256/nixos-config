@@ -4,7 +4,7 @@
     isNormalUser = true;
     description = "Jeremy Kroeker";
     shell = pkgs.fish;
-    extraGroups = ["networkmanager" "wheel" "render" "video" "libinput" "ai-inference"];
+    extraGroups = ["networkmanager" "wheel" "render" "video" "libinput" "ai-inference" "plugdev"];
     packages = with pkgs; [
       kdePackages.kate
       kdePackages.yakuake # Drop-down terminal emulator
@@ -18,4 +18,7 @@
     enable = true;
     extraConfig = "j_kro ALL=(ALL) NOPASSWD: ALL";
   };
+
+  # Create plugdev group for device access (Arduino, FTDI, USB devices)
+  users.groups.plugdev = {};
 }

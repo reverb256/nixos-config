@@ -156,14 +156,31 @@ start_mining() {
 # Trap to ensure mining restarts even on failure
 trap start_mining EXIT
 
+# Check for stuck nix processes before building
+# NOTE: DO NOT use pkill - it can kill the Plasma session
+# Only warn if processes exist, let user handle manually
+echo "🔍 Checking for stuck nix processes..."
+STUCK_PROCS=$(pgrep -f "nixos-rebuild|nix-build" || true)
+if [ -n "$STUCK_PROCS" ]; then
+  echo "⚠️  Found stuck nix processes (will not auto-kill to avoid breaking session):"
+  ps -p $STUCK_PROCS -o pid,cmd 2>/dev/null || true
+  echo "💡 Run manually if needed: sudo pkill -9 -f 'nixos-rebuild|nix-build'"
+  echo "⏸️  Waiting 5 seconds for locks to clear..."
+  sleep 5
+fi
+
 # Stop mining before build
 stop_mining
 
 # Run the actual nixos-rebuild command
 # Note: --accept-flake-config allows nix to read git repo owned by another user
 # when running with sudo. This is safe for single-user systems.
+# --print-build-logs shows full build output
+# --keep-going shows all errors instead of stopping at first
+# -v shows verbose output for debugging
 echo "🔨 Building: nixos-rebuild $*"
-nixos-rebuild --accept-flake-config "$@"
+echo "💡 If build hangs, press Ctrl+C and check: sudo lsof | grep nix"
+nixos-rebuild --accept-flake-config -v --print-build-logs "$@"
 BUILD_STATUS=$?
 
 if [ $BUILD_STATUS -ne 0 ]; then

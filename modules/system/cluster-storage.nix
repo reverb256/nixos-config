@@ -84,8 +84,8 @@ in {
       description = "Periodically verify cluster storage mounts";
       wantedBy = ["timers.target"];
       timerConfig = {
-        OnBootSec = "30s";  # Run 30s after boot
-        OnUnitActiveSec = "5min";  # Then every 5 minutes
+        OnBootSec = "30s"; # Run 30s after boot
+        OnUnitActiveSec = "5min"; # Then every 5 minutes
       };
     };
   };

@@ -122,7 +122,7 @@ in {
           maxretry = 5;
           bantime = "1h";
           findtime = "1h";
-          ignoreIP = "100.0.0.0/8";  # Tailscale network
+          ignoreIP = "100.0.0.0/8"; # Tailscale network
         };
       };
     };

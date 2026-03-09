@@ -39,20 +39,20 @@
   # HARDWARE PROFILES
   # ============================================================================
   hardware.profiles = {
-    intel.enable = true;  # Intel CPU optimizations (Skylake)
-    nvidia.enable = true;  # NVIDIA GPU support
-    nvidia.multiGpu = true;  # 2x RTX 4060
-    amdgpu.enable = true;  # AMD GPU support
-    amdgpu.wayland = true;  # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
-    monitoring.enable = true;  # Hardware monitoring
+    intel.enable = true; # Intel CPU optimizations (Skylake)
+    nvidia.enable = true; # NVIDIA GPU support
+    nvidia.multiGpu = true; # 2x RTX 4060
+    amdgpu.enable = true; # AMD GPU support
+    amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
+    monitoring.enable = true; # Hardware monitoring
   };
 
   # ============================================================================
   # ROLE PROFILES
   # ============================================================================
   profiles.role = {
-    mining = true;  # GPU/CPU mining only (no gaming/VR)
-    aiInference = true;  # AI inference gateway + MCP + RAG
+    mining = true; # GPU/CPU mining only (no gaming/VR)
+    aiInference = true; # AI inference gateway + MCP + RAG
   };
 
   # ============================================================================
@@ -100,20 +100,20 @@
   # ============================================================================
   # Note: profiles.role.mining enables services.mining automatically
 
-  # NVIDIA GPUs (RTX 4060s)
+  # NVIDIA GPUs (RTX 4060s) - devices 0,1 as detected by lolminer
   services.mining.lolminer.nvidia = {
     enable = true;
     autostart = true;
-    devices = "2,3";
+    devices = "0,1";
     powerLimit = 90;
     apiPort = 4068;
   };
 
-  # AMD GPUs (RX 5700 XT)
+  # AMD GPUs (RX 5700 XT) - devices 2,3 (after OpenCL fix)
   services.mining.lolminer.amd = {
     enable = true;
     autostart = true;
-    devices = "0,1";
+    devices = "2,3";
     powerLimit = 140;
     apiPort = 4069;
   };
@@ -203,41 +203,6 @@
         done
 
         log "NVIDIA GPUs set to compute-only mode"
-      '';
-    };
-  };
-
-  # Also apply compute mode on resume from suspend/hibernate
-  systemd.services.nvidia-compute-mode-resume = {
-    description = "NVIDIA GPU Compute Mode on Resume";
-    after = ["suspend.target" "hibernate.target" "hybrid-sleep.target"];
-    wantedBy = ["suspend.target" "hibernate.target" "hybrid-sleep.target"];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "nvidia-compute-mode-resume" ''
-        #!/usr/bin/env bash
-        sleep 3  # Wait for GPUs to wake up
-        /run/current-system/sw/bin/nvidia-smi -c 3
-      '';
-    };
-  };
-
-  # Also apply power limit on resume from suspend/hibernate
-  systemd.services.amd-gpu-power-mgmt-resume = {
-    description = "AMD GPU Power Limit on Resume";
-    after = ["suspend.target" "hibernate.target" "hybrid-sleep.target"];
-    wantedBy = ["suspend.target" "hibernate.target" "hybrid-sleep.target"];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "amd-power-limit-resume" ''
-        #!/usr/bin/env bash
-        POWER_LIMIT_MICROWATTS=140000000
-        sleep 3  # Wait for GPUs to wake up
-        for card in /sys/class/drm/card*/device/hwmon/hwmon*/power1_cap; do
-          if [[ -w "$card" ]]; then
-            echo "$POWER_LIMIT_MICROWATTS" > "$card"
-          fi
-        done
       '';
     };
   };
@@ -449,8 +414,13 @@
     OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
   };
 
+  # OpenCL ICD setup for AMD GPUs (lolminer needs this to detect AMD GPUs)
+  environment.etc."OpenCL/vendors/amdocl64.icd".source =
+    "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
+
   environment.systemPackages = with pkgs; [
     rocmPackages.rocm-smi
+    clinfo # For debugging OpenCL
   ];
 
   systemd.tmpfiles.rules = let
@@ -641,5 +611,4 @@
       client.enable = true;
     };
   };
-
 }

@@ -18,15 +18,33 @@
 
   # All dashboards as a list
   allDashboards = [
-    {name = "master-overview"; dashboard = masterOverview.masterOverview;}
-    {name = "deep-insights"; dashboard = deepInsights.deepInsights;}
-    {name = "mining"; dashboard = mining.mining;}
-    {name = "gpu-monitoring"; dashboard = gpuMonitoring.gpuMonitoring;}
-    {name = "ai-inference"; dashboard = aiInference.aiInference;}
+    {
+      name = "master-overview";
+      dashboard = masterOverview.masterOverview;
+    }
+    {
+      name = "deep-insights";
+      dashboard = deepInsights.deepInsights;
+    }
+    {
+      name = "mining";
+      dashboard = mining.mining;
+    }
+    {
+      name = "gpu-monitoring";
+      dashboard = gpuMonitoring.gpuMonitoring;
+    }
+    {
+      name = "ai-inference";
+      dashboard = aiInference.aiInference;
+    }
   ];
 
   # Convert dashboard to JSON and create package
-  mkDashboard = {name, dashboard}: pkgs:
+  mkDashboard = {
+    name,
+    dashboard,
+  }: pkgs:
     pkgs.writeText "${name}.json" (builtins.toJSON dashboard);
 in {
   inherit allDashboards masterOverview deepInsights mining gpuMonitoring aiInference;

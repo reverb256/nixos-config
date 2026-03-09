@@ -14,8 +14,7 @@ let
     nexus = "age1v9d4x0r3f500tr73hdp5vseszzkacmrwjw78nfyjke3gq7qsu55qq769pv";
     sentry = "age12dcxvrg4g4c8249mpt89x08hlrylw26xy89maamarjz887z8cvfstx0cf6";
   };
-in
-{
+in {
   # ========================================================================
   # AI SERVICE API KEYS
   # ========================================================================
@@ -60,13 +59,19 @@ in
     hosts.zephyr
   ];
 
+  # Spacebot Telegram token - AI agent Telegram integration
+  "secrets/spacebot-telegram-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+
   # ========================================================================
   # INFRASTRUCTURE SECRETS
   # ========================================================================
 
   # Switch admin password - Network switch management
-  "switch-admin.age".publicKeys = [ users.j_kro ];
-  "secrets/switch-admin.age".publicKeys = [ users.j_kro ];
+  "switch-admin.age".publicKeys = [users.j_kro];
+  "secrets/switch-admin.age".publicKeys = [users.j_kro];
 
   # ========================================================================
   # MONITORING SECRETS

@@ -2,17 +2,17 @@
 # Removes ads, enables DRM bypass, and unlocks premium features
 # Uses Flatpak Spotify for better SpotX-Bash compatibility
 # Version: 3.0 - Flatpak-based implementation
-{ config
-, lib
-, pkgs
-, ...
-}:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.spotify-spotx;
   inherit (lib) mkIf mkEnableOption mkOption types literalExpression;
 
   # Import Spotify common library for helper functions
-  spotify-common = import ./lib/spotify-common.nix { inherit lib pkgs; };
+  spotify-common = import ./lib/spotify-common.nix {inherit lib pkgs;};
 
   # Flatpak Spotify locations
   # The Spotify Flatpak installs to a versioned directory
@@ -20,8 +20,7 @@ let
   spotifyFlatpakId = "com.spotify.Client";
   spotifyStateDir = spotify-common.mkSpotifyStateDir "spotx";
   patchMarker = "${spotifyStateDir}/.spotx_patched";
-in
-{
+in {
   options.services.spotify-spotx = {
     enable = mkEnableOption "Spotify Flatpak with SpotX patch (ad-free, premium features)";
 
@@ -172,11 +171,11 @@ in
               log "✓ SpotX patch applied successfully!"
 
               ${lib.optionalString cfg.forceX11 ''
-              # Force X11 backend for Wayland CSD fix
-              log "Forcing X11 backend to fix Wayland CSD issues..."
-              ${pkgs.perl}/bin/perl -pi -e 's|--enable-features=UseOzonePlatform --ozone-platform=wayland|--enable-features=UseOzonePlatform --ozone-platform=x11|g' "$SPOTIFY_DIR/spotify"
-              log "✓ X11 backend forced"
-              ''}
+            # Force X11 backend for Wayland CSD fix
+            log "Forcing X11 backend to fix Wayland CSD issues..."
+            ${pkgs.perl}/bin/perl -pi -e 's|--enable-features=UseOzonePlatform --ozone-platform=wayland|--enable-features=UseOzonePlatform --ozone-platform=x11|g' "$SPOTIFY_DIR/spotify"
+            log "✓ X11 backend forced"
+          ''}
 
               # Create patch marker
               mkdir -p "$STATE_DIR"
@@ -185,8 +184,8 @@ in
 
               # Clear cache if enabled
               ${lib.optionalString cfg.clearCacheOnPatch ''
-              clear_cache
-              ''}
+            clear_cache
+          ''}
 
               log "✓ SpotX patching complete!"
               return 0
@@ -340,7 +339,7 @@ in
         # Force X11 backend
         log "Forcing X11 backend for Wayland CSD fix..."
         ${pkgs.perl}/bin/perl -pi -e 's|--enable-features=UseOzonePlatform --ozone-platform=wayland|--enable-features=UseOzonePlatform --ozone-platform=x11|g' "$SPOTIFY_DIR/spotify"
-        ''}
+      ''}
 
         # Update patch marker
         mkdir -p ${spotifyStateDir}
@@ -356,7 +355,7 @@ in
           fi
         done
         log "Cache cleared"
-        ''}
+      ''}
 
         log "SpotX patching complete for Spotify $CURRENT_VERSION"
       else
@@ -368,9 +367,9 @@ in
     # Main patch service - runs after Flatpak updates
     systemd.services.spotx-patch = lib.mkIf cfg.autoPatch {
       description = "Spotify SpotX Patch Service (Flatpak)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" "flatpak-update.service" ];
-      wants = [ "network-online.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network-online.target" "flatpak-update.service"];
+      wants = ["network-online.target"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "/etc/spotx/patch-service.sh";
@@ -384,8 +383,8 @@ in
     # Auto-patch timer
     systemd.timers.spotx-patch = lib.mkIf cfg.autoPatch {
       description = "Spotify SpotX Auto-Patch Timer (Flatpak)";
-      wantedBy = [ "timers.target" ];
-      partOf = [ "spotx-patch.service" ];
+      wantedBy = ["timers.target"];
+      partOf = ["spotx-patch.service"];
       timerConfig = {
         OnCalendar = cfg.patchCheckInterval;
         Unit = "spotx-patch.service";

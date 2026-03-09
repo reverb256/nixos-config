@@ -49,6 +49,6 @@
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = lib.mkForce "--delete-older-than 14d";  # Override distributed-builds (30d)
+    options = lib.mkForce "--delete-older-than 14d"; # Override distributed-builds (30d)
   };
 }

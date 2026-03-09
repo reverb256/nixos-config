@@ -341,6 +341,9 @@ async def lifespan(app: FastAPI):
                 SearchConfig,
                 RerankerConfig,
             )
+            from ai_inference_gateway.rag.qdrant_client import get_qdrant_manager
+            from ai_inference_gateway.rag.embeddings import create_embedding_service
+            from ai_inference_gateway.rag.search import create_search_service
 
             # Get environment variables
             qdrant_url = os.getenv("QDRANT_URL", "http://127.0.0.1:6333")

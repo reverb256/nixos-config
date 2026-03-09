@@ -24,8 +24,8 @@
 
   # Build Caddyfile entries for each service
   buildCaddyConfig = services:
-    concatMapStringsSep "\n" (name: service:
-      let
+    concatMapStringsSep "\n" (
+      name: service: let
         fqdn = "${name}.${hostname}";
         backendUrl = "http://${service.backend}:${toString service.port}";
       in ''
@@ -42,9 +42,9 @@
 
             # WebSocket support
             ${lib.optionalString (service.websocket or false) ''
-            header_up Connection {>Connection}
-            header_up Upgrade {>Upgrade}
-            ''}
+          header_up Connection {>Connection}
+          header_up Upgrade {>Upgrade}
+        ''}
           }
 
           # Security headers
@@ -62,12 +62,14 @@
   # Build DNS local-data entries for all services (short format: name.hostname)
   buildDnsEntries = services:
     concatStringsSep "\n"
-    (mapAttrsToList (name: service:
-      # Short format: ai.zephyr, cloud.zephyr, etc.
-      ''
-        "${name}.${hostname}. IN A ${cfg.listenAddress}"
-      ''
-    ) services);
+    (mapAttrsToList (
+        name: service:
+        # Short format: ai.zephyr, cloud.zephyr, etc.
+        ''
+          "${name}.${hostname}. IN A ${cfg.listenAddress}"
+        ''
+      )
+      services);
 in {
   options.services.service-gateway = {
     enable = mkEnableOption "Service Gateway - simple URLs for self-hosted services (e.g., ai.zephyr)";
@@ -197,18 +199,21 @@ in {
     # ============================================================================
     services.unbound.settings.server = mkIf config.services.unbound-cluster.enable {
       # Add service hostnames to local zone
-      local-zone = [ "${hostname} static" ];
+      local-zone = ["${hostname} static"];
 
       # Add DNS records for each service (short format)
-      local-data = mapAttrsToList (name: service:
-        "${name}.${hostname}. IN A ${cfg.listenAddress}"
-      ) cfg.services;
+      local-data =
+        mapAttrsToList (
+          name: service: "${name}.${hostname}. IN A ${cfg.listenAddress}"
+        )
+        cfg.services;
     };
 
     # Add to /etc/hosts for local resolution (fallback if DNS isn't running)
-    networking.extraHosts = concatStringsSep "\n" (mapAttrsToList (name: service:
-      "${cfg.listenAddress} ${name}.${hostname}"
-    ) cfg.services);
+    networking.extraHosts = concatStringsSep "\n" (mapAttrsToList (
+        name: service: "${cfg.listenAddress} ${name}.${hostname}"
+      )
+      cfg.services);
 
     # ============================================================================
     # FIREWALL
@@ -228,18 +233,20 @@ in {
         echo "=== Services (${hostname}) ==="
         echo ""
         ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
-          echo "• ${name}.${hostname}"
-          echo "  → ${service.backend}:${toString service.port}"
-          echo "  ${service.description}"
-          echo ""
-        '') cfg.services)}
+            echo "• ${name}.${hostname}"
+            echo "  → ${service.backend}:${toString service.port}"
+            echo "  ${service.description}"
+            echo ""
+          '')
+          cfg.services)}
         echo "Total: ${toString (builtins.attrNames cfg.services)}"
         echo ""
         echo "Type just '${hostname}' is your search domain, so you can use:"
         echo "  http://${hostname}     (this machine)"
         ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
-        echo "  http://${name}.${hostname}    (${service.description})"
-        '') cfg.services)}
+            echo "  http://${name}.${hostname}    (${service.description})"
+          '')
+          cfg.services)}
       '')
     ];
 
@@ -254,8 +261,9 @@ in {
       | Service | URL | Backend |
       |---------|-----|---------|
       ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
-      | ${service.description} | http://${name}.${hostname} | ${service.backend}:${toString service.port} |
-      '') cfg.services)}
+          | ${service.description} | http://${name}.${hostname} | ${service.backend}:${toString service.port} |
+        '')
+        cfg.services)}
 
       ## Even Shorter URLs
 

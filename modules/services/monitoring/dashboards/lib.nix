@@ -43,7 +43,7 @@
         lineInterpolation = "smooth";
         lineWidth = 2;
         spanNulls = true;
-        lineStyle = { fill = "solid"; };
+        lineStyle = {fill = "solid";};
       };
     };
 
@@ -67,48 +67,114 @@
   thresholds = {
     # 0-1 binary (up/down)
     binary = [
-      {color = "red"; value = null;}
-      {color = "green"; value = 1;}
+      {
+        color = "red";
+        value = null;
+      }
+      {
+        color = "green";
+        value = 1;
+      }
     ];
 
     # Percentage (0-100%)
     percentage = [
-      {color = "green"; value = null;}
-      {color = "yellow"; value = 70;}
-      {color = "orange"; value = 85;}
-      {color = "red"; value = 95;}
+      {
+        color = "green";
+        value = null;
+      }
+      {
+        color = "yellow";
+        value = 70;
+      }
+      {
+        color = "orange";
+        value = 85;
+      }
+      {
+        color = "red";
+        value = 95;
+      }
     ];
 
     # Error rate
     errorRate = [
-      {color = "green"; value = null;}
-      {color = "yellow"; value = 0.01;}
-      {color = "orange"; value = 0.05;}
-      {color = "red"; value = 0.1;}
+      {
+        color = "green";
+        value = null;
+      }
+      {
+        color = "yellow";
+        value = 0.01;
+      }
+      {
+        color = "orange";
+        value = 0.05;
+      }
+      {
+        color = "red";
+        value = 0.1;
+      }
     ];
 
     # Latency (seconds)
     latency = [
-      {color = "green"; value = null;}
-      {color = "yellow"; value = 0.5;}
-      {color = "orange"; value = 1.0;}
-      {color = "red"; value = 2.0;}
+      {
+        color = "green";
+        value = null;
+      }
+      {
+        color = "yellow";
+        value = 0.5;
+      }
+      {
+        color = "orange";
+        value = 1.0;
+      }
+      {
+        color = "red";
+        value = 2.0;
+      }
     ];
 
     # Temperature (Celsius)
     temperature = [
-      {color = "green"; value = null;}
-      {color = "yellow"; value = 60;}
-      {color = "orange"; value = 75;}
-      {color = "red"; value = 85;}
+      {
+        color = "green";
+        value = null;
+      }
+      {
+        color = "yellow";
+        value = 60;
+      }
+      {
+        color = "orange";
+        value = 75;
+      }
+      {
+        color = "red";
+        value = 85;
+      }
     ];
 
     # Load average multiplier
     loadMultiplier = [
-      {color = "green"; value = null;}
-      {color = "yellow"; value = 1;}
-      {color = "orange"; value = 2;}
-      {color = "red"; value = 4;}
+      {
+        color = "green";
+        value = null;
+      }
+      {
+        color = "yellow";
+        value = 1;
+      }
+      {
+        color = "orange";
+        value = 2;
+      }
+      {
+        color = "red";
+        value = 4;
+      }
     ];
   };
 
@@ -125,13 +191,48 @@
 
   # Standard grid positions (24-column grid)
   grid = {
-    fullWidth = {h = 1; w = 24; x = 0; y = 0;};
-    quarter = {h = 8; w = 6; x = 0; y = 1;};
-    half = {h = 8; w = 12; x = 0; y = 1;};
-    threeQuarter = {h = 8; w = 18; x = 0; y = 1;};
-    smallStat = {h = 4; w = 4; x = 0; y = 0;};
-    mediumStat = {h = 6; w = 6; x = 0; y = 0;};
-    largeStat = {h = 8; w = 8; x = 0; y = 0;};
+    fullWidth = {
+      h = 1;
+      w = 24;
+      x = 0;
+      y = 0;
+    };
+    quarter = {
+      h = 8;
+      w = 6;
+      x = 0;
+      y = 1;
+    };
+    half = {
+      h = 8;
+      w = 12;
+      x = 0;
+      y = 1;
+    };
+    threeQuarter = {
+      h = 8;
+      w = 18;
+      x = 0;
+      y = 1;
+    };
+    smallStat = {
+      h = 4;
+      w = 4;
+      x = 0;
+      y = 0;
+    };
+    mediumStat = {
+      h = 6;
+      w = 6;
+      x = 0;
+      y = 0;
+    };
+    largeStat = {
+      h = 8;
+      w = 8;
+      x = 0;
+      y = 0;
+    };
   };
 
   # Panel builders
@@ -139,7 +240,12 @@
     # Create a row header
     row = title: collapsed: {
       collapsed = collapsed;
-      gridPos = {h = 1; w = 24; x = 0; y = 0;};
+      gridPos = {
+        h = 1;
+        w = 24;
+        x = 0;
+        y = 0;
+      };
       panels = [];
       title = title;
       type = "row";
@@ -159,7 +265,10 @@
       fieldConfig.defaults = fieldConfigs.thresholdColor thresholds;
       gridPos = gridPos;
       options = {
-        graphMode = if colorMode == "background" then "none" else "area";
+        graphMode =
+          if colorMode == "background"
+          then "none"
+          else "area";
         colorMode = colorMode;
         reduceOptions = {
           calcs = ["lastNotNull"];
@@ -167,7 +276,13 @@
           values = false;
         };
       };
-      targets = [{expr = expr; legendFormat = legendFormat; refId = "A";}];
+      targets = [
+        {
+          expr = expr;
+          legendFormat = legendFormat;
+          refId = "A";
+        }
+      ];
       title = title;
       type = "stat";
     };
@@ -185,27 +300,50 @@
       # Build field config defaults
       baseFieldConfig = {
         color.mode = "palette-classic";
-        custom = if custom != null then custom else fieldConfigs.paletteClassic.custom;
+        custom =
+          if custom != null
+          then custom
+          else fieldConfigs.paletteClassic.custom;
         unit = unit;
       };
-      fieldConfig = if thresholds != null
-        then baseFieldConfig // {
-          color.mode = "thresholds";
-          thresholds.mode = "absolute";
-          thresholds.steps = thresholds;
-        }
+      fieldConfig =
+        if thresholds != null
+        then
+          baseFieldConfig
+          // {
+            color.mode = "thresholds";
+            thresholds.mode = "absolute";
+            thresholds.steps = thresholds;
+          }
         else baseFieldConfig;
     in {
       datasource = prometheusDatasource;
       fieldConfig.defaults = fieldConfig;
       gridPos = gridPos;
       options = {
-        legend = {calcs = ["mean" "max" "last"]; displayMode = "table"; placement = "bottom";};
+        legend = {
+          calcs = ["mean" "max" "last"];
+          displayMode = "table";
+          placement = "bottom";
+        };
         tooltip.mode = "multi";
       };
-      targets = if builtins.isList expr
-        then (lib.imap0 (i: e: {expr = e; legendFormat = legendFormat; refId = lib.toUpper "ABCDEFGHIJKLMNOPQRSTUVWXYZ";}) expr)
-        else [{expr = expr; legendFormat = legendFormat; refId = "A";}];
+      targets =
+        if builtins.isList expr
+        then
+          (lib.imap0 (i: e: {
+              expr = e;
+              legendFormat = legendFormat;
+              refId = lib.toUpper "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            })
+            expr)
+        else [
+          {
+            expr = expr;
+            legendFormat = legendFormat;
+            refId = "A";
+          }
+        ];
       title = title;
       type = "timeseries";
     };
@@ -240,7 +378,13 @@
         showThresholdLabels = false;
         showThresholdMarkers = true;
       };
-      targets = [{expr = expr; legendFormat = ""; refId = "A";}];
+      targets = [
+        {
+          expr = expr;
+          legendFormat = "";
+          refId = "A";
+        }
+      ];
       title = title;
       type = "gauge";
     };
@@ -257,16 +401,30 @@
       fieldConfig.defaults = {
         color.mode = "palette-classic";
         custom = {
-          hideFrom = {tooltip = false; vizLegend = false; yaxis = false;};
+          hideFrom = {
+            tooltip = false;
+            vizLegend = false;
+            yaxis = false;
+          };
         };
         unit = unit;
       };
       gridPos = gridPos;
       options = {
-        legend = {displayMode = "table"; placement = "right"; values = ["value" "percent"];};
+        legend = {
+          displayMode = "table";
+          placement = "right";
+          values = ["value" "percent"];
+        };
         pieType = pieType;
       };
-      targets = [{expr = expr; legendFormat = "{{{{ {0} }}}}" ; refId = "A";}];
+      targets = [
+        {
+          expr = expr;
+          legendFormat = "{{{{ {0} }}}}";
+          refId = "A";
+        }
+      ];
       title = title;
       type = "piechart";
     };
@@ -283,10 +441,23 @@
       options = {
         showHeader = true;
       };
-      targets = [{expr = expr; format = "table"; refId = "A";}];
+      targets = [
+        {
+          expr = expr;
+          format = "table";
+          refId = "A";
+        }
+      ];
       title = title;
       transformations = [
-        {id = "organize"; options = {excludeByName = {}; indexByName = {}; renameByName = {};};}
+        {
+          id = "organize";
+          options = {
+            excludeByName = {};
+            indexByName = {};
+            renameByName = {};
+          };
+        }
       ];
       type = "table";
     };

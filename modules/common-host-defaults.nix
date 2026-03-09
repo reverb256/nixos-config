@@ -16,6 +16,39 @@
   services.logind.settings.Login.KillUserProcesses = lib.mkDefault false;
 
   # ============================================================================
+  # POWER MANAGEMENT - DISABLE ALL SUSPEND/SLEEP/AUTO-SHUTDOWN
+  # ============================================================================
+  # These settings prevent the system from automatically suspending, sleeping,
+  # or hibernating. Cluster nodes must remain available at all times.
+  services.logind.settings = {
+    Login = {
+      # Disable automatic suspend on lid close (for laptops/notebooks)
+      HandleLidSwitch = "ignore";
+      HandleLidSwitchExternalPower = "ignore";
+
+      # Disable automatic suspend on power button press
+      HandlePowerKey = "ignore";
+
+      # Disable suspend key action
+      HandleSuspendKey = "ignore";
+
+      # Disable hibernate key action
+      HandleHibernateKey = "ignore";
+
+      # Explicitly inhibit idle actions
+      IdleAction = "ignore";
+      IdleActionSec = "0";
+
+      # Don't suspend when lid is closed
+      HoldoffTimeoutSec = "0";
+    };
+  };
+
+  # Enable sleepy-launcher to prevent automatic sleep/suspend
+  # This creates a systemd inhibitor that tells the system not to sleep
+  programs.sleepy-launcher.enable = lib.mkDefault true;
+
+  # ============================================================================
   # DISPLAY MANAGER DEFAULTS
   # ============================================================================
   # Consistent display manager configuration across all hosts

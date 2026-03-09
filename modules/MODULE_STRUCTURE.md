@@ -26,8 +26,12 @@ modules/
 │   └── spotify-spotx.nix    # Spotify with SpotX patch
 │
 ├── shell/                   # Shell configuration
-│   ├── fish.nix             # Fish shell
-│   └── starship.nix         # Starship prompt
+│   ├── bash.nix             # Bash shell
+│   └── fish.nix             # Fish shell (system-level enable + packages)
+│
+├── home-manager/            # Home Manager configuration (j_kro user)
+│   ├── fish.nix             # Fish shell (user-level: aliases, functions, plugins)
+│   └── starship.nix         # Starship prompt configuration
 │
 ├── gaming/                  # Gaming modules
 │   ├── gaming.nix           # Base gaming (Steam, Proton, etc.)
@@ -43,7 +47,7 @@ modules/
 │   ├── lsp.nix              # Language servers
 │   ├── programming-languages.nix  # Language-specific packages
 │   ├── opencode.nix         # OpenCode AI assistant
-│   └── fish-starship.nix    # Fish + Starship combo
+│   └── web-testing.nix      # Web testing tools
 │
 ├── services/                # Service modules
 │   ├── ai-inference/         # AI inference gateway
@@ -64,7 +68,6 @@ modules/
 │   ├── glitchtip-selfhosted.nix  # Error tracking
 │   ├── nextcloud.nix         # Nextcloud hub
 │   ├── service-gateway.nix   # Service gateway
-│   ├── bolt-diy.nix          # Bolt DIY
 │   ├── ci-runner.nix         # CI/CD runner
 │   ├── gpu-exporters.nix     # GPU metrics exporters
 │   ├── mining-exporter.nix   # Mining metrics exporter
@@ -125,7 +128,7 @@ The following modules are imported for ALL hosts via `modules/default.nix`:
 
 **Essential System**: nix-config, users, ssh, mosh, polkit-rules
 **Desktop**: plasma6, wayland-common, flatpak, spotify-spotx
-**Shell**: fish, starship
+**Shell**: fish (system), fish + starship (Home Manager)
 **Gaming**: gaming, gaming-hdr, scopebuddy
 **Mining**: mining
 **Development**: tools, lsp, programming-languages, opencode

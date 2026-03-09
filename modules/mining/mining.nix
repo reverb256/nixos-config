@@ -166,6 +166,7 @@ in {
     users.users.${cfg.user} = {
       isSystemUser = true;
       group = "mining";
+      extraGroups = ["video" "render"]; # For AMD GPU access via /dev/dri/
     };
     users.groups.mining = {};
 
@@ -336,7 +337,7 @@ in {
             ReadWritePaths = [
               "/var/lib/mining"
               "/var/log/mining"
-              "/run/xmrig"  # Allow writing runtime config
+              "/run/xmrig" # Allow writing runtime config
             ];
             LimitMEMLOCK = "4G";
             # Allow MSR access for CPU performance optimization

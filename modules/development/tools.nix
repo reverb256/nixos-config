@@ -1,6 +1,6 @@
 # Development Tools Module
 # General development tools and utilities (expanded from XNM1)
-{ pkgs, ... }: {
+{pkgs, ...}: {
   # ============================================================================
   # ENVIRONMENT MANAGEMENT
   # ============================================================================
@@ -52,8 +52,8 @@
     wget
     httpie
     restic
-    rclone  # Cloud storage sync (70+ providers)
-    chromium  # Browser for Playwright MCP and web testing
+    rclone # Cloud storage sync (70+ providers)
+    chromium # Browser for Playwright MCP and web testing
 
     # Diff Tools
     delta

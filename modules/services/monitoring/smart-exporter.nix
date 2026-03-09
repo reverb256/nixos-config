@@ -7,9 +7,9 @@
   pkgs,
   ...
 }: let
-    cfg = config.services.monitoring.smart-exporter;
-    metricsDir = "/var/lib/prometheus/node-exporter/textfile-collector";
-    outputFile = "${metricsDir}/smart.prom";
+  cfg = config.services.monitoring.smart-exporter;
+  metricsDir = "/var/lib/prometheus/node-exporter/textfile-collector";
+  outputFile = "${metricsDir}/smart.prom";
 in {
   options.services.monitoring.smart-exporter = {
     enable = lib.mkEnableOption "S.M.A.R.T. metrics exporter for Prometheus";

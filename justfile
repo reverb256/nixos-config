@@ -1,174 +1,242 @@
-# NixOS Cluster Deployment - Single-Source-of-Truth Colmena
-# All deployment managed centrally from zephyr
+# NixOS Cluster Deployment — Colmena-based single-source-of-truth
 
 export NIX_SHOW_STATS := "0"
 FLAKE_PATH := "/etc/nixos"
 
+# Visual helpers for elegant output
+_header:
+    #!/usr/bin/env bash
+    printf "\033[1;36m▸\033[0m \033[1m%s\033[0m\n" "$1"
+
+_step:
+    #!/usr/bin/env bash
+    printf "  \033[2;36m◦\033[0m %s\n" "$1"
+
+_done:
+    #!/usr/bin/env bash
+    printf "  \033[2;32m✓\033[0m %s\n" "$1"
+
+_info:
+    #!/usr/bin/env bash
+    printf "  \033[2;90m│\033[0m %s\n" "$1"
+
+_time:
+    #!/usr/bin/env bash
+    printf "\033[2;90m[%s]\033[0m " "$(date +%H:%M:%S)"
+
 _default:
     @just --list
 
-# ============================================================================
-# CRITICAL: Pre-deployment verification
-# ============================================================================
-verify-db:
-    @echo "Checking distributed builds..."
-    @sudo nix-show-config 2>/dev/null | grep -A 10 "builders" || echo "No builders configured"
+# ──────────────────────────────────────────────────────────────────────────────
+#  DEPLOYMENT
+# ──────────────────────────────────────────────────────────────────────────────
 
-# ============================================================================
-# DEPLOYMENT COMMANDS
-# ============================================================================
-# Deploy to all hosts via colmena
-# Note: Remote hosts use 'boot' goal to avoid switch inhibitors (e.g., dbus changes)
+# Deploy to all hosts
 deploy:
-    just verify-db
-    @echo "Running pre-deployment validation..."
-    @./scripts/pre-deploy-check.sh all
-    @echo "Deploying to all hosts..."
-    @echo "Deploying to zephyr (local)..."
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "deploy → all hosts"
+    {{_step}} "pre-deploy checks..."
+    ./scripts/pre-deploy-check.sh all
+    {{_step}} "deploying → zephyr..."
     cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
-    @echo "Deploying to remote hosts (nexus, forge, sentry)..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry boot
+    {{_done}} "zephyr"
+    {{_step}} "deploying → nexus, forge, sentry..."
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry switch
+    {{_done}} "all hosts"
+    {{_time}}; echo ""
 
 # Deploy to zephyr only
 zephyr:
-    @./scripts/pre-deploy-check.sh zephyr
-    @echo "Deploying to zephyr..."
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "deploy → zephyr"
+    {{_step}} "pre-deploy checks..."
+    ./scripts/pre-deploy-check.sh zephyr
+    {{_step}} "deploying..."
     cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr
+    {{_done}} "zephyr"
+    {{_time}}; echo ""
 
 # Deploy to nexus only
 nexus:
-    @./scripts/pre-deploy-check.sh nexus
-    @echo "Deploying to nexus..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus boot
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "deploy → nexus"
+    {{_step}} "pre-deploy checks..."
+    ./scripts/pre-deploy-check.sh nexus
+    {{_step}} "deploying..."
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus switch
+    {{_done}} "nexus"
+    {{_time}}; echo ""
 
 # Deploy to forge only
 forge:
-    @./scripts/pre-deploy-check.sh forge
-    @echo "Deploying to forge..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge boot
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "deploy → forge"
+    {{_step}} "pre-deploy checks..."
+    ./scripts/pre-deploy-check.sh forge
+    {{_step}} "deploying..."
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge switch
+    {{_done}} "forge"
+    {{_time}}; echo ""
 
 # Deploy to sentry only
 sentry:
-    @./scripts/pre-deploy-check.sh sentry
-    @echo "Deploying to sentry..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry boot
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "deploy → sentry"
+    {{_step}} "pre-deploy checks..."
+    ./scripts/pre-deploy-check.sh sentry
+    {{_step}} "deploying..."
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry switch
+    {{_done}} "sentry"
+    {{_time}}; echo ""
 
-# ============================================================================
-# LOCAL OPERATIONS (no colmena)
-# ============================================================================
-# Local switch (current host only) - pauses mining automatically
+# ──────────────────────────────────────────────────────────────────────────────
+#  LOCAL OPERATIONS
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Local switch (mining auto-pauses)
 switch:
-    @echo "Switching local system (mining will auto-pause)..."
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "local switch → $(hostname -s)"
+    {{_info}} "mining will auto-pause during rebuild"
     cd /etc/nixos && sudo ./scripts/nixos-rebuild-safe.sh switch --flake ".#$(hostname -s)"
+    {{_done}} "switch complete"
+    {{_time}}; echo ""
 
 # Test configuration (dry run)
 test:
-    @echo "Testing configuration..."
-    cd {{FLAKE_PATH}} && nix flake check
-    @echo "Building all hosts (dry run)..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- build
-
-# Pre-deployment validation (without building)
-validate:
-    @echo "Running pre-deployment validation..."
-    @./scripts/pre-deploy-check.sh all
-
-# ============================================================================
-# UTILITIES
-# ============================================================================
-# Show git status on all nodes
-status:
-    @echo "Git status on all nodes..."
-    @echo "=== ZEPHYR (local) ==="
-    @cd {{FLAKE_PATH}} && git log -1 --oneline
-    @for host in nexus forge sentry; do \
-        echo "=== $$host ==="; \
-        ssh $$host "cd /etc/nixos && git log -1 --oneline" 2>/dev/null || echo "  unreachable"; \
-    done
-
-# Sync all repos to current branch
-# DEPRECATED: Colmena automatically handles configuration distribution
-# This command is kept for emergency manual sync only
-sync:
-    @echo "Syncing all nodes to $(git branch --show-current)..."
-    @for host in nexus forge sentry; do \
-        echo "Syncing $$host..."; \
-        ssh $$host "cd /etc/nixos && git fetch origin && git reset --hard origin/$(git branch --show-current)" 2>/dev/null || true; \
-    done
-
-# Show cluster status
-cluster-status:
     #!/usr/bin/env bash
-    # Show connectivity status of all cluster nodes
-    set -euo pipefail
-    echo "Cluster Status:"
+    {{_time}}; {{_header}} "test → configuration validation"
+    {{_step}} "flake check..."
+    cd {{FLAKE_PATH}} && nix flake check
+    {{_done}} "flake check"
+    {{_step}} "build all hosts (dry run)..."
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- build
+    {{_done}} "all tests passed"
+    {{_time}}; echo ""
+
+# Pre-deployment validation
+validate:
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "validate → pre-deployment checks"
+    ./scripts/pre-deploy-check.sh all
+    {{_done}} "validation complete"
+    {{_time}}; echo ""
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  UTILITIES
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Git status on all nodes
+status:
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "git status → all nodes"
     for host in zephyr nexus forge sentry; do
-        printf "%s: " "$host"
         if [ "$host" = "$(hostname -s)" ]; then
-            echo "local"
+            commit=$(cd {{FLAKE_PATH}} && git log -1 --oneline)
+            printf "  \033[2;36m●\033[0m %-8s %s\n" "$host" "$commit"
+        elif commit=$(ssh -o ConnectTimeout=2 "$host" "cd /etc/nixos && git log -1 --oneline" 2>/dev/null); then
+            printf "  \033[2;32m●\033[0m %-8s %s\n" "$host" "$commit"
         else
-            if ssh -o ConnectTimeout=2 "$host" "true" >/dev/null 2>&1; then
-                echo "up"
-            else
-                echo "down"
-            fi
+            printf "  \033[2;31m●\033[0m %-8s unreachable\n" "$host"
         fi
     done
+    echo ""
 
-# ============================================================================
-# CI/CD - Local & Remote
-# ============================================================================
+# Sync all nodes to current branch (DEPRECATED - colmena handles this)
+sync:
+    #!/usr/bin/env bash
+    branch=$(git branch --show-current)
+    {{_time}}; {{_header}} "sync → $branch (deprecated)"
+    {{_info}} "colmena handles distribution automatically"
+    for host in nexus forge sentry; do
+        {{_step}} "$host..."
+        if ssh "$host" "cd /etc/nixos && git fetch origin && git reset --hard origin/$branch" 2>/dev/null; then
+            {{_done}} "$host synced"
+        else
+            printf "  \033[2;31m✗\033[0m %s unreachable\n" "$host"
+        fi
+    done
+    echo ""
+
+# Cluster connectivity status
+cluster-status:
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "cluster status"
+    for host in zephyr nexus forge sentry; do
+        if [ "$host" = "$(hostname -s)" ]; then
+            printf "  \033[2;36m●\033[0m %-8s local\n" "$host"
+        elif ssh -o ConnectTimeout=2 "$host" "true" >/dev/null 2>&1; then
+            printf "  \033[2;32m●\033[0m %-8s up\n" "$host"
+        else
+            printf "  \033[2;31m●\033[0m %-8s down\n" "$host"
+        fi
+    done
+    echo ""
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  CI/CD
+# ──────────────────────────────────────────────────────────────────────────────
+
 # Run CI locally (simulate GitHub Actions)
 ci-local:
-    @echo "Running local CI..."
-    @echo "→ Quick check..."
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "ci → local pipeline"
+    {{_step}} "flake check..."
     nix flake check
-    @echo "→ Linting..."
+    {{_step}} "statix lint..."
     statix check . || true
+    {{_step}} "deadnix check..."
     deadnix -f . || true
-    @echo "→ Building all hosts..."
+    {{_step}} "build all hosts..."
     nix run .#apps.x86_64-linux.colmena -- build
-    @echo "✅ Local CI passed!"
+    {{_done}} "ci passed"
+    {{_time}}; echo ""
 
-# Run pre-commit checks on all files
+# Pre-commit on all files
 pre-commit-all:
-    @echo "Running pre-commit on all files..."
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "pre-commit → all files"
     pre-commit run --all-files
+    echo ""
 
 # Update flake.lock
 flake-update:
-    @echo "Updating flake.lock..."
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "flake → update"
+    {{_step}} "updating flake.lock..."
     nix flake update
-    @echo "✓ Flake updated. Run 'just ci-local' to verify."
+    {{_done}} "updated (run 'just ci-local' to verify)"
+    echo ""
 
-# Security scan locally
+# Security scan
 security-scan:
-    @echo "Running security scan..."
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "security → osv scanner"
+    {{_step}} "scanning..."
     nix-shell -p osv-scanner --run "osv-scanner --skip-git --recursive"
+    echo ""
 
-# ============================================================================
-# CI/CD Status
-# ============================================================================
-# Show CI/CD status
+# CI/CD status info
 ci-status:
-    @echo "=== CI/CD Status ==="
-    @echo ""
-    @echo "Pre-commit:"
-    @pre-commit --version 2>/dev/null || echo "  Not installed"
-    @echo ""
-    @echo "Flake inputs age:"
-    @nix flake metadata | grep "Last modified" || true
-    @echo ""
-    @echo "Recent flake updates:"
-    @git log --oneline --all --grep="flake" -5 || echo "  None found"
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "ci → status"
+    printf "  pre-commit: %s\n" "$(pre-commit --version 2>/dev/null || echo 'not installed')"
+    nix flake metadata 2>/dev/null | grep "Last modified" | sed 's/^/  /' || true
+    echo "  recent flake updates:"
+    git log --oneline --all --grep="flake" -5 2>/dev/null | sed 's/^/    /' || echo "    none"
+    echo ""
 
-# ============================================================================
-# CI/CD Utilities
-# ============================================================================
-# Cluster health check
+# Health check
 health-check:
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "health → cluster check"
     scripts/ci/health-check.sh
+    echo ""
 
 # Rollback to previous generation
 rollback:
+    #!/usr/bin/env bash
+    {{_time}}; {{_header}} "rollback → previous generation"
+    {{_info}} "this will undo the last system switch"
     scripts/deploy/rollback.sh
+    echo ""

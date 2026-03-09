@@ -1,6 +1,10 @@
 # Podman Auto-Update Service
 # Automatically updates podman containers every hour
-{config, pkgs, ...}: {
+{
+  config,
+  pkgs,
+  ...
+}: {
   systemd.services.podman-auto-update = {
     description = "Podman Container Auto-Update";
     after = ["network-online.target" "podman.service"];

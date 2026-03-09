@@ -1,7 +1,6 @@
-# Starship Prompt Module
-# Enhanced starship configuration for productivity
+# Starship Prompt Configuration (Home Manager)
+# Centralized starship settings for j_kro across all cluster nodes
 {pkgs, ...}: {
-  # Enable Starship prompt for both Fish and Bash
   programs.starship = {
     enable = true;
 
@@ -17,7 +16,7 @@
       };
 
       # Format - optimized for cluster workflow
-      format = "$hostname$username$directory$git_branch$git_status$kubernetes$character";
+      format = "$hostname$username$directory$git_branch$git_status$kubernetes$nix_shell$docker_context$nodejs$character";
 
       # Timeout for commands
       command_timeout = 10000;
@@ -54,7 +53,7 @@
       git_branch = {
         format = "[$branch]($style) ";
         style = "italic cyan";
-        symbol = " ";
+        symbol = " ";
       };
 
       git_status = {
@@ -116,7 +115,4 @@
       spack.disabled = true;
     };
   };
-
-  # Install Starship (also installed in fish.nix, but ensure it's available)
-  environment.systemPackages = with pkgs; [starship];
 }
