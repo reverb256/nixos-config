@@ -7,7 +7,8 @@
   ...
 }: let
   cfg = config.services.glitchtip-selfhosted;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     mkIf
@@ -29,7 +30,7 @@ in {
 
     host = mkOption {
       type = types.str;
-      default = "127.0.0.1";  # SECURITY: Bind to localhost only
+      default = "127.0.0.1"; # SECURITY: Bind to localhost only
       description = "Host address to bind to (127.0.0.1 for localhost-only)";
     };
 
@@ -176,7 +177,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "${pkgs.podman}/bin/podman pod create --name glitchtip --publish ${cfg.host}:${toString cfg.port}:8000";
+        ExecStart = "${pkgs.podman}/bin/podman pod create --replace --name glitchtip --publish ${cfg.host}:${toString cfg.port}:8000";
         ExecStop = "${pkgs.podman}/bin/podman pod rm -f glitchtip";
         Restart = "on-failure";
       };

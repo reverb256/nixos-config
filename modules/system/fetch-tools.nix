@@ -3,32 +3,32 @@
 {pkgs, ...}: {
   environment.systemPackages = with pkgs; [
     # Classic fetch tools
-    fastfetch  # Modern replacement for neofetch
+    fastfetch # Modern replacement for neofetch
     onefetch
 
     # Hardware-specific fetchers
-    ipfetch     # IP information
-    cpufetch   # CPU architecture and info
-    ramfetch   # RAM information
-    starfetch  # Minimalist fetch
-    octofetch  # GitHub contribution info
+    ipfetch # IP information
+    cpufetch # CPU architecture and info
+    ramfetch # RAM information
+    starfetch # Minimalist fetch
+    octofetch # GitHub contribution info
 
     # System monitors
     htop
-    bottom     # Modern top replacement
-    btop       # Even more feature-rich
-    zfxtop     # ZFS monitoring (useful with your storage)
+    bottom # Modern top replacement
+    btop # Even more feature-rich
+    zfxtop # ZFS monitoring (useful with your storage)
 
     # Kernel manager
-    kmon       # Interactive Linux kernel manager
+    kmon # Interactive Linux kernel manager
 
     # Display utilities
-    wlr-randr               # Wayland display control
-    gpu-viewer              # GPU information viewer
+    wlr-randr # Wayland display control
+    gpu-viewer # GPU information viewer
 
     # Network utilities
-    dig                     # DNS lookup
-    speedtest-rs            # Rust-based speedtest
+    dig # DNS lookup
+    speedtest-rs # Rust-based speedtest
 
     # Vulkan tools (for GPU debugging)
     vulkan-tools

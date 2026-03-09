@@ -109,7 +109,11 @@ in {
         # This ensures the lms CLI runs in the correct user context with HOME set properly
 
         # PATH for root (su will set PATH for the target user)
-        Environment = ["PATH=/run/current-system/sw/bin"];
+        Environment = [
+          "PATH=/run/current-system/sw/bin"
+          # Add CUDA vendor library path for LM Studio's CUDA backend
+          "LD_LIBRARY_PATH=/nix/store/jvfs2y324lhbcjqyplhc3c9ji16z85ak-lmstudio-0.4.6-1-extracted/resources/app/.webpack/bin/extensions/backends/vendor/linux-llama-cuda-vendor-v1:$${LD_LIBRARY_PATH:-}"
+        ];
 
         # Daemon lifecycle following official docs:
         # https://lmstudio.ai/docs/developer/core/headless_llmster
@@ -127,12 +131,12 @@ in {
         # ExecStop:
         # lms daemon down - Clean shutdown
         ExecStartPre = lib.optionalString (cfg.preloadModel != null) ''
-          /bin/sh -c '${gpuEnv} su - ${cfg.user} -c "${lmsBin} daemon up" &&
-                  ${gpuEnv} su - ${cfg.user} -c "${lmsBin} load ${cfg.preloadModel} --yes ${lib.escapeShellArgs cfg.modelLoadArgs}"'
+          /bin/sh -c 'export LD_LIBRARY_PATH=/nix/store/jvfs2y324lhbcjqyplhc3c9ji16z85ak-lmstudio-0.4.6-1-extracted/resources/app/.webpack/bin/extensions/backends/vendor/linux-llama-cuda-vendor-v1:$${LD_LIBRARY_PATH:-} && ${gpuEnv} su - ${cfg.user} -c "${lmsBin} daemon up" &&
+                  export LD_LIBRARY_PATH=/nix/store/jvfs2y324lhbcjqyplhc3c9ji16z85ak-lmstudio-0.4.6-1-extracted/resources/app/.webpack/bin/extensions/backends/vendor/linux-llama-cuda-vendor-v1:$${LD_LIBRARY_PATH:-} && ${gpuEnv} su - ${cfg.user} -c "${lmsBin} load ${cfg.preloadModel} --yes ${lib.escapeShellArgs cfg.modelLoadArgs}"'
         '';
 
         ExecStart = ''
-          /bin/sh -c '${gpuEnv} su - ${cfg.user} -c "${lmsBin} daemon up && ${lmsBin} server start --port ${toString cfg.port} --bind ${cfg.host}"'
+          /bin/sh -c 'export LD_LIBRARY_PATH=/nix/store/jvfs2y324lhbcjqyplhc3c9ji16z85ak-lmstudio-0.4.6-1-extracted/resources/app/.webpack/bin/extensions/backends/vendor/linux-llama-cuda-vendor-v1:$${LD_LIBRARY_PATH:-} && ${gpuEnv} su - ${cfg.user} -c "${lmsBin} daemon up && ${lmsBin} server start --port ${toString cfg.port} --bind ${cfg.host}"'
         '';
 
         ExecStop = "/bin/sh -c 'su - ${cfg.user} -c \"${lmsBin} daemon down\"'";
@@ -142,7 +146,7 @@ in {
         RestartSec = "10s";
 
         # Timeouts
-        TimeoutStartSec = "300";  # 5 minutes for model loading
+        TimeoutStartSec = "300"; # 5 minutes for model loading
         TimeoutStopSec = "60";
 
         # Security settings

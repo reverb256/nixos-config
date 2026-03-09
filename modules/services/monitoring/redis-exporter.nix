@@ -7,7 +7,7 @@
   pkgs,
   ...
 }: let
-    cfg = config.services.monitoring.redis-exporter;
+  cfg = config.services.monitoring.redis-exporter;
 in {
   options.services.monitoring.redis-exporter = {
     enable = lib.mkEnableOption "Redis exporter for Prometheus";

@@ -21,7 +21,7 @@ in {
 
     listenAddress = lib.mkOption {
       type = lib.types.str;
-      default = "0.0.0.0";  # Listen on all interfaces (LAN + Tailscale)
+      default = "0.0.0.0"; # Listen on all interfaces (LAN + Tailscale)
       description = "Address to listen on";
     };
   };

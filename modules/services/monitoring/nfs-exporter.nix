@@ -7,9 +7,9 @@
   pkgs,
   ...
 }: let
-    cfg = config.services.monitoring.nfs-exporter;
-    metricsDir = "/var/lib/prometheus/node-exporter/textfile-collector";
-    outputFile = "${metricsDir}/nfsd.prom";
+  cfg = config.services.monitoring.nfs-exporter;
+  metricsDir = "/var/lib/prometheus/node-exporter/textfile-collector";
+  outputFile = "${metricsDir}/nfsd.prom";
 in {
   options.services.monitoring.nfs-exporter = {
     enable = lib.mkEnableOption "NFS server metrics exporter";

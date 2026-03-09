@@ -7,38 +7,36 @@
   # ============================================================================
   programs.hyprland = {
     enable = true;
-    withUWSM = true;  # uwsd-based session management
+    withUWSM = true; # uwsd-based session management
   };
 
   # Wayland environment variables
   environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1";           # Ozone Wayland support
-    WLR_NO_HARDWARE_CURSORS = "1";  # Software cursor rendering
+    NIXOS_OZONE_WL = "1"; # Ozone Wayland support
+    WLR_NO_HARDWARE_CURSORS = "1"; # Software cursor rendering
   };
 
   # ============================================================================
   # HYPRLAND ECOSYSTEM
   # ============================================================================
-  programs.hyprlock.enable = true;   # Screen lock
-  services.hypridle.enable = true;   # Idle management
+  programs.hyprlock.enable = true; # Screen lock
 
   environment.systemPackages = with pkgs; [
     # Python scripting for Hyprland
     pyprland
 
     # Core Hyprland tools
-    hyprpicker      # Color picker
-    hyprcursor      # Custom cursor support
-    hyprlock        # Screen locker
-    hypridle        # Idle daemon
-    hyprpaper       # Wallpaper utility
-    hyprsunset      # Blue light filter
+    hyprpicker # Color picker
+    hyprcursor # Custom cursor support
+    hyprlock # Screen locker
+    hyprpaper # Wallpaper utility
+    hyprsunset # Blue light filter
     hyprpolkitagent # Polkit agent for Hyprland
 
     # Wayland utilities
-    waybar          # Status bar
-    rofi            # Application launcher (Wayland support merged)
-    wayvnc          # VNC server for Wayland
+    waybar # Status bar
+    rofi # Application launcher (Wayland support merged)
+    wayvnc # VNC server for Wayland
   ];
 
   # ============================================================================

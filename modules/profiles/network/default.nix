@@ -1,11 +1,11 @@
 # modules/profiles/network/default.nix --- Network profiles
-
-{ config, lib, ... }:
-
-let
-  inherit (lib) mkEnableOption mkOption types;
-in
 {
+  config,
+  lib,
+  ...
+}: let
+  inherit (lib) mkEnableOption mkOption types;
+in {
   options.profiles.network.tailscale = {
     enable = mkEnableOption "Tailscale VPN";
     advertiseRoutes = mkOption {
@@ -22,7 +22,7 @@ in
       (lib.mkIf (config.profiles.network.tailscale.advertiseRoutes != []) {
         TS_ADVERTISE_ROUTES = builtins.concatStringsSep " " config.profiles.network.tailscale.advertiseRoutes;
       })
-      { TS_SSH = "true"; }
+      {TS_SSH = "true";}
     ];
   };
 }

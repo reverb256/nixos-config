@@ -1,6 +1,10 @@
 # Security Module
 # Comprehensive security hardening with Podman, USBGuard, Fail2Ban, and Firejail
-{pkgs, lib, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   # Install security packages
   environment.systemPackages = with pkgs; [
     # Security tools
@@ -193,9 +197,9 @@
   # Automatic security updates (daily, with channel checks)
   system.autoUpgrade = {
     enable = true;
-    allowReboot = false;  # Don't auto-reboot, notify instead
-    dates = "daily";  # Check for updates daily
-    operation = "switch";  # Apply updates by switching to new generation
+    allowReboot = false; # Don't auto-reboot, notify instead
+    dates = "daily"; # Check for updates daily
+    operation = "switch"; # Apply updates by switching to new generation
   };
 
   # Rebuild notification when updates available

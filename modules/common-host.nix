@@ -24,9 +24,6 @@
     # NOTE: Not in default.nix since some hosts might be headless
     ./desktop/desktop.nix
 
-    # Shell configuration
-    ./development/fish-starship.nix
-
     # Tailscale VPN mesh
     # NOTE: Not in default.nix since some hosts might not need it
     ./system/tailscale.nix

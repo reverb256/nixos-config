@@ -1,10 +1,10 @@
 # Cluster Hosts Module
 # Automatically populates /etc/hosts from networking.cluster.hosts configuration
-{ config
-, lib
-, ...
-}:
-let
+{
+  config,
+  lib,
+  ...
+}: let
   inherit
     (lib)
     mkEnableOption
@@ -12,8 +12,7 @@ let
     ;
 
   cfg = config.networking.cluster-hosts;
-in
-{
+in {
   options.networking.cluster-hosts = {
     enable = mkEnableOption "populate /etc/hosts from cluster configuration";
 
@@ -25,10 +24,10 @@ in
     networking.extraHosts = lib.mkIf cfg.populateLocal (
       lib.concatStringsSep "\n" (
         lib.mapAttrsToList
-          (
-            name: host: "${host.ip} ${name}"
-          )
-          config.networking.cluster.hosts
+        (
+          name: host: "${host.ip} ${name}"
+        )
+        config.networking.cluster.hosts
       )
     );
   };

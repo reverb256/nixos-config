@@ -1,9 +1,8 @@
 # KDE Plasma 6 Desktop Environment
-{ pkgs, ... }:
-let
+{pkgs, ...}: let
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";
-    runtimeInputs = with pkgs; [ kdePackages.kscreen libnotify ];
+    runtimeInputs = with pkgs; [kdePackages.kscreen libnotify];
     text = ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -89,7 +88,7 @@ let
   # TV Monitor Daemon for automatic TV power management
   tvMonitorDaemon = pkgs.writeShellApplication {
     name = "tv-monitor-daemon";
-    runtimeInputs = with pkgs; [ kdePackages.kscreen libnotify wireplumber ];
+    runtimeInputs = with pkgs; [kdePackages.kscreen libnotify wireplumber];
     text = ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -214,11 +213,9 @@ let
       done
     '';
   };
-
   # KDE cache management scripts removed - they were causing crashes
   # KDE will auto-rebuild its cache as needed
-in
-{
+in {
   services.xserver.enable = true;
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
@@ -291,8 +288,8 @@ in
   ];
   systemd.services.boot-monitor-setup = {
     description = "Configure monitors at boot";
-    wantedBy = [ "display-manager.service" ];
-    before = [ "display-manager.service" "sddm.service" ];
+    wantedBy = ["display-manager.service"];
+    before = ["display-manager.service" "sddm.service"];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = bootMonitorScript;
@@ -302,8 +299,8 @@ in
   };
   systemd.user.services.plasma-monitor-setup = {
     description = "Apply monitor configuration";
-    wantedBy = [ "graphical-session.target" ];
-    after = [ "plasma-plasmashell.service" "graphical-session.target" ];
+    wantedBy = ["graphical-session.target"];
+    after = ["plasma-plasmashell.service" "graphical-session.target"];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${monitorSetupScript}/bin/plasma-monitor-setup";
@@ -398,8 +395,8 @@ in
 
   systemd.user.services.tv-monitor-daemon = {
     description = "Monitor TV power state and auto-disable/enable";
-    wantedBy = [ "graphical-session.target" ];
-    after = [ "plasma-plasmashellell.service" "graphical-session.target" ];
+    wantedBy = ["graphical-session.target"];
+    after = ["plasma-plasmashellell.service" "graphical-session.target"];
     serviceConfig = {
       Type = "simple";
       ExecStart = "${tvMonitorDaemon}/bin/tv-monitor-daemon";

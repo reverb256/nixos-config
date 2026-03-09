@@ -1,11 +1,12 @@
 # modules/profiles/hardware/implementations.nix --- Hardware profile implementations
-
-{ config, lib, pkgs, ... }:
-
-let
-  cfg = config.hardware.profiles;
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.hardware.profiles;
+in {
   config = lib.mkMerge [
     (lib.mkIf cfg.amd.enable {
       boot.kernelParams = ["amd_iommu=on" "iommu=pt"];

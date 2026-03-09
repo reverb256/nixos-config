@@ -34,26 +34,45 @@
       # ========== ROW: CLUSTER HEALTH ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 0; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 0;
+        };
         id = 100;
         panels = [];
         title = "🖥️ Cluster Health";
         type = "row";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "thresholds";
           mappings = [];
           thresholds = {
             mode = "absolute";
             steps = [
-              { color = "red"; value = null; }
-              { color = "green"; value = 1; }
+              {
+                color = "red";
+                value = null;
+              }
+              {
+                color = "green";
+                value = 1;
+              }
             ];
           };
         };
-        gridPos = { h = 4; w = 24; x = 0; y = 1; };
+        gridPos = {
+          h = 4;
+          w = 24;
+          x = 0;
+          y = 1;
+        };
         id = 1;
         options = {
           colorMode = "background";
@@ -65,10 +84,26 @@
           };
         };
         targets = [
-          { expr = "up{job=\"node\"}"; legendFormat = "{{instance}} - Node"; refId = "A"; }
-          { expr = "up{job=\"nvidia\"}"; legendFormat = "{{instance}} - NVIDIA"; refId = "B"; }
-          { expr = "up{job=\"mining\"}"; legendFormat = "{{instance}} - Mining"; refId = "C"; }
-          { expr = "ai_inference_backend_healthy"; legendFormat = "AI Gateway {{backend}}"; refId = "D"; }
+          {
+            expr = "up{job=\"node\"}";
+            legendFormat = "{{instance}} - Node";
+            refId = "A";
+          }
+          {
+            expr = "up{job=\"nvidia\"}";
+            legendFormat = "{{instance}} - NVIDIA";
+            refId = "B";
+          }
+          {
+            expr = "up{job=\"mining\"}";
+            legendFormat = "{{instance}} - Mining";
+            refId = "C";
+          }
+          {
+            expr = "ai_inference_backend_healthy";
+            legendFormat = "AI Gateway {{backend}}";
+            refId = "D";
+          }
         ];
         title = "Service Health";
         type = "stat";
@@ -77,14 +112,22 @@
       # ========== ROW: CPU & MEMORY ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 5; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 5;
+        };
         id = 200;
         panels = [];
         title = "💻 CPU & Memory";
         type = "row";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -103,27 +146,52 @@
           thresholds = {
             mode = "absolute";
             steps = [
-              { color = "green"; value = null; }
-              { color = "yellow"; value = 70; }
-              { color = "red"; value = 90; }
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 70;
+              }
+              {
+                color = "red";
+                value = 90;
+              }
             ];
           };
           unit = "percent";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 6; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 6;
+        };
         id = 2;
         options = {
-          legend = { calcs = ["mean" "last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (instance))"; legendFormat = "{{instance}}"; refId = "A"; }
+          {
+            expr = "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (instance))";
+            legendFormat = "{{instance}}";
+            refId = "A";
+          }
         ];
         title = "CPU Usage";
         type = "timeseries";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -142,21 +210,43 @@
           thresholds = {
             mode = "absolute";
             steps = [
-              { color = "green"; value = null; }
-              { color = "yellow"; value = 70; }
-              { color = "red"; value = 90; }
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 70;
+              }
+              {
+                color = "red";
+                value = 90;
+              }
             ];
           };
           unit = "percent";
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 6; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 6;
+        };
         id = 3;
         options = {
-          legend = { calcs = ["mean" "last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))"; legendFormat = "{{instance}}"; refId = "A"; }
+          {
+            expr = "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))";
+            legendFormat = "{{instance}}";
+            refId = "A";
+          }
         ];
         title = "Memory Usage";
         type = "timeseries";
@@ -165,14 +255,22 @@
       # ========== ROW: THERMAL & HARDWARE ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 14; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 14;
+        };
         id = 300;
         panels = [];
         title = "🌡️ Thermal & Hardware";
         type = "row";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "continuous-GrYlRd";
           custom = {
@@ -189,27 +287,52 @@
           thresholds = {
             mode = "absolute";
             steps = [
-              { color = "green"; value = null; }
-              { color = "yellow"; value = 70; }
-              { color = "red"; value = 85; }
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 70;
+              }
+              {
+                color = "red";
+                value = 85;
+              }
             ];
           };
           unit = "celsius";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 15; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 15;
+        };
         id = 4;
         options = {
-          legend = { calcs = ["mean" "last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "node_hwmon_temp_celsius{sensor=\"coretemp\"}"; legendFormat = "{{chip}} {{label}}"; refId = "A"; }
+          {
+            expr = "node_hwmon_temp_celsius{sensor=\"coretemp\"}";
+            legendFormat = "{{chip}} {{label}}";
+            refId = "A";
+          }
         ];
         title = "CPU Temperatures";
         type = "timeseries";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "continuous-GrYlRd";
           custom = {
@@ -226,28 +349,57 @@
           thresholds = {
             mode = "absolute";
             steps = [
-              { color = "green"; value = null; }
-              { color = "yellow"; value = 75; }
-              { color = "red"; value = 85; }
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 75;
+              }
+              {
+                color = "red";
+                value = 85;
+              }
             ];
           };
           unit = "celsius";
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 15; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 15;
+        };
         id = 5;
         options = {
-          legend = { calcs = ["mean" "last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "nvidia_smi_temperature_gpu"; legendFormat = "NVIDIA {{instance}} gpu{{index}}"; refId = "A"; }
-          { expr = "amdgpu_temperature_celsius"; legendFormat = "AMD {{instance}} {{gpu}}"; refId = "B"; }
+          {
+            expr = "nvidia_smi_temperature_gpu";
+            legendFormat = "NVIDIA {{instance}} gpu{{index}}";
+            refId = "A";
+          }
+          {
+            expr = "amdgpu_temperature_celsius";
+            legendFormat = "AMD {{instance}} {{gpu}}";
+            refId = "B";
+          }
         ];
         title = "GPU Temperatures";
         type = "timeseries";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -265,28 +417,57 @@
           thresholds = {
             mode = "absolute";
             steps = [
-              { color = "green"; value = null; }
-              { color = "yellow"; value = 80; }
-              { color = "red"; value = 95; }
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 80;
+              }
+              {
+                color = "red";
+                value = 95;
+              }
             ];
           };
           unit = "percent";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 23; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 23;
+        };
         id = 6;
         options = {
-          legend = { calcs = ["mean" "last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "100 * nvidia_smi_utilization_gpu_ratio"; legendFormat = "NVIDIA {{instance}} gpu{{index}}"; refId = "A"; }
-          { expr = "amdgpu_utilization_percent"; legendFormat = "AMD {{instance}} {{gpu}}"; refId = "B"; }
+          {
+            expr = "100 * nvidia_smi_utilization_gpu_ratio";
+            legendFormat = "NVIDIA {{instance}} gpu{{index}}";
+            refId = "A";
+          }
+          {
+            expr = "amdgpu_utilization_percent";
+            legendFormat = "AMD {{instance}} {{gpu}}";
+            refId = "B";
+          }
         ];
         title = "GPU Utilization";
         type = "timeseries";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -300,18 +481,40 @@
             spanNulls = true;
           };
           thresholds.mode = "absolute";
-          thresholds.steps = [{ color = "green"; value = null; }];
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
           unit = "watt";
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 23; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 23;
+        };
         id = 7;
         options = {
-          legend = { calcs = ["mean" "last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "nvidia_smi_power_draw_watts"; legendFormat = "NVIDIA {{instance}} gpu{{index}}"; refId = "A"; }
-          { expr = "amdgpu_power_watts"; legendFormat = "AMD {{instance}} {{gpu}}"; refId = "B"; }
+          {
+            expr = "nvidia_smi_power_draw_watts";
+            legendFormat = "NVIDIA {{instance}} gpu{{index}}";
+            refId = "A";
+          }
+          {
+            expr = "amdgpu_power_watts";
+            legendFormat = "AMD {{instance}} {{gpu}}";
+            refId = "B";
+          }
         ];
         title = "GPU Power Draw";
         type = "timeseries";
@@ -320,14 +523,22 @@
       # ========== ROW: MINING ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 31; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 31;
+        };
         id = 400;
         panels = [];
         title = "⛏️ Mining";
         type = "row";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -341,24 +552,49 @@
             spanNulls = true;
           };
           thresholds.mode = "absolute";
-          thresholds.steps = [{ color = "green"; value = null; }];
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
           unit = "hashrate";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 32; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 32;
+        };
         id = 8;
         options = {
-          legend = { calcs = ["mean" "last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "mining_lolminer_hashrate_total"; legendFormat = "LolMiner {{instance}}"; refId = "A"; }
-          { expr = "mining_xmrig_hashrate_total"; legendFormat = "XMRig {{instance}}"; refId = "B"; }
+          {
+            expr = "mining_lolminer_hashrate_total";
+            legendFormat = "LolMiner {{instance}}";
+            refId = "A";
+          }
+          {
+            expr = "mining_xmrig_hashrate_total";
+            legendFormat = "XMRig {{instance}}";
+            refId = "B";
+          }
         ];
         title = "Total Hashrate";
         type = "timeseries";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -372,26 +608,59 @@
             spanNulls = true;
           };
           thresholds.mode = "absolute";
-          thresholds.steps = [{ color = "green"; value = null; }];
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
           unit = "short";
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 32; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 32;
+        };
         id = 9;
         options = {
-          legend = { calcs = ["sum"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["sum"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "rate(mining_lolminer_shares_accepted[5m])"; legendFormat = "LolMiner Accepted {{instance}}"; refId = "A"; }
-          { expr = "rate(mining_xmrig_shares_accepted[5m])"; legendFormat = "XMRig Accepted {{instance}}"; refId = "B"; }
-          { expr = "rate(mining_lolminer_shares_rejected[5m])"; legendFormat = "LolMiner Rejected {{instance}}"; refId = "C"; }
-          { expr = "rate(mining_xmrig_shares_rejected[5m])"; legendFormat = "XMRig Rejected {{instance}}"; refId = "D"; }
+          {
+            expr = "rate(mining_lolminer_shares_accepted[5m])";
+            legendFormat = "LolMiner Accepted {{instance}}";
+            refId = "A";
+          }
+          {
+            expr = "rate(mining_xmrig_shares_accepted[5m])";
+            legendFormat = "XMRig Accepted {{instance}}";
+            refId = "B";
+          }
+          {
+            expr = "rate(mining_lolminer_shares_rejected[5m])";
+            legendFormat = "LolMiner Rejected {{instance}}";
+            refId = "C";
+          }
+          {
+            expr = "rate(mining_xmrig_shares_rejected[5m])";
+            legendFormat = "XMRig Rejected {{instance}}";
+            refId = "D";
+          }
         ];
         title = "Share Rate";
         type = "timeseries";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -405,23 +674,44 @@
             spanNulls = true;
           };
           thresholds.mode = "absolute";
-          thresholds.steps = [{ color = "green"; value = null; }];
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
           unit = "percent";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 40; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 40;
+        };
         id = 10;
         options = {
-          legend = { calcs = ["mean" "last"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "mining_xmrig_cpu_percent"; legendFormat = "XMRig {{instance}}"; refId = "A"; }
+          {
+            expr = "mining_xmrig_cpu_percent";
+            legendFormat = "XMRig {{instance}}";
+            refId = "A";
+          }
         ];
         title = "XMRig CPU Usage";
         type = "timeseries";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -435,17 +725,35 @@
             spanNulls = true;
           };
           thresholds.mode = "absolute";
-          thresholds.steps = [{ color = "green"; value = null; }];
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
           unit = "short";
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 40; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 40;
+        };
         id = 11;
         options = {
-          legend = { calcs = ["last"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "mining_xmrig_threads"; legendFormat = "Threads {{instance}}"; refId = "A"; }
+          {
+            expr = "mining_xmrig_threads";
+            legendFormat = "Threads {{instance}}";
+            refId = "A";
+          }
         ];
         title = "XMRig Threads";
         type = "timeseries";
@@ -454,14 +762,22 @@
       # ========== ROW: AI INFERENCE ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 48; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 48;
+        };
         id = 500;
         panels = [];
         title = "🤖 AI Inference Gateway";
         type = "row";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -475,23 +791,44 @@
             spanNulls = true;
           };
           thresholds.mode = "absolute";
-          thresholds.steps = [{ color = "green"; value = null; }];
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
           unit = "short";
         };
-        gridPos = { h = 8; w = 8; x = 0; y = 49; };
+        gridPos = {
+          h = 8;
+          w = 8;
+          x = 0;
+          y = 49;
+        };
         id = 12;
         options = {
-          legend = { calcs = ["last"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "ai_inference_backend_healthy"; legendFormat = "{{backend}}"; refId = "A"; }
+          {
+            expr = "ai_inference_backend_healthy";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
         ];
         title = "Backend Health";
         type = "timeseries";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "continuous-GrYlRd";
           custom = {
@@ -508,27 +845,52 @@
           thresholds = {
             mode = "absolute";
             steps = [
-              { color = "green"; value = null; }
-              { color = "yellow"; value = 70; }
-              { color = "red"; value = 85; }
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 70;
+              }
+              {
+                color = "red";
+                value = 85;
+              }
             ];
           };
           unit = "celsius";
         };
-        gridPos = { h = 8; w = 8; x = 8; y = 49; };
+        gridPos = {
+          h = 8;
+          w = 8;
+          x = 8;
+          y = 49;
+        };
         id = 13;
         options = {
-          legend = { calcs = ["mean" "last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "ai_inference_gpu_temperature_c"; legendFormat = "{{backend}}"; refId = "A"; }
+          {
+            expr = "ai_inference_gpu_temperature_c";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
         ];
         title = "AI GPU Temperature";
         type = "timeseries";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -546,21 +908,43 @@
           thresholds = {
             mode = "absolute";
             steps = [
-              { color = "green"; value = null; }
-              { color = "yellow"; value = 80; }
-              { color = "red"; value = 95; }
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 80;
+              }
+              {
+                color = "red";
+                value = 95;
+              }
             ];
           };
           unit = "percent";
         };
-        gridPos = { h = 8; w = 8; x = 16; y = 49; };
+        gridPos = {
+          h = 8;
+          w = 8;
+          x = 16;
+          y = 49;
+        };
         id = 14;
         options = {
-          legend = { calcs = ["mean" "last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "ai_inference_gpu_utilization_percent"; legendFormat = "{{backend}}"; refId = "A"; }
+          {
+            expr = "ai_inference_gpu_utilization_percent";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
         ];
         title = "AI GPU Utilization";
         type = "timeseries";
@@ -569,14 +953,22 @@
       # ========== ROW: STORAGE & NETWORK ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 57; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 57;
+        };
         id = 600;
         panels = [];
         title = "💾 Storage & Network";
         type = "row";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -590,23 +982,44 @@
             spanNulls = true;
           };
           thresholds.mode = "absolute";
-          thresholds.steps = [{ color = "green"; value = null; }];
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
           unit = "bytes";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 58; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 58;
+        };
         id = 15;
         options = {
-          legend = { calcs = ["last"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "node_filesystem_avail_bytes{fstype!=\"tmpfs\"}"; legendFormat = "{{mountpoint}} - {{instance}}"; refId = "A"; }
+          {
+            expr = "node_filesystem_avail_bytes{fstype!=\"tmpfs\"}";
+            legendFormat = "{{mountpoint}} - {{instance}}";
+            refId = "A";
+          }
         ];
         title = "Disk Space Available";
         type = "timeseries";
       }
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -620,25 +1033,50 @@
             spanNulls = true;
           };
           thresholds.mode = "absolute";
-          thresholds.steps = [{ color = "green"; value = null; }];
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
           unit = "Bps";
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 58; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 58;
+        };
         id = 16;
         options = {
-          legend = { calcs = ["mean" "last"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "rate(node_network_receive_bytes_total[5m])"; legendFormat = "RX {{device}} {{instance}}"; refId = "A"; }
-          { expr = "rate(node_network_transmit_bytes_total[5m])"; legendFormat = "TX {{device}} {{instance}}"; refId = "B"; }
+          {
+            expr = "rate(node_network_receive_bytes_total[5m])";
+            legendFormat = "RX {{device}} {{instance}}";
+            refId = "A";
+          }
+          {
+            expr = "rate(node_network_transmit_bytes_total[5m])";
+            legendFormat = "TX {{device}} {{instance}}";
+            refId = "B";
+          }
         ];
         title = "Network Traffic";
         type = "timeseries";
       }
       # NFS RPC Retransmissions (error indicator)
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -654,27 +1092,52 @@
           };
           thresholds.mode = "absolute";
           thresholds.steps = [
-            { color = "green"; value = null; }
-            { color = "yellow"; value = 0.01; }
-            { color = "red"; value = 0.05; }
+            {
+              color = "green";
+              value = null;
+            }
+            {
+              color = "yellow";
+              value = 0.01;
+            }
+            {
+              color = "red";
+              value = 0.05;
+            }
           ];
           unit = "none";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 66; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 66;
+        };
         id = 17;
         options = {
-          legend = { calcs = ["last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "rate(node_nfs_rpc_retransmissions_total[5m])"; legendFormat = "Retransmits {{instance}}"; refId = "A"; }
+          {
+            expr = "rate(node_nfs_rpc_retransmissions_total[5m])";
+            legendFormat = "Retransmits {{instance}}";
+            refId = "A";
+          }
         ];
         title = "NFS RPC Retransmissions";
         type = "timeseries";
       }
       # NFS Read/Write Latency
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -690,29 +1153,61 @@
           };
           thresholds.mode = "absolute";
           thresholds.steps = [
-            { color = "green"; value = null; }
-            { color = "yellow"; value = 0.001; }
-            { color = "orange"; value = 0.005; }
-            { color = "red"; value = 0.01; }
+            {
+              color = "green";
+              value = null;
+            }
+            {
+              color = "yellow";
+              value = 0.001;
+            }
+            {
+              color = "orange";
+              value = 0.005;
+            }
+            {
+              color = "red";
+              value = 0.01;
+            }
           ];
           unit = "s";
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 66; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 66;
+        };
         id = 18;
         options = {
-          legend = { calcs = ["mean" "max" "p95"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "max" "p95"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "rate(node_nfs_latency_seconds_total{protocol=\"4\"}[5m])"; legendFormat = "Read {{instance}}"; refId = "A"; }
-          { expr = "rate(node_nfs_latency_seconds_total{protocol=\"4\", vers=\"-4\"}[5m])"; legendFormat = "Write {{instance}}"; refId = "B"; }
+          {
+            expr = "rate(node_nfs_latency_seconds_total{protocol=\"4\"}[5m])";
+            legendFormat = "Read {{instance}}";
+            refId = "A";
+          }
+          {
+            expr = "rate(node_nfs_latency_seconds_total{protocol=\"4\", vers=\"-4\"}[5m])";
+            legendFormat = "Write {{instance}}";
+            refId = "B";
+          }
         ];
         title = "NFS Read/Write Latency";
         type = "timeseries";
       }
       # NFS Server Operations (zephyr only)
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -727,25 +1222,50 @@
             spanNulls = true;
           };
           thresholds.mode = "absolute";
-          thresholds.steps = [{ color = "green"; value = null; }];
+          thresholds.steps = [
+            {
+              color = "green";
+              value = null;
+            }
+          ];
           unit = "ops";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 74; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 74;
+        };
         id = 19;
         options = {
-          legend = { calcs = ["mean" "last"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "rate(nfsd_read_total[5m])"; legendFormat = "Server Reads"; refId = "A"; }
-          { expr = "rate(nfsd_write_total[5m])"; legendFormat = "Server Writes"; refId = "B"; }
+          {
+            expr = "rate(nfsd_read_total[5m])";
+            legendFormat = "Server Reads";
+            refId = "A";
+          }
+          {
+            expr = "rate(nfsd_write_total[5m])";
+            legendFormat = "Server Writes";
+            refId = "B";
+          }
         ];
         title = "NFS Server Operations (zephyr:/etc/nixos)";
         type = "timeseries";
       }
       # NFS Reply Cache Hit Rate
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "continuous-GrYlRd";
           custom = {
@@ -763,16 +1283,34 @@
           min = 0;
           thresholds.mode = "absolute";
           thresholds.steps = [
-            { color = "red"; value = null; }
-            { color = "yellow"; value = 0.7; }
-            { color = "green"; value = 0.85; }
+            {
+              color = "red";
+              value = null;
+            }
+            {
+              color = "yellow";
+              value = 0.7;
+            }
+            {
+              color = "green";
+              value = 0.85;
+            }
           ];
           unit = "percentunit";
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 74; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 74;
+        };
         id = 20;
         options = {
-          legend = { calcs = ["last"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
@@ -790,7 +1328,10 @@
     schemaVersion = 38;
     tags = ["cluster" "mining" "ai" "unified"];
     templating.list = [];
-    time = { from = "now-1h"; to = "now"; };
+    time = {
+      from = "now-1h";
+      to = "now";
+    };
     timepicker = {};
     timezone = "";
     title = "Reverb-OS Cluster";
@@ -831,7 +1372,10 @@
     ];
     timezone = "browser";
     weekStart = "";
-    time = { from = "now-1h"; to = "now"; };
+    time = {
+      from = "now-1h";
+      to = "now";
+    };
     timepicker = {};
     title = "AI Inference Gateway";
     uid = "ai-inference-gateway";
@@ -840,7 +1384,12 @@
       # ========== ROW: OVERVIEW ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 0; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 0;
+        };
         id = 100;
         panels = [];
         title = "📊 Overview";
@@ -848,19 +1397,33 @@
       }
       # Backend Health Status
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "thresholds";
           mappings = [];
           thresholds = {
             mode = "absolute";
             steps = [
-              { color = "red"; value = null; }
-              { color = "green"; value = 1; }
+              {
+                color = "red";
+                value = null;
+              }
+              {
+                color = "green";
+                value = 1;
+              }
             ];
           };
         };
-        gridPos = { h = 6; w = 6; x = 0; y = 1; };
+        gridPos = {
+          h = 6;
+          w = 6;
+          x = 0;
+          y = 1;
+        };
         id = 1;
         options = {
           colorMode = "background";
@@ -872,20 +1435,32 @@
           };
         };
         targets = [
-          { expr = "gateway_backend_healthy"; legendFormat = "{{backend}}"; refId = "A"; }
+          {
+            expr = "gateway_backend_healthy";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
         ];
         title = "Backend Health";
         type = "stat";
       }
       # Total Requests
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           mappings = [];
           thresholds.mode = "absolute";
         };
-        gridPos = { h = 6; w = 6; x = 6; y = 1; };
+        gridPos = {
+          h = 6;
+          w = 6;
+          x = 6;
+          y = 1;
+        };
         id = 2;
         options = {
           graphMode = "area";
@@ -896,20 +1471,32 @@
           };
         };
         targets = [
-          { expr = "sum(rate(gateway_backend_requests_total[5m]))"; legendFormat = "Requests/sec"; refId = "A"; }
+          {
+            expr = "sum(rate(gateway_backend_requests_total[5m]))";
+            legendFormat = "Requests/sec";
+            refId = "A";
+          }
         ];
         title = "Request Rate";
         type = "stat";
       }
       # Token Throughput
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           mappings = [];
           unit = "tps";
         };
-        gridPos = { h = 6; w = 6; x = 12; y = 1; };
+        gridPos = {
+          h = 6;
+          w = 6;
+          x = 12;
+          y = 1;
+        };
         id = 3;
         options = {
           graphMode = "area";
@@ -920,27 +1507,51 @@
           };
         };
         targets = [
-          { expr = "sum(rate(gateway_model_tokens_total[5m]))"; legendFormat = "Tokens/sec"; refId = "A"; }
+          {
+            expr = "sum(rate(gateway_model_tokens_total[5m]))";
+            legendFormat = "Tokens/sec";
+            refId = "A";
+          }
         ];
         title = "Token Throughput";
         type = "stat";
       }
       # Active Requests
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "thresholds";
           thresholds = {
             mode = "absolute";
             steps = [
-              { color = "green"; value = null; }
-              { color = "yellow"; value = 5; }
-              { color = "orange"; value = 10; }
-              { color = "red"; value = 20; }
+              {
+                color = "green";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 5;
+              }
+              {
+                color = "orange";
+                value = 10;
+              }
+              {
+                color = "red";
+                value = 20;
+              }
             ];
           };
         };
-        gridPos = { h = 6; w = 6; x = 18; y = 1; };
+        gridPos = {
+          h = 6;
+          w = 6;
+          x = 18;
+          y = 1;
+        };
         id = 4;
         options = {
           graphMode = "none";
@@ -951,7 +1562,11 @@
           };
         };
         targets = [
-          { expr = "gateway_active_requests"; legendFormat = "Active"; refId = "A"; }
+          {
+            expr = "gateway_active_requests";
+            legendFormat = "Active";
+            refId = "A";
+          }
         ];
         title = "Active Requests";
         type = "stat";
@@ -960,7 +1575,12 @@
       # ========== ROW: LATENCY ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 7; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 7;
+        };
         id = 200;
         panels = [];
         title = "⏱️ Latency & Performance";
@@ -968,7 +1588,10 @@
       }
       # Request Duration Percentiles
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -983,23 +1606,47 @@
           };
           unit = "s";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 8; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 8;
+        };
         id = 5;
         options = {
-          legend = { calcs = ["mean" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = ''histogram_quantile(0.50, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))''; legendFormat = "{{model}} p50"; refId = "A"; }
-          { expr = ''histogram_quantile(0.95, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))''; legendFormat = "{{model}} p95"; refId = "B"; }
-          { expr = ''histogram_quantile(0.99, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))''; legendFormat = "{{model}} p99"; refId = "C"; }
+          {
+            expr = ''histogram_quantile(0.50, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))'';
+            legendFormat = "{{model}} p50";
+            refId = "A";
+          }
+          {
+            expr = ''histogram_quantile(0.95, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))'';
+            legendFormat = "{{model}} p95";
+            refId = "B";
+          }
+          {
+            expr = ''histogram_quantile(0.99, sum(rate(gateway_model_request_duration_seconds_bucket[5m])) by (le, model))'';
+            legendFormat = "{{model}} p99";
+            refId = "C";
+          }
         ];
         title = "Request Duration Percentiles";
         type = "timeseries";
       }
       # Time to First Token
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -1014,14 +1661,27 @@
           };
           unit = "s";
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 8; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 8;
+        };
         id = 6;
         options = {
-          legend = { calcs = ["mean" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "gateway_model_time_to_first_token_seconds"; legendFormat = "{{model}}"; refId = "A"; }
+          {
+            expr = "gateway_model_time_to_first_token_seconds";
+            legendFormat = "{{model}}";
+            refId = "A";
+          }
         ];
         title = "Time to First Token";
         type = "timeseries";
@@ -1030,7 +1690,12 @@
       # ========== ROW: TOKENS ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 16; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 16;
+        };
         id = 300;
         panels = [];
         title = "🪙 Token Usage";
@@ -1038,7 +1703,10 @@
       }
       # Input/Output Token Rates
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -1053,36 +1721,73 @@
           };
           unit = "tps";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 17; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 17;
+        };
         id = 7;
         options = {
-          legend = { calcs = ["mean" "last"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "last"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "sum(rate(gateway_model_input_tokens_total[5m])) by (model)"; legendFormat = "{{model}} input"; refId = "A"; }
-          { expr = "sum(rate(gateway_model_output_tokens_total[5m])) by (model)"; legendFormat = "{{model}} output"; refId = "B"; }
+          {
+            expr = "sum(rate(gateway_model_input_tokens_total[5m])) by (model)";
+            legendFormat = "{{model}} input";
+            refId = "A";
+          }
+          {
+            expr = "sum(rate(gateway_model_output_tokens_total[5m])) by (model)";
+            legendFormat = "{{model}} output";
+            refId = "B";
+          }
         ];
         title = "Input/Output Token Rates";
         type = "timeseries";
       }
       # Total Tokens Distribution
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
-            hideFrom = { tooltip = false; vizLegend = false; yaxis = false; };
+            hideFrom = {
+              tooltip = false;
+              vizLegend = false;
+              yaxis = false;
+            };
           };
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 17; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 17;
+        };
         id = 8;
         options = {
-          legend = { displayMode = "table"; placement = "right"; values = ["value" "percent"]; };
+          legend = {
+            displayMode = "table";
+            placement = "right";
+            values = ["value" "percent"];
+          };
           pieType = "donut";
         };
         targets = [
-          { expr = "sum(gateway_model_tokens_total) by (model)"; legendFormat = "{{model}}"; refId = "A"; }
+          {
+            expr = "sum(gateway_model_tokens_total) by (model)";
+            legendFormat = "{{model}}";
+            refId = "A";
+          }
         ];
         title = "Tokens Distribution by Model";
         type = "piechart";
@@ -1091,7 +1796,12 @@
       # ========== ROW: ERRORS ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 25; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 25;
+        };
         id = 400;
         panels = [];
         title = "⚠️ Errors & Failures";
@@ -1099,7 +1809,10 @@
       }
       # Error Rate
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "thresholds";
           custom = {
@@ -1114,64 +1827,126 @@
           };
           thresholds.mode = "absolute";
           thresholds.steps = [
-            { color = "green"; value = null; }
-            { color = "yellow"; value = 0.01; }
-            { color = "orange"; value = 0.05; }
-            { color = "red"; value = 0.1; }
+            {
+              color = "green";
+              value = null;
+            }
+            {
+              color = "yellow";
+              value = 0.01;
+            }
+            {
+              color = "orange";
+              value = 0.05;
+            }
+            {
+              color = "red";
+              value = 0.1;
+            }
           ];
           unit = "percentunit";
         };
-        gridPos = { h = 8; w = 12; x = 0; y = 26; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 0;
+          y = 26;
+        };
         id = 9;
         options = {
-          legend = { calcs = ["last" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["last" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = ''sum(rate(gateway_model_requests_total{error!="none"}[5m])) / sum(rate(gateway_model_requests_total[5m]))''; legendFormat = "Error Rate"; refId = "A"; }
+          {
+            expr = ''sum(rate(gateway_model_requests_total{error!="none"}[5m])) / sum(rate(gateway_model_requests_total[5m]))'';
+            legendFormat = "Error Rate";
+            refId = "A";
+          }
         ];
         title = "Error Rate";
         type = "timeseries";
       }
       # Error Types
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
-            hideFrom = { tooltip = false; vizLegend = false; yaxis = false; };
+            hideFrom = {
+              tooltip = false;
+              vizLegend = false;
+              yaxis = false;
+            };
           };
         };
-        gridPos = { h = 8; w = 12; x = 12; y = 26; };
+        gridPos = {
+          h = 8;
+          w = 12;
+          x = 12;
+          y = 26;
+        };
         id = 10;
         options = {
-          legend = { displayMode = "table"; placement = "right"; values = ["value" "percent"]; };
+          legend = {
+            displayMode = "table";
+            placement = "right";
+            values = ["value" "percent"];
+          };
           pieType = "donut";
         };
         targets = [
-          { expr = "sum(gateway_model_requests_total) by (error)"; legendFormat = "{{error}}"; refId = "A"; }
+          {
+            expr = "sum(gateway_model_requests_total) by (error)";
+            legendFormat = "{{error}}";
+            refId = "A";
+          }
         ];
         title = "Errors by Type";
         type = "piechart";
       }
       # Circuit Breaker State
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "thresholds";
           mappings = [
             {
               type = "value";
               options = {
-                "0" = { color = "red"; text = "Open"; };
-                "1" = { color = "yellow"; text = "Half-Open"; };
-                "2" = { color = "green"; text = "Closed"; };
+                "0" = {
+                  color = "red";
+                  text = "Open";
+                };
+                "1" = {
+                  color = "yellow";
+                  text = "Half-Open";
+                };
+                "2" = {
+                  color = "green";
+                  text = "Closed";
+                };
               };
             }
           ];
           thresholds.mode = "absolute";
         };
-        gridPos = { h = 6; w = 12; x = 0; y = 34; };
+        gridPos = {
+          h = 6;
+          w = 12;
+          x = 0;
+          y = 34;
+        };
         id = 11;
         options = {
           graphMode = "none";
@@ -1182,7 +1957,11 @@
           };
         };
         targets = [
-          { expr = "gateway_circuit_breaker_state"; legendFormat = "{{backend}} {{model}}"; refId = "A"; }
+          {
+            expr = "gateway_circuit_breaker_state";
+            legendFormat = "{{backend}} {{model}}";
+            refId = "A";
+          }
         ];
         title = "Circuit Breaker State";
         type = "stat";
@@ -1191,7 +1970,12 @@
       # ========== ROW: ROUTING ==========
       {
         collapsed = false;
-        gridPos = { h = 1; w = 24; x = 0; y = 40; };
+        gridPos = {
+          h = 1;
+          w = 24;
+          x = 0;
+          y = 40;
+        };
         id = 500;
         panels = [];
         title = "🔀 Routing & Specialization";
@@ -1199,28 +1983,51 @@
       }
       # Backend Distribution
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
-            hideFrom = { tooltip = false; vizLegend = false; yaxis = false; };
+            hideFrom = {
+              tooltip = false;
+              vizLegend = false;
+              yaxis = false;
+            };
           };
         };
-        gridPos = { h = 8; w = 8; x = 0; y = 41; };
+        gridPos = {
+          h = 8;
+          w = 8;
+          x = 0;
+          y = 41;
+        };
         id = 12;
         options = {
-          legend = { displayMode = "table"; placement = "right"; values = ["value" "percent"]; };
+          legend = {
+            displayMode = "table";
+            placement = "right";
+            values = ["value" "percent"];
+          };
           pieType = "donut";
         };
         targets = [
-          { expr = "sum(gateway_backend_requests_total) by (backend)"; legendFormat = "{{backend}}"; refId = "A"; }
+          {
+            expr = "sum(gateway_backend_requests_total) by (backend)";
+            legendFormat = "{{backend}}";
+            refId = "A";
+          }
         ];
         title = "Requests by Backend";
         type = "piechart";
       }
       # Model Scores
       {
-        datasource = { type = "prometheus"; uid = "prometheus"; };
+        datasource = {
+          type = "prometheus";
+          uid = "prometheus";
+        };
         fieldConfig.defaults = {
           color.mode = "palette-classic";
           custom = {
@@ -1235,21 +2042,33 @@
           };
           thresholds.mode = "absolute";
         };
-        gridPos = { h = 8; w = 16; x = 8; y = 41; };
+        gridPos = {
+          h = 8;
+          w = 16;
+          x = 8;
+          y = 41;
+        };
         id = 13;
         options = {
-          legend = { calcs = ["mean" "max"]; displayMode = "table"; placement = "bottom"; };
+          legend = {
+            calcs = ["mean" "max"];
+            displayMode = "table";
+            placement = "bottom";
+          };
           tooltip.mode = "multi";
         };
         targets = [
-          { expr = "gateway_model_score"; legendFormat = "{{model}}"; refId = "A"; }
+          {
+            expr = "gateway_model_score";
+            legendFormat = "{{model}}";
+            refId = "A";
+          }
         ];
         title = "Model Specialization Scores";
         type = "timeseries";
       }
     ];
   };
-
 in {
   options.services.monitoring.grafana = {
     enable = lib.mkEnableOption "Grafana dashboard server";

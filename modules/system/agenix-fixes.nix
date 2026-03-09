@@ -73,14 +73,42 @@ in {
           exit 1
         fi
 
-        # Find the actual agenix mount subdirectory
-        AGENTX_DIR=''$(find "$AGENTX_BASE" -maxdepth 1 -type d ! -name "$AGENTX_BASE" -print0 | head -z -n 1 | xargs -0)
-        if [ -z "$AGENTX_DIR" ]; then
-          echo "[agenix-rekey] ERROR: No agenix mount subdirectory found in $AGENTX_BASE"
-          exit 1
+        # Determine the correct target directory for secrets
+        # The agenix module creates /run/agenix -> /run/agenix.d/1/ symlink
+        # Services access secrets via /run/agenix/<name>
+        # We need to write to the symlink target for services to find them
+        if [ -L "/run/agenix" ]; then
+          # Use the symlink target (readlink gives us /run/agenix.d/1)
+          AGENTX_DIR="$(readlink -f /run/agenix)"
+          # Ensure the target directory exists
+          if [ ! -d "$AGENTX_DIR" ]; then
+            mkdir -p "$AGENTX_DIR"
+          fi
+        else
+          # Fallback: find the actual agenix mount subdirectory
+          AGENTX_DIR=''$(find "$AGENTX_BASE" -maxdepth 1 -type d ! -name "$AGENTX_BASE" -print0 2>/dev/null | head -z -n 1 | xargs -0 2>/dev/null || echo "")
+          if [ -z "$AGENTX_DIR" ]; then
+            # Last resort: use the numbered subdirectory that agenix creates
+            AGENTX_DIR="$AGENTX_BASE/1"
+            mkdir -p "$AGENTX_DIR"
+          fi
         fi
 
         echo "[agenix-rekey] Using agenix mount: $AGENTX_DIR"
+
+        # MIGRATION: Move secrets from wrong location to correct location
+        # If secrets exist in /run/agenix.d/ but not in /run/agenix.d/1/, move them
+        if [ -d "$AGENTX_BASE" ] && [ "$AGENTX_DIR" != "$AGENTX_BASE" ]; then
+          for secret_file in "$AGENTX_BASE"/*; do
+            if [ -f "$secret_file" ]; then
+              secret_name=$(basename "$secret_file")
+              if [ ! -f "$AGENTX_DIR/$secret_name" ]; then
+                echo "[agenix-rekey] Migrating secret from old location: $secret_name"
+                mv "$secret_file" "$AGENTX_DIR/$secret_name"
+              fi
+            fi
+          done
+        fi
 
         # Check if secrets are already decrypted (by agenix module)
         # If yes, we're done. If no, decrypt them.
@@ -196,7 +224,7 @@ in {
     # ============================================================================
     # This ensures the identity file is available early in the boot process
     # before the home directory is mounted
-    system.activationScripts.copy-age-key = lib.stringAfter [ "users" ] ''
+    system.activationScripts.copy-age-key = lib.stringAfter ["users"] ''
       # Create /etc/age directory
       mkdir -p /etc/age
 

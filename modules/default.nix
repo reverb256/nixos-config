@@ -33,9 +33,10 @@
     ./desktop/systems-intelligence-plasmoid.nix
 
     # Shell configuration
+    # Fish system-level (PATH, packages): ./shell/fish.nix
+    # Fish user-level (aliases, prompt): Home Manager (./system/home-manager.nix)
     ./shell/bash.nix
     ./shell/fish.nix
-    ./shell/starship.nix
 
     # Development
     ./development/tools.nix
@@ -65,7 +66,6 @@
     ./services/glitchtip-selfhosted.nix
     ./services/nextcloud.nix
     ./services/service-gateway.nix
-    ./services/bolt-diy.nix
     ./services/ci-runner.nix
     ./services/garnix.nix
     ./services/auto-update.nix

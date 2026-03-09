@@ -1,7 +1,10 @@
 # Example configuration for Nextcloud module
 # Add this to your /etc/nixos/configuration.nix
-
-{ config, pkgs, ... }: {
+{
+  config,
+  pkgs,
+  ...
+}: {
   # ============================================================================
   # NEXTCLOUD CONFIGURATION
   # ============================================================================
@@ -9,7 +12,7 @@
     enable = true;
 
     # Basic setup
-    hostName = "cloud.zephyr.local";  # Change to your hostname
+    hostName = "cloud.zephyr.local"; # Change to your hostname
 
     # Database (automatically created)
     database = {
@@ -20,31 +23,31 @@
 
     # Admin account (password managed by Agenix)
     admin = {
-      user = "j_kro";  # Or "admin"
+      user = "j_kro"; # Or "admin"
       passwordFile = "/run/agenix/nextcloud-admin";
     };
 
     # Storage
     dataDir = "/var/lib/nextcloud";
-    maxUploadSize = "16G";  # For large LLM model files, logs, etc.
+    maxUploadSize = "16G"; # For large LLM model files, logs, etc.
 
     # Apps - enable what you need
     apps = {
       enable = true;
 
       # Core file sync
-      files = true;      # File sync and sharing
+      files = true; # File sync and sharing
 
       # Collaboration
-      text = true;       # Collaborative Markdown
-      deck = true;       # Kanban boards (great for agent workflows!)
-      calendar = true;   # CalDAV calendar
-      contacts = true;   # CardDAV contacts
-      tasks = true;      # Task management
-      notes = true;      # Quick Markdown notes
+      text = true; # Collaborative Markdown
+      deck = true; # Kanban boards (great for agent workflows!)
+      calendar = true; # CalDAV calendar
+      contacts = true; # CardDAV contacts
+      tasks = true; # Task management
+      notes = true; # Quick Markdown notes
 
       # Communication
-      talk = true;       # Video calls, chat, Matrix bridge
+      talk = true; # Video calls, chat, Matrix bridge
 
       # Office suites (pick one)
       onlyoffice = false;
@@ -57,7 +60,7 @@
     # PHP tuning
     php = {
       memoryLimit = "512M";
-      maxExecutionTime = 3600;  # For large file uploads
+      maxExecutionTime = 3600; # For large file uploads
     };
   };
 

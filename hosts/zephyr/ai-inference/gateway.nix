@@ -28,10 +28,10 @@
     # Missing dependencies from modules/services/ai-inference/gateway.nix:
     ps.pydantic
     ps.pydantic-settings
-    ps.openai  # OpenAI SDK
-    ps.anthropic  # Anthropic SDK for Claude
-    ps.redis  # Redis client
-    ps.sentry-sdk  # Error tracking
+    ps.openai # OpenAI SDK
+    ps.anthropic # Anthropic SDK for Claude
+    ps.redis # Redis client
+    ps.sentry-sdk # Error tracking
   ]);
 
   # Gateway main.py v2

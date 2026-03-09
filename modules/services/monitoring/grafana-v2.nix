@@ -21,7 +21,6 @@
   libExt = lib.extend (self: super: {
     dashboard = dashboardLib;
   });
-
 in {
   options.services.monitoring.grafana = {
     enable = lib.mkEnableOption "Grafana dashboard server";
@@ -97,27 +96,26 @@ in {
       };
 
       provision = {
-        datasources.settings.datasources =
-          let
-            prometheusDs = {
-              name = "Prometheus";
-              type = "prometheus";
-              url = "http://127.0.0.1:${toString cluster.ports.prometheus}";
-              isDefault = true;
-              access = "proxy";
-              editable = false;
-              uid = "prometheus";
-            };
-            lokiDs = lib.optional (config.services.monitoring.loki.enable) {
-              name = "Loki";
-              type = "loki";
-              url = "http://127.0.0.1:3100";
-              access = "proxy";
-              editable = false;
-              uid = "loki";
-            };
-          in
-            [prometheusDs] ++ lokiDs;
+        datasources.settings.datasources = let
+          prometheusDs = {
+            name = "Prometheus";
+            type = "prometheus";
+            url = "http://127.0.0.1:${toString cluster.ports.prometheus}";
+            isDefault = true;
+            access = "proxy";
+            editable = false;
+            uid = "prometheus";
+          };
+          lokiDs = lib.optional (config.services.monitoring.loki.enable) {
+            name = "Loki";
+            type = "loki";
+            url = "http://127.0.0.1:3100";
+            access = "proxy";
+            editable = false;
+            uid = "loki";
+          };
+        in
+          [prometheusDs] ++ lokiDs;
 
         dashboards.settings.providers = [
           {

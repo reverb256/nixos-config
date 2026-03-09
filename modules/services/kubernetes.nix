@@ -1,7 +1,11 @@
 # Kubernetes Configuration Module
 # Full upstream Kubernetes via services.kubernetes module
-{ config, pkgs, lib, ... }:
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   options.services.kubernetes-module = {
     enable = lib.mkEnableOption "Kubernetes cluster configuration";
 
@@ -111,12 +115,12 @@
     # ============================================================================
     networking.firewall = {
       allowedTCPPorts = [
-        6443   # Kubernetes API server
-        2379   # etcd client
-        2380   # etcd peer
-        10250  # Kubelet API
-        10251  # Kube-scheduler
-        10252  # Kube-controller-manager
+        6443 # Kubernetes API server
+        2379 # etcd client
+        2380 # etcd peer
+        10250 # Kubelet API
+        10251 # Kube-scheduler
+        10252 # Kube-controller-manager
       ];
 
       allowedTCPPortRanges = [
@@ -126,13 +130,13 @@
         }
       ];
 
-      allowedUDPPorts = [8472];  # Flannel VXLAN
+      allowedUDPPorts = [8472]; # Flannel VXLAN
     };
 
     # ============================================================================
     # KUBERNETES TOOLS
     # ============================================================================
-    environment.systemPackages = with pkgs; [ kubernetes nvidia-container-toolkit ];
+    environment.systemPackages = with pkgs; [kubernetes nvidia-container-toolkit];
 
     # kubectl aliases
     programs.bash.shellAliases = {
