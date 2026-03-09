@@ -906,6 +906,12 @@
             user_pref("zen.view.compact", true);
             user_pref("zen.workspaces.vertical", true);
 
+            // Dark mode - signal to websites that system prefers dark mode
+            // This enables native dark themes on supporting websites via CSS prefers-color-scheme
+            user_pref("ui.systemUsesDarkTheme", 1);
+            user_pref("browser.in-content.dark-mode", true);
+            user_pref("layout.css.prefers-color-scheme.content-override", 2); // 2 = dark
+
             // Performance optimizations
             user_pref("gfx.webrender.all", true);
             user_pref("media.ffmpeg.vaapi.enabled", true);
