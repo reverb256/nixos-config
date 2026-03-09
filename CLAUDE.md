@@ -95,7 +95,7 @@ See: `.claude/hookify.warn-mcp-accept-headers.local.md`
 just test              # Verify configuration
 just switch            # Apply to local host
 just deploy            # Deploy to all hosts
-just sync              # Sync all nodes to current branch
+# just sync              # Sync all nodes to current branch (DEPRECATED: Colmena handles this automatically)
 ```
 
 ---

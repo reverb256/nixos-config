@@ -20,7 +20,25 @@
 
   config = lib.mkIf config.services.kubernetes-module.enable {
     # ============================================================================
-    # KUBERNETES API SERVER
+    # DISABLE PODMAN DOCKER COMPATIBILITY (conflicts with Docker)
+    # ============================================================================
+    virtualisation.podman.dockerCompat = lib.mkForce false;
+    virtualisation.podman.dockerSocket.enable = lib.mkForce false;
+
+    # ============================================================================
+    # KUBERNETES MASTER ADDRESS
+    # ============================================================================
+    services.kubernetes.masterAddress = config.services.kubernetes-module.masterAddress;
+
+    # ============================================================================
+    # KUBERNETES PKI (Certificates)
+    # ============================================================================
+    services.kubernetes.caFile = "/etc/kubernetes/ca.crt";
+    services.kubernetes.apiserver.serviceAccountSigningKeyFile = "/etc/kubernetes/service-account-key.pem";
+    services.kubernetes.apiserver.serviceAccountKeyFile = "/etc/kubernetes/service-account-key.pem";
+
+    # ============================================================================
+    # KUBERNETES COMPONENTS
     # ============================================================================
     services.kubernetes.apiserver = {
       enable = true;
@@ -28,37 +46,22 @@
       securePort = 6443;
     };
 
-    # ============================================================================
-    # KUBERNETES SCHEDULER
-    # ============================================================================
     services.kubernetes.scheduler = {
       enable = true;
     };
 
-    # ============================================================================
-    # KUBERNETES CONTROLLER MANAGER
-    # ============================================================================
     services.kubernetes.controllerManager = {
       enable = true;
     };
 
-    # ============================================================================
-    # KUBERNETES KUBELET
-    # ============================================================================
     services.kubernetes.kubelet = {
       enable = true;
     };
 
-    # ============================================================================
-    # KUBERNETES PROXY
-    # ============================================================================
     services.kubernetes.proxy = {
       enable = true;
     };
 
-    # ============================================================================
-    # FLANNEL CNI
-    # ============================================================================
     services.kubernetes.flannel = {
       enable = true;
     };
