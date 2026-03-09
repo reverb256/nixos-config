@@ -272,6 +272,7 @@ in {
               Environment = [
                 "GPU_MAX_HEAP_SIZE=100"
                 "GPU_MAX_ALLOC_PERCENT=100"
+                "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
               ];
               LimitMEMLOCK = "4G";
             }
@@ -292,6 +293,9 @@ in {
               ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.amd}";
               Restart = "always";
               RestartSec = "30s";
+              Environment = [
+                "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
+              ];
               LimitMEMLOCK = "8G";
             }
             // lolminerHardening;

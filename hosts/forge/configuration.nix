@@ -516,6 +516,8 @@
       "c /dev/net/tun 666 root root - - - -"
       "L+ /opt/rocm - - - - ${rocmEnv}"
       "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+      # lolMiner workaround for OpenCL ICD path bug
+      "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
     ];
 
     slices.mining = {
