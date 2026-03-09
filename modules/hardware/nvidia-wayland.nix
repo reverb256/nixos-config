@@ -41,51 +41,14 @@ in {
     # ============================================================================
     # NVIDIA DRIVER CONFIGURATION
     # ============================================================================
-    hardware.nvidia = {
-      # Use open-source modules for better Wayland support (driver 560+)
-      open = cfg.openModules;
-
-      # Required for Wayland
-      modesetting.enable = true;
-
-      # NVIDIA settings GUI
-      nvidiaSettings = true;
-
-      # Power management
-      powerManagement.enable = cfg.powerManagement;
-      powerManagement.finegrained = false;
-
-      # GSP firmware - must be enabled when using open-source modules
-      # Can be disabled for proprietary modules on RTX 3090 for stability
-      gsp.enable = cfg.openModules;
-    };
-
-    # Include NVIDIA firmware when using open modules (required for GSP)
-    hardware.firmware = lib.optionals cfg.openModules [
-      config.hardware.nvidia.package.firmware
-    ];
-
-    # ============================================================================
-    # GRAPHICS CONFIGURATION
-    # ============================================================================
-    hardware.graphics = {
-      enable = true;
-      inherit (cfg) enable32Bit;
-
-      extraPackages = with pkgs; [
-        # Essential for NVIDIA + Wayland integration
-        egl-wayland
-
-        # Hardware video acceleration
-        nvidia-vaapi-driver
-        libva
-        libva-utils
-      ];
-
-      extraPackages32 = lib.optionals cfg.enable32Bit (with pkgs.pkgsi686Linux; [
-        nvidia-vaapi-driver
-      ]);
-    };
+    # NOTE: hardware.nvidia base configuration (including package) is in nvidia-common.nix
+    # This module only adds/overrides Wayland-specific settings
+    hardware.nvidia.open = cfg.openModules;
+    hardware.nvidia.modesetting.enable = true;
+    hardware.nvidia.nvidiaSettings = true;
+    hardware.nvidia.powerManagement.enable = cfg.powerManagement;
+    hardware.nvidia.powerManagement.finegrained = false;
+    hardware.nvidia.gsp.enable = cfg.openModules;
 
     # ============================================================================
     # DISPLAY MANAGER (SDDM with Wayland)

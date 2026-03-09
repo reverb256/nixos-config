@@ -44,6 +44,7 @@
     ./development/programming-languages.nix
     ./development/opencode.nix
     ./development/web-testing.nix
+    ./development/playwright.nix
 
     # Gaming
     ./gaming/gaming.nix

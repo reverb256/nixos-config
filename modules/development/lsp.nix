@@ -29,6 +29,9 @@
     # Nix
     nil # Nix language server
     nixd
+    alejandra # Nix formatter
+    statix # Nix linter
+    deadnix # Nix dead code finder
     nixfmt
     nixpkgs-fmt
 

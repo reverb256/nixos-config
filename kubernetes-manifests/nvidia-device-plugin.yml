@@ -1,6 +1,7 @@
 # NVIDIA Device Plugin for Kubernetes
 # Enables Kubernetes to schedule GPU workloads on NVIDIA GPUs
 # Source: https://github.com/NVIDIA/k8s-device-plugin
+# Updated for CRI-O on NixOS with direct device passthrough
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -23,32 +24,48 @@ spec:
           effect: NoSchedule
       # Mark this pod as a critical add-on for rescheduling
       priorityClassName: system-node-critical
+      hostNetwork: true
+      hostPID: true
       containers:
         - image: nvcr.io/nvidia/k8s-device-plugin:v0.14.0
           name: nvidia-device-plugin-ctr
           env:
             - name: FAIL_ON_INIT_ERROR
               value: "false"
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: "compute,utility"
+            - name: PATH
+              value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/run/opengl-driver/bin"
           lifecycle:
             preStop:
               exec:
-                command: ["/bin/sh", "-c", "rm -rf /var/lib/kubelet-device-plugins"]
+                command: ["/bin/sh", "-c", "rm -rf /var/lib/kubelet/device-plugins"]
           livenessProbe:
             exec:
               command: ["/bin/sh", "-c", "--", "/usr/bin/nvidia-device-plugin-healthcheck"]
             initialDelaySeconds: 30
             periodSeconds: 10
           securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
+            privileged: true
           volumeMounts:
             - name: device-plugin
               mountPath: /var/lib/kubelet/device-plugins
+            - name: dev
+              mountPath: /dev
+            - name: sys
+              mountPath: /sys
       volumes:
         - name: device-plugin
           hostPath:
             path: /var/lib/kubelet/device-plugins
+        - name: dev
+          hostPath:
+            path: /dev
+        - name: sys
+          hostPath:
+            path: /sys
       nodeSelector:
         # Only schedule on nodes with NVIDIA GPUs
         accelerator: nvidia-gpu

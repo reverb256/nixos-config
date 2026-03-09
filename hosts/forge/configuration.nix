@@ -100,20 +100,22 @@
   # ============================================================================
   # Note: profiles.role.mining enables services.mining automatically
 
-  # NVIDIA GPUs (RTX 4060s) - devices 0,1 as detected by lolminer
+  # NVIDIA GPUs (RTX 4060s) - devices 2,3 in combined enumeration
+  # Note: PCI addresses 0f:00.0 and 11:00.0 (devices 2,3 in OpenCL+CUDA list)
   services.mining.lolminer.nvidia = {
     enable = true;
     autostart = true;
-    devices = "0,1";
+    devices = "2,3";
     powerLimit = 90;
     apiPort = 4068;
   };
 
-  # AMD GPUs (RX 5700 XT) - devices 2,3 (after OpenCL fix)
+  # AMD GPUs (RX 5700 XT) - OpenCL devices 0,1
+  # Note: PCI addresses 03:00.0 and 08:00.0, but OpenCL numbers from 0
   services.mining.lolminer.amd = {
     enable = true;
     autostart = true;
-    devices = "2,3";
+    devices = "0,1";
     powerLimit = 140;
     apiPort = 4069;
   };

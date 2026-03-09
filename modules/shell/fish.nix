@@ -10,8 +10,6 @@
   environment.systemPackages = with pkgs; [
     # Shell
     fish
-    fishPlugins.foreign-env
-    fishPlugins.fzf-fish
 
     # Navigation
     zoxide
