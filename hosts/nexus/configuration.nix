@@ -22,6 +22,9 @@
     ../../modules/services/mcp-servers.nix
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/podman-support.nix
+
+    # Home Manager integration
+    ../../modules/system/home-manager.nix
   ];
 
   # ============================================================================
@@ -213,10 +216,4 @@
   # ============================================================================
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale" "video" "render"];
 
-  # ============================================================================
-  # HOME MANAGER - Centralized user configuration
-  # ============================================================================
-  imports = [
-    ../../modules/system/home-manager.nix
-  ];
 }
