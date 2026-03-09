@@ -250,7 +250,6 @@
         repo_root_format = "[$path]($style)[$read_only]($read_only_style) ";
         read_only = " 🔒";
         style = "bold cyan";
-        truncation_symbol = "…/";
       };
 
       git_branch = {
