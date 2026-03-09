@@ -13,6 +13,7 @@
     # System-level configuration
     ./system/nix-config.nix
     ./system/users.nix
+    ./system/home-manager.nix
     ./system/ssh.nix
     ./system/mosh.nix
     ./system/polkit-rules.nix

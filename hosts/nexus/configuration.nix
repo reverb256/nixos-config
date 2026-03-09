@@ -212,4 +212,11 @@
   # USER GROUPS
   # ============================================================================
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale" "video" "render"];
+
+  # ============================================================================
+  # HOME MANAGER - Centralized user configuration
+  # ============================================================================
+  imports = [
+    ../../modules/system/home-manager.nix
+  ];
 }
