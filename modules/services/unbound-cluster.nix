@@ -108,6 +108,9 @@ in {
 
           # Local data records for cluster hosts
           local-data = [
+            # Kubernetes API server
+            ''"kubernetes.default.svc.cluster.local. IN A 10.0.0.1"''
+            # Cluster hosts
             ''"zephyr.cluster.local. IN A 10.1.1.110"''
             ''"zephyr IN A 10.1.1.110"''
             ''"nexus.cluster.local. IN A 10.1.1.120"''
