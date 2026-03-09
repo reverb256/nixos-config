@@ -619,16 +619,4 @@
   # TAILSCALE - Now managed by modules/system/tailscale.nix
   # ============================================================================
   # Tailscale routing automatically configured via network-constants
-
-  # ============================================================================
-  # GIT CONFIGURATION
-  # ============================================================================
-  programs.git = {
-    enable = true;
-    config = {
-      init.defaultBranch = "main";
-      user.name = "j_kro";
-      user.email = "j_kro@forge";
-    };
-  };
 }
