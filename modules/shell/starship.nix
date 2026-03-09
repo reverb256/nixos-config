@@ -48,7 +48,6 @@
         read_only = " 🔒";
         style = "bold cyan";
         fish_style_pwd_rooted = "bold cyan";
-        truncation_symbol = "…/";
       };
 
       # Git
