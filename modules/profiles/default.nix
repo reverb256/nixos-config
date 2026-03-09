@@ -2,13 +2,7 @@
 #
 # Provides hardware, role, and network profiles for host composition
 # Inspired by hlissner/dotfiles modules/profiles/default.nix
-{
-  config,
-  lib,
-  ...
-}: let
-  inherit (lib) mkEnableOption mkOption types;
-in {
+{ ...}: {
   imports = [
     ./hardware
     ./role

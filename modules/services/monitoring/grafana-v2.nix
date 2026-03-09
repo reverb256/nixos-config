@@ -7,20 +7,15 @@
   ...
 }: let
   cfg = config.services.monitoring.grafana;
-  cluster = config.networking.cluster;
+  inherit (config.networking) cluster;
 
   # Import dashboard library
-  dashboardLib = import ./dashboards/lib.nix {inherit lib;};
   # Import dashboard registry
   dashboards = import ./dashboards/default.nix {inherit lib;};
 
   grafanaPasswordFile = "/var/lib/grafana/admin-password";
   dashboardsDir = "/var/lib/grafana/dashboards";
-
   # Extend lib with dashboard helpers
-  libExt = lib.extend (self: super: {
-    dashboard = dashboardLib;
-  });
 in {
   options.services.monitoring.grafana = {
     enable = lib.mkEnableOption "Grafana dashboard server";
@@ -106,7 +101,7 @@ in {
             editable = false;
             uid = "prometheus";
           };
-          lokiDs = lib.optional (config.services.monitoring.loki.enable) {
+          lokiDs = lib.optional config.services.monitoring.loki.enable {
             name = "Loki";
             type = "loki";
             url = "http://127.0.0.1:3100";

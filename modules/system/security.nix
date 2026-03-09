@@ -43,49 +43,53 @@
   # NOTE: Podman configuration moved to virtualisation.nix module
 
   # ============================================================================
-  # FAIL2BAN - Intrusion Prevention
-  # Re-enabled with proper cluster IP whitelisting
+  # SERVICES CONFIGURATION
   # ============================================================================
-  services.fail2ban = {
-    enable = true;
-    maxretry = 5;
-    bantime = "1h";
+  services = {
+    # FAIL2BAN - Intrusion Prevention
+    # Re-enabled with proper cluster IP whitelisting
+    fail2ban = {
+      enable = true;
+      maxretry = 5;
+      bantime = "1h";
 
-    # Whitelist cluster IPs to prevent accidental bans
-    ignoreIP = [
-      "127.0.0.1"
-      "::1"
-      "10.1.1.0/24" # Local network
-      "100.64.0.0/10" # Tailscale CGNAT range
-      # Individual host IPs
-      "10.1.1.110" # zephyr
-      "10.1.1.120" # nexus
-      "10.1.1.130" # forge
-      "10.1.1.140" # sentry
-      # Tailscale IPs
-      "100.81.182.5" # zephyr
-      "100.86.158.18" # nexus
-      "100.95.222.45" # forge
-      "100.82.210.39" # sentry
-    ];
+      # Whitelist cluster IPs to prevent accidental bans
+      ignoreIP = [
+        "127.0.0.1"
+        "::1"
+        "10.1.1.0/24" # Local network
+        "100.64.0.0/10" # Tailscale CGNAT range
+        # Individual host IPs
+        "10.1.1.110" # zephyr
+        "10.1.1.120" # nexus
+        "10.1.1.130" # forge
+        "10.1.1.140" # sentry
+        # Tailscale IPs
+        "100.81.182.5" # zephyr
+        "100.86.158.18" # nexus
+        "100.95.222.45" # forge
+        "100.82.210.39" # sentry
+      ];
 
-    # Jails for common services
-    jails = {
-      sshd = {
-        enabled = true;
+      # Jails for common services
+      jails = {
+        sshd = {
+          enabled = true;
+        };
       };
     };
-  };
 
-  # ============================================================================
-  # USBGUARD - USB Device Authorization
-  # ============================================================================
-  services.usbguard = {
-    enable = true;
-    implicitPolicyTarget = "block";
-    rules = ''
-      allow
-    '';
+    # USBGUARD - USB Device Authorization
+    usbguard = {
+      enable = true;
+      implicitPolicyTarget = "block";
+      rules = ''
+        allow
+      '';
+    };
+
+    # AppArmor D-Bus integration
+    dbus.apparmor = "enabled";
   };
 
   # ============================================================================
@@ -133,38 +137,36 @@
   # Create wrapper profiles for common applications in per-host configs if needed
 
   # ============================================================================
-  # SUDO-RS - Rust-based sudo replacement (memory-safe, simpler)
+  # SECURITY CONFIGURATION
   # ============================================================================
-  security.sudo-rs = {
-    enable = true;
-    execWheelOnly = true; # Only wheel group can use sudo-rs
-    wheelNeedsPassword = false; # Passwordless sudo for wheel (CI/CD deployment)
-  };
-  # Disable traditional sudo in favor of sudo-rs (override users.nix)
-  security.sudo.enable = lib.mkForce false;
+  security = {
+    # SUDO-RS - Rust-based sudo replacement (memory-safe, simpler)
+    sudo-rs = {
+      enable = true;
+      execWheelOnly = true; # Only wheel group can use sudo-rs
+      wheelNeedsPassword = false; # Passwordless sudo for wheel (CI/CD deployment)
+    };
+    # Disable traditional sudo in favor of sudo-rs (override users.nix)
+    sudo.enable = lib.mkForce false;
 
-  # ============================================================================
-  # APPARMOR - Mandatory Access Control
-  # ============================================================================
-  security.apparmor = {
-    enable = true;
-    killUnconfinedConfinables = true; # Kill processes that should be confined
-    packages = with pkgs; [
-      apparmor-utils
-      apparmor-profiles
-    ];
-  };
+    # APPARMOR - Mandatory Access Control
+    apparmor = {
+      enable = true;
+      killUnconfinedConfinables = true; # Kill processes that should be confined
+      packages = with pkgs; [
+        apparmor-utils
+        apparmor-profiles
+      ];
+    };
 
-  # Enable AppArmor in PAM services
-  security.pam.services = {
-    login.enableAppArmor = true;
-    sshd.enableAppArmor = true;
-    sudo-rs.enableAppArmor = true;
-    su.enableAppArmor = true;
+    # Enable AppArmor in PAM services
+    pam.services = {
+      login.enableAppArmor = true;
+      sshd.enableAppArmor = true;
+      sudo-rs.enableAppArmor = true;
+      su.enableAppArmor = true;
+    };
   };
-
-  # AppArmor D-Bus integration
-  services.dbus.apparmor = "enabled";
 
   # ============================================================================
   # ROOT PASSWORD DISABLED

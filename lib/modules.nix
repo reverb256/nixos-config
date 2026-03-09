@@ -2,19 +2,13 @@
 #
 # Heavily inspired by hlissner/dotfiles
 # Provides mapModules, mapModulesRec, mapHosts for auto-discovery
-{
-  lib,
-  attrs,
-}: let
+{lib}: let
   inherit
     (builtins)
     attrValues
     readDir
     pathExists
     concatLists
-    attrNames
-    isAttrs
-    mapAttrs
     mapAttrsToList
     ;
 

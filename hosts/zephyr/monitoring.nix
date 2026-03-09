@@ -4,23 +4,29 @@
     ../../modules/services/monitoring/default.nix
   ];
 
-  # Node exporter for system metrics (CPU, memory, disk, network)
-  services.monitoring.node-exporter.enable = true;
+  # SERVICES CONFIGURATION
+  services = {
+    # Monitoring exporters
+    monitoring = {
+      # Node exporter for system metrics (CPU, memory, disk, network)
+      node-exporter.enable = true;
 
-  # NFS server metrics exporter (zephyr exports /etc/nixos to cluster)
-  services.monitoring.nfs-exporter.enable = true;
+      # NFS server metrics exporter (zephyr exports /etc/nixos to cluster)
+      nfs-exporter.enable = true;
 
-  # Redis exporter for AI Gateway cache metrics
-  services.monitoring.redis-exporter.enable = true;
+      # Redis exporter for AI Gateway cache metrics
+      redis-exporter.enable = true;
 
-  # SMART exporter for disk health monitoring
-  services.monitoring.smart-exporter.enable = true;
+      # SMART exporter for disk health monitoring
+      smart-exporter.enable = true;
+    };
 
-  # GPU metrics exporter (NVIDIA RTX 3090 + 3060 Ti)
-  services.gpu-exporters.enable = true;
-  services.gpu-exporters.nvidia.enable = true;
+    # GPU metrics exporter (NVIDIA RTX 3090 + 3060 Ti)
+    gpu-exporters.enable = true;
+    gpu-exporters.nvidia.enable = true;
 
-  # Mining exporter (for mining operations on zephyr)
-  # Track hashrate, power usage, shares accepted/rejected
-  services.mining-exporter.enable = true;
+    # Mining exporter (for mining operations on zephyr)
+    # Track hashrate, power usage, shares accepted/rejected
+    mining-exporter.enable = true;
+  };
 }

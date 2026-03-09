@@ -4,7 +4,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: let
   cfg = config.services.lm-studio-headless;

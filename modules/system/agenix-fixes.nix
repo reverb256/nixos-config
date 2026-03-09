@@ -6,7 +6,7 @@
   pkgs,
   ...
 }: let
-  inherit (lib) mkOption types mkIf mkDefault;
+  inherit (lib) mkOption types mkIf;
 in {
   options.services.agenix-fixes = {
     enable = mkOption {

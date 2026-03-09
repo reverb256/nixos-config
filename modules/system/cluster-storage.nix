@@ -6,7 +6,7 @@
   pkgs,
   ...
 }: let
-  inherit (lib) mkOption types mkIf mkDefault;
+  inherit (lib) mkOption types mkIf;
 
   cfg = config.services.cluster-storage;
 in {

@@ -1,6 +1,6 @@
 # modules/profiles/hardware/default.nix --- Hardware profiles
 {lib, ...}: let
-  inherit (lib) mkEnableOption mkOption types;
+  inherit (lib) mkEnableOption;
 in {
   imports = [
     ./implementations.nix

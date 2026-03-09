@@ -1,10 +1,6 @@
 # Searxng Module
 # Privacy-respecting metasearch engine (from XNM1)
-{
-  pkgs,
-  config,
-  ...
-}: {
+{config, ...}: {
   # ============================================================================
   # SEARXNG - Privacy-Focused Metasearch Engine
   # ============================================================================

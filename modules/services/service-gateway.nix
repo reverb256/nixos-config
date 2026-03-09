@@ -58,18 +58,7 @@
         }
       ''
     ) (lib.attrValues services);
-
   # Build DNS local-data entries for all services (short format: name.hostname)
-  buildDnsEntries = services:
-    concatStringsSep "\n"
-    (mapAttrsToList (
-        name: service:
-        # Short format: ai.zephyr, cloud.zephyr, etc.
-        ''
-          "${name}.${hostname}. IN A ${cfg.listenAddress}"
-        ''
-      )
-      services);
 in {
   options.services.service-gateway = {
     enable = mkEnableOption "Service Gateway - simple URLs for self-hosted services (e.g., ai.zephyr)";
@@ -204,14 +193,14 @@ in {
       # Add DNS records for each service (short format)
       local-data =
         mapAttrsToList (
-          name: service: "${name}.${hostname}. IN A ${cfg.listenAddress}"
+          name: _service: "${name}.${hostname}. IN A ${cfg.listenAddress}"
         )
         cfg.services;
     };
 
     # Add to /etc/hosts for local resolution (fallback if DNS isn't running)
     networking.extraHosts = concatStringsSep "\n" (mapAttrsToList (
-        name: service: "${cfg.listenAddress} ${name}.${hostname}"
+        name: _service: "${cfg.listenAddress} ${name}.${hostname}"
       )
       cfg.services);
 

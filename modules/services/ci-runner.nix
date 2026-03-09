@@ -48,7 +48,7 @@ in {
     };
 
     # Only enable the service if the runner has been configured
-    systemd.services.github-actions-runner = lib.mkIf (cfg.autoStart) {
+    systemd.services.github-actions-runner = lib.mkIf cfg.autoStart {
       description = "GitHub Actions Self-Hosted Runner";
       after = ["network-online.target"];
       wants = ["network-online.target"];

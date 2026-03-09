@@ -28,23 +28,107 @@
 
     # Home Manager integration
     ../../modules/system/home-manager.nix
+
+    # Kubernetes worker node
+    ../../modules/services/kubernetes.nix
   ];
 
   # ============================================================================
-  # HOST IDENTIFICATION
+  # NETWORKING CONFIGURATION
   # ============================================================================
-  networking.hostName = "forge";
+  networking = {
+    hostName = "forge";
+    wireless.enable = lib.mkForce false;
+    networkmanager = {
+      enable = true;
+      unmanaged = [];
+      ensureProfiles.profiles."Wired connection 1" = {
+        connection = {
+          id = "Wired connection 1";
+          type = "ethernet";
+        };
+        ipv4 = {
+          method = "manual";
+          address1 = "10.1.1.130/24";
+          gateway = "10.1.1.1";
+          dns = "127.0.0.1,::1";
+        };
+      };
+    };
+    dhcpcd.enable = false;
+    useDHCP = false;
+    firewall = {
+      enable = true;
+      allowedTCPPorts = [22 10250]; # SSH + Kubelet API
+      allowedTCPPortRanges = [
+        {
+          from = 30000;
+          to = 32767;
+        }
+      ];
+      allowedUDPPorts = [8472]; # Flannel VXLAN
+    };
+  };
+
+  # ============================================================================
+  # KUBERNETES WORKER NODE
+  # ============================================================================
+  services.kubernetes-module = {
+    enable = true;
+    masterAddress = "10.1.1.110"; # Zephyr control plane
+    roles = ["node"]; # Worker node only
+  };
+
+  # ============================================================================
+  # SERVICES CONFIGURATION
+  # ============================================================================
+  services = {
+    avahi = lib.mkForce {
+      enable = false;
+      nssmdns4 = false;
+      openFirewall = false;
+    };
+
+    # Spotify with SpotX patch (ad-free, premium features)
+    spotify-spotx.enable = true;
+
+    # OpenCode - AI coding assistant configuration
+    opencode.enable = true;
+
+    ollama = {
+      enable = true;
+      package = pkgs.ollama-cuda;
+      environmentVariables = {
+        OLLAMA_KEEP_ALIVE = "24h";
+      };
+    };
+
+    # Mount /etc/nixos from zephyr (single-source-of-truth)
+    nixos-share = {
+      enable = true;
+      client.enable = true;
+    };
+  };
 
   # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
-  hardware.profiles = {
-    intel.enable = true; # Intel CPU optimizations (Skylake)
-    nvidia.enable = true; # NVIDIA GPU support
-    nvidia.multiGpu = true; # 2x RTX 4060
-    amdgpu.enable = true; # AMD GPU support
-    amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
-    monitoring.enable = true; # Hardware monitoring
+  hardware = {
+    profiles = {
+      intel.enable = true; # Intel CPU optimizations (Skylake)
+      nvidia.enable = true; # NVIDIA GPU support
+      nvidia.multiGpu = true; # 2x RTX 4060
+      amdgpu.enable = true; # AMD GPU support
+      amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
+      monitoring.enable = true; # Hardware monitoring
+    };
+
+    # Hardware monitoring (lm-sensors for CPU/motherboard temps)
+    monitoring = {
+      enable = true;
+      autoDetect = true; # Auto-detect sensor chips
+      fanControl = false; # BIOS fan control for now
+    };
   };
 
   # ============================================================================
@@ -66,34 +150,32 @@
   nix.distributedBuilds = lib.mkForce false;
 
   # ============================================================================
-  # BOOTLOADER
+  # BOOT CONFIGURATION
   # ============================================================================
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
 
-  # ============================================================================
-  # KERNEL - Zen for better desktop responsiveness
-  # ============================================================================
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+    # KERNEL - Zen for better desktop responsiveness
+    kernelPackages = pkgs.linuxPackages_zen;
 
-  # ============================================================================
-  # KERNEL PARAMETERS (Minimal - avoids storage conflicts)
-  # ============================================================================
-  boot.kernelParams = [
-    "loglevel=4"
-    "lsm=landlock,yama,bpf"
-    "simpledrm.disable=1"
-    "nvidia-drm.modeset=1"
-    # zswap (from kernel-hardening.nix) will be appended automatically
-  ];
+    # KERNEL PARAMETERS (Minimal - avoids storage conflicts)
+    kernelParams = [
+      "loglevel=4"
+      "lsm=landlock,yama,bpf"
+      "simpledrm.disable=1"
+      "nvidia-drm.modeset=1"
+      # zswap (from kernel-hardening.nix) will be appended automatically
+    ];
 
-  # ============================================================================
-  # GPU DRIVERS (Hybrid AMD + NVIDIA)
-  # Note: NVIDIA base config is in nvidia-common.nix
-  # Note: hardware.profiles.amdgpu.enable handles AMDGPU automatically
-  # ============================================================================
-  boot.kernelModules = ["amdgpu" "tun"];
-  boot.initrd.kernelModules = ["amdgpu"];
+    # GPU DRIVERS (Hybrid AMD + NVIDIA)
+    # Note: NVIDIA base config is in nvidia-common.nix
+    # Note: hardware.profiles.amdgpu.enable handles AMDGPU automatically
+    kernelModules = ["amdgpu" "tun"];
+    initrd.kernelModules = ["amdgpu"];
+  };
 
   # ============================================================================
   # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
@@ -120,459 +202,417 @@
     apiPort = 4069;
   };
 
-  # Spotify with SpotX patch (ad-free, premium features)
-  services.spotify-spotx.enable = true;
-
   # ============================================================================
   # AMD GPU POWER MANAGEMENT
   # RX 5700 XT power limit set to 140W for stability and thermal management
   # Uses direct sysfs interface (more reliable than rocm-smi)
   # ============================================================================
-  systemd.services.amd-gpu-power-mgmt = {
-    description = "AMD GPU Power Limit (140W for RX 5700 XT)";
-    wantedBy = ["multi-user.target"];
-    after = ["basic.target"];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = pkgs.writeShellScript "amd-power-limit" ''
-        #!/usr/bin/env bash
-        set -euo pipefail
-
-        POWER_LIMIT_MICROWATTS=140000000  # 140W in microwatts
-
-        log() {
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-        }
-
-        # Wait for GPUs to be ready
-        sleep 5
-
-        # Set power limit for all AMD GPUs via sysfs
-        for card in /sys/class/drm/card*/device/hwmon/hwmon*/power1_cap; do
-          if [[ -w "$card" ]]; then
-            card_name=$(basename $(dirname $(dirname $(dirname "$card"))))
-            echo "$POWER_LIMIT_MICROWATTS" > "$card"
-            actual=$(cat "$card")
-            watts=$((actual / 1000000))
-            log "AMD GPU $card_name: Power limit set to ''${watts}W"
-          fi
-        done
-
-        log "AMD GPU power management configured"
-      '';
-    };
-  };
-
-  # ============================================================================
-  # NVIDIA GPU COMPUTE-ONLY MODE
-  # ============================================================================
   # Set RTX 4060s to EXCLUSIVE_PROCESS mode for compute/mining only
   # Prevents graphics/display usage, reduces interference with mining
-  # ============================================================================
-  systemd.services.nvidia-compute-mode = {
-    description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
-    wantedBy = ["multi-user.target"];
-    after = ["basic.target"];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = pkgs.writeShellScript "nvidia-compute-mode" ''
-        #!/usr/bin/env bash
-        set -euo pipefail
-
-        log() {
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-        }
-
-        # Wait for NVIDIA driver to be ready
-        for i in {1..30}; do
-          if /run/current-system/sw/bin/nvidia-smi &>/dev/null; then
-            log "NVIDIA driver ready"
-            break
-          fi
-          log "Waiting for NVIDIA driver... ($i/30)"
-          sleep 2
-        done
-
-        # Set compute mode for all NVIDIA GPUs
-        # EXCLUSIVE_PROCESS (3): Only one compute process can use each GPU
-        /run/current-system/sw/bin/nvidia-smi -c 3
-
-        # Verify the setting
-        /run/current-system/sw/bin/nvidia-smi --query-gpu=name,compute_mode --format=csv,noheader | while IFS=, read -r name mode; do
-          log "NVIDIA GPU ''${name// /}: Compute mode = ''${mode// /}"
-        done
-
-        log "NVIDIA GPUs set to compute-only mode"
-      '';
-    };
-  };
-
-  # ============================================================================
-  # AMD GPU DYNAMIC FAN CURVE (Temperature-Based with Hysteresis)
-  # ============================================================================
   # Smooth fan curve for RX 5700 XT to prevent spiking
   # - Temperature-based targeting with hysteresis
   # - Dead zones to prevent rapid oscillation
   # - Gradual ramp changes
-  systemd.services.amd-gpu-fan-curve = {
-    description = "AMD GPU Dynamic Fan Curve Control";
-    wantedBy = ["multi-user.target"];
-    after = ["network.target" "amd-gpu-power-mgmt.service"];
-    serviceConfig = {
-      Type = "simple";
-      Restart = "always";
-      RestartSec = "10s";
-      ExecStart = pkgs.writeShellScript "amd-fan-curve" ''
-        #!/run/current-system/sw/bin/bash
-        set -euo pipefail
+  # ============================================================================
+  systemd = {
+    services = {
+      amd-gpu-power-mgmt = {
+        description = "AMD GPU Power Limit (140W for RX 5700 XT)";
+        wantedBy = ["multi-user.target"];
+        after = ["basic.target"];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = pkgs.writeShellScript "amd-power-limit" ''
+            #!/usr/bin/env bash
+            set -euo pipefail
 
-        PATH=/run/current-system/sw/bin:$PATH
+            POWER_LIMIT_MICROWATTS=140000000  # 140W in microwatts
 
-        # Fan curve configuration (RX 5700 XT optimized)
-        # Format: "TEMP:TARGET_FAN_SPEED"
-        # Temp in Celsius, fan speed as percentage (0-100)
-        # Balanced curve - max 80% to reduce noise while keeping temps reasonable
-        # Note: AMD driver may still override to 100% if junction temp hits ~70°C
-        FAN_CURVE=(
-          "50:50"   # 50°C -> 50% (quiet operation)
-          "55:60"   # 55°C -> 60%
-          "60:70"   # 60°C -> 70%
-          "65:80"   # 65°C -> 80% (max fan speed - noise limit)
-          "70:80"   # 70°C -> 80% (at driver threshold - will likely override)
-          "75:80"   # 75°C -> 80%
-        )
+            log() {
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+            }
 
-        # Hysteresis configuration (prevents rapid oscillation)
-        # Only change fan speed if temperature changes by this many degrees
-        HYSTERESIS=3
+            # Wait for GPUs to be ready
+            sleep 5
 
-        # Minimum time between fan adjustments (seconds)
-        # Prevents rapid successive changes
-        MIN_ADJUST_INTERVAL=5
+            # Set power limit for all AMD GPUs via sysfs
+            for card in /sys/class/drm/card*/device/hwmon/hwmon*/power1_cap; do
+              if [[ -w "$card" ]]; then
+                card_name=$(basename $(dirname $(dirname $(dirname "$card"))))
+                echo "$POWER_LIMIT_MICROWATTS" > "$card"
+                actual=$(cat "$card")
+                watts=$((actual / 1000000))
+                log "AMD GPU $card_name: Power limit set to ''${watts}W"
+              fi
+            done
 
-        # State tracking per GPU
-        declare -A LAST_TEMP
-        declare -A LAST_FAN
-        declare -A LAST_ADJUST_TIME
+            log "AMD GPU power management configured"
+          '';
+        };
+      };
 
-        log() {
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-        }
+      nvidia-compute-mode = {
+        description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
+        wantedBy = ["multi-user.target"];
+        after = ["basic.target"];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = pkgs.writeShellScript "nvidia-compute-mode" ''
+            #!/usr/bin/env bash
+            set -euo pipefail
 
-        # GPU to hwmon mapping (bypass rocm-smi which gets overridden by driver)
-        declare -A GPU_HWMON
-        GPU_HWMON[0]="/sys/class/drm/card0/device/hwmon/hwmon0"
-        GPU_HWMON[1]="/sys/class/drm/card1/device/hwmon/hwmon1"
+            log() {
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+            }
 
-        get_temp() {
-          local gpu=$1
-          local hwmon="''${GPU_HWMON[$gpu]}"
-          # Read junction temperature from temp2_input (millidegrees Celsius)
-          local temp_milli=$(cat "$hwmon/temp2_input" 2>/dev/null || echo "0")
-          awk "BEGIN {printf \"%.1f\", $temp_milli / 1000}"
-        }
+            # Wait for NVIDIA driver to be ready
+            for i in {1..30}; do
+              if /run/current-system/sw/bin/nvidia-smi &>/dev/null; then
+                log "NVIDIA driver ready"
+                break
+              fi
+              log "Waiting for NVIDIA driver... ($i/30)"
+              sleep 2
+            done
 
-        get_target_fan() {
-          local temp=$1
-          local target_fan=30
+            # Set compute mode for all NVIDIA GPUs
+            # EXCLUSIVE_PROCESS (3): Only one compute process can use each GPU
+            /run/current-system/sw/bin/nvidia-smi -c 3
 
-          for entry in "''${FAN_CURVE[@]}"; do
-            local curve_temp="''${entry%%:*}"
-            local curve_fan="''${entry##*:}"
+            # Verify the setting
+            /run/current-system/sw/bin/nvidia-smi --query-gpu=name,compute_mode --format=csv,noheader | while IFS=, read -r name mode; do
+              log "NVIDIA GPU ''${name// /}: Compute mode = ''${mode// /}"
+            done
 
-            if (( $(awk "BEGIN {print ($temp >= $curve_temp)}") )); then
-              target_fan=$curve_fan
-            fi
-          done
+            log "NVIDIA GPUs set to compute-only mode"
+          '';
+        };
+      };
 
-          echo "$target_fan"
-        }
+      amd-gpu-fan-curve = {
+        description = "AMD GPU Dynamic Fan Curve Control";
+        wantedBy = ["multi-user.target"];
+        after = ["network.target" "amd-gpu-power-mgmt.service"];
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "10s";
+          ExecStart = pkgs.writeShellScript "amd-fan-curve" ''
+            #!/run/current-system/sw/bin/bash
+            set -euo pipefail
 
-        set_fan() {
-          local fan_pct=$1
-          local gpu=$2
-          local hwmon="''${GPU_HWMON[$gpu]}"
-          # Convert percentage to 0-255 range
-          local fan_value=$((fan_pct * 255 / 100))
+            PATH=/run/current-system/sw/bin:$PATH
 
-          # Set manual mode and fan speed via sysfs (direct hardware control)
-          if echo "1" > "$hwmon/pwm1_enable" 2>/dev/null && echo "$fan_value" > "$hwmon/pwm1" 2>/dev/null; then
-            log "GPU$gpu: Set pwm to $fan_value ($fan_pct%)"
-          else
-            log "GPU$gpu: Failed to set pwm!"
-          fi
-        }
+            # Fan curve configuration (RX 5700 XT optimized)
+            # Format: "TEMP:TARGET_FAN_SPEED"
+            # Temp in Celsius, fan speed as percentage (0-100)
+            # Balanced curve - max 80% to reduce noise while keeping temps reasonable
+            # Note: AMD driver may still override to 100% if junction temp hits ~70°C
+            FAN_CURVE=(
+              "50:50"   # 50°C -> 50% (quiet operation)
+              "55:60"   # 55°C -> 60%
+              "60:70"   # 60°C -> 70%
+              "65:80"   # 65°C -> 80% (max fan speed - noise limit)
+              "70:80"   # 70°C -> 80% (at driver threshold - will likely override)
+              "75:80"   # 75°C -> 80%
+            )
 
-        calculate_fan() {
-          local temp=$1
-          local last_temp=$2
-          local last_fan=$3
+            # Hysteresis configuration (prevents rapid oscillation)
+            # Only change fan speed if temperature changes by this many degrees
+            HYSTERESIS=3
 
-          local target_fan=$(get_target_fan "$temp")
+            # Minimum time between fan adjustments (seconds)
+            # Prevents rapid successive changes
+            MIN_ADJUST_INTERVAL=5
 
-          # Apply hysteresis - only change if temp moved significantly
-          local temp_diff=$(awk "BEGIN {print $temp - $last_temp}")
-          local abs_diff=$(awk "BEGIN {if ($temp_diff < 0) print (0 - $temp_diff); else print $temp_diff}")
+            # State tracking per GPU
+            declare -A LAST_TEMP
+            declare -A LAST_FAN
+            declare -A LAST_ADJUST_TIME
 
-          if (( $(awk "BEGIN {print ($abs_diff < $HYSTERESIS)}") )); then
-            # Within hysteresis zone - keep last fan speed
-            echo "$last_fan"
-            return
-          fi
+            log() {
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+            }
 
-          # Calculate smoothed fan change (gradual ramp)
-          # Higher max_change when temps are high to prevent driver override
-          local fan_diff=$((target_fan - last_fan))
-          local max_change=25  # Max 25% change per adjustment (increased for thermal safety)
+            # GPU to hwmon mapping (bypass rocm-smi which gets overridden by driver)
+            declare -A GPU_HWMON
+            GPU_HWMON[0]="/sys/class/drm/card0/device/hwmon/hwmon0"
+            GPU_HWMON[1]="/sys/class/drm/card1/device/hwmon/hwmon1"
 
-          if (( fan_diff > 0 )); then
-            # Ramping up
-            if (( fan_diff > max_change )); then
-              echo $((last_fan + max_change))
-            else
+            get_temp() {
+              local gpu=$1
+              local hwmon="''${GPU_HWMON[$gpu]}"
+              # Read junction temperature from temp2_input (millidegrees Celsius)
+              local temp_milli=$(cat "$hwmon/temp2_input" 2>/dev/null || echo "0")
+              awk "BEGIN {printf \\"%.1f\\", $temp_milli / 1000}"
+            }
+
+            get_target_fan() {
+              local temp=$1
+              local target_fan=30
+
+              for entry in "''${FAN_CURVE[@]}"; do
+                local curve_temp="''${entry%%:*}"
+                local curve_fan="''${entry##*:}"
+
+                if (( $(awk "BEGIN {print ($temp >= $curve_temp)}") )); then
+                  target_fan=$curve_fan
+                fi
+              done
+
               echo "$target_fan"
-            fi
-          else
-            # Ramping down
-            local neg_max_change=$((-max_change))
-            if (( fan_diff < neg_max_change )); then
-              echo $((last_fan - max_change))
-            else
-              echo "$target_fan"
-            fi
-          fi
-        }
+            }
 
-        log "Starting temperature-based fan control for RX 5700 XT (devices 0,1)"
-        log "Fan curve with hysteresis: ''${HYSTERESIS}°C dead zone, ''${MIN_ADJUST_INTERVAL}s min interval"
+            set_fan() {
+              local fan_pct=$1
+              local gpu=$2
+              local hwmon="''${GPU_HWMON[$gpu]}"
+              # Convert percentage to 0-255 range
+              local fan_value=$((fan_pct * 255 / 100))
 
-        # Initialize with current temps
-        for gpu in 0 1; do
-          temp=$(get_temp $gpu)
-          if [[ -n "$temp" ]]; then
-            LAST_TEMP[$gpu]=$temp
-            LAST_FAN[$gpu]=$(get_target_fan "$temp")
-            LAST_ADJUST_TIME[$gpu]=0
-            log "GPU$gpu initial: ''${temp}°C -> fan set to ''${LAST_FAN[$gpu]}%"
-            set_fan "''${LAST_FAN[$gpu]}" $gpu
-          fi
-        done
-
-        sleep 3
-
-        # Main control loop
-        while true; do
-          current_time=$(date +%s)
-
-          for gpu in 0 1; do
-            temp=$(get_temp $gpu)
-
-            if [[ -z "$temp" ]]; then
-              continue
-            fi
-
-            # Check if enough time has passed since last adjustment
-            time_since_last=$((current_time - LAST_ADJUST_TIME[$gpu]))
-
-            if (( time_since_last >= MIN_ADJUST_INTERVAL )); then
-              new_fan=$(calculate_fan "$temp" "''${LAST_TEMP[$gpu]}" "''${LAST_FAN[$gpu]}")
-
-              # Update fan speed if changed significantly (>= 5%)
-              fan_change=$((new_fan - LAST_FAN[$gpu]))
-              if (( fan_change >= 5 || fan_change <= -5 )); then
-                log "GPU$gpu: ''${temp}°C (was ''${LAST_TEMP[$gpu]}°C) -> fan ''${new_fan}% (was ''${LAST_FAN[$gpu]}%)"
-                LAST_FAN[$gpu]=$new_fan
-                LAST_TEMP[$gpu]=$temp
-                LAST_ADJUST_TIME[$gpu]=$current_time
+              # Set manual mode and fan speed via sysfs (direct hardware control)
+              if echo "1" > "$hwmon/pwm1_enable" 2>/dev/null && echo "$fan_value" > "$hwmon/pwm1" 2>/dev/null; then
+                log "GPU$gpu: Set pwm to $fan_value ($fan_pct%)"
               else
-                # Update temp tracker even if we don't change fan target
-                LAST_TEMP[$gpu]=$temp
+                log "GPU$gpu: Failed to set pwm!"
+              fi
+            }
+
+            calculate_fan() {
+              local temp=$1
+              local last_temp=$2
+              local last_fan=$3
+
+              local target_fan=$(get_target_fan "$temp")
+
+              # Apply hysteresis - only change if temp moved significantly
+              local temp_diff=$(awk "BEGIN {print $temp - $last_temp}")
+              local abs_diff=$(awk "BEGIN {if ($temp_diff < 0) print (0 - $temp_diff); else print $temp_diff}")
+
+              if (( $(awk "BEGIN {print ($abs_diff < $HYSTERESIS)}") )); then
+                # Within hysteresis zone - keep last fan speed
+                echo "$last_fan"
+                return
               fi
 
-              # ALWAYS write PWM to fight driver overrides (every 5s min)
-              set_fan "''${LAST_FAN[$gpu]}" $gpu
-            fi
-          done
+              # Calculate smoothed fan change (gradual ramp)
+              # Higher max_change when temps are high to prevent driver override
+              local fan_diff=$((target_fan - last_fan))
+              local max_change=25  # Max 25% change per adjustment (increased for thermal safety)
 
-          sleep 2
-        done
-      '';
+              if (( fan_diff > 0 )); then
+                # Ramping up
+                if (( fan_diff > max_change )); then
+                  echo $((last_fan + max_change))
+                else
+                  echo "$target_fan"
+                fi
+              else
+                # Ramping down
+                local neg_max_change=$((-max_change))
+                if (( fan_diff < neg_max_change )); then
+                  echo $((last_fan - max_change))
+                else
+                  echo "$target_fan"
+                fi
+              fi
+            }
+
+            log "Starting temperature-based fan control for RX 5700 XT (devices 0,1)"
+            log "Fan curve with hysteresis: ''${HYSTERESIS}°C dead zone, ''${MIN_ADJUST_INTERVAL}s min interval"
+
+            # Initialize with current temps
+            for gpu in 0 1; do
+              temp=$(get_temp $gpu)
+              if [[ -n "$temp" ]]; then
+                LAST_TEMP[$gpu]=$temp
+                LAST_FAN[$gpu]=$(get_target_fan "$temp")
+                LAST_ADJUST_TIME[$gpu]=0
+                log "GPU$gpu initial: ''${temp}°C -> fan set to ''${LAST_FAN[$gpu]}%"
+                set_fan "''${LAST_FAN[$gpu]}" $gpu
+              fi
+            done
+
+            sleep 3
+
+            # Main control loop
+            while true; do
+              current_time=$(date +%s)
+
+              for gpu in 0 1; do
+                temp=$(get_temp $gpu)
+
+                if [[ -z "$temp" ]]; then
+                  continue
+                fi
+
+                # Check if enough time has passed since last adjustment
+                time_since_last=$((current_time - LAST_ADJUST_TIME[$gpu]))
+
+                if (( time_since_last >= MIN_ADJUST_INTERVAL )); then
+                  new_fan=$(calculate_fan "$temp" "''${LAST_TEMP[$gpu]}" "''${LAST_FAN[$gpu]}")
+
+                  # Update fan speed if changed significantly (>= 5%)
+                  fan_change=$((new_fan - LAST_FAN[$gpu]))
+                  if (( fan_change >= 5 || fan_change <= -5 )); then
+                    log "GPU$gpu: ''${temp}°C (was ''${LAST_TEMP[$gpu]}°C) -> fan ''${new_fan}% (was ''${LAST_FAN[$gpu]}%)"
+                    LAST_FAN[$gpu]=$new_fan
+                    LAST_TEMP[$gpu]=$temp
+                    LAST_ADJUST_TIME[$gpu]=$current_time
+                  else
+                    # Update temp tracker even if we don't change fan target
+                    LAST_TEMP[$gpu]=$temp
+                  fi
+
+                  # ALWAYS write PWM to fight driver overrides (every 5s min)
+                  set_fan "''${LAST_FAN[$gpu]}" $gpu
+                fi
+              done
+
+              sleep 2
+            done
+          '';
+        };
+      };
+
+      # AMD GPU HEALTH CHECKS
+      "amd-gpu-check" = {
+        description = "AMD GPU Detection and Health Check";
+        wantedBy = ["multi-user.target"];
+        after = ["basic.target"];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
+          RemainAfterExit = true;
+        };
+      };
+
+      "amd-gpu-info" = {
+        description = "AMD GPU Information Service";
+        wantedBy = ["multi-user.target"];
+        after = ["basic.target"];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
+          RemainAfterExit = true;
+        };
+      };
+    };
+
+    tmpfiles.rules = let
+      rocmEnv = pkgs.symlinkJoin {
+        name = "rocm-combined";
+        paths = with pkgs.rocmPackages; [
+          clr
+          clr.icd
+          rocblas
+          hipblas
+          rpp
+        ];
+      };
+    in [
+      "c /dev/net/tun 666 root root - - - -"
+      "L+ /opt/rocm - - - - ${rocmEnv}"
+      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+    ];
+
+    slices.mining = {
+      description = "Mining Services Slice";
+      sliceConfig = {
+        CPUAccounting = true;
+        CPUQuota = "95%";
+        MemoryAccounting = true;
+        MemoryHigh = "8G";
+        MemoryMax = "12G";
+        IOAccounting = true;
+        IOWeight = 10;
+        TasksAccounting = true;
+        TasksMax = 100;
+        BlockIOAccounting = true;
+      };
     };
   };
-
-  # Hardware monitoring (lm-sensors for CPU/motherboard temps)
-  hardware.monitoring.enable = true;
-  hardware.monitoring.autoDetect = true; # Auto-detect sensor chips
-  hardware.monitoring.fanControl = false; # BIOS fan control for now
 
   # ============================================================================
   # ROCm SETUP
   # ============================================================================
   # Note: hardware.profiles.amdgpu.wayland sets ROC_ENABLE_PRE_VEGA=1 automatically
-  environment.variables = {
-    LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
-    OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
-  };
-
-  # OpenCL ICD setup for AMD GPUs (lolminer needs this to detect AMD GPUs)
-  environment.etc."OpenCL/vendors/amdocl64.icd".source =
-    "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
-
-  environment.systemPackages = with pkgs; [
-    rocmPackages.rocm-smi
-    clinfo # For debugging OpenCL
-  ];
-
-  systemd.tmpfiles.rules = let
-    rocmEnv = pkgs.symlinkJoin {
-      name = "rocm-combined";
-      paths = with pkgs.rocmPackages; [
-        clr
-        clr.icd
-        rocblas
-        hipblas
-        rpp
-      ];
+  environment = {
+    variables = {
+      LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
+      OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
     };
-  in [
-    "c /dev/net/tun 666 root root - - - -"
-    "L+ /opt/rocm - - - - ${rocmEnv}"
-    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-  ];
 
-  # ============================================================================
-  # AMD GPU HEALTH CHECKS
-  # ============================================================================
-  systemd.services."amd-gpu-check" = {
-    description = "AMD GPU Detection and Health Check";
-    wantedBy = ["multi-user.target"];
-    after = ["basic.target"];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
-      RemainAfterExit = true;
-    };
-  };
+    # OpenCL ICD setup for AMD GPUs (lolminer needs this to detect AMD GPUs)
+    etc."OpenCL/vendors/amdocl64.icd".source = "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
 
-  systemd.services."amd-gpu-info" = {
-    description = "AMD GPU Information Service";
-    wantedBy = ["multi-user.target"];
-    after = ["basic.target"];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
-      RemainAfterExit = true;
-    };
+    systemPackages = with pkgs; [
+      rocmPackages.rocm-smi
+      clinfo # For debugging OpenCL
+    ];
   };
 
   # ============================================================================
   # NIX-LD (For mining software compatibility)
   # ============================================================================
-  programs.nix-ld.enable = true;
-  programs.nix-ld.libraries = with pkgs; [
-    # AMD/ROCm libraries
-    rocmPackages.clr
-    rocmPackages.clr.icd
-    rocmPackages.rocminfo
-    rocmPackages.rocm-smi
-    rocmPackages.rocm-runtime
-    rocmPackages.rocblas
-    rocmPackages.hipblas
-    rocmPackages.hipsparse
-    rocmPackages.rocfft
-    rocmPackages.rocrand
-    rocmPackages.rocthrust
+  programs = {
+    nix-ld.enable = true;
+    nix-ld.libraries = with pkgs; [
+      # AMD/ROCm libraries
+      rocmPackages.clr
+      rocmPackages.clr.icd
+      rocmPackages.rocminfo
+      rocmPackages.rocm-smi
+      rocmPackages.rocm-runtime
+      rocmPackages.rocblas
+      rocmPackages.hipblas
+      rocmPackages.hipsparse
+      rocmPackages.rocfft
+      rocmPackages.rocrand
+      rocmPackages.rocthrust
 
-    # OpenCL
-    ocl-icd
-    opencl-headers
-    clinfo
+      # OpenCL
+      ocl-icd
+      opencl-headers
+      clinfo
 
-    # NVIDIA libraries
-    libGL
-    libGLU
-    libglvnd
-    vulkan-loader
-    nvidia-vaapi-driver
+      # NVIDIA libraries
+      libGL
+      libGLU
+      libglvnd
+      vulkan-loader
+      nvidia-vaapi-driver
 
-    # System libraries
-    zlib
-    libpng
-    libjpeg
-    freetype
-    fontconfig
-    xorg.libX11
-    xorg.libXext
-    xorg.libXrender
-    xorg.libxcb
-    xorg.libXau
-    xorg.libXdmcp
-    SDL2
-    alsa-lib
-    systemd
-    libusb1
-    curl
-    openssl
-  ];
+      # System libraries
+      zlib
+      libpng
+      libjpeg
+      freetype
+      fontconfig
+      xorg.libX11
+      xorg.libXext
+      xorg.libXrender
+      xorg.libxcb
+      xorg.libXau
+      xorg.libXdmcp
+      SDL2
+      alsa-lib
+      systemd
+      libusb1
+      curl
+      openssl
+    ];
 
-  # ============================================================================
-  # MINING SLICE (Resource limits)
-  # ============================================================================
-  systemd.slices.mining = {
-    description = "Mining Services Slice";
-    sliceConfig = {
-      CPUAccounting = true;
-      CPUQuota = "95%";
-      MemoryAccounting = true;
-      MemoryHigh = "8G";
-      MemoryMax = "12G";
-      IOAccounting = true;
-      IOWeight = 10;
-      TasksAccounting = true;
-      TasksMax = 100;
-      BlockIOAccounting = true;
-    };
-  };
-
-  # ============================================================================
-  # NETWORKING
-  # ============================================================================
-  networking.wireless.enable = lib.mkForce false;
-  services.avahi = lib.mkForce {
-    enable = false;
-    nssmdns4 = false;
-    openFirewall = false;
-  };
-
-  networking.networkmanager = {
-    enable = true;
-    unmanaged = [];
-    ensureProfiles.profiles."Wired connection 1" = {
-      connection = {
-        id = "Wired connection 1";
-        type = "ethernet";
-      };
-      ipv4 = {
-        method = "manual";
-        address1 = "10.1.1.130/24";
-        gateway = "10.1.1.1";
-        dns = "127.0.0.1,::1";
+    git = {
+      enable = true;
+      config = {
+        init.defaultBranch = "main";
+        user.name = "j_kro";
+        user.email = "j_kro@forge";
       };
     };
-  };
-
-  networking.dhcpcd.enable = false;
-  networking.useDHCP = false;
-
-  # ============================================================================
-  # FIREWALL (Minimal - SSH for management, no VR ports)
-  # ============================================================================
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [22]; # SSH for remote management
-    allowedUDPPorts = [];
   };
 
   # ============================================================================
@@ -589,28 +629,6 @@
       init.defaultBranch = "main";
       user.name = "j_kro";
       user.email = "j_kro@forge";
-    };
-  };
-
-  # ============================================================================
-  # OLLAMA (Local LLMs with CUDA)
-  # ============================================================================
-  services = {
-    # OpenCode - AI coding assistant configuration
-    opencode.enable = true;
-
-    ollama = {
-      enable = true;
-      package = pkgs.ollama-cuda;
-      environmentVariables = {
-        OLLAMA_KEEP_ALIVE = "24h";
-      };
-    };
-
-    # Mount /etc/nixos from zephyr (single-source-of-truth)
-    nixos-share = {
-      enable = true;
-      client.enable = true;
     };
   };
 }

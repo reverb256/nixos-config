@@ -1,11 +1,6 @@
 # Playwright - Browser automation and testing framework
 # Installed globally for all users with all necessary dependencies
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   # Install Playwright and all browser dependencies system-wide
   environment.systemPackages = with pkgs; [
     # Playwright CLI

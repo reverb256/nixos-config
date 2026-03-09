@@ -6,7 +6,6 @@
   pkgs,
   ...
 }: let
-  cluster = config.networking.cluster;
   prometheusCfg = config.services.monitoring.prometheus;
 
   # Alert rules content - must be available at build time for promtool validation
