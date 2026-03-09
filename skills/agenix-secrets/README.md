@@ -99,6 +99,8 @@ agenix-secrets/
 
 | Script | Purpose | Example |
 |--------|---------|---------|
+| `bootstrap.sh` | Initial setup | `./skills/agenix-secrets/bootstrap.sh` |
+| `common.py` | Shared utilities | Imported by other scripts |
 | `add_secret.py` | Single-host secret | `python3 scripts/add_secret.py my-key "value"` |
 | `add_secret_multihost.py` | Multi-host secrets | `python3 scripts/add_secret_multihost.py shared "value" --hosts zephyr,forge` |
 | `setup_host_keys.py` | Setup host keys | `python3 scripts/setup_host_keys.py --all-known-hosts` |
@@ -106,6 +108,26 @@ agenix-secrets/
 | `list_secrets.py` | Show distribution | `python3 scripts/list_secrets.py --matrix` |
 | `rekey_secrets.py` | Re-encrypt all | `python3 scripts/rekey_secrets.py` |
 | `test_secrets.py` | Test decrypt | `python3 scripts/test_secrets.py my-key` |
+
+## Quick Start
+
+### First-Time Setup
+
+Run the bootstrap script to initialize your environment:
+
+```bash
+# 1. Run bootstrap (one-time setup)
+./skills/agenix-secrets/bootstrap.sh
+
+# 2. Follow prompts to configure dependencies and setup
+```
+
+The bootstrap script will:
+- Install dependencies (agenix, ssh-to-age)
+- Initialize configuration file
+- Validate your age key
+- Validate secrets.nix
+- Guide you through next steps
 
 ## Common Workflows
 

@@ -14,67 +14,123 @@ let
     nexus = "age1v9d4x0r3f500tr73hdp5vseszzkacmrwjw78nfyjke3gq7qsu55qq769pv";
     sentry = "age12dcxvrg4g4c8249mpt89x08hlrylw26xy89maamarjz887z8cvfstx0cf6";
   };
-in {
+in
+{
   # ========================================================================
   # AI SERVICE API KEYS
   # ========================================================================
 
   # Hugging Face token - Used by AI inference services
-  "huggingface-token.age".publicKeys = [users.j_kro hosts.zephyr];
-  "secrets/huggingface-token.age".publicKeys = [users.j_kro hosts.zephyr];
+  "huggingface-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/huggingface-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # LM Studio API key - Local AI model API
-  "lm-studio-api-key.age".publicKeys = [users.j_kro hosts.zephyr];
-  "secrets/lm-studio-api-key.age".publicKeys = [users.j_kro hosts.zephyr];
+  "lm-studio-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/lm-studio-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # ZAI API key - ZAI Coding Plan API
-  "zai-api-key.age".publicKeys = [users.j_kro hosts.zephyr];
-  "secrets/zai-api-key.age".publicKeys = [users.j_kro hosts.zephyr];
+  "zai-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/zai-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # Kilo API key - Additional AI service
-  "kilo-api-key.age".publicKeys = [users.j_kro hosts.zephyr];
-  "secrets/kilo-api-key.age".publicKeys = [users.j_kro hosts.zephyr];
+  "kilo-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/kilo-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # ========================================================================
   # INFRASTRUCTURE SECRETS
   # ========================================================================
 
   # Switch admin password - Network switch management
-  "switch-admin.age".publicKeys = [users.j_kro];
-  "secrets/switch-admin.age".publicKeys = [users.j_kro];
+  "switch-admin.age".publicKeys = [ users.j_kro ];
+  "secrets/switch-admin.age".publicKeys = [ users.j_kro ];
 
   # ========================================================================
   # MONITORING SECRETS
   # ========================================================================
 
   # Grafana admin password - Monitoring dashboard access
-  "secrets/grafana-admin.age".publicKeys = [users.j_kro hosts.zephyr];
+  "secrets/grafana-admin.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # Sentry DSN - Error tracking for AI inference gateway
-  "secrets/sentry-dsn.age".publicKeys = [users.j_kro hosts.zephyr];
+  "secrets/sentry-dsn.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # ========================================================================
   # GLITCHTIP SECRETS
   # ========================================================================
 
   # GlitchTip database password
-  "secrets/glitchtip-db-password.age".publicKeys = [users.j_kro hosts.zephyr];
+  "secrets/glitchtip-db-password.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # GlitchTip Django secret key
-  "secrets/glitchtip-secret-key.age".publicKeys = [users.j_kro hosts.zephyr];
+  "secrets/glitchtip-secret-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # ========================================================================
   # NEXTCLOUD SECRETS
   # ========================================================================
 
   # Nextcloud admin password
-  "secrets/nextcloud-admin.age".publicKeys = [users.j_kro hosts.zephyr];
+  "secrets/nextcloud-admin.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # ========================================================================
   # MINING SECRETS
   # ========================================================================
 
   # XMRig HTTP API token - Used to pause/resume mining during builds
-  "xmrig-api-token.age".publicKeys = [users.j_kro hosts.zephyr];
-  "secrets/xmrig-api-token.age".publicKeys = [users.j_kro hosts.zephyr];
+  "xmrig-api-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/xmrig-api-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+
+  # Tailscale API key - Tailscale service authentication
+  "tailscale-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/tailscale-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 }

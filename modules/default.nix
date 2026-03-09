@@ -32,6 +32,7 @@
     ./desktop/systems-intelligence-plasmoid.nix
 
     # Shell configuration
+    ./shell/bash.nix
     ./shell/fish.nix
     ./shell/starship.nix
 

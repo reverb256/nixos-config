@@ -76,6 +76,8 @@ status:
     done
 
 # Sync all repos to current branch
+# DEPRECATED: Colmena automatically handles configuration distribution
+# This command is kept for emergency manual sync only
 sync:
     @echo "Syncing all nodes to $(git branch --show-current)..."
     @for host in nexus forge sentry; do \

@@ -18,8 +18,7 @@ nix flake update                              # Update flake inputs
 
 ### Critical Workflows
 **Before Deployment**:
-1. `just sync` - Ensure all nodes have same config
-2. `just test` - Verify configuration builds
+1. `just test` - Verify configuration builds
 3. Check storage mounts
 4. Review hookify warnings
 
@@ -28,5 +27,6 @@ nix flake update                              # Update flake inputs
 2. `git add` new files (Nix only packages git-tracked files!)
 3. `git commit`
 4. `just test`
-5. `just sync`
-6. `just deploy`
+5. `just deploy`
+
+**Note:** Colmena automatically handles configuration distribution to all hosts. Manual `just sync` is no longer required.

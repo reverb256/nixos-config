@@ -307,8 +307,7 @@ just rollback          # Rollback to previous generation
 ### Critical Workflows
 
 **Before Any Deployment:**
-1. `just sync` - Ensure all nodes have same configuration
-2. `just test` - Verify configuration builds
+1. `just test` - Verify configuration builds
 3. Check storage mounts on all nodes
 4. Review hookify warnings
 
@@ -440,8 +439,10 @@ just rollback          # Rollback to previous generation
 
 **Deploy configuration:**
 ```bash
-just sync && just test && just deploy
+just test && just deploy
 ```
+
+**Note:** Manual `just sync` is no longer required - Colmena handles configuration distribution automatically.
 
 **Check cluster health:**
 ```bash
