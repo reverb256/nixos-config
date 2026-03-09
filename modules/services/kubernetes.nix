@@ -62,7 +62,7 @@
     # ============================================================================
     services.etcd = {
       enable = isMaster;
-      listenClientUrls = ["http://127.0.0.1:2379"];
+      listenClientUrls = ["http://127.0.0.1:2379" "http://${config.services.kubernetes-module.masterAddress}:2379"];
       listenPeerUrls = ["http://${config.services.kubernetes-module.masterAddress}:2380"];
       initialAdvertisePeerUrls = ["http://${config.services.kubernetes-module.masterAddress}:2380"];
       initialCluster = ["${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380"];
