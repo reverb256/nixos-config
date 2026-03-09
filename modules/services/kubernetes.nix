@@ -22,7 +22,11 @@
     };
   };
 
-  config = lib.mkIf config.services.kubernetes-module.enable {
+  config = let
+    isMaster = builtins.elem "master" config.services.kubernetes-module.roles;
+    hasNvidiaGpu = config.hardware.profiles.nvidia.enable or false;
+  in lib.mkIf config.services.kubernetes-module.enable {
+
     # ============================================================================
     # DISABLE PODMAN DOCKER COMPATIBILITY (conflicts with Docker)
     # ============================================================================
@@ -34,9 +38,6 @@
     # ============================================================================
     services.kubernetes.masterAddress = config.services.kubernetes-module.masterAddress;
 
-    # Check if this is a master node
-    isMaster = builtins.elem "master" config.services.kubernetes-module.roles;
-
     # ============================================================================
     # KUBERNETES PKI (Certificates) - Auto-generate with easyCerts
     # ============================================================================
@@ -46,10 +47,10 @@
     services.kubernetes.apiserver.serviceAccountKeyFile = lib.mkForce "/etc/kubernetes/service-account-key.pem";
 
     # ============================================================================
-    # KUBERNETES APISERVER (master only)
+    # KUBERNETES APISERVER
     # ============================================================================
-    services.kubernetes.apiserver = lib.mkIf isMaster {
-      enable = true;
+    services.kubernetes.apiserver = {
+      enable = isMaster;
       bindAddress = config.services.kubernetes-module.masterAddress;
       securePort = 6443;
       # Allow privileged pods (needed for some system components)
@@ -57,10 +58,10 @@
     };
 
     # ============================================================================
-    # ETCD (master only)
+    # ETCD (Required for Kubernetes control plane)
     # ============================================================================
-    services.etcd = lib.mkIf isMaster {
-      enable = true;
+    services.etcd = {
+      enable = isMaster;
       listenClientUrls = ["http://127.0.0.1:2379"];
       listenPeerUrls = ["http://${config.services.kubernetes-module.masterAddress}:2380"];
       initialAdvertisePeerUrls = ["http://${config.services.kubernetes-module.masterAddress}:2380"];
@@ -69,12 +70,12 @@
       initialClusterState = "new";
     };
 
-    services.kubernetes.scheduler = lib.mkIf isMaster {
-      enable = true;
+    services.kubernetes.scheduler = {
+      enable = isMaster;
     };
 
-    services.kubernetes.controllerManager = lib.mkIf isMaster {
-      enable = true;
+    services.kubernetes.controllerManager = {
+      enable = isMaster;
     };
 
     services.kubernetes.kubelet = {
@@ -165,7 +166,8 @@
     '';
 
     # Write CDI spec via systemd service (CDI dir created by tmpfiles above)
-    systemd.services.nvidia-cdi = lib.mkIf (!isMaster) {
+    # Only on worker nodes with NVIDIA GPUs
+    systemd.services.nvidia-cdi = lib.mkIf (hasNvidiaGpu && !isMaster) {
       description = "NVIDIA GPU CDI Specification";
       wantedBy = ["multi-user.target"];
       before = ["crio.service"];
