@@ -1,6 +1,6 @@
 # NixOS Cluster Documentation Index
 
-**Last Updated:** 2026-03-08 | **Cluster Version:** Pre-Kubernetes Migration | **Agent Files:** Template-based v1.0
+**Last Updated:** 2026-03-09 | **Cluster Version:** Pre-Kubernetes Migration | **Agent Files:** Template-based v1.0
 
 This document provides a comprehensive index of all documentation for the NixOS cluster, including the ongoing Kubernetes migration.
 
@@ -125,6 +125,14 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **Contents:** Step-by-step switch process, troubleshooting
 **When to Read:** Performing system updates
 **Location:** `/etc/nixos/switch-configuration-guide.md`
+
+### Services & Hardware
+
+#### MINING_TROUBLESHOOTING.md
+**Purpose:** Troubleshooting guide for GPU mining services (lolMiner)
+**Contents:** Common issues, diagnostic commands, GPU configuration, systemd integration
+**When to Read:** Debugging mining service failures or performance issues
+**Location:** `/etc/nixos/docs/MINING_TROUBLESHOOTING.md`
 
 ### Monitoring & Testing
 
@@ -515,6 +523,12 @@ kubectl logs <pod-name> -n <namespace>
 ---
 
 ## Change Log
+
+### 2026-03-09
+- Created MINING_TROUBLESHOOTING.md (comprehensive lolMiner debugging guide)
+- Fixed lolMiner OpenCL ICD path bug (tmpfiles symlink workaround)
+- Fixed lolMiner OpenCL detection (added OCL_ICD_VENDORS environment variable)
+- Both mining services operational (17 g/s combined on Forge)
 
 ### 2026-03-08
 - Created DOCUMENTATION_INDEX.md
