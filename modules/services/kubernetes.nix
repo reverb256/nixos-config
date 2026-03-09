@@ -114,13 +114,18 @@
     # CNI CONFIGURATION - Flannel in proper .conflist format
     # ============================================================================
     # Create writable CNI directory for Flannel config and CDI spec
+    # Also create /var/lib/flannel for persistent subnet.env file (not on tmpfs)
+    # Create symlink from /run/flannel to /var/lib/flannel for CNI plugin compatibility
     systemd.tmpfiles.rules = [
       "d /var/lib/cni/net.d 0755 root root -"
-      "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - - /etc/cni/flannel.conflist"
+      "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
       "d /var/lib/cdi 0755 root root -"
+      "d /var/lib/flannel 0755 root root -"
+      "L+ /run/flannel - - - - /var/lib/flannel"
     ];
 
     # Store the Flannel CNI config in a writable location
+    # CNI plugin reads subnet from /run/flannel/subnet.env (symlink to /var/lib/flannel)
     environment.etc."cni/flannel.conflist".text = builtins.toJSON {
       cniVersion = "1.0.0";
       name = "mynet";
@@ -134,7 +139,7 @@
             hairpinMode = true;
             ipam = {
               type = "host-local";
-              ranges = [[{subnet = "10.244.0.0/16";}]];
+              ranges = [[{subnet = "10.1.0.0/16";}]];
             };
           };
         }
