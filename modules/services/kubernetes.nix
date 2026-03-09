@@ -47,8 +47,6 @@
       securePort = 6443;
       # Allow privileged pods (needed for some system components)
       allowPrivileged = true;
-      # Pod network CIDR
-      clusterCIDR = "10.244.0.0/16";
     };
 
     # ============================================================================
