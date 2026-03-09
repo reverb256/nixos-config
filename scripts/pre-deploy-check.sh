@@ -119,7 +119,8 @@ check_distributed_builds() {
     case "${1:-all}" in
         zephyr) targets=() ;;  # No remote builders needed
         nexus) targets=(nexus) ;;
-        forge) targets=(nexus forge) ;;
+        # forge uses local builds only (distributedBuilds = false)
+        forge) targets=() ;;
         sentry) targets=(nexus sentry) ;;
         all) targets=(nexus forge sentry) ;;
     esac
@@ -142,7 +143,7 @@ check_distributed_builds() {
                 log_error "nix-daemon on $host: not active"
             fi
         else
-            log_error "SSH to $host: unreachable"
+            log_warning "SSH to $host: unreachable (will build locally)"
         fi
     done
 }
