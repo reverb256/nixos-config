@@ -5,19 +5,27 @@
   lib,
   config,
   ...
-}: let
-  cfg = config.services.web-testing;
-in {
+}: {
   options.services.web-testing = {
-    enable = lib.mkEnableOption "Web testing with Playwright/Puppeteer system dependencies";
+    enable = lib.mkEnableOption "Web testing libraries for Playwright/Puppeteer";
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf config.services.web-testing.enable {
+    # ============================================================================
+    # PLAYWRIGHT BROWSERS PATH - GLOBAL FOR ALL USERS
+    # ============================================================================
+    # Playwright browsers are downloaded to ~/playwright-browsers
+    # Set this globally so all projects can find the browsers
+    environment.sessionVariables.PLAYWRIGHT_BROWSERS_PATH = "/home/j_kro/playwright-browsers";
+
     # ============================================================================
     # SYSTEM LIBRARIES FOR CHROMIUM/PLAYWRIGHT
     # ============================================================================
     # Playwright bundles its own Chromium binary, which needs these libraries
     environment.systemPackages = with pkgs; [
+      # Playwright CLI
+      playwright
+    ] ++ (with pkgs; [
       # GTK/GNOME libraries required by Chromium
       glib
       glibc
@@ -76,7 +84,7 @@ in {
       libxcb
       libxkbfile
       xorgproto
-    ];
+    ]);
 
     # ============================================================================
     # NIX-LD FOR DYNAMIC LIBRARY LOADING

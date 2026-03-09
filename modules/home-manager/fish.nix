@@ -31,8 +31,8 @@
       # Initialize zoxide (smart cd)
       zoxide init fish | source
 
-      # Initialize starship prompt
-      starship init fish | source
+      # Starship prompt is initialized automatically by Home Manager
+      # at the end of the generated config file
 
       # ============================================================================
       # NIXOS MANAGEMENT ALIASES
@@ -102,9 +102,7 @@
       # QUICK CONFIG EDITING
       # ============================================================================
       alias nconf "nvim /etc/nixos/flake.nix"
-      alias hconf "nvim ~/.config/hypr/hyprland.conf"
       alias fconf "nvim ~/.config/fish/config.fish"
-      alias sconf "nvim ~/.config/starship.toml"
 
       # ============================================================================
       # SYSTEM INFORMATION
@@ -130,7 +128,7 @@
       # SCREENSHOTS (Wayland)
       # ============================================================================
       alias swl "grim - | wl-copy"                      # Wayland screenshot
-      alias swlr "grim -g \\"\$(slurp)\" - | wl-copy"       # Region screenshot
+      alias swlr 'grim -g (slurp) - | wl-copy'          # Region screenshot
 
       # ============================================================================
       # PROCESS MANAGEMENT (Wayland)
@@ -182,22 +180,6 @@
         '';
       };
     };
-
-    # Plugins
-    plugins = [
-      {
-        name = "z";
-        src = pkgs.fishPlugins.z;
-      }
-      {
-        name = "fzf";
-        src = pkgs.fishPlugins.fzf;
-      }
-      {
-        name = "fzf-fish";
-        src = pkgs.fishPlugins.fzf-fish;
-      }
-    ];
   };
 
   # Install required packages
