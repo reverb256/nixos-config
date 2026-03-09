@@ -29,6 +29,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Pre-deploy validation
+        run: |
+          cd /etc/nixos
+          ./scripts/pre-deploy-check.sh "${{ github.event.inputs.target || 'all' }}"
+
       - name: Pause mining
         run: |
           sudo systemctl stop xmrig@* || true
@@ -41,29 +46,54 @@ jobs:
           
           rebuild_host() {
             local host=$1
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Deploying to $host..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            
             if [ "$host" = "zephyr" ]; then
               # Local deployment
-              sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos#zephyr
+              if ! sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos#zephyr 2>&1 | tee /tmp/deploy-$host.log; then
+                echo "ERROR: Deployment failed for $host"
+                cat /tmp/deploy-$host.log
+                return 1
+              fi
             else
               # Remote deployment (config already mounted via NFS)
-              ssh $host "sudo nixos-rebuild switch --flake /etc/nixos#$host"
+              if ! ssh $host "sudo nixos-rebuild switch --flake /etc/nixos#$host" 2>&1 | tee /tmp/deploy-$host.log; then
+                echo "ERROR: Deployment failed for $host"
+                cat /tmp/deploy-$host.log
+                return 1
+              fi
             fi
+            
+            echo "✓ Successfully deployed to $host"
           }
           
+          # Track failures
+          FAILED_HOSTS=()
+          
           if [ "${{ github.event.inputs.target }}" = "zephyr" ]; then
-            rebuild_host "zephyr"
+            rebuild_host "zephyr" || FAILED_HOSTS+=("zephyr")
           elif [ "${{ github.event.inputs.target }}" = "nexus" ]; then
-            rebuild_host "nexus"
+            rebuild_host "nexus" || FAILED_HOSTS+=("nexus")
           elif [ "${{ github.event.inputs.target }}" = "forge" ]; then
-            rebuild_host "forge"
+            rebuild_host "forge" || FAILED_HOSTS+=("forge")
           elif [ "${{ github.event.inputs.target }}" = "sentry" ]; then
-            rebuild_host "sentry"
+            rebuild_host "sentry" || FAILED_HOSTS+=("sentry")
           else
-            # Deploy to all hosts
+            # Deploy to all hosts (continue on error to report all failures)
             for host in zephyr nexus forge sentry; do
-              rebuild_host "$host"
+              rebuild_host "$host" || FAILED_HOSTS+=("$host")
             done
+          fi
+          
+          # Exit with error if any deployments failed
+          if [ ${#FAILED_HOSTS[@]} -gt 0 ]; then
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "ERROR: Deployment failed for: ${FAILED_HOSTS[*]}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            exit 1
           fi
 
       - name: Resume mining
@@ -74,16 +104,31 @@ jobs:
 
       - name: Health check
         run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Running health checks..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
           for host in zephyr nexus forge sentry; do
             echo "Checking $host..."
             if [ "$host" = "zephyr" ]; then
-              curl -f http://127.0.0.1:8080/health || true
+              if curl -f http://127.0.0.1:8080/health 2>/dev/null; then
+                echo "✓ $host health check passed"
+              else
+                echo "⚠ $host health check failed (no endpoint configured)"
+              fi
             else
-              ssh $host "curl -f http://127.0.0.1:8080/health" || true
+              if ssh $host "curl -f http://127.0.0.1:8080/health" 2>/dev/null; then
+                echo "✓ $host health check passed"
+              else
+                echo "⚠ $host health check failed (no endpoint configured)"
+              fi
             fi
           done
 
       - name: Notify on failure
         if: failure()
         run: |
-          echo "Deployment failed! Check logs."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "DEPLOYMENT FAILED"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Check the workflow logs for details"

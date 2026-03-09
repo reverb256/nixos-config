@@ -87,10 +87,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Pre-deploy validation
+        run: |
+          cd /etc/nixos
+          ./scripts/pre-deploy-check.sh all
+
       - name: Build all hosts
         run: |
           # Build each host configuration (NFS-based, no Colmena needed)
           for host in zephyr nexus forge sentry; do
             echo "Building $host..."
-            nixos-rebuild build --flake .#$host
+            if ! nixos-rebuild build --flake .#$host 2>&1 | tee /tmp/build-$host.log; then
+              echo "ERROR: Build failed for $host"
+              cat /tmp/build-$host.log
+              exit 1
+            fi
+          done
+
+      - name: Verify build outputs
+        run: |
+          for host in zephyr nexus forge sentry; do
+            echo "Verifying $host build output..."
+            if [ ! -f "/nix/var/nix/profiles/system-$host" ]; then
+              echo "ERROR: Build output not found for $host"
+              exit 1
+            fi
           done

@@ -42,7 +42,7 @@
     # ============================================================================
     services.kubernetes.apiserver = {
       enable = true;
-      address = "https://10.1.1.110:6443";
+      bindAddress = "10.1.1.110";
       securePort = 6443;
     };
 
