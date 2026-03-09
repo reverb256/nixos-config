@@ -94,7 +94,4 @@
       Persistent = "true";
     };
   };
-
-  # Enable the timer
-  config.systemd.timers.podman-auto-update.enable = true;
 }
