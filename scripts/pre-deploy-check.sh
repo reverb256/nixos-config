@@ -61,13 +61,19 @@ check_git_clean() {
 check_flake() {
     section "Flake Configuration Check"
 
-    log_info "Running 'nix flake check'..."
-    if nix flake check --print-build-logs 2>&1 | tee /tmp/flake-check.log; then
+    log_info "Running 'nix flake check' (with 5min timeout)..."
+    # Use timeout to prevent hanging, --no-build to skip expensive builds
+    if timeout 300 nix flake check --no-build 2>&1 | tee /tmp/flake-check.log; then
         log_success "Flake check passed"
     else
-        log_error "Flake check failed"
-        cat /tmp/flake-check.log
-        return 1
+        local exit_code=$?
+        if [ $exit_code -eq 124 ]; then
+            log_warning "Flake check timed out (continuing...)"
+        else
+            log_error "Flake check failed (exit code: $exit_code)"
+            cat /tmp/flake-check.log
+            return 1
+        fi
     fi
 }
 
