@@ -19,9 +19,7 @@
       promtail.lokiUrl = "http://100.81.182.5:3100"; # Zephyr's Tailscale IP
     };
 
-    # GPU exporters - AMD RX 5600 XT monitoring
-    gpu-exporters.enable = true;
-    gpu-exporters.amd.enable = true;
+    # Note: Sentry has no GPUs, no GPU exporters needed
 
     # Mining exporter for CPU mining metrics
     mining-exporter.enable = true;

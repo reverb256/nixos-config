@@ -677,45 +677,43 @@ in {
       '')
     ];
 
+    # Services configuration
+    services = {
+      # Prometheus scrape configuration
+      prometheus.scrapeConfigs = mkIf cfg.monitoring.enable [
+        {
+          job_name = "ai-inference-${config.networking.hostName}";
+          static_configs = [
+            {
+              targets = ["${cfg.gateway.host}:${toString cfg.monitoring.port}"];
+              labels = {
+                instance = config.networking.hostName;
+                backend = cfg.backend.type;
+              };
+            }
+          ];
+        }
+      ];
+
+      # LM Studio headless service (optional)
+      lm-studio-headless = mkIf (cfg.lm-studio-headless != null && cfg.lm-studio-headless.enable) {
+        enable = true;
+        inherit (cfg.lm-studio-headless) port host user openFirewall;
+      };
+
+      # Redis for gateway middleware (caching, rate limiting, circuit breaker)
+      redis.servers.ai-gateway = {
+        inherit (cfg.gateway.middleware.redis) enable;
+        bind = "127.0.0.1";
+        port = 6379;
+      };
+    };
+
     # Open firewall for gateway and metrics
     networking.firewall.allowedTCPPorts =
       [
         cfg.gateway.port
       ]
       ++ (lib.optional cfg.monitoring.enable cfg.monitoring.port);
-
-    # Prometheus scrape configuration
-    services.prometheus.scrapeConfigs = mkIf cfg.monitoring.enable [
-      {
-        job_name = "ai-inference-${config.networking.hostName}";
-        static_configs = [
-          {
-            targets = ["${cfg.gateway.host}:${toString cfg.monitoring.port}"];
-            labels = {
-              instance = config.networking.hostName;
-              backend = cfg.backend.type;
-            };
-          }
-        ];
-      }
-    ];
-
-    # LM Studio headless service (optional)
-    services.lm-studio-headless =
-      mkIf (cfg.lm-studio-headless != null && cfg.lm-studio-headless.enable)
-      {
-        enable = true;
-        inherit (cfg.lm-studio-headless) port;
-        inherit (cfg.lm-studio-headless) host;
-        inherit (cfg.lm-studio-headless) user;
-        inherit (cfg.lm-studio-headless) openFirewall;
-      };
-
-    # Redis for gateway middleware (caching, rate limiting, circuit breaker)
-    services.redis.servers.ai-gateway = {
-      inherit (cfg.gateway.middleware.redis) enable;
-      bind = "127.0.0.1";
-      port = 6379;
-    };
   };
 }

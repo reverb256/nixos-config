@@ -46,43 +46,48 @@ in {
     # Load hardware monitoring kernel modules
     boot.kernelModules = cfg.kernelModules;
 
-    # Configure lm-sensors service
-    systemd.services.sensors = {
-      description = "Load hardware sensor drivers";
-      wantedBy = ["multi-user.target"];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        # Only load modules, don't run sensors-detect automatically
-        # (it can be slow and detects everything at boot)
-        ExecStart = "${pkgs.lm_sensors}/bin/sensors -s";
-      };
-    };
+    # Systemd services for hardware monitoring
+    systemd = {
+      services = {
+        # Base lm-sensors service
+        sensors = {
+          description = "Load hardware sensor drivers";
+          wantedBy = ["multi-user.target"];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            # Only load modules, don't run sensors-detect automatically
+            # (it can be slow and detects everything at boot)
+            ExecStart = "${pkgs.lm_sensors}/bin/sensors -s";
+          };
+        };
 
-    # Optional: sensors-detect service for auto-detection
-    systemd.services.sensors-detect = lib.mkIf cfg.autoDetect {
-      description = "Auto-detect hardware sensors";
-      wantedBy = ["multi-user.target"];
-      before = ["sensors.service"];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        # Run sensors-detect in auto-mode and load detected modules
-        ExecStart = "${pkgs.lm_sensors}/bin/sensors-detect --auto";
-      };
-    };
+        # Optional: sensors-detect service for auto-detection
+        sensors-detect = lib.mkIf cfg.autoDetect {
+          description = "Auto-detect hardware sensors";
+          wantedBy = ["multi-user.target"];
+          before = ["sensors.service"];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            # Run sensors-detect in auto-mode and load detected modules
+            ExecStart = "${pkgs.lm_sensors}/bin/sensors-detect --auto";
+          };
+        };
 
-    # Optional: fancontrol service for automatic fan curve management
-    systemd.services.fancontrol = lib.mkIf cfg.fanControl {
-      description = "Fan speed regulator";
-      wantedBy = ["multi-user.target"];
-      after = ["multi-user.target" "sensors.service"];
-      wants = ["sensors.service"];
-      serviceConfig = {
-        ExecStart = "${pkgs.python3}/bin/python3 /etc/nixos/scripts/simple-fancontrol.py";
-        Restart = "always";
-        RestartSec = "5s";
-        # Custom fancontrol script handles PWM directly
+        # Optional: fancontrol service for automatic fan curve management
+        fancontrol = lib.mkIf cfg.fanControl {
+          description = "Fan speed regulator";
+          wantedBy = ["multi-user.target"];
+          after = ["multi-user.target" "sensors.service"];
+          wants = ["sensors.service"];
+          serviceConfig = {
+            ExecStart = "${pkgs.python3}/bin/python3 /etc/nixos/scripts/simple-fancontrol.py";
+            Restart = "always";
+            RestartSec = "5s";
+            # Custom fancontrol script handles PWM directly
+          };
+        };
       };
     };
 

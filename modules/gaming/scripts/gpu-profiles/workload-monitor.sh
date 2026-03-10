@@ -6,7 +6,7 @@
 set -euo pipefail
 
 LOG_FILE="/var/log/gpu-workload-monitor.log"
-MINING_SERVICE="lolminer-nvidia"
+MINING_SERVICES=("lolminer-nvidia" "xmrig")
 AI_PROCESSES=("lmstudio" "ollama" "python.*llm" "ai-inference-gateway")
 GAMING_PROCESSES=("steam" "lutris" "heroic" "wine" "proton" "wine-preloader" "wine64" "wineserver")
 
@@ -46,11 +46,13 @@ get_workload_type() {
     done
 
     # Check for active mining
-    if systemctl is-active --quiet "$MINING_SERVICE"; then
-        # Mining is only active if no higher priority workload
-        echo "mining"
-        return
-    fi
+    for service in "${MINING_SERVICES[@]}"; do
+        if systemctl is-active --quiet "$service"; then
+            # Mining is only active if no higher priority workload
+            echo "mining"
+            return
+        fi
+    done
 
     echo "idle"
 }
@@ -62,27 +64,33 @@ apply_profile() {
     case "$profile" in
         gaming)
             /etc/nixos/scripts/gpu-profiles/gaming.sh
-            # Pause mining if running
-            if systemctl is-active --quiet "$MINING_SERVICE"; then
-                log "Pausing mining for gaming"
-                systemctl stop "$MINING_SERVICE"
-            fi
+            # Pause all mining if running
+            for service in "${MINING_SERVICES[@]}"; do
+                if systemctl is-active --quiet "$service"; then
+                    log "Pausing $service for gaming"
+                    systemctl stop "$service"
+                fi
+            done
             ;;
         ai)
             /etc/nixos/scripts/gpu-profiles/ai-inference.sh
-            # Pause mining if running
-            if systemctl is-active --quiet "$MINING_SERVICE"; then
-                log "Pausing mining for AI inference"
-                systemctl stop "$MINING_SERVICE"
-            fi
+            # Pause all mining if running
+            for service in "${MINING_SERVICES[@]}"; do
+                if systemctl is-active --quiet "$service"; then
+                    log "Pausing $service for AI inference"
+                    systemctl stop "$service"
+                fi
+            done
             ;;
         mining)
             /etc/nixos/scripts/gpu-profiles/mining.sh
-            # Start mining if not running
-            if ! systemctl is-active --quiet "$MINING_SERVICE"; then
-                log "Starting mining (no other workloads detected)"
-                systemctl start "$MINING_SERVICE"
-            fi
+            # Start mining services if not already running
+            for service in "${MINING_SERVICES[@]}"; do
+                if ! systemctl is-active --quiet "$service"; then
+                    log "Starting $service (no other workloads detected)"
+                    systemctl start "$service"
+                fi
+            done
             ;;
         idle)
             /etc/nixos/scripts/gpu-profiles/reset.sh

@@ -49,6 +49,7 @@
         1234 # LM Studio API server
         8080 # AI Inference Gateway
         53317 # LocalSend (file sharing)
+        8888 # CFSSL CA API server (for worker node certificate generation)
       ];
       allowedUDPPorts = [
         9757 # WiVRn
@@ -78,16 +79,6 @@
         ];
       };
     };
-  };
-
-  # ============================================================================
-  # KUBERNETES CONTROL PLANE
-  # ============================================================================
-  # Enable Kubernetes master (control plane) + worker role on Zephyr
-  services.kubernetes-module = {
-    enable = true;
-    masterAddress = "10.1.1.110"; # Zephyr's IP
-    roles = ["master" "node"];
   };
 
   # ============================================================================
@@ -128,11 +119,6 @@
 
     # Bluetooth support via BlueZ
     bluetooth.enable = true;
-  };
-
-  # DNS - Use local unbound resolver for cluster hostnames
-  services.unbound-cluster = {
-    enable = true;
   };
 
   # ============================================================================
@@ -180,16 +166,234 @@
   };
 
   # Note: profiles.role.gaming enables services.gaming automatically
-  services.gaming.hdr.enable = true; # HDR for 4K HDR TV
-
-  # Share /etc/nixos via NFS for remote hosts (single-source-of-truth)
-  services.nixos-share = {
-    enable = true;
-    server.enable = true;
-  };
-
   # NOTE: Distributed builds configured in modules/system/distributed-builds.nix
   # Do not override here to avoid conflicts
+
+  # ============================================================================
+  # SERVICES - Consolidated service configuration
+  # ============================================================================
+  services = {
+    # Kubernetes control plane + worker role on Zephyr
+    kubernetes-module = {
+      enable = true;
+      masterAddress = "10.1.1.110"; # Zephyr's IP
+      roles = ["master" "node"];
+    };
+
+    # DNS - Use local unbound resolver for cluster hostnames
+    unbound-cluster = {
+      enable = true;
+    };
+
+    # Gaming HDR for 4K HDR TV
+    gaming.hdr.enable = true;
+
+    # Share /etc/nixos via NFS for remote hosts (single-source-of-truth)
+    nixos-share = {
+      enable = true;
+      server.enable = true;
+    };
+
+    # Spacebot AI agent (integrated with AI Gateway)
+    spacebot = {
+      enable = true;
+      useGateway = true;
+      gatewayUrl = "http://127.0.0.1:8080";
+      host = "127.0.0.1";
+      port = 19898;
+      memory = "4G";
+      cpu = "2";
+      hideUpdateNotification = true;
+      providerKeys = {
+        ZAI_CODING_PLAN_KEY = "/run/agenix/zai-api-key";
+        KILO_API_KEY = "/run/agenix/kilo-api-key";
+      };
+      discord.enable = false;
+      telegram.enable = true;
+      telegram.tokenFile = "/run/agenix/spacebot-telegram-token";
+    };
+
+    # Redis - For gateway rate limiting and caching
+    redis.servers."".enable = true;
+
+    # AI Inference Service - Gateway with authentication and metrics
+    ai-inference = {
+      enable = true;
+      backend = {
+        url = "http://127.0.0.1:1234";
+        type = "lm-studio";
+        lmStudio.apiKeyFile = "/run/agenix/lm-studio-api-key";
+        zai = {
+          enable = true;
+          apiKeyFile = "/run/agenix/zai-api-key";
+          baseUrl = "https://api.z.ai/api/coding/paas/v4";
+        };
+      };
+      gateway = {
+        enable = true;
+        host = "127.0.0.1";
+        port = 8080;
+        workers = 1;
+      };
+      routing = {
+        enable = true;
+        defaultModel = "qwen3.5-35b-a3b";
+        fallbackChain = ["vllm" "lm-studio" "zai"];
+      };
+      auth.mode = "none";
+      monitoring.enable = true;
+      rateLimit.enable = false;
+      mcp = {
+        enable = true;
+        servers = {
+          web-search-prime = {
+            url = "https://api.z.ai/api/mcp/web_search_prime/mcp";
+            headers.Authorization = "Bearer /run/agenix/zai-api-key";
+          };
+          web-reader = {
+            url = "https://api.z.ai/api/mcp/web_reader/mcp";
+            headers.Authorization = "Bearer /run/agenix/zai-api-key";
+          };
+          zread = {
+            url = "https://api.z.ai/api/mcp/zread/mcp";
+            headers.Authorization = "Bearer /run/agenix/zai-api-key";
+          };
+          "4-5v-mcp-server" = {
+            url = "https://api.z.ai/api/mcp/4_5v/mcp";
+            headers.Authorization = "Bearer /run/agenix/zai-api-key";
+          };
+          nix-rebuild = {
+            type = "local";
+            command = [
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "/etc/nixos/skills/nix-rebuild-mcp/server.py"
+            ];
+            environment.NIX_HOST = "zephyr";
+            enabled = true;
+          };
+          add-service = {
+            type = "local";
+            command = [
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "/etc/nixos/skills/add-service-mcp/server.py"
+            ];
+            environment = {};
+            enabled = true;
+          };
+        };
+      };
+      rag = {
+        enable = true;
+        qdrant.enable = true;
+        qdrant.memoryLimit = "4G";
+      };
+    };
+
+    # LM Studio Headless Service (llmster daemon)
+    lm-studio-headless = {
+      enable = true;
+      user = "j_kro";
+      port = 1234;
+      host = "127.0.0.1";
+      gpuDevice = null;
+    };
+
+    # MCP Servers for AI tools
+    mcp-servers = {
+      enable = true;
+      servers.playwright.enable = true;
+    };
+
+    # WEB TESTING - Playwright/Puppeteer system dependencies
+    web-testing.enable = true;
+
+    # CI/CD - Self-hosted GitHub Actions runner
+    ci-runner = {
+      enable = false;
+      repo = "username/nixos-config";
+      autoStart = false;
+    };
+
+    # HOME ASSISTANT - Smart Home Automation Platform
+    home-assistant = {
+      enable = true;
+      openFirewall = true;
+      config = {
+        homeassistant = {
+          name = "Zephyr";
+          latitude = "49.8951";
+          longitude = "-97.1384";
+          temperature_unit = "C";
+          time_zone = "America/Winnipeg";
+          unit_system = "metric";
+        };
+      };
+    };
+
+    # MULTIMEDIA - GStreamer support for Qt/KDE applications
+    multimedia.gstreamer.enable = true;
+
+    # Spotify with SpotX patch (ad-free, premium features)
+    spotify-spotx = {
+      enable = true;
+      forceX11 = true;
+      clearCacheOnPatch = true;
+    };
+
+    # FLATPAK - Flatpak support with Discover and Flathub
+    flatpak-kde = {
+      enable = true;
+      autoUpdate = true;
+    };
+
+    # MINING - GPU Mining (RTX 3090)
+    mining.lolminer.nvidia = {
+      enable = true;
+      autostart = false;
+      devices = "1";
+      powerLimit = 250;
+      apiPort = 4068;
+    };
+    mining.xmrig = {
+      enable = true;
+      autostart = false;
+      threads = 16;
+    };
+
+    # MONITORING - Full monitoring stack
+    monitoring = {
+      prometheus = {
+        enable = true;
+        retentionDays = 30;
+        scrapeInterval = "15s";
+        enableAlertRules = true;
+      };
+      alertmanager = {
+        enable = true;
+        retentionDays = 30;
+      };
+      loki = {
+        enable = true;
+        retentionPeriod = "30d";
+      };
+      promtail = {
+        enable = true;
+        lokiUrl = "http://127.0.0.1:3100";
+      };
+      grafana.enable = true;
+    };
+
+    # GlitchTip error tracking (self-hosted Sentry alternative)
+    glitchtip-selfhosted = {
+      enable = true;
+      host = "127.0.0.1";
+      port = 8000;
+      openFirewall = false;
+      database.passwordFile = "/run/agenix/glitchtip-db-password";
+      secretKeyFile = "/run/agenix/glitchtip-secret-key";
+      enableForGateway = true;
+    };
+  };
 
   # ============================================================================
   # PROGRAMS - SCOPEBUDDY, ANIME GAME LAUNCHERS, AI SERVICES
@@ -220,34 +424,6 @@
     enable = true;
     dockerCompat = true;
     dockerSocket.enable = true;
-  };
-
-  # Spacebot AI agent (integrated with AI Gateway)
-  services.spacebot = {
-    enable = true;
-    useGateway = true;
-    gatewayUrl = "http://127.0.0.1:8080";
-    host = "127.0.0.1";
-    port = 19898;
-    memory = "4G";
-    cpu = "2";
-    hideUpdateNotification = true; # Block GitHub API to hide update notifications
-
-    # Provider API keys for LLM backends
-    providerKeys = {
-      ZAI_CODING_PLAN_KEY = "/run/agenix/zai-api-key";
-      KILO_API_KEY = "/run/agenix/kilo-api-key";
-    };
-
-    # Discord integration - you need to set up the bot token
-    # TEMPORARILY DISABLED: Secret file not yet created
-    discord.enable = false;
-    # discord.tokenFile = "/run/agenix/spacebot-discord-token";
-    # discord.guildId = "YOUR_GUILD_ID";  # Optional: restrict to specific server
-
-    # Telegram integration - TrovesAndCoves client communication
-    telegram.enable = true;
-    telegram.tokenFile = "/run/agenix/spacebot-telegram-token";
   };
 
   # Agenix secrets for AI services
@@ -337,182 +513,16 @@
   };
 
   # ============================================================================
-  # REDIS - For gateway rate limiting and caching
-  # ============================================================================
-  services.redis.servers."".enable = true;
-
-  # ============================================================================
   # AI INFERENCE SERVICE - Gateway with authentication and metrics
   # Gateway routes to LM Studio backend with API token authentication
   # Backend: LM Studio on port 1234
   # Gateway: OpenAI-compatible API on port 8080
   # ============================================================================
-  services.ai-inference = {
-    enable = true;
-    backend = {
-      url = "http://127.0.0.1:1234"; # LM Studio on port 1234
-      type = "lm-studio";
-      lmStudio.apiKeyFile = "/run/agenix/lm-studio-api-key";
-      # ZAI Coding Plan Max configuration
-      # IMPORTANT: Use the dedicated Coding endpoint for GLM Coding Plan
-      # Coding endpoint: https://api.z.ai/api/coding/paas/v4
-      # General endpoint: https://api.z.ai/api/paas/v4 (billed separately, not Coding Plan)
-      zai = {
-        enable = true;
-        apiKeyFile = "/run/agenix/zai-api-key";
-        # Use coding endpoint for Coding Plan Max quota
-        baseUrl = "https://api.z.ai/api/coding/paas/v4";
-      };
-    };
-    gateway = {
-      enable = true;
-      host = "127.0.0.1";
-      port = 8080;
-      workers = 1; # Single worker for now (multi-worker has import issues)
-    };
-    routing = {
-      enable = true;
-      defaultModel = "qwen3.5-35b-a3b";
-      fallbackChain = [
-        "vllm"
-        "lm-studio"
-        "zai"
-      ];
-    };
-    auth.mode = "none"; # Disabled for testing - change back to "api-key" for production
-    monitoring.enable = true;
-    # Disable security proxy for local development (too aggressive for code)
-    rateLimit.enable = false;
-
-    # MCP Broker configuration for ZAI Coding Plan Max
-    # These match the coding-helper configuration for Claude Code and OpenCode
-    # MCP Endpoint: https://api.z.ai/api/mcp/... (glm_coding_plan_global)
-    # Note: ZAI has separate endpoints for chat API vs MCP servers
-    mcp = {
-      enable = true;
-      servers = {
-        # Web Search MCP - included in Coding Plan Max
-        web-search-prime = {
-          url = "https://api.z.ai/api/mcp/web_search_prime/mcp";
-          headers = {
-            Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-        };
-        # Web Reader MCP - included in Coding Plan Max
-        web-reader = {
-          url = "https://api.z.ai/api/mcp/web_reader/mcp";
-          headers = {
-            Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-        };
-        # Zread MCP - included in Coding Plan Max
-        zread = {
-          url = "https://api.z.ai/api/mcp/zread/mcp";
-          headers = {
-            Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-        };
-        # Vision/Image analysis - available via @z_ai/mcp-server (stdio)
-        # ZAI Coding Plan Max includes Vision Understanding
-        "4-5v-mcp-server" = {
-          url = "https://api.z.ai/api/mcp/4_5v/mcp";
-          headers = {
-            Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-        };
-
-        # ========================================================================
-        # NIXOS SKILLS MCP SERVERS (Local stdio-based)
-        # These convert Claude Code skills to MCP servers for OpenCode integration
-        # ========================================================================
-
-        # nix-rebuild skill - Safe NixOS rebuilding workflow
-        nix-rebuild = {
-          type = "local";
-          command = [
-            "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
-            "/etc/nixos/skills/nix-rebuild-mcp/server.py"
-          ];
-          environment = {
-            NIX_HOST = "zephyr";
-          };
-          enabled = true;
-        };
-
-        # add-service skill - Create systemd service modules
-        add-service = {
-          type = "local";
-          command = [
-            "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
-            "/etc/nixos/skills/add-service-mcp/server.py"
-          ];
-          environment = {};
-          enabled = true;
-        };
-
-        # ========================================================================
-        # ADDITIONAL LOCAL MCP SERVERS (TEMPORARILY DISABLED)
-        # Module structure needs investigation
-        # ========================================================================
-
-        # # Filesystem MCP server - safe file access to NixOS configuration
-        # filesystem = {
-        #   type = "local";
-        #   command = "npx -y @modelcontextprotocol/server-filesystem /etc/nixos";
-        # };
-
-        # # NixOS MCP server - real-time NixOS package data (prevents hallucinations)
-        # nixos = {
-        #   type = "local";
-        #   command = "nix run --extra-experimental-features 'nix-command flakes' github:utensils/mcp-nixos --";
-        # };
-
-        # # Git MCP server - version control for NixOS configurations
-        # git = {
-        #   type = "local";
-        #   command = "npx -y @modelcontextprotocol/server-git /etc/nixos";
-        # };
-      };
-    };
-
-    # RAG configuration
-    rag = {
-      enable = true;
-      qdrant.enable = true; # Enable Qdrant service
-      qdrant.memoryLimit = "4G";
-    };
-  };
-
-  # LM Studio Headless Service (llmster daemon)
-  # Provides HTTP API on port 1234 for local LLM inference
-  # Based on: https://lmstudio.ai/docs/developer/core/headless_llmster
-  # ============================================================================
-  services.lm-studio-headless = {
-    enable = true;
-    user = "j_kro";
-    port = 1234;
-    host = "127.0.0.1";
-    # GPU configuration - null = use all GPUs (RTX 3090 + 3060 Ti)
-    gpuDevice = null;
-    # Optional: preload a model at startup (JIT loading if not set)
-    # preloadModel = "qwen/qwen3.5-9b-instruct";
-    # modelLoadArgs = ["--context-length" "32768"];
-  };
-
-  # ============================================================================
-  # MCP SERVERS - Model Context Protocol servers for AI tools
-  # Provides unified MCP servers for Claude Code, OpenCode, and other AI tools
-  # ============================================================================
-  services.mcp-servers = {
-    enable = true;
-    servers.playwright.enable = true;
-  };
 
   # ============================================================================
   # WEB TESTING - Playwright/Puppeteer system dependencies
   # Provides GTK libraries and fonts for Chromium-based browsers
   # ============================================================================
-  services.web-testing.enable = true;
 
   # ============================================================================
   # CI/CD - Self-hosted GitHub Actions runner
@@ -520,29 +530,6 @@
   # SETUP REQUIRED (one-time):
   #   sudo /etc/nixos/scripts/ci/setup-runner.sh owner/repo
   # After setup, set enable = true and autoStart = true below
-  services.ci-runner = {
-    enable = false; # Disabled until runner is properly set up
-    repo = "username/nixos-config"; # Replace with actual repo
-    autoStart = false; # Set to true after running setup script
-  };
-
-  # ============================================================================
-  # HOME ASSISTANT - Smart Home Automation Platform
-  # ============================================================================
-  services.home-assistant = {
-    enable = true;
-    openFirewall = true;
-    config = {
-      homeassistant = {
-        name = "Zephyr";
-        latitude = "49.8951"; # Winnipeg
-        longitude = "-97.1384";
-        temperature_unit = "C";
-        time_zone = "America/Winnipeg";
-        unit_system = "metric";
-      };
-    };
-  };
 
   # ============================================================================
   # MINING - GPU Mining (RTX 3090)
@@ -552,40 +539,8 @@
   # Note: profiles.role.mining enables services.mining automatically
 
   # ============================================================================
-  # MULTIMEDIA - GStreamer support for Qt/KDE applications
-  # ============================================================================
-  services.multimedia.gstreamer.enable = true;
-
-  # Spotify with SpotX patch (ad-free, premium features)
-  services.spotify-spotx = {
-    enable = true;
-    forceX11 = true; # KWin rules didn't work, using XWayland backend
-    clearCacheOnPatch = true;
-  };
-
-  # ============================================================================
   # FLATPAK - Flatpak support with Discover and Flathub
   # ============================================================================
-  services.flatpak-kde = {
-    enable = true;
-    autoUpdate = true;
-  };
-
-  # NVIDIA GPU configuration for RTX 3090 only
-  services.mining.lolminer.nvidia = {
-    enable = true;
-    autostart = false; # Manual control via systemctl
-    devices = "1"; # RTX 3090 only (GPU 1) - 3060 Ti disabled for gaming
-    powerLimit = 250; # Power limit for RTX 3090 (250W recommended for efficiency)
-    apiPort = 4068;
-  };
-
-  # XMRig CPU mining (16 threads)
-  services.mining.xmrig = {
-    enable = true;
-    autostart = false; # Manual control via systemctl
-    threads = 16;
-  };
 
   # ============================================================================
   # PER-GPU POWER LIMITS
@@ -628,38 +583,6 @@
   # ============================================================================
   # MONITORING - Full monitoring stack
   # ============================================================================
-  # Prometheus server - central metrics collection
-  services.monitoring.prometheus.enable = true;
-  services.monitoring.prometheus.retentionDays = 30;
-  services.monitoring.prometheus.scrapeInterval = "15s";
-  services.monitoring.prometheus.enableAlertRules = true; # Enable alert rules
-
-  # AlertManager - alert routing and management
-  services.monitoring.alertmanager.enable = true;
-  services.monitoring.alertmanager.retentionDays = 30;
-
-  # Loki - log aggregation
-  services.monitoring.loki.enable = true;
-  services.monitoring.loki.retentionPeriod = "30d";
-
-  # Promtail - log shipping to Loki (systemd journals)
-  services.monitoring.promtail.enable = true;
-  services.monitoring.promtail.lokiUrl = "http://127.0.0.1:3100";
-
-  # Grafana dashboards
-  services.monitoring.grafana.enable = true;
-
-  # GlitchTip error tracking (self-hosted Sentry alternative)
-  services.glitchtip-selfhosted = {
-    enable = true;
-    host = "127.0.0.1";
-    port = 8000;
-    openFirewall = false; # Local access only
-    database.passwordFile = "/run/agenix/glitchtip-db-password";
-    secretKeyFile = "/run/agenix/glitchtip-secret-key";
-    # Automatically configure AI gateway to use GlitchTip
-    enableForGateway = true;
-  };
 
   # ============================================================================
   # NETWORK PROFILES
@@ -954,7 +877,10 @@
             // Performance optimizations
             user_pref("gfx.webrender.all", true);
             user_pref("media.ffmpeg.vaapi.enabled", true);
-            user_pref("widget.dmabuf.force-enabled", true);
+            // NOTE: Disabled widget.dmabuf.force-enabled for NVIDIA + Wayland compatibility
+            // Forced DMA-BUF causes image corruption in WebGL/Canvas applications (e.g., Facebook Messenger)
+            // Browser will auto-detect appropriate buffer mechanism per-GPU
+            // user_pref("widget.dmabuf.force-enabled", true);
 
             // Privacy enhancements
             user_pref("privacy.resistFingerprinting", true);

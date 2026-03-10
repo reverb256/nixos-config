@@ -27,6 +27,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        Path = [pkgs.util-linux]; # Ensure mountpoint command is available
         ExecStart = pkgs.writeShellScript "ensure-cluster-storage" ''
           #!/usr/bin/env bash
           set -euo pipefail

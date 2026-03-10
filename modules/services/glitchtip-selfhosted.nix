@@ -122,145 +122,135 @@ in {
       defaultNetwork.settings.dns_enabled = true;
     };
 
-    environment.systemPackages = with pkgs; [podman-compose];
+    # Environment configuration
+    environment = {
+      systemPackages = with pkgs; [podman-compose];
 
-    # ============================================================================
-    # STATE DIRECTORY
-    # ============================================================================
-    systemd.tmpfiles.rules = [
-      "d ${stateDir}/postgres 0700 999 999 - -"
-      "d ${stateDir}/redis 0700 999 999 - -"
-      "d ${stateDir}/glitchtip 0700 root root - -"
-    ];
+      # Script to start GlitchTip web container with secrets
+      etc."glitchtip/start-web.sh".text = ''
+        #!${pkgs.bash}/bin/sh
+        set -euo pipefail
 
-    # ============================================================================
-    # WRAPPER SCRIPTS
-    # ============================================================================
-    # Script to start GlitchTip web container with secrets
-    environment.etc."glitchtip/start-web.sh".text = ''
-      #!${pkgs.bash}/bin/sh
-      set -euo pipefail
+        # Read secrets before passing to container (containers can't read /run/agenix directly)
+        DB_PASS=$(${pkgs.coreutils}/bin/cat ${cfg.database.passwordFile})
+        SECRET_KEY=$(${pkgs.coreutils}/bin/cat ${cfg.secretKeyFile})
 
-      # Read secrets before passing to container (containers can't read /run/agenix directly)
-      DB_PASS=$(${pkgs.coreutils}/bin/cat ${cfg.database.passwordFile})
-      SECRET_KEY=$(${pkgs.coreutils}/bin/cat ${cfg.secretKeyFile})
+        # Export for podman run
+        export DATABASE_URL="postgres://${cfg.database.user}:$${DB_PASS}@glitchtip-postgres:${toString cfg.database.port}/${cfg.database.name}"
+        export REDIS_URL="redis://glitchtip-redis:${toString cfg.redis.port}/0"
+        export SECRET_KEY
+        export PORT="8000"
+        export DEFAULT_FROM_EMAIL="glitchtip@localhost"
+        export ACCOUNT_SIGNUP_ENABLED="true"
+        export GLITCHTIP_DOMAIN="http://${cfg.host}:${toString cfg.port}"
 
-      # Export for podman run
-      export DATABASE_URL="postgres://${cfg.database.user}:$${DB_PASS}@glitchtip-postgres:${toString cfg.database.port}/${cfg.database.name}"
-      export REDIS_URL="redis://glitchtip-redis:${toString cfg.redis.port}/0"
-      export SECRET_KEY
-      export PORT="8000"
-      export DEFAULT_FROM_EMAIL="glitchtip@localhost"
-      export ACCOUNT_SIGNUP_ENABLED="true"
-      export GLITCHTIP_DOMAIN="http://${cfg.host}:${toString cfg.port}"
-
-      # Start the container
-      exec ${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-web \
-        --pod glitchtip \
-        -e DATABASE_URL \
-        -e REDIS_URL \
-        -e SECRET_KEY \
-        -e PORT \
-        -e DEFAULT_FROM_EMAIL \
-        -e ACCOUNT_SIGNUP_ENABLED \
-        -e GLITCHTIP_DOMAIN \
-        ${glitchtipImage}
-    '';
-
-    # ============================================================================
-    # PODMAN POD (containers share network namespace)
-    # ============================================================================
-    systemd.services.glitchtip-pod = {
-      description = "GlitchTip Pod (shared network namespace)";
-      after = ["network.target"];
-      wantedBy = ["multi-user.target"];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = "${pkgs.podman}/bin/podman pod create --replace --name glitchtip --publish ${cfg.host}:${toString cfg.port}:8000";
-        ExecStop = "${pkgs.podman}/bin/podman pod rm -f glitchtip";
-        Restart = "on-failure";
-      };
+        # Start the container
+        exec ${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-web \
+          --pod glitchtip \
+          -e DATABASE_URL \
+          -e REDIS_URL \
+          -e SECRET_KEY \
+          -e PORT \
+          -e DEFAULT_FROM_EMAIL \
+          -e ACCOUNT_SIGNUP_ENABLED \
+          -e GLITCHTIP_DOMAIN \
+          ${glitchtipImage}
+      '';
     };
 
-    # ============================================================================
-    # POSTGRESQL CONTAINER
-    # ============================================================================
-    systemd.services.glitchtip-postgres = {
-      description = "GlitchTip PostgreSQL database";
-      after = ["glitchtip-pod.service"];
-      wantedBy = ["multi-user.target"];
-      partOf = ["glitchtip-pod.service"];
-      serviceConfig = {
-        ExecStart = ''
-          ${pkgs.bash}/bin/sh -c 'DB_PASS=$(${pkgs.coreutils}/bin/cat ${cfg.database.passwordFile}) && \
-          ${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-postgres \
-            --pod glitchtip \
-            -e POSTGRES_DB=${cfg.database.name} \
-            -e POSTGRES_USER=${cfg.database.user} \
-            -e POSTGRES_PASSWORD=$${DB_PASS} \
-            -v ${stateDir}/postgres:/var/lib/postgresql/data:Z \
-            ${postgresImage}'
-        '';
-        ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-postgres";
-        Restart = "always";
-        RestartSec = "10s";
-      };
-    };
-
-    # ============================================================================
-    # REDIS CONTAINER
-    # ============================================================================
-    systemd.services.glitchtip-redis = {
-      description = "GlitchTip Redis cache";
-      after = ["glitchtip-pod.service"];
-      wantedBy = ["multi-user.target"];
-      partOf = ["glitchtip-pod.service"];
-      serviceConfig = {
-        ExecStart = "${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-redis --pod glitchtip -v ${stateDir}/redis:/data:Z ${redisImage}";
-        ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-redis";
-        Restart = "always";
-        RestartSec = "10s";
-      };
-    };
-
-    # ============================================================================
-    # GLITCHTIP WEB CONTAINER
-    # ============================================================================
-    systemd.services.glitchtip-web = {
-      description = "GlitchTip error tracking web interface";
-      after = [
-        "glitchtip-postgres.service"
-        "glitchtip-redis.service"
+    # Systemd configuration
+    systemd = {
+      # State directories
+      tmpfiles.rules = [
+        "d ${stateDir}/postgres 0700 999 999 - -"
+        "d ${stateDir}/redis 0700 999 999 - -"
+        "d ${stateDir}/glitchtip 0700 root root - -"
       ];
-      wantedBy = ["multi-user.target"];
-      partOf = ["glitchtip-pod.service"];
-      serviceConfig = {
-        ExecStart = "${pkgs.bash}/bin/sh /etc/glitchtip/start-web.sh";
-        ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-web";
-        Restart = "always";
-        RestartSec = "10s";
+
+      # Services
+      services = {
+        # PODMAN POD (containers share network namespace)
+        glitchtip-pod = {
+          description = "GlitchTip Pod (shared network namespace)";
+          after = ["network.target"];
+          wantedBy = ["multi-user.target"];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = "${pkgs.podman}/bin/podman pod create --replace --name glitchtip --publish ${cfg.host}:${toString cfg.port}:8000";
+            ExecStop = "${pkgs.podman}/bin/podman pod rm -f glitchtip";
+            Restart = "on-failure";
+          };
+        };
+
+        # POSTGRESQL CONTAINER
+        glitchtip-postgres = {
+          description = "GlitchTip PostgreSQL database";
+          after = ["glitchtip-pod.service"];
+          wantedBy = ["multi-user.target"];
+          partOf = ["glitchtip-pod.service"];
+          serviceConfig = {
+            ExecStart = ''
+              ${pkgs.bash}/bin/sh -c 'DB_PASS=$(${pkgs.coreutils}/bin/cat ${cfg.database.passwordFile}) && \
+              ${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-postgres \
+                --pod glitchtip \
+                -e POSTGRES_DB=${cfg.database.name} \
+                -e POSTGRES_USER=${cfg.database.user} \
+                -e POSTGRES_PASSWORD=$${DB_PASS} \
+                -v ${stateDir}/postgres:/var/lib/postgresql/data:Z \
+                ${postgresImage}'
+            '';
+            ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-postgres";
+            Restart = "always";
+            RestartSec = "10s";
+          };
+        };
+
+        # REDIS CONTAINER
+        glitchtip-redis = {
+          description = "GlitchTip Redis cache";
+          after = ["glitchtip-pod.service"];
+          wantedBy = ["multi-user.target"];
+          partOf = ["glitchtip-pod.service"];
+          serviceConfig = {
+            ExecStart = "${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-redis --pod glitchtip -v ${stateDir}/redis:/data:Z ${redisImage}";
+            ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-redis";
+            Restart = "always";
+            RestartSec = "10s";
+          };
+        };
+
+        # GLITCHTIP WEB CONTAINER
+        glitchtip-web = {
+          description = "GlitchTip error tracking web interface";
+          after = [
+            "glitchtip-postgres.service"
+            "glitchtip-redis.service"
+          ];
+          wantedBy = ["multi-user.target"];
+          partOf = ["glitchtip-pod.service"];
+          serviceConfig = {
+            ExecStart = "${pkgs.bash}/bin/sh /etc/glitchtip/start-web.sh";
+            ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-web";
+            Restart = "always";
+            RestartSec = "10s";
+          };
+        };
       };
     };
 
-    # ============================================================================
     # FIREWALL
-    # ============================================================================
     networking.firewall.allowedTCPPorts =
       optional cfg.openFirewall cfg.port;
 
-    # ============================================================================
     # SERVICE ACCESS PERMISSIONS
-    # ============================================================================
     systemd.services.glitchtip-postgres.serviceConfig.ReadOnlyPaths =
       mkIf (cfg.database.passwordFile != null) [cfg.database.passwordFile];
     systemd.services.glitchtip-web.serviceConfig.ReadOnlyPaths =
       lib.optional (cfg.database.passwordFile != null) cfg.database.passwordFile
       ++ lib.optional (cfg.secretKeyFile != null) cfg.secretKeyFile;
 
-    # ============================================================================
     # AI INFERENCE GATEWAY INTEGRATION
-    # ============================================================================
     services.ai-inference.sentry = mkIf cfg.enableForGateway {
       enable = true;
       dsn = "http://glitchtip:${toString cfg.port}@${cfg.host}:${toString cfg.port}/1";

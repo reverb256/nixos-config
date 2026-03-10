@@ -4,7 +4,7 @@
 #
 # Module imports: Gaming, mining, monitoring, opencode are already imported
 # via commonModules in flake.nix (./modules/default.nix)
-{pkgs, ...}: {
+{pkgs, lib, ...}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -17,6 +17,9 @@
     # NVIDIA GPU support (common + wayland-specific)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
+
+    # Desktop environment modules
+    ../../modules/desktop/gamescope-tty.nix
 
     # Nexus-specific modules
     ../../modules/services/mcp-servers.nix
@@ -164,33 +167,30 @@
   # ============================================================================
   profiles.network.tailscale.enable = true;
 
-  # Spotify with SpotX patch (ad-free, premium features)
-  services.spotify-spotx.enable = true;
+  # ============================================================================
+  # SERVICES CONFIGURATION
+  # ============================================================================
 
-  # ============================================================================
-  # NVIDIA CONFIGURATION
-  # Note: Base config is in nvidia-common.nix
-  # ============================================================================
-  # Nexus-specific kernel params (appended after nvidia-common.nix defaults)
-  # No additional params needed beyond nvidia-common.nix defaults
-
-  # ============================================================================
-  # KUBERNETES WORKER NODE
-  # ============================================================================
-  services.kubernetes-module = {
+  # Enable Steam Gamescope session alongside Plasma
+  # Both sessions will be available in SDDM for selection
+  programs.steam = {
     enable = true;
-    masterAddress = "10.1.1.110"; # Zephyr control plane
-    roles = ["node"]; # Worker node only
+    gamescopeSession.enable = true;
   };
 
-  # ============================================================================
-  # SERVICES
-  # ============================================================================
   services = {
-    xserver.videoDrivers = ["nvidia"];
+    # Kubernetes worker node
+    kubernetes-module = {
+      enable = true;
+      masterAddress = "10.1.1.110"; # Zephyr control plane
+      roles = ["node"]; # Worker node only
+    };
 
     garnix.enable = false;
     nixos-auto-update.enable = true;
+
+    # Spotify with SpotX patch (ad-free, premium features)
+    spotify-spotx.enable = true;
 
     # Mining configuration
     # Uses defaults from mining.nix for pool URLs and wallet format
@@ -212,8 +212,7 @@
       };
     };
 
-    # Note: tailscale now enabled via profiles.network.tailscale.enable
-
+    # MCP servers
     mcp-servers = {
       enable = true;
       servers.playwright.enable = true;

@@ -51,12 +51,12 @@ in {
     ];
 
     # Configure xdg-desktop-portal for KDE
+    # Note: KDE portal (xdg-desktop-portal-kde) is included in plasma6.nix
     xdg.portal = {
       enable = true;
       xdgOpenUsePortal = true;
       extraPortals = with pkgs; [
         xdg-desktop-portal-gtk
-        xdg-desktop-portal-kde  # Required for Spectacle screenshots on Wayland
       ];
     };
 
