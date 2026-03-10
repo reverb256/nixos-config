@@ -282,7 +282,9 @@
 
       amd-gpu-fan-curve = {
         description = "AMD GPU Dynamic Fan Curve Control";
-        wantedBy = ["multi-user.target"];
+        # DISABLED: Service has awk escaping bug causing crash loop
+        # TODO: Fix printf escaping in get_temp() function (line 338)
+        # wantedBy = ["multi-user.target"];
         after = ["network.target" "amd-gpu-power-mgmt.service"];
         serviceConfig = {
           Type = "simple";
@@ -475,6 +477,36 @@
           Type = "oneshot";
           ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
           RemainAfterExit = true;
+        };
+      };
+
+      # AMD GPU MAX FAN SPEED (Simple oneshot - sets 100% at boot)
+      "amd-gpu-max-fan" = {
+        description = "AMD GPU Max Fan Speed (100%)";
+        wantedBy = ["multi-user.target"];
+        after = ["basic.target" "amd-gpu-power-mgmt.service"];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = pkgs.writeShellScript "amd-max-fan" ''
+            #!/usr/bin/env bash
+            set -euo pipefail
+            
+            log() {
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+            }
+            
+            # Wait for GPUs to be ready
+            sleep 5
+            
+            # Set both GPUs to 100% fan speed using rocm-smi
+            # This is the reliable method that doesn't require sysfs PWM manipulation
+            if /run/wrappers/bin/sudo /run/current-system/sw/bin/rocm-smi --setfan 100%; then
+              log "AMD GPUs set to 100% fan speed"
+            else
+              log "Failed to set AMD GPU fan speed"
+            fi
+          '';
         };
       };
 
