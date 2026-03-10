@@ -1,5 +1,11 @@
 # Kubernetes Configuration Module
 # Full upstream Kubernetes via services.kubernetes module
+
+# Service Account Security
+# Note: Service account tokens are NOT auto-mounted by default.
+# Set automountServiceAccountToken: false in pod specs unless needed.
+# See: docs/kubernetes/service-account-security.md
+
 {
   config,
   pkgs,
