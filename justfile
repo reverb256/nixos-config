@@ -299,3 +299,25 @@ rollback:
     _info "this will undo the last system switch"
     scripts/deploy/rollback.sh
     echo ""
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  CONTAINER SCANNING
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Scan all running containers
+scan-containers:
+    trivy image --severity HIGH,CRITICAL $(docker ps --format '{{{{.Image}}}}')
+
+# Scan a specific image
+scan-image IMAGE:
+    trivy image --severity HIGH,CRITICAL {{IMAGE}}
+
+# Scan all Kubernetes pod images
+scan-k8s:
+    kubectl get pods -A -o jsonpath='{range .items[*]}{.spec.nodeName}{"\t"}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.containers[*].image}{"\n"}{end}' | \
+    while read node namespace name images; do
+        for img in $images; do
+            echo "Scanning $namespace/$name: $img"
+            trivy image --severity HIGH,CRITICAL "$img" || true
+        done
+    done
