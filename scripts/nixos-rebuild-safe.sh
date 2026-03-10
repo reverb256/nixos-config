@@ -12,6 +12,18 @@ XMRIG_API_HOST="${XMRIG_API_HOST:-127.0.0.1}"
 XMRIG_API_PORT="${XMRIG_API_PORT:-8081}"
 XMRIG_TOKEN_FILE="${XMRIG_TOKEN_FILE:-/run/agenix/xmrig-api-token}"
 
+# Build events log (for compute-workload-monitor visibility)
+BUILD_EVENTS_LOG="${BUILD_EVENTS_LOG:-/run/gpu-scheduler/build-events.log}"
+
+# Log build event (lightweight notification)
+log_build_event() {
+  local event="$1"
+  local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+  local hostname=$(hostname)
+  local pid=$$
+  echo "[$timestamp] $event:host=$hostname:pid=$pid" >> "$BUILD_EVENTS_LOG"
+}
+
 # Read XMRig API token from file
 get_xmrig_token() {
   if [ -r "$XMRIG_TOKEN_FILE" ]; then
@@ -124,6 +136,9 @@ stop_mining() {
   echo "🛑 Pausing mining services for build..."
   local paused=0
 
+  # Log build start event for compute-workload-monitor visibility
+  log_build_event "BUILD_START"
+
   # Pause XMRig
   pause_xmrig && paused=$((paused + 1))
 
@@ -151,6 +166,9 @@ start_mining() {
     echo "  All mining services already running"
   fi
   echo "✅ Mining resumed"
+
+  # Log build stop/success event for compute-workload-monitor visibility
+  log_build_event "BUILD_STOP"
 }
 
 # Trap to ensure mining restarts even on failure
@@ -185,6 +203,8 @@ BUILD_STATUS=$?
 
 if [ $BUILD_STATUS -ne 0 ]; then
   echo "❌ Build failed (exit code: $BUILD_STATUS)"
+  # Log build failure event for compute-workload-monitor visibility
+  log_build_event "BUILD_FAILED:exit_code=$BUILD_STATUS"
   exit $BUILD_STATUS
 fi
 

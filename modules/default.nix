@@ -14,6 +14,8 @@
     ./system/nix-config.nix
     ./system/users.nix
     ./system/home-manager.nix
+    ./system/networking.nix
+    ./system/interface-naming.nix
     ./system/ssh.nix
     ./system/ssh-ca.nix
     ./system/mosh.nix

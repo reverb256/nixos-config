@@ -86,11 +86,11 @@
         userServices = true;
       };
       # Security hardening: restrict to wired interfaces only
+      # All cluster nodes use 'lan0' for primary ethernet (see interface-naming.nix)
       # Override per-host with allowInterfaces/denyInterfaces if needed
       allowInterfaces = [
-        "enp38s0"
-        "enp7s0"
-      ]; # zephyr and nexus wired NICs
+        "lan0"
+      ]; # All cluster nodes' primary ethernet
       denyInterfaces = [
         "tailscale0"
         "wlan*"

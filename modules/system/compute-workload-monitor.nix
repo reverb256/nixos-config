@@ -56,6 +56,28 @@
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
           }
 
+          # Check for recent wrapper-initiated build events (lightweight visibility)
+          check_build_wrapper_events() {
+              local events_log="/run/gpu-scheduler/build-events.log"
+
+              # Only check if we're detecting a build workload
+              if [ ! -f "$events_log" ]; then
+                  return 0
+              fi
+
+              # Get events from last 5 minutes
+              local recent_events=$(grep "BUILD_START" "$events_log" 2>/dev/null | tail -5)
+
+              if [ -n "$recent_events" ]; then
+                  log "Recent wrapper-initiated builds detected (may overlap with current build detection)"
+                  echo "$recent_events" | while read -r event; do
+                  log "  Event: $event"
+              done
+              fi
+
+              return 0
+          }
+
           check_process_running() {
               local process="$1"
               pgrep -f "$process" >/dev/null
@@ -591,6 +613,9 @@
 
           apply_builds_profile() {
               echo "=== Applying GPU/CPU BUILDS profile ==="
+
+              # Check for wrapper-initiated build events (visibility only)
+              check_build_wrapper_events
 
               local gpus=$(get_gpu_list)
               local gpu_count=$(echo "$gpus" | wc -l)
