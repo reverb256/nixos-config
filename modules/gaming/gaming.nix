@@ -509,6 +509,41 @@ in {
                 pgrep -f "$process" >/dev/null
             }
 
+            check_incoming_build_job() {
+                # Detect distributed build jobs from coordinators via SSH
+                # This catches when nix-daemon on worker receives build job from coordinator
+                local coordinators=("zephyr" "nexus" "forge")
+                local hostname=$(get_hostname)
+
+                # Skip if we are the coordinator (we already detect nix-build directly)
+                for coord in "${coordinators[@]}"; do
+                    if [ "$hostname" = "$coord" ]; then
+                        continue
+                    fi
+
+                    # Check for SSH connections from known coordinators
+                    if command -v ss >/dev/null 2>&1; then
+                        if ss -tnp 2>/dev/null | grep -q "ESTAB .*${coord}.*ssh"; then
+                            # Check if nix-daemon is using significant CPU (>30%)
+                            local nix_pid=$(pgrep -o nix-daemon | head -1)
+                            if [ -n "$nix_pid" ]; then
+                                local nix_cpu=$(ps -p "$nix_pid" -o %cpu 2>/dev/null | tail -1)
+                                if [ -n "$nix_cpu" ] && [ "$nix_cpu" != "%CPU" ]; then
+                                    # Remove decimal point for comparison (e.g., "45.2" -> "45")
+                                    local nix_cpu_int=''${nix_cpu%.*}
+                                    if [ "$nix_cpu_int" -gt 30 ] 2>/dev/null; then
+                                        log "Detected incoming build from $coord (nix-daemon CPU: ${nix_cpu}%)"
+                                        return 0
+                                    fi
+                                fi
+                            fi
+                        fi
+                    fi
+                done
+
+                return 1
+            }
+
             get_workload_type() {
                 # Priority: Gaming > AI > Builds > Mining > Idle
 
@@ -535,6 +570,12 @@ in {
                         return
                     fi
                 done
+
+                # Check for incoming distributed build jobs (worker detection)
+                if check_incoming_build_job; then
+                    echo "builds"
+                    return
+                fi
 
                 # Check for active mining
                 for service in "''${MINING_SERVICES[@]}"; do
@@ -675,16 +716,21 @@ in {
 
                 echo "GAMING profile applied: Mode: Maximum performance"
 
-                # Pause GPU mining
+                # Pause GPU mining completely (gaming needs 100% GPU)
                 if systemctl is-active --quiet lolminer-nvidia; then
-                    log "Pausing lolminer-nvidia for gaming"
-                    systemctl stop lolminer-nvidia
+                    log "Limiting lolminer-nvidia to 0% CPU for gaming"
+                    systemctl set-property lolminer-nvidia.service CPUQuota="0%" --runtime
                 fi
 
-                # Reduce CPU mining threads
+                if systemctl is-active --quiet lolminer-amd; then
+                    log "Limiting lolminer-amd to 0% CPU for gaming"
+                    systemctl set-property lolminer-amd.service CPUQuota="0%" --runtime
+                fi
+
+                # Reduce CPU mining to 25% (free CPU for game logic)
                 if systemctl is-active --quiet xmrig; then
-                    local gaming_threads=$(get_xmrig_gaming_threads)
-                    reduce_xmrig_threads "$gaming_threads"
+                    log "Limiting xmrig to 25% CPU for gaming"
+                    systemctl set-property xmrig.service CPUQuota="25%" --runtime
                 fi
             }
 
@@ -732,16 +778,21 @@ in {
 
                 echo "AI INFERENCE profile applied: Mode: Balanced performance with thermal safety"
 
-                # Pause GPU mining
+                # Pause GPU mining completely (AI needs 100% GPU)
                 if systemctl is-active --quiet lolminer-nvidia; then
-                    log "Pausing lolminer-nvidia for AI inference"
-                    systemctl stop lolminer-nvidia
+                    log "Limiting lolminer-nvidia to 0% CPU for AI inference"
+                    systemctl set-property lolminer-nvidia.service CPUQuota="0%" --runtime
                 fi
 
-                # Reset CPU mining to full threads (GPU is bottleneck, not CPU)
+                if systemctl is-active --quiet lolminer-amd; then
+                    log "Limiting lolminer-amd to 0% CPU for AI inference"
+                    systemctl set-property lolminer-amd.service CPUQuota="0%" --runtime
+                fi
+
+                # Keep CPU mining at 100% (GPU is bottleneck, CPU just coordinates)
                 if systemctl is-active --quiet xmrig; then
-                    log "Resetting XMRig to full threads for AI workload (GPU is bottleneck)"
-                    reset_xmrig_threads $(get_xmrig_idle_threads)
+                    log "Keeping xmrig at 100% CPU (GPU is bottleneck for AI)"
+                    systemctl set-property xmrig.service CPUQuota="100%" --runtime
                 fi
             }
 
@@ -757,19 +808,30 @@ in {
                     echo "Detected $gpu_count GPU(s) for builds profile"
                 fi
 
-                # Pause GPU mining - builds may need GPU for compilation/heavy workloads
+                # Reduce GPU mining to 10% (builds may need GPU for CUDA/heavy workloads)
                 if systemctl is-active --quiet lolminer-nvidia; then
-                    log "Pausing lolminer-nvidia for builds"
-                    systemctl stop lolminer-nvidia
+                    log "Limiting lolminer-nvidia to 10% CPU for builds"
+                    systemctl set-property lolminer-nvidia.service CPUQuota="10%" --runtime
                 fi
 
-                # Pause CPU mining completely - builds need 100% CPU
+                if systemctl is-active --quiet lolminer-amd; then
+                    log "Limiting lolminer-amd to 10% CPU for builds"
+                    systemctl set-property lolminer-amd.service CPUQuota="10%" --runtime
+                fi
+
+                # Reduce CPU mining to 10% (builds need maximum CPU)
                 if systemctl is-active --quiet xmrig; then
-                    log "Pausing xmrig for builds (need 100% CPU)"
-                    systemctl stop xmrig
+                    log "Limiting xmrig to 10% CPU for builds"
+                    systemctl set-property xmrig.service CPUQuota="10%" --runtime
                 fi
 
-                echo "BUILDS profile applied: Mode: Maximum CPU availability"
+                # Ensure nix-daemon gets high priority for builds
+                if systemctl is-active --quiet nix-daemon; then
+                    log "Setting nix-daemon to high CPU weight for builds"
+                    systemctl set-property nix-daemon.service CPUWeight=2048 --runtime
+                fi
+
+                echo "BUILDS profile applied: Mode: 10% mining, builds get priority"
             }
 
             apply_mining_profile() {
@@ -816,17 +878,28 @@ in {
 
                 echo "MINING profile applied: Mode: Efficiency-optimized"
 
+                # Reset all mining to 100% CPU
+                if systemctl is-active --quiet lolminer-nvidia; then
+                    log "Resetting lolminer-nvidia to 100% CPU"
+                    systemctl set-property lolminer-nvidia.service CPUQuota="100%" --runtime
+                fi
+
+                if systemctl is-active --quiet lolminer-amd; then
+                    log "Resetting lolminer-amd to 100% CPU"
+                    systemctl set-property lolminer-amd.service CPUQuota="100%" --runtime
+                fi
+
+                if systemctl is-active --quiet xmrig; then
+                    local idle_threads=$(get_xmrig_idle_threads)
+                    log "Resetting xmrig to 100% CPU ($idle_threads threads)"
+                    systemctl set-property xmrig.service CPUQuota="100%" --runtime
+                    reset_xmrig_threads "$idle_threads"
+                fi
+
                 # Start GPU mining if not running
                 if ! systemctl is-active --quiet lolminer-nvidia; then
                     log "Starting lolminer-nvidia (no other workloads detected)"
                     systemctl start lolminer-nvidia
-                fi
-
-                # Ensure CPU mining has full threads
-                if systemctl is-active --quiet xmrig; then
-                    local idle_threads=$(get_xmrig_idle_threads)
-                    log "Ensuring XMRig has full threads ($idle_threads) for mining"
-                    reset_xmrig_threads "$idle_threads"
                 fi
             }
 
