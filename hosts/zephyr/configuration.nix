@@ -2,6 +2,7 @@
 # RTX 3090, Quest Pro, 4K HDR TV
 {
   pkgs,
+  lib,
   inputs,
   ...
 }:
@@ -32,6 +33,21 @@
     networkmanager = {
       enable = true;
       dns = "none";
+      ensureProfiles.profiles."Wired connection 1" = {
+        connection = {
+          id = "Wired connection 1";
+          type = "ethernet";
+          interface-name = "lan0";  # Consistent interface naming across cluster
+          autoconnect = true;
+        };
+        ipv4 = {
+          method = "manual";
+          address1 = "10.1.1.110/24";
+          gateway = "10.1.1.1";
+          dns = "127.0.0.1,::1";
+        };
+        ipv6.method = "auto";
+      };
     };
 
     cluster-hosts = {
@@ -68,12 +84,12 @@
           18790
         ];
         # NFS server - allow local network only
-        "enp38s0".allowedTCPPorts = [
+        "lan0".allowedTCPPorts = [
           111
           2049
           20048
         ]; # rpcbind, nfs, mountd
-        "enp38s0".allowedUDPPorts = [
+        "lan0".allowedUDPPorts = [
           111
           2049
           20048
@@ -194,6 +210,54 @@
 
     # Gaming HDR for 4K HDR TV
     gaming.hdr.enable = true;
+
+    # Disable compute-workload-monitor due to crash loop (thrashing between MINING/BUILDS profiles)
+    # Use mkForce to override gaming module's enable=true
+    compute-workload-monitor.enable = lib.mkForce false;
+
+    # XMRig Proxy - Centralized stratum proxy for CPU mining (RandomX)
+    xmrig-proxy = {
+      enable = true;
+
+      config = builtins.toJSON {
+        pools = [
+          {
+            id = "kryptex-rx-primary";
+            url = "xtm-rx-us.kryptex.network:8038";
+            user = "krxXVNVMM7.zephyr-proxy";
+            pass = "x";
+            tls = true;
+            keepalive = true;
+            priority = 1;
+          }
+          {
+            id = "f2pool-rx-backup";
+            url = "xmr-us-east1.nano.pool.ru:5555";
+            user = "krxXVNVMM7.zephyr-proxy";
+            pass = "x";
+            tls = false;
+            priority = 2;
+          }
+        ];
+
+        workers = [
+          {
+            id = "zephyr-cpu";
+            password = "x";
+          }
+        ];
+
+        api = {
+          port = 8081;
+          restricted = true;
+          token = "change-this-token";
+        };
+
+        log = {
+          level = 5;
+        };
+      };
+    };
 
     # Share /etc/nixos via NFS for remote hosts (single-source-of-truth)
     nixos-share = {
@@ -387,6 +451,9 @@
       enable = true;
       autostart = false;
       threads = 16;
+      pool = "stratum+tcp://10.1.1.110:3333";  # Point to local proxy
+      wallet = "zephyr-cpu";  # Worker ID for proxy
+      password = "x";
     };
 
     # MONITORING - Full monitoring stack

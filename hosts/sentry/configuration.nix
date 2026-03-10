@@ -95,6 +95,12 @@
   # SERVICES CONFIGURATION
   # ============================================================================
   services = {
+    # Local DNS resolver for cluster
+    unbound-cluster = {
+      enable = true;
+      listenAddress = "10.1.1.140"; # Sentry IP
+    };
+
     # Kubernetes worker node
     kubernetes-module = {
       enable = true;
@@ -119,7 +125,7 @@
     mining = {
       xmrig = {
         enable = true;
-        autostart = false;
+        autostart = true;  # Changed: enable autostart
         threads = 8;
       };
       lolminer.enable = false;
