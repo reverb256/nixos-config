@@ -207,7 +207,7 @@
           enable = true;
           autostart = true;
           devices = "0";
-          powerLimit = 130;
+          # No powerLimit here - let gpu-workload-monitor manage dynamically
         };
       };
     };
