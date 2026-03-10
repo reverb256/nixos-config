@@ -123,6 +123,23 @@ just deploy            # Deploy to all hosts
 
 ---
 
+## Security
+
+### Documentation
+- `docs/security/SECURITY_AUDIT_REPORT.md` - Comprehensive security audit
+- `docs/security/HARDENING_SUMMARY.md` - Implementation status
+- `docs/kubernetes/network-policies/` - Network policy templates
+- `docs/security/secrets-rotation.md` - Rotation procedures
+- `docs/security/emergency-access.md` - Emergency procedures
+
+### Commands
+```bash
+just scan-containers  # Scan running containers for vulnerabilities
+just scan-image IMAGE # Scan specific image
+```
+
+---
+
 **Version**: 1.1 | **Updated**: 2026-03-09
 **Generated from**: `/etc/nixos/docs/templates/base-template.md.j2`
 
