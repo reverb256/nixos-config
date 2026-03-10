@@ -139,6 +139,12 @@ in {
           default = "";
           description = "Context7 API key (optional, for higher rate limits)";
         };
+        apiKeyFile = lib.mkOption {
+          type = lib.types.nullOr lib.types.path;
+          default = null;
+          example = "/run/agenix/context7-api-key";
+          description = "Path to file containing Context7 API key (takes precedence over apiKey)";
+        };
       };
 
       grep-app = {
@@ -338,10 +344,15 @@ in {
           exec ${pkgs.uv}/bin/uvx --from mcp-server-fetch mcp-server-fetch "$@"
         '')
 
-        # Context7 - fixed package name
+        # Context7 - fixed package name with API key support
         (mkNpmMcpServer {
           name = "context7";
           package = "@upstash/context7-mcp";
+          env = lib.optionalAttrs (cfg.servers.context7.apiKeyFile != null) {
+            CONTEXT7_API_KEY = builtins.readFile cfg.servers.context7.apiKeyFile;
+          } // lib.optionalAttrs (cfg.servers.context7.apiKeyFile == null && cfg.servers.context7.apiKey != "") {
+            CONTEXT7_API_KEY = cfg.servers.context7.apiKey;
+          };
         })
 
         # Grep-app server - package doesn't exist, disabled

@@ -17,6 +17,8 @@ spec:
     metadata:
       labels:
         name: nvidia-device-plugin-ds
+      annotations:
+        nvidia.com/gpu.cdi.enabled: "true"
     spec:
       tolerations:
         - key: nvidia.com/gpu
@@ -24,33 +26,16 @@ spec:
           effect: NoSchedule
       # Mark this pod as a critical add-on for rescheduling
       priorityClassName: system-node-critical
-      hostNetwork: true
-      hostPID: true
-      annotations:
-        # CRI-O device passthrough annotation
-        devices.crio.io: |
-          - path: /dev/nvidia0
-            type: c
-          - path: /dev/nvidia1
-            type: c
-          - path: /dev/nvidiactl
-            type: c
-          - path: /dev/nvidia-modeset
-            type: c
-          - path: /dev/nvidia-uvm
-            type: c
-          - path: /dev/nvidia-uvm-tools
-            type: c
+      hostNetwork: false
+      hostPID: false
       containers:
-        - image: nvcr.io/nvidia/k8s-device-plugin:v0.14.0
+        - image: nvcr.io/nvidia/k8s-device-plugin:v0.18.2
           name: nvidia-device-plugin-ctr
           env:
             - name: FAIL_ON_INIT_ERROR
               value: "false"
             - name: NVIDIA_VISIBLE_DEVICES
               value: "all"
-            - name: NVIDIA_DRIVER_CAPABILITIES
-              value: "compute,utility"
             - name: PATH
               value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/nvidia-driver/bin"
             - name: LD_LIBRARY_PATH
@@ -67,26 +52,26 @@ spec:
           volumeMounts:
             - name: device-plugin
               mountPath: /var/lib/kubelet/device-plugins
+            - name: nvidia-driver
+              mountPath: /run/opengl-driver
+              readOnly: true
             - name: dev
               mountPath: /dev
             - name: sys
               mountPath: /sys
-            - name: nvidia-driver
-              mountPath: /nvidia-driver
-              readOnly: true
       volumes:
         - name: device-plugin
           hostPath:
             path: /var/lib/kubelet/device-plugins
+        - name: nvidia-driver
+          hostPath:
+            path: /run/opengl-driver
         - name: dev
           hostPath:
             path: /dev
         - name: sys
           hostPath:
             path: /sys
-        - name: nvidia-driver
-          hostPath:
-            path: /nix/store/xxcw2cdy3nkxncvwb23crs279r76q19k-nvidia-x11-590.48.01-6.18.13
       nodeSelector:
         # Only schedule on nodes with NVIDIA GPUs
         accelerator: nvidia-gpu

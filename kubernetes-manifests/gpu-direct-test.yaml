@@ -1,0 +1,27 @@
+# Direct GPU Test - Device Passthrough without Plugin
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-direct-test
+spec:
+  restartPolicy: OnFailure
+  containers:
+  - name: gpu-test
+    image: nvidia/cuda:12.1.0-runtime-ubuntu22.04
+    command: ["nvidia-smi"]
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: nvidia
+      mountPath: /dev/nvidia0
+    - name: nvidiactl
+      mountPath: /dev/nvidiactl
+  volumes:
+  - name: nvidia
+    hostPath:
+      path: /dev/nvidia0
+  - name: nvidiactl
+    hostPath:
+      path: /dev/nvidiactl
+  nodeSelector:
+    kubernetes.io/hostname: zephyr

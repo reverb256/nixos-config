@@ -22,7 +22,11 @@ from ai_inference_gateway.router import (
 from ai_inference_gateway.mcp_broker import create_mcp_broker_from_config
 from ai_inference_gateway.metrics import ModelMetricsTracker
 from ai_inference_gateway.response_format import transform_request
-from ai_inference_gateway.claude_client import create_claude_client, ClaudeClient, ClaudeRequest
+from ai_inference_gateway.claude_client import (
+    create_claude_client,
+    ClaudeClient,
+    ClaudeRequest,
+)
 
 # Initialize logger early (needed for import error handling)
 logger = logging.getLogger(__name__)
@@ -90,6 +94,9 @@ except ImportError as e:
     ModerationResult = None
     ModerationCategory = None
 
+
+# GPU scheduler integration (for signaling workload state)
+from ai_inference_gateway import gpu_scheduler
 
 # RAG imports
 try:
@@ -281,7 +288,9 @@ async def lifespan(app: FastAPI):
                     state.config.sentry.traces_sample_rate,
                 )
             except ImportError:
-                logger.warning("sentry-sdk not available, skipping Sentry initialization")
+                logger.warning(
+                    "sentry-sdk not available, skipping Sentry initialization"
+                )
             except Exception as e:
                 logger.warning(f"Sentry initialization failed: {e}")
         else:
@@ -359,7 +368,8 @@ async def lifespan(app: FastAPI):
                 enable=True,
                 qdrant_url=qdrant_url,
                 embedding=EmbeddingConfig(
-                    model=embedding_model, device="cuda"  # Use CUDA by default
+                    model=embedding_model,
+                    device="cuda",  # Use CUDA by default
                 ),
                 chunking=ChunkingConfig(
                     chunk_size=chunk_size, chunk_overlap=chunk_overlap
@@ -477,6 +487,13 @@ async def lifespan(app: FastAPI):
             state.semantic_cache = None
     else:
         logger.info("Semantic cache not available (install redis, qdrant-client)")
+
+    # Initialize GPU scheduler communication
+    try:
+        gpu_scheduler.init_scheduler_comms()
+        logger.info("GPU scheduler communication initialized")
+    except Exception as e:
+        logger.warning(f"GPU scheduler initialization failed: {e}")
 
     # Startup complete
     logger.info("Gateway startup complete")
@@ -598,28 +615,21 @@ def translate_openai_to_anthropic(openai_response: dict, original_model: str) ->
 
     # Add thinking block if reasoning_content exists
     if reasoning_content:
-        anthropic_content.append({
-            "type": "thinking",
-            "thinking": reasoning_content
-        })
+        anthropic_content.append({"type": "thinking", "thinking": reasoning_content})
 
     # Add text block if content exists
     if content_text:
-        anthropic_content.append({
-            "type": "text",
-            "text": content_text
-        })
+        anthropic_content.append({"type": "text", "text": content_text})
 
     # If both are empty but we have output_tokens, something went wrong
     # Put a placeholder text
     if not anthropic_content:
         usage = openai_response.get("usage", {})
         if usage.get("completion_tokens", 0) > 0:
-            logger.warning(f"Model {original_model} generated tokens but no content returned")
-            anthropic_content.append({
-                "type": "text",
-                "text": ""
-            })
+            logger.warning(
+                f"Model {original_model} generated tokens but no content returned"
+            )
+            anthropic_content.append({"type": "text", "text": ""})
 
     return {
         "id": openai_response.get("id", f"msg_{openai_response.get('created', '')}"),
@@ -631,10 +641,16 @@ def translate_openai_to_anthropic(openai_response: dict, original_model: str) ->
         "stop_sequence": None,
         "usage": {
             "input_tokens": openai_response.get("usage", {}).get("prompt_tokens", 0),
-            "output_tokens": openai_response.get("usage", {}).get("completion_tokens", 0),
-            "cache_creation_input_tokens": openai_response.get("usage", {}).get("cache_creation_tokens", 0),
-            "cache_read_input_tokens": openai_response.get("usage", {}).get("cache_read_tokens", 0),
-        }
+            "output_tokens": openai_response.get("usage", {}).get(
+                "completion_tokens", 0
+            ),
+            "cache_creation_input_tokens": openai_response.get("usage", {}).get(
+                "cache_creation_tokens", 0
+            ),
+            "cache_read_input_tokens": openai_response.get("usage", {}).get(
+                "cache_read_tokens", 0
+            ),
+        },
     }
 
 
@@ -649,15 +665,28 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         Configured FastAPI application
     """
     import sys
+
     print("[DEBUG] create_app: Starting...", file=sys.stderr, flush=True)
 
     if config is None:
-        print("[DEBUG] create_app: Loading config from environment...", file=sys.stderr, flush=True)
+        print(
+            "[DEBUG] create_app: Loading config from environment...",
+            file=sys.stderr,
+            flush=True,
+        )
         config = GatewayConfig()
-        print(f"[DEBUG] create_app: Config loaded, backend_url={config.backend_url}", file=sys.stderr, flush=True)
+        print(
+            f"[DEBUG] create_app: Config loaded, backend_url={config.backend_url}",
+            file=sys.stderr,
+            flush=True,
+        )
 
     # Initialize gateway state with OpenAI client wrapper
-    print("[DEBUG] create_app: Creating OpenAI client wrapper...", file=sys.stderr, flush=True)
+    print(
+        "[DEBUG] create_app: Creating OpenAI client wrapper...",
+        file=sys.stderr,
+        flush=True,
+    )
     openai_client = create_openai_client(config)
     print("[DEBUG] create_app: OpenAI client created", file=sys.stderr, flush=True)
 
@@ -684,6 +713,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     print("[DEBUG] create_app: Gateway state stored", file=sys.stderr, flush=True)
 
     print("[DEBUG] create_app: Adding health endpoint...", file=sys.stderr, flush=True)
+
     # Add health endpoint
     @app.get("/health")
     async def health_check():
@@ -750,7 +780,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 # Get circuit breaker from middleware pipeline
                 for middleware in state.pipeline.middleware:
                     if hasattr(middleware, "_state"):
-
                         state_name = (
                             middleware._state.name
                             if hasattr(middleware._state, "name")
@@ -802,6 +831,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         return health_response
 
     print("[DEBUG] create_app: Health endpoint added", file=sys.stderr, flush=True)
+
     # Add models endpoint
     @app.get("/v1/models")
     async def list_models(request: Request):
@@ -839,7 +869,12 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
     print("[DEBUG] create_app: Models endpoint added", file=sys.stderr, flush=True)
     # Add chat completions endpoint
-    print("[DEBUG] create_app: Adding chat completions endpoint...", file=sys.stderr, flush=True)
+    print(
+        "[DEBUG] create_app: Adding chat completions endpoint...",
+        file=sys.stderr,
+        flush=True,
+    )
+
     @app.post("/v1/chat/completions")
     async def chat_completions(request: Request):
         """
@@ -851,6 +886,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         import time
 
         _request_start = time.time()  # noqa: F841
+
+        # Signal GPU scheduler that AI workload is starting
+        gpu_scheduler.notify_ai_starting()
 
         state: GatewayState = app.state.gateway
 
@@ -914,16 +952,24 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 if "thinking" in body:
                     thinking = body.get("thinking", {})
                     if isinstance(thinking, dict):
-                        thinking_enabled = thinking.get("type", "disabled") != "disabled"
+                        thinking_enabled = (
+                            thinking.get("type", "disabled") != "disabled"
+                        )
                     elif isinstance(thinking, bool):
                         thinking_enabled = thinking
 
                 # Detect task type from messages for better param selection
                 task_type = "general"
                 messages_text = " ".join([m.get("content", "") for m in messages])
-                if any(keyword in messages_text.lower() for keyword in ["code", "function", "debug", "fix"]):
+                if any(
+                    keyword in messages_text.lower()
+                    for keyword in ["code", "function", "debug", "fix"]
+                ):
                     task_type = "coding"
-                elif any(keyword in messages_text.lower() for keyword in ["tool", "search", "call", "execute"]):
+                elif any(
+                    keyword in messages_text.lower()
+                    for keyword in ["tool", "search", "call", "execute"]
+                ):
                     task_type = "agentic"
                 elif len(messages_text) > 10000:  # Long conversation, prioritize speed
                     task_type = "fast"
@@ -1035,8 +1081,15 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             finally:
                 # Always clean up request tracking
                 state.router.track_request_end(request_id)
+                # Signal GPU scheduler that AI workload is stopping
+                gpu_scheduler.notify_ai_stopping()
 
-    print("[DEBUG] create_app: Adding /v1/messages endpoint...", file=sys.stderr, flush=True)
+    print(
+        "[DEBUG] create_app: Adding /v1/messages endpoint...",
+        file=sys.stderr,
+        flush=True,
+    )
+
     @app.post("/v1/messages")
     async def messages(request: Request):
         """
@@ -1063,6 +1116,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         """
         import time
         import uuid
+
+        # Signal GPU scheduler that AI workload is starting
+        gpu_scheduler.notify_ai_starting()
 
         state: GatewayState = app.state.gateway
         _request_start = time.time()
@@ -1100,13 +1156,15 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Map effort levels to budget_tokens if not explicitly set
         if thinking_intensity and not thinking_budget:
             effort_budget_map = {
-                "low": 5000,      # Quick responses, minimal reasoning
+                "low": 5000,  # Quick responses, minimal reasoning
                 "medium": 15000,  # Balanced reasoning
-                "high": 50000,    # Deep analysis, extensive reasoning
-                "auto": None,     # Let backend decide
+                "high": 50000,  # Deep analysis, extensive reasoning
+                "auto": None,  # Let backend decide
             }
             thinking_budget = effort_budget_map.get(thinking_intensity)
-            logger.info(f"Thinking intensity '{thinking_intensity}' → budget_tokens={thinking_budget}")
+            logger.info(
+                f"Thinking intensity '{thinking_intensity}' → budget_tokens={thinking_budget}"
+            )
 
         # Build/update thinking dict in body for LM Studio compatibility
         # LM Studio expects: {"type": "enabled"|"disabled"|"adaptive", "budget_tokens": int}
@@ -1211,7 +1269,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     if "tool_choice" in body:
                         openai_request["tool_choice"] = body["tool_choice"]
 
-                    logger.info(f"Using OpenAI format for reasoning model {route_decision.model}")
+                    logger.info(
+                        f"Using OpenAI format for reasoning model {route_decision.model}"
+                    )
 
                 else:
                     # Use /v1/messages (Anthropic format) for non-reasoning models
@@ -1230,7 +1290,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     if use_openai_format:
                         # Translate OpenAI response to Anthropic format
                         openai_response = response.json()
-                        response_data = translate_openai_to_anthropic(openai_response, model)
+                        response_data = translate_openai_to_anthropic(
+                            openai_response, model
+                        )
                     else:
                         response_data = response.json()
 
@@ -1259,7 +1321,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                         input_tokens=usage.get("input_tokens", 0),
                         output_tokens=usage.get("output_tokens", 0),
                         total_tokens=usage.get("total_tokens", 0),
-                        latency_ms=response_data.get("gateway_metadata", {}).get("processing_time_ms", 0),
+                        latency_ms=response_data.get("gateway_metadata", {}).get(
+                            "processing_time_ms", 0
+                        ),
                     )
 
                     state.router.track_request_end(request_id)
@@ -1270,10 +1334,14 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                             if isinstance(middleware, CircuitBreaker):
                                 await middleware.on_success()
 
-                    return JSONResponse(content=response_data, status_code=response.status_code)
+                    return JSONResponse(
+                        content=response_data, status_code=response.status_code
+                    )
 
             except httpx.HTTPStatusError as e:
-                logger.error(f"LM Studio API error: {e.response.status_code} - {e.response.text}")
+                logger.error(
+                    f"LM Studio API error: {e.response.status_code} - {e.response.text}"
+                )
 
                 # Fall through to ZAI if enabled (check via backend_fallback_urls)
                 fallback_urls = state.config.get_backend_fallback_urls()
@@ -1282,31 +1350,35 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     # TODO: Implement ZAI fallback for Anthropic format
                     # For now, return the error
                     state.router.track_request_end(request_id)
+                    gpu_scheduler.notify_ai_stopping()
                     raise HTTPException(
                         status_code=e.response.status_code,
-                        detail=f"LM Studio error: {e.response.text}"
+                        detail=f"LM Studio error: {e.response.text}",
                     )
                 else:
                     state.router.track_request_end(request_id)
+                    gpu_scheduler.notify_ai_stopping()
                     raise
             except Exception as e:
                 logger.error(f"Error calling LM Studio API: {e}")
                 state.router.track_request_end(request_id)
+                gpu_scheduler.notify_ai_stopping()
                 raise HTTPException(status_code=503, detail=f"Backend error: {str(e)}")
 
-        # ZAI backend - would need translation
-        # For now, not implemented for Anthropic format
-        state.router.track_request_end(request_id)
-        raise HTTPException(
-            status_code=501,
-            detail="Anthropic format not yet supported for ZAI backend"
-        )
+            # ZAI backend - would need translation
+            # For now, not implemented for Anthropic format
+            state.router.track_request_end(request_id)
+            gpu_scheduler.notify_ai_stopping()
+            raise HTTPException(
+                status_code=501, detail="Anthropic format not yet supported for ZAI backend"
+            )
 
     # ============================================================================
     # MCP Broker Endpoints
     # ============================================================================
 
     print("[DEBUG] create_app: Adding MCP endpoints...", file=sys.stderr, flush=True)
+
     @app.get("/mcp/servers")
     async def list_mcp_servers():
         """List all configured MCP servers."""
@@ -1495,7 +1567,12 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         return {"message": "Cache metrics reset"}
 
-    print("[DEBUG] create_app: Adding RAG ingestion endpoint...", file=sys.stderr, flush=True)
+    print(
+        "[DEBUG] create_app: Adding RAG ingestion endpoint...",
+        file=sys.stderr,
+        flush=True,
+    )
+
     @app.post("/rag/ingest")
     async def ingest_rag_url(request: Request):
         """
@@ -2394,8 +2471,8 @@ async def stream_backend_response(
                 if isinstance(middleware, CircuitBreaker):
                     await middleware.on_failure()
 
-        # Yield error as SSE comment
-        yield f"data: {{'error': '{str(e)}'}}\n\n"
+        # Yield error as SSE event (proper JSON with escaped single quotes)
+        yield f"data: {json.dumps({'error': str(e).replace("'", '&#39;')})}\n\n"
     except Exception as e:
         logger.error(f"Unexpected error in streaming request: {e}")
 
@@ -2408,10 +2485,12 @@ async def stream_backend_response(
                 if isinstance(middleware, CircuitBreaker):
                     await middleware.on_failure()
 
-        yield f"data: {{'error': 'Unexpected error: {str(e)}'}}\n\n"
+        yield f"data: {json.dumps({'error': f'Unexpected error: {str(e)}'})}\n\n"
     finally:
         # Always clean up request tracking
         router.track_request_end(request_id)
+        # Signal GPU scheduler that AI workload is stopping
+        gpu_scheduler.notify_ai_stopping()
 
 
 async def try_backends_with_failover(
@@ -2743,7 +2822,7 @@ async def stream_anthropic_response(
                         "content": [],
                         "model": original_model,
                         "stop_reason": None,
-                    }
+                    },
                 }
                 yield f"event: message_start\ndata: {json.dumps(event_data)}\n\n"
 
@@ -2771,7 +2850,9 @@ async def stream_anthropic_response(
                                 "type": "tool_use",
                                 "id": tool_call.get("id", ""),
                                 "name": tool_call.get("function", {}).get("name", ""),
-                                "input": tool_call.get("function", {}).get("arguments", "{}"),
+                                "input": tool_call.get("function", {}).get(
+                                    "arguments", "{}"
+                                ),
                             },
                         }
                         yield f"event: content_block_delta\ndata: {json.dumps(tool_event)}\n\n"
@@ -2817,7 +2898,7 @@ async def stream_anthropic_response(
             "error": {
                 "type": "api_error",
                 "message": str(e),
-            }
+            },
         }
         yield f"event: error\ndata: {json.dumps(error_event)}\n\n"
 
@@ -2894,20 +2975,19 @@ async def handle_anthropic_non_streaming(
             text_content = message.get("reasoning_content", "")
 
         if text_content:
-            content_blocks.append({
-                "type": "text",
-                "text": text_content
-            })
+            content_blocks.append({"type": "text", "text": text_content})
 
         # Tool calls
         if message.get("tool_calls"):
             for tool_call in message["tool_calls"]:
-                content_blocks.append({
-                    "type": "tool_use",
-                    "id": tool_call.get("id", ""),
-                    "name": tool_call.get("function", {}).get("name", ""),
-                    "input": tool_call.get("function", {}).get("arguments", "{}"),
-                })
+                content_blocks.append(
+                    {
+                        "type": "tool_use",
+                        "id": tool_call.get("id", ""),
+                        "name": tool_call.get("function", {}).get("name", ""),
+                        "input": tool_call.get("function", {}).get("arguments", "{}"),
+                    }
+                )
 
         # Handle extended thinking metadata (for Anthropic compatibility)
         thinking_content = None
@@ -2915,7 +2995,9 @@ async def handle_anthropic_non_streaming(
         if reasoning_text:
             thinking_content = {
                 "thinking": reasoning_text,
-                "tokens": response_data.get("reasoning_tokens", len(reasoning_text) // 4),  # Rough estimate
+                "tokens": response_data.get(
+                    "reasoning_tokens", len(reasoning_text) // 4
+                ),  # Rough estimate
             }
 
         # Build Anthropic response
@@ -2936,19 +3018,27 @@ async def handle_anthropic_non_streaming(
                 "router": {
                     "model": route_decision.model if route_decision else model,
                     "backend": route_decision.backend if route_decision else "unknown",
-                    "reason": route_decision.reason if route_decision else "Anthropic API",
+                    "reason": route_decision.reason
+                    if route_decision
+                    else "Anthropic API",
                     "specialization": (
                         route_decision.specialization.value
                         if route_decision and route_decision.specialization
                         else None
                     ),
-                    "estimated_tokens": route_decision.estimated_tokens if route_decision else 0,
-                    "expected_latency_ms": route_decision.expected_latency_ms if route_decision else 0,
+                    "estimated_tokens": route_decision.estimated_tokens
+                    if route_decision
+                    else 0,
+                    "expected_latency_ms": route_decision.expected_latency_ms
+                    if route_decision
+                    else 0,
                 },
                 "thinking": {
                     "intensity": thinking_intensity,
                     "budget": context.get("thinking_budget"),
-                } if thinking_intensity else None,
+                }
+                if thinking_intensity
+                else None,
             },
         }
 

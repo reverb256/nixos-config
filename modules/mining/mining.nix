@@ -4,13 +4,15 @@
   pkgs,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.services.mining;
   hostname = config.networking.hostName;
   defaultWallet = "krxXVNVMM7.${hostname}";
 
   # Helper to build lolMiner command arguments
-  mkLolminerArgs = deviceCfg:
+  mkLolminerArgs =
+    deviceCfg:
     concatStringsSep " " [
       "--algo ${cfg.lolminer.algorithm}"
       "--pool ${cfg.lolminer.pool}"
@@ -43,15 +45,10 @@ with lib; let
   # NVIDIA GPU power limit script
   nvidiaGpuPowerLimitScript = pkgs.writeShellScript "nvidia-gpu-power-limit" (''
     PATH=/run/current-system/sw/bin:$PATH
-    '' + lib.optionalString (cfg.lolminer.nvidia.powerLimit != null) ''
-      echo "Setting NVIDIA GPU power limit to ${toString cfg.lolminer.nvidia.powerLimit}W..."
-      nvidia-smi -pm 1 || true
-      nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
-      echo "NVIDIA GPU power limit set successfully"
-    '' + lib.optionalString (cfg.lolminer.nvidia.powerLimit == null) ''
-      echo "NVIDIA GPU power limit not configured - letting gpu-workload-monitor manage dynamically"
-      nvidia-smi -pm 1 || true  # Enable persistence mode but don't set limit
-    '' + ''
+    echo "Setting NVIDIA GPU power limit to ${toString cfg.lolminer.nvidia.powerLimit}W..."
+    nvidia-smi -pm 1
+    nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit}
+    echo "NVIDIA GPU power limit set successfully"
   '');
 
   # XMRig wrapper script - reads API token and passes to xmrig
@@ -69,7 +66,8 @@ with lib; let
       exec ${pkgs.xmrig}/bin/xmrig -c /etc/xmrig/config.json --randomx-1gb-pages --threads=${toString cfg.xmrig.threads}
     fi
   '';
-in {
+in
+{
   options.services.mining = {
     enable = mkEnableOption "Robust Mining Services";
     user = mkOption {
@@ -105,7 +103,7 @@ in {
         };
         powerLimit = mkOption {
           type = types.nullOr types.int;
-          default = null;  # Let gpu-workload-monitor manage power dynamically
+          default = null; # Let gpu-workload-monitor manage power dynamically
           description = "GPU power limit in watts. Null = let gpu-workload-monitor manage dynamically";
         };
         apiPort = mkOption {
@@ -127,7 +125,7 @@ in {
         };
         powerLimit = mkOption {
           type = types.nullOr types.int;
-          default = null;  # Let gpu-workload-monitor manage power dynamically
+          default = null; # Let gpu-workload-monitor manage power dynamically
           description = "GPU power limit in watts. Null = let gpu-workload-monitor manage dynamically";
         };
         apiPort = mkOption {
@@ -173,17 +171,28 @@ in {
     users.users.${cfg.user} = {
       isSystemUser = true;
       group = "mining";
-      extraGroups = ["video" "render"]; # For AMD GPU access via /dev/dri/
+      extraGroups = [
+        "video"
+        "render"
+      ]; # For AMD GPU access via /dev/dri/
     };
-    users.groups.mining = {};
+    users.groups.mining = { };
 
+    # 2MB huge pages for general use and GPU miners
     boot.kernel.sysctl = {
       "vm.nr_hugepages" = 1280;
     };
 
     # Load MSR module for CPU mining performance
     # Required by xmrig for CPU MSR access (RandomX optimization)
-    boot.kernelModules = ["msr"];
+    boot.kernelModules = [ "msr" ];
+
+    # 1GB huge pages for RandomX mining (must be set at boot)
+    # RandomX dataset is ~2GB, so we reserve 3 1GB pages for overhead
+    boot.kernelParams = mkIf cfg.xmrig.enable [
+      "hugepagesz=1G"
+      "hugepages=3"
+    ];
 
     # Set permissions on MSR devices for mining user
     # Allows xmrig to access CPU MSRs for performance optimization
@@ -191,7 +200,7 @@ in {
       KERNEL=="msr", MODE="0660", GROUP="mining"
     '';
 
-    environment.systemPackages = [pkgs.lolminer];
+    environment.systemPackages = [ pkgs.lolminer ];
 
     systemd.tmpfiles.rules = [
       "d /var/lib/mining 0750 ${cfg.user} mining - -"
@@ -250,9 +259,9 @@ in {
         # NVIDIA GPU power limit service (runs before lolminer)
         nvidia-gpu-power-limit = mkIf cfg.lolminer.nvidia.enable {
           description = "Set NVIDIA GPU Power Limit for Mining";
-          wantedBy = ["multi-user.target"];
-          before = ["lolminer-nvidia.service"];
-          requiredBy = ["lolminer-nvidia.service"];
+          wantedBy = [ "multi-user.target" ];
+          before = [ "lolminer-nvidia.service" ];
+          requiredBy = [ "lolminer-nvidia.service" ];
           serviceConfig = {
             Type = "oneshot";
             ExecStart = nvidiaGpuPowerLimitScript;
@@ -262,74 +271,76 @@ in {
 
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
-          wantedBy = mkIf cfg.lolminer.nvidia.autostart ["multi-user.target"];
+          wantedBy = mkIf cfg.lolminer.nvidia.autostart [ "multi-user.target" ];
           after = [
             "network.target"
             "nvidia-gpu-power-limit.service"
           ];
-          requires = ["nvidia-gpu-power-limit.service"];
-          serviceConfig =
-            {
-              User = cfg.user;
-              Group = "mining";
-              Slice = "mining.slice";
-              ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.nvidia}";
-              Restart = "always";
-              RestartSec = "30s";
-              Environment = [
-                "GPU_MAX_HEAP_SIZE=100"
-                "GPU_MAX_ALLOC_PERCENT=100"
-                "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
-              ];
-              LimitMEMLOCK = "4G";
-            }
-            // lolminerHardening;
+          requires = [ "nvidia-gpu-power-limit.service" ];
+          serviceConfig = {
+            User = cfg.user;
+            Group = "mining";
+            Slice = "mining.slice";
+            ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.nvidia}";
+            Restart = "always";
+            RestartSec = "30s";
+            Environment = [
+              "GPU_MAX_HEAP_SIZE=100"
+              "GPU_MAX_ALLOC_PERCENT=100"
+              "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
+            ];
+            LimitMEMLOCK = "4G";
+          }
+          // lolminerHardening;
         };
 
         lolminer-amd = mkIf cfg.lolminer.amd.enable {
           description = "lolMiner AMD Mining Service";
-          wantedBy = mkIf cfg.lolminer.amd.autostart ["multi-user.target"];
+          wantedBy = mkIf cfg.lolminer.amd.autostart [ "multi-user.target" ];
           after = [
             "network.target"
           ];
-          serviceConfig =
-            {
-              User = cfg.user;
-              Group = "mining";
-              Slice = "mining.slice";
-              ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.amd}";
-              Restart = "always";
-              RestartSec = "30s";
-              Environment = [
-                "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
-              ];
-              LimitMEMLOCK = "8G";
-            }
-            // lolminerHardening;
+          serviceConfig = {
+            User = cfg.user;
+            Group = "mining";
+            Slice = "mining.slice";
+            ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.amd}";
+            Restart = "always";
+            RestartSec = "30s";
+            Environment = [
+              "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
+            ];
+            LimitMEMLOCK = "8G";
+          }
+          // lolminerHardening;
         };
 
         xmrig = mkIf cfg.xmrig.enable {
           description = "XMRig CPU Mining Service";
-          wantedBy = mkIf cfg.xmrig.autostart ["multi-user.target"];
-          after = ["network.target"];
+          wantedBy = mkIf cfg.xmrig.autostart [ "multi-user.target" ];
+          after = [ "network.target" ];
           serviceConfig = {
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
             # Prepare runtime config with API token injected
-            ExecStartPre = pkgs.writeShellScript "xmrig-config-prep-v4" ''
+            ExecStartPre = pkgs.writeShellScript "xmrig-config-prep-v5" ''
               TOKEN_FILE="${cfg.xmrig.httpTokenFile}"
               CONFIG_DIR=/run/xmrig
 
+              mkdir -p "$CONFIG_DIR"
+
               if [ -r "$TOKEN_FILE" ]; then
                 TOKEN=$(cat "$TOKEN_FILE")
-                mkdir -p "$CONFIG_DIR"
                 # Inject token into config - double quotes allow shell expansion
                 ${pkgs.jq}/bin/jq ".http.\"access-token\" = \"$TOKEN\"" /etc/xmrig/config.json > "$CONFIG_DIR/config.json"
               else
                 # Fallback without token
                 cp /etc/xmrig/config.json "$CONFIG_DIR/config.json"
               fi
+
+              # Ensure config is writable so ExecStartPre can update it on next restart
+              chmod 640 "$CONFIG_DIR/config.json"
             '';
             # Use wrapper script that uses the runtime config
             ExecStart = xmrigWrapperScript;
