@@ -544,7 +544,7 @@ in {
             }
 
             get_workload_type() {
-                # Priority: Gaming > AI > Builds > Mining > Idle
+                # Priority: Gaming > AI > VRAM Pressure > Builds > Mining > Idle
 
                 # Check for gaming
                 for proc in "''${GAMING_PROCESSES[@]}"; do
@@ -561,6 +561,12 @@ in {
                         return
                     fi
                 done
+
+                # Check for VRAM pressure (prevent miner from starting)
+                if check_vram_pressure; then
+                    echo "vram-pressure"
+                    return
+                fi
 
                 # Check for build processes
                 for proc in "''${BUILD_PROCESSES[@]}"; do
@@ -671,6 +677,78 @@ in {
                 systemctl start xmrig
             }
 
+            # VRAM pressure detection to prevent desktop freezes
+            get_vram_threshold() {
+                local host=$(get_hostname)
+                case "$host" in
+                    zephyr)  echo "40" ;;  # RTX 3090 (24GB) - leave headroom
+                    nexus)   echo "35" ;;  # Storage server, conservative
+                    sentry)  echo "40" ;;  # Sentry node
+                    forge)   echo "50" ;;  # Dedicated mining rig
+                    *)       echo "40" ;;  # Conservative default
+                esac
+            }
+
+            get_vram_usage_percent() {
+                local gpu_id="$1"
+                local vram_info=$(nvidia-smi -i "$gpu_id" --query-gpu=memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null)
+                if [ -z "$vram_info" ]; then
+                    echo "0"
+                    return 1
+                fi
+
+                local used=$(echo "$vram_info" | cut -d',' -f1 | tr -d ' ')
+                local total=$(echo "$vram_info" | cut -d',' -f2 | tr -d ' ')
+
+                if [ "$total" -eq 0 ]; then
+                    echo "0"
+                    return 1
+                fi
+
+                local usage_percent=$((used * 100 / total))
+                echo "$usage_percent"
+            }
+
+            check_vram_pressure() {
+                local threshold
+                threshold=$(get_vram_threshold)
+                local gpus=$(get_gpu_list)
+
+                log "Checking VRAM pressure (threshold: ''${threshold}%)..."
+
+                for gpu_id in $gpus; do
+                    local usage=$(get_vram_usage_percent "$gpu_id")
+                    local gpu_name=$(get_gpu_name "$gpu_id")
+
+                    log "  GPU $gpu_id ($gpu_name): ''${usage}% used"
+
+                    if [ "$usage" -gt "$threshold" ]; then
+                        log "  ⚠️  VRAM PRESSURE DETECTED on GPU $gpu_id: ''${usage}% > ''${threshold}%"
+                        log "  Preventing miner start to avoid desktop freeze"
+                        return 0  # Pressure detected (true)
+                    fi
+                done
+
+                log "  ✓ VRAM usage acceptable across all GPUs"
+                return 1  # No pressure (false)
+            }
+
+            get_max_vram_gpu() {
+                local gpus=$(get_gpu_list)
+                local max_usage=0
+                local max_gpu=0
+
+                for gpu_id in $gpus; do
+                    local usage=$(get_vram_usage_percent "$gpu_id")
+                    if [ "$usage" -gt "$max_usage" ]; then
+                        max_usage=$usage
+                        max_gpu=$gpu_id
+                    fi
+                done
+
+                echo "$max_gpu:$max_usage"
+            }
+
             apply_gaming_profile() {
                 echo "=== Applying GPU GAMING profile ==="
 
@@ -715,15 +793,15 @@ in {
 
                 echo "GAMING profile applied: Mode: Maximum performance"
 
-                # Pause GPU mining completely (gaming needs 100% GPU)
+                # STOP GPU mining completely to free VRAM (prevents desktop freeze)
                 if systemctl is-active --quiet lolminer-nvidia; then
-                    log "Limiting lolminer-nvidia to 0% CPU for gaming"
-                    systemctl set-property lolminer-nvidia.service CPUQuota="0%" --runtime
+                    log "Stopping lolminer-nvidia to free VRAM for gaming"
+                    systemctl stop lolminer-nvidia
                 fi
 
                 if systemctl is-active --quiet lolminer-amd; then
-                    log "Limiting lolminer-amd to 0% CPU for gaming"
-                    systemctl set-property lolminer-amd.service CPUQuota="0%" --runtime
+                    log "Stopping lolminer-amd to free VRAM for gaming"
+                    systemctl stop lolminer-amd
                 fi
 
                 # Reduce CPU mining to 25% (free CPU for game logic)
@@ -777,15 +855,15 @@ in {
 
                 echo "AI INFERENCE profile applied: Mode: Balanced performance with thermal safety"
 
-                # Pause GPU mining completely (AI needs 100% GPU)
+                # STOP GPU mining completely to free VRAM (prevents eviction freeze)
                 if systemctl is-active --quiet lolminer-nvidia; then
-                    log "Limiting lolminer-nvidia to 0% CPU for AI inference"
-                    systemctl set-property lolminer-nvidia.service CPUQuota="0%" --runtime
+                    log "Stopping lolminer-nvidia to free VRAM for AI inference"
+                    systemctl stop lolminer-nvidia
                 fi
 
                 if systemctl is-active --quiet lolminer-amd; then
-                    log "Limiting lolminer-amd to 0% CPU for AI inference"
-                    systemctl set-property lolminer-amd.service CPUQuota="0%" --runtime
+                    log "Stopping lolminer-amd to free VRAM for AI inference"
+                    systemctl stop lolminer-amd
                 fi
 
                 # Keep CPU mining at 100% (GPU is bottleneck, CPU just coordinates)
@@ -895,9 +973,23 @@ in {
                     reset_xmrig_threads "$idle_threads"
                 fi
 
-                # Start GPU mining if not running
+                # Start GPU mining if not running AND no VRAM pressure
                 if ! systemctl is-active --quiet lolminer-nvidia; then
-                    log "Starting lolminer-nvidia (no other workloads detected)"
+                    # Check VRAM pressure before starting miner
+                    if check_vram_pressure; then
+                        local max_gpu_info=$(get_max_vram_gpu)
+                        local pressure_gpu=$(echo "$max_gpu_info" | cut -d':' -f1)
+                        local pressure_usage=$(echo "$max_gpu_info" | cut -d':' -f2)
+
+                        log "🛑 BLOCKING miner start due to VRAM pressure"
+                        log "   GPU ''${pressure_gpu} at ''${pressure_usage}% usage - likely AI models loaded"
+                        log "   Miner will auto-start when VRAM is freed"
+
+                        # Don't start mining - VRAM is too full
+                        return 0
+                    fi
+
+                    log "Starting lolminer-nvidia (no other workloads detected, VRAM OK)"
                     systemctl start lolminer-nvidia
                 fi
             }
@@ -944,6 +1036,62 @@ in {
                 echo "RESET to defaults applied: Mode: Adaptive (auto)"
             }
 
+            apply_vram_pressure_profile() {
+                echo "=== Applying GPU VRAM PRESSURE profile ==="
+
+                local gpus=$(get_gpu_list)
+                local gpu_count=$(echo "$gpus" | wc -l)
+
+                if [ "$gpu_count" -eq 0 ]; then
+                    echo "WARNING: No NVIDIA GPUs detected"
+                    return 0
+                fi
+
+                echo "Detected VRAM pressure - preventing miner start to avoid freeze"
+
+                # Get detailed VRAM info
+                for gpu_id in $gpus; do
+                    local gpu_name=$(get_gpu_name "$gpu_id")
+                    local usage=$(get_vram_usage_percent "$gpu_id")
+                    local vram_info=$(nvidia-smi -i "$gpu_id" --query-gpu=memory.used,memory.total --format=csv,noheader,nounits)
+
+                    local used=$(echo "$vram_info" | cut -d',' -f1)
+                    local total=$(echo "$vram_info" | cut -d',' -f2)
+
+                    echo "GPU $gpu_id ($gpu_name): ''${used}MB / ''${total}MB (''${usage}%)"
+                done
+
+                # Ensure GPU miners are completely stopped
+                if systemctl is-active --quiet lolminer-nvidia; then
+                    log "Stopping lolminer-nvidia due to VRAM pressure"
+                    systemctl stop lolminer-nvidia
+                fi
+
+                if systemctl is-active --quiet lolminer-amd; then
+                    log "Stopping lolminer-amd due to VRAM pressure"
+                    systemctl stop lolminer-amd
+                fi
+
+                # Set GPUs to balanced mode (not max, not idle)
+                for gpu_id in $gpus; do
+                    local gpu_name=$(get_gpu_name "$gpu_id")
+
+                    case "$gpu_name" in
+                        *"3060"*)
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 150
+                            ;;
+                        *"3090"*)
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 250
+                            ;;
+                        *)
+                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
+                            ;;
+                    esac
+                done
+
+                echo "VRAM PRESSURE profile applied: Miners stopped, waiting for VRAM to free"
+            }
+
             apply_profile() {
                 local profile="$1"
                 log "Applying profile: $profile"
@@ -954,6 +1102,9 @@ in {
                         ;;
                     ai)
                         apply_ai_profile
+                        ;;
+                    vram-pressure)
+                        apply_vram_pressure_profile
                         ;;
                     builds)
                         apply_builds_profile
