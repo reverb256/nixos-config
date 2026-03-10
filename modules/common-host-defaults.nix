@@ -12,6 +12,8 @@
   # SERVICES CONFIGURATION
   # ============================================================================
   services = {
+    # SSH CERTIFICATE AUTHORITY - Enable cluster-wide SSO
+    ssh-ca.enable = lib.mkDefault true;
     # LOGIND CONFIGURATION & POWER MANAGEMENT - DISABLE ALL SUSPEND/SLEEP/AUTO-SHUTDOWN
     # Prevent user processes from being killed on logout
     # These settings prevent the system from automatically suspending, sleeping,
