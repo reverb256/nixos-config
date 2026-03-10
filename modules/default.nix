@@ -27,6 +27,9 @@
     ./system/security-hardening.nix
     ./system/btrfs-compression.nix
 
+    # Security
+    ./security/pam-vaultwarden.nix
+
     # Desktop environment
     ./desktop/desktop.nix
     ./desktop/wayland-common.nix
