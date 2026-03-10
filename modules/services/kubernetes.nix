@@ -42,21 +42,13 @@
         dockerCompat = lib.mkForce false;
         dockerSocket.enable = lib.mkForce false;
       };
-      cri-o = {
+      # Switched to containerd for better NVIDIA GPU support
+      # containerd is the Kubernetes default runtime since v1.24
+      containerd = {
         enable = true;
-        settings = {
-          crio.network = {
-            # Directory where CNI configuration files are located
-            network_dir = "/var/lib/cni/net.d";
-            # Directories where CNI plugin binaries are located
-            plugin_dirs = ["/opt/cni/bin"];
-          };
-          crio.image = {
-            # Allow short image names (e.g., "busybox" instead of "docker.io/library/busybox:latest")
-            # This is needed for compatibility with kubectl run and other standard Kubernetes workflows
-            short_name_mode = "disabled";
-          };
-        };
+      };
+      cri-o = {
+        enable = lib.mkForce false;  # Disabled in favor of containerd
       };
       docker = {
         enable = true;
@@ -93,7 +85,7 @@
         hostname = config.networking.hostName;
         extraConfig = {
           failSwapOn = false;
-          containerRuntimeEndpoint = "unix:///run/crio/crio.sock";
+          containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
         };
       };
       proxy.enable = true;
@@ -123,60 +115,18 @@
         "d /var/lib/cni/net.d 0755 root root -"
         # Create symlink from read-only NixOS store to writable directory
         "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
-        "d /var/lib/cdi 0755 root root -"
+        # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
         "d /var/lib/flannel 0755 root root -"
         "L+ /run/flannel - - - - /var/lib/flannel"
       ];
 
       services = {
-        # NVIDIA CDI spec service (for worker nodes with NVIDIA GPUs)
-        nvidia-cdi = lib.mkIf (hasNvidiaGpu && !isMaster) {
-      description = "NVIDIA GPU CDI Specification";
-      wantedBy = ["multi-user.target"];
-      before = ["crio.service"];
-      serviceConfig.Type = "oneshot";
-      script = ''
-            mkdir -p /var/lib/cdi
-            cat > /var/lib/cdi/nvidia-gpu.yaml <<'EOF'
-        cdiVersion: "0.3.0"
-        kind: nvidia.com/gpu
-        devices:
-        - containerEdits:
-          - env:
-            - name: NVIDIA_VISIBLE_DEVICES
-              value: all
-            - name: NVIDIA_DRIVER_CAPABILITIES
-              value: compute,utility
-          - deviceNodes:
-            - hostPath: /dev/nvidia0
-              permissions: rwm
-            - hostPath: /dev/nvidia1
-              permissions: rwm
-            - hostPath: /dev/nvidiactl
-              permissions: rwm
-            - hostPath: /dev/nvidia-modeset
-              permissions: rwm
-            - hostPath: /dev/nvidia-uvm
-              permissions: rwm
-            - hostPath: /dev/nvidia-uvm-tools
-              permissions: rwm
-            - hostPath: /dev/nvidia-caps
-              permissions: rwm
-          - mounts:
-            - hostPath: /run/opengl-driver/lib
-              containerPath: /run/opengl-driver/lib
-            - hostPath: /run/opengl-driver/lib64
-              containerPath: /run/opengl-driver/lib64
-            - hostPath: /run/opengl-driver
-              containerPath: /run/opengl-driver
-          name: all
-        EOF
-      '';
-        };
+        # containerd handles NVIDIA GPUs via nvidia-container-runtime
+        # No manual CDI spec service needed
       };
     };
 
-    # Store the Flannel CNI config and configure CRI-O's CNI
+    # Store the Flannel CNI config
     environment.etc = {
       # Flannel CNI config
       "cni/flannel.conflist".text = builtins.toJSON {
@@ -199,19 +149,12 @@
         ];
       };
 
-      # Disable CRI-O's default CNI configs
-      "cni/net.d/10-crio-bridge.conflist".enable = lib.mkForce false;
-      "cni/net.d/99-loopback.conflist".enable = lib.mkForce false;
+      # Disable CRI-O's default CNI configs (no longer needed with containerd)
+      # "cni/net.d/10-crio-bridge.conflist".enable = lib.mkForce false;
+      # "cni/net.d/99-loopback.conflist".enable = lib.mkForce false;
 
-      # NVIDIA GPU device configuration for CRI-O
-      "crio/crio.conf.d/10-gpu-devices.conf".text = ''
-        [crio.runtime]
-        # Pass through NVIDIA GPU devices to all containers
-        device_ownership_from_security_context = false
-        device_ownership = false
-        # Use CDI for device passthrough
-        cdi_spec_dirs = ["/var/lib/cdi"]
-      '';
+      # NVIDIA GPU device configuration (containerd uses nvidia-container-runtime directly)
+      # No CRI-O-specific configuration needed
     };
 
     # ============================================================================
@@ -261,29 +204,28 @@
     # 3. Enabling automatic restart on failure with exponential backoff
     # ============================================================================
     systemd = {
-      # CRI-O service overrides - ensure it starts before kubelet
-      services.crio = {
+      # containerd service overrides - ensure it starts before kubelet
+      services.containerd = {
         after = lib.mkForce ["network.target"];
         before = ["kubelet.service"];
-        restartTriggers = ["/etc/crio/crio.conf.d/99-nvidia.toml"];
       };
 
-      # Kubelet service overrides - wait for CRI-O readiness
+      # Kubelet service overrides - wait for containerd readiness
       services.kubelet = {
-        after = lib.mkForce ["crio.service" "network.target"];
-        requires = lib.mkForce ["crio.service"];
-        serviceConfig.ExecStartPre = pkgs.writeShellScript "wait-for-crio" ''
-          echo "Waiting for CRI-O to be ready..."
+        after = lib.mkForce ["containerd.service" "network.target"];
+        requires = lib.mkForce ["containerd.service"];
+        serviceConfig.ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
+          echo "Waiting for containerd to be ready..."
           timeout=60
           while [ $timeout -gt 0 ]; do
-            if ${pkgs.cri-tools}/bin/crictl info >/dev/null 2>&1; then
-              echo "CRI-O is ready"
+            if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
+              echo "containerd is ready"
               exit 0
             fi
             sleep 1
             ((timeout--))
           done
-          echo "ERROR: CRI-O not ready after 60 seconds"
+          echo "ERROR: containerd not ready after 60 seconds"
           exit 1
         '';
       };

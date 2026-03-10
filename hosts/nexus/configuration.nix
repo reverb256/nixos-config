@@ -190,6 +190,12 @@
   };
 
   services = {
+    # Local DNS resolver for cluster
+    unbound-cluster = {
+      enable = true;
+      listenAddress = "10.1.1.120"; # Nexus IP
+    };
+
     # Kubernetes worker node
     kubernetes-module = {
       enable = true;

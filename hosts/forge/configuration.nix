@@ -46,6 +46,8 @@
         connection = {
           id = "Wired connection 1";
           type = "ethernet";
+          interface-name = "lan0";  # Consistent interface naming across cluster
+          autoconnect = true;
         };
         ipv4 = {
           method = "manual";
@@ -53,6 +55,7 @@
           gateway = "10.1.1.1"; # Default gateway for stratum connectivity
           dns = "127.0.0.1,::1";
         };
+        ipv6.method = "auto";
       };
     };
     dhcpcd.enable = false;
