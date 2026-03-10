@@ -6,6 +6,16 @@
   ...
 }: let
   # ========================================================================
+  # CPU TUNING - Per-node microarchitecture optimization
+  # ========================================================================
+  tunedNixpkgs = system: microarch: import inputs.nixpkgs {
+    localSystem = {
+      inherit system;
+      gcc.arch = microarch;
+    };
+    config.allowUnfree = true;
+  };
+  # ========================================================================
   # COMMON MODULES - Shared across all hosts (matches flake.nix)
   # ========================================================================
   commonModules = [
@@ -28,6 +38,7 @@
   mkHost = {
     hostName,
     targetHost,
+    tags ? [],
   }: {...}: {
     imports =
       commonModules
@@ -38,7 +49,8 @@
     deployment = {
       inherit targetHost;
       targetUser = "j_kro";
-      allowLocalDeployment = true;
+      inherit tags;
+      allowLocalDeployment = if targetHost == null then true else false;
     };
   };
 
@@ -59,6 +71,18 @@ in {
       system = "x86_64-linux";
       config.allowUnfree = true;
     };
+
+    # Per-node CPU microarchitecture tuning
+    nodeNixpkgs = {
+      zephyr = tunedNixpkgs "x86_64-linux" "znver3";  # Ryzen 9 5950X (Zen 3)
+      nexus = tunedNixpkgs "x86_64-linux" "znver2";    # Ryzen 9 3900X (Zen 2)
+      forge = tunedNixpkgs "x86_64-linux" "skylake";    # i5-9500 (Coffee Lake)
+      sentry = tunedNixpkgs "x86_64-linux" "znver1";   # Ryzen 7 1700 (Zen 1)
+    };
+
+    # Distributed builds
+    machinesFile = ./machines.nix;
+
     specialArgs = {inherit inputs self;};
   };
 
@@ -67,21 +91,25 @@ in {
   # ========================================================================
   zephyr = mkHost {
     hostName = "zephyr";
-    inherit (hostDeployment.zephyr) targetHost;
+    targetHost = null;  # No SSH (local deployment)
+    tags = ["control-plane" "k8s-master" "k8s-node" "local"];
   };
 
   nexus = mkHost {
     hostName = "nexus";
-    inherit (hostDeployment.nexus) targetHost;
+    targetHost = "10.1.1.120";
+    tags = ["storage" "k8s-worker" "k8s-storage" "nvidia-gpu" "remote"];
   };
 
   forge = mkHost {
     hostName = "forge";
-    inherit (hostDeployment.forge) targetHost;
+    targetHost = "10.1.1.130";
+    tags = ["gpu" "compute" "k8s-worker" "k8s-gpu-mixed" "remote"];
   };
 
   sentry = mkHost {
     hostName = "sentry";
-    inherit (hostDeployment.sentry) targetHost;
+    targetHost = "10.1.1.140";
+    tags = ["monitoring" "k8s-worker" "k8s-gpu-amd" "remote"];
   };
 }
