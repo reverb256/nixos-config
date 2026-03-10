@@ -14,12 +14,14 @@ in {
     interval = lib.mkOption {
       type = lib.types.str;
       default = "daily";
+      example = "hourly";
       description = "How often to check for updates (systemd calendar format)";
     };
 
     autoRebuild = lib.mkOption {
       type = lib.types.bool;
       default = false;
+      example = true;
       description = "Whether to automatically rebuild after updating inputs";
     };
   };
@@ -35,6 +37,13 @@ in {
             Type = "oneshot";
             User = "root";
             WorkingDirectory = "/etc/nixos";
+            # Security hardening
+            NoNewPrivileges = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            PrivateTmp = true;
+            RestrictRealtime = true;
+            ReadWritePaths = ["/etc/nixos" "/var/lib/nixos"];
             ExecStart = pkgs.writeShellScript "update-claude-native" ''
               #!/bin/sh
               set -euo pipefail
@@ -90,6 +99,12 @@ in {
             description = "Update Claude Code in user profile";
             serviceConfig = {
               Type = "oneshot";
+              # Security hardening
+              NoNewPrivileges = true;
+              ProtectSystem = "strict";
+              ProtectHome = true;
+              PrivateTmp = true;
+              RestrictRealtime = true;
               ExecStart = pkgs.writeShellScript "update-claude-user-profile" ''
                 #!/bin/sh
                 set -euo pipefail

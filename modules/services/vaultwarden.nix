@@ -34,7 +34,7 @@ in {
     # ============================================================================
     dataDir = mkOption {
       type = types.path;
-      default = "/var/lib/containers/vaultwarden/data";
+      default = "/var/lib/vaultwarden";
       description = "Vaultwarden data directory (SQLite database, attachments, keys)";
     };
 
@@ -43,18 +43,8 @@ in {
     # ============================================================================
     port = mkOption {
       type = types.int;
-      default = 8080;
-      description = "Host port for Vaultwarden (container always listens on 80)";
-    };
-
-    # ============================================================================
-    # ADMIN ACCESS
-    # ============================================================================
-    adminTokenFile = mkOption {
-      type = types.nullOr types.path;
-      default = null;
-      example = "/run/agenix/vaultwarden-admin-token";
-      description = "Path to file containing admin token (use Agenix)";
+      default = 8222;  # Changed from 8080 to avoid conflict with LM Studio
+      description = "Host port for Vaultwarden";
     };
   };
 
@@ -78,51 +68,54 @@ in {
     };
 
     # ============================================================================
-    # PODMAN QUADLET CONFIGURATION
+    # SYSTEMD SERVICE FOR VAULTWARDEN
     # ============================================================================
-    environment.etc."containers/systemd/vaultwarden.container".text = ''
-      [Unit]
-      Description=Vaultwarden Password Manager
-      After=network-online.target caddy.service
-      Wants=caddy.service
+    systemd.services.vaultwarden = {
+      description = "Vaultwarden Password Manager";
+      after = ["network-online.target" "podman.service"];
+      wants = ["podman.service"];
+      wantedBy = ["multi-user.target"];
 
-      [Container]
-      Image=docker.io/vaultwarden/server:latest
-      ContainerName=vaultwarden
-      PublishPort=${toString cfg.port}:80
-      Volume=${cfg.dataDir}:/data:Z
-      Environment=WEBSOCKET_ENABLED=true
-      Environment=WEBSOCKET_ADDRESS=0.0.0.0
-      Environment=LOG_LEVEL=info
-      ${lib.optionalString (cfg.adminTokenFile != null) "SetCredential=admin-token:%d/ADMIN_TOKEN_FILE"}
-      AutoUpdate=registry
-      Label=io.containers.autoupdate=registry
+      serviceConfig = {
+        # Podman container run command
+        ExecStart = ''
+          ${pkgs.podman}/bin/podman run --name vaultwarden \
+            -p ${toString cfg.port}:80 \
+            -v ${cfg.dataDir}:/data:Z \
+            -e WEBSOCKET_ENABLED=true \
+            -e WEBSOCKET_ADDRESS=0.0.0.0 \
+            -e LOG_LEVEL=info \
+            --replace \
+            docker.io/vaultwarden/server:latest
+        '';
 
-      [Service]
-      Restart=always
-      RestartSec=10
-      MemoryMax=512M
-      CPUQuota=50%
-      NoNewPrivileges=true
-      PrivateTmp=true
-      ProtectSystem=strict
-      ProtectHome=true
-      ReadOnlyPaths=/usr
-      ReadWritePaths=${cfg.dataDir}
+        ExecStop = "${pkgs.podman}/bin/podman stop --ignore vaultwarden";
+        ExecStopPost = "${pkgs.podman}/bin/podman rm -f vaultwarden || true";
 
-      [Install]
-      WantedBy=multi-user.target default.target
-    '';
+        # Auto-restart
+        Restart = "always";
+        RestartSec = "10s";
 
-    # ============================================================================
-    # SYSTEMD CREDENTIALS FOR ADMIN TOKEN
-    # ============================================================================
-    systemd.services.vaultwarden = mkIf (cfg.adminTokenFile != null) {
-      serviceConfig.LoadCredential = [
-        "ADMIN_TOKEN_FILE:${cfg.adminTokenFile}"
-      ];
-      environment = {
-        ADMIN_TOKEN = "\${CREDENTIALS_DIRECTORY}/ADMIN_TOKEN_FILE";
+        # Resource limits
+        MemoryMax = "512M";
+        CPUQuota = "50%";
+
+        # Security hardening
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectHome = true;
+        ReadOnlyPaths = "/usr";
+
+        # Read-write paths for data and Podman
+        ReadWritePaths = [
+          cfg.dataDir
+          "/var/lib/containers/storage"
+          "/run/podman"
+          "/var/lib/containers"
+        ];
+
+        # Less strict system protection for Podman
+        ProtectSystem = lib.mkForce "full";
       };
     };
 

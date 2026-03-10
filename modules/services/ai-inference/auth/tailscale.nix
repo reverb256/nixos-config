@@ -24,8 +24,9 @@ in {
       ai-inference.gateway.host = mkDefault "100.64.0.1"; # Example, user should override
 
       # Nginx reverse proxy for Tailscale authentication (optional)
+      # DISABLED: Replaced by Caddy (see hosts/zephyr/configuration.nix)
       nginx = mkIf (builtins.length authCfg.tailscale.aclTags > 0) {
-        enable = true;
+        enable = false;
         virtualHosts."ai-inference-tailscale" = {
           listen = [
             {

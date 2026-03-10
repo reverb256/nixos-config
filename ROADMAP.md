@@ -666,6 +666,7 @@
 - `/etc/nixos/AGENTS.md` - MCP integration details
 - `/etc/nixos/justfile` - Deployment commands
 - `/etc/nixos/modules/network-constants.nix` - Cluster configuration
+- `/etc/nixos/docs/security/SECURITY_AUDIT_REPORT.md` - Comprehensive security audit (OWASP, K8s PSS, CIS)
 
 **External Resources:**
 - NixOS Kubernetes module: https://search.nixos.org/options?query=kubernetes

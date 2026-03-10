@@ -17,6 +17,7 @@ in {
     interval = lib.mkOption {
       type = lib.types.int;
       default = 15;
+      example = 30;
       description = "Scrape interval in seconds";
     };
   };
@@ -30,6 +31,13 @@ in {
       after = ["network-online.target" "prometheus-node-exporter.service"];
       serviceConfig = {
         Type = "oneshot";
+        # Security hardening
+        NoNewPrivileges = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        PrivateTmp = true;
+        RestrictRealtime = true;
+        ReadWritePaths = ["/var/lib/prometheus/node-exporter"];
         ExecStart = pkgs.writeShellScript "nfs-metrics-collector" ''
           #!/bin/sh
           set -euo pipefail

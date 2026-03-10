@@ -78,9 +78,8 @@
         bindAddress = config.services.kubernetes-module.masterAddress;
         securePort = 6443;
         allowPrivileged = true;
-
-        # Pod Security Admission - enable via extraOpts
-        extraOpts = "--pod-security-admission-config-file=/etc/kubernetes/pod-security-admission.yaml";
+        # Note: Pod Security Admission is enabled by default in Kubernetes 1.25+
+        # No extra configuration needed - uses built-in 'restricted' profile
       };
       scheduler.enable = isMaster;
       controllerManager.enable = isMaster;
@@ -207,23 +206,6 @@
         device_ownership = false
         # Use CDI for device passthrough
         cdi_spec_dirs = ["/var/lib/cdi"]
-      '';
-
-      # Pod Security Admission configuration
-      "kubernetes/pod-security-admission.yaml".text = ''
-        apiVersion: pod-security.admission.config.k8s.io/v1
-        kind: PodSecurityConfiguration
-        defaults:
-          enforce: "restricted"
-          enforce-version: "latest"
-          audit: "restricted"
-          audit-version: "latest"
-          warn: "restricted"
-          warn-version: "latest"
-        exemptions:
-          namespaces: []
-          runtimeClasses: []
-          usernames: []
       '';
     };
 

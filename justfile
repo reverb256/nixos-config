@@ -314,10 +314,4 @@ scan-image IMAGE:
 
 # Scan all Kubernetes pod images
 scan-k8s:
-    kubectl get pods -A -o jsonpath='{range .items[*]}{.spec.nodeName}{"\t"}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.containers[*].image}{"\n"}{end}' | \
-    while read node namespace name images; do
-        for img in $images; do
-            echo "Scanning $namespace/$name: $img"
-            trivy image --severity HIGH,CRITICAL "$img" || true
-        done
-    done
+    kubectl get pods -A -o jsonpath='{range .items[*]}{.spec.nodeName}{"\t"}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.containers[*].image}{"\n"}{end}' | while read node namespace name images; do for img in $images; do echo "Scanning $namespace/$name: $img"; trivy image --severity HIGH,CRITICAL "$img" || true; done; done

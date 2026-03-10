@@ -20,12 +20,14 @@ in {
       enable = mkOption {
         type = types.bool;
         default = false;
+        example = true;
         description = "Enable NVIDIA GPU exporter";
       };
 
       port = mkOption {
         type = types.port;
         default = 9400;
+        example = 9401;
         description = "Port for NVIDIA GPU exporter";
       };
     };
@@ -35,12 +37,14 @@ in {
       enable = mkOption {
         type = types.bool;
         default = false;
+        example = true;
         description = "Enable AMD GPU exporter";
       };
 
       port = mkOption {
         type = types.port;
         default = 9104;
+        example = 9105;
         description = "Port for AMD GPU exporter (via node-exporter textfile collector)";
       };
     };

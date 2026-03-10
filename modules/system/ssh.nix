@@ -1,8 +1,12 @@
 # Common SSH Configuration
 # Uses network-constants.nix for host IPs
-{pkgs, ...}: let
+{pkgs, config, lib, ...}: let
   # Hardcoded cluster IPs to prevent infinite recursion
   hosts = {
+    zephyr = {
+      ip = "10.1.1.110";
+      tailscale = "100.81.182.5";
+    };
     nexus = {
       ip = "10.1.1.120";
       tailscale = "100.86.158.18";
@@ -16,13 +20,16 @@
       tailscale = "100.82.210.39";
     };
   };
+
+  # j_kro's SSH public key for round-trip cluster access
+  j_kroPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEvekxGk1YR/eF8llVmNk3C59BtgB+9DNvxLy2WjPEyb j_kro@zephyr";
 in {
   services.openssh = {
     enable = true;
     settings = {
-      # Authentication Settings - Password auth enabled for j_kro
-      PasswordAuthentication = true;
-      KbdInteractiveAuthentication = true;
+      # Authentication Settings - Key-based auth for j_kro (password disabled for security)
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
       PubkeyAuthentication = true;
       PermitRootLogin = "no";
       PermitEmptyPasswords = false;
@@ -73,6 +80,10 @@ in {
   # Declarative known hosts for cluster hosts
   # Uses network constants instead of hardcoded IPs
   programs.ssh.knownHosts = {
+    zephyr = {
+      hostNames = ["zephyr" hosts.zephyr.ip hosts.zephyr.tailscale];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA0/pTXa/H7mvy3+YPJq9U2mFKO4+YrLSOYd8sPU44+q";
+    };
     nexus = {
       hostNames = ["nexus" hosts.nexus.ip hosts.nexus.tailscale];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEldBvJIZYJKHw8pt0/Bx3xhJK4rSrhno0NyHgTtWAaV";
@@ -86,6 +97,9 @@ in {
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK7IznKNG8BJVrPv1dnJBrbFhcmzTKaYSAzVdrXV7Fn";
     };
   };
+
+  # Round-trip SSH: Add j_kro's public key to authorized_keys on all nodes
+  users.users.j_kro.openssh.authorizedKeys.keys = [j_kroPublicKey];
 
   # SSH client configuration for cluster access
   # Uses network constants for IPs
@@ -108,24 +122,31 @@ in {
         StrictHostKeyChecking accept-new
         ConnectTimeout 5
 
+      # Zephyr - Master Workstation (local and remote)
+      Host zephyr ${hosts.zephyr.ip} ${hosts.zephyr.tailscale}
+        HostName ${hosts.zephyr.tailscale}
+        User j_kro
+        IdentityFile ~/.ssh/id_ed25519
+        ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
+
       # Build machines - use j_kro user for distributed builds
       # Support both local IP and Tailscale IP for mosh compatibility
       Host nexus ${hosts.nexus.ip} ${hosts.nexus.tailscale}
         HostName ${hosts.nexus.tailscale}
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_nixbuild
+        IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
       Host forge ${hosts.forge.ip} ${hosts.forge.tailscale}
         HostName ${hosts.forge.tailscale}
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_nixbuild
+        IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
       Host sentry ${hosts.sentry.ip} ${hosts.sentry.tailscale}
         HostName ${hosts.sentry.tailscale}
         User j_kro
-        IdentityFile /home/j_kro/.ssh/id_nixbuild
+        IdentityFile ~/.ssh/id_ed25519
         ControlPath ~/.ssh/sockets/ssh-%r@%h:%p
 
       # GitHub - for CI/CD deploys

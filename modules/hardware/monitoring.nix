@@ -15,6 +15,7 @@ in {
     autoDetect = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Run sensors-detect at boot to auto-detect sensor chips";
     };
 
@@ -22,6 +23,7 @@ in {
     fanControl = lib.mkOption {
       type = lib.types.bool;
       default = false;
+      example = true;
       description = "Enable pwmconfig for manual fan curve control";
     };
 
@@ -33,6 +35,7 @@ in {
         "k10temp" # AMD CPU temperature
         "jc42" # SMBus temperature sensors
       ];
+      example = ["nct6775" "k10temp" "jc42" "coretemp"];
       description = "Kernel modules for hardware monitoring chips";
     };
   };
@@ -59,6 +62,11 @@ in {
             # Only load modules, don't run sensors-detect automatically
             # (it can be slow and detects everything at boot)
             ExecStart = "${pkgs.lm_sensors}/bin/sensors -s";
+            # Security hardening
+            NoNewPrivileges = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            PrivateTmp = true;
           };
         };
 
@@ -72,6 +80,12 @@ in {
             RemainAfterExit = true;
             # Run sensors-detect in auto-mode and load detected modules
             ExecStart = "${pkgs.lm_sensors}/bin/sensors-detect --auto";
+            # Security hardening
+            NoNewPrivileges = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            PrivateTmp = true;
+            RestrictRealtime = true;
           };
         };
 
@@ -86,6 +100,12 @@ in {
             Restart = "always";
             RestartSec = "5s";
             # Custom fancontrol script handles PWM directly
+            # Security hardening
+            NoNewPrivileges = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            PrivateTmp = true;
+            RestrictRealtime = true;
           };
         };
       };

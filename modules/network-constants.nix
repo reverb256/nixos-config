@@ -35,7 +35,7 @@
         nexus = {
           ip = "10.1.1.120";
           tailscale = "100.86.158.18";
-          description = "Build/AIStor Server - 24 cores, 2x RTX 3060 Ti";
+          description = "Build/AIStor Server - 24 cores, 1x RTX 3060 Ti";
           roles = [
             "desktop"
             "gaming"

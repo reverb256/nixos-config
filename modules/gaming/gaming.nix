@@ -496,7 +496,7 @@ in {
 
             LOG_FILE="/var/log/compute-workload-monitor.log"
             MINING_SERVICES=("lolminer-nvidia" "xmrig")
-            AI_PROCESSES=("lmstudio" "ollama "python.*llm" "ai-inference-gateway")
+            AI_PROCESSES=("lmstudio" "ollama" "python.*llm" "ai-inference-gateway")
             GAMING_PROCESSES=("steam" "lutris" "heroic" "wine" "proton")
             BUILD_PROCESSES=("nixos-rebuild" "colmena" "nix-build" "gcc" "clang" "cargo build" "make" "cmake" "ninja")
 
@@ -516,23 +516,22 @@ in {
                 local hostname=$(get_hostname)
 
                 # Skip if we are the coordinator (we already detect nix-build directly)
-                for coord in "${coordinators[@]}"; do
+                for coord in "''${coordinators[@]}"; do
                     if [ "$hostname" = "$coord" ]; then
                         continue
                     fi
 
                     # Check for SSH connections from known coordinators
                     if command -v ss >/dev/null 2>&1; then
-                        if ss -tnp 2>/dev/null | grep -q "ESTAB .*${coord}.*ssh"; then
+                        if ss -tnp 2>/dev/null | grep -q "ESTAB .*''${coord}.*ssh"; then
                             # Check if nix-daemon is using significant CPU (>30%)
                             local nix_pid=$(pgrep -o nix-daemon | head -1)
                             if [ -n "$nix_pid" ]; then
                                 local nix_cpu=$(ps -p "$nix_pid" -o %cpu 2>/dev/null | tail -1)
                                 if [ -n "$nix_cpu" ] && [ "$nix_cpu" != "%CPU" ]; then
-                                    # Remove decimal point for comparison (e.g., "45.2" -> "45")
-                                    local nix_cpu_int=''${nix_cpu%.*}
-                                    if [ "$nix_cpu_int" -gt 30 ] 2>/dev/null; then
-                                        log "Detected incoming build from $coord (nix-daemon CPU: ${nix_cpu}%)"
+                                    # Use bc for floating point comparison (30.0 threshold)
+                                    if [ "$nix_cpu" \> "30.0" ] 2>/dev/null; then
+                                        log "Detected incoming build from ''${coord} (nix-daemon CPU: ''${nix_cpu}%)"
                                         return 0
                                     fi
                                 fi
