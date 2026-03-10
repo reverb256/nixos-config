@@ -16,3 +16,11 @@ secrets/*.plaintext
 # secrets/*.age
 # secrets/secrets.nix
 .serena/
+
+# Node.js/npm artifacts (NixOS config should be declarative, not npm-managed)
+node_modules/
+package-lock.json
+package.json
+.pnpm-debug.log*
+.yarn/*
+.yarn-integrity

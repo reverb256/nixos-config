@@ -40,6 +40,7 @@ in {
     package = mkOption {
       type = types.package;
       default = gatewayEnv;
+      defaultText = literalExpression "pkgs.python3.withPackages (ps: [ps.fastapi ps.uvicorn ...])";
       description = "Python environment with gateway dependencies";
       readOnly = true;
     };

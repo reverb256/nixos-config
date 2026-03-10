@@ -179,13 +179,21 @@ in {
         VLANS = ${builtins.toJSON cfg.vlans}
         HEADLESS = ${lib.boolToString cfg.automation.headless}
 
+        # Read credentials from agenix-decrypted secret
+        SECRET_PATH = "/run/agenix.d/1/switch-admin"
+        try:
+            with open(SECRET_PATH, "r") as f:
+                DEFAULT_PASSWORD = f.read().strip()
+        except:
+            DEFAULT_PASSWORD = "admin"
+
         class SwitchAutomator:
             """Automate TP-Link Easy Smart Switch via Playwright"""
 
-            def __init__(self, ip: str, username: str, password: str, name: str = ""):
+            def __init__(self, ip: str, username: str = "admin", password: str = None, name: str = ""):
                 self.ip = ip
                 self.username = username
-                self.password = password
+                self.password = password or DEFAULT_PASSWORD
                 self.name = name
                 self.base_url = f"http://{ip}"
 
@@ -348,8 +356,9 @@ in {
             """Configure a single switch"""
             ip = switch_config["ip"]
             name = switch_config.get("name", ip)
-            username = switch_config.get("username", "admin")
-            password = switch_config.get("password", "admin")
+            # Use default credentials from agenix secret
+            username = "admin"
+            password = DEFAULT_PASSWORD
 
             print(f"\n{'='*60}")
             print(f"Configuring switch: {name} ({ip})")
@@ -389,8 +398,9 @@ in {
             """Monitor switch status"""
             ip = switch_config["ip"]
             name = switch_config.get("name", ip)
-            username = switch_config.get("username", "admin")
-            password = switch_config.get("password", "admin")
+            # Use default credentials from agenix secret
+            username = "admin"
+            password = DEFAULT_PASSWORD
 
             automator = SwitchAutomator(ip, username, password, name)
 
@@ -456,8 +466,9 @@ in {
                     for key, switch_config in SWITCHES.items():
                         ip = switch_config["ip"]
                         name = switch_config.get("name", ip)
-                        username = switch_config.get("username", "admin")
-                        password = switch_config.get("password", "admin")
+                        # Use default credentials from agenix secret
+                        username = "admin"
+                        password = DEFAULT_PASSWORD
 
                         automator = SwitchAutomator(ip, username, password, name)
                         page = await browser.new_page()

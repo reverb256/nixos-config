@@ -29,6 +29,7 @@ in {
         allowedPaths = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = ["$HOME" "/etc/nixos"];
+          example = ["$HOME" "/etc/nixos" "/var/lib"];
           description = "Paths allowed for filesystem access";
         };
       };
@@ -43,18 +44,21 @@ in {
         browser = lib.mkOption {
           type = lib.types.enum ["chrome" "firefox" "webkit" "msedge"];
           default = "chrome";
+          example = "firefox";
           description = "Browser to use for Playwright automation";
         };
 
         capabilities = lib.mkOption {
           type = lib.types.listOf (lib.types.enum ["vision" "pdf"]);
           default = [];
+          example = ["vision" "pdf"];
           description = "Additional capabilities to enable (vision, pdf)";
         };
 
         headless = lib.mkOption {
           type = lib.types.bool;
           default = false;
+          example = true;
           description = "Run browser in headless mode";
         };
 
@@ -67,6 +71,7 @@ in {
         viewportSize = lib.mkOption {
           type = lib.types.str;
           default = "1280x720";
+          example = "1920x1080";
           description = "Browser viewport size in pixels (e.g., '1920x1080')";
         };
 

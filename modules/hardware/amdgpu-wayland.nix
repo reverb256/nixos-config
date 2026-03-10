@@ -14,18 +14,21 @@ in {
     enable32Bit = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Enable 32-bit graphics support for Steam and games";
     };
 
     opencl = lib.mkOption {
       type = lib.types.bool;
       default = false;
+      example = true;
       description = "Enable OpenCL support via ROCm";
     };
 
     sddmWayland = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Enable SDDM Wayland support";
     };
   };

@@ -21,6 +21,7 @@ in {
         if inputs != null && inputs ? scopebuddy
         then inputs.scopebuddy.packages.${pkgs.stdenv.hostPlatform.system}.default
         else null;
+      defaultText = literalExpression "inputs.scopebuddy.packages.\${system}.default";
       description = "ScopeBuddy package to use";
     };
 

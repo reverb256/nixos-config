@@ -15,24 +15,28 @@ in {
     enable32Bit = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Enable 32-bit graphics support for Steam and games";
     };
 
     openModules = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Use open-source NVIDIA kernel modules (recommended for Wayland since driver 560+)";
     };
 
     powerManagement = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Enable NVIDIA power management";
     };
 
     sddmWayland = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Enable SDDM Wayland support";
     };
   };
@@ -163,6 +167,13 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        # Security hardening
+        NoNewPrivileges = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        PrivateTmp = true;
+        RestrictRealtime = true;
+        RestrictAddressFamilies = ["AF_UNIX"];
         ExecStart = pkgs.writeShellScript "nvidia-device-nodes" ''
           # Wait for NVIDIA driver to be fully loaded
           if [ -d /proc/driver/nvidia ]; then

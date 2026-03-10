@@ -17,12 +17,14 @@ in {
     devices = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [];
+      example = ["/dev/nvme0n1" "/dev/sda"];
       description = "List of devices to monitor (e.g., [\"/dev/nvme0n1\" \"/dev/sda\"]). Empty = auto-detect all.";
     };
 
     collectPeriod = lib.mkOption {
       type = lib.types.int;
       default = 300;
+      example = 600;
       description = "Collection interval in seconds";
     };
   };
@@ -39,6 +41,13 @@ in {
       after = ["network-online.target" "prometheus-node-exporter.service"];
       serviceConfig = {
         Type = "oneshot";
+        # Security hardening
+        NoNewPrivileges = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        PrivateTmp = true;
+        RestrictRealtime = true;
+        ReadWritePaths = ["/var/lib/prometheus/node-exporter"];
         ExecStart = pkgs.writeShellScript "smart-metrics-collector" ''
           #!/bin/sh
           set -euo pipefail

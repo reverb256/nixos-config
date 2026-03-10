@@ -198,22 +198,85 @@ profiles.network.tailscale.advertiseRoutes = ["10.1.1.0/24"];
 
 ## Module Design Patterns
 
-### Options Pattern
+### Options Pattern (Best Practices)
 ```nix
 options.services.my-service = {
-  enable = mkEnableOption "My service description";
-  setting = mkOption {
-    type = types.str;
+  # Always use mkEnableOption for boolean enable options
+  enable = lib.mkEnableOption "My service description";
+  
+  # Always include example field for discoverability
+  setting = lib.mkOption {
+    type = lib.types.str;
     default = "default-value";
+    example = "custom-value";
     description = "Setting description";
+  };
+  
+  # For package options, use defaultText with literalExpression
+  package = lib.mkOption {
+    type = lib.types.package;
+    default = pkgs.myService;
+    defaultText = lib.literalExpression "pkgs.myService";
+    description = "The myService package to use.";
+  };
+  
+  # Use proper types (port, int, bool, enum, etc.)
+  port = lib.mkOption {
+    type = lib.types.port;
+    default = 8080;
+    example = 9000;
+    description = "Port for the service";
+  };
+  
+  # For complex nested options, use submodule
+  advanced = lib.mkOption {
+    type = lib.types.submodule {
+      options = {
+        enabled = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Enable advanced feature";
+        };
+        timeout = lib.mkOption {
+          type = lib.types.int;
+          default = 30;
+          description = "Timeout in seconds";
+        };
+      };
+    };
+    default = {};
+    description = "Advanced configuration options";
   };
 };
 ```
 
 ### Config Pattern
 ```nix
-config = mkIf cfg.enable {
+config = lib.mkIf cfg.enable {
   # Configuration when enabled
+};
+```
+
+### Systemd Service Security Hardening Pattern
+```nix
+systemd.services.my-service = {
+  description = "My Service";
+  wantedBy = ["multi-user.target"];
+  after = ["network.target"];
+  serviceConfig = {
+    ExecStart = "${pkgs.myService}/bin/my-service";
+    Restart = "on-failure";
+    
+    # Security hardening (applied to all services)
+    NoNewPrivileges = true;
+    ProtectSystem = "strict";
+    ProtectHome = true;
+    PrivateTmp = true;
+    RestrictRealtime = true;
+    
+    # For services that need network access:
+    RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+  };
 };
 ```
 
@@ -223,6 +286,31 @@ config = mkIf cfg.enable {
   # Enable services when role is active
 })
 ```
+
+## Best Practices Summary
+
+### Option Declarations
+- ✅ Always use `lib.mkEnableOption` for boolean enable options
+- ✅ Always include `example` field for `lib.mkOption` declarations
+- ✅ Use `lib.literalExpression` for `defaultText` on package-type options
+- ✅ Use specific types (`lib.types.port`, `lib.types.enum`, etc.) instead of generic types
+- ✅ Use `lib.types.submodule` for complex nested configurations
+
+### Systemd Services
+- ✅ Always add security hardening options to serviceConfig:
+  - `NoNewPrivileges = true`
+  - `ProtectSystem = "strict"`
+  - `ProtectHome = true`
+  - `PrivateTmp = true`
+  - `RestrictRealtime = true`
+- ✅ Add `RestrictAddressFamilies` for services that need network access
+- ✅ Set proper `After` and `WantedBy` dependencies
+
+### Module Structure
+- ✅ Organize modules by function (hardware/, services/, system/)
+- ✅ Use `lib.mkIf cfg.enable` for conditional configuration
+- ✅ Use `lib.mkMerge` for complex conditional logic
+- ✅ Add inline comments explaining non-obvious configurations
 
 ## Storage Configuration
 

@@ -415,9 +415,7 @@
     vaultwarden-module = {
       enable = true;
       hostName = "vaultwarden.ts.net";  # Tailscale Magic DNS
-      dataDir = "/var/lib/containers/vaultwarden/data";
-      port = 8080;
-      adminTokenFile = "/run/agenix/vaultwarden-admin-token";
+      dataDir = "/var/lib/vaultwarden";
     };
   };
 
@@ -536,14 +534,6 @@
         group = "root";
       };
 
-      # Vaultwarden admin token - Admin panel access
-      vaultwarden-admin-token = {
-        file = "${inputs.self}/secrets/vaultwarden-admin-token.age";
-        mode = "440";
-        owner = "root";
-        group = "root";
-        symlink = true;
-      };
     };
   };
 
