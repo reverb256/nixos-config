@@ -104,6 +104,9 @@
       monitoring.enable = true; # Hardware monitoring
     };
 
+    # BTRFS compression and deduplication
+    btrfs-compression.enable = true;
+
     # Hardware monitoring extras (not covered by profile)
     monitoring = {
       autoDetect = false; # Skip auto-detect, we know the hardware
@@ -414,7 +417,7 @@
     # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn
     vaultwarden-module = {
       enable = true;
-      hostName = "vaultwarden.ts.net";  # Tailscale Magic DNS
+      hostName = "vaultwarden.zephyr.tigris-ule.ts.net";  # Tailscale Magic DNS
       dataDir = "/var/lib/vaultwarden";
     };
   };

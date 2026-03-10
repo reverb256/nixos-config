@@ -54,7 +54,6 @@
     environment.systemPackages = with pkgs; [
       # BTRFS deduplication tools
       duperemove       # Block-level deduplication (run manually or via cron)
-      btrfsmaintenance  # Periodic BTRFS maintenance tasks
       compsize         # Check compression ratio on files/directories
       btrfs-progs      # BTRFS utilities (already in system-packages)
     ];
@@ -182,26 +181,13 @@
     # ============================================================================
     # LOGGING
     # ============================================================================
-    # Ensure log files exist and are rotated
-    systemd.tmpfiles.settings = {
-      "btrfs-maintenance-logs" = {
-        "/var/log/btrfs-dedup.log" = {
-          mode = "0644";
-          user = "root";
-          group = "root";
-        };
-        "/var/log/btrfs-scrub.log" = {
-          mode = "0644";
-          user = "root";
-          group = "root";
-        };
-        "/var/log/btrfs-balance.log" = {
-          mode = "0644";
-          user = "root";
-          group = "root";
-        };
-      };
-    };
+    # Create log files with proper permissions
+    systemd.tmpfiles.rules = [
+      "d /var/log 0755 root root -"
+      "f /var/log/btrfs-dedup.log 0644 root root -"
+      "f /var/log/btrfs-scrub.log 0644 root root -"
+      "f /var/log/btrfs-balance.log 0644 root root -"
+    ];
 
     # ============================================================================
     # DOCUMENTATION
