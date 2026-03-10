@@ -197,6 +197,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        Path = [pkgs.coreutils]; # Ensure cmp command is available
         ExecStart = "/etc/agenix-rekey-wrapper.sh ${config.services.agenix-fixes.identityFile}";
 
         # Security - removed PrivateTmp to allow access to /run/agenix.d
@@ -234,7 +235,7 @@ in {
       SYSTEM_KEY="/etc/age/key.txt"
 
       if [ -f "$HOME_KEY" ]; then
-        if [ ! -f "$SYSTEM_KEY" ] || ! ${pkgs.coreutils}/bin/cmp -s "$HOME_KEY" "$SYSTEM_KEY"; then
+        if [ ! -f "$SYSTEM_KEY" ] || ! cmp -s "$HOME_KEY" "$SYSTEM_KEY"; then
           echo "[agenix] Copying age identity key to system location..."
           cp "$HOME_KEY" "$SYSTEM_KEY"
           chmod 600 "$SYSTEM_KEY"
