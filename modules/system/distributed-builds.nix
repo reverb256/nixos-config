@@ -1,15 +1,18 @@
 # Distributed Build Configuration
-# Enables building across all 4 nodes in the cluster
+# Enables building across the cluster (Zephyr + Nexus)
 # See AGENTS.md for cluster architecture details
 #
-# MINING AWARENESS (2026-02-10):
-#   zephyr: Mining CPU (16 threads @ 100%) + GPU (RTX 3090 @ 250W) → Moderate builds
-#   nexus:   Mining GPU (2x RTX 3060 Ti @ 130W)              → High capacity (46GB)
-#   forge:    Mining HEAVY (2x NVIDIA @ 90W + 2x AMD @ 140W, 95% CPU) → Very limited builds (GPU only)
-#   sentry:  Mining CPU (8 threads @ 100% CPU quota)              → Moderate builds
-#   NOTE: All AMD CPUs (Ryzen 5950X, 3900X, 1700X) mine at 50% quota
-#   XMrig HTTP API available on localhost:18088 for pause/resume
-#   Build-wrapper scripts pause mining before builds and resume after completion
+# COMPUTE WORKLOAD MONITOR INTEGRATION (2026-03-09):
+#   Build detection is automatic via compute-workload-monitor:
+#   - Detects: nixos-rebuild, colmena, nix-build, gcc, clang, cargo, cmake, make, ninja
+#   - Action: Pauses ALL mining (GPU + CPU) during builds for maximum build performance
+#   - Resumes: Automatically when build processes complete
+#
+# HOST PARTICIPATION:
+#   zephyr: ✅ Enabled (32 cores, 31GB RAM)  → Coordinator + Worker
+#   nexus:  ✅ Enabled (24 cores, 46GB RAM)  → Worker (high capacity, prioritized)
+#   forge:  ❌ Disabled (CUDA bug on nexus)  → Local builds only
+#   sentry: ❌ Disabled (CPU mining focus)  → Local builds only
 #
 # NETWORK: 1Gbps with 4x TP-Link Easy Smart switches
 {lib, ...}: {
@@ -22,55 +25,32 @@
 
     # Build machines configuration
     # NOTE: sshUser defaults to root when running with sudo, must specify j_kro
+    # Only Zephyr and Nexus participate (Forge and Sentry have distributedBuilds disabled)
     buildMachines = [
       {
-        # Zephyr: 32 cores, 31GB RAM, RTX 3090, AMD Wayland
-        # Mining: CPU (16 threads @ 100%) + GPU (RTX 3090 @ 250W)
-        # Pause mining before builds (16 threads left for OS + apps)
+        # Zephyr: 32 cores, 31GB RAM, RTX 3090, Ryzen 5950X
+        # Role: Control plane + build coordinator + worker
+        # compute-workload-monitor pauses all mining during builds
         hostName = "zephyr";
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 6; # 4GB per job (31GB total, 6 threads for mining + 20 for OS/apps)
-        speedFactor = 2; # Moderate builds with mining-aware scheduling
+        maxJobs = 6; # 4GB per job (31GB total, conservative for RAM headroom)
+        speedFactor = 2; # Moderate speed (32 cores, but reserves capacity for control plane)
         supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "cuda"];
         mandatoryFeatures = [];
       }
       {
-        # Nexus: 24 cores, 46GB RAM, 2x RTX 3060 Ti (8GB each), CUDA 13.0
-        # Mining: 2x NVIDIA GPUs @ 130W power limit (moderate load)
+        # Nexus: 24 cores, 46GB RAM, 2x RTX 3060 Ti (8GB each), Ryzen 3900X
+        # Role: Storage node + primary build worker (high capacity)
+        # compute-workload-monitor pauses all mining during builds
         hostName = "nexus";
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 12; # 4GB per job (48GB total)
-        speedFactor = 3; # Prioritized for CPU-heavy builds (24 cores)
+        maxJobs = 12; # 4GB per job (48GB total, prioritized for CPU-heavy builds)
+        speedFactor = 3; # High priority for CPU builds (24 cores, 46GB RAM)
         supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "cuda"];
-        mandatoryFeatures = [];
-      }
-      {
-        # Forge: 6 cores, 15GB RAM, 2x RTX 4060 (8GB each) + 2x RX 5700 XT, CUDA 13.0 + ROCm
-        # Mining: HEAVY - 2x NVIDIA @ 90W + 2x AMD @ 140W + 95% CPU quota (GPU only)
-        # CAUTION: GPU builds may impact mining profitability
-        hostName = "forge";
-        system = "x86_64-linux";
-        sshUser = "j_kro";
-        protocol = "ssh-ng";
-        maxJobs = 2; # VERY conservative due to heavy mining + only 15GB RAM
-        speedFactor = 2; # Hybrid GPU acceleration (use sparingly)
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "cuda" "rocm"];
-        mandatoryFeatures = [];
-      }
-      {
-        # Sentry: 16 cores (8 physical + 16 threads), 31GB RAM, Ryzen 7 1700X, RX 5600 XT, ROCm
-        # Mining: CPU-only (8 threads @ 100% CPU quota, no GPU mining)
-        hostName = "sentry";
-        system = "x86_64-linux";
-        sshUser = "j_kro";
-        protocol = "ssh-ng";
-        maxJobs = 8; # 4GB per job (31GB total, leave 8GB for overhead)
-        speedFactor = 1; # Lighter builds
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "rocm"];
         mandatoryFeatures = [];
       }
     ];
@@ -97,8 +77,8 @@
       # Maximum number of parallel build jobs across all machines
       # Use mkDefault to allow host-specific overrides
       # RAM-based allocation: 4GB per job
-      # Mining-aware: zephyr mining CPU (16 threads) + GPU (RTX 3090 @ 250W)
-      max-jobs = lib.mkDefault 30; # 6 (zephyr) + 12 (nexus) + 2 (forge) + 8 (sentry)
+      # compute-workload-monitor pauses mining during builds, so full capacity available
+      max-jobs = lib.mkDefault 18; # 6 (zephyr) + 12 (nexus) = 18 total parallel jobs
 
       # Network optimization (1Gbps networking with TP-Link Easy Smart switches)
       http-connections = 100; # More parallel downloads (1Gbps can handle it)
