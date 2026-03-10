@@ -1,5 +1,6 @@
 # BTRFS Compression and Deduplication Configuration
-# Enables zstd compression for BTRFS filesystems and sets up deduplication tools
+# Sets up deduplication tools and maintenance for all BTRFS filesystems
+# Note: Mount options should be configured in hardware-configuration.nix or host configs
 {
   config,
   lib,
@@ -7,47 +8,10 @@
   ...
 }: {
   options.hardware.btrfs-compression = {
-    enable = lib.mkEnableOption "BTRFS zstd compression and deduplication tools";
+    enable = lib.mkEnableOption "BTRFS zstd compression and deduplication tools for all filesystems";
   };
 
   config = lib.mkIf config.hardware.btrfs-compression.enable {
-    # ============================================================================
-    # FILESYSTEM MOUNT OPTIONS - Add compression to existing BTRFS mounts
-    # ============================================================================
-    fileSystems = {
-      "/" = {
-        # Root filesystem - add compression to existing options
-        options = lib.mkOptionDefault [
-          "subvol=@"
-          "compress=zstd:3"
-          "ssd"
-          "discard=async"
-          "space_cache=v2"
-        ];
-      };
-
-      "/home" = {
-        # Home filesystem - add compression
-        options = lib.mkOptionDefault [
-          "subvol=@home"
-          "compress=zstd:3"
-          "ssd"
-          "discard=async"
-          "space_cache=v2"
-        ];
-      };
-
-      "/data" = {
-        # Data filesystem on second drive - add compression
-        options = lib.mkOptionDefault [
-          "compress=zstd:3"
-          "ssd"
-          "discard=async"
-          "space_cache=v2"
-        ];
-      };
-    };
-
     # ============================================================================
     # SYSTEM PACKAGES - Deduplication and BTRFS tools
     # ============================================================================
@@ -55,30 +19,34 @@
       # BTRFS deduplication tools
       duperemove       # Block-level deduplication (run manually or via cron)
       compsize         # Check compression ratio on files/directories
-      btrfs-progs      # BTRFS utilities (already in system-packages)
+      btrfs-progs      # BTRFS utilities
     ];
 
     # ============================================================================
     # SYSTEMD SERVICES - Periodic deduplication and maintenance
     # ============================================================================
     systemd.services = {
-      # Weekly deduplication scan for /data (where projects live)
-      btrfs-dedup-data = {
-        description = "BTRFS deduplication scan for /data";
+      # Weekly deduplication scan for all BTRFS filesystems
+      btrfs-dedup-all = {
+        description = "BTRFS deduplication scan for all filesystems";
         path = [pkgs.btrfs-progs pkgs.duperemove];
         script = ''
           # Skip if dedup is already running
-          pgrep -f "duperemove.*-r /data" && exit 0
+          pgrep -f "duperemove.*-r" && exit 0
 
           # Log start time
-          echo "[$(date)] Starting BTRFS deduplication scan for /data" | tee -a /var/log/btrfs-dedup.log
+          echo "[$(date)] Starting BTRFS deduplication scan" | tee -a /var/log/btrfs-dedup.log
 
-          # Run deduplication with quiet mode, skip files < 100KB
-          # -r: recursive scan
-          # -d: deduplicate mode
-          # --skip-size: skip files smaller than this (default 100K)
-          # -h: print human-readable sizes
-          duperemove -r -d -h --skip-size=256K /data 2>&1 | tee -a /var/log/btrfs-dedup.log
+          # Get all BTRFS mount points and run deduplication
+          for mount in $(findmnt -t btrfs -n -o TARGET --target /data / /home 2>/dev/null); do
+            echo "Scanning $mount..." | tee -a /var/log/btrfs-dedup.log
+            # Run deduplication with quiet mode, skip files < 256KB
+            # -r: recursive scan
+            # -d: deduplicate mode
+            # --skip-size: skip files smaller than this (default 100K)
+            # -h: print human-readable sizes
+            duperemove -r -d -h --skip-size=256K "$mount" 2>&1 | tee -a /var/log/btrfs-dedup.log || true
+          done
 
           echo "[$(date)] BTRFS deduplication scan completed" | tee -a /var/log/btrfs-dedup.log
         '';
@@ -93,31 +61,21 @@
       };
 
       # Monthly BTRFS scrub (detect and repair data corruption)
-      btrfs-scrub-root = {
-        description = "Monthly BTRFS scrub for root filesystem";
+      btrfs-scrub-all = {
+        description = "Monthly BTRFS scrub for all filesystems";
         path = [pkgs.btrfs-progs];
         script = ''
-          echo "[$(date)] Starting BTRFS scrub for /" | tee -a /var/log/btrfs-scrub.log
-          btrfs scrub start -B -R /
-          echo "[$(date)] BTRFS scrub for / completed" | tee -a /var/log/btrfs-scrub.log
-        '';
-        startAt = "Mon 03:00";  # First Monday of each month at 3 AM
-        serviceConfig = {
-          Type = "oneshot";
-          Nice = 15;
-          IOSchedulingClass = "idle";
-        };
-      };
+          echo "[$(date)] Starting BTRFS scrub for all filesystems" | tee -a /var/log/btrfs-scrub.log
 
-      btrfs-scrub-data = {
-        description = "Monthly BTRFS scrub for data filesystem";
-        path = [pkgs.btrfs-progs];
-        script = ''
-          echo "[$(date)] Starting BTRFS scrub for /data" | tee -a /var/log/btrfs-scrub.log
-          btrfs scrub start -B -R /data
-          echo "[$(date)] BTRFS scrub for /data completed" | tee -a /var/log/btrfs-scrub.log
+          # Scrub all mounted BTRFS filesystems
+          for fs in $(findmnt -t btrfs -n -o TARGET --target / /home /data 2>/dev/null); do
+            echo "Scrubbing $fs..." | tee -a /var/log/btrfs-scrub.log
+            btrfs scrub start -B -R "$fs" 2>&1 | tee -a /var/log/btrfs-scrub.log || true
+          done
+
+          echo "[$(date)] BTRFS scrub completed" | tee -a /var/log/btrfs-scrub.log
         '';
-        startAt = "Mon 04:00";  # First Monday of each month at 4 AM
+        startAt = "Mon 03:00";  # Monday 3 AM
         serviceConfig = {
           Type = "oneshot";
           Nice = 15;
@@ -126,17 +84,19 @@
       };
 
       # Monthly balance (reclaim space and improve fragmentation)
-      btrfs-balance = {
+      btrfs-balance-all = {
         description = "Monthly BTRFS balance for all filesystems";
         path = [pkgs.btrfs-progs];
         script = ''
-          echo "[$(date)] Starting BTRFS balance" | tee -a /var/log/btrfs-balance.log
+          echo "[$(date)] Starting BTRFS balance for all filesystems" | tee -a /var/log/btrfs-balance.log
 
-          # Balance with usage threshold (only chunks with <75% usage)
-          # This reclaims space and reduces fragmentation
-          btrfs balance start -dusage=75 -musage=75 / 2>&1 | tee -a /var/log/btrfs-balance.log
-          btrfs balance start -dusage=75 -musage=75 /home 2>&1 | tee -a /var/log/btrfs-balance.log
-          btrfs balance start -dusage=75 -musage=75 /data 2>&1 | tee -a /var/log/btrfs-balance.log
+          # Balance all mounted BTRFS filesystems with usage threshold
+          # -dusage=75: only chunks with <75% usage
+          # -musage=75: metadata chunks with <75% usage
+          for fs in $(findmnt -t btrfs -n -o TARGET --target / /home /data 2>/dev/null); do
+            echo "Balancing $fs..." | tee -a /var/log/btrfs-balance.log
+            btrfs balance start -dusage=75 -musage=75 "$fs" 2>&1 | tee -a /var/log/btrfs-balance.log || true
+          done
 
           echo "[$(date)] BTRFS balance completed" | tee -a /var/log/btrfs-balance.log
         '';
@@ -153,27 +113,21 @@
     # TIMERS - Enable the scheduled services
     # ============================================================================
     systemd.timers = {
-      btrfs-dedup-data = {
+      btrfs-dedup-all = {
         wantedBy = ["timers.target"];
-        partOf = ["btrfs-dedup-data.service"];
+        partOf = ["btrfs-dedup-all.service"];
         timerConfig.Persistent = true;
       };
 
-      btrfs-scrub-root = {
+      btrfs-scrub-all = {
         wantedBy = ["timers.target"];
-        partOf = ["btrfs-scrub-root.service"];
+        partOf = ["btrfs-scrub-all.service"];
         timerConfig.Persistent = true;
       };
 
-      btrfs-scrub-data = {
+      btrfs-balance-all = {
         wantedBy = ["timers.target"];
-        partOf = ["btrfs-scrub-data.service"];
-        timerConfig.Persistent = true;
-      };
-
-      btrfs-balance = {
-        wantedBy = ["timers.target"];
-        partOf = ["btrfs-balance.service"];
+        partOf = ["btrfs-balance-all.service"];
         timerConfig.Persistent = true;
       };
     };
@@ -181,7 +135,6 @@
     # ============================================================================
     # LOGGING
     # ============================================================================
-    # Create log files with proper permissions
     systemd.tmpfiles.rules = [
       "d /var/log 0755 root root -"
       "f /var/log/btrfs-dedup.log 0644 root root -"
@@ -209,8 +162,8 @@
       - **Overall: 20-40% space savings**
 
       ## Scheduled Tasks
-      - **Weekly**: Deduplication scan (/data) - Saturdays 2 AM
-      - **Monthly**: Scrub (data integrity check) - Mondays 3-4 AM
+      - **Weekly**: Deduplication scan (all BTRFS) - Saturdays 2 AM
+      - **Monthly**: Scrub (data integrity check) - Mondays 3 AM
       - **Monthly**: Balance (defragmentation) - Sundays 3 AM
 
       ## Manual Commands
@@ -234,6 +187,18 @@
 
       # Deduplicate specific directory
       sudo duperemove -r -d /data/@projects/trovesandcoves
+
+      # Show compression stats for current directory
+      compsize .
+
+      # Show all BTRFS filesystems
+      findmnt -t btrfs
+
+      # Show compression stats for a specific filesystem
+      btrfs filesystem df /
+
+      # Force compression of existing files (requires balance)
+      sudo btrfs balance start -dcompress=2 /
     '';
   };
 }
