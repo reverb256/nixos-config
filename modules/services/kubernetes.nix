@@ -40,6 +40,9 @@
         enable = true;
         settings = {
           crio.network = {
+            # Directory where CNI configuration files are located
+            network_dir = "/var/lib/cni/net.d";
+            # Directories where CNI plugin binaries are located
             plugin_dirs = ["/opt/cni/bin"];
           };
         };
@@ -69,6 +72,9 @@
         bindAddress = config.services.kubernetes-module.masterAddress;
         securePort = 6443;
         allowPrivileged = true;
+
+        # Pod Security Admission - enable via extraOpts
+        extraOpts = "--pod-security-admission-config-file=/etc/kubernetes/pod-security-admission.yaml";
       };
       scheduler.enable = isMaster;
       controllerManager.enable = isMaster;
@@ -81,7 +87,8 @@
         };
       };
       proxy.enable = true;
-      flannel.enable = true;
+      # Flannel runs as DaemonSet in Kubernetes, not as systemd service
+      # flannel.enable = true;  # Disabled: causes systemd symlink conflict
     };
 
     # ETCD (Required for Kubernetes control plane)
@@ -104,6 +111,7 @@
     systemd = {
       tmpfiles.rules = [
         "d /var/lib/cni/net.d 0755 root root -"
+        # Create symlink from read-only NixOS store to writable directory
         "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
         "d /var/lib/cdi 0755 root root -"
         "d /var/lib/flannel 0755 root root -"
@@ -111,12 +119,6 @@
       ];
 
       services = {
-        # Configure kubelet to use the alternative CNI directory
-        kubelet.environment = {
-          CNI_CONF_DIR = "/var/lib/cni/net.d";
-          CNI_BIN_DIR = "/opt/cni/bin";
-        };
-
         # NVIDIA CDI spec service (for worker nodes with NVIDIA GPUs)
         nvidia-cdi = lib.mkIf (hasNvidiaGpu && !isMaster) {
       description = "NVIDIA GPU CDI Specification";
@@ -178,10 +180,6 @@
               bridge = "mynet";
               isDefaultGateway = true;
               hairpinMode = true;
-              ipam = {
-                type = "host-local";
-                ranges = [[{subnet = "10.1.0.0/16";}]];
-              };
             };
           }
           {
@@ -203,6 +201,23 @@
         device_ownership = false
         # Use CDI for device passthrough
         cdi_spec_dirs = ["/var/lib/cdi"]
+      '';
+
+      # Pod Security Admission configuration
+      "kubernetes/pod-security-admission.yaml".text = ''
+        apiVersion: pod-security.admission.config.k8s.io/v1
+        kind: PodSecurityConfiguration
+        defaults:
+          enforce: "restricted"
+          enforce-version: "latest"
+          audit: "restricted"
+          audit-version: "latest"
+          warn: "restricted"
+          warn-version: "latest"
+        exemptions:
+          namespaces: []
+          runtimeClasses: []
+          usernames: []
       '';
     };
 
