@@ -25,6 +25,7 @@
     ./system/agenix-fixes.nix
     ./system/cluster-storage.nix
     ./system/security-hardening.nix
+    ./system/btrfs-compression.nix
 
     # Desktop environment
     ./desktop/desktop.nix
