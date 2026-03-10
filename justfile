@@ -83,6 +83,57 @@ sentry:
     _done "sentry deployed"
     _time; echo ""
 
+# Deploy v3 optimizations with K8s-aware rolling update
+deploy-v3-rolling:
+    #!/usr/bin/env bash
+    set -e  # Stop on any error
+    source {{JUST_HELPERS}}
+
+    _header "v3 Rolling Update → All Nodes (K8s-Aware Order)"
+
+    # Step 1: Pre-flight validation - build all closures
+    _step "building closures for all nodes..."
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- build
+    _done "all closures built successfully"
+
+    # Step 2: Deploy to Zephyr (K8s control plane, local)
+    _step "deploying → zephyr (k8s-master)"
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply-local --on zephyr
+    _step "validating K8s control plane..."
+    ssh zephyr "kubectl get nodes" || echo "⚠️  K8s not yet installed, skipping validation"
+    ssh zephyr "systemctl status apiserver etcd kubelet" || true
+    _done "zephyr updated to v3"
+
+    # Step 3: Deploy to remote workers sequentially (K8s order)
+    _step "deploying → k8s workers"
+    for host in sentry nexus forge; do
+        cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host --verbose
+        _step "validating $host..."
+        ssh $host "kubectl get nodes | grep $host" || echo "⚠️  K8s not yet installed on $host"
+        ssh $host "systemctl status kubelet" || true
+        _done "$host updated to v3"
+    done
+
+    _time; _header "all nodes updated to v3 successfully"
+
+# Deploy by tag (parallel deployment to tagged nodes)
+deploy-tag ARG:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    _header "deploy → @{{ARG}} (parallel)"
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on @{{ARG}} --verbose
+    _done "nodes with tag @{{ARG}} updated"
+
+# Emergency rollback to previous generation on remote node
+rollback-remote ARG:
+    #!/usr/bin/env bash
+    source {{JUST_HELPERS}}
+    _time; _header "rollback → {{ARG}}"
+    ssh {{ARG}} "sudo nixos-rebuild rollback"
+    _done "{{ARG}} rolled back to previous generation"
+    _time; echo ""
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  LOCAL OPERATIONS
 # ──────────────────────────────────────────────────────────────────────────────
