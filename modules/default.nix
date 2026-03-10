@@ -15,6 +15,7 @@
     ./system/users.nix
     ./system/home-manager.nix
     ./system/ssh.nix
+    ./system/ssh-ca.nix
     ./system/mosh.nix
     ./system/polkit-rules.nix
     ./system/tailscale.nix
@@ -44,7 +45,6 @@
     ./development/programming-languages.nix
     ./development/opencode.nix
     ./development/web-testing.nix
-    ./development/playwright.nix
 
     # Gaming
     ./gaming/gaming.nix
@@ -57,6 +57,8 @@
 
     # Services
     ./services/mcp-servers.nix
+    ./services/tplink-switches.nix
+    ./services/tplink-cli.nix
     ./services/lm-studio.nix
     ./services/lm-studio-headless.nix
     ./services/stability-matrix.nix
@@ -65,6 +67,7 @@
     ./services/spacebot.nix
     ./services/podman-auto-update.nix
     ./services/glitchtip-selfhosted.nix
+    ./services/caddy.nix
     ./services/nextcloud.nix
     ./services/service-gateway.nix
     ./services/ci-runner.nix
@@ -74,6 +77,7 @@
     ./services/unbound-cluster.nix
     ./services/searxng.nix
     ./services/n8n.nix
+    ./services/vaultwarden.nix
 
     # Monitoring
     # ./services/monitoring/default.nix  # TEMP: Compatibility issues with latest NixOS
