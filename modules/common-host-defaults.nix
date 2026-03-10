@@ -75,4 +75,14 @@
   # Enable sleepy-launcher to prevent automatic sleep/suspend
   # This creates a systemd inhibitor that tells the system not to sleep
   programs.sleepy-launcher.enable = lib.mkDefault true;
+
+  # ============================================================================
+  # NIX SETTINGS
+  # ============================================================================
+  # Configure Nix daemon settings for distributed builds
+  nix.settings = {
+    # Trusted users required for distributed builds across cluster
+    # Without this, remote build users cannot access the Nix store
+    trusted-users = ["j_kro"];
+  };
 }
