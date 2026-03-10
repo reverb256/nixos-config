@@ -23,15 +23,63 @@
             reverse_proxy ${cfg.reverseProxy} ${lib.optionalString (cfg ? reverseProxyPort) ":${toString cfg.reverseProxyPort}"}
             ${lib.optionalString (cfg ? basicAuth) "basicauth ${cfg.basicAuth.user} ${cfg.basicAuth.password}"}
             ${lib.optionalString (cfg ? tls) "tls ${cfg.tls.email}"}
+
+            # Security Headers (OWASP A05:2021)
+            header {
+              # Prevent clickjacking
+              X-Frame-Options "DENY"
+              # Prevent MIME type sniffing
+              X-Content-Type-Options "nosniff"
+              # Enable XSS protection (legacy browsers)
+              X-XSS-Protection "1; mode=block"
+              # Referrer policy
+              Referrer-Policy "no-referrer"
+              # Content Security Policy
+              Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+              # HSTS (only enable after testing)
+              # Strict-Transport-Security "max-age=31536000; includeSubDomains"
+            }
           }
         '' else if cfg ? respond then ''
           ${domain}:${toString (cfg.port or 443)} {
             respond ${cfg.respond}
+
+            # Security Headers (OWASP A05:2021)
+            header {
+              # Prevent clickjacking
+              X-Frame-Options "DENY"
+              # Prevent MIME type sniffing
+              X-Content-Type-Options "nosniff"
+              # Enable XSS protection (legacy browsers)
+              X-XSS-Protection "1; mode=block"
+              # Referrer policy
+              Referrer-Policy "no-referrer"
+              # Content Security Policy
+              Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+              # HSTS (only enable after testing)
+              # Strict-Transport-Security "max-age=31536000; includeSubDomains"
+            }
           }
         '' else if cfg ? fileServer then ''
           ${domain}:${toString (cfg.port or 443)} {
             root * ${cfg.fileServer}
             file_server browse
+
+            # Security Headers (OWASP A05:2021)
+            header {
+              # Prevent clickjacking
+              X-Frame-Options "DENY"
+              # Prevent MIME type sniffing
+              X-Content-Type-Options "nosniff"
+              # Enable XSS protection (legacy browsers)
+              X-XSS-Protection "1; mode=block"
+              # Referrer policy
+              Referrer-Policy "no-referrer"
+              # Content Security Policy
+              Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+              # HSTS (only enable after testing)
+              # Strict-Transport-Security "max-age=31536000; includeSubDomains"
+            }
           }
         '' else ""
       ) config.services.caddy-module);
