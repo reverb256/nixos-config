@@ -194,6 +194,23 @@
       server.enable = true;
     };
 
+    # Caddy reverse proxy - Replace nginx for all services
+    caddy = {
+      enable = true;
+      # Custom Caddyfile for complex configurations (Nextcloud)
+      configFile = pkgs.writeText "Caddyfile" ''
+        # SearXNG privacy-friendly search (via Tailscale)
+        search.zephyr.tigris-ule.ts.net:9001 {
+          reverse_proxy 127.0.0.1:7777
+        }
+
+        # AI Inference Gateway (via Tailscale)
+        ai.zephyr.tigris-ule.ts.net:9002 {
+          reverse_proxy 127.0.0.1:8080
+        }
+      '';
+    };
+
     # Spacebot AI agent (integrated with AI Gateway)
     spacebot = {
       enable = true;
@@ -393,6 +410,15 @@
       secretKeyFile = "/run/agenix/glitchtip-secret-key";
       enableForGateway = true;
     };
+
+    # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn
+    vaultwarden-module = {
+      enable = true;
+      hostName = "vaultwarden.ts.net";  # Tailscale Magic DNS
+      dataDir = "/var/lib/containers/vaultwarden/data";
+      port = 8080;
+      adminTokenFile = "/run/agenix/vaultwarden-admin-token";
+    };
   };
 
   # ============================================================================
@@ -508,6 +534,15 @@
         mode = "440";
         owner = "root";
         group = "root";
+      };
+
+      # Vaultwarden admin token - Admin panel access
+      vaultwarden-admin-token = {
+        file = "${inputs.self}/secrets/vaultwarden-admin-token.age";
+        mode = "440";
+        owner = "root";
+        group = "root";
+        symlink = true;
       };
     };
   };
