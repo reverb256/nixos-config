@@ -197,7 +197,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        Path = [pkgs.coreutils]; # Ensure cmp command is available
+        path = [pkgs.coreutils] ++ lib.optionals (config.services.cluster-storage.enable) [pkgs.util-linux];
         ExecStart = "/etc/agenix-rekey-wrapper.sh ${config.services.agenix-fixes.identityFile}";
 
         # Security - removed PrivateTmp to allow access to /run/agenix.d
