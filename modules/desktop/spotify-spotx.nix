@@ -262,8 +262,44 @@ in {
       })
     ];
 
-    # Create state directory
-    systemd.tmpfiles.rules = spotify-common.mkSpotifyTmpfiles "spotx";
+    # Systemd configuration
+    systemd = {
+      # Create state directory
+      tmpfiles.rules = spotify-common.mkSpotifyTmpfiles "spotx";
+
+      # Services and timers
+      services = {
+        # Main patch service - runs after Flatpak updates
+        spotx-patch = lib.mkIf cfg.autoPatch {
+          description = "Spotify SpotX Patch Service (Flatpak)";
+          wantedBy = ["multi-user.target"];
+          after = ["network-online.target" "flatpak-update.service"];
+          wants = ["network-online.target"];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "/etc/spotx/patch-service.sh";
+            StandardOutput = "journal";
+            StandardError = "journal";
+            User = "root";
+            Group = "root";
+          };
+        };
+      };
+
+      timers = lib.mkIf cfg.autoPatch {
+        # Auto-patch timer
+        spotx-patch = {
+          description = "Spotify SpotX Auto-Patch Timer (Flatpak)";
+          wantedBy = ["timers.target"];
+          partOf = ["spotx-patch.service"];
+          timerConfig = {
+            OnCalendar = cfg.patchCheckInterval;
+            Unit = "spotx-patch.service";
+            Persistent = true;
+          };
+        };
+      };
+    };
 
     # Initial installation script (run once at activation)
     system.activationScripts.spotify-spotx-setup = lib.mkIf cfg.autoInstall ''
@@ -363,34 +399,6 @@ in {
         exit 1
       fi
     '';
-
-    # Main patch service - runs after Flatpak updates
-    systemd.services.spotx-patch = lib.mkIf cfg.autoPatch {
-      description = "Spotify SpotX Patch Service (Flatpak)";
-      wantedBy = ["multi-user.target"];
-      after = ["network-online.target" "flatpak-update.service"];
-      wants = ["network-online.target"];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "/etc/spotx/patch-service.sh";
-        StandardOutput = "journal";
-        StandardError = "journal";
-        User = "root";
-        Group = "root";
-      };
-    };
-
-    # Auto-patch timer
-    systemd.timers.spotx-patch = lib.mkIf cfg.autoPatch {
-      description = "Spotify SpotX Auto-Patch Timer (Flatpak)";
-      wantedBy = ["timers.target"];
-      partOf = ["spotx-patch.service"];
-      timerConfig = {
-        OnCalendar = cfg.patchCheckInterval;
-        Unit = "spotx-patch.service";
-        Persistent = true;
-      };
-    };
 
     # Integration: Trigger SpotX patch after Flatpak updates
     # This is handled by the After= dependency in spotx-patch.service

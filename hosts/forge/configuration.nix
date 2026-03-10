@@ -71,18 +71,16 @@
   };
 
   # ============================================================================
-  # KUBERNETES WORKER NODE
-  # ============================================================================
-  services.kubernetes-module = {
-    enable = true;
-    masterAddress = "10.1.1.110"; # Zephyr control plane
-    roles = ["node"]; # Worker node only
-  };
-
-  # ============================================================================
   # SERVICES CONFIGURATION
   # ============================================================================
   services = {
+    # Kubernetes worker node
+    kubernetes-module = {
+      enable = true;
+      masterAddress = "10.1.1.110"; # Zephyr control plane
+      roles = ["node"]; # Worker node only
+    };
+
     avahi = lib.mkForce {
       enable = false;
       nssmdns4 = false;
@@ -95,18 +93,30 @@
     # OpenCode - AI coding assistant configuration
     opencode.enable = true;
 
-    ollama = {
-      enable = true;
-      package = pkgs.ollama-cuda;
-      environmentVariables = {
-        OLLAMA_KEEP_ALIVE = "24h";
-      };
-    };
-
     # Mount /etc/nixos from zephyr (single-source-of-truth)
     nixos-share = {
       enable = true;
       client.enable = true;
+    };
+
+    # NVIDIA GPUs (RTX 4060s) - devices 2,3 in combined enumeration
+    # Note: PCI addresses 0f:00.0 and 11:00.0 (devices 2,3 in OpenCL+CUDA list)
+    mining.lolminer.nvidia = {
+      enable = true;
+      autostart = true;
+      devices = "2,3";
+      powerLimit = 90;
+      apiPort = 4068;
+    };
+
+    # AMD GPUs (RX 5700 XT) - OpenCL devices 0,1
+    # Note: PCI addresses 03:00.0 and 08:00.0, but OpenCL numbers from 0
+    mining.lolminer.amd = {
+      enable = true;
+      autostart = true;
+      devices = "0,1";
+      powerLimit = 140;
+      apiPort = 4069;
     };
   };
 
@@ -181,26 +191,7 @@
   # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
   # ============================================================================
   # Note: profiles.role.mining enables services.mining automatically
-
-  # NVIDIA GPUs (RTX 4060s) - devices 2,3 in combined enumeration
-  # Note: PCI addresses 0f:00.0 and 11:00.0 (devices 2,3 in OpenCL+CUDA list)
-  services.mining.lolminer.nvidia = {
-    enable = true;
-    autostart = true;
-    devices = "2,3";
-    powerLimit = 90;
-    apiPort = 4068;
-  };
-
-  # AMD GPUs (RX 5700 XT) - OpenCL devices 0,1
-  # Note: PCI addresses 03:00.0 and 08:00.0, but OpenCL numbers from 0
-  services.mining.lolminer.amd = {
-    enable = true;
-    autostart = true;
-    devices = "0,1";
-    powerLimit = 140;
-    apiPort = 4069;
-  };
+  # Mining configuration moved to services block above
 
   # ============================================================================
   # AMD GPU POWER MANAGEMENT

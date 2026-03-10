@@ -5,14 +5,17 @@
   # KERNEL SECURITY PARAMETERS (from XNM1)
   # ============================================================================
 
-  # Page table isolation for mitigation against side-channel attacks
-  security.forcePageTableIsolation = true;
+  # Page table isolation, user namespaces, L1 cache flush
+  security = {
+    # Page table isolation for mitigation against side-channel attacks
+    forcePageTableIsolation = true;
 
-  # Allow unprivileged user namespaces (needed for Wayland, Podman, etc.)
-  security.unprivilegedUsernsClone = true;
+    # Allow unprivileged user namespaces (needed for Wayland, Podman, etc.)
+    unprivilegedUsernsClone = true;
 
-  # Flush L1 data cache on context switch (mitigation)
-  security.virtualisation.flushL1DataCache = "cond";
+    # Flush L1 data cache on context switch (mitigation)
+    virtualisation.flushL1DataCache = "cond";
+  };
 
   # ============================================================================
   # KERNEL BOOT PARAMETERS

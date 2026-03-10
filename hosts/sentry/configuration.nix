@@ -89,57 +89,64 @@
   profiles.network.tailscale.enable = true;
 
   # ============================================================================
-  # BOOTLOADER
+  # SERVICES CONFIGURATION
   # ============================================================================
-  boot = {
-    loader = {
-      systemd-boot.enable = true;
-      efi.canTouchEfiVariables = true;
+  services = {
+    # Kubernetes worker node
+    kubernetes-module = {
+      enable = true;
+      masterAddress = "10.1.1.110"; # Zephyr control plane
+      roles = ["node"]; # Worker node only
     };
 
-    # ============================================================================
-    # KERNEL - Zen for better desktop responsiveness (matches other cluster hosts)
-    # ============================================================================
-    kernelPackages = pkgs.linuxPackages_zen;
-  };
-
-  # Note: hardware.profiles.amdgpu.enable handles AMDGPU automatically
-
-  # ============================================================================
-  # KUBERNETES WORKER NODE
-  # ============================================================================
-  services.kubernetes-module = {
-    enable = true;
-    masterAddress = "10.1.1.110"; # Zephyr control plane
-    roles = ["node"]; # Worker node only
-  };
-
-  services = {
     xserver.videoDrivers = ["amdgpu"];
 
-    # ============================================================================
     # PLASMA WAYLAND
-    # ============================================================================
     displayManager = {
       sddm.enable = true;
       defaultSession = "plasma";
     };
 
     desktopManager.plasma6.enable = true;
+
+    # MINING (CPU only - 8 threads = 50% of 16 cores)
+    # Uses defaults from mining.nix for pool URLs and wallet format
+    # Note: profiles.role.mining enables services.mining automatically
+    mining = {
+      xmrig = {
+        enable = true;
+        autostart = true;
+        threads = 8;
+      };
+      lolminer.enable = false;
+    };
+
+    # Spotify with SpotX patch (ad-free, premium features)
+    spotify-spotx.enable = true;
+
+    # TAILSCALE
+    tailscale.enable = true;
+
+    # Mount /etc/nixos from zephyr (single-source-of-truth)
+    nixos-share = {
+      enable = true;
+      client.enable = true;
+    };
   };
 
-  # ============================================================================
-  # ROCm SETUP (for AMD GPU monitoring)
-  # ============================================================================
-  # Note: hardware.profiles.amdgpu.wayland sets ROC_ENABLE_PRE_VEGA=1 automatically
-  environment.variables = {
-    LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
-    OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
-  };
+  # Environment configuration
+  environment = {
+    # ROCm SETUP (for AMD GPU monitoring)
+    # Note: hardware.profiles.amdgpu.wayland sets ROC_ENABLE_PRE_VEGA=1 automatically
+    variables = {
+      LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
+      OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
+    };
 
-  environment.systemPackages = with pkgs; [
-    rocmPackages.rocm-smi
-  ];
+    systemPackages = with pkgs; [
+      rocmPackages.rocm-smi
+    ];
+  };
 
   systemd.tmpfiles.rules = let
     rocmEnv = pkgs.symlinkJoin {
@@ -166,55 +173,6 @@
     options = ["subvol=@data"];
   };
 
-  # ============================================================================
-  # MONITORING SERVER (Prometheus + Grafana)
-  # Central metrics collection and visualization for the cluster
-  # ============================================================================
-  # TEMP: Disabled due to NixOS compatibility issues
-  # services.monitoring.prometheus = {
-  #   enable = true;
-  #   retentionDays = 30;
-  #   scrapeInterval = "15s";
-  # };
-  #
-  # services.monitoring.grafana = {
-  #   enable = true;
-  #   domain = "sentry.ts.krogh.dev";
-  # };
-
-  # ============================================================================
-  # MINING (CPU only - 8 threads = 50% of 16 cores)
-  # Uses defaults from mining.nix for pool URLs and wallet format
-  # ============================================================================
-  # Note: profiles.role.mining enables services.mining automatically
-  services.mining = {
-    xmrig = {
-      enable = true;
-      autostart = true;
-      threads = 8;
-    };
-    lolminer.enable = false;
-  };
-
-  # Spotify with SpotX patch (ad-free, premium features)
-  services.spotify-spotx.enable = true;
-
-  # ============================================================================
-  # DISTRIBUTED BUILDS - DISABLED (local builds only)
-  # ============================================================================
-  nix.distributedBuilds = lib.mkForce false;
-
-  # ============================================================================
-  # TAILSCALE
-  # ============================================================================
-  services.tailscale.enable = true;
-
-  # Mount /etc/nixos from zephyr (single-source-of-truth)
-  services.nixos-share = {
-    enable = true;
-    client.enable = true;
-  };
-
   # Kubernetes worker firewall rules
   networking.firewall = {
     allowedTCPPorts = [22 10250]; # SSH + Kubelet API
@@ -232,6 +190,11 @@
     TS_ROUTES = "";
     TS_SSH = "true";
   };
+
+  # ============================================================================
+  # DISTRIBUTED BUILDS - DISABLED (local builds only)
+  # ============================================================================
+  nix.distributedBuilds = lib.mkForce false;
 
   # ============================================================================
   # NIX-LD (For ROCm and mining software compatibility)

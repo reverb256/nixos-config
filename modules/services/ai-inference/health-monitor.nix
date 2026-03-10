@@ -28,35 +28,38 @@ in {
       '')
     ];
 
-    # Systemd service for health checks
-    systemd.services.opencode-gateway-health = {
-      description = "OpenCode Gateway Health Monitor";
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "${pkgs.bash}/bin/bash ${./scripts/ensure-opencode-gateway.sh} repair";
-        User = "root";
-        Group = "root";
+    # Systemd configuration
+    systemd = {
+      # Service for health checks
+      services.opencode-gateway-health = {
+        description = "OpenCode Gateway Health Monitor";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.bash}/bin/bash ${./scripts/ensure-opencode-gateway.sh} repair";
+          User = "root";
+          Group = "root";
+        };
       };
-    };
 
-    # Systemd timer for periodic health checks
-    systemd.timers.opencode-gateway-health = {
-      description = "OpenCode Gateway Health Check Timer";
-      wantedBy = ["timers.target"];
-      timerConfig = {
-        OnBootSec = "1min";
-        OnUnitActiveSec = cfg.interval;
-        AccuracySec = "1s";
+      # Timer for periodic health checks
+      timers.opencode-gateway-health = {
+        description = "OpenCode Gateway Health Check Timer";
+        wantedBy = ["timers.target"];
+        timerConfig = {
+          OnBootSec = "1min";
+          OnUnitActiveSec = cfg.interval;
+          AccuracySec = "1s";
+        };
       };
-    };
 
-    # Ensure log directory exists
-    systemd.tmpfiles.settings."ai-inference-health" = {
-      "/var/log/ai-inference" = {
-        d = {
-          group = "ai-inference";
-          mode = "0755";
-          user = "ai-inference";
+      # Ensure log directory exists
+      tmpfiles.settings."ai-inference-health" = {
+        "/var/log/ai-inference" = {
+          d = {
+            group = "ai-inference";
+            mode = "0755";
+            user = "ai-inference";
+          };
         };
       };
     };

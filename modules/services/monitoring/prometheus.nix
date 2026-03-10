@@ -113,6 +113,18 @@ in {
           ];
         }
 
+        # AMD GPU metrics (for hosts with AMD GPUs - Forge has RX 5700 XT)
+        {
+          job_name = "amdgpu";
+          static_configs = [
+            {
+              targets = [
+                "forge:9104"
+              ];
+            }
+          ];
+        }
+
         # Redis metrics (AI Gateway cache)
         {
           job_name = "redis";

@@ -4,21 +4,28 @@
     ../../modules/services/monitoring/default.nix
   ];
 
-  # Node exporter for system metrics
-  services.monitoring.node-exporter.enable = true;
+  # Services configuration
+  services = {
+    monitoring = {
+      # Node exporter for system metrics
+      node-exporter.enable = true;
 
-  # SMART exporter for disk health monitoring
-  services.monitoring.smart-exporter.enable = true;
+      # SMART exporter for disk health monitoring
+      smart-exporter.enable = true;
 
-  # GPU exporters for RTX 4060 (2x NVIDIA) + RX 5700 XT (2x AMD)
-  services.gpu-exporters.enable = true;
-  services.gpu-exporters.nvidia.enable = true;
-  services.gpu-exporters.amd.enable = true;
+      # Promtail - ship logs to Loki on zephyr
+      promtail.enable = true;
+      promtail.lokiUrl = "http://100.81.182.5:3100"; # Zephyr's Tailscale IP
+    };
 
-  # Mining exporter for xmrig/lolminer metrics
-  services.mining-exporter.enable = true;
+    # GPU exporters for RTX 4060 (2x NVIDIA) + RX 5700 XT (2x AMD)
+    gpu-exporters = {
+      enable = true;
+      nvidia.enable = true;
+      amd.enable = true;
+    };
 
-  # Promtail - ship logs to Loki on zephyr
-  services.monitoring.promtail.enable = true;
-  services.monitoring.promtail.lokiUrl = "http://100.81.182.5:3100"; # Zephyr's Tailscale IP
+    # Mining exporter for xmrig/lolminer metrics
+    mining-exporter.enable = true;
+  };
 }

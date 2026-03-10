@@ -224,6 +224,9 @@
     rm -rf ~/.cache/kwin* ~/.cache/plasma* ~/.cache/ksycoca* 2>/dev/null || true
   '';
 in {
+  # Add KDE xdg-desktop-portal when Plasma is enabled
+  xdg.portal.extraPortals = with pkgs; [pkgs.kdePackages.xdg-desktop-portal-kde];
+
   services = {
     xserver = {
       enable = true;

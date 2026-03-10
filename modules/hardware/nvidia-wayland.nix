@@ -43,12 +43,14 @@ in {
     # ============================================================================
     # NOTE: hardware.nvidia base configuration (including package) is in nvidia-common.nix
     # This module only adds/overrides Wayland-specific settings
-    hardware.nvidia.open = cfg.openModules;
-    hardware.nvidia.modesetting.enable = true;
-    hardware.nvidia.nvidiaSettings = true;
-    hardware.nvidia.powerManagement.enable = cfg.powerManagement;
-    hardware.nvidia.powerManagement.finegrained = false;
-    hardware.nvidia.gsp.enable = cfg.openModules;
+    hardware.nvidia = {
+      open = cfg.openModules;
+      modesetting.enable = true;
+      nvidiaSettings = true;
+      powerManagement.enable = cfg.powerManagement;
+      powerManagement.finegrained = false;
+      gsp.enable = cfg.openModules;
+    };
 
     # ============================================================================
     # DISPLAY MANAGER (SDDM with Wayland)
@@ -125,27 +127,29 @@ in {
     # ============================================================================
     # KERNEL PARAMETERS (for better Wayland stability)
     # ============================================================================
-    boot.kernelParams = [
-      # Enable NVIDIA DRM modeset (required for Wayland)
-      "nvidia-drm.modeset=1"
-    ];
+    boot = {
+      kernelParams = [
+        # Enable NVIDIA DRM modeset (required for Wayland)
+        "nvidia-drm.modeset=1"
+      ];
 
-    # ============================================================================
-    # EARLY NVIDIA LOADING - Fix race condition with simple-framebuffer
-    # Load NVIDIA modules in initramfs before simple-framebuffer claims displays
-    # ============================================================================
-    boot.initrd.kernelModules = [
-      "nvidia"
-      "nvidia_modeset"
-      "nvidia_drm"
-    ];
+      # EARLY NVIDIA LOADING - Fix race condition with simple-framebuffer
+      # Load NVIDIA modules in initramfs before simple-framebuffer claims displays
+      initrd = {
+        kernelModules = [
+          "nvidia"
+          "nvidia_modeset"
+          "nvidia_drm"
+        ];
 
-    # Also ensure modules are available in initramfs
-    boot.initrd.availableKernelModules = [
-      "nvidia"
-      "nvidia_modeset"
-      "nvidia_drm"
-    ];
+        # Also ensure modules are available in initramfs
+        availableKernelModules = [
+          "nvidia"
+          "nvidia_modeset"
+          "nvidia_drm"
+        ];
+      };
+    };
 
     # ============================================================================
     # NVIDIA DEVICE NODE CREATION - Ensure device nodes exist after driver load
