@@ -8,11 +8,11 @@
 #   - Action: Pauses ALL mining (GPU + CPU) during builds for maximum build performance
 #   - Resumes: Automatically when build processes complete
 #
-# HOST PARTICIPATION:
-#   zephyr: ✅ Enabled (32 cores, 31GB RAM)  → Coordinator + Worker
-#   nexus:  ✅ Enabled (24 cores, 46GB RAM)  → Worker (high capacity, prioritized)
-#   forge:  ✅ Enabled (6 cores, 15GB RAM)   → Worker (light builds, GPU acceleration)
-#   sentry: ✅ Enabled (16 cores, 31GB RAM)  → Worker (moderate capacity)
+# HOST PARTICIPATION (K8s-aware v3):
+#   zephyr: ✅ Enabled (16 cores, 31GB RAM, znver3)  → Control plane, conservative builds
+#   nexus:  ✅ Enabled (12 cores, 46GB RAM, znver2)  → Storage worker, NFS headroom
+#   forge:  ✅ Enabled (6 cores, 15GB RAM, skylake)   → Mixed GPU worker, minimal builds
+#   sentry: ✅ Enabled (8 cores, 31GB RAM, znver1)  → Monitoring worker, light builds
 #
 # NETWORK: 1Gbps with 4x TP-Link Easy Smart switches
 {lib, ...}: {
@@ -23,61 +23,61 @@
     # Enabled: Distributed builds across the cluster
     distributedBuilds = true;
 
-    # Build machines configuration
+    # Build machines configuration (K8s-aware v3 with CPU microarchitecture tuning)
+    # REFERENCE: /etc/nixos/machines.nix (Colmena machinesFile)
     # NOTE: sshUser defaults to root when running with sudo, must specify j_kro
     # All 4 hosts participate with compute-workload-monitor managing mining pause
     buildMachines = [
       {
-        # Zephyr: 32 cores, 31GB RAM, RTX 3090, Ryzen 5950X
-        # Role: Control plane + build coordinator + worker
-        # compute-workload-monitor pauses all mining during builds
+        # Zephyr: 16 cores, Ryzen 9 5950X (znver3)
+        # Role: K8s control plane + build coordinator + worker
+        # K8s-AWARE: Conservative maxJobs (apiserver/etcd need CPU)
         hostName = "zephyr";
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 6; # 4GB per job (31GB total, conservative for RAM headroom)
-        speedFactor = 2; # Moderate speed (32 cores, but reserves capacity for control plane)
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "cuda"];
+        maxJobs = 8; # CONSERVATIVE - apiserver/etcd need CPU headroom
+        speedFactor = 8; # Fast (Zen 3), but not prioritized over K8s stability
+        supportedFeatures = ["kvm" "big-parallel"];
         mandatoryFeatures = [];
       }
       {
-        # Nexus: 24 cores, 46GB RAM, 2x RTX 3060 Ti (8GB each), Ryzen 3900X
-        # Role: Storage node + primary build worker (high capacity)
-        # compute-workload-monitor pauses all mining during builds
+        # Nexus: 12 cores, Ryzen 9 3900X (znver2)
+        # Role: K8s storage worker + NFS server
+        # K8s-AWARE: Moderate maxJobs for NFS/PVC I/O headroom
         hostName = "nexus";
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 12; # 4GB per job (48GB total, prioritized for CPU-heavy builds)
-        speedFactor = 3; # High priority for CPU builds (24 cores, 46GB RAM)
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "kvm" "cuda"];
+        maxJobs = 6; # MODERATE - leave cores for NFS/PVC operations
+        speedFactor = 5;
+        supportedFeatures = ["big-parallel"];
         mandatoryFeatures = [];
       }
       {
-        # Forge: 6 cores, 15GB RAM, 2x RTX 4060 (8GB each) + 2x RX 5700 XT
-        # Role: Gaming + rendering + light builds
-        # compute-workload-monitor pauses all mining during builds
-        # CAUTION: Conservative maxJobs due to limited RAM (15GB) and heavy GPU mining
+        # Forge: 6 cores, i5-9500 (skylake, Coffee Lake)
+        # Role: K8s multi-GPU worker (MIXED NVIDIA/AMD)
+        # K8s-AWARE: Minimal maxJobs - GPU pods need CPU, mixed vendor = chaos
         hostName = "forge";
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 2; # Conservative due to 15GB RAM (4GB per job = 8GB, leave 7GB for OS)
-        speedFactor = 2; # Hybrid GPU acceleration (use sparingly)
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "cuda" "rocm"];
+        maxJobs = 2; # MINIMAL - GPU pods need CPU more than builds
+        speedFactor = 2; # Deprioritized - GPUs matter more than builds
+        supportedFeatures = ["kvm"]; # No big-parallel - keep resources for GPU
         mandatoryFeatures = [];
       }
       {
-        # Sentry: 16 cores (8 physical + 8 SMT), 31GB RAM, Ryzen 7 1700, RX 5600 XT
-        # Role: Monitoring + CPU mining + moderate builds
-        # compute-workload-monitor pauses all mining during builds
+        # Sentry: 8 cores, Ryzen 7 1700 (znver1)
+        # Role: K8s monitoring worker + AMD GPU
+        # K8s-AWARE: Light maxJobs - Prometheus/Grafana/Loki need CPU
         hostName = "sentry";
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 8; # 4GB per job (31GB total, leave 7GB for overhead)
-        speedFactor = 1; # Lighter builds (older CPU architecture)
-        supportedFeatures = ["nixos-test" "benchmark" "big-parallel" "rocm"];
+        maxJobs = 4; # LIGHT - monitoring stack needs CPU headroom
+        speedFactor = 4;
+        supportedFeatures = ["big-parallel"];
         mandatoryFeatures = [];
       }
     ];
@@ -105,7 +105,8 @@
       # Use mkDefault to allow host-specific overrides
       # RAM-based allocation: 4GB per job
       # compute-workload-monitor pauses mining during builds, so full capacity available
-      max-jobs = lib.mkDefault 28; # 6 (zephyr) + 12 (nexus) + 2 (forge) + 8 (sentry) = 28 total
+      # K8s-AWARE v3 totals: 8 (zephyr) + 6 (nexus) + 2 (forge) + 4 (sentry) = 20 total
+      max-jobs = lib.mkDefault 20;
 
       # Network optimization (1Gbps networking with TP-Link Easy Smart switches)
       http-connections = 100; # More parallel downloads (1Gbps can handle it)
