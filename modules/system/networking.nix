@@ -87,10 +87,13 @@
       };
       # Security hardening: restrict to wired interfaces only
       # All cluster nodes use 'lan0' for primary ethernet (see interface-naming.nix)
+      # During transition, also support legacy interface names (enp*, eno*)
       # Override per-host with allowInterfaces/denyInterfaces if needed
       allowInterfaces = [
         "lan0"
-      ]; # All cluster nodes' primary ethernet
+        "enp*"
+        "eno*"
+      ]; # All cluster nodes' primary ethernet (transition-friendly)
       denyInterfaces = [
         "tailscale0"
         "wlan*"
