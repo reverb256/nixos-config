@@ -85,16 +85,24 @@ end=notify-send "GameMode ended" && sudo nvidia-smi -i 0 -pl 120
 
 **Detection Logic**:
 ```bash
-Priority: Gaming > AI > Mining > Idle
+Priority: Gaming > AI > VRAM-PRESSURE > Builds > Mining > Idle
 
 Gaming Processes:
-  - steam, lutris, heroic, wine, proton
+  - steam, lutris, heroic, wine, proton, wine-preloader, wine64, wineserver
 
 AI Processes:
   - lmstudio, ollama, python.*llm, ai-inference-gateway
 
+Build Processes:
+  - nixos-rebuild, colmena, nix-build, gcc, clang, cargo build, make, cmake, ninja
+
+VRAM Pressure Detection:
+  - Checks VRAM usage before starting miner
+  - Threshold: 40% (zephyr), 35% (nexus), 50% (forge)
+  - Prevents 30-second desktop freeze from VRAM contention
+
 Mining Processes:
-  - lolminer-nvidia (systemd service)
+  - lolminer-nvidia, lolminer-amd, xmrig (systemd services)
 ```
 
 **Check Interval**: 10 seconds (configurable)
@@ -282,20 +290,35 @@ gamemoderun ./my-game
 ```
 1. GAMING (Highest)
    - Detected: Steam, Lutris, Heroic, Wine, Proton processes
-   - Action: Apply gaming profile, pause mining
+   - Action: Apply gaming profile, hard stop mining
    - Priority: Interrupt all other workloads
+   - Mining: systemctl stop (instant VRAM release)
 
 2. AI INFERENCE
    - Detected: LM Studio, Ollama, AI gateway, Python ML processes
-   - Action: Apply AI profile, pause mining
+   - Action: Apply AI profile, hard stop mining
    - Priority: Interrupt mining, coexist with idle
+   - Mining: systemctl stop (instant VRAM release)
 
-3. MINING
+3. VRAM-PRESSURE (NEW!)
+   - Detected: VRAM usage > 40% (host-specific threshold)
+   - Action: Block miner start, stop running miners
+   - Priority: Prevent desktop freeze from VRAM contention
+   - Mining: Blocked or stopped, check VRAM before starting
+
+4. BUILDS
+   - Detected: nixos-rebuild, colmena, gcc, cargo, make, cmake
+   - Action: Apply builds profile, throttle mining
+   - Priority: Reduce mining interference during compiles
+   - Mining: CPUQuota=10% (keep alive for quick resume)
+
+5. MINING
    - Detected: lolminer-nvidia service active
    - Action: Apply mining profile
-   - Priority: Only when no gaming/AI detected
+   - Priority: Only when no other workloads detected
+   - Requirement: VRAM usage < threshold
 
-4. IDLE
+6. IDLE
    - Detected: No GPU-intensive processes
    - Action: Apply reset profile (adaptive mode)
    - Priority: Don't auto-start mining (user manual)
@@ -306,19 +329,63 @@ gamemoderun ./my-game
 ```
 [IDLE] → Gaming Detected → [GAMING]
 [IDLE] → AI Detected → [AI]
+[IDLE] → VRAM > 40% → [VRAM-PRESSURE]
+[IDLE] → Build Detected → [BUILDS]
 [IDLE] → Mining Started → [MINING]
 
 [GAMING] → Game Exits → [AI] (if AI running)
+[GAMING] → Game Exits → [VRAM-PRESSURE] (if VRAM high)
 [GAMING] → Game Exits → [IDLE] (if nothing else)
 
 [AI] → Gaming Detected → [GAMING] (interrupt AI)
+[AI] → AI Exits → [VRAM-PRESSURE] (if VRAM high)
+[AI] → AI Exits → [BUILDS] (if build active)
 [AI] → AI Exits → [MINING] (if mining enabled)
 [AI] → AI Exits → [IDLE]
 
-[MINING] → Gaming Detected → [GAMING] (pause mining)
-[MINING] → AI Detected → [AI] (pause mining)
+[VRAM-PRESSURE] → VRAM < 40% → [MINING] (auto-start)
+[VRAM-PRESSURE] → Gaming Detected → [GAMING] (interrupt)
+[VRAM-PRESSURE] → AI Detected → [AI] (interrupt)
+[VRAM-PRESSURE] → Build Detected → [BUILDS] (interrupt)
+
+[BUILDS] → Build Complete → [MINING] (if VRAM OK)
+[BUILDS] → Gaming Detected → [GAMING] (interrupt)
+[BUILDS] → AI Detected → [AI] (interrupt)
+
+[MINING] → Gaming Detected → [GAMING] (stop mining)
+[MINING] → AI Detected → [AI] (stop mining)
+[MINING] → VRAM > 40% → [VRAM-PRESSURE] (stop mining)
+[MINING] → Build Detected → [BUILDS] (throttle mining)
 [MINING] → Mining Stopped → [IDLE]
 ```
+
+### VRAM Pressure Protection (NEW!)
+
+**Problem**: When AI models are loaded (8-10GB VRAM) and miner starts, GPU driver evicts AI model to system RAM → **30-second desktop freeze**
+
+**Solution**: Proactive VRAM pressure detection before starting miner
+
+**How It Works**:
+1. Check VRAM usage on all GPUs before starting miner
+2. If any GPU > threshold (40% on zephyr), block miner start
+3. For AI/gaming workloads, hard stop miner (not just CPU quota)
+4. Miner auto-resumes when VRAM is freed
+
+**Thresholds** (host-specific):
+- **zephyr**: 40% (workstation with AI/gaming)
+- **nexus**: 35% (storage server, conservative)
+- **forge**: 50% (dedicated mining rig, aggressive)
+- **sentry**: 40% (monitoring node)
+
+**Benefits**:
+- ✅ Eliminates 30-second desktop freeze
+- ✅ Smooth transitions between workloads
+- ✅ Instant VRAM release (hard stop vs CPU quota)
+- ✅ Automatic recovery when VRAM freed
+
+**Trade-offs**:
+- Cost: 2-3 second miner restart
+- Benefit: 27+ seconds saved per VRAM contention event
 
 ## Advanced Configuration
 
