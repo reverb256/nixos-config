@@ -475,8 +475,8 @@ in {
       # and switches GPU profiles accordingly
       # Pauses mining when gaming or AI workloads are detected
 
-      systemd.services.gpu-workload-monitor = {
-        description = "Autonomous GPU workload monitor and profile manager";
+      systemd.services.compute-workload-monitor = {
+        description = "Autonomous compute workload monitor and resource manager";
         after = ["nvidia-persistence-mode.service" "network.target"];
         wantedBy = ["multi-user.target"];
         path = with pkgs; [
@@ -487,17 +487,18 @@ in {
         serviceConfig = {
           Type = "simple";
           Environment = "PATH=${lib.makeBinPath (with pkgs; [procps systemd])}:/run/current-system/sw/bin";
-          ExecStart = "${pkgs.writeShellScriptBin "gpu-workload-monitor" ''
+          ExecStart = "${pkgs.writeShellScriptBin "compute-workload-monitor" ''
             # Autonomous GPU Workload Monitor
             # Detects workload type and adjusts GPU profiles automatically
             # Manages mining pauses when AI/Gaming workloads detected
 
             set -euo pipefail
 
-            LOG_FILE="/var/log/gpu-workload-monitor.log"
+            LOG_FILE="/var/log/compute-workload-monitor.log"
             MINING_SERVICES=("lolminer-nvidia" "xmrig")
-            AI_PROCESSES=("lmstudio" "ollama" "python.*llm" "ai-inference-gateway")
+            AI_PROCESSES=("lmstudio" "ollama "python.*llm" "ai-inference-gateway")
             GAMING_PROCESSES=("steam" "lutris" "heroic" "wine" "proton")
+            BUILD_PROCESSES=("nixos-rebuild" "colmena" "nix-build" "gcc" "clang" "cargo build" "make" "cmake" "ninja")
 
             log() {
                 echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
@@ -509,7 +510,7 @@ in {
             }
 
             get_workload_type() {
-                # Priority: Gaming > AI > Mining > Idle
+                # Priority: Gaming > AI > Builds > Mining > Idle
 
                 # Check for gaming
                 for proc in "''${GAMING_PROCESSES[@]}"; do
@@ -523,6 +524,14 @@ in {
                 for proc in "''${AI_PROCESSES[@]}"; do
                     if check_process_running "$proc"; then
                         echo "ai"
+                        return
+                    fi
+                done
+
+                # Check for build processes
+                for proc in "''${BUILD_PROCESSES[@]}"; do
+                    if check_process_running "$proc"; then
+                        echo "builds"
                         return
                     fi
                 done
@@ -553,6 +562,73 @@ in {
             # Helper to safely apply nvidia-smi command
             nvidia_safe() {
                 "$@" 2>/dev/null || true
+            }
+
+            # Host-specific mining policies
+            get_hostname() {
+                hostname
+            }
+
+            get_xmrig_gaming_threads() {
+                local host=$(get_hostname)
+                case "$host" in
+                    nexus)  echo "4" ;;   # 17% of 24 threads
+                    sentry) echo "4" ;;   # 25% of 16 threads
+                    *)      echo "4" ;;   # Conservative default
+                esac
+            }
+
+            get_xmrig_idle_threads() {
+                local host=$(get_hostname)
+                case "$host" in
+                    nexus)  echo "12" ;;  # 50% of 24 threads
+                    sentry) echo "8" ;;   # 50% of 16 threads
+                    *)      echo "8" ;;   # Conservative default
+                esac
+            }
+
+            reduce_xmrig_threads() {
+                local target_threads=$1
+                log "Reducing XMRig threads to $target_threads"
+
+                # Get current XMRig PID
+                local xmrig_pid=$(pgrep -f "xmrig.*--threads" | head -1)
+                if [ -z "$xmrig_pid" ]; then
+                    log "No XMRig process found"
+                    return 1
+                fi
+
+                # Reduce effective threads using CPU affinity
+                # This limits which cores XMRig can use without restarting
+                local cores_to_use=$target_threads
+                taskset -cp "$xmrig_pid" "0-$((cores_to_use - 1))" 2>/dev/null
+                log "Set XMRig (PID $xmrig_pid) CPU affinity to cores 0-$((cores_to_use - 1))"
+            }
+
+            reset_xmrig_threads() {
+                local target_threads=$1
+                log "Resetting XMRig threads to $target_threads"
+
+                local xmrig_pid=$(pgrep -f "xmrig.*--threads" | head -1)
+                if [ -z "$xmrig_pid" ]; then
+                    log "No XMRig process found"
+                    return 1
+                fi
+
+                # Reset to use all available cores
+                taskset -cp "$xmrig_pid" 0-FFFFFFFF 2>/dev/null
+                log "Reset XMRig (PID $xmrig_pid) CPU affinity to all cores"
+            }
+
+            pause_xmrig() {
+                log "Pausing XMRig completely"
+                systemctl stop xmrig
+            }
+
+            resume_xmrig() {
+                local threads=$1
+                log "Resuming XMRig with $threads threads"
+                systemctl start xmrig
             }
 
             apply_gaming_profile() {
@@ -599,13 +675,17 @@ in {
 
                 echo "GAMING profile applied: Mode: Maximum performance"
 
-                # Pause all mining if running
-                for service in "''${MINING_SERVICES[@]}"; do
-                    if systemctl is-active --quiet "$service"; then
-                        log "Pausing $service for gaming"
-                        systemctl stop "$service"
-                    fi
-                done
+                # Pause GPU mining
+                if systemctl is-active --quiet lolminer-nvidia; then
+                    log "Pausing lolminer-nvidia for gaming"
+                    systemctl stop lolminer-nvidia
+                fi
+
+                # Reduce CPU mining threads
+                if systemctl is-active --quiet xmrig; then
+                    local gaming_threads=$(get_xmrig_gaming_threads)
+                    reduce_xmrig_threads "$gaming_threads"
+                fi
             }
 
             apply_ai_profile() {
@@ -652,13 +732,44 @@ in {
 
                 echo "AI INFERENCE profile applied: Mode: Balanced performance with thermal safety"
 
-                # Pause all mining if running
-                for service in "''${MINING_SERVICES[@]}"; do
-                    if systemctl is-active --quiet "$service"; then
-                        log "Pausing $service for AI inference"
-                        systemctl stop "$service"
-                    fi
-                done
+                # Pause GPU mining
+                if systemctl is-active --quiet lolminer-nvidia; then
+                    log "Pausing lolminer-nvidia for AI inference"
+                    systemctl stop lolminer-nvidia
+                fi
+
+                # Reset CPU mining to full threads (GPU is bottleneck, not CPU)
+                if systemctl is-active --quiet xmrig; then
+                    log "Resetting XMRig to full threads for AI workload (GPU is bottleneck)"
+                    reset_xmrig_threads $(get_xmrig_idle_threads)
+                fi
+            }
+
+            apply_builds_profile() {
+                echo "=== Applying GPU/CPU BUILDS profile ==="
+
+                local gpus=$(get_gpu_list)
+                local gpu_count=$(echo "$gpus" | wc -l)
+
+                if [ "$gpu_count" -eq 0 ]; then
+                    echo "WARNING: No NVIDIA GPUs detected"
+                else
+                    echo "Detected $gpu_count GPU(s) for builds profile"
+                fi
+
+                # Pause GPU mining - builds may need GPU for compilation/heavy workloads
+                if systemctl is-active --quiet lolminer-nvidia; then
+                    log "Pausing lolminer-nvidia for builds"
+                    systemctl stop lolminer-nvidia
+                fi
+
+                # Pause CPU mining completely - builds need 100% CPU
+                if systemctl is-active --quiet xmrig; then
+                    log "Pausing xmrig for builds (need 100% CPU)"
+                    systemctl stop xmrig
+                fi
+
+                echo "BUILDS profile applied: Mode: Maximum CPU availability"
             }
 
             apply_mining_profile() {
@@ -705,13 +816,18 @@ in {
 
                 echo "MINING profile applied: Mode: Efficiency-optimized"
 
-                # Start mining services if not already running
-                for service in "''${MINING_SERVICES[@]}"; do
-                    if ! systemctl is-active --quiet "$service"; then
-                        log "Starting $service (no other workloads detected)"
-                        systemctl start "$service"
-                    fi
-                done
+                # Start GPU mining if not running
+                if ! systemctl is-active --quiet lolminer-nvidia; then
+                    log "Starting lolminer-nvidia (no other workloads detected)"
+                    systemctl start lolminer-nvidia
+                fi
+
+                # Ensure CPU mining has full threads
+                if systemctl is-active --quiet xmrig; then
+                    local idle_threads=$(get_xmrig_idle_threads)
+                    log "Ensuring XMRig has full threads ($idle_threads) for mining"
+                    reset_xmrig_threads "$idle_threads"
+                fi
             }
 
             apply_idle_profile() {
@@ -763,32 +879,21 @@ in {
                 case "$profile" in
                     gaming)
                         apply_gaming_profile
-                        # Pause mining if running
-                        if systemctl is-active --quiet "$MINING_SERVICE"; then
-                            log "Pausing mining for gaming"
-                            systemctl stop "$MINING_SERVICE"
-                        fi
                         ;;
                     ai)
                         apply_ai_profile
-                        # Pause mining if running
-                        if systemctl is-active --quiet "$MINING_SERVICE"; then
-                            log "Pausing mining for AI inference"
-                            systemctl stop "$MINING_SERVICE"
-                        fi
+                        ;;
+                    builds)
+                        apply_builds_profile
                         ;;
                     mining)
                         apply_mining_profile
-                        # Start mining if not running
-                        if ! systemctl is-active --quiet "$MINING_SERVICE"; then
-                            log "Starting mining (no other workloads detected)"
-                            systemctl start "$MINING_SERVICE"
-                        fi
                         ;;
                     idle)
                         apply_idle_profile
-                        # Don't auto-start mining, stay idle
-                        log "System idle, GPUs in adaptive mode"
+                        ;;
+                    *)
+                        log "Unknown profile: $profile"
                         ;;
                 esac
             }
@@ -810,7 +915,7 @@ in {
 
                 sleep "$CHECK_INTERVAL"
             done
-          ''}/bin/gpu-workload-monitor";
+          ''}/bin/compute-workload-monitor";
           Restart = "on-failure";
           RestartSec = "10s";
           # Allow access to nvidia-smi and systemd

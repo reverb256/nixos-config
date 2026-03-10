@@ -112,10 +112,11 @@
     # MINING (CPU only - 8 threads = 50% of 16 cores)
     # Uses defaults from mining.nix for pool URLs and wallet format
     # Note: profiles.role.mining enables services.mining automatically
+    # autostart=false - compute-workload-monitor controls when to start
     mining = {
       xmrig = {
         enable = true;
-        autostart = true;
+        autostart = false;
         threads = 8;
       };
       lolminer.enable = false;

@@ -64,7 +64,7 @@ apply_profile() {
     case "$profile" in
         gaming)
             /etc/nixos/scripts/gpu-profiles/gaming.sh
-            # Pause all mining if running
+            # Pause GPU mining, reduce CPU mining threads
             for service in "${MINING_SERVICES[@]}"; do
                 if systemctl is-active --quiet "$service"; then
                     log "Pausing $service for gaming"
@@ -78,6 +78,15 @@ apply_profile() {
             for service in "${MINING_SERVICES[@]}"; do
                 if systemctl is-active --quiet "$service"; then
                     log "Pausing $service for AI inference"
+                    systemctl stop "$service"
+                fi
+            done
+            ;;
+        builds)
+            # Pause all mining - builds need 100% CPU
+            for service in "${MINING_SERVICES[@]}"; do
+                if systemctl is-active --quiet "$service"; then
+                    log "Pausing $service for builds"
                     systemctl stop "$service"
                 fi
             done
