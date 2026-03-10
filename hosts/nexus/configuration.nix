@@ -212,15 +212,8 @@
         autostart = true;
         threads = 12;
       };
-      lolminer = {
-        enable = true;
-        nvidia = {
-          enable = true;
-          autostart = true;
-          devices = "0";
-          # No powerLimit here - let gpu-workload-monitor manage dynamically
-        };
-      };
+      # DISABLED: NVIDIA driver/library version mismatch on Nexus
+      # lolminer.enable = false;  # CPU mining only until NVIDIA drivers are fixed
     };
 
     # MCP servers
