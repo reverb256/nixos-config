@@ -50,7 +50,7 @@
         ipv4 = {
           method = "manual";
           address1 = "10.1.1.130/24";
-          gateway = "10.1.1.1";
+          # NO GATEWAY - WiFi hotspot provides internet
           dns = "127.0.0.1,::1";
         };
       };
@@ -132,6 +132,9 @@
       amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
       monitoring.enable = true; # Hardware monitoring
     };
+
+    # BTRFS compression and deduplication
+    btrfs-compression.enable = true;
 
     # Hardware monitoring (lm-sensors for CPU/motherboard temps)
     monitoring = {

@@ -50,7 +50,7 @@
         ipv4 = {
           method = "manual";
           address1 = "10.1.1.120/24";
-          gateway = "10.1.1.1";
+          # NO GATEWAY - WiFi hotspot provides internet
           dns = "127.0.0.1,::1";
         };
         ipv6.method = "auto";
@@ -81,11 +81,22 @@
       monitoring.enable = true; # Hardware monitoring
     };
 
+    # BTRFS compression and deduplication
+    btrfs-compression.enable = true;
+
     # Hardware monitoring extras (not covered by profile)
     monitoring = {
       autoDetect = true; # Auto-detect sensor chips
       fanControl = false; # BIOS fan control for now
     };
+  };
+
+  # ============================================================================
+  # FILESYSTEM COMPRESSION - Enable zstd:3 on all BTRFS filesystems
+  # ============================================================================
+  fileSystems = {
+    "/".options = lib.mkOptionDefault ["compress=zstd:3" "ssd" "discard=async"];
+    "/home".options = lib.mkOptionDefault ["compress=zstd:3" "ssd" "discard=async"];
   };
 
   # ============================================================================
@@ -100,38 +111,38 @@
     "/data/worn" = {
       device = "/dev/disk/by-uuid/2056c7e4-cd6c-4a67-9b3d-001178a70eaa";
       fsType = "btrfs";
-      options = ["compress=zstd" "ssd" "discard=async"];
+      options = ["compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
     };
 
     # Mount nexus-storage subvolumes (large bcache device)
     "/data/home" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
-      options = ["subvol=home" "compress=zstd" "ssd" "discard=async"];
+      options = ["subvol=home" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
     };
 
     "/data/shared" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
-      options = ["subvol=shared" "compress=zstd" "ssd" "discard=async"];
+      options = ["subvol=shared" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
     };
 
     "/data/backups" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
-      options = ["subvol=backups" "compress=zstd" "ssd" "discard=async"];
+      options = ["subvol=backups" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
     };
 
     "/data/media" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
-      options = ["subvol=media" "compress=zstd" "ssd" "discard=async"];
+      options = ["subvol=media" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
     };
 
     "/var/lib/containers" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
-      options = ["subvol=containers" "compress=zstd" "ssd" "discard=async"];
+      options = ["subvol=containers" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
     };
   };
 

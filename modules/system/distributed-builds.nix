@@ -21,7 +21,7 @@
   # ============================================================================
   nix = {
     # Enabled: Distributed builds across the cluster
-    distributedBuilds = true;
+    distributedBuilds = lib.mkDefault true;
 
     # Build machines configuration (K8s-aware v3 with CPU microarchitecture tuning)
     # REFERENCE: /etc/nixos/machines.nix (Colmena machinesFile)
@@ -84,6 +84,9 @@
 
     # Settings for distributed builds
     settings = {
+      # Note: buildMachines automatically configures builders via /etc/nix/machines
+      # The ssh-ng protocol is used for efficient remote builds
+
       # Use substituters on remote builders (download from cache instead of copying)
       builders-use-substitutes = true;
 
@@ -91,13 +94,13 @@
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
-        "https://cache.nixos-cuda.org" # CUDA packages (official mirror)
+        # "https://cache.nixos-cuda.org" # TEMPORARILY DISABLED - connectivity issues
         "https://nix-gaming.cachix.org"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-        "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+        # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
         "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
       ];
 

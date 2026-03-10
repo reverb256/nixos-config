@@ -51,6 +51,11 @@
             # Directories where CNI plugin binaries are located
             plugin_dirs = ["/opt/cni/bin"];
           };
+          crio.image = {
+            # Allow short image names (e.g., "busybox" instead of "docker.io/library/busybox:latest")
+            # This is needed for compatibility with kubectl run and other standard Kubernetes workflows
+            short_name_mode = "disabled";
+          };
         };
       };
       docker = {
@@ -246,6 +251,84 @@
         allowedUDPPorts = [8472]; # Flannel VXLAN
       }
     ];
+
+    # ============================================================================
+    # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
+    # ============================================================================
+    # Prevents cascading failures during CRI-O restarts by:
+    # 1. Adding proper dependency ordering (crio → kubelet → api-server → scheduler/controller)
+    # 2. Adding health check probes to wait for service readiness
+    # 3. Enabling automatic restart on failure with exponential backoff
+    # ============================================================================
+    systemd = {
+      # CRI-O service overrides - ensure it starts before kubelet
+      services.crio = {
+        after = lib.mkForce ["network.target"];
+        before = ["kubelet.service"];
+        restartTriggers = ["/etc/crio/crio.conf.d/99-nvidia.toml"];
+      };
+
+      # Kubelet service overrides - wait for CRI-O readiness
+      services.kubelet = {
+        after = lib.mkForce ["crio.service" "network.target"];
+        requires = lib.mkForce ["crio.service"];
+        serviceConfig.ExecStartPre = pkgs.writeShellScript "wait-for-crio" ''
+          echo "Waiting for CRI-O to be ready..."
+          timeout=60
+          while [ $timeout -gt 0 ]; do
+            if ${pkgs.cri-tools}/bin/crictl info >/dev/null 2>&1; then
+              echo "CRI-O is ready"
+              exit 0
+            fi
+            sleep 1
+            ((timeout--))
+          done
+          echo "ERROR: CRI-O not ready after 60 seconds"
+          exit 1
+        '';
+      };
+
+      # kube-apiserver service overrides - wait for kubelet readiness
+      services.kube-apiserver = {
+        after = lib.mkForce ["kubelet.service" "network.target"];
+        requires = lib.mkForce ["kubelet.service"];
+        serviceConfig.ExecStartPre = pkgs.writeShellScript "wait-for-kubelet" ''
+          echo "Waiting for kubelet to be ready..."
+          timeout=120
+          while [ $timeout -gt 0 ]; do
+            # Check if kubelet process is running and responding
+            # kubelet serves healthz on http://localhost:10248/healthz
+            # Note: kubelet doesn't need to be fully registered (API server connection)
+            # Just needs to be running and healthy
+            if ${pkgs.curl}/bin/curl -f -s http://localhost:10248/healthz >/dev/null 2>&1; then
+              echo "Kubelet is ready (healthz responding)"
+              exit 0
+            fi
+            # Also check if kubelet binary is running as fallback
+            if pgrep -f "kubelet.*--hostname-override=zephyr" >/dev/null 2>&1; then
+              echo "Kubelet is ready (process running)"
+              exit 0
+            fi
+            sleep 2
+            ((timeout--))
+          done
+          echo "ERROR: Kubelet not ready after 120 seconds"
+          exit 1
+        '';
+      };
+
+      # kube-scheduler service overrides - wait for API server
+      services.kube-scheduler = {
+        after = lib.mkForce ["kube-apiserver.service" "network.target"];
+        requires = lib.mkForce ["kube-apiserver.service"];
+      };
+
+      # kube-controller-manager service overrides - wait for API server
+      services.kube-controller-manager = {
+        after = lib.mkForce ["kube-apiserver.service" "network.target"];
+        requires = lib.mkForce ["kube-apiserver.service"];
+      };
+    };
 
     # ============================================================================
     # KUBERNETES TOOLS

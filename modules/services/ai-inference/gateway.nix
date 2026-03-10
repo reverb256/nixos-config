@@ -163,6 +163,7 @@ in {
           [
             "/tmp"
             "/var/cache/ai-inference"
+            "/run/gpu-scheduler"
           ]
           ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
           ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
@@ -184,9 +185,10 @@ in {
     };
     users.groups.ai-inference = {};
 
-    # Create cache directory
+    # Create cache directory and GPU scheduler communication directory
     systemd.tmpfiles.rules = [
       "d /var/cache/ai-inference 0755 ai-inference ai-inference - -"
+      "d /run/gpu-scheduler 0755 ai-inference ai-inference - -"
     ];
   };
 }

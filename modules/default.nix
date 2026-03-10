@@ -26,6 +26,7 @@
     ./system/cluster-storage.nix
     ./system/security-hardening.nix
     ./system/btrfs-compression.nix
+    ./system/compute-workload-monitor.nix
 
     # Security
     ./security/pam-vaultwarden.nix
