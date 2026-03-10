@@ -360,6 +360,29 @@ in {
       "d ${cfg.synapseIntegration.dataDir}/project-artifacts 0755 nextcloud nextcloud -"
     ];
 
+    # Systemd service security hardening for Nextcloud services
+    systemd.services.nextcloud-setup = {
+      serviceConfig = {
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        RestrictRealtime = true;
+        RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+      };
+    };
+
+    systemd.services."php-fpm-nextcloud" = {
+      serviceConfig = {
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        RestrictRealtime = true;
+        RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+      };
+    };
+
     # Environment configuration
     environment = {
       # Helper scripts

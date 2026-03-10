@@ -234,6 +234,37 @@ in {
             ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-web";
             Restart = "always";
             RestartSec = "10s";
+            # Security hardening
+            NoNewPrivileges = true;
+            PrivateTmp = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            RestrictRealtime = true;
+            RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+          };
+        };
+
+        # GLITCHTIP WORKER CONTAINER (for background task processing)
+        glitchtip-worker = {
+          description = "GlitchTip background task worker";
+          after = [
+            "glitchtip-postgres.service"
+            "glitchtip-redis.service"
+          ];
+          wantedBy = ["multi-user.target"];
+          partOf = ["glitchtip-pod.service"];
+          serviceConfig = {
+            ExecStart = "${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-worker --pod glitchtip ${glitchtipImage} manage process_events";
+            ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-worker";
+            Restart = "always";
+            RestartSec = "10s";
+            # Security hardening
+            NoNewPrivileges = true;
+            PrivateTmp = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            RestrictRealtime = true;
+            RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
           };
         };
       };

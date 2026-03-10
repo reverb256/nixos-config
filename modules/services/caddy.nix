@@ -88,5 +88,20 @@
     # Open firewall ports for Caddy
     networking.firewall.allowedTCPPorts = [80 443];
     networking.firewall.allowedUDPPorts = [443]; # HTTP/3
+
+    # Systemd service security hardening
+    systemd.services.caddy = {
+      serviceConfig = {
+        # Security hardening
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        RestrictRealtime = true;
+        RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6" "AF_NETLINK"];
+        # Caddy needs network access
+        AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+      };
+    };
   };
 }
