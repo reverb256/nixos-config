@@ -41,13 +41,18 @@ with lib; let
   };
 
   # NVIDIA GPU power limit script
-  nvidiaGpuPowerLimitScript = pkgs.writeShellScript "nvidia-gpu-power-limit" ''
+  nvidiaGpuPowerLimitScript = pkgs.writeShellScript "nvidia-gpu-power-limit" (''
     PATH=/run/current-system/sw/bin:$PATH
-    echo "Setting NVIDIA GPU power limit to ${toString cfg.lolminer.nvidia.powerLimit}W..."
-    nvidia-smi -pm 1 || true
-    nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
-    echo "NVIDIA GPU power limit set successfully"
-  '';
+    '' + lib.optionalString (cfg.lolminer.nvidia.powerLimit != null) ''
+      echo "Setting NVIDIA GPU power limit to ${toString cfg.lolminer.nvidia.powerLimit}W..."
+      nvidia-smi -pm 1 || true
+      nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit} || true
+      echo "NVIDIA GPU power limit set successfully"
+    '' + lib.optionalString (cfg.lolminer.nvidia.powerLimit == null) ''
+      echo "NVIDIA GPU power limit not configured - letting gpu-workload-monitor manage dynamically"
+      nvidia-smi -pm 1 || true  # Enable persistence mode but don't set limit
+    '' + ''
+  '');
 
   # XMRig wrapper script - reads API token and passes to xmrig
   xmrigWrapperScript = pkgs.writeShellScript "xmrig-wrapper" ''
@@ -99,8 +104,9 @@ in {
           default = "0";
         };
         powerLimit = mkOption {
-          type = types.int;
-          default = 90;
+          type = types.nullOr types.int;
+          default = null;  # Let gpu-workload-monitor manage power dynamically
+          description = "GPU power limit in watts. Null = let gpu-workload-monitor manage dynamically";
         };
         apiPort = mkOption {
           type = types.int;
@@ -120,8 +126,9 @@ in {
           default = "1";
         };
         powerLimit = mkOption {
-          type = types.int;
-          default = 140;
+          type = types.nullOr types.int;
+          default = null;  # Let gpu-workload-monitor manage power dynamically
+          description = "GPU power limit in watts. Null = let gpu-workload-monitor manage dynamically";
         };
         apiPort = mkOption {
           type = types.int;
