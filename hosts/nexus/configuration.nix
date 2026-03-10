@@ -212,8 +212,15 @@
         autostart = true;
         threads = 12;
       };
-      # DISABLED: NVIDIA driver/library version mismatch on Nexus
-      # lolminer.enable = false;  # CPU mining only until NVIDIA drivers are fixed
+      
+      # NVIDIA GPU mining (RTX 3060 Ti @ 130W)
+      lolminer.nvidia = {
+        enable = true;
+        autostart = true;
+        devices = "0";
+        powerLimit = 130; # 130W for optimal efficiency
+        apiPort = 4068;
+      };
     };
 
     # MCP servers
