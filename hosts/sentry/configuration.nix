@@ -134,6 +134,20 @@
     };
   };
 
+  # ============================================================================
+  # BOOTLOADER CONFIGURATION
+  # ============================================================================
+  # Moved from hardware-configuration.nix for centralized config
+  boot.loader = {
+    systemd-boot = {
+      enable = true;
+    };
+    efi = {
+      canTouchEfiVariables = true;
+    };
+    timeout = lib.mkDefault 5;
+  };
+
   # Environment configuration
   environment = {
     # ROCm SETUP (for AMD GPU monitoring)
