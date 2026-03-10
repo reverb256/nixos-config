@@ -6,15 +6,19 @@
 
   # SERVICES CONFIGURATION
   services = {
-    # Monitoring exporters
+    # Monitoring stack
     monitoring = {
-      # Node exporter for system metrics
-      node-exporter.enable = true;
+      # Core monitoring services
+      prometheus.enable = true;
+      grafana.enable = true;
+      alertmanager.enable = true;
+      loki.enable = true;
 
-      # SMART exporter for disk health monitoring
+      # Metrics exporters
+      node-exporter.enable = true;
       smart-exporter.enable = true;
 
-      # Promtail - ship logs to Loki on zephyr
+      # Log aggregation
       promtail.enable = true;
       promtail.lokiUrl = "http://100.81.182.5:3100"; # Zephyr's Tailscale IP
     };
