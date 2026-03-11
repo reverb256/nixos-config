@@ -29,6 +29,7 @@
     ./system/security-hardening.nix
     ./system/btrfs-compression.nix
     ./system/compute-workload-monitor.nix
+    ./system/nixos-rebuild-wrapper.nix
 
     # Security
     ./security/pam-vaultwarden.nix
