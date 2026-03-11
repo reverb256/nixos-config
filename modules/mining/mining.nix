@@ -280,6 +280,15 @@ in
     };
 
     systemd = {
+      targets.mining = {
+        description = "All mining services";
+        wants =
+          (optional cfg.lolminer.nvidia.enable "lolminer-nvidia.service") ++
+          (optional cfg.lolminer.amd.enable "lolminer-amd.service") ++
+          (optional cfg.xmrig.enable "xmrig.service");
+        after = [ "network-online.target" ];
+      };
+
       services = {
         # NVIDIA GPU power limit service (runs before lolminer)
         nvidia-gpu-power-limit = mkIf cfg.lolminer.nvidia.enable {
