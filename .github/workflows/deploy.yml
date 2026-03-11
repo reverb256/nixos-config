@@ -36,78 +36,74 @@ jobs:
 
       - name: Pause mining
         run: |
-          sudo systemctl stop xmrig@* || true
-          sudo systemctl stop lolminer-* || true
+          sudo systemctl stop mining.target
 
       - name: Deploy to hosts
         run: |
-          # NFS-based deployment: config is already on hosts via NFS mount
-          # Just need to SSH and run nixos-rebuild on each target
-          
-          rebuild_host() {
-            local host=$1
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "Deploying to $host..."
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            
-            if [ "$host" = "zephyr" ]; then
-              # Local deployment
-              if ! sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos#zephyr 2>&1 | tee /tmp/deploy-$host.log; then
-                echo "ERROR: Deployment failed for $host"
-                cat /tmp/deploy-$host.log
-                return 1
-              fi
-            else
-              # Remote deployment (config already mounted via NFS)
-              if ! ssh $host "sudo nixos-rebuild switch --flake /etc/nixos#$host" 2>&1 | tee /tmp/deploy-$host.log; then
-                echo "ERROR: Deployment failed for $host"
-                cat /tmp/deploy-$host.log
-                return 1
+          # Colmena-based deployment with dependency management and rollback
+          cd /etc/nixos
+
+          # Signal GPU scheduler (for GPU nodes: zephyr, nexus, forge)
+          signal_gpu_scheduler() {
+            local state=$1
+            local host=$2
+            if [ "$host" = "zephyr" ] || [ "$host" = "nexus" ] || [ "$host" = "forge" ]; then
+              if [ "$host" = "zephyr" ]; then
+                echo "$state" | sudo tee /run/gpu-scheduler/ai-state > /dev/null
+              else
+                ssh $host "echo '$state' | sudo tee /run/gpu-scheduler/ai-state > /dev/null"
               fi
             fi
-            
-            echo "✓ Successfully deployed to $host"
           }
-          
-          # Track failures
-          FAILED_HOSTS=()
-          
-          if [ "${{ github.event.inputs.target }}" = "zephyr" ]; then
-            rebuild_host "zephyr" || FAILED_HOSTS+=("zephyr")
-          elif [ "${{ github.event.inputs.target }}" = "nexus" ]; then
-            rebuild_host "nexus" || FAILED_HOSTS+=("nexus")
-          elif [ "${{ github.event.inputs.target }}" = "forge" ]; then
-            rebuild_host "forge" || FAILED_HOSTS+=("forge")
-          elif [ "${{ github.event.inputs.target }}" = "sentry" ]; then
-            rebuild_host "sentry" || FAILED_HOSTS+=("sentry")
+
+          # Build Colmena command with target selection
+          if [ "${{ github.event.inputs.target }}" != "all" ] && [ -n "${{ github.event.inputs.target }}" ]; then
+            COLMENA_TARGET="--on ${{ github.event.inputs.target }}"
           else
-            # Deploy to all hosts (continue on error to report all failures)
-            for host in zephyr nexus forge sentry; do
-              rebuild_host "$host" || FAILED_HOSTS+=("$host")
-            done
+            COLMENA_TARGET=""
           fi
-          
-          # Exit with error if any deployments failed
-          if [ ${#FAILED_HOSTS[@]} -gt 0 ]; then
+
+          # Signal deployment start for GPU nodes
+          if [ -z "$COLMENA_TARGET" ]; then
+            for host in zephyr nexus forge; do
+              signal_gpu_scheduler "DEPLOY_IN_PROGRESS" "$host"
+            done
+          else
+            signal_gpu_scheduler "DEPLOY_IN_PROGRESS" "${{ github.event.inputs.target }}"
+          fi
+
+          # Deploy using Colmena
+          if ! nix run .#apps.x86_64-linux.colmena -- apply $COLMENA_TARGET 2>&1 | tee /tmp/deploy-colmena.log; then
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "ERROR: Deployment failed for: ${FAILED_HOSTS[*]}"
+            echo "ERROR: Colmena deployment failed"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            cat /tmp/deploy-colmena.log
             exit 1
           fi
+
+          # Signal deployment complete for GPU nodes
+          if [ -z "$COLMENA_TARGET" ]; then
+            for host in zephyr nexus forge; do
+              signal_gpu_scheduler "IDLE" "$host"
+            done
+          else
+            signal_gpu_scheduler "IDLE" "${{ github.event.inputs.target }}"
+          fi
+
+          echo "✓ Successfully deployed using Colmena"
 
       - name: Resume mining
         if: always()
         run: |
-          sudo systemctl start xmrig@* || true
-          sudo systemctl start lolminer-* || true
+          sudo systemctl start mining.target
 
       - name: Health check
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Running health checks..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          
+
           for host in zephyr nexus forge sentry; do
             echo "Checking $host..."
             if [ "$host" = "zephyr" ]; then
