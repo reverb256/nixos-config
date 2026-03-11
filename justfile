@@ -226,7 +226,72 @@ cluster-status:
     echo ""
 
 # ──────────────────────────────────────────────────────────────────────────────
-#  CI/CD
+# AI INFERENCE
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Auto-update LM Studio models
+models:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    _time; _header "models → auto-update"
+    _info "checking for new models and updating gateway..."
+    nix-shell -p 'with pkgs; pkgs.python3.withPackages (ps: [ps.httpx])' --run 'python3 {{FLAKE_PATH}}/scripts/auto-update-models.py'
+    _done "auto-update complete"
+    _time; echo ""
+
+# List available models
+models-list:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    nix-shell -p 'with pkgs; pkgs.python3.withPackages (ps: [ps.httpx])' --run 'python3 {{FLAKE_PATH}}/scripts/auto-update-models.py --list'
+    echo ""
+
+# Dry-run model update (no changes)
+models-dry-run:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    _time; _header "models → dry-run"
+    nix-shell -p 'with pkgs; pkgs.python3.withPackages (ps: [ps.httpx])' --run 'python3 {{FLAKE_PATH}}/scripts/auto-update-models.py --dry-run'
+    echo ""
+
+# Download missing models (requires huggingface-cli)
+models-download:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    _time; _header "models → download missing"
+    _info "downloading missing models from HuggingFace..."
+    nix-shell -p 'with pkgs; pkgs.python3.withPackages (ps: [ps.httpx])' --run 'python3 {{FLAKE_PATH}}/scripts/auto-update-models.py --download'
+    _done "download complete"
+    _time; echo ""
+
+# Check LM Studio status
+models-status:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    _time; _header "models → status"
+    echo "Checking LM Studio status..."
+    curl -s http://127.0.0.1:1234/v1/models -H "Authorization: Bearer $(cat /run/agenix/lm-studio-api-key 2>/dev/null)" | jq -r '.data | length' | xargs -I {} echo "Loaded models: {}"
+    echo "Gateway models:"
+    curl -s http://127.0.0.1:8080/v1/models 2>/dev/null | jq -r '.data | length' | xargs -I {} echo "Available via gateway: {}"
+    _time; echo ""
+
+# Optimize GPU allocation for models
+models-optimize:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    _time; _header "models → optimize GPU allocation"
+    nix-shell -p 'with pkgs; pkgs.python3.withPackages (ps: [ps.httpx])' --run 'python3 {{FLAKE_PATH}}/scripts/manage-models.py'
+    _done "optimization complete"
+    _time; echo ""
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CI/CD
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Run CI locally (simulate GitHub Actions)
