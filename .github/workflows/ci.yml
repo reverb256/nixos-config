@@ -31,7 +31,7 @@ jobs:
           extraPullNames: nixos-community
 
       - name: Nix flake check
-        run: nix flake check --all-systems
+        run: nix flake check
 
   lint:
     name: Lint Nix
@@ -51,11 +51,9 @@ jobs:
 
       - name: Run statix
         run: nix shell nixpkgs#statix --command statix check .
-        continue-on-error: true
 
       - name: Run deadnix
         run: nix shell nixpkgs#deadnix --command deadnix -f .
-        continue-on-error: true
 
   security:
     name: Security Scan
