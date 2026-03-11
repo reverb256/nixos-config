@@ -74,31 +74,13 @@ is_gpu_node() {
     return 1
 }
 
-# Get current git information
-get_git_info() {
-    local branch commit
-    branch=$(git branch --show-current 2>/dev/null || echo "unknown")
-    commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-    echo "$branch|$commit"
-}
-
 # Write state file
 write_state() {
     local status="$1"
-    local error="${2:-}"
-    local rolled_back="${3:-false}"
-    local gpu_nodes_paused="${4:-false}"
-
-    local git_info
-    git_info=$(get_git_info)
-    local git_branch git_commit
-    IFS='|' read -r git_branch git_commit <<< "$git_info"
+    local gpu_nodes_paused="${2:-false}"
 
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-    local deployed_by
-    deployed_by=$(whoami)
 
     mkdir -p "$STATE_DIR"
 
@@ -108,21 +90,8 @@ write_state() {
         printf '  "host": "%s",\n' "$HOSTNAME"
         printf '  "status": "%s",\n' "$status"
         printf '  "started_at": "%s",\n' "$timestamp"
-        printf '  "deployed_by": "%s",\n' "$deployed_by"
-        printf '  "git_commit": "%s",\n' "$git_commit"
-        printf '  "git_branch": "%s",\n' "$git_branch"
         printf '  "gpu_nodes_paused": %s\n' "$gpu_nodes_paused"
-
-        # Add optional fields
-        if [ -n "$error" ]; then
-            printf ',\n  "error": "%s"' "$error"
-        fi
-
-        if [ "$rolled_back" = "true" ]; then
-            printf ',\n  "rolled_back": true'
-        fi
-
-        printf '\n}\n'
+        printf '}\n'
     } > "$STATE_FILE"
 
     log_info "State written to $STATE_FILE"
@@ -171,22 +140,6 @@ resume_mining() {
     return 0
 }
 
-# Rollback on failure
-rollback_deployment() {
-    log_error "Deployment failed, initiating rollback..."
-    log_info "Using native nixos-rebuild rollback"
-
-    if nixos-rebuild rollback; then
-        log_success "Rollback completed"
-        write_state "rolled_back" "" "true" "false"
-        return 0
-    else
-        log_error "Rollback failed!"
-        write_state "rollback_failed" "rollback command failed" "true" "false"
-        return 1
-    fi
-}
-
 # ============================================================================
 # COMMAND TRANSLATION
 # ============================================================================
@@ -204,7 +157,7 @@ translate_command() {
             echo "colmena build --on $HOSTNAME"
             ;;
         test)
-            echo "colmena apply --on $HOSTNAME --eval-only"
+            echo "colmena eval-only --on $HOSTNAME"
             ;;
         dry-activate)
             echo "colmena apply --on $HOSTNAME --dry-activate"
@@ -291,18 +244,11 @@ main() {
     # Handle result
     if [ $exit_code -eq 0 ]; then
         log_success "✓ Deployment completed successfully"
-        write_state "success" "" "false" "true"
+        write_state "success" "true"
         exit 0
     else
         log_error "✗ Deployment failed (exit code: $exit_code)"
-
-        # Attempt rollback for switch command
-        if [ "$cmd" = "switch" ]; then
-            rollback_deployment
-        else
-            write_state "failed" "command failed with exit code $exit_code" "false" "true"
-        fi
-
+        write_state "failed" "true"
         exit $exit_code
     fi
 }
