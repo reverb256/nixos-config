@@ -12,6 +12,10 @@
       prometheus.enable = true;
       grafana.enable = true;
       alertmanager.enable = true;
+      # Local webhook notifications (no password required)
+      alert-webhook.enable = true;
+      # Email disabled (requires SMTP password)
+      alertmanager.email.enable = false;
       loki.enable = true;
 
       # Metrics exporters

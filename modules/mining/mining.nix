@@ -45,10 +45,24 @@ let
   # NVIDIA GPU power limit script
   nvidiaGpuPowerLimitScript = pkgs.writeShellScript "nvidia-gpu-power-limit" (''
     PATH=/run/current-system/sw/bin:$PATH
-    echo "Setting NVIDIA GPU power limit to ${toString cfg.lolminer.nvidia.powerLimit}W..."
+    echo "Setting NVIDIA GPU power limits..."
     nvidia-smi -pm 1
-    nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit}
-    echo "NVIDIA GPU power limit set successfully"
+    # Set per-GPU power limits if specified, otherwise use global limit
+    ${if cfg.lolminer.nvidia.perGpuPowerLimits != null then ''
+      # Per-GPU power limits
+      ${lib.concatStringsSep "\n" (lib.imap0 (idx: limit: ''
+        echo "Setting GPU ${toString idx} power limit to ${toString limit}W..."
+        nvidia-smi -i ${toString idx} -pl ${toString limit}
+      '') cfg.lolminer.nvidia.perGpuPowerLimits)}
+    '' else if cfg.lolminer.nvidia.powerLimit != null then ''
+      # Global power limit for all GPUs
+      echo "Setting all GPUs to ${toString cfg.lolminer.nvidia.powerLimit}W..."
+      nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit}
+    '' else ''
+      # No power limit set - let gpu-workload-monitor manage
+      echo "No power limit set - letting gpu-workload-monitor manage dynamically"
+    ''}
+    echo "NVIDIA GPU power limits configured successfully"
   '');
 
   # XMRig wrapper script - reads API token and passes to xmrig
@@ -106,6 +120,12 @@ in
           default = null; # Let gpu-workload-monitor manage power dynamically
           description = "GPU power limit in watts. Null = let gpu-workload-monitor manage dynamically";
         };
+        perGpuPowerLimits = mkOption {
+          type = types.nullOr (types.listOf types.int);
+          default = null;
+          example = [130 250];
+          description = "Per-GPU power limits in watts. List index corresponds to GPU ID. Overrides powerLimit if set.";
+        };
         apiPort = mkOption {
           type = types.int;
           default = 4068;
@@ -162,6 +182,11 @@ in
         type = types.path;
         default = "/run/agenix/xmrig-api-token";
         description = "Path to the HTTP API token file (managed by agenix)";
+      };
+      tls = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Whether to use TLS for pool connection. Set to false when using xmrig-proxy.";
       };
     };
   };
@@ -227,7 +252,7 @@ in
             url = cfg.xmrig.pool;
             user = cfg.xmrig.wallet;
             pass = cfg.xmrig.password or "x";
-            tls = true;
+            tls = cfg.xmrig.tls;
             keepalive = true;
             nicehash = false;
           }

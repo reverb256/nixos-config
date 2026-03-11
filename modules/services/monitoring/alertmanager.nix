@@ -22,6 +22,56 @@ in {
       default = "http://127.0.0.1:${toString ports.alertmanager}";
       description = "External URL for AlertManager";
     };
+
+    # Email notification configuration (optional, requires SMTP)
+    email = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable email notifications (requires SMTP password)";
+      };
+
+      smtphost = lib.mkOption {
+        type = lib.types.str;
+        default = "localhost:587";
+        description = "SMTP server address";
+      };
+
+      from = lib.mkOption {
+        type = lib.types.str;
+        default = "alertmanager@localhost";
+        description = "From email address";
+      };
+
+      to = lib.mkOption {
+        type = lib.types.str;
+        default = "admin@reverb256.ca";
+        example = "admin@example.com";
+        description = "Recipient email address for alerts";
+      };
+
+      passwordFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        example = lib.literalExpression "/run/agenix/alertmanager-smtp-password";
+        description = "Path to file containing SMTP password";
+      };
+    };
+
+    # Webhook notification configuration (local, no auth required)
+    webhook = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable local webhook notifications (no password required)";
+      };
+
+      url = lib.mkOption {
+        type = lib.types.str;
+        default = "http://127.0.0.1:9099/alerts";
+        description = "Local webhook URL for alert notifications";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -35,13 +85,17 @@ in {
       # Basic configuration
       configuration = {
         global = {
-          # SMTP not configured - add email config later if needed
-          smtp_smarthost = "localhost:587";
-          smtp_from = "alertmanager@localhost";
+          smtp_smarthost = cfg.email.smtphost;
+          smtp_from = cfg.email.from;
+        } // lib.optionalAttrs cfg.email.enable {
+          smtp_auth_username = cfg.email.from;
+          smtp_auth_password_file = cfg.email.passwordFile;
+          smtp_require_tls = true;
+        } // lib.optionalAttrs (!cfg.email.enable) {
           smtp_require_tls = false;
         };
 
-        # Route all alerts to a default receiver
+        # Route all alerts to default receivers
         route = {
           receiver = "default";
           group_wait = "30s";
@@ -50,18 +104,32 @@ in {
           group_by = ["alertname" "cluster"];
         };
 
-        # Default receiver - currently logs to webhook
-        receivers = [
-          {
+        # Default receiver(s)
+        receivers = let
+          baseReceiver = {
             name = "default";
-            webhook_configs = [
+            # Local webhook (no auth required)
+            webhook_configs = lib.optionals cfg.webhook.enable [
               {
-                url = "http://127.0.0.1:9093/-/alerts";
+                url = cfg.webhook.url;
                 send_resolved = true;
               }
             ];
-          }
-        ];
+          };
+          receiverWithEmail = baseReceiver // {
+            email_configs = [
+              {
+                to = cfg.email.to;
+                from = cfg.email.from;
+                smarthost = cfg.email.smtphost;
+                auth_username = cfg.email.from;
+                auth_password_file = cfg.email.passwordFile;
+                require_tls = true;
+              }
+            ];
+          };
+        in
+          if cfg.email.enable then [receiverWithEmail] else [baseReceiver];
       };
     };
 

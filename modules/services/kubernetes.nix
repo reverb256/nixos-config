@@ -110,21 +110,14 @@
     # Create writable CNI directory for Flannel config and CDI spec
     # Also create /var/lib/flannel for persistent subnet.env file (not on tmpfs)
     # Create symlink from /run/flannel to /var/lib/flannel for CNI plugin compatibility
-    systemd = {
-      tmpfiles.rules = [
-        "d /var/lib/cni/net.d 0755 root root -"
-        # Create symlink from read-only NixOS store to writable directory
-        "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
-        # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
-        "d /var/lib/flannel 0755 root root -"
-        "L+ /run/flannel - - - - /var/lib/flannel"
-      ];
-
-      services = {
-        # containerd handles NVIDIA GPUs via nvidia-container-runtime
-        # No manual CDI spec service needed
-      };
-    };
+    systemd.tmpfiles.rules = [
+      "d /var/lib/cni/net.d 0755 root root -"
+      # Create symlink from read-only NixOS store to writable directory
+      "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
+      # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
+      "d /var/lib/flannel 0755 root root -"
+      "L+ /run/flannel - - - - /var/lib/flannel"
+    ];
 
     # Store the Flannel CNI config
     environment.etc = {
@@ -198,43 +191,35 @@
     # ============================================================================
     # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
     # ============================================================================
-    # Prevents cascading failures during CRI-O restarts by:
-    # 1. Adding proper dependency ordering (crio → kubelet → api-server → scheduler/controller)
-    # 2. Adding health check probes to wait for service readiness
-    # 3. Enabling automatic restart on failure with exponential backoff
-    # ============================================================================
-    systemd = {
-      # containerd service overrides - ensure it starts before kubelet
-      services.containerd = {
-        after = lib.mkForce ["network.target"];
-        before = ["kubelet.service"];
-      };
+    systemd.services.containerd = {
+      after = lib.mkForce ["network.target"];
+      before = ["kubelet.service"];
+    };
 
-      # Kubelet service overrides - wait for containerd readiness
-      services.kubelet = {
-        after = lib.mkForce ["containerd.service" "network.target"];
-        requires = lib.mkForce ["containerd.service"];
-        serviceConfig.ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
-          echo "Waiting for containerd to be ready..."
-          timeout=60
-          while [ $timeout -gt 0 ]; do
-            if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
-              echo "containerd is ready"
-              exit 0
-            fi
-            sleep 1
-            ((timeout--))
-          done
-          echo "ERROR: containerd not ready after 60 seconds"
-          exit 1
-        '';
-      };
+    systemd.services.kubelet = {
+      after = lib.mkForce ["containerd.service" "network.target"];
+      requires = lib.mkForce ["containerd.service"];
+      serviceConfig.ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
+        echo "Waiting for containerd to be ready..."
+        timeout=60
+        while [ $timeout -gt 0 ]; do
+          if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
+            echo "containerd is ready"
+            exit 0
+          fi
+          sleep 1
+          ((timeout--))
+        done
+        echo "ERROR: containerd not ready after 60 seconds"
+        exit 1
+      '';
+    };
 
-      # kube-apiserver service overrides - wait for kubelet readiness
-      services.kube-apiserver = {
-        after = lib.mkForce ["kubelet.service" "network.target"];
-        requires = lib.mkForce ["kubelet.service"];
-        serviceConfig.ExecStartPre = pkgs.writeShellScript "wait-for-kubelet" ''
+    systemd.services.kube-apiserver = {
+      after = lib.mkForce ["kubelet.service" "network.target"];
+      requires = lib.mkForce ["kubelet.service"];
+      serviceConfig = {
+        ExecStartPre = pkgs.writeShellScript "wait-for-kubelet" ''
           echo "Waiting for kubelet to be ready..."
           timeout=120
           while [ $timeout -gt 0 ]; do
@@ -257,19 +242,21 @@
           echo "ERROR: Kubelet not ready after 120 seconds"
           exit 1
         '';
+        # Override upstream ExecStart - we want the actual service to run
+        # ExecStart = lib.mkForce "${pkgs.coreutils}/bin/true";
       };
+    };
 
-      # kube-scheduler service overrides - wait for API server
-      services.kube-scheduler = {
-        after = lib.mkForce ["kube-apiserver.service" "network.target"];
-        requires = lib.mkForce ["kube-apiserver.service"];
-      };
+    systemd.services.kube-scheduler = {
+      after = lib.mkForce ["kube-apiserver.service" "network.target"];
+      requires = lib.mkForce ["kube-apiserver.service"];
+      # Don't override ExecStart - let upstream handle it
+    };
 
-      # kube-controller-manager service overrides - wait for API server
-      services.kube-controller-manager = {
-        after = lib.mkForce ["kube-apiserver.service" "network.target"];
-        requires = lib.mkForce ["kube-apiserver.service"];
-      };
+    systemd.services.kube-controller-manager = {
+      after = lib.mkForce ["kube-apiserver.service" "network.target"];
+      requires = lib.mkForce ["kube-apiserver.service"];
+      # Don't override ExecStart - let upstream handle it
     };
 
     # ============================================================================

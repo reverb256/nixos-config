@@ -24,10 +24,10 @@ in {
       description = "Ensure all cluster storage mounts are active";
       wantedBy = ["multi-user.target"];
       after = ["local-fs.target" "remote-fs.target"];
+      environment.PATH = lib.mkForce (lib.makeBinPath [pkgs.util-linux pkgs.coreutils]);
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        path = [pkgs.util-linux pkgs.coreutils];
         ExecStart = pkgs.writeShellScript "ensure-cluster-storage" ''
           #!/usr/bin/env bash
           set -euo pipefail

@@ -237,14 +237,27 @@ in {
             # Security hardening
             NoNewPrivileges = true;
             PrivateTmp = true;
-            ProtectSystem = "strict";
+            # Use Delegate=true like podman.service for proper container isolation
+            # This allows Podman to manage its own cgroups and filesystem access
+            Delegate = true;
             ProtectHome = true;
             RestrictRealtime = true;
             RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+            # Allow Podman storage access (required for container runtime)
+            ReadWritePaths = [
+              "/var/cache/containers"
+              "/var/lib/containers"
+              "/var/lib/containers/storage"
+              "/var/lib/glitchtip"
+              "/run/containers"
+              "/run/libpod"
+              "/run/lock"
+            ];
           };
         };
 
         # GLITCHTIP WORKER CONTAINER (for background task processing)
+        # Uses Celery for asynchronous task processing
         glitchtip-worker = {
           description = "GlitchTip background task worker";
           after = [
@@ -254,17 +267,29 @@ in {
           wantedBy = ["multi-user.target"];
           partOf = ["glitchtip-pod.service"];
           serviceConfig = {
-            ExecStart = "${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-worker --pod glitchtip ${glitchtipImage} manage process_events";
+            ExecStart = "${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-worker --pod glitchtip -e SERVER_ROLE=worker ${glitchtipImage}";
             ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-worker";
             Restart = "always";
             RestartSec = "10s";
             # Security hardening
             NoNewPrivileges = true;
             PrivateTmp = true;
-            ProtectSystem = "strict";
+            # Use Delegate=true like podman.service for proper container isolation
+            # This allows Podman to manage its own cgroups and filesystem access
+            Delegate = true;
             ProtectHome = true;
             RestrictRealtime = true;
             RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+            # Allow Podman storage access (required for container runtime)
+            ReadWritePaths = [
+              "/var/cache/containers"
+              "/var/lib/containers"
+              "/var/lib/containers/storage"
+              "/var/lib/glitchtip"
+              "/run/containers"
+              "/run/libpod"
+              "/run/lock"
+            ];
           };
         };
       };

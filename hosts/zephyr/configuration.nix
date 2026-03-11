@@ -215,34 +215,77 @@
     # Use mkForce to override gaming module's enable=true
     compute-workload-monitor.enable = lib.mkForce false;
 
-    # XMRig Proxy - Centralized stratum proxy for CPU mining (RandomX)
+    # XMRig Proxy - Centralized stratum proxy for CPU (RandomX) and GPU (CR29) mining
     xmrig-proxy = {
       enable = true;
 
       config = builtins.toJSON {
         pools = [
+          # CPU Mining Pools (RandomX)
           {
             id = "kryptex-rx-primary";
             url = "xtm-rx-us.kryptex.network:8038";
-            user = "krxXVNVMM7.zephyr-proxy";
+            user = "krxXVNVMM7.cpu-proxy";
             pass = "x";
             tls = true;
             keepalive = true;
             priority = 1;
           }
           {
-            id = "f2pool-rx-backup";
-            url = "xmr-us-east1.nano.pool.ru:5555";
-            user = "krxXVNVMM7.zephyr-proxy";
+            id = "kryptex-rx-eu";
+            url = "xtm-rx-eu.kryptex.network:8038";
+            user = "krxXVNVMM7.cpu-proxy";
             pass = "x";
-            tls = false;
+            tls = true;
+            keepalive = true;
+            priority = 2;
+          }
+          # GPU Mining Pools (Cuckaroo29/CR29)
+          {
+            id = "kryptex-cr29-us";
+            url = "xtm-c29-us.kryptex.network:8040";
+            user = "krxXVNVMM7.gpu-proxy";
+            pass = "x";
+            tls = true;
+            keepalive = true;
+            priority = 1;
+          }
+          {
+            id = "kryptex-cr29-eu";
+            url = "xtm-c29-eu.kryptex.network:8040";
+            user = "krxXVNVMM7.gpu-proxy";
+            pass = "x";
+            tls = true;
+            keepalive = true;
             priority = 2;
           }
         ];
 
         workers = [
+          # CPU Workers
           {
             id = "zephyr-cpu";
+            password = "x";
+          }
+          {
+            id = "nexus-cpu";
+            password = "x";
+          }
+          {
+            id = "sentry-cpu";
+            password = "x";
+          }
+          # GPU Workers
+          {
+            id = "zephyr-gpu";
+            password = "x";
+          }
+          {
+            id = "nexus-gpu";
+            password = "x";
+          }
+          {
+            id = "forge-gpu";
             password = "x";
           }
         ];
@@ -439,17 +482,25 @@
       autoUpdate = true;
     };
 
-    # MINING - GPU Mining (RTX 3090)
+    # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
+    mining.lolminer = {
+      pool = "stratum+tcp://zephyr:3333";  # Point to xmrig-proxy
+      wallet = "zephyr-gpu";  # Worker ID for proxy
+    };
+    # NVIDIA GPU mining with per-GPU power limits
+    # Device 0: RTX 3060 Ti @ 130W (efficient), Device 1: RTX 3090 @ 250W (VRAM-safe)
     mining.lolminer.nvidia = {
       enable = true;
-      autostart = false;
-      devices = "1";
-      powerLimit = 250;
+      autostart = true;
+      devices = "0,1";
+      perGpuPowerLimits = [130 250];  # [3060 Ti, 3090] - optimized for efficiency
       apiPort = 4068;
     };
+
+    # CPU mining (16 threads = 50% of 32 cores)
     mining.xmrig = {
       enable = true;
-      autostart = false;
+      autostart = true;
       threads = 16;
       pool = "stratum+tcp://10.1.1.110:3333";  # Point to local proxy
       wallet = "zephyr-cpu";  # Worker ID for proxy
@@ -649,29 +700,29 @@
   # ============================================================================
   # PER-GPU POWER LIMITS (RTX 3090 + 3060 Ti)
   # ============================================================================
-  # RTX 3060 Ti (GPU 0): 130W for efficient mining
+  # RTX 3060 Ti (GPU 0): 100W for efficient mining
   systemd.services."gpu-0-power-limit" = {
-    description = "Set RTX 3060 Ti power limit to 130W";
+    description = "Set RTX 3060 Ti power limit to 100W";
     wantedBy = [ "multi-user.target" ];
     before = [ "lolminer-nvidia.service" ];
     requiredBy = [ "lolminer-nvidia.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 0 -pl 130";
+      ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 0 -pl 100";
     };
   };
 
-  # RTX 3090 (GPU 1): 250W for balanced performance/efficiency
+  # RTX 3090 (GPU 1): 200W for balanced performance/efficiency
   systemd.services."gpu-1-power-limit" = {
-    description = "Set RTX 3090 power limit to 250W";
+    description = "Set RTX 3090 power limit to 200W";
     wantedBy = [ "multi-user.target" ];
     before = [ "lolminer-nvidia.service" ];
     requiredBy = [ "lolminer-nvidia.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 1 -pl 250";
+      ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 1 -pl 200";
     };
   };
 

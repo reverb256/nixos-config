@@ -290,7 +290,8 @@
               log "Reducing XMRig threads to $target_threads"
 
               # Get current XMRig PID
-              local xmrig_pid=$(pgrep -f "xmrig.*--threads" | head -1)
+              local xmrig_pid
+              xmrig_pid=$(pgrep -f "xmrig.*--threads" | head -1) || true
               if [ -z "$xmrig_pid" ]; then
                   log "No XMRig process found"
                   return 1
@@ -299,7 +300,7 @@
               # Reduce effective threads using CPU affinity
               # This limits which cores XMRig can use without restarting
               local cores_to_use=$target_threads
-              taskset -cp "0-$((cores_to_use - 1))" "$xmrig_pid" 2>/dev/null
+              taskset -cp "0-$((cores_to_use - 1))" "$xmrig_pid" 2>/dev/null || true
               log "Set XMRig (PID $xmrig_pid) CPU affinity to cores 0-$((cores_to_use - 1))"
           }
 
@@ -307,14 +308,15 @@
               local target_threads=$1
               log "Resetting XMRig threads to $target_threads"
 
-              local xmrig_pid=$(pgrep -f "xmrig.*--threads" | head -1)
+              local xmrig_pid
+              xmrig_pid=$(pgrep -f "xmrig.*--threads" | head -1) || true
               if [ -z "$xmrig_pid" ]; then
                   log "No XMRig process found"
                   return 1
               fi
 
               # Reset to use all available cores
-              taskset -cp 0xFFFFFFFF "$xmrig_pid" 2>/dev/null
+              taskset -cp "$xmrig_pid" 0-63 2>/dev/null || true
               log "Reset XMRig (PID $xmrig_pid) CPU affinity to all cores"
           }
 

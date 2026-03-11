@@ -1,0 +1,81 @@
+# GPU Miner Deployment for Zephyr (RTX 3060 Ti + RTX 3090)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-zephyr
+  namespace: mining
+  labels:
+    app: gpu-miner
+    host: zephyr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-miner
+      host: zephyr
+  template:
+    metadata:
+      labels:
+        app: gpu-miner
+        host: zephyr
+    spec:
+      nodeName: zephyr  # Pin to Zephyr node
+      hostNetwork: true  # Use host network for stratum connection
+      priorityClassName: low-priority-mining  # Preemptable by AI workloads
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: lolminer
+        image: lolminer:1.98a-nixos
+        imagePullPolicy: Never  # Use local image built by Nix
+        args:
+          - "--algo=CR29"
+          - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
+          - "--user=zephyr-gpu"
+          - "--devices=0,1"  # RTX 3060 Ti (GPU 0) + RTX 3090 (GPU 1)
+          - "--apiport=4068"
+          - "--mode=b"
+          - "--tls=1"
+        ports:
+        - containerPort: 4068
+          name: api
+          protocol: TCP
+        securityContext:
+          privileged: true  # Required for GPU access
+        volumeMounts:
+        - name: nvidia
+          mountPath: /usr/lib/nvidia
+        resources:
+          requests:
+            memory: "4Gi"
+            nvidia.com/gpu: "2"
+          limits:
+            memory: "8Gi"
+            nvidia.com/gpu: "2"
+      volumes:
+      - name: nvidia
+        hostPath:
+          path: /run/current-system/sw/lib/nvidia
+      initContainers:
+      - name: set-gpu-power-limits
+        image: lolminer:1.98a-nixos
+        imagePullPolicy: Never
+        command:
+          - /bin/bash
+          - -c
+          - |
+            # Set per-GPU power limits using host's nvidia-smi
+            echo "Setting GPU power limits..."
+
+            # Use host's nvidia-smi via mount
+            /usr/lib/nvidia/bin/nvidia-smi -i 0 -pm 1 -pl 130  # RTX 3060 Ti
+            /usr/lib/nvidia/bin/nvidia-smi -i 1 -pm 1 -pl 250  # RTX 3090 (VRAM-safe)
+
+            echo "Power limits set successfully"
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: nvidia
+          mountPath: /usr/lib/nvidia

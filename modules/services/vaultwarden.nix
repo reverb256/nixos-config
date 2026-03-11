@@ -83,6 +83,7 @@ in {
             -p ${toString cfg.port}:80 \
             -v ${cfg.dataDir}:/data:Z \
             -e WEBSOCKET_ENABLED=true \
+            # Container-internal bind for websocket support (safe - proxied by Caddy)
             -e WEBSOCKET_ADDRESS=0.0.0.0 \
             -e LOG_LEVEL=info \
             --replace \

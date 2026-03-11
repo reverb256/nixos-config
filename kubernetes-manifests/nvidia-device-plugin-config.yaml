@@ -1,0 +1,31 @@
+# NVIDIA Device Plugin Configuration (CDI Strategy)
+#
+# This ConfigMap configures the NVIDIA device plugin to use CDI
+# (Container Device Interface) for device discovery instead of "auto" strategy.
+#
+# The "auto" strategy is incompatible with CDI-only configurations.
+# Explicitly setting "cdi" strategy allows the plugin to work with your CRI-O + CDI setup.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nvidia-device-plugin-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    version: v1
+    flags:
+      migStrategy: "none"
+      failOnInitError: true
+      deviceDiscoveryStrategy: "cdi"  # Explicit CDI strategy (not "auto")
+      plugin:
+        passDeviceSpecs: false
+        deviceListStrategy: ["envvar"]
+        deviceIDStrategy: "uuid"
+        cdiAnnotationPrefix: "cdi.k8s.io/"
+        nvidiaCTKPath: "/usr/bin/nvidia-ctk"
+        containerDriverRoot: "/driver-root"
+    resources:
+      gpus:
+        - pattern: "*"
+          name: "nvidia.com/gpu"

@@ -1,9 +1,9 @@
-# NixOS Configuration - Entry Point for Zephyr
-# This file imports the modular configuration from hosts/zephyr
-{inputs, ...}: {
+# NixOS Configuration - Multi-Host Entry Point
+# Automatically imports the host-specific configuration based on hostname
+{inputs, config, ...}: {
   imports = [
-    # Import the host-specific configuration
-    ./hosts/zephyr/configuration.nix
+    # Import the host-specific configuration (detected by hostname)
+    ./hosts/${config.networking.hostName}/configuration.nix
 
     # Home Manager
     inputs.home-manager.nixosModules.home-manager

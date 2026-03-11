@@ -9,13 +9,20 @@
 #   - Resumes: Automatically when build processes complete
 #
 # HOST PARTICIPATION (K8s-aware v3):
-#   zephyr: ✅ Enabled (16 cores, 31GB RAM, znver3)  → Control plane, conservative builds
-#   nexus:  ✅ Enabled (12 cores, 46GB RAM, znver2)  → Storage worker, NFS headroom
+#   zephyr: ✅ Enabled (32 cores, 31GB RAM, znver3)  → Control plane, conservative builds
+#   nexus:  ✅ Enabled (24 cores, 46GB RAM, znver2)  → Storage worker, NFS headroom
 #   forge:  ✅ Enabled (6 cores, 15GB RAM, skylake)   → Mixed GPU worker, minimal builds
-#   sentry: ✅ Enabled (8 cores, 31GB RAM, znver1)  → Monitoring worker, light builds
+#   sentry: ✅ Enabled (16 cores, 31GB RAM, znver1)  → Monitoring worker, light builds
 #
 # NETWORK: 1Gbps with 4x TP-Link Easy Smart switches
-{lib, ...}: {
+#
+# SELF-EXCLUSION FIX (2026-03-10):
+#   Each host must NOT list itself as a builder to avoid SSH-to-self loopback
+#   which causes nix-daemon lock contention (multiple daemons competing for same store)
+{lib, config, ...}: let
+  # Current hostname for self-exclusion
+  currentHost = config.networking.hostName or "unknown";
+in {
   # ============================================================================
   # DISTRIBUTED BUILD CONFIGURATION
   # ============================================================================
@@ -27,9 +34,10 @@
     # REFERENCE: /etc/nixos/machines.nix (Colmena machinesFile)
     # NOTE: sshUser defaults to root when running with sudo, must specify j_kro
     # All 4 hosts participate with compute-workload-monitor managing mining pause
-    buildMachines = [
+    # IMPORTANT: Filter out current host to avoid SSH-to-self loopback causing daemon locks
+    buildMachines = lib.filter (m: m.hostName != currentHost) [
       {
-        # Zephyr: 16 cores, Ryzen 9 5950X (znver3)
+        # Zephyr: 32 cores, Ryzen 9 5950X (znver3)
         # Role: K8s control plane + build coordinator + worker
         # K8s-AWARE: Conservative maxJobs (apiserver/etcd need CPU)
         hostName = "zephyr";
@@ -42,7 +50,7 @@
         mandatoryFeatures = [];
       }
       {
-        # Nexus: 12 cores, Ryzen 9 3900X (znver2)
+        # Nexus: 24 cores, Ryzen 9 3900X (znver2)
         # Role: K8s storage worker + NFS server
         # K8s-AWARE: Moderate maxJobs for NFS/PVC I/O headroom
         hostName = "nexus";
@@ -68,7 +76,7 @@
         mandatoryFeatures = [];
       }
       {
-        # Sentry: 8 cores, Ryzen 7 1700 (znver1)
+        # Sentry: 16 cores, Ryzen 7 1700 (znver1)
         # Role: K8s monitoring worker + AMD GPU
         # K8s-AWARE: Light maxJobs - Prometheus/Grafana/Loki need CPU
         hostName = "sentry";
@@ -104,12 +112,20 @@
         "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
       ];
 
-      # Maximum number of parallel build jobs across all machines
-      # Use mkDefault to allow host-specific overrides
-      # RAM-based allocation: 4GB per job
-      # compute-workload-monitor pauses mining during builds, so full capacity available
-      # K8s-AWARE v3 totals: 8 (zephyr) + 6 (nexus) + 2 (forge) + 4 (sentry) = 20 total
-      max-jobs = lib.mkDefault 20;
+      # Maximum number of parallel build jobs (LOCAL builds on this host)
+      # Per-host allocation based on core count and workload:
+      # - Zephyr: 24 of 32 cores (75%) - control plane needs headroom
+      # - Nexus: 18 of 24 cores (75%) - NFS/storage needs headroom
+      # - Sentry: 12 of 16 cores (75%) - monitoring stack needs headroom
+      # - Forge: 4 of 6 cores (67%) - GPU workloads need CPU
+      # compute-workload-monitor pauses mining during builds
+      max-jobs = lib.mkMerge [
+        (lib.mkIf (currentHost == "zephyr") 24)  # 32 cores, K8s control plane
+        (lib.mkIf (currentHost == "nexus") 18)   # 24 cores, NFS/storage
+        (lib.mkIf (currentHost == "sentry") 12)  # 16 cores, monitoring
+        (lib.mkIf (currentHost == "forge") 4)    # 6 cores, GPU workloads
+        (lib.mkDefault 4) # Safe fallback for unknown hosts
+      ];
 
       # Network optimization (1Gbps networking with TP-Link Easy Smart switches)
       http-connections = 100; # More parallel downloads (1Gbps can handle it)

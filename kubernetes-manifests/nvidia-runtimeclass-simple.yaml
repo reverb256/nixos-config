@@ -1,0 +1,19 @@
+# NVIDIA GPU RuntimeClass (Simple - No Node Selector)
+#
+# This RuntimeClass allows pods to explicitly request the nvidia-container-runtime
+# for GPU access, working with CDI (Container Device Interface) configuration.
+#
+# This version does not include node selectors, allowing the scheduler to place
+# GPU pods on any node with the runtime handler available.
+#
+# Usage: Add 'runtimeClassName: nvidia' to your GPU pod specs
+#
+# See: https://kubernetes.io/docs/concepts/containers/runtime-class/
+
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: nvidia
+handler: nvidia
+overhead: null
+# Removed nodeSelector to allow scheduling on any node with nvidia runtime

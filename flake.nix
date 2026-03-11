@@ -66,6 +66,13 @@
     colmena,
     ...
   }: let
+    # System configuration
+    system = "x86_64-linux";
+    pkgs = import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+    };
+
     # ========================================================================
     # COMMON MODULES - Shared across all hosts (single source of truth)
     # ========================================================================
@@ -140,6 +147,72 @@
     # EXISTING OUTPUTS (maintain compatibility)
     # ========================================================================
     packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
+
+    # ========================================================================
+    # CONTAINER IMAGES (for Kubernetes deployment)
+    # ========================================================================
+    packages.x86_64-linux.xmrig-proxy-image = pkgs.dockerTools.buildImage {
+      name = "xmrig-proxy";
+      tag = "nixos-6.24.0";
+
+      copyToRoot = pkgs.buildEnv {
+        name = "xmrig-proxy-root";
+        paths = [
+          pkgs.xmrig-proxy
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.cacert
+        ];
+        pathsToLink = ["/bin" "/etc" "/lib"];
+      };
+
+      config = {
+        Entrypoint = ["/bin/xmrig-proxy"];
+        Cmd = ["--config=/etc/xmrig-proxy/config.json" "--no-color"];
+
+        ExposedPorts = {
+          "3333/tcp" = {}; # Stratum port
+          "8081/tcp" = {}; # API port
+        };
+
+        Env = [
+          "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+          "PATH=/bin"
+        ];
+      };
+    };
+
+    packages.x86_64-linux.lolminer-image = pkgs.dockerTools.buildImage {
+      name = "lolminer";
+      tag = "1.98a-nixos";
+
+      copyToRoot = pkgs.buildEnv {
+        name = "lolminer-root";
+        paths = [
+          pkgs.lolminer
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.cacert
+        ];
+        pathsToLink = ["/bin" "/etc" "/lib"];
+      };
+
+      config = {
+        Entrypoint = ["/bin/lolminer"];
+        Cmd = [];
+
+        ExposedPorts = {
+          "4068/tcp" = {}; # API port
+        };
+
+        Env = [
+          "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+          "PATH=/bin"
+          "GPU_MAX_HEAP_SIZE=100"
+          "GPU_MAX_ALLOC_PERCENT=100"
+        ];
+      };
+    };
 
     overlays.default = import ./overlay.nix;
 

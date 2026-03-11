@@ -55,46 +55,6 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Create a simple health check service
-    systemd.services.health-checker = {
-      description = "Service Health Checker";
-      after = ["network.target"];
-      wantedBy = ["multi-user.target"];
-
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = pkgs.writeShellScript "health-check-initial" ''
-          # Run initial health checks
-          ${pkgs.curl}/bin/curl -f -s http://127.0.0.1:8080/health || echo "AI Gateway: DOWN"
-        '';
-
-        # Create monitoring script for ongoing checks
-        ExecStartPost = pkgs.writeShellScript "health-check-setup" ''
-          # Setup health check scripts
-          mkdir -p /var/lib/health-checks
-        '';
-      };
-
-      # Timer for periodic health checks
-      timers.health-checker = {
-        description = "Periodic Service Health Checks";
-        partOf = ["health-checker.service"];
-        wantedBy = ["timers.target"];
-        timerConfig = {
-          OnCalendar = "*:*:0/5";  # Every 5 minutes
-          Unit = "health-checker.service";
-        };
-      };
-    };
-
-    # Export health check metrics for Prometheus
-    services.prometheus.exporters.textfile = {
-      enable = true;
-      directories = [
-        "/var/lib/node_exporter/textfile_collector/health_checks"
-      ];
-    };
-
     # Health check script for AI Gateway
     environment.etc."health-checks/ai-gateway.sh".text = ''
       #!/bin/sh
@@ -126,5 +86,45 @@ in {
         exit 1
       fi
     '';
+
+    # Create systemd service for health checks
+    systemd.services.health-checker = {
+      description = "Service Health Checker";
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
+
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "health-check-run" ''
+          #!/bin/sh
+          mkdir -p /var/lib/health-checks
+
+          # AI Gateway health check
+          if ${pkgs.curl}/bin/curl -f -s --max-time 5 http://127.0.0.1:8080/health >/dev/null 2>&1; then
+            echo "ai_gateway_health 1" > /var/lib/health-checks/ai-gateway.prom
+          else
+            echo "ai_gateway_health 0" > /var/lib/health-checks/ai-gateway.prom
+          fi
+
+          # Mining Proxy health check
+          if ${pkgs.curl}/bin/curl -f -s --max-time 5 http://127.0.0.1:3334/api/health >/dev/null 2>&1; then
+            echo "mining_proxy_health 1" > /var/lib/health-checks/mining-proxy.prom
+          else
+            echo "mining_proxy_health 0" > /var/lib/health-checks/mining-proxy.prom
+          fi
+        '';
+      };
+    };
+
+    # Timer for periodic health checks
+    systemd.timers.health-checker = {
+      description = "Periodic Service Health Checks";
+      partOf = ["health-checker.service"];
+      wantedBy = ["timers.target"];
+      timerConfig = {
+        OnCalendar = "*:*:0/5";  # Every 5 minutes
+        Unit = "health-checker.service";
+      };
+    };
   };
 }

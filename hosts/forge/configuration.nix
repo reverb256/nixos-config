@@ -102,8 +102,8 @@
       client.enable = true;
     };
 
-    # NVIDIA GPUs (RTX 4060s) - devices 2,3 in combined enumeration
-    # Note: PCI addresses 0f:00.0 and 11:00.0 (devices 2,3 in OpenCL+CUDA list)
+    # NVIDIA GPUs (2x RTX 4060) - devices 2,3 in lolminer's combined enumeration
+    # (AMD GPUs are 0,1, NVIDIA GPUs are 2,3 when both OpenCL and CUDA are available)
     mining.lolminer.nvidia = {
       enable = true;
       autostart = true;
@@ -120,6 +120,40 @@
       devices = "0,1";
       powerLimit = 140;
       apiPort = 4069;
+    };
+
+    # Connect to xmrig-proxy on Zephyr (C++ proxy, won't be blocked by Kryptex)
+    mining.lolminer.pool = "stratum+tcp://zephyr:3333";
+    mining.lolminer.wallet = "forge-gpu";
+
+    # GPU Stratum Proxy with Kryptex pool failover
+    gpu-proxy = {
+      enable = true;
+      listenPort = 3334;
+      apiPort = 8083;
+      logLevel = "INFO";
+      pools = [
+        {
+          name = "Kryptex US";
+          url = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+          wallet = "krxXVNVMM7";
+          password = "x";
+          priority = 1;
+          tls = true;
+        }
+        {
+          name = "Kryptex EU";
+          url = "stratum+tcp://xtm-c29-eu.kryptex.network:8040";
+          wallet = "krxXVNVMM7";
+          password = "x";
+          priority = 2;
+          tls = true;
+        }
+      ];
+      workers = [
+        { id = "forge-gpu"; password = "x"; }
+      ];
+      openFirewall = false;
     };
   };
 
@@ -548,7 +582,9 @@
       description = "Mining Services Slice";
       sliceConfig = {
         CPUAccounting = true;
-        CPUQuota = "95%";
+        # CPU quota managed dynamically by compute-workload-monitor when enabled
+        # Without it, mining can use all available CPU (limited by process-level settings)
+        # CPUQuota = "95%";  # Uncomment to limit CPU to 95% (conflicts with compute-workload-monitor)
         MemoryAccounting = true;
         MemoryHigh = "8G";
         MemoryMax = "12G";

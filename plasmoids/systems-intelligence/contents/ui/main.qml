@@ -11,10 +11,10 @@ Item {
 
     Plasmoid.backgroundHints: PlasmaCore.Types.DefaultBackground
     Plasmoid.toolTipMainText: "Systems Intelligence"
-    Plasmoid.toolTipSubText: qsTr("Cluster-wide monitoring")
+    Plasmoid.toolTipSubText: qsTr("Cluster-wide monitoring with mining metrics")
     Plasmoid.icon: "view-statistics"
-    Plasmoid.switchWidth: units.gridUnit * 25
-    Plasmoid.switchHeight: units.gridUnit * 20
+    Plasmoid.switchWidth: units.gridUnit * 30
+    Plasmoid.switchHeight: units.gridUnit * 25
 
     // Configuration
     property string prometheusUrl: Plasmoid.configuration.PrometheusUrl || "http://127.0.0.1:9090"
@@ -26,6 +26,7 @@ Item {
     property var gpuStats: []
     property var alerts: []
     property var miningStats: ({})
+    property var workloadTypes: ({})  // NEW: Track workload type per host
 
     Timer {
         id: refreshTimer
@@ -47,6 +48,7 @@ Item {
         fetchGPUStats()
         fetchAlerts()
         fetchMiningStats()
+        fetchWorkloadTypes()  // NEW: Fetch workload types
     }
 
     // Fetch node up/down status
@@ -100,23 +102,22 @@ Item {
                     }
                 }
             }
-            xhr.open("GET", root.prometheusUrl + "/api/v1/query?query=" + encodeURIComponent(queries[metric]))
+            xhr.open("GET", root.prometheusUrl + "/api/v1/query?query=" + queries[metric])
             xhr.send()
         })
     }
 
-    // Fetch GPU statistics
+    // Fetch GPU stats
     function fetchGPUStats() {
         const queries = {
             utilization: 'nvidia_smi_utilization_gpu_ratio * 100',
             temperature: 'nvidia_smi_temperature_gpu',
-            power: 'nvidia_smi_power_draw_watts',
-            memory: 'nvidia_smi_memory_used_bytes / nvidia_smi_memory_total_bytes * 100'
+            power: 'nvidia_smi_power_draw',
+            memoryUsed: 'nvidia_smi_fb_memory_usage',
+            memoryTotal: 'nvidia_smi_fb_memory_total'
         }
 
-        let pending = Object.keys(queries).length
-        const results = {}
-
+        const gpuMap = {}
         Object.keys(queries).forEach(metric => {
             const xhr = new XMLHttpRequest()
             xhr.onreadystatechange = function() {
@@ -125,32 +126,21 @@ Item {
                         try {
                             const data = JSON.parse(xhr.responseText)
                             const result = data.data.result || []
-                            results[metric] = result
-                            pending--
-                            if (pending === 0) {
-                                processGPUStats(results)
-                            }
-                        } catch (e) {}
+                            result.forEach(item => {
+                                const instance = item.metric.instance || item.metric.gpu || item.metric.hostname || "unknown"
+                                if (!gpuMap[instance]) gpuMap[instance] = {instance: instance}
+                                gpuMap[instance][metric] = parseFloat(item.value[1])
+                            })
+                            gpuStats = Object.values(gpuMap)
+                        } catch (e) {
+                            console.error("Failed to parse GPU stats:", e)
+                        }
                     }
                 }
             }
-            xhr.open("GET", root.prometheusUrl + "/api/v1/query?query=" + encodeURIComponent(queries[metric]))
+            xhr.open("GET", root.prometheusUrl + "/api/v1/query?query=" + queries[metric])
             xhr.send()
         })
-    }
-
-    function processGPUStats(results) {
-        gpuStats = []
-        // Group by GPU
-        const gpuMap = {}
-        Object.keys(results).forEach(metric => {
-            results[metric].forEach(item => {
-                const instance = item.metric.instance || "unknown"
-                if (!gpuMap[instance]) gpuMap[instance] = {instance: instance}
-                gpuMap[instance][metric] = parseFloat(item.value[1])
-            })
-        })
-        gpuStats = Object.values(gpuMap)
     }
 
     // Fetch active alerts
@@ -170,30 +160,118 @@ Item {
         xhr.send()
     }
 
-    // Fetch mining stats
+    // Fetch mining stats (GPU + CPU)
     function fetchMiningStats() {
-        const xhr = new XMLHttpRequest()
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    try {
-                        const data = JSON.parse(xhr.responseText)
-                        const result = data.data.result || []
-                        miningStats = {}
-                        let totalHashrate = 0
-                        result.forEach(item => {
-                            const host = item.metric.host || item.metric.instance || "unknown"
-                            const hashrate = parseFloat(item.value[1])
-                            miningStats[host] = hashrate
-                            totalHashrate += hashrate
-                        })
-                        miningStats.total = totalHashrate
-                    } catch (e) {}
+        const queries = {
+            gpuHashrate: 'mining_lolminer_hashrate_total',
+            cpuHashrate: 'mining_xmrig_hashrate_total',
+            gpuShares: 'rate(mining_lolminer_shares_accepted[5m])',
+            cpuShares: 'rate(mining_xmrig_shares_accepted[5m])',
+            gpuPower: 'mining_lolminer_power_watts',
+            gpuTemp: 'mining_lolminer_temperature_celsius'
+        }
+
+        let totalHashrate = 0
+        miningStats = {}
+
+        Object.keys(queries).forEach(type => {
+            const xhr = new XMLHttpRequest()
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        try {
+                            const data = JSON.parse(xhr.responseText)
+                            const result = data.data.result || []
+                            result.forEach(item => {
+                                const instance = item.metric.instance || item.metric.host || "unknown"
+                                const value = parseFloat(item.value[1])
+
+                                if (!miningStats[instance]) miningStats[instance] = {}
+
+                                if (type === 'gpuHashrate') {
+                                    miningStats[instance].gpuHashrate = value
+                                    totalHashrate += value
+                                } else if (type === 'cpuHashrate') {
+                                    miningStats[instance].cpuHashrate = value
+                                    totalHashrate += value
+                                } else if (type === 'gpuShares') {
+                                    miningStats[instance].gpuShares = value
+                                } else if (type === 'cpuShares') {
+                                    miningStats[instance].cpuShares = value
+                                } else if (type === 'gpuPower') {
+                                    miningStats[instance].power = value
+                                } else if (type === 'gpuTemp') {
+                                    miningStats[instance].temp = value
+                                }
+                            })
+                        } catch (e) {
+                            console.error("Failed to parse mining stats:", e)
+                        }
+                    }
                 }
             }
+            xhr.open("GET", root.prometheusUrl + "/api/v1/query?query=" + queries[type])
+            xhr.send()
+        })
+
+        miningStats.total = totalHashrate
+    }
+
+    // NEW: Fetch workload type (mining/gaming/inference/idle)
+    function fetchWorkloadTypes() {
+        const clusterHosts = root.clusterNodes.split(',')
+        clusterHosts.forEach(host => {
+            const xhr = new XMLHttpRequest()
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        try {
+                            const data = JSON.parse(xhr.responseText)
+                            const result = data.data.result || []
+                            if (result.length > 0 && result[0].metric) {
+                                workloadTypes[host] = result[0].metric.workload || "unknown"
+                            }
+                        } catch (e) {
+                            // Default to mining if no workload label found
+                            workloadTypes[host] = "mining"
+                        }
+                    }
+                }
+            }
+            // Query workload type label (set by compute-workload-monitor)
+            xhr.open("GET", root.prometheusUrl + "/api/v1/query?query=workload_type{host=\"" + host + "\"}")
+            xhr.send()
+        })
+    }
+
+    // Enhanced hashrate formatting with trend indicator
+    function formatHashrate(h) {
+        if (h >= 1e12) return (h / 1e12).toFixed(1) + " TH/s"
+        if (h >= 1e9) return (h / 1e9).toFixed(1) + " GH/s"
+        if (h >= 1e6) return (h / 1e6).toFixed(1) + " MH/s"
+        if (h >= 1e3) return (h / 1e3).toFixed(1) + " kH/s"
+        return h.toFixed(1) + " H/s"
+    }
+
+    // NEW: Get workload icon
+    function getWorkloadIcon(host) {
+        const type = workloadTypes[host] || "mining"
+        switch(type) {
+            case "gaming": return "🎮"
+            case "inference": return "🤖"
+            case "builds": return "🔨"
+            case "idle": return "💤�"
+            default: return "⛏️"
         }
-        xhr.open("GET", root.prometheusUrl + "/api/v1/query?query=mining_worker_hashrate")
-        xhr.send()
+    }
+
+    // NEW: Get status color based on hashrate
+    function getStatusColor(host) {
+        const stats = miningStats[host] || {}
+        if (stats.gpuHashrate > 0 || stats.cpuHashrate > 0) {
+            return "#2ecc71"  // Green - mining
+        }
+        return "#95a5a6"  // Gray - not mining
     }
 
     // Full representation
@@ -371,9 +449,9 @@ Item {
                     }
                 }
 
-                // GPU Section
+                // GPU Section with alerts
                 GroupBox {
-                    title: "🎮 GPU Status"
+                    title: "🎮 GPU Status" + (gpuStats.some(g => (g.temperature || 0) > 75) ? " ⚠️ HOT" : "")
                     Layout.fillWidth: true
 
                     ColumnLayout {
@@ -417,11 +495,12 @@ Item {
                                     }
                                 }
 
-                                // Temperature
+                                // Temperature with color
                                 Text {
                                     text: Math.round(gpuStats[modelData]?.temperature || 0) + "°C"
                                     Layout.preferredWidth: units.gridUnit * 3
                                     font.pixelSize: units.smallSpacing
+                                    font.bold: (gpuStats[modelData]?.temperature || 0) > 75
                                     color: {
                                         const t = gpuStats[modelData]?.temperature || 0
                                         if (t < 60) return "#2ecc71"
@@ -436,36 +515,104 @@ Item {
                                     font.pixelSize: units.smallSpacing
                                     color: "#95a5a6"
                                 }
+
+                                // Memory usage
+                                Text {
+                                    const memUsed = Math.round((gpuStats[modelData]?.memoryUsed || 0) / 1024)
+                                            const memTotal = Math.round((gpuStats[modelData]?.memoryTotal || 0) / 1024)
+                                            text: memUsed + "/" + memTotal + "GB"
+                                    Layout.preferredWidth: units.gridUnit * 4
+                                    font.pixelSize: units.smallSpacing * 0.8
+                                    color: "#95a5a6"
+                                }
                             }
                         }
                     }
                 }
 
-                // Mining Section
+                // ENHANCED Mining Section with more details
                 GroupBox {
-                    title: "⛏️ Mining"
+                    title: "⛏️ Mining Operations" + (miningStats.total > 0 ? " • Total: " + formatHashrate(miningStats.total || 0) : "")
                     Layout.fillWidth: true
-                    visible: miningStats.total > 0
 
                     ColumnLayout {
                         spacing: units.smallSpacing
 
+                        // Total hashrate prominently displayed
                         Text {
-                            text: "Total: " + formatHashrate(miningStats.total || 0)
+                            text: "💰 Total: " + formatHashrate(miningStats.total || 0)
                             font.bold: true
+                            font.pixelSize: units.mediumSpacing
+                            color: "#f1c40f"
+                            visible: miningStats.total > 0
                         }
 
+                        // Per-host breakdown with workload type
                         Repeater {
                             model: Object.keys(miningStats).filter(k => k !== "total")
 
-                            RowLayout {
-                                Text {
-                                    text: modelData + ":"
-                                    Layout.preferredWidth: units.gridUnit * 5
+                            ColumnLayout {
+                                spacing: 2
+
+                                RowLayout {
+                                    spacing: units.smallSpacing
+
+                                    // Workload type icon
+                                    Text {
+                                        text: getWorkloadIcon(modelData)
+                                        font.pixelSize: units.mediumSpacing
+                                    }
+
+                                    // Host name
+                                    Text {
+                                        text: modelData + ":"
+                                        Layout.preferredWidth: units.gridUnit * 5
+                                        font.bold: true
+                                    }
+
+                                    // Total hashrate (GPU + CPU)
+                                    Text {
+                                        const stats = miningStats[modelData] || {}
+                                        const total = (stats.gpuHashrate || 0) + (stats.cpuHashrate || 0)
+                                        text: formatHashrate(total)
+                                        Layout.fillWidth: true
+                                        font.bold: true
+                                        color: getStatusColor(modelData)
+                                    }
                                 }
-                                Text {
-                                    text: formatHashrate(miningStats[modelData] || 0)
-                                    Layout.fillWidth: true
+
+                                // Detailed breakdown (indented)
+                                RowLayout {
+                                    Layout.leftMargin: units.gridUnit * 2
+                                    spacing: units.smallSpacing
+
+                                    Text {
+                                        text: "GPU: " + formatHashrate(miningStats[modelData]?.gpuHashrate || 0)
+                                        font.pixelSize: units.tinySpacing
+                                        color: "#7f8c8d"
+                                    }
+
+                                    Text {
+                                        text: "CPU: " + formatHashrate(miningStats[modelData]?.cpuHashrate || 0)
+                                        font.pixelSize: units.tinySpacing
+                                        color: "#7f8c8d"
+                                    }
+
+                                    // Share rate
+                                    Text {
+                                        const shares = (miningStats[modelData]?.gpuShares || 0) + (miningStats[modelData]?.cpuShares || 0)
+                                        text: "✓ " + shares.toFixed(1) + "/s"
+                                        font.pixelSize: units.tinySpacing
+                                        color: shares > 0 ? "#2ecc71" : "#95a5a6"
+                                    }
+
+                                    // Temperature
+                                    Text {
+                                        const temp = miningStats[modelData]?.temp || 0
+                                        text: "🌡 " + temp.toFixed(0) + "°C"
+                                        font.pixelSize: units.tinySpacing
+                                        visible: temp > 0
+                                    }
                                 }
                             }
                         }
@@ -502,14 +649,16 @@ Item {
                                     text: alerts[modelData]?.metric?.alertname || "Unknown"
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
+                                    font.pixelSize: units.smallSpacing
                                 }
                             }
                         }
 
                         Text {
-                            text: "No active alerts"
+                            text: "✓ No active alerts"
                             visible: alerts.length === 0
                             color: "#2ecc71"
+                            font.pixelSize: units.smallSpacing
                         }
                     }
                 }
@@ -520,18 +669,31 @@ Item {
 
         // Footer with last update
         Text {
-            text: "Last update: " + new Date().toLocaleTimeString()
+            text: "Last update: " + new Date().toLocaleTimeString() + " • Refresh: " + (root.refreshInterval / 1000) + "s"
             font.pixelSize: units.smallSpacing * 0.8
             color: "#7f8c8d"
             Layout.alignment: Qt.AlignHCenter
         }
     }
 
-    function formatHashrate(h) {
-        if (h >= 1e12) return (h / 1e12).toFixed(1) + " TH/s"
-        if (h >= 1e9) return (h / 1e9).toFixed(1) + " GH/s"
-        if (h >= 1e6) return (h / 1e6).toFixed(1) + " MH/s"
-        if (h >= 1e3) return (h / 1e3).toFixed(1) + " kH/s"
-        return h.toFixed(0) + " H/s"
+    // Compact representation for panel
+    Plasmoid.compactRepresentation: RowLayout {
+        spacing: units.smallSpacing
+
+        Text {
+            text: "🖥️"
+            font.pixelSize: units.largeSpacing
+        }
+
+        Text {
+            text: formatHashrate(miningStats.total || 0)
+            font.bold: true
+            color: "#f1c40f"
+        }
+
+        Text {
+            text: alerts.length > 0 ? "🚨" : "✓"
+            font.pixelSize: units.mediumSpacing
+        }
     }
 }

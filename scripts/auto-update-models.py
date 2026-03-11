@@ -650,6 +650,11 @@ async def main():
         help="Show what would be done without making changes",
     )
     parser.add_argument("--list", action="store_true", help="List registered models")
+    parser.add_argument(
+        "--update-opencode",
+        action="store_true",
+        help="Also update OpenCode configuration after updating models",
+    )
 
     args = parser.parse_args()
 
@@ -711,6 +716,25 @@ async def main():
 
     # Run actual update
     stats = await updater.run_auto_update(download=args.download, test=not args.no_test)
+
+    # Update OpenCode configuration if requested
+    if args.update_opencode and stats["loaded_to_lmstudio"] > 0:
+        print("\n" + "=" * 60)
+        print("UPDATING OPENCODE CONFIGURATION")
+        print("=" * 60)
+        try:
+            # Import and run the OpenCode updater
+            import subprocess
+            result = subprocess.run(
+                ["python3", "/etc/nixos/scripts/update-opencode-models.py"],
+                capture_output=True,
+                text=True,
+            )
+            print(result.stdout)
+            if result.returncode != 0:
+                print(f"⚠ OpenCode update had issues: {result.stderr}")
+        except Exception as e:
+            print(f"⚠ Could not update OpenCode configuration: {e}")
 
     # Exit with error code if any failures
     sys.exit(1 if stats["failed"] > 0 else 0)
