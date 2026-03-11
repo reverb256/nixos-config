@@ -1,0 +1,311 @@
+#!/usr/bin/env bash
+# nixos-rebuild-wrapper - Translate nixos-rebuild commands to Colmena
+#
+# This wrapper intercepts nixos-rebuild commands and translates them to
+# equivalent Colmena commands for cluster-wide deployment consistency.
+#
+# Environment Variables:
+#   NIXOS_REBUILD_NATIVE=1    Bypass wrapper, use native nixos-rebuild
+#
+# GPU Scheduler Integration:
+#   - GPU nodes (zephyr, nexus, forge): Signal /run/gpu-scheduler/ai-state
+#   - Non-GPU nodes (sentry): No GPU scheduler signaling
+#
+# Mining Integration:
+#   - Pauses mining.target before deploy (if active)
+#   - Resumes mining.target after deploy (if was active)
+#
+# State Files:
+#   - Writes to /run/nixos-deploy/{host}.json
+#   - Tracks status, timestamp, git info, GPU node pause
+
+set -euo pipefail
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+readonly HOSTNAME="$(hostname)"
+readonly STATE_DIR="/run/nixos-deploy"
+readonly STATE_FILE="$STATE_DIR/${HOSTNAME}.json"
+readonly GPU_SCHEDULER_STATE="/run/gpu-scheduler/ai-state"
+
+# GPU nodes with NVIDIA GPUs that need scheduler signaling
+readonly GPU_NODES=("zephyr" "nexus" "forge")
+
+# Mining target to pause/resume
+readonly MINING_TARGET="mining.target"
+
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+# Color codes for output
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m' # No Color
+
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $*"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $*"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $*"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $*"
+}
+
+# Check if current host is a GPU node
+is_gpu_node() {
+    local host="$1"
+    for node in "${GPU_NODES[@]}"; do
+        if [ "$host" = "$node" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Get current git information
+get_git_info() {
+    local branch commit
+    branch=$(git branch --show-current 2>/dev/null || echo "unknown")
+    commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    echo "$branch|$commit"
+}
+
+# Write state file
+write_state() {
+    local status="$1"
+    local error="${2:-}"
+    local rolled_back="${3:-false}"
+    local gpu_nodes_paused="${4:-false}"
+
+    local git_info
+    git_info=$(get_git_info)
+    local git_branch git_commit
+    IFS='|' read -r git_branch git_commit <<< "$git_info"
+
+    local timestamp
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    local deployed_by
+    deployed_by=$(whoami)
+
+    mkdir -p "$STATE_DIR"
+
+    # Build JSON using printf for better control
+    {
+        printf '{\n'
+        printf '  "host": "%s",\n' "$HOSTNAME"
+        printf '  "status": "%s",\n' "$status"
+        printf '  "started_at": "%s",\n' "$timestamp"
+        printf '  "deployed_by": "%s",\n' "$deployed_by"
+        printf '  "git_commit": "%s",\n' "$git_commit"
+        printf '  "git_branch": "%s",\n' "$git_branch"
+        printf '  "gpu_nodes_paused": %s\n' "$gpu_nodes_paused"
+
+        # Add optional fields
+        if [ -n "$error" ]; then
+            printf ',\n  "error": "%s"' "$error"
+        fi
+
+        if [ "$rolled_back" = "true" ]; then
+            printf ',\n  "rolled_back": true'
+        fi
+
+        printf '\n}\n'
+    } > "$STATE_FILE"
+
+    log_info "State written to $STATE_FILE"
+}
+
+# Signal GPU scheduler
+signal_gpu_scheduler() {
+    local state="$1"  # "deploying" or "idle"
+
+    if ! is_gpu_node "$HOSTNAME"; then
+        return 0
+    fi
+
+    if [ ! -w "$GPU_SCHEDULER_STATE" ]; then
+        log_warn "Cannot write to GPU scheduler state: $GPU_SCHEDULER_STATE"
+        return 0
+    fi
+
+    echo "$state" > "$GPU_SCHEDULER_STATE"
+    log_info "GPU scheduler signaled: $state"
+}
+
+# Pause mining if active
+pause_mining() {
+    if ! systemctl -q is-active "$MINING_TARGET" 2>/dev/null; then
+        log_info "$MINING_TARGET not active, skipping pause"
+        return 1
+    fi
+
+    log_info "Pausing $MINING_TARGET..."
+    systemctl stop "$MINING_TARGET"
+    log_success "Mining paused"
+    return 0
+}
+
+# Resume mining if it was paused
+resume_mining() {
+    if ! systemctl -q is-enabled "$MINING_TARGET" 2>/dev/null; then
+        log_info "$MINING_TARGET not enabled, skipping resume"
+        return 0
+    fi
+
+    log_info "Resuming $MINING_TARGET..."
+    systemctl start "$MINING_TARGET"
+    log_success "Mining resumed"
+    return 0
+}
+
+# Rollback on failure
+rollback_deployment() {
+    log_error "Deployment failed, initiating rollback..."
+    log_info "Using native nixos-rebuild rollback"
+
+    if nixos-rebuild rollback; then
+        log_success "Rollback completed"
+        write_state "rolled_back" "" "true" "false"
+        return 0
+    else
+        log_error "Rollback failed!"
+        write_state "rollback_failed" "rollback command failed" "true" "false"
+        return 1
+    fi
+}
+
+# ============================================================================
+# COMMAND TRANSLATION
+# ============================================================================
+
+translate_command() {
+    local cmd="$1"
+    shift
+    local args=("$@")
+
+    case "$cmd" in
+        switch)
+            echo "colmena apply --on $HOSTNAME --verbose"
+            ;;
+        build)
+            echo "colmena build --on $HOSTNAME"
+            ;;
+        test)
+            echo "colmena apply --on $HOSTNAME --eval-only"
+            ;;
+        dry-activate)
+            echo "colmena apply --on $HOSTNAME --dry-activate"
+            ;;
+        rollback)
+            # Bypass wrapper for rollback
+            echo "nixos-rebuild rollback"
+            ;;
+        *)
+            # Unknown command, pass through to native
+            echo "nixos-rebuild $cmd ${args[*]}"
+            ;;
+    esac
+}
+
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
+
+main() {
+    local cmd="${1:-}"
+    shift || true
+
+    # Check for native bypass
+    if [ "${NIXOS_REBUILD_NATIVE:-}" = "1" ]; then
+        log_info "NIXOS_REBUILD_NATIVE=1, using native nixos-rebuild"
+        exec nixos-rebuild "$cmd" "$@"
+    fi
+
+    # Handle --help and empty commands (pass through to native)
+    if [ -z "$cmd" ] || [ "$cmd" = "--help" ] || [ "$cmd" = "-h" ]; then
+        exec nixos-rebuild "$cmd" "$@"
+    fi
+
+    # Handle rollback (bypass wrapper)
+    if [ "$cmd" = "rollback" ]; then
+        log_info "Rollback bypasses wrapper, using native nixos-rebuild"
+        exec nixos-rebuild "$cmd" "$@"
+    fi
+
+    # ============================================================================
+    # DEPLOYMENT WORKFLOW
+    # ============================================================================
+
+    local mining_was_running=false
+    local translated_cmd
+
+    translated_cmd=$(translate_command "$cmd" "$@")
+
+    log_info "🔨 Translating: nixos-rebuild $cmd"
+    log_info "🚀 Executing: $translated_cmd"
+
+    # Write initial state
+    write_state "deploying"
+
+    # Signal GPU scheduler (GPU nodes only)
+    if is_gpu_node "$HOSTNAME"; then
+        signal_gpu_scheduler "deploying"
+    fi
+
+    # Pause mining if active
+    if pause_mining; then
+        mining_was_running=true
+    fi
+
+    # Execute the translated command
+    local exit_code=0
+    if eval "$translated_cmd"; then
+        exit_code=0
+    else
+        exit_code=$?
+    fi
+
+    # Always resume mining (success or failure)
+    if [ "$mining_was_running" = true ]; then
+        resume_mining
+    fi
+
+    # Signal GPU scheduler back to idle
+    if is_gpu_node "$HOSTNAME"; then
+        signal_gpu_scheduler "idle"
+    fi
+
+    # Handle result
+    if [ $exit_code -eq 0 ]; then
+        log_success "✓ Deployment completed successfully"
+        write_state "success" "" "false" "true"
+        exit 0
+    else
+        log_error "✗ Deployment failed (exit code: $exit_code)"
+
+        # Attempt rollback for switch command
+        if [ "$cmd" = "switch" ]; then
+            rollback_deployment
+        else
+            write_state "failed" "command failed with exit code $exit_code" "false" "true"
+        fi
+
+        exit $exit_code
+    fi
+}
+
+# Run main function
+main "$@"
