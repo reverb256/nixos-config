@@ -16,8 +16,8 @@
     services.caddy = {
       enable = true;
       package = pkgs.caddy;
-      # Global configuration
-      config = lib.concatStringsSep "\n" (lib.mapAttrsToList (domain: cfg:
+      # Global configuration (renamed from 'config' to 'extraConfig' in NixOS 24.11+)
+      extraConfig = lib.concatStringsSep "\n" (lib.mapAttrsToList (domain: cfg:
         if cfg ? reverseProxy then ''
           ${domain}:${toString (cfg.port or 443)} {
             reverse_proxy ${cfg.reverseProxy} ${lib.optionalString (cfg ? reverseProxyPort) ":${toString cfg.reverseProxyPort}"}

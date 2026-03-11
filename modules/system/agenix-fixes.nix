@@ -193,11 +193,13 @@ in {
         "glitchtip-redis.service"
         "ai-inference-gateway.service"
       ];
+      environment.PATH = lib.mkForce (lib.makeBinPath (
+        [pkgs.coreutils] ++ lib.optionals (config.services.cluster-storage.enable) [pkgs.util-linux]
+      ));
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        path = [pkgs.coreutils] ++ lib.optionals (config.services.cluster-storage.enable) [pkgs.util-linux];
         ExecStart = "/etc/agenix-rekey-wrapper.sh ${config.services.agenix-fixes.identityFile}";
 
         # Security - removed PrivateTmp to allow access to /run/agenix.d

@@ -1,0 +1,58 @@
+# xmrig-proxy Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xmrig-proxy-config
+  namespace: mining
+data:
+  config.json: |
+    {
+      "api": {"port": 8081, "restricted": true, "token": "change-this-token"},
+      "log": {"level": 5},
+      "pools": [
+        {
+          "id": "kryptex-rx-us",
+          "url": "xtm-rx-us.kryptex.network:8038",
+          "user": "krxXVNVMM7.cpu-proxy",
+          "pass": "x",
+          "tls": true,
+          "keepalive": true,
+          "priority": 1
+        },
+        {
+          "id": "kryptex-rx-eu",
+          "url": "xtm-rx-eu.kryptex.network:8038",
+          "user": "krxXVNVMM7.cpu-proxy",
+          "pass": "x",
+          "tls": true,
+          "keepalive": true,
+          "priority": 2
+        },
+        {
+          "id": "kryptex-cr29-us",
+          "url": "xtm-c29-us.kryptex.network:8040",
+          "user": "krxXVNVMM7.gpu-proxy",
+          "pass": "x",
+          "tls": true,
+          "keepalive": true,
+          "priority": 1
+        },
+        {
+          "id": "kryptex-cr29-eu",
+          "url": "xtm-c29-eu.kryptex.network:8040",
+          "user": "krxXVNVMM7.gpu-proxy",
+          "pass": "x",
+          "tls": true,
+          "keepalive": true,
+          "priority": 2
+        }
+      ],
+      "workers": [
+        {"id": "zephyr-cpu", "password": "x"},
+        {"id": "nexus-cpu", "password": "x"},
+        {"id": "sentry-cpu", "password": "x"},
+        {"id": "zephyr-gpu", "password": "x"},
+        {"id": "nexus-gpu", "password": "x"},
+        {"id": "forge-gpu", "password": "x"}
+      ]
+    }

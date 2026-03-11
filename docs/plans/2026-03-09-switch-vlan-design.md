@@ -1,7 +1,7 @@
 # TP-Link Switch VLAN Configuration Design
 
-**Date:** 2026-03-09
-**Status:** Design Review
+**Date:** 2026-03-09 (Updated: 2026-03-10)
+**Status:** Implementation Ready (Switches configured with sequential IPs)
 **Author:** j_kro
 
 ## Executive Summary
@@ -51,23 +51,23 @@ Prn   sw3-uplink  sw2-tv
  [blank] [blank]
 ```
 
-### Switch Names (CORRECTED - 2026-03-10)
+### Switch Names (SEQUENTIAL IPs - 2026-03-10)
 
 | IP | Name | Location | Notes |
 |----|------|----------|-------|
-| 10.1.1.90 | sw1-modem | Main area | Root switch ⚠️ CORRECTED |
-| 10.1.1.95 | sw2-tv | TV area | Nexus + PCs ⚠️ CORRECTED |
-| 10.1.1.12 | sw3-upstairs | Upstairs | Distribution ✅ (was correct) |
-| 10.1.1.104 | sw4-zephyr | Zephyr room | Workstation ⚠️ CORRECTED |
+| 10.1.1.10 | sw1-modem | Main area | Root switch ✅ |
+| 10.1.1.11 | sw2-tv | TV area | Nexus + PCs ✅ |
+| 10.1.1.12 | sw3-upstairs | Upstairs | Distribution ✅ |
+| 10.1.1.13 | sw4-zephyr | Zephyr room | Workstation ✅ |
 
-### Switch Roles (CORRECTED - 2026-03-10)
+### Switch Roles (SEQUENTIAL IPs - 2026-03-10)
 
 | Switch | IP | Role | VLANs Carried |
 |--------|-----|------|---------------|
-| sw1-modem | 10.1.1.90 | Root/Gateway | All (distribution) ⚠️ |
-| sw2-tv | 10.1.1.95 | Access (Nexus) | 99, 30, 60 ⚠️ |
+| sw1-modem | 10.1.1.10 | Root/Gateway | All (distribution) ✅ |
+| sw2-tv | 10.1.1.11 | Access (Nexus) | 99, 30, 60 ✅ |
 | sw3-upstairs | 10.1.1.12 | Distribution | All ✅ |
-| sw4-zephyr | 10.1.1.104 | Access (Zephyr) | All ⚠️ |
+| sw4-zephyr | 10.1.1.13 | Access (Zephyr) | All ✅ |
 
 ## VLAN Design
 
@@ -126,28 +126,28 @@ Prn   sw3-uplink  sw2-tv
 ### ACTUAL Port Configuration
 
 ```
-sw1-modem (10.1.1.90) - ROOT SWITCH ⚠️ CORRECTED IP
+sw1-modem (10.1.1.10) - ROOT SWITCH ✅
   Port 1: Modem/Gateway (trunk: all VLANs)
   Port 2: Printer (VLAN 10 - gaming/work)
   Port 3: Deco XE75 WiFi (VLAN 10, 99 - gaming + management)
   Port 4: sw3-upstairs TRUNK (trunk: all VLANs)
   Port 5: sw2-tv TRUNK (trunk: 99, 30, 60 - management + storage + backup)
 
-sw2-tv (10.1.1.95) - TV AREA SWITCH ⚠️ CORRECTED IP
+sw2-tv (10.1.1.11) - TV AREA SWITCH ✅
   Port 1: sw1-modem TRUNK (trunk: 99, 30, 60)
   Port 2: Nexus (trunk: 99, 30, 60 - management + storage + backup)
   Port 3: krash3 PC (VLAN 10 - gaming)
   Port 4: krash1.5 PC (VLAN 10 - gaming)
   Port 5: [blank - available]
 
-sw3-upstairs (10.1.1.12) - UPSTAIRS SWITCH
+sw3-upstairs (10.1.1.12) - UPSTAIRS SWITCH ✅
   Port 1: sw1-modem TRUNK (trunk: all VLANs)
   Port 2: sw4-zephyr TRUNK (trunk: all VLANs)
   Port 3: WIP PC (VLAN 10 - gaming, or 99 for management)
   Port 4: Sentry (trunk: 99, 40, 50 - management + mining + monitoring)
   Port 5: Forge (trunk: 99, 20, 40 - management + AI + mining)
 
-sw4-zephyr (10.1.1.104) - ZEPHYR ROOM SWITCH ⚠️ CORRECTED IP
+sw4-zephyr (10.1.1.13) - ZEPHYR ROOM SWITCH ✅
   Port 1: sw3-upstairs TRUNK (trunk: all VLANs)
   Port 2: [blank - available]
   Port 3: Deco XE75 WiFi 6GHz (VLAN 10, 99 - Quest Pro + management)

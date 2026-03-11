@@ -61,6 +61,9 @@
     # Mining
     ./mining/mining.nix
     ./mining/mining-build-wrapper.nix
+    ./mining/xmrig-proxy.nix
+    ./mining/mining-proxy.nix
+    ./mining/gpu-proxy.nix
 
     # Services
     ./services/mcp-servers.nix
@@ -85,6 +88,7 @@
     ./services/searxng.nix
     ./services/n8n.nix
     ./services/vaultwarden.nix
+    ./services/health-checks.nix
 
     # Monitoring
     # ./services/monitoring/default.nix  # TEMP: Compatibility issues with latest NixOS

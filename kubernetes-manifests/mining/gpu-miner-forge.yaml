@@ -1,0 +1,78 @@
+# GPU Miner Deployment for Forge (2x RTX 4060 + 2x RX 5700 XT)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge
+  namespace: mining
+  labels:
+    app: gpu-miner
+    host: forge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-miner
+      host: forge
+  template:
+    metadata:
+      labels:
+        app: gpu-miner
+        host: forge
+    spec:
+      nodeName: forge  # Pin to Forge node
+      hostNetwork: true  # Use host network for stratum connection
+      priorityClassName: low-priority-mining  # Preemptable by AI workloads
+      containers:
+      - name: lolminer-nvidia
+        image: lolminer:1.98a-nixos
+        imagePullPolicy: Never  # Use local image built by Nix
+        args:
+          - "--algo=CR29"
+          - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
+          - "--user=forge-gpu"
+          - "--devices=2,3"  # RTX 4060s (GPU IDs on Forge)
+          - "--apiport=4068"
+          - "--mode=b"
+          - "--tls=1"
+        ports:
+        - containerPort: 4068
+          name: api
+          protocol: TCP
+        securityContext:
+          privileged: true  # Required for GPU access
+        volumeMounts:
+        - name: nvidia
+          mountPath: /usr/lib/nvidia
+        resources:
+          requests:
+            memory: "4Gi"
+            nvidia.com/gpu: "2"
+          limits:
+            memory: "8Gi"
+            nvidia.com/gpu: "2"
+      - name: lolminer-amd
+        image: lolminer:1.98a-nixos
+        imagePullPolicy: Never  # Use local image built by Nix
+        args:
+          - "--algo=CR29"
+          - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
+          - "--user=forge-gpu"
+          - "--devices=0,1"  # RX 5700 XTs
+          - "--apiport=4069"
+          - "--mode=b"
+          - "--tls=1"
+        ports:
+        - containerPort: 4069
+          name: api
+          protocol: TCP
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            memory: "4Gi"
+          limits:
+            memory: "8Gi"
+      volumes:
+      - name: nvidia
+        hostPath:
+          path: /run/current-system/sw/lib/nvidia

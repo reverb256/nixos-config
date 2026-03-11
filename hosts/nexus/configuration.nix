@@ -107,14 +107,8 @@
   # - bcache0 (3.6TB + 465GB cache) - "nexus-storage" with organized subvolumes
 
   fileSystems = {
-    # Mount worn-storage (worn NVMe - suitable for high-write workloads)
-    "/data/worn" = {
-      device = "/dev/disk/by-uuid/2056c7e4-cd6c-4a67-9b3d-001178a70eaa";
-      fsType = "btrfs";
-      options = ["compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
-    };
-
     # Mount nexus-storage subvolumes (large bcache device)
+    # Note: /data/worn is defined in hardware-configuration.nix
     "/data/home" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
@@ -209,7 +203,7 @@
     # Spotify with SpotX patch (ad-free, premium features)
     spotify-spotx.enable = true;
 
-    # Mining configuration
+    # Mining configuration - CPU uses xmrig-proxy on Zephyr
     # Uses defaults from mining.nix for pool URLs and wallet format
     # Note: profiles.role.mining enables services.mining automatically
     mining = {
@@ -217,8 +211,17 @@
         enable = true;
         autostart = true;
         threads = 12;
+        pool = "10.1.1.110:3333";  # xmrig-proxy on Zephyr
+        wallet = "nexus-cpu";        # Worker ID for proxy
+        tls = false;                 # No TLS needed for local proxy
       };
-      
+
+      # GPU mining configuration (shared by NVIDIA)
+      lolminer = {
+        pool = "stratum+tcp://zephyr:3333";  # Point to xmrig-proxy
+        wallet = "nexus-gpu";  # Worker ID for proxy
+      };
+
       # NVIDIA GPU mining (RTX 3060 Ti @ 130W)
       lolminer.nvidia = {
         enable = true;

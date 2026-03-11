@@ -6,8 +6,17 @@
 
   # SERVICES CONFIGURATION
   services = {
-    # Monitoring exporters
+    # Monitoring stack
     monitoring = {
+      # Prometheus for local metrics and alerting
+      prometheus.enable = true;
+
+      # AlertManager for local alert routing
+      alertmanager.enable = true;
+
+      # Local webhook receiver for desktop notifications (no password required)
+      alert-webhook.enable = true;
+
       # Node exporter for system metrics (CPU, memory, disk, network)
       node-exporter.enable = true;
 

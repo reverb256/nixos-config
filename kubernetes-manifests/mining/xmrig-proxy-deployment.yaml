@@ -1,0 +1,76 @@
+# xmrig-proxy Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xmrig-proxy
+  namespace: mining
+  labels:
+    app: xmrig-proxy
+    component: stratum-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xmrig-proxy
+  template:
+    metadata:
+      labels:
+        app: xmrig-proxy
+        component: stratum-proxy
+    spec:
+      nodeName: zephyr  # Run on control plane where miners expect it
+      hostNetwork: true  # Use host network for stratum connections
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: xmrig-proxy
+        image: xmrig-proxy:nixos-6.24.0
+        imagePullPolicy: Never  # Use local image built by Nix
+        args:
+          - "--config=/etc/xmrig-proxy/config.json"
+          - "--no-color"
+        ports:
+        - containerPort: 3333
+          name: stratum
+          protocol: TCP
+        - containerPort: 8081
+          name: api
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /etc/xmrig-proxy
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      volumes:
+      - name: config
+        configMap:
+          name: xmrig-proxy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xmrig-proxy
+  namespace: mining
+  labels:
+    app: xmrig-proxy
+spec:
+  selector:
+    app: xmrig-proxy
+  ports:
+  - port: 3333
+    targetPort: 3333
+    name: stratum
+    protocol: TCP
+  - port: 8081
+    targetPort: 8081
+    name: api
+    protocol: TCP
+  type: ClusterIP
+  clusterIP: None  # Headless service for direct pod access

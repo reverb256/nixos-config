@@ -15,8 +15,8 @@ in {
 
     listenAddress = lib.mkOption {
       type = lib.types.str;
-      default = "0.0.0.0"; # Listen on all interfaces (LAN + Tailscale)
-      description = "Address to listen on";
+      default = "0.0.0.0"; # For cluster Prometheus scraping (protected by firewall - only internal network)
+      description = "Address to listen on (use 127.0.0.1 for localhost-only)";
     };
   };
 

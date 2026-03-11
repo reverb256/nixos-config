@@ -10,14 +10,14 @@ Scanned entire 10.1.1.0/24 subnet and identified all active devices. All 4 plann
 
 ## Network Switches (Primary Focus)
 
-### ✅ All Switches Found - Wrong IPs
+### ✅ All Switches Configured - Sequential IPs
 
-| Switch Name | Intended IP | **Current IP** | MAC Address | Status | Action Needed |
-|-------------|-------------|---------------|-------------|--------|---------------|
-| **sw1-modem** | 10.1.1.10 | **10.1.1.12** | 8C:90:2D:AE:4D:27 | 🔴 Wrong IP | Reconfigure → 10.1.1.10 |
-| **sw2-tv** | 10.1.1.11 | **10.1.1.90** | 60:83:E7:F7:DF:C4 | 🔴 Wrong IP | Reconfigure → 10.1.1.11 |
-| **sw3-upstairs** | 10.1.1.12 | **10.1.1.95** | 60:83:E7:F7:F4:6C | 🔴 Wrong IP | Reconfigure → 10.1.1.12 |
-| **sw4-zephyr** | 10.1.1.13 | **10.1.1.104** | A8:29:48:02:2A:1D | 🔴 Wrong IP | Reconfigure → 10.1.1.13 |
+| Switch Name | IP Address | MAC Address | Model | Status |
+|-------------|------------|-------------|-------|--------|
+| **sw1-modem** | **10.1.1.10** | 8C:90:2D:AE:4D:27 | TL-SG105E 5.0 | ✅ Root/Gateway Switch |
+| **sw2-tv** | **10.1.1.11** | 60:83:E7:F7:DF:C4 | TL-SG105E 5.0 | ✅ TV Area Switch (Nexus) |
+| **sw3-upstairs** | **10.1.1.12** | 60:83:E7:F7:F4:6C | TL-SG105E 5.0 | ✅ Distribution Switch |
+| **sw4-zephyr** | **10.1.1.13** | A8:29:48:02:2A:1D | TL-SG105E 5.0 | ✅ Zephyr Room Switch |
 
 ### 🔍 TP-Link Deco Mesh WiFi System (3 units)
 
@@ -87,17 +87,17 @@ Scanned entire 10.1.1.0/24 subnet and identified all active devices. All 4 plann
 
 ## IP Address Distribution
 
-### Planned Range (10.1.1.10-13): Currently Mixed Usage
-- **10.1.1.10**: Free (intended for sw1-modem)
-- **10.1.1.11**: Free (intended for sw2-tv)
-- **10.1.1.12**: **sw1-modem** (should be 10.1.1.10)
-- **10.1.1.13**: Free (intended for sw4-zephyr)
+### Switch Range (10.1.1.10-13): Sequential Assignment ✅
+- **10.1.1.10**: sw1-modem (Root/Gateway) ✅
+- **10.1.1.11**: sw2-tv (TV Area/Nexus) ✅
+- **10.1.1.12**: sw3-upstairs (Distribution) ✅
+- **10.1.1.13**: sw4-zephyr (Zephyr Room) ✅
 
-### Current Switch IPs (Need Reconfiguration):
-- **10.1.1.90**: sw2-tv
-- **10.1.1.95**: sw3-upstairs
-- **10.1.1.104**: sw4-zephyr
-- **10.1.1.12**: sw1-modem (wrong IP)
+### All Switch IPs (Configured):
+- **10.1.1.10**: sw1-modem
+- **10.1.1.11**: sw2-tv
+- **10.1.1.12**: sw3-upstairs
+- **10.1.1.13**: sw4-zephyr
 
 ### Cluster Nodes (Correct):
 - **10.1.1.110**: zephyr
@@ -119,15 +119,15 @@ Scanned entire 10.1.1.0/24 subnet and identified all active devices. All 4 plann
               │ (Trunk/Uplink)  │
          ┌────┴──────────────────┴────┐
          │                            │
-    sw1-modem (Currently: .10.1.1.12)  XE75 WiFi
-    Should be: 10.1.1.10
+    sw1-modem (10.1.1.10)  XE75 WiFi
+    Root/Gateway Switch
     Port 3: Deco XE75 (.60)
          │
   ┌─────┼───────────┬────────────────────┐
   │     │           │                    │
   P2    P4          P5                  (trunk)
- Prn   sw3-uplink  sw2-tv (.90)         (to sw3)
-       (10.1.1.95) Should be: .11
+ Prn   sw3-uplink  sw2-tv (.11)         (to sw3)
+       (10.1.1.12) Distribution
   │              │
   │         ┌────┴────────────────────┐
   │         │ Port 1: Trunk from sw1  │
@@ -141,8 +141,7 @@ Scanned entire 10.1.1.0/24 subnet and identified all active devices. All 4 plann
   └────────────────────┐
        P2           P4-P5
     sw4-zephyr     Sentry  Forge
-   (Currently: .104)  (.140)  (.130)
-   Should be: .13
+   (10.1.1.13)     (.140)  (.130)
        │
   ┌────┴─────────┐
   │ P1    P3   P5
@@ -159,7 +158,7 @@ DECOS:
 
 ### Complete Switch Port Configuration
 
-#### **sw1-modem** (Currently: 10.1.1.12, Should be: 10.1.1.10)
+#### **sw1-modem** (10.1.1.10) ✅
 **Root/Gateway Switch** - Main area distribution
 
 | Port | Connected To | Type | Device IP | Purpose |
@@ -167,37 +166,37 @@ DECOS:
 | **P1** | Modem | Trunk (all VLANs) | 10.1.1.1 | Internet uplink |
 | **P2** | Printer | Access (VLAN 10) | - | Gaming/work VLAN |
 | **P3** | Deco XE75 | Hybrid (VLAN 10, 99) | 10.1.1.60 | Primary WiFi + management |
-| **P4** | sw3-upstairs | Trunk (all VLANs) | 10.1.1.95 → .12 | Distribution to upstairs |
-| **P5** | sw2-tv | Trunk (VLAN 99, 30, 60) | 10.1.1.90 → .11 | TV area trunk |
+| **P4** | sw3-upstairs | Trunk (all VLANs) | 10.1.1.12 | Distribution to upstairs |
+| **P5** | sw2-tv | Trunk (VLAN 99, 30, 60) | 10.1.1.11 | TV area trunk |
 
-#### **sw2-tv** (Currently: 10.1.1.90, Should be: 10.1.1.11)
+#### **sw2-tv** (10.1.1.11) ✅
 **TV Area Switch** - Nexus + gaming PCs
 
 | Port | Connected To | Type | Device IP | Purpose |
 |------|--------------|------|-----------|---------|
-| **P1** | sw1-modem | Trunk (VLAN 99, 30, 60) | 10.1.1.12 → .10 | Uplink from root |
+| **P1** | sw1-modem | Trunk (VLAN 99, 30, 60) | 10.1.1.10 | Uplink from root |
 | **P2** | Nexus | Trunk (VLAN 99, 30, 60) | 10.1.1.120 | Storage node |
 | **P3** | krash3 | Access (VLAN 10, 40) | 10.1.1.66 | Gaming + mining PC |
 | **P4** | krash1.5 | Access (VLAN 10, 40) | 10.1.1.170 | Gaming + mining PC |
 | **P5** | [blank] | - | - | Available |
 
-#### **sw3-upstairs** (Currently: 10.1.1.95, Should be: 10.1.1.12)
+#### **sw3-upstairs** (10.1.1.12) ✅
 **Upstairs Distribution Switch**
 
 | Port | Connected To | Type | Device IP | Purpose |
 |------|--------------|------|-----------|---------|
-| **P1** | sw1-modem | Trunk (all VLANs) | 10.1.1.12 → .10 | Uplink from root |
-| **P2** | sw4-zephyr | Trunk (all VLANs) | 10.1.1.104 → .13 | Distribution to Zephyr room |
+| **P1** | sw1-modem | Trunk (all VLANs) | 10.1.1.10 | Uplink from root |
+| **P2** | sw4-zephyr | Trunk (all VLANs) | 10.1.1.13 | Distribution to Zephyr room |
 | **P3** | WIP PC | Access (VLAN 99 or 10) | - | Spare PC |
 | **P4** | Sentry | Trunk (VLAN 99, 40, 50) | 10.1.1.140 | Monitoring node |
 | **P5** | Forge | Trunk (VLAN 99, 20, 40) | 10.1.1.130 | AI + mining node |
 
-#### **sw4-zephyr** (Currently: 10.1.1.104, Should be: 10.1.1.13)
+#### **sw4-zephyr** (10.1.1.13) ✅
 **Zephyr Room Workstation Switch**
 
 | Port | Connected To | Type | Device IP | Purpose |
 |------|--------------|------|-----------|---------|
-| **P1** | sw3-upstairs | Trunk (all VLANs) | 10.1.1.95 → .12 | Uplink from upstairs |
+| **P1** | sw3-upstairs | Trunk (all VLANs) | 10.1.1.12 | Uplink from upstairs |
 | **P2** | [blank] | - | - | Available |
 | **P3** | Deco XE75 6GHz | Hybrid (VLAN 10, 99) | 10.1.1.45 | Quest Pro WiFi + management |
 | **P4** | [blank] | - | - | Available |
@@ -270,11 +269,12 @@ DECOS:
 
 ## Action Items
 
-### Priority 1: Reconfigure Switch IPs
-1. **sw1-modem** (.12 → .10)
-2. **sw2-tv** (.90 → .11)
-3. **sw3-upstairs** (.95 → .12)
-4. **sw4-zephyr** (.104 → .13)
+### ✅ Completed: Switch IP Reconfiguration (2026-03-10)
+All 4 switches have been reconfigured to sequential IPs (.10, .11, .12, .13):
+1. ✅ **sw1-modem** (.12 → .10) - Moved to 10.1.1.10
+2. ✅ **sw2-tv** (.90 → .11) - Moved to 10.1.1.11
+3. ✅ **sw3-upstairs** (.95 → .12) - Moved to 10.1.1.12
+4. ✅ **sw4-zephyr** (.104 → .13) - Moved to 10.1.1.13
 
 ### Priority 2: Investigate Unknown Devices
 - Determine what's at 10.1.1.45, .60, .191 (TP-Link devices)

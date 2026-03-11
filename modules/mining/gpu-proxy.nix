@@ -19,6 +19,7 @@
   gpu-proxy-package = pkgs.python3Packages.buildPythonApplication rec {
     pname = "gpu-proxy";
     version = "1.0.0";
+    format = "other";  # Using dontUnpack, so no standard format
 
     # Use writeTextFile to create the proxy script
     src = pkgs.writeTextFile {
@@ -43,6 +44,7 @@
         import ssl
         import argparse
         import sys
+        import traceback
         from pathlib import Path
         from typing import Optional, List, Dict, Any
         from dataclasses import dataclass
@@ -145,6 +147,7 @@
                     data["id"] = self.message_id
                     self.message_id += 1
                 line = json.dumps(data, separators=(",", ":"))
+                logging.info(f"Sending JSON: {line}")
                 await self.send_line(line)
 
             async def recv_line(self) -> Optional[str]:
@@ -152,9 +155,10 @@
                 try:
                     line = await self.reader.readline()
                     if not line:
-                            return None
+                        logging.warning("Received empty line from pool")
+                        return None
                     line = line.decode().strip()
-                    logging.debug(f"Received: {line}")
+                    logging.info(f"Received line: {line}")
                     return line
                 except Exception as e:
                     logging.error(f"Error receiving: {e}")
@@ -166,7 +170,9 @@
                 if not line:
                     return None
                 try:
-                    return json.loads(line)
+                    data = json.loads(line)
+                    logging.info(f"Received JSON: {data}")
+                    return data
                 except json.JSONDecodeError as e:
                     logging.error(f"Invalid JSON: {line} - {e}")
                     return None
@@ -194,6 +200,7 @@
                 self.difficulty: Optional[float] = None
                 self.job: Optional[dict] = None
                 self.subscribers: List = []  # Miner connections
+                self.initialized = False  # Track if subscribe/authorize sent
 
             async def connect(self) -> bool:
                 """Connect to the pool."""
@@ -228,18 +235,31 @@
 
             async def subscribe(self):
                 """Send mining.subscribe to the pool."""
+                logging.info("Sending mining.subscribe to pool")
                 await self.send_json({
                     "id": 1,
                     "method": "mining.subscribe",
                     "params": ["gpu-proxy/1.0", None]
                 })
 
-            async def authorize(self):
-                """Send mining.authorize to the pool."""
+            async def authorize(self, worker: Optional[str] = None):
+                """Send mining.authorize to the pool.
+
+                Args:
+                    worker: Optional worker ID to append to wallet (e.g., "krxXVNVMM7.forge-gpu")
+                """
+                # If worker provided, append to base wallet
+                wallet = self.pool.wallet
+                if worker:
+                    # Extract base wallet (remove .worker if present)
+                    base_wallet = wallet.split('.')[0]
+                    wallet = f"{base_wallet}.{worker}"
+
+                logging.info(f"Sending mining.authorize to pool with wallet={wallet}")
                 await self.send_json({
                     "id": 2,
                     "method": "mining.authorize",
-                    "params": [self.pool.wallet, self.pool.password]
+                    "params": [wallet, self.pool.password]
                 })
 
             async def configure(self):
@@ -252,7 +272,11 @@
                 })
 
             async def submit(self, worker: str, job_id: str, nonce: str, result: str):
-                """Submit a share to the pool."""
+                """Submit a share to the pool.
+
+                Args:
+                    worker: Full worker name including wallet (e.g., "krxXVNVMM7.forge-gpu")
+        """
                 await self.send_json({
                     "id": 4,
                     "method": "mining.submit",
@@ -321,13 +345,27 @@
 
             async def handle_authorize(self, request: dict):
                 """Handle mining.authorize from miner."""
-                params = request.get("params", [])
+                params = request.get("params")
                 if not params:
                     await self.send_error(request.get("id"), -1, "No params")
                     return
 
-                worker_name = params[0]
-                password = params[1] if len(params) > 1 else "x"
+                # Handle both list format (standard) and dict format (lolMiner "login")
+                if isinstance(params, dict):
+                    # lolMiner "login" format: {"login": "worker", "pass": "x", "agent": "..."}
+                    worker_name = params.get("login", "worker")
+                    password = params.get("pass", "x")
+                elif isinstance(params, list):
+                    # Standard stratum format: ["worker", "pass"]
+                    if len(params) < 1:
+                        await self.send_error(request.get("id"), -1, "Missing worker name")
+                        return
+                    worker_name = params[0]
+                    password = params[1] if len(params) > 1 else "x"
+                else:
+                    logging.warning(f"Params has unexpected type: {type(params)}")
+                    await self.send_error(request.get("id"), -1, "Invalid params format")
+                    return
 
                 # Check if worker is allowed (if whitelist configured)
                 if self.config.workers:
@@ -378,9 +416,14 @@
                 nonce = params[2]
                 result = params[3] if len(params) > 3 else ""
 
-                # Forward to pool (use pool's wallet, rewrite worker)
+                # Construct full wallet.worker name for submission
+                # Extract base wallet from pool wallet (handles both "krxXVNVMM7" and "krxXVNVMM7.forge")
+                base_wallet = self.pool.wallet.split('.')[0]
                 original_worker = self.worker_id or worker
-                await self.pool.submit(self.pool.wallet, job_id, nonce, result)
+                full_worker = f"{base_wallet}.{original_worker}"
+
+                logging.info(f"Submitting share for worker={full_worker}")
+                await self.pool.submit(full_worker, job_id, nonce, result)
 
             async def handle_keepalive(self, request: dict):
                 """Handle mining.keepalive (if supported)."""
@@ -402,9 +445,16 @@
                 """Handle a message from the miner."""
                 method = message.get("method")
 
+                # Log the message for debugging
+                if method not in ["mining.notify", "mining.set_difficulty"]:
+                    logging.debug(f"Miner message: {message}")
+
                 if method == "mining.subscribe":
                     await self.handle_subscribe(message)
                 elif method == "mining.authorize":
+                    await self.handle_authorize(message)
+                elif method == "login":
+                    # lolMiner uses "login" as an alias for "mining.authorize"
                     await self.handle_authorize(message)
                 elif method == "mining.submit":
                     await self.handle_submit(message)
@@ -444,22 +494,17 @@
                 self.pool_index = 0
                 self.server: Optional[asyncio.Server] = None
                 self.running = False
+                self.pool_task: Optional[asyncio.Task] = None  # Keep reference to prevent GC
 
             def sort_pools(self):
                 """Sort pools by priority."""
                 self.pools.sort(key=lambda p: p.pool.priority)
 
             async def connect_to_pool(self, pool: PoolConnection) -> bool:
-                """Connect to a pool and initialize."""
+                """Connect to a pool (initialization happens in message loop)."""
                 if await pool.connect():
-                    try:
-                        await pool.subscribe()
-                        await pool.configure()
-                        await pool.authorize()
-                        return True
-                    except Exception as e:
-                        logging.error(f"Error initializing pool {pool.pool.name}: {e}")
-                        await pool.close()
+                    pool.initialized = False  # Will be initialized in message loop
+                    return True
                 return False
 
             async def connect_to_best_pool(self) -> bool:
@@ -492,44 +537,77 @@
 
             async def pool_message_loop(self, pool: PoolConnection):
                 """Handle messages from the pool."""
-                while pool.connected and self.running:
-                    message = await pool.recv_json()
-                    if not message:
-                        logging.warning(f"Pool {pool.pool.name} disconnected")
-                        break
+                logging.info(f"Pool message loop started for {pool.pool.name}")
 
-                    method = message.get("method")
-                    result = message.get("result")
+                # Initialize pool connection (subscribe, authorize) now that loop is running
+                if not pool.initialized:
+                    try:
+                        logging.info("Initializing pool connection...")
+                        await pool.subscribe()
+                        await pool.configure()
+                        # Authorize with base wallet only (per-worker auth happens during submit)
+                        await pool.authorize(worker=None)
+                        pool.initialized = True
+                        logging.info("Pool connection initialized")
+                    except Exception as e:
+                        logging.error(f"Error initializing pool: {e}")
+                        await self.failover_pool()
+                        return
 
-                    if method == "mining.notify":
-                        # New job - cache and broadcast
-                        pool.job = message
-                        await pool.broadcast(message)
-                        logging.debug(f"New job from {pool.pool.name}")
+                try:
+                    while pool.connected and self.running:
+                        message = await pool.recv_json()
+                        if not message:
+                            logging.warning(f"Pool {pool.pool.name} disconnected")
+                            break
 
-                    elif method == "mining.set_difficulty":
-                        # New difficulty
-                        pool.difficulty = message.get("params", [1])[0]
-                        await pool.broadcast(message)
-                        logging.info(f"Difficulty set to {pool.difficulty}")
+                        method = message.get("method")
+                        result = message.get("result")
+                        msg_id = message.get("id")
 
-                    elif result is not None and message.get("id") in [1, 2, 3]:
-                        # Response to subscribe/authorize/configure
-                        if message.get("id") == 1:
-                            logging.info(f"Pool {pool.pool.name} subscription confirmed")
-                        elif message.get("id") == 2:
+                        # Log all pool responses for debugging
+                        if msg_id is not None:
+                            logging.info(f"Pool response: id={msg_id}, result={result}, method={method}")
+
+                        if method == "mining.notify":
+                            # New job - cache and broadcast
+                            pool.job = message
+                            await pool.broadcast(message)
+                            logging.info(f"New job from {pool.pool.name}")
+
+                        elif method == "mining.set_difficulty":
+                            # New difficulty
+                            pool.difficulty = message.get("params", [1])[0]
+                            await pool.broadcast(message)
+                            logging.info(f"Difficulty set to {pool.difficulty}")
+
+                        elif msg_id in [1, 2, 3]:
+                            # Response to subscribe/authorize/configure
+                            if msg_id == 1:
+                                logging.info(f"Pool {pool.pool.name} subscription confirmed")
+                            elif msg_id == 2:
+                                if result is True:
+                                    logging.info(f"Pool {pool.pool.name} authorization successful")
+                                else:
+                                    logging.error(f"Pool {pool.pool.name} authorization failed: result={result}")
+
+                        elif msg_id == 4:
+                            # Response to share submission
                             if result is True:
-                                logging.info(f"Pool {pool.pool.name} authorization successful")
+                                logging.info("Share accepted")
                             else:
-                                logging.error(f"Pool {pool.pool.name} authorization failed")
+                                error = message.get("error", [])
+                                logging.warning(f"Share rejected: {error}")
 
-                    elif message.get("id") == 4:
-                        # Response to share submission
-                        if result is True:
-                            logging.info("Share accepted")
-                        else:
-                            error = message.get("error", [])
-                            logging.warning(f"Share rejected: {error}")
+                        # Log any unhandled pool messages
+                        if msg_id not in [1, 2, 3, 4] and method not in ["mining.notify", "mining.set_difficulty"]:
+                            logging.debug(f"Unhandled pool message: {message}")
+
+                except Exception as e:
+                    logging.error(f"Pool message loop error: {e}")
+                    logging.error(f"Traceback: {traceback.format_exc()}")
+                finally:
+                    logging.info(f"Pool message loop ended for {pool.pool.name}")
 
                 # Pool disconnected, try failover
                 if self.running:
@@ -555,6 +633,7 @@
                         await miner.handle_message(message)
                 except Exception as e:
                     logging.error(f"Error handling miner: {e}")
+                    logging.error(f"Traceback: {traceback.format_exc()}")
                 finally:
                     logging.info(f"Miner disconnected from {addr}")
                     await miner.close()
@@ -575,8 +654,9 @@
                     logging.error("Failed to connect to any pool!")
                     return
 
-                # Start pool message listener
-                pool_task = asyncio.create_task(self.pool_message_loop(self.current_pool))
+                # Start pool message listener (store in self to prevent garbage collection)
+                self.pool_task = asyncio.create_task(self.pool_message_loop(self.current_pool))
+                logging.info("Pool message loop task created")
 
                 # Start miner listener
                 self.server = await asyncio.start_server(

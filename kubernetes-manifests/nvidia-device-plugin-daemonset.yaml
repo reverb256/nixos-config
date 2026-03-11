@@ -1,0 +1,100 @@
+# NVIDIA Device Plugin DaemonSet (Legacy - v0.14.x)
+# Uses simple NVML device discovery without CDI requirements
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-device-plugin-daemonset
+  namespace: kube-system
+  labels:
+    name: nvidia-device-plugin-ds
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: nvidia-device-plugin-ds
+  template:
+    metadata:
+      labels:
+        name: nvidia-device-plugin-ds
+    spec:
+      containers:
+      - name: nvidia-device-plugin-ctr
+        image: nvcr.io/nvidia/k8s-device-plugin:v0.14.4
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: LD_LIBRARY_PATH
+          value: /run/opengl-driver/lib:/nix/store
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "rm -rf /var/lib/kubelet/device-plugins/*.sock"]
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -S /var/lib/kubelet/device-plugins/kubelet.sock
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources: {}
+        securityContext:
+          privileged: false
+          capabilities:
+            add:
+            - SYS_ADMIN
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/lib/kubelet/device-plugins
+          name: device-plugin
+        - mountPath: /run/opengl-driver/lib
+          name: driver-lib
+          readOnly: true
+        - mountPath: /nix/store/nvidia-driver
+          name: nix-store
+          readOnly: true
+        - mountPath: /dev
+          name: dev
+        - mountPath: /sys
+          name: sys
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        accelerator: nvidia-gpu
+      priorityClassName: system-node-critical
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /var/lib/kubelet/device-plugins
+          type: ""
+        name: device-plugin
+      - hostPath:
+          path: /run/opengl-driver/lib
+          type: ""
+        name: driver-lib
+      - hostPath:
+          path: /nix/store
+          type: ""
+        name: nix-store
+      - hostPath:
+          path: /dev
+          type: ""
+        name: dev
+      - hostPath:
+          path: /sys
+          type: ""
+        name: sys
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate

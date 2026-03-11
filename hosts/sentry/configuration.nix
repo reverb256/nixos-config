@@ -119,16 +119,19 @@
     desktopManager.plasma6.enable = true;
 
     # MINING (CPU only - 8 threads = 50% of 16 cores)
-    # Uses defaults from mining.nix for pool URLs and wallet format
+    # Uses xmrig-proxy on Zephyr for centralized hashrate aggregation
     # Note: profiles.role.mining enables services.mining automatically
-    # autostart=false - compute-workload-monitor controls when to start
+    # Sentry: RX 5600 XT available but not used for mining
     mining = {
       xmrig = {
         enable = true;
-        autostart = true;  # Changed: enable autostart
+        autostart = true;
         threads = 8;
+        pool = "10.1.1.110:3333";  # xmrig-proxy on Zephyr
+        wallet = "sentry-cpu";      # Worker ID for proxy
+        tls = false;                 # No TLS needed for local proxy
       };
-      lolminer.enable = false;
+      lolminer.enable = false; # No GPU mining on Sentry
     };
 
     # Spotify with SpotX patch (ad-free, premium features)

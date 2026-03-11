@@ -4,6 +4,7 @@
   imports = [
     ./prometheus.nix
     ./alertmanager.nix
+    ./alert-webhook.nix # Local webhook receiver (no auth required)
     ./grafana-v2.nix # New modular dashboard system
     ./alert-rules.nix # Cluster alert rules
     ./node-exporter.nix

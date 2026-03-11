@@ -208,8 +208,13 @@
   systemd.services.nixos-upgrade-unit = {
     description = "Notify about available NixOS upgrades";
     serviceConfig.ExecStart = pkgs.writeShellScript "nixos-upgrade-notify" ''
-      ${pkgs.libnotify}/bin/notify-send "NixOS Updates Available" "Run 'sudo nixos-rebuild switch' to update" -i software-update-available
+      # Only notify if a display session is available
+      if [ -n "''${DISPLAY:-}" ] && command -v ${pkgs.libnotify}/bin/notify-send >/dev/null 2>&1; then
+        ${pkgs.libnotify}/bin/notify-send "NixOS Updates Available" "Run 'sudo nixos-rebuild switch' to update" -i software-update-available
+      fi
     '';
     wantedBy = ["multi-user.target"];
+    # Don't fail if notify-send isn't available (headless systems)
+    serviceConfig.Type = "oneshot";
   };
 }

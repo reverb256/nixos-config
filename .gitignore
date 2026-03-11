@@ -24,3 +24,4 @@ package.json
 .pnpm-debug.log*
 .yarn/*
 .yarn-integrity
+vllm-env/

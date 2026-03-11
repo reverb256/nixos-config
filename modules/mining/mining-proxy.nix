@@ -1,6 +1,12 @@
 # Mining Proxy Module (Python-based)
 # Universal stratum proxy with multi-pool failover
 # https://github.com/siv2k/mining-proxy
+#
+# STATUS: Incomplete/Reserved for future use
+# - Current GPU mining uses direct pool connections (lolMiner)
+# - CPU mining uses xmrig-proxy (C++ based, modules/mining/xmrig-proxy.nix)
+# - This module is kept for potential multi-algorithm GPU proxy scenarios
+# - To enable: Fix sha256 below and configure services.mining-proxy in host config
 {
   config,
   pkgs,

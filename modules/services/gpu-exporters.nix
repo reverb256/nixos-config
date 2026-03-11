@@ -80,6 +80,7 @@ in {
           User = "nvidia-gpu-exporter";
           Group = "nvidia-gpu-exporter";
           DynamicUser = true;
+          # Listen on all interfaces for Prometheus scraping from cluster (protected by firewall)
           ExecStart = "${pkgs.prometheus-nvidia-gpu-exporter}/bin/nvidia_gpu_exporter --web.listen-address 0.0.0.0:${toString cfg.nvidia.port} --nvidia-smi-command ${config.hardware.nvidia.package.bin}/bin/nvidia-smi";
 
           Restart = "always";

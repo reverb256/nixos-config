@@ -41,7 +41,7 @@
     "/data/worn" = {
       device = "/dev/disk/by-uuid/2056c7e4-cd6c-4a67-9b3d-001178a70eaa";
       fsType = "btrfs";
-      options = ["subvol=@worn"];
+      options = ["subvol=@worn" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
     };
   };
 

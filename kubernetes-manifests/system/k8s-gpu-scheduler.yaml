@@ -1,0 +1,116 @@
+# Kubernetes GPU Scheduler Controller Deployment
+# Integrates with AI inference gateway signals to manage mining pods
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gpu-scheduler
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gpu-scheduler
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gpu-scheduler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gpu-scheduler
+subjects:
+- kind: ServiceAccount
+  name: gpu-scheduler
+  namespace: kube-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gpu-scheduler
+  namespace: kube-system
+  labels:
+    app: gpu-scheduler
+    component: kubernetes-gpu-scheduler
+spec:
+  selector:
+    matchLabels:
+      app: gpu-scheduler
+  template:
+    metadata:
+      labels:
+        app: gpu-scheduler
+        component: kubernetes-gpu-scheduler
+    spec:
+      # Run on all GPU nodes
+      nodeSelector:
+        gpu: "true"
+      tolerations:
+      # Run on control plane nodes (Zephyr has GPUs)
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      # Run on not-ready nodes during cluster startup
+      - key: node.kubernetes.io/not-ready
+        operator: Exists
+        effect: NoExecute
+      containers:
+      - name: gpu-scheduler
+        image: python:3.11-slim
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+
+            # Install dependencies
+            apt-get update -qq
+            apt-get install -y -qq curl
+
+            # Install kubernetes python library
+            pip install kubernetes --quiet
+
+            # Copy scheduler script from host (mounted volume)
+            cp /scripts/k8s-gpu-scheduler.py /usr/local/bin/
+
+            # Run scheduler
+            exec python /usr/local/bin/k8s-gpu-scheduler.py
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+          readOnly: true
+        - name: gpu-scheduler-state
+          mountPath: /run/gpu-scheduler
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      # Mount the scheduler script from host
+      - name: scripts
+        hostPath:
+          path: /etc/nixos/scripts
+          type: Directory
+      # Mount the state directory (shared with AI gateway and compute-workload-monitor)
+      - name: gpu-scheduler-state
+        hostPath:
+          path: /run/gpu-scheduler
+          type: DirectoryOrCreate

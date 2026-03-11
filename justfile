@@ -287,6 +287,45 @@ models-optimize:
     source {{JUST_HELPERS}}
     _time; _header "models → optimize GPU allocation"
     nix-shell -p 'with pkgs; pkgs.python3.withPackages (ps: [ps.httpx])' --run 'python3 {{FLAKE_PATH}}/scripts/manage-models.py'
+
+# Update OpenCode configuration from gateway models
+opencode-update:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    _time; _header "opencode → update models"
+    _info "fetching models from gateway and updating OpenCode configuration..."
+    python3 {{FLAKE_PATH}}/scripts/update-opencode-models.py
+    _done "OpenCode configuration updated"
+    _time; echo ""
+
+# List OpenCode gateway models
+opencode-list:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    python3 {{FLAKE_PATH}}/scripts/update-opencode-models.py --list
+    echo ""
+
+# Dry-run OpenCode configuration update
+opencode-dry-run:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    _time; _header "opencode → dry-run"
+    python3 {{FLAKE_PATH}}/scripts/update-opencode-models.py --dry-run
+    echo ""
+
+# Update models and OpenCode together
+models-and-opencode:
+    #!/usr/bin/env bash
+    set -e
+    source {{JUST_HELPERS}}
+    _time; _header "models → auto-update + opencode config"
+    _info "updating LM Studio models and OpenCode configuration..."
+    nix-shell -p 'with pkgs; pkgs.python3.withPackages (ps: [ps.httpx])' --run 'python3 {{FLAKE_PATH}}/scripts/auto-update-models.py --update-opencode'
+    _done "models and OpenCode updated"
+    _time; echo ""
     _done "optimization complete"
     _time; echo ""
 

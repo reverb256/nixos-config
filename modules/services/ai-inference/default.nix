@@ -164,8 +164,8 @@ in {
 
       host = mkOption {
         type = types.str;
-        default = "0.0.0.0"; # Listen on all interfaces for Spacebot integration
-        description = "Gateway listen address (use 0.0.0.0 for all interfaces or Tailscale IP for network access)";
+        default = "127.0.0.1"; # Bind to localhost by default for security
+        description = "Gateway listen address (use 127.0.0.1 for localhost, or specific IP for network access)";
       };
 
       port = mkOption {
