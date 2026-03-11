@@ -130,6 +130,104 @@ git add .github/workflows/ci.yml
 git commit -m "feat(ci): add main CI workflow"
 ```
 
+
+---
+
+## Task 1.5: Fix Existing Linting Issues
+
+**Priority**: HIGH - CI currently failing
+**Status**: Active (see `docs/ci-cd-linting-issues.md`)
+
+**Context:**
+After removing `continue-on-error: true` from CI linters (commit `dbd8d0d`), numerous pre-existing linting issues were exposed. This task resolves those issues to enable CI to pass.
+
+**Issues:**
+See `docs/ci-cd-linting-issues.md` for complete tracking
+
+**Quick Summary:**
+- ❌ `nix flake check` - lolminer-image derivation fails
+- ⚠️  `statix` - 12+ warnings (unused code, repeated keys)
+- ⚠️  `deadnix` - 5+ warnings (unused patterns)
+
+**Step 1: Fix critical flake check failure**
+
+```bash
+# Investigate lolminer-image issue
+nix build .#lolminer-image
+
+# Fix derivation in modules/services/mining/lolminer-image.nix
+```
+
+**Step 2: Fix statix warnings**
+
+```bash
+# Run statix locally
+nix shell nixpkgs#statix --command statix check .
+
+# Fix issues by category:
+# - W04: Remove unused let bindings
+# - W08: Deduplicate repeated map keys
+# - W10: Remove unused pattern alternatives
+# - W12: Remove empty let bindings
+# - W20: Update legacy sequence notation
+```
+
+**Step 3: Fix deadnix warnings**
+
+```bash
+# Run deadnix locally
+nix shell nixpkgs#deadnix --command deadnix -f .
+
+# Fix unused lambda patterns:
+# - Replace unused args with _ or ...
+# - Example: { config, ... } instead of { config, pkgs, ... }
+```
+
+**Step 4: Verify all checks pass**
+
+```bash
+# Run full CI suite locally
+nix flake check
+nix shell nixpkgs#statix --command statix check .
+nix shell nixpkgs#deadnix --command deadnix -f .
+
+# All should pass with exit code 0
+```
+
+**Step 5: Update CI workflow to remove continue-on-error**
+
+Already done in commit `dbd8d0d` - this task completes the fix.
+
+**Verification:**
+
+```bash
+# Push to feature branch and verify CI passes
+git push origin feature/ci-cd-pipeline
+
+# Check GitHub Actions dashboard
+```
+
+**Success Criteria:**
+- [ ] `nix flake check` passes without errors
+- [ ] `statix check .` returns exit code 0
+- [ ] `deadnix -f .` returns exit code 0
+- [ ] GitHub Actions CI workflow passes all jobs
+- [ ] No linting warnings in CI output
+
+**Related Files:**
+- `docs/ci-cd-linting-issues.md` - Detailed issue tracking
+- `.github/workflows/ci.yml` - CI configuration (already updated)
+- `modules/services/mining/lolminer-image.nix` - Critical fix needed
+- `modules/services/glitchtip-selfhosted.nix` - Multiple statix issues
+- `modules/system/cluster-storage.nix` - Statix W04 issues
+- `modules/system/distributed-builds.nix` - Statix + deadnix issues
+- `modules/system/compute-workload-monitor.nix` - Statix + deadnix issues
+
+**Notes:**
+- This is a prerequisite for merging CI/CD changes to main
+- Focus on CRITICAL and IMPORTANT issues first (see tracking doc)
+- MINOR style issues can be addressed in follow-up cleanup
+
 ---
 
 ## Task 2: Create Deployment Workflow
