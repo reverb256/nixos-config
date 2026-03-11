@@ -20,6 +20,12 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Check dependencies
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "ERROR: jq is required but not installed"
+            exit 1
+          fi
+
           # Define hosts
           hosts=("zephyr" "nexus" "forge" "sentry")
           state_dir="/run/nixos-deploy"
@@ -40,22 +46,29 @@ jobs:
               continue
             fi
 
-            # Parse JSON with jq
-            if ! status=$(jq -r '.status' "$state_file" 2>/dev/null); then
+            # Parse JSON with jq (single call for efficiency)
+            if ! data=$(jq -r '.status, .started_at, (.gpu_nodes_paused // "false")' "$state_file" 2>/dev/null); then
               echo "| $host | ⚠️ Error reading state | N/A | Invalid JSON |" >> $GITHUB_STEP_SUMMARY
               continue
             fi
 
-            started_at=$(jq -r '.started_at' "$state_file" 2>/dev/null)
-            gpu_paused=$(jq -r '.gpu_nodes_paused // "false"' "$state_file" 2>/dev/null)
+            IFS=$'\n' read -r status started_at gpu_paused <<< "$data"
 
             # Calculate time ago in seconds
             if [ -n "$started_at" ]; then
               started_time=$(date -d "$started_at" +%s 2>/dev/null || echo 0)
-              time_diff=$((current_time - started_time))
+
+              # Guard against clock skew producing negative values
+              if [ "$started_time" -gt "$current_time" ]; then
+                time_diff=0
+              else
+                time_diff=$((current_time - started_time))
+              fi
 
               # Format time ago
-              if [ $time_diff -lt 60 ]; then
+              if [ "$started_time" -le 0 ]; then
+                time_ago="Unknown"
+              elif [ $time_diff -lt 60 ]; then
                 time_ago="${time_diff}s"
               elif [ $time_diff -lt 3600 ]; then
                 time_ago="$((time_diff / 60))m"
