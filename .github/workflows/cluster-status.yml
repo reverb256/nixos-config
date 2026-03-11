@@ -1,0 +1,104 @@
+---
+name: Cluster Status
+
+on:
+  schedule:
+    # Run every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cluster-status:
+    name: Cluster Deployment Status
+    runs-on: [self-hosted, nixos]
+
+    steps:
+      - name: Check cluster deployment status
+        run: |
+          set -euo pipefail
+
+          # Define hosts
+          hosts=("zephyr" "nexus" "forge" "sentry")
+          state_dir="/run/nixos-deploy"
+
+          # Start markdown table
+          echo "# Cluster Deployment Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Host | Status | Time Ago | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|----------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          current_time=$(date +%s)
+
+          for host in "${hosts[@]}"; do
+            state_file="$state_dir/${host}.json"
+
+            if [ ! -f "$state_file" ]; then
+              echo "| $host | ⚪️ No recent deploy | N/A | No state file found |" >> $GITHUB_STEP_SUMMARY
+              continue
+            fi
+
+            # Parse JSON with jq
+            if ! status=$(jq -r '.status' "$state_file" 2>/dev/null); then
+              echo "| $host | ⚠️ Error reading state | N/A | Invalid JSON |" >> $GITHUB_STEP_SUMMARY
+              continue
+            fi
+
+            started_at=$(jq -r '.started_at' "$state_file" 2>/dev/null)
+            gpu_paused=$(jq -r '.gpu_nodes_paused // "false"' "$state_file" 2>/dev/null)
+
+            # Calculate time ago in seconds
+            if [ -n "$started_at" ]; then
+              started_time=$(date -d "$started_at" +%s 2>/dev/null || echo 0)
+              time_diff=$((current_time - started_time))
+
+              # Format time ago
+              if [ $time_diff -lt 60 ]; then
+                time_ago="${time_diff}s"
+              elif [ $time_diff -lt 3600 ]; then
+                time_ago="$((time_diff / 60))m"
+              elif [ $time_diff -lt 86400 ]; then
+                time_ago="$((time_diff / 3600))h"
+              else
+                time_ago="$((time_diff / 86400))d"
+              fi
+            else
+              time_ago="Unknown"
+            fi
+
+            # Map status to emoji
+            case "$status" in
+              success)
+                emoji="✅"
+                ;;
+              failed)
+                emoji="❌"
+                ;;
+              deploying)
+                emoji="🚀"
+                ;;
+              building)
+                emoji="🔨"
+                ;;
+              *)
+                emoji="❓"
+                ;;
+            esac
+
+            # Build details column
+            details="GPU paused: $gpu_paused"
+
+            # Add row to table
+            echo "| $host | $emoji $status | $time_ago | $details |" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "*Last updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
+
+          # Also output to console for visibility in logs
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Cluster Deployment Status"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          cat $GITHUB_STEP_SUMMARY | tail -n +4
