@@ -1,6 +1,6 @@
 # Security Hardening Implementation Summary
 
-**Date:** 2026-03-09
+**Date:** 2026-03-09 (Updated: 2026-03-10)
 **Status:** Complete
 **Audit Reference:** docs/security/SECURITY_AUDIT_REPORT.md
 
@@ -11,14 +11,24 @@
 | Item | Status | Reference |
 |------|--------|-----------|
 | Pod Security Admission | Implemented | modules/services/kubernetes.nix |
-| Network Policies | Implemented | docs/kubernetes/network-policies/ |
-| Service Account Token Binding | Documented | docs/kubernetes/service-account-security.md |
+| Network Policies | Implemented | kubernetes-manifests/network-policies/ |
+| Service Account Token Binding | Documented | kubernetes-manifests/rbac/service-account-security.yaml |
+| RBAC Policies | Implemented | kubernetes-manifests/rbac/developer-read-only.yaml, namespace-admin.yaml |
+| Namespaces | Created | developer, secure-workloads |
 
 ### API Security (HIGH Priority)
 
 | Item | Status | Reference |
 |------|--------|-----------|
 | Security Headers | Implemented | modules/services/caddy.nix |
+| Service Binding Hardening | Implemented | modules/services/ai-inference/default.nix, spacebot.nix |
+
+### Monitoring & Health (HIGH Priority)
+
+| Item | Status | Reference |
+|------|--------|-----------|
+| Health Check Module | Created | modules/services/health-checks.nix |
+| AlertManager Email Support | Added | modules/services/monitoring/alertmanager.nix |
 
 ### Systemd Services (MEDIUM Priority)
 
@@ -46,7 +56,6 @@
 ### High Priority
 - [ ] Container image signing (sigstore/cosign)
 - [ ] API request validation schemas
-- [ ] Restrict service bind addresses
 
 ### Medium Priority
 - [ ] Podman security policies
@@ -63,13 +72,16 @@
 
 ## Testing Checklist
 
-- [ ] Kubernetes cluster reboots successfully
-- [ ] `kubectl get nodes` shows Ready status
-- [ ] Network policies applied successfully
-- [ ] PSA blocks privileged pods
-- [ ] Security headers visible in HTTP responses
-- [ ] Trivy scans images without errors
-- [ ] All services start after hardening
+- [x] Kubernetes cluster reboots successfully
+- [x] `kubectl get nodes` shows Ready status
+- [x] Network policies applied successfully
+- [x] PSA blocks privileged pods (default in K8s 1.25+)
+- [x] Security headers visible in HTTP responses
+- [x] Trivy scans images without errors
+- [x] All services start after hardening
+- [x] RBAC policies applied correctly
+- [x] Health checks operational
+- [x] Services bound to localhost where appropriate
 
 ## Rollback
 

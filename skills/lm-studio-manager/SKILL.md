@@ -91,9 +91,62 @@ curl -X POST http://127.0.0.1:8080/v1/chat/completions \
     "messages": [{"role": "user", "content": "Hello!"}],
     "max_tokens": 50
   }'
+ ```
+
+### Auto-Update Models
+
+LM Studio includes an auto-update script that can be run via systemd timer or manually:
+
+#### Manual Commands
+
+```bash
+# List all registered models
+just models-list
+
+# Auto-update (check, download, load, refresh, test)
+just models
+
+# Dry-run (show what would be done)
+just models-dry-run
+
+# Download missing models (requires huggingface-cli)
+just models-download
+
+# Check current status
+just models-status
+
+# Optimize GPU allocation
+just models-optimize
 ```
 
-## Model Management
+#### Systemd Auto-Update
+
+Set up automatic daily model updates:
+
+```bash
+# Enable systemd timer (runs daily at 3 AM)
+systemctl --user enable --now lm-studio-auto-update.timer
+
+# Check timer status
+systemctl --user status lm-studio-auto-update.timer
+
+# View logs
+journalctl --user -u lm-studio-auto-update -f
+```
+
+#### Auto-Update Features
+
+The auto-update script (`/etc/nixos/scripts/auto-update-models.py`):
+- Discovers models from registry (Qwen3.5, Crow, BGE, etc.)
+- Checks which models are already loaded in LM Studio
+- Downloads missing models (with `--download` flag)
+- Loads models with optimal settings (context length, quantization, GPU layers)
+- Refreshes AI inference gateway to recognize new models
+- Tests newly loaded models with simple inference
+
+See `/etc/nixos/docs/lm-studio-auto-update.md` for full documentation.
+
+ ## Model Management
 
 ### Download Models (LM Studio GUI)
 
