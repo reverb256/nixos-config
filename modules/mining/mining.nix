@@ -282,7 +282,10 @@ in
     systemd = {
       targets.mining = {
         description = "All mining services";
-        wants = [ "lolminer-nvidia.service" "xmrig@amd.service" ];
+        wants =
+          lib.optionals cfg.lolminer.nvidia.enable [ "lolminer-nvidia.service" ] ++
+          lib.optionals cfg.lolminer.amd.enable [ "lolminer-amd.service" ] ++
+          lib.optionals cfg.xmrig.enable [ "xmrig.service" ];
         after = [ "network-online.target" ];
       };
 
