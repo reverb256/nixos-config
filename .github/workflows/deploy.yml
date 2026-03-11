@@ -43,11 +43,11 @@ jobs:
           # Colmena-based deployment with dependency management and rollback
           cd /etc/nixos
 
-          # Signal GPU scheduler (for GPU nodes: zephyr, nexus, forge)
+          # Signal GPU scheduler (for all GPU nodes: zephyr, nexus, forge, sentry)
           signal_gpu_scheduler() {
             local state=$1
             local host=$2
-            if [ "$host" = "zephyr" ] || [ "$host" = "nexus" ] || [ "$host" = "forge" ]; then
+            if [ "$host" = "zephyr" ] || [ "$host" = "nexus" ] || [ "$host" = "forge" ] || [ "$host" = "sentry" ]; then
               if [ "$host" = "zephyr" ]; then
                 echo "$state" | sudo tee /run/gpu-scheduler/ai-state > /dev/null
               else
@@ -65,30 +65,47 @@ jobs:
 
           # Signal deployment start for GPU nodes
           if [ -z "$COLMENA_TARGET" ]; then
-            for host in zephyr nexus forge; do
-              signal_gpu_scheduler "DEPLOY_IN_PROGRESS" "$host"
+            for host in zephyr nexus forge sentry; do
+              signal_gpu_scheduler "AI_START" "$host"
             done
           else
-            signal_gpu_scheduler "DEPLOY_IN_PROGRESS" "${{ github.event.inputs.target }}"
+            signal_gpu_scheduler "AI_START" "${{ github.event.inputs.target }}"
           fi
 
           # Deploy using Colmena
           if ! nix run .#apps.x86_64-linux.colmena -- apply $COLMENA_TARGET 2>&1 | tee /tmp/deploy-colmena.log; then
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "ERROR: Colmena deployment failed"
+            echo "ERROR: Colmena deployment failed, attempting rollback..."
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+            # Rollback to previous generation
+            if [ -z "$COLMENA_TARGET" ]; then
+              nix run .#apps.x86_64-linux.colmena -- rollback --all 2>&1 | tee -a /tmp/deploy-colmena.log
+            else
+              nix run .#apps.x86_64-linux.colmena -- rollback --on "${{ github.event.inputs.target }}" 2>&1 | tee -a /tmp/deploy-colmena.log
+            fi
+
+            # Reset GPU scheduler state after rollback
+            if [ -z "$COLMENA_TARGET" ]; then
+              for host in zephyr nexus forge sentry; do
+                signal_gpu_scheduler "" "$host"
+              done
+            else
+              signal_gpu_scheduler "" "${{ github.event.inputs.target }}"
+            fi
+
             cat /tmp/deploy-colmena.log
             exit 1
           fi
 
           # Signal deployment complete for GPU nodes
           if [ -z "$COLMENA_TARGET" ]; then
-            for host in zephyr nexus forge; do
-              signal_gpu_scheduler "IDLE" "$host"
+            for host in zephyr nexus forge sentry; do
+              signal_gpu_scheduler "" "$host"
             done
           else
-            signal_gpu_scheduler "IDLE" "${{ github.event.inputs.target }}"
+            signal_gpu_scheduler "" "${{ github.event.inputs.target }}"
           fi
 
           echo "✓ Successfully deployed using Colmena"
@@ -97,6 +114,16 @@ jobs:
         if: always()
         run: |
           sudo systemctl start mining.target
+
+          # Verify mining services actually restarted
+          if ! sudo systemctl is-active mining.target >/dev/null 2>&1; then
+            echo "WARNING: mining.target failed to start"
+            echo "Checking individual services..."
+            sudo systemctl status mining.target || true
+            exit 1
+          fi
+
+          echo "✓ Mining services restarted successfully"
 
       - name: Health check
         run: |
