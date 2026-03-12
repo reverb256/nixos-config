@@ -37,7 +37,7 @@
         connection = {
           id = "Wired connection 1";
           type = "ethernet";
-          interface-name = "lan0";  # Consistent interface naming across cluster
+          interface-name = "enp38s0";  # Native hardware interface name
           autoconnect = true;
         };
         ipv4 = {
@@ -55,7 +55,7 @@
       populateLocal = true;
     };
 
-    wireless.enable = true;
+    wireless.enable = true;  # WiFi interface: wlo1 (native: wlp40s0)
 
     firewall = {
       allowedTCPPorts = [

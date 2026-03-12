@@ -15,7 +15,7 @@
     ./system/users.nix
     ./system/home-manager.nix
     ./system/networking.nix
-    ./system/interface-naming.nix
+    # ./system/interface-naming.nix  # DISABLED: Using native enp*s* naming (2026-03-12)
     ./system/ssh.nix
     ./system/ssh-ca.nix
     ./system/mosh.nix
