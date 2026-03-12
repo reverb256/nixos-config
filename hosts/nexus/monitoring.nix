@@ -13,9 +13,9 @@
       # SMART exporter for disk health monitoring
       smart-exporter.enable = true;
 
-      # Promtail - ship logs to Loki on zephyr
+      # Promtail - ship logs to Loki on sentry
       promtail.enable = true;
-      promtail.lokiUrl = "http://100.81.182.5:3100"; # Zephyr's Tailscale IP
+      promtail.lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
     };
 
     # NVIDIA GPU exporter for RTX 3060 Ti (2x GPUs)

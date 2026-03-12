@@ -28,6 +28,10 @@
 
       # SMART exporter for disk health monitoring
       smart-exporter.enable = true;
+
+      # Promtail - ship logs to Loki on sentry
+      promtail.enable = true;
+      promtail.lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
     };
 
     # GPU metrics exporter (NVIDIA RTX 3090 + 3060 Ti)

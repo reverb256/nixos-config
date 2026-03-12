@@ -19,7 +19,8 @@ in {
     systemd.services.promtail = {
       description = "Promtail Log Agent";
       wantedBy = ["multi-user.target"];
-      after = ["network-online.target"];
+      after = ["network-online.target" "systemd-journald.service"];
+      requires = ["systemd-journald.service"];
 
       serviceConfig = {
         ExecStart = ''
@@ -30,6 +31,8 @@ in {
         Restart = "always";
         RestartSec = "5s";
         DynamicUser = true;
+        # Add to systemd-journal group for journal access
+        SupplementaryGroups = ["systemd-journal"];
 
         # Security hardening
         NoNewPrivileges = true;
@@ -37,23 +40,29 @@ in {
         ProtectSystem = "strict";
         ProtectHome = true;
         ReadOnlyPaths = "/";
-        ReadWritePaths = ["/var/lib/promtail" "/var/log"];
+        ReadWritePaths = ["/var/lib/promtail" "/var/log" "/var/cache/promtail"];
 
         # Log access
         LogsDirectory = "promtail";
         StateDirectory = "promtail";
+        # CacheDirectory for positions file
+        CacheDirectory = "promtail";
       };
     };
 
     # Promtail configuration
     environment.etc."promtail/config.yml".text = ''
       server:
-        listen_addr: "127.0.0.1"
+        http_listen_address: "127.0.0.1"
         http_listen_port: 9080
         grpc_listen_port: 0
 
+      positions:
+        filename: /var/cache/promtail/positions.yaml
+
       clients:
         - url: ${cfg.lokiUrl}
+          tenant_id: fake
 
       scrape_configs:
         - job_name: journal

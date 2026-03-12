@@ -26,9 +26,9 @@
       node-exporter.enable = true;
       smart-exporter.enable = true;
 
-      # Log aggregation
+      # Log aggregation (local Loki)
       promtail.enable = true;
-      promtail.lokiUrl = "http://100.81.182.5:3100"; # Zephyr's Tailscale IP
+      promtail.lokiUrl = "http://127.0.0.1:3100/loki/api/v1/push";
     };
 
     # Note: Sentry has no GPUs, no GPU exporters needed
