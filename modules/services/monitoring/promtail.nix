@@ -1,9 +1,9 @@
 # Promtail log aggregation client
 # Sends journald logs to Loki on Sentry
 {config, lib, pkgs, ...}: let
-  cfg = config.services.promtail;
+  cfg = config.services.monitoring.promtail;
 in {
-  options.services.promtail = {
+  options.services.monitoring.promtail = {
     enable = lib.mkEnableOption "Promtail log agent for Loki";
 
     lokiUrl = lib.mkOption {
@@ -65,16 +65,12 @@ in {
           relabel_configs:
             - source_labels: ["__journal__systemd_unit"]
               target_label: unit
-              regex: '(.+)'
             - source_labels: ["__journal__hostname"]
               target_label: host
-              regex: '(.+)'
             - source_labels: ["__journal__priority"]
               target_label: priority
-              regex: '(.+)'
             - source_labels: ["__journal__transport"]
               target_label: transport
-              regex: '(.+)'
     '';
   };
 }
