@@ -180,13 +180,27 @@ rollback-remote ARG:
 #  LOCAL OPERATIONS
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Local switch (mining auto-pauses via wrapper)
+# Local switch (mining auto-pauses via wrapper) - IDEMPOTENT
 switch:
     #!/usr/bin/env bash
     set -e
     source {{JUST_HELPERS}}
     _time; _header "local switch → $(hostname -s)"
     _info "mining will auto-pause during rebuild (CPU only, GPU continues)"
+
+    # CRITICAL: Check for existing builds BEFORE starting
+    if ! _check_build_lock; then
+      _error "Cannot start build - another build is running"
+      exit 1
+    fi
+
+    # Acquire lock
+    if ! _acquire_build_lock; then
+      exit 1
+    fi
+
+    # Ensure lock is released on exit
+    trap '_release_build_lock' EXIT INT TERM
 
     # On remote hosts, just use nixos-rebuild directly
     if [ "$(hostname -s)" != "zephyr" ]; then
