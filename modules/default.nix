@@ -117,8 +117,10 @@
 
     # Profile system
     ./profiles/default.nix
+    ./profiles/node-profiles.nix
 
     # Network modules
     ./network/cluster-hosts.nix
+    ./networking/cluster-networking.nix
   ];
 }

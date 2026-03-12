@@ -98,6 +98,7 @@ in {
           # Cluster hostname zone
           local-zone = [
             ''"cluster.local" static''
+            ''"lan" static'' # Local network .lan domain
             # Private network zones (RFC 1918) - prevent leaking local network queries
             ''"10.in-addr.arpa" static'' # 10.0.0.0/8 reverse DNS
             ''"168.192.in-addr.arpa" static'' # 192.168.0.0/16 reverse DNS
@@ -110,7 +111,7 @@ in {
           local-data = [
             # Kubernetes API server
             ''"kubernetes.default.svc.cluster.local. IN A 10.0.0.1"''
-            # Cluster hosts
+            # Cluster hosts (cluster.local domain)
             ''"zephyr.cluster.local. IN A 10.1.1.110"''
             ''"zephyr IN A 10.1.1.110"''
             ''"nexus.cluster.local. IN A 10.1.1.120"''
@@ -119,6 +120,11 @@ in {
             ''"forge IN A 10.1.1.130"''
             ''"sentry.cluster.local. IN A 10.1.1.140"''
             ''"sentry IN A 10.1.1.140"''
+            # Cluster hosts (.lan domain for convenience)
+            ''"zephyr.lan. IN A 10.1.1.110"''
+            ''"nexus.lan. IN A 10.1.1.120"''
+            ''"forge.lan. IN A 10.1.1.130"''
+            ''"sentry.lan. IN A 10.1.1.140"''
           ];
         };
 
