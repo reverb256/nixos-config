@@ -220,7 +220,7 @@
   clearKdeCacheScript = pkgs.writeShellScript "clear-kde-cache" ''
     # Clear KDE/QML cache after nixos-rebuild (prevents desktop file errors)
     # This fixes Spectacle "Unable to make service executable" errors
-    find ${XDG_CACHE_HOME:-$HOME/.cache}/**/qmlcache -type f -delete 2>/dev/null || true
+    find ''${XDG_CACHE_HOME:-$HOME/.cache} -name "qmlcache" -type d -exec rm -rf {} + 2>/dev/null || true
     rm -rf ~/.cache/kwin* ~/.cache/plasma* ~/.cache/ksycoca* 2>/dev/null || true
   '';
 in {
