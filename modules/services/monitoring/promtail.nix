@@ -1,112 +1,80 @@
-# Promtail Log Agent
-# Ships systemd journals to Loki for centralized logging
-{
-  config,
-  lib,
-  ...
-}: let
-  cfg = config.services.monitoring.promtail;
-  currentHost = config.networking.hostName;
-  clusterConfig = config.networking.cluster;
+# Promtail log aggregation client
+# Sends journald logs to Loki on Sentry
+{config, lib, pkgs, ...}: let
+  cfg = config.services.promtail;
 in {
-  options.services.monitoring.promtail = {
+  options.services.promtail = {
     enable = lib.mkEnableOption "Promtail log agent for Loki";
 
     lokiUrl = lib.mkOption {
       type = lib.types.str;
-      default = "http://127.0.0.1:3100";
-      description = "Loki server URL";
-    };
-
-    dataDir = lib.mkOption {
-      type = lib.types.path;
-      default = "/var/lib/promtail";
-      description = "Directory for Promtail data";
+      default = "http://10.1.1.140:3100/loki/api/v1/push";
+      description = "Loki server push URL";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    services.promtail = {
-      enable = true;
-      configuration = {
-        server = {
-          http_listen_port = 9080;
-          grpc_listen_port = 0;
-        };
+    environment.systemPackages = [pkgs.promtail];
 
-        # Loki client configuration
-        client = {
-          url = cfg.lokiUrl;
-        };
+    systemd.services.promtail = {
+      description = "Promtail Log Agent";
+      wantedBy = ["multi-user.target"];
+      after = ["network-online.target"];
 
-        # Scrape systemd journals with Golden Signals labels
-        scrape_configs = [
-          {
-            job_name = "systemd-journal";
-            journal = {
-              path = "/var/log/journal";
-              matches = "_TRANSPORT=syslog";
-              json = true;
-              labels = {
-                cluster = "nixos-cluster";
-                host = "${currentHost}";
-                environment = "production";
-                network = clusterConfig.subnet;
-              };
-            };
-            relabel_configs = [
-              # Extract systemd unit name
-              {
-                source_labels = ["__journal__systemd_unit"];
-                target_label = "unit";
-                regex = "(.*)\\.service";
-              }
-              # Extract priority level
-              {
-                source_labels = ["__journal_priority"];
-                target_label = "level";
-              }
-              # Extract boot_id for session tracking
-              {
-                source_labels = ["__journal_boot_id"];
-                target_label = "boot_id";
-              }
-              # Drop noisy low-priority logs (debug)
-              {
-                source_labels = ["__journal_priority"];
-                regex = "7";
-                action = "drop";
-              }
-              # Add hostname label
-              {
-                target_label = "hostname";
-                replacement = "${currentHost}";
-              }
-            ];
-          }
-        ];
+      serviceConfig = {
+        ExecStart = ''
+          ${pkgs.promtail}/bin/promtail \
+            --config.file=/etc/promtail/config.yml \
+            --config.expand-env=true
+        '';
+        Restart = "always";
+        RestartSec = "5s";
+        DynamicUser = true;
+
+        # Security hardening
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        ReadOnlyPaths = "/";
+        ReadWritePaths = ["/var/lib/promtail" "/var/log"];
+
+        # Log access
+        LogsDirectory = "promtail";
+        StateDirectory = "promtail";
       };
     };
 
-    # Create data directory
-    systemd.tmpfiles.settings."promtail" = {
-      "${cfg.dataDir}" = {
-        d = {
-          user = "promtail";
-          group = "promtail";
-          mode = "0750";
-        };
-      };
-      "${cfg.dataDir}/positions" = {
-        d = {
-          user = "promtail";
-          group = "promtail";
-          mode = "0750";
-        };
-      };
-    };
+    # Promtail configuration
+    environment.etc."promtail/config.yml".text = ''
+      server:
+        listen_addr: "127.0.0.1"
+        http_listen_port: 9080
+        grpc_listen_port: 0
 
-    # Network configuration
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [9080];
+      clients:
+        - url: ${cfg.lokiUrl}
+
+      scrape_configs:
+        - job_name: journal
+          journal:
+            max_age: 12h
+            labels:
+              host: ${config.networking.hostName}
+              cluster: nixos-cluster
+          relabel_configs:
+            - source_labels: ["__journal__systemd_unit"]
+              target_label: unit
+              regex: '(.+)'
+            - source_labels: ["__journal__hostname"]
+              target_label: host
+              regex: '(.+)'
+            - source_labels: ["__journal__priority"]
+              target_label: priority
+              regex: '(.+)'
+            - source_labels: ["__journal__transport"]
+              target_label: transport
+              regex: '(.+)'
+    '';
   };
 }
