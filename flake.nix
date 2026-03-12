@@ -198,6 +198,55 @@
       };
 
       config = {
+        Entrypoint = ["/bin/lolMiner"];
+        Cmd = [];
+
+        ExposedPorts = {
+          "4068/tcp" = {}; # API port
+        };
+
+        Env = [
+          "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+          "PATH=/bin"
+          "GPU_MAX_HEAP_SIZE=100"
+          "GPU_MAX_ALLOC_PERCENT=100"
+        ];
+      };
+    };
+
+      config = {
+        Entrypoint = ["/bin/xmrig-proxy"];
+        Cmd = ["--config=/etc/xmrig-proxy/config.json" "--no-color"];
+
+        ExposedPorts = {
+          "3333/tcp" = {}; # Stratum port
+          "8081/tcp" = {}; # API port
+        };
+
+        Env = [
+          "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+          "PATH=/bin"
+        ];
+      };
+    };
+
+    # TODO: lolminer package not available - commented out to unblock deployments
+    # packages.x86_64-linux.lolminer-image = pkgs.dockerTools.buildImage {
+    #   name = "lolminer";
+    #   tag = "1.98a-nixos";
+    #
+    #   copyToRoot = pkgs.buildEnv {
+    #     name = "lolminer-root";
+    #     paths = [
+    #       pkgs.lolminer
+    #       pkgs.bash
+    #       pkgs.coreutils
+    #       pkgs.cacert
+    #     ];
+    #     pathsToLink = ["/bin" "/etc" "/lib"];
+    #   };
+
+      config = {
         Entrypoint = ["/bin/lolminer"];
         Cmd = [];
 
