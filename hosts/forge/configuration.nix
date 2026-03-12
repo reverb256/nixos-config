@@ -147,6 +147,12 @@
       mountHome = true;
       mountMedia = true;
     };
+
+    # Syncthing P2P file sync for /etc/nixos config sync
+    syncthing-cluster = {
+      enable = true;
+      deviceId = "FORGE-PLACEHOLDER";
+    };
   };
 
   # ============================================================================

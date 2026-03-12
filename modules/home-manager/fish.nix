@@ -200,5 +200,12 @@
 
     # Prompt
     starship
+
+    # CLI utilities (migrated from nix profile)
+    jq
+    screen
+    sshpass
+    tmux
+    gh
   ];
 }

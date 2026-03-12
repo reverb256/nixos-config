@@ -4,6 +4,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }: let
   cfg = config.services.ai-inference;
@@ -663,6 +664,7 @@ in {
     # System packages
     environment.systemPackages = with pkgs; [
       config.services.ai-inference.package
+      inputs.claude-native.packages.x86_64-linux.claude
       (pkgs.writeShellScriptBin "ai-inference-status" ''
         #!/bin/bash
         echo "=== AI Inference Service Status ==="

@@ -130,6 +130,12 @@
       mountHome = false;
       mountMedia = false;
     };
+
+    # Syncthing P2P file sync for /etc/nixos config sync
+    syncthing-cluster = {
+      enable = true;
+      deviceId = "SENTRY-PLACEHOLDER";
+    };
   };
 
   # ============================================================================

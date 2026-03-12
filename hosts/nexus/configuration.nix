@@ -233,6 +233,12 @@
 
     # NFS Server - Export shared storage for cluster
     nfs.server.enable = true;
+
+    # Syncthing P2P file sync for /etc/nixos config sync
+    syncthing-cluster = {
+      enable = true;
+      deviceId = "NEXUS-PLACEHOLDER";
+    };
   };
 
   # ============================================================================

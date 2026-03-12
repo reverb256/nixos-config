@@ -37,6 +37,26 @@
   fileSystems."/data" = {
     device = "/dev/disk/by-uuid/4c249712-3c96-44dd-bab0-0b077a168670";
     fsType = "btrfs";
+    options = ["subvol=@" "compress=zstd"];
+  };
+
+  # BTRFS subvolumes on 2TB data drive (UUID: 4c249712-3c96-44dd-bab0-0b077a168670)
+  fileSystems."/data/games" = {
+    device = "/dev/disk/by-uuid/4c249712-3c96-44dd-bab0-0b077a168670";
+    fsType = "btrfs";
+    options = ["subvol=@games" "compress=zstd" "nofail"];
+  };
+
+  fileSystems."/data/projects" = {
+    device = "/dev/disk/by-uuid/4c249712-3c96-44dd-bab0-0b077a168670";
+    fsType = "btrfs";
+    options = ["subvol=@projects" "compress=zstd" "nofail"];
+  };
+
+  fileSystems."/data/archive" = {
+    device = "/dev/disk/by-uuid/4c249712-3c96-44dd-bab0-0b077a168670";
+    fsType = "btrfs";
+    options = ["subvol=@archive" "compress=zstd" "nofail"];
   };
 
   swapDevices = [

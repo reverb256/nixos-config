@@ -1,10 +1,10 @@
 # Syncthing P2P file synchronization
 # Used for /etc/nixos config sync across cluster
 {config, lib, pkgs, ...}: let
-  cfg = config.jkcluster.syncthing;
+  cfg = config.services.syncthing-cluster;
 in {
-  options.jkcluster.syncthing = {
-    enable = lib.mkEnableOption "Syncthing P2P file sync";
+  options.services.syncthing-cluster = {
+    enable = lib.mkEnableOption "Syncthing P2P file sync for cluster";
 
     deviceId = lib.mkOption {
       type = lib.types.str;

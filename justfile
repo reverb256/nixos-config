@@ -3,6 +3,7 @@
 export NIX_SHOW_STATS := "0"
 FLAKE_PATH := "/etc/nixos"
 JUST_HELPERS := "./.just-helpers.sh"
+ZEPHYR_HOST := "zephyr"
 
 _default:
     @just --list
@@ -17,6 +18,11 @@ deploy:
     set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → all hosts"
+    if [ "$(hostname -s)" != "zephyr" ]; then
+      _info "proxying to zephyr..."
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just deploy"
+      exit $?
+    fi
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh all
 
@@ -37,6 +43,11 @@ zephyr:
     set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → zephyr"
+    if [ "$(hostname -s)" != "zephyr" ]; then
+      _info "proxying to zephyr..."
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just zephyr"
+      exit $?
+    fi
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh zephyr
     _step "building + deploying..."
@@ -55,6 +66,11 @@ nexus:
     set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → nexus"
+    if [ "$(hostname -s)" != "zephyr" ]; then
+      _info "proxying to zephyr..."
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just nexus"
+      exit $?
+    fi
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh nexus
     _step "building + deploying"
@@ -68,6 +84,11 @@ forge:
     set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → forge"
+    if [ "$(hostname -s)" != "zephyr" ]; then
+      _info "proxying to zephyr..."
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just forge"
+      exit $?
+    fi
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh forge
     _step "building + deploying"
@@ -81,6 +102,11 @@ sentry:
     set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → sentry"
+    if [ "$(hostname -s)" != "zephyr" ]; then
+      _info "proxying to zephyr..."
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just sentry"
+      exit $?
+    fi
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh sentry
     _step "building + deploying"
@@ -93,6 +119,12 @@ deploy-v3-rolling:
     #!/usr/bin/env bash
     set -e  # Stop on any error
     source {{JUST_HELPERS}}
+
+    if [ "$(hostname -s)" != "zephyr" ]; then
+      _info "proxying to zephyr..."
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just deploy-v3-rolling"
+      exit $?
+    fi
 
     _header "v3 Rolling Update → All Nodes (K8s-Aware Order)"
 
@@ -126,6 +158,11 @@ deploy-tag ARG:
     #!/usr/bin/env bash
     set -e
     source {{JUST_HELPERS}}
+    if [ "$(hostname -s)" != "zephyr" ]; then
+      _info "proxying to zephyr..."
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just deploy-tag {{ARG}}"
+      exit $?
+    fi
     _header "deploy → @{{ARG}} (parallel)"
     cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on @{{ARG}}
     _done "nodes with tag @{{ARG}} updated"
@@ -151,6 +188,26 @@ switch:
     _time; _header "local switch → $(hostname -s)"
     _info "mining will auto-pause during rebuild (CPU only, GPU continues)"
 
+    # On remote hosts, just use nixos-rebuild directly
+    if [ "$(hostname -s)" != "zephyr" ]; then
+      _info "using nixos-rebuild directly on remote host"
+      cd {{FLAKE_PATH}}
+      _info "building and applying new configuration..."
+      if output=$(sudo nixos-rebuild switch 2>&1); then
+        echo "$output"
+        _info "✓ configuration activated"
+        _info "new generation: $(readlink /nix/var/nix/profiles/system | xargs basename)"
+      else
+        exit_code=$?
+        echo "$output"
+        echo "✗ rebuild failed with exit code: $exit_code" >&2
+        exit $exit_code
+      fi
+      _done "switch complete"
+      _time; echo ""
+      exit 0
+    fi
+
     cd {{FLAKE_PATH}}
     _info "building and applying new configuration..."
 
@@ -174,6 +231,11 @@ test:
     #!/usr/bin/env bash
     source {{JUST_HELPERS}}
     _time; _header "test → configuration validation"
+    if [ "$(hostname -s)" != "zephyr" ]; then
+      _info "proxying to zephyr..."
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just test"
+      exit $?
+    fi
     _step "flake check..."
     cd {{FLAKE_PATH}} && nix flake check
     _done "flake check"
@@ -358,6 +420,11 @@ ci-local:
     #!/usr/bin/env bash
     source {{JUST_HELPERS}}
     _time; _header "ci → local pipeline"
+    if [ "$(hostname -s)" != "zephyr" ]; then
+      _info "proxying to zephyr..."
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just ci-local"
+      exit $?
+    fi
     _step "flake check..."
     nix flake check
     _step "statix lint..."
