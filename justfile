@@ -24,7 +24,7 @@ deploy:
     for host in zephyr nexus forge sentry; do
         echo ""
         _step "building + deploying → $host"
-        cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host --verbose
+        cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host
         _done "$host deployed"
     done
 
@@ -39,9 +39,14 @@ zephyr:
     _time; _header "deploy → zephyr"
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh zephyr
-    _step "building + deploying"
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr --verbose
-    _done "zephyr deployed"
+    _step "building + deploying..."
+    if cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr 2>&1; then
+        _done "zephyr deployed successfully"
+    else
+        exit_code=$?
+        echo "✗ deployment failed with exit code: $exit_code" >&2
+        exit $exit_code
+    fi
     _time; echo ""
 
 # Deploy to nexus only
@@ -53,7 +58,7 @@ nexus:
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh nexus
     _step "building + deploying"
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus --verbose
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus
     _done "nexus deployed"
     _time; echo ""
 
@@ -66,7 +71,7 @@ forge:
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh forge
     _step "building + deploying"
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge --verbose
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge
     _done "forge deployed"
     _time; echo ""
 
@@ -79,7 +84,7 @@ sentry:
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh sentry
     _step "building + deploying"
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry --verbose
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry
     _done "sentry deployed"
     _time; echo ""
 
@@ -107,7 +112,7 @@ deploy-v3-rolling:
     # Step 3: Deploy to remote workers sequentially (K8s order)
     _step "deploying → k8s workers"
     for host in sentry nexus forge; do
-        cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host --verbose
+        cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host
         _step "validating $host..."
         ssh $host "kubectl get nodes | grep $host" || echo "⚠️  K8s not yet installed on $host"
         ssh $host "systemctl status kubelet" || true
@@ -122,7 +127,7 @@ deploy-tag ARG:
     set -e
     source {{JUST_HELPERS}}
     _header "deploy → @{{ARG}} (parallel)"
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on @{{ARG}} --verbose
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on @{{ARG}}
     _done "nodes with tag @{{ARG}} updated"
 
 # Emergency rollback to previous generation on remote node
@@ -145,7 +150,22 @@ switch:
     source {{JUST_HELPERS}}
     _time; _header "local switch → $(hostname -s)"
     _info "mining will auto-pause during rebuild (CPU only, GPU continues)"
-    cd /etc/nixos && sudo nixos-rebuild switch --flake ".#$(hostname -s)" 2>&1
+
+    cd {{FLAKE_PATH}}
+    _info "building and applying new configuration..."
+
+    # Use colmena apply-local to switch (bypasses nixos-rebuild wrapper)
+    if output=$(colmena apply-local --sudo switch 2>&1); then
+        echo "$output"
+        _info "✓ configuration activated"
+        _info "new generation: $(readlink /nix/var/nix/profiles/system | xargs basename)"
+    else
+        exit_code=$?
+        echo "$output"
+        echo "✗ rebuild failed with exit code: $exit_code" >&2
+        exit $exit_code
+    fi
+
     _done "switch complete"
     _time; echo ""
 

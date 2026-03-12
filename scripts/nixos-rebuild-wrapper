@@ -29,6 +29,10 @@ readonly HOSTNAME="$(hostname)"
 readonly STATE_DIR="/run/nixos-deploy"
 readonly STATE_FILE="$STATE_DIR/${HOSTNAME}.json"
 
+# GPU nodes that have GPU scheduler
+readonly GPU_NODES=("zephyr" "nexus" "forge")
+readonly GPU_SCHEDULER_STATE="/run/gpu-scheduler/ai-state"
+
 # CPU mining services (xmrig) to pause/resume during builds
 # GPU mining (lolminer) continues running
 readonly CPU_MINING_SERVICES=("xmrig.service")
@@ -48,19 +52,19 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m' # No Color
 
 log_info() {
-    echo -e "${BLUE}[INFO]${NC} $*"
+    echo -e "${BLUE}[INFO]${NC} $*" >&2
 }
 
 log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $*"
+    echo -e "${GREEN}[SUCCESS]${NC} $*" >&2
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $*"
+    echo -e "${YELLOW}[WARN]${NC} $*" >&2
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $*"
+    echo -e "${RED}[ERROR]${NC} $*" >&2
 }
 
 # Check if current host is a GPU node
@@ -181,19 +185,23 @@ translate_command() {
 
     case "$cmd" in
         switch)
-            echo "colmena apply --on $HOSTNAME --verbose"
+            # Use colmena apply - switch command activates the new config
+            echo "colmena apply --on $HOSTNAME switch"
             ;;
         build)
+            # Build-only, don't activate
             echo "colmena build --on $HOSTNAME"
             ;;
         test)
+            # Dry-run evaluation
             echo "colmena eval-only --on $HOSTNAME"
             ;;
         dry-activate)
-            echo "colmena apply --on $HOSTNAME --dry-activate"
+            # Show what would be done
+            echo "colmena apply --on $HOSTNAME dry-activate"
             ;;
         rollback)
-            # Bypass wrapper for rollback
+            # Bypass wrapper for rollback - use native nixos-rebuild
             echo "nixos-rebuild rollback"
             ;;
         *)
@@ -222,7 +230,7 @@ main() {
         native_bin="/run/current-system/sw/bin/.nixos-rebuild-native"
     else
         # Find nixos-rebuild-ng in nix store as last resort
-        native_bin="$(which nixos-rebuild-ng 2>/dev/null)"
+        native_bin="$(which nixos-rebuild-ng 2>/dev/null || true)"
     fi
 
     if [ -z "$native_bin" ]; then
@@ -253,6 +261,7 @@ main() {
 
     local mining_was_running=false
     local translated_cmd
+    local cmd_parts
 
     translated_cmd=$(translate_command "$cmd" "$@")
 
@@ -262,23 +271,41 @@ main() {
     # Write initial state
     write_state "deploying" "false"
 
+    # Signal GPU scheduler we're deploying
+    signal_gpu_scheduler "deploying"
+
     # Pause CPU mining if active
     if pause_mining; then
         mining_was_running=true
     fi
 
-    # Execute the translated command
+    # Execute the translated command - stream output in real-time
     local exit_code=0
-    if eval "$translated_cmd"; then
+    local output_file
+    output_file=$(mktemp)
+
+    # Run command and capture output while streaming to terminal
+    if bash -c "$translated_cmd" 2>&1 | tee "$output_file"; then
         exit_code=0
     else
         exit_code=$?
+    fi
+
+    # Check if command produced any output (detect "no-op" case)
+    if [ ! -s "$output_file" ]; then
+        log_warn "No output from command - system may already be up to date"
+        rm -f "$output_file"
+    else
+        rm -f "$output_file"
     fi
 
     # Always resume mining (success or failure)
     if [ "$mining_was_running" = true ]; then
         resume_mining
     fi
+
+    # Signal GPU scheduler we're done
+    signal_gpu_scheduler "idle"
 
     # Handle result
     if [ $exit_code -eq 0 ]; then
@@ -294,4 +321,3 @@ main() {
 
 # Run main function
 main "$@"
-# Rebuild: Wed 11 Mar 2026 09:58:45 PM CDT

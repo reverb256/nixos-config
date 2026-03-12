@@ -13,6 +13,9 @@
       set -gx EDITOR nvim
       set -gx VISUAL nvim
 
+      # User time zone (system runs UTC, user sees local time)
+      set -gx TZ America/Winnipeg
+
       # Disable fish greeting
       set -g fish_greeting
 
@@ -111,37 +114,23 @@
       alias neofetch "fastfetch"
 
       # ============================================================================
-      # AUDIO PROFILE SWITCHING (Zephyr-specific)
-      # ============================================================================
-      alias audio-pc="/etc/nixos/docs/audio-profiles.sh pc"
-      alias audio-tv="/etc/nixos/docs/audio-profiles.sh tv"
-      alias audio-both="/etc/nixos/docs/audio-profiles.sh pc+tv"
-      alias audio-status="/etc/nixos/docs/audio-profiles.sh status"
-
-      # ============================================================================
-      # CLIPBOARD (Wayland)
-      # ============================================================================
-      alias wclip "wl-copy"
-      alias wpaste "wl-paste"
-
-      # ============================================================================
-      # SCREENSHOTS (Wayland)
-      # ============================================================================
-      alias swl "grim - | wl-copy"                      # Wayland screenshot
-      alias swlr 'grim -g (slurp) - | wl-copy'          # Region screenshot
-
-      # ============================================================================
-      # PROCESS MANAGEMENT (Wayland)
-      # ============================================================================
-      alias killhypr "pkill Hyprland"
-      alias restartwaybar "pkill waybar && waybar &"
-
-      # ============================================================================
       # NAVIGATION
       # ============================================================================
       alias .. "cd .."
       alias ... "cd ../.."
       alias .... "cd ../../.."
+
+      # ============================================================================
+      # WAYLAND SCREENSHOTS
+      # ============================================================================
+      alias swl "grim - | wl-copy"                      # Full screenshot to clipboard
+      alias swlr 'grim -g (slurp) - | wl-copy'          # Region screenshot to clipboard
+
+      # ============================================================================
+      # PROCESS MANAGEMENT
+      # ============================================================================
+      alias killhypr "pkill Hyprland"
+      alias restartwaybar "pkill waybar && waybar &"
     '';
 
     # Abbreviations (shellAbbrs)
@@ -160,6 +149,10 @@
       s = "sudo";
       su = "systemctl user";
       ss = "systemctl --user";
+
+      # Clipboard abbreviations
+      wclip = "wl-copy";
+      wpaste = "wl-paste";
     };
 
     # Functions
@@ -179,6 +172,14 @@
           command fd --color=always $argv
         '';
       };
+
+      # Region screenshot with file save
+      grim-region = {
+        description = "Capture region to file";
+        body = ''
+          grim -g (slurp) $argv
+        '';
+      };
     };
   };
 
@@ -196,11 +197,6 @@
     fd
     fzf
     lazygit
-
-    # Wayland tools
-    wl-clipboard
-    grim
-    slurp
 
     # Prompt
     starship

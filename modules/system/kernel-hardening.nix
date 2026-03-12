@@ -1,6 +1,6 @@
 # Kernel Hardening Module
 # Security-focused kernel parameters and settings from XNM1
-{...}: {
+{lib, ...}: {
   # ============================================================================
   # KERNEL SECURITY PARAMETERS (from XNM1)
   # ============================================================================
@@ -20,7 +20,8 @@
   # ============================================================================
   # KERNEL BOOT PARAMETERS
   # ============================================================================
-  boot.kernelParams = [
+  # Use mkForce to override NixOS defaults and prevent security-weakening duplicates
+  boot.kernelParams = lib.mkForce [
     # Quiet boot with minimal output
     "quiet"
     "splash"
@@ -59,5 +60,43 @@
     "zswap.compressor=zstd" # Best compression ratio (zstd > lzo > lz4)
     "zswap.max_pool_percent=20" # Use up to 20% of RAM for compressed swap
     "zswap.zpool=z3fold" # Better allocator than default zbud
+
+    # ============================================================================
+    # CRASH RECOVERY - Auto-reboot on hard lock to capture crash dump
+    # ============================================================================
+    # panic=10: Reboot after 10 seconds on kernel panic
+    # panic_on_oops=1: Treat oops as panic (hard hang without logs)
+    # softlockup_panic=1: Panic on soft lockup (process stuck in kernel)
+    "panic=10"
+    "panic_on_oops=1"
+    "softlockup_panic=1"
+
+    # ============================================================================
+    # NMI WATCHDOG - Detect hard hangs
+    # ============================================================================
+    # nmi_watchdog=1 enables NMI watchdog for detecting hard CPU hangs
+    "nmi_watchdog=1"
   ];
+
+  # ============================================================================
+  # CRASH DUMP CAPTURE (kdump)
+  # ============================================================================
+  # Reserve memory for crash kernel. When main kernel crashes, kdump boots
+  # into a minimal kernel to capture /proc/vmcore (crash dump)
+  # Note: Requires 256M reserved memory at crash time
+  # boot.kernel.sysctl."kernel.panic" = 10;  # Reboot after 10 seconds on panic
+  boot.kernelModules = [ "kdump" ];  # Load kdump module
+
+  # ============================================================================
+  # KERNEL HUNG TASK DETECTION
+  # ============================================================================
+  # Detect when tasks are stuck in D state (uninterruptible sleep)
+  # This can indicate I/O deadlock or filesystem issues
+  boot.kernel.sysctl = {
+    "vm.panic_on_oom" = 0;  # Don't panic on OOM, let OOM killer do its job
+    "kernel.hung_task_timeout_secs" = 120;  # Detect tasks stuck for 120+ seconds
+    "kernel.hung_task_warnings" = 10;  # Warn up to 10 times before panic
+    "kernel.softlockup_panic" = 1;  # Panic on soft lockup (via boot param)
+    "kernel.nmi_watchdog" = 1;  # NMI watchdog enabled
+  };
 }

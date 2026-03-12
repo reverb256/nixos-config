@@ -8,11 +8,11 @@
 #   - Action: Pauses ALL mining (GPU + CPU) during builds for maximum build performance
 #   - Resumes: Automatically when build processes complete
 #
-# HOST PARTICIPATION (K8s-aware v3):
-#   zephyr: ✅ Enabled (32 cores, 31GB RAM, znver3)  → Control plane, conservative builds
-#   nexus:  ✅ Enabled (24 cores, 46GB RAM, znver2)  → Storage worker, NFS headroom
-#   forge:  ✅ Enabled (6 cores, 15GB RAM, skylake)   → Mixed GPU worker, minimal builds
-#   sentry: ✅ Enabled (16 cores, 31GB RAM, znver1)  → Monitoring worker, light builds
+# HOST PARTICIPATION (K8s-aware v4 - build server restriction):
+#   zephyr: ✅ Server (32 cores, 31GB RAM, znver3)  → Control plane, conservative builds
+#   nexus:  ✅ Server (24 cores, 46GB RAM, znver2)  → Storage worker, NFS headroom
+#   forge:  ❌ Client only (6 cores, 15GB RAM)      → GPU worker, no remote builds
+#   sentry: ❌ Client only (16 cores, 31GB RAM)     → Monitoring worker, no remote builds
 #
 # NETWORK: 1Gbps with 4x TP-Link Easy Smart switches
 #
@@ -30,10 +30,10 @@ in {
     # Enabled: Distributed builds across the cluster
     distributedBuilds = lib.mkDefault true;
 
-    # Build machines configuration (K8s-aware v3 with CPU microarchitecture tuning)
+    # Build machines configuration (K8s-aware v4 - restricted to zephyr/nexus only)
     # REFERENCE: /etc/nixos/machines.nix (Colmena machinesFile)
     # NOTE: sshUser defaults to root when running with sudo, must specify j_kro
-    # All 4 hosts participate with compute-workload-monitor managing mining pause
+    # RESTRICTED: Only zephyr and nexus are build servers (forge/sentry are clients only)
     # IMPORTANT: Filter out current host to avoid SSH-to-self loopback causing daemon locks
     buildMachines = lib.filter (m: m.hostName != currentHost) [
       {
@@ -46,7 +46,7 @@ in {
         protocol = "ssh-ng";
         maxJobs = 8; # CONSERVATIVE - apiserver/etcd need CPU headroom
         speedFactor = 8; # Fast (Zen 3), but not prioritized over K8s stability
-        supportedFeatures = ["kvm" "big-parallel"];
+        supportedFeatures = ["kvm" "big-parallel" "x86-64-v3"];
         mandatoryFeatures = [];
       }
       {
@@ -59,33 +59,7 @@ in {
         protocol = "ssh-ng";
         maxJobs = 6; # MODERATE - leave cores for NFS/PVC operations
         speedFactor = 5;
-        supportedFeatures = ["big-parallel"];
-        mandatoryFeatures = [];
-      }
-      {
-        # Forge: 6 cores, i5-9500 (skylake, Coffee Lake)
-        # Role: K8s multi-GPU worker (MIXED NVIDIA/AMD)
-        # K8s-AWARE: Minimal maxJobs - GPU pods need CPU, mixed vendor = chaos
-        hostName = "forge";
-        system = "x86_64-linux";
-        sshUser = "j_kro";
-        protocol = "ssh-ng";
-        maxJobs = 2; # MINIMAL - GPU pods need CPU more than builds
-        speedFactor = 2; # Deprioritized - GPUs matter more than builds
-        supportedFeatures = ["kvm"]; # No big-parallel - keep resources for GPU
-        mandatoryFeatures = [];
-      }
-      {
-        # Sentry: 16 cores, Ryzen 7 1700 (znver1)
-        # Role: K8s monitoring worker + AMD GPU
-        # K8s-AWARE: Light maxJobs - Prometheus/Grafana/Loki need CPU
-        hostName = "sentry";
-        system = "x86_64-linux";
-        sshUser = "j_kro";
-        protocol = "ssh-ng";
-        maxJobs = 4; # LIGHT - monitoring stack needs CPU headroom
-        speedFactor = 4;
-        supportedFeatures = ["big-parallel"];
+        supportedFeatures = ["big-parallel" "x86-64-v3"];
         mandatoryFeatures = [];
       }
     ];
@@ -116,14 +90,14 @@ in {
       # Per-host allocation based on core count and workload:
       # - Zephyr: 24 of 32 cores (75%) - control plane needs headroom
       # - Nexus: 18 of 24 cores (75%) - NFS/storage needs headroom
-      # - Sentry: 12 of 16 cores (75%) - monitoring stack needs headroom
-      # - Forge: 4 of 6 cores (67%) - GPU workloads need CPU
+      # - Sentry: 12 of 16 cores (75%) - monitoring stack (CLIENT ONLY - no remote builds)
+      # - Forge: 4 of 6 cores (67%) - GPU workloads (CLIENT ONLY - no remote builds)
       # compute-workload-monitor pauses mining during builds
       max-jobs = lib.mkMerge [
         (lib.mkIf (currentHost == "zephyr") 24)  # 32 cores, K8s control plane
         (lib.mkIf (currentHost == "nexus") 18)   # 24 cores, NFS/storage
-        (lib.mkIf (currentHost == "sentry") 12)  # 16 cores, monitoring
-        (lib.mkIf (currentHost == "forge") 4)    # 6 cores, GPU workloads
+        (lib.mkIf (currentHost == "sentry") 12)  # 16 cores, monitoring (CLIENT ONLY)
+        (lib.mkIf (currentHost == "forge") 4)    # 6 cores, GPU workloads (CLIENT ONLY)
         (lib.mkDefault 4) # Safe fallback for unknown hosts
       ];
 

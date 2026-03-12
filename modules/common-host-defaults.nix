@@ -9,6 +9,13 @@
   system.stateVersion = "26.05";
 
   # ============================================================================
+  # TIME ZONE - CLUSTER STANDARD
+  # ============================================================================
+  # All cluster nodes use UTC for consistent logging and to avoid DST issues
+  # This is a default; individual nodes can override if needed
+  time.timeZone = lib.mkDefault "UTC";
+
+  # ============================================================================
   # SERVICES CONFIGURATION
   # ============================================================================
   services = {
@@ -86,5 +93,17 @@
     # Trusted users required for distributed builds across cluster
     # Without this, remote build users cannot access the Nix store
     trusted-users = ["j_kro"];
+  };
+
+  # ============================================================================
+  # BOOTLOADER DEFAULTS
+  # ============================================================================
+  # systemd-boot configuration for all hosts
+  boot.loader = {
+    # GRACEFUL BOOT ENTRY MANAGEMENT
+    # When false, systemd-boot will remove old entries aggressively
+    # This prevents accumulation of 75+ old generations on the ESP
+    # When true (default), old entries are kept for rollback safety
+    systemd-boot.graceful = lib.mkDefault false;
   };
 }

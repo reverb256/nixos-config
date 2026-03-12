@@ -95,7 +95,10 @@
     # ./services/monitoring/default.nix  # TEMP: Compatibility issues with latest NixOS
     # ./services/monitoring/prometheus.nix
     # ./services/monitoring/grafana.nix
-    # ./services/monitoring/node-exporter.nix
+    ./services/monitoring/node-exporter.nix
+
+    # Crash detection and diagnostics
+    ./services/crash-watchdog.nix
 
     # Exporters
     ./services/gpu-exporters.nix

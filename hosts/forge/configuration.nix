@@ -47,7 +47,7 @@
   };
 
   # Forge-specific firewall rules (in addition to cluster defaults)
-  networking.firewall.allowedTCPPorts = [
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
     10250  # Kubelet API
   ];
   networking.firewall.allowedTCPPortRanges = [
@@ -56,7 +56,7 @@
       to = 32767;
     }
   ];
-  networking.firewall.allowedUDPPorts = [
+  networking.firewall.allowedUDPPorts = lib.mkOptionDefault [
     8472  # Flannel VXLAN
   ];
 
@@ -64,6 +64,9 @@
   # SERVICES CONFIGURATION
   # ============================================================================
   services = {
+    # Crash detection and logging
+    crash-watchdog.enable = true;
+
     # Kubernetes worker node
     kubernetes-module = {
       enable = true;
@@ -187,20 +190,23 @@
     # KERNEL - Zen for better desktop responsiveness
     kernelPackages = pkgs.linuxPackages_zen;
 
-    # KERNEL PARAMETERS (Minimal - avoids storage conflicts)
+    # KERNEL PARAMETERS
+    # NOTE: Most parameters provided by shared modules:
+    # - kernel-hardening.nix: quiet, splash, loglevel=3, lsm stack, zswap, etc.
+    # - nvidia-wayland.nix: nvidia-drm.modeset=1
+    # - profiles/hardware/implementations.nix: intel_iommu=on, iommu=pt (Intel)
+    # - mining.nix: hugepagesz=1G, hugepages=3 (when mining enabled)
+    #
+    # Only add Forge-specific parameters here that aren't provided by modules
     kernelParams = [
-      "loglevel=4"
-      "lsm=landlock,yama,bpf"
-      "simpledrm.disable=1"
-      "nvidia-drm.modeset=1"
-      # zswap (from kernel-hardening.nix) will be appended automatically
+      # No overrides needed - using hardened defaults from kernel-hardening.nix
+      # Previously had loglevel=4 and reduced lsm stack which weakened security
     ];
 
     # GPU DRIVERS (Hybrid AMD + NVIDIA)
-    # Note: NVIDIA base config is in nvidia-common.nix
-    # Note: hardware.profiles.amdgpu.enable handles AMDGPU automatically
-    kernelModules = ["amdgpu" "tun"];
-    initrd.kernelModules = ["amdgpu"];
+    # Note: NVIDIA modules loaded via nvidia-wayland.nix
+    # Note: AMDGPU loaded via hardware.profiles.amdgpu.wayland (initrd too)
+    kernelModules = ["tun"];  # amdgpu added by profile, not duplicated here
   };
 
   # ============================================================================
@@ -300,9 +306,8 @@
 
       amd-gpu-fan-curve = {
         description = "AMD GPU Dynamic Fan Curve Control";
-        # DISABLED: Service has awk escaping bug causing crash loop
-        # TODO: Fix printf escaping in get_temp() function (line 338)
-        # wantedBy = ["multi-user.target"];
+        # FIXED: awk escaping bug resolved by using bc instead of awk
+        wantedBy = ["multi-user.target"];
         after = ["network.target" "amd-gpu-power-mgmt.service"];
         serviceConfig = {
           Type = "simple";
@@ -355,7 +360,8 @@
               local hwmon="''${GPU_HWMON[$gpu]}"
               # Read junction temperature from temp2_input (millidegrees Celsius)
               local temp_milli=$(cat "$hwmon/temp2_input" 2>/dev/null || echo "0")
-              awk "BEGIN {printf \\"%.1f\\", $temp_milli / 1000}"
+              # Use bc for floating point division (more reliable than awk escaping)
+              echo "scale=1; $temp_milli / 1000" | bc
             }
 
             get_target_fan() {
@@ -499,9 +505,11 @@
       };
 
       # AMD GPU MAX FAN SPEED (Simple oneshot - sets 100% at boot)
+      # DISABLED: Fan curve service now works and provides better thermal management
+      # This can be re-enabled if fan curve has issues
       "amd-gpu-max-fan" = {
-        description = "AMD GPU Max Fan Speed (100%)";
-        wantedBy = ["multi-user.target"];
+        description = "AMD GPU Max Fan Speed (100%) - DISABLED, using fan curve instead";
+        # wantedBy = ["multi-user.target"];  # DISABLED
         after = ["basic.target" "amd-gpu-power-mgmt.service"];
         serviceConfig = {
           Type = "oneshot";
