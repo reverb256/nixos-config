@@ -485,7 +485,8 @@
       password = "x";
     };
 
-    # MONITORING - Full monitoring stack
+    # MONITORED - Full monitoring stack
+    # Note: Loki and Promtail moved to monitoring.nix (Loki now on Sentry)
     monitoring = {
       prometheus = {
         enable = true;
@@ -496,14 +497,6 @@
       alertmanager = {
         enable = true;
         retentionDays = 30;
-      };
-      loki = {
-        enable = true;
-        retentionPeriod = "30d";
-      };
-      promtail = {
-        enable = true;
-        lokiUrl = "http://127.0.0.1:3100";
       };
       grafana.enable = true;
     };
@@ -867,6 +860,7 @@
 
     # Desktop
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
+    telegram-desktop
 
     # Network automation - for switch/modem configuration scripts
     python3Packages.playwright
