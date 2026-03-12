@@ -211,21 +211,40 @@ main() {
     local cmd="${1:-}"
     shift || true
 
+    # Add writable wrappers bin to PATH for native binary
+    export PATH="/run/wrappers/bin:$PATH"
+
+    # Native binary path (try multiple locations)
+    local native_bin=""
+    if [ -x "/run/wrappers/bin/.nixos-rebuild-native" ]; then
+        native_bin="/run/wrappers/bin/.nixos-rebuild-native"
+    elif [ -x "/run/current-system/sw/bin/.nixos-rebuild-native" ]; then
+        native_bin="/run/current-system/sw/bin/.nixos-rebuild-native"
+    else
+        # Find nixos-rebuild-ng in nix store as last resort
+        native_bin="$(which nixos-rebuild-ng 2>/dev/null)"
+    fi
+
+    if [ -z "$native_bin" ]; then
+        log_error "Cannot find nixos-rebuild-ng binary!"
+        exit 1
+    fi
+
     # Check for native bypass
     if [ "${NIXOS_REBUILD_NATIVE:-}" = "1" ]; then
         log_info "NIXOS_REBUILD_NATIVE=1, using native nixos-rebuild"
-        exec /run/current-system/sw/bin/.nixos-rebuild-native "$cmd" "$@"
+        exec "$native_bin" "$cmd" "$@"
     fi
 
     # Handle --help and empty commands (pass through to native)
     if [ -z "$cmd" ] || [ "$cmd" = "--help" ] || [ "$cmd" = "-h" ]; then
-        exec /run/current-system/sw/bin/.nixos-rebuild-native "$cmd" "$@"
+        exec "$native_bin" "$cmd" "$@"
     fi
 
     # Handle rollback (bypass wrapper)
     if [ "$cmd" = "rollback" ]; then
         log_info "Rollback bypasses wrapper, using native nixos-rebuild"
-        exec /run/current-system/sw/bin/.nixos-rebuild-native "$cmd" "$@"
+        exec "$native_bin" "$cmd" "$@"
     fi
 
     # ============================================================================
