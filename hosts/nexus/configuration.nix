@@ -239,6 +239,14 @@
       enable = true;
       deviceId = "NEXUS-PLACEHOLDER";
     };
+
+    # Garage S3-compatible object storage (local storage)
+    garage-cluster = {
+      enable = true;
+      dataDir = "/data/shared/garage";
+      peers = ["zephyr" "sentry"];
+      replicationFactor = 2;
+    };
   };
 
   # ============================================================================

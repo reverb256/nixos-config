@@ -1,5 +1,5 @@
 {
-  description = "NixOS configuration";
+  description = "NixOS configuration with Garage and Syncthing storage";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
