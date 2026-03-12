@@ -38,13 +38,14 @@
   # ============================================================================
   networking = {
     hostName = "nexus";
+    wireless.enable = true;  # Enable WiFi for versatility (interface: wlo1, native: wlp4s0)
     networkmanager = {
       enable = true;
       ensureProfiles.profiles."Wired connection 1" = {
         connection = {
           id = "Wired connection 1";
           type = "ethernet";
-          interface-name = "lan0";  # Updated from enp7s0 for consistent interface naming
+          interface-name = "enp7s0";  # Native hardware interface name
           autoconnect = true;
         };
         ipv4 = {

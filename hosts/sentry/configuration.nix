@@ -43,7 +43,7 @@
         connection = {
           id = "Wired connection 1";
           type = "ethernet";
-          interface-name = "lan0";  # Updated from enp7s0 for consistent interface naming
+          interface-name = "enp7s0";  # Native hardware interface name
           autoconnect = true;
         };
         ipv4 = {

@@ -46,7 +46,7 @@
         connection = {
           id = "Wired connection 1";
           type = "ethernet";
-          interface-name = "lan0";  # Consistent interface naming across cluster
+          interface-name = "enp0s31f6";  # Native hardware interface name
           autoconnect = true;
         };
         ipv4 = {
