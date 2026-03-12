@@ -7,6 +7,116 @@ This document contains Claude Code-specific patterns and workflows for this NixO
 
 ---
 
+## ⚠️ CRITICAL: Agent Safety Constraints
+
+**READ THIS before making any changes to shared modules or critical infrastructure!**
+
+### 🚨 Forbidden Operations (Will Break Cluster)
+
+**NEVER use direct assignment on extensible options in shared modules:**
+
+❌ **WRONG - This REPLACES node configs:**
+```nix
+networking.firewall.allowedTCPPorts = [22 53 6443];
+users.users.j_kro.extraGroups = ["wheel"];
+networking.searchDomains = ["lan" "cluster.local"];
+```
+
+✅ **CORRECT - This MERGES with node configs:**
+```nix
+networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
+users.users.j_kro.extraGroups = lib.mkOptionDefault ["wheel"];
+networking.searchDomains = lib.mkOptionDefault ["lan" "cluster.local"];
+```
+
+### 🔒 Critical Infrastructure Rules
+
+1. **SSH/Connectivity Changes**
+   - **MUST** preserve SSH port 22 in all firewall configs
+   - **MUST** test on at least 2 nodes before committing
+   - **FORBIDDEN** to deploy to all nodes simultaneously
+
+2. **Shared Module Changes**
+   - **MUST** use `lib.mkOptionDefault` for list/array options
+   - **MUST** test on nodes with custom configs (not just zephyr)
+   - **FORBIDDEN** to assume nodes have identical configurations
+
+3. **Firewall/Network Changes**
+   - **MUST** verify: `iptables -L | grep dpt:22` after changes
+   - **MUST** use incremental rollout: test → verify → deploy
+   - **FORBIDDEN** to bypass pre-commit checks
+
+### 📋 Mandatory Testing Checklist
+
+Before committing changes to:
+- `modules/networking/*` → Test SSH on zephyr AND nexus
+- `modules/system/ssh.nix` → Test SSH on all 4 nodes
+- `modules/system/users.nix` → Test login on all 4 nodes
+- `modules/default.nix` → Test entire cluster
+
+### 🛑 Stop Work Immediately If
+
+- SSH breaks on any node → Document incident, wait for human
+- Login breaks on any node → Document incident, wait for human
+- Multiple nodes affected → **STOP ALL WORK**, create urgent task
+
+### 📝 Incident Response Process
+
+If you break something:
+1. **STOP** making changes immediately
+2. **DOCUMENT** in `/etc/nixos/AGENT_INCIDENT_REPORT.md`:
+   ```markdown
+   # Incident Report - [DATE]
+   ## What Broke
+   ## Changes Made
+   ## Affected Nodes
+   ## Root Cause
+   ## Proposed Fix
+   ```
+3. **WAIT** for human intervention
+4. **DO NOT** make further autonomous changes
+
+### 🎯 Design Principles for Agents
+
+**Rule 1: Extensibility Over Purity**
+- If nodes might extend an option, use `mkOptionDefault`
+- If option is hard requirement, direct assignment is OK
+- When in doubt, use `mkOptionDefault`
+
+**Rule 2: Test Before Deploy**
+- Test on 1 node with custom config (nexus or forge)
+- Verify critical services (SSH, login, networking)
+- Only then commit for wider deployment
+
+**Rule 3: Preserve Critical Ports**
+- SSH (22) MUST always be open
+- DNS (53) MUST always be open
+- Kubernetes API (6443) MUST always be open on cluster nodes
+
+**Rule 4: Incremental Rollout**
+- Never deploy to all 4 nodes at once
+- Use: `just switch <node>` for each node individually
+- Monitor for issues before proceeding to next node
+
+### 📖 Learn From Mistakes
+
+**What Went Wrong (2026-03-12):**
+- Created `cluster-networking.nix` with direct assignment
+- Used `allowedTCPPorts = [22 53 6443]` instead of `lib.mkOptionDefault [22 53 6443]`
+- Deployed to all nodes without testing
+- Result: Nexus/sentry configs REPLACED cluster defaults, removing SSH port 22
+- Impact: SSH broken on nexus and sentry, required physical console access to fix
+
+**The Fix:**
+Changed to `lib.mkOptionDefault` which provides defaults that can be extended/merged instead of replaced.
+
+**Prevention:**
+- Pre-commit hooks to block dangerous patterns
+- Mandatory testing on nodes with custom configs
+- Documentation of safe patterns (this section)
+
+---
+
 ## Quick Start
 
 1. Read `AGENTS.md` for universal cluster patterns
@@ -41,6 +151,93 @@ This document contains Claude Code-specific patterns and workflows for this NixO
 
 ### Key Principle:
 **Serena is DEFAULT for code understanding.** Only use Read/Grep/Glob when you have a clear, simple target. Serena's semantic understanding prevents errors in complex NixOS module structures.
+
+---
+
+
+## Working with NixOS Modules Safely
+
+### ⚠️ Module System Safety Rules
+
+**CRITICAL: Understanding NixOS Option Semantics**
+
+In NixOS modules, how you set options determines whether they merge or replace:
+
+| Syntax | Behavior | Use When |
+|--------|----------|----------|
+| `opt = value` | **REPLACES** any previous value | Hard requirements, non-extensible options |
+| `opt = lib.mkOptionDefault value` | **MERGES** - provides default that can be extended | Extensible options that nodes might customize |
+| `opt = lib.mkMerge [list]` | **MERGES** multiple definitions | Combining multiple sources explicitly |
+
+### 🚨 Dangerous Patterns (FORBIDDEN)
+
+**❌ NEVER do this in shared modules:**
+```nix
+# DANGER: Direct assignment on extensible options!
+networking.firewall.allowedTCPPorts = [22 53];
+users.users.j_kro.extraGroups = ["wheel"];
+environment.systemPackages = [pkgs.somePackage];
+```
+
+**Why this breaks things:**
+- When a node config sets `networking.firewall.allowedTCPPorts = [10250]`
+- It **REPLACES** the module's `[22 53]` entirely
+- Result: Only port 10250 is open, **SSH (port 22) is BLOCKED**
+
+### ✅ Safe Patterns (REQUIRED)
+
+**✅ ALWAYS do this in shared modules:**
+```nix
+# SAFE: Mergeable defaults
+networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
+  22    # SSH
+  53    # DNS
+];
+users.users.j_kro.extraGroups = lib.mkOptionDefault ["wheel"];
+environment.systemPackages = lib.mkOptionDefault [pkgs.somePackage];
+```
+
+**Why this works:**
+- Module provides defaults that nodes can extend
+- When node config sets `networking.firewall.allowedTCPPorts = [10250]`
+- It **MERGES** with defaults: `[22 53] ++ [10250]`
+- Result: All ports present, **SSH still works**
+
+### 📊 Decision Tree for Module Changes
+
+When creating or modifying shared modules, ask:
+
+```
+Is this option extensible (might nodes want to customize)?
+├─ YES → Use lib.mkOptionDefault
+└─ NO  → Direct assignment OK
+```
+
+**Examples:**
+
+```nix
+# Extensible: Nodes add custom firewall ports
+networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53];
+
+# Not extensible: Boolean switches
+networking.firewall.enable = true;  # Direct assignment OK
+
+# Extensible: Nodes add custom packages
+environment.systemPackages = lib.mkOptionDefault [pkgs.curl];
+
+# Not extensible: Hard requirements
+time.timeZone = "America/Chicago";  # Direct assignment OK
+```
+
+### 🔍 Module Creation Checklist
+
+Before creating a shared module:
+
+- [ ] Does this module use `mkOptionDefault` for list options?
+- [ ] Have I tested this on at least 2 different node types?
+- [ ] Does this preserve SSH port 22?
+- [ ] Can nodes extend this without breaking base functionality?
+- [ ] Did I document merge/replace behavior in comments?
 
 ---
 
@@ -140,6 +337,7 @@ just scan-image IMAGE # Scan specific image
 
 ---
 
-**Version**: 1.1 | **Updated**: 2026-03-09
+**Version**: 2.0 | **Updated**: 2026-03-12
+**Changes**: Added critical agent safety constraints and module design patterns
 **Generated from**: `/etc/nixos/docs/templates/base-template.md.j2`
 
