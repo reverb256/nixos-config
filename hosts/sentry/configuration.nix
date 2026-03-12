@@ -61,7 +61,7 @@
 
     # Hardware monitoring extras (not covered by profile)
     monitoring = {
-      autoDetect = true; # Auto-detect sensor chips
+      autoDetect = false; # Disabled: sensors-detect path issues
       fanControl = false; # BIOS fan control for now
     };
   };
