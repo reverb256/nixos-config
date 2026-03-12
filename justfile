@@ -1,9 +1,14 @@
 # NixOS Cluster Deployment — Colmena-based single-source-of-truth
 
+# Force real-time output - disable all buffering
 export NIX_SHOW_STATS := "0"
-FLAKE_PATH := "/etc/nixos"
-JUST_HELPERS := "./.just-helpers.sh"
-ZEPHYR_HOST := "zephyr"
+export PYTHONUNBUFFERED := "1"
+export FLAKE_PATH := "/etc/nixos"
+export JUST_HELPERS := "./.just-helpers.sh"
+export ZEPHYR_HOST := "zephyr"
+
+# Real-time colmena wrapper - forces line-buffered output
+alias colmena-rt := "colmena"
 
 _default:
     @just --list
@@ -38,7 +43,7 @@ deploy:
             _kill_remote_builds $host
         fi
         _step "building + deploying → $host"
-        cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host
+        cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host | cat
         _done "$host deployed"
     done
 
@@ -63,10 +68,11 @@ zephyr:
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh zephyr
     _step "building + deploying..."
-    if cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr 2>&1; then
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on zephyr 2>&1 | cat
+    exit_code=${PIPESTATUS[0]}
+    if [ $exit_code -eq 0 ]; then
         _done "zephyr deployed successfully"
     else
-        exit_code=$?
         echo "✗ deployment failed with exit code: $exit_code" >&2
         exit $exit_code
     fi
@@ -90,7 +96,7 @@ nexus:
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh nexus
     _step "building + deploying"
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus | cat
     _done "nexus deployed"
     _time; echo ""
 
@@ -112,7 +118,7 @@ forge:
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh forge
     _step "building + deploying"
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on forge | cat
     _done "forge deployed"
     _time; echo ""
 
@@ -134,7 +140,7 @@ sentry:
     _step "pre-deploy checks..."
     ./scripts/pre-deploy-check.sh sentry
     _step "building + deploying"
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on sentry | cat
     _done "sentry deployed"
     _time; echo ""
 
@@ -157,12 +163,12 @@ deploy-v3-rolling:
 
     # Step 1: Pre-flight validation - build all closures
     _step "building closures for all nodes..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- build
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- build | cat
     _done "all closures built successfully"
 
     # Step 2: Deploy to Zephyr (K8s control plane, local)
     _step "deploying → zephyr (k8s-master)"
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply-local --on zephyr
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply-local --on zephyr | cat
     _step "validating K8s control plane..."
     ssh zephyr "kubectl get nodes" || echo "⚠️  K8s not yet installed, skipping validation"
     ssh zephyr "systemctl status apiserver etcd kubelet" || true
@@ -173,7 +179,7 @@ deploy-v3-rolling:
     for host in sentry nexus forge; do
         _step "cleaning up $host..."
         _kill_remote_builds $host
-        cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host
+        cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host | cat
         _step "validating $host..."
         ssh $host "kubectl get nodes | grep $host" || echo "⚠️  K8s not yet installed on $host"
         ssh $host "systemctl status kubelet" || true
@@ -193,7 +199,7 @@ deploy-tag ARG:
       exit $?
     fi
     _header "deploy → @{{ARG}} (parallel)"
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on @{{ARG}}
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on @{{ARG}} | cat
     _done "nodes with tag @{{ARG}} updated"
 
 # Emergency rollback to previous generation on remote node
@@ -238,13 +244,13 @@ switch:
       _info "using nixos-rebuild directly on remote host"
       cd {{FLAKE_PATH}}
       _info "building and applying new configuration..."
-      if output=$(sudo nixos-rebuild switch 2>&1); then
-        echo "$output"
+      # Stream output in real-time
+      sudo nixos-rebuild switch 2>&1 | cat
+      exit_code=${PIPESTATUS[0]}
+      if [ $exit_code -eq 0 ]; then
         _info "✓ configuration activated"
         _info "new generation: $(readlink /nix/var/nix/profiles/system | xargs basename)"
       else
-        exit_code=$?
-        echo "$output"
         echo "✗ rebuild failed with exit code: $exit_code" >&2
         exit $exit_code
       fi
@@ -257,13 +263,13 @@ switch:
     _info "building and applying new configuration..."
 
     # Use colmena apply-local to switch (bypasses nixos-rebuild wrapper)
-    if output=$(colmena apply-local --sudo switch 2>&1); then
-        echo "$output"
+    # Stream output in real-time via cat
+    colmena apply-local --sudo switch 2>&1 | cat
+    exit_code=${PIPESTATUS[0]}
+    if [ $exit_code -eq 0 ]; then
         _info "✓ configuration activated"
         _info "new generation: $(readlink /nix/var/nix/profiles/system | xargs basename)"
     else
-        exit_code=$?
-        echo "$output"
         echo "✗ rebuild failed with exit code: $exit_code" >&2
         exit $exit_code
     fi
@@ -286,10 +292,10 @@ test:
       exit $?
     fi
     _step "flake check..."
-    cd {{FLAKE_PATH}} && nix flake check
+    cd {{FLAKE_PATH}} && nix flake check | cat
     _done "flake check"
     _step "build all hosts (dry run)..."
-    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- build
+    cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- build | cat
     _done "all tests passed"
     _time; echo ""
 
@@ -479,13 +485,13 @@ ci-local:
       exit $?
     fi
     _step "flake check..."
-    nix flake check
+    nix flake check | cat
     _step "statix lint..."
-    statix check . || true
+    statix check . | cat || true
     _step "deadnix check..."
-    deadnix -f . || true
+    deadnix -f . | cat || true
     _step "build all hosts..."
-    nix run .#apps.x86_64-linux.colmena -- build
+    nix run .#apps.x86_64-linux.colmena -- build | cat
     _done "ci passed"
     _time; echo ""
 
