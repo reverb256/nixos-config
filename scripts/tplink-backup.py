@@ -10,12 +10,12 @@ from datetime import datetime
 from pathlib import Path
 from playwright.async_api import async_playwright
 
-# Switch configurations (CORRECTED IPs 2026-03-10)
+# Switch configurations (SEQUENTIAL IPs - 2026-03-10)
 SWITCHES = {
-    "sw1-modem": {"ip": "10.1.1.90", "name": "sw1-modem (TL-SG105E-7)"},
-    "sw2-nexus": {"ip": "10.1.1.95", "name": "sw2-nexus (TL-SG105E-5)"},
+    "sw1-modem": {"ip": "10.1.1.10", "name": "sw1-modem-root (TL-SG105E)"},
+    "sw2-tv": {"ip": "10.1.1.11", "name": "sw2-tv-branch (TL-SG105E)"},
     "sw3-upstairs": {"ip": "10.1.1.12", "name": "sw3-upstairs (TL-SG105E)"},
-    "sw4-zephyr": {"ip": "10.1.1.104", "name": "sw4-zephyr (TL-SG2210)"},
+    "sw4-zephyr": {"ip": "10.1.1.13", "name": "sw4-zephyr-end (TL-SG105E)"},
 }
 
 USERNAME = "admin"
