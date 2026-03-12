@@ -167,37 +167,25 @@
 
   # ============================================================================
   # SECONDARY STORAGE (sda - 1TB SSD)
+  # Defined in hardware-configuration.nix with subvol=@data
   # ============================================================================
-  fileSystems."/storage" = {
-    device = "/dev/disk/by-uuid/4cc9468d-166d-4479-9846-6224c80d9566";
-    fsType = "btrfs";
-    options = ["subvol=@data"];
-  };
 
   # Kubernetes worker firewall rules
-  networking.firewall = {
-    allowedTCPPorts = lib.mkOptionDefault [22 10250]; # SSH + Kubelet API (merges with cluster defaults)
-    allowedTCPPortRanges = [
-      {
-        from = 30000;
-        to = 32767;
-      }
-    ];
-    allowedUDPPorts = lib.mkOptionDefault [8472]; # Flannel VXLAN (merges with cluster defaults)
-  };
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 10250 3100]; # SSH + Kubelet API + Loki (merges with cluster defaults)
+  networking.firewall.allowedTCPPortRanges = lib.mkOptionDefault [
+    {
+      from = 30000;
+      to = 32767;
+    }
+  ];
+  networking.firewall.allowedUDPPorts = lib.mkOptionDefault [8472]; # Flannel VXLAN (merges with cluster defaults)
+  # Open Loki port on main interface for cluster access (module only opens on tailscale0)
+  networking.firewall.interfaces."enp7s0".allowedTCPPorts = [3100];
 
   systemd.services.tailscaled.environment = {
     TS_ADVERTISE_ROUTES = "10.1.1.0/24";
     TS_ROUTES = "";
     TS_SSH = "true";
-  };
-
-  # ============================================================================
-  # NIX-LD (For ROCm and mining software compatibility)
-  # ============================================================================
-  users.users = {
-    j_kro.hashedPassword = "$6$rounds=10000$mZjwJg9ZFQKSAQgb$cD6QCgzPm1vUQaG/9g4yJkKNvip4t.AkAShe.xp20bU0uX7FtMSAKsOWwF8y7iJvXM/g8j6UzAG8.LxWBMnSk."; # Password: 50161
-    root.hashedPassword = "$6$rounds=10000$CxoBo1vJxqrlCKLz$dXXKKQfht53Q40PxI5kzCR3HGlic56tsI96.TOx5OOVgiI4wFjDm1b8LuQr5ucjgF9Go2FDI.NoufoxhYOzQ8."; # Password: sentrydev
   };
 
   programs = {
