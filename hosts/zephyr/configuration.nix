@@ -28,74 +28,58 @@
   # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
-  networking = {
+  # Centralized cluster networking (search domains, DNS, firewall basics)
+  clusterNetworking = {
+    enable = true;
     hostName = "zephyr";
-    networkmanager = {
-      enable = true;
-      dns = "none";
-      ensureProfiles.profiles."Wired connection 1" = {
-        connection = {
-          id = "Wired connection 1";
-          type = "ethernet";
-          interface-name = "enp38s0";  # Native hardware interface name
-          autoconnect = true;
-        };
-        ipv4 = {
-          method = "manual";
-          address1 = "10.1.1.110/24";
-          gateway = "10.1.1.1";
-          dns = "127.0.0.1,::1";
-        };
-        ipv6.method = "auto";
-      };
-    };
-
-    cluster-hosts = {
-      enable = true;
-      populateLocal = true;
-    };
-
+    ipAddress = "10.1.1.110";
+    interfaceName = "enp38s0";  # Native hardware interface name
     wireless.enable = true;  # WiFi interface: wlo1 (native: wlp40s0)
+    unbound.listenAddress = "10.1.1.110";  # Listen on node IP for cluster DNS
+  };
 
-    firewall = {
-      allowedTCPPorts = [
-        9757 # WiVRn main port
-        18789 # Steam Remote Play
-        18790 # Steam Remote Play (secondary)
-        19898 # Moonlight/GameStream AND Spacebot Web UI
-        1234 # LM Studio API server
-        8080 # AI Inference Gateway
-        53317 # LocalSend (file sharing)
-        8888 # CFSSL CA API server (for worker node certificate generation)
-      ];
-      allowedUDPPorts = [
-        9757 # WiVRn
-        9758 # WiVRn
-        9759 # WiVRn
-        27031 # Steam UDP
-        27036 # Steam UDP
-        5353 # mDNS
-        9947 # WiVRn
-        53317 # LocalSend (multicast discovery)
-      ];
-      interfaces = {
-        "tailscale0".allowedTCPPorts = [
-          18789
-          18790
-        ];
-        # NFS server - allow local network only
-        "lan0".allowedTCPPorts = [
-          111
-          2049
-          20048
-        ]; # rpcbind, nfs, mountd
-        "lan0".allowedUDPPorts = [
-          111
-          2049
-          20048
-        ];
-      };
-    };
+  networking.cluster-hosts = {
+    enable = true;
+    populateLocal = true;
+  };
+
+  # Zephyr-specific firewall rules (in addition to cluster defaults)
+  networking.firewall.allowedTCPPorts = [
+    9757 # WiVRn main port
+    18789 # Steam Remote Play
+    18790 # Steam Remote Play (secondary)
+    19898 # Moonlight/GameStream AND Spacebot Web UI
+    1234 # LM Studio API server
+    8080 # AI Inference Gateway
+    53317 # LocalSend (file sharing)
+    8888 # CFSSL CA API server (for worker node certificate generation)
+  ];
+  networking.firewall.allowedUDPPorts = [
+    9757 # WiVRn
+    9758 # WiVRn
+    9759 # WiVRn
+    27031 # Steam UDP
+    27036 # Steam UDP
+    5353 # mDNS
+    9947 # WiVRn
+    53317 # LocalSend (multicast discovery)
+  ];
+  networking.firewall.interfaces = {
+    "tailscale0".allowedTCPPorts = [
+      18789
+      18790
+    ];
+    # NFS server - allow local network only
+    "enp38s0".allowedTCPPorts = [
+      111
+      2049
+      20048
+    ]; # rpcbind, nfs, mountd
+    "enp38s0".allowedUDPPorts = [
+      111
+      2049
+      20048
+    ];
   };
 
   # ============================================================================
@@ -201,11 +185,6 @@
         "master"
         "node"
       ];
-    };
-
-    # DNS - Use local unbound resolver for cluster hostnames
-    unbound-cluster = {
-      enable = true;
     };
 
     # Gaming HDR for 4K HDR TV

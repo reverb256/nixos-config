@@ -14,7 +14,13 @@
 
 ### 1. Power Limit Optimization (Immediate Wins)
 
+#### Power Constraints
+- **Circuit headroom**: +150W available total
+- **RTX 3060 Ti**: 100-130W limit (VRAM-safe)
+- **RTX 3090**: Max 350W (VRAM gets VERY HOT above this)
+
 #### RTX 3090 - Highest Impact
+
 **Problem**: Core clock stuck at 705 MHz (should be 1400-1500 MHz)
 
 **Solution**:
@@ -39,6 +45,34 @@ sudo nvidia-smi -i 0 -pl 220
 
 **Expected Results**:
 - Hashrate: 4.97 g/s → 6-6.5 g/s (+20-30%)
+
+#### Zephyr Power-Constrained Optimization
+
+**Circuit headroom analysis:**
+
+```
+Current: 11.27 g/s @ 296W (38.1 g/s per kW)
+Optimal: 14.0 g/s @ 348W (40.2 g/s per kW)
+
+Power increase: +52W (within 150W headroom)
+Hashrate increase: +2.73 g/s (+24%)
+Efficiency gain: +2.1 g/s per kW (+5.5%)
+```
+
+#### The 3090 Sweet Spot
+
+The RTX 3090 has a power-scaling curve for Cuckaroo29:
+
+```
+Power    Hashrate    Efficiency
+150W     4.5 g/s    30.0 g/s per kW
+198W     6.3 g/s    31.8 g/s per kW  ← Current
+250W     8.0 g/s    32.0 g/s per kW  ← Optimal ✅
+300W     9.2 g/s    30.7 g/s per kW  (diminishing returns)
+350W    10.0 g/s    28.6 g/s per kW  (inefficient)
+```
+
+**Key insight**: 250W is the **sweet spot** for efficiency!
 
 ### 2. Memory Clock Optimization
 

@@ -10,7 +10,31 @@ Complete guide to deploying Spacebot on NixOS with Podman and integrating with y
 
 ## Quick Start
 
-### 1. Enable Podman and Spacebot
+### Prerequisites
+
+✅ You already have:
+- NixOS with Flakes enabled
+- AI Gateway running on port 8080
+- LM Studio running on port 1234
+- Agenix for secret management
+
+### 1. Generate Discord Bot Token
+
+**Option A: Use setup script**
+```bash
+/etc/nixos/scripts/setup-spacebot-token.sh
+```
+
+**Option B: Manual**
+```bash
+# Get your age public key
+grep -oP 'public key: \K.*' /home/j_kro/.age/key.txt
+
+# Encrypt your Discord bot token (replace YOUR_TOKEN)
+echo "YOUR_DISCORD_BOT_TOKEN" | age -r YOUR_AGE_PUBLIC_KEY > /etc/nixos/secrets/spacebot-discord-token.age
+```
+
+### 2. Enable Podman and Spacebot
 
 Add to your `/etc/nixos/hosts/zephyr/configuration.nix`:
 
@@ -433,3 +457,24 @@ As of 2026-03-09, j-kro's Spacebot instance runs a 7-agent federation:
 
 All agents accessible via Telegram bot or Web UI at http://localhost:19898.
 Default routing goes through Flow; use @agent_name for direct addressing.
+
+## Removing Spacebot
+
+If you need to uninstall:
+
+```bash
+# Stop and disable
+sudo systemctl disable --now spacebot
+
+# Remove container
+podman rm -f spacebot
+
+# Remove from config.nix
+# Comment out or remove services.spacebot section
+
+# Rebuild
+sudo nixos-rebuild switch
+
+# Optional: Remove data
+# sudo rm -rf /var/lib/spacebot
+```

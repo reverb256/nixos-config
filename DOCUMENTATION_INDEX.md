@@ -33,21 +33,6 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **When to Read:** First time using Claude Code on this cluster
 **Location:** `/etc/nixos/CLAUDE.md`
 
-### 2. AGENTS.md
-**Purpose:** Comprehensive agent workflow guide for all AI agents
-**Key Sections:**
-- Build & test commands (prioritizes `just` commands)
-- Code style guidelines (Nix language conventions)
-- Project structure (flake outputs, directory layout)
-- Profile system (hardware, role, network profiles)
-- Host inventory (hardware specifications)
-- Multi-host deployment (Colmena commands)
-- **Kubernetes migration** (NEW - 9-week roadmap)
-- MCP integration (Model Context Protocol)
-- Service management and testing
-**When to Read:** Any time an agent works on this cluster
-**Location:** `/etc/nixos/AGENTS.md`
-
 ### 1. AGENTS.md
 **Purpose:** Universal agent guidelines for ALL AI agents (Claude Code, Cursor, Copilot, Qwen-Agent, etc.)
 **Key Sections:**
@@ -176,6 +161,53 @@ This document provides a comprehensive index of all documentation for the NixOS 
 
 ---
 
+## LM Studio Integration
+
+### LM Studio Documentation
+**Location:** `/etc/nixos/docs/`
+
+**Purpose:** Complete documentation for LM Studio local LLM deployment
+
+#### Key Documents
+
+##### lmstudio-api-implementation.md
+**Purpose:** LM Studio v1 REST API implementation guide
+**Status:** ✅ Production Ready
+**Contents:**
+- Full Pydantic client with async/sync support
+- All v1 REST API endpoints
+- 256K context window configuration
+- MCP integration support
+- Multi-GPU allocation strategies
+
+##### lm-studio-headless-setup.md
+**Purpose:** Headless/daemon setup with systemd
+**Contents:**
+- llmster daemon configuration
+- NixOS module options
+- Multi-GPU setup
+- Service management commands
+- AI Gateway integration
+
+##### lm-studio-update-guide.md
+**Purpose:** Manual update and maintenance procedures
+**Contents:**
+- Manual installation steps
+- NixOS wrapper configuration
+- GPU selection options
+- Version tracking
+
+##### lm-studio-auto-update.md
+**Purpose:** Automated update systemd timer
+**Contents:**
+- Auto-update service configuration
+- Scheduled update intervals
+- Rollback procedures
+
+**When to Read:** Setting up or maintaining LM Studio, API integration, multi-GPU configuration
+
+---
+
 ## Integration & Skills
 
 ### MCP Integration
@@ -231,6 +263,43 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **Contents:** Architecture, implementation, testing
 **When to Read:** Working on Spacebot features
 **Location:** `/etc/nixos/SPACEBOT_IMPLEMENTATION.md`
+
+---
+
+## AI Inference Gateway
+
+### Gateway Documentation
+**Location:** `/etc/nixos/docs/gateway/`
+
+**Purpose:** Complete documentation for the AI Inference Gateway v2.0.0
+
+#### Key Documents
+
+##### GATEWAY_V2_ALL_TESTS_PASSED.md
+**Purpose:** Definitive test report for Gateway v2.0.0
+**Status:** ✅ PRODUCTION READY
+**Contents:**
+- All features tested and verified
+- Router specialization matrix
+- Performance metrics
+- Production readiness checklist
+
+##### gateway-mcp-server-roadmap.md
+**Purpose:** MCP server development roadmap
+**Status:** Phase 1 Complete, Phase 2 Next
+**Contents:** 11-phase implementation plan for gateway management API
+
+##### gateway-feature-roadmap.md
+**Purpose:** 2026 feature enhancement roadmap
+**Status:** Planning & Prioritization
+**Contents:** JSON mode, semantic caching, advanced features
+
+##### gateway-improvement-roadmap.md
+**Purpose:** Critical fixes and multi-GPU architecture
+**Status:** Draft
+**Contents:** Documentation accuracy, health checks, multi-GPU setup
+
+**When to Read:** Working on AI gateway features, MCP integration, or multi-GPU setup
 
 ---
 
@@ -293,7 +362,6 @@ This document provides a comprehensive index of all documentation for the NixOS 
 just test              # Verify configuration
 just switch            # Apply to local host (auto-pauses mining)
 just deploy            # Deploy to all cluster hosts
-just sync              # Sync all nodes to current branch
 just status            # Show cluster status
 ```
 
@@ -329,8 +397,7 @@ just rollback          # Rollback to previous generation
 2. `git add` new files (Nix only packages git-tracked files!)
 3. `git commit` with descriptive message
 4. `just test` to verify
-5. `just sync` to update all nodes
-6. `just deploy` to apply changes
+5. `just deploy` to apply changes (Colmena handles sync automatically)
 
 ---
 
@@ -425,6 +492,54 @@ just rollback          # Rollback to previous generation
 - [ ] Examples where helpful
 - [ ] Cross-references to related docs
 - [ ] Date stamp for last update
+
+---
+
+## Documentation Archive
+
+**Location:** `/etc/nixos/docs/archive/`
+
+**Purpose:** Historical documentation and completed implementation plans
+
+### Archive Structure
+
+```
+docs/archive/
+├── ARCHIVE_INDEX.md           # Complete archive catalog with reasoning
+├── completed-plans/           # Successfully implemented features
+├── gateway/                   # Historical gateway testing reports
+├── obsolete/                  # Superseded by corrected versions
+├── switches/                  # Old switch documentation (incorrect IPs)
+└── research/                  # Completed research documents
+```
+
+### What's Archived
+
+**Completed Implementation Plans:**
+- NUR integration (2026-03-02)
+- Spotify SpotX CI/CD (2026-03-02)
+- AI Gateway Middleware (2026-03-04)
+- Spotify Spicetify (2026-03-03)
+- CI/CD Pipeline (2026-03-07)
+- Agent Instruction Files (2026-03-08)
+- j-kro Agent Federation (2026-03-09)
+- Colmena v3 + K8s Integration (2026-03-09)
+- Security Hardening (2026-03-09)
+- Switch VLAN Design (2026-03-09)
+- Vaultwarden + FIDO/Passkeys (2026-03-09)
+- Multi-GPU LM Studio Architecture (2026-03-05)
+
+**Gateway Historical Reports:**
+- Early test reports (superseded by `docs/gateway/GATEWAY_V2_ALL_TESTS_PASSED.md`)
+
+**Obsolete Documentation:**
+- `switch-documentation-summary-OBSOLETE-incorrect-ips.md` (has wrong switch IP mappings)
+
+**Current Information:**
+- Use switch docs: `docs/networking/switch-documentation-CORRECTED.md`
+- Use gateway status: `docs/gateway/GATEWAY_V2_ALL_TESTS_PASSED.md`
+
+**See:** `docs/archive/ARCHIVE_INDEX.md` for complete archive catalog
 
 ---
 

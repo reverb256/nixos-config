@@ -14,8 +14,63 @@
   ...
 }: let
   inherit (lib) mkEnableOption mkOption types mkIf mkMerge mapAttrsToList;
+
+  # Helper function to create profile config
+  mkProfileConfig = profileName: profileCfg: mkIf profileCfg.enable (
+    let
+      roleProfiles = profileCfg.roleProfiles or {};
+
+      # Extract networking config - handle both nested and direct formats
+      networkingCfg = profileCfg.networking or {
+        ipAddress = profileCfg.ipAddress or null;
+        interfaceName = profileCfg.interfaceName or null;
+        unboundListenAddress = profileCfg.unboundListenAddress or null;
+        wireless = profileCfg.wireless or { enable = false; };
+      };
+    in {
+      # Apply role profiles (if any)
+      profiles.role = roleProfiles;
+
+      # Apply Kubernetes configuration
+      services.kubernetes-module = mkIf (profileCfg ? kubernetes && profileCfg.kubernetes.enable) {
+        inherit (profileCfg.kubernetes) enable roles masterAddress;
+      };
+
+      # Apply networking configuration (only if ipAddress is set)
+      clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
+        enable = true;
+        ipAddress = networkingCfg.ipAddress;
+        interfaceName = networkingCfg.interfaceName;
+        wireless = networkingCfg.wireless;
+        unbound = {
+          enable = true;
+          listenAddress = networkingCfg.unboundListenAddress;
+        };
+      };
+
+      # Apply hardware profiles
+      hardware.profiles = {
+        nvidia.enable = profileCfg.nvidia.enable or false;
+        nvidia.multiGpu = profileCfg.nvidia.multiGpu or false;
+        amdgpu.enable = profileCfg.amdgpu.enable or false;
+        amdgpu.wayland = profileCfg.amdgpu.wayland or false;
+        monitoring.enable = true;  # All nodes get monitoring
+      };
+
+      # Apply network profiles
+      profiles.network.tailscale.enable = true;
+
+      # Disable DHCP if requested
+      networking.dhcpcd.enable = mkIf (profileCfg.disableDHCP or false) (lib.mkForce false);
+
+      # Apply extra firewall rules
+      networking.firewall.allowedTCPPorts = profileCfg.firewallExtraTCPPorts or [];
+      networking.firewall.allowedTCPPortRanges = profileCfg.firewallExtraTCPPortRanges or [];
+      networking.firewall.allowedUDPPorts = profileCfg.firewallExtraUDPPorts or [];
+    }
+  );
 in {
-  options.profiles.node = with config.profiles.node; {
+  options.profiles.node = {
     # ============================================================================
     # NODE-SPECIFIC PROFILES
     # Each profile bundles role profiles + node-specific configuration
@@ -273,47 +328,18 @@ in {
   # ============================================================================
   # PROFILE IMPLEMENTATION
   # ============================================================================
-  config = mkMerge (mapAttrsToList (_: profileCfg: mkIf profileCfg.enable (
-    let
-      inherit (profileCfg) roleProfiles;
-    in {
-      # Apply role profiles
-      profiles.role = roleProfiles;
-
-      # Apply Kubernetes configuration
-      services.kubernetes-module = mkIf (profileCfg ? kubernetes && profileCfg.kubernetes.enable) {
-        inherit (profileCfg.kubernetes) enable roles masterAddress;
-      };
-
-      # Apply networking configuration
-      clusterNetworking = mkIf (profileCfg ? networking && profileCfg.networking.enable) {
-        enable = true;
-        inherit (profileCfg.networking) ipAddress interfaceName wireless;
-        unbound = {
-          enable = true;
-          listenAddress = profileCfg.networking.unboundListenAddress;
-        };
-      };
-
-      # Apply hardware profiles
-      hardware.profiles = {
-        nvidia.enable = profileCfg.nvidia.enable or false;
-        nvidia.multiGpu = profileCfg.nvidia.multiGpu or false;
-        amdgpu.enable = profileCfg.amdgpu.enable or false;
-        amdgpu.wayland = profileCfg.amdgpu.wayland or false;
-        monitoring.enable = true;  # All nodes get monitoring
-      };
-
-      # Apply network profiles
-      profiles.network.tailscale.enable = true;
-
-      # Disable DHCP if requested
-      networking.dhcpcd.enable = mkIf (profileCfg.disableDHCP or false) (lib.mkForce false);
-
-      # Apply extra firewall rules
-      networking.firewall.allowedTCPPorts = profileCfg.firewallExtraTCPPorts or [];
-      networking.firewall.allowedTCPPortRanges = profileCfg.firewallExtraTCPPortRanges or [];
-      networking.firewall.allowedUDPPorts = profileCfg.firewallExtraUDPPorts or [];
-    }
-  )) config.profiles.node);
+  config = mkMerge [
+    # Zephyr workstation profile
+    (mkProfileConfig "zephyr-workstation" config.profiles.node.zephyr-workstation)
+    # Nexus gaming profile
+    (mkProfileConfig "nexus-gaming" config.profiles.node.nexus-gaming)
+    # Forge mining profile
+    (mkProfileConfig "forge-mining" config.profiles.node.forge-mining)
+    # Sentry monitoring profile
+    (mkProfileConfig "sentry-monitoring" config.profiles.node.sentry-monitoring)
+    # Generic Kubernetes control plane profile
+    (mkProfileConfig "kubernetes-control-plane" config.profiles.node.kubernetes-control-plane)
+    # Generic Kubernetes worker profile
+    (mkProfileConfig "kubernetes-worker" config.profiles.node.kubernetes-worker)
+  ];
 }

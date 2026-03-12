@@ -171,12 +171,15 @@ Changes to these files now require human review:
 - ✅ Root cause identified
 - ✅ Fix implemented and committed
 - ✅ Documentation updated (CLAUDE.md)
-- ⏳ Awaiting: Physical console access to nexus/sentry to apply fix
-- ⏳ Awaiting: Verification that SSH restored after rebuild
+- ✅ Nexus SSH RESTORED (2026-03-12 ~01:00)
+- ✅ Sentry SSH RESTORED (2026-03-12 ~01:05)
+- 🎉 **INCIDENT RESOLVED**
 
 ---
 
 **Report Generated:** 2026-03-12 00:35
+**Last Updated:** 2026-03-12 01:05
 **Agent:** Claude Sonnet 4.6
 **Severity:** Critical (SSH completely broken on 2 nodes)
 **Recovery Time:** ~15 minutes from identification to fix commit
+**Total Recovery:** ~35 minutes from incident start to full resolution
