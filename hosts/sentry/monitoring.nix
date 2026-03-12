@@ -16,7 +16,11 @@
       alert-webhook.enable = true;
       # Email disabled (requires SMTP password)
       alertmanager.email.enable = false;
-      loki.enable = true;
+      loki = {
+        enable = true;
+        listenAddress = "0.0.0.0"; # Allow cluster-wide access
+        dataDir = "/storage/loki"; # Use persistent storage
+      };
 
       # Metrics exporters
       node-exporter.enable = true;
