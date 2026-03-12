@@ -35,7 +35,8 @@ in {
     # NOTE: sshUser defaults to root when running with sudo, must specify j_kro
     # All 4 hosts participate with compute-workload-monitor managing mining pause
     # IMPORTANT: Filter out current host to avoid SSH-to-self loopback causing daemon locks
-    buildMachines = lib.filter (m: m.hostName != currentHost) [
+    # TEMPORARILY DISABLED: Fixing deployment issue - will re-enable after deployment
+    # buildMachines = lib.filter (m: m.hostName != currentHost) [
       {
         # Zephyr: 32 cores, Ryzen 9 5950X (znver3)
         # Role: K8s control plane + build coordinator + worker

@@ -28,13 +28,13 @@ set -euo pipefail
 readonly HOSTNAME="$(hostname)"
 readonly STATE_DIR="/run/nixos-deploy"
 readonly STATE_FILE="$STATE_DIR/${HOSTNAME}.json"
-readonly GPU_SCHEDULER_STATE="/run/gpu-scheduler/ai-state"
 
-# GPU nodes with NVIDIA GPUs that need scheduler signaling
-readonly GPU_NODES=("zephyr" "nexus" "forge")
-
-# Mining target to pause/resume
-readonly MINING_TARGET="mining.target"
+# CPU mining services (xmrig) to pause/resume during builds
+# GPU mining (lolminer) continues running
+readonly CPU_MINING_SERVICES=("xmrig.service")
+if systemctl -q is-enabled xmrig@amd.service 2>/dev/null; then
+    CPU_MINING_SERVICES+=("xmrig@amd.service")
+fi
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -77,7 +77,7 @@ is_gpu_node() {
 # Write state file
 write_state() {
     local status="$1"
-    local gpu_nodes_paused="${2:-false}"
+    local cpu_mining_paused="${2:-false}"
 
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -90,7 +90,7 @@ write_state() {
         printf '  "host": "%s",\n' "$HOSTNAME"
         printf '  "status": "%s",\n' "$status"
         printf '  "started_at": "%s",\n' "$timestamp"
-        printf '  "gpu_nodes_paused": %s\n' "$gpu_nodes_paused"
+        printf '  "cpu_mining_paused": %s\n' "$cpu_mining_paused"
         printf '}\n'
     } > "$STATE_FILE"
 
@@ -116,27 +116,57 @@ signal_gpu_scheduler() {
 
 # Pause mining if active
 pause_mining() {
-    if ! systemctl -q is-active "$MINING_TARGET" 2>/dev/null; then
-        log_info "$MINING_TARGET not active, skipping pause"
+    local any_running=false
+
+    # Check if any CPU mining service is active
+    for service in "${CPU_MINING_SERVICES[@]}"; do
+        if systemctl -q is-active "$service" 2>/dev/null; then
+            any_running=true
+            break
+        fi
+    done
+
+    if ! $any_running; then
+        log_info "No CPU mining services active, skipping pause"
         return 1
     fi
 
-    log_info "Pausing $MINING_TARGET..."
-    systemctl stop "$MINING_TARGET"
-    log_success "Mining paused"
+    log_info "Pausing CPU mining services..."
+    for service in "${CPU_MINING_SERVICES[@]}"; do
+        if systemctl -q is-active "$service" 2>/dev/null; then
+            systemctl stop "$service"
+            log_info "  Stopped $service"
+        fi
+    done
+    log_success "CPU mining paused"
     return 0
 }
 
 # Resume mining if it was paused
 resume_mining() {
-    if ! systemctl -q is-enabled "$MINING_TARGET" 2>/dev/null; then
-        log_info "$MINING_TARGET not enabled, skipping resume"
+    local any_enabled=false
+
+    # Check if any CPU mining service is enabled
+    for service in "${CPU_MINING_SERVICES[@]}"; do
+        if systemctl -q is-enabled "$service" 2>/dev/null; then
+            any_enabled=true
+            break
+        fi
+    done
+
+    if ! $any_enabled; then
+        log_info "No CPU mining services enabled, skipping resume"
         return 0
     fi
 
-    log_info "Resuming $MINING_TARGET..."
-    systemctl start "$MINING_TARGET"
-    log_success "Mining resumed"
+    log_info "Resuming CPU mining services..."
+    for service in "${CPU_MINING_SERVICES[@]}"; do
+        if systemctl -q is-enabled "$service" 2>/dev/null; then
+            systemctl start "$service"
+            log_info "  Started $service"
+        fi
+    done
+    log_success "CPU mining resumed"
     return 0
 }
 
@@ -211,14 +241,9 @@ main() {
     log_info "🚀 Executing: $translated_cmd"
 
     # Write initial state
-    write_state "deploying"
+    write_state "deploying" "false"
 
-    # Signal GPU scheduler (GPU nodes only)
-    if is_gpu_node "$HOSTNAME"; then
-        signal_gpu_scheduler "deploying"
-    fi
-
-    # Pause mining if active
+    # Pause CPU mining if active
     if pause_mining; then
         mining_was_running=true
     fi
@@ -244,11 +269,11 @@ main() {
     # Handle result
     if [ $exit_code -eq 0 ]; then
         log_success "✓ Deployment completed successfully"
-        write_state "success" "true"
+        write_state "success" "false"
         exit 0
     else
         log_error "✗ Deployment failed (exit code: $exit_code)"
-        write_state "failed" "true"
+        write_state "failed" "false"
         exit $exit_code
     fi
 }
