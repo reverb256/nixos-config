@@ -22,9 +22,6 @@
     # AMD GPU Wayland optimizations (includes nvtopPackages.full)
     ../../modules/hardware/amdgpu-wayland.nix
 
-    # Plasma6 desktop (includes autologin configuration)
-    ../../modules/desktop/plasma6.nix
-
     # Podman support
     ../../modules/services/podman-support.nix
 
