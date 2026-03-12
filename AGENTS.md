@@ -39,18 +39,27 @@ NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) with decla
 ### Primary Workflow: Just Commands
 ```bash
 just test              # Verify configuration
-just switch            # Apply to local host (auto-pauses mining)
-just deploy            # Deploy to all cluster hosts
+just switch            # Apply to local host (wrapper auto-pauses CPU mining)
+just deploy            # Deploy to all cluster hosts (via Colmena)
 just ci-local          # Run full CI pipeline locally
 ```
 
-### Legacy Commands
+### Direct Commands (via wrapper)
 ```bash
-nix flake check                               # Fast syntax check
+# nixos-rebuild wrapper translates to Colmena automatically
+sudo nixos-rebuild switch --flake .#zephyr   # Apply locally (mining pause)
 sudo nixos-rebuild build --flake .#zephyr    # Build without applying
 sudo nixos-rebuild test --flake .#zephyr     # Test (rollback safe)
+nix flake check                               # Fast syntax check
 nix flake update                              # Update flake inputs
 ```
+
+**Wrapper Behavior:**
+- All `nixos-rebuild` commands use the wrapper script (installed via NixOS module)
+- Wrapper translates commands to Colmena for deployment consistency
+- Automatically pauses CPU mining (xmrig) during builds, GPU mining (lolminer) continues
+- Writes state files to `/run/nixos-deploy/{host}.json` for visibility
+- Native bypass: `NIXOS_REBUILD_NATIVE=1 sudo nixos-rebuild ...`
 
 ### Critical Workflows
 **Before Deployment**:
