@@ -30,11 +30,18 @@ in {
       };
     };
 
-    # Firewall for NFS
-    networking.firewall = {
-      allowedTCPPorts = lib.mkOptionDefault [2049 111 20048];
-      allowedUDPPorts = lib.mkOptionDefault [2049 111 20048];
-    };
+    # Firewall for NFS - use extraCommands to directly add iptables rules
+    # This is needed because lib.mkOptionDefault doesn't properly merge
+    # when multiple modules set firewall.allowedTCPPorts
+    networking.firewall.extraCommands = ''
+      # NFS server ports - allow from entire cluster network
+      iptables -I nixos-fw -s 10.1.1.0/24 -p tcp --dport 111 -j ACCEPT
+      iptables -I nixos-fw -s 10.1.1.0/24 -p tcp --dport 2049 -j ACCEPT
+      iptables -I nixos-fw -s 10.1.1.0/24 -p tcp --dport 20048 -j ACCEPT
+      iptables -I nixos-fw -s 10.1.1.0/24 -p udp --dport 111 -j ACCEPT
+      iptables -I nixos-fw -s 10.1.1.0/24 -p udp --dport 2049 -j ACCEPT
+      iptables -I nixos-fw -s 10.1.1.0/24 -p udp --dport 20048 -j ACCEPT
+    '';
 
     # Fixed rpc.mountd port for firewall (this may need adjustment)
     # Note: rpc.mountd port configuration is handled via --port in newer nfs-utils

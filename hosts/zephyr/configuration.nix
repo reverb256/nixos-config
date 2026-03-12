@@ -286,6 +286,14 @@
       server.enable = true;
     };
 
+    # NFS Client - Mount shared storage from nexus
+    nfs-client = {
+      enable = true;
+      mountShared = true;
+      mountHome = false;    # Zephyr has local home
+      mountMedia = true;
+    };
+
     # Caddy reverse proxy - Replace nginx for all services
     caddy = {
       enable = true;

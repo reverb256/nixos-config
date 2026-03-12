@@ -122,6 +122,14 @@
       enable = true;
       client.enable = true;
     };
+
+    # NFS Client - Mount shared storage from nexus
+    nfs-client = {
+      enable = true;
+      mountShared = true;
+      mountHome = false;
+      mountMedia = false;
+    };
   };
 
   # ============================================================================

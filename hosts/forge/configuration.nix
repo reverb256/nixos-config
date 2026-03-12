@@ -139,6 +139,14 @@
       ];
       openFirewall = false;
     };
+
+    # NFS Client - Mount shared storage from nexus
+    nfs-client = {
+      enable = true;
+      mountShared = true;
+      mountHome = true;
+      mountMedia = true;
+    };
   };
 
   # ============================================================================

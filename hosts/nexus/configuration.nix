@@ -230,6 +230,9 @@
       enable = true;
       client.enable = true;
     };
+
+    # NFS Server - Export shared storage for cluster
+    nfs.server.enable = true;
   };
 
   # ============================================================================
