@@ -249,9 +249,10 @@ in {
   environment = {
     sessionVariables = {
       QT_QPA_PLATFORM = "wayland;xcb";
-      QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
+      # NOTE: QT_WAYLAND_DISABLE_WINDOWDECORATION removed - it breaks Discover (plasma-discover)
+      # Spotify's close button issue is handled by KWin window rule (see kwinrulesrc below)
       QT_AUTO_SCREEN_SCALE_FACTOR = "1";
-      QT_USE_RHI_GLES2 = "1";
+      # NOTE: QT_USE_RHI_GLES2 removed - can cause rendering issues with some Qt apps
       QT_QPA_GL_VERSION = "2";
       KWIN_DRM_DEVICE = "/dev/dri/card0";
       KWIN_DRM_PRIMARY = "1";
