@@ -1,7 +1,6 @@
 # NFS Client for mounting shared storage from Nexus
 {config, lib, pkgs, ...}: let
   cfg = config.services.nfs-client;
-  nfsServer = "10.1.1.120";  # Nexus
 in {
   options.services.nfs-client = {
     enable = lib.mkEnableOption "NFS client for cluster storage";
@@ -11,6 +10,12 @@ in {
     mountHome = lib.mkEnableOption "mount /data/home from NFS";
 
     mountMedia = lib.mkEnableOption "mount /data/media (read-only) from NFS";
+
+    serverIp = lib.mkOption {
+      type = lib.types.str;
+      default = config.networking.cluster.hosts.nexus.ip;
+      description = "NFS server IP address";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -29,8 +34,8 @@ in {
     fileSystems = lib.mkMerge [
       (lib.mkIf cfg.mountShared {
         "/data/shared" = {
-          device = "${nfsServer}:/data/shared";
-          fsType = "nfs";
+          device = "${cfg.serverIp}:/data/shared";
+          fsType = "nfs4";
           options = [
             "x-systemd.automount"
             "x-systemd.idle-timeout=600"
@@ -43,8 +48,8 @@ in {
       })
       (lib.mkIf cfg.mountHome {
         "/data/home" = {
-          device = "${nfsServer}:/data/home";
-          fsType = "nfs";
+          device = "${cfg.serverIp}:/data/home";
+          fsType = "nfs4";
           options = [
             "x-systemd.automount"
             "x-systemd.idle-timeout=600"
@@ -57,8 +62,8 @@ in {
       })
       (lib.mkIf cfg.mountMedia {
         "/data/media" = {
-          device = "${nfsServer}:/data/media";
-          fsType = "nfs";
+          device = "${cfg.serverIp}:/data/media";
+          fsType = "nfs4";
           options = [
             "x-systemd.automount"
             "x-systemd.idle-timeout=600"
