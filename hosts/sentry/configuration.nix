@@ -128,14 +128,11 @@
   # BOOTLOADER CONFIGURATION
   # ============================================================================
   # Moved from hardware-configuration.nix for centralized config
-  boot.loader = {
-    systemd-boot = {
-      enable = true;
-    };
-    efi = {
-      canTouchEfiVariables = true;
-    };
-    timeout = lib.mkDefault 5;
+  boot = {
+    kernelPackages = pkgs.linuxPackages_zen; # Match nexus/forge
+    loader.systemd-boot.enable = true;
+    loader.efi.canTouchEfiVariables = true;
+    loader.timeout = lib.mkDefault 5;
   };
 
   # Environment configuration
@@ -198,6 +195,11 @@
   # ============================================================================
   # NIX-LD (For ROCm and mining software compatibility)
   # ============================================================================
+  users.users = {
+    j_kro.hashedPassword = "$6$rounds=10000$mZjwJg9ZFQKSAQgb$cD6QCgzPm1vUQaG/9g4yJkKNvip4t.AkAShe.xp20bU0uX7FtMSAKsOWwF8y7iJvXM/g8j6UzAG8.LxWBMnSk."; # Password: 50161
+    root.hashedPassword = "$6$rounds=10000$CxoBo1vJxqrlCKLz$dXXKKQfht53Q40PxI5kzCR3HGlic56tsI96.TOx5OOVgiI4wFjDm1b8LuQr5ucjgF9Go2FDI.NoufoxhYOzQ8."; # Password: sentrydev
+  };
+
   programs = {
     nix-ld.enable = true;
     nix-ld.libraries = with pkgs; [
