@@ -160,7 +160,7 @@ in {
 
             # Get hostname for instance label
             HOSTNAME="$(${pkgs.hostname}/bin/hostname)"
-            INSTANCE_LABEL="\\"$(echo "$HOSTNAME" | escape_label)\\""
+            INSTANCE_LABEL="\"$HOSTNAME\""
 
             # Fetch AMD GPU metrics using rocm-smi
             fetch_metrics() {
@@ -187,7 +187,7 @@ in {
 
               # Fetch per-GPU metrics
               for gpu in $(${pkgs.coreutils}/bin/seq 0 $((GPU_COUNT - 1))); do
-                GPU_LABEL="\\"$gpu\\""
+                GPU_LABEL="\"$gpu\""
 
                 # Temperature (edge/junction/memory)
                 TEMPS=$("$ROCM_SMI" --showtemp --showpower --showuse 2>/dev/null || echo "")
@@ -196,19 +196,19 @@ in {
                   # Parse temperature - actual format: "GPU[0]\t\t: Temperature (Sensor edge) (C): 56.0"
                   TEMP=$(echo "$TEMPS" | ${pkgs.gnugrep}/bin/grep "GPU\\[$gpu\\]" -A 2 | ${pkgs.gnugrep}/bin/grep -oP "Sensor edge.*?:\\s*\\K[0-9.]+" | head -1 || echo "0")
                   if [ "$TEMP" != "0" ]; then
-                    echo "amdgpu_temperature_celsius{instance=$INSTANCE_LABEL,gpu=$GPU_LABEL,sensor=\\"edge\\"} $TEMP" >> "$TEMP_FILE"
+                    echo "amdgpu_temperature_celsius{instance=$INSTANCE_LABEL,gpu=$GPU_LABEL,sensor=\"edge\"} $TEMP" >> "$TEMP_FILE"
                   fi
 
                   # Junction temp
                   JUNCTION_TEMP=$(echo "$TEMPS" | ${pkgs.gnugrep}/bin/grep "GPU\\[$gpu\\]" -A 2 | ${pkgs.gnugrep}/bin/grep -oP "Sensor junction.*?:\\s*\\K[0-9.]+" | head -1 || echo "0")
                   if [ "$JUNCTION_TEMP" != "0" ]; then
-                    echo "amdgpu_temperature_celsius{instance=$INSTANCE_LABEL,gpu=$GPU_LABEL,sensor=\\"junction\\"} $JUNCTION_TEMP" >> "$TEMP_FILE"
+                    echo "amdgpu_temperature_celsius{instance=$INSTANCE_LABEL,gpu=$GPU_LABEL,sensor=\"junction\"} $JUNCTION_TEMP" >> "$TEMP_FILE"
                   fi
 
                   # Memory temp
                   MEM_TEMP=$(echo "$TEMPS" | ${pkgs.gnugrep}/bin/grep "GPU\\[$gpu\\]" -A 2 | ${pkgs.gnugrep}/bin/grep -oP "Sensor memory.*?:\\s*\\K[0-9.]+" | head -1 || echo "0")
                   if [ "$MEM_TEMP" != "0" ]; then
-                    echo "amdgpu_temperature_celsius{instance=$INSTANCE_LABEL,gpu=$GPU_LABEL,sensor=\\"memory\\"} $MEM_TEMP" >> "$TEMP_FILE"
+                    echo "amdgpu_temperature_celsius{instance=$INSTANCE_LABEL,gpu=$GPU_LABEL,sensor=\"memory\"} $MEM_TEMP" >> "$TEMP_FILE"
                   fi
                 fi
 
@@ -231,13 +231,13 @@ in {
                 # sclk = core clock, format: "sclk clock level: 1: (1845Mhz)"
                 CORE_CLOCK=$(echo "$CLOCK_OUTPUT" | ${pkgs.gnugrep}/bin/grep "GPU\\[$gpu\\]" | ${pkgs.gnugrep}/bin/grep "sclk" | ${pkgs.gnugrep}/bin/grep -oP "\\(([0-9]+)Mhz\\)" | ${pkgs.gnugrep}/bin/grep -oP "[0-9]+" | head -1 || echo "0")
                 if [ "$CORE_CLOCK" != "0" ]; then
-                  echo "amdgpu_clock_mhz{instance=$INSTANCE_LABEL,gpu=$GPU_LABEL,clock=\\"sclk\\"} $CORE_CLOCK" >> "$TEMP_FILE"
+                  echo "amdgpu_clock_mhz{instance=$INSTANCE_LABEL,gpu=$GPU_LABEL,clock=\"sclk\"} $CORE_CLOCK" >> "$TEMP_FILE"
                 fi
 
                 # mclk = memory clock, format: "mclk clock level: 3: (875Mhz)"
                 MEM_CLOCK=$(echo "$CLOCK_OUTPUT" | ${pkgs.gnugrep}/bin/grep "GPU\\[$gpu\\]" | ${pkgs.gnugrep}/bin/grep "mclk" | ${pkgs.gnugrep}/bin/grep -oP "\\(([0-9]+)Mhz\\)" | ${pkgs.gnugrep}/bin/grep -oP "[0-9]+" | head -1 || echo "0")
                 if [ "$MEM_CLOCK" != "0" ]; then
-                  echo "amdgpu_clock_mhz{instance=$INSTANCE_LABEL,gpu=$GPU_LABEL,clock=\\"mclk\\"} $MEM_CLOCK" >> "$TEMP_FILE"
+                  echo "amdgpu_clock_mhz{instance=$INSTANCE_LABEL,gpu=$GPU_LABEL,clock=\"mclk\"} $MEM_CLOCK" >> "$TEMP_FILE"
                 fi
               done
 

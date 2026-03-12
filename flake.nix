@@ -86,7 +86,21 @@
       # Internal modules (auto-imports all subdirectories)
       ./modules/default.nix
 
-      # Overlays configuration - applies overlays.default to all hosts
+      # ========================================================================
+      # OVERLAYS CONFIGURATION
+      # ========================================================================
+      # Custom package overlays applied to ALL hosts
+      #
+      # Scope: System + Home Manager (due to useGlobalPkgs = true)
+      # Location: ./overlay.nix defines custom packages (lolminer, xmrig, etc.)
+      #
+      # Why here? Single definition point prevents duplication and ensures
+      # all hosts have access to custom packages. When useGlobalPkgs=true,
+      # Home Manager uses the same pkgs instance as the system, so this
+      # overlay affects both system packages and user packages.
+      #
+      # See: modules/system/home-manager.nix for useGlobalPkgs setting
+      # ========================================================================
       {nixpkgs.overlays = [self.overlays.default];}
     ];
 
@@ -182,55 +196,8 @@
       };
     };
 
-    packages.x86_64-linux.lolminer-image = pkgs.dockerTools.buildImage {
-      name = "lolminer";
-      tag = "1.98a-nixos";
-
-      copyToRoot = pkgs.buildEnv {
-        name = "lolminer-root";
-        paths = [
-          pkgs.lolminer
-          pkgs.bash
-          pkgs.coreutils
-          pkgs.cacert
-        ];
-        pathsToLink = ["/bin" "/etc" "/lib"];
-      };
-
-      config = {
-        Entrypoint = ["/bin/lolMiner"];
-        Cmd = [];
-
-        ExposedPorts = {
-          "4068/tcp" = {}; # API port
-        };
-
-        Env = [
-          "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
-          "PATH=/bin"
-          "GPU_MAX_HEAP_SIZE=100"
-          "GPU_MAX_ALLOC_PERCENT=100"
-        ];
-      };
-    };
-
-      config = {
-        Entrypoint = ["/bin/xmrig-proxy"];
-        Cmd = ["--config=/etc/xmrig-proxy/config.json" "--no-color"];
-
-        ExposedPorts = {
-          "3333/tcp" = {}; # Stratum port
-          "8081/tcp" = {}; # API port
-        };
-
-        Env = [
-          "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
-          "PATH=/bin"
-        ];
-      };
-    };
-
     # TODO: lolminer package not available - commented out to unblock deployments
+    # Re-enable after verifying lolminer overlay is properly applied
     # packages.x86_64-linux.lolminer-image = pkgs.dockerTools.buildImage {
     #   name = "lolminer";
     #   tag = "1.98a-nixos";
@@ -245,23 +212,23 @@
     #     ];
     #     pathsToLink = ["/bin" "/etc" "/lib"];
     #   };
-
-      config = {
-        Entrypoint = ["/bin/lolminer"];
-        Cmd = [];
-
-        ExposedPorts = {
-          "4068/tcp" = {}; # API port
-        };
-
-        Env = [
-          "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
-          "PATH=/bin"
-          "GPU_MAX_HEAP_SIZE=100"
-          "GPU_MAX_ALLOC_PERCENT=100"
-        ];
-      };
-    };
+    #
+    #   config = {
+    #     Entrypoint = ["/bin/lolMiner"];
+    #     Cmd = [];
+    #
+    #     ExposedPorts = {
+    #       "4068/tcp" = {}; # API port
+    #     };
+    #
+    #     Env = [
+    #       "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+    #       "PATH=/bin"
+    #       "GPU_MAX_HEAP_SIZE=100"
+    #       "GPU_MAX_ALLOC_PERCENT=100"
+    #     ];
+    #   };
+    # };
 
     overlays.default = import ./overlay.nix;
 

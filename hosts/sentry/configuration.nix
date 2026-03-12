@@ -83,6 +83,9 @@
   # SERVICES CONFIGURATION
   # ============================================================================
   services = {
+    # Crash detection and logging
+    crash-watchdog.enable = true;
+
     # Kubernetes worker node
     kubernetes-module = {
       enable = true;

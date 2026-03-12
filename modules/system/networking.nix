@@ -1,5 +1,5 @@
 # Networking Module - DNS, Firewall, Analytics Blocking, Avahi
-{pkgs, ...}: {
+{lib, pkgs, config, ...}: {
   # ============================================================================
   # NETWORKING - NetworkManager, DHCP, hosts, DNS, firewall
   # ============================================================================
@@ -54,12 +54,13 @@
       "::1"
     ];
 
-    # FIREWALL (Base config - ports can be overridden per-host)
+    # FIREWALL (Base config - ports can be extended per-host)
+    # Uses mkOptionDefault so nodes can extend these without replacing them
     firewall = {
       enable = true;
       # Base allowed ports - all hosts get these
-      allowedTCPPorts = [22]; # SSH (essential for cluster management)
-      allowedUDPPorts = [
+      allowedTCPPorts = lib.mkOptionDefault [22]; # SSH (essential for cluster management)
+      allowedUDPPorts = lib.mkOptionDefault [
         60001
         60002
         60003
@@ -112,7 +113,8 @@
     };
 
     # Unbound DNS resolver with TLS
-    unbound = {
+    # Only enable when unbound-cluster is NOT enabled (to avoid duplicate forward-zone)
+    unbound = lib.mkIf (!config.services.unbound-cluster.enable or false) {
       enable = true;
       settings = {
         server = {

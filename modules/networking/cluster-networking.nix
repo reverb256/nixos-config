@@ -83,9 +83,12 @@ in {
             method = "manual";
             address1 = "${cfg.ipAddress}/24";
             gateway = "10.1.1.1";  # Modem/gateway
-            dns = "127.0.0.1,::1";  # Use local Unbound resolver
+            dns = "127.0.0.1";  # Use local Unbound resolver (IPv4)
           };
-          ipv6.method = "auto";
+          ipv6 = {
+            method = "auto";
+            dns = "::1";  # Use local Unbound resolver (IPv6)
+          };
         };
       };
 

@@ -43,7 +43,8 @@ in {
     systemd.services.boot-error-monitor = {
       description = "Monitor and report boot errors";
       wantedBy = ["multi-user.target"];
-      after = ["multi-user.target"];
+      after = ["systemd-sysusers.service" "multi-user.target"];
+      wants = ["systemd-sysusers.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "boot-error-check" ''

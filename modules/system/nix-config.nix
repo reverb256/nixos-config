@@ -41,6 +41,10 @@
       options = lib.mkForce "--delete-older-than 14d"; # Override distributed-builds (30d)
     };
 
+    # Store size limits (prevents disk exhaustion)
+    settings.max-free = lib.mkDefault "100G";  # Keep ~100GB free
+    settings.min-free = lib.mkDefault "5G";    # Keep at least 5GB free
+
     # Automatic store optimization
     optimise = {
       automatic = true;

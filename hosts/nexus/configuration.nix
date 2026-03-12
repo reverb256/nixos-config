@@ -47,7 +47,7 @@
   };
 
   # Nexus-specific firewall rules (in addition to cluster defaults)
-  networking.firewall.allowedTCPPorts = [
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
     10250  # Kubelet API
   ];
   networking.firewall.allowedTCPPortRanges = [
@@ -56,7 +56,7 @@
       to = 32767;
     }
   ];
-  networking.firewall.allowedUDPPorts = [
+  networking.firewall.allowedUDPPorts = lib.mkOptionDefault [
     8472  # Flannel VXLAN
   ];
 
@@ -174,6 +174,9 @@
   };
 
   services = {
+    # Crash detection and logging
+    crash-watchdog.enable = true;
+
     # Kubernetes worker node
     kubernetes-module = {
       enable = true;

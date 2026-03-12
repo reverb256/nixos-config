@@ -70,7 +70,7 @@ in {
               logger.info(f"{self.address_string()} - {format % args}")
 
           def send_response(self, code, message=""):
-              self.send_response(code)
+              super().send_response(code)
               self.send_header("Content-Type", "text/plain")
               self.end_headers()
               if message:

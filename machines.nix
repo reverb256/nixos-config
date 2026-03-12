@@ -6,16 +6,11 @@
 
 # Zephyr - K8s control plane + node (16 cores, must stay stable)
 # CONSERVATIVE maxJobs (apiserver/etcd need CPU headroom)
-ssh-ng://j_kro@zephyr x86_64-linux - 8 8 kvm,big-parallel -
-
+ssh-ng://j_kro@zephyr x86_64-linux - 8 8 kvm,big-parallel,x86-64-v3 -
 # Nexus - K8s storage worker + NFS (12 cores, needs I/O headroom)  
 # MODERATE maxJobs (leave cores for NFS/PVC operations)
-ssh-ng://j_kro@nexus x86_64-linux - 6 5 big-parallel -
+ssh-ng://j_kro@nexus x86_64-linux - 6 5 big-parallel,x86-64-v3 -
 
-# Forge - K8s multi-GPU worker (6 cores, MIXED NVIDIA/AMD)
-# MINIMAL maxJobs (GPU pods need CPU, mixed vendor = chaos)
-ssh-ng://j_kro@forge x86_64-linux - 2 2 kvm -
-
-# Sentry - K8s monitoring worker (8 cores)
-# LIGHT maxJobs (Prometheus/Grafana/Loki need CPU)
-ssh-ng://j_kro@sentry x86_64-linux - 4 4 big-parallel -
+# REMOVED: Forge and Sentry are build CLIENTS only (not servers)
+# Only Zephyr (control plane) and Nexus (storage) are build servers
+# This prevents build contention with GPU workloads (forge) and monitoring stack (sentry)
