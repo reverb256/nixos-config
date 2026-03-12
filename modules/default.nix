@@ -68,6 +68,7 @@
 
     # Services
     ./services/mcp-servers.nix
+    ./services/nfs-server.nix
     ./services/tplink-switches.nix
     ./services/tplink-cli.nix
     ./services/lm-studio.nix
