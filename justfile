@@ -138,14 +138,14 @@ rollback-remote ARG:
 #  LOCAL OPERATIONS
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Local switch (mining auto-pauses)
+# Local switch (mining auto-pauses via wrapper)
 switch:
     #!/usr/bin/env bash
     set -e
     source {{JUST_HELPERS}}
     _time; _header "local switch → $(hostname -s)"
-    _info "mining will auto-pause during rebuild"
-    cd /etc/nixos && sudo ./scripts/nixos-rebuild-safe.sh switch --flake ".#$(hostname -s)" 2>&1
+    _info "mining will auto-pause during rebuild (CPU only, GPU continues)"
+    cd /etc/nixos && sudo nixos-rebuild switch --flake ".#$(hostname -s)" 2>&1
     _done "switch complete"
     _time; echo ""
 
