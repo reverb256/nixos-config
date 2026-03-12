@@ -18,6 +18,10 @@ deploy:
     set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → all hosts"
+
+    # IDEMPOTENT: Kill any conflicting builds first
+    _kill_conflicting_builds
+
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
       ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just deploy"
@@ -29,6 +33,10 @@ deploy:
     # Deploy sequentially - colmena output goes directly to terminal
     for host in zephyr nexus forge sentry; do
         echo ""
+        _step "cleaning up $host..."
+        if [ "$host" != "$(hostname -s)" ]; then
+            _kill_remote_builds $host
+        fi
         _step "building + deploying → $host"
         cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host
         _done "$host deployed"
@@ -43,6 +51,10 @@ zephyr:
     set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → zephyr"
+
+    # IDEMPOTENT: Kill any conflicting builds first
+    _kill_conflicting_builds
+
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
       ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just zephyr"
@@ -66,6 +78,10 @@ nexus:
     set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → nexus"
+
+    # IDEMPOTENT: Kill any conflicting builds first
+    _kill_conflicting_builds
+
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
       ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just nexus"
@@ -84,6 +100,10 @@ forge:
     set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → forge"
+
+    # IDEMPOTENT: Kill any conflicting builds first
+    _kill_conflicting_builds
+
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
       ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just forge"
@@ -102,6 +122,10 @@ sentry:
     set -e
     source {{JUST_HELPERS}}
     _time; _header "deploy → sentry"
+
+    # IDEMPOTENT: Kill any conflicting builds first
+    _kill_conflicting_builds
+
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
       ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just sentry"
@@ -119,6 +143,9 @@ deploy-v3-rolling:
     #!/usr/bin/env bash
     set -e  # Stop on any error
     source {{JUST_HELPERS}}
+
+    # IDEMPOTENT: Kill any conflicting builds first
+    _kill_conflicting_builds
 
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
@@ -144,6 +171,8 @@ deploy-v3-rolling:
     # Step 3: Deploy to remote workers sequentially (K8s order)
     _step "deploying → k8s workers"
     for host in sentry nexus forge; do
+        _step "cleaning up $host..."
+        _kill_remote_builds $host
         cd {{FLAKE_PATH}} && nix run .#apps.x86_64-linux.colmena -- apply --on $host
         _step "validating $host..."
         ssh $host "kubectl get nodes | grep $host" || echo "⚠️  K8s not yet installed on $host"
@@ -188,9 +217,11 @@ switch:
     _time; _header "local switch → $(hostname -s)"
     _info "mining will auto-pause during rebuild (CPU only, GPU continues)"
 
-    # CRITICAL: Check for existing builds BEFORE starting
-    if ! _check_build_lock; then
-      _error "Cannot start build - another build is running"
+    # IDEMPOTENT: Kill any conflicting builds first
+    _kill_conflicting_builds
+
+    # Acquire lock
+    if ! _acquire_build_lock; then
       exit 1
     fi
 
@@ -245,6 +276,10 @@ test:
     #!/usr/bin/env bash
     source {{JUST_HELPERS}}
     _time; _header "test → configuration validation"
+
+    # IDEMPOTENT: Kill any conflicting builds first
+    _kill_conflicting_builds
+
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
       ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just test"
@@ -434,6 +469,10 @@ ci-local:
     #!/usr/bin/env bash
     source {{JUST_HELPERS}}
     _time; _header "ci → local pipeline"
+
+    # IDEMPOTENT: Kill any conflicting builds first
+    _kill_conflicting_builds
+
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
       ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just ci-local"
