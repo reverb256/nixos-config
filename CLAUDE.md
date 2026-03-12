@@ -7,6 +7,86 @@ This document contains Claude Code-specific patterns and workflows for this NixO
 
 ---
 
+## 🚨🚨🚨 CRITICAL: BUILD LOCKING RULES 🚨🚨🚨
+
+**READ THIS SECTION BEFORE RUNNING ANY BUILD COMMAND!**
+
+### THE #1 PROBLEM WITH THIS SYSTEM
+
+Multiple concurrent builds cause 30-60 minute hangs. The justfile has idempotent build commands that auto-cleanup, BUT:
+
+1. **NEVER run `colmena` directly** - Use `just switch` or `just deploy`
+2. **NEVER run multiple builds in parallel** - Even on different hosts
+3. **ALWAYS let the idempotent cleanup run** - It kills conflicting processes automatically
+4. **NEVER background build commands** - Run them in foreground to see output
+
+### SAFE BUILD COMMANDS (IDEMPOTENT)
+
+```bash
+# Local switch - CLEANS UP AUTOMATICALLY
+just switch
+
+# Deploy to specific host - CLEANS UP AUTOMATICALLY
+just zephyr
+just nexus
+just forge
+just sentry
+
+# Deploy to all hosts - CLEANS UP AUTOMATICALLY (one at a time)
+just deploy
+
+# Test configuration - CLEANS UP AUTOMATICALLY
+just test
+```
+
+### FORBIDDEN COMMANDS (WILL CAUSE HANGS)
+
+```bash
+# ❌ DON'T DO THIS - No automatic cleanup
+colmena apply --on zephyr
+colmena apply-local --sudo switch
+nix build .#nixosConfigurations.zephyr.config.system.build.toplevel
+
+# ❌ DON'T DO THIS - Parallel builds compete for locks
+just zephyr & just nexus &
+
+# ❌ DON'T DO THIS - Multiple builds on same host
+just switch & just switch &
+```
+
+### IF A BUILD IS STUCK
+
+```bash
+# Kill all builds on all hosts
+pkill -9 -f colmena
+ssh nexus "pkill -9 -f colmena"
+ssh forge "pkill -9 -f colmena"
+ssh sentry "pkill -9 -f colmena"
+
+# Clear locks
+rm -f /tmp/nixos-build.*
+ssh nexus "rm -f /tmp/nixos-build.*"
+ssh forge "rm -f /tmp/nixos-build.*"
+ssh sentry "rm -f /tmp/nixos-build.*"
+
+# Clear temproots
+sudo rm -rf /nix/var/nix/temproots/*
+```
+
+### HOW THE IDEMPOTENT BUILDS WORK
+
+The justfile commands automatically:
+1. Kill any existing `colmena` or `nix-build` processes
+2. Remove stale lock files (`/tmp/nixos-build.*`)
+3. Clear stale temproots (`/nix/var/nix/temproots/*`)
+4. Acquire a new lock file
+5. Run the build
+6. Release the lock on exit
+
+**You do NOT need to manually check for builds before running `just switch` - it does it for you.**
+
+---
+
 ## ⚠️ CRITICAL: Agent Safety Constraints
 
 **READ THIS before making any changes to shared modules or critical infrastructure!**
@@ -114,6 +194,118 @@ Changed to `lib.mkOptionDefault` which provides defaults that can be extended/me
 - Pre-commit hooks to block dangerous patterns
 - Mandatory testing on nodes with custom configs
 - Documentation of safe patterns (this section)
+
+**What Went Wrong (2026-03-12 - Build Chaos):**
+- Multiple concurrent nix build processes started without checking for existing builds
+- Build processes competed for resources and locks, causing 30-60 minute hangs
+- No visibility into build progress or failures
+- 42 stale nix-daemon processes accumulated from SSH connections to remote builders
+- 100+ stale temproots accumulated in `/nix/var/nix/temproots/` from interrupted builds
+- Root cause: Running multiple `colmena apply`, `nix build`, or `just switch` commands simultaneously
+
+**The Fix:**
+- Added `_kill_conflicting_builds()` function in `.just-helpers.sh` to auto-cleanup BEFORE builds
+- Added `_kill_remote_builds()` function to cleanup remote hosts via SSH
+- Updated ALL build commands (`switch`, `deploy`, `test`, etc.) to:
+  1. Auto-kill conflicting colmena/nix-build processes
+  2. Clear stale lock files and temproots
+  3. Acquire lock file
+  4. Release lock on exit
+- **Build commands are now IDEMPOTENT** - can be run any time, they clean up first
+
+**Prevention:**
+- **ALWAYS** use `just switch` or `just deploy` - NEVER use `colmena` directly
+- **NEVER** run multiple builds in parallel (even on different hosts)
+- The justfile automatically handles cleanup - don't manually interfere
+- If a build seems stuck, check: `pgrep -x colmena` and `ls -la /tmp/nixos-build.*`
+
+---
+
+## 🚨 Build Safety Rules (CRITICAL)
+
+### ✅ IDEMPOTENT BUILD COMMANDS
+
+**The justfile commands are IDEMPOTENT - they auto-cleanup before running:**
+
+```bash
+# These commands are SAFE - they kill conflicting processes automatically
+just switch              # Local system switch
+just deploy              # Deploy to all hosts (one at a time)
+just zephyr              # Deploy to zephyr only
+just nexus               # Deploy to nexus only
+just forge               # Deploy to forge only
+just sentry              # Deploy to sentry only
+just test                # Test configuration
+just ci-local            # Run CI pipeline
+```
+
+### ❌ FORBIDDEN COMMANDS
+
+**These commands do NOT auto-cleanup and WILL cause conflicts:**
+
+```bash
+# DO NOT USE colmena directly - no automatic cleanup
+colmena apply --on zephyr
+colmena apply-local --sudo switch
+nix build .#nixosConfigurations.zephyr.config.system.build.toplevel
+
+# DO NOT run builds in parallel - they compete for locks
+just switch & just nexus &
+```
+
+### 📋 What Happens Automatically
+
+When you run `just switch` or `just deploy`:
+
+1. **Kill conflicting processes**: `colmena`, `nix-build` processes are terminated
+2. **Clear lock files**: `/tmp/nixos-build.lock`, `/tmp/nixos-build.pid` removed
+3. **Clear temproots**: `/nix/var/nix/temproots/*` stale directories removed
+4. **Acquire lock**: New lock file created with current PID
+5. **Run build**: Actual build happens
+6. **Release lock**: Lock file removed on exit (even if build fails)
+
+**You do NOT need to manually check for builds - the commands do it for you.**
+
+### ⚠️ Symptoms of Build Problems
+
+- Build takes > 15 minutes for small changes → **Run `just switch` again (it will cleanup)**
+- Commands "complete" but no new generation → **Check `/tmp/nixos-build.log` for errors**
+- "Waiting for lock on /nix/store/..." → **Stale build, run `just switch` again to cleanup**
+- Multiple colmena processes running → **Run `just switch` - it kills them first**
+
+### 🔧 Manual Recovery (ONLY IF IDEMPOTENT COMMANDS FAIL)
+
+```bash
+# Kill all colmena processes on all hosts
+pkill -9 -f colmena
+ssh nexus "pkill -9 -f colmena"
+ssh forge "pkill -9 -f colmena"
+ssh sentry "pkill -9 -f colmena"
+
+# Remove all lock files on all hosts
+rm -f /tmp/nixos-build.*
+ssh nexus "rm -f /tmp/nixos-build.*"
+ssh forge "rm -f /tmp/nixos-build.*"
+ssh sentry "rm -f /tmp/nixos-build.*"
+
+# Clear stale temproots on all hosts
+sudo rm -rf /nix/var/nix/temproots/*
+ssh nexus "sudo rm -rf /nix/var/nix/temproots/*"
+ssh forge "sudo rm -rf /nix/var/nix/temproots/*"
+ssh sentry "sudo rm -rf /nix/var/nix/temproots/*"
+```
+
+### ✅ Normal Workflow
+
+```bash
+# Just run the command - it handles everything
+just switch
+
+# If something goes wrong, run it again - it will cleanup first
+just switch
+
+# The command is idempotent - safe to run multiple times
+```
 
 ---
 
@@ -337,7 +529,7 @@ just scan-image IMAGE # Scan specific image
 
 ---
 
-**Version**: 2.0 | **Updated**: 2026-03-12
-**Changes**: Added critical agent safety constraints and module design patterns
+**Version**: 2.1 | **Updated**: 2026-03-12
+**Changes**: Added IDEMPOTENT build commands with auto-cleanup - no more build locking issues
 **Generated from**: `/etc/nixos/docs/templates/base-template.md.j2`
 
