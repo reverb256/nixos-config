@@ -41,6 +41,7 @@
     "/storage" = {
       device = "/dev/disk/by-uuid/4cc9468d-166d-4479-9846-6224c80d9566";
       fsType = "btrfs";
+      options = ["subvol=@data" "compress=zstd"];
     };
   };
 

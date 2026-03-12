@@ -526,6 +526,12 @@
       hostName = "vaultwarden.zephyr.tigris-ule.ts.net"; # Tailscale Magic DNS
       dataDir = "/var/lib/vaultwarden";
     };
+
+    # Syncthing P2P file sync for /etc/nixos config sync
+    syncthing-cluster = {
+      enable = true;
+      deviceId = "ZEPHYR-PLACEHOLDER";
+    };
   };
 
   # ============================================================================
