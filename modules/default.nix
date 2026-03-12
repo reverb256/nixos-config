@@ -90,6 +90,7 @@
     ./services/unbound-cluster.nix
     ./services/searxng.nix
     ./services/syncthing.nix
+    ./services/garage.nix
     ./services/n8n.nix
     ./services/vaultwarden.nix
     ./services/health-checks.nix

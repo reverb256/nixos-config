@@ -532,6 +532,14 @@
       enable = true;
       deviceId = "ZEPHYR-PLACEHOLDER";
     };
+
+    # Garage S3-compatible object storage (on NFS from nexus)
+    garage-cluster = {
+      enable = true;
+      dataDir = "/data/shared/garage";
+      peers = ["nexus" "sentry"];
+      replicationFactor = 2;
+    };
   };
 
   # ============================================================================
