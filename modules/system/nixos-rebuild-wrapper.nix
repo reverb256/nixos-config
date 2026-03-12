@@ -27,9 +27,11 @@
   ];
 
   # Create /run/nixos-deploy directory for state tracking
-  # Also create explicit symlink to native binary for wrapper bypass scenarios
+  # Create symlink to native binary in writable location for wrapper bypass
+  # Note: Cannot use /run/current-system/sw/bin (read-only nix store)
   systemd.tmpfiles.rules = [
     "d /run/nixos-deploy 0755 root root -"
-    "L+ /run/current-system/sw/bin/.nixos-rebuild-native - - - - ${pkgs.nixos-rebuild-ng}/bin/nixos-rebuild"
+    "d /run/wrappers/bin 0755 root root -"
+    "L+ /run/wrappers/bin/.nixos-rebuild-native - - - - ${pkgs.nixos-rebuild-ng}/bin/nixos-rebuild"
   ];
 }
