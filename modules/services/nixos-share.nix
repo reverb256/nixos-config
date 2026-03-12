@@ -40,6 +40,16 @@ in {
         cfg.server.allowedHosts;
     };
 
+    # Firewall rules to allow NFS traffic from allowed hosts
+    networking.firewall = lib.mkIf cfg.server.enable {
+      allowedTCPPorts = lib.mkOptionDefault [111 2049 20048];
+      extraCommands = lib.concatMapStringsSep "\n" (host: ''
+        iptables -I nixos-fw -p tcp -s ${host} --dport 111 -j ACCEPT
+        iptables -I nixos-fw -p tcp -s ${host} --dport 2049 -j ACCEPT
+        iptables -I nixos-fw -p tcp -s ${host} --dport 20048 -j ACCEPT
+      '') cfg.server.allowedHosts;
+    };
+
     # NFS Client configuration (for remote hosts)
     fileSystems = lib.mkIf cfg.client.enable {
       "/etc/nixos" = {
@@ -47,7 +57,7 @@ in {
         fsType = "nfs";
         # Use nofail to prevent boot hang, bg for background mount
         # x-systemd.mount-timeout=30s gives up quickly if server not ready
-        options = ["ro" "noatime" "soft" "timeo=5" "retrans=2" "_netdev" "nofail" "bg" "x-systemd.mount-timeout=30s"];
+        options = ["ro" "noatime" "hard" "intr" "timeo=600" "retrans=2" "_netdev" "nofail" "bg" "x-systemd.mount-timeout=30s"];
       };
     };
   };
