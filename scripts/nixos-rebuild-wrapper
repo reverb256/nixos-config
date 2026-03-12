@@ -261,11 +261,6 @@ main() {
         resume_mining
     fi
 
-    # Signal GPU scheduler back to idle
-    if is_gpu_node "$HOSTNAME"; then
-        signal_gpu_scheduler "idle"
-    fi
-
     # Handle result
     if [ $exit_code -eq 0 ]; then
         log_success "✓ Deployment completed successfully"
