@@ -35,26 +35,14 @@
   # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
-  networking = {
+  # Centralized cluster networking (search domains, DNS, firewall basics)
+  clusterNetworking = {
+    enable = true;
     hostName = "sentry";
-    networkmanager = {
-      enable = true;
-      ensureProfiles.profiles."Wired connection 1" = {
-        connection = {
-          id = "Wired connection 1";
-          type = "ethernet";
-          interface-name = "enp7s0";  # Native hardware interface name
-          autoconnect = true;
-        };
-        ipv4 = {
-          method = "manual";
-          address1 = "10.1.1.140/24";
-          gateway = "10.1.1.1"; # Default gateway for stratum connectivity
-          dns = "127.0.0.1,::1";
-        };
-        ipv6.method = "auto";
-      };
-    };
+    ipAddress = "10.1.1.140";
+    interfaceName = "enp7s0";  # Native hardware interface name
+    wireless.enable = false;  # Monitoring node - no WiFi needed
+    unbound.listenAddress = "10.1.1.140";  # Listen on node IP for cluster DNS
   };
 
   # ============================================================================
@@ -95,12 +83,6 @@
   # SERVICES CONFIGURATION
   # ============================================================================
   services = {
-    # Local DNS resolver for cluster
-    unbound-cluster = {
-      enable = true;
-      listenAddress = "10.1.1.140"; # Sentry IP
-    };
-
     # Kubernetes worker node
     kubernetes-module = {
       enable = true;
@@ -202,14 +184,14 @@
 
   # Kubernetes worker firewall rules
   networking.firewall = {
-    allowedTCPPorts = [22 10250]; # SSH + Kubelet API
+    allowedTCPPorts = lib.mkOptionDefault [22 10250]; # SSH + Kubelet API (merges with cluster defaults)
     allowedTCPPortRanges = [
       {
         from = 30000;
         to = 32767;
       }
     ];
-    allowedUDPPorts = [8472]; # Flannel VXLAN
+    allowedUDPPorts = lib.mkOptionDefault [8472]; # Flannel VXLAN (merges with cluster defaults)
   };
 
   systemd.services.tailscaled.environment = {

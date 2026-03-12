@@ -46,6 +46,10 @@
     unbound.listenAddress = "10.1.1.130";  # Listen on node IP for cluster DNS
   };
 
+  # Disable DHCP completely (static IP only)
+  networking.dhcpcd.enable = false;
+  networking.useDHCP = false;
+
   # Forge-specific firewall rules (in addition to cluster defaults)
   networking.firewall.allowedTCPPorts = [
     10250  # Kubelet API

@@ -90,7 +90,7 @@ in {
       };
 
       # WiFi configuration (optional)
-      wireless.enable = cfg.wireless.enable;
+      wireless.enable = lib.mkForce cfg.wireless.enable;
     };
 
     # ============================================================================
