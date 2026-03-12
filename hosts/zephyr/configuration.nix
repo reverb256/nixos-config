@@ -202,6 +202,7 @@
           # CPU Mining Pools (RandomX)
           {
             id = "kryptex-rx-primary";
+            algo = "rx/0";
             url = "xtm-rx-us.kryptex.network:8038";
             user = "krxXVNVMM7.cpu-proxy";
             pass = "x";
@@ -211,6 +212,7 @@
           }
           {
             id = "kryptex-rx-eu";
+            algo = "rx/0";
             url = "xtm-rx-eu.kryptex.network:8038";
             user = "krxXVNVMM7.cpu-proxy";
             pass = "x";
@@ -221,6 +223,7 @@
           # GPU Mining Pools (Cuckaroo29/CR29)
           {
             id = "kryptex-cr29-us";
+            algo = "cn/cc29";
             url = "xtm-c29-us.kryptex.network:8040";
             user = "krxXVNVMM7.gpu-proxy";
             pass = "x";
@@ -230,6 +233,7 @@
           }
           {
             id = "kryptex-cr29-eu";
+            algo = "cn/cc29";
             url = "xtm-c29-eu.kryptex.network:8040";
             user = "krxXVNVMM7.gpu-proxy";
             pass = "x";

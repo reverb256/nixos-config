@@ -106,9 +106,10 @@
       apiPort = 4069;
     };
 
-    # Connect to xmrig-proxy on Zephyr (C++ proxy, won't be blocked by Kryptex)
-    mining.lolminer.pool = "stratum+tcp://zephyr:3333";
-    mining.lolminer.wallet = "forge-gpu";
+    # GPU miners connect directly to CR29 pool (proxy doesn't understand CR29 algorithm)
+    # The xmrig-proxy on Zephyr is only for CPU miners (RandomX)
+    mining.lolminer.pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
+    mining.lolminer.wallet = "krxXVNVMM7.forge-gpu";
 
     # GPU Stratum Proxy with Kryptex pool failover
     gpu-proxy = {

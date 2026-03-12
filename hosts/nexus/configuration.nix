@@ -204,9 +204,11 @@
       };
 
       # GPU mining configuration (shared by NVIDIA)
+      # NOTE: GPU miners connect directly to CR29 pool (not via proxy)
+      # The proxy only routes RandomX for CPU miners; CR29 naming mismatch causes routing issues
       lolminer = {
-        pool = "stratum+tcp://zephyr:3333";  # Point to xmrig-proxy
-        wallet = "nexus-gpu";  # Worker ID for proxy
+        pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";  # Direct CR29 pool
+        wallet = "krxXVNVMM7.nexus-gpu";  # Full wallet format for direct pool
       };
 
       # NVIDIA GPU mining (RTX 3060 Ti @ 130W)

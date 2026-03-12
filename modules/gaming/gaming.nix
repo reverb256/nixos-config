@@ -77,13 +77,11 @@ in {
             liberation_ttf
             dejavu_fonts
           ];
-          extraCompatPackages = with pkgs;
-            optionals (inputs != null && inputs ? nixpkgs-xr) [
-              inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
-            ];
-          remotePlay.openFirewall = true;
-          dedicatedServer.openFirewall = true;
-          localNetworkGameTransfers.openFirewall = true;
+          extraCompatPackages = [  # Temporarily disabled nixpkgs-xr packages due to deprecated options
+            # optionals (inputs != null && inputs ? nixpkgs-xr) [
+            #   inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
+            # ];
+          ];
           package = pkgs.steam.override {
             extraLibraries = pkgs:
               with pkgs; [
@@ -457,9 +455,10 @@ in {
             libtiff
             ffmpeg
           ]
-          ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
-            inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
-          ]
+          # Temporarily disabled nixpkgs-xr packages due to deprecated options
+          # ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
+          #   inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
+          # ]
           ++ [
             # GPU profile command (merged here to avoid duplicate assignment)
             (pkgs.writeShellScriptBin "gpu-profile" ''
