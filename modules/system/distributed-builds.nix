@@ -37,59 +37,59 @@ in {
     # IMPORTANT: Filter out current host to avoid SSH-to-self loopback causing daemon locks
     # TEMPORARILY DISABLED: Fixing deployment issue - will re-enable after deployment
     # buildMachines = lib.filter (m: m.hostName != currentHost) [
-      {
-        # Zephyr: 32 cores, Ryzen 9 5950X (znver3)
-        # Role: K8s control plane + build coordinator + worker
-        # K8s-AWARE: Conservative maxJobs (apiserver/etcd need CPU)
-        hostName = "zephyr";
-        system = "x86_64-linux";
-        sshUser = "j_kro";
-        protocol = "ssh-ng";
-        maxJobs = 8; # CONSERVATIVE - apiserver/etcd need CPU headroom
-        speedFactor = 8; # Fast (Zen 3), but not prioritized over K8s stability
-        supportedFeatures = ["kvm" "big-parallel"];
-        mandatoryFeatures = [];
-      }
-      {
-        # Nexus: 24 cores, Ryzen 9 3900X (znver2)
-        # Role: K8s storage worker + NFS server
-        # K8s-AWARE: Moderate maxJobs for NFS/PVC I/O headroom
-        hostName = "nexus";
-        system = "x86_64-linux";
-        sshUser = "j_kro";
-        protocol = "ssh-ng";
-        maxJobs = 6; # MODERATE - leave cores for NFS/PVC operations
-        speedFactor = 5;
-        supportedFeatures = ["big-parallel"];
-        mandatoryFeatures = [];
-      }
-      {
-        # Forge: 6 cores, i5-9500 (skylake, Coffee Lake)
-        # Role: K8s multi-GPU worker (MIXED NVIDIA/AMD)
-        # K8s-AWARE: Minimal maxJobs - GPU pods need CPU, mixed vendor = chaos
-        hostName = "forge";
-        system = "x86_64-linux";
-        sshUser = "j_kro";
-        protocol = "ssh-ng";
-        maxJobs = 2; # MINIMAL - GPU pods need CPU more than builds
-        speedFactor = 2; # Deprioritized - GPUs matter more than builds
-        supportedFeatures = ["kvm"]; # No big-parallel - keep resources for GPU
-        mandatoryFeatures = [];
-      }
-      {
-        # Sentry: 16 cores, Ryzen 7 1700 (znver1)
-        # Role: K8s monitoring worker + AMD GPU
-        # K8s-AWARE: Light maxJobs - Prometheus/Grafana/Loki need CPU
-        hostName = "sentry";
-        system = "x86_64-linux";
-        sshUser = "j_kro";
-        protocol = "ssh-ng";
-        maxJobs = 4; # LIGHT - monitoring stack needs CPU headroom
-        speedFactor = 4;
-        supportedFeatures = ["big-parallel"];
-        mandatoryFeatures = [];
-      }
-    ];
+    #   {
+    #     # Zephyr: 32 cores, Ryzen 9 5950X (znver3)
+    #     # Role: K8s control plane + build coordinator + worker
+    #     # K8s-AWARE: Conservative maxJobs (apiserver/etcd need CPU)
+    #     hostName = "zephyr";
+    #     system = "x86_64-linux";
+    #     sshUser = "j_kro";
+    #     protocol = "ssh-ng";
+    #     maxJobs = 8; # CONSERVATIVE - apiserver/etcd need CPU headroom
+    #     speedFactor = 8; # Fast (Zen 3), but not prioritized over K8s stability
+    #     supportedFeatures = ["kvm" "big-parallel"];
+    #     mandatoryFeatures = [];
+    #   }
+    #   {
+    #     # Nexus: 24 cores, Ryzen 9 3900X (znver2)
+    #     # Role: K8s storage worker + NFS server
+    #     # K8s-AWARE: Moderate maxJobs for NFS/PVC I/O headroom
+    #     hostName = "nexus";
+    #     system = "x86_64-linux";
+    #     sshUser = "j_kro";
+    #     protocol = "ssh-ng";
+    #     maxJobs = 6; # MODERATE - leave cores for NFS/PVC operations
+    #     speedFactor = 5;
+    #     supportedFeatures = ["big-parallel"];
+    #     mandatoryFeatures = [];
+    #   }
+    #   {
+    #     # Forge: 6 cores, i5-9500 (skylake, Coffee Lake)
+    #     # Role: K8s multi-GPU worker (MIXED NVIDIA/AMD)
+    #     # K8s-AWARE: Minimal maxJobs - GPU pods need CPU, mixed vendor = chaos
+    #     hostName = "forge";
+    #     system = "x86_64-linux";
+    #     sshUser = "j_kro";
+    #     protocol = "ssh-ng";
+    #     maxJobs = 2; # MINIMAL - GPU pods need CPU more than builds
+    #     speedFactor = 2; # Deprioritized - GPUs matter more than builds
+    #     supportedFeatures = ["kvm"]; # No big-parallel - keep resources for GPU
+    #     mandatoryFeatures = [];
+    #   }
+    #   {
+    #     # Sentry: 16 cores, Ryzen 7 1700 (znver1)
+    #     # Role: K8s monitoring worker + AMD GPU
+    #     # K8s-AWARE: Light maxJobs - Prometheus/Grafana/Loki need CPU
+    #     hostName = "sentry";
+    #     system = "x86_64-linux";
+    #     sshUser = "j_kro";
+    #     protocol = "ssh-ng";
+    #     maxJobs = 4; # LIGHT - monitoring stack needs CPU headroom
+    #     speedFactor = 4;
+    #     supportedFeatures = ["big-parallel"];
+    #     mandatoryFeatures = [];
+    #   }
+    # ];
 
     # Settings for distributed builds
     settings = {
