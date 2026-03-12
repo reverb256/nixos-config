@@ -214,18 +214,18 @@ main() {
     # Check for native bypass
     if [ "${NIXOS_REBUILD_NATIVE:-}" = "1" ]; then
         log_info "NIXOS_REBUILD_NATIVE=1, using native nixos-rebuild"
-        exec nixos-rebuild "$cmd" "$@"
+        exec /run/current-system/sw/bin/.nixos-rebuild-native "$cmd" "$@"
     fi
 
     # Handle --help and empty commands (pass through to native)
     if [ -z "$cmd" ] || [ "$cmd" = "--help" ] || [ "$cmd" = "-h" ]; then
-        exec nixos-rebuild "$cmd" "$@"
+        exec /run/current-system/sw/bin/.nixos-rebuild-native "$cmd" "$@"
     fi
 
     # Handle rollback (bypass wrapper)
     if [ "$cmd" = "rollback" ]; then
         log_info "Rollback bypasses wrapper, using native nixos-rebuild"
-        exec nixos-rebuild "$cmd" "$@"
+        exec /run/current-system/sw/bin/.nixos-rebuild-native "$cmd" "$@"
     fi
 
     # ============================================================================
