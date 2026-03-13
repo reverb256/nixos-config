@@ -58,6 +58,12 @@ in {
       default = 8081;
       description = "API port for monitoring";
     };
+
+    tokenFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to file containing API token (overrides 'token' option)";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -75,8 +81,11 @@ in {
       "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
     ];
 
-    # Write config file
-    environment.etc."xmrig-proxy/config.json".text = cfg.config;
+    # Write config file (with token placeholder if using tokenFile)
+    environment.etc."xmrig-proxy/config.json".text =
+      if cfg.tokenFile == null
+      then cfg.config
+      else builtins.replaceStrings ["\"token\""] ["TOKEN_FROM_FILE"] cfg.config;
 
     # Firewall - open stratum port (listenPort) and API port for Prometheus scraping
     networking.firewall = lib.mkIf cfg.openFirewall {
@@ -93,7 +102,7 @@ in {
     systemd.services.xmrig-proxy = {
       description = "XMRig Stratum Proxy for CPU Mining";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      after = [ "network.target" "agenix-rekey.service" ];
 
       serviceConfig = {
         Type = "simple";
@@ -111,7 +120,7 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ cfg.dataDir ];
+        ReadWritePaths = [ cfg.dataDir "/run/xmrig-proxy" ];
 
         # Resource limits
         MemoryLimit = "512M";
@@ -120,6 +129,51 @@ in {
 
       # Graceful shutdown
       serviceConfig.ExecStop = "${pkgs.coreutils}/bin/kill -SIGTERM $MAINPID";
+    };
+
+    # Runtime token replacement (if using tokenFile)
+    systemd.services.xmrig-proxy-preStart = lib.mkIf (cfg.tokenFile != null) {
+      description = "Inject API token into xmrig-proxy config";
+      wantedBy = [ "xmrig-proxy.service" ];
+      before = [ "xmrig-proxy.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = pkgs.writeShellScript "xmrig-proxy-inject-token" ''
+          #!${pkgs.bash}/bin/bash
+          set -euo pipefail
+
+          TOKEN_FILE="${cfg.tokenFile}"
+          CONFIG_FILE="/etc/xmrig-proxy/config.json"
+          RUNTIME_CONFIG="/run/xmrig-proxy/config.json"
+
+          # Wait for token file to exist
+          if [ ! -f "$TOKEN_FILE" ]; then
+            echo "[xmrig-proxy] Waiting for token file: $TOKEN_FILE"
+            for i in {1..30}; do
+              if [ -f "$TOKEN_FILE" ]; then
+                break
+              fi
+              sleep 1
+            done
+            if [ ! -f "$TOKEN_FILE" ]; then
+              echo "[xmrig-proxy] ERROR: Token file not found after 30 seconds"
+              exit 1
+            fi
+          fi
+
+          # Read token and inject into config
+          TOKEN=$(${pkgs.coreutils}/bin/cat "$TOKEN_FILE")
+          mkdir -p /run/xmrig-proxy
+          ${pkgs.jq}/bin/jq --arg token "$TOKEN" '.api.token = $token' "$CONFIG_FILE" > "$RUNTIME_CONFIG"
+          chmod 640 "$RUNTIME_CONFIG"
+          chown ${cfg.user}:${cfg.group} "$RUNTIME_CONFIG"
+
+          echo "[xmrig-proxy] Token injected successfully"
+        '';
+      };
+    } // lib.optionalAttrs (cfg.tokenFile != null) {
+      serviceConfig.ExecStart = lib.mkForce "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/xmrig-proxy --config /run/xmrig-proxy/config.json --no-color'";
     };
   };
 }

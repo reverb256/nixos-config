@@ -138,8 +138,14 @@ in {
       deviceId = "SENTRY-PLACEHOLDER";
     };
 
-    # NOTE: Garage S3 storage removed - NFS provides shared storage
-    # Module commented out in modules/default.nix
+    # Garage S3-compatible distributed object storage (3-node cluster)
+    # Sentry hosts storage on local disk
+    garage-cluster = {
+      enable = true;
+      dataDir = "/storage/garage";  # Local on sentry
+      rpcSecretFile = "/run/agenix/garage-rpc-secret";
+      replicationFactor = 2;
+    };
   };
 
   # ============================================================================

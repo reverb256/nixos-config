@@ -2,6 +2,7 @@
 # Distributed object storage for cluster
 {config, lib, pkgs, ...}: let
   cfg = config.services.garage-cluster;
+  hostIp = config.networking.cluster.hosts.${config.networking.hostName}.ip or "127.0.0.1";
 in {
   options.services.garage-cluster = {
     enable = lib.mkEnableOption "Garage S3-compatible object storage";
@@ -30,10 +31,16 @@ in {
       description = "Web interface port";
     };
 
-    peers = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [];
-      description = "List of peer nodes for clustering";
+    rpcSecret = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = "Shared RPC secret for cluster authentication (deprecated: use rpcSecretFile)";
+    };
+
+    rpcSecretFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to file containing RPC secret";
     };
 
     replicationFactor = lib.mkOption {
@@ -47,6 +54,14 @@ in {
     # Garage package and service
     environment.systemPackages = [pkgs.garage];
 
+    users.users.garage = {
+      group = "garage";
+      description = "Garage S3 storage service";
+      isSystemUser = true;
+    };
+
+    users.groups.garage = {};
+
     systemd.services.garage = {
       description = "Garage S3-compatible object storage";
       after = ["network-online.target"];
@@ -57,16 +72,15 @@ in {
         Type = "simple";
         User = "garage";
         Group = "garage";
-        DynamicUser = true;
 
         # Security hardening
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-       ReadWritePaths = "${cfg.dataDir}";
+        ReadWritePaths = "${cfg.dataDir}";
 
-        # Create data directory structure
+        # Create data directory and config
         ExecStartPre = pkgs.writeShellScript "garage-init" ''
           #!${pkgs.bash}/bin/bash
           set -euo pipefail
@@ -74,46 +88,49 @@ in {
           # Create data directory and subdirectories
           mkdir -p "${cfg.dataDir}/meta"
           mkdir -p "${cfg.dataDir}/data"
+          chown -R garage:garage "${cfg.dataDir}"
 
-          # Generate config if not exists
-          if [[ ! -f "${cfg.dataDir}/garage.toml" ]]; then
-            cat > "${cfg.dataDir}/garage.toml" <<'EOF'
-metadata_dir = "${cfg.dataDir}/meta"
-data_dir = "${cfg.dataDir}/data"
+          # Generate config file
+          cat > "${cfg.dataDir}/garage.toml" <<'EOF'
+        metadata_dir = "${cfg.dataDir}/meta"
+        data_dir = "${cfg.dataDir}/data"
 
-db_engine = "lmdb"
+        db_engine = "lmdb"
 
-# RPC configuration
-block_resync_tries = 10
-block_resync_interval = "1h"
+        # RPC configuration
+        rpc_bind_addr = "[::]:${toString cfg.rpcPort}"
+        rpc_public_addr = "${hostIp}:${toString cfg.rpcPort}"
+        EOF
 
-# S3 API
-s3_api.api_bind_addr = "127.0.0.1:${toString cfg.s3ApiPort}"
-s3_api.s3_region = "garage"
-s3_api.root_domain = ".s3.garage.cluster"
+          # Add RPC secret from file or use direct value (deprecated)
+          ${lib.optionalString (cfg.rpcSecretFile != null) ''
+            if [ -f "${cfg.rpcSecretFile}" ]; then
+              RPC_SECRET=$(${pkgs.coreutils}/bin/cat "${cfg.rpcSecretFile}")
+              echo "rpc_secret = \"''${RPC_SECRET}\"" >> "${cfg.dataDir}/garage.toml"
+            else
+              echo "ERROR: RPC secret file not found: ${cfg.rpcSecretFile}"
+              exit 1
+            fi
+          ''} ${lib.optionalString (cfg.rpcSecretFile == null && cfg.rpcSecret != "") ''
+            echo "rpc_secret = \"${cfg.rpcSecret}\"" >> "${cfg.dataDir}/garage.toml"
+          ''}
 
-# RPC
-rpc_bind_addr = "0.0.0.0:${toString cfg.rpcPort}"
-rpc_public_addr = "$(hostname -i | head -1):${toString cfg.rpcPort}"
-rpc_secret = "$(openssl rand -hex 32)"
+          # Add remaining config
+          cat >> "${cfg.dataDir}/garage.toml" <<'EOF'
 
-# Web interface
-admin.api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
-admin.metrics_token = "$(openssl rand -hex 32)"
+        # S3 API
+        [s3_api]
+        s3_region = "garage"
+        api_bind_addr = "[::]:${toString cfg.s3ApiPort}"
+        s3_root_domain = ".s3.garage.cluster"
 
-# Replication
-replication_factor = ${toString cfg.replicationFactor}
+        # Web interface
+        [admin]
+        api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
 
-# Consul discovery (disabled for static config)
-# consul_discovery.consul_http_addr = "http://127.0.0.1:8500"
-# consul_discovery.consul_service_name = "garage"
-
-# Kubernetes discovery (disabled)
-# kubernetes_discovery.kubernetes_namespace = "default"
-# kubernetes_discovery.service_name = "garage"
-# kubernetes_discovery.skip_crd = false
-EOF
-          fi
+        # Replication
+        replication_factor = ${toString cfg.replicationFactor}
+        EOF
         '';
 
         ExecStart = "${pkgs.garage}/bin/garage -c ${cfg.dataDir}/garage.toml server";
@@ -125,6 +142,9 @@ EOF
         RestrictRealtime = true;
         SystemCallFilter = ["@system-service" "~@privileged"];
         MemoryDenyWriteExecute = true;
+
+        Restart = "always";
+        RestartSec = "5s";
       };
     };
 

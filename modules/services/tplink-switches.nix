@@ -180,7 +180,7 @@ in {
         HEADLESS = ${lib.boolToString cfg.automation.headless}
 
         # Read credentials from agenix-decrypted secret
-        SECRET_PATH = "/run/agenix.d/1/switch-admin"
+        SECRET_PATH = "/run/agenix/switch-admin"
         try:
             with open(SECRET_PATH, "r") as f:
                 DEFAULT_PASSWORD = f.read().strip()

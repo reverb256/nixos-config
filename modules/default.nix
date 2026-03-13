@@ -88,7 +88,7 @@
     ./services/unbound-cluster.nix
     ./services/searxng.nix
     ./services/syncthing.nix
-    # ./services/garage.nix  # Not currently used - NFS handles shared storage
+    ./services/garage.nix  # S3-compatible distributed object storage
     ./services/n8n.nix
     ./services/vaultwarden.nix
     ./services/health-checks.nix
