@@ -78,14 +78,16 @@ in {
     # Write config file
     environment.etc."xmrig-proxy/config.json".text = cfg.config;
 
-    # Firewall
+    # Firewall - open stratum port (listenPort) and API port for Prometheus scraping
     networking.firewall = lib.mkIf cfg.openFirewall {
-      allowedTCPPorts = [ cfg.listenPort ];
+      allowedTCPPorts = lib.mkOptionDefault [ cfg.apiPort ];
       allowedUDPPorts = [ cfg.listenPort ];
+      # Also allow API access via Tailscale for Prometheus scraping from sentry
+      interfaces."tailscale0".allowedTCPPorts = [ cfg.apiPort ];
     };
 
-    # Note: Add Prometheus scraping in monitoring setup
-    # The proxy provides API at http://localhost:${toString cfg.apiPort}/1/summary
+    # Note: API port (cfg.apiPort, default 8081) is opened for Prometheus scraping
+    # The proxy provides metrics at http://localhost:${toString cfg.apiPort}/1/summary
 
     # Systemd service
     systemd.services.xmrig-proxy = {

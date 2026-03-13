@@ -31,7 +31,7 @@
         enable = true;
         ipAddress = networkingCfg.ipAddress;
         interfaceName = networkingCfg.interfaceName;
-        wireless = networkingCfg.wireless;
+        wireless = lib.mkDefault networkingCfg.wireless;
         unbound = {
           enable = true;
           listenAddress = networkingCfg.unboundListenAddress;
@@ -281,38 +281,58 @@ in {
     sentry-monitoring = {
       enable = mkEnableOption "Sentry monitoring profile (CPU mining + AI inference)";
 
-      kubernetes = {
-        enable = true;
-        roles = ["node"];
-        masterAddress = "10.1.1.110";
+      kubernetes = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          roles = ["node"];
+          masterAddress = "10.1.1.110";
+        };
+        description = "Kubernetes configuration";
       };
 
-      amdgpu = {
-        enable = true;
-        wayland = true;
+      amdgpu = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          wayland = true;
+        };
+        description = "AMD GPU configuration";
       };
 
-      networking = {
-        ipAddress = "10.1.1.140";
-        interfaceName = "enp7s0";
-        unboundListenAddress = "10.1.1.140";
-        wireless.enable = false;
+      networking = mkOption {
+        type = types.attrs;
+        default = {
+          ipAddress = "10.1.1.140";
+          interfaceName = "enp7s0";
+          unboundListenAddress = "10.1.1.140";
+          wireless.enable = false;
+        };
+        description = "Networking configuration";
       };
 
-      firewallExtraTCPPorts = [
-        10250  # Kubelet API
-      ];
-      firewallExtraTCPPortRanges = [
-        { from = 30000; to = 32767; }  # NodePort range
-      ];
-      firewallExtraUDPPorts = [
-        8472  # Flannel VXLAN
-      ];
+      firewallExtraTCPPorts = mkOption {
+        type = types.listOf types.port;
+        default = [10250];
+        description = "Extra TCP ports";
+      };
 
-      extraImports = [
-        ../../modules/hardware/amdgpu-wayland.nix
-        ../../modules/services/podman-support.nix
-      ];
+      firewallExtraTCPPortRanges = mkOption {
+        type = types.listOf (types.submod {
+          options = {
+            from = mkOption { type = types.port; };
+            to = mkOption { type = types.port; };
+          };
+        });
+        default = [{ from = 30000; to = 32767; }];
+        description = "Extra TCP port ranges";
+      };
+
+      firewallExtraUDPPorts = mkOption {
+        type = types.listOf types.port;
+        default = [8472];
+        description = "Extra UDP ports";
+      };
     };
 
     # ============================================================================
@@ -322,20 +342,19 @@ in {
     kubernetes-control-plane = {
       enable = mkEnableOption "Kubernetes control plane node";
 
-      kubernetes = {
-        enable = true;
-        roles = ["master" "node"];  # NixOS services.kubernetes uses "master", not "control-plane"
-        masterAddress = mkOption {
-          type = types.str;
-          default = "10.1.1.110";
-          description = "API server address";
+      kubernetes = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          roles = ["master" "node"];
+          masterAddress = "10.1.1.110";
         };
+        description = "Kubernetes configuration";
       };
 
-      # DNS should point to self
       unboundListenAddress = mkOption {
         type = types.str;
-        example = "10.1.1.110";
+        default = "10.1.1.110";
         description = "IP address for Unbound to listen on";
       };
     };
@@ -343,31 +362,44 @@ in {
     kubernetes-worker = {
       enable = mkEnableOption "Kubernetes worker node";
 
-      kubernetes = {
-        enable = true;
-        roles = ["node"];
-        masterAddress = mkOption {
-          type = types.str;
-          default = "10.1.1.110";
-          description = "API server address";
+      kubernetes = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          roles = ["node"];
+          masterAddress = "10.1.1.110";
         };
+        description = "Kubernetes configuration";
       };
 
       unboundListenAddress = mkOption {
         type = types.str;
-        example = "10.1.1.120";
+        default = "10.1.1.120";
         description = "IP address for Unbound to listen on";
       };
 
-      firewallExtraTCPPorts = [
-        10250  # Kubelet API
-      ];
-      firewallExtraTCPPortRanges = [
-        { from = 30000; to = 32767; }  # NodePort range
-      ];
-      firewallExtraUDPPorts = [
-        8472  # Flannel VXLAN
-      ];
+      firewallExtraTCPPorts = mkOption {
+        type = types.listOf types.port;
+        default = [10250];
+        description = "Extra TCP ports";
+      };
+
+      firewallExtraTCPPortRanges = mkOption {
+        type = types.listOf (types.submod {
+          options = {
+            from = mkOption { type = types.port; };
+            to = mkOption { type = types.port; };
+          };
+        });
+        default = [{ from = 30000; to = 32767; }];
+        description = "Extra TCP port ranges";
+      };
+
+      firewallExtraUDPPorts = mkOption {
+        type = types.listOf types.port;
+        default = [8472];
+        description = "Extra UDP ports";
+      };
     };
   };
 

@@ -1,5 +1,7 @@
-# NVIDIA Device Plugin DaemonSet (Legacy - v0.14.x)
+# NVIDIA Device Plugin DaemonSet (v0.14.x)
 # Uses simple NVML device discovery without CDI requirements
+# Fixed: mount /nix/store in container to match LD_LIBRARY_PATH
+# Use hostPID for access to /proc/driver/nvidia
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -17,6 +19,7 @@ spec:
       labels:
         name: nvidia-device-plugin-ds
     spec:
+      hostPID: true
       containers:
       - name: nvidia-device-plugin-ctr
         image: nvcr.io/nvidia/k8s-device-plugin:v0.14.4
@@ -53,13 +56,13 @@ spec:
         - mountPath: /run/opengl-driver/lib
           name: driver-lib
           readOnly: true
-        - mountPath: /nix/store/nvidia-driver
+        - mountPath: /nix/store
           name: nix-store
           readOnly: true
         - mountPath: /dev
           name: dev
-        - mountPath: /sys
-          name: sys
+        - mountPath: /sys/module
+          name: sys-module
       dnsPolicy: ClusterFirst
       nodeSelector:
         accelerator: nvidia-gpu
@@ -90,9 +93,9 @@ spec:
           type: ""
         name: dev
       - hostPath:
-          path: /sys
+          path: /sys/module
           type: ""
-        name: sys
+        name: sys-module
   updateStrategy:
     rollingUpdate:
       maxSurge: 0
