@@ -5,8 +5,9 @@
   lib,
   inputs,
   ...
-}:
-{
+}: let
+  inherit (lib) mkForce;
+in {
   imports = [
     # ========================================================================
     # BASE MODULES
@@ -42,6 +43,13 @@
     enable = true;
     populateLocal = true;
   };
+
+  # ============================================================================
+  # NODE PROFILE - Platform-level defaults
+  # ============================================================================
+  # This profile bundles role profiles, Kubernetes config, hardware profiles,
+  # and networking configuration. Eliminates ~100 lines of duplication.
+  profiles.node.zephyr-workstation.enable = true;
 
   # Zephyr-specific firewall rules (in addition to cluster defaults)
   networking.firewall.allowedTCPPorts = [
@@ -96,13 +104,13 @@
   # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
+  # Base profiles provided by node-profiles.zephyr-workstation:
+  # - amd.zen, nvidia.enable, nvidia.multiGpu, monitoring.enable
+  #
+  # Zephyr-specific hardware overrides/additions:
   hardware = {
     profiles = {
-      amd.zen = true; # Zen CPU optimizations (kernel params)
-      nvidia.enable = true; # NVIDIA GPU support
-      nvidia.multiGpu = true; # Multi-GPU (RTX 3090 + 3060 Ti)
-      corsair.enable = true; # Corsair AIO + RGB
-      monitoring.enable = true; # Hardware monitoring
+      corsair.enable = true; # Corsair AIO + RGB (not in node profile)
     };
 
     # BTRFS compression and deduplication
@@ -132,16 +140,14 @@
   # Locale (timezone inherits cluster default: UTC)
   i18n.defaultLocale = "en_CA.UTF-8";
 
-  # Bootloader
+  # ============================================================================
+  # BOOT CONFIGURATION
+  # ============================================================================
+  # Base bootloader settings provided by common-host-defaults.nix:
+  # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
+  #
+  # Zephyr-specific additions:
   boot = {
-    loader = {
-      systemd-boot.enable = true;
-      efi.canTouchEfiVariables = true;
-    };
-
-    # Use latest kernel
-    kernelPackages = pkgs.linuxPackages_zen;
-
     # Multi-GPU kernel modules for RTX 3090 + 3060 Ti
     # (Note: hardware.profiles.nvidia.enable adds nvidia modules automatically)
     kernelModules = [
@@ -160,13 +166,11 @@
   # ============================================================================
   # ROLE PROFILES
   # ============================================================================
-  profiles.role = {
-    workstation = true; # Desktop + development
-    gaming = true; # Steam, Lutris, etc.
-    vr = true; # WiVRn for Quest Pro
-    mining = true; # GPU/CPU mining
-    aiInference = true; # AI inference gateway + MCP + RAG
-  };
+  # Base role profiles provided by node-profiles.zephyr-workstation:
+  # - workstation, gaming, vr, mining, aiInference
+  # Kubernetes and networking also handled by node profile
+  #
+  # No additional role profiles needed - all handled by node profile
 
   # Note: profiles.role.gaming enables services.gaming automatically
   # NOTE: Distributed builds configured in modules/system/distributed-builds.nix
@@ -175,16 +179,11 @@
   # ============================================================================
   # SERVICES - Consolidated service configuration
   # ============================================================================
+  # Base Kubernetes configuration provided by node-profiles.zephyr-workstation
+  # (master + node roles, masterAddress, etc.)
+  #
+  # Zephyr-specific service additions:
   services = {
-    # Kubernetes control plane + worker role on Zephyr
-    kubernetes-module = {
-      enable = true;
-      masterAddress = "10.1.1.110"; # Zephyr's IP
-      roles = [
-        "master"
-        "node"
-      ];
-    };
 
     # Gaming HDR for 4K HDR TV
     gaming.hdr.enable = true;
@@ -544,14 +543,8 @@
       deviceId = "ZEPHYR-PLACEHOLDER";
     };
 
-    # Garage S3-compatible object storage (on NFS from nexus)
-    # TEMPORARILY DISABLED - permission issues with /data/shared/garage
-    garage-cluster = {
-      enable = false;
-      dataDir = "/data/shared/garage";
-      peers = ["nexus" "sentry"];
-      replicationFactor = 2;
-    };
+    # NOTE: Garage S3 storage removed - NFS provides shared storage
+    # Module commented out in modules/default.nix
   };
 
   # ============================================================================
@@ -747,7 +740,8 @@
   # ============================================================================
   # NETWORK PROFILES
   # ============================================================================
-  profiles.network.tailscale.enable = true;
+  # Base Tailscale configuration provided by node-profiles.zephyr-workstation
+  # No additional network profile configuration needed
 
   # ============================================================================
   # ADDITIONAL PACKAGES

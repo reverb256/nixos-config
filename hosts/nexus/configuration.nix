@@ -4,7 +4,9 @@
 #
 # Module imports: Gaming, mining, monitoring, opencode are already imported
 # via commonModules in flake.nix (./modules/default.nix)
-{pkgs, lib, ...}: {
+{pkgs, lib, ...}: let
+  inherit (lib) mkForce;
+in {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -46,6 +48,13 @@
     unbound.listenAddress = "10.1.1.120";  # Listen on node IP for cluster DNS
   };
 
+  # ============================================================================
+  # NODE PROFILE - Platform-level defaults
+  # ============================================================================
+  # This profile bundles role profiles, Kubernetes config, hardware profiles,
+  # and networking configuration. Eliminates ~100 lines of duplication.
+  # profiles.node.nexus-gaming.enable = true;
+
   # Nexus-specific firewall rules (in addition to cluster defaults)
   networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
     10250  # Kubelet API
@@ -63,14 +72,11 @@
   # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
+  # Base profiles provided by node-profiles.nexus-gaming:
+  # - amd.zen, nvidia.enable (single GPU), monitoring.enable
+  #
+  # Nexus-specific hardware additions:
   hardware = {
-    profiles = {
-      amd.zen = true; # Zen CPU optimizations
-      nvidia.enable = true; # NVIDIA GPU support
-      nvidia.multiGpu = false; # Single RTX 3060 Ti
-      monitoring.enable = true; # Hardware monitoring
-    };
-
     # BTRFS compression and deduplication
     btrfs-compression.enable = true;
 
@@ -131,40 +137,37 @@
   };
 
   # ============================================================================
-  # BOOTLOADER
+  # BOOT CONFIGURATION
   # ============================================================================
-  boot = {
-    loader = {
-      systemd-boot.enable = true;
-      efi.canTouchEfiVariables = true;
-    };
-
-    # ============================================================================
-    # KERNEL - Zen for better desktop responsiveness
-    # ============================================================================
-    kernelPackages = pkgs.linuxPackages_zen;
-  };
+  # Base bootloader settings provided by common-host-defaults.nix:
+  # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
+  #
+  # No Nexus-specific boot configuration needed
 
   # ============================================================================
   # ROLE PROFILES
   # ============================================================================
-  profiles.role = {
-    gaming = true; # Steam, Lutris, etc.
-    vr = true; # WiVRn, SteamVR, OpenXR
-    mining = true; # GPU/CPU mining
-    aiInference = true; # AI inference gateway + MCP + RAG
-  };
+  # Base role profiles provided by node-profiles.nexus-gaming:
+  # - gaming, vr, mining, aiInference
+  # Kubernetes and networking also handled by node profile
+  #
+  # No additional role profiles needed - all handled by node profile
 
   # Note: profiles.role.gaming enables services.gaming automatically
 
   # ============================================================================
   # NETWORK PROFILES
   # ============================================================================
-  profiles.network.tailscale.enable = true;
+  # Base Tailscale configuration provided by node-profiles.nexus-gaming
+  # No additional network profile configuration needed
 
   # ============================================================================
   # SERVICES CONFIGURATION
   # ============================================================================
+  # Base Kubernetes configuration provided by node-profiles.nexus-gaming:
+  # - worker role, masterAddress to zephyr
+  #
+  # Nexus-specific service additions:
 
   # Enable Steam Gamescope session alongside Plasma
   # Both sessions will be available in SDDM for selection
@@ -181,12 +184,8 @@
     # The VRAM pressure detection incorrectly stops miners due to their own VRAM allocation
     compute-workload-monitor.enable = lib.mkForce false;
 
-    # Kubernetes worker node
-    kubernetes-module = {
-      enable = true;
-      masterAddress = "10.1.1.110"; # Zephyr control plane
-      roles = ["node"]; # Worker node only
-    };
+    # Kubernetes worker configuration provided by node-profiles.nexus-gaming
+    # No need to duplicate here
 
     garnix.enable = false;
     nixos-auto-update.enable = true;
@@ -276,19 +275,15 @@
       deviceId = "NEXUS-PLACEHOLDER";
     };
 
-    # Garage S3-compatible object storage (local storage)
-    # TEMPORARILY DISABLED - permission issues with /data/shared/garage
-    garage-cluster = {
-      enable = false;
-      dataDir = "/data/shared/garage";
-      peers = ["zephyr" "sentry"];
-      replicationFactor = 2;
-    };
+    # NOTE: Garage S3 storage removed - NFS provides shared storage
+    # Module commented out in modules/default.nix
   };
 
   # ============================================================================
   # TAILSCALE (No route advertising - zephyr handles that)
   # ============================================================================
+  # Host-specific override: Nexus does not advertise routes (zephyr handles that)
+  # This overrides the base Tailscale configuration from node profile
   systemd.services.tailscaled.environment = {
     TS_ADVERTISE_ROUTES = "";
     TS_ROUTES = "";
