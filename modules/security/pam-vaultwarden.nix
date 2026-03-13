@@ -7,7 +7,7 @@
   ...
 }: let
   cfg = config.security.pamVaultwarden;
-  inherit (lib) mkEnableOption mkOption types mkIf mkBefore;
+  inherit (lib) mkEnableOption mkOption types mkIf;
 in {
   options.security.pamVaultwarden = {
     enable = mkEnableOption "Vaultwarden PAM authentication";

@@ -13,10 +13,10 @@
   lib,
   ...
 }: let
-  inherit (lib) mkEnableOption mkOption types mkIf mkMerge mapAttrsToList;
+  inherit (lib) mkEnableOption mkOption types mkIf mkMerge;
 
   # Helper function to create profile config
-  mkProfileConfig = profileName: profileCfg:
+  mkProfileConfig = _profileName: profileCfg:
     mkIf profileCfg.enable (
       let
         # Extract networking config - handle both nested and direct formats

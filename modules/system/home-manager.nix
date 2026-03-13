@@ -15,11 +15,7 @@
     # Pass inputs to user configs so flake inputs are accessible
     extraSpecialArgs = {inherit inputs;};
 
-    users.j_kro = {
-      pkgs,
-      inputs,
-      ...
-    }: {
+    users.j_kro = {inputs, ...}: {
       imports = [
         inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord

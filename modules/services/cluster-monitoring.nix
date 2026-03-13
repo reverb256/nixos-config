@@ -5,7 +5,7 @@
   lib,
   ...
 }: let
-  inherit (lib) mkEnableOption mkOption types mkIf mkMerge;
+  inherit (lib) mkEnableOption mkOption types mkIf;
 in {
   options.services.clusterMonitoring = {
     enable = mkEnableOption "Cluster monitoring configuration";

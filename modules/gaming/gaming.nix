@@ -4,7 +4,6 @@
   config,
   lib,
   pkgs,
-  inputs ? null,
   ...
 }:
 with lib; let

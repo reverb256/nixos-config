@@ -5,9 +5,7 @@
   lib,
   inputs,
   ...
-}: let
-  inherit (lib) mkForce;
-in {
+}: {
   imports = [
     # ========================================================================
     # BASE MODULES
@@ -39,9 +37,49 @@ in {
     unbound.listenAddress = "10.1.1.110"; # Listen on node IP for cluster DNS
   };
 
-  networking.cluster-hosts = {
-    enable = true;
-    populateLocal = true;
+  networking = {
+    cluster-hosts = {
+      enable = true;
+      populateLocal = true;
+    };
+    # Zephyr-specific firewall rules (in addition to cluster defaults)
+    firewall.allowedTCPPorts = [
+      9757 # WiVRn main port
+      18789 # Steam Remote Play
+      18790 # Steam Remote Play (secondary)
+      19898 # Moonlight/GameStream AND Spacebot Web UI
+      1234 # LM Studio API server
+      8080 # AI Inference Gateway
+      53317 # LocalSend (file sharing)
+      8888 # CFSSL CA API server (for worker node certificate generation)
+    ];
+    firewall.allowedUDPPorts = [
+      9757 # WiVRn
+      9758 # WiVRn
+      9759 # WiVRn
+      27031 # Steam UDP
+      27036 # Steam UDP
+      5353 # mDNS
+      9947 # WiVRn
+      53317 # LocalSend (multicast discovery)
+    ];
+    firewall.interfaces = {
+      "tailscale0".allowedTCPPorts = [
+        18789
+        18790
+      ];
+      # NFS server - allow local network only
+      "enp38s0".allowedTCPPorts = [
+        111
+        2049
+        20048
+      ]; # rpcbind, nfs, mountd
+      "enp38s0".allowedUDPPorts = [
+        111
+        2049
+        20048
+      ];
+    };
   };
 
   # ============================================================================
@@ -50,45 +88,6 @@ in {
   # This profile bundles role profiles, Kubernetes config, hardware profiles,
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.zephyr-workstation.enable = true;
-
-  # Zephyr-specific firewall rules (in addition to cluster defaults)
-  networking.firewall.allowedTCPPorts = [
-    9757 # WiVRn main port
-    18789 # Steam Remote Play
-    18790 # Steam Remote Play (secondary)
-    19898 # Moonlight/GameStream AND Spacebot Web UI
-    1234 # LM Studio API server
-    8080 # AI Inference Gateway
-    53317 # LocalSend (file sharing)
-    8888 # CFSSL CA API server (for worker node certificate generation)
-  ];
-  networking.firewall.allowedUDPPorts = [
-    9757 # WiVRn
-    9758 # WiVRn
-    9759 # WiVRn
-    27031 # Steam UDP
-    27036 # Steam UDP
-    5353 # mDNS
-    9947 # WiVRn
-    53317 # LocalSend (multicast discovery)
-  ];
-  networking.firewall.interfaces = {
-    "tailscale0".allowedTCPPorts = [
-      18789
-      18790
-    ];
-    # NFS server - allow local network only
-    "enp38s0".allowedTCPPorts = [
-      111
-      2049
-      20048
-    ]; # rpcbind, nfs, mountd
-    "enp38s0".allowedUDPPorts = [
-      111
-      2049
-      20048
-    ];
-  };
 
   # ============================================================================
   # SECURITY AUDIT REMEDIATION
@@ -478,28 +477,29 @@ in {
 
     # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
     # GPU miners connect directly to Kryptex CR29 with TLS
-    mining.lolminer = {
-      pool = "xtm-c29-us.kryptex.network:8040";
-      wallet = "krxXVNVMM7.zephyr-gpu";
-    };
-    # NVIDIA GPU mining with per-GPU power limits
-    # Device 0: RTX 3060 Ti @ 130W (efficient), Device 1: RTX 3090 @ 250W (VRAM-safe)
-    mining.lolminer.nvidia = {
-      enable = true;
-      autostart = true;
-      devices = "0,1";
-      perGpuPowerLimits = [130 250]; # [3060 Ti, 3090] - optimized for efficiency
-      apiPort = 4068;
-    };
-
-    # CPU mining (16 threads = 50% of 32 cores)
-    mining.xmrig = {
-      enable = true;
-      autostart = true;
-      threads = 16;
-      pool = "10.1.1.110:3333"; # Point to local proxy
-      wallet = "zephyr-cpu"; # Worker ID for proxy
-      password = "x";
+    mining = {
+      lolminer = {
+        pool = "xtm-c29-us.kryptex.network:8040";
+        wallet = "krxXVNVMM7.zephyr-gpu";
+      };
+      # NVIDIA GPU mining with per-GPU power limits
+      # Device 0: RTX 3060 Ti @ 130W (efficient), Device 1: RTX 3090 @ 250W (VRAM-safe)
+      lolminer.nvidia = {
+        enable = true;
+        autostart = true;
+        devices = "0,1";
+        perGpuPowerLimits = [130 250]; # [3060 Ti, 3090] - optimized for efficiency
+        apiPort = 4068;
+      };
+      # CPU mining (16 threads = 50% of 32 cores)
+      xmrig = {
+        enable = true;
+        autostart = true;
+        threads = 16;
+        pool = "10.1.1.110:3333"; # Point to local proxy
+        wallet = "zephyr-cpu"; # Worker ID for proxy
+        password = "x";
+      };
     };
 
     # MONITORED - Full monitoring stack

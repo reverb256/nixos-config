@@ -1,11 +1,6 @@
 # Nixcord Configuration (Home Manager)
 # Declarative Discord/Vesktop configuration with Vencord plugins
-{
-  config,
-  pkgs,
-  inputs,
-  ...
-}: {
+{pkgs, ...}: {
   programs.nixcord = {
     enable = true;
     discord.enable = false;

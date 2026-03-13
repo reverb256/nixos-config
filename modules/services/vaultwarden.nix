@@ -13,8 +13,6 @@
     mkOption
     types
     mkIf
-    mkMerge
-    mkDefault
     ;
 in {
   options.services.vaultwarden-module = {

@@ -155,12 +155,12 @@ systemctl status ensure-cluster-storage
 Migrating from systemd services to Kubernetes using `services.kubernetes` (full upstream, not K3s). See `/etc/nixos/ROADMAP.md` for the complete 9-week plan.
 
 ### Migration Phases
-1. **Week 1-2**: Bootstrap single-node cluster on Zephyr
-2. **Week 2-3**: Add worker nodes (Nexus, Forge, Sentry)
+1. **Week 1-2**: ✅ Bootstrap single-node cluster on Zephyr
+2. **Week 2-3**: 🔄 Add worker nodes (Nexus, Forge, Sentry) - IN PROGRESS
 3. **Week 3-4**: Migrate stateful services (PostgreSQL, Redis)
 4. **Week 4-6**: Migrate stateless services
 5. **Week 6-7**: GPU workloads with device plugins
-6. **Week 7-8**: Monitoring and observability
+6. **Week 7-8**: Monitoring and observability (✅ Already operational)
 7. **Week 8-9**: Cleanup and optimization
 
 ### Architecture

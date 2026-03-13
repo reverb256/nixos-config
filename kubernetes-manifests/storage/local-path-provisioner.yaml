@@ -2,6 +2,7 @@
 # Rancher's local-path-provisioner for simple local storage provisioning
 # https://github.com/rancher/local-path-provisioner
 
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -134,8 +135,50 @@ data:
     spec:
       containers:
       - name: helper-pod
-        image: busybox:latest
+        image: ubuntu:latest
         imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c"]
+        args: ["apt-get update -qq && apt-get install -y tar && sleep 1000000"]
+  setup: |
+    #!/bin/sh
+    while getopts "m:s:p:" opt
+    do
+        case $opt in
+            m)
+                mode=$OPTARG
+                ;;
+            s)
+                source=$OPTARG
+                ;;
+            p)
+                path=$OPTARG
+                ;;
+            *)
+                echo "Invalid option"
+                exit 1
+                ;;
+        esac
+    done
+    mkdir -m "$mode" -p "$path"
+    if [ -f "$source" ]; then
+        tar xzf "$source" -C "$path"
+    fi
+  teardown: |
+    #!/bin/sh
+    while getopts "p:" opt
+    do
+        case $opt in
+            p)
+                path=$OPTARG
+                ;;
+            *)
+                echo "Invalid option"
+                exit 1
+                ;;
+        esac
+    done
+    find "$path" -mindepth 1 -maxdepth 1 -not -path "$path/lost+found" -not -path "$path/.snapshot" -exec rm -rf {} +
+    rmdir "$path" 2>/dev/null || true
 
 ---
 apiVersion: storage.k8s.io/v1
