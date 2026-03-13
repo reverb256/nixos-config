@@ -104,6 +104,8 @@
           bindAddress = config.services.kubernetes-module.masterAddress;
           securePort = 6443;
           allowPrivileged = true;
+          # Connect to local etcd (for multi-master HA, use load balancer or list all members)
+          etcd.servers = lib.mkForce ["http://${config.services.kubernetes-module.masterAddress}:2379"];
           # Note: Pod Security Admission is enabled by default in Kubernetes 1.25+
           # No extra configuration needed - uses built-in 'restricted' profile
         };
