@@ -1,13 +1,12 @@
 # Consistent Network Interface Naming
 # Renames all primary ethernet interfaces to 'lan0' across cluster nodes
-{ ... }: {
+{...}: {
   # ============================================================================
   # SYSTEMD NETWORK LINKS - Persistent Interface Naming
   # ============================================================================
   # Uses MAC address matching to ensure consistent naming regardless of
   # whether systemd's predictive naming produces enp*, eno*, or eth*
   systemd.network.links = {
-
     # ZEPHYR (10.1.1.110) - enp38s0 → lan0
     "10-lan0-zephyr" = {
       matchConfig.MACAddress = "2c:f0:5d:a1:b8:ef";

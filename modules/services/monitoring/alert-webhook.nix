@@ -211,7 +211,7 @@ in {
     # Add to system packages
     environment.systemPackages = with pkgs; [
       python3
-      libnotify  # For notify-send desktop notifications
+      libnotify # For notify-send desktop notifications
     ];
   };
 }

@@ -1,5 +1,10 @@
 # Networking Module - DNS, Firewall, Analytics Blocking, Avahi
-{lib, pkgs, config, ...}: {
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}: {
   # ============================================================================
   # NETWORKING - NetworkManager, DHCP, hosts, DNS, firewall
   # ============================================================================

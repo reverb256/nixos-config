@@ -1,6 +1,11 @@
 # Common SSH Configuration
 # Uses network-constants.nix for host IPs
-{pkgs, config, lib, ...}: let
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}: let
   # Hardcoded cluster IPs to prevent infinite recursion
   hosts = {
     zephyr = {

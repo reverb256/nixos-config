@@ -2,7 +2,6 @@
 # Autonomous GPU workload detection and profile management
 # Detects workload type and adjusts GPU profiles automatically
 # Manages mining pauses when AI/Gaming/Kubernetes GPU workloads detected
-
 {
   config,
   pkgs,

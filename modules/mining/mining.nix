@@ -4,8 +4,7 @@
   pkgs,
   ...
 }:
-with lib;
-let
+with lib; let
   cfg = config.services.mining;
   hostname = config.networking.hostName;
   defaultWallet = "krxXVNVMM7.${hostname}";
@@ -30,27 +29,34 @@ let
   };
 
   # NVIDIA GPU power limit script
-  nvidiaGpuPowerLimitScript = pkgs.writeShellScript "nvidia-gpu-power-limit" (''
+  nvidiaGpuPowerLimitScript = pkgs.writeShellScript "nvidia-gpu-power-limit" ''
     PATH=/run/current-system/sw/bin:$PATH
     echo "Setting NVIDIA GPU power limits..."
     nvidia-smi -pm 1
     # Set per-GPU power limits if specified, otherwise use global limit
-    ${if cfg.lolminer.nvidia.perGpuPowerLimits != null then ''
-      # Per-GPU power limits
-      ${lib.concatStringsSep "\n" (lib.imap0 (idx: limit: ''
-        echo "Setting GPU ${toString idx} power limit to ${toString limit}W..."
-        nvidia-smi -i ${toString idx} -pl ${toString limit}
-      '') cfg.lolminer.nvidia.perGpuPowerLimits)}
-    '' else if cfg.lolminer.nvidia.powerLimit != null then ''
-      # Global power limit for all GPUs
-      echo "Setting all GPUs to ${toString cfg.lolminer.nvidia.powerLimit}W..."
-      nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit}
-    '' else ''
-      # No power limit set - let gpu-workload-monitor manage
-      echo "No power limit set - letting gpu-workload-monitor manage dynamically"
-    ''}
+    ${
+      if cfg.lolminer.nvidia.perGpuPowerLimits != null
+      then ''
+        # Per-GPU power limits
+        ${lib.concatStringsSep "\n" (lib.imap0 (idx: limit: ''
+            echo "Setting GPU ${toString idx} power limit to ${toString limit}W..."
+            nvidia-smi -i ${toString idx} -pl ${toString limit}
+          '')
+          cfg.lolminer.nvidia.perGpuPowerLimits)}
+      ''
+      else if cfg.lolminer.nvidia.powerLimit != null
+      then ''
+        # Global power limit for all GPUs
+        echo "Setting all GPUs to ${toString cfg.lolminer.nvidia.powerLimit}W..."
+        nvidia-smi -pl ${toString cfg.lolminer.nvidia.powerLimit}
+      ''
+      else ''
+        # No power limit set - let gpu-workload-monitor manage
+        echo "No power limit set - letting gpu-workload-monitor manage dynamically"
+      ''
+    }
     echo "NVIDIA GPU power limits configured successfully"
-  '');
+  '';
 
   # XMRig wrapper script - reads API token and passes to xmrig
   xmrigWrapperScript = pkgs.writeShellScript "xmrig-wrapper" ''
@@ -67,8 +73,7 @@ let
       exec ${pkgs.xmrig}/bin/xmrig -c /etc/xmrig/config.json --randomx-1gb-pages --threads=${toString cfg.xmrig.threads}
     fi
   '';
-in
-{
+in {
   options.services.mining = {
     enable = mkEnableOption "Robust Mining Services";
     user = mkOption {
@@ -194,7 +199,7 @@ in
         "render"
       ]; # For AMD GPU access via /dev/dri/
     };
-    users.groups.mining = { };
+    users.groups.mining = {};
 
     # 2MB huge pages for general use and GPU miners
     boot.kernel.sysctl = {
@@ -203,7 +208,7 @@ in
 
     # Load MSR module for CPU mining performance
     # Required by xmrig for CPU MSR access (RandomX optimization)
-    boot.kernelModules = [ "msr" ];
+    boot.kernelModules = ["msr"];
 
     # 1GB huge pages for RandomX mining (must be set at boot)
     # RandomX dataset is ~2GB, so we reserve 3 1GB pages for overhead
@@ -218,7 +223,7 @@ in
       KERNEL=="msr", MODE="0660", GROUP="mining"
     '';
 
-    environment.systemPackages = [ pkgs.lolminer ];
+    environment.systemPackages = [pkgs.lolminer];
 
     systemd.tmpfiles.rules = [
       "d /var/lib/mining 0750 ${cfg.user} mining - -"
@@ -276,19 +281,19 @@ in
       targets.mining = {
         description = "All mining services";
         wants =
-          lib.optionals cfg.lolminer.nvidia.enable [ "lolminer-nvidia.service" ] ++
-          lib.optionals cfg.lolminer.amd.enable [ "lolminer-amd.service" ] ++
-          lib.optionals cfg.xmrig.enable [ "xmrig.service" ];
-        after = [ "network-online.target" ];
+          lib.optionals cfg.lolminer.nvidia.enable ["lolminer-nvidia.service"]
+          ++ lib.optionals cfg.lolminer.amd.enable ["lolminer-amd.service"]
+          ++ lib.optionals cfg.xmrig.enable ["xmrig.service"];
+        after = ["network-online.target"];
       };
 
       services = {
         # NVIDIA GPU power limit service (runs before lolminer)
         nvidia-gpu-power-limit = mkIf cfg.lolminer.nvidia.enable {
           description = "Set NVIDIA GPU Power Limit for Mining";
-          wantedBy = [ "multi-user.target" ];
-          before = [ "lolminer-nvidia.service" ];
-          requiredBy = [ "lolminer-nvidia.service" ];
+          wantedBy = ["multi-user.target"];
+          before = ["lolminer-nvidia.service"];
+          requiredBy = ["lolminer-nvidia.service"];
           serviceConfig = {
             Type = "oneshot";
             ExecStart = nvidiaGpuPowerLimitScript;
@@ -298,68 +303,72 @@ in
 
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
-          wantedBy = mkIf cfg.lolminer.nvidia.autostart [ "multi-user.target" ];
+          wantedBy = mkIf cfg.lolminer.nvidia.autostart ["multi-user.target"];
           after = [
             "network.target"
             "nvidia-gpu-power-limit.service"
           ];
-          requires = [ "nvidia-gpu-power-limit.service" ];
-          serviceConfig = {
-            User = cfg.user;
-            Group = "mining";
-            Slice = "mining.slice";
-            ExecStart = "${pkgs.lolminer}/bin/lolMiner "
-              + "--algo ${cfg.lolminer.algorithm} "
-              + "--pool ${cfg.lolminer.pool} "
-              + "--user ${cfg.lolminer.wallet} "
-              + "--devices ${cfg.lolminer.nvidia.devices} "
-              + "--apiport ${toString cfg.lolminer.nvidia.apiPort} "
-              + "--mode b "
-              + lib.optionalString cfg.lolminer.tls "--tls on";
-            Restart = "always";
-            RestartSec = "30s";
-            Environment = [
-              "GPU_MAX_HEAP_SIZE=100"
-              "GPU_MAX_ALLOC_PERCENT=100"
-              "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
-            ];
-            LimitMEMLOCK = "4G";
-          }
-          // lolminerHardening;
+          requires = ["nvidia-gpu-power-limit.service"];
+          serviceConfig =
+            {
+              User = cfg.user;
+              Group = "mining";
+              Slice = "mining.slice";
+              ExecStart =
+                "${pkgs.lolminer}/bin/lolMiner "
+                + "--algo ${cfg.lolminer.algorithm} "
+                + "--pool ${cfg.lolminer.pool} "
+                + "--user ${cfg.lolminer.wallet} "
+                + "--devices ${cfg.lolminer.nvidia.devices} "
+                + "--apiport ${toString cfg.lolminer.nvidia.apiPort} "
+                + "--mode b "
+                + lib.optionalString cfg.lolminer.tls "--tls on";
+              Restart = "always";
+              RestartSec = "30s";
+              Environment = [
+                "GPU_MAX_HEAP_SIZE=100"
+                "GPU_MAX_ALLOC_PERCENT=100"
+                "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
+              ];
+              LimitMEMLOCK = "4G";
+            }
+            // lolminerHardening;
         };
 
         lolminer-amd = mkIf cfg.lolminer.amd.enable {
           description = "lolMiner AMD Mining Service";
-          wantedBy = mkIf cfg.lolminer.amd.autostart [ "multi-user.target" ];
+          wantedBy = mkIf cfg.lolminer.amd.autostart ["multi-user.target"];
           after = [
             "network.target"
           ];
-          serviceConfig = {
-            User = cfg.user;
-            Group = "mining";
-            Slice = "mining.slice";
-            ExecStart = "${pkgs.lolminer}/bin/lolMiner "
-              + "--algo ${cfg.lolminer.algorithm} "
-              + "--pool ${cfg.lolminer.pool} "
-              + "--user ${cfg.lolminer.wallet} "
-              + "--devices ${cfg.lolminer.amd.devices} "
-              + "--apiport ${toString cfg.lolminer.amd.apiPort} "
-              + "--mode b "
-              + lib.optionalString cfg.lolminer.tls "--tls on";
-            Restart = "always";
-            RestartSec = "30s";
-            Environment = [
-              "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
-            ];
-            LimitMEMLOCK = "8G";
-          }
-          // lolminerHardening;
+          serviceConfig =
+            {
+              User = cfg.user;
+              Group = "mining";
+              Slice = "mining.slice";
+              ExecStart =
+                "${pkgs.lolminer}/bin/lolMiner "
+                + "--algo ${cfg.lolminer.algorithm} "
+                + "--pool ${cfg.lolminer.pool} "
+                + "--user ${cfg.lolminer.wallet} "
+                + "--devices ${cfg.lolminer.amd.devices} "
+                + "--apiport ${toString cfg.lolminer.amd.apiPort} "
+                + "--mode b "
+                + lib.optionalString cfg.lolminer.tls "--tls on";
+              Restart = "always";
+              RestartSec = "30s";
+              Environment = [
+                "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
+              ];
+              LimitMEMLOCK = "8G";
+            }
+            // lolminerHardening;
         };
 
         xmrig = mkIf cfg.xmrig.enable {
           description = "XMRig CPU Mining Service";
-          wantedBy = mkIf cfg.xmrig.autostart [ "multi-user.target" ];
-          after = [ "network.target" ];
+          wantedBy = mkIf cfg.xmrig.autostart ["multi-user.target"];
+          after = ["network.target"];
           serviceConfig = {
             User = cfg.user;
             Group = "mining";

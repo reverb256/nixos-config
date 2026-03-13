@@ -20,7 +20,7 @@
     enable = true;
 
     # PWA Support - enables installing websites as native applications
-    nativeMessagingHosts = [ pkgs.firefoxpwa ];
+    nativeMessagingHosts = [pkgs.firefoxpwa];
 
     policies = {
       DisableAppUpdate = true;
@@ -314,7 +314,7 @@
         ];
         engines = {
           google = {
-            urls = [ { template = "https://www.google.com/search?q={searchTerms}"; } ];
+            urls = [{template = "https://www.google.com/search?q={searchTerms}";}];
             icon = "https://www.google.com/favicon.ico";
             definedAliases = [
               "@g"
@@ -322,7 +322,7 @@
             ];
           };
           ddg = {
-            urls = [ { template = "https://duckduckgo.com/?q={searchTerms}"; } ];
+            urls = [{template = "https://duckduckgo.com/?q={searchTerms}";}];
             icon = "https://duckduckgo/favicon.ico";
             definedAliases = [
               "@d"
@@ -330,7 +330,7 @@
             ];
           };
           github = {
-            urls = [ { template = "https://github.com/search?q={searchTerms}&type=repositories"; } ];
+            urls = [{template = "https://github.com/search?q={searchTerms}&type=repositories";}];
             icon = "https://github.com/favicon.ico";
             definedAliases = [
               "@gh"
@@ -382,17 +382,17 @@
             ];
           };
           nixos-wiki = {
-            urls = [ { template = "https://nixos.wiki/index.php?search={searchTerms}"; } ];
+            urls = [{template = "https://nixos.wiki/index.php?search={searchTerms}";}];
             icon = "https://nixos.wiki/favicon.ico";
-            definedAliases = [ "@nw" ];
+            definedAliases = ["@nw"];
           };
           home-manager = {
-            urls = [ { template = "https://home-manager-options.extranix.com/?query={searchTerms}"; } ];
+            urls = [{template = "https://home-manager-options.extranix.com/?query={searchTerms}";}];
             icon = "https://nixos.org/favicon.ico";
-            definedAliases = [ "@hm" ];
+            definedAliases = ["@hm"];
           };
           mynixos = {
-            urls = [ { template = "https://mynixos.com/search?q={searchTerms}"; } ];
+            urls = [{template = "https://mynixos.com/search?q={searchTerms}";}];
             icon = "https://mynixos.com/favicon.ico";
             definedAliases = [
               "@mn"
@@ -400,7 +400,7 @@
             ];
           };
           noogle = {
-            urls = [ { template = "https://noogle.dev/q?term={searchTerms}"; } ];
+            urls = [{template = "https://noogle.dev/q?term={searchTerms}";}];
             icon = "https://nixos.org/favicon.ico";
             definedAliases = [
               "@ng"
@@ -408,7 +408,7 @@
             ];
           };
           huggingface = {
-            urls = [ { template = "https://huggingface.co/search?q={searchTerms}"; } ];
+            urls = [{template = "https://huggingface.co/search?q={searchTerms}";}];
             icon = "https://huggingface.co/favicon.ico";
             definedAliases = [
               "@hf"
@@ -416,12 +416,12 @@
             ];
           };
           pypi = {
-            urls = [ { template = "https://pypi.org/search/?q={searchTerms}"; } ];
+            urls = [{template = "https://pypi.org/search/?q={searchTerms}";}];
             icon = "https://pypi.org/favicon.ico";
-            definedAliases = [ "@pypi" ];
+            definedAliases = ["@pypi"];
           };
           stackoverflow = {
-            urls = [ { template = "https://stackoverflow.com/search?q={searchTerms}"; } ];
+            urls = [{template = "https://stackoverflow.com/search?q={searchTerms}";}];
             icon = "https://stackoverflow.com/favicon.ico";
             definedAliases = [
               "@so"
@@ -429,9 +429,9 @@
             ];
           };
           mdn = {
-            urls = [ { template = "https://developer.mozilla.org/en-US/search?q={searchTerms}"; } ];
+            urls = [{template = "https://developer.mozilla.org/en-US/search?q={searchTerms}";}];
             icon = "https://developer.mozilla.org/favicon.ico";
-            definedAliases = [ "@mdn" ];
+            definedAliases = ["@mdn"];
           };
         };
       };

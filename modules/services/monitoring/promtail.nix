@@ -1,6 +1,11 @@
 # Promtail log aggregation client
 # Sends journald logs to Loki on Sentry
-{config, lib, pkgs, ...}: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.monitoring.promtail;
 in {
   options.services.monitoring.promtail = {

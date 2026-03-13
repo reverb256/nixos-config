@@ -1,7 +1,12 @@
 # Common Host Defaults - Shared settings for all cluster nodes
 # This module provides consistent defaults across all hosts
 # Host-specific overrides should be placed in hosts/<hostname>/configuration.nix
-{config, lib, pkgs, ...}: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   # ============================================================================
   # SYSTEM STATE VERSION
   # ============================================================================
@@ -137,7 +142,7 @@
 
     # Flannel VXLAN - required for pod-to-pod networking
     allowedUDPPorts = lib.mkOptionDefault [
-      8472  # Flannel VXLAN
+      8472 # Flannel VXLAN
     ];
   };
 

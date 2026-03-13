@@ -1,6 +1,11 @@
 # Garage S3-compatible object storage
 # Distributed object storage for cluster
-{config, lib, pkgs, ...}: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.garage-cluster;
   hostIp = config.networking.cluster.hosts.${config.networking.hostName}.ip or "127.0.0.1";
 in {
@@ -11,6 +16,18 @@ in {
       type = lib.types.path;
       default = "/var/lib/garage";
       description = "Directory for Garage data";
+    };
+
+    replicationFactor = lib.mkOption {
+      type = lib.types.ints.between 1 10;
+      default = 3;
+      description = "Replication factor for data redundancy (1-3, must be same on all nodes)";
+    };
+
+    consistencyMode = lib.mkOption {
+      type = lib.types.enum ["consistent" "degraded" "dangerous"];
+      default = "consistent";
+      description = "Consistency mode: consistent, degraded, or dangerous";
     };
 
     rpcPort = lib.mkOption {
@@ -50,10 +67,13 @@ in {
 
     users.groups.garage = {};
 
-    # Generate Garage config file
+    # Generate Garage config file - uses dataDir option
     environment.etc."garage.toml".text = ''
-      metadata_dir = "/var/lib/garage/meta"
-      data_dir = "/var/lib/garage/data"
+      replication_factor = ${toString cfg.replicationFactor}
+      consistency_mode = "${cfg.consistencyMode}"
+
+      metadata_dir = "${cfg.dataDir}/meta"
+      data_dir = "${cfg.dataDir}/data"
 
       db_engine = "lmdb"
 
@@ -70,6 +90,13 @@ in {
       api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
     '';
 
+    # Create data directory with correct permissions
+    systemd.tmpfiles.rules = [
+      "d ${cfg.dataDir} 0750 garage garage -"
+      "d ${cfg.dataDir}/meta 0750 garage garage -"
+      "d ${cfg.dataDir}/data 0750 garage garage -"
+    ];
+
     systemd.services.garage = {
       description = "Garage S3-compatible object storage";
       after = ["network-online.target"];
@@ -81,16 +108,14 @@ in {
         User = "garage";
         Group = "garage";
 
-        # StateDirectory for data management
-        StateDirectory = "garage";
-        StateDirectoryMode = "0750";
-
         # Security hardening
         NoNewPrivileges = true;
         PrivateTmp = true;
-        ProtectSystem = "strict";  # Strict with StateDirectory
+        ProtectSystem = "strict";
         ProtectHome = true;
-        # ReadWritePaths not needed when using StateDirectory
+
+        # Allow write access to custom data directory
+        ReadWritePaths = ["${cfg.dataDir}"];
 
         ExecStart = "${pkgs.garage}/bin/garage -c /etc/garage.toml server";
 
@@ -109,8 +134,8 @@ in {
 
     # Firewall - use mkOptionDefault to preserve existing ports
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
-      cfg.rpcPort    # RPC for cluster communication
-      cfg.s3ApiPort  # S3 API
+      cfg.rpcPort # RPC for cluster communication
+      cfg.s3ApiPort # S3 API
     ];
   };
 }

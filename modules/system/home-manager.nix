@@ -1,9 +1,6 @@
 # Home Manager User Configuration
 # Shared Home Manager configuration for j_kro across all cluster nodes
-{
-  inputs,
-  ...
-}: {
+{inputs, ...}: {
   home-manager = {
     # Use system package set (efficiency: single nixpkgs evaluation)
     # Overlays defined at system level affect both system and user packages
@@ -18,7 +15,11 @@
     # Pass inputs to user configs so flake inputs are accessible
     extraSpecialArgs = {inherit inputs;};
 
-    users.j_kro = {pkgs, inputs, ...}: {
+    users.j_kro = {
+      pkgs,
+      inputs,
+      ...
+    }: {
       imports = [
         inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord

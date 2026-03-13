@@ -84,16 +84,19 @@ in {
 
       # Basic configuration
       configuration = {
-        global = {
-          smtp_smarthost = cfg.email.smtphost;
-          smtp_from = cfg.email.from;
-        } // lib.optionalAttrs cfg.email.enable {
-          smtp_auth_username = cfg.email.from;
-          smtp_auth_password_file = cfg.email.passwordFile;
-          smtp_require_tls = true;
-        } // lib.optionalAttrs (!cfg.email.enable) {
-          smtp_require_tls = false;
-        };
+        global =
+          {
+            smtp_smarthost = cfg.email.smtphost;
+            smtp_from = cfg.email.from;
+          }
+          // lib.optionalAttrs cfg.email.enable {
+            smtp_auth_username = cfg.email.from;
+            smtp_auth_password_file = cfg.email.passwordFile;
+            smtp_require_tls = true;
+          }
+          // lib.optionalAttrs (!cfg.email.enable) {
+            smtp_require_tls = false;
+          };
 
         # Route all alerts to default receivers
         route = {
@@ -116,20 +119,24 @@ in {
               }
             ];
           };
-          receiverWithEmail = baseReceiver // {
-            email_configs = [
-              {
-                to = cfg.email.to;
-                from = cfg.email.from;
-                smarthost = cfg.email.smtphost;
-                auth_username = cfg.email.from;
-                auth_password_file = cfg.email.passwordFile;
-                require_tls = true;
-              }
-            ];
-          };
+          receiverWithEmail =
+            baseReceiver
+            // {
+              email_configs = [
+                {
+                  to = cfg.email.to;
+                  from = cfg.email.from;
+                  smarthost = cfg.email.smtphost;
+                  auth_username = cfg.email.from;
+                  auth_password_file = cfg.email.passwordFile;
+                  require_tls = true;
+                }
+              ];
+            };
         in
-          if cfg.email.enable then [receiverWithEmail] else [baseReceiver];
+          if cfg.email.enable
+          then [receiverWithEmail]
+          else [baseReceiver];
       };
     };
 

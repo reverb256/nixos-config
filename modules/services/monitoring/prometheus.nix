@@ -69,7 +69,7 @@ in {
           static_configs = [
             {
               targets = [
-                "localhost:${toString ports.node-exporter}"  # zephyr local (bound to 127.0.0.1)
+                "localhost:${toString ports.node-exporter}" # zephyr local (bound to 127.0.0.1)
                 "nexus:${toString ports.node-exporter}"
                 "forge:${toString ports.node-exporter}"
                 "sentry:${toString ports.node-exporter}"

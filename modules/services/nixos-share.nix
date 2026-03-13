@@ -43,11 +43,13 @@ in {
     # Firewall rules to allow NFS traffic from allowed hosts
     networking.firewall = lib.mkIf cfg.server.enable {
       allowedTCPPorts = lib.mkOptionDefault [111 2049 20048];
-      extraCommands = lib.concatMapStringsSep "\n" (host: ''
-        iptables -I nixos-fw -p tcp -s ${host} --dport 111 -j ACCEPT
-        iptables -I nixos-fw -p tcp -s ${host} --dport 2049 -j ACCEPT
-        iptables -I nixos-fw -p tcp -s ${host} --dport 20048 -j ACCEPT
-      '') cfg.server.allowedHosts;
+      extraCommands =
+        lib.concatMapStringsSep "\n" (host: ''
+          iptables -I nixos-fw -p tcp -s ${host} --dport 111 -j ACCEPT
+          iptables -I nixos-fw -p tcp -s ${host} --dport 2049 -j ACCEPT
+          iptables -I nixos-fw -p tcp -s ${host} --dport 20048 -j ACCEPT
+        '')
+        cfg.server.allowedHosts;
     };
 
     # NFS Client configuration (for remote hosts)

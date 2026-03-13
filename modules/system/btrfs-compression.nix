@@ -17,9 +17,9 @@
     # ============================================================================
     environment.systemPackages = with pkgs; [
       # BTRFS deduplication tools
-      duperemove       # Block-level deduplication (run manually or via cron)
-      compsize         # Check compression ratio on files/directories
-      btrfs-progs      # BTRFS utilities
+      duperemove # Block-level deduplication (run manually or via cron)
+      compsize # Check compression ratio on files/directories
+      btrfs-progs # BTRFS utilities
     ];
 
     # ============================================================================
@@ -50,13 +50,13 @@
 
           echo "[$(date)] BTRFS deduplication scan completed" | tee -a /var/log/btrfs-dedup.log
         '';
-        startAt = "Sat 02:00";  # Saturday 2 AM
+        startAt = "Sat 02:00"; # Saturday 2 AM
         serviceConfig = {
           Type = "oneshot";
-          Nice = 15;  # Low priority to avoid impacting system performance
+          Nice = 15; # Low priority to avoid impacting system performance
           IOSchedulingClass = "idle";
           IOSchedulingPriority = 7;
-          LogLevelMax = "info";  # Reduce log spam
+          LogLevelMax = "info"; # Reduce log spam
         };
       };
 
@@ -75,7 +75,7 @@
 
           echo "[$(date)] BTRFS scrub completed" | tee -a /var/log/btrfs-scrub.log
         '';
-        startAt = "Mon 03:00";  # Monday 3 AM
+        startAt = "Mon 03:00"; # Monday 3 AM
         serviceConfig = {
           Type = "oneshot";
           Nice = 15;
@@ -100,7 +100,7 @@
 
           echo "[$(date)] BTRFS balance completed" | tee -a /var/log/btrfs-balance.log
         '';
-        startAt = "Sun 03:00";  # Sunday 3 AM
+        startAt = "Sun 03:00"; # Sunday 3 AM
         serviceConfig = {
           Type = "oneshot";
           Nice = 15;

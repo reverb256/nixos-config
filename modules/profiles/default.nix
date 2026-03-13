@@ -2,7 +2,7 @@
 #
 # Provides hardware, role, and network profiles for host composition
 # Inspired by hlissner/dotfiles modules/profiles/default.nix
-{ ...}: {
+{...}: {
   imports = [
     ./hardware
     ./role

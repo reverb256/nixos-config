@@ -122,7 +122,7 @@ in {
       partOf = ["health-checker.service"];
       wantedBy = ["timers.target"];
       timerConfig = {
-        OnCalendar = "*:*:0/5";  # Every 5 minutes
+        OnCalendar = "*:*:0/5"; # Every 5 minutes
         Unit = "health-checker.service";
       };
     };

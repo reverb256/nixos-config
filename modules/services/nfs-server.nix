@@ -1,6 +1,11 @@
 # NFS Server for cluster-wide file sharing
 # Runs on Nexus (10.1.1.120) - the storage node
-{config, lib, pkgs, ...}: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.nfs.server;
 in {
   config = lib.mkIf cfg.enable {

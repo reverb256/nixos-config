@@ -5,13 +5,7 @@
 # Module imports: Gaming, mining, monitoring, opencode are already imported
 # via commonModules in flake.nix (./modules/default.nix)
 # Note: Gaming module imported globally but gaming.enable=false for this host
-{
-  lib,
-  pkgs,
-  ...
-}: let
-  inherit (lib) mkForce;
-in {
+{lib, pkgs, ...}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -39,9 +33,15 @@ in {
     enable = true;
     hostName = "forge";
     ipAddress = "10.1.1.130";
-    interfaceName = "enp0s31f6";  # Native hardware interface name
-    wireless.enable = false;  # Mining rig - no WiFi needed
-    unbound.listenAddress = "10.1.1.130";  # Listen on node IP for cluster DNS
+    interfaceName = "enp0s31f6"; # Native hardware interface name
+    wireless.enable = false; # Mining rig - no WiFi needed
+    unbound.listenAddress = "10.1.1.130"; # Listen on node IP for cluster DNS
+  };
+
+  # Populate /etc/hosts from central cluster configuration
+  networking.cluster-hosts = {
+    enable = true;
+    populateLocal = true;
   };
 
   # ============================================================================
@@ -53,7 +53,7 @@ in {
 
   # Forge-specific firewall rules (in addition to cluster defaults)
   networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
-    10250  # Kubelet API
+    10250 # Kubelet API
   ];
   networking.firewall.allowedTCPPortRanges = [
     {
@@ -62,7 +62,7 @@ in {
     }
   ];
   networking.firewall.allowedUDPPorts = lib.mkOptionDefault [
-    8472  # Flannel VXLAN
+    8472 # Flannel VXLAN
   ];
 
   # ============================================================================
@@ -137,7 +137,10 @@ in {
         }
       ];
       workers = [
-        { id = "forge-gpu"; password = "x"; }
+        {
+          id = "forge-gpu";
+          password = "x";
+        }
       ];
       openFirewall = false;
     };
@@ -215,7 +218,7 @@ in {
     # GPU DRIVERS (Hybrid AMD + NVIDIA)
     # Note: NVIDIA modules loaded via nvidia-wayland.nix
     # Note: AMDGPU loaded via hardware.profiles.amdgpu.wayland (initrd too)
-    kernelModules = ["tun"];  # amdgpu added by profile, not duplicated here
+    kernelModules = ["tun"]; # amdgpu added by profile, not duplicated here
   };
 
   # ============================================================================
@@ -526,14 +529,14 @@ in {
           ExecStart = pkgs.writeShellScript "amd-max-fan" ''
             #!/usr/bin/env bash
             set -euo pipefail
-            
+
             log() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
             }
-            
+
             # Wait for GPUs to be ready
             sleep 5
-            
+
             # Set both GPUs to 100% fan speed using rocm-smi
             # This is the reliable method that doesn't require sysfs PWM manipulation
             if /run/wrappers/bin/sudo /run/current-system/sw/bin/rocm-smi --setfan 100%; then
