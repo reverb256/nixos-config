@@ -85,7 +85,7 @@ in
       };
       pool = mkOption {
         type = types.str;
-        default = "stratum+tcp://xtm-c29-us.kryptex.network:8038";
+        default = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
       };
       wallet = mkOption {
         type = types.str;
@@ -93,8 +93,8 @@ in
       };
       tls = mkOption {
         type = types.bool;
-        default = false;
-        description = "Use TLS for pool connection. Disable when using gpu-proxy which handles TLS.";
+        default = true;
+        description = "TLS IS REQUIRED for CR29 port 8040.";
       };
       nvidia = {
         enable = mkEnableOption "NVIDIA GPU Mining";
