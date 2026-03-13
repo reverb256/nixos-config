@@ -173,6 +173,28 @@ in {
             }
           ];
         }
+
+        # Garage S3 object storage metrics (3-node cluster)
+        {
+          job_name = "garage";
+          static_configs = [
+            {
+              targets = [
+                "zephyr:3903"
+                "nexus:3903"
+                "sentry:3903"
+              ];
+              labels = {
+                role = "object-storage";
+                tier = "3-node-cluster";
+              };
+            }
+          ];
+          metrics_path = "/metrics";
+          params = {
+            token = ["garage_metrics_token"];
+          };
+        }
       ];
     };
 
