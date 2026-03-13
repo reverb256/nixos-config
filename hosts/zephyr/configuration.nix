@@ -274,7 +274,7 @@ in {
         api = {
           port = 8081;
           restricted = true;
-          token = "change-this-token";
+          tokenFile = "/run/agenix/xmrig-api-token";
         };
 
         log = {
@@ -543,8 +543,13 @@ in {
       deviceId = "ZEPHYR-PLACEHOLDER";
     };
 
-    # NOTE: Garage S3 storage removed - NFS provides shared storage
-    # Module commented out in modules/default.nix
+    # Garage S3-compatible distributed object storage (3-node cluster)
+    garage-cluster = {
+      enable = true;
+      dataDir = "/data/shared/garage";  # On NFS from nexus
+      rpcSecretFile = "/run/agenix/garage-rpc-secret";
+      replicationFactor = 2;
+    };
   };
 
   # ============================================================================
@@ -657,6 +662,46 @@ in {
       # Spacebot Telegram bot token - TrovesAndCoves client communication
       spacebot-telegram-token = {
         file = "${inputs.self}/secrets/spacebot-telegram-token.age";
+        mode = "440";
+        owner = "root";
+        group = "root";
+      };
+
+      # Garage S3-compatible object storage - RPC secret for cluster communication
+      garage-rpc-secret = {
+        file = "${inputs.self}/secrets/garage-rpc-secret.age";
+        mode = "440";
+        owner = "garage";
+        group = "garage";
+      };
+
+      # Nextcloud admin password
+      nextcloud-admin = {
+        file = "${inputs.self}/secrets/nextcloud-admin.age";
+        mode = "440";
+        owner = "nextcloud";
+        group = "nextcloud";
+      };
+
+      # Grafana admin password
+      grafana-admin = {
+        file = "${inputs.self}/secrets/grafana-admin.age";
+        mode = "440";
+        owner = "grafana";
+        group = "grafana";
+      };
+
+      # TP-Link switch admin password
+      switch-admin = {
+        file = "${inputs.self}/secrets/switch-admin.age";
+        mode = "440";
+        owner = "root";
+        group = "root";
+      };
+
+      # Vaultwarden admin token
+      vaultwarden-admin-token = {
+        file = "${inputs.self}/secrets/vaultwarden-admin-token.age";
         mode = "440";
         owner = "root";
         group = "root";

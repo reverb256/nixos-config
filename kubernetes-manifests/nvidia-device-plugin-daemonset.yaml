@@ -1,7 +1,5 @@
-# NVIDIA Device Plugin DaemonSet (v0.14.x)
+# NVIDIA Device Plugin DaemonSet (v0.14.4 for NixOS compatibility)
 # Uses simple NVML device discovery without CDI requirements
-# Fixed: mount /nix/store in container to match LD_LIBRARY_PATH
-# Use hostPID for access to /proc/driver/nvidia
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -25,6 +23,12 @@ spec:
         image: nvcr.io/nvidia/k8s-device-plugin:v0.14.4
         imagePullPolicy: IfNotPresent
         env:
+        - name: PASS_DEVICE_SPECS
+          value: "false"
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
         - name: LD_LIBRARY_PATH
           value: /run/opengl-driver/lib:/nix/store
         lifecycle:
@@ -44,25 +48,20 @@ spec:
           timeoutSeconds: 5
         resources: {}
         securityContext:
-          privileged: false
-          capabilities:
-            add:
-            - SYS_ADMIN
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
+          privileged: true
         volumeMounts:
         - mountPath: /var/lib/kubelet/device-plugins
           name: device-plugin
         - mountPath: /run/opengl-driver/lib
           name: driver-lib
           readOnly: true
-        - mountPath: /nix/store
-          name: nix-store
-          readOnly: true
         - mountPath: /dev
           name: dev
         - mountPath: /sys/module
           name: sys-module
+        - mountPath: /nix/store
+          name: nix-store
+          readOnly: true
       dnsPolicy: ClusterFirst
       nodeSelector:
         accelerator: nvidia-gpu
@@ -85,10 +84,6 @@ spec:
           type: ""
         name: driver-lib
       - hostPath:
-          path: /nix/store
-          type: ""
-        name: nix-store
-      - hostPath:
           path: /dev
           type: ""
         name: dev
@@ -96,6 +91,10 @@ spec:
           path: /sys/module
           type: ""
         name: sys-module
+      - hostPath:
+          path: /nix/store
+          type: ""
+        name: nix-store
   updateStrategy:
     rollingUpdate:
       maxSurge: 0
