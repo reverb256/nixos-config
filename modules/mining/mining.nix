@@ -98,7 +98,7 @@ in
       };
       pool = mkOption {
         type = types.str;
-        default = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
+        default = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
       };
       wallet = mkOption {
         type = types.str;

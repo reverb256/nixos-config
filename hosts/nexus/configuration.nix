@@ -204,11 +204,9 @@
       };
 
       # GPU mining configuration (shared by NVIDIA)
-      # NOTE: GPU miners connect directly to CR29 pool (not via proxy)
-      # The proxy only routes RandomX for CPU miners; CR29 naming mismatch causes routing issues
       lolminer = {
-        pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";  # Direct CR29 pool
-        wallet = "krxXVNVMM7.nexus-gpu";  # Full wallet format for direct pool
+        pool = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+        wallet = "krxXVNVMM7.nexus-gpu";
       };
 
       # NVIDIA GPU mining (RTX 3060 Ti @ 130W)
@@ -219,6 +217,38 @@
         powerLimit = 130; # 130W for optimal efficiency
         apiPort = 4068;
       };
+    };
+
+    # GPU Proxy - Stratum proxy for GPU miners (lolMiner)
+    gpu-proxy = {
+      enable = true;
+      listenPort = 3334;
+      apiPort = 8083;
+      logLevel = "INFO";
+      pools = [
+        {
+          name = "Kryptex US";
+          url = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+          wallet = "krxXVNVMM7";
+          password = "x";
+          priority = 1;
+          tls = true;
+        }
+        {
+          name = "Kryptex EU";
+          url = "stratum+tcp://xtm-c29-eu.kryptex.network:8040";
+          wallet = "krxXVNVMM7";
+          password = "x";
+          priority = 2;
+          tls = true;
+        }
+      ];
+      workers = [
+        { id = "nexus-gpu"; password = "x"; }
+        { id = "zephyr-gpu"; password = "x"; }
+        { id = "forge-gpu"; password = "x"; }
+      ];
+      openFirewall = true;
     };
 
     # MCP servers
@@ -243,8 +273,9 @@
     };
 
     # Garage S3-compatible object storage (local storage)
+    # TEMPORARILY DISABLED - permission issues with /data/shared/garage
     garage-cluster = {
-      enable = true;
+      enable = false;
       dataDir = "/data/shared/garage";
       peers = ["zephyr" "sentry"];
       replicationFactor = 2;

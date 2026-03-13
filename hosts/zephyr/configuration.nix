@@ -473,9 +473,10 @@
     };
 
     # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
+    # GPU miners connect to gpu-proxy on Nexus
     mining.lolminer = {
-      pool = "stratum+tcp://zephyr:3333";  # Point to xmrig-proxy
-      wallet = "zephyr-gpu";  # Worker ID for proxy
+      pool = "10.1.1.120:3334";
+      wallet = "zephyr-gpu";
     };
     # NVIDIA GPU mining with per-GPU power limits
     # Device 0: RTX 3060 Ti @ 130W (efficient), Device 1: RTX 3090 @ 250W (VRAM-safe)
@@ -538,8 +539,9 @@
     };
 
     # Garage S3-compatible object storage (on NFS from nexus)
+    # TEMPORARILY DISABLED - permission issues with /data/shared/garage
     garage-cluster = {
-      enable = true;
+      enable = false;
       dataDir = "/data/shared/garage";
       peers = ["nexus" "sentry"];
       replicationFactor = 2;
@@ -925,3 +927,4 @@
   # Enable crash watchdog to detect and log system crashes
   services.crash-watchdog.enable = true;
 }
+# Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
