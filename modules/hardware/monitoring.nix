@@ -46,7 +46,7 @@ in {
     # Ideal for mixed-GPU hosts like Forge, works on single-vendor hosts too
     environment.systemPackages = with pkgs; [
       lm_sensors
-      nvtopPackages.full
+      # nvtopPackages.full  # TEMP: Disabled due to cuda_compat build issue (2026-03-13)
     ];
 
     # Load hardware monitoring kernel modules
