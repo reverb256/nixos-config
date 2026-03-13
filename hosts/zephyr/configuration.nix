@@ -548,7 +548,6 @@ in {
       enable = true;
       dataDir = "/data/shared/garage";  # On NFS from nexus
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
-      replicationFactor = 2;
     };
   };
 
