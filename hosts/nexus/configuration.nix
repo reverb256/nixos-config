@@ -73,6 +73,8 @@
     masterAddress = lib.mkForce "10.1.1.110";
     # etcd clustering configuration (Nexus joins existing cluster)
     etcdInitialState = "existing";
+    etcdName = "nexus";
+    etcdAdvertisePeerUrl = "http://10.1.1.120:2380";
     etcdClusterMembers = [
       "zephyr=http://10.1.1.110:2380"
       "nexus=http://10.1.1.120:2380"

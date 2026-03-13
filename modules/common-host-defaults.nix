@@ -109,7 +109,8 @@
     # This allows building v3-optimized packages (gccarch-x86-64-v3)
     # All cluster CPUs support AVX2: Zen 3 (Zephyr), Zen 2 (Nexus),
     # Coffee Lake (Forge), Zen 1 (Sentry with AVX2)
-    system-features = lib.mkOptionDefault ["gccarch-x86-64-v3"];
+    # Use mkAfter to append to the default system-features list
+    system-features = lib.mkAfter ["gccarch-x86-64-v3"];
 
     # Fallback to public caches if local cache miss
     # https://cache.nixos.org
