@@ -481,7 +481,7 @@
     # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
     # GPU miners connect directly to Kryptex CR29 with TLS
     mining.lolminer = {
-      pool = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+      pool = "xtm-c29-us.kryptex.network:8040";
       wallet = "krxXVNVMM7.zephyr-gpu";
     };
     # NVIDIA GPU mining with per-GPU power limits
@@ -499,7 +499,7 @@
       enable = true;
       autostart = true;
       threads = 16;
-      pool = "stratum+tcp://10.1.1.110:3333";  # Point to local proxy
+      pool = "10.1.1.110:3333";  # Point to local proxy
       wallet = "zephyr-cpu";  # Worker ID for proxy
       password = "x";
     };
