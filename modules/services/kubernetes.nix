@@ -133,18 +133,18 @@
       # HA clustering support: use etcdClusterMembers list for multi-node setup
       services.etcd = lib.mkIf isMaster {
         enable = true;
-        name = config.services.kubernetes-module.etcdName;
-        listenClientUrls = [
+        name = lib.mkForce config.services.kubernetes-module.etcdName;
+        listenClientUrls = lib.mkForce [
           "http://127.0.0.1:2379"
           "http://${config.services.kubernetes-module.etcdListenHost}:2379"
         ];
-        advertiseClientUrls = ["http://${config.services.kubernetes-module.etcdListenHost}:2379"];
-        listenPeerUrls = ["http://${config.services.kubernetes-module.etcdListenHost}:2380"];
-        initialAdvertisePeerUrls = ["http://${config.services.kubernetes-module.etcdListenHost}:2380"];
-        initialCluster = if useEtcdCluster then
+        advertiseClientUrls = lib.mkForce ["http://${config.services.kubernetes-module.etcdListenHost}:2379"];
+        listenPeerUrls = lib.mkForce ["http://${config.services.kubernetes-module.etcdListenHost}:2380"];
+        initialAdvertisePeerUrls = lib.mkForce ["http://${config.services.kubernetes-module.etcdListenHost}:2380"];
+        initialCluster = lib.mkForce (if useEtcdCluster then
           config.services.kubernetes-module.etcdClusterMembers
         else
-          ["${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380"];
+          ["${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380"]);
         initialClusterToken = "zephyr-etcd-cluster";
         initialClusterState = config.services.kubernetes-module.etcdInitialState;
       };
