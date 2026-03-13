@@ -1,19 +1,24 @@
 ---
+# Fast pre-commit hooks - should complete in < 5 seconds
+# Heavy checks (flake check, builds) run in CI, not here
 repos:
   - repo: local
     hooks:
+      # Nix linting (fast - ~2 seconds)
       - id: nix-lint-statix
         name: Nix lint (statix)
         entry: statix check
         language: system
         files: \.nix$
 
+      # Dead code detection (fast - ~1 second)
       - id: nix-lint-deadnix
         name: Nix lint (deadnix)
         entry: deadnix -f
         language: system
         files: \.nix$
 
+      # Text formatting (very fast - ~0.1 seconds)
       - id: trailing-whitespace
         name: Trim trailing whitespace
         entry: trailing-whitespace-fixer
@@ -26,6 +31,7 @@ repos:
         language: system
         types: [text]
 
+      # Prevent large files (very fast)
       - id: check-added-large-files
         name: Check for large files
         entry: check-added-large-files

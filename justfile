@@ -1,7 +1,14 @@
-# NixOS Cluster Deployment — Colmena-based single-source-of-truth
+# NixOS Cluster Deployment — Streamlined CI/CD
+#
+# Quick start:
+#   just test          # Validate config (fastest)
+#   just quick-test    # Test current host only
+#   just deploy        # Deploy to all hosts
+#   just deploy zephyr # Deploy single host
+#   just ci            # Run local CI pipeline
+#   just switch        # Apply to current host
 
 # Force real-time output - disable all buffering
-# stdbuf forces line buffering, PYTHONUNBUFFERED for Python tools
 export NIX_SHOW_STATS := "0"
 export PYTHONUNBUFFERED := "1"
 export FLAKE_PATH := "/etc/nixos"
@@ -12,213 +19,161 @@ _default:
     @just --list
 
 # ──────────────────────────────────────────────────────────────────────────────
-#  DEPLOYMENT
+#  DEPLOYMENT (Consolidated)
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Deploy to all hosts
-deploy:
+# Unified deploy command - handles all deployment scenarios
+# Usage: just deploy [target] [--rolling] [--parallel TAG]
+deploy target *args:
     #!/usr/bin/env bash
     set -e
     source {{JUST_HELPERS}}
-    _time; _header "deploy → all hosts"
+    _time; _header "deploy → {{target}}"
 
     # IDEMPOTENT: Kill any conflicting builds first
     _kill_conflicting_builds
 
+    # Proxy to zephyr if not already there
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
-      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just deploy"
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just deploy {{target}} {{args}}"
       exit $?
     fi
-    _step "pre-deploy checks..."
-    ./scripts/pre-deploy-check.sh all
 
-    # Deploy sequentially - colmena output goes directly to terminal
-    for host in zephyr nexus forge sentry; do
-        echo ""
-        _step "cleaning up $host..."
-        if [ "$host" != "$(hostname -s)" ]; then
-            _kill_remote_builds $host
-        fi
-        _step "building + deploying → $host"
-        cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply --on $host
-        _done "$host deployed"
+    # Parse flags
+    rolling=""
+    parallel=""
+    for arg in {{args}}; do
+        case "$arg" in
+            --rolling) rolling="yes" ;;
+            --parallel) parallel="yes" ;;
+        esac
     done
 
-    _time; _header "all deployments complete"
+    # Pre-deploy checks
+    _step "pre-deploy checks..."
+    ./scripts/pre-deploy-check.sh "{{target}}"
+
+    # Build phase (for rolling or if requested)
+    if [ -n "$rolling" ]; then
+        _step "building closures for all nodes..."
+        cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- build
+        _done "all closures built"
+    fi
+
+    # Deploy based on target and flags
+    if [ "{{target}}" = "all" ] || [ "{{target}}" = "" ]; then
+        # Determine deployment order
+        if [ -n "$rolling" ]; then
+            # K8s-aware rolling order: zephyr (control plane) first
+            hosts="zephyr sentry nexus forge"
+        else
+            hosts="zephyr nexus forge sentry"
+        fi
+
+        for host in $hosts; do
+            echo ""
+            _step "deploying → $host"
+            if [ "$host" != "$(hostname -s)" ]; then
+                _kill_remote_builds $host
+            fi
+            cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply --on $host
+            _done "$host deployed"
+        done
+    elif [ -n "$parallel" ]; then
+        # Parallel deployment by tag
+        _header "parallel deploy → {{target}}"
+        cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply --on @{{target}}
+        _done "nodes with tag @{{target}} updated"
+    else
+        # Single host
+        _step "building + deploying → {{target}}"
+        if [ "{{target}}" != "$(hostname -s)" ]; then
+            _kill_remote_builds {{target}}
+        fi
+        cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply --on {{target}}
+        _done "{{target}} deployed"
+    fi
+
+    _time; _header "deployment complete"
     echo ""
 
-# Deploy to zephyr only
+# Convenience aliases for single-host deployment
+# Note: 'just deploy <host>' is preferred for consistency
 zephyr:
-    #!/usr/bin/env bash
-    set -e
-    source {{JUST_HELPERS}}
-    _time; _header "deploy → zephyr"
+    @just deploy zephyr
 
-    # IDEMPOTENT: Kill any conflicting builds first
-    _kill_conflicting_builds
-
-    if [ "$(hostname -s)" != "zephyr" ]; then
-      _info "proxying to zephyr..."
-      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just zephyr"
-      exit $?
-    fi
-    _step "pre-deploy checks..."
-    ./scripts/pre-deploy-check.sh zephyr
-    _step "building + deploying..."
-    cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply --on zephyr 2>&1 
-    exit_code=${PIPESTATUS[0]}
-    if [ $exit_code -eq 0 ]; then
-        _done "zephyr deployed successfully"
-    else
-        echo "✗ deployment failed with exit code: $exit_code" >&2
-        exit $exit_code
-    fi
-    _time; echo ""
-
-# Deploy to nexus only
 nexus:
-    #!/usr/bin/env bash
-    set -e
-    source {{JUST_HELPERS}}
-    _time; _header "deploy → nexus"
+    @just deploy nexus
 
-    # IDEMPOTENT: Kill any conflicting builds first
-    _kill_conflicting_builds
-
-    if [ "$(hostname -s)" != "zephyr" ]; then
-      _info "proxying to zephyr..."
-      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just nexus"
-      exit $?
-    fi
-    _step "pre-deploy checks..."
-    ./scripts/pre-deploy-check.sh nexus
-    _step "building + deploying"
-    cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply --on nexus 
-    _done "nexus deployed"
-    _time; echo ""
-
-# Deploy to forge only
 forge:
-    #!/usr/bin/env bash
-    set -e
-    source {{JUST_HELPERS}}
-    _time; _header "deploy → forge"
+    @just deploy forge
 
-    # IDEMPOTENT: Kill any conflicting builds first
-    _kill_conflicting_builds
-
-    if [ "$(hostname -s)" != "zephyr" ]; then
-      _info "proxying to zephyr..."
-      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just forge"
-      exit $?
-    fi
-    _step "pre-deploy checks..."
-    ./scripts/pre-deploy-check.sh forge
-    _step "building + deploying"
-    cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply --on forge 
-    _done "forge deployed"
-    _time; echo ""
-
-# Deploy to sentry only
 sentry:
+    @just deploy sentry
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  TESTING & VALIDATION
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Quick test: build current host only (fastest feedback)
+quick-test:
     #!/usr/bin/env bash
-    set -e
     source {{JUST_HELPERS}}
-    _time; _header "deploy → sentry"
+    _time; _header "quick-test → $(hostname -s)"
 
     # IDEMPOTENT: Kill any conflicting builds first
     _kill_conflicting_builds
 
-    if [ "$(hostname -s)" != "zephyr" ]; then
-      _info "proxying to zephyr..."
-      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just sentry"
-      exit $?
+    host=$(hostname -s)
+    _step "evaluating $host configuration..."
+    cd {{FLAKE_PATH}}
+    if nix eval ".#nixosConfigurations.${host}.config.system.build.toplevel" >/dev/null 2>&1; then
+        _done "$host configuration valid"
+    else
+        _error "$host configuration evaluation failed"
+        exit 1
     fi
-    _step "pre-deploy checks..."
-    ./scripts/pre-deploy-check.sh sentry
-    _step "building + deploying"
-    cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply --on sentry 
-    _done "sentry deployed"
     _time; echo ""
 
-# Deploy v3 optimizations with K8s-aware rolling update
-deploy-v3-rolling:
+# Test: build all hosts (full validation)
+test:
     #!/usr/bin/env bash
-    set -e  # Stop on any error
     source {{JUST_HELPERS}}
+    _time; _header "test → all hosts"
 
     # IDEMPOTENT: Kill any conflicting builds first
     _kill_conflicting_builds
 
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
-      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just deploy-v3-rolling"
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just test"
       exit $?
     fi
-
-    _header "v3 Rolling Update → All Nodes (K8s-Aware Order)"
-
-    # Step 1: Pre-flight validation - build all closures
-    _step "building closures for all nodes..."
+    _step "build all hosts..."
     cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- build
-    _done "all closures built successfully"
+    _done "all tests passed"
+    _time; echo ""
 
-    # Step 2: Deploy to Zephyr (K8s control plane, local)
-    _step "deploying → zephyr (k8s-master)"
-    cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply-local --on zephyr 
-    _step "validating K8s control plane..."
-    ssh zephyr "kubectl get nodes" || echo "⚠️  K8s not yet installed, skipping validation"
-    ssh zephyr "systemctl status apiserver etcd kubelet" || true
-    _done "zephyr updated to v3"
-
-    # Step 3: Deploy to remote workers sequentially (K8s order)
-    _step "deploying → k8s workers"
-    for host in sentry nexus forge; do
-        _step "cleaning up $host..."
-        _kill_remote_builds $host
-        cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply --on $host 
-        _step "validating $host..."
-        ssh $host "kubectl get nodes | grep $host" || echo "⚠️  K8s not yet installed on $host"
-        ssh $host "systemctl status kubelet" || true
-        _done "$host updated to v3"
-    done
-
-    _time; _header "all nodes updated to v3 successfully"
-
-# Deploy by tag (parallel deployment to tagged nodes)
-deploy-tag ARG:
-    #!/usr/bin/env bash
-    set -e
-    source {{JUST_HELPERS}}
-    if [ "$(hostname -s)" != "zephyr" ]; then
-      _info "proxying to zephyr..."
-      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just deploy-tag {{ARG}}"
-      exit $?
-    fi
-    _header "deploy → @{{ARG}} (parallel)"
-    cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- apply --on @{{ARG}} 
-    _done "nodes with tag @{{ARG}} updated"
-
-# Emergency rollback to previous generation on remote node
-rollback-remote ARG:
+# Pre-deployment validation only
+validate:
     #!/usr/bin/env bash
     source {{JUST_HELPERS}}
-    _time; _header "rollback → {{ARG}}"
-    ssh {{ARG}} "sudo nixos-rebuild rollback"
-    _done "{{ARG}} rolled back to previous generation"
+    _time; _header "validate → pre-deployment checks"
+    ./scripts/pre-deploy-check.sh all
+    _done "validation complete"
     _time; echo ""
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  LOCAL OPERATIONS
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Local switch (mining auto-pauses via wrapper) - IDEMPOTENT
+# Local switch (mining auto-pauses via wrapper)
 switch:
     #!/usr/bin/env bash
     set -e
     source {{JUST_HELPERS}}
-    _time; _header "local switch → $(hostname -s)"
+    _time; _header "switch → $(hostname -s)"
     _info "mining will auto-pause during rebuild (CPU only, GPU continues)"
 
     # IDEMPOTENT: Kill any conflicting builds first
@@ -232,33 +187,12 @@ switch:
     # Ensure lock is released on exit
     trap '_release_build_lock' EXIT INT TERM
 
-    # On remote hosts, just use nixos-rebuild directly
-    if [ "$(hostname -s)" != "zephyr" ]; then
-      _info "using nixos-rebuild directly on remote host"
-      cd {{FLAKE_PATH}}
-      _info "building and applying new configuration..."
-      # Stream output in real-time
-      stdbuf -oL -eL sudo nixos-rebuild switch 2>&1
-      exit_code=$?
-      if [ $exit_code -eq 0 ]; then
-        _info "✓ configuration activated"
-        _info "new generation: $(readlink /nix/var/nix/profiles/system | xargs basename)"
-      else
-        echo "✗ rebuild failed with exit code: $exit_code" >&2
-        exit $exit_code
-      fi
-      _done "switch complete"
-      _time; echo ""
-      exit 0
-    fi
-
     cd {{FLAKE_PATH}}
     _info "building and applying new configuration..."
 
-    # Use stdbuf -oL -eL colmena apply-local to switch (bypasses nixos-rebuild wrapper)
-    # Stream output in real-time via cat
-    stdbuf -oL -eL colmena apply-local --sudo switch 2>&1 
-    exit_code=${PIPESTATUS[0]}
+    # Use colmena apply-local for switch
+    stdbuf -oL -eL colmena apply-local --sudo switch 2>&1
+    exit_code=$?
     if [ $exit_code -eq 0 ]; then
         _info "✓ configuration activated"
         _info "new generation: $(readlink /nix/var/nix/profiles/system | xargs basename)"
@@ -270,32 +204,90 @@ switch:
     _done "switch complete"
     _time; echo ""
 
-# Test configuration (dry run)
-test:
+# ──────────────────────────────────────────────────────────────────────────────
+#  CI/CD (Consolidated)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Run local CI pipeline (uses scripts/ci/ci.sh for consistency)
+ci:
     #!/usr/bin/env bash
     source {{JUST_HELPERS}}
-    _time; _header "test → configuration validation"
+    _time; _header "ci → local pipeline"
 
     # IDEMPOTENT: Kill any conflicting builds first
     _kill_conflicting_builds
 
     if [ "$(hostname -s)" != "zephyr" ]; then
       _info "proxying to zephyr..."
-      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just test"
+      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just ci"
       exit $?
     fi
-    _step "build all hosts (dry run)..."
-    cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- build
-    _done "all tests passed"
+
+    ./scripts/ci/ci.sh
     _time; echo ""
 
-# Pre-deployment validation
-validate:
+# Pre-commit on all files
+pre-commit-all:
     #!/usr/bin/env bash
     source {{JUST_HELPERS}}
-    _time; _header "validate → pre-deployment checks"
-    ./scripts/pre-deploy-check.sh all
-    _done "validation complete"
+    _time; _header "pre-commit → all files"
+    pre-commit run --all-files
+    echo ""
+
+# Update flake.lock
+flake-update:
+    #!/usr/bin/env bash
+    source {{JUST_HELPERS}}
+    _time; _header "flake → update"
+    _step "updating flake.lock..."
+    nix flake update
+    _done "updated (run 'just ci' to verify)"
+    echo ""
+
+# Security scan
+security-scan:
+    #!/usr/bin/env bash
+    source {{JUST_HELPERS}}
+    _time; _header "security → osv scanner"
+    _step "scanning..."
+    nix-shell -p osv-scanner --run "osv-scanner --skip-git --recursive"
+    echo ""
+
+# CI/CD status info
+ci-status:
+    #!/usr/bin/env bash
+    source {{JUST_HELPERS}}
+    _time; _header "ci → status"
+    printf "  pre-commit: %s\n" "$(pre-commit --version 2>/dev/null || echo 'not installed')"
+    nix flake metadata 2>/dev/null | grep "Last modified" | sed 's/^/  /' || true
+    echo "  recent flake updates:"
+    git log --oneline --all --grep="flake" -5 2>/dev/null | sed 's/^/    /' || echo "    none"
+    echo ""
+
+# Health check
+health-check:
+    #!/usr/bin/env bash
+    source {{JUST_HELPERS}}
+    _time; _header "health → cluster check"
+    scripts/ci/health-check.sh
+    echo ""
+
+# Rollback to previous generation
+rollback:
+    #!/usr/bin/env bash
+    source {{JUST_HELPERS}}
+    _time; _header "rollback → previous generation"
+    _info "this will undo the last system switch"
+    scripts/deploy/rollback.sh
+    echo ""
+
+# Emergency rollback on remote node
+rollback-remote host:
+    #!/usr/bin/env bash
+    source {{JUST_HELPERS}}
+    _time; _header "rollback → {{host}}"
+    ssh {{host}} "sudo nixos-rebuild rollback"
+    _done "{{host}} rolled back to previous generation"
     _time; echo ""
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -315,23 +307,6 @@ status:
             printf "  \033[2;32m●\033[0m %-8s %s\n" "$host" "$commit"
         else
             printf "  \033[2;31m●\033[0m %-8s unreachable\n" "$host"
-        fi
-    done
-    echo ""
-
-# Sync all nodes to current branch (DEPRECATED - colmena handles this)
-sync:
-    #!/usr/bin/env bash
-    source {{JUST_HELPERS}}
-    branch=$(git branch --show-current)
-    _time; _header "sync → $branch (deprecated)"
-    _info "colmena handles distribution automatically"
-    for host in nexus forge sentry; do
-        _step "$host..."
-        if ssh "$host" "cd /etc/nixos && git fetch origin && git reset --hard origin/$branch" 2>/dev/null; then
-            _done "$host synced"
-        else
-            printf "  \033[2;31m✗\033[0m %s unreachable\n" "$host"
         fi
     done
     echo ""
@@ -375,7 +350,7 @@ models-list:
     nix-shell -p 'with pkgs; pkgs.python3.withPackages (ps: [ps.httpx])' --run 'python3 {{FLAKE_PATH}}/scripts/auto-update-models.py --list'
     echo ""
 
-# Dry-run model update (no changes)
+# Dry-run model update
 models-dry-run:
     #!/usr/bin/env bash
     set -e
@@ -384,7 +359,7 @@ models-dry-run:
     nix-shell -p 'with pkgs; pkgs.python3.withPackages (ps: [ps.httpx])' --run 'python3 {{FLAKE_PATH}}/scripts/auto-update-models.py --dry-run'
     echo ""
 
-# Download missing models (requires huggingface-cli)
+# Download missing models
 models-download:
     #!/usr/bin/env bash
     set -e
@@ -415,7 +390,7 @@ models-optimize:
     _time; _header "models → optimize GPU allocation"
     nix-shell -p 'with pkgs; pkgs.python3.withPackages (ps: [ps.httpx])' --run 'python3 {{FLAKE_PATH}}/scripts/manage-models.py'
 
-# Update OpenCode configuration from gateway models
+# Update OpenCode configuration
 opencode-update:
     #!/usr/bin/env bash
     set -e
@@ -457,89 +432,7 @@ models-and-opencode:
     _time; echo ""
 
 # ──────────────────────────────────────────────────────────────────────────────
-# CI/CD
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Run CI locally (simulate GitHub Actions)
-ci-local:
-    #!/usr/bin/env bash
-    source {{JUST_HELPERS}}
-    _time; _header "ci → local pipeline"
-
-    # IDEMPOTENT: Kill any conflicting builds first
-    _kill_conflicting_builds
-
-    if [ "$(hostname -s)" != "zephyr" ]; then
-      _info "proxying to zephyr..."
-      ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just ci-local"
-      exit $?
-    fi
-    _step "statix lint..."
-    stdbuf -oL -eL statix check . || true
-    _step "deadnix check..."
-    stdbuf -oL -eL deadnix -f . || true
-    _step "build all hosts..."
-    stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- build
-    _done "ci passed"
-    _time; echo ""
-
-# Pre-commit on all files
-pre-commit-all:
-    #!/usr/bin/env bash
-    source {{JUST_HELPERS}}
-    _time; _header "pre-commit → all files"
-    pre-commit run --all-files
-    echo ""
-
-# Update flake.lock
-flake-update:
-    #!/usr/bin/env bash
-    source {{JUST_HELPERS}}
-    _time; _header "flake → update"
-    _step "updating flake.lock..."
-    nix flake update
-    _done "updated (run 'just ci-local' to verify)"
-    echo ""
-
-# Security scan
-security-scan:
-    #!/usr/bin/env bash
-    source {{JUST_HELPERS}}
-    _time; _header "security → osv scanner"
-    _step "scanning..."
-    nix-shell -p osv-scanner --run "osv-scanner --skip-git --recursive"
-    echo ""
-
-# CI/CD status info
-ci-status:
-    #!/usr/bin/env bash
-    source {{JUST_HELPERS}}
-    _time; _header "ci → status"
-    printf "  pre-commit: %s\n" "$(pre-commit --version 2>/dev/null || echo 'not installed')"
-    nix flake metadata 2>/dev/null | grep "Last modified" | sed 's/^/  /' || true
-    echo "  recent flake updates:"
-    git log --oneline --all --grep="flake" -5 2>/dev/null | sed 's/^/    /' || echo "    none"
-    echo ""
-
-# Health check
-health-check:
-    #!/usr/bin/env bash
-    source {{JUST_HELPERS}}
-    _time; _header "health → cluster check"
-    scripts/ci/health-check.sh
-    echo ""
-
-# Rollback to previous generation
-rollback:
-    #!/usr/bin/env bash
-    source {{JUST_HELPERS}}
-    _time; _header "rollback → previous generation"
-    _info "this will undo the last system switch"
-    scripts/deploy/rollback.sh
-    echo ""
-
-# ──────────────────────────────────────────────────────────────────────────────
-#  CONTAINER SCANNING
+# CONTAINER SCANNING
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Scan all running containers
