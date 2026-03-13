@@ -85,7 +85,8 @@ in
       };
       pool = mkOption {
         type = types.str;
-        default = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+        default = "xtm-c29-us.kryptex.network:8040";
+        description = "Mining pool (format: host:port)";
       };
       wallet = mkOption {
         type = types.str;
@@ -314,7 +315,7 @@ in
               + "--devices ${cfg.lolminer.nvidia.devices} "
               + "--apiport ${toString cfg.lolminer.nvidia.apiPort} "
               + "--mode b "
-              + lib.optionalString cfg.lolminer.tls "--tls 1";
+              + lib.optionalString cfg.lolminer.tls "--tls on";
             Restart = "always";
             RestartSec = "30s";
             Environment = [
@@ -344,7 +345,7 @@ in
               + "--devices ${cfg.lolminer.amd.devices} "
               + "--apiport ${toString cfg.lolminer.amd.apiPort} "
               + "--mode b "
-              + lib.optionalString cfg.lolminer.tls "--tls 1";
+              + lib.optionalString cfg.lolminer.tls "--tls on";
             Restart = "always";
             RestartSec = "30s";
             Environment = [
