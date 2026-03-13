@@ -31,6 +31,9 @@
     # Kubernetes HA modules
     ../../modules/services/kubernetes.nix
     ../../modules/services/keepalived-vip.nix
+
+    # Nix binary cache server for x86-64-v3 migration
+    ../../modules/services/nix-cache/harmonia.nix
   ];
 
   # ============================================================================
@@ -88,6 +91,7 @@
   # Nexus-specific firewall rules (in addition to cluster defaults)
   networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
     10250 # Kubelet API
+    5000  # Harmonia binary cache
   ];
   networking.firewall.allowedTCPPortRanges = [
     {
@@ -307,6 +311,9 @@
 
     # NFS Server - Export shared storage for cluster
     nfs.server.enable = true;
+
+    # Nix binary cache server for x86-64-v3 migration
+    nix-cache.enable = true;
 
     # Syncthing P2P file sync for /etc/nixos config sync
     syncthing-cluster = {
