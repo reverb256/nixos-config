@@ -138,6 +138,7 @@
           "http://127.0.0.1:2379"
           "http://${config.services.kubernetes-module.etcdListenHost}:2379"
         ];
+        advertiseClientUrls = ["http://${config.services.kubernetes-module.etcdListenHost}:2379"];
         listenPeerUrls = ["http://${config.services.kubernetes-module.etcdListenHost}:2380"];
         initialAdvertisePeerUrls = ["http://${config.services.kubernetes-module.etcdListenHost}:2380"];
         initialCluster = if useEtcdCluster then
