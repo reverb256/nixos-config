@@ -12,9 +12,7 @@
   # The private key should be stored securely and used to sign certificates
   # Generate with: ssh-keygen -t ed25519 -f ~/.ssh/ca_key -C "cluster-CA"
   caPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIINREWq2TwFSGaDxTBDv7xaFGw7fniE10i91sn6Xqhkg cluster-CA@zephyr";
-
   # Certificate principals (usernames) authorized by the CA
-  authorizedPrincipals = ["j_kro"];
 in {
   options.services.ssh-ca = {
     enable = mkOption {

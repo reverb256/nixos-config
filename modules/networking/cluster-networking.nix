@@ -3,10 +3,9 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: let
-  inherit (lib) mkEnableOption mkOption types mkIf mkMerge;
+  inherit (lib) mkEnableOption mkOption types mkIf;
   cfg = config.clusterNetworking;
 in {
   options.clusterNetworking = {

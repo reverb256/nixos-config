@@ -1,11 +1,6 @@
 # Zen Browser Configuration (Home Manager)
 # Declarative browser configuration with extensions, containers, workspaces, and search engines
-{
-  config,
-  pkgs,
-  inputs,
-  ...
-}: {
+{pkgs, ...}: {
   # Mask Vesktop XDG autostart file to prevent SIGILL crash
   # The XDG autostart uses the wrong Electron binary (unwrapped vs wrapped)
   # We use systemd user service instead for proper autostart

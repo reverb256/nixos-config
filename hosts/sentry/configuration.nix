@@ -43,9 +43,22 @@
   };
 
   # Populate /etc/hosts from central cluster configuration
-  networking.cluster-hosts = {
-    enable = true;
-    populateLocal = true;
+  networking = {
+    cluster-hosts = {
+      enable = true;
+      populateLocal = true;
+    };
+    # Kubernetes worker firewall rules
+    firewall.allowedTCPPorts = lib.mkOptionDefault [22 10250 3100]; # SSH + Kubelet API + Loki (merges with cluster defaults)
+    firewall.allowedTCPPortRanges = lib.mkOptionDefault [
+      {
+        from = 30000;
+        to = 32767;
+      }
+    ];
+    firewall.allowedUDPPorts = lib.mkOptionDefault [8472]; # Flannel VXLAN (merges with cluster defaults)
+    # Open Loki port on main interface for cluster access (module only opens on tailscale0)
+    firewall.interfaces."enp7s0".allowedTCPPorts = [3100];
   };
 
   # ============================================================================
@@ -198,18 +211,6 @@
   # SECONDARY STORAGE (sda - 1TB SSD)
   # Defined in hardware-configuration.nix with subvol=@data
   # ============================================================================
-
-  # Kubernetes worker firewall rules
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 10250 3100]; # SSH + Kubelet API + Loki (merges with cluster defaults)
-  networking.firewall.allowedTCPPortRanges = lib.mkOptionDefault [
-    {
-      from = 30000;
-      to = 32767;
-    }
-  ];
-  networking.firewall.allowedUDPPorts = lib.mkOptionDefault [8472]; # Flannel VXLAN (merges with cluster defaults)
-  # Open Loki port on main interface for cluster access (module only opens on tailscale0)
-  networking.firewall.interfaces."enp7s0".allowedTCPPorts = [3100];
 
   # Host-specific Tailscale override: Sentry advertises subnet routes (backup gateway)
   # This overrides the base Tailscale configuration from node profile

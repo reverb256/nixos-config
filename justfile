@@ -328,20 +328,36 @@ status:
     done
     echo ""
 
-# Cluster connectivity status
+# Cluster connectivity + Kubernetes status
 cluster-status:
     #!/usr/bin/env bash
     source {{JUST_HELPERS}}
     _time; _header "cluster status"
+    echo "  Hosts:"
     for host in zephyr nexus forge sentry; do
         if [ "$host" = "$(hostname -s)" ]; then
-            printf "  \033[2;36m●\033[0m %-8s local\n" "$host"
+            printf "    \033[2;36m●\033[0m %-8s local (current)\n" "$host"
         elif ssh -o ConnectTimeout=2 "$host" "true" >/dev/null 2>&1; then
-            printf "  \033[2;32m●\033[0m %-8s up\n" "$host"
+            printf "    \033[2;32m●\033[0m %-8s up\n" "$host"
         else
-            printf "  \033[2;31m●\033[0m %-8s down\n" "$host"
+            printf "    \033[2;31m●\033[0m %-8s down\n" "$host"
         fi
     done
+    echo ""
+    echo "  Kubernetes:"
+    # Try local kubectl first, then proxy to zephyr if that fails
+    if [ "$(hostname -s)" = "zephyr" ] && command -v kubectl >/dev/null 2>&1; then
+        kubectl get nodes 2>/dev/null | sed 's/^/    /' || echo "    \033[2;33m⚠\033[0m  Kubernetes not responding"
+    elif [ "$(hostname -s)" != "zephyr" ]; then
+        # Proxy to zephyr for kubectl
+        if ssh -o ConnectTimeout=2 {{ZEPHYR_HOST}} "command -v kubectl >/dev/null 2>&1"; then
+            ssh {{ZEPHYR_HOST}} "kubectl get nodes" 2>/dev/null | sed 's/^/    /' || echo "    \033[2;33m⚠\033[0m  Could not query Kubernetes from zephyr"
+        else
+            echo "    \033[2;33m⚠\033[0m  Cannot reach zephyr for Kubernetes status"
+        fi
+    else
+        echo "    \033[2;33m⚠\033[0m  kubectl not found"
+    fi
     echo ""
 
 # ──────────────────────────────────────────────────────────────────────────────

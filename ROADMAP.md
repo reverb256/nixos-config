@@ -1,6 +1,6 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
-**Status:** Planning Phase | **Created:** 2026-03-08 | **Owner:** j_kro
+**Status:** Phase 1 Complete, Phase 2 In Progress | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-03-13
 
 ## Executive Summary
 
@@ -213,7 +213,7 @@
 **Deliverables:**
 - ✅ NixOS configuration committed
 - ✅ Cluster bootstrapped
-- ❌ Monitoring deployed (Prometheus + Grafana - deferred)
+- ✅ Monitoring deployed (Prometheus + Grafana - operational)
 - ⚠️ **NEW REQUIREMENT:** Compute scheduler coordination for GPU workloads
 
 **Phase 1 Status: ✅ COMPLETE (100%)**
@@ -230,19 +230,18 @@
 
 **Outstanding Issues:**
 - ❌ Forge GPU registration failing (RTX 4060 Ada Lovelace support issue)
-- ❌ Monitoring not yet re-enabled
 
 **Documentation:**
-- ✅ `/etc/nixos/docs/research/compute-scheduler-gaps-analysis.md` - Comprehensive gap analysis
-- ✅ `/etc/nixos/docs/research/compute-scheduler-implementation-tracker.md` - 6-phase implementation plan
-- ✅ `/etc/nixos/docs/research/phase-5-complete.md` - Control plane robustness documentation
+- ✅ `/etc/nixos/docs/archive/research/compute-scheduler-gaps-analysis.md` - Comprehensive gap analysis
+- ✅ `/etc/nixos/docs/archive/research/compute-scheduler-implementation-tracker.md` - 6-phase implementation plan
+- ✅ `/etc/nixos/docs/archive/research/phase-5-complete.md` - Control plane robustness documentation
 - ✅ `/etc/nixos/docs/kubernetes/compute-workload-monitor-refactor.md` - Module refactoring documentation
 - ✅ `/etc/nixos/docs/kubernetes/gpu-test-phase1.yaml` - GPU test pod for K8s detection testing
 
 **Next Steps:**
 1. **READY:** Test Kubernetes GPU workload detection with gpu-test-phase1 pod
 2. **MEDIUM:** Investigate and fix Forge GPU registration issue
-3. **LOW:** Re-enable monitoring (Prometheus + Grafana)
+3. **LOW:** Begin Phase 2 - Complete worker node storage configuration
 
 ---
 
@@ -713,6 +712,6 @@
 
 ---
 
-**Last Updated:** 2026-03-08
-**Status:** Planning → Ready to begin Phase 1
-**Next Review:** After Phase 1 completion
+**Last Updated:** 2026-03-13
+**Status:** Phase 1 Complete → Ready to begin Phase 2
+**Next Review:** After Phase 2 completion

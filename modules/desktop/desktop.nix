@@ -1,10 +1,6 @@
 # Desktop Module - Pure Wayland with XWayland Fallback
 # Optimized for Steam and gaming with Wayland-first approach
-{
-  pkgs,
-  lib,
-  ...
-}: {
+{lib, ...}: {
   # ============================================================================
   # SERVICES - Plasma 6, PipeWire, Bluetooth
   # ============================================================================

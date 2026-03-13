@@ -1,6 +1,6 @@
 # NixOS Cluster Documentation Index
 
-**Last Updated:** 2026-03-09 | **Cluster Version:** Pre-Kubernetes Migration | **Agent Files:** Template-based v1.0
+**Last Updated:** 2026-03-13 | **Cluster Version:** Phase 1 Complete (K8s v1.35.0 running) | **Agent Files:** Template-based v1.0
 
 This document provides a comprehensive index of all documentation for the NixOS cluster, including the ongoing Kubernetes migration.
 
@@ -14,13 +14,24 @@ This document provides a comprehensive index of all documentation for the NixOS 
 3. Check `/etc/nixos/ROADMAP.md` for current migration status
 
 **For Human Operators:**
-1. Read this index (DOCUMENTATION_INDEX.md)
-2. Review relevant sections below
+1. **First:** STATUS.md for real-time cluster state
+2. Read this index (DOCUMENTATION_INDEX.md) for full documentation catalog
 3. Use `just` commands for all operations
 
 ---
 
 ## Core Documentation
+
+### STATUS.md (NEW - 2026-03-13)
+**Purpose:** Real-time cluster health and migration progress snapshot
+**Key Sections:**
+- Cluster health overview (K8s, nodes, GPU, storage)
+- Migration progress by phase
+- Known issues and next actions
+- Quick commands for cluster management
+**When to Read:** Checking current cluster state before making changes
+**Location:** `/etc/nixos/STATUS.md`
+**Refresh:** Run `just status` or manually update this file
 
 ### 1. CLAUDE.md
 **Purpose:** Claude Code agent guidelines and workspace overview
@@ -343,10 +354,11 @@ This document provides a comprehensive index of all documentation for the NixOS 
 
 ### Quick Reference
 
-**Current Status:** Pre-migration (Planning Phase)
+**Current Status:** Phase 1 Complete, Phase 2 In Progress
+**Actual State:** Kubernetes v1.35.0 running on 4 nodes
 **Target:** Full upstream Kubernetes via `services.kubernetes`
 **Timeline:** 9 weeks (estimated)
-**Cluster Nodes:** 4 (Zephyr, Nexus, Forge, Sentry)
+**Cluster Nodes:** 4 (Zephyr, Nexus, Forge, Sentry) - ALL JOINED ✓
 
 **Migration Phases:**
 1. Foundation (Week 1-2) - Bootstrap cluster
@@ -457,8 +469,20 @@ just rollback          # Rollback to previous generation
 
 ### Services
 
-**Current Count:** 31 systemd services
-**Target:** Migrate containerizable services to Kubernetes
+**Migration Target:** 31 systemd services identified for Kubernetes migration
+**Note:** Additional system services (40+ total) run outside migration scope
+
+**Service Categories:**
+- AI/ML Services (5)
+- Databases (2)
+- Development Tools (3)
+- File Sync (1)
+- Gaming/Entertainment (4)
+- Media (3)
+- Monitoring (3)
+- Networking (3)
+- Productivity (2)
+- Web Services (5)
 
 **Service Categories:**
 - AI/ML Services (5)
@@ -564,10 +588,10 @@ docs/archive/
 4. Follow systematic debugging process (AGENTS.md)
 
 ### For Humans
-1. Start with DOCUMENTATION_INDEX.md (this file)
-2. Review relevant sections above
-3. Check ROADMAP.md for current status
-4. Use `just status` to see cluster state
+1. **Start here:** STATUS.md for real-time cluster state
+2. Then: Review DOCUMENTATION_INDEX.md for full documentation catalog
+3. Check ROADMAP.md for migration plan and progress
+4. Use `just status` for quick cluster health check
 5. Review logs: `journalctl -xe` for errors
 
 ### Common Tasks
@@ -652,6 +676,14 @@ kubectl logs <pod-name> -n <namespace>
 ## Change Log
 
 ### 2026-03-13
+- **DOCUMENTATION AUDIT:** Fixed critical documentation drift
+- Updated ROADMAP.md status from "Planning Phase" to "Phase 1 Complete"
+- Fixed broken research doc paths (moved to archive/research/)
+- Updated cluster version to reflect actual K8s state
+- Verified monitoring stack is operational (not deferred)
+- Created STATUS.md for real-time cluster state tracking
+
+### 2026-03-13
 - Created STORAGE-CLUSTER-STATUS-REPORT.md (verified deployment status: 87% complete)
 - Updated cluster-storage-implementation.md with actual completion status
 - Updated cluster-storage-design.md with verified progress
@@ -679,5 +711,5 @@ See individual documentation files for detailed change history
 ---
 
 **Document Owner:** j_kro
-**Cluster Version:** Pre-Kubernetes Migration (Planning Phase)
-**Next Review:** After Phase 1 completion (Week 2)
+**Cluster Version:** Phase 1 Complete (K8s v1.35.0 running)
+**Next Review:** After Phase 2 completion (Week 3)

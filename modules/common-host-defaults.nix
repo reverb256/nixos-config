@@ -86,10 +86,6 @@
     };
   };
 
-  # Enable sleepy-launcher to prevent automatic sleep/suspend
-  # This creates a systemd inhibitor that tells the system not to sleep
-  programs.sleepy-launcher.enable = lib.mkDefault true;
-
   # ============================================================================
   # NIX SETTINGS
   # ============================================================================
@@ -147,22 +143,21 @@
   };
 
   # ============================================================================
-  # GIT CONFIGURATION - PLATFORM DEFAULTS
+  # PROGRAMS - PLATFORM DEFAULTS
   # ============================================================================
-  # Standardized git configuration across all cluster nodes
-  # Email address is automatically interpolated to use hostname
-  programs.git = {
-    enable = lib.mkDefault true;
-    config = {
-      init.defaultBranch = "main";
-      user.name = "j_kro";
-      user.email = lib.mkDefault "j_kro@${config.networking.hostName or "cluster"}";
+  # Enable sleepy-launcher to prevent automatic sleep/suspend
+  # Git configuration across all cluster nodes
+  # Enable nix-ld for better binary compatibility
+  programs = {
+    sleepy-launcher.enable = lib.mkDefault true;
+    git = {
+      enable = lib.mkDefault true;
+      config = {
+        init.defaultBranch = "main";
+        user.name = "j_kro";
+        user.email = lib.mkDefault "j_kro@${config.networking.hostName or "cluster"}";
+      };
     };
+    nix-ld.enable = lib.mkDefault true;
   };
-
-  # ============================================================================
-  # NIX-LD DEFAULTS
-  # ============================================================================
-  # Enable nix-ld by default for better binary compatibility
-  programs.nix-ld.enable = lib.mkDefault true;
 }

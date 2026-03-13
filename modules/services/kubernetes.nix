@@ -28,7 +28,6 @@
 
   config = let
     isMaster = builtins.elem "master" config.services.kubernetes-module.roles;
-    hasNvidiaGpu = config.hardware.profiles.nvidia.enable or false;
   in
     lib.mkIf config.services.kubernetes-module.enable {
       # ============================================================================
