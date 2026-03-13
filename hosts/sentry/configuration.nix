@@ -82,7 +82,7 @@
     # etcd clustering configuration (Sentry joins existing cluster)
     etcdInitialState = "existing";
     etcdName = "sentry";
-    etcdAdvertisePeerUrl = "http://10.1.1.140:2380";
+    etcdListenHost = "10.1.1.140";
     etcdClusterMembers = [
       "zephyr=http://10.1.1.110:2380"
       "nexus=http://10.1.1.120:2380"
