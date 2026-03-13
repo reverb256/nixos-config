@@ -71,8 +71,8 @@ let
 
     # Create backup archive
     log_info "Starting backup: $BACKUP_DATE"
-    local backup_dir="/tmp/garage-backup-$BACKUP_DATE"
-    local archive_file="/tmp/cluster-backup-$BACKUP_DATE.tar.gz"
+    backup_dir="/tmp/garage-backup-$BACKUP_DATE"
+    archive_file="/tmp/cluster-backup-$BACKUP_DATE.tar.gz"
 
     mkdir -p "$backup_dir"
 
@@ -87,7 +87,7 @@ let
     log_info "Backing up shared data..."
     for source in "''${BACKUP_SOURCES[@]}"; do
         if [ -d "$source" ]; then
-            local dirname=$(basename "$source")
+            dirname=$(basename "$source")
             log_info "  Archiving $source..."
             tar -czf "$backup_dir/$dirname.tar.gz" -C "$(dirname "$source")" "$dirname" 2>/dev/null || log_warn "    (some files skipped)"
         fi
@@ -107,12 +107,12 @@ EOF
     # Create final archive
     log_info "Creating final archive..."
     tar -czf "$archive_file" -C "$backup_dir" .
-    local archive_size=$(du -h "$archive_file" | cut -f1)
+    archive_size=$(du -h "$archive_file" | cut -f1)
     log_success "Archive created: $archive_file ($archive_size)"
 
     # Upload to Garage
     log_info "Uploading to Garage S3..."
-    local s3_key="$BACKUP_PREFIX/cluster-backup-$BACKUP_DATE.tar.gz"
+    s3_key="$BACKUP_PREFIX/cluster-backup-$BACKUP_DATE.tar.gz"
 
     if aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp "$archive_file" "s3://$BACKUP_BUCKET/$s3_key"; then
         log_success "Backup uploaded: s3://$BACKUP_BUCKET/$s3_key"
@@ -129,11 +129,11 @@ EOF
 
     # Rotate old backups
     log_info "Rotating backups older than $RETENTION_DAYS days..."
-    local cutoff_date=$(date -d "$RETENTION_DAYS days ago" +%Y%m%d 2>/dev/null || date -v-"$RETENTION_DAYS"d +%Y%m%d)
+    cutoff_date=$(date -d "$RETENTION_DAYS days ago" +%Y%m%d 2>/dev/null || date -v-"$RETENTION_DAYS"d +%Y%m%d)
 
     aws --endpoint-url "$GARAGE_ENDPOINT" s3 ls "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/" --recursive 2>/dev/null | while read -r line; do
-        local filename=$(echo "$line" | awk '{print $4}')
-        local file_date=$(echo "$filename" | grep -oP '\d{8}-\d{6}' | head -1)
+        filename=$(echo "$line" | awk '{print $4}')
+        file_date=$(echo "$filename" | grep -oP '\d{8}-\d{6}' | head -1)
 
         if [ -n "$file_date" ] && [ "$file_date" -lt "$cutoff_date" ]; then
             log_info "  Deleting old backup: $filename"
@@ -225,6 +225,8 @@ in
 
       serviceConfig = {
         Type = "oneshot";
+        # Explicit PATH for AWS CLI
+        Environment = "PATH=/run/current-system/sw/bin:/run/wrappers/bin";
         # Inject secret key directly into environment via shell wrapper if secretKeyFile is set
         ExecStart = if cfg.secretKeyFile != null then
           "${pkgs.bash}/bin/bash -c 'source /etc/backup-to-garage/credentials && export GARAGE_SECRET_KEY=$(cat ${cfg.secretKeyFile}) && exec ${backupScript}/bin/backup-to-garage'"

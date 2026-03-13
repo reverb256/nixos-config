@@ -10,12 +10,11 @@
   # ========================================================================
   # All cluster nodes now use x86-64-v3 (requires AVX2)
   # Per-node tuning replaced with unified v3 for cache efficiency
+  #
+  # Implementation: Module-level nixpkgs.hostPlatform.gcc.arch (not localSystem)
   tunedNixpkgs = system:
     import inputs.nixpkgs {
-      localSystem = {
-        inherit system;
-        gcc.arch = "x86-64-v3";
-      };
+      inherit system;
       config.allowUnfree = true;
     };
   # ========================================================================
@@ -33,6 +32,9 @@
 
     # Overlays configuration - applies overlays.default to all hosts
     {nixpkgs.overlays = [self.overlays.default];}
+
+    # x86-64-v3 microarchitecture tuning (module-level, not localSystem)
+    {nixpkgs.hostPlatform.gcc.arch = "x86-64-v3";}
   ];
 
   # ========================================================================
