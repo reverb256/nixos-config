@@ -9,7 +9,9 @@
   lib,
   pkgs,
   ...
-}: {
+}: let
+  inherit (lib) mkForce;
+in {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -46,16 +48,20 @@
   };
 
   # ============================================================================
+  # NODE PROFILE - Platform-level defaults
+  # ============================================================================
+  # This profile bundles role profiles, Kubernetes config, hardware profiles,
+  # and networking configuration. Eliminates ~100 lines of duplication.
+  # profiles.node.sentry-monitoring.enable = true;
+
+  # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
+  # Base profiles provided by node-profiles.sentry-monitoring:
+  # - amd.zen, amdgpu.enable, amdgpu.wayland, monitoring.enable
+  #
+  # Sentry-specific hardware additions:
   hardware = {
-    profiles = {
-      amd.zen = true; # Zen CPU optimizations
-      amdgpu.enable = true; # AMD GPU support
-      amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
-      monitoring.enable = true; # Hardware monitoring
-    };
-
     # BTRFS compression and deduplication
     btrfs-compression.enable = true;
 
@@ -69,15 +75,17 @@
   # ============================================================================
   # ROLE PROFILES
   # ============================================================================
-  profiles.role = {
-    mining = true; # CPU mining only
-    aiInference = true; # AI inference gateway + MCP + RAG
-  };
+  # Base role profiles provided by node-profiles.sentry-monitoring:
+  # - mining, aiInference
+  # Kubernetes and networking also handled by node profile
+  #
+  # No additional role profiles needed - all handled by node profile
 
   # ============================================================================
   # NETWORK PROFILES
   # ============================================================================
-  profiles.network.tailscale.enable = true;
+  # Base Tailscale configuration provided by node-profiles.sentry-monitoring
+  # No additional network profile configuration needed
 
   # ============================================================================
   # SERVICES CONFIGURATION
@@ -86,12 +94,8 @@
     # Crash detection and logging
     crash-watchdog.enable = true;
 
-    # Kubernetes worker node
-    kubernetes-module = {
-      enable = true;
-      masterAddress = "10.1.1.110"; # Zephyr control plane
-      roles = ["node"]; # Worker node only
-    };
+    # Kubernetes worker configuration provided by node-profiles.sentry-monitoring
+    # No need to duplicate here
 
     xserver.videoDrivers = ["amdgpu"];
 
@@ -137,26 +141,17 @@
       deviceId = "SENTRY-PLACEHOLDER";
     };
 
-    # Garage S3-compatible object storage (local storage)
-    # TEMPORARILY DISABLED - permission issues with /storage/garage
-    garage-cluster = {
-      enable = false;
-      dataDir = "/storage/garage";
-      peers = ["zephyr" "nexus"];
-      replicationFactor = 2;
-    };
+    # NOTE: Garage S3 storage removed - NFS provides shared storage
+    # Module commented out in modules/default.nix
   };
 
   # ============================================================================
   # BOOTLOADER CONFIGURATION
   # ============================================================================
   # Moved from hardware-configuration.nix for centralized config
-  boot = {
-    kernelPackages = pkgs.linuxPackages_zen; # Match nexus/forge
-    loader.systemd-boot.enable = true;
-    loader.efi.canTouchEfiVariables = true;
-    loader.timeout = lib.mkDefault 5;
-  };
+  # Base bootloader settings provided by common-host-defaults.nix:
+  # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
+  boot.loader.timeout = lib.mkDefault 5;
 
   # Environment configuration
   environment = {
@@ -205,6 +200,8 @@
   # Open Loki port on main interface for cluster access (module only opens on tailscale0)
   networking.firewall.interfaces."enp7s0".allowedTCPPorts = [3100];
 
+  # Host-specific Tailscale override: Sentry advertises subnet routes (backup gateway)
+  # This overrides the base Tailscale configuration from node profile
   systemd.services.tailscaled.environment = {
     TS_ADVERTISE_ROUTES = "10.1.1.0/24";
     TS_ROUTES = "";
@@ -252,14 +249,8 @@
       openssl
     ];
 
-    git = {
-      enable = true;
-      config = {
-        user.name = "j_kro";
-        user.email = "j_kro@sentry";
-        init.defaultBranch = "main";
-        remote.origin.url = "git@github.com:reverb256/nixos-config.git";
-      };
-    };
+    # Git configuration now provided by common-host-defaults.nix
+    # Sentry-specific git remote override (if needed):
+    # programs.git.config.remote.origin.url = "git@github.com:reverb256/nixos-config.git";
   };
 }
