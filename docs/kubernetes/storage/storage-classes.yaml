@@ -1,0 +1,73 @@
+---
+# Kubernetes StorageClasses for Cluster Storage
+# These define the available storage tiers for Kubernetes workloads
+#
+# Usage: kubectl apply -f docs/kubernetes/storage/storage-classes.yaml
+
+---
+# Fast local SSD storage (Zephyr)
+# For: Databases, high-IOPS workloads, ML models
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-local-ssd
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: kubernetes.io/hostname
+        values:
+          - zephyr
+---
+# Medium-speed NFS storage (Nexus via NFS)
+# For: Shared datasets, media, general-purpose storage
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-shared-storage
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: Immediate
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: kubernetes.io/hostname
+        values:
+          - zephyr
+          - nexus
+          - forge
+          - sentry
+---
+# Slow HDD local storage (Sentry)
+# For: Logs, archival, infrequently accessed data
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: slow-hdd-storage
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: kubernetes.io/hostname
+        values:
+          - sentry
+---
+# S3-compatible object storage (Garage)
+# For: Backups, static assets, large binaries
+# Note: Requires CSI driver or S3 gateway for direct mounting
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: garage-s3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: csi.s3.csi.driver.garage  # TODO: Install CSI driver
+parameters:
+  mounter: geesefs
+  endpoint: http://10.1.1.110:3900
+  region: garage
+volumeBindingMode: Immediate

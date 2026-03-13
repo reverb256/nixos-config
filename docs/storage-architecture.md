@@ -46,17 +46,58 @@ The cluster uses a hybrid storage architecture combining traditional NFS file sh
 **Node Configuration:**
 | Node | ID (short) | Storage | Capacity | Speed |
 |------|------------|---------|----------|-------|
-| **Zephyr** | `35ba2a0bd6db0c86` | `/data/garage` (SSD) | 4 | Fast |
-| **Nexus** | TBD | `/data/shared/garage` (bcache) | 2 | Medium |
-| **Sentry** | `1c10c1bfb54bcaa5` | `/storage/garage` (HDD) | 1 | Slow |
+| **Zephyr** | `35ba2a0bd6db0c86` | `/data/garage` (SSD) | 500GB | Fast |
+| **Nexus** | `1ecbbd14ca5ebf32` | `/data/shared/garage` (bcache) | 3TB | Medium |
+| **Sentry** | `1c10c1bfb54bcaa5` | `/storage/garage` (HDD) | 900GB | Slow |
 
-**S3 Buckets (planned):**
+**S3 Buckets (configured):**
 - `backups` - Backup archives
 - `media` - Media library
 - `projects` - Project data
 - `logs` - Log aggregation
+- `test-bucket` - Testing
+
+**Effective Cluster Capacity:** 500GB (limited by smallest zone for 3-way replication)
 
 **Access:** S3 API at `http://10.1.1.110:3900`
+
+**S3 Credentials:**
+- **Admin Key ID:** `GKac91d924fc76a30b9bcf6c3e`
+- **Secret Key:** Stored in agenix (see `/run/agenix/garage-admin-key`)
+- **Region:** `garage`
+
+**S3 Configuration Example:**
+```bash
+# AWS CLI
+aws configure set default.s3.endpoint_url http://10.1.1.110:3900
+aws configure set default.s3.addressing-style path
+
+# List buckets
+aws --endpoint-url http://10.1.1.110:3900 s3 ls
+```
+
+### 5. Kubernetes Storage Integration
+**Purpose:** Kubernetes manifests for storage consumption
+**Location:** `docs/kubernetes/storage/`
+**Status:** Manifests created, pending application
+
+**Storage Classes Defined:**
+| Class | Purpose | Backend | Node |
+|-------|---------|---------|------|
+| `fast-local-ssd` | Databases, ML models | Local SSD | Zephyr |
+| `nfs-shared-storage` | Shared data | NFS | Nexus |
+| `slow-hdd-storage` | Logs, archive | Local HDD | Sentry |
+| `garage-s3` | S3 object storage | S3 API | All |
+
+**Key Point:** Storage is **decoupled from Kubernetes**. The same NFS/S3 infrastructure serves both systemd services and K8s pods.
+
+**Files:**
+- `storage-classes.yaml` - StorageClass definitions
+- `persistent-volumes.yaml` - PV mappings to cluster storage
+- `persistent-volume-claims.yaml` - Example PVCs
+- `garage-s3-secret.yaml` - S3 credentials for K8s
+- `garage-csi-plan.md` - CSI driver integration plan
+- `README.md` - Full documentation
 
 ### 3. Syncthing
 **Purpose:** Peer-to-peer configuration sync
@@ -135,10 +176,13 @@ The cluster uses a hybrid storage architecture combining traditional NFS file sh
 |------|---------|
 | `modules/services/nfs-server.nix` | NFS server configuration (Nexus) |
 | `modules/services/nfs-client.nix` | NFS client configuration (all nodes) |
-| `modules/services/nfs-client.nix` | NFS client mount configuration |
 | `modules/services/garage.nix` | Garage S3 object storage |
 | `modules/services/syncthing.nix` | P2P config sync |
 | `modules/services/nixos-share.nix` | NixOS config NFS sharing |
+| `modules/services/backup-to-garage.nix` | Automated backup service |
+| `scripts/backup-to-garage.sh` | Backup script (manual or automated) |
+| `docs/kubernetes/storage/*.yaml` | K8s storage manifests |
+| `docs/kubernetes/storage/garage-csi-plan.md` | CSI integration plan |
 
 ## Maintenance Commands
 
@@ -214,13 +258,40 @@ grep rpcSecret /etc/nixos/hosts/*/configuration.nix
 systemctl restart syncthing
 ```
 
+## Deployment Status (2026-03-13)
+
+**✅ COMPLETED:**
+- Garage 3-node cluster operational
+- Cluster layout applied with proper capacity tiers (500G/3T/900G)
+- S3 buckets created: backups, media, projects, logs, test-bucket
+- Admin S3 access key configured with full permissions
+- Kubernetes storage manifests created:
+  - StorageClasses (4 tiers)
+  - PersistentVolumes (8 PVs defined)
+  - PersistentVolumeClaims (examples)
+  - S3 secrets template
+- Backup automation script created
+
+**🔄 IN PROGRESS:**
+- Agenix secret storage for S3 credentials (needs manual setup)
+- K8s directory creation on nodes
+
+**⏳ TODO:**
+- Apply Kubernetes storage manifests to cluster
+- Install S3 CSI driver (Phase 2)
+- Configure applications to use Garage S3
+- Enable automated backup systemd timer
+
 ## Future Improvements
 
 1. **Garage Multi-Region:** Add remote Garage node for disaster recovery
 2. **Tiered S3 Lifecycle:** Auto-transition old data to slow tier
 3. **NFS Root Squash:** Consider `no_root_squash` security implications
-4. **Backup Strategy:** Implement Garage-to-NFS backup rotation
-5. **Monitoring:** Prometheus metrics for NFS and Garage health
+4. **Backup Automation:** ✅ Script created, enable systemd timer
+5. **Monitoring:** Prometheus metrics for NFS and Garage health (already exposing on port 3903)
+6. **Increase Zephyr Zone:** Add storage to zephyr zone to balance cluster capacity (currently at 100% utilization)
+7. **S3 CSI Driver:** Install for POSIX-compatible S3 mounting (Phase 2)
+8. **K8s Storage Classes:** Apply manifests to cluster
 
 ## See Also
 

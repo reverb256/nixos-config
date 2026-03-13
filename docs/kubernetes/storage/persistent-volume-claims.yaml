@@ -1,0 +1,111 @@
+---
+# Kubernetes PersistentVolumeClaims Example
+# Claims that pods use to request storage
+#
+# Usage: kubectl apply -f docs/kubernetes/storage/persistent-volume-claims.yaml
+# Note: These are examples - modify sizes and selectors for your use case
+
+---
+# PostgreSQL database (fast SSD on Zephyr)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-local-ssd
+  resources:
+    requests:
+      storage: 50Gi
+  selector:
+    matchLabels:
+      storage: fast-ssd
+      purpose: databases
+---
+# Shared media files (NFS from Nexus)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shared-media
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-shared-storage
+  resources:
+    requests:
+      storage: 100Gi
+  selector:
+    matchLabels:
+      storage: nfs-shared
+      purpose: media
+---
+# Application logs (slow HDD on Sentry)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-logs
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: slow-hdd-storage
+  resources:
+    requests:
+      storage: 50Gi
+  selector:
+    matchLabels:
+      storage: slow-hdd
+      purpose: logs
+---
+# ML model cache (fast SSD on Zephyr)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ml-models
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-local-ssd
+  resources:
+    requests:
+      storage: 100Gi
+  selector:
+    matchLabels:
+      storage: fast-ssd
+      purpose: ml-models
+---
+# S3 backups (Garage via CSI - requires driver)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: garage-backups
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: garage-s3
+  resources:
+    requests:
+      storage: 100Gi
+  selector:
+    matchLabels:
+      storage: s3
+      purpose: backups
+---
+# Generic storage class claim (uses default: NFS)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: generic-storage
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-shared-storage  # Uses default NFS
+  resources:
+    requests:
+      storage: 10Gi

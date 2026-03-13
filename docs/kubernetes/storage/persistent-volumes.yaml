@@ -1,0 +1,202 @@
+---
+# Kubernetes PersistentVolumes for Cluster Storage
+# Pre-provisioned PVs that map to existing cluster storage
+#
+# Usage: kubectl apply -f docs/kubernetes/storage/persistent-volumes.yaml
+
+---
+# Fast local SSD (Zephyr) - For databases
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-zephyr-ssd-databases
+  labels:
+    storage: fast-ssd
+    purpose: databases
+spec:
+  capacity:
+    storage: 100Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: fast-local-ssd
+  local:
+    path: /data/kubernetes/databases
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - zephyr
+---
+# Fast local SSD (Zephyr) - For ML models
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-zephyr-ssd-ml-models
+  labels:
+    storage: fast-ssd
+    purpose: ml-models
+spec:
+  capacity:
+    storage: 200Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: fast-local-ssd
+  local:
+    path: /data/kubernetes/ml-models
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - zephyr
+---
+# NFS Shared Storage (from Nexus) - For shared data
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-nfs-shared-data
+  labels:
+    storage: nfs-shared
+    purpose: shared-data
+spec:
+  capacity:
+    storage: 1Ti
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-shared-storage
+  nfs:
+    server: 10.1.1.120
+    path: /data/shared/kubernetes
+---
+# NFS Media Storage (from Nexus) - For media files
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-nfs-media
+  labels:
+    storage: nfs-shared
+    purpose: media
+spec:
+  capacity:
+    storage: 2Ti
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-shared-storage
+  nfs:
+    server: 10.1.1.120
+    path: /data/media/kubernetes
+---
+# NFS Backup Storage (from Nexus) - For backups
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-nfs-backups
+  labels:
+    storage: nfs-shared
+    purpose: backups
+spec:
+  capacity:
+    storage: 500Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-shared-storage
+  nfs:
+    server: 10.1.1.120
+    path: /data/backups/kubernetes
+---
+# Slow HDD local (Sentry) - For logs
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-sentry-hdd-logs
+  labels:
+    storage: slow-hdd
+    purpose: logs
+spec:
+  capacity:
+    storage: 500Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: slow-hdd-storage
+  local:
+    path: /storage/kubernetes/logs
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - sentry
+---
+# Slow HDD local (Sentry) - For archival
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-sentry-hdd-archive
+  labels:
+    storage: slow-hdd
+    purpose: archive
+spec:
+  capacity:
+    storage: 500Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: slow-hdd-storage
+  local:
+    path: /storage/kubernetes/archive
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - sentry
+---
+# Garage S3 Bucket (via CSI) - For S3-compatible storage
+# TODO: Requires CSI-S3 driver installation
+# See: docs/kubernetes/storage/garage-csi-plan.md
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-garage-s3-backups
+  labels:
+    storage: s3
+    purpose: backups
+spec:
+  capacity:
+    storage: 500Gi  # Logical size, S3 is unlimited
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: garage-s3
+  csi:
+    driver: csi.s3.csi.driver.garage
+    volumeHandle: garage-backups-pv
+    volumeAttributes:
+      bucketName: backups
+      mounter: geesefs
+    nodeStageSecretRef:
+      name: garage-s3-credentials
+      namespace: kube-system

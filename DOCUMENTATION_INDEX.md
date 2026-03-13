@@ -136,6 +136,18 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **When to Read:** Understanding cluster storage layout, troubleshooting mount issues
 **Location:** `/etc/nixos/docs/storage-configuration.md`
 
+#### storage-architecture.md (Updated - 2026-03-13)
+**Purpose:** Complete cluster storage architecture including K8s integration
+**Status:** ✅ Complete
+**Contents:**
+- All storage technologies (NFS, Garage S3, Syncthing)
+- Kubernetes storage classes and tier selection
+- Storage design diagrams
+- S3 configuration examples
+- Backup automation
+- Troubleshooting guides
+**Location:** `/etc/nixos/docs/storage-architecture.md`
+
 #### STORAGE-CLUSTER-STATUS-REPORT.md
 **Purpose:** Current status of cluster storage architecture (NFS, Syncthing, Loki/Promtail)
 **Contents:** Service deployment status, mount verification, remaining work, issues found
@@ -347,6 +359,109 @@ This document provides a comprehensive index of all documentation for the NixOS 
 - Risk assessment and mitigations
 
 **AGENTS.md** (updated with Kubernetes section)
+- Kubernetes commands and workflows
+- Service migration patterns
+- NixOS Kubernetes configuration
+- Troubleshooting guide
+
+### Kubernetes Storage Documentation (NEW - 2026-03-13)
+**Location:** `/etc/nixos/docs/kubernetes/storage/`
+
+**Purpose:** Complete storage integration for Kubernetes workloads
+
+#### Key Documents
+
+##### storage-architecture.md (Updated)
+**Purpose:** Complete cluster storage architecture including K8s integration
+**Status:** ✅ Complete
+**Contents:**
+- All storage technologies (NFS, Garage S3, Syncthing)
+- Kubernetes storage classes and tier selection
+- Storage design diagrams
+- S3 configuration examples
+- Backup automation
+- Troubleshooting guides
+
+##### README.md (NEW)
+**Purpose:** Kubernetes storage integration guide
+**Status:** ✅ Complete
+**Contents:**
+- Storage architecture overview (decoupled from K8s)
+- Quick start guide for applying manifests
+- Storage tier selection guide
+- Example pod usage
+- S3 integration options (API vs CSI)
+- Maintenance and troubleshooting
+
+##### storage-classes.yaml (NEW)
+**Purpose:** Kubernetes StorageClass definitions
+**Status:** ✅ Created, pending application
+**Contents:**
+- `fast-local-ssd` - Zephyr SSD (databases, ML)
+- `nfs-shared-storage` - Nexus NFS (shared data)
+- `slow-hdd-storage` - Sentry HDD (logs, archive)
+- `garage-s3` - S3 object storage
+
+##### persistent-volumes.yaml (NEW)
+**Purpose:** Pre-provisioned PVs mapping to cluster storage
+**Status:** ✅ Created, pending application
+**Contents:**
+- 8 PVs defined for various use cases
+- Node affinity for local storage
+- NFS mounts for shared storage
+- S3 CSI placeholder
+
+##### persistent-volume-claims.yaml (NEW)
+**Purpose:** Example PVCs for common use cases
+**Status:** ✅ Created
+**Contents:**
+- PostgreSQL database (fast SSD)
+- Shared media files (NFS)
+- Application logs (HDD)
+- ML model cache (SSD)
+- S3 backups (Garage)
+
+##### garage-s3-secret.yaml (NEW)
+**Purpose:** S3 credentials for Kubernetes
+**Status:** ⚠️ Template (needs agenix integration)
+**Contents:**
+- S3 endpoint configuration
+- Access credentials template
+- AWS CLI compatible config
+- Environment variable format
+
+##### garage-csi-plan.md (NEW)
+**Purpose:** S3 CSI driver integration plan
+**Status:** ✅ Complete (Phase 2)
+**Contents:**
+- CSI driver options comparison
+- Implementation steps (Phase 1: Direct API, Phase 2: CSI)
+- Testing procedures
+- Rollback plan
+
+##### backup-to-garage.nix (NEW)
+**Purpose:** NixOS module for automated backups
+**Status:** ✅ Created
+**Contents:**
+- Systemd service and timer
+- Configurable backup sources
+- Retention policy (30 days default)
+- Integration with agenix for secrets
+
+##### backup-to-garage.sh (NEW)
+**Purpose:** Backup script (manual or automated)
+**Status:** ✅ Complete
+**Contents:**
+- Backup NixOS config and shared data
+- Upload to Garage S3
+- Automatic rotation
+- List and restore commands
+
+**When to Read:**
+- Applying storage manifests to K8s cluster
+- Designing storage for new workloads
+- Troubleshooting storage issues
+- Configuring automated backups
 - Kubernetes commands and workflows
 - Service migration patterns
 - NixOS Kubernetes configuration
