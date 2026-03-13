@@ -6,16 +6,18 @@
 set -euo pipefail
 
 # Node configuration (short IDs for layout commands)
+# Capacity values: Garage uses byte units (T=TB, G=GB, M=MB)
+# Based on actual available storage from `garage status`
 ZEPHYR_SHORT="35ba2a0bd6db0c86"    # Fast - SSD
 ZEPHYR_FULL="35ba2a0bd6db0c86ed663cbd32d0dbe4e103cbc7438df59f663e03cc54a41acb@10.1.1.110:3901"
-ZEPHYR_CAP="4"  # Highest capacity - fast SSD
+ZEPHYR_CAP="500G"  # ~466GB available on SSD (use conservative value)
 
 NEXUS_SHORT=""  # Will be populated after Nexus Garage is running
-NEXUS_CAP="2"  # Medium capacity - bcache (SSD+HDD)
+NEXUS_CAP="3T"  # ~4TB available on bcache (use conservative value)
 
 SENTRY_SHORT="1c10c1bfb54bcaa5"    # Slow - HDD
 SENTRY_FULL="1c10c1bfb54bcaa5a9cce11364a1f0faa38fb43b8331fe77081af380ddde0c39@10.1.1.140:3901"
-SENTRY_CAP="1"  # Lowest capacity - slow HDD
+SENTRY_CAP="900G"  # ~998GB available on HDD (use conservative value)
 
 REPLICATION_FACTOR=3  # 3-node cluster
 
@@ -24,9 +26,9 @@ echo "Garage 3-Node Cluster Configuration"
 echo "=========================================="
 echo ""
 echo "Nodes:"
-echo "  Zephyr (fast):  ${ZEPHYR_CAP} capacity"
-echo "  Nexus (medium): ${NEXUS_CAP} capacity (pending deployment)"
-echo "  Sentry (slow):  ${SENTRY_CAP} capacity"
+echo "  Zephyr (fast):  ${ZEPHYR_CAP} (~466GB SSD)"
+echo "  Nexus (medium): ${NEXUS_CAP} (~4TB bcache)"
+echo "  Sentry (slow):  ${SENTRY_CAP} (~998GB HDD)"
 echo ""
 echo "Replication factor: ${REPLICATION_FACTOR}"
 echo ""

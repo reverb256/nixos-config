@@ -45,13 +45,7 @@ in {
     webPort = lib.mkOption {
       type = lib.types.port;
       default = 3902;
-      description = "Web interface port";
-    };
-
-    metricsPort = lib.mkOption {
-      type = lib.types.port;
-      default = 3903;
-      description = "Prometheus metrics port";
+      description = "Web interface port (also serves metrics)";
     };
 
     rpcSecret = lib.mkOption {
@@ -118,11 +112,7 @@ in {
 
       [admin]
       api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
-      ${lib.optionalString cfg.enableMetrics ''
-      [metrics]
-      api_bind_addr = "[::]:${toString cfg.metricsPort}"
-      api_token = "garage_metrics_token"
-      ''}
+      metrics_token = ${lib.optionalString cfg.enableMetrics "\"garage_metrics_token\""}
     '';
 
     # Create data directory with correct permissions
@@ -199,11 +189,9 @@ in {
     };
 
     # Firewall - use mkOptionDefault to preserve existing ports
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault (
-      [
-        cfg.rpcPort # RPC for cluster communication
-        cfg.s3ApiPort # S3 API
-      ] ++ lib.optional cfg.enableMetrics cfg.metricsPort
-    );
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
+      cfg.rpcPort # RPC for cluster communication
+      cfg.s3ApiPort # S3 API
+    ];
   };
 }

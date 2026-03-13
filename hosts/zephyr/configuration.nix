@@ -97,8 +97,9 @@
   # ============================================================================
   # Override profile defaults for HA setup with etcd clustering and VIP
   services.kubernetes-module = {
-    # Override masterAddress to use VIP
-    masterAddress = lib.mkForce "10.1.1.100";
+    # TEMPORARY: Use actual IP instead of VIP due to easyCerts SAN limitation
+    # TODO: Generate custom certificates with VIP (10.1.1.100) in SANs
+    masterAddress = lib.mkForce "10.1.1.110";
     # etcd clustering configuration (Zephyr is initial node)
     etcdInitialState = "new";
     etcdClusterMembers = [
@@ -717,13 +718,13 @@
         group = "garage";
       };
 
-      # Nextcloud admin password
-      nextcloud-admin = {
-        file = "${inputs.self}/secrets/nextcloud-admin.age";
-        mode = "440";
-        owner = "nextcloud";
-        group = "nextcloud";
-      };
+      # Nextcloud admin password (DISABLED - service not enabled)
+      # nextcloud-admin = {
+      #   file = "${inputs.self}/secrets/nextcloud-admin.age";
+      #   mode = "440";
+      #   owner = "nextcloud";
+      #   group = "nextcloud";
+      # };
 
       # Grafana admin password
       grafana-admin = {
