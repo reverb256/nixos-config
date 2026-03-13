@@ -548,6 +548,7 @@
       enable = true;
       dataDir = "/data/shared/garage"; # On NFS from nexus
       replicationFactor = 2;  # 2-node cluster
+      consistencyMode = "degraded";  # Required for 2-node cluster with RF=2
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
 
