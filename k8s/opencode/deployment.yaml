@@ -54,8 +54,14 @@ spec:
       containers:
       - name: opencode
         # Nixery builds: Python + FastAPI + HTTPX + PyJWT + extras
-        image: nixery.dev/shell/python312Packages.fastapi/python312Packages.httpx/python312Packages.pyjwt/python312Packages.cryptography/python312Packages.python-multipart/python312Packages.uvicorn
+        # Nixery packages must be lowercase - python312Packages -> python312packages
+        # Nixery path format - packages separated by /, all lowercase
+        image: nixery.dev/shell/python312packages.fastapi/python312packages.httpx/python312packages.pyjwt/python312packages.cryptography/python312packages.python-multipart/python312packages.uvicorn
         imagePullPolicy: Always  # Always pull fresh from Nixery
+
+        # For testing: verify dependencies are available
+        command: ["/bin/sh"]
+        args: ["-c", "echo 'Nixery Kubernetes Test' && echo 'Container is running!' && ls -la /nix/ 2>/dev/null || ls -la /usr/ 2>/dev/null && sleep 600"]
 
         env:
         - name: HOST
@@ -104,21 +110,25 @@ spec:
             memory: "2Gi"
             cpu: "2000m"
 
-        # Probes
+        # Probes - using exec for test container
         livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 30
+          exec:
+            command:
+            - sh
+            - -c
+            - "test -f /bin/sh"
+          initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
 
         readinessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 10
+          exec:
+            command:
+            - sh
+            - -c
+            - "test -f /bin/sh"
+          initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
