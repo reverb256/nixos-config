@@ -97,9 +97,9 @@
   # ============================================================================
   # Override profile defaults for HA setup with etcd clustering and VIP
   services.kubernetes-module = {
-    # Use VIP for HA (note: requires certificates with VIP in SANs, using workaround for now)
-    # Current workaround: components bind to actual IP, kubectl uses VIP
-    masterAddress = lib.mkForce "10.1.1.100";
+    # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
+    # TODO: Generate custom certificates with VIP (10.1.1.100) in SANs for proper HA
+    masterAddress = lib.mkForce "10.1.1.110";
     # etcd clustering configuration (Zephyr is initial node)
     etcdInitialState = "new";
     etcdClusterMembers = [

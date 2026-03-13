@@ -77,8 +77,8 @@
     enable = true;
     # Override roles to include master
     roles = lib.mkForce ["master" "node"];
-    # Use VIP for HA
-    masterAddress = lib.mkForce "10.1.1.100";
+    # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
+    masterAddress = lib.mkForce "10.1.1.110";
     # etcd clustering configuration (Sentry joins existing cluster)
     etcdInitialState = "existing";
     etcdClusterMembers = [
