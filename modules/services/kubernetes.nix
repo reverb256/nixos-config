@@ -112,12 +112,16 @@
     # Also create /var/lib/flannel for persistent subnet.env file (not on tmpfs)
     # Create symlink from /run/flannel to /var/lib/flannel for CNI plugin compatibility
     systemd.tmpfiles.rules = [
+      # Create writable CNI directories (both for kubelet and containerd)
       "d /var/lib/cni/net.d 0755 root root -"
-      # Create symlink from read-only NixOS store to writable directory
+      # Remove /etc/cni/net.d if it exists as a symlink from old activation
+      # Then create it as a writable directory for containerd's CNI config
+      "r /etc/cni/net.d"
+      "d /etc/cni/net.d 0755 root root -"
+      # Create symlinks from read-only NixOS store to writable directories
       # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)
       "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
       # Containerd reads from /etc/cni/net.d (default CNI path)
-      # Note: environment.etc."cni/net.d/..." doesn't work correctly for nested directories
       "L+ /etc/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
       # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
       "d /var/lib/flannel 0755 root root -"
