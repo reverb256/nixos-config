@@ -64,10 +64,6 @@ in {
     users.j_kro
     hosts.zephyr
   ];
-  "secrets/context7-api-key.age".publicKeys = [
-    users.j_kro
-    hosts.zephyr
-  ];
 
   # Spacebot Telegram token - AI agent Telegram integration
   "secrets/spacebot-telegram-token.age".publicKeys = [

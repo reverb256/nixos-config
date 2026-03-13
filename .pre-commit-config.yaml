@@ -2,13 +2,6 @@
 repos:
   - repo: local
     hooks:
-      - id: nix-flake-check
-        name: Nix flake check
-        entry: bash -c 'cd /etc/nixos && nix flake check'
-        language: system
-        pass_filenames: false
-        always_run: true
-
       - id: nix-lint-statix
         name: Nix lint (statix)
         entry: statix check

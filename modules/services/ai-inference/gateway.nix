@@ -80,7 +80,7 @@ in {
       wantedBy = ["multi-user.target"];
 
       environment = {
-        PATH = lib.mkDefault "/run/current-system/sw/bin";
+        PATH = lib.mkForce "/run/current-system/sw/bin:/run/current-system/sw/sbin:${config.system.path}";
         BACKEND_URL = cfg.backend.url;
         BACKEND_TYPE = cfg.backend.type;
         BACKEND_FALLBACK_URLS = lib.strings.concatMapStringsSep "," (url: url) (

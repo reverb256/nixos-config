@@ -86,6 +86,7 @@
         extraConfig = {
           failSwapOn = false;
           containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
+          cniConfDir = "/var/lib/cni/net.d";
         };
       };
       proxy.enable = true;
@@ -120,24 +121,47 @@
     ];
 
     # Store the Flannel CNI config
+    # Use same format as working Zephyr control plane (cniVersion 0.3.1, name "cbr0")
+    # The minimal delegate config lets Flannel handle bridge setup automatically
     environment.etc = {
-      # Flannel CNI config
+      # Flannel CNI config (for kubelet via tmpfiles symlink)
       "cni/flannel.conflist".text = builtins.toJSON {
-        cniVersion = "1.0.0";
-        name = "mynet";
+        name = "cbr0";
+        cniVersion = "0.3.1";
         plugins = [
           {
             type = "flannel";
             delegate = {
-              type = "bridge";
-              bridge = "mynet";
-              isDefaultGateway = true;
               hairpinMode = true;
+              isDefaultGateway = true;
             };
           }
           {
             type = "portmap";
-            capabilities = {portMappings = true;};
+            capabilities = {
+              portMappings = true;
+            };
+          }
+        ];
+      };
+
+      # Also provide config for containerd (reads from /etc/cni/net.d)
+      "cni/net.d/10-flannel.conflist".text = builtins.toJSON {
+        name = "cbr0";
+        cniVersion = "0.3.1";
+        plugins = [
+          {
+            type = "flannel";
+            delegate = {
+              hairpinMode = true;
+              isDefaultGateway = true;
+            };
+          }
+          {
+            type = "portmap";
+            capabilities = {
+              portMappings = true;
+            };
           }
         ];
       };

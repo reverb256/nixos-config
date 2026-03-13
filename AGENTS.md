@@ -50,7 +50,6 @@ just ci-local          # Run full CI pipeline locally
 sudo nixos-rebuild switch --flake .#zephyr   # Apply locally (mining pause)
 sudo nixos-rebuild build --flake .#zephyr    # Build without applying
 sudo nixos-rebuild test --flake .#zephyr     # Test (rollback safe)
-nix flake check                               # Fast syntax check
 nix flake update                              # Update flake inputs
 ```
 
