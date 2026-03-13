@@ -211,8 +211,7 @@ in {
       wantedBy = ["multi-user.target"];
 
       serviceConfig = {
-        Type = "notify";
-        NotifyAccess = "all";
+        Type = "simple";
 
         # Use podman to run the container
         ExecStartPre = pkgs.writeShellScript "spacebot-prep" ''
@@ -373,7 +372,6 @@ in {
             --replace \
             --cgroup-manager=systemd \
             --cgroupns=host \
-            --sdnotify=conmon \
             --security-opt label=disable \
             --network slirp4netns:allow_host_loopback=true \
             -p ${cfg.host}:${toString cfg.port}:19898 \
