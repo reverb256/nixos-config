@@ -286,10 +286,10 @@
             echo "ERROR: containerd not ready after 60 seconds"
             exit 1
           '';
-          # Kubelet memory limits (applied to all nodes, using mkDefault for override)
-          MemoryMax = lib.mkDefault "2G";
-          MemoryHigh = lib.mkDefault "1.5G";
-          OOMScoreAdjust = lib.mkDefault -500;
+          # Kubelet memory limits (applied to all nodes)
+          MemoryMax = "2G";
+          MemoryHigh = "1.5G";
+          OOMScoreAdjust = -500;
         };
       };
 
@@ -325,10 +325,10 @@
           # ========================================================================
           # API server typically uses 200-500MB. Set limits to prevent runaway.
           # Max 2GB is generous but prevents it from consuming all RAM.
-          MemoryMax = lib.mkDefault "2G";
-          MemoryHigh = lib.mkDefault "1.5G"; # Start soft limiting at 1.5GB
+          MemoryMax = "2G";
+          MemoryHigh = "1.5G"; # Start soft limiting at 1.5GB
           # Negative OOM score = protects from OOM killer (-500 = highly protected)
-          OOMScoreAdjust = lib.mkDefault -500;
+          OOMScoreAdjust = -500;
         };
       };
 
@@ -338,9 +338,9 @@
         # Don't override ExecStart - let upstream handle it
         serviceConfig = {
           # Scheduler is lightweight (~100MB typical)
-          MemoryMax = lib.mkDefault "512M";
-          MemoryHigh = lib.mkDefault "256M";
-          OOMScoreAdjust = lib.mkDefault -500;
+          MemoryMax = "512M";
+          MemoryHigh = "256M";
+          OOMScoreAdjust = -500;
         };
       };
 
@@ -350,9 +350,9 @@
         # Don't override ExecStart - let upstream handle it
         serviceConfig = {
           # Controller manager uses ~200-400MB
-          MemoryMax = lib.mkDefault "1G";
-          MemoryHigh = lib.mkDefault "512M";
-          OOMScoreAdjust = lib.mkDefault -500;
+          MemoryMax = "1G";
+          MemoryHigh = "512M";
+          OOMScoreAdjust = -500;
         };
       };
 
