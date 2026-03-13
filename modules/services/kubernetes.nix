@@ -104,7 +104,7 @@
         controllerManager = {
           enable = isMaster;
           # extraOpts expects a space-separated string, not a list
-          extraOpts = "--allocate-node-cidrs=true --cluster-cidr=10.244.0.0/16 --nodes-per-cidr=24";
+          extraOpts = "--allocate-node-cidrs=true --cluster-cidr=10.244.0.0/16";
         };
         kubelet = {
           enable = true;
