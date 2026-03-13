@@ -106,9 +106,9 @@
       apiPort = 4069;
     };
 
-    # GPU miners connect to gpu-proxy on Nexus
-    mining.lolminer.pool = "10.1.1.120:3334";
-    mining.lolminer.wallet = "forge-gpu";
+    # GPU miners connect directly to Kryptex CR29 with TLS
+    mining.lolminer.pool = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+    mining.lolminer.wallet = "krxXVNVMM7.forge-gpu";
 
     # GPU Stratum Proxy with Kryptex pool failover
     # DISABLED: Now using gpu-proxy on Nexus

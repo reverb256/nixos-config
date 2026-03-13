@@ -479,10 +479,10 @@
     };
 
     # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
-    # GPU miners connect to gpu-proxy on Nexus
+    # GPU miners connect directly to Kryptex CR29 with TLS
     mining.lolminer = {
-      pool = "10.1.1.120:3334";
-      wallet = "zephyr-gpu";
+      pool = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+      wallet = "krxXVNVMM7.zephyr-gpu";
     };
     # NVIDIA GPU mining with per-GPU power limits
     # Device 0: RTX 3060 Ti @ 130W (efficient), Device 1: RTX 3090 @ 250W (VRAM-safe)
