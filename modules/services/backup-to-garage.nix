@@ -6,8 +6,8 @@
 let
   cfg = config.services.backup-to-garage;
   # Embed the backup script directly to avoid path resolution issues
+  # Note: writeShellScriptBin automatically adds the shebang
   backupScript = pkgs.writeShellScriptBin "backup-to-garage" ''
-    #!/usr/bin/env bash
     # backup-to-garage.sh - Backup critical cluster data to Garage S3
     # Run this after Garage cluster layout is applied
 
@@ -225,20 +225,17 @@ in
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${backupScript}/bin/backup-to-garage --auto";
-        EnvironmentFile = lib.mkIf (cfg.secretKeyFile != null) (
-          "/etc/backup-to-garage/credentials " +
-          "-e GARAGE_SECRET_KEY=$(cat ${cfg.secretKeyFile})"
-        );
-        # Fallback if no secret key file
-        Environment = lib.mkIf (cfg.secretKeyFile == null) [
-          "GARAGE_SECRET_KEY=PLEASE_SET_SECRET_KEY_FILE"
-        ];
+        # Inject secret key directly into environment via shell wrapper if secretKeyFile is set
+        ExecStart = if cfg.secretKeyFile != null then
+          "${pkgs.bash}/bin/bash -c 'source /etc/backup-to-garage/credentials && export GARAGE_SECRET_KEY=$(cat ${cfg.secretKeyFile}) && exec ${backupScript}/bin/backup-to-garage'"
+        else
+          "${backupScript}/bin/backup-to-garage";
+        EnvironmentFile = "/etc/backup-to-garage/credentials";
         User = "root";
         Group = "root";
         PrivateTmp = true;
         NoNewPrivileges = true;
-        ReadOnlyPaths = lib.mkMerge (map (p: [ p p ]) cfg.backupPaths);
+        ReadOnlyPaths = cfg.backupPaths;
         ReadWritePaths = [ "/tmp" ];
       };
     };
