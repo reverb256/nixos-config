@@ -6,13 +6,15 @@
   ...
 }: let
   # ========================================================================
-  # CPU TUNING - Per-node microarchitecture optimization
+  # CPU TUNING - Unified x86-64-v3 microarchitecture
   # ========================================================================
-  tunedNixpkgs = system: microarch:
+  # All cluster nodes now use x86-64-v3 (requires AVX2)
+  # Per-node tuning replaced with unified v3 for cache efficiency
+  tunedNixpkgs = system:
     import inputs.nixpkgs {
       localSystem = {
         inherit system;
-        gcc.arch = microarch;
+        gcc.arch = "x86-64-v3";
       };
       config.allowUnfree = true;
     };
@@ -69,12 +71,12 @@ in {
       config.allowUnfree = true;
     };
 
-    # Per-node CPU microarchitecture tuning
+    # Per-node CPU microarchitecture tuning - unified x86-64-v3
     nodeNixpkgs = {
-      zephyr = tunedNixpkgs "x86_64-linux" "znver3"; # Ryzen 9 5950X (Zen 3)
-      nexus = tunedNixpkgs "x86_64-linux" "znver2"; # Ryzen 9 3900X (Zen 2)
-      forge = tunedNixpkgs "x86_64-linux" "skylake"; # i5-9500 (Coffee Lake)
-      sentry = tunedNixpkgs "x86_64-linux" "znver1"; # Ryzen 7 1700 (Zen 1)
+      zephyr = tunedNixpkgs "x86_64-linux";
+      nexus = tunedNixpkgs "x86_64-linux";
+      forge = tunedNixpkgs "x86_64-linux";
+      sentry = tunedNixpkgs "x86_64-linux";
     };
 
     # Distributed builds
