@@ -228,19 +228,19 @@
       pools = [
         {
           name = "Kryptex US";
-          url = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+          url = "stratum+tcp://xtm-c29-us.kryptex.network:8038";
           wallet = "krxXVNVMM7";
           password = "x";
           priority = 1;
-          tls = true;
+          tls = false;
         }
         {
           name = "Kryptex EU";
-          url = "stratum+tcp://xtm-c29-eu.kryptex.network:8040";
+          url = "stratum+tcp://xtm-c29-eu.kryptex.network:8038";
           wallet = "krxXVNVMM7";
           password = "x";
           priority = 2;
-          tls = true;
+          tls = false;
         }
       ];
       workers = [

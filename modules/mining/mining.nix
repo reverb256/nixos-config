@@ -13,15 +13,16 @@ let
   # Helper to build lolMiner command arguments
   mkLolminerArgs =
     deviceCfg:
-    concatStringsSep " " [
-      "--algo ${cfg.lolminer.algorithm}"
-      "--pool ${cfg.lolminer.pool}"
-      "--user ${cfg.lolminer.wallet}"
-      "--devices ${deviceCfg.devices}"
-      "--apiport ${toString deviceCfg.apiPort}"
-      "--mode b"
-      "--tls 1"
-    ];
+    concatStringsSep " " (
+      [
+        "--algo ${cfg.lolminer.algorithm}"
+        "--pool ${cfg.lolminer.pool}"
+        "--user ${cfg.lolminer.wallet}"
+        "--devices ${deviceCfg.devices}"
+        "--apiport ${toString deviceCfg.apiPort}"
+        "--mode b"
+      ] ++ lib.optional cfg.lolminer.tls "--tls 1"
+    );
 
   # Helper for lolMiner security hardening
   lolminerHardening = {
@@ -98,11 +99,16 @@ in
       };
       pool = mkOption {
         type = types.str;
-        default = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+        default = "stratum+tcp://xtm-c29-us.kryptex.network:8038";
       };
       wallet = mkOption {
         type = types.str;
         default = defaultWallet;
+      };
+      tls = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Use TLS for pool connection. Disable when using gpu-proxy which handles TLS.";
       };
       nvidia = {
         enable = mkEnableOption "NVIDIA GPU Mining";
