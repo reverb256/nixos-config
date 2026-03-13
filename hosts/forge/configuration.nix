@@ -106,14 +106,14 @@
       apiPort = 4069;
     };
 
-    # GPU miners connect directly to CR29 pool (proxy doesn't understand CR29 algorithm)
-    # The xmrig-proxy on Zephyr is only for CPU miners (RandomX)
-    mining.lolminer.pool = "stratum+ssl://xtm-c29-us.kryptex.network:8040";
-    mining.lolminer.wallet = "krxXVNVMM7.forge-gpu";
+    # GPU miners connect to gpu-proxy on Nexus
+    mining.lolminer.pool = "10.1.1.120:3334";
+    mining.lolminer.wallet = "forge-gpu";
 
     # GPU Stratum Proxy with Kryptex pool failover
+    # DISABLED: Now using gpu-proxy on Nexus
     gpu-proxy = {
-      enable = true;
+      enable = false;
       listenPort = 3334;
       apiPort = 8083;
       logLevel = "INFO";
