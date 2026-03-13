@@ -170,4 +170,10 @@ in {
     hosts.nexus
     hosts.sentry
   ];
+
+  # Garage S3 admin secret key - For automated backups to S3
+  "secrets/garage-s3-secret-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 }

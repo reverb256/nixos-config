@@ -84,6 +84,11 @@
       silenceTimeout = 1.5;
       silenceThreshold = "5%";
     };
+
+    # BACKUP TO GARAGE S3
+    # Automated backups to Garage cluster (disabled by default, enable on backup node)
+    # Enable on Zephyr: services.backup-to-garage.enable = true;
+    backup-to-garage.enable = lib.mkDefault false;
   };
 
   # ============================================================================

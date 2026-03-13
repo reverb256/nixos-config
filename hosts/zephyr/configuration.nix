@@ -1014,6 +1014,21 @@
   # ============================================================================
   # Enable crash watchdog to detect and log system crashes
   services.crash-watchdog.enable = true;
+
+  # ============================================================================
+  # BACKUP TO GARAGE S3
+  # ============================================================================
+  # Automated daily backups to Garage S3 cluster (runs at 2 AM)
+  services.backup-to-garage = {
+    enable = true;
+    endpoint = "http://10.1.1.110:3900";
+    region = "garage";
+    bucket = "backups";
+    accessKey = "GKac91d924fc76a30b9bcf6c3e";
+    secretKeyFile = "/run/agenix/garage-s3-secret-key";
+    retentionDays = 30;
+    startAt = "02:00";  # 2 AM daily
+  };
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
 
