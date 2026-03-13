@@ -1,0 +1,308 @@
+#!/usr/bin/env python3
+"""
+MCP Gateway Bridge - stdio to HTTP proxy for AI Inference Gateway
+
+This script acts as a stdio MCP server that forwards all requests to the
+AI Inference Gateway's HTTP API. This enables stdio-based MCP clients
+(Claude Code, OpenCode, Cursor, etc.) to access gateway MCP servers.
+
+Usage (in Claude Code settings.json):
+{
+  "mcpServers": {
+    "gateway": {
+      "command": "/home/j_kro/bin/mcp-gateway-bridge"
+    }
+  }
+}
+"""
+
+import asyncio
+import json
+import sys
+import logging
+from typing import Any, Dict, Optional
+from urllib import request
+from urllib.error import URLError, HTTPError
+
+# Configuration
+GATEWAY_URL = "http://127.0.0.1:8080"
+GATEWAY_TIMEOUT = 30.0
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("mcp-gateway-bridge")
+
+
+def gateway_request(
+    method: str,
+    path: str,
+    data: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Make an HTTP request to the gateway using urllib (stdlib).
+
+    This avoids external dependencies like httpx.
+    """
+    url = f"{GATEWAY_URL}{path}"
+
+    try:
+        if method == "GET":
+            req = request.Request(url, method="GET")
+            req.add_header("Accept", "application/json")
+        elif method == "POST":
+            body = json.dumps(data).encode("utf-8")
+            req = request.Request(url, data=body, method="POST")
+            req.add_header("Content-Type", "application/json")
+            req.add_header("Accept", "application/json")
+        else:
+            return {"error": f"Unsupported method: {method}"}
+
+        with request.urlopen(req, timeout=GATEWAY_TIMEOUT) as response:
+            response_data = response.read().decode("utf-8")
+            return json.loads(response_data)
+
+    except HTTPError as e:
+        return {
+            "error": f"HTTP {e.code}",
+            "details": e.read().decode("utf-8", errors="replace")
+        }
+    except URLError as e:
+        return {
+            "error": "Failed to connect to gateway",
+            "details": f"Is the gateway running at {GATEWAY_URL}? Reason: {e.reason}"
+        }
+    except TimeoutError:
+        return {"error": "Gateway request timed out"}
+    except json.JSONDecodeError as e:
+        return {"error": f"Invalid JSON response: {str(e)}"}
+    except Exception as e:
+        return {"error": f"Request failed: {str(e)}"}
+
+
+class GatewayMCPBridge:
+    """
+    MCP server that forwards requests to the AI Inference Gateway.
+
+    Implements the MCP JSON-RPC protocol over stdin/stdout while
+    communicating with the gateway via HTTP.
+    """
+
+    def __init__(self, gateway_url: str = GATEWAY_URL):
+        self.gateway_url = gateway_url
+        self.request_id = 0
+        self.server_info = {
+            "name": "mcp-gateway-bridge",
+            "version": "1.0.0",
+            "protocolVersion": "2024-11-05"
+        }
+        self._tools_cache: Optional[list] = None
+
+    def _next_id(self) -> int:
+        self.request_id += 1
+        return self.request_id
+
+    def handle_initialize(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle the initialize request from MCP client."""
+        params = request.get("params", {})
+        client_info = params.get("clientInfo", {})
+        logger.info(f"Client connected: {client_info}")
+
+        return {
+            "protocolVersion": "2024-11-05",
+            "serverInfo": self.server_info,
+            "capabilities": {
+                "tools": {}
+            }
+        }
+
+    def handle_tools_list(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle tools/list request - fetch from gateway."""
+        # Use cache if available
+        if self._tools_cache is not None:
+            return {"tools": self._tools_cache}
+
+        result = gateway_request("GET", "/mcp/tools")
+
+        if "error" in result:
+            logger.warning(f"Failed to fetch tools: {result['error']}")
+            return {"tools": []}
+
+        tools = result.get("tools", [])
+        self._tools_cache = tools
+
+        # Transform to MCP format
+        mcp_tools = []
+        for tool in tools:
+            mcp_tool = {
+                "name": tool.get("name", ""),
+                "description": tool.get("description", ""),
+            }
+            # Add inputSchema if available
+            if "inputSchema" in tool:
+                mcp_tool["inputSchema"] = tool["inputSchema"]
+            # Store server for later lookups (non-standard but useful)
+            if "server" in tool:
+                mcp_tool["server"] = tool["server"]
+            mcp_tools.append(mcp_tool)
+
+        return {"tools": mcp_tools}
+
+    def handle_tools_call(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle tools/call request - forward to gateway."""
+        params = request.get("params", {})
+        name = params.get("name")
+        arguments = params.get("arguments", {})
+
+        if not name:
+            return {
+                "error": {
+                    "code": -32602,
+                    "message": "Invalid params: missing 'name'"
+                }
+            }
+
+        logger.info(f"Calling tool: {name} with args: {arguments}")
+
+        # The gateway needs to know which server the tool belongs to
+        # We can either:
+        # 1. Require tool names to be prefixed (e.g., "context7:query-docs")
+        # 2. Let the gateway figure it out by tool name
+        # 3. Look up the server from our tools cache
+
+        server_name = None
+        if self._tools_cache:
+            for tool in self._tools_cache:
+                if tool.get("name") == name:
+                    server_name = tool.get("server")
+                    break
+
+        if server_name:
+            result = gateway_request("POST", "/mcp/call", {
+                "server": server_name,
+                "tool": name,
+                "arguments": arguments
+            })
+        else:
+            # Try without specifying server (let gateway figure it out)
+            result = gateway_request("POST", "/mcp/call", {
+                "tool": name,
+                "arguments": arguments
+            })
+
+        if "error" in result:
+            error_msg = result.get("error", "Unknown error")
+            logger.warning(f"Tool call failed: {error_msg}")
+            return {
+                "content": [{
+                    "type": "text",
+                    "text": f"Error: {error_msg}"
+                }]
+            }
+
+        # Transform gateway response to MCP format
+        # Gateway returns raw data, we need to wrap in content array
+        return {
+            "content": [{
+                "type": "text",
+                "text": json.dumps(result, indent=2)
+            }]
+        }
+
+    def handle_ping(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle ping request."""
+        return {}
+
+    def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Route MCP request to appropriate handler."""
+        method = request.get("method", "")
+        req_id = request.get("id")
+
+        logger.debug(f"Received request: {method}")
+
+        try:
+            if method == "initialize":
+                result = self.handle_initialize(request)
+            elif method == "tools/list":
+                result = self.handle_tools_list(request)
+            elif method == "tools/call":
+                result = self.handle_tools_call(request)
+            elif method == "ping":
+                result = self.handle_ping(request)
+            else:
+                result = {
+                    "error": {
+                        "code": -32601,
+                        "message": f"Method not found: {method}"
+                    }
+                }
+
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": result
+            }
+
+        except Exception as e:
+            logger.exception(f"Error handling request: {e}")
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {
+                    "code": -32603,
+                    "message": f"Internal error: {str(e)}"
+                }
+            }
+
+    def run(self):
+        """Main loop - read requests from stdin, write responses to stdout."""
+        logger.info(f"MCP Gateway Bridge starting - connecting to {self.gateway_url}")
+
+        # Verify gateway is reachable
+        health = gateway_request("GET", "/health")
+        if "error" in health:
+            logger.warning(f"Gateway health check failed: {health['error']}")
+            logger.info("Bridge will continue anyway - gateway may start later")
+
+        # Process stdin line by line
+        while True:
+            try:
+                line = sys.stdin.readline()
+
+                if not line:
+                    logger.info("EOF received, shutting down")
+                    break
+
+                line = line.strip()
+                if not line:
+                    continue
+
+                request = json.loads(line)
+                response = self.handle_request(request)
+
+                # Write response
+                sys.stdout.write(json.dumps(response) + "\n")
+                sys.stdout.flush()
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Invalid JSON received: {e}")
+            except KeyboardInterrupt:
+                logger.info("Interrupted, shutting down")
+                break
+            except Exception as e:
+                logger.exception(f"Unexpected error: {e}")
+
+
+def main():
+    """Entry point."""
+    bridge = GatewayMCPBridge()
+    bridge.run()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(0)

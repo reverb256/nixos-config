@@ -14,6 +14,8 @@
     env ? {},
   }:
     pkgs.writeShellScriptBin "mcp-${name}" ''
+      # Set npm cache to writable location for systemd services
+      export npm_config_cache="/var/cache/ai-inference/npm"
       export PATH="${pkgs.nodejs_22}/bin:$PATH"
       ${
         lib.concatStringsSep "\n" (lib.mapAttrsToList (k: v:
@@ -396,6 +398,13 @@ in {
             GITHUB_API_TOKEN = cfg.servers.github.apiKey;
           };
         })
+
+        # MCP Gateway Bridge - stdio to HTTP proxy for AI Inference Gateway
+        # Enables stdio-based MCP clients (Claude Code, LM Studio, OpenCode)
+        # to access all gateway MCP tools via a single stdio connection
+        (pkgs.writeShellScriptBin "mcp-gateway-bridge" ''
+          exec ${pkgs.python3}/bin/python3 /etc/nixos/scripts/mcp-gateway-bridge "$@"
+        '')
       ];
 
     # Note: playwright-mcp from nixpkgs is already wrapped with proper
@@ -422,6 +431,7 @@ in {
       | grep-app | STDIO | Code search |
       | chrome-devtools | STDIO | Chrome debugging |
        | github | STDIO | GitHub integration |
+      | **gateway** | **Bridge** | **HTTP→stdio proxy to AI Inference Gateway** |
 
        ## Available MCP Server Commands
 
@@ -442,6 +452,38 @@ in {
        | grep-app | `mcp-grep-app` | Code search |
         | chrome-devtools | `mcp-chrome-devtools` | Chrome debugging |
         | github | `mcp-github` | GitHub integration |
+        | **gateway** | `mcp-gateway-bridge` | **Bridge to AI Inference Gateway (all tools)** |
+
+       ## MCP Gateway Bridge
+
+       The `mcp-gateway-bridge` command provides a stdio-to-HTTP proxy, enabling stdio-based
+       MCP clients (Claude Code, LM Studio, OpenCode) to access all AI Inference Gateway tools:
+
+       **Gateway Tools Available via Bridge:**
+       - Context7: `resolve-library-id`, `query-docs`
+       - NixOS: `nix_flake_check`, `nixos_rebuild_*`, `nix_flake_update`
+       - Web: `webReader`, `web_search_prime`
+       - GitHub: `search_doc`, `read_file`, `get_repo_structure`
+       - Add-service: `create_service_module`, `register_module`, `enable_service`
+       - And more...
+
+       **Configuration:**
+
+       ```json
+       {
+         "mcpServers": {
+           "gateway": {
+             "command": "mcp-gateway-bridge"
+           }
+         }
+       }
+       ```
+
+       **Benefits:**
+       - Single stdio connection replaces multiple direct MCP servers
+       - Shared authentication and caching via the gateway
+       - Remote access to gateway-hosted tools (ZAI APIs, etc.)
+       - Unified observability and logging
 
        ## Playwright Configuration
 
