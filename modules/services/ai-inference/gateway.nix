@@ -170,7 +170,7 @@ in {
           ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
           ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
           ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/zai-api-key")
-        ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/context7-api-key")
+          ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/context7-api-key")
           ++ lib.optional (lib.hasAttr "sentry" cfg && lib.hasAttr "dsnFile" cfg.sentry && cfg.sentry.dsnFile != null) (dirOf cfg.sentry.dsnFile);
         MemoryMax = "2G";
         CPUWeight = 100;

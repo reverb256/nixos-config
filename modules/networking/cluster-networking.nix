@@ -69,7 +69,7 @@ in {
       # NetworkManager for flexible network configuration
       networkmanager = {
         enable = true;
-        dns = "none";  # Use Unbound, not NetworkManager's DNS
+        dns = "none"; # Use Unbound, not NetworkManager's DNS
 
         # Wired connection profile
         ensureProfiles.profiles."Wired connection 1" = {
@@ -82,12 +82,12 @@ in {
           ipv4 = {
             method = "manual";
             address1 = "${cfg.ipAddress}/24";
-            gateway = "10.1.1.1";  # Modem/gateway
-            dns = "127.0.0.1";  # Use local Unbound resolver (IPv4)
+            gateway = "10.1.1.1"; # Modem/gateway
+            dns = "127.0.0.1"; # Use local Unbound resolver (IPv4)
           };
           ipv6 = {
             method = "auto";
-            dns = "::1";  # Use local Unbound resolver (IPv6)
+            dns = "::1"; # Use local Unbound resolver (IPv6)
           };
         };
       };
@@ -111,13 +111,13 @@ in {
     networking.firewall = {
       enable = true;
       allowedTCPPorts = lib.mkOptionDefault [
-        53    # DNS (Unbound)
-        22    # SSH
-        6443  # Kubernetes API
+        53 # DNS (Unbound)
+        22 # SSH
+        6443 # Kubernetes API
       ];
       allowedUDPPorts = lib.mkOptionDefault [
-        53     # DNS (Unbound)
-        41641  # Tailscale coordination server
+        53 # DNS (Unbound)
+        41641 # Tailscale coordination server
       ];
     };
 

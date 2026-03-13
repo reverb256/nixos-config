@@ -55,7 +55,7 @@
       }
     ];
 
-    listenPort = 3334;  # Different from xmrig-proxy
+    listenPort = 3334; # Different from xmrig-proxy
     apiPort = 8082;
   };
 }

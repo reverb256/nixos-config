@@ -1,6 +1,10 @@
 # Gamescope Session Script for Nexus
 # Auto-launch Steam in Gamescope on tty3
-{lib, pkgs, ...}: let
+{
+  lib,
+  pkgs,
+  ...
+}: let
   # Create the gamescope-session wrapper script
   gamescopeSession = pkgs.writeShellScriptBin "gamescope-session" ''
     #!/usr/bin/env bash

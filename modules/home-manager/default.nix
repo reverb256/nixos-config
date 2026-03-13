@@ -1,9 +1,6 @@
 # Home Manager Configuration - Main Entry Point
 # Centralized user configuration for j_kro across all cluster nodes
-{
-  inputs,
-  ...
-}: {
+{inputs, ...}: {
   home-manager = {
     backupFileExtension = "bak";
 

@@ -145,18 +145,22 @@ in {
 
     # Generate config from pools and workers
     environment.etc."mining-proxy/config.json".text = builtins.toJSON {
-      pools = builtins.map (pool: {
-        name = pool.name;
-        url = pool.url;
-        priority = pool.priority;
-        weight = pool.weight;
-        tls = lib.hasPrefix "ssl" pool.url;
-      }) cfg.pools;
+      pools =
+        builtins.map (pool: {
+          name = pool.name;
+          url = pool.url;
+          priority = pool.priority;
+          weight = pool.weight;
+          tls = lib.hasPrefix "ssl" pool.url;
+        })
+        cfg.pools;
 
-      workers = builtins.map (worker: {
-        id = worker.id;
-        password = worker.password;
-      }) cfg.workers;
+      workers =
+        builtins.map (worker: {
+          id = worker.id;
+          password = worker.password;
+        })
+        cfg.workers;
 
       api = {
         port = cfg.apiPort;
@@ -167,15 +171,15 @@ in {
 
     # Firewall
     networking.firewall = lib.mkIf cfg.openFirewall {
-      allowedTCPPorts = [ cfg.listenPort ];
-      allowedUDPPorts = [ cfg.listenPort ];
+      allowedTCPPorts = [cfg.listenPort];
+      allowedUDPPorts = [cfg.listenPort];
     };
 
     # Systemd service
     systemd.services.mining-proxy = {
       description = "Universal Mining Stratum Proxy with Failover";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
       serviceConfig = {
         Type = "simple";
@@ -193,7 +197,7 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ cfg.dataDir ];
+        ReadWritePaths = [cfg.dataDir];
 
         # Resource limits
         MemoryLimit = "1G";

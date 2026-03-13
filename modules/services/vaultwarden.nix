@@ -43,7 +43,7 @@ in {
     # ============================================================================
     port = mkOption {
       type = types.int;
-      default = 8222;  # Changed from 8080 to avoid conflict with LM Studio
+      default = 8222; # Changed from 8080 to avoid conflict with LM Studio
       description = "Host port for Vaultwarden";
     };
   };

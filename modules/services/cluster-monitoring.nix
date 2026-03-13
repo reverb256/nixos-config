@@ -12,7 +12,7 @@ in {
 
     lokiUrl = mkOption {
       type = types.str;
-      default = "http://100.81.182.5:3100";  # Zephyr's Tailscale IP
+      default = "http://100.81.182.5:3100"; # Zephyr's Tailscale IP
       description = "Loki server URL for Promtail logs";
     };
 

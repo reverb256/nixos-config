@@ -63,8 +63,8 @@
         "graphical-session-pre.target"
         "plasma-plasmashell.service"
       ];
-      PartOf = [ "graphical-session.target" ];
-      Wants = [ "plasma-plasmashell.service" ]; # Ensure plasma tray is ready
+      PartOf = ["graphical-session.target"];
+      Wants = ["plasma-plasmashell.service"]; # Ensure plasma tray is ready
     };
     Service = {
       Type = "simple";
@@ -82,7 +82,7 @@
       RestartSec = 5;
     };
     Install = {
-      WantedBy = [ "graphical-session.target" ];
+      WantedBy = ["graphical-session.target"];
     };
   };
 }

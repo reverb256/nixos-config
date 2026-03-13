@@ -16,54 +16,56 @@
   inherit (lib) mkEnableOption mkOption types mkIf mkMerge mapAttrsToList;
 
   # Helper function to create profile config
-  mkProfileConfig = profileName: profileCfg: mkIf profileCfg.enable (
-    let
-      # Extract networking config - handle both nested and direct formats
-      networkingCfg = profileCfg.networking or {
-        ipAddress = profileCfg.ipAddress or null;
-        interfaceName = profileCfg.interfaceName or null;
-        unboundListenAddress = profileCfg.unboundListenAddress or null;
-        wireless = profileCfg.wireless or { enable = false; };
-      };
-    in {
-      # Apply networking configuration (only if ipAddress is set)
-      clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
-        enable = true;
-        ipAddress = networkingCfg.ipAddress;
-        interfaceName = networkingCfg.interfaceName;
-        wireless = lib.mkDefault networkingCfg.wireless;
-        unbound = {
+  mkProfileConfig = profileName: profileCfg:
+    mkIf profileCfg.enable (
+      let
+        # Extract networking config - handle both nested and direct formats
+        networkingCfg =
+          profileCfg.networking or {
+            ipAddress = profileCfg.ipAddress or null;
+            interfaceName = profileCfg.interfaceName or null;
+            unboundListenAddress = profileCfg.unboundListenAddress or null;
+            wireless = profileCfg.wireless or {enable = false;};
+          };
+      in {
+        # Apply networking configuration (only if ipAddress is set)
+        clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
           enable = true;
-          listenAddress = networkingCfg.unboundListenAddress;
+          ipAddress = networkingCfg.ipAddress;
+          interfaceName = networkingCfg.interfaceName;
+          wireless = lib.mkDefault networkingCfg.wireless;
+          unbound = {
+            enable = true;
+            listenAddress = networkingCfg.unboundListenAddress;
+          };
         };
-      };
 
-      # Apply Kubernetes configuration
-      services.kubernetes-module = mkIf (profileCfg ? kubernetes && profileCfg.kubernetes.enable) {
-        inherit (profileCfg.kubernetes) enable roles masterAddress;
-      };
+        # Apply Kubernetes configuration
+        services.kubernetes-module = mkIf (profileCfg ? kubernetes && profileCfg.kubernetes.enable) {
+          inherit (profileCfg.kubernetes) enable roles masterAddress;
+        };
 
-      # Apply hardware profiles
-      hardware.profiles = {
-        nvidia.enable = profileCfg.nvidia.enable or false;
-        nvidia.multiGpu = profileCfg.nvidia.multiGpu or false;
-        amdgpu.enable = profileCfg.amdgpu.enable or false;
-        amdgpu.wayland = profileCfg.amdgpu.wayland or false;
-        monitoring.enable = true;  # All nodes get monitoring
-      };
+        # Apply hardware profiles
+        hardware.profiles = {
+          nvidia.enable = profileCfg.nvidia.enable or false;
+          nvidia.multiGpu = profileCfg.nvidia.multiGpu or false;
+          amdgpu.enable = profileCfg.amdgpu.enable or false;
+          amdgpu.wayland = profileCfg.amdgpu.wayland or false;
+          monitoring.enable = true; # All nodes get monitoring
+        };
 
-      # Apply network profiles
-      profiles.network.tailscale.enable = true;
+        # Apply network profiles
+        profiles.network.tailscale.enable = true;
 
-      # Disable DHCP if requested
-      networking.dhcpcd.enable = mkIf (profileCfg.disableDHCP or false) (lib.mkForce false);
+        # Disable DHCP if requested
+        networking.dhcpcd.enable = mkIf (profileCfg.disableDHCP or false) (lib.mkForce false);
 
-      # Apply extra firewall rules
-      networking.firewall.allowedTCPPorts = profileCfg.firewallExtraTCPPorts or [];
-      networking.firewall.allowedTCPPortRanges = profileCfg.firewallExtraTCPPortRanges or [];
-      networking.firewall.allowedUDPPorts = profileCfg.firewallExtraUDPPorts or [];
-    }
-  );
+        # Apply extra firewall rules
+        networking.firewall.allowedTCPPorts = profileCfg.firewallExtraTCPPorts or [];
+        networking.firewall.allowedTCPPortRanges = profileCfg.firewallExtraTCPPortRanges or [];
+        networking.firewall.allowedUDPPorts = profileCfg.firewallExtraUDPPorts or [];
+      }
+    );
 in {
   options.profiles.node = {
     # ============================================================================
@@ -116,7 +118,7 @@ in {
 
       wireless = mkOption {
         type = types.attrs;
-        default = { enable = true; };
+        default = {enable = true;};
         description = "Wireless configuration";
       };
 
@@ -124,14 +126,14 @@ in {
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
         default = [
-          9757    # WiVRn main port
-          18789   # Steam Remote Play
-          18790   # Steam Remote Play (secondary)
-          19898   # Moonlight/GameStream + Spacebot Web UI
-          1234    # LM Studio API server
-          8080    # AI Inference Gateway
-          53317   # LocalSend (file sharing)
-          8888    # CFSSL CA API server
+          9757 # WiVRn main port
+          18789 # Steam Remote Play
+          18790 # Steam Remote Play (secondary)
+          19898 # Moonlight/GameStream + Spacebot Web UI
+          1234 # LM Studio API server
+          8080 # AI Inference Gateway
+          53317 # LocalSend (file sharing)
+          8888 # CFSSL CA API server
         ];
         description = "Extra TCP ports";
       };
@@ -139,11 +141,14 @@ in {
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
         default = [
-          9757 9758 9759  # WiVRn
-          27031 27036     # Steam UDP
-          5353           # mDNS
-          9947           # WiVRn
-          53317          # LocalSend (multicast)
+          9757
+          9758
+          9759 # WiVRn
+          27031
+          27036 # Steam UDP
+          5353 # mDNS
+          9947 # WiVRn
+          53317 # LocalSend (multicast)
         ];
         description = "Extra UDP ports";
       };
@@ -191,11 +196,16 @@ in {
       firewallExtraTCPPortRanges = mkOption {
         type = types.listOf (types.submod {
           options = {
-            from = mkOption { type = types.port; };
-            to = mkOption { type = types.port; };
+            from = mkOption {type = types.port;};
+            to = mkOption {type = types.port;};
           };
         });
-        default = [{ from = 30000; to = 32767; }];
+        default = [
+          {
+            from = 30000;
+            to = 32767;
+          }
+        ];
         description = "Extra TCP port ranges";
       };
 
@@ -263,11 +273,16 @@ in {
       firewallExtraTCPPortRanges = mkOption {
         type = types.listOf (types.submod {
           options = {
-            from = mkOption { type = types.port; };
-            to = mkOption { type = types.port; };
+            from = mkOption {type = types.port;};
+            to = mkOption {type = types.port;};
           };
         });
-        default = [{ from = 30000; to = 32767; }];
+        default = [
+          {
+            from = 30000;
+            to = 32767;
+          }
+        ];
         description = "Extra TCP port ranges";
       };
 
@@ -320,11 +335,16 @@ in {
       firewallExtraTCPPortRanges = mkOption {
         type = types.listOf (types.submod {
           options = {
-            from = mkOption { type = types.port; };
-            to = mkOption { type = types.port; };
+            from = mkOption {type = types.port;};
+            to = mkOption {type = types.port;};
           };
         });
-        default = [{ from = 30000; to = 32767; }];
+        default = [
+          {
+            from = 30000;
+            to = 32767;
+          }
+        ];
         description = "Extra TCP port ranges";
       };
 
@@ -387,11 +407,16 @@ in {
       firewallExtraTCPPortRanges = mkOption {
         type = types.listOf (types.submod {
           options = {
-            from = mkOption { type = types.port; };
-            to = mkOption { type = types.port; };
+            from = mkOption {type = types.port;};
+            to = mkOption {type = types.port;};
           };
         });
-        default = [{ from = 30000; to = 32767; }];
+        default = [
+          {
+            from = 30000;
+            to = 32767;
+          }
+        ];
         description = "Extra TCP port ranges";
       };
 

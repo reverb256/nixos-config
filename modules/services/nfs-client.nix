@@ -1,5 +1,10 @@
 # NFS Client for mounting shared storage from Nexus
-{config, lib, pkgs, ...}: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.nfs-client;
 in {
   options.services.nfs-client = {

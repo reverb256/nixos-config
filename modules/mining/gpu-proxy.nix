@@ -6,7 +6,6 @@
 # - Multi-pool failover (Kryptex US/EU regional servers)
 # - Centralized wallet configuration
 # - TLS support for secure pool connections
-
 {
   config,
   pkgs,
@@ -19,7 +18,7 @@
   gpu-proxy-package = pkgs.python3Packages.buildPythonApplication rec {
     pname = "gpu-proxy";
     version = "1.0.0";
-    format = "other";  # Using dontUnpack, so no standard format
+    format = "other"; # Using dontUnpack, so no standard format
 
     # Use writeTextFile to create the proxy script
     src = pkgs.writeTextFile {
@@ -757,7 +756,6 @@
       chmod +x $out/bin/gpu-proxy
     '';
   };
-
 in {
   options.services.gpu-proxy = {
     enable = lib.mkEnableOption "GPU mining stratum proxy for CR29 (Tari/Kryptex)";
@@ -886,14 +884,14 @@ in {
 
     # Firewall
     networking.firewall = lib.mkIf cfg.openFirewall {
-      allowedTCPPorts = [ cfg.listenPort cfg.apiPort ];
+      allowedTCPPorts = [cfg.listenPort cfg.apiPort];
     };
 
     # Systemd service
     systemd.services.gpu-proxy = {
       description = "GPU Mining Stratum Proxy for CR29 (Tari/Kryptex)";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      wantedBy = ["multi-user.target"];
+      after = ["network.target"];
 
       serviceConfig = {
         Type = "simple";
@@ -926,7 +924,7 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [ cfg.dataDir ];
+        ReadWritePaths = [cfg.dataDir];
 
         # Resource limits
         MemoryLimit = "512M";

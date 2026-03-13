@@ -8,13 +8,14 @@
   # ========================================================================
   # CPU TUNING - Per-node microarchitecture optimization
   # ========================================================================
-  tunedNixpkgs = system: microarch: import inputs.nixpkgs {
-    localSystem = {
-      inherit system;
-      gcc.arch = microarch;
+  tunedNixpkgs = system: microarch:
+    import inputs.nixpkgs {
+      localSystem = {
+        inherit system;
+        gcc.arch = microarch;
+      };
+      config.allowUnfree = true;
     };
-    config.allowUnfree = true;
-  };
   # ========================================================================
   # COMMON MODULES - Shared across all hosts (matches flake.nix)
   # ========================================================================
@@ -50,7 +51,10 @@
       inherit targetHost;
       targetUser = "j_kro";
       inherit tags;
-      allowLocalDeployment = if targetHost == null then true else false;
+      allowLocalDeployment =
+        if targetHost == null
+        then true
+        else false;
     };
   };
 
@@ -74,10 +78,10 @@ in {
 
     # Per-node CPU microarchitecture tuning
     nodeNixpkgs = {
-      zephyr = tunedNixpkgs "x86_64-linux" "znver3";  # Ryzen 9 5950X (Zen 3)
-      nexus = tunedNixpkgs "x86_64-linux" "znver2";    # Ryzen 9 3900X (Zen 2)
-      forge = tunedNixpkgs "x86_64-linux" "skylake";    # i5-9500 (Coffee Lake)
-      sentry = tunedNixpkgs "x86_64-linux" "znver1";   # Ryzen 7 1700 (Zen 1)
+      zephyr = tunedNixpkgs "x86_64-linux" "znver3"; # Ryzen 9 5950X (Zen 3)
+      nexus = tunedNixpkgs "x86_64-linux" "znver2"; # Ryzen 9 3900X (Zen 2)
+      forge = tunedNixpkgs "x86_64-linux" "skylake"; # i5-9500 (Coffee Lake)
+      sentry = tunedNixpkgs "x86_64-linux" "znver1"; # Ryzen 7 1700 (Zen 1)
     };
 
     # Distributed builds
@@ -91,7 +95,7 @@ in {
   # ========================================================================
   zephyr = mkHost {
     hostName = "zephyr";
-    targetHost = null;  # No SSH (local deployment)
+    targetHost = null; # No SSH (local deployment)
     tags = ["control-plane" "k8s-master" "k8s-node" "local"];
   };
 

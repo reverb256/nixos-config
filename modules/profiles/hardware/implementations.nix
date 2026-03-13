@@ -9,7 +9,8 @@ in {
   config = lib.mkMerge [
     (lib.mkIf cfg.amd.enable {
       boot = {
-        kernelParams = ["amd_iommu=on" "iommu=pt"]
+        kernelParams =
+          ["amd_iommu=on" "iommu=pt"]
           ++ lib.optionals cfg.amd.zen [
             "split_lock_detect=off"
             "threadirqs"

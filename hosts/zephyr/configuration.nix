@@ -34,9 +34,9 @@ in {
     enable = true;
     hostName = "zephyr";
     ipAddress = "10.1.1.110";
-    interfaceName = "enp38s0";  # Native hardware interface name
-    wireless.enable = true;  # WiFi interface: wlo1 (native: wlp40s0)
-    unbound.listenAddress = "10.1.1.110";  # Listen on node IP for cluster DNS
+    interfaceName = "enp38s0"; # Native hardware interface name
+    wireless.enable = true; # WiFi interface: wlo1 (native: wlp40s0)
+    unbound.listenAddress = "10.1.1.110"; # Listen on node IP for cluster DNS
   };
 
   networking.cluster-hosts = {
@@ -184,7 +184,6 @@ in {
   #
   # Zephyr-specific service additions:
   services = {
-
     # Gaming HDR for 4K HDR TV
     gaming.hdr.enable = true;
 
@@ -293,7 +292,7 @@ in {
     nfs-client = {
       enable = true;
       mountShared = true;
-      mountHome = false;    # Zephyr has local home
+      mountHome = false; # Zephyr has local home
       mountMedia = true;
     };
 
@@ -389,7 +388,7 @@ in {
           nix-rebuild = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
@@ -398,15 +397,15 @@ in {
           add-service = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
             ];
-            environment = { };
+            environment = {};
             enabled = true;
           };
           context7 = {
             type = "local";
-            command = [ "mcp-context7" ];
+            command = ["mcp-context7"];
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
@@ -489,7 +488,7 @@ in {
       enable = true;
       autostart = true;
       devices = "0,1";
-      perGpuPowerLimits = [130 250];  # [3060 Ti, 3090] - optimized for efficiency
+      perGpuPowerLimits = [130 250]; # [3060 Ti, 3090] - optimized for efficiency
       apiPort = 4068;
     };
 
@@ -498,8 +497,8 @@ in {
       enable = true;
       autostart = true;
       threads = 16;
-      pool = "10.1.1.110:3333";  # Point to local proxy
-      wallet = "zephyr-cpu";  # Worker ID for proxy
+      pool = "10.1.1.110:3333"; # Point to local proxy
+      wallet = "zephyr-cpu"; # Worker ID for proxy
       password = "x";
     };
 
@@ -546,7 +545,7 @@ in {
     # Garage S3-compatible distributed object storage (3-node cluster)
     garage-cluster = {
       enable = true;
-      dataDir = "/data/shared/garage";  # On NFS from nexus
+      dataDir = "/data/shared/garage"; # On NFS from nexus
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
   };
@@ -584,7 +583,7 @@ in {
 
   # Agenix secrets for AI services
   age = {
-    identityPaths = [ "/home/j_kro/.age/key.txt" ];
+    identityPaths = ["/home/j_kro/.age/key.txt"];
 
     secrets = {
       lm-studio-api-key = {
@@ -705,7 +704,6 @@ in {
         owner = "root";
         group = "root";
       };
-
     };
   };
 
@@ -745,9 +743,9 @@ in {
   # RTX 3060 Ti (GPU 0): 100W for efficient mining
   systemd.services."gpu-0-power-limit" = {
     description = "Set RTX 3060 Ti power limit to 100W";
-    wantedBy = [ "multi-user.target" ];
-    before = [ "lolminer-nvidia.service" ];
-    requiredBy = [ "lolminer-nvidia.service" ];
+    wantedBy = ["multi-user.target"];
+    before = ["lolminer-nvidia.service"];
+    requiredBy = ["lolminer-nvidia.service"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -758,9 +756,9 @@ in {
   # RTX 3090 (GPU 1): 200W for balanced performance/efficiency
   systemd.services."gpu-1-power-limit" = {
     description = "Set RTX 3090 power limit to 200W";
-    wantedBy = [ "multi-user.target" ];
-    before = [ "lolminer-nvidia.service" ];
-    requiredBy = [ "lolminer-nvidia.service" ];
+    wantedBy = ["multi-user.target"];
+    before = ["lolminer-nvidia.service"];
+    requiredBy = ["lolminer-nvidia.service"];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -972,3 +970,4 @@ in {
   services.crash-watchdog.enable = true;
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
+

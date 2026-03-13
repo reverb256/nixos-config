@@ -4,9 +4,7 @@
 #
 # Module imports: Gaming, mining, monitoring, opencode are already imported
 # via commonModules in flake.nix (./modules/default.nix)
-{pkgs, lib, ...}: let
-  inherit (lib) mkForce;
-in {
+{lib, ...}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -38,9 +36,15 @@ in {
     enable = true;
     hostName = "nexus";
     ipAddress = "10.1.1.120";
-    interfaceName = "enp7s0";  # Native hardware interface name
-    wireless.enable = true;  # Enable WiFi for versatility (interface: wlo1, native: wlp4s0)
-    unbound.listenAddress = "10.1.1.120";  # Listen on node IP for cluster DNS
+    interfaceName = "enp7s0"; # Native hardware interface name
+    wireless.enable = true; # Enable WiFi for versatility (interface: wlo1, native: wlp4s0)
+    unbound.listenAddress = "10.1.1.120"; # Listen on node IP for cluster DNS
+  };
+
+  # Populate /etc/hosts from central cluster configuration
+  networking.cluster-hosts = {
+    enable = true;
+    populateLocal = true;
   };
 
   # ============================================================================
@@ -52,7 +56,7 @@ in {
 
   # Nexus-specific firewall rules (in addition to cluster defaults)
   networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
-    10250  # Kubelet API
+    10250 # Kubelet API
   ];
   networking.firewall.allowedTCPPortRanges = [
     {
@@ -61,7 +65,7 @@ in {
     }
   ];
   networking.firewall.allowedUDPPorts = lib.mkOptionDefault [
-    8472  # Flannel VXLAN
+    8472 # Flannel VXLAN
   ];
 
   # ============================================================================
@@ -196,9 +200,9 @@ in {
         enable = true;
         autostart = true;
         threads = 12;
-        pool = "10.1.1.110:3333";  # xmrig-proxy on Zephyr
-        wallet = "nexus-cpu";        # Worker ID for proxy
-        tls = false;                 # No TLS needed for local proxy
+        pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
+        wallet = "nexus-cpu"; # Worker ID for proxy
+        tls = false; # No TLS needed for local proxy
       };
 
       # GPU mining configuration (shared by NVIDIA)
@@ -242,9 +246,18 @@ in {
         }
       ];
       workers = [
-        { id = "nexus-gpu"; password = "x"; }
-        { id = "zephyr-gpu"; password = "x"; }
-        { id = "forge-gpu"; password = "x"; }
+        {
+          id = "nexus-gpu";
+          password = "x";
+        }
+        {
+          id = "zephyr-gpu";
+          password = "x";
+        }
+        {
+          id = "forge-gpu";
+          password = "x";
+        }
       ];
       openFirewall = true;
     };
@@ -274,7 +287,7 @@ in {
     # Nexus hosts the primary storage on local bcache0
     garage-cluster = {
       enable = true;
-      dataDir = "/data/shared/garage";  # Local on nexus (bcache0)
+      dataDir = "/data/shared/garage"; # Local on nexus (bcache0)
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
   };

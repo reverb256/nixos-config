@@ -131,27 +131,34 @@ in {
 
     # Configure PAM services
     security.pam.services = lib.listToAttrs (map (service: {
-      name = service;
-      value = {
-        rules = lib.mkBefore [
-          {
-            # Vaultwarden authentication (sufficient = success if it works)
-            # ${lib.optionalString cfg.fallbackToSystem "[success=ignore default=1]"} = {
-            control = if cfg.fallbackToSystem then "[success=ignore default=1]" else "sufficient";
-            modulePath = "${pkgs.linux-pam}/lib/security/pam_exec.so";
-            settings = {
-              expose_authtok = true;
-              quiet = true;
-              # Set VAULTWARDEN_URL environment variable
-              env = [
-                { name = "VAULTWARDEN_URL"; value = cfg.url; }
-              ];
-              # The script to execute
-              command = "/etc/pam-vaultwarden/auth.py";
-            };
-          }
-        ];
-      };
-    }) cfg.services);
+        name = service;
+        value = {
+          rules = lib.mkBefore [
+            {
+              # Vaultwarden authentication (sufficient = success if it works)
+              # ${lib.optionalString cfg.fallbackToSystem "[success=ignore default=1]"} = {
+              control =
+                if cfg.fallbackToSystem
+                then "[success=ignore default=1]"
+                else "sufficient";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_exec.so";
+              settings = {
+                expose_authtok = true;
+                quiet = true;
+                # Set VAULTWARDEN_URL environment variable
+                env = [
+                  {
+                    name = "VAULTWARDEN_URL";
+                    value = cfg.url;
+                  }
+                ];
+                # The script to execute
+                command = "/etc/pam-vaultwarden/auth.py";
+              };
+            }
+          ];
+        };
+      })
+      cfg.services);
   };
 }

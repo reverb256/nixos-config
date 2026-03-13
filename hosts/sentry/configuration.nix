@@ -5,13 +5,7 @@
 # Module imports: Gaming, mining, monitoring, opencode are already imported
 # via commonModules in flake.nix (./modules/default.nix)
 # Gaming module is used here for Plasma desktop gaming optimizations
-{
-  lib,
-  pkgs,
-  ...
-}: let
-  inherit (lib) mkForce;
-in {
+{lib, pkgs, ...}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -39,9 +33,15 @@ in {
     enable = true;
     hostName = "sentry";
     ipAddress = "10.1.1.140";
-    interfaceName = "enp7s0";  # Native hardware interface name
-    wireless.enable = false;  # Monitoring node - no WiFi needed
-    unbound.listenAddress = "10.1.1.140";  # Listen on node IP for cluster DNS
+    interfaceName = "enp7s0"; # Native hardware interface name
+    wireless.enable = false; # Monitoring node - no WiFi needed
+    unbound.listenAddress = "10.1.1.140"; # Listen on node IP for cluster DNS
+  };
+
+  # Populate /etc/hosts from central cluster configuration
+  networking.cluster-hosts = {
+    enable = true;
+    populateLocal = true;
   };
 
   # ============================================================================
@@ -110,9 +110,9 @@ in {
         enable = true;
         autostart = true;
         threads = 8;
-        pool = "10.1.1.110:3333";  # xmrig-proxy on Zephyr
-        wallet = "sentry-cpu";      # Worker ID for proxy
-        tls = false;                 # No TLS needed for local proxy
+        pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
+        wallet = "sentry-cpu"; # Worker ID for proxy
+        tls = false; # No TLS needed for local proxy
       };
       lolminer.enable = false; # No GPU mining on Sentry
     };
@@ -147,7 +147,7 @@ in {
     # Sentry hosts storage on local disk
     garage-cluster = {
       enable = true;
-      dataDir = "/storage/garage";  # Local on sentry
+      dataDir = "/storage/garage"; # Local on sentry
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
   };

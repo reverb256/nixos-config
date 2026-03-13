@@ -77,7 +77,8 @@ in {
             liberation_ttf
             dejavu_fonts
           ];
-          extraCompatPackages = [  # Temporarily disabled nixpkgs-xr packages due to deprecated options
+          extraCompatPackages = [
+            # Temporarily disabled nixpkgs-xr packages due to deprecated options
             # optionals (inputs != null && inputs ? nixpkgs-xr) [
             #   inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
             # ];

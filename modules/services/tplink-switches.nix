@@ -94,13 +94,34 @@ in {
         };
       });
       default = [
-        {id = 10; name = "gaming";}
-        {id = 20; name = "ai";}
-        {id = 30; name = "storage";}
-        {id = 40; name = "mining";}
-        {id = 50; name = "monitoring";}
-        {id = 60; name = "backup";}
-        {id = 99; name = "management";}
+        {
+          id = 10;
+          name = "gaming";
+        }
+        {
+          id = 20;
+          name = "ai";
+        }
+        {
+          id = 30;
+          name = "storage";
+        }
+        {
+          id = 40;
+          name = "mining";
+        }
+        {
+          id = 50;
+          name = "monitoring";
+        }
+        {
+          id = 60;
+          name = "backup";
+        }
+        {
+          id = 99;
+          name = "management";
+        }
       ];
       description = "VLAN configurations to create on switches";
     };
@@ -115,7 +136,7 @@ in {
             default = 300; # 5 minutes
             description = "Polling interval in seconds";
           };
-      #   prometheusExporter = mkEnableOption "Prometheus metrics exporter";
+          #   prometheusExporter = mkEnableOption "Prometheus metrics exporter";
         };
       };
       default = {};
@@ -492,33 +513,33 @@ in {
     # SYSTEMD SERVICE FOR MONITORING
     # ============================================================================
     systemd.services.tplink-monitor = lib.mkIf cfg.monitoring.enable {
-        description = "TP-Link Switch Monitor";
-        after = ["network-online.target"];
-        wants = ["network-online.target"];
-        serviceConfig = {
-          Type = "simple";
-          User = "root";
-          ExecStart = "/etc/tplink-switches/automate.py status";
-          Restart = "on-failure";
-          RestartSec = "60s";
+      description = "TP-Link Switch Monitor";
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
+      serviceConfig = {
+        Type = "simple";
+        User = "root";
+        ExecStart = "/etc/tplink-switches/automate.py status";
+        Restart = "on-failure";
+        RestartSec = "60s";
 
-          # Security hardening
-          ProtectSystem = "strict";
-          ProtectHome = true;
-          PrivateTmp = true;
-          NoNewPrivileges = true;
-        };
+        # Security hardening
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        PrivateTmp = true;
+        NoNewPrivileges = true;
       };
+    };
 
     systemd.timers.tplink-monitor = lib.mkIf cfg.monitoring.enable {
-        description = "TP-Link Switch Monitor Timer";
-        wantedBy = ["timers.target"];
-        partOf = ["tplink-monitor.service"];
-        timerConfig = {
-          OnUnitActiveSec = "${toString cfg.monitoring.interval}s";
-          OnBootSec = "60s";
-        };
+      description = "TP-Link Switch Monitor Timer";
+      wantedBy = ["timers.target"];
+      partOf = ["tplink-monitor.service"];
+      timerConfig = {
+        OnUnitActiveSec = "${toString cfg.monitoring.interval}s";
+        OnBootSec = "60s";
       };
+    };
 
     # ============================================================================
     # CACHE DIRECTORY FOR SCREENSHOTS
@@ -532,7 +553,7 @@ in {
     # NETWORK CONSTANTS - Add switch IPs to cluster network
     # ============================================================================
     networking.extraHosts = lib.optionalString cfg.enable ''
-        ${lib.concatMapStringsSep "\n" (switch: "${switch.ip} ${switch.name}") (lib.attrValues cfg.switches)}
-      '';
+      ${lib.concatMapStringsSep "\n" (switch: "${switch.ip} ${switch.name}") (lib.attrValues cfg.switches)}
+    '';
   };
 }

@@ -19,7 +19,11 @@
 # SELF-EXCLUSION FIX (2026-03-10):
 #   Each host must NOT list itself as a builder to avoid SSH-to-self loopback
 #   which causes nix-daemon lock contention (multiple daemons competing for same store)
-{lib, config, ...}: let
+{
+  lib,
+  config,
+  ...
+}: let
   # Current hostname for self-exclusion
   currentHost = config.networking.hostName or "unknown";
 in {
@@ -94,10 +98,10 @@ in {
       # - Forge: 4 of 6 cores (67%) - GPU workloads (CLIENT ONLY - no remote builds)
       # compute-workload-monitor pauses mining during builds
       max-jobs = lib.mkMerge [
-        (lib.mkIf (currentHost == "zephyr") 24)  # 32 cores, K8s control plane
-        (lib.mkIf (currentHost == "nexus") 18)   # 24 cores, NFS/storage
-        (lib.mkIf (currentHost == "sentry") 12)  # 16 cores, monitoring (CLIENT ONLY)
-        (lib.mkIf (currentHost == "forge") 4)    # 6 cores, GPU workloads (CLIENT ONLY)
+        (lib.mkIf (currentHost == "zephyr") 24) # 32 cores, K8s control plane
+        (lib.mkIf (currentHost == "nexus") 18) # 24 cores, NFS/storage
+        (lib.mkIf (currentHost == "sentry") 12) # 16 cores, monitoring (CLIENT ONLY)
+        (lib.mkIf (currentHost == "forge") 4) # 6 cores, GPU workloads (CLIENT ONLY)
         (lib.mkDefault 4) # Safe fallback for unknown hosts
       ];
 
