@@ -15,8 +15,8 @@
 
     masterAddress = lib.mkOption {
       type = lib.types.str;
-      default = "10.1.1.110";
-      description = "IP address of the Kubernetes master node";
+      default = "10.1.1.100";
+      description = "IP address of the Kubernetes master node (or VIP for HA)";
     };
 
     roles = lib.mkOption {
@@ -24,10 +24,35 @@
       default = ["master" "node"];
       description = "Kubernetes roles for this node";
     };
+
+    # etcd HA clustering options
+    etcdInitialState = lib.mkOption {
+      type = lib.types.enum ["new" "existing"];
+      default = "existing";
+      description = "etcd initial cluster state: 'new' for first node, 'existing' for joining nodes";
+    };
+
+    etcdClusterMembers = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      example = [
+        "zephyr=http://10.1.1.110:2380"
+        "nexus=http://10.1.1.120:2380"
+        "sentry=http://10.1.1.140:2380"
+      ];
+      description = "etcd cluster members in 'name=ip:port' format";
+    };
+
+    etcdName = lib.mkOption {
+      type = lib.types.str;
+      default = "default";
+      description = "etcd member name (typically hostname)";
+    };
   };
 
   config = let
     isMaster = builtins.elem "master" config.services.kubernetes-module.roles;
+    useEtcdCluster = config.services.kubernetes-module.etcdClusterMembers != [];
   in
     lib.mkIf config.services.kubernetes-module.enable {
       # ============================================================================
@@ -96,14 +121,21 @@
       };
 
       # ETCD (Required for Kubernetes control plane)
-      services.etcd = {
-        enable = isMaster;
-        listenClientUrls = ["http://127.0.0.1:2379" "http://${config.services.kubernetes-module.masterAddress}:2379"];
+      # HA clustering support: use etcdClusterMembers list for multi-node setup
+      services.etcd = lib.mkIf isMaster {
+        enable = true;
+        listenClientUrls = [
+          "http://127.0.0.1:2379"
+          "http://${config.services.kubernetes-module.masterAddress}:2379"
+        ];
         listenPeerUrls = ["http://${config.services.kubernetes-module.masterAddress}:2380"];
         initialAdvertisePeerUrls = ["http://${config.services.kubernetes-module.masterAddress}:2380"];
-        initialCluster = ["${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380"];
+        initialCluster = if useEtcdCluster then
+          config.services.kubernetes-module.etcdClusterMembers
+        else
+          ["${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380"];
         initialClusterToken = "zephyr-etcd-cluster";
-        initialClusterState = "new";
+        initialClusterState = config.services.kubernetes-module.etcdInitialState;
       };
 
       # ============================================================================

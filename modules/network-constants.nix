@@ -121,6 +121,12 @@
         node-exporter = 9100;
         nvidia-exporter = 9400;
       };
+
+      # Kubernetes HA Virtual IP (via Keepalived VRRP)
+      kubernetes = {
+        vip = "10.1.1.100";
+        apiPort = 6443;
+      };
     };
     description = "Cluster network configuration constants";
     readOnly = true;
