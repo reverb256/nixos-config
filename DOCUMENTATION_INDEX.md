@@ -119,6 +119,18 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **When to Read:** Debugging mining service failures or performance issues
 **Location:** `/etc/nixos/docs/MINING_TROUBLESHOOTING.md`
 
+#### storage-configuration.md
+**Purpose:** Storage drive inventory, mount status, and known issues
+**Contents:** All storage drives across cluster, BTRFS subvolumes, implementation priorities
+**When to Read:** Understanding cluster storage layout, troubleshooting mount issues
+**Location:** `/etc/nixos/docs/storage-configuration.md`
+
+#### STORAGE-CLUSTER-STATUS-REPORT.md
+**Purpose:** Current status of cluster storage architecture (NFS, Syncthing, Loki/Promtail)
+**Contents:** Service deployment status, mount verification, remaining work, issues found
+**When to Read:** Understanding cluster storage state, troubleshooting NFS/Syncthing
+**Location:** `/etc/nixos/docs/storage-cluster-status-report.md`
+
 ### Monitoring & Testing
 
 #### COMPREHENSIVE_TEST_REPORT.md
@@ -638,6 +650,14 @@ kubectl logs <pod-name> -n <namespace>
 ---
 
 ## Change Log
+
+### 2026-03-13
+- Created STORAGE-CLUSTER-STATUS-REPORT.md (verified deployment status: 87% complete)
+- Updated cluster-storage-implementation.md with actual completion status
+- Updated cluster-storage-design.md with verified progress
+- Found that NFS, Syncthing, Loki/Promtail were already deployed and operational
+- Identified Garage as remaining task (module imported but not enabled)
+- Found issue: Forge mounts /etc/nixos as read-write (should be read-only)
 
 ### 2026-03-09
 - Created MINING_TROUBLESHOOTING.md (comprehensive lolMiner debugging guide)

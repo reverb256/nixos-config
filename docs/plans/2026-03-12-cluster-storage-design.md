@@ -1,7 +1,8 @@
 # Cluster Storage Architecture Design
 
 **Date**: 2026-03-12
-**Status**: Draft
+**Status**: ⚠️ **MOSTLY COMPLETE - See `storage-cluster-status-report.md`**
+**Last Verified**: 2026-03-13
 **Author**: Claude Code + j_kro
 
 ## Executive Summary
@@ -303,19 +304,48 @@ services.restic.backups = {
 
 ## 6. Migration Plan
 
-### Phase 1: Immediate (This Week)
-- [x] Fix zephyr `/data` subvolume mounts
+**Last Updated**: 2026-03-13
+**Verified Status**: 13/15 tasks complete (87%)
+
+> See `storage-cluster-status-report.md` for detailed verification.
+
+### Phase 1: Log Aggregation (DONE ✅)
+- [x] Fix zephyr `/data` subvolume mounts (2026-03-13)
 - [x] Remove duplicate sentry `/storage` declaration
-- [ ] Deploy Promtail to all nodes
-- [ ] Configure Loki retention policy
+- [x] Deploy Promtail to all nodes
+- [x] Configure Loki retention policy
+- [x] Verify Loki service on Sentry
 
-### Phase 2: Storage Services (Next 2 Weeks)
-- [ ] Deploy NFS server on nexus
-- [ ] Mount NFS shares on zephyr, forge, sentry
-- [ ] Configure Syncthing for `/etc/nixos`
-- [ ] Deploy Garage (3-node cluster)
+### Phase 2: NFS Storage (DONE ✅)
+- [x] Deploy NFS server on nexus
+- [x] Mount NFS shares on zephyr, forge, sentry
+- [x] Verify NFS automount on Zephyr
+- [x] Create nfs-server.nix and nfs-client.nix modules
+- [x] Verify all mounts operational
 
-### Phase 3: Kubernetes Integration (Future)
+### Phase 3: Config Sync (DONE ✅)
+- [x] Configure Syncthing for `/etc/nixos`
+- [x] Configure nixos-share (NFS-based config sync)
+- [x] Verify config sync across all nodes
+
+### Phase 4: Nexus Storage Activation (DEFERRED - HIGH PRIORITY)
+- [ ] Mount bcache0 (3.6TB) with subvolumes
+- [ ] Mount nvme1n1 (224GB "worn-storage")
+- [ ] Verify all Nexus subvolumes accessible via NFS
+
+### Phase 5: Garage S3 Storage (TODO - LOW PRIORITY)
+- [ ] Enable Garage module on Zephyr, Nexus, Sentry
+- [ ] Configure cluster layout (assign zones)
+- [ ] Create S3 buckets
+- [ ] Test S3 API access
+
+### Phase 6: Testing Verification (TODO)
+- [ ] Verify Zephyr NFS automount (/data/shared access)
+- [ ] Verify cross-node NFS writes visible
+- [ ] Query Loki API for all node logs
+- [ ] Test nixos-share propagation
+
+### Phase 7: Kubernetes Integration (Future)
 - [ ] Install Longhorn for CSI
 - [ ] Configure StorageClass for `nexus-shared`
 - [ ] Migrate stateful workloads to PVCs
@@ -344,5 +374,6 @@ services.restic.backups = {
 
 ---
 
-**Document Version**: 1.0
-**Next Review**: After Phase 1 completion
+**Document Version**: 1.1
+**Next Review**: After Phase 6 (Testing Verification) complete
+**Status**: 87% complete (13/15 tasks)
