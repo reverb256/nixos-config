@@ -114,6 +114,7 @@
     # Create writable CNI directory for Flannel config and CDI spec
     # Also create /var/lib/flannel for persistent subnet.env file (not on tmpfs)
     # Create symlink from /run/flannel to /var/lib/flannel for CNI plugin compatibility
+    # Create local-path-provisioner directories for Kubernetes storage
     systemd.tmpfiles.rules = [
       # Create writable CNI directories (both for kubelet and containerd)
       "d /var/lib/cni/net.d 0755 root root -"
@@ -129,6 +130,17 @@
       # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
       "d /var/lib/flannel 0755 root root -"
       "L+ /run/flannel - - - - /var/lib/flannel"
+      # ============================================================================
+      # LOCAL PATH PROVISIONER - Kubernetes local storage
+      # ============================================================================
+      # Default path for all nodes (Forge uses this)
+      "d /var/local-path-provisioner 0777 root root -"
+      # Zephyr: Fast NVMe storage for databases, AI models
+      "d /data/k8s-local 0777 root root -"
+      # Nexus: Large capacity on bcache0
+      "d /data/containers/k8s-local 0777 root root -"
+      # Sentry: HDD storage for archival, logs
+      "d /storage/k8s-local 0777 root root -"
     ];
 
     # Store the Flannel CNI config
