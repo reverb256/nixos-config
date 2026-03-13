@@ -133,6 +133,7 @@
       # HA clustering support: use etcdClusterMembers list for multi-node setup
       services.etcd = lib.mkIf isMaster {
         enable = true;
+        name = config.services.kubernetes-module.etcdName;
         listenClientUrls = [
           "http://127.0.0.1:2379"
           "http://${config.services.kubernetes-module.etcdListenHost}:2379"
