@@ -271,20 +271,26 @@
       systemd.services.kubelet = {
         after = lib.mkForce ["containerd.service" "network.target"];
         requires = lib.mkForce ["containerd.service"];
-        serviceConfig.ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
-          echo "Waiting for containerd to be ready..."
-          timeout=60
-          while [ $timeout -gt 0 ]; do
-            if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
-              echo "containerd is ready"
-              exit 0
-            fi
-            sleep 1
-            ((timeout--))
-          done
-          echo "ERROR: containerd not ready after 60 seconds"
-          exit 1
-        '';
+        serviceConfig = {
+          ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
+            echo "Waiting for containerd to be ready..."
+            timeout=60
+            while [ $timeout -gt 0 ]; do
+              if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
+                echo "containerd is ready"
+                exit 0
+              fi
+              sleep 1
+              ((timeout--))
+            done
+            echo "ERROR: containerd not ready after 60 seconds"
+            exit 1
+          '';
+          # Kubelet memory limits - lighter for masters, full for workers
+          MemoryMax = lib.mkIf (!isMaster) (lib.mkDefault "2G");
+          MemoryHigh = lib.mkIf (!isMaster) (lib.mkDefault "1.5G");
+          OOMScoreAdjust = lib.mkIf (!isMaster) (lib.mkDefault -500);
+        };
       };
 
       systemd.services.kube-apiserver = {
@@ -314,8 +320,15 @@
             echo "ERROR: Kubelet not ready after 120 seconds"
             exit 1
           '';
-          # Override upstream ExecStart - we want the actual service to run
-          # ExecStart = lib.mkForce "${pkgs.coreutils}/bin/true";
+          # ========================================================================
+          # MEMORY PROTECTION - Prevent OOM kills of control plane
+          # ========================================================================
+          # API server typically uses 200-500MB. Set limits to prevent runaway.
+          # Max 2GB is generous but prevents it from consuming all RAM.
+          MemoryMax = lib.mkDefault "2G";
+          MemoryHigh = lib.mkDefault "1.5G"; # Start soft limiting at 1.5GB
+          # Negative OOM score = protects from OOM killer (-500 = highly protected)
+          OOMScoreAdjust = lib.mkDefault -500;
         };
       };
 
@@ -323,12 +336,24 @@
         after = lib.mkForce ["kube-apiserver.service" "network.target"];
         requires = lib.mkForce ["kube-apiserver.service"];
         # Don't override ExecStart - let upstream handle it
+        serviceConfig = {
+          # Scheduler is lightweight (~100MB typical)
+          MemoryMax = lib.mkDefault "512M";
+          MemoryHigh = lib.mkDefault "256M";
+          OOMScoreAdjust = lib.mkDefault -500;
+        };
       };
 
       systemd.services.kube-controller-manager = {
         after = lib.mkForce ["kube-apiserver.service" "network.target"];
         requires = lib.mkForce ["kube-apiserver.service"];
         # Don't override ExecStart - let upstream handle it
+        serviceConfig = {
+          # Controller manager uses ~200-400MB
+          MemoryMax = lib.mkDefault "1G";
+          MemoryHigh = lib.mkDefault "512M";
+          OOMScoreAdjust = lib.mkDefault -500;
+        };
       };
 
       # ============================================================================
