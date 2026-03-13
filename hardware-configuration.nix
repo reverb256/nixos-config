@@ -37,6 +37,8 @@
   fileSystems."/data" = {
     device = "/dev/disk/by-uuid/4c249712-3c96-44dd-bab0-0b077a168670";
     fsType = "btrfs";
+    # @ subvolume created 2026-03-13 as snapshot of root (ID 5)
+    # Set as default subvolume for the filesystem
     options = ["subvol=@" "compress=zstd"];
   };
 
