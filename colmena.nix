@@ -34,7 +34,12 @@
     {nixpkgs.overlays = [self.overlays.default];}
 
     # x86-64-v3 microarchitecture tuning (module-level, not localSystem)
-    {nixpkgs.hostPlatform.gcc.arch = "x86-64-v3";}
+    {
+      nixpkgs.hostPlatform = {
+        system = "x86_64-linux";
+        gcc.arch = "x86-64-v3";
+      };
+    }
   ];
 
   # ========================================================================
