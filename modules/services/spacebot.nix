@@ -364,12 +364,15 @@ in {
           # Use Podman CLI options to set storage paths within Spacebot's data directory
           export PATH="${pkgs.podman}/bin:${pkgs.slirp4netns}/bin:$PATH"
 
+          # Try to clean up any existing container (may be stuck/zombie)
+          # Use timeout to avoid hanging on zombie containers
+          ${pkgs.podman}/bin/podman --root ${cfg.dataDir}/podman-storage rm -f spacebot 2>/dev/null || true
+
           exec ${pkgs.podman}/bin/podman run \
             --root ${cfg.dataDir}/podman-storage \
             --runroot ${cfg.dataDir}/podman-run \
             --name spacebot \
             --rm \
-            --replace \
             --cgroup-manager=systemd \
             --cgroupns=host \
             --security-opt label=disable \
