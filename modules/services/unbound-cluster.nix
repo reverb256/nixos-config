@@ -91,7 +91,7 @@ in {
             ''"10.in-addr.arpa"''
             ''"168.192.in-addr.arpa"''
             ''"16.172.in-addr.arpa"''
-            ''"tigris-ule.ts.net"'' # Tailscale domain
+            # Note: tigris-ule.ts.net handled by forward-zone to Tailscale DNS
           ];
 
           # Local zones - never forward these to upstream DNS
@@ -103,8 +103,7 @@ in {
             ''"10.in-addr.arpa" static'' # 10.0.0.0/8 reverse DNS
             ''"168.192.in-addr.arpa" static'' # 192.168.0.0/16 reverse DNS
             ''"16.172.in-addr.arpa" static'' # 172.16.0.0/12 reverse DNS
-            # Tailscale network zone (CGNAT)
-            ''"tigris-ule.ts.net" static''
+            # Note: tigris-ule.ts.net handled by forward-zone to Tailscale DNS
           ];
 
           # Local data records for cluster hosts
@@ -131,6 +130,19 @@ in {
         # Forward zone - mix of TLS and non-TLS upstreams
         # Unbound automatically uses TLS for @853 ports, plain DNS for others
         forward-zone = [
+          # Tailscale MagicDNS - forward all .ts.net queries to Tailscale DNS
+          {
+            name = "ts.net.";
+            forward-addr = ["100.100.100.100"];
+            forward-tls-upstream = false;
+          }
+          # Specific tailnet domain
+          {
+            name = "tigris-ule.ts.net.";
+            forward-addr = ["100.100.100.100"];
+            forward-tls-upstream = false;
+          }
+          # Default forward zone for all other queries
           {
             name = ".";
             forward-addr = cfg.upstream ++ cfg.upstreamTls;
