@@ -114,7 +114,11 @@
     systemd.tmpfiles.rules = [
       "d /var/lib/cni/net.d 0755 root root -"
       # Create symlink from read-only NixOS store to writable directory
+      # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)
       "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
+      # Containerd reads from /etc/cni/net.d (default CNI path)
+      # Note: environment.etc."cni/net.d/..." doesn't work correctly for nested directories
+      "L+ /etc/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
       # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
       "d /var/lib/flannel 0755 root root -"
       "L+ /run/flannel - - - - /var/lib/flannel"
@@ -145,26 +149,8 @@
         ];
       };
 
-      # Also provide config for containerd (reads from /etc/cni/net.d)
-      "cni/net.d/10-flannel.conflist".text = builtins.toJSON {
-        name = "cbr0";
-        cniVersion = "0.3.1";
-        plugins = [
-          {
-            type = "flannel";
-            delegate = {
-              hairpinMode = true;
-              isDefaultGateway = true;
-            };
-          }
-          {
-            type = "portmap";
-            capabilities = {
-              portMappings = true;
-            };
-          }
-        ];
-      };
+      # Note: containerd's CNI config is provided via tmpfiles symlink above
+      # (environment.etc."cni/net.d/..." doesn't work correctly for nested directories)
 
       # Disable CRI-O's default CNI configs (no longer needed with containerd)
       # "cni/net.d/10-crio-bridge.conflist".enable = lib.mkForce false;
