@@ -6,8 +6,9 @@
     settings = {
       experimental-features = ["nix-command" "flakes"];
 
-      # Binary caches
+      # Binary caches (local cache checked first)
       substituters = [
+        "http://zephyr.tigris-ule.ts.net:50000?trusted=1"
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
         "https://ezkea.cachix.org"

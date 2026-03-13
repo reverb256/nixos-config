@@ -25,8 +25,9 @@
     # Podman support
     ../../modules/services/podman-support.nix
 
-    # Kubernetes worker node (opt-in)
+    # Kubernetes HA modules
     ../../modules/services/kubernetes.nix
+    ../../modules/services/keepalived-vip.nix
   ];
 
   # ============================================================================
@@ -69,6 +70,33 @@
   # profiles.node.sentry-monitoring.enable = true;
 
   # ============================================================================
+  # KUBERNETES HA - Control Plane Configuration
+  # ============================================================================
+  # Override profile defaults: Sentry becomes a master node for HA
+  services.kubernetes-module = {
+    enable = true;
+    # Override roles to include master
+    roles = lib.mkForce ["master" "node"];
+    # Use VIP for HA
+    masterAddress = lib.mkForce "10.1.1.100";
+    # etcd clustering configuration (Sentry joins existing cluster)
+    etcdInitialState = "existing";
+    etcdClusterMembers = [
+      "zephyr=http://10.1.1.110:2380"
+      "nexus=http://10.1.1.120:2380"
+      "sentry=http://10.1.1.140:2380"
+    ];
+  };
+
+  # Keepalived VIP - priority 90 (lowest - backup master)
+  services.keepalived-vip = {
+    enable = true;
+    vip = "10.1.1.100";
+    interface = "enp7s0";
+    priority = 90;
+  };
+
+  # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
   # Base profiles provided by node-profiles.sentry-monitoring:
@@ -107,14 +135,6 @@
   services = {
     # Crash detection and logging
     crash-watchdog.enable = true;
-
-    # Kubernetes worker configuration
-    kubernetes-module = {
-      enable = true;
-      roles = ["node"];
-      masterAddress = "10.1.1.110";
-      # kubelet.hostname is automatically set from config.networking.hostName (clusterNetworking.hostName = "sentry")
-    };
 
     xserver.videoDrivers = ["amdgpu"];
 

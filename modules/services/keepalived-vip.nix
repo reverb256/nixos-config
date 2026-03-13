@@ -43,7 +43,7 @@ in {
 
       vrrpInstances.kubernetes-api = {
         # MASTER state if priority >= 110, otherwise BACKUP
-        state = lib.mkIf (cfg.priority >= 110) "MASTER" else "BACKUP";
+        state = if cfg.priority >= 110 then "MASTER" else "BACKUP";
 
         interface = cfg.interface;
         virtualRouterId = cfg.vrid;
@@ -55,38 +55,26 @@ in {
           }
         ];
 
-        # VRRP packet settings
-        advertInt = 1; # Send advertisements every second
-        authPass = "k8s-ha-vrrp"; # Simple authentication (consider upgrading to HMAC)
-
-        # Health check: only be master if API server is healthy
-        trackScripts = [
-          {
-            name = "check-kube-apiserver";
-            # Weight 20 means decrease priority by 20 if script fails
-            weight = -20;
-          }
-        ];
+        # Optional: enable health checks (disabled for initial setup, enable after cluster is stable)
+        # trackScripts = ["check-kube-apiserver"];
       };
+
+      # Health check script for kube-apiserver (disabled by default)
+      # Uncomment vrrpScripts and trackScripts above to enable
+      # vrrpScripts.check-kube-apiserver = {
+      #   script = ''
+      #     #!/bin/sh
+      #     # Check if kube-apiserver is responding
+      #     ${pkgs.curl}/bin/curl -f -s -o /dev/null --connect-timeout 3 http://127.0.0.1:6443/healthz
+      #   '';
+      #   weight = -20; # Decrease priority by 20 if script fails
+      #   interval = 2; # Check every 2 seconds
+      #   fall = 2; # Need 2 failures to fail
+      #   rise = 2; # Need 2 successes to recover
+      # };
     };
 
-    # Health check script for kube-apiserver
-    systemd.services.keepalived.healthcheck = {
-      script = ''
-        #!/bin/sh
-        # Check if kube-apiserver is responding
-        curl -f -s -o /dev/null --connect-timeout 3 http://127.0.0.1:6443/healthz
-      '';
-      wantedBy = ["keepalived.service"];
-    };
-
-    # Firewall: allow VRRP protocol (IP protocol 112)
+    # Firewall: allow VRRP protocol (UDP port 112 for VRRP)
     networking.firewall.allowedUDPPorts = [112];
-
-    # Log VRRP state changes
-    systemd.services.keepalived.serviceConfig.StandardOutput = [
-      "journal"
-      "/var/log/keepalived.log"
-    ];
   };
 }

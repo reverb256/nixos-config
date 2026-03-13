@@ -1,0 +1,225 @@
+# OpenCode on Kubernetes - Nixery-Based Deployment
+# Migrating from systemd to Kubernetes
+
+---
+# Secret for ZAI API key (same as agenix secret)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zai-api-key
+  namespace: ai-services
+type: Opaque
+stringData:
+  # Copy from: /run/agenix/zai-api-key
+  # Or use: kubectl create secret generic zai-api-key --from-file=/run/agenix/zai-api-key
+  api-key: "PLACEHOLDER"  # Replace with actual key or use ExternalSecret operator
+
+---
+# ConfigMap for OpenCode configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opencode-config
+  namespace: ai-services
+data:
+  DEFAULT_MODEL: "zai-coding-plan/glm-4.7"
+  QUICK_MODEL: "zai-coding-plan/glm-4.5-air"
+  VISION_MODEL: "zai-coding-plan/glm-4.6v"
+  HOST: "0.0.0.0"
+  PORT: "8000"
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opencode
+  namespace: ai-services
+  labels:
+    app: opencode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opencode
+  template:
+    metadata:
+      labels:
+        app: opencode
+    spec:
+      # Run on Zephyr (has the agenix secrets)
+      nodeSelector:
+        kubernetes.io/hostname: zephyr
+
+      containers:
+      - name: opencode
+        # Nixery builds: Python + FastAPI + HTTPX + PyJWT + extras
+        image: nixery.dev/shell/python312Packages.fastapi/python312Packages.httpx/python312Packages.pyjwt/python312Packages.cryptography/python312Packages.python-multipart/python312Packages.uvicorn
+        imagePullPolicy: Always  # Always pull fresh from Nixery
+
+        env:
+        - name: HOST
+          valueFrom:
+            configMapKeyRef:
+              name: opencode-config
+              key: HOST
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: opencode-config
+              key: PORT
+        - name: DEFAULT_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: opencode-config
+              key: DEFAULT_MODEL
+        - name: QUICK_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: opencode-config
+              key: QUICK_MODEL
+        - name: VISION_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: opencode-config
+              key: VISION_MODEL
+        - name: ZAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: zai-api-key
+              key: api-key
+        - name: OPENAI_API_KEY
+          value: "sk-$(cat /run/agenix/zai-api-key 2>/dev/null || echo 'placeholder')"  # Fallback
+
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+
+        # Probes
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        # Lifecycle
+        lifecycle:
+          preStop:
+            exec:
+              command:
+                - sh
+                - -c
+                - "sleep 5 && echo 'Graceful shutdown...'"
+
+---
+# Service (ClusterIP - internal access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: opencode
+  namespace: ai-services
+spec:
+  type: ClusterIP
+  selector:
+    app: opencode
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+
+---
+# Service (LoadBalancer - optional Tailscale exposure)
+apiVersion: v1
+kind: Service
+metadata:
+  name: opencode-lb
+  namespace: ai-services
+  annotations:
+    # Expose via Tailscale (if you have tailscaled-operator)
+    tailscale.com/expose: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: opencode
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  # Tailnet exposure handled by tailscaled-operator
+
+---
+# Ingress (Caddy reverse proxy integration)
+# Add to your Caddy config or use NGINX Ingress Controller
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: opencode-ingress
+#   namespace: ai-services
+# spec:
+#   rules:
+#   - host: opencode.cluster.local
+#     http:
+#       paths:
+#       - path: /
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: opencode
+#             port:
+#               number: 8000
+
+---
+# HorizontalPodAutoscaler (optional - scale based on CPU/memory)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: opencode-hpa
+  namespace: ai-services
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: opencode
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 15

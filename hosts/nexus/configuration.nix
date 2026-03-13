@@ -28,8 +28,9 @@
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/podman-support.nix
 
-    # Kubernetes worker node (opt-in)
+    # Kubernetes HA modules
     ../../modules/services/kubernetes.nix
+    ../../modules/services/keepalived-vip.nix
   ];
 
   # ============================================================================
@@ -57,6 +58,32 @@
   # This profile bundles role profiles, Kubernetes config, hardware profiles,
   # and networking configuration. Eliminates ~100 lines of duplication.
   # profiles.node.nexus-gaming.enable = true;
+
+  # ============================================================================
+  # KUBERNETES HA - Control Plane Configuration
+  # ============================================================================
+  # Override profile defaults: Nexus becomes a master node for HA
+  services.kubernetes-module = {
+    # Override roles to include master
+    roles = lib.mkForce ["master" "node"];
+    # Use VIP for HA
+    masterAddress = lib.mkForce "10.1.1.100";
+    # etcd clustering configuration (Nexus joins existing cluster)
+    etcdInitialState = "existing";
+    etcdClusterMembers = [
+      "zephyr=http://10.1.1.110:2380"
+      "nexus=http://10.1.1.120:2380"
+      "sentry=http://10.1.1.140:2380"
+    ];
+  };
+
+  # Keepalived VIP - priority 100 (middle priority)
+  services.keepalived-vip = {
+    enable = true;
+    vip = "10.1.1.100";
+    interface = "enp7s0";
+    priority = 100;
+  };
 
   # Nexus-specific firewall rules (in addition to cluster defaults)
   networking.firewall.allowedTCPPorts = lib.mkOptionDefault [

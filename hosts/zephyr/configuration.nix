@@ -17,6 +17,8 @@
     ./hardware-configuration.nix
     # Kubernetes module (for control plane)
     ../../modules/services/kubernetes.nix
+    # Keepalived VIP for Kubernetes HA
+    ../../modules/services/keepalived-vip.nix
 
     # All other modules auto-imported via ../../modules/default.nix
     # This includes: system, desktop, shell, gaming, development, services,
@@ -89,6 +91,30 @@
   # This profile bundles role profiles, Kubernetes config, hardware profiles,
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.zephyr-workstation.enable = true;
+
+  # ============================================================================
+  # KUBERNETES HA - Control Plane Configuration
+  # ============================================================================
+  # Override profile defaults for HA setup with etcd clustering and VIP
+  services.kubernetes-module = {
+    # Override masterAddress to use VIP
+    masterAddress = lib.mkForce "10.1.1.100";
+    # etcd clustering configuration (Zephyr is initial node)
+    etcdInitialState = "new";
+    etcdClusterMembers = [
+      "zephyr=http://10.1.1.110:2380"
+      "nexus=http://10.1.1.120:2380"
+      "sentry=http://10.1.1.140:2380"
+    ];
+  };
+
+  # Keepalived VIP - priority 110 (highest - preferred master)
+  services.keepalived-vip = {
+    enable = true;
+    vip = "10.1.1.100";
+    interface = "enp38s0";
+    priority = 110;
+  };
 
   # ============================================================================
   # SECURITY AUDIT REMEDIATION
