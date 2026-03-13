@@ -180,9 +180,9 @@ in {
           static_configs = [
             {
               targets = [
-                "zephyr:3903"
-                "nexus:3903"
-                "sentry:3903"
+                "zephyr:3902"
+                "nexus:3902"
+                "sentry:3902"
               ];
               labels = {
                 role = "object-storage";

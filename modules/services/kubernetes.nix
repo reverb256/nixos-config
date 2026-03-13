@@ -103,8 +103,10 @@
         scheduler.enable = isMaster;
         controllerManager = {
           enable = isMaster;
+          # Override default clusterCidr for Flannel pod network
+          clusterCidr = lib.mkForce "10.244.0.0/16";
           # extraOpts expects a space-separated string, not a list
-          extraOpts = "--allocate-node-cidrs=true --cluster-cidr=10.244.0.0/16";
+          extraOpts = "--allocate-node-cidrs=true";
         };
         kubelet = {
           enable = true;
