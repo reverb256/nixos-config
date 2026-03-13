@@ -114,6 +114,12 @@ in {
         description = "Unbound DNS listen address";
       };
 
+      wireless = mkOption {
+        type = types.attrs;
+        default = { enable = true; };
+        description = "Wireless configuration";
+      };
+
       # Firewall ports (beyond cluster defaults)
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
@@ -146,90 +152,130 @@ in {
     nexus-gaming = {
       enable = mkEnableOption "Nexus gaming profile (gaming + VR + mining + AI)";
 
-      kubernetes = {
-        enable = true;
-        roles = ["node"];
-        masterAddress = "10.1.1.110";
+      kubernetes = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          roles = ["node"];
+          masterAddress = "10.1.1.110";
+        };
+        description = "Kubernetes configuration";
       };
 
-      nvidia = {
-        enable = true;
-        multiGpu = false;  # Single RTX 3060 Ti
+      nvidia = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          multiGpu = false;
+        };
+        description = "NVIDIA GPU configuration";
       };
 
-      networking = {
-        ipAddress = "10.1.1.120";
-        interfaceName = "enp7s0";
-        unboundListenAddress = "10.1.1.120";
-        wireless.enable = true;
+      networking = mkOption {
+        type = types.attrs;
+        default = {
+          ipAddress = "10.1.1.120";
+          interfaceName = "enp7s0";
+          unboundListenAddress = "10.1.1.120";
+          wireless.enable = true;
+        };
+        description = "Networking configuration";
       };
 
-      firewallExtraTCPPorts = [
-        10250  # Kubelet API
-      ];
-      firewallExtraTCPPortRanges = [
-        { from = 30000; to = 32767; }  # NodePort range
-      ];
-      firewallExtraUDPPorts = [
-        8472  # Flannel VXLAN
-      ];
+      firewallExtraTCPPorts = mkOption {
+        type = types.listOf types.port;
+        default = [10250];
+        description = "Extra TCP ports";
+      };
 
-      # Additional modules
-      extraImports = [
-        ../../modules/hardware/nvidia-common.nix
-        ../../modules/hardware/nvidia-wayland.nix
-        ../../modules/desktop/gamescope-tty.nix
-        ../../modules/services/mcp-servers.nix
-        ../../modules/services/podman-support.nix
-      ];
+      firewallExtraTCPPortRanges = mkOption {
+        type = types.listOf (types.submod {
+          options = {
+            from = mkOption { type = types.port; };
+            to = mkOption { type = types.port; };
+          };
+        });
+        default = [{ from = 30000; to = 32767; }];
+        description = "Extra TCP port ranges";
+      };
+
+      firewallExtraUDPPorts = mkOption {
+        type = types.listOf types.port;
+        default = [8472];
+        description = "Extra UDP ports";
+      };
     };
 
     forge-mining = {
       enable = mkEnableOption "Forge mining profile (GPU/CPU mining + AI inference)";
 
-      kubernetes = {
-        enable = true;
-        roles = ["node"];
-        masterAddress = "10.1.1.110";
+      kubernetes = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          roles = ["node"];
+          masterAddress = "10.1.1.110";
+        };
+        description = "Kubernetes configuration";
       };
 
-      # Multi-vendor GPU (NVIDIA + AMD)
-      nvidia = {
-        enable = true;
-        multiGpu = true;  # 2x RTX 4060
-      };
-      amdgpu = {
-        enable = true;
-        wayland = true;
-      };
-
-      networking = {
-        ipAddress = "10.1.1.130";
-        interfaceName = "enp0s31f6";
-        unboundListenAddress = "10.1.1.130";
-        wireless.enable = false;  # Mining rig - no WiFi
+      nvidia = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          multiGpu = true;
+        };
+        description = "NVIDIA GPU configuration";
       };
 
-      # Disable DHCP (static IP only)
-      disableDHCP = true;
+      amdgpu = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          wayland = true;
+        };
+        description = "AMD GPU configuration";
+      };
 
-      firewallExtraTCPPorts = [
-        10250  # Kubelet API
-      ];
-      firewallExtraTCPPortRanges = [
-        { from = 30000; to = 32767; }  # NodePort range
-      ];
-      firewallExtraUDPPorts = [
-        8472  # Flannel VXLAN
-      ];
+      networking = mkOption {
+        type = types.attrs;
+        default = {
+          ipAddress = "10.1.1.130";
+          interfaceName = "enp0s31f6";
+          unboundListenAddress = "10.1.1.130";
+          wireless.enable = false;
+        };
+        description = "Networking configuration";
+      };
 
-      extraImports = [
-        ../../modules/hardware/nvidia-common.nix
-        ../../modules/hardware/nvidia-wayland.nix
-        ../../modules/hardware/amdgpu-wayland.nix
-        ../../modules/system/security.nix
-        ../../modules/services/podman-support.nix
-      ];
+      disableDHCP = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Disable DHCP for static IP";
+      };
+
+      firewallExtraTCPPorts = mkOption {
+        type = types.listOf types.port;
+        default = [10250];
+        description = "Extra TCP ports";
+      };
+
+      firewallExtraTCPPortRanges = mkOption {
+        type = types.listOf (types.submod {
+          options = {
+            from = mkOption { type = types.port; };
+            to = mkOption { type = types.port; };
+          };
+        });
+        default = [{ from = 30000; to = 32767; }];
+        description = "Extra TCP port ranges";
+      };
+
+      firewallExtraUDPPorts = mkOption {
+        type = types.listOf types.port;
+        default = [8472];
+        description = "Extra UDP ports";
+      };
     };
 
     sentry-monitoring = {

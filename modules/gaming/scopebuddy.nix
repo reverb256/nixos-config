@@ -10,10 +10,16 @@
 with lib; let
   cfg = config.programs.scopebuddy;
   scopebuddyCfg = config.services.gaming;
-  userName = "j_kro"; # TODO: Make configurable
 in {
   options.programs.scopebuddy = {
     enable = mkEnableOption "ScopeBuddy - gamescope wrapper with maximum automation";
+
+    user = mkOption {
+      type = types.str;
+      default = "j_kro";
+      example = "alice";
+      description = "Username for whom ScopeBuddy is enabled";
+    };
 
     package = mkOption {
       type = types.nullOr types.package;
@@ -267,8 +273,8 @@ in {
     # Environment variables for auto-detection
     environment.sessionVariables =
       {
-        SCB_CONFIG_PATH = "/home/${userName}/.config/scopebuddy/scb.conf";
-        SCB_PROFILES_PATH = "/home/${userName}/.config/scopebuddy/profiles";
+        SCB_CONFIG_PATH = "/home/${cfg.user}/.config/scopebuddy/scb.conf";
+        SCB_PROFILES_PATH = "/home/${cfg.user}/.config/scopebuddy/profiles";
       }
       // optionalAttrs cfg.autoDetect.resolution {
         SCB_AUTO_RES = "1";
@@ -295,12 +301,12 @@ in {
     # Create config directories
     systemd.tmpfiles.rules =
       [
-        "d /home/${userName}/.config/scopebuddy 0755 ${userName} users -"
-        "d /home/${userName}/.config/scopebuddy/appid 0755 ${userName} users -"
-        "d /home/${userName}/.config/scopebuddy/profiles 0755 ${userName} users -"
+        "d /home/${cfg.user}/.config/scopebuddy 0755 ${cfg.user} users -"
+        "d /home/${cfg.user}/.config/scopebuddy/appid 0755 ${cfg.user} users -"
+        "d /home/${cfg.user}/.config/scopebuddy/profiles 0755 ${cfg.user} users -"
       ]
       ++ optionals scopebuddyCfg.hdr.enable [
-        "f /home/${userName}/.config/scopebuddy/scb.conf 0644 ${userName} users - -"
+        "f /home/${cfg.user}/.config/scopebuddy/scb.conf 0644 ${cfg.user} users - -"
       ];
 
     # GameMode configuration

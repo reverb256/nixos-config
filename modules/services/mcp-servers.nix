@@ -371,12 +371,11 @@ in {
           };
         })
 
-        # Grep-app server - package doesn't exist, disabled
-        # TODO: Find correct package or alternative
-        # (mkNpmMcpServer {
-        #   name = "grep-app";
-        #   package = "@grepapp/mcp-server";
-        # })
+        # Note: grep-app MCP server (@grepapp/mcp-server) does not exist in npm
+        # Alternatives for code search:
+        # - Use the filesystem MCP server (already available) with glob patterns
+        # - Use ripgrep/rg directly via shell commands
+        # - Use official @modelcontextprotocol/server-github for repo search
 
         (mkNpmMcpServer {
           name = "brave-search";

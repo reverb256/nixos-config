@@ -65,7 +65,8 @@ class CacheConfig:
         exact_ttl_seconds: TTL for exact match cache (default: 3600s = 1 hour)
         semantic_ttl_seconds: TTL for semantic cache (default: 86400s = 24 hours)
         similarity_threshold: Minimum similarity score (0-1) for semantic hits (default: 0.85)
-        embedding_model: Model for embeddings (default: text-embedding-ada-002)
+        embedding_model: Model for embeddings (default: all-MiniLM-L6-v2 via LM Studio)
+        embedding_endpoint: LM Studio embedding endpoint (default: http://127.0.0.1:1234/v1/embeddings)
         enable_exact_cache: Enable exact match caching
         enable_semantic_cache: Enable semantic caching
     """
@@ -76,7 +77,8 @@ class CacheConfig:
     exact_ttl_seconds: int = 3600  # 1 hour
     semantic_ttl_seconds: int = 86400  # 24 hours
     similarity_threshold: float = 0.85
-    embedding_model: str = "text-embedding-ada-002"
+    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_endpoint: str = "http://127.0.0.1:1234/v1/embeddings"
     enable_exact_cache: bool = True
     enable_semantic_cache: bool = True
 
@@ -198,14 +200,18 @@ class SemanticCache:
                 collection_names = [c.name for c in collections.collections]
 
                 if self.config.qdrant_collection not in collection_names:
+                    # Detect embedding dimension by generating a test embedding
+                    embedding_size = await self._detect_embedding_size()
+
                     self._qdrant.create_collection(
                         collection_name=self.config.qdrant_collection,
                         vectors_config=VectorParams(
-                            size=1536, distance=Distance.COSINE
-                        ),  # Ada-002 dimension
+                            size=embedding_size, distance=Distance.COSINE
+                        ),
                     )
                     logger.info(
-                        f"Created Qdrant collection: {self.config.qdrant_collection}"
+                        f"Created Qdrant collection: {self.config.qdrant_collection} "
+                        f"(vector_size={embedding_size})"
                     )
                 else:
                     logger.info(
@@ -217,6 +223,11 @@ class SemanticCache:
                 self.config.enable_semantic_cache = False
 
         return self._qdrant
+
+    async def _detect_embedding_size(self) -> int:
+        """Detect the embedding dimension by generating a test embedding."""
+        test_embedding = await self._generate_embedding([{"role": "user", "content": "test"}])
+        return len(test_embedding)
 
     def _make_cache_key(
         self, model: str, messages: List[Dict[str, str]], **kwargs
@@ -420,28 +431,76 @@ class SemanticCache:
 
     async def _generate_embedding(self, messages: List[Dict[str, str]]) -> List[float]:
         """
-        Generate embedding for messages.
+        Generate embedding for messages using LM Studio's embedding endpoint.
 
-        Placeholder implementation - would call embedding service.
-        For now, returns a dummy embedding.
+        Uses the locally running LM Studio instance to generate embeddings,
+        avoiding external API calls and keeping everything on-cluster.
 
         Args:
             messages: Chat messages
 
         Returns:
-            Embedding vector (1536 dimensions for Ada-002)
+            Embedding vector (dimension depends on the embedding model)
         """
-        # TODO: Implement actual embedding generation
-        # Options:
-        # 1. Call OpenAI Embeddings API
-        # 2. Use local embedding model (sentence-transformers)
-        # 3. Use LM Studio's embedding endpoint if available
+        try:
+            import httpx
 
-        # Placeholder: return zero vector
+            # Extract text from messages for embedding
+            # For multi-turn conversations, concatenate all messages
+            text_parts = []
+            for msg in messages:
+                role = msg.get("role", "")
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    text_parts.append(f"{role}: {content}")
+                elif isinstance(content, list):
+                    # Handle content blocks (e.g., for images)
+                    for block in content:
+                        if block.get("type") == "text":
+                            text_parts.append(f"{role}: {block.get('text', '')}")
+
+            # Join messages for embedding
+            text_to_embed = "\n".join(text_parts)
+
+            # Use LM Studio's embedding endpoint (configurable)
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    self.config.embedding_endpoint,
+                    json={
+                        "model": self.config.embedding_model,
+                        "input": text_to_embed,
+                    },
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    embedding = data.get("data", [{}])[0].get("embedding", [])
+
+                    if embedding:
+                        logger.debug(f"Generated embedding with {len(embedding)} dimensions")
+                        return embedding
+                    else:
+                        logger.warning("Empty embedding received from LM Studio")
+
+                logger.warning(
+                    f"Failed to get embedding from LM Studio: {response.status_code}"
+                )
+
+        except ImportError:
+            logger.warning("httpx not available - cannot generate embeddings")
+        except Exception as e:
+            logger.warning(f"Error generating embedding with LM Studio: {e}")
+
+        # Fallback: Return zero vector (semantic cache won't work)
+        # Note: This will cause semantic cache to always miss, but won't crash
         logger.warning(
-            "Using placeholder embeddings - semantic cache won't work properly"
+            "Using fallback placeholder embeddings - semantic cache won't work properly"
         )
-        return [0.0] * 1536
+        # Try to detect size first, otherwise default to 384 (common for MiniLM)
+        try:
+            return [0.0] * await self._detect_embedding_size()
+        except Exception:
+            return [0.0] * 384  # Default to MiniLM size
 
     async def invalidate(self, model: Optional[str] = None) -> int:
         """
@@ -494,11 +553,12 @@ class SemanticCache:
                         qdrant_client.delete_collection(
                             collection_name=self.config.qdrant_collection
                         )
-                        # Recreate collection
+                        # Recreate collection with detected embedding size
+                        embedding_size = await self._detect_embedding_size()
                         qdrant_client.create_collection(
                             collection_name=self.config.qdrant_collection,
                             vectors_config=VectorParams(
-                                size=1536, distance=Distance.COSINE
+                                size=embedding_size, distance=Distance.COSINE
                             ),
                         )
                         count += 1  # Approximate
