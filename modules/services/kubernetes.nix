@@ -286,11 +286,10 @@
             echo "ERROR: containerd not ready after 60 seconds"
             exit 1
           '';
-        } // lib.optionalAttrs (!isMaster) {
-          # Kubelet memory limits - only for worker nodes
-          MemoryMax = "2G";
-          MemoryHigh = "1.5G";
-          OOMScoreAdjust = -500;
+          # Kubelet memory limits (applied to all nodes, using mkDefault for override)
+          MemoryMax = lib.mkDefault "2G";
+          MemoryHigh = lib.mkDefault "1.5G";
+          OOMScoreAdjust = lib.mkDefault -500;
         };
       };
 
