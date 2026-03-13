@@ -134,7 +134,7 @@ data:
     spec:
       containers:
       - name: helper-pod
-        image: rancher/mirrored-flannelcni-flannel:v0.25.5
+        image: busybox:latest
         imagePullPolicy: IfNotPresent
 
 ---
