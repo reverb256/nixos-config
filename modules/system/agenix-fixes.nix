@@ -192,6 +192,7 @@ in {
         "glitchtip-web.service"
         "glitchtip-redis.service"
         "ai-inference-gateway.service"
+        "garage.service"
       ];
       environment.PATH = lib.mkForce (lib.makeBinPath (
         [pkgs.coreutils] ++ lib.optionals (config.services.cluster-storage.enable) [pkgs.util-linux]

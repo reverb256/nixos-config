@@ -62,6 +62,13 @@ in {
 
     users.groups.garage = {};
 
+    # Create data directory via tmpfiles
+    systemd.tmpfiles.rules = [
+      "d ${cfg.dataDir} 0750 garage garage -"
+      "d ${cfg.dataDir}/meta 0750 garage garage -"
+      "d ${cfg.dataDir}/data 0750 garage garage -"
+    ];
+
     systemd.services.garage = {
       description = "Garage S3-compatible object storage";
       after = ["network-online.target"];
@@ -80,15 +87,10 @@ in {
         ProtectHome = true;
         ReadWritePaths = "${cfg.dataDir}";
 
-        # Create data directory and config
-        ExecStartPre = pkgs.writeShellScript "garage-init" ''
+        # Generate config file
+        ExecStartPre = pkgs.writeShellScript "garage-config" ''
           #!${pkgs.bash}/bin/bash
           set -euo pipefail
-
-          # Create data directory and subdirectories
-          mkdir -p "${cfg.dataDir}/meta"
-          mkdir -p "${cfg.dataDir}/data"
-          chown -R garage:garage "${cfg.dataDir}"
 
           # Generate config file
           cat > "${cfg.dataDir}/garage.toml" <<'EOF'

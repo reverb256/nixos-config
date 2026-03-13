@@ -158,4 +158,16 @@ in {
     users.j_kro
     hosts.zephyr
   ];
+
+  # ========================================================================
+  # GARAGE S3 STORAGE SECRETS
+  # ========================================================================
+
+  # Garage RPC secret - Cluster authentication for distributed S3 storage
+  "secrets/garage-rpc-secret.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+    hosts.nexus
+    hosts.sentry
+  ];
 }
