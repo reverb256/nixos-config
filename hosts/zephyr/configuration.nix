@@ -547,7 +547,7 @@ in {
     garage-cluster = {
       enable = true;
       dataDir = "/data/shared/garage";  # On NFS from nexus
-      rpcSecretFile = "/run/agenix/garage-rpc-secret";
+      rpcSecret = "dLkKN99q9DS9HufOyZVNiCUlTOPV6Kfjabz30eV4lHxRNS6DeAK7IO5D29dTdgZh";
       replicationFactor = 2;
     };
   };

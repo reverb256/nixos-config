@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: amd-gpu-device-plugin-daemonset
+  namespace: kube-system
+  labels:
+    name: amd-gpu-device-plugin-ds
+spec:
+  selector:
+    matchLabels:
+      name: amd-gpu-device-plugin-ds
+  template:
+    metadata:
+      labels:
+        name: amd-gpu-device-plugin-ds
+    spec:
+      hostPID: true
+      containers:
+      - name: amd-gpu-device-plugin-ctr
+        image: rocm/k8s-device-plugin:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: AMDGPU_VISIBLE_DEVICES
+          value: "all"
+        - name: DRIVERS_NODE
+          value: "true"
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "rm -rf /var/lib/kubelet/device-plugins/*.sock"]
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -S /var/lib/kubelet/device-plugins/kubelet.sock
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources: {}
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /var/lib/kubelet/device-plugins
+          name: device-plugin
+        - mountPath: /dev
+          name: dev
+        - mountPath: /sys/class/drm
+          name: sys-drm
+        - mountPath: /dev/dri
+          name: dri
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        gpu: amd
+      priorityClassName: system-node-critical
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      tolerations:
+      - effect: NoSchedule
+        key: amd.amd.com/gpu
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /var/lib/kubelet/device-plugins
+          type: ""
+        name: device-plugin
+      - hostPath:
+          path: /dev
+          type: ""
+        name: dev
+      - hostPath:
+          path: /sys/class/drm
+          type: ""
+        name: sys-drm
+      - hostPath:
+          path: /dev/dri
+          type: ""
+        name: dri
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
