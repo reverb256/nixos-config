@@ -67,6 +67,7 @@
   # ============================================================================
   # Override profile defaults: Nexus becomes a master node for HA
   services.kubernetes-module = {
+    enable = true;
     # Override roles to include master
     roles = lib.mkForce ["master" "node"];
     # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
