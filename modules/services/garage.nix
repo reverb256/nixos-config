@@ -120,19 +120,14 @@ in {
           # Add remaining config
           cat >> "${cfg.dataDir}/garage.toml" <<'EOF'
 
-        # S3 API
-        [s3_api]
-        s3_region = "garage"
-        api_bind_addr = "[::]:${toString cfg.s3ApiPort}"
-        s3_root_domain = ".s3.garage.cluster"
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:${toString cfg.s3ApiPort}"
+root_domain = ".s3.garage.cluster"
 
-        # Web interface
-        [admin]
-        api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
-
-        # Replication
-        replication_factor = ${toString cfg.replicationFactor}
-        EOF
+[admin]
+api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
+EOF
         '';
 
         ExecStart = "${pkgs.garage}/bin/garage -c ${cfg.dataDir}/garage.toml server";
