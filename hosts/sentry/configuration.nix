@@ -91,8 +91,13 @@ in {
     # Crash detection and logging
     crash-watchdog.enable = true;
 
-    # Kubernetes worker configuration provided by node-profiles.sentry-monitoring
-    # No need to duplicate here
+    # Kubernetes worker configuration
+    kubernetes-module = {
+      enable = true;
+      roles = ["node"];
+      masterAddress = "10.1.1.110";
+      # kubelet.hostname is automatically set from config.networking.hostName (clusterNetworking.hostName = "sentry")
+    };
 
     xserver.videoDrivers = ["amdgpu"];
 
