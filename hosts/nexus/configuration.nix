@@ -16,22 +16,17 @@ in {
     # All other modules (desktop, gaming, networking, services, etc.)
     ../../modules/default.nix
 
-    # NVIDIA GPU support (common + wayland-specific)
-    ../../modules/hardware/nvidia-common.nix
+    # NVIDIA GPU Wayland support (host-dependent)
     ../../modules/hardware/nvidia-wayland.nix
 
     # Desktop environment modules
     ../../modules/desktop/gamescope-tty.nix
 
     # Nexus-specific modules
-    ../../modules/services/mcp-servers.nix
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/podman-support.nix
 
-    # Home Manager integration
-    ../../modules/system/home-manager.nix
-
-    # Kubernetes worker node
+    # Kubernetes worker node (opt-in)
     ../../modules/services/kubernetes.nix
   ];
 

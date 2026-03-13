@@ -27,10 +27,7 @@ in {
     # Podman support
     ../../modules/services/podman-support.nix
 
-    # Home Manager integration
-    ../../modules/system/home-manager.nix
-
-    # Kubernetes worker node
+    # Kubernetes worker node (opt-in)
     ../../modules/services/kubernetes.nix
   ];
 

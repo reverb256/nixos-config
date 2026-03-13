@@ -1,7 +1,7 @@
 # Common Host Defaults - Shared settings for all cluster nodes
 # This module provides consistent defaults across all hosts
 # Host-specific overrides should be placed in hosts/<hostname>/configuration.nix
-{lib, ...}: {
+{config, lib, pkgs, ...}: {
   # ============================================================================
   # SYSTEM STATE VERSION
   # ============================================================================
@@ -100,10 +100,64 @@
   # ============================================================================
   # systemd-boot configuration for all hosts
   boot.loader = {
+    # Enable systemd-boot by default (UEFI systems)
+    systemd-boot.enable = lib.mkDefault true;
+
+    # Allow touching EFI variables (required for boot management)
+    efi.canTouchEfiVariables = lib.mkDefault true;
+
     # GRACEFUL BOOT ENTRY MANAGEMENT
     # When false, systemd-boot will remove old entries aggressively
     # This prevents accumulation of 75+ old generations on the ESP
     # When true (default), old entries are kept for rollback safety
     systemd-boot.graceful = lib.mkDefault false;
   };
+
+  # ============================================================================
+  # KERNEL DEFAULTS
+  # ============================================================================
+  # Use Zen kernel by default for better desktop responsiveness
+  # Individual hosts can override if needed
+  boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_zen;
+
+  # ============================================================================
+  # KUBERNETES FIREWALL DEFAULTS
+  # ============================================================================
+  # Kubernetes networking requirements for all cluster nodes
+  # These ports are required for Kubernetes cluster communication
+  networking.firewall = {
+    # NodePort range - required for Kubernetes Services of type NodePort
+    # This range is the Kubernetes default and should be consistent across all nodes
+    allowedTCPPortRanges = lib.mkOptionDefault [
+      {
+        from = 30000;
+        to = 32767;
+      }
+    ];
+
+    # Flannel VXLAN - required for pod-to-pod networking
+    allowedUDPPorts = lib.mkOptionDefault [
+      8472  # Flannel VXLAN
+    ];
+  };
+
+  # ============================================================================
+  # GIT CONFIGURATION - PLATFORM DEFAULTS
+  # ============================================================================
+  # Standardized git configuration across all cluster nodes
+  # Email address is automatically interpolated to use hostname
+  programs.git = {
+    enable = lib.mkDefault true;
+    config = {
+      init.defaultBranch = "main";
+      user.name = "j_kro";
+      user.email = lib.mkDefault "j_kro@${config.networking.hostName or "cluster"}";
+    };
+  };
+
+  # ============================================================================
+  # NIX-LD DEFAULTS
+  # ============================================================================
+  # Enable nix-ld by default for better binary compatibility
+  programs.nix-ld.enable = lib.mkDefault true;
 }

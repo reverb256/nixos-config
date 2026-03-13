@@ -9,7 +9,9 @@
   lib,
   pkgs,
   ...
-}: {
+}: let
+  inherit (lib) mkForce;
+in {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -19,17 +21,13 @@
     # All other modules (desktop, networking, services, etc.)
     ../../modules/default.nix
 
-    # NVIDIA GPU support (common + wayland-specific)
-    ../../modules/hardware/nvidia-common.nix
+    # GPU support (wayland-specific, host-dependent)
     ../../modules/hardware/nvidia-wayland.nix
     ../../modules/hardware/amdgpu-wayland.nix
     ../../modules/system/security.nix
     ../../modules/services/podman-support.nix
 
-    # Home Manager integration
-    ../../modules/system/home-manager.nix
-
-    # Kubernetes worker node
+    # Kubernetes worker node (opt-in)
     ../../modules/services/kubernetes.nix
   ];
 
@@ -45,6 +43,13 @@
     wireless.enable = false;  # Mining rig - no WiFi needed
     unbound.listenAddress = "10.1.1.130";  # Listen on node IP for cluster DNS
   };
+
+  # ============================================================================
+  # NODE PROFILE - Platform-level defaults
+  # ============================================================================
+  # This profile bundles role profiles, Kubernetes config, hardware profiles,
+  # and networking configuration. Eliminates ~100 lines of duplication.
+  # profiles.node.forge-mining.enable = true;
 
   # Forge-specific firewall rules (in addition to cluster defaults)
   networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
@@ -67,12 +72,8 @@
     # Crash detection and logging
     crash-watchdog.enable = true;
 
-    # Kubernetes worker node
-    kubernetes-module = {
-      enable = true;
-      masterAddress = "10.1.1.110"; # Zephyr control plane
-      roles = ["node"]; # Worker node only
-    };
+    # Kubernetes worker configuration provided by node-profiles.forge-mining
+    # No need to duplicate here
 
     # Spotify with SpotX patch (ad-free, premium features)
     spotify-spotx.enable = true;
@@ -159,16 +160,11 @@
   # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
+  # Base profiles provided by node-profiles.forge-mining:
+  # - intel, nvidia.enable (multiGpu), amdgpu.enable, amdgpu.wayland, monitoring.enable
+  #
+  # Forge-specific hardware additions:
   hardware = {
-    profiles = {
-      intel.enable = true; # Intel CPU optimizations (Skylake)
-      nvidia.enable = true; # NVIDIA GPU support
-      nvidia.multiGpu = true; # 2x RTX 4060
-      amdgpu.enable = true; # AMD GPU support
-      amdgpu.wayland = true; # AMDGPU Wayland optimizations (ROC_ENABLE_PRE_VEGA)
-      monitoring.enable = true; # Hardware monitoring
-    };
-
     # BTRFS compression and deduplication
     btrfs-compression.enable = true;
 
@@ -183,28 +179,26 @@
   # ============================================================================
   # ROLE PROFILES
   # ============================================================================
-  profiles.role = {
-    mining = true; # GPU/CPU mining only (no gaming/VR)
-    aiInference = true; # AI inference gateway + MCP + RAG
-  };
+  # Base role profiles provided by node-profiles.forge-mining:
+  # - mining, aiInference
+  # Kubernetes and networking also handled by node profile
+  #
+  # No additional role profiles needed - all handled by node profile
 
   # ============================================================================
   # NETWORK PROFILES
   # ============================================================================
-  profiles.network.tailscale.enable = true;
+  # Base Tailscale configuration provided by node-profiles.forge-mining
+  # No additional network profile configuration needed
 
   # ============================================================================
   # BOOT CONFIGURATION
   # ============================================================================
+  # Base bootloader settings provided by common-host-defaults.nix:
+  # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
+  #
+  # Only add Forge-specific kernel parameters here that aren't provided by modules
   boot = {
-    loader = {
-      systemd-boot.enable = true;
-      efi.canTouchEfiVariables = true;
-    };
-
-    # KERNEL - Zen for better desktop responsiveness
-    kernelPackages = pkgs.linuxPackages_zen;
-
     # KERNEL PARAMETERS
     # NOTE: Most parameters provided by shared modules:
     # - kernel-hardening.nix: quiet, splash, loglevel=3, lsm stack, zswap, etc.
@@ -671,14 +665,8 @@
       openssl
     ];
 
-    git = {
-      enable = true;
-      config = {
-        init.defaultBranch = "main";
-        user.name = "j_kro";
-        user.email = "j_kro@forge";
-      };
-    };
+    # Git configuration now provided by common-host-defaults.nix
+    # with automatic hostname interpolation (j_kro@forge)
   };
 
   # ============================================================================

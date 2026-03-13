@@ -116,6 +116,21 @@ in {
         # Note: AMD GPU metrics are collected via node-exporter textfile collector
         # (forge:9100/metrics includes amdgpu_* metrics from /var/lib/prometheus/node-exporter/textfile-collector/)
 
+        # XMRig Proxy metrics (centralized CPU mining proxy on Zephyr)
+        # Aggregates hashrate from all CPU miners (zephyr, nexus, sentry)
+        {
+          job_name = "xmrig-proxy";
+          static_configs = [
+            {
+              targets = ["zephyr:8081"];
+              labels = {
+                role = "mining-proxy";
+                environment = "production";
+              };
+            }
+          ];
+        }
+
         # Redis metrics (AI Gateway cache)
         {
           job_name = "redis";
