@@ -658,14 +658,34 @@
                 self.pool_task = asyncio.create_task(self.pool_message_loop(self.current_pool))
                 logging.info("Pool message loop task created")
 
-                # Start miner listener
+                # Start miner listener with TLS support
+                ssl_context = None
+                cert_path = "/etc/gpu-proxy/tls.crt"
+                key_path = "/etc/gpu-proxy/tls.key"
+
+                # Try to load certificate for TLS
+                try:
+                    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                    ssl_context.check_hostname = False
+                    ssl_context.verify_mode = ssl.CERT_NONE
+                    # Check for certificates in data directory
+                    cert_path = "/var/lib/gpu-proxy/tls.crt"
+                    key_path = "/var/lib/gpu-proxy/tls.key"
+                    ssl_context.load_cert_chain(cert_path, key_path)
+                    logging.info("TLS enabled for miner connections")
+                except FileNotFoundError:
+                    logging.warning("TLS certificate not found, starting without TLS")
+                    logging.warning("Miners must connect without TLS (remove --tls flag)")
+
                 self.server = await asyncio.start_server(
                     self.handle_miner,
                     "0.0.0.0",
-                    self.config.listen_port
+                    self.config.listen_port,
+                    ssl=ssl_context
                 )
 
-                logging.info(f"GPU Stratum Proxy listening on port {self.config.listen_port}")
+                tls_status = "with TLS" if ssl_context else "without TLS"
+                logging.info(f"GPU Stratum Proxy listening on port {self.config.listen_port} ({tls_status})")
                 logging.info(f"API listening on port {self.config.api_port}")
 
                 async with self.server:
@@ -880,6 +900,22 @@ in {
         User = cfg.user;
         Group = cfg.group;
         WorkingDirectory = cfg.dataDir;
+
+        # Generate TLS certificate for secure miner connections
+        ExecStartPre = pkgs.writeShellScript "gpu-proxy-generate-cert" ''
+          CERT_DIR="/var/lib/gpu-proxy"
+          CERT_CRT="$CERT_DIR/tls.crt"
+          CERT_KEY="$CERT_DIR/tls.key"
+
+          if [ ! -f "$CERT_CRT" ] || [ ! -f "$CERT_KEY" ]; then
+            echo "Generating self-signed TLS certificate for gpu-proxy..."
+            ${pkgs.openssl}/bin/openssl req -x509 -newkey rsa:2048 \
+              -keyout "$CERT_KEY" -out "$CERT_CRT" \
+              -days 3650 -nodes -subj "/CN=gpu-proxy" 2>/dev/null
+            chmod 640 "$CERT_CRT" "$CERT_KEY"
+            echo "TLS certificate generated successfully"
+          fi
+        '';
 
         ExecStart = "${gpu-proxy-package}/bin/gpu-proxy --config /etc/gpu-proxy/config.json";
 
