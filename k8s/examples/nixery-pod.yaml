@@ -1,0 +1,93 @@
+# Nixery-based Kubernetes Pod Examples
+# These demonstrate using Nix package manager with Kubernetes
+
+---
+# Example 1: Ad-hoc build environment with Nixery
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nix-build-worker
+  namespace: default
+spec:
+  # Run on build-capable nodes (zephyr, nexus)
+  nodeSelector:
+    kubernetes.io/hostname: zephyr
+  containers:
+  - name: builder
+    # Nixery builds images on-the-fly with exactly these packages
+    # meta-package "shell" provides bash + coreutils + standard tools
+    image: nixery.dev/shell/git/ninja/meson/cmake/gcc/llvmPackages_19.clang
+    command: ["bash"]
+    args: ["-c", "echo 'Nix build environment ready!' && sleep 3600"]
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+        cpu: "2000m"
+  restartPolicy: Never
+
+---
+# Example 2: Nix-based CI/CD job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nix-ci-build
+  namespace: default
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: zephyr
+      containers:
+      - name: builder
+        image: nixery.dev/shell/git/gnumake/nodejs_22
+        command: ["bash"]
+        args:
+          - -c
+          - |
+            echo "Building with Nix packages..."
+            git clone https://github.com/user/project.git
+            cd project
+            npm ci
+            npm run build
+        workingDir: /workspace
+      restartPolicy: OnFailure
+      backoffLimit: 3
+
+---
+# Example 3: Development tools pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dev-tools
+  namespace: default
+spec:
+  containers:
+  - name: shell
+    image: nixery.dev/shell/tmux/vim/htop/ripgrep/fzf/jq
+    command: ["bash"]
+    args: ["-c", "sleep 86400"]  # Keep alive for manual attachment
+    resources:
+      limits:
+        memory: "256Mi"
+        cpu: "500m"
+  restartPolicy: Never
+
+---
+# Example 4: Python environment with exact packages
+apiVersion: v1
+kind: Job
+metadata:
+  name: python-job
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: python
+        image: nixery.dev/shell/python312/python312Packages.pip/python312Packages.numpy/python312Packages.pandas
+        command: ["python3"]
+        args: ["-c", "import numpy as np; print(f'NumPy version: {np.__version__}')"]
+      restartPolicy: Never
