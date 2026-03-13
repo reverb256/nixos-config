@@ -1030,6 +1030,8 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         # Create context for middleware
         context = {
+            "request_id": request_id,
+            "start_time": _request_start,  # Track request start for observability
             "request_body": body,
             "request_headers": dict(request.headers),
             "model": route_decision.model,  # Use routed model for concurrency limiter
@@ -1347,31 +1349,115 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 fallback_urls = state.config.get_backend_fallback_urls()
                 if fallback_urls:
                     logger.info("Falling back to ZAI for Anthropic request")
-                    # TODO: Implement ZAI fallback for Anthropic format
-                    # For now, return the error
-                    state.router.track_request_end(request_id)
-                    gpu_scheduler.notify_ai_stopping()
-                    raise HTTPException(
-                        status_code=e.response.status_code,
-                        detail=f"LM Studio error: {e.response.text}",
-                    )
-                else:
-                    state.router.track_request_end(request_id)
-                    gpu_scheduler.notify_ai_stopping()
-                    raise
+                    try:
+                        # Try ZAI fallback (uses OpenAI format)
+                        for fallback_url in fallback_urls:
+                            try:
+                                # Convert Anthropic request to OpenAI format for ZAI
+                                openai_request = {
+                                    "model": route_decision.model,
+                                    "messages": messages,
+                                    "max_tokens": max_tokens,
+                                    "stream": stream,
+                                }
+                                # Add system prompt if present
+                                if system:
+                                    openai_request["messages"] = [
+                                        {"role": "system", "content": system}
+                                    ] + openai_request["messages"]
+
+                                # Build headers for ZAI
+                                zai_headers = {
+                                    "Content-Type": "application/json",
+                                }
+                                zai_api_key = state.config.get_zai_api_key()
+                                if zai_api_key:
+                                    zai_headers["Authorization"] = f"Bearer {zai_api_key}"
+
+                                # ZAI uses /chat/completions (no /v1/ prefix)
+                                zai_endpoint = f"{fallback_url}/chat/completions"
+
+                                async with httpx.AsyncClient(timeout=300.0) as client:
+                                    if stream:
+                                        # Streaming response - would need translation
+                                        # For now, return error for streaming fallback
+                                        logger.warning(
+                                            "ZAI fallback for streaming Anthropic requests not yet implemented"
+                                        )
+                                        raise HTTPException(
+                                            status_code=501,
+                                            detail="Streaming fallback not yet supported",
+                                        )
+                                    else:
+                                        response = await client.post(
+                                            zai_endpoint,
+                                            json=openai_request,
+                                            headers=zai_headers,
+                                        )
+                                        response.raise_for_status()
+                                        openai_response = response.json()
+
+                                        # Translate OpenAI response to Anthropic format
+                                        response_data = translate_openai_to_anthropic(
+                                            openai_response, route_decision.model
+                                        )
+
+                                        # Add gateway metadata
+                                        response_data["gateway_metadata"] = {
+                                            "processing_time_ms": (
+                                                time.time() - _request_start
+                                            )
+                                            * 1000,
+                                            "router": {
+                                                "model": route_decision.model,
+                                                "backend": "zai-fallback",
+                                                "reason": "ZAI fallback after LM Studio failure",
+                                            },
+                                        }
+
+                                        # Record metrics
+                                        usage = response_data.get("usage", {})
+                                        metrics_tracker.record_success(
+                                            input_tokens=usage.get("input_tokens", 0),
+                                            output_tokens=usage.get("output_tokens", 0),
+                                            total_tokens=usage.get("total_tokens", 0),
+                                            latency_ms=response_data["gateway_metadata"].get(
+                                                "processing_time_ms", 0
+                                            ),
+                                        )
+
+                                        state.router.track_request_end(request_id)
+                                        gpu_scheduler.notify_ai_stopping()
+
+                                        return JSONResponse(content=response_data)
+
+                            except httpx.HTTPStatusError as zai_error:
+                                logger.warning(
+                                    f"ZAI fallback also failed: {zai_error.response.status_code}"
+                                )
+                                continue
+                            except Exception as zai_exc:
+                                logger.warning(f"ZAI fallback failed: {zai_exc}")
+                                continue
+
+                        # All fallbacks failed
+                        logger.error("All backends (LM Studio and ZAI) failed")
+
+                    except Exception as fallback_error:
+                        logger.error(f"Error during ZAI fallback: {fallback_error}")
+
+                # No fallback available or fallback failed - return original error
+                state.router.track_request_end(request_id)
+                gpu_scheduler.notify_ai_stopping()
+                raise HTTPException(
+                    status_code=e.response.status_code,
+                    detail=f"LM Studio error: {e.response.text}",
+                )
             except Exception as e:
                 logger.error(f"Error calling LM Studio API: {e}")
                 state.router.track_request_end(request_id)
                 gpu_scheduler.notify_ai_stopping()
                 raise HTTPException(status_code=503, detail=f"Backend error: {str(e)}")
-
-            # ZAI backend - would need translation
-            # For now, not implemented for Anthropic format
-            state.router.track_request_end(request_id)
-            gpu_scheduler.notify_ai_stopping()
-            raise HTTPException(
-                status_code=501, detail="Anthropic format not yet supported for ZAI backend"
-            )
 
     # ============================================================================
     # MCP Broker Endpoints

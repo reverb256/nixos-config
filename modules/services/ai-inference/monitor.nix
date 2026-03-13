@@ -213,7 +213,7 @@ in {
       };
     };
 
-    # Grafana dashboard (optional - disabled for now)
-    # TODO: Fix Grafana dashboard provisioning option path
+    # Grafana dashboard provisioning is handled by services.monitoring.grafana
+    # which provisions ai-inference-gateway.json to /var/lib/grafana/dashboards/
   };
 }
