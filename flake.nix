@@ -79,7 +79,7 @@
     };
 
     # ========================================================================
-    # x86-64-v3 MICROARCHITECTURE VARIANT
+    # x86-64-v3 MICROARCHITECTURE NOTES
     # ========================================================================
     # All cluster CPUs support AVX2 and v3 requirements:
     # - Zephyr: Ryzen 9 5950X (Zen 3)
@@ -89,18 +89,9 @@
     #
     # Benefits: 10-30% SIMD performance uplift for AI, mining, crypto
     # Cost: No binary cache compatibility (must build from source)
-    # ========================================================================
-    systemV3 = "x86_64-linux";  # Same system triple, different gcc arch
-
-    # v3-optimized package set
-    pkgsV3 = import nixpkgs {
-      inherit systemV3;
-      localSystem = {
-        system = systemV3;
-        gcc.arch = "x86-64-v3";
-      };
-      config.allowUnfree = true;
-    };
+    #
+    # Implementation: v3 is set via nixpkgs.hostPlatform.gcc.arch at module
+    # level in mkNixosSystemV3 below (NOT via localSystem in flake imports).
 
     # ========================================================================
     # COMMON MODULES - Shared across all hosts (single source of truth)
@@ -155,25 +146,22 @@
       };
 
     # Helper to build v3 NixOS system
+    # Uses module-level nixpkgs.hostPlatform.gcc.arch for microarch tuning
     mkNixosSystemV3 = {
       hostName,
       extraModules ? [],
     }:
       nixpkgs.lib.nixosSystem {
-        system = systemV3;
-        specialArgs = {
-          inherit inputs pkgsV3;
-        };
+        system = "x86_64-linux";
+        specialArgs = {inherit inputs;};
         modules =
           commonModules
           ++ [
             ./hosts/${hostName}/configuration.nix
             {
               # Set v3 microarchitecture for package building
-              nixpkgs.hostPlatform = {
-                system = systemV3;
-                gcc.arch = "x86-64-v3";
-              };
+              # Module-level setting works correctly (not localSystem)
+              nixpkgs.hostPlatform.gcc.arch = "x86-64-v3";
             }
             # Note: allowUnsupportedSystem is set in individual modules
           ]

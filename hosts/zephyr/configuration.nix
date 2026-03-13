@@ -718,6 +718,14 @@
         group = "garage";
       };
 
+      # Garage S3 admin secret key - For automated backups to S3
+      garage-s3-secret-key = {
+        file = "${inputs.self}/secrets/garage-s3-secret-key.age";
+        mode = "440";
+        owner = "root";
+        group = "root";
+      };
+
       # Nextcloud admin password (DISABLED - service not enabled)
       # nextcloud-admin = {
       #   file = "${inputs.self}/secrets/nextcloud-admin.age";

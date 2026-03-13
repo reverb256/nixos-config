@@ -105,6 +105,12 @@
       "http://zephyr.tigris-ule.ts.net:50000?trusted=1"
     ];
 
+    # System features - declare x86-64-v3 microarchitecture support
+    # This allows building v3-optimized packages (gccarch-x86-64-v3)
+    # All cluster CPUs support AVX2: Zen 3 (Zephyr), Zen 2 (Nexus),
+    # Coffee Lake (Forge), Zen 1 (Sentry with AVX2)
+    system-features = lib.mkOptionDefault ["gccarch-x86-64-v3"];
+
     # Fallback to public caches if local cache miss
     # https://cache.nixos.org
   };
