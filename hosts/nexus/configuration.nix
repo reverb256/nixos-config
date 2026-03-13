@@ -356,4 +356,20 @@
   environment.systemPackages = with pkgs; [
     opencode # AI coding agent (migrated from nix profile)
   ];
+
+  # ============================================================================
+  # x86-64-v3 MIGRATION: Rollback Strategy
+  # ============================================================================
+  # IMPORTANT: Specialisations cannot change CPU microarchitecture (gcc.arch)
+  # because that's set at evaluation time, not runtime.
+  #
+  # Rollback strategy: NixOS naturally keeps previous generations available.
+  # To rollback after v3 migration, select the previous generation from boot menu.
+  #
+  # Boot menu entries show generations by date/timestamp:
+  # - Current generation (v3) - latest
+  # - Previous generation (baseline) - select to rollback
+  #
+  # After 5 days of stable v3 operation, old generations can be garbage collected.
+  # ============================================================================
 }
