@@ -18,6 +18,7 @@
   # Helper function to create profile config
   mkProfileConfig = profileName: profileCfg: mkIf profileCfg.enable (
     let
+      # Extract role profiles - handle missing roleProfiles gracefully
       roleProfiles = profileCfg.roleProfiles or {};
 
       # Extract networking config - handle both nested and direct formats
@@ -28,13 +29,12 @@
         wireless = profileCfg.wireless or { enable = false; };
       };
     in {
-      # Apply role profiles (if any)
-      profiles.role = roleProfiles;
-
-      # Apply Kubernetes configuration
-      services.kubernetes-module = mkIf (profileCfg ? kubernetes && profileCfg.kubernetes.enable) {
-        inherit (profileCfg.kubernetes) enable roles masterAddress;
-      };
+      # Apply role profiles by expanding each individually
+      profiles.role.workstation = roleProfiles.workstation or false;
+      profiles.role.gaming = roleProfiles.gaming or false;
+      profiles.role.vr = roleProfiles.vr or false;
+      profiles.role.mining = roleProfiles.mining or false;
+      profiles.role.aiInference = roleProfiles.aiInference or false;
 
       # Apply networking configuration (only if ipAddress is set)
       clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
@@ -46,6 +46,11 @@
           enable = true;
           listenAddress = networkingCfg.unboundListenAddress;
         };
+      };
+
+      # Apply Kubernetes configuration
+      services.kubernetes-module = mkIf (profileCfg ? kubernetes && profileCfg.kubernetes.enable) {
+        inherit (profileCfg.kubernetes) enable roles masterAddress;
       };
 
       # Apply hardware profiles
@@ -79,19 +84,10 @@ in {
     zephyr-workstation = {
       enable = mkEnableOption "Zephyr workstation profile (control plane + gaming + VR + mining + AI)";
 
-      # Role profiles
-      roleProfiles = {
-        workstation = true;
-        gaming = true;
-        vr = true;
-        mining = true;
-        aiInference = true;
-      };
-
       # Node-specific settings
       kubernetes = {
         enable = true;
-        roles = ["control-plane" "node"];
+        roles = ["master" "node"];  # NixOS services.kubernetes uses "master", not "control-plane"
         masterAddress = "10.1.1.110";
       };
 
@@ -128,13 +124,6 @@ in {
 
     nexus-gaming = {
       enable = mkEnableOption "Nexus gaming profile (gaming + VR + mining + AI)";
-
-      roleProfiles = {
-        gaming = true;
-        vr = true;
-        mining = true;
-        aiInference = true;
-      };
 
       kubernetes = {
         enable = true;
@@ -176,11 +165,6 @@ in {
 
     forge-mining = {
       enable = mkEnableOption "Forge mining profile (GPU/CPU mining + AI inference)";
-
-      roleProfiles = {
-        mining = true;
-        aiInference = true;
-      };
 
       kubernetes = {
         enable = true;
@@ -230,11 +214,6 @@ in {
     sentry-monitoring = {
       enable = mkEnableOption "Sentry monitoring profile (CPU mining + AI inference)";
 
-      roleProfiles = {
-        mining = true;
-        aiInference = true;
-      };
-
       kubernetes = {
         enable = true;
         roles = ["node"];
@@ -278,7 +257,7 @@ in {
 
       kubernetes = {
         enable = true;
-        roles = ["control-plane" "node"];
+        roles = ["master" "node"];  # NixOS services.kubernetes uses "master", not "control-plane"
         masterAddress = mkOption {
           type = types.str;
           default = "10.1.1.110";
@@ -341,5 +320,49 @@ in {
     (mkProfileConfig "kubernetes-control-plane" config.profiles.node.kubernetes-control-plane)
     # Generic Kubernetes worker profile
     (mkProfileConfig "kubernetes-worker" config.profiles.node.kubernetes-worker)
+
+    # ============================================================================
+    # ROLE PROFILE ASSIGNMENTS
+    # ============================================================================
+    # Each node profile assigns its corresponding role profiles
+    # This avoids the option declaration issue by keeping roleProfiles out of options
+    # ============================================================================
+
+    # Zephyr workstation role profiles
+    (mkIf config.profiles.node.zephyr-workstation.enable {
+      profiles.role = {
+        workstation = true;
+        gaming = true;
+        vr = true;
+        mining = true;
+        aiInference = true;
+      };
+    })
+
+    # Nexus gaming role profiles
+    (mkIf config.profiles.node.nexus-gaming.enable {
+      profiles.role = {
+        gaming = true;
+        vr = true;
+        mining = true;
+        aiInference = true;
+      };
+    })
+
+    # Forge mining role profiles
+    (mkIf config.profiles.node.forge-mining.enable {
+      profiles.role = {
+        mining = true;
+        aiInference = true;
+      };
+    })
+
+    # Sentry monitoring role profiles
+    (mkIf config.profiles.node.sentry-monitoring.enable {
+      profiles.role = {
+        mining = true;
+        aiInference = true;
+      };
+    })
   ];
 }
