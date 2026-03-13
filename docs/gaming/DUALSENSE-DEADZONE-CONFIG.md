@@ -1,93 +1,154 @@
-# DualSense Deadzone Configuration
+# DualSense Deadzone Configuration (Fixed)
 
 ## Overview
-**Extremely small 2% deadzone** applied to DualSense controller sticks at the system level.
+**2% deadzone** applied to DualSense controller sticks at **kernel level via evdev** and **SDL2 environment variable**.
 
 - **Left stick (X/Y)**: 2% deadzone (primary movement)
-- **Right stick (Rx/Ry)**: 2% deadzone (camera control)
-- **Applied globally**: Affects all games and applications
+- **Right stick (Rx)**: 2% deadzone (camera horizontal)
+- **Right stick (Ry)**: 5% deadzone (camera vertical - more drift prone)
+- **Applied globally**: Affects all games and applications via kernel-level evdev
 
-## Why So Small?
+## How It Works
 
-**2% is considered "extremely small"** for a reason:
-- Large deadzones (10%+) make controls feel sluggish
-- DualSense has excellent analog precision (±0.008 resolution)
-- 2% prevents "phantom touches" without impacting gameplay
-- Still allows precise control for games that need it
+Your deadzone is configured at **two levels** for comprehensive coverage:
+
+### 1. Kernel Level (evdev) - Primary
+**Method**: udev rules calling `evdev-joystick`
+**Applied**: When controller connects
+**Affects**: All applications using evdev (`/dev/input/event*`)
+
+```
+Action: Controller connect → udev rule → evdev-joystick sets kernel flatness
+```
+
+### 2. SDL2 Level (environment variable)
+**Method**: `SDL_JOYSTICK_AXIS_DEADZONE=2`
+**Applied**: When SDL2 application starts
+**Affects**: SDL2/SDL3 native games, Proton
+
+## Configuration Files
+
+### 1. udev Rules (`modules/gaming/gaming.nix`)
+```nix
+# Left stick (movement): 2% = 1310 raw units
+ACTION=="add", SUBSYSTEM=="input", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", \
+  KERNEL=="event[0-9]*", RUN+="${pkgs.linuxconsole}/bin/evdev-joystick --evdev /dev/input/%k --axis 0 --deadzone 1310"
+
+# Right stick: 2% horizontal, 5% vertical (3276 raw units)
+ACTION=="add", SUBSYSTEM=="input", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", \
+  KERNEL=="event[0-9]*", RUN+="${pkgs.linuxconsole}/bin/evdev-joystick --evdev /dev/input/%k --axis 3 --deadzone 3276"
+```
+
+### 2. SDL2 Environment Variable
+```nix
+environment.sessionVariables = {
+  # SDL2 joystick deadzone (0-100, default 15) - 2% for all joysticks
+  SDL_JOYSTICK_AXIS_DEADZONE = "2";
+  # SDL2 GameControllerDB path
+  SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
+};
+```
+
+### 3. SDL2 GameControllerDB (`/etc/sdl2-dualsense-db`)
+```
+# Standard DualSense mapping - NO Deadzone: hint (not valid in SDL2!)
+0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0,b:b1,x:b2,y:b3,back:b4,guide:b5,start:b6,leftstick:b7,rightstick:b8,leftshoulder:b9,rightshoulder:b10,dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,platform:Linux,
+```
+
+**Important**: The `Deadzone:` hint in GameControllerDB is **NOT valid SDL2 format**. Deadzones are set via `SDL_JOYSTICK_AXIS_DEADZONE` environment variable instead.
+
+### 4. Touchpad Disabled (udev)
+```nix
+# Prevents touchpad from causing "camera drift"
+SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+```
 
 ## Deadzone Scale Reference
 
-| Deadzone | Feel | Best For |
-|-----------|------|----------|
-| 0% | None, raw input | Fighting games, precision tasks |
-| 2% | ✅ Minimal (our setting) | Most games, maintains sensitivity |
-| 5% | Small | Action games, casual play |
-| 10% | Medium | Racing games, less precise |
-| 15%+ | Large | Children, accessibility |
-
-## Configuration Locations
-
-### 1. SDL2 GameControllerDB (Primary)
-**File**: `/etc/sdl2-dualsense-db`
-
-```nix
-# GameControllerDB V2 format with deadzone hint
-0300000054c0ce60000000000000000,DualSense Wireless Controller,...,Deadzone:2,
-```
-
-**How it works**:
-- SDL2 reads this file at startup
-- `Deadzone:2` tells SDL2 to apply 2% deadzone to all axes
-- Affects: Native Linux games, SDL2-based titles, Proton/Wine games
-
-**Environment variable**:
-```bash
-SDL_GAMECONTROLLERDB=/etc/sdl2-dualsense-db
-```
-
-### 2. evdev Calibration (Fallback)
-**File**: `/etc/joystick/DualSense.calibration`
-
-```
-evdev ABS_X 2   # Left stick X
-evdev ABS_Y 2   # Left stick Y
-evdev ABS_RX 2  # Right stick X
-evdev ABS_RY 2  # Right stick Y
-```
-
-**How it works**:
-- Kernel-level calibration via evdev
-- Affects ALL applications reading from /dev/input/js0
-- Note: Not all applications respect evdev calibration
-
-### 3. Steam Input (Per-Game)
-**Location**: Steam → Settings → Controller → Desktop Configuration
-
-**For each game**:
-1. Right-click game → Properties → Controller
-2. Check "Use Steam Input for generic controllers"
-3. Launch game → Click controller icon
-4. **Controller Settings** → **Right Stick** → **Deadzone**: Set to 2%
+| Deadzone | Raw Value | Feel | Best For |
+|-----------|-----------|------|----------|
+| 0% | 0 | None, raw input | Fighting games, precision tasks |
+| 2% | 1310 | ✅ Minimal (our setting) | Most games, maintains sensitivity |
+| 5% | 3276 | Small | Action games, casual play |
+| 10% | 6553 | Medium | Racing games, less precise |
+| 15% | 9830 | Large | Default SDL2, worn controllers |
 
 ## Right Stick Axes
 
-| Axis | Linux Name | Typical Use | Deadzone |
-|------|------------|-------------|----------|
-| **Rx** | **ABS_RX** | **Camera horizontal (left/right)** | **2%** ✅ |
-| **Ry** | **ABS_RY** | **Camera vertical (up/down)** | **2%** ✅ |
+| Axis | evdev Index | Linux Name | Typical Use | Deadzone | Raw Value |
+|------|-------------|------------|-------------|----------|-----------|
+| **Rx** | 2 | ABS_RX | Camera horizontal (left/right) | 2% | 1310 |
+| **Ry** | 3 | ABS_RY | Camera vertical (up/down) | 5% | 3276 |
 
-## How to Adjust
+## Testing and Verification
 
-### Make Deadzone Larger (e.g., 5%)
-Edit `/etc/nixos/modules/gaming/gaming.nix`:
+### Check Current Deadzone Values
+```bash
+# View current evdev calibration
+evdev-joystick --showcal /dev/input/by-id/usb-Sony_*-event-joystick
+
+# Real-time axis testing
+evdev-joystick --test /dev/input/by-id/usb-Sony_*-event-joystick
+
+# SDL2 testing
+sdl2-jstest --list  # List controllers
+sdl2-jstest         # Real-time test
+```
+
+### Verify SDL2 Environment Variable
+```bash
+echo $SDL_JOYSTICK_AXIS_DEADZONE
+# Should output: 2
+
+echo $SDL_GAMECONTROLLERDB
+# Should output: /etc/sdl2-dualsense-db
+```
+
+### Re-trigger udev Rules (without replug)
+```bash
+# Trigger rules for connected DualSense
+sudo udevadm trigger --subsystem-match=input --attr-match=idVendor=054c --attr-match=idProduct=0ce6
+sudo udevadm control --reload-rules
+```
+
+## For Wine/Proton Games
+
+Add to Wine registry via `winecfg` or `regedit`:
+```
+[HKEY_CURRENT_USER\Software\Wine\DirectInput]
+"DefaultDeadZone"="2000"
+```
+Values range from `0` (no deadzone) to `10000` (maximum, ~15%).
+
+## Troubleshooting
+
+### Deadzone Not Applying
+
+**Check 1**: Verify udev rules are loaded
+```bash
+udevadm info --attribute-walk --name=/dev/input/event* | grep -i "054c.*0ce6"
+```
+
+**Check 2**: Verify calibration values
+```bash
+evdev-joystick --showcal /dev/input/by-id/usb-Sony_*-event-joystick
+# Look for: flatness: 1310 (for 2%) or flatness: 3276 (for 5%)
+```
+
+**Check 3**: Rebuild and switch
+```bash
+sudo nixos-rebuild switch --flake .#zephyr
+# Then reconnect controller or run:
+sudo udevadm trigger --subsystem-match=input --attr-match=idVendor=054c
+```
+
+### Deadzone Too Large/Small
+
+**Edit** `/etc/nixos/modules/gaming/gaming.nix`:
 
 ```nix
-# In the SDL2 GameControllerDB entry, change:
-Deadzone:5  # 5% instead of 2%
-
-# In evdev calibration:
-evdev ABS_RX 5
-evdev ABS_RY 5
+# Adjust raw values (2% = 1310, 5% = 3276, 1% = 655)
+RUN+="${pkgs.linuxconsole}/bin/evdev-joystick --evdev /dev/input/%k --axis 0 --deadzone 655"  # 1%
 ```
 
 Then rebuild:
@@ -95,115 +156,40 @@ Then rebuild:
 sudo nixos-rebuild switch --flake .#zephyr
 ```
 
-### Make Deadzone Smaller (e.g., 1%)
-```nix
-Deadzone:1  # 1% - even more sensitive
+### Camera Drift Persists
+
+1. **Verify touchpad is ignored**:
+```bash
+cat /proc/bus/input/devices | grep -A 5 "DualSense"
+# Should see LIBINPUT_IGNORE_DEVICE="1" for touchpad
 ```
 
-### Per-Game Override (Steam)
+2. **Test with `jstest`**:
+```bash
+nix-shell -p linuxconsole
+jstest /dev/input/js0
+# Move stick slightly - values should stay at 0 in deadzone
+```
+
+3. **Increase deadzone** to 5-10% if controller hardware is worn
+
+## Per-Game Override (Steam Input)
+
+If you want game-specific deadzones:
+
 1. Launch game via Steam
 2. Open Steam Overlay (Shift+Tab)
 3. Click **Controller Configuration**
-4. Adjust deadzone for just that game
-
-## Verification
-
-### Test Deadzone in Terminal
-```bash
-# Install joystick testing tools
-nix-shell -p joystick
-
-# Real-time axis monitoring
-jstest /dev/input/js0
-
-# Move right stick - you should see:
-# - Deadzone: Center area where values stay at 0
-# - Active zone: Values respond once outside deadzone
-```
-
-### Test in Game
-1. Launch Honkai Star Rail
-2. Move right stick slightly
-3. Should NOT see camera movement until stick moves ~2% from center
-4. Full range of motion should still work normally
-
-## Troubleshooting
-
-### Deadzone Not Applying
-
-**Problem**: Camera still drifts or feels too sensitive
-
-**Check 1**: Verify SDL2 database is loaded
-```bash
-echo $SDL_GAMECONTROLLERDB
-# Should output: /etc/sdl2-dualsense-db
-```
-
-**Check 2**: Verify file exists
-```bash
-cat /etc/sdl2-dualsense-db
-# Should show DualSense entry with Deadzone:2
-```
-
-**Check 3**: Rebuild and switch
-```bash
-sudo nixos-rebuild switch --flake .#zephyr
-# Then fully restart the game
-```
-
-### Deadzone Too Large/Large
-
-**Problem**: Controls feel unresponsive
-
-**Solution**: Reduce to 1%
-```nix
-Deadzone:1
-```
-
-### Deadzone Too Small/None
-
-**Problem**: Camera drift returns
-
-**Solutions**:
-1. Increase to 3-5%
-2. Check if touchpad is being ignored (see DUALSENSE-CONTROLLER-FIX.md)
-3. Test with `jstest /dev/input/js0` - look for non-zero values at rest
-
-## Advanced: Per-Axis Deadzones
-
-If you want different deadzones for each axis:
-
-**Edit** `/etc/nixos/modules/gaming/gaming.nix`:
-
-```nix
-# For advanced per-axis configuration, create multiple entries:
-0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,platform:Linux,
-  hint:SDL_GAMECONTROLLER_DEADZONE_LEFT_STICK:=2,
-  hint:SDL_GAMECONTROLLER_DEADZONE_RIGHT_STICK:=2,
-
-# Or separate entirely:
-0300000054c0ce60000000000000000,DualSense-Light,a:b0:b1:b2:...,platform:Linux,Deadzone:3,
-0300000054c0ce60000000000000000,DualSense-Pro,a:b0:b1:b2:...,platform:Linux,Deadzone:1,
-```
-
-## Alternative: Steam Input Per-Game
-
-If you prefer **per-game configuration** instead of global:
-
-1. **Enable Steam Input** for the game
-2. **Right-click game** → **Properties** → **Controller**
-3. **Check** "Use Steam Input for generic controllers"
-4. **Launch game**, then click **Controller icon**
-5. **Adjust deadzones** per-axis in controller settings
+4. Adjust deadzones per-axis
 
 **Advantages**:
 - Different deadzone per game
-- Easy GUI, no editing config files
+- Easy GUI, no editing files
 - Takes effect immediately
 
 **Disadvantages**:
-- Must configure for each game separately
-- Only works for Steam games (not Lutris, Heroic, etc.)
+- Must configure per-game
+- Only works for Steam games
 
 ## Technical Details
 
@@ -215,44 +201,37 @@ If you prefer **per-game configuration** instead of global:
 
 ### Deadzone Calculation
 ```
-Deadzone% = (ignored_range / total_range) × 100
+Raw Value = Percentage × 65535 × 0.01
 
 For 2% deadzone:
-- Center ±2% = ignored
-- Values 0-1310 and 64224-65535 ignored
+- 2 × 65535 × 0.01 = 1310 raw values
+- Center ±1310 = ignored
 - Active range: 1310-64224 (96% of total)
 ```
 
-### Why Right Stick Specifically?
+### Why Different Values for Rx vs Ry?
 
-The right stick is almost universally used for:
-- **Camera control** in 3D games
-- **Menu navigation** in 2D games
-- **Precision aiming** in shooters
+The right stick vertical axis (Ry) often experiences more drift on DualSense controllers due to:
+1. Physical wear patterns (thumb rests more on vertical)
+2. Gravity effects on worn potentiometers
+3. Manufacturing variances
 
-Camera drift is **more noticeable and annoying** than movement drift from the left stick, so the right stick gets more attention in calibration.
-
-## Comparison with Other Controllers
-
-| Controller | Default Deadzone | DualSense Ours |
-|------------|-----------------|---------------|
-| Xbox Series X|S | ~5% | 2% ✅ (more precise) |
-| PS5 DualSense | Varies | 2% ✅ |
-| Switch Pro | ~5% | 2% ✅ |
-| Generic Linux | 0-15% | 2% ✅ (consistent) |
+The 5% setting on Ry compensates for this without making horizontal controls sluggish.
 
 ## Related Documentation
 
-- **DUALSENSE-CONTROLLER-FIX.md** - Fix for touchpad causing camera drift
+- **DUALSENSE-CONTROLLER-FIX.md** - Touchpad disable fix for camera drift
 - **SCOPEBUDDY_GUIDE.md** - ScopeBuddy controller integration
-- **Steam Input** - https://help.steampowered.com/en/steamdeck/steaminput/
+- [Arch Wiki: Gamepad](https://wiki.archlinux.org/title/Gamepad) - Comprehensive Linux gamepad guide
+- [SDL_GameControllerDB](https://github.com/gabomdq/SDL_GameControllerDB) - Community mappings
 
 ## Status
 
-- [x] 2% deadzone configured (extremely small)
-- [x] Applied system-wide via SDL2 GameControllerDB
-- [x] Environment variable set: `SDL_GAMECONTROLLERDB=/etc/sdl2-dualsense-db`
-- [x] NixOS configuration ready to build
+- [x] Kernel-level deadzone via evdev-joystick (udev rules)
+- [x] SDL2 environment variable for native games
+- [x] Touchpad disabled to prevent phantom input
+- [x] GameControllerDB with valid mapping (no invalid Deadzone: hint)
+- [x] linuxconsole package included for evdev-joystick tool
 - [ ] **Next: Rebuild and test in-game**
 
-After running `sudo nixos-rebuild switch --flake .#zephyr`, the deadzone will be active for all SDL2-based games.
+After running `sudo nixos-rebuild switch --flake .#zephyr`, reconnect your DualSense and test in your favorite games.

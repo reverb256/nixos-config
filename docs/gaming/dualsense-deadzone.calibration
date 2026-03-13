@@ -1,19 +1,59 @@
-# Sony DualSense Wireless Controller
-# Global calibration with minimal deadzones
-# Applied at system level, affects all games/applications
-
-# Minimal deadzone configuration (extremely small - 2%)
-# Prevents phantom touches without impacting sensitivity
-DualSense Wireless Controller
-# Left stick (X/Y - primary movement)
-evdev ABS_X 2  # 2% deadzone on left stick X
-evdev ABS_Y 2  # 2% deadzone on left stick Y
-
-# Right stick (Rx/Ry - camera)
-evdev ABS_RX 2  # 2% deadzone on right stick X (horizontal)
-evdev ABS_RY 2  # 2% deadzone on right stick Y (vertical)
-
-# Alternative calibration using joystick utility
-# This file can be used with jscalibrator or similar tools
-# To test: jstest /dev/input/js0
-# To recalibrate: jscalibrator --device /dev/input/js0 --calibrate
+# Sony DualSense Wireless Controller - Deadzone Reference
+#
+# This file is for reference only. Actual calibration is applied via udev rules
+# in modules/gaming/gaming.nix using evdev-joystick.
+#
+# ==============================================================================
+# Current Configuration (applied via udev on controller connect)
+# ==============================================================================
+#
+# Left stick (movement): 2% deadzone
+#   ABS_X: 1310 raw units (axis 0)
+#   ABS_Y: 1310 raw units (axis 1)
+#
+# Right stick (camera):
+#   ABS_RX: 1310 raw units (axis 2) - 2% horizontal
+#   ABS_RY: 3276 raw units (axis 3) - 5% vertical (more drift prone)
+#
+# ==============================================================================
+# Deadzone Reference Table
+# ==============================================================================
+#
+# Percentage | Raw Value | Use Case
+# ------------|-----------|--------------------------------
+# 0%          | 0         | Raw input, fighting games
+# 1%          | 655       | Maximum precision
+# 2%          | 1310      | ✅ Current setting (movement/camera)
+# 3%          | 1966      | Slightly more forgiving
+# 5%          | 3276      | ✅ Current setting (vertical camera)
+# 10%         | 6553      | Casual play, worn controllers
+# 15%         | 9830      | SDL2 default, very worn controllers
+#
+# ==============================================================================
+# Testing Commands
+# ==============================================================================
+#
+# View current kernel calibration:
+#   evdev-joystick --showcal /dev/input/by-id/usb-Sony_*-event-joystick
+#
+# Real-time axis testing:
+#   evdev-joystick --test /dev/input/by-id/usb-Sony_*-event-joystick
+#
+# SDL2 controller testing:
+#   sdl2-jstest --list
+#   sdl2-jstest
+#
+# Re-apply udev rules (without replugging):
+#   sudo udevadm trigger --subsystem-match=input --attr-match=idVendor=054c --attr-match=idProduct=0ce6
+#
+# ==============================================================================
+# Manual Calibration (one-time, not persistent)
+# ==============================================================================
+#
+# To test different deadzone values temporarily:
+#
+#   evdev-joystick --evdev /dev/input/by-id/usb-Sony_*-event-joystick --axis 0 --deadzone 2000
+#
+# To make permanent changes, edit modules/gaming/gaming.nix udev rules.
+#
+# ==============================================================================

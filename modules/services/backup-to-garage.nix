@@ -133,7 +133,8 @@ EOF
 
     aws --endpoint-url "$GARAGE_ENDPOINT" s3 ls "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/" --recursive 2>/dev/null | while read -r line; do
         filename=$(echo "$line" | awk '{print $4}')
-        file_date=$(echo "$filename" | grep -oP '\d{8}-\d{6}' | head -1)
+        # Extract date portion (YYYYMMDD) from filename
+        file_date=$(echo "$filename" | grep -oP '\d{8}-\d{6}' | head -1 | cut -d- -f1)
 
         if [ -n "$file_date" ] && [ "$file_date" -lt "$cutoff_date" ]; then
             log_info "  Deleting old backup: $filename"

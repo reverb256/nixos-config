@@ -164,40 +164,29 @@
     # ========================================================================
 
     # Helper to build v3 NixOS system
-    # Uses localSystem with x86-64-v3 microarchitecture
+    # Uses module-level nixpkgs.hostPlatform.gcc.arch for microarch tuning
     mkNixosSystemV3 = {
       hostName,
       extraModules ? [],
     }:
-      let
-        # V3 package set with x86-64-v3 microarchitecture
-        pkgsV3 = import nixpkgs {
-          localSystem = {
-            system = "x86_64-linux";
-            gcc.arch = "x86-64-v3";
-          };
-          config.allowUnfree = true;
-        };
-      in
-        nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          specialArgs = {
-            inherit inputs pkgsV3;
-          };
-          modules =
-            commonModules
-            ++ [
-              ./hosts/${hostName}/configuration.nix
-              {
-                # Use v3-optimized package set
-                # This overrides the default pkgs with our v3-optimized set
-                nixpkgs.pkgs = nixpkgs.lib.mkForce pkgsV3;
-                # Clear nixpkgs.config to avoid assertion error with external pkgs
-                # Use mkForce to override all other definitions
-                nixpkgs.config = nixpkgs.lib.mkForce {};
-              }
-            ]
-            ++ extraModules;
+      nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = {inherit inputs;};
+        modules =
+          commonModules
+          ++ [
+            ./hosts/${hostName}/configuration.nix
+            {
+              # Set v3 microarchitecture at module level
+              # This configures stdenv to use -march=x86-64-v3
+              # Full hostPlatform config is required (system + gcc.arch)
+              nixpkgs.hostPlatform = {
+                system = "x86_64-linux";
+                gcc.arch = "x86-64-v3";
+              };
+            }
+          ]
+          ++ extraModules;
       };
 
     # ========================================================================

@@ -76,9 +76,10 @@ in {
 
     users.groups.${cfg.group} = {};
 
-    # Create data directory
+    # Create data and runtime directories
     systemd.tmpfiles.rules = [
       "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
+      "d /run/xmrig-proxy 0750 ${cfg.user} ${cfg.group} -"
     ];
 
     # Write config file (with token placeholder if using tokenFile)
@@ -102,7 +103,7 @@ in {
     systemd.services.xmrig-proxy = {
       description = "XMRig Stratum Proxy for CPU Mining";
       wantedBy = ["multi-user.target"];
-      after = ["network.target" "agenix-rekey.service"];
+      after = ["network.target" "agenix-rekey.service" "systemd-tmpfiles-setup.service"];
 
       serviceConfig = {
         Type = "simple";
@@ -117,10 +118,15 @@ in {
         RestartSec = "10s";
 
         # Hardening
-        PrivateTmp = true;
+        # Note: PrivateTmp disabled when using /run/xmrig-proxy to avoid namespace conflicts
+        PrivateTmp = lib.mkIf (cfg.tokenFile == null) true;
         ProtectSystem = "strict";
         ProtectHome = true;
         ReadWritePaths = [cfg.dataDir "/run/xmrig-proxy"];
+
+        # Runtime directory (ensures /run/xmrig-proxy exists before mount namespace)
+        RuntimeDirectory = "xmrig-proxy";
+        RuntimeDirectoryMode = "0750";
 
         # Resource limits
         MemoryLimit = "512M";

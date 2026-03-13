@@ -1,13 +1,57 @@
 {lib, ...}: {
   # ============================================================================
-  # VM TUNING - Fix memory overcommit issues causing Discover crashes
+  # VM TUNING - Memory pressure defense and OOM prevention
   # ============================================================================
+  # 2026-03-13: Updated to prevent crashes from memory pressure
+  # Context: 32GB RAM system with Zswap enabled (20% pool = 6.4GB)
 
-  # Fix memory allocation failures in Discover and other Qt applications
-  # Issue: strict overcommit (mode 2) prevents memory allocation even with swap available
-  # Solution: Use heuristic overcommit with 100% ratio (default behavior)
   boot.kernel.sysctl = {
-    "vm.overcommit_memory" = lib.mkDefault 0; # Heuristic overcommit (default: 0)
-    "vm.overcommit_ratio" = lib.mkDefault 100; # Allow full overcommit (default: 50)
+    # ========================================================================
+    # OVERCOMMIT CONTROL - Prevent "always overcommit" behavior
+    # ========================================================================
+    # Mode 0 (default): Heuristic overcommit - denies obviously bogus requests
+    # Mode 1: ALWAYS overcommit - dangerous, causes OOM crashes
+    # Mode 2: Strict overcommit - fails allocations exceeding swap + RAM
+    #
+    # Use mkForce to prevent other modules from overriding to mode 1
+    "vm.overcommit_memory" = lib.mkForce 0; # Heuristic (safe)
+    "vm.overcommit_ratio" = lib.mkDefault 100; # Allow reasonable overcommit
+
+    # ========================================================================
+    # MIN FREE KBYTES - Reserve memory to prevent allocation deadlock
+    # ========================================================================
+    # Kernel needs free pages for atomic allocations. If too low, system
+    # deadlocks trying to reclaim memory while needing memory to reclaim.
+    #
+    # Formula: max(128MB, 3% of RAM) for desktop systems
+    # For 32GB: 3% = 983MB, round to 1GB for safety margin
+    "vm.min_free_kbytes" = lib.mkForce 1048576; # 1GB reserved (~3% of 32GB)
+
+    # ========================================================================
+    # SWAPPINESS - Balance cache vs swap with Zswap enabled
+    # ========================================================================
+    # Default 60 is too aggressive with Zswap. Lower value prefers:
+    # - Keeping anonymous pages in RAM
+    # - Using Zswap pool first (20% RAM = 6.4GB)
+    # - Only swap to SSD when Zswap is full
+    #
+    # 10-20 is optimal for Zswap systems
+    # 1 = minimal swap, 100 = aggressive swap
+    "vm.swappiness" = lib.mkForce 15; # Conservative with Zswap
+
+    # ========================================================================
+    # VFS CACHE PRESSURE - Controls kernel cache reclaim priority
+    # ========================================================================
+    # Default 100 aggressively reclaims inode/dentry cache
+    # Higher = reclaim cache more, lower = reclaim cache less
+    # 75 is better for desktop workloads with many file operations
+    "vm.vfs_cache_pressure" = lib.mkForce 75;
+
+    # ========================================================================
+    # PAGE CACHE LIMITS - Prevent page cache from crowding anonymous memory
+    # ========================================================================
+    # Limit page cache to prevent it from consuming all memory
+    # Helps keep working sets in RAM under memory pressure
+    "vm.page-cache-limit" = lib.mkDefault 0; # Disable (use default for now)
   };
 }

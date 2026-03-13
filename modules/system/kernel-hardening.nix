@@ -84,8 +84,10 @@
   # Reserve memory for crash kernel. When main kernel crashes, kdump boots
   # into a minimal kernel to capture /proc/vmcore (crash dump)
   # Note: Requires 256M reserved memory at crash time
+  # Note: kdump is not a kernel module - it's a userspace service that loads
+  # a crash kernel. The makedumpfile package is needed for crash dump creation.
   # boot.kernel.sysctl."kernel.panic" = 10;  # Reboot after 10 seconds on panic
-  boot.kernelModules = ["kdump"]; # Load kdump module
+  # boot.kernelModules = ["kdump"]; # NOT a module - removed to prevent errors
 
   # ============================================================================
   # KERNEL HUNG TASK DETECTION
