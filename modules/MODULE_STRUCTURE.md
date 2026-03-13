@@ -40,7 +40,8 @@ modules/
 │
 ├── mining/                  # Mining modules
 │   ├── mining.nix           # GPU/CPU mining configuration
-│   └── mining-build-wrapper.nix  # Auto-pause mining during builds
+│   ├── xmrig-proxy.nix     # XMRig proxy for load balancing
+│   └── mining-proxy.nix    # Mining proxy service
 │
 ├── development/             # Development tools
 │   ├── tools.nix            # Base development tools

@@ -126,14 +126,21 @@ quick-test:
     _kill_conflicting_builds
 
     host=$(hostname -s)
+    _step "pausing mining for build..."
+    _mining_pause
+
     _step "evaluating $host configuration..."
     cd {{FLAKE_PATH}}
     if nix eval ".#nixosConfigurations.${host}.config.system.build.toplevel" >/dev/null 2>&1; then
         _done "$host configuration valid"
     else
         _error "$host configuration evaluation failed"
+        _mining_resume
         exit 1
     fi
+
+    _mining_resume
+    _done "mining resumed"
     _time; echo ""
 
 # Test: build all hosts (full validation)
@@ -150,9 +157,14 @@ test:
       ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just test"
       exit $?
     fi
+
+    _step "pausing mining for build..."
+    _mining_pause
+
     _step "build all hosts..."
     cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- build
-    _done "all tests passed"
+    _mining_resume
+    _done "all tests passed, mining resumed"
     _time; echo ""
 
 # Pre-deployment validation only
@@ -168,13 +180,13 @@ validate:
 #  LOCAL OPERATIONS
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Local switch (mining auto-pauses via wrapper)
+# Local switch (mining pauses during rebuild)
 switch:
     #!/usr/bin/env bash
     set -e
     source {{JUST_HELPERS}}
     _time; _header "switch → $(hostname -s)"
-    _info "mining will auto-pause during rebuild (CPU only, GPU continues)"
+    _info "mining will pause during rebuild (CPU only, GPU continues)"
 
     # IDEMPOTENT: Kill any conflicting builds first
     _kill_conflicting_builds
@@ -187,6 +199,9 @@ switch:
     # Ensure lock is released on exit
     trap '_release_build_lock' EXIT INT TERM
 
+    _step "pausing mining for rebuild..."
+    _mining_pause
+
     cd {{FLAKE_PATH}}
     _info "building and applying new configuration..."
 
@@ -198,10 +213,12 @@ switch:
         _info "new generation: $(readlink /nix/var/nix/profiles/system | xargs basename)"
     else
         echo "✗ rebuild failed with exit code: $exit_code" >&2
+        _mining_resume
         exit $exit_code
     fi
 
-    _done "switch complete"
+    _mining_resume
+    _done "switch complete, mining resumed"
     _time; echo ""
 
 # ──────────────────────────────────────────────────────────────────────────────

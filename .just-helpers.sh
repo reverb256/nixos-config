@@ -8,6 +8,75 @@ _time()   { printf "\033[2;90m[%s]\033[0m " "$(date +%H:%M:%S)"; }
 _error()  { printf "  \033[2;31m✗\033[0m %s\n" "$1"; }
 _warn()   { printf "  \033[2;33m⚠\033[0m %s\n" "$1"; }
 
+# ============================================================================
+# MINING PAUSE/RESUME (XMRig API)
+# ============================================================================
+
+# Pause XMRig mining during builds
+# Uses XMRig HTTP API on localhost:18088, falls back to SIGSTOP
+_mining_pause() {
+    local XMRIG_API="http://127.0.0.1:18088"
+    local TIMEOUT=2
+
+    # Check if xmrig is running
+    if ! pgrep -x xmrig >/dev/null 2>&1; then
+        return 0  # Not running, nothing to pause
+    fi
+
+    # Try API first (throttle to 0% = pause)
+    if command -v curl >/dev/null 2>&1; then
+        if curl -s --max-time "$TIMEOUT" "$XMRIG_API/throttle" \
+            -X PUT \
+            -H "Content-Type: application/json" \
+            -d '{"throttle": 0}' >/dev/null 2>&1; then
+            _info "XMRig paused via API"
+            return 0
+        fi
+    fi
+
+    # Fallback: SIGSTOP
+    if pkill -STOP xmrig 2>/dev/null; then
+        _warn "XMRig paused via SIGSTOP (API unavailable)"
+    fi
+}
+
+# Resume XMRig mining after builds
+# Uses XMRig HTTP API, falls back to SIGCONT
+_mining_resume() {
+    local XMRIG_API="http://127.0.0.1:18088"
+    local TIMEOUT=2
+
+    # Check if xmrig is running
+    if ! pgrep -x xmrig >/dev/null 2>&1; then
+        return 0  # Not running, nothing to resume
+    fi
+
+    # Try API first (resume to 50% throttle for background operation)
+    if command -v curl >/dev/null 2>&1; then
+        if curl -s --max-time "$TIMEOUT" "$XMRIG_API/throttle" \
+            -X PUT \
+            -H "Content-Type: application/json" \
+            -d '{"throttle": 50}' >/dev/null 2>&1; then
+            _info "XMRig resumed to 50% throttle"
+            return 0
+        fi
+    fi
+
+    # Fallback: SIGCONT
+    if pkill -CONT xmrig 2>/dev/null; then
+        _warn "XMRig resumed via SIGCONT (API unavailable)"
+    fi
+}
+
+# Run command with mining pause/resume wrapper
+_with_mining_pause() {
+    _mining_pause
+    "$@"
+    local exit_code=$?
+    _mining_resume
+    return $exit_code
+}
+
 # Check for existing nix builds - prevents concurrent build issues
 # Returns 0 if safe to build, 1 if build already running
 _check_build_lock() {

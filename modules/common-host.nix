@@ -38,10 +38,6 @@
     # NOTE: Not in default.nix since configuration varies by host
     ./system/distributed-builds.nix
 
-    # Mining-aware build wrapper
-    # NOTE: Not in default.nix since only some hosts mine
-    ./mining/mining-build-wrapper.nix
-
     # Speech-to-text dictation (desktop environments)
     # NOTE: Not in default.nix since only desktop hosts need audio/keyboard injection
     ./services/whisper-dictation.nix
