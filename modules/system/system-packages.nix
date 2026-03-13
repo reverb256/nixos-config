@@ -51,6 +51,8 @@
     # FILE SYSTEM TOOLS
     # ============================================================================
     btrfs-progs
+    rclone  # For backup-to-garage S3 sync
+    awscli2  # For S3 backup automation
 
     # ============================================================================
     # HARDWARE DETECTION
