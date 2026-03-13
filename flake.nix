@@ -79,6 +79,30 @@
     };
 
     # ========================================================================
+    # x86-64-v3 MICROARCHITECTURE VARIANT
+    # ========================================================================
+    # All cluster CPUs support AVX2 and v3 requirements:
+    # - Zephyr: Ryzen 9 5950X (Zen 3)
+    # - Nexus: Ryzen 9 3900X (Zen 2)
+    # - Forge: i5-9500 (Coffee Lake)
+    # - Sentry: Ryzen 7 1700 (Zen 1, has AVX2)
+    #
+    # Benefits: 10-30% SIMD performance uplift for AI, mining, crypto
+    # Cost: No binary cache compatibility (must build from source)
+    # ========================================================================
+    systemV3 = "x86_64-linux";  # Same system triple, different gcc arch
+
+    # v3-optimized package set
+    pkgsV3 = import nixpkgs {
+      inherit systemV3;
+      localSystem = {
+        system = systemV3;
+        gcc.arch = "x86-64-v3";
+      };
+      config.allowUnfree = true;
+    };
+
+    # ========================================================================
     # COMMON MODULES - Shared across all hosts (single source of truth)
     # ========================================================================
     commonModules = [
@@ -130,10 +154,46 @@
           ++ extraModules;
       };
 
+    # Helper to build v3 NixOS system
+    mkNixosSystemV3 = {
+      hostName,
+      extraModules ? [],
+    }:
+      nixpkgs.lib.nixosSystem {
+        system = systemV3;
+        specialArgs = {
+          inherit inputs pkgsV3;
+        };
+        modules =
+          commonModules
+          ++ [
+            ./hosts/${hostName}/configuration.nix
+            {
+              # Set v3 microarchitecture for package building
+              nixpkgs.hostPlatform = {
+                system = systemV3;
+                gcc.arch = "x86-64-v3";
+              };
+            }
+            # Note: allowUnsupportedSystem is set in individual modules
+          ]
+          ++ extraModules;
+      };
+
     # ========================================================================
     # HOST DEFINITIONS - Single source of truth
     # ========================================================================
     hosts = {
+      zephyr = {hostName = "zephyr";};
+      nexus = {hostName = "nexus";};
+      forge = {hostName = "forge";};
+      sentry = {hostName = "sentry";};
+    };
+
+    # ========================================================================
+    # x86-64-v3 HOST DEFINITIONS (migration target)
+    # ========================================================================
+    hostsV3 = {
       zephyr = {hostName = "zephyr";};
       nexus = {hostName = "nexus";};
       forge = {hostName = "forge";};
@@ -147,6 +207,14 @@
       builtins.mapAttrs
       (_name: value: mkNixosSystem {inherit (value) hostName;})
       hosts;
+
+    # ========================================================================
+    # OUTPUT 1.5: nixosConfigurationsV3 (x86-64-v3 microarchitecture)
+    # ========================================================================
+    nixosConfigurationsV3 =
+      builtins.mapAttrs
+      (_name: value: mkNixosSystemV3 {inherit (value) hostName;})
+      hostsV3;
 
     # ========================================================================
     # OUTPUT 2: colmena (raw hive configuration)
