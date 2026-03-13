@@ -5,7 +5,11 @@
 # Module imports: Gaming, mining, monitoring, opencode are already imported
 # via commonModules in flake.nix (./modules/default.nix)
 # Gaming module is used here for Plasma desktop gaming optimizations
-{lib, pkgs, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix

@@ -5,7 +5,11 @@
 # Module imports: Gaming, mining, monitoring, opencode are already imported
 # via commonModules in flake.nix (./modules/default.nix)
 # Note: Gaming module imported globally but gaming.enable=false for this host
-{lib, pkgs, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix

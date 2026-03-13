@@ -80,7 +80,7 @@
         controllerManager = {
           enable = isMaster;
           # extraOpts expects a space-separated string, not a list
-          extraOpts = "--allocate-node-cidrs=false --cluster-cidr=10.244.0.0/16";
+          extraOpts = "--allocate-node-cidrs=true --cluster-cidr=10.244.0.0/16 --nodes-per-cidr=24";
         };
         kubelet = {
           enable = true;
@@ -88,6 +88,7 @@
           extraConfig = {
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
+            clusterDNS = ["10.0.0.10"];
           };
         };
         proxy.enable = true;
