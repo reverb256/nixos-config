@@ -13,6 +13,12 @@
     ];
   };
 
+  # User timezone - Local time for user sessions (system time remains UTC)
+  # This ensures users see their local timezone while system logs use UTC
+  environment.sessionVariables = {
+    TZ = "America/Winnipeg"; # Central Time (CDT/CST)
+  };
+
   # Allow passwordless sudo for j_kro
   security.sudo = {
     enable = true;
