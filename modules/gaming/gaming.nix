@@ -233,6 +233,13 @@ in {
           # DualShock 4 (PS4) hidraw access
           KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="05c4", MODE="0660", TAG+="uaccess"
           KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", MODE="0660", TAG+="uaccess"
+
+          # ============================================================================
+          # DualSense Deadzone Calibration (evdev kernel-level)
+          # ============================================================================
+          # NOTE: linuxconsole package removed from nixpkgs (was evdev-joystick)
+          # Deadzone calibration now requires per-game configuration or userspace tools
+          # Use SDL_JOYSTICK_AXIS_DEADZONE environment variable for SDL2 games
         '';
       };
 
@@ -244,8 +251,6 @@ in {
         "d /var/cache/nvidia-shader-cache 0755 root root - -"
         # ldconfig is in glibc.bin output, not glibc.out
         "L /sbin/ldconfig - - - - ${lib.getBin pkgs.glibc}/sbin/ldconfig"
-        # Joystick calibration directory
-        "d /etc/joystick 0755 root root - -"
       ];
 
       # ============================================================================
@@ -262,8 +267,10 @@ in {
           MANGOHUD_CONFIG = "fps,frametime,cpu_stats,gpu_stats,vram,ram,cpu_temp,gpu_temp,core_load,background_alpha=0.5,position=top-left,toggle_hud=Shift_R+F12";
           # Auto-reload GameMode config when launching games
           GAMEMODE_AUTO_RELOAD_CONFIG = "1";
-          # SDL2 GameControllerDB path for custom controller mappings and deadzones
+          # SDL2 GameControllerDB path for custom controller mappings
           SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
+          # SDL2 joystick deadzone (0-100, default 15) - 2% for all joysticks
+          SDL_JOYSTICK_AXIS_DEADZONE = "2";
         };
 
         # Common gaming packages
@@ -273,6 +280,7 @@ in {
           goverlay
           gamemode
           scx.full
+          # linuxconsole  # Package removed from nixpkgs - was evdev-joystick for deadzone calibration
           (pkgs.writeShellScriptBin "launch-game" ''
             #!/usr/bin/env bash
             # launch-game - Wrapper to run games in gaming.slice with GameMode
@@ -328,30 +336,15 @@ in {
         ];
 
         etc = {
-          # DualSense deadzone configuration
-          # System-wide minimal deadzone for DualSense controller right stick
-          # Applied via evdev at kernel level - affects all games
-          "joystick/DualSense Wireless Controller".source = pkgs.writeText "dualsense-deadzone" ''
-            # Sony DualSense Wireless Controller
-            # Left stick: 2% deadzone (movement, maintains sensitivity)
-            # Right stick: 2% horizontal, 5% vertical (camera - vertical only has drift)
-
-            # evdev calibration format
-            evdev ABS_X 2   # Left stick X
-            evdev ABS_Y 2   # Left stick Y
-            evdev ABS_RX 2  # Right stick X (horizontal camera) - 2%
-            evdev ABS_RY 5  # Right stick Y (vertical camera) - 5%
-          '';
-
-          # SDL2 GameControllerDB with deadzone hints
-          # Note: SDL2 deadzone is global - right stick gets 5% in evdev layer
-          "SDL_gamecontrollerdb".source = pkgs.writeText "sdl2-dualsense-db" ''
-            # SDL2 GameControllerDB entry for DualSense with deadzone hints
-            # Format: SDL_GAMECONTROLLERDB_V2
-            # Deadzone hint format: Deadzone:percentage  (e.g., Deadzone:2 = 2%)
-
-            0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,
-            0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,Deadzone:5,
+          # SDL2 GameControllerDB for DualSense controller
+          # Note: SDL_GameControllerDB format does NOT support Deadzone: hints
+          # Deadzone is controlled via SDL_JOYSTICK_AXIS_DEADZONE env var (set above)
+          # and via evdev-joystick udev rules below
+          "sdl2-dualsense-db".source = pkgs.writeText "sdl2-dualsense-db" ''
+            # SDL2 GameControllerDB entry for Sony DualSense (PS5) Wireless Controller
+            # Standard mapping following Xbox layout convention
+            # GUID format: SDL_GAMECONTROLLERDB_V2
+            0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0,b:b1,x:b2,y:b3,back:b4,guide:b5,start:b6,leftstick:b7,rightstick:b8,leftshoulder:b9,rightshoulder:b10,dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,platform:Linux,
           '';
         };
       };

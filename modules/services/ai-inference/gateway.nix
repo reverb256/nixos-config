@@ -172,7 +172,10 @@ in {
           ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/zai-api-key")
           ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/context7-api-key")
           ++ lib.optional (lib.hasAttr "sentry" cfg && lib.hasAttr "dsnFile" cfg.sentry && cfg.sentry.dsnFile != null) (dirOf cfg.sentry.dsnFile);
+        # Memory limits with OOM protection
         MemoryMax = "2G";
+        MemoryHigh = "1.5G"; # Start soft limiting at 1.5GB
+        OOMScoreAdjust = -400; # Protect from OOM killer (negative = protected)
         CPUWeight = 100;
         IOWeight = 100;
         StandardOutput = "journal";
