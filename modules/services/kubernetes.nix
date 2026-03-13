@@ -84,10 +84,10 @@
         kubelet = {
           enable = true;
           hostname = config.networking.hostName;
+          clusterDns = ["10.0.0.10"];  # CoreDNS service IP
           extraConfig = {
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
-            clusterDNS = ["10.0.0.10"];
           };
         };
         proxy.enable = true;

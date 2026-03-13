@@ -548,6 +548,19 @@
       dataDir = "/data/shared/garage"; # On NFS from nexus
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
+
+    # NixOS Binary Cache Server (Harmonia + Auto-Build)
+    # TODO: Re-enable after nix-cache/ modules are committed to git
+    # nix-cache = {
+    #   enable = true;
+    # };
+    # # Auto-build service - builds all nodes nightly at 2 AM
+    # nix-cache.auto-build = {
+    #   enable = true;
+    #   buildTime = "02:00";
+    #   nodes = ["zephyr" "nexus" "sentry" "forge"];
+    #   cores = 1; # Conservative for stability
+    # };
   };
 
   # ============================================================================
@@ -923,6 +936,7 @@
     whisper-cpp
     pipx
     pkgs.python312Packages.huggingface-hub # HF CLI: hf download/upload/login
+    opencode # AI coding agent (terminal-based)
 
     # Mining (manual only, no auto-start)
     xmrig

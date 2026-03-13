@@ -13,9 +13,10 @@ _warn()   { printf "  \033[2;33m⚠\033[0m %s\n" "$1"; }
 # ============================================================================
 
 # Pause XMRig mining during builds
-# Uses XMRig HTTP API on localhost:18088, falls back to SIGSTOP
+# Uses XMRig HTTP API on localhost:8081 with auth token
 _mining_pause() {
-    local XMRIG_API="http://127.0.0.1:18088"
+    local XMRIG_API="http://127.0.0.1:8081"
+    local TOKEN_FILE="/run/agenix/xmrig-api-token"
     local TIMEOUT=2
 
     # Check if xmrig is running
@@ -23,13 +24,24 @@ _mining_pause() {
         return 0  # Not running, nothing to pause
     fi
 
+    # Check if token file exists
+    if [[ ! -f "$TOKEN_FILE" ]]; then
+        _warn "XMRig API token not found, using SIGSTOP fallback"
+        pkill -STOP xmrig 2>/dev/null || true
+        return 0
+    fi
+
+    local TOKEN=$(cat "$TOKEN_FILE" 2>/dev/null || "")
+
     # Try API first (throttle to 0% = pause)
-    if command -v curl >/dev/null 2>&1; then
-        if curl -s --max-time "$TIMEOUT" "$XMRIG_API/throttle" \
+    if command -v curl >/dev/null 2>&1 && [[ -n "$TOKEN" ]]; then
+        if curl -s --max-time "$TIMEOUT" \
+            -H "Authorization: Bearer $TOKEN" \
+            "$XMRIG_API/2/throttle" \
             -X PUT \
             -H "Content-Type: application/json" \
             -d '{"throttle": 0}' >/dev/null 2>&1; then
-            _info "XMRig paused via API"
+            _info "XMRig paused via API (throttle 0%)"
             return 0
         fi
     fi
@@ -43,7 +55,8 @@ _mining_pause() {
 # Resume XMRig mining after builds
 # Uses XMRig HTTP API, falls back to SIGCONT
 _mining_resume() {
-    local XMRIG_API="http://127.0.0.1:18088"
+    local XMRIG_API="http://127.0.0.1:8081"
+    local TOKEN_FILE="/run/agenix/xmrig-api-token"
     local TIMEOUT=2
 
     # Check if xmrig is running
@@ -51,13 +64,24 @@ _mining_resume() {
         return 0  # Not running, nothing to resume
     fi
 
+    # Check if token file exists
+    if [[ ! -f "$TOKEN_FILE" ]]; then
+        _warn "XMRig API token not found, using SIGCONT fallback"
+        pkill -CONT xmrig 2>/dev/null || true
+        return 0
+    fi
+
+    local TOKEN=$(cat "$TOKEN_FILE" 2>/dev/null || "")
+
     # Try API first (resume to 50% throttle for background operation)
-    if command -v curl >/dev/null 2>&1; then
-        if curl -s --max-time "$TIMEOUT" "$XMRIG_API/throttle" \
+    if command -v curl >/dev/null 2>&1 && [[ -n "$TOKEN" ]]; then
+        if curl -s --max-time "$TIMEOUT" \
+            -H "Authorization: Bearer $TOKEN" \
+            "$XMRIG_API/2/throttle" \
             -X PUT \
             -H "Content-Type: application/json" \
             -d '{"throttle": 50}' >/dev/null 2>&1; then
-            _info "XMRig resumed to 50% throttle"
+            _info "XMRig resumed via API (throttle 50%)"
             return 0
         fi
     fi

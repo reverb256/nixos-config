@@ -4,7 +4,11 @@
 #
 # Module imports: Gaming, mining, monitoring, opencode are already imported
 # via commonModules in flake.nix (./modules/default.nix)
-{lib, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -307,4 +311,11 @@
   # USER GROUPS
   # ============================================================================
   users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale" "video" "render"];
+
+  # ============================================================================
+  # ADDITIONAL PACKAGES
+  # ============================================================================
+  environment.systemPackages = with pkgs; [
+    opencode # AI coding agent (migrated from nix profile)
+  ];
 }

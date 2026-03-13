@@ -93,6 +93,10 @@
     ./services/vaultwarden.nix
     ./services/health-checks.nix
 
+    # NixOS Binary Cache (TODO: commit nix-cache/ directory before enabling)
+    # ./services/nix-cache/harmonia.nix
+    # ./services/nix-cache/auto-build.nix
+
     # Monitoring
     # ./services/monitoring/default.nix  # TEMP: Compatibility issues with latest NixOS
     # ./services/monitoring/prometheus.nix

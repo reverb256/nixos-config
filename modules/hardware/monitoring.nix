@@ -41,9 +41,12 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Install lm-sensors package (includes fancontrol)
+    # Install hardware monitoring packages
+    # nvtopPackages.full supports all GPU types (NVIDIA, AMD, Intel)
+    # Ideal for mixed-GPU hosts like Forge, works on single-vendor hosts too
     environment.systemPackages = with pkgs; [
       lm_sensors
+      nvtopPackages.full
     ];
 
     # Load hardware monitoring kernel modules

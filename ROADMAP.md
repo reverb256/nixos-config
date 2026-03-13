@@ -408,6 +408,16 @@
 4. Implement GPU sharing (time-slicing via GPU device plugin)
 5. Set up GPU monitoring (DCGM-exporter, DCGM-exporter)
 
+**Container Strategy (Nix Integration):**
+- See: `/etc/nixos/docs/kubernetes/nix-pods-analysis.md`
+- Use **Nixery** for ad-hoc AI/ML build environments:
+  ```bash
+  # Example: PyTorch + CUDA build environment
+  kubectl run ai-builder --image=nixery.dev/toolchain/python312Packages.torch --restart=Never
+  ```
+- Build custom AI images declaratively via `dockerTools.buildLayeredImage`
+- Consider NixOS containers for reproducible AI environments
+
 **Challenges:**
 - **Forge mixed vendor** (2x NVIDIA + 2x AMD)
   - Deploy vendor-specific workloads
