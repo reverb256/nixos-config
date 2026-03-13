@@ -63,13 +63,13 @@ in {
 
       # Scrape configurations for cluster nodes
       scrapeConfigs = [
-        # Node exporter for all hosts
+        # Node exporter for all hosts (zephyr uses localhost due to security-hardening)
         {
           job_name = "node";
           static_configs = [
             {
               targets = [
-                "zephyr:${toString ports.node-exporter}"
+                "localhost:${toString ports.node-exporter}"  # zephyr local (bound to 127.0.0.1)
                 "nexus:${toString ports.node-exporter}"
                 "forge:${toString ports.node-exporter}"
                 "sentry:${toString ports.node-exporter}"
@@ -113,17 +113,8 @@ in {
           ];
         }
 
-        # AMD GPU metrics (for hosts with AMD GPUs - Forge has RX 5700 XT)
-        {
-          job_name = "amdgpu";
-          static_configs = [
-            {
-              targets = [
-                "forge:9104"
-              ];
-            }
-          ];
-        }
+        # Note: AMD GPU metrics are collected via node-exporter textfile collector
+        # (forge:9100/metrics includes amdgpu_* metrics from /var/lib/prometheus/node-exporter/textfile-collector/)
 
         # Redis metrics (AI Gateway cache)
         {

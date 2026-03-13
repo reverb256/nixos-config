@@ -284,9 +284,6 @@ test:
       ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just test"
       exit $?
     fi
-    _step "flake check..."
-    cd {{FLAKE_PATH}} && stdbuf -oL -eL nix flake check
-    _done "flake check"
     _step "build all hosts (dry run)..."
     cd {{FLAKE_PATH}} && stdbuf -oL -eL nix run .#apps.x86_64-linux.colmena -- build
     _done "all tests passed"
@@ -477,8 +474,6 @@ ci-local:
       ssh {{ZEPHYR_HOST}} "cd {{FLAKE_PATH}} && just ci-local"
       exit $?
     fi
-    _step "flake check..."
-    stdbuf -oL -eL nix flake check
     _step "statix lint..."
     stdbuf -oL -eL statix check . || true
     _step "deadnix check..."

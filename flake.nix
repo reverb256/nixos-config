@@ -28,10 +28,13 @@
       url = "github:ryoppippi/claude-code-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixpkgs-xr = {
-      url = "github:nix-community/nixpkgs-xr";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # nixpkgs-xr - Disabled due to deprecated options in systems module
+    # Only used for proton-ge-rtsp-bin and oscavmgr (VR packages)
+    # Re-enable when nixpkgs-xr updates their systems dependency
+    # nixpkgs-xr = {
+    #   url = "github:nix-community/nixpkgs-xr";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
     scopebuddy = {
       url = "github:OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -39,12 +42,14 @@
     nixcord = {
       url = "github:FlameFlag/nixcord";
     };
-    spicetify-nix = {
-      url = "github:Gerg-L/spicetify-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # spicetify-nix - Disabled due to deprecated options in systems dependency
+    # Not currently used in configuration
+    # spicetify-nix = {
+    #   url = "github:Gerg-L/spicetify-nix";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
     agenix = {
-      url = "github:ryantm/agenix";
+      url = "github:ryantm/agenix/0.15.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

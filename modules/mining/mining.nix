@@ -10,20 +10,6 @@ let
   hostname = config.networking.hostName;
   defaultWallet = "krxXVNVMM7.${hostname}";
 
-  # Helper to build lolMiner command arguments
-  mkLolminerArgs =
-    deviceCfg:
-    concatStringsSep " " (
-      [
-        "--algo ${cfg.lolminer.algorithm}"
-        "--pool ${cfg.lolminer.pool}"
-        "--user ${cfg.lolminer.wallet}"
-        "--devices ${deviceCfg.devices}"
-        "--apiport ${toString deviceCfg.apiPort}"
-        "--mode b"
-      ] ++ lib.optional cfg.lolminer.tls "--tls 1"
-    );
-
   # Helper for lolMiner security hardening
   lolminerHardening = {
     NoNewPrivileges = true;
@@ -321,7 +307,14 @@ in
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.nvidia}";
+            ExecStart = "${pkgs.lolminer}/bin/lolMiner "
+              + "--algo ${cfg.lolminer.algorithm} "
+              + "--pool ${cfg.lolminer.pool} "
+              + "--user ${cfg.lolminer.wallet} "
+              + "--devices ${cfg.lolminer.nvidia.devices} "
+              + "--apiport ${toString cfg.lolminer.nvidia.apiPort} "
+              + "--mode b "
+              + lib.optionalString cfg.lolminer.tls "--tls 1";
             Restart = "always";
             RestartSec = "30s";
             Environment = [
@@ -344,7 +337,14 @@ in
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-            ExecStart = "${pkgs.lolminer}/bin/lolMiner ${mkLolminerArgs cfg.lolminer.amd}";
+            ExecStart = "${pkgs.lolminer}/bin/lolMiner "
+              + "--algo ${cfg.lolminer.algorithm} "
+              + "--pool ${cfg.lolminer.pool} "
+              + "--user ${cfg.lolminer.wallet} "
+              + "--devices ${cfg.lolminer.amd.devices} "
+              + "--apiport ${toString cfg.lolminer.amd.apiPort} "
+              + "--mode b "
+              + lib.optionalString cfg.lolminer.tls "--tls 1";
             Restart = "always";
             RestartSec = "30s";
             Environment = [

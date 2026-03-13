@@ -15,7 +15,20 @@
   }:
     pkgs.writeShellScriptBin "mcp-${name}" ''
       export PATH="${pkgs.nodejs_22}/bin:$PATH"
-      ${lib.concatStringsSep "\n" (lib.mapAttrsToList (k: v: "export ${k}=\"${v}\"") env)}
+      ${
+        lib.concatStringsSep "\n" (lib.mapAttrsToList (k: v:
+          if lib.hasSuffix "_FILE" k then ''
+            # Read API key from file and export as base variable name
+            if [ -f "${v}" ]; then
+              export ${lib.substring 0 (lib.stringLength k - 5) k}="$(cat ${v})"
+            else
+              echo "Warning: API key file not found: ${v}" >&2
+            fi
+          '' else ''
+            export ${k}="${v}"
+          ''
+        ) env)
+      }
       exec ${pkgs.nodejs_22}/bin/npx -y ${package} ${lib.concatStringsSep " " args} "$@"
     '';
   # Helper to create MCP server packages via Python uvx
@@ -345,11 +358,12 @@ in {
         '')
 
         # Context7 - fixed package name with API key support
+        # Note: apiKeyFile passes CONTEXT7_API_KEY_FILE for runtime reading
         (mkNpmMcpServer {
           name = "context7";
           package = "@upstash/context7-mcp";
           env = lib.optionalAttrs (cfg.servers.context7.apiKeyFile != null) {
-            CONTEXT7_API_KEY = builtins.readFile cfg.servers.context7.apiKeyFile;
+            CONTEXT7_API_KEY_FILE = cfg.servers.context7.apiKeyFile;
           } // lib.optionalAttrs (cfg.servers.context7.apiKeyFile == null && cfg.servers.context7.apiKey != "") {
             CONTEXT7_API_KEY = cfg.servers.context7.apiKey;
           };

@@ -138,8 +138,9 @@
     };
 
     # Garage S3-compatible object storage (local storage)
+    # TEMPORARILY DISABLED - permission issues with /storage/garage
     garage-cluster = {
-      enable = true;
+      enable = false;
       dataDir = "/storage/garage";
       peers = ["zephyr" "nexus"];
       replicationFactor = 2;

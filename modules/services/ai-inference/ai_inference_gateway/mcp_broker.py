@@ -986,7 +986,27 @@ class MCPBroker:
                 import os
 
                 env = os.environ.copy()
-                env.update(server.environment)
+                # Process environment variables - read from file if needed
+                for env_name, env_value in server.environment.items():
+                    # Check if this is an API key file reference (ends with _FILE)
+                    if env_name.endswith("_FILE") and isinstance(env_value, str) and env_value.startswith("/"):
+                        try:
+                            with open(env_value, "r") as f:
+                                file_content = f.read().strip()
+                            # Set the base env name (without _FILE) to the file content
+                            base_env_name = env_name[:-5]  # Remove _FILE suffix
+                            env[base_env_name] = file_content
+                            logger.debug(
+                                f"Loaded {base_env_name} from file {env_value}"
+                            )
+                        except Exception as e:
+                            logger.error(
+                                f"Failed to read {env_name} from {env_value}: {e}"
+                            )
+                            # Fall back to original value
+                            env[env_name] = env_value
+                    else:
+                        env[env_name] = env_value
 
             # Spawn the subprocess
             server.process = await asyncio.create_subprocess_exec(

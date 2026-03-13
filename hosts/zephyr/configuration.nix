@@ -405,6 +405,12 @@
             environment = { };
             enabled = true;
           };
+          context7 = {
+            type = "local";
+            command = [ "mcp-context7" ];
+            environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
+            enabled = true;
+          };
         };
       };
       rag = {
@@ -427,7 +433,7 @@
     mcp-servers = {
       enable = true;
       servers.playwright.enable = true;
-      servers.context7.apiKey = "ctx7sk-8cf263ab-084d-4719-a915-3b183d618a35";
+      servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
     };
 
     # WEB TESTING - Playwright/Puppeteer system dependencies
