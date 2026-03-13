@@ -271,22 +271,22 @@
       systemd.services.kubelet = {
         after = lib.mkForce ["containerd.service" "network.target"];
         requires = lib.mkForce ["containerd.service"];
-        serviceConfig.ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
-          echo "Waiting for containerd to be ready..."
-          timeout=60
-          while [ $timeout -gt 0 ]; do
-            if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
-              echo "containerd is ready"
-              exit 0
-            fi
-            sleep 1
-            ((timeout--))
-          done
-          echo "ERROR: containerd not ready after 60 seconds"
-          exit 1
-        '';
-      } // lib.optionalAttrs (!isMaster) {
         serviceConfig = {
+          ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
+            echo "Waiting for containerd to be ready..."
+            timeout=60
+            while [ $timeout -gt 0 ]; do
+              if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
+                echo "containerd is ready"
+                exit 0
+              fi
+              sleep 1
+              ((timeout--))
+            done
+            echo "ERROR: containerd not ready after 60 seconds"
+            exit 1
+          '';
+        } // lib.optionalAttrs (!isMaster) {
           # Kubelet memory limits - only for worker nodes
           MemoryMax = "2G";
           MemoryHigh = "1.5G";
