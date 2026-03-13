@@ -102,6 +102,8 @@
     masterAddress = lib.mkForce "10.1.1.110";
     # etcd clustering configuration (Zephyr is initial node)
     etcdInitialState = "new";
+    etcdName = "zephyr";
+    etcdAdvertisePeerUrl = "http://10.1.1.110:2380";
     etcdClusterMembers = [
       "zephyr=http://10.1.1.110:2380"
       "nexus=http://10.1.1.120:2380"

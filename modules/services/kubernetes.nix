@@ -48,6 +48,13 @@
       default = "default";
       description = "etcd member name (typically hostname)";
     };
+
+    etcdAdvertisePeerUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "http://${config.services.kubernetes-module.masterAddress}:2380";
+      example = "http://10.1.1.140:2380";
+      description = "This node's etcd peer URL (must be node's actual IP, not VIP)";
+    };
   };
 
   config = let
@@ -128,10 +135,10 @@
         enable = true;
         listenClientUrls = [
           "http://127.0.0.1:2379"
-          "http://${config.services.kubernetes-module.masterAddress}:2379"
+          "http://${config.services.kubernetes-module.etcdAdvertisePeerUrl}:2379"
         ];
-        listenPeerUrls = ["http://${config.services.kubernetes-module.masterAddress}:2380"];
-        initialAdvertisePeerUrls = ["http://${config.services.kubernetes-module.masterAddress}:2380"];
+        listenPeerUrls = ["${config.services.kubernetes-module.etcdAdvertisePeerUrl}"];
+        initialAdvertisePeerUrls = ["${config.services.kubernetes-module.etcdAdvertisePeerUrl}"];
         initialCluster = if useEtcdCluster then
           config.services.kubernetes-module.etcdClusterMembers
         else
