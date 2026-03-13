@@ -319,6 +319,8 @@
     garage-cluster = {
       enable = true;
       dataDir = "/data/shared/garage"; # Local on nexus (bcache0)
+      replicationFactor = 3;  # 3-node cluster
+      consistencyMode = "consistent";  # Full consistency with 3 zones
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
   };
