@@ -94,6 +94,14 @@
     # Trusted users required for distributed builds across cluster
     # Without this, remote build users cannot access the Nix store
     trusted-users = ["j_kro"];
+
+    # Binary cache substituters - check local Harmonia cache first
+    substituters = lib.mkOptionDefault [
+      "http://zephyr.tigris-ule.ts.net:50000?trusted=1"
+    ];
+
+    # Fallback to public caches if local cache miss
+    # https://cache.nixos.org
   };
 
   # ============================================================================

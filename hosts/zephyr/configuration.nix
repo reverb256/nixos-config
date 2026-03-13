@@ -549,18 +549,17 @@
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
 
-    # NixOS Binary Cache Server (Harmonia + Auto-Build)
-    # TODO: Re-enable after nix-cache/ modules are committed to git
-    # nix-cache = {
-    #   enable = true;
-    # };
-    # # Auto-build service - builds all nodes nightly at 2 AM
-    # nix-cache.auto-build = {
-    #   enable = true;
-    #   buildTime = "02:00";
-    #   nodes = ["zephyr" "nexus" "sentry" "forge"];
-    #   cores = 1; # Conservative for stability
-    # };
+    # NixOS Binary Cache Server (nix-serve + Auto-Build)
+    nix-cache = {
+      enable = true;
+    };
+    # Auto-build service - builds all nodes nightly at 2 AM
+    nix-cache.auto-build = {
+      enable = true;
+      buildTime = "02:00";
+      nodes = ["zephyr" "nexus" "sentry" "forge"];
+      cores = 1; # Conservative for stability
+    };
   };
 
   # ============================================================================
