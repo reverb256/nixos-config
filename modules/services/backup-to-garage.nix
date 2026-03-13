@@ -23,9 +23,8 @@ let
     BACKUP_PREFIX="cluster-backup"
     RETENTION_DAYS="''${RETENTION_DAYS:-30}"
 
-    # Directories to backup
+    # Directories to backup (NixOS config is backed up separately below)
     BACKUP_SOURCES=(
-      "/etc/nixos"
       "/data/shared"
     )
 
@@ -114,7 +113,8 @@ EOF
     log_info "Uploading to Garage S3..."
     s3_key="$BACKUP_PREFIX/cluster-backup-$BACKUP_DATE.tar.gz"
 
-    if aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp "$archive_file" "s3://$BACKUP_BUCKET/$s3_key"; then
+    # Use CRC32 checksum for compatibility with Garage S3
+    if aws --endpoint-url "$GARAGE_ENDPOINT" s3 cp "$archive_file" "s3://$BACKUP_BUCKET/$s3_key" --checksum-algorithm CRC32; then
         log_success "Backup uploaded: s3://$BACKUP_BUCKET/$s3_key"
     else
         log_error "Upload failed"

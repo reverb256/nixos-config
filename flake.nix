@@ -73,6 +73,7 @@
   }: let
     # System configuration
     system = "x86_64-linux";
+
     pkgs = import nixpkgs {
       inherit system;
       config.allowUnfree = true;
@@ -145,43 +146,64 @@
           ++ extraModules;
       };
 
+    # ========================================================================
+    # x86-64-v3 MICROARCHITECTURE NOTES
+    # ========================================================================
+    # All cluster CPUs support AVX2 and v3 requirements:
+    # - Zephyr: Ryzen 9 5950X (Zen 3)
+    # - Nexus: Ryzen 9 3900X (Zen 2)
+    # - Forge: i5-9500 (Coffee Lake)
+    # - Sentry: Ryzen 7 1700 (Zen 1, has AVX2)
+    #
+    # Benefits: 10-30% SIMD performance uplift for AI, mining, crypto
+    # Cost: No binary cache compatibility (must build from source)
+    #
+    # Implementation: Module-level nixpkgs.hostPlatform.gcc.arch (NOT localSystem)
+    # The system-features = ["gccarch-x86-64-v3"] is declared in
+    # modules/common-host-defaults.nix to enable sandbox access.
+    # ========================================================================
+
     # Helper to build v3 NixOS system
-    # Uses module-level nixpkgs.hostPlatform.gcc.arch for microarch tuning
+    # Uses localSystem with x86-64-v3 microarchitecture
     mkNixosSystemV3 = {
       hostName,
       extraModules ? [],
     }:
-      nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = {inherit inputs;};
-        modules =
-          commonModules
-          ++ [
-            ./hosts/${hostName}/configuration.nix
-            {
-              # Set v3 microarchitecture for package building
-              # Module-level setting works correctly (not localSystem)
-              nixpkgs.hostPlatform.gcc.arch = "x86-64-v3";
-            }
-            # Note: allowUnsupportedSystem is set in individual modules
-          ]
-          ++ extraModules;
+      let
+        # V3 package set with x86-64-v3 microarchitecture
+        pkgsV3 = import nixpkgs {
+          localSystem = {
+            system = "x86_64-linux";
+            gcc.arch = "x86-64-v3";
+          };
+          config.allowUnfree = true;
+        };
+      in
+        nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = {
+            inherit inputs pkgsV3;
+          };
+          modules =
+            commonModules
+            ++ [
+              ./hosts/${hostName}/configuration.nix
+              {
+                # Use v3-optimized package set
+                # This overrides the default pkgs with our v3-optimized set
+                nixpkgs.pkgs = nixpkgs.lib.mkForce pkgsV3;
+                # Clear nixpkgs.config to avoid assertion error with external pkgs
+                # Use mkForce to override all other definitions
+                nixpkgs.config = nixpkgs.lib.mkForce {};
+              }
+            ]
+            ++ extraModules;
       };
 
     # ========================================================================
     # HOST DEFINITIONS - Single source of truth
     # ========================================================================
     hosts = {
-      zephyr = {hostName = "zephyr";};
-      nexus = {hostName = "nexus";};
-      forge = {hostName = "forge";};
-      sentry = {hostName = "sentry";};
-    };
-
-    # ========================================================================
-    # x86-64-v3 HOST DEFINITIONS (migration target)
-    # ========================================================================
-    hostsV3 = {
       zephyr = {hostName = "zephyr";};
       nexus = {hostName = "nexus";};
       forge = {hostName = "forge";};
@@ -202,7 +224,7 @@
     nixosConfigurationsV3 =
       builtins.mapAttrs
       (_name: value: mkNixosSystemV3 {inherit (value) hostName;})
-      hostsV3;
+      hosts;
 
     # ========================================================================
     # OUTPUT 2: colmena (raw hive configuration)
