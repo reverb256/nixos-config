@@ -205,7 +205,7 @@
 
       # GPU mining configuration (shared by NVIDIA)
       lolminer = {
-        pool = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+        pool = "xtm-c29-us.kryptex.network:8040";
         wallet = "krxXVNVMM7.nexus-gpu";
       };
 
@@ -228,7 +228,7 @@
       pools = [
         {
           name = "Kryptex US";
-          url = "stratum+tcp://xtm-c29-us.kryptex.network:8038";
+          url = "xtm-c29-us.kryptex.network:8038";
           wallet = "krxXVNVMM7";
           password = "x";
           priority = 1;
@@ -236,7 +236,7 @@
         }
         {
           name = "Kryptex EU";
-          url = "stratum+tcp://xtm-c29-eu.kryptex.network:8038";
+          url = "xtm-c29-eu.kryptex.network:8038";
           wallet = "krxXVNVMM7";
           password = "x";
           priority = 2;
