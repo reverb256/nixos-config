@@ -34,19 +34,7 @@ in {
     rpcSecret = lib.mkOption {
       type = lib.types.str;
       default = "";
-      description = "Shared RPC secret for cluster authentication (deprecated: use rpcSecretFile)";
-    };
-
-    rpcSecretFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
-      description = "Path to file containing RPC secret";
-    };
-
-    replicationFactor = lib.mkOption {
-      type = lib.types.int;
-      default = 2;
-      description = "Replication factor for stored objects";
+      description = "Shared RPC secret for cluster authentication (must be 32 hex chars)";
     };
   };
 
@@ -69,6 +57,26 @@ in {
       "d ${cfg.dataDir}/data 0750 garage garage -"
     ];
 
+    # Generate Garage config file
+    environment.etc."garage.toml".text = ''
+      metadata_dir = "${cfg.dataDir}/meta"
+      data_dir = "${cfg.dataDir}/data"
+
+      db_engine = "lmdb"
+
+      rpc_bind_addr = "[::]:${toString cfg.rpcPort}"
+      rpc_public_addr = "${hostIp}:${toString cfg.rpcPort}"
+      rpc_secret = "${cfg.rpcSecret}"
+
+      [s3_api]
+      s3_region = "garage"
+      api_bind_addr = "[::]:${toString cfg.s3ApiPort}"
+      root_domain = ".s3.garage.cluster"
+
+      [admin]
+      api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
+    '';
+
     systemd.services.garage = {
       description = "Garage S3-compatible object storage";
       after = ["network-online.target"];
@@ -87,47 +95,12 @@ in {
         ProtectHome = true;
         ReadWritePaths = "${cfg.dataDir}";
 
-        # Generate config file
-        ExecStartPre = pkgs.writeShellScript "garage-config" ''
+        # Copy generated config to data directory
+        ExecStartPre = pkgs.writeShellScript "garage-copy-config" ''
           #!${pkgs.bash}/bin/bash
           set -euo pipefail
-
-          # Generate config file
-          cat > "${cfg.dataDir}/garage.toml" <<'EOF'
-        metadata_dir = "${cfg.dataDir}/meta"
-        data_dir = "${cfg.dataDir}/data"
-
-        db_engine = "lmdb"
-
-        # RPC configuration
-        rpc_bind_addr = "[::]:${toString cfg.rpcPort}"
-        rpc_public_addr = "${hostIp}:${toString cfg.rpcPort}"
-        EOF
-
-          # Add RPC secret from file or use direct value (deprecated)
-          ${lib.optionalString (cfg.rpcSecretFile != null) ''
-            if [ -f "${cfg.rpcSecretFile}" ]; then
-              RPC_SECRET=$(${pkgs.coreutils}/bin/cat "${cfg.rpcSecretFile}")
-              echo "rpc_secret = \"''${RPC_SECRET}\"" >> "${cfg.dataDir}/garage.toml"
-            else
-              echo "ERROR: RPC secret file not found: ${cfg.rpcSecretFile}"
-              exit 1
-            fi
-          ''} ${lib.optionalString (cfg.rpcSecretFile == null && cfg.rpcSecret != "") ''
-            echo "rpc_secret = \"${cfg.rpcSecret}\"" >> "${cfg.dataDir}/garage.toml"
-          ''}
-
-          # Add remaining config
-          cat >> "${cfg.dataDir}/garage.toml" <<'EOF'
-
-[s3_api]
-s3_region = "garage"
-api_bind_addr = "[::]:${toString cfg.s3ApiPort}"
-root_domain = ".s3.garage.cluster"
-
-[admin]
-api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
-EOF
+          cp /etc/garage.toml "${cfg.dataDir}/garage.toml"
+          chown garage:garage "${cfg.dataDir}/garage.toml"
         '';
 
         ExecStart = "${pkgs.garage}/bin/garage -c ${cfg.dataDir}/garage.toml server";

@@ -124,28 +124,18 @@ data:
           "node": "forge",
           "paths": ["/var/local-path-provisioner"]
         }
-      ],
-      "storageClassConfigs": [
-        {
-          "name": "fast-local-ssd",
-          "nodeMap": [
-            {
-              "node": "zephyr",
-              "paths": ["/data/k8s-local"]
-            }
-          ]
-        },
-        {
-          "name": "slow-hdd",
-          "nodeMap": [
-            {
-              "node": "sentry",
-              "paths": ["/storage/k8s-local"]
-            }
-          ]
-        }
       ]
     }
+  helperPod.yaml: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: helper-pod
+    spec:
+      containers:
+      - name: helper-pod
+        image: rancher/mirrored-flannelcni-flannel:v0.25.5
+        imagePullPolicy: IfNotPresent
 
 ---
 apiVersion: storage.k8s.io/v1
