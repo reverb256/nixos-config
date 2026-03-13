@@ -107,7 +107,7 @@
     };
 
     # GPU miners connect directly to Kryptex CR29 with TLS
-    mining.lolminer.pool = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+    mining.lolminer.pool = "xtm-c29-us.kryptex.network:8040";
     mining.lolminer.wallet = "krxXVNVMM7.forge-gpu";
 
     # GPU Stratum Proxy with Kryptex pool failover
