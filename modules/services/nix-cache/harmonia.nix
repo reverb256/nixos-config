@@ -28,25 +28,26 @@ in {
     # Open firewall for cache access
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
+    # Cache info file
+    environment.etc."nix-cache-info".text = ''
+      Cache Server: ${config.networking.hostName}.tigris-ule.ts.net
+      Port: ${toString cfg.port}
+      URL: http://${config.networking.hostName}.tigris-ule.ts.net:${toString cfg.port}
+    '';
+
     # nix-serve service (built-in to Nix)
     systemd.services.nix-serve = {
       description = "Nix binary cache server";
       after = ["network-online.target"];
+      wants = ["network-online.target"];
       wantedBy = ["multi-user.target"];
 
       serviceConfig = {
         Type = "notify";
         NotifyAccess = "all";
-        ExecStart = "${pkgs.nix}/bin/nix-serve --listen ${cfg.port} --write";
+        ExecStart = "${pkgs.nix-serve}/bin/nix-serve --listen :${toString cfg.port} --write";
         Restart = "on-failure";
       };
-
-      # Cache configuration
-      environment.etc."nix-cache-info".text = ''
-        Cache Server: ${config.networking.hostName}.${config.networking.domain}
-        Port: ${toString cfg.port}
-        URL: http://${config.networking.fqdn}:${toString cfg.port}
-      '';
     };
   };
 }

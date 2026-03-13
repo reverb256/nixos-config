@@ -89,7 +89,7 @@ in {
 
           # Save revision file for this node (will be shared via nixos-share)
           echo "$NIXPKGS_REV" > "$REV_DIR/$node.rev"
-          echo "[nix-auto-build] ✓ $node (rev: ${NIXPKGS_REV:0:8})"
+          echo "[nix-auto-build] ✓ $node (rev: ''${NIXPKGS_REV:0:8})"
         done
 
         echo "[nix-auto-build] Complete at $(date)"
@@ -104,13 +104,15 @@ in {
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = lib.getExe' "etc/nix-auto-build.sh";
+        ExecStart = "/etc/nix-auto-build.sh";
 
         # Build environment
-        Environment = "FLAKE_PATH=${cfg.flakePath}";
-        Environment = "REV_DIR=${cfg.revDir}";
-        Environment = "NODES=${lib.concatStringsSep " " cfg.nodes}";
-        Environment = "CORES=${toString cfg.cores}";
+        Environment = [
+          "FLAKE_PATH=${cfg.flakePath}"
+          "REV_DIR=${cfg.revDir}"
+          "NODES=${lib.concatStringsSep " " cfg.nodes}"
+          "CORES=${toString cfg.cores}"
+        ];
 
         # Logging
         StandardOutput = "journal";
