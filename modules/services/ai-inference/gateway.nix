@@ -81,6 +81,7 @@ in {
 
       environment = {
         PATH = lib.mkForce "/run/current-system/sw/bin:/run/current-system/sw/sbin:${config.system.path}";
+        npm_config_cache = "/var/cache/ai-inference/npm";
         BACKEND_URL = cfg.backend.url;
         BACKEND_TYPE = cfg.backend.type;
         BACKEND_FALLBACK_URLS = lib.strings.concatMapStringsSep "," (url: url) (
