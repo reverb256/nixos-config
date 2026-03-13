@@ -177,6 +177,10 @@
     # Crash detection and logging
     crash-watchdog.enable = true;
 
+    # Disable compute workload monitor - interferes with mining on this desktop/gaming machine
+    # The VRAM pressure detection incorrectly stops miners due to their own VRAM allocation
+    compute-workload-monitor.enable = lib.mkForce false;
+
     # Kubernetes worker node
     kubernetes-module = {
       enable = true;
