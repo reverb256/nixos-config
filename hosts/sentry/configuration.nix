@@ -160,11 +160,12 @@
       deviceId = "SENTRY-PLACEHOLDER";
     };
 
-    # Garage S3-compatible distributed object storage (3-node cluster)
+    # Garage S3-compatible distributed object storage (2-node cluster: zephyr + sentry)
     # Sentry hosts storage on local disk
     garage-cluster = {
       enable = true;
       dataDir = "/storage/garage"; # Local on sentry
+      replicationFactor = 2;  # 2-node cluster
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
   };

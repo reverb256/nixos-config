@@ -20,8 +20,8 @@ in {
 
     replicationFactor = lib.mkOption {
       type = lib.types.ints.between 1 10;
-      default = 3;
-      description = "Replication factor for data redundancy (1-3, must be same on all nodes)";
+      default = 2;
+      description = "Replication factor for data redundancy (1-10, must be same on all nodes)";
     };
 
     consistencyMode = lib.mkOption {

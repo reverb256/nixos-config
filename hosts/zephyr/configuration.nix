@@ -52,6 +52,7 @@
       8080 # AI Inference Gateway
       53317 # LocalSend (file sharing)
       8888 # CFSSL CA API server (for worker node certificate generation)
+      50000 # Nix binary cache server (nix-serve)
     ];
     firewall.allowedUDPPorts = [
       9757 # WiVRn
@@ -542,10 +543,11 @@
       deviceId = "ZEPHYR-PLACEHOLDER";
     };
 
-    # Garage S3-compatible distributed object storage (3-node cluster)
+    # Garage S3-compatible distributed object storage (2-node cluster: zephyr + sentry)
     garage-cluster = {
       enable = true;
       dataDir = "/data/shared/garage"; # On NFS from nexus
+      replicationFactor = 2;  # 2-node cluster
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
 
