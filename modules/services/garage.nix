@@ -169,12 +169,12 @@ in {
         Type = "oneshot";
         User = "garage";
         Group = "garage";
-        ExecStart = "${pkgs.garage}/bin/garage -c /etc/garage.toml meta backup ${cfg.backupDir}/meta-$(date +%%Y-%%m-%%d_%%H-%%M-%%S).db";
+        ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.garage}/bin/garage -c /etc/garage.toml meta snapshot ${cfg.backupDir}/meta-$(date +%%Y-%%m-%%d_%%H-%%M-%%S).db && cp ${cfg.dataDir}/meta/db.lmdb ${cfg.backupDir}/db.lmdb-$(date +%%Y-%%m-%%d_%%H-%%M-%%S)'";
         IOSchedulingClass = "idle";
         IOSchedulingPriority = "7";
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [cfg.backupDir];
+        ReadWritePaths = [cfg.backupDir cfg.dataDir];
       };
     };
 
