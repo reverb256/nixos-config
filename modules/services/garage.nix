@@ -48,10 +48,40 @@ in {
       description = "Web interface port";
     };
 
+    metricsPort = lib.mkOption {
+      type = lib.types.port;
+      default = 3903;
+      description = "Prometheus metrics port";
+    };
+
     rpcSecret = lib.mkOption {
       type = lib.types.str;
       default = "";
       description = "Shared RPC secret for cluster authentication (must be 32 hex chars)";
+    };
+
+    enableMetrics = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable Prometheus metrics export";
+    };
+
+    enableBackup = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable automated metadata backups";
+    };
+
+    backupDir = lib.mkOption {
+      type = lib.types.path;
+      default = "/data/shared/garage-backups";
+      description = "Directory for metadata backups (should be on NFS/shared storage)";
+    };
+
+    backupInterval = lib.mkOption {
+      type = lib.types.str;
+      default = "daily";
+      description = "Systemd timer calendar format for backup interval (default: daily)";
     };
   };
 
@@ -88,6 +118,11 @@ in {
 
       [admin]
       api_bind_addr = "127.0.0.1:${toString cfg.webPort}"
+      ${lib.optionalString cfg.enableMetrics ''
+      [metrics]
+      api_bind_addr = "[::]:${toString cfg.metricsPort}"
+      api_token = "garage_metrics_token"
+      ''}
     '';
 
     # Create data directory with correct permissions
@@ -95,7 +130,9 @@ in {
       "d ${cfg.dataDir} 0750 garage garage -"
       "d ${cfg.dataDir}/meta 0750 garage garage -"
       "d ${cfg.dataDir}/data 0750 garage garage -"
-    ];
+    ] ++ lib.optional cfg.enableBackup ''
+      d ${cfg.backupDir} 0755 garage garage - -
+    '';
 
     systemd.services.garage = {
       description = "Garage S3-compatible object storage";
@@ -115,7 +152,7 @@ in {
         ProtectHome = true;
 
         # Allow write access to custom data directory
-        ReadWritePaths = ["${cfg.dataDir}"];
+        ReadWritePaths = ["${cfg.dataDir}"] ++ lib.optional cfg.enableBackup cfg.backupDir;
 
         ExecStart = "${pkgs.garage}/bin/garage -c /etc/garage.toml server";
 
@@ -132,10 +169,41 @@ in {
       };
     };
 
+    # Automated backup service
+    systemd.services.garage-backup = lib.mkIf cfg.enableBackup {
+      description = "Garage metadata backup";
+      after = ["garage.service"];
+      requires = ["garage.service"];
+
+      serviceConfig = {
+        Type = "oneshot";
+        User = "garage";
+        Group = "garage";
+        ExecStart = "${pkgs.garage}/bin/garage -c /etc/garage.toml meta backup ${cfg.backupDir}/meta-$(date +%%Y-%%m-%%d_%%H-%%M-%%S).db";
+        IOSchedulingClass = "idle";
+        IOSchedulingPriority = "7";
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        ReadWritePaths = [cfg.backupDir];
+      };
+    };
+
+    systemd.timers.garage-backup = lib.mkIf cfg.enableBackup {
+      description = "Daily Garage metadata backup";
+      wantedBy = ["timers.target"];
+      timerConfig = {
+        OnCalendar = cfg.backupInterval;
+        Persistent = true;
+        Unit = "garage-backup.service";
+      };
+    };
+
     # Firewall - use mkOptionDefault to preserve existing ports
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
-      cfg.rpcPort # RPC for cluster communication
-      cfg.s3ApiPort # S3 API
-    ];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault (
+      [
+        cfg.rpcPort # RPC for cluster communication
+        cfg.s3ApiPort # S3 API
+      ] ++ lib.optional cfg.enableMetrics cfg.metricsPort
+    );
   };
 }
