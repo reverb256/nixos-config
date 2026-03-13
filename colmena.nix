@@ -85,7 +85,7 @@ in {
     };
 
     # Distributed builds
-    machinesFile = ./machines.nix;
+    machinesFile = ./machines;
 
     specialArgs = {inherit inputs self;};
   };
