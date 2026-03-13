@@ -50,17 +50,10 @@ in {
 
     users.groups.garage = {};
 
-    # Create data directory via tmpfiles
-    systemd.tmpfiles.rules = [
-      "d ${cfg.dataDir} 0750 garage garage -"
-      "d ${cfg.dataDir}/meta 0750 garage garage -"
-      "d ${cfg.dataDir}/data 0750 garage garage -"
-    ];
-
     # Generate Garage config file
     environment.etc."garage.toml".text = ''
-      metadata_dir = "${cfg.dataDir}/meta"
-      data_dir = "${cfg.dataDir}/data"
+      metadata_dir = "/var/lib/garage/meta"
+      data_dir = "/var/lib/garage/data"
 
       db_engine = "lmdb"
 
@@ -88,22 +81,18 @@ in {
         User = "garage";
         Group = "garage";
 
+        # StateDirectory for data management
+        StateDirectory = "garage";
+        StateDirectoryMode = "0750";
+
         # Security hardening
         NoNewPrivileges = true;
         PrivateTmp = true;
-        ProtectSystem = "strict";
+        ProtectSystem = "strict";  # Strict with StateDirectory
         ProtectHome = true;
-        ReadWritePaths = "${cfg.dataDir}";
+        # ReadWritePaths not needed when using StateDirectory
 
-        # Copy generated config to data directory
-        ExecStartPre = pkgs.writeShellScript "garage-copy-config" ''
-          #!${pkgs.bash}/bin/bash
-          set -euo pipefail
-          cp /etc/garage.toml "${cfg.dataDir}/garage.toml"
-          chown garage:garage "${cfg.dataDir}/garage.toml"
-        '';
-
-        ExecStart = "${pkgs.garage}/bin/garage -c ${cfg.dataDir}/garage.toml server";
+        ExecStart = "${pkgs.garage}/bin/garage -c /etc/garage.toml server";
 
         # Hardening
         CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
