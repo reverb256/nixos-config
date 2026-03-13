@@ -79,14 +79,17 @@
         # No extra configuration needed - uses built-in 'restricted' profile
       };
       scheduler.enable = isMaster;
-      controllerManager.enable = isMaster;
+      controllerManager = {
+        enable = isMaster;
+        # extraOpts expects a space-separated string, not a list
+        extraOpts = "--allocate-node-cidrs=false --cluster-cidr=10.244.0.0/16";
+      };
       kubelet = {
         enable = true;
         hostname = config.networking.hostName;
         extraConfig = {
           failSwapOn = false;
           containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
-          cniConfDir = "/var/lib/cni/net.d";
         };
       };
       proxy.enable = true;

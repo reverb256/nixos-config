@@ -18,9 +18,6 @@
   # Helper function to create profile config
   mkProfileConfig = profileName: profileCfg: mkIf profileCfg.enable (
     let
-      # Extract role profiles - handle missing roleProfiles gracefully
-      roleProfiles = profileCfg.roleProfiles or {};
-
       # Extract networking config - handle both nested and direct formats
       networkingCfg = profileCfg.networking or {
         ipAddress = profileCfg.ipAddress or null;
@@ -29,13 +26,6 @@
         wireless = profileCfg.wireless or { enable = false; };
       };
     in {
-      # Apply role profiles by expanding each individually
-      profiles.role.workstation = roleProfiles.workstation or false;
-      profiles.role.gaming = roleProfiles.gaming or false;
-      profiles.role.vr = roleProfiles.vr or false;
-      profiles.role.mining = roleProfiles.mining or false;
-      profiles.role.aiInference = roleProfiles.aiInference or false;
-
       # Apply networking configuration (only if ipAddress is set)
       clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
         enable = true;
@@ -85,41 +75,72 @@ in {
       enable = mkEnableOption "Zephyr workstation profile (control plane + gaming + VR + mining + AI)";
 
       # Node-specific settings
-      kubernetes = {
-        enable = true;
-        roles = ["master" "node"];  # NixOS services.kubernetes uses "master", not "control-plane"
-        masterAddress = "10.1.1.110";
+      kubernetes = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          roles = ["master" "node"];
+          masterAddress = "10.1.1.110";
+        };
+        description = "Kubernetes configuration";
       };
 
       # Hardware-specific
-      nvidia = {
-        enable = true;
-        multiGpu = true;  # RTX 3090 + others
+      nvidia = mkOption {
+        type = types.attrs;
+        default = {
+          enable = true;
+          multiGpu = true;
+        };
+        description = "NVIDIA GPU configuration";
       };
 
       # Networking
-      ipAddress = "10.1.1.110";
-      interfaceName = "enp38s0";
-      unboundListenAddress = "10.1.1.110";
+      ipAddress = mkOption {
+        type = types.str;
+        default = "10.1.1.110";
+        description = "Node IP address";
+      };
+
+      interfaceName = mkOption {
+        type = types.str;
+        default = "enp38s0";
+        description = "Network interface name";
+      };
+
+      unboundListenAddress = mkOption {
+        type = types.str;
+        default = "10.1.1.110";
+        description = "Unbound DNS listen address";
+      };
 
       # Firewall ports (beyond cluster defaults)
-      firewallExtraTCPPorts = [
-        9757    # WiVRn main port
-        18789   # Steam Remote Play
-        18790   # Steam Remote Play (secondary)
-        19898   # Moonlight/GameStream + Spacebot Web UI
-        1234    # LM Studio API server
-        8080    # AI Inference Gateway
-        53317   # LocalSend (file sharing)
-        8888    # CFSSL CA API server
-      ];
-      firewallExtraUDPPorts = [
-        9757 9758 9759  # WiVRn
-        27031 27036     # Steam UDP
-        5353           # mDNS
-        9947           # WiVRn
-        53317          # LocalSend (multicast)
-      ];
+      firewallExtraTCPPorts = mkOption {
+        type = types.listOf types.port;
+        default = [
+          9757    # WiVRn main port
+          18789   # Steam Remote Play
+          18790   # Steam Remote Play (secondary)
+          19898   # Moonlight/GameStream + Spacebot Web UI
+          1234    # LM Studio API server
+          8080    # AI Inference Gateway
+          53317   # LocalSend (file sharing)
+          8888    # CFSSL CA API server
+        ];
+        description = "Extra TCP ports";
+      };
+
+      firewallExtraUDPPorts = mkOption {
+        type = types.listOf types.port;
+        default = [
+          9757 9758 9759  # WiVRn
+          27031 27036     # Steam UDP
+          5353           # mDNS
+          9947           # WiVRn
+          53317          # LocalSend (multicast)
+        ];
+        description = "Extra UDP ports";
+      };
     };
 
     nexus-gaming = {
@@ -325,7 +346,6 @@ in {
     # ROLE PROFILE ASSIGNMENTS
     # ============================================================================
     # Each node profile assigns its corresponding role profiles
-    # This avoids the option declaration issue by keeping roleProfiles out of options
     # ============================================================================
 
     # Zephyr workstation role profiles
