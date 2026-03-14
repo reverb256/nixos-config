@@ -31,7 +31,7 @@
     ./system/btrfs-compression.nix
     ./system/btrfs-tuning.nix
     ./system/compute-workload-monitor.nix
-    ./system/compute-workload-monitor-profiles.nix
+    # TODO: ./system/compute-workload-monitor-profiles.nix - add to git when ready
 
     # Security
     ./security/pam-vaultwarden.nix
