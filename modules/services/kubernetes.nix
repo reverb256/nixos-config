@@ -158,114 +158,109 @@
       # Also create /var/lib/flannel for persistent subnet.env file (not on tmpfs)
       # Create symlink from /run/flannel to /var/lib/flannel for CNI plugin compatibility
       # Create local-path-provisioner directories for Kubernetes storage
-      systemd = {
-        tmpfiles.rules = [
-          # Create writable CNI directories (both for kubelet and containerd)
-          "d /var/lib/cni/net.d 0755 root root -"
-          # Remove /etc/cni/net.d if it exists (symlink or directory) from old activation
-          # Use C to recursively clean, then create as writable directory
-          "C /etc/cni/net.d - - - -"
-          "d /etc/cni/net.d 0755 root root -"
-          # Create symlinks from read-only NixOS store to writable directories
-          # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)
-          "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
-          # Containerd reads from /etc/cni/net.d (default CNI path)
-          "L+ /etc/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
-          # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
-          "d /var/lib/flannel 0755 root root -"
-          "L+ /run/flannel - - - - /var/lib/flannel"
-          # ============================================================================
-          # LOCAL PATH PROVISIONER - Kubernetes local storage
-          # ============================================================================
-          # Default path for all nodes (Forge uses this)
-          "d /var/local-path-provisioner 0777 root root -"
-          # Zephyr: Fast NVMe storage for databases, AI models
-          "d /data/k8s-local 0777 root root -"
-          # Nexus: Large capacity on bcache0
-          "d /data/containers/k8s-local 0777 root root -"
-          # Sentry: HDD storage for archival, logs
-          "d /storage/k8s-local 0777 root root -"
-        ];
+      systemd.tmpfiles.rules = [
+        # Create writable CNI directories (both for kubelet and containerd)
+        "d /var/lib/cni/net.d 0755 root root -"
+        # Remove /etc/cni/net.d if it exists (symlink or directory) from old activation
+        # Use C to recursively clean, then create as writable directory
+        "C /etc/cni/net.d - - - -"
+        "d /etc/cni/net.d 0755 root root -"
+        # Create symlinks from read-only NixOS store to writable directories
+        # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)
+        "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
+        # Containerd reads from /etc/cni/net.d (default CNI path)
+        "L+ /etc/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
+        # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
+        "d /var/lib/flannel 0755 root root -"
+        "L+ /run/flannel - - - - /var/lib/flannel"
+        # ============================================================================
+        # LOCAL PATH PROVISIONER - Kubernetes local storage
+        # ============================================================================
+        # Default path for all nodes (Forge uses this)
+        "d /var/local-path-provisioner 0777 root root -"
+        # Zephyr: Fast NVMe storage for databases, AI models
+        "d /data/k8s-local 0777 root root -"
+        # Nexus: Large capacity on bcache0
+        "d /data/containers/k8s-local 0777 root root -"
+        # Sentry: HDD storage for archival, logs
+        "d /storage/k8s-local 0777 root root -"
+      ];
 
-        services = {
-
-          # Store the Flannel CNI config
-          # Use same format as working Zephyr control plane (cniVersion 0.3.1, name "cbr0")
-          # The minimal delegate config lets Flannel handle bridge setup automatically
-          environment.etc = {
-            # Flannel CNI config (for kubelet via tmpfiles symlink)
-            "cni/flannel.conflist".text = builtins.toJSON {
-              name = "cbr0";
-              cniVersion = "0.3.1";
-              plugins = [
-                {
-                  type = "flannel";
-                  delegate = {
-                    hairpinMode = true;
-                    isDefaultGateway = true;
-                  };
-                }
-                {
-                  type = "portmap";
-                  capabilities = {
-                    portMappings = true;
-                  };
-                }
-              ];
+      # Store the Flannel CNI config
+      # Use same format as working Zephyr control plane (cniVersion 0.3.1, name "cbr0")
+      # The minimal delegate config lets Flannel handle bridge setup automatically
+      environment.etc."cni/flannel.conflist".text = builtins.toJSON {
+        name = "cbr0";
+        cniVersion = "0.3.1";
+        plugins = [
+          {
+            type = "flannel";
+            delegate = {
+              hairpinMode = true;
+              isDefaultGateway = true;
             };
+          }
+          {
+            type = "portmap";
+            capabilities = {
+              portMappings = true;
+            };
+          }
+        ];
+      };
 
-            # Note: containerd's CNI config is provided via tmpfiles symlink above
-            # (environment.etc."cni/net.d/..." doesn't work correctly for nested directories)
+      # Note: containerd's CNI config is provided via tmpfiles symlink above
+      # (environment.etc."cni/net.d/..." doesn't work correctly for nested directories)
 
-            # Disable CRI-O's default CNI configs (no longer needed with containerd)
-            # "cni/net.d/10-crio-bridge.conflist".enable = lib.mkForce false;
-            # "cni/net.d/99-loopback.conflist".enable = lib.mkForce false;
+      # Disable CRI-O's default CNI configs (no longer needed with containerd)
+      # "cni/net.d/10-crio-bridge.conflist".enable = lib.mkForce false;
+      # "cni/net.d/99-loopback.conflist".enable = lib.mkForce false;
 
-            # NVIDIA GPU device configuration (containerd uses nvidia-container-runtime directly)
-            # No CRI-O-specific configuration needed
-          };
+      # NVIDIA GPU device configuration (containerd uses nvidia-container-runtime directly)
+      # No CRI-O-specific configuration needed
 
-          # ============================================================================
-          # FIREWALL RULES
-          # ============================================================================
-          networking.firewall = lib.mkMerge [
-            # Master node firewall
-            (lib.mkIf isMaster {
-              allowedTCPPorts = [
-                6443 # Kubernetes API server
-                2379 # etcd client
-                2380 # etcd peer
-                10250 # Kubelet API
-                10251 # Kube-scheduler
-                10252 # Kube-controller-manager
-              ];
+      # ============================================================================
+      # FIREWALL RULES
+      # ============================================================================
+      networking.firewall = lib.mkMerge [
+        # Master node firewall
+        (lib.mkIf isMaster {
+          allowedTCPPorts = [
+            6443 # Kubernetes API server
+            2379 # etcd client
+            2380 # etcd peer
+            10250 # Kubelet API
+            10251 # Kube-scheduler
+            10252 # Kube-controller-manager
+          ];
 
-              allowedTCPPortRanges = [
-                {
-                  from = 30000;
-                  to = 32767;
-                }
-              ];
-
-              allowedUDPPorts = [ 8472 ]; # Flannel VXLAN
-            })
-
-            # Worker node firewall (applies to all nodes, but ports differ per role)
+          allowedTCPPortRanges = [
             {
-              allowedTCPPorts = lib.mkIf (!isMaster) [ 10250 ]; # Kubelet API only for workers
-              allowedTCPPortRanges = [
-                {
-                  from = 30000;
-                  to = 32767;
-                }
-              ];
-              allowedUDPPorts = [ 8472 ]; # Flannel VXLAN
+              from = 30000;
+              to = 32767;
             }
           ];
 
-          # ============================================================================
-          # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
-          # ============================================================================
+          allowedUDPPorts = [ 8472 ]; # Flannel VXLAN
+        })
+
+        # Worker node firewall (applies to all nodes, but ports differ per role)
+        {
+          allowedTCPPorts = lib.mkIf (!isMaster) [ 10250 ]; # Kubelet API only for workers
+          allowedTCPPortRanges = [
+            {
+              from = 30000;
+              to = 32767;
+            }
+          ];
+          allowedUDPPorts = [ 8472 ]; # Flannel VXLAN
+        }
+      ];
+
+      # ============================================================================
+      # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
+      # ============================================================================
+      systemd.services = {
           containerd = {
             after = lib.mkForce [ "network.target" ];
             before = [ "kubelet.service" ];
@@ -358,8 +353,7 @@
               OOMScoreAdjust = -500;
             };
           };
-        }; # Close services
-      }; # Close systemd
+        }; # Close systemd.services
 
       # ============================================================================
       # KUBERNETES TOOLS

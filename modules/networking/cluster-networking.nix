@@ -91,8 +91,9 @@ in {
         };
       };
 
-      # WiFi configuration (optional)
-      wireless.enable = lib.mkForce cfg.wireless.enable;
+      # Note: WiFi is handled by NetworkManager, not wpa_supplicant
+      # The wpa_supplicant wireless (networking.wireless) conflicts with NetworkManager
+      # Wireless connections are configured via NetworkManager connection profiles
     };
 
     # ============================================================================
