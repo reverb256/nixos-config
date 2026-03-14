@@ -194,18 +194,14 @@
           ++ [
             ./hosts/${hostName}/configuration.nix
             {
-              # Set v3 microarchitecture at module level
-              # This configures stdenv to use -march=x86-64-v3
-              # Full hostPlatform config is required (system + gcc.arch)
-              nixpkgs.hostPlatform = {
-                system = "x86_64-linux";
-                gcc.arch = "x86-64-v3";
-              };
-
-              # Set system-features ONLY for v3 configurations
-              # This allows building v3-optimized packages when explicitly requested
-              # CRITICAL: Do NOT set this globally or binary caches won't work!
-              nix.settings.system-features = ["gccarch-x86-64-v3"];
+              # DISABLED: x86-64-v3 microarchitecture tuning
+              # This breaks binary cache compatibility with cache.nixos.org
+              # To enable per-package v3 optimization, use packageOverrides instead
+              # nixpkgs.hostPlatform = {
+              #   system = "x86_64-linux";
+              #   gcc.arch = "x86-64-v3";
+              # };
+              # nix.settings.system-features = ["gccarch-x86-64-v3"];
             }
           ]
           ++ extraModules;
