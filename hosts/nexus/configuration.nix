@@ -80,7 +80,7 @@
   # ============================================================================
   # This profile bundles role profiles, Kubernetes config, hardware profiles,
   # and networking configuration. Eliminates ~100 lines of duplication.
-  # profiles.node.nexus-gaming.enable = true;
+  profiles.node.nexus-gaming.enable = true;
 
   # ============================================================================
   # SERVICES - All service configurations
