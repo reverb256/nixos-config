@@ -10,6 +10,8 @@
   # ============================================================================
   networking = {
     # Use NetworkManager for interface management
+    # NetworkManager handles both wired and wireless connections
+    # (wpa_supplicant wireless is not used - it conflicts with NetworkManager)
     networkmanager.enable = true;
     useDHCP = false;
 

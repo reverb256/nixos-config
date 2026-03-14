@@ -253,6 +253,15 @@ in {
       };
     };
 
+    # ========================================================================
+    # PROMETHEUS EXPORTER
+      # ========================================================================
+      prometheus.exporters.haproxy = mkIf config.services.prometheus.enable {
+        enable = true;
+        telemetryEndpoint = "http://localhost:8404/stats;csv";
+      };
+    };
+
     # ============================================================================
     # FIREWALL
     # ========================================================================
@@ -279,12 +288,5 @@ in {
       "d /run/haproxy 0755 haproxy haproxy - -"
     ];
 
-    # ========================================================================
-    # MONITORING - HAProxy metrics
-    # ========================================================================
-    services.prometheus.exporters.haproxy = mkIf config.services.prometheus.enable {
-      enable = true;
-      telemetryEndpoint = "http://localhost:8404/stats;csv";
-    };
   };
 }
