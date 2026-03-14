@@ -8,14 +8,11 @@
 #   - Action: Pauses ALL mining (GPU + CPU) during builds for maximum build performance
 #   - Resumes: Automatically when build processes complete
 #
-# HOST PARTICIPATION (v3 migration - conservative to prevent OOM):
-#   zephyr: ✅ Server (32 cores, 31GB RAM, znver3)  → Control plane, conservative builds
-#   nexus:  ✅ Server (24 cores, 46GB RAM, znver2)  → Storage worker, conservative builds
-#   forge:  ❌ Client only (6 cores, 15GB RAM)      → GPU worker, no remote builds
-#   sentry: ✅ Server (16 cores, 31GB RAM, Zen 1)   → Monitoring worker, conservative builds
-
-# V3 MIGRATION NOTE: Using max-jobs=2, cores=2 on all nodes to prevent OOM
-# during heavy v3 compilation. After migration, these can be increased.
+# HOST PARTICIPATION (base x86_64 - reverted from v3 2026-03-14):
+#   zephyr: ✅ Server (32 cores, 31GB RAM, znver3)  → Control plane
+#   nexus:  ✅ Server (24 cores, 46GB RAM, znver2)  → Storage worker
+#   forge:  ✅ Server (6 cores, 15GB RAM)              → GPU worker (limited jobs)
+#   sentry: ✅ Server (16 cores, 31GB RAM, Zen 1)   → Monitoring worker
 #
 # NETWORK: 1Gbps with 4x TP-Link Easy Smart switches
 #
@@ -37,49 +34,58 @@ in {
     # Enabled: Distributed builds across the cluster
     distributedBuilds = lib.mkDefault true;
 
-    # Build machines configuration (v3 migration - conservative settings)
-    # REFERENCE: /etc/nixos/machines.nix (Colmena machinesFile)
+    # Build machines configuration (base x86_64)
+    # REFERENCE: /etc/nixos/machines (Colmena machinesFile)
     # NOTE: sshUser defaults to root when running with sudo, must specify j_kro
-    # V3 MIGRATION: All nodes use 2 jobs/2 cores to prevent OOM
     # IMPORTANT: Filter out current host to avoid SSH-to-self loopback causing daemon locks
     buildMachines = lib.filter (m: m.hostName != currentHost) [
       {
         # Zephyr: 32 cores, Ryzen 9 5950X (znver3)
         # Role: K8s control plane + build coordinator + worker
-        # V3 MIGRATION: Conservative 2 jobs/2 cores to prevent OOM during heavy builds
         hostName = "zephyr";
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 2; # V3 MIGRATION: Very conservative to prevent crashes
+        maxJobs = 4; # Increased now that we're on base x86_64
         speedFactor = 8;
-        supportedFeatures = ["kvm" "big-parallel" "x86-64-v3"];
+        supportedFeatures = ["kvm" "big-parallel"];
         mandatoryFeatures = [];
       }
       {
         # Nexus: 24 cores, Ryzen 9 3900X (znver2)
         # Role: K8s storage worker + NFS server
-        # V3 MIGRATION: Conservative 2 jobs/2 cores (was 6, reduced after OOM)
         hostName = "nexus";
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 2; # V3 MIGRATION: Very conservative to prevent crashes
+        maxJobs = 6; # More RAM (46GB) allows more jobs
         speedFactor = 5;
-        supportedFeatures = ["big-parallel" "x86-64-v3"];
+        supportedFeatures = ["big-parallel"];
+        mandatoryFeatures = [];
+      }
+      {
+        # Forge: 6 cores, Intel i5-9500 (Coffee Lake)
+        # Role: GPU worker (2x RTX 4060 + 2x RX 5700 XT)
+        # NOTE: Limited to 1 job due to only 15GB RAM
+        hostName = "forge";
+        system = "x86_64-linux";
+        sshUser = "j_kro";
+        protocol = "ssh-ng";
+        maxJobs = 1; # Very conservative - only 15GB RAM
+        speedFactor = 2;
+        supportedFeatures = ["big-parallel"];
         mandatoryFeatures = [];
       }
       {
         # Sentry: 16 cores, Ryzen 7 1700 (Zen 1 with AVX2)
         # Role: Monitoring worker
-        # V3 MIGRATION: Now participating as build server (was client only)
         hostName = "sentry";
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 2; # V3 MIGRATION: Conservative 2 jobs/2 cores
+        maxJobs = 2; # Conservative - 31GB RAM but monitoring needs headroom
         speedFactor = 3;
-        supportedFeatures = ["big-parallel" "x86-64-v3"];
+        supportedFeatures = ["big-parallel"];
         mandatoryFeatures = [];
       }
     ];
@@ -89,9 +95,9 @@ in {
       # Note: buildMachines automatically configures builders via /etc/nix/machines
       # The ssh-ng protocol is used for efficient remote builds
 
-      # V3 MIGRATION: Limit cores per build to prevent memory exhaustion
+      # Limit cores per build to prevent memory exhaustion
       # mkForce prevents override by NixOS auto-detection (cores = 0 = auto)
-      cores = lib.mkForce 2;
+      cores = lib.mkForce 4;
 
       # Use substituters on remote builders (download from cache instead of copying)
       builders-use-substitutes = true;
@@ -117,20 +123,19 @@ in {
       ];
 
       # Maximum number of parallel build jobs (LOCAL builds on this host)
-      # Per-host allocation for v3 migration (conservative to prevent OOM):
-      # - Zephyr: 2 of 32 cores (6%) - control plane needs headroom
-      # - Nexus: 2 of 24 cores (8%) - NFS/storage needs headroom
+      # Per-host allocation based on RAM and role:
+      # - Zephyr: 4 of 32 cores (12%) - control plane needs headroom
+      # - Nexus: 6 of 24 cores (25%) - NFS/storage needs headroom
       # - Sentry: 2 of 16 cores (12%) - monitoring worker
-      # - Forge: 2 of 6 cores (33%) - GPU workloads
+      # - Forge: 1 of 6 cores (16%) - GPU workloads, limited RAM
       # compute-workload-monitor pauses mining during builds
       #
       # CRITICAL: mkForce required because NixOS defaults max-jobs to CPU count
-      # which would cause OOM on all nodes during heavy builds (KDE/Qt)
       max-jobs = lib.mkForce (
-        if currentHost == "zephyr" then 2
-        else if currentHost == "nexus" then 2
+        if currentHost == "zephyr" then 4
+        else if currentHost == "nexus" then 6
         else if currentHost == "sentry" then 2
-        else if currentHost == "forge" then 2
+        else if currentHost == "forge" then 1
         else 2
       );
 
