@@ -97,9 +97,9 @@ in {
       builders-use-substitutes = true;
 
       # Binary cache configuration (1Gbps network - fast downloads)
-      # Use mkOptionDefault to MERGE with nix-config.nix substituters
-      # This preserves the local Harmonia cache (10.1.1.110:5000) as first priority
-      substituters = lib.mkOptionDefault [
+      # Note: Local Harmonia cache (10.1.1.110:5000) is added via lib.mkBefore in nix-config.nix
+      # Public caches are appended after the local cache
+      substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
         # "https://cache.nixos-cuda.org" # TEMPORARILY DISABLED - connectivity issues
