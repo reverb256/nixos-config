@@ -7,8 +7,9 @@
       experimental-features = ["nix-command" "flakes"];
 
       # Binary caches (local cache checked first)
+      # Harmonia runs on port 5000 (not 50000 - that was old nix-serve)
       substituters = [
-        "http://zephyr.tigris-ule.ts.net:50000?trusted=1"
+        "http://zephyr.tigris-ule.ts.net:5000?trusted=1"
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
         "https://ezkea.cachix.org"

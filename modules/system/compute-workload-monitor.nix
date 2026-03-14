@@ -34,6 +34,7 @@
         procps # pgrep
         systemd # systemctl
         kubernetes # kubectl for Kubernetes GPU workload detection
+        bc # for floating point arithmetic in nix-daemon CPU detection
       ];
 
       serviceConfig = {
@@ -49,7 +50,7 @@
           LOG_FILE="${config.services.compute-workload-monitor.logFile}"
           MINING_SERVICES=("lolminer-nvidia" "xmrig")
           GAMING_PROCESSES=("steam\\.exe" "steamwebhelper" "steamapps" "Steam\\\\ Helper" "lutris" "heroic" "Lutris" "HeroicGamesLauncher" "wine(32|64)\\.exe" "proton")
-          BUILD_PROCESSES=("nixos-rebuild" "colmena" "nix-build" "gcc" "clang" "cargo build" "make" "cmake" "ninja")
+          BUILD_PROCESSES=("nixos-rebuild" "colmena" "nix-build" "nix-daemon" "nix-store" "gcc" "clang" "cargo build" "make" "cmake" "ninja")
 
           log() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
@@ -157,6 +158,276 @@
               return 1
           }
 
+          # ============================================================================
+          # PSI-BASED BUILD DETECTION (kernel-level resource contention detection)
+          # ============================================================================
+          # PSI (Pressure Stall Information) provides kernel-level signals for resource
+          # contention. This is more reliable than process polling for distributed builds.
+          #
+          # Format: some avg10=1.19 avg60=1.15 avg300=0.95 total=16120473
+          #         ^^^^ Percentage of time tasks were delayed waiting for resource
+          #         full avg10=X.XX = Percentage of time ALL tasks were stalled (thrashing)
+          #
+          # Threshold loading (priority order):
+          #   1. Environment variables (set by systemd service from NixOS config)
+          #   2. Runtime config file: /run/compute-workload-monitor/thresholds.conf (imperative)
+          #   3. Declarative config: /etc/compute-workload-monitor/thresholds.conf (NixOS)
+          #   4. Built-in defaults (fallback)
+          #
+          # To change thresholds imperatively without rebuild:
+          #   echo "PSI_CPU_BUILD_THRESHOLD=3.0" > /run/compute-workload-monitor/thresholds.conf
+          #   systemctl reload compute-workload-monitor
+          # ============================================================================
+
+          # Function to load threshold with fallback chain
+          load_psi_threshold() {
+              local var_name="$1"
+              local default_value="$2"
+              local value=""
+
+              # Check environment first (set by systemd from NixOS config)
+              if [ -n "''${!var_name+x}" ]; then
+                  value="''${!var_name}"
+              fi
+
+              # Check runtime override file (imperative changes)
+              if [ -z "$value" ] && [ -f /run/compute-workload-monitor/thresholds.conf ]; then
+                  value=$(grep "^''${var_name}=" /run/compute-workload-monitor/thresholds.conf 2>/dev/null | cut -d'=' -f2)
+              fi
+
+              # Check declarative config file (NixOS generated)
+              if [ -z "$value" ] && [ -f /etc/compute-workload-monitor/thresholds.conf ]; then
+                  value=$(grep "^''${var_name}=" /etc/compute-workload-monitor/thresholds.conf 2>/dev/null | cut -d'=' -f2)
+              fi
+
+              # Use default if not found
+              if [ -z "$value" ]; then
+                  value="$default_value"
+              fi
+
+              echo "$value"
+          }
+
+          # Load thresholds (with fallback to defaults)
+          PSI_CPU_BUILD_THRESHOLD=$(load_psi_threshold "PSI_CPU_BUILD_THRESHOLD" "5.0")
+          PSI_CPU_IDLE_THRESHOLD=$(load_psi_threshold "PSI_CPU_IDLE_THRESHOLD" "2.0")
+          PSI_MEM_SOME_THRESHOLD=$(load_psi_threshold "PSI_MEM_SOME_THRESHOLD" "1.0")
+          PSI_MEM_FULL_THRESHOLD=$(load_psi_threshold "PSI_MEM_FULL_THRESHOLD" "0.5")
+          PSI_IO_SOME_THRESHOLD=$(load_psi_threshold "PSI_IO_SOME_THRESHOLD" "2.0")
+          PSI_IO_FULL_THRESHOLD=$(load_psi_threshold "PSI_IO_FULL_THRESHOLD" "0.3")
+          PSI_HYSTERESIS_CYCLES=3         # Require N consecutive low readings before resume
+
+          # Hysteresis state tracking
+          PSI_BUILD_CYCLES=0
+
+          check_psi_cpu_pressure() {
+              # Check if PSI is available
+              if [ ! -f /proc/pressure/cpu ]; then
+                  return 1
+              fi
+
+              # Parse "some avg10=X" from /proc/pressure/cpu
+              local psi_line=$(grep 'some' /proc/pressure/cpu 2>/dev/null || echo "")
+              if [ -z "$psi_line" ]; then
+                  return 1
+              fi
+
+              # Extract avg10 value (format: "some avg10=X.XX avg60=...")
+              local psi_avg10=$(echo "$psi_line" | awk '{for(i=1;i<=NF;i++) if($i ~ /^avg10=/) {print $i}}' | cut -d'=' -f2)
+
+              # Validate we got a number
+              if [ -z "$psi_avg10" ]; then
+                  return 1
+              fi
+
+              # Use awk for floating point comparison (more portable than bc)
+              # Returns 0 if condition is TRUE, 1 if FALSE
+              local above_threshold=$(echo "$psi_avg10" | awk "BEGIN {print (\$1 > $PSI_CPU_BUILD_THRESHOLD)}")
+              local below_idle=$(echo "$psi_avg10" | awk "BEGIN {print (\$1 < $PSI_CPU_IDLE_THRESHOLD)}")
+
+              if [ "$above_threshold" = "1" ]; then
+                  # CPU pressure detected - builds are active
+                  PSI_BUILD_CYCLES=0  # Reset hysteresis counter
+                  log "PSI: High CPU pressure detected (avg10=$psi_avg10 > $PSI_CPU_BUILD_THRESHOLD)"
+                  return 0
+              elif [ "$below_idle" = "1" ]; then
+                  # Low pressure - increment hysteresis counter
+                  PSI_BUILD_CYCLES=$((PSI_BUILD_CYCLES + 1))
+
+                  if [ "$PSI_BUILD_CYCLES" -ge "$PSI_HYSTERESIS_CYCLES" ]; then
+                      # Sustained low pressure - builds are done
+                      log "PSI: CPU pressure cleared (avg10=$psi_avg10 < $PSI_CPU_IDLE_THRESHOLD for $PSI_BUILD_CYCLES cycles)"
+                      return 1
+                  else
+                      # Still in hysteresis period - treat as builds active
+                      log "PSI: Hysteresis waiting (avg10=$psi_avg10, cycle $PSI_BUILD_CYCLES/$PSI_HYSTERESIS_CYCLES)"
+                      return 0
+                  fi
+              else
+                  # Between thresholds - maintain current state
+                  if [ "$PSI_BUILD_CYCLES" -gt 0 ]; then
+                      # We were in build state, keep it
+                      log "PSI: Maintaining build state (avg10=$psi_avg10, between thresholds)"
+                      return 0
+                  fi
+                  return 1
+              fi
+          }
+
+          check_psi_memory_pressure() {
+              # Check if PSI is available
+              if [ ! -f /proc/pressure/memory ]; then
+                  return 1
+              fi
+
+              local psi_line=$(grep 'some' /proc/pressure/memory 2>/dev/null || echo "")
+              if [ -z "$psi_line" ]; then
+                  return 1
+              fi
+
+              # Extract some avg10 and full avg10 using pure awk (more portable)
+              local some_avg10=$(echo "$psi_line" | awk '{
+                  for(i=1;i<=NF;i++) {
+                      if($i ~ /^some/) {
+                          for(j=1;j<=NF;j++) {
+                              if($j ~ /^avg10=/) {
+                                  sub(/avg10=/, "", $j)
+                                  print $j
+                                  exit
+                              }
+                          }
+                      }
+                  }
+              }')
+              local full_avg10=$(echo "$psi_line" | awk '{
+                  for(i=1;i<=NF;i++) {
+                      if($i ~ /^full/) {
+                          for(j=1;j<=NF;j++) {
+                              if($j ~ /^avg10=/) {
+                                  sub(/avg10=/, "", $j)
+                                  print $j
+                                  exit
+                              }
+                          }
+                      }
+                  }
+              }')
+
+              # Check "full" first - system thrashing is critical
+              if [ -n "$full_avg10" ]; then
+                  local full_critical=$(echo "$full_avg10" | awk "BEGIN {print (\$1 > $PSI_MEM_FULL_THRESHOLD)}")
+                  if [ "$full_critical" = "1" ]; then
+                      PSI_BUILD_CYCLES=0
+                      log "PSI: CRITICAL memory thrashing detected (full avg10=$full_avg10 > $PSI_MEM_FULL_THRESHOLD)"
+                      return 0
+                  fi
+              fi
+
+              # Check "some" - any memory pressure
+              if [ -n "$some_avg10" ]; then
+                  local some_pressure=$(echo "$some_avg10" | awk "BEGIN {print (\$1 > $PSI_MEM_SOME_THRESHOLD)}")
+                  if [ "$some_pressure" = "1" ]; then
+                      PSI_BUILD_CYCLES=0
+                      log "PSI: Memory pressure detected (some avg10=$some_avg10 > $PSI_MEM_SOME_THRESHOLD)"
+                      return 0
+                  fi
+              fi
+
+              return 1
+          }
+
+          check_psi_io_pressure() {
+              # Check if PSI is available
+              if [ ! -f /proc/pressure/io ]; then
+                  return 1
+              fi
+
+              local psi_line=$(grep 'some' /proc/pressure/io 2>/dev/null || echo "")
+              if [ -z "$psi_line" ]; then
+                  return 1
+              fi
+
+              # Extract some avg10 and full avg10 using pure awk
+              local some_avg10=$(echo "$psi_line" | awk '{
+                  for(i=1;i<=NF;i++) {
+                      if($i ~ /^some/) {
+                          for(j=1;j<=NF;j++) {
+                              if($j ~ /^avg10=/) {
+                                  sub(/avg10=/, "", $j)
+                                  print $j
+                                  exit
+                              }
+                          }
+                      }
+                  }
+              }')
+              local full_avg10=$(echo "$psi_line" | awk '{
+                  for(i=1;i<=NF;i++) {
+                      if($i ~ /^full/) {
+                          for(j=1;j<=NF;j++) {
+                              if($j ~ /^avg10=/) {
+                                  sub(/avg10=/, "", $j)
+                                  print $j
+                                  exit
+                              }
+                          }
+                      }
+                  }
+              }')
+
+              # Check "full" first - severe I/O stall (likely swap thrashing)
+              if [ -n "$full_avg10" ]; then
+                  local full_critical=$(echo "$full_avg10" | awk "BEGIN {print (\$1 > $PSI_IO_FULL_THRESHOLD)}")
+                  if [ "$full_critical" = "1" ]; then
+                      PSI_BUILD_CYCLES=0
+                      log "PSI: CRITICAL I/O stall detected (full avg10=$full_avg10 > $PSI_IO_FULL_THRESHOLD)"
+                      return 0
+                  fi
+              fi
+
+              # Check "some" - disk/swap pressure
+              if [ -n "$some_avg10" ]; then
+                  local some_pressure=$(echo "$some_avg10" | awk "BEGIN {print (\$1 > $PSI_IO_SOME_THRESHOLD)}")
+                  if [ "$some_pressure" = "1" ]; then
+                      PSI_BUILD_CYCLES=0
+                      log "PSI: I/O pressure detected (some avg10=$some_avg10 > $PSI_IO_SOME_THRESHOLD)"
+                      return 0
+                  fi
+              fi
+
+              return 1
+          }
+
+          # Enhanced distributed build detection using total nix-daemon CPU
+          check_nix_daemon_activity() {
+              # Check if nix-daemon processes are running
+              if ! pgrep -x nix-daemon >/dev/null 2>&1; then
+                  return 1
+              fi
+
+              # Calculate total CPU usage across ALL nix-daemon processes
+              # (Distributed builds use multiple daemons, each using 3-8% CPU)
+              local total_cpu="0.0"
+              local count=0
+
+              while IFS= read -r line; do
+                  if [ -n "$line" ]; then
+                      total_cpu=$(awk "BEGIN {print $total_cpu + $line}")
+                      count=$((count + 1))
+                  fi
+              done < <(pgrep -x nix-daemon | xargs -r ps -p -o %cpu --no-headers 2>/dev/null | tr -d ' ')
+
+              # Threshold: 10% total CPU across all nix-daemon processes
+              # (Multiple daemons each using 3-8% = distributed build active)
+              local is_active=$(awk "BEGIN {exit ($total_cpu > 10.0)}")
+              if [ "$is_active" -eq 1 ]; then
+                  log "nix-daemon activity detected: $total_cpu% CPU across $count processes"
+                  return 0
+              fi
+
+              return 1
+          }
+
           # Check for AI gateway signals (highest priority)
           check_gateway_signal() {
               local state_file="/run/gpu-scheduler/ai-state"
@@ -219,7 +490,31 @@
                   return
               fi
 
-              # Check for build processes
+              # Check for build workloads using multiple detection methods (priority order)
+              # PSI-based detection (kernel-level, most reliable for distributed builds)
+              # Memory/I/O pressure checked first (more critical than CPU)
+              if check_psi_memory_pressure; then
+                  echo "builds"
+                  return
+              fi
+
+              if check_psi_io_pressure; then
+                  echo "builds"
+                  return
+              fi
+
+              if check_psi_cpu_pressure; then
+                  echo "builds"
+                  return
+              fi
+
+              # nix-daemon activity detection (total CPU across all daemons)
+              if check_nix_daemon_activity; then
+                  echo "builds"
+                  return
+              fi
+
+              # 3. Process name detection (direct build commands)
               for proc in "''${BUILD_PROCESSES[@]}"; do
                   if check_process_running "$proc"; then
                       echo "builds"
@@ -227,7 +522,7 @@
                   fi
               done
 
-              # Check for incoming distributed build jobs (worker detection)
+              # 4. Incoming distributed build jobs (SSH + nix-daemon detection)
               if check_incoming_build_job; then
                   echo "builds"
                   return
@@ -870,7 +1165,23 @@
           CURRENT_WORKLOAD="idle"
           CHECK_INTERVAL="${toString config.services.compute-workload-monitor.checkInterval}"
 
+          # Signal handler for runtime reload
+          reload_thresholds() {
+              log "Reloading PSI thresholds..."
+              PSI_CPU_BUILD_THRESHOLD=$(load_psi_threshold "PSI_CPU_BUILD_THRESHOLD" "5.0")
+              PSI_CPU_IDLE_THRESHOLD=$(load_psi_threshold "PSI_CPU_IDLE_THRESHOLD" "2.0")
+              PSI_MEM_SOME_THRESHOLD=$(load_psi_threshold "PSI_MEM_SOME_THRESHOLD" "1.0")
+              PSI_MEM_FULL_THRESHOLD=$(load_psi_threshold "PSI_MEM_FULL_THRESHOLD" "0.5")
+              PSI_IO_SOME_THRESHOLD=$(load_psi_threshold "PSI_IO_SOME_THRESHOLD" "2.0")
+              PSI_IO_FULL_THRESHOLD=$(load_psi_threshold "PSI_IO_FULL_THRESHOLD" "0.3")
+              log "Thresholds reloaded: CPU_BUILD=$PSI_CPU_BUILD_THRESHOLD MEM_SOME=$PSI_MEM_SOME_THRESHOLD"
+          }
+
+          # Trap SIGUSR1 for reload
+          trap reload_thresholds SIGUSR1
+
           log "Starting GPU workload monitor (check interval: ''${CHECK_INTERVAL}s)"
+          log "Thresholds: CPU_BUILD=$PSI_CPU_BUILD_THRESHOLD MEM_SOME=$PSI_MEM_SOME_THRESHOLD IO_FULL=$PSI_IO_FULL_THRESHOLD"
 
           while true; do
               new_workload=$(get_workload_type)
@@ -884,11 +1195,18 @@
               sleep "$CHECK_INTERVAL"
           done
         ''}/bin/compute-workload-monitor";
+        # Runtime reload support - reload config when SIGHUP received
+        ExecReload = "${pkgs.coreutils}/bin/kill -USR1 $MAINPID";
         Restart = "on-failure";
         RestartSec = "10s";
         # Allow access to nvidia-smi and systemd
         AmbientCapabilities = ["CAP_NET_ADMIN"];
       };
     };
+
+    # Runtime config directory for imperative threshold overrides
+    systemd.tmpfiles.rules = [
+      "d /run/compute-workload-monitor 0755 root root - -"
+    ];
   };
 }

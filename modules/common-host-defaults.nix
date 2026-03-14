@@ -89,6 +89,15 @@
     # Automated backups to Garage cluster (disabled by default, enable on backup node)
     # Enable on Zephyr: services.backup-to-garage.enable = true;
     backup-to-garage.enable = lib.mkDefault false;
+
+    # COMPUTE WORKLOAD MONITOR
+    # Autonomous GPU workload detection and profile management
+    # Detects build workloads via PSI (Pressure Stall Information) and pauses mining
+    # Uses hysteresis to prevent thrashing between states
+    compute-workload-monitor = lib.mkDefault {
+      enable = true;
+      checkInterval = 10;  # Check every 10 seconds
+    };
   };
 
   # ============================================================================
@@ -101,8 +110,9 @@
     trusted-users = ["j_kro"];
 
     # Binary cache substituters - check local Harmonia cache first
+    # Harmonia runs on port 5000 (not 50000 - that was old nix-serve)
     substituters = lib.mkOptionDefault [
-      "http://zephyr.tigris-ule.ts.net:50000?trusted=1"
+      "http://zephyr.tigris-ule.ts.net:5000?trusted=1"
     ];
 
     # System features - declare x86-64-v3 microarchitecture support
