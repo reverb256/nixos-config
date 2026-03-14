@@ -4,11 +4,16 @@
 # Each line: [protocol://]user@host system ssh-key max-jobs speed-factor supported-features mandatory-features
 # Note: Empty fields use defaults, - means "not specified"
 
-# Zephyr - K8s control plane + node (16 cores, must stay stable)
-# CONSERVATIVE maxJobs (apiserver/etcd need CPU headroom)
-ssh-ng://j_kro@zephyr x86_64-linux - 8 8 kvm,big-parallel,x86-64-v3 -
-# Nexus - K8s storage worker + NFS (12 cores, needs I/O headroom)
-# MODERATE maxJobs (leave cores for NFS/PVC operations)
+# MEMORY CONSTRAINT: 31GB RAM on Zephyr requires conservative max-jobs
+# Rule of thumb: ~6GB per build job max (leaves room for system + AI workloads)
+# Zephyr: 31GB RAM / 6GB per job = 5 jobs max, using 4 for safety margin
+# Nexus: 46GB RAM / 6GB per job = 7 jobs max, using 6 for safety margin
+
+# Zephyr - K8s control plane + node (32 cores, 31GB RAM)
+# CONSERVATIVE maxJobs=4 (~7.5GB per job, leaves 1GB headroom for system + AI)
+ssh-ng://j_kro@zephyr x86_64-linux - 4 8 kvm,big-parallel,x86-64-v3 -
+# Nexus - K8s storage worker + NFS (24 cores, 46GB RAM)
+# CONSERVATIVE maxJobs=6 (~7GB per job, leaves 4GB headroom for NFS)
 ssh-ng://j_kro@nexus x86_64-linux - 6 5 big-parallel,x86-64-v3 -
 
 # REMOVED: Forge and Sentry are build CLIENTS only (not servers)
