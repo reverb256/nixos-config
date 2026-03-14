@@ -42,6 +42,7 @@
     };
     nixcord = {
       url = "github:FlameFlag/nixcord";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     # spicetify-nix - Disabled due to deprecated options in systems dependency
     # Not currently used in configuration
@@ -200,6 +201,11 @@
                 system = "x86_64-linux";
                 gcc.arch = "x86-64-v3";
               };
+
+              # Set system-features ONLY for v3 configurations
+              # This allows building v3-optimized packages when explicitly requested
+              # CRITICAL: Do NOT set this globally or binary caches won't work!
+              nix.settings.system-features = ["gccarch-x86-64-v3"];
             }
           ]
           ++ extraModules;
