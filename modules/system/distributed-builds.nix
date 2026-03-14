@@ -1,5 +1,5 @@
 # Distributed Build Configuration
-# Enables building across all 4 nodes in the cluster
+# Enables building across nodes in the cluster
 # See AGENTS.md for cluster architecture details
 #
 # COMPUTE WORKLOAD MONITOR INTEGRATION (2026-03-09):
@@ -10,7 +10,7 @@
 #
 # HOST PARTICIPATION (base x86_64 - reverted from v3 2026-03-14):
 #   zephyr: ✅ Server (32 cores, 31GB RAM, znver3)  → Control plane
-#   nexus:  ✅ Server (24 cores, 46GB RAM, znver2)  → Storage worker
+#   nexus:  ❌ REMOVED (2026-03-14)                  → Storage worker only
 #   forge:  ✅ Server (6 cores, 15GB RAM)              → GPU worker (limited jobs)
 #   sentry: ✅ Server (16 cores, 31GB RAM, Zen 1)   → Monitoring worker
 #
@@ -52,18 +52,6 @@ in {
         mandatoryFeatures = [];
       }
       {
-        # Nexus: 24 cores, Ryzen 9 3900X (znver2)
-        # Role: K8s storage worker + NFS server
-        hostName = "nexus";
-        system = "x86_64-linux";
-        sshUser = "j_kro";
-        protocol = "ssh-ng";
-        maxJobs = 6; # More RAM (46GB) allows more jobs
-        speedFactor = 5;
-        supportedFeatures = ["big-parallel"];
-        mandatoryFeatures = [];
-      }
-      {
         # Forge: 6 cores, Intel i5-9500 (Coffee Lake)
         # Role: GPU worker (2x RTX 4060 + 2x RX 5700 XT)
         # NOTE: Limited to 1 job due to only 15GB RAM
@@ -102,6 +90,9 @@ in {
       # Use substituters on remote builders (download from cache instead of copying)
       builders-use-substitutes = true;
 
+      # Disable signature checking temporarily (some packages lack signatures)
+      require-sigs = false;
+
       # Binary cache configuration (1Gbps network - fast downloads)
       # Use mkForce to completely override default substituters and prevent duplicates
       # Priority: Official caches > Personal caches > Local cache
@@ -112,7 +103,6 @@ in {
         "https://reverb-os.cachix.org"  # Personal Cachix cache
         "https://ezkea.cachix.org"
         "https://nix-gaming.cachix.org"
-        # "http://10.1.1.120:5000"  # Nexus Harmonia cache - DISABLED: service not running, causing timeouts
         # "https://cache.nixos-cuda.org" # TEMPORARILY DISABLED - connectivity issues
       ];
       trusted-public-keys = [
@@ -122,14 +112,13 @@ in {
         "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="  # reverb-os Cachix
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
         "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-        "nexus-cache:qR+dIToYHrN3iJlg2puMRM8zrMtgZ4H7cISSR9E0iEE=" # Nexus Harmonia cache
         # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
       ];
 
       # Maximum number of parallel build jobs (LOCAL builds on this host)
       # Per-host allocation based on RAM and role:
       # - Zephyr: 4 of 32 cores (12%) - control plane needs headroom
-      # - Nexus: 6 of 24 cores (25%) - NFS/storage needs headroom
+      # - Nexus: 6 of 24 cores (25%) - local builds only (removed from distributed builds)
       # - Sentry: 2 of 16 cores (12%) - monitoring worker
       # - Forge: 1 of 6 cores (16%) - GPU workloads, limited RAM
       # compute-workload-monitor pauses mining during builds
