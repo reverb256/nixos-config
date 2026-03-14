@@ -281,7 +281,8 @@ in {
         wants =
           lib.optionals cfg.lolminer.nvidia.enable ["lolminer-nvidia.service"]
           ++ lib.optionals cfg.lolminer.amd.enable ["lolminer-amd.service"]
-          ++ lib.optionals cfg.xmrig.enable ["xmrig.service"];
+          ++ lib.optionals cfg.xmrig.enable ["xmrig.service"]
+          ++ ["network-online.target"];  # Fix ordering warning
         after = ["network-online.target"];
       };
 
