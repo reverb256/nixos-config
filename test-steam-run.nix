@@ -4,8 +4,9 @@ pkgs.runCommand "steam-run-patched" {
   preferLocalBuild = true;
 } ''
   mkdir -p $out/bin
-  # Patch steam-run to ignore /data and /etc/nixos (NFS mount issues)
-  sed 's|ignored=(/nix /dev /proc /etc /tmp)|ignored=(/nix /dev /proc /etc /tmp /data /etc/nixos)|' \
+  # Patch steam-run to ignore /data (NFS autofs mount)
+  # Note: /etc/nixos is now mounted to /run/nixos-shared (excluded by default)
+  sed 's|ignored=(/nix /dev /proc /etc /tmp)|ignored=(/nix /dev /proc /etc /tmp /data)|' \
     ${pkgs.steam-run}/bin/steam-run > $out/bin/steam-run
   chmod +x $out/bin/steam-run
 ''
