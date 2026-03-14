@@ -228,6 +228,8 @@
                             asyncio.open_connection(self.host, self.port, ssl=ssl_context, server_hostname=self.host),
                             timeout=30
                         )
+                        # Log SSL details
+                        logging.info(f"SSL connection established: version={self.writer.get_extra_info('ssl_object').version() if hasattr(self.writer, 'get_extra_info') else 'unknown'}")
                     else:
                         self.reader, self.writer = await asyncio.wait_for(
                             asyncio.open_connection(self.host, self.port),
@@ -237,10 +239,29 @@
                     super().__init__(self.reader, self.writer)
                     self.connected = True
                     logging.info(f"Connected to pool {self.pool.name}")
+
+                    # DIAGNOSTIC: Check connection state immediately
+                    logging.info(f"DIAG: reader.at_eof()={self.reader.at_eof()}, writer.is_closing()={self.writer.is_closing()}")
+
+                    # Try to peek at any available data
+                    try:
+                        if not self.reader.at_eof():
+                            # Try to read without consuming
+                            import sys
+                            if hasattr(self.reader, '_buffer'):
+                                buffer_data = self.reader._buffer
+                                if buffer_data:
+                                    logging.info(f"DIAG: Reader buffer has {len(buffer_data)} bytes: {buffer_data[:100] if len(buffer_data) > 100 else buffer_data}")
+                    except Exception as diag_e:
+                        logging.warning(f"DIAG: Could not check reader buffer: {diag_e}")
+
                     return True
 
                 except Exception as e:
                     logging.error(f"Failed to connect to pool {self.pool.name}: {e}")
+                    logging.error(f"DIAG: Exception type: {type(e).__name__}")
+                    import traceback
+                    logging.error(f"DIAG: Traceback: {traceback.format_exc()}")
                     self.connected = False
                     return False
 
