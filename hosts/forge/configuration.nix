@@ -128,10 +128,16 @@
           url = "10.1.1.120:3334";  # gpu-proxy on Nexus (primary)
           wallet = "krxXVNVMM7.forge-gpu";
           password = "x";
-          tls = true;  # TLS required (gpu-proxy listens with TLS)
+          tls = false;  # No TLS for local proxy (proxy handles TLS to pool)
         }
         {
-          url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex (fallback)
+          url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (fallback)
+          wallet = "krxXVNVMM7.forge-gpu";
+          password = "x";
+          tls = true;  # TLS required for Kryptex
+        }
+        {
+          url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback 2)
           wallet = "krxXVNVMM7.forge-gpu";
           password = "x";
           tls = true;  # TLS required for Kryptex

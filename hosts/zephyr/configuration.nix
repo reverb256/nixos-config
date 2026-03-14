@@ -583,7 +583,7 @@
     };
 
     # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
-    # GPU miners connect directly to Kryptex CR29 with TLS
+    # Multi-pool failover: Nexus proxy first, then direct Kryptex US/EU
     mining = {
       lolminer = {
         pool = "xtm-c29-us.kryptex.network:8040";  # Fallback if pools list empty
@@ -596,7 +596,13 @@
             tls = false;  # No TLS for local proxy
           }
           {
-            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex (fallback)
+            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (fallback)
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = true;  # TLS required for Kryptex
+          }
+          {
+            url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback 2)
             wallet = "krxXVNVMM7.zephyr-gpu";
             password = "x";
             tls = true;  # TLS required for Kryptex
