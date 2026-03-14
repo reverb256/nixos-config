@@ -91,8 +91,9 @@ in {
           echo "# HELP nfsd_exports_total Number of NFS exports" >> "$METRICS_FILE"
           echo "# TYPE nfsd_exports_total gauge" >> "$METRICS_FILE"
 
-          # grep -c returns exit 1 when no matches, use || true to handle
-          export_count=$(showmount -e 127.0.0.1 2>/dev/null | grep -c "^/" || echo "0" || true)
+          # grep -c returns exit 1 when no matches, but still outputs "0"
+          # Use || true to prevent script exit due to set -e
+          export_count=$(showmount -e 127.0.0.1 2>/dev/null | grep -c "^/" || true)
           echo "nfsd_exports_total $export_count" >> "$METRICS_FILE"
         '';
         Restart = "on-failure";
