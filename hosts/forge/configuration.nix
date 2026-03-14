@@ -20,6 +20,7 @@
     ../../modules/default.nix
 
     # GPU support (wayland-specific, host-dependent)
+    ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
     ../../modules/hardware/amdgpu-wayland.nix
     ../../modules/hardware/rgb-control.nix
@@ -195,6 +196,9 @@
   #
   # Forge-specific hardware additions:
   hardware = {
+    # NVIDIA GPU support (base driver)
+    nvidia-common.enable = true;
+
     # BTRFS compression and deduplication
     btrfs-compression.enable = true;
 

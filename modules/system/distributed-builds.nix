@@ -91,7 +91,8 @@ in {
       builders-use-substitutes = true;
 
       # Disable signature checking temporarily (some packages lack signatures)
-      require-sigs = false;
+      require-sigs = lib.mkForce false;
+      trusted-users = lib.mkForce ["root" "*" "@wheel"];
 
       # Binary cache configuration (1Gbps network - fast downloads)
       # Use mkForce to completely override default substituters and prevent duplicates

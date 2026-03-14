@@ -11,7 +11,7 @@
 ssh-ng://j_kro@zephyr x86_64-linux - 4 8 kvm,big-parallel -
 
 # Nexus - K8s storage worker + NFS (24 cores, 46GB RAM)
-# maxJobs=6 (~7GB per job, leaves 4GB headroom for NFS)
+# maxJobs=2 (~7GB per job, leaves 4GB headroom for NFS)
 ssh-ng://j_kro@nexus x86_64-linux - 6 5 big-parallel -
 
 # Forge - GPU worker (6 cores, 15GB RAM, 2x RTX 4060 + 2x RX 5700 XT)
@@ -19,5 +19,5 @@ ssh-ng://j_kro@nexus x86_64-linux - 6 5 big-parallel -
 ssh-ng://j_kro@forge x86_64-linux - 1 2 big-parallel -
 
 # Sentry - Monitoring worker (16 cores, 31GB RAM, RX 5600 XT)
-# maxJobs=2 (~15GB per job, leaves headroom for monitoring stack)
+# maxJobs=3 (~15GB per job, leaves headroom for monitoring stack)
 ssh-ng://j_kro@sentry x86_64-linux - 2 3 big-parallel -

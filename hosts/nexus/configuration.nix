@@ -19,6 +19,7 @@
     ../../modules/default.nix
 
     # NVIDIA GPU Wayland support (host-dependent)
+    ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
     ../../modules/hardware/rgb-control.nix
 
@@ -121,6 +122,9 @@
   #
   # Nexus-specific hardware additions:
   hardware = {
+    # NVIDIA GPU support (base driver)
+    nvidia-common.enable = true;
+
     # BTRFS compression and deduplication
     btrfs-compression.enable = true;
 
