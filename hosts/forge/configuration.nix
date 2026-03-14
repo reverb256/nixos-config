@@ -38,15 +38,33 @@
     enable = true;
     hostName = "forge";
     ipAddress = "10.1.1.130";
-    interfaceName = "enp0s31f6"; # Native hardware interface name
+    interfaceName = "lan0"; # Native hardware interface name (FIXED: was enp0s31f6)
     wireless.enable = false; # Mining rig - no WiFi needed
     unbound.listenAddress = "10.1.1.130"; # Listen on node IP for cluster DNS
   };
 
   # Populate /etc/hosts from central cluster configuration
-  networking.cluster-hosts = {
-    enable = true;
-    populateLocal = true;
+  networking = {
+    cluster-hosts = {
+      enable = true;
+      populateLocal = true;
+    };
+
+    # Forge-specific firewall rules (in addition to cluster defaults)
+    firewall = {
+      allowedTCPPorts = lib.mkOptionDefault [
+        10250 # Kubelet API
+      ];
+      allowedTCPPortRanges = [
+        {
+          from = 30000;
+          to = 32767;
+        }
+      ];
+      allowedUDPPorts = lib.mkOptionDefault [
+        8472 # Flannel VXLAN
+      ];
+    };
   };
 
   # ============================================================================
@@ -55,20 +73,6 @@
   # This profile bundles role profiles, Kubernetes config, hardware profiles,
   # and networking configuration. Eliminates ~100 lines of duplication.
   # profiles.node.forge-mining.enable = true;
-
-  # Forge-specific firewall rules (in addition to cluster defaults)
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
-    10250 # Kubelet API
-  ];
-  networking.firewall.allowedTCPPortRanges = [
-    {
-      from = 30000;
-      to = 32767;
-    }
-  ];
-  networking.firewall.allowedUDPPorts = lib.mkOptionDefault [
-    8472 # Flannel VXLAN
-  ];
 
   # ============================================================================
   # SERVICES CONFIGURATION
@@ -92,29 +96,32 @@
       client.enable = true;
     };
 
-    # NVIDIA GPUs (2x RTX 4060) - devices 2,3 in lolminer's combined enumeration
-    # (AMD GPUs are 0,1, NVIDIA GPUs are 2,3 when both OpenCL and CUDA are available)
-    mining.lolminer.nvidia = {
-      enable = true;
-      autostart = true;
-      devices = "2,3";
-      powerLimit = 90;
-      apiPort = 4068;
-    };
+    # Mining configuration - lolminer for NVIDIA and AMD GPUs
+    mining.lolminer = {
+      # NVIDIA GPUs (2x RTX 4060) - devices 2,3 in lolminer's combined enumeration
+      # (AMD GPUs are 0,1, NVIDIA GPUs are 2,3 when both OpenCL and CUDA are available)
+      nvidia = {
+        enable = true;
+        autostart = true;
+        devices = "2,3";
+        powerLimit = 90;
+        apiPort = 4068;
+      };
 
-    # AMD GPUs (RX 5700 XT) - OpenCL devices 0,1
-    # Note: PCI addresses 03:00.0 and 08:00.0, but OpenCL numbers from 0
-    mining.lolminer.amd = {
-      enable = true;
-      autostart = true;
-      devices = "0,1";
-      powerLimit = 140;
-      apiPort = 4069;
-    };
+      # AMD GPUs (RX 5700 XT) - OpenCL devices 0,1
+      # Note: PCI addresses 03:00.0 and 08:00.0, but OpenCL numbers from 0
+      amd = {
+        enable = true;
+        autostart = true;
+        devices = "0,1";
+        powerLimit = 140;
+        apiPort = 4069;
+      };
 
-    # GPU miners connect directly to Kryptex CR29 with TLS
-    mining.lolminer.pool = "xtm-c29-us.kryptex.network:8040";
-    mining.lolminer.wallet = "krxXVNVMM7.forge-gpu";
+      # GPU miners connect directly to Kryptex CR29 with TLS
+      pool = "xtm-c29-us.kryptex.network:8040";
+      wallet = "krxXVNVMM7.forge-gpu";
+    };
 
     # GPU Stratum Proxy with Kryptex pool failover
     # DISABLED: Now using gpu-proxy on Nexus
