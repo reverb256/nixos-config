@@ -139,6 +139,9 @@
                 logging.debug(f"Sending: {line.strip()}")
                 self.writer.write((line + "\\n").encode())
                 await self.writer.drain()
+                # Verify data was sent
+                if self.writer.is_closing():
+                    logging.warning("Writer is closing after send!")
 
             async def send_json(self, data: dict):
                 """Send a JSON-RPC message."""
@@ -252,6 +255,22 @@
                     "method": "mining.subscribe",
                     "params": ["gpu-proxy/1.0", None]
                 })
+
+                # Wait a moment and check if pool responds
+                await asyncio.sleep(1)
+                # Check if there's any data available to read
+                if self.reader and not self.reader.at_eof():
+                    try:
+                        # Try to read with a short timeout
+                        line = await asyncio.wait_for(self.reader.readline(), timeout=2.0)
+                        if line:
+                            logging.info(f"Pool sent data after subscribe: {line.decode().strip()}")
+                        else:
+                            logging.warning("Pool sent empty response after subscribe")
+                    except asyncio.TimeoutError:
+                        logging.warning("No response from pool after subscribe (timeout)")
+                else:
+                    logging.warning(f"Pool reader at_eof={self.reader.at_eof() if self.reader else 'no reader'}")
 
             async def authorize(self, worker: Optional[str] = None):
                 """Send mining.authorize to the pool.
