@@ -15,4 +15,18 @@ _: prev: {
   assimp = prev.assimp.overrideAttrs (old: {
     doCheck = false;
   });
+
+  # steam-run: Fix bubblewrap issue with NFS autofs mounts
+  # Patch steam-run to ignore /data and /etc/nixos from auto-mounting
+  # This fixes anime-game-launcher and similar launchers that use steam-run
+  steam-run = prev.runCommand "steam-run-patched" {
+    nativeBuildInputs = [prev.bash prev.coreutils];
+    preferLocalBuild = true;
+  } ''
+    mkdir -p $out/bin
+    # Patch steam-run to ignore /data (NFS autofs) and /etc/nixos (NFS mount)
+    sed 's|ignored=(/nix /dev /proc /etc /tmp)|ignored=(/nix /dev /proc /etc /tmp /data /etc/nixos)|' \
+      ${prev.steam-run}/bin/steam-run > $out/bin/steam-run
+    chmod +x $out/bin/steam-run
+  '';
 }
