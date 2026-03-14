@@ -190,7 +190,7 @@ in {
       };
 
       firewallExtraTCPPortRanges = mkOption {
-        type = types.listOf (types.submod {
+        type = types.listOf (types.submodule {
           options = {
             from = mkOption {type = types.port;};
             to = mkOption {type = types.port;};
@@ -267,7 +267,7 @@ in {
       };
 
       firewallExtraTCPPortRanges = mkOption {
-        type = types.listOf (types.submod {
+        type = types.listOf (types.submodule {
           options = {
             from = mkOption {type = types.port;};
             to = mkOption {type = types.port;};
@@ -329,7 +329,7 @@ in {
       };
 
       firewallExtraTCPPortRanges = mkOption {
-        type = types.listOf (types.submod {
+        type = types.listOf (types.submodule {
           options = {
             from = mkOption {type = types.port;};
             to = mkOption {type = types.port;};
@@ -405,7 +405,7 @@ in {
       };
 
       firewallExtraTCPPortRanges = mkOption {
-        type = types.listOf (types.submod {
+        type = types.listOf (types.submodule {
           options = {
             from = mkOption {type = types.port;};
             to = mkOption {type = types.port;};
