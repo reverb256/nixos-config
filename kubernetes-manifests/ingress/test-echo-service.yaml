@@ -1,0 +1,51 @@
+# Simple echo service for testing Caddy ingress
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-echo
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-server
+  namespace: test-echo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: echo-server
+  template:
+    metadata:
+      labels:
+        app: echo-server
+    spec:
+      containers:
+      - name: echo-server
+        image: ealen/echo-server:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: PORT
+          value: "80"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-server
+  namespace: test-echo
+spec:
+  type: ClusterIP
+  selector:
+    app: echo-server
+  ports:
+  - port: 80
+    targetPort: 80

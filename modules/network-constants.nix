@@ -120,6 +120,13 @@
         grafana = 3001;
         node-exporter = 9100;
         nvidia-exporter = 9400;
+
+        # Kubernetes Ingress (Caddy)
+        caddy-admin = 2019;       # Admin API & metrics
+        caddy-http = 80;
+        caddy-https = 443;
+        caddy-nodeport-http = 30080;
+        caddy-nodeport-https = 30443;
       };
 
       # Kubernetes HA Virtual IP (via Keepalived VRRP)

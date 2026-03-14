@@ -1,0 +1,202 @@
+# Caddy Configuration - Base Caddyfile
+# This ConfigMap contains the base configuration
+# Ingress resources will be merged into this
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-config
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+data:
+  Caddyfile: |
+    {
+      # Admin API on localhost for health checks
+      admin localhost:2019
+
+      # Auto HTTPS with Let's Encrypt
+      email admin@cluster.local
+
+      # Default SNI for internal services
+      default_sni cluster.local
+    }
+
+    # Health check endpoint
+    :2019 {
+      # Admin endpoint (only accessible inside cluster)
+      respond /health "OK" 200
+    }
+
+    # Default catch-all for unrecognized hosts
+    :80 {
+      respond "Caddy Ingress Controller - No matching route" 404
+    }
+
+    # ============================================================================
+    # CLUSTER INTERNAL SERVICES (.cluster.local)
+    # ============================================================================
+
+    # AI Inference Gateway
+    ai.zephyr.cluster.local,
+    ai.cluster.local {
+      reverse_proxy ai-inference.default.svc.cluster.local:8080 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Host {host}
+        header_up X-Forwarded-Proto {scheme}
+      }
+    }
+
+    # SearXNG Privacy-Friendly Search
+    search.zephyr.cluster.local,
+    search.cluster.local {
+      reverse_proxy searxng.default.svc.cluster.local:7777 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+      }
+    }
+
+    # ============================================================================
+    # TEST SERVICES
+    # ============================================================================
+
+    # Echo Test Server - for testing ingress
+    echo.cluster.local,
+    echo.test.cluster.local {
+      reverse_proxy echo-server.test-echo.svc.cluster.local:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+      }
+    }
+
+    # Echo Test Server - HTTP only (for testing without TLS)
+    http://echo-http.cluster.local:8080 {
+      reverse_proxy echo-server.test-echo.svc.cluster.local:80
+    }
+
+    # ============================================================================
+    # TAILSCALE SERVICES (.ts.net) - Auto HTTPS via internal CA
+    # ============================================================================
+
+    # AI Inference Gateway (via Tailscale)
+    ai.zephyr.tigris-ule.ts.net:9002 {
+      tls internal
+      reverse_proxy ai-inference.default.svc.cluster.local:8080 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+      }
+    }
+
+    # SearXNG (via Tailscale)
+    search.zephyr.tigris-ule.ts.net:9001 {
+      tls internal
+      reverse_proxy searxng.default.svc.cluster.local:7777 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+      }
+    }
+
+    # Vaultwarden (via Tailscale)
+    vaultwarden.zephyr.tigris-ule.ts.net {
+      tls internal
+      reverse_proxy vaultwarden.default.svc.cluster.local:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        # WebSocket support for WebSockets notifications
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+      }
+    }
+
+    # GlitchTip Error Tracking
+    glitchtip.zephyr.tigris-ule.ts.net {
+      tls internal
+      reverse_proxy glitchtip-web.default.svc.cluster.local:8000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+      }
+    }
+
+    # ============================================================================
+    # AKASH PROVIDER SERVICES
+    # ============================================================================
+
+    # Akash Provider (GPU compute marketplace)
+    provider.cluster.local {
+      reverse_proxy akash-provider.akash-services.svc.cluster.local:8443 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+      }
+    }
+
+    # Akash Provider (public hostname - needs real domain)
+    # provider.zephyr.example.com {
+    #   tls {
+    #     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+    #   }
+    #   reverse_proxy akash-provider.akash-services.svc.cluster.local:8443
+    # }
+
+    # ============================================================================
+    # NODE DASHBOARDS (.lan) - Static dashboards for each cluster host
+    # ============================================================================
+
+    # Zephyr Dashboard - Control Plane, Workstation, Gaming
+    zephyr.lan,
+    zephyr.cluster.local {
+      reverse_proxy zephyr-dashboard.default.svc.cluster.local:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+      }
+    }
+
+    # Nexus Dashboard - Storage, Build Server
+    nexus.lan,
+    nexus.cluster.local {
+      reverse_proxy nexus-dashboard.default.svc.cluster.local:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+      }
+    }
+
+    # Forge Dashboard - Multi-GPU, Mining
+    forge.lan,
+    forge.cluster.local {
+      reverse_proxy forge-dashboard.default.svc.cluster.local:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+      }
+    }
+
+    # Sentry Dashboard - Monitoring, CPU Mining
+    sentry.lan,
+    sentry.cluster.local {
+      reverse_proxy sentry-dashboard.default.svc.cluster.local:80 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+      }
+    }
+
+    # ============================================================================
+    # KUBERNETES DASHBOARD (if enabled)
+    # ============================================================================
+
+    # k8s.zephyr.cluster.local {
+    #   reverse_proxy kubernetes-dashboard.kubernetes-dashboard.svc.cluster.local:443 {
+    #     header_up Host {host}
+    #   }
+    # }

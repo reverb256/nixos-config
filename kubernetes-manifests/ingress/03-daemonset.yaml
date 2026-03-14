@@ -1,0 +1,182 @@
+# Caddy Ingress Controller - DaemonSet Deployment
+# Runs on all nodes (except those with specific taints)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: caddy-ingress
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/instance: caddy-ingress
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: caddy-ingress
+      app.kubernetes.io/component: ingress
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: caddy-ingress
+        app.kubernetes.io/component: ingress
+        app.kubernetes.io/instance: caddy-ingress
+      annotations:
+        # Reload Caddy on config change - use kubectl rollout restart to apply config updates
+    spec:
+      serviceAccountName: caddy-ingress
+      hostNetwork: false
+      # Run on Ready nodes only (skip Forge if it's NotReady)
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values: ["linux"]
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
+      tolerations:
+      # Allow scheduling on control-plane nodes
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      # Allow scheduling on nodes with specific taints
+      - key: node.kubernetes.io/not-ready
+        operator: Exists
+        effect: NoExecute
+        tolerationSeconds: 300
+
+      # Init container to set up directories
+      initContainers:
+      - name: setup-caddy
+        image: caddy:2.8-alpine
+        command: ["sh", "-c"]
+        args:
+          - |
+            # Create directories
+            mkdir -p /data /config /var/log/caddy
+            echo "Directories created successfully"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: config
+          mountPath: /config
+        - name: logs
+          mountPath: /var/log/caddy
+
+      containers:
+      - name: caddy
+        image: caddy:2.8-alpine
+        imagePullPolicy: IfNotPresent
+        args:
+          - caddy
+          - run
+          - --config
+          - /config/Caddyfile
+          - --adapter
+          - caddyfile
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        # Optional: Cloudflare API token for DNS challenges
+        # - name: CLOUDFLARE_API_TOKEN
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: cloudflare-credentials
+        #       key: api-token
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        - name: https
+          containerPort: 443
+          protocol: TCP
+        - name: admin
+          containerPort: 2019
+          protocol: TCP
+        # HTTP/3 (QUIC) - requires UDP
+        - name: https-udp
+          containerPort: 443
+          protocol: UDP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: admin
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: admin
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: data
+          mountPath: /data
+        - name: logs
+          mountPath: /var/log/caddy
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          runAsUser: 2019  # Caddy user
+          runAsGroup: 2019
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE  # Required to bind to ports 80/443
+
+      volumes:
+      - name: config
+        configMap:
+          name: caddy-config
+          items:
+          - key: Caddyfile
+            path: Caddyfile
+      - name: data
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+
+      # Priority class for ingress (should start before apps)
+      priorityClassName: system-cluster-critical
+
+      terminationGracePeriodSeconds: 30
+
+  # Update strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+
+  # Revision history limit
+  revisionHistoryLimit: 10

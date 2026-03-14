@@ -1,0 +1,105 @@
+# Network Policies for Caddy Ingress
+# Restricts traffic to only what's necessary
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: caddy-ingress-allow-ingress
+  namespace: ingress-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: caddy-ingress
+      app.kubernetes.io/component: ingress
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow HTTP/HTTPS from anywhere
+  - ports:
+    - port: http
+      protocol: TCP
+    - port: https
+      protocol: TCP
+    - port: https-udp
+      protocol: UDP
+  # Allow admin access from Prometheus (monitoring namespace)
+  - ports:
+    - port: admin
+      protocol: TCP
+    from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+  # Allow admin access from ingress-system (for health checks)
+  - ports:
+    - port: admin
+      protocol: TCP
+    from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-system
+
+---
+# Allow Caddy to reach backend services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: caddy-ingress-allow-egress
+  namespace: ingress-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: caddy-ingress
+      app.kubernetes.io/component: ingress
+  policyTypes:
+  - Egress
+  egress:
+  # DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+  # Allow reaching any service (for backend proxying)
+  - to:
+    - podSelector: {}
+    ports:
+    - port: 8080
+      protocol: TCP
+    - port: 8000
+      protocol: TCP
+    - port: 7777
+      protocol: TCP
+    - port: 80
+      protocol: TCP
+    - port: 443
+      protocol: TCP
+  # Let's Encrypt ACME challenges (port 80)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - port: 80
+      protocol: TCP
+  # API server access (for ingress watching)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - port: 443
+      protocol: TCP
+
+---
+# Deny all other ingress to ingress-system namespace (default-deny)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: ingress-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress

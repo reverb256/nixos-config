@@ -195,6 +195,26 @@ in {
             token = ["garage_metrics_token"];
           };
         }
+
+        # Caddy Ingress Controller metrics (Kubernetes)
+        # Scrapes Caddy admin API on nodes running ingress pods
+        {
+          job_name = "caddy-ingress";
+          static_configs = [
+            {
+              targets = [
+                "nexus:${toString ports.caddy-admin}"
+                "sentry:${toString ports.caddy-admin}"
+              ];
+              labels = {
+                role = "ingress";
+                tier = "kubernetes";
+              };
+            }
+          ];
+          metrics_path = "/metrics";
+          scheme = "http";
+        }
       ];
     };
 
