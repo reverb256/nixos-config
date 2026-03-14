@@ -141,7 +141,7 @@
       # ============================================================================
       # PROVIDER HELM VALUES (Generated from NixOS config)
       # ============================================================================
-      "akash-provider-values.yaml".text = lib.generators.toYAML {} {
+      etc."akash-provider-values.yaml".text = lib.generators.toYAML {} {
         # Chain configuration
         chainid = "akashnet-2";
         node = "https://rpc.akashnet.net:443";
