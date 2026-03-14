@@ -297,12 +297,12 @@
       libjpeg
       freetype
       fontconfig
-      xorg.libX11
-      xorg.libXext
-      xorg.libXrender
-      xorg.libxcb
-      xorg.libXau
-      xorg.libXdmcp
+      libx11
+      libxext
+      libxrender
+      libxcb
+      libxau
+      libxdmcp
       SDL2
       alsa-lib
       systemd
