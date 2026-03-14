@@ -583,7 +583,8 @@
                     try:
                         logging.info("Initializing pool connection...")
                         await pool.subscribe()
-                        await pool.configure()
+                        # Skip configure() - some pools (Kryptex) don't support it
+                        # await pool.configure()
                         # Don't pre-authorize - let miners authorize individually
                         # This allows pool to track each worker separately
                         pool.initialized = True
