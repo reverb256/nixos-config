@@ -108,10 +108,18 @@ aws --endpoint-url http://10.1.1.110:3900 s3 ls
 
 ### 4. NixOS-Share
 **Purpose:** Centralized NixOS configuration read-only mount
-**Server:** Zephyr
+**Server:** Zephyr (exports `/etc/nixos`)
 **Clients:** Nexus, Forge, Sentry
 **Protocol:** NFS (read-only)
-**Path:** `/etc/nixos` → mounted from Zephyr
+**Path (Server):** `/etc/nixos` (exported from Zephyr)
+**Path (Clients):** `/run/nixos-shared` (mounted to avoid bubblewrap conflicts)
+**Convenience Path:** `/etc/nixos-shared` → symlink to actual mount point
+**Environment Variable:** `NIXOS_SHARED_PATH` points to the mount location
+
+**Design Note:** Clients mount to `/run/nixos-shared` instead of `/etc/nixos` to avoid
+conflicts with bubblewrap-based sandboxes (steam-run, anime-game-launcher, etc.) that
+attempt to bind-mount the entire root filesystem. The `/run` directory is already
+excluded by default in bubblewrap, so this approach prevents NFS remount errors.
 
 ## Storage Tiers by Speed
 
