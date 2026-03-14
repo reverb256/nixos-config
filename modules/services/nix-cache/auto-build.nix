@@ -44,10 +44,44 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Create rev directory
-    systemd.tmpfiles.rules = [
-      "d ${cfg.revDir} 0755 root root -"
-    ];
+    # Create rev directory and systemd services
+    systemd = {
+      tmpfiles.rules = [
+        "d ${cfg.revDir} 0755 root root -"
+      ];
+
+      services.nix-auto-build = {
+        description = "NixOS auto-build service";
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
+
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "/etc/nix-auto-build.sh";
+
+          # Build environment
+          Environment = [
+            "FLAKE_PATH=${cfg.flakePath}"
+            "REV_DIR=${cfg.revDir}"
+            "NODES=${lib.concatStringsSep " " cfg.nodes}"
+            "CORES=${toString cfg.cores}"
+          ];
+
+          # Logging
+          StandardOutput = "journal";
+          StandardError = "journal";
+          SyslogIdentifier = "nix-auto-build";
+        };
+      };
+
+      timers.nix-auto-build = {
+        wantedBy = ["timers.target"];
+        timerConfig = {
+          OnCalendar = cfg.buildTime;
+          Persistent = true;
+        };
+      };
+    };
 
     # Auto-build script
     environment.etc."nix-auto-build.sh" = {
@@ -94,40 +128,6 @@ in {
 
         echo "[nix-auto-build] Complete at $(date)"
       '';
-    };
-
-    # Systemd service
-    systemd.services.nix-auto-build = {
-      description = "NixOS auto-build service";
-      after = ["network-online.target"];
-      wants = ["network-online.target"];
-
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "/etc/nix-auto-build.sh";
-
-        # Build environment
-        Environment = [
-          "FLAKE_PATH=${cfg.flakePath}"
-          "REV_DIR=${cfg.revDir}"
-          "NODES=${lib.concatStringsSep " " cfg.nodes}"
-          "CORES=${toString cfg.cores}"
-        ];
-
-        # Logging
-        StandardOutput = "journal";
-        StandardError = "journal";
-        SyslogIdentifier = "nix-auto-build";
-      };
-    };
-
-    # Systemd timer - runs daily at specified time
-    systemd.timers.nix-auto-build = {
-      wantedBy = ["timers.target"];
-      timerConfig = {
-        OnCalendar = cfg.buildTime;
-        Persistent = true;
-      };
     };
   };
 }

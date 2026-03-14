@@ -25,122 +25,120 @@
     # ============================================================================
     # SYSTEMD SERVICES - Periodic deduplication and maintenance
     # ============================================================================
-    systemd.services = {
-      # Weekly deduplication scan for all BTRFS filesystems
-      btrfs-dedup-all = {
-        description = "BTRFS deduplication scan for all filesystems";
-        path = [pkgs.btrfs-progs pkgs.duperemove];
-        script = ''
-          # Skip if dedup is already running
-          pgrep -f "duperemove.*-r" && exit 0
+    # SYSTEMD SERVICES
+    # ============================================================================
+    systemd = {
+      services = {
+        # Weekly deduplication scan for all BTRFS filesystems
+        btrfs-dedup-all = {
+          description = "BTRFS deduplication scan for all filesystems";
+          path = [pkgs.btrfs-progs pkgs.duperemove];
+          script = ''
+            # Skip if dedup is already running
+            pgrep -f "duperemove.*-r" && exit 0
 
-          # Log start time
-          echo "[$(date)] Starting BTRFS deduplication scan" | tee -a /var/log/btrfs-dedup.log
+            # Log start time
+            echo "[$(date)] Starting BTRFS deduplication scan" | tee -a /var/log/btrfs-dedup.log
 
-          # Get all BTRFS mount points and run deduplication
-          for mount in $(findmnt -t btrfs -n -o TARGET --target /data / /home 2>/dev/null); do
-            echo "Scanning $mount..." | tee -a /var/log/btrfs-dedup.log
-            # Run deduplication with quiet mode, skip files < 256KB
-            # -r: recursive scan
-            # -d: deduplicate mode
-            # --skip-size: skip files smaller than this (default 100K)
-            # -h: print human-readable sizes
-            duperemove -r -d -h --skip-size=256K "$mount" 2>&1 | tee -a /var/log/btrfs-dedup.log || true
-          done
+            # Get all BTRFS mount points and run deduplication
+            for mount in $(findmnt -t btrfs -n -o TARGET --target /data / /home 2>/dev/null); do
+              echo "Scanning $mount..." | tee -a /var/log/btrfs-dedup.log
+              # Run deduplication with quiet mode, skip files < 256KB
+              # -r: recursive scan
+              # -d: deduplicate mode
+              # --skip-size: skip files smaller than this (default 100K)
+              # -h: print human-readable sizes
+              duperemove -r -d -h --skip-size=256K "$mount" 2>&1 | tee -a /var/log/btrfs-dedup.log || true
+            done
 
-          echo "[$(date)] BTRFS deduplication scan completed" | tee -a /var/log/btrfs-dedup.log
-        '';
-        startAt = "Sat 02:00"; # Saturday 2 AM
-        serviceConfig = {
-          Type = "oneshot";
-          Nice = 15; # Low priority to avoid impacting system performance
-          IOSchedulingClass = "idle";
-          IOSchedulingPriority = 7;
-          LogLevelMax = "info"; # Reduce log spam
+            echo "[$(date)] BTRFS deduplication scan completed" | tee -a /var/log/btrfs-dedup.log
+          '';
+          startAt = "Sat 02:00"; # Saturday 2 AM
+          serviceConfig = {
+            Type = "oneshot";
+            Nice = 15; # Low priority to avoid impacting system performance
+            IOSchedulingClass = "idle";
+            IOSchedulingPriority = 7;
+            LogLevelMax = "info"; # Reduce log spam
+          };
+        };
+
+        # Monthly BTRFS scrub (detect and repair data corruption)
+        btrfs-scrub-all = {
+          description = "Monthly BTRFS scrub for all filesystems";
+          path = [pkgs.btrfs-progs];
+          script = ''
+            echo "[$(date)] Starting BTRFS scrub for all filesystems" | tee -a /var/log/btrfs-scrub.log
+
+            # Scrub all mounted BTRFS filesystems
+            for fs in $(findmnt -t btrfs -n -o TARGET --target / /home /data 2>/dev/null); do
+              echo "Scrubbing $fs..." | tee -a /var/log/btrfs-scrub.log
+              btrfs scrub start -B -R "$fs" 2>&1 | tee -a /var/log/btrfs-scrub.log || true
+            done
+
+            echo "[$(date)] BTRFS scrub completed" | tee -a /var/log/btrfs-scrub.log
+          '';
+          startAt = "Mon 03:00"; # Monday 3 AM
+          serviceConfig = {
+            Type = "oneshot";
+            Nice = 15;
+            IOSchedulingClass = "idle";
+          };
+        };
+
+        # Monthly balance (reclaim space and improve fragmentation)
+        btrfs-balance-all = {
+          description = "Monthly BTRFS balance for all filesystems";
+          path = [pkgs.btrfs-progs];
+          script = ''
+            echo "[$(date)] Starting BTRFS balance for all filesystems" | tee -a /var/log/btrfs-balance.log
+
+            # Balance all mounted BTRFS filesystems with usage threshold
+            # -dusage=75: only chunks with <75% usage
+            # -musage=75: metadata chunks with <75% usage
+            for fs in $(findmnt -t btrfs -n -o TARGET --target / /home /data 2>/dev/null); do
+              echo "Balancing $fs..." | tee -a /var/log/btrfs-balance.log
+              btrfs balance start -dusage=75 -musage=75 "$fs" 2>&1 | tee -a /var/log/btrfs-balance.log || true
+            done
+
+            echo "[$(date)] BTRFS balance completed" | tee -a /var/log/btrfs-balance.log
+          '';
+          startAt = "Sun 03:00"; # Sunday 3 AM
+          serviceConfig = {
+            Type = "oneshot";
+            Nice = 15;
+            IOSchedulingClass = "idle";
+          };
         };
       };
 
-      # Monthly BTRFS scrub (detect and repair data corruption)
-      btrfs-scrub-all = {
-        description = "Monthly BTRFS scrub for all filesystems";
-        path = [pkgs.btrfs-progs];
-        script = ''
-          echo "[$(date)] Starting BTRFS scrub for all filesystems" | tee -a /var/log/btrfs-scrub.log
+      timers = {
+        btrfs-dedup-all = {
+          wantedBy = ["timers.target"];
+          partOf = ["btrfs-dedup-all.service"];
+          timerConfig.Persistent = true;
+        };
 
-          # Scrub all mounted BTRFS filesystems
-          for fs in $(findmnt -t btrfs -n -o TARGET --target / /home /data 2>/dev/null); do
-            echo "Scrubbing $fs..." | tee -a /var/log/btrfs-scrub.log
-            btrfs scrub start -B -R "$fs" 2>&1 | tee -a /var/log/btrfs-scrub.log || true
-          done
+        btrfs-scrub-all = {
+          wantedBy = ["timers.target"];
+          partOf = ["btrfs-scrub-all.service"];
+          timerConfig.Persistent = true;
+        };
 
-          echo "[$(date)] BTRFS scrub completed" | tee -a /var/log/btrfs-scrub.log
-        '';
-        startAt = "Mon 03:00"; # Monday 3 AM
-        serviceConfig = {
-          Type = "oneshot";
-          Nice = 15;
-          IOSchedulingClass = "idle";
+        btrfs-balance-all = {
+          wantedBy = ["timers.target"];
+          partOf = ["btrfs-balance-all.service"];
+          timerConfig.Persistent = true;
         };
       };
 
-      # Monthly balance (reclaim space and improve fragmentation)
-      btrfs-balance-all = {
-        description = "Monthly BTRFS balance for all filesystems";
-        path = [pkgs.btrfs-progs];
-        script = ''
-          echo "[$(date)] Starting BTRFS balance for all filesystems" | tee -a /var/log/btrfs-balance.log
-
-          # Balance all mounted BTRFS filesystems with usage threshold
-          # -dusage=75: only chunks with <75% usage
-          # -musage=75: metadata chunks with <75% usage
-          for fs in $(findmnt -t btrfs -n -o TARGET --target / /home /data 2>/dev/null); do
-            echo "Balancing $fs..." | tee -a /var/log/btrfs-balance.log
-            btrfs balance start -dusage=75 -musage=75 "$fs" 2>&1 | tee -a /var/log/btrfs-balance.log || true
-          done
-
-          echo "[$(date)] BTRFS balance completed" | tee -a /var/log/btrfs-balance.log
-        '';
-        startAt = "Sun 03:00"; # Sunday 3 AM
-        serviceConfig = {
-          Type = "oneshot";
-          Nice = 15;
-          IOSchedulingClass = "idle";
-        };
-      };
+      tmpfiles.rules = [
+        "d /var/log 0755 root root -"
+        "f /var/log/btrfs-dedup.log 0644 root root -"
+        "f /var/log/btrfs-scrub.log 0644 root root -"
+        "f /var/log/btrfs-balance.log 0644 root root -"
+      ];
     };
-
-    # ============================================================================
-    # TIMERS - Enable the scheduled services
-    # ============================================================================
-    systemd.timers = {
-      btrfs-dedup-all = {
-        wantedBy = ["timers.target"];
-        partOf = ["btrfs-dedup-all.service"];
-        timerConfig.Persistent = true;
-      };
-
-      btrfs-scrub-all = {
-        wantedBy = ["timers.target"];
-        partOf = ["btrfs-scrub-all.service"];
-        timerConfig.Persistent = true;
-      };
-
-      btrfs-balance-all = {
-        wantedBy = ["timers.target"];
-        partOf = ["btrfs-balance-all.service"];
-        timerConfig.Persistent = true;
-      };
-    };
-
-    # ============================================================================
-    # LOGGING
-    # ============================================================================
-    systemd.tmpfiles.rules = [
-      "d /var/log 0755 root root -"
-      "f /var/log/btrfs-dedup.log 0644 root root -"
-      "f /var/log/btrfs-scrub.log 0644 root root -"
-      "f /var/log/btrfs-balance.log 0644 root root -"
-    ];
 
     # ============================================================================
     # DOCUMENTATION

@@ -4,11 +4,10 @@
 # Note: Service account tokens are NOT auto-mounted by default.
 # Set automountServiceAccountToken: false in pod specs unless needed.
 # See: docs/kubernetes/service-account-security.md
-{
-  config,
-  pkgs,
-  lib,
-  ...
+{ config
+, pkgs
+, lib
+, ...
 }: {
   options.services.kubernetes-module = {
     enable = lib.mkEnableOption "Kubernetes cluster configuration";
@@ -21,20 +20,20 @@
 
     roles = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = ["master" "node"];
+      default = [ "master" "node" ];
       description = "Kubernetes roles for this node";
     };
 
     # etcd HA clustering options
     etcdInitialState = lib.mkOption {
-      type = lib.types.enum ["new" "existing"];
+      type = lib.types.enum [ "new" "existing" ];
       default = "existing";
       description = "etcd initial cluster state: 'new' for first node, 'existing' for joining nodes";
     };
 
     etcdClusterMembers = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [];
+      default = [ ];
       example = [
         "zephyr=http://10.1.1.110:2380"
         "nexus=http://10.1.1.120:2380"
@@ -57,10 +56,11 @@
     };
   };
 
-  config = let
-    isMaster = builtins.elem "master" config.services.kubernetes-module.roles;
-    useEtcdCluster = config.services.kubernetes-module.etcdClusterMembers != [];
-  in
+  config =
+    let
+      isMaster = builtins.elem "master" config.services.kubernetes-module.roles;
+      useEtcdCluster = config.services.kubernetes-module.etcdClusterMembers != [ ];
+    in
     lib.mkIf config.services.kubernetes-module.enable {
       # ============================================================================
       # DISABLE PODMAN DOCKER COMPATIBILITY (conflicts with Docker)
@@ -105,7 +105,7 @@
           securePort = 6443;
           allowPrivileged = true;
           # Connect to local etcd (for multi-master HA, use load balancer or list all members)
-          etcd.servers = lib.mkForce ["http://${config.services.kubernetes-module.masterAddress}:2379"];
+          etcd.servers = lib.mkForce [ "http://${config.services.kubernetes-module.masterAddress}:2379" ];
           # Note: Pod Security Admission is enabled by default in Kubernetes 1.25+
           # No extra configuration needed - uses built-in 'restricted' profile
         };
@@ -120,7 +120,7 @@
         kubelet = {
           enable = true;
           hostname = config.networking.hostName;
-          clusterDns = ["10.0.0.10"];  # CoreDNS service IP
+          clusterDns = [ "10.0.0.10" ]; # CoreDNS service IP
           extraConfig = {
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
@@ -140,13 +140,13 @@
           "http://127.0.0.1:2379"
           "http://${config.services.kubernetes-module.etcdListenHost}:2379"
         ];
-        advertiseClientUrls = lib.mkForce ["http://${config.services.kubernetes-module.etcdListenHost}:2379"];
-        listenPeerUrls = lib.mkForce ["http://${config.services.kubernetes-module.etcdListenHost}:2380"];
-        initialAdvertisePeerUrls = lib.mkForce ["http://${config.services.kubernetes-module.etcdListenHost}:2380"];
+        advertiseClientUrls = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2379" ];
+        listenPeerUrls = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2380" ];
+        initialAdvertisePeerUrls = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2380" ];
         initialCluster = lib.mkForce (if useEtcdCluster then
           config.services.kubernetes-module.etcdClusterMembers
         else
-          ["${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380"]);
+          [ "${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380" ]);
         initialClusterToken = "zephyr-etcd-cluster";
         initialClusterState = config.services.kubernetes-module.etcdInitialState;
       };
@@ -158,203 +158,208 @@
       # Also create /var/lib/flannel for persistent subnet.env file (not on tmpfs)
       # Create symlink from /run/flannel to /var/lib/flannel for CNI plugin compatibility
       # Create local-path-provisioner directories for Kubernetes storage
-      systemd.tmpfiles.rules = [
-        # Create writable CNI directories (both for kubelet and containerd)
-        "d /var/lib/cni/net.d 0755 root root -"
-        # Remove /etc/cni/net.d if it exists (symlink or directory) from old activation
-        # Use C to recursively clean, then create as writable directory
-        "C /etc/cni/net.d - - - -"
-        "d /etc/cni/net.d 0755 root root -"
-        # Create symlinks from read-only NixOS store to writable directories
-        # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)
-        "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
-        # Containerd reads from /etc/cni/net.d (default CNI path)
-        "L+ /etc/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
-        # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
-        "d /var/lib/flannel 0755 root root -"
-        "L+ /run/flannel - - - - /var/lib/flannel"
-        # ============================================================================
-        # LOCAL PATH PROVISIONER - Kubernetes local storage
-        # ============================================================================
-        # Default path for all nodes (Forge uses this)
-        "d /var/local-path-provisioner 0777 root root -"
-        # Zephyr: Fast NVMe storage for databases, AI models
-        "d /data/k8s-local 0777 root root -"
-        # Nexus: Large capacity on bcache0
-        "d /data/containers/k8s-local 0777 root root -"
-        # Sentry: HDD storage for archival, logs
-        "d /storage/k8s-local 0777 root root -"
-      ];
+      systemd = {
+        tmpfiles.rules = [
+          # Create writable CNI directories (both for kubelet and containerd)
+          "d /var/lib/cni/net.d 0755 root root -"
+          # Remove /etc/cni/net.d if it exists (symlink or directory) from old activation
+          # Use C to recursively clean, then create as writable directory
+          "C /etc/cni/net.d - - - -"
+          "d /etc/cni/net.d 0755 root root -"
+          # Create symlinks from read-only NixOS store to writable directories
+          # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)
+          "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
+          # Containerd reads from /etc/cni/net.d (default CNI path)
+          "L+ /etc/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
+          # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
+          "d /var/lib/flannel 0755 root root -"
+          "L+ /run/flannel - - - - /var/lib/flannel"
+          # ============================================================================
+          # LOCAL PATH PROVISIONER - Kubernetes local storage
+          # ============================================================================
+          # Default path for all nodes (Forge uses this)
+          "d /var/local-path-provisioner 0777 root root -"
+          # Zephyr: Fast NVMe storage for databases, AI models
+          "d /data/k8s-local 0777 root root -"
+          # Nexus: Large capacity on bcache0
+          "d /data/containers/k8s-local 0777 root root -"
+          # Sentry: HDD storage for archival, logs
+          "d /storage/k8s-local 0777 root root -"
+        ];
 
-      # Store the Flannel CNI config
-      # Use same format as working Zephyr control plane (cniVersion 0.3.1, name "cbr0")
-      # The minimal delegate config lets Flannel handle bridge setup automatically
-      environment.etc = {
-        # Flannel CNI config (for kubelet via tmpfiles symlink)
-        "cni/flannel.conflist".text = builtins.toJSON {
-          name = "cbr0";
-          cniVersion = "0.3.1";
-          plugins = [
+        services = {
+
+          # Store the Flannel CNI config
+          # Use same format as working Zephyr control plane (cniVersion 0.3.1, name "cbr0")
+          # The minimal delegate config lets Flannel handle bridge setup automatically
+          environment.etc = {
+            # Flannel CNI config (for kubelet via tmpfiles symlink)
+            "cni/flannel.conflist".text = builtins.toJSON {
+              name = "cbr0";
+              cniVersion = "0.3.1";
+              plugins = [
+                {
+                  type = "flannel";
+                  delegate = {
+                    hairpinMode = true;
+                    isDefaultGateway = true;
+                  };
+                }
+                {
+                  type = "portmap";
+                  capabilities = {
+                    portMappings = true;
+                  };
+                }
+              ];
+            };
+
+            # Note: containerd's CNI config is provided via tmpfiles symlink above
+            # (environment.etc."cni/net.d/..." doesn't work correctly for nested directories)
+
+            # Disable CRI-O's default CNI configs (no longer needed with containerd)
+            # "cni/net.d/10-crio-bridge.conflist".enable = lib.mkForce false;
+            # "cni/net.d/99-loopback.conflist".enable = lib.mkForce false;
+
+            # NVIDIA GPU device configuration (containerd uses nvidia-container-runtime directly)
+            # No CRI-O-specific configuration needed
+          };
+
+          # ============================================================================
+          # FIREWALL RULES
+          # ============================================================================
+          networking.firewall = lib.mkMerge [
+            # Master node firewall
+            (lib.mkIf isMaster {
+              allowedTCPPorts = [
+                6443 # Kubernetes API server
+                2379 # etcd client
+                2380 # etcd peer
+                10250 # Kubelet API
+                10251 # Kube-scheduler
+                10252 # Kube-controller-manager
+              ];
+
+              allowedTCPPortRanges = [
+                {
+                  from = 30000;
+                  to = 32767;
+                }
+              ];
+
+              allowedUDPPorts = [ 8472 ]; # Flannel VXLAN
+            })
+
+            # Worker node firewall (applies to all nodes, but ports differ per role)
             {
-              type = "flannel";
-              delegate = {
-                hairpinMode = true;
-                isDefaultGateway = true;
-              };
-            }
-            {
-              type = "portmap";
-              capabilities = {
-                portMappings = true;
-              };
+              allowedTCPPorts = lib.mkIf (!isMaster) [ 10250 ]; # Kubelet API only for workers
+              allowedTCPPortRanges = [
+                {
+                  from = 30000;
+                  to = 32767;
+                }
+              ];
+              allowedUDPPorts = [ 8472 ]; # Flannel VXLAN
             }
           ];
-        };
 
-        # Note: containerd's CNI config is provided via tmpfiles symlink above
-        # (environment.etc."cni/net.d/..." doesn't work correctly for nested directories)
+          # ============================================================================
+          # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
+          # ============================================================================
+          containerd = {
+            after = lib.mkForce [ "network.target" ];
+            before = [ "kubelet.service" ];
+          };
 
-        # Disable CRI-O's default CNI configs (no longer needed with containerd)
-        # "cni/net.d/10-crio-bridge.conflist".enable = lib.mkForce false;
-        # "cni/net.d/99-loopback.conflist".enable = lib.mkForce false;
+          kubelet = {
+            after = lib.mkForce [ "containerd.service" "network.target" ];
+            requires = lib.mkForce [ "containerd.service" ];
+            serviceConfig = {
+              ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
+                echo "Waiting for containerd to be ready..."
+                timeout=60
+                while [ $timeout -gt 0 ]; do
+                  if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
+                    echo "containerd is ready"
+                    exit 0
+                  fi
+                  sleep 1
+                  ((timeout--))
+                done
+                echo "ERROR: containerd not ready after 60 seconds"
+                exit 1
+              '';
+              # Kubelet memory limits (applied to all nodes)
+              MemoryMax = "2G";
+              MemoryHigh = "1.5G";
+              OOMScoreAdjust = -500;
+            };
+          };
 
-        # NVIDIA GPU device configuration (containerd uses nvidia-container-runtime directly)
-        # No CRI-O-specific configuration needed
-      };
+          kube-apiserver = {
+            after = lib.mkForce [ "kubelet.service" "network.target" ];
+            requires = lib.mkForce [ "kubelet.service" ];
+            serviceConfig = {
+              ExecStartPre = pkgs.writeShellScript "wait-for-kubelet" ''
+                echo "Waiting for kubelet to be ready..."
+                timeout=120
+                while [ $timeout -gt 0 ]; do
+                  # Check if kubelet process is running and responding
+                  # kubelet serves healthz on http://localhost:10248/healthz
+                  # Note: kubelet doesn't need to be fully registered (API server connection)
+                  # Just needs to be running and healthy
+                  if ${pkgs.curl}/bin/curl -f -s http://localhost:10248/healthz >/dev/null 2>&1; then
+                    echo "Kubelet is ready (healthz responding)"
+                    exit 0
+                  fi
+                  # Also check if kubelet binary is running as fallback
+                  if pgrep -f "kubelet.*--hostname-override=zephyr" >/dev/null 2>&1; then
+                    echo "Kubelet is ready (process running)"
+                    exit 0
+                  fi
+                  sleep 2
+                  ((timeout--))
+                done
+                echo "ERROR: Kubelet not ready after 120 seconds"
+                exit 1
+              '';
+              # ========================================================================
+              # MEMORY PROTECTION - Prevent OOM kills of control plane
+              # ========================================================================
+              # API server typically uses 200-500MB. Set limits to prevent runaway.
+              # Max 2GB is generous but prevents it from consuming all RAM.
+              MemoryMax = "2G";
+              MemoryHigh = "1.5G"; # Start soft limiting at 1.5GB
+              # Negative OOM score = protects from OOM killer (-500 = highly protected)
+              OOMScoreAdjust = -500;
+            };
+          };
 
-      # ============================================================================
-      # FIREWALL RULES
-      # ============================================================================
-      networking.firewall = lib.mkMerge [
-        # Master node firewall
-        (lib.mkIf isMaster {
-          allowedTCPPorts = [
-            6443 # Kubernetes API server
-            2379 # etcd client
-            2380 # etcd peer
-            10250 # Kubelet API
-            10251 # Kube-scheduler
-            10252 # Kube-controller-manager
-          ];
+          kube-scheduler = {
+            after = lib.mkForce [ "kube-apiserver.service" "network.target" ];
+            requires = lib.mkForce [ "kube-apiserver.service" ];
+            # Don't override ExecStart - let upstream handle it
+            serviceConfig = {
+              # Scheduler is lightweight (~100MB typical)
+              MemoryMax = "512M";
+              MemoryHigh = "256M";
+              OOMScoreAdjust = -500;
+            };
+          };
 
-          allowedTCPPortRanges = [
-            {
-              from = 30000;
-              to = 32767;
-            }
-          ];
-
-          allowedUDPPorts = [8472]; # Flannel VXLAN
-        })
-
-        # Worker node firewall (applies to all nodes, but ports differ per role)
-        {
-          allowedTCPPorts = lib.mkIf (!isMaster) [10250]; # Kubelet API only for workers
-          allowedTCPPortRanges = [
-            {
-              from = 30000;
-              to = 32767;
-            }
-          ];
-          allowedUDPPorts = [8472]; # Flannel VXLAN
-        }
-      ];
-
-      # ============================================================================
-      # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
-      # ============================================================================
-      systemd.services.containerd = {
-        after = lib.mkForce ["network.target"];
-        before = ["kubelet.service"];
-      };
-
-      systemd.services.kubelet = {
-        after = lib.mkForce ["containerd.service" "network.target"];
-        requires = lib.mkForce ["containerd.service"];
-        serviceConfig = {
-          ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
-            echo "Waiting for containerd to be ready..."
-            timeout=60
-            while [ $timeout -gt 0 ]; do
-              if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
-                echo "containerd is ready"
-                exit 0
-              fi
-              sleep 1
-              ((timeout--))
-            done
-            echo "ERROR: containerd not ready after 60 seconds"
-            exit 1
-          '';
-          # Kubelet memory limits (applied to all nodes)
-          MemoryMax = "2G";
-          MemoryHigh = "1.5G";
-          OOMScoreAdjust = -500;
-        };
-      };
-
-      systemd.services.kube-apiserver = {
-        after = lib.mkForce ["kubelet.service" "network.target"];
-        requires = lib.mkForce ["kubelet.service"];
-        serviceConfig = {
-          ExecStartPre = pkgs.writeShellScript "wait-for-kubelet" ''
-            echo "Waiting for kubelet to be ready..."
-            timeout=120
-            while [ $timeout -gt 0 ]; do
-              # Check if kubelet process is running and responding
-              # kubelet serves healthz on http://localhost:10248/healthz
-              # Note: kubelet doesn't need to be fully registered (API server connection)
-              # Just needs to be running and healthy
-              if ${pkgs.curl}/bin/curl -f -s http://localhost:10248/healthz >/dev/null 2>&1; then
-                echo "Kubelet is ready (healthz responding)"
-                exit 0
-              fi
-              # Also check if kubelet binary is running as fallback
-              if pgrep -f "kubelet.*--hostname-override=zephyr" >/dev/null 2>&1; then
-                echo "Kubelet is ready (process running)"
-                exit 0
-              fi
-              sleep 2
-              ((timeout--))
-            done
-            echo "ERROR: Kubelet not ready after 120 seconds"
-            exit 1
-          '';
-          # ========================================================================
-          # MEMORY PROTECTION - Prevent OOM kills of control plane
-          # ========================================================================
-          # API server typically uses 200-500MB. Set limits to prevent runaway.
-          # Max 2GB is generous but prevents it from consuming all RAM.
-          MemoryMax = "2G";
-          MemoryHigh = "1.5G"; # Start soft limiting at 1.5GB
-          # Negative OOM score = protects from OOM killer (-500 = highly protected)
-          OOMScoreAdjust = -500;
-        };
-      };
-
-      systemd.services.kube-scheduler = {
-        after = lib.mkForce ["kube-apiserver.service" "network.target"];
-        requires = lib.mkForce ["kube-apiserver.service"];
-        # Don't override ExecStart - let upstream handle it
-        serviceConfig = {
-          # Scheduler is lightweight (~100MB typical)
-          MemoryMax = "512M";
-          MemoryHigh = "256M";
-          OOMScoreAdjust = -500;
-        };
-      };
-
-      systemd.services.kube-controller-manager = {
-        after = lib.mkForce ["kube-apiserver.service" "network.target"];
-        requires = lib.mkForce ["kube-apiserver.service"];
-        # Don't override ExecStart - let upstream handle it
-        serviceConfig = {
-          # Controller manager uses ~200-400MB
-          MemoryMax = "1G";
-          MemoryHigh = "512M";
-          OOMScoreAdjust = -500;
-        };
-      };
+          kube-controller-manager = {
+            after = lib.mkForce [ "kube-apiserver.service" "network.target" ];
+            requires = lib.mkForce [ "kube-apiserver.service" ];
+            # Don't override ExecStart - let upstream handle it
+            serviceConfig = {
+              # Controller manager uses ~200-400MB
+              MemoryMax = "1G";
+              MemoryHigh = "512M";
+              OOMScoreAdjust = -500;
+            };
+          };
+        }; # Close services
+      }; # Close systemd
 
       # ============================================================================
       # KUBERNETES TOOLS
