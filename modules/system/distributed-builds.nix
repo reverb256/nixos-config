@@ -162,10 +162,11 @@ in {
   ];
 
   # SSH config for root (nix-daemon) to use for distributed builds
+  # Use j_kro's SSH key since remote nodes trust that key
   environment.etc."ssh/ssh_config.d/50-build-machines.conf".text = ''
     Host zephyr nexus forge sentry
       User j_kro
-      IdentityFile /root/.ssh/id_ed25519
+      IdentityFile /home/j_kro/.ssh/id_ed25519
       IdentitiesOnly yes
       StrictHostKeyChecking accept-new
       ConnectTimeout 30
