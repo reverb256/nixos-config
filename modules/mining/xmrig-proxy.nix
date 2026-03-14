@@ -76,12 +76,6 @@ in {
 
     users.groups.${cfg.group} = {};
 
-    # Create data and runtime directories
-    systemd.tmpfiles.rules = [
-      "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
-      "d /run/xmrig-proxy 0750 ${cfg.user} ${cfg.group} -"
-    ];
-
     # Write config file (with token placeholder if using tokenFile)
     environment.etc."xmrig-proxy/config.json".text =
       if cfg.tokenFile == null
@@ -99,47 +93,53 @@ in {
     # Note: API port (cfg.apiPort, default 8081) is opened for Prometheus scraping
     # The proxy provides metrics at http://localhost:${toString cfg.apiPort}/1/summary
 
-    # Systemd service
-    systemd.services.xmrig-proxy = {
-      description = "XMRig Stratum Proxy for CPU Mining";
-      wantedBy = ["multi-user.target"];
-      after = ["network.target" "agenix-rekey.service" "systemd-tmpfiles-setup.service"];
+    systemd = {
+      # Create data and runtime directories
+      tmpfiles.rules = [
+        "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
+        "d /run/xmrig-proxy 0750 ${cfg.user} ${cfg.group} -"
+      ];
 
-      serviceConfig = {
-        Type = "simple";
-        User = cfg.user;
-        Group = cfg.group;
+      # Systemd service
+      services.xmrig-proxy = {
+        description = "XMRig Stratum Proxy for CPU Mining";
+        wantedBy = ["multi-user.target"];
+        after = ["network.target" "agenix-rekey.service" "systemd-tmpfiles-setup.service"];
 
-        WorkingDirectory = cfg.dataDir;
+        serviceConfig = {
+          Type = "simple";
+          User = cfg.user;
+          Group = cfg.group;
 
-        ExecStart = "${cfg.package}/bin/xmrig-proxy --config /etc/xmrig-proxy/config.json --no-color";
+          WorkingDirectory = cfg.dataDir;
 
-        Restart = "on-failure";
-        RestartSec = "10s";
+          ExecStart = "${cfg.package}/bin/xmrig-proxy --config /etc/xmrig-proxy/config.json --no-color";
 
-        # Hardening
-        # Note: PrivateTmp disabled when using /run/xmrig-proxy to avoid namespace conflicts
-        PrivateTmp = lib.mkIf (cfg.tokenFile == null) true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadWritePaths = [cfg.dataDir "/run/xmrig-proxy"];
+          Restart = "on-failure";
+          RestartSec = "10s";
 
-        # Runtime directory (ensures /run/xmrig-proxy exists before mount namespace)
-        RuntimeDirectory = "xmrig-proxy";
-        RuntimeDirectoryMode = "0750";
+          # Hardening
+          # Note: PrivateTmp disabled when using /run/xmrig-proxy to avoid namespace conflicts
+          PrivateTmp = lib.mkIf (cfg.tokenFile == null) true;
+          ProtectSystem = "strict";
+          ProtectHome = true;
+          ReadWritePaths = [cfg.dataDir "/run/xmrig-proxy"];
 
-        # Resource limits
-        MemoryLimit = "512M";
-        CPUQuota = "200%";
+          # Runtime directory (ensures /run/xmrig-proxy exists before mount namespace)
+          RuntimeDirectory = "xmrig-proxy";
+          RuntimeDirectoryMode = "0750";
+
+          # Resource limits
+          MemoryLimit = "512M";
+          CPUQuota = "200%";
+        };
+
+        # Graceful shutdown
+        serviceConfig.ExecStop = "${pkgs.coreutils}/bin/kill -SIGTERM $MAINPID";
       };
 
-      # Graceful shutdown
-      serviceConfig.ExecStop = "${pkgs.coreutils}/bin/kill -SIGTERM $MAINPID";
-    };
-
-    # Runtime token replacement (if using tokenFile)
-    systemd.services.xmrig-proxy-preStart =
-      lib.mkIf (cfg.tokenFile != null) {
+      # Runtime token replacement (if using tokenFile)
+      services.xmrig-proxy-preStart = lib.mkIf (cfg.tokenFile != null) {
         description = "Inject API token into xmrig-proxy config";
         wantedBy = ["xmrig-proxy.service"];
         before = ["xmrig-proxy.service"];
@@ -179,9 +179,9 @@ in {
             echo "[xmrig-proxy] Token injected successfully"
           '';
         };
-      }
-      // lib.optionalAttrs (cfg.tokenFile != null) {
+      } // lib.optionalAttrs (cfg.tokenFile != null) {
         serviceConfig.ExecStart = lib.mkForce "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/xmrig-proxy --config /run/xmrig-proxy/config.json --no-color'";
       };
+    };
   };
 }

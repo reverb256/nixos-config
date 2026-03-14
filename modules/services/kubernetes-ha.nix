@@ -62,166 +62,170 @@ in {
 
   config = mkIf cfg.enable {
     services = {
-      kubernetes.easyCerts = false;
+      kubernetes = {
+        easyCerts = false;
 
-      # ========================================================================
-      # CA CERTIFICATE - Public, distributed to all nodes
-      # ========================================================================
-      kubernetes.caFile = "${cfg.pkiPath}/ca.pem";
-
-      # ========================================================================
-      # API SERVER CONFIGURATION
-      # ========================================================================
-      kubernetes.apiserver = {
-      enable = true;
-
-      # Bind to all interfaces for VIP support
-      bindAddress = "0.0.0.0";
-
-      # Secure port
-      securePort = 6443;
-
-      # Use external certificate with VIP in SANs
-      serverCert = "${cfg.pkiPath}/apiserver.pem";
-      serverKey = config.age.secrets."apiserver-key".path;
-
-      # Client CA for authenticating client certificates
-      clientCaFile = "${cfg.pkiPath}/ca.pem";
-
-      # Kubelet client certificates
-      kubeletClientCert = "${cfg.pkiPath}/apiserver.pem";
-      kubeletClientKey = config.age.secrets."apiserver-key".path;
-
-      # Service account key
-      serviceAccountKeyFile = config.age.secrets."service-account-key".path or "${cfg.pkiPath}/service-account.pem";
-
-      # Token auth file (if using static tokens)
-      tokenAuthFile = config.age.secrets."token-auth".path or "${cfg.pkiPath}/tokens.csv";
-
-      # OIDC (optional, configure for your IdP)
-      # oidcIssuer = "https://your-oidc-provider";
-      # oidcClientID = "kubernetes";
-      # oidcUsernameClaim = "email";
-
-      # etcd configuration for HA cluster
-      etcd = {
-        servers = cfg.etcdEndpoints;
+        # ========================================================================
+        # CA CERTIFICATE - Public, distributed to all nodes
+        # ========================================================================
         caFile = "${cfg.pkiPath}/ca.pem";
-        certFile = "${cfg.pkiPath}/apiserver.pem";
-        keyFile = config.age.secrets."apiserver-key".path;
+
+        # ========================================================================
+        # API SERVER CONFIGURATION
+        # ========================================================================
+        apiserver = {
+          enable = true;
+
+          # Bind to all interfaces for VIP support
+          bindAddress = "0.0.0.0";
+
+          # Secure port
+          securePort = 6443;
+
+          # Use external certificate with VIP in SANs
+          serverCert = "${cfg.pkiPath}/apiserver.pem";
+          serverKey = config.age.secrets."apiserver-key".path;
+
+          # Client CA for authenticating client certificates
+          clientCaFile = "${cfg.pkiPath}/ca.pem";
+
+          # Kubelet client certificates
+          kubeletClientCert = "${cfg.pkiPath}/apiserver.pem";
+          kubeletClientKey = config.age.secrets."apiserver-key".path;
+
+          # Service account key
+          serviceAccountKeyFile = config.age.secrets."service-account-key".path or "${cfg.pkiPath}/service-account.pem";
+
+          # Token auth file (if using static tokens)
+          tokenAuthFile = config.age.secrets."token-auth".path or "${cfg.pkiPath}/tokens.csv";
+
+          # OIDC (optional, configure for your IdP)
+          # oidcIssuer = "https://your-oidc-provider";
+          # oidcClientID = "kubernetes";
+          # oidcUsernameClaim = "email";
+
+          # etcd configuration for HA cluster
+          etcd = {
+            servers = cfg.etcdEndpoints;
+            caFile = "${cfg.pkiPath}/ca.pem";
+            certFile = "${cfg.pkiPath}/apiserver.pem";
+            keyFile = config.age.secrets."apiserver-key".path;
+          };
+
+          # Authorization and admission
+          authorizationMode = ["Node" "RBAC"];
+          admissionControl = [
+            "NodeRestriction"
+            "NamespaceLifecycle"
+            "ServiceAccount"
+            "LimitRanger"
+            "DefaultStorageClass"
+            "DefaultTolerationSeconds"
+            "ResourceQuota"
+          ];
+
+          # API server flags for HA
+          extraOpts = [
+            "--endpoint-reconciler-type=lease"
+            "--enable-aggregator-routing=true"
+            "--proxy-client-cert-file=${cfg.pkiPath}/front-proxy-client.pem"
+            "--proxy-client-key-file=${config.age.secrets."front-proxy-client-key".path or "${cfg.pkiPath}/front-proxy-client-key.pem"}"
+          ];
+
+          # Service cluster IP range
+          serviceClusterIpRange = "10.0.0.0/24";
+
+          # Allow privileged containers
+          allowPrivileged = true;
+        };
+
+        # ========================================================================
+        # CONTROLLER MANAGER CONFIGURATION
+        # ========================================================================
+        controllerManager = {
+          enable = true;
+
+          # Client authentication
+          rootCaFile = "${cfg.pkiPath}/ca.pem";
+          kubeconfig = {
+            server = "https://${cfg.vip}:6443";
+            caFile = "${cfg.pkiPath}/ca.pem";
+            certFile = "${cfg.pkiPath}/controller-manager.pem";
+            keyFile = config.age.secrets."controller-manager-key".path;
+          };
+
+          # Cluster CIDR for pod networks
+          clusterCidr = "10.244.0.0/16";
+
+          # Service account private key
+          serviceAccountPrivateKeyFile = config.age.secrets."service-account-key".path or "${cfg.pkiPath}/service-account-key.pem";
+
+          # Leader election for HA
+          extraOpts = [
+            "--leader-elect=true"
+            "--leader-elect-lease-duration=15s"
+            "--leader-elect-renew-deadline=10s"
+            "--leader-elect-retry-period=2s"
+            "--use-service-account-credentials=true"
+            "--cluster-name=homelab"
+            "--v=2"
+          ];
+        };
+
+        # ========================================================================
+        # SCHEDULER CONFIGURATION
+        # ========================================================================
+        scheduler = {
+          enable = true;
+
+          # Client authentication
+          kubeconfig = {
+            server = "https://${cfg.vip}:6443";
+            caFile = "${cfg.pkiPath}/ca.pem";
+            certFile = "${cfg.pkiPath}/scheduler.pem";
+            keyFile = config.age.secrets."scheduler-key".path;
+          };
+
+          # Leader election for HA
+          extraOpts = [
+            "--leader-elect=true"
+            "--leader-elect-lease-duration=15s"
+            "--leader-elect-renew-deadline=10s"
+            "--leader-elect-retry-period=2s"
+            "--kubeconfig=/etc/kubernetes/scheduler.kubeconfig"
+            "--v=2"
+          ];
+        };
+
+        # ========================================================================
+        # KUBELET CONFIGURATION
+        # ========================================================================
+        kubelet.extraOpts = [
+          "--cluster-dns=${config.services.kubernetes.dnsIp}"
+          "--cluster-domain=cluster.local"
+          "--container-runtime=remote"
+          "--container-runtime-endpoint=unix:///run/podman/podman.sock"
+          "--cgroup-driver=systemd"
+          "--kubeconfig=/etc/kubernetes/kubelet.kubeconfig"
+          "--network-plugin=cni"
+          "--v=2"
+        ];
       };
-
-      # Authorization and admission
-      authorizationMode = ["Node" "RBAC"];
-      admissionControl = [
-        "NodeRestriction"
-        "NamespaceLifecycle"
-        "ServiceAccount"
-        "LimitRanger"
-        "DefaultStorageClass"
-        "DefaultTolerationSeconds"
-        "ResourceQuota"
-      ];
-
-      # API server flags for HA
-      extraOpts = [
-        "--endpoint-reconciler-type=lease"
-        "--enable-aggregator-routing=true"
-        "--proxy-client-cert-file=${cfg.pkiPath}/front-proxy-client.pem"
-        "--proxy-client-key-file=${config.age.secrets."front-proxy-client-key".path or "${cfg.pkiPath}/front-proxy-client-key.pem"}"
-      ];
-
-      # Service cluster IP range
-      serviceClusterIpRange = "10.0.0.0/24";
-
-      # Allow privileged containers
-      allowPrivileged = true;
-    };
-      # ========================================================================
-      # CONTROLLER MANAGER CONFIGURATION
-      # ========================================================================
-      kubernetes.controllerManager = {
-      enable = true;
-
-      # Client authentication
-      rootCaFile = "${cfg.pkiPath}/ca.pem";
-      kubeconfig = {
-        server = "https://${cfg.vip}:6443";
-        caFile = "${cfg.pkiPath}/ca.pem";
-        certFile = "${cfg.pkiPath}/controller-manager.pem";
-        keyFile = config.age.secrets."controller-manager-key".path;
-      };
-
-      # Cluster CIDR for pod networks
-      clusterCidr = "10.244.0.0/16";
-
-      # Service account private key
-      serviceAccountPrivateKeyFile = config.age.secrets."service-account-key".path or "${cfg.pkiPath}/service-account-key.pem";
-
-      # Leader election for HA
-      extraOpts = [
-        "--leader-elect=true"
-        "--leader-elect-lease-duration=15s"
-        "--leader-elect-renew-deadline=10s"
-        "--leader-elect-retry-period=2s"
-        "--use-service-account-credentials=true"
-        "--cluster-name=homelab"
-        "--v=2"
-      ];
-    };
-      # ========================================================================
-      # SCHEDULER CONFIGURATION
-      # ========================================================================
-      kubernetes.scheduler = {
-      enable = true;
-
-      # Client authentication
-      kubeconfig = {
-        server = "https://${cfg.vip}:6443";
-        caFile = "${cfg.pkiPath}/ca.pem";
-        certFile = "${cfg.pkiPath}/scheduler.pem";
-        keyFile = config.age.secrets."scheduler-key".path;
-      };
-
-      # Leader election for HA
-      extraOpts = [
-        "--leader-elect=true"
-        "--leader-elect-lease-duration=15s"
-        "--leader-elect-renew-deadline=10s"
-        "--leader-elect-retry-period=2s"
-        "--kubeconfig=/etc/kubernetes/scheduler.kubeconfig"
-        "--v=2"
-      ];
-    };
-
-      # ========================================================================
-      # KUBELET CONFIGURATION
-      # ========================================================================
-      kubernetes.kubelet.extraOpts = [
-        "--cluster-dns=${config.services.kubernetes.dnsIp}"
-        "--cluster-domain=cluster.local"
-        "--container-runtime=remote"
-        "--container-runtime-endpoint=unix:///run/podman/podman.sock"
-        "--cgroup-driver=systemd"
-        "--kubeconfig=/etc/kubernetes/kubelet.kubeconfig"
-        "--network-plugin=cni"
-        "--v=2"
-      ];
 
       # ========================================================================
       # ETCD PEER CERTIFICATES (for etcd-cluster module)
       # ========================================================================
       etcd = {
-      # Peer certificates for etcd cluster communication
-      peerCertFile = "${cfg.pkiPath}/etcd-peer.pem";
-      peerKeyFile = config.age.secrets."etcd-peer-key".path;
-      peerTrustedCaFile = "${cfg.pkiPath}/ca.pem";
+        # Peer certificates for etcd cluster communication
+        peerCertFile = "${cfg.pkiPath}/etcd-peer.pem";
+        peerKeyFile = config.age.secrets."etcd-peer-key".path;
+        peerTrustedCaFile = "${cfg.pkiPath}/ca.pem";
 
-      # Client certificates for API server communication
-      certFile = "${cfg.pkiPath}/etcd-${config.networking.hostName}.pem";
-      keyFile = config.age.secrets."etcd-${config.networking.hostName}-key".path;
-      trustedCaFile = "${cfg.pkiPath}/ca.pem";
-    };
+        # Client certificates for API server communication
+        certFile = "${cfg.pkiPath}/etcd-${config.networking.hostName}.pem";
+        keyFile = config.age.secrets."etcd-${config.networking.hostName}-key".path;
+        trustedCaFile = "${cfg.pkiPath}/ca.pem";
+      };
 
       # ========================================================================
       # FIREWALL - Kubernetes API and etcd ports

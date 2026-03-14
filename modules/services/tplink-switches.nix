@@ -512,42 +512,41 @@ in {
     # ============================================================================
     # SYSTEMD SERVICE FOR MONITORING
     # ============================================================================
-    systemd.services.tplink-monitor = lib.mkIf cfg.monitoring.enable {
-      description = "TP-Link Switch Monitor";
-      after = ["network-online.target"];
-      wants = ["network-online.target"];
-      serviceConfig = {
-        Type = "simple";
-        User = "root";
-        ExecStart = "/etc/tplink-switches/automate.py status";
-        Restart = "on-failure";
-        RestartSec = "60s";
+    systemd = {
+      tmpfiles.rules = [
+        "d /var/cache/tplink-switches 0755 root root -"
+        "d /var/cache/tplink-switches/screenshots 0755 root root -"
+      ];
 
-        # Security hardening
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        PrivateTmp = true;
-        NoNewPrivileges = true;
+      services.tplink-monitor = lib.mkIf cfg.monitoring.enable {
+        description = "TP-Link Switch Monitor";
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
+        serviceConfig = {
+          Type = "simple";
+          User = "root";
+          ExecStart = "/etc/tplink-switches/automate.py status";
+          Restart = "on-failure";
+          RestartSec = "60s";
+
+          # Security hardening
+          ProtectSystem = "strict";
+          ProtectHome = true;
+          PrivateTmp = true;
+          NoNewPrivileges = true;
+        };
+      };
+
+      timers.tplink-monitor = lib.mkIf cfg.monitoring.enable {
+        description = "TP-Link Switch Monitor Timer";
+        wantedBy = ["timers.target"];
+        partOf = ["tplink-monitor.service"];
+        timerConfig = {
+          OnUnitActiveSec = "${toString cfg.monitoring.interval}s";
+          OnBootSec = "60s";
+        };
       };
     };
-
-    systemd.timers.tplink-monitor = lib.mkIf cfg.monitoring.enable {
-      description = "TP-Link Switch Monitor Timer";
-      wantedBy = ["timers.target"];
-      partOf = ["tplink-monitor.service"];
-      timerConfig = {
-        OnUnitActiveSec = "${toString cfg.monitoring.interval}s";
-        OnBootSec = "60s";
-      };
-    };
-
-    # ============================================================================
-    # CACHE DIRECTORY FOR SCREENSHOTS
-    # ============================================================================
-    systemd.tmpfiles.rules = [
-      "d /var/cache/tplink-switches 0755 root root -"
-      "d /var/cache/tplink-switches/screenshots 0755 root root -"
-    ];
 
     # ============================================================================
     # NETWORK CONSTANTS - Add switch IPs to cluster network

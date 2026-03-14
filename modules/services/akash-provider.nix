@@ -60,19 +60,19 @@
     # ============================================================================
     # REQUIRED PACKAGES
     # ============================================================================
-    environment = {
-      systemPackages = with pkgs; [
-        helm
-        kubectl
-        gnupg # For wallet key operations
-        bc # For pricing calculations
-        jq # For JSON parsing in bid script
-      ];
+    environment.systemPackages = with pkgs; [
+      helm
+      kubectl
+      gnupg # For wallet key operations
+      bc # For pricing calculations
+      jq # For JSON parsing in bid script
+    ];
 
-      # ============================================================================
-      # AKASH PROVIDER NAMESPACE
-      # ============================================================================
-      # Create Kubernetes namespace for Akash services via manifest
+    # ============================================================================
+    # KUBERNETES MANIFESTS
+    # ============================================================================
+    environment.etc = {
+      # Akash Provider Namespace
       "kubernetes/manifests/akash-namespace.yaml".text = builtins.toJSON {
         apiVersion = "v1";
         kind = "Namespace";
@@ -85,10 +85,7 @@
         };
       };
 
-      # ============================================================================
-      # STORAGE CLASSES FOR AKASH
-      # ============================================================================
-      # Akash uses specific storage class names (beta2, beta3, ram)
+      # Storage Classes for Akash
       "kubernetes/manifests/akash-storage-classes.yaml".text = builtins.toJSON {
         apiVersion = "v1";
         kind = "List";
@@ -129,19 +126,14 @@
         ];
       };
 
-      # ============================================================================
-      # NGINX INGRESS CONTROLLER (Required for Akash)
-      # ============================================================================
-      # Akash requires an ingress controller to route tenant HTTP/HTTPS traffic
+      # NGINX Ingress Controller (Required for Akash)
       "kubernetes/manifests/ingress-nginx.yaml".source = pkgs.fetchurl {
         url = "https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml";
         hash = "sha256:150rf4nrxws31d9a69c5lkq1jyy2nsn20225kpvlqb0lcjjyyz3h";
       };
 
-      # ============================================================================
-      # PROVIDER HELM VALUES (Generated from NixOS config)
-      # ============================================================================
-      etc."akash-provider-values.yaml".text = lib.generators.toYAML {} {
+      # Provider Helm Values (Generated from NixOS config)
+      "akash-provider/akash-provider-values.yaml".text = lib.generators.toYAML {} {
         # Chain configuration
         chainid = "akashnet-2";
         node = "https://rpc.akashnet.net:443";

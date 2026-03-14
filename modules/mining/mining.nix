@@ -202,20 +202,18 @@ in {
     users.groups.mining = {};
 
     # 2MB huge pages for general use and GPU miners
-    boot.kernel.sysctl = {
-      "vm.nr_hugepages" = 1280;
+    # Load MSR module for CPU mining performance (required by xmrig for CPU MSR access)
+    # 1GB huge pages for RandomX mining (must be set at boot, RandomX dataset is ~2GB)
+    boot = {
+      kernel.sysctl = {
+        "vm.nr_hugepages" = 1280;
+      };
+      kernelModules = ["msr"];
+      kernelParams = mkIf cfg.xmrig.enable [
+        "hugepagesz=1G"
+        "hugepages=3"
+      ];
     };
-
-    # Load MSR module for CPU mining performance
-    # Required by xmrig for CPU MSR access (RandomX optimization)
-    boot.kernelModules = ["msr"];
-
-    # 1GB huge pages for RandomX mining (must be set at boot)
-    # RandomX dataset is ~2GB, so we reserve 3 1GB pages for overhead
-    boot.kernelParams = mkIf cfg.xmrig.enable [
-      "hugepagesz=1G"
-      "hugepages=3"
-    ];
 
     # Set permissions on MSR devices for mining user
     # Allows xmrig to access CPU MSRs for performance optimization

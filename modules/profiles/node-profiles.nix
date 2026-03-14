@@ -20,13 +20,17 @@
     mkIf profileCfg.enable (
       let
         # Extract networking config - handle both nested and direct formats
-        networkingCfg =
+        networkingCfgBase =
           profileCfg.networking or {
             ipAddress = profileCfg.ipAddress or null;
             interfaceName = profileCfg.interfaceName or null;
             unboundListenAddress = profileCfg.unboundListenAddress or null;
             wireless = profileCfg.wireless or {enable = false;};
           };
+        # Ensure wireless has a default value
+        networkingCfg = networkingCfgBase // {
+          wireless = networkingCfgBase.wireless or {enable = false;};
+        };
       in {
         # Apply networking configuration (only if ipAddress is set)
         clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
@@ -57,13 +61,18 @@
         # Apply network profiles
         profiles.network.tailscale.enable = true;
 
-        # Disable DHCP if requested
-        networking.dhcpcd.enable = mkIf (profileCfg.disableDHCP or false) (lib.mkForce false);
+        # Networking configuration
+        networking = {
+          # Disable DHCP if requested
+          dhcpcd.enable = mkIf (profileCfg.disableDHCP or false) (lib.mkForce false);
 
-        # Apply extra firewall rules
-        networking.firewall.allowedTCPPorts = profileCfg.firewallExtraTCPPorts or [];
-        networking.firewall.allowedTCPPortRanges = profileCfg.firewallExtraTCPPortRanges or [];
-        networking.firewall.allowedUDPPorts = profileCfg.firewallExtraUDPPorts or [];
+          # Apply extra firewall rules
+          firewall = {
+            allowedTCPPorts = profileCfg.firewallExtraTCPPorts or [];
+            allowedTCPPortRanges = profileCfg.firewallExtraTCPPortRanges or [];
+            allowedUDPPorts = profileCfg.firewallExtraUDPPorts or [];
+          };
+        };
       }
     );
 in {
@@ -98,28 +107,15 @@ in {
       };
 
       # Networking
-      ipAddress = mkOption {
-        type = types.str;
-        default = "10.1.1.110";
-        description = "Node IP address";
-      };
-
-      interfaceName = mkOption {
-        type = types.str;
-        default = "enp38s0";
-        description = "Network interface name";
-      };
-
-      unboundListenAddress = mkOption {
-        type = types.str;
-        default = "10.1.1.110";
-        description = "Unbound DNS listen address";
-      };
-
-      wireless = mkOption {
+      networking = mkOption {
         type = types.attrs;
-        default = {enable = true;};
-        description = "Wireless configuration";
+        default = {
+          ipAddress = "10.1.1.110";
+          interfaceName = "enp38s0";
+          unboundListenAddress = "10.1.1.110";
+          wireless.enable = true;
+        };
+        description = "Networking configuration";
       };
 
       # Firewall ports (beyond cluster defaults)
@@ -372,10 +368,12 @@ in {
         description = "Kubernetes configuration";
       };
 
-      unboundListenAddress = mkOption {
-        type = types.str;
-        default = "10.1.1.110";
-        description = "IP address for Unbound to listen on";
+      networking = mkOption {
+        type = types.attrs;
+        default = {
+          unboundListenAddress = "10.1.1.110";
+        };
+        description = "Networking configuration";
       };
     };
 
@@ -392,10 +390,12 @@ in {
         description = "Kubernetes configuration";
       };
 
-      unboundListenAddress = mkOption {
-        type = types.str;
-        default = "10.1.1.120";
-        description = "IP address for Unbound to listen on";
+      networking = mkOption {
+        type = types.attrs;
+        default = {
+          unboundListenAddress = "10.1.1.120";
+        };
+        description = "Networking configuration";
       };
 
       firewallExtraTCPPorts = mkOption {

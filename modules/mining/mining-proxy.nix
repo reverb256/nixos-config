@@ -189,6 +189,8 @@ in {
         WorkingDirectory = cfg.dataDir;
 
         ExecStart = "${cfg.package}/bin/mining-proxy --config /etc/mining-proxy/config.json";
+        # Graceful shutdown
+        ExecStop = "${pkgs.coreutils}/bin/kill -SIGTERM $MAINPID";
 
         Restart = "on-failure";
         RestartSec = "10s";
@@ -203,9 +205,6 @@ in {
         MemoryLimit = "1G";
         CPUQuota = "300%";
       };
-
-      # Graceful shutdown
-      serviceConfig.ExecStop = "${pkgs.coreutils}/bin/kill -SIGTERM $MAINPID";
     };
   };
 }
