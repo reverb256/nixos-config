@@ -203,13 +203,23 @@
     # OUTPUT 1: nixosConfigurations (for local nixos-rebuild)
     # ========================================================================
     nixosConfigurations =
+      # Baseline configurations (no microarchitecture tuning)
       builtins.mapAttrs
       (_name: value: mkNixosSystem {inherit (value) hostName;})
-      hosts;
+      hosts
+      // {
+        # x86-64-v3 configurations (suffix: -v3)
+        # Use: sudo nixos-rebuild switch --flake .#nexus-v3
+        nexus-v3 = mkNixosSystemV3 {hostName = "nexus";};
+        zephyr-v3 = mkNixosSystemV3 {hostName = "zephyr";};
+        forge-v3 = mkNixosSystemV3 {hostName = "forge";};
+        sentry-v3 = mkNixosSystemV3 {hostName = "sentry";};
+      };
 
     # ========================================================================
     # OUTPUT 1.5: nixosConfigurationsV3 (x86-64-v3 microarchitecture)
     # ========================================================================
+    # Kept for Colmena and programmatic access
     nixosConfigurationsV3 =
       builtins.mapAttrs
       (_name: value: mkNixosSystemV3 {inherit (value) hostName;})
