@@ -6,6 +6,7 @@
 # See: docs/kubernetes/service-account-security.md
 { config
 , pkgs
+, pkgs-stable
 , lib
 , ...
 }: {
@@ -92,6 +93,10 @@
       # KUBERNETES SERVICES - Consolidated configuration
       # ============================================================================
       services.kubernetes = {
+        # Use kubernetes from nixos-25.11 (pkgs-stable) to avoid broken 1.35.0 in unstable
+        # See: https://github.com/NixOS/nixpkgs/issues/xxxxx
+        package = pkgs-stable.kubernetes;
+
         # Master address
         masterAddress = config.services.kubernetes-module.masterAddress;
         # PKI (Certificates) - Auto-generate with easyCerts

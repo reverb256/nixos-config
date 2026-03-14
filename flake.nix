@@ -2,7 +2,8 @@
   description = "NixOS configuration with Garage and Syncthing storage";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.11";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -63,6 +64,7 @@
   outputs = inputs @ {
     self,
     nixpkgs,
+    nixpkgs-stable,
     home-manager,
     aagl,
     nur,
@@ -134,7 +136,14 @@
     }:
       nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = {inherit inputs;};
+        specialArgs = {
+          inherit inputs;
+          # Import stable nixpkgs for packages with known issues in unstable
+          pkgs-stable = import nixpkgs-stable {
+            inherit system;
+            config.allowUnfree = true;
+          };
+        };
         modules =
           commonModules
           ++ [
@@ -171,7 +180,14 @@
     }:
       nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = {inherit inputs;};
+        specialArgs = {
+          inherit inputs;
+          # Import stable nixpkgs for packages with known issues in unstable
+          pkgs-stable = import nixpkgs-stable {
+            inherit system;
+            config.allowUnfree = true;
+          };
+        };
         modules =
           commonModules
           ++ [
