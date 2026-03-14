@@ -215,18 +215,15 @@
 
                 try:
                     if self.pool.tls:
-                        # Create SSL context with maximum compatibility for mining pools
-                        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                        # Try older SSL context that might work better with mining pools
+                        # Some pools use older TLS versions or have compatibility issues
+                        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
                         ssl_context.check_hostname = False
                         ssl_context.verify_mode = ssl.CERT_NONE
-                        # Enable TLS 1.2 and 1.3 (disable older insecure versions)
-                        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
-                        ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
-                        # Set SNI (Server Name Indication) explicitly
+                        # Try to enable all cipher suites for maximum compatibility
+                        ssl_context.set_ciphers('DEFAULT:@SECLEVEL=0')
+                        # Set SNI
                         ssl_context.server_hostname = self.host
-                        # Use broad cipher suite for compatibility
-                        if hasattr(ssl, 'OP_LEGACY_SERVER_CONNECT'):
-                            ssl_context.options |= ssl.OP_LEGACY_SERVER_CONNECT
                         self.reader, self.writer = await asyncio.wait_for(
                             asyncio.open_connection(self.host, self.port, ssl=ssl_context, server_hostname=self.host),
                             timeout=30
@@ -589,17 +586,16 @@
                 logging.info(f"Pool message loop started for {pool.pool.name}")
 
                 # Initialize pool connection (subscribe, configure) now that loop is running
-                # NOTE: Kryptex and some pools don't respond to standard subscribe
-                # They just start sending jobs immediately after connection
+                # Initialize pool connection (subscribe, configure) now that loop is running
                 if not pool.initialized:
                     try:
                         logging.info("Initializing pool connection...")
-                        # Don't send subscribe - let pool send first message (job)
-                        # await pool.subscribe()
+                        await pool.subscribe()
                         pool.initialized = True
-                        logging.info("Pool connection initialized (waiting for pool to send jobs)")
+                        logging.info("Pool connection initialized (waiting for pool response)")
                     except Exception as e:
                         logging.error(f"Error initializing pool: {e}")
+                        logging.error(f"Traceback: {traceback.format_exc()}")
                         await self.failover_pool()
                         return
 
