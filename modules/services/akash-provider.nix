@@ -286,8 +286,8 @@
 
       akash-helm-init = {
         description = "Add Akash Helm repository";
-        # Don't auto-start - requires manual invocation
-        # wantedBy = ["multi-user.target"];
+        # DISABLED: Manual invocation only via `systemctl start akash-helm-init`
+        enable = false;
         path = [pkgs.helm];
         serviceConfig = {
           Type = "oneshot";
@@ -340,8 +340,8 @@
 
       akash-provider-prereq = {
         description = "Akash Provider Prerequisites Check";
-        # Don't auto-start - requires manual invocation after Kubernetes is ready
-        # wantedBy = ["multi-user.target"];
+        # DISABLED: Manual invocation only via `systemctl start akash-provider-prereq`
+        enable = false;
         after = [
           "kubernetes.target"
           "akash-node-labels.service"
