@@ -20,14 +20,14 @@ _mining_pause() {
     local TIMEOUT=2
 
     # Check if xmrig is running
-    if ! pgrep -x xmrig >/dev/null 2>&1; then
+    if ! pgrep -f 'xmrig' >/dev/null 2>&1; then
         return 0  # Not running, nothing to pause
     fi
 
     # Check if token file exists
     if [[ ! -f "$TOKEN_FILE" ]]; then
         _warn "XMRig API token not found, using SIGSTOP fallback"
-        pkill -STOP xmrig 2>/dev/null || true
+        pkill -STOP -f 'xmrig' 2>/dev/null || true
         return 0
     fi
 
@@ -47,7 +47,7 @@ _mining_pause() {
     fi
 
     # Fallback: SIGSTOP
-    if pkill -STOP xmrig 2>/dev/null; then
+    if pkill -STOP -f 'xmrig' 2>/dev/null; then
         _warn "XMRig paused via SIGSTOP (API unavailable)"
     fi
 }
@@ -60,14 +60,14 @@ _mining_resume() {
     local TIMEOUT=2
 
     # Check if xmrig is running
-    if ! pgrep -x xmrig >/dev/null 2>&1; then
+    if ! pgrep -f 'xmrig' >/dev/null 2>&1; then
         return 0  # Not running, nothing to resume
     fi
 
     # Check if token file exists
     if [[ ! -f "$TOKEN_FILE" ]]; then
         _warn "XMRig API token not found, using SIGCONT fallback"
-        pkill -CONT xmrig 2>/dev/null || true
+        pkill -CONT -f 'xmrig' 2>/dev/null || true
         return 0
     fi
 
@@ -87,7 +87,7 @@ _mining_resume() {
     fi
 
     # Fallback: SIGCONT
-    if pkill -CONT xmrig 2>/dev/null; then
+    if pkill -CONT -f 'xmrig' 2>/dev/null; then
         _warn "XMRig resumed via SIGCONT (API unavailable)"
     fi
 }
