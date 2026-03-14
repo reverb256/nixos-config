@@ -4,7 +4,7 @@
     isNormalUser = true;
     description = "Jeremy Kroeker";
     shell = pkgs.fish;
-    extraGroups = ["networkmanager" "wheel" "render" "video" "libinput" "ai-inference" "plugdev"];
+    extraGroups = ["networkmanager" "wheel" "render" "video" "libinput" "ai-inference" "plugdev" "openrazer"];
     packages = with pkgs; [
       kdePackages.kate
       kdePackages.yakuake # Drop-down terminal emulator
