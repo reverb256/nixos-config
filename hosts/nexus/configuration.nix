@@ -45,15 +45,34 @@
     enable = true;
     hostName = "nexus";
     ipAddress = "10.1.1.120";
-    interfaceName = "enp7s0"; # Native hardware interface name
+    interfaceName = "lan0"; # Native hardware interface name (FIXED: was enp7s0)
     wireless.enable = true; # Enable WiFi for versatility (interface: wlo1, native: wlp4s0)
     unbound.listenAddress = "10.1.1.120"; # Listen on node IP for cluster DNS
   };
 
   # Populate /etc/hosts from central cluster configuration
-  networking.cluster-hosts = {
-    enable = true;
-    populateLocal = true;
+  networking = {
+    cluster-hosts = {
+      enable = true;
+      populateLocal = true;
+    };
+
+    # Nexus-specific firewall rules (in addition to cluster defaults)
+    firewall = {
+      allowedTCPPorts = lib.mkOptionDefault [
+        10250 # Kubelet API
+        5000  # Harmonia binary cache
+      ];
+      allowedTCPPortRanges = [
+        {
+          from = 30000;
+          to = 32767;
+        }
+      ];
+      allowedUDPPorts = lib.mkOptionDefault [
+        8472 # Flannel VXLAN
+      ];
+    };
   };
 
   # ============================================================================
@@ -64,48 +83,36 @@
   # profiles.node.nexus-gaming.enable = true;
 
   # ============================================================================
-  # KUBERNETES HA - Control Plane Configuration
+  # SERVICES - All service configurations
   # ============================================================================
-  # Override profile defaults: Nexus becomes a master node for HA
-  services.kubernetes-module = {
-    enable = true;
-    # Override roles to include master
-    roles = lib.mkForce ["master" "node"];
-    # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
-    masterAddress = lib.mkForce "10.1.1.110";
-    # etcd clustering configuration (Nexus joins existing cluster)
-    etcdInitialState = "existing";
-    etcdName = "nexus";
-    etcdListenHost = "10.1.1.120";
-    etcdClusterMembers = [
-      "zephyr=http://10.1.1.110:2380"
-      "nexus=http://10.1.1.120:2380"
-      "sentry=http://10.1.1.140:2380"
-    ];
-  };
+  services = {
+    # KUBERNETES HA - Control Plane Configuration
+    # Override profile defaults: Nexus becomes a master node for HA
+    kubernetes-module = {
+      enable = true;
+      # Override roles to include master
+      roles = lib.mkForce ["master" "node"];
+      # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
+      masterAddress = lib.mkForce "10.1.1.110";
+      # etcd clustering configuration (Nexus joins existing cluster)
+      etcdInitialState = "existing";
+      etcdName = "nexus";
+      etcdListenHost = "10.1.1.120";
+      etcdClusterMembers = [
+        "zephyr=http://10.1.1.110:2380"
+        "nexus=http://10.1.1.120:2380"
+        "sentry=http://10.1.1.140:2380"
+      ];
+    };
 
-  # Keepalived VIP - priority 100 (middle priority)
-  services.keepalived-vip = {
-    enable = true;
-    vip = "10.1.1.100";
-    interface = "enp7s0";
-    priority = 100;
+    # Keepalived VIP - priority 100 (middle priority)
+    keepalived-vip = {
+      enable = true;
+      vip = "10.1.1.100";
+      interface = "enp7s0";
+      priority = 100;
+    };
   };
-
-  # Nexus-specific firewall rules (in addition to cluster defaults)
-  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
-    10250 # Kubelet API
-    5000  # Harmonia binary cache
-  ];
-  networking.firewall.allowedTCPPortRanges = [
-    {
-      from = 30000;
-      to = 32767;
-    }
-  ];
-  networking.firewall.allowedUDPPorts = lib.mkOptionDefault [
-    8472 # Flannel VXLAN
-  ];
 
   # ============================================================================
   # HARDWARE PROFILES
