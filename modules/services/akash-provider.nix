@@ -61,7 +61,7 @@
     # REQUIRED PACKAGES
     # ============================================================================
     environment.systemPackages = with pkgs; [
-      helm
+      kubernetes-helm
       kubectl
       gnupg # For wallet key operations
       bc # For pricing calculations
@@ -291,7 +291,7 @@
         # Explicitly stop and disable if previously enabled
         stopIfChanged = false;
         restartIfChanged = false;
-        path = [pkgs.helm pkgs.gnupg];
+        path = [pkgs.kubernetes-helm pkgs.gnupg];
         serviceConfig = {
           Type = "oneshot";
           # Prevent X11 connection attempts and GPG pinentry
