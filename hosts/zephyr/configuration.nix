@@ -39,7 +39,7 @@
     enable = true;
     hostName = "zephyr";
     ipAddress = "10.1.1.110";
-    interfaceName = "enp38s0"; # Native hardware interface name
+    interfaceName = "lan0"; # Standardized cluster interface name
     wireless.enable = true; # WiFi interface: wlo1 (native: wlp40s0)
     unbound.listenAddress = "10.1.1.110"; # Listen on node IP for cluster DNS
   };

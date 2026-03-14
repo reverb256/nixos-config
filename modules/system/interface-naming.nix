@@ -13,9 +13,9 @@
       linkConfig.Name = "lan0";
     };
 
-    # NEXUS (10.1.1.120) - enp7s0 → lan0
+    # NEXUS (10.1.1.120) - enp2s0f0u8u1 → lan0 (USB Ethernet adapter)
     "10-lan0-nexus" = {
-      matchConfig.MACAddress = "e0:d5:5e:a7:4b:50";
+      matchConfig.MACAddress = "00:0e:c6:c6:16:67";
       linkConfig.Name = "lan0";
     };
 
