@@ -39,7 +39,7 @@
     enable = true;
     hostName = "sentry";
     ipAddress = "10.1.1.140";
-    interfaceName = "enp7s0"; # Native hardware interface name
+    interfaceName = "lan0"; # Standardized cluster interface name
     wireless.enable = false; # Monitoring node - no WiFi needed
     unbound.listenAddress = "10.1.1.140"; # Listen on node IP for cluster DNS
   };
@@ -51,16 +51,18 @@
       populateLocal = true;
     };
     # Kubernetes worker firewall rules
-    firewall.allowedTCPPorts = lib.mkOptionDefault [22 10250 3100]; # SSH + Kubelet API + Loki (merges with cluster defaults)
-    firewall.allowedTCPPortRanges = lib.mkOptionDefault [
-      {
-        from = 30000;
-        to = 32767;
-      }
-    ];
-    firewall.allowedUDPPorts = lib.mkOptionDefault [8472]; # Flannel VXLAN (merges with cluster defaults)
-    # Open Loki port on main interface for cluster access (module only opens on tailscale0)
-    firewall.interfaces."enp7s0".allowedTCPPorts = [3100];
+    firewall = {
+      allowedTCPPorts = lib.mkOptionDefault [22 10250 3100]; # SSH + Kubelet API + Loki (merges with cluster defaults)
+      allowedTCPPortRanges = lib.mkOptionDefault [
+        {
+          from = 30000;
+          to = 32767;
+        }
+      ];
+      allowedUDPPorts = lib.mkOptionDefault [8472]; # Flannel VXLAN (merges with cluster defaults)
+      # Open Loki port on main interface for cluster access (module only opens on tailscale0)
+      interfaces."enp7s0".allowedTCPPorts = [3100];
+    };
   };
 
   # ============================================================================
@@ -71,32 +73,35 @@
   # profiles.node.sentry-monitoring.enable = true;
 
   # ============================================================================
-  # KUBERNETES HA - Control Plane Configuration
+  # SERVICES - All service configurations
   # ============================================================================
-  # Override profile defaults: Sentry becomes a master node for HA
-  services.kubernetes-module = {
-    enable = true;
-    # Override roles to include master
-    roles = lib.mkForce ["master" "node"];
-    # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
-    masterAddress = lib.mkForce "10.1.1.110";
-    # etcd clustering configuration (Sentry joins existing cluster)
-    etcdInitialState = "existing";
-    etcdName = "sentry";
-    etcdListenHost = "10.1.1.140";
-    etcdClusterMembers = [
-      "zephyr=http://10.1.1.110:2380"
-      "nexus=http://10.1.1.120:2380"
-      "sentry=http://10.1.1.140:2380"
-    ];
-  };
+  services = {
+    # KUBERNETES HA - Control Plane Configuration
+    # Override profile defaults: Sentry becomes a master node for HA
+    kubernetes-module = {
+      enable = true;
+      # Override roles to include master
+      roles = lib.mkForce ["master" "node"];
+      # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
+      masterAddress = lib.mkForce "10.1.1.110";
+      # etcd clustering configuration (Sentry joins existing cluster)
+      etcdInitialState = "existing";
+      etcdName = "sentry";
+      etcdListenHost = "10.1.1.140";
+      etcdClusterMembers = [
+        "zephyr=http://10.1.1.110:2380"
+        "nexus=http://10.1.1.120:2380"
+        "sentry=http://10.1.1.140:2380"
+      ];
+    };
 
-  # Keepalived VIP - priority 90 (lowest - backup master)
-  services.keepalived-vip = {
-    enable = true;
-    vip = "10.1.1.100";
-    interface = "enp7s0";
-    priority = 90;
+    # Keepalived VIP - priority 90 (lowest - backup master)
+    keepalived-vip = {
+      enable = true;
+      vip = "10.1.1.100";
+      interface = "enp7s0";
+      priority = 90;
+    };
   };
 
   # ============================================================================
