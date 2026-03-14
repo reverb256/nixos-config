@@ -75,8 +75,10 @@ in {
       }];
 
       # Default route via gateway
-      defaultGateway = "10.1.1.1";
-      defaultGateway6 = { address = "fe80::1"; interface = cfg.interfaceName; };
+      defaultGateway = {
+        address = "10.1.1.1";
+        interface = cfg.interfaceName;
+      };
 
       # NetworkManager for WiFi backup only (not wired)
       networkmanager = {

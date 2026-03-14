@@ -12,7 +12,8 @@
     # Use NetworkManager for interface management
     # NetworkManager handles both wired and wireless connections
     # (wpa_supplicant wireless is not used - it conflicts with NetworkManager)
-    networkmanager.enable = true;
+    # Use mkDefault so cluster-networking can override for systemd-networkd
+    networkmanager.enable = lib.mkDefault true;
     useDHCP = false;
 
     # CLUSTER HOSTS ENTRIES (Shared across all nodes)

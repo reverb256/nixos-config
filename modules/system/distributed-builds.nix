@@ -112,7 +112,7 @@ in {
         "https://reverb-os.cachix.org"  # Personal Cachix cache
         "https://ezkea.cachix.org"
         "https://nix-gaming.cachix.org"
-        "http://10.1.1.120:5000"  # Nexus Harmonia cache (cluster) - LAST due to intermittent availability
+        # "http://10.1.1.120:5000"  # Nexus Harmonia cache - DISABLED: service not running, causing timeouts
         # "https://cache.nixos-cuda.org" # TEMPORARILY DISABLED - connectivity issues
       ];
       trusted-public-keys = [
