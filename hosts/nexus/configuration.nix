@@ -325,15 +325,15 @@
       ];
       workers = [
         {
-          id = "nexus-gpu";
+          id = "krxXVNVMM7.nexus-gpu";
           password = "x";
         }
         {
-          id = "zephyr-gpu";
+          id = "krxXVNVMM7.zephyr-gpu";
           password = "x";
         }
         {
-          id = "forge-gpu";
+          id = "krxXVNVMM7.forge-gpu";
           password = "x";
         }
       ];
