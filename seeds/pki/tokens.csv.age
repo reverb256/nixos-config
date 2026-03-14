@@ -1,0 +1,20 @@
+# =============================================================================
+# Kubernetes Static Token Authentication
+# =============================================================================
+#
+# Purpose: Bootstrap tokens for new nodes
+#
+# Format: token-id.token-hash,user,uid,groups
+#
+# Generate new tokens with:
+#   kubeadm token create
+#
+# Security Note:
+#   - Rotate tokens after node join
+#   - Delete unused tokens
+#   - Use TLS bootstrap for production
+#
+# =============================================================================
+# Example tokens (replace with generated values)
+# abcdef.0123456789abcdef,system:bootstrapper,kubeadm:bootstrap-nodes,system:bootstrappers
+# abcdef.0123456789abcdef,system:node-bootstrapper,kubeadm:node-bootstrapper,system:nodes

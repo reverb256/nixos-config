@@ -1,0 +1,22 @@
+{
+  "CN": "etcd-zephyr",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "etcd",
+      "OU": "Server",
+      "L": "Homelab",
+      "ST": "Infrastructure",
+      "C": "US"
+    }
+  ],
+  "hosts": [
+    "zephyr",
+    "10.1.1.110",
+    "127.0.0.1",
+    "localhost"
+  ]
+}
