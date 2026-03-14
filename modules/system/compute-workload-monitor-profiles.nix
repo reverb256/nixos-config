@@ -52,71 +52,53 @@
     };
 
     config = let
-      # Profile definitions based on node capabilities
-      profiles = {
+      # Base profile definitions
+      baseProfiles = {
+        conservative = {
+          cpuBuild = "3.0";
+          cpuIdle = "1.5";
+          memSome = "0.5";
+          memFull = "0.3";
+          ioSome = "1.5";
+          ioFull = "0.2";
+        };
+        balanced = {
+          cpuBuild = "5.0";
+          cpuIdle = "2.0";
+          memSome = "1.0";
+          memFull = "0.5";
+          ioSome = "2.0";
+          ioFull = "0.3";
+        };
+        aggressive = {
+          cpuBuild = "8.0";
+          cpuIdle = "3.0";
+          memSome = "2.0";
+          memFull = "1.0";
+          ioSome = "3.0";
+          ioFull = "0.5";
+        };
+      };
+
+      # Per-node profile overrides based on hardware capacity and role
+      profileOverrides = {
         zephyr = {
           # 32 cores, 31GB RAM - Can handle more pressure
           # Control plane needs headroom for apiserver/etcd
-          conservative = {
-            cpuBuild = "3.0";   # More sensitive (pause earlier)
-            cpuIdle = "1.5";
-            memSome = "0.5";    # Memory pressure is critical with 31GB
-            memFull = "0.3";
-            ioSome = "1.5";
-            ioFull = "0.2";
-          };
-          balanced = {
-            cpuBuild = "5.0";
-            cpuIdle = "2.0";
-            memSome = "1.0";
-            memFull = "0.5";
-            ioSome = "2.0";
-            ioFull = "0.3";
-          };
-          aggressive = {
-            cpuBuild = "8.0";   # Let builds run longer
-            cpuIdle = "3.0";
-            memSome = "2.0";
-            memFull = "1.0";
-            ioSome = "3.0";
-            ioFull = "0.5";
-          };
+          # Uses base profiles as-is
         };
         nexus = {
           # 24 cores, 46GB RAM, NFS server - More RAM, I/O sensitive
           # NFS operations need low I/O latency
-          conservative = {
-            cpuBuild = "3.0";
-            cpuIdle = "1.5";
-            memSome = "0.5";
-            memFull = "0.3";
-            ioSome = "1.0";    # More sensitive (NFS server)
-            ioFull = "0.2";
-          };
-          balanced = {
-            cpuBuild = "5.0";
-            cpuIdle = "2.0";
-            memSome = "1.0";
-            memFull = "0.5";
-            ioSome = "2.0";
-            ioFull = "0.3";
-          };
-          aggressive = {
-            cpuBuild = "8.0";
-            cpuIdle = "3.0";
-            memSome = "2.0";
-            memFull = "1.0";
-            ioSome = "3.0";
-            ioFull = "0.5";
-          };
+          conservative.ioSome = "1.0";  # More sensitive (NFS server)
         };
         forge = {
           # 6 cores, 15GB RAM, 4x GPU - Smallest node, memory constrained
           # GPU mining is primary workload
           conservative = {
-            cpuBuild = "2.0";    # Very sensitive (only 6 cores)
+            cpuBuild = "2.0";  # Very sensitive (only 6 cores)
             cpuIdle = "1.0";
-            memSome = "0.3";    # Memory constrained (15GB)
+            memSome = "0.3";   # Memory constrained (15GB)
             memFull = "0.2";
             ioSome = "1.0";
             ioFull = "0.1";
@@ -141,32 +123,20 @@
         sentry = {
           # 16 cores, 31GB RAM, 1x AMD - Monitoring node
           # Monitoring needs to stay responsive
-          conservative = {
-            cpuBuild = "3.0";
-            cpuIdle = "1.5";
-            memSome = "0.5";
-            memFull = "0.3";
-            ioSome = "1.5";
-            ioFull = "0.2";
-          };
-          balanced = {
-            cpuBuild = "5.0";
-            cpuIdle = "2.0";
-            memSome = "1.0";
-            memFull = "0.5";
-            ioSome = "2.0";
-            ioFull = "0.3";
-          };
-          aggressive = {
-            cpuBuild = "8.0";
-            cpuIdle = "3.0";
-            memSome = "2.0";
-            memFull = "1.0";
-            ioSome = "3.0";
-            ioFull = "0.5";
-          };
+          # Uses base profiles as-is
         };
       };
+
+      # Build final profiles by merging base with overrides
+      profiles = lib.mapAttrs (
+        nodeName: nodeOverrides:
+        lib.mapAttrs (
+          profileName: baseProfile:
+          lib.recursiveUpdate
+          baseProfile
+          (nodeOverrides.${profileName} or {})
+        ) baseProfiles
+      ) profileOverrides;
 
     in lib.mkIf config.services.compute-workload-monitor.enable (let
       # Select profile for current node

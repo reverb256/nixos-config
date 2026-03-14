@@ -96,11 +96,27 @@ in {
     };
 
     # ============================================================================
-    # DNS RESOLVER
+    # SERVICES - DNS, VPN, and Service Discovery
     # ============================================================================
-    services.unbound-cluster = {
-      enable = cfg.unbound.enable;
-      listenAddress = cfg.unbound.listenAddress;
+    services = {
+      unbound-cluster = {
+        enable = cfg.unbound.enable;
+        listenAddress = cfg.unbound.listenAddress;
+      };
+
+      # Tailscale VPN for secure remote access
+      tailscale.enable = true;
+
+      # Enable mDNS for local service discovery
+      avahi = {
+        enable = true;
+        nssmdns4 = true;
+        publish = {
+          enable = true;
+          addresses = true;
+          workstation = true;
+        };
+      };
     };
 
     # ============================================================================
@@ -118,23 +134,6 @@ in {
         53 # DNS (Unbound)
         41641 # Tailscale coordination server
       ];
-    };
-
-    # ============================================================================
-    # RELATED SERVICES
-    # ============================================================================
-    # Tailscale VPN for secure remote access
-    services.tailscale.enable = true;
-
-    # Enable mDNS for local service discovery
-    services.avahi = {
-      enable = true;
-      nssmdns4 = true;
-      publish = {
-        enable = true;
-        addresses = true;
-        workstation = true;
-      };
     };
   };
 }

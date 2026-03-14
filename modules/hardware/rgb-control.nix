@@ -38,47 +38,49 @@ in {
     };
 
     # Temperature-based RGB control
-    temperatureReactive.enable = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable temperature-reactive RGB color changes";
-    };
-
-    temperatureReactive.sensor = lib.mkOption {
-      type = lib.types.str;
-      default = "cpu";
-      example = "gpu";
-      description = "Temperature sensor to use: cpu, gpu, or both";
-    };
-
-    # Temperature thresholds (Celsius)
-    temperatureReactive.thresholds = lib.mkOption {
-      type = lib.types.attrsOf lib.types.int;
-      default = {
-        cool = 50;
-        warm = 65;
-        hot = 75;
+    temperatureReactive = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable temperature-reactive RGB color changes";
       };
-      description = "Temperature thresholds for color changes";
-    };
 
-    # Colors for each temperature zone (RGB hex)
-    temperatureReactive.colors = lib.mkOption {
-      type = lib.types.attrsOf lib.types.str;
-      default = {
-        cool = "0000FF";   # Blue
-        warm = "00FF00";   # Green
-        hot = "FFFF00";    # Yellow
-        critical = "FF0000"; # Red
+      sensor = lib.mkOption {
+        type = lib.types.str;
+        default = "cpu";
+        example = "gpu";
+        description = "Temperature sensor to use: cpu, gpu, or both";
       };
-      description = "RGB colors for temperature zones";
-    };
 
-    # Update interval for temperature polling
-    temperatureReactive.interval = lib.mkOption {
-      type = lib.types.int;
-      default = 5;
-      description = "Temperature polling interval in seconds";
+      # Temperature thresholds (Celsius)
+      thresholds = lib.mkOption {
+        type = lib.types.attrsOf lib.types.int;
+        default = {
+          cool = 50;
+          warm = 65;
+          hot = 75;
+        };
+        description = "Temperature thresholds for color changes";
+      };
+
+      # Colors for each temperature zone (RGB hex)
+      colors = lib.mkOption {
+        type = lib.types.attrsOf lib.types.str;
+        default = {
+          cool = "0000FF";   # Blue
+          warm = "00FF00";   # Green
+          hot = "FFFF00";    # Yellow
+          critical = "FF0000"; # Red
+        };
+        description = "RGB colors for temperature zones";
+      };
+
+      # Update interval for temperature polling
+      interval = lib.mkOption {
+        type = lib.types.int;
+        default = 5;
+        description = "Temperature polling interval in seconds";
+      };
     };
   };
 
