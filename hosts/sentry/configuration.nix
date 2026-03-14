@@ -39,7 +39,7 @@
     enable = true;
     hostName = "sentry";
     ipAddress = "10.1.1.140";
-    interfaceName = "lan0"; # Standardized cluster interface name
+    interfaceName = "enp7s0"; # Native hardware interface name
     wireless.enable = false; # Monitoring node - no WiFi needed
     unbound.listenAddress = "10.1.1.140"; # Listen on node IP for cluster DNS
   };

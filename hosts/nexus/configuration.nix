@@ -45,7 +45,7 @@
     enable = true;
     hostName = "nexus";
     ipAddress = "10.1.1.120";
-    interfaceName = "lan0"; # Native hardware interface name (FIXED: was enp7s0)
+    interfaceName = "enp7s0"; # Native hardware interface name
     wireless.enable = true; # Enable WiFi for versatility (interface: wlo1, native: wlp4s0)
     unbound.listenAddress = "10.1.1.120"; # Listen on node IP for cluster DNS
   };
