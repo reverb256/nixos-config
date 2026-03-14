@@ -2,34 +2,17 @@
 # Modern Rust-based binary cache server with compression and TLS
 # See: https://github.com/nix-community/harmonia
 #
-# FEATURES:
-# - zstd compression (3-5x smaller nar files)
-# - HTTP range support (resumable downloads)
-# - Built-in TLS (no reverse proxy needed)
-# - Prometheus metrics (/metrics)
-# - Optional isolated daemon
-#
-# USAGE:
-#   1. Generate signing key:
-#      nix-store --generate-binary-cache-key nexus-cache \
-#        /var/lib/secrets/harmonia.secret \
-#        /var/lib/secrets/harmonia.pub
-#
-#   2. Add to flake.nix inputs:
-#      harmonia.url = "github:nix-community/harmonia";
-#
-#   3. Configure client nodes:
-#      nix.settings.substituters = [ "https://10.1.1.120:5000" ];
-#      nix.settings.trusted-public-keys = [ "nexus-cache:KEY_HERE" ];
+# This is a simple wrapper that configures harmonia from nixpkgs
+# For the full harmonia flake with latest features, add to flake.nix:
+#   harmonia.url = "github:nix-community/harmonia";
+# And import: inputs.harmonia.nixosModules.harmonia
 {
   config,
   lib,
   pkgs,
-  inputs,
   ...
 }: let
   cfg = config.services.nix-cache.harmonia;
-  harmoniaModule = inputs.harmonia.nixosModules.default;
 in {
   options.services.nix-cache.harmonia = {
     enable = lib.mkEnableOption "Harmonia binary cache server";
@@ -72,11 +55,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Import the harmonia flake module
-    imports = [ harmoniaModule ];
-
-    # Harmonia binary cache configuration
-    # Note: Options are under services.harmonia.cache.* namespace
+    # Harmonia binary cache from nixpkgs
     services.harmonia.cache = {
       enable = true;
       signKeyPaths = cfg.signKeyPaths;
