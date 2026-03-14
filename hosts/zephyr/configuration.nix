@@ -585,8 +585,22 @@
     # GPU miners connect directly to Kryptex CR29 with TLS
     mining = {
       lolminer = {
-        pool = "xtm-c29-us.kryptex.network:8040";
+        pool = "xtm-c29-us.kryptex.network:8040";  # Fallback if pools list empty
         wallet = "krxXVNVMM7.zephyr-gpu";
+        pools = [
+          {
+            url = "10.1.1.120:3334";  # gpu-proxy on Nexus (primary)
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = false;  # No TLS for local proxy
+          }
+          {
+            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex (fallback)
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = true;  # TLS required for Kryptex
+          }
+        ];
       };
       # NVIDIA GPU mining with per-GPU power limits
       # Device 0: RTX 3060 Ti @ 130W (efficient), Device 1: RTX 3090 @ 250W (VRAM-safe)

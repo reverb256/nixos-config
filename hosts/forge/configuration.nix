@@ -118,9 +118,24 @@
         apiPort = 4069;
       };
 
-      # GPU miners connect directly to Kryptex CR29 with TLS
-      pool = "xtm-c29-us.kryptex.network:8040";
+      # GPU miners connect to gpu-proxy first, fallback to Kryptex
+      # Multi-pool failover: nexus proxy first, then direct Kryptex
+      pool = "xtm-c29-us.kryptex.network:8040";  # Fallback if pools list empty
       wallet = "krxXVNVMM7.forge-gpu";
+      pools = [
+        {
+          url = "10.1.1.120:3334";  # gpu-proxy on Nexus (primary)
+          wallet = "krxXVNVMM7.forge-gpu";
+          password = "x";
+          tls = false;  # No TLS for local proxy
+        }
+        {
+          url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex (fallback)
+          wallet = "krxXVNVMM7.forge-gpu";
+          password = "x";
+          tls = true;  # TLS required for Kryptex
+        }
+      ];
     };
 
     # GPU Stratum Proxy with Kryptex pool failover
