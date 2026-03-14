@@ -101,7 +101,6 @@
       etcdClusterMembers = [
         "zephyr=http://10.1.1.110:2380"
         "nexus=http://10.1.1.120:2380"
-        "sentry=http://10.1.1.140:2380"
       ];
     };
 

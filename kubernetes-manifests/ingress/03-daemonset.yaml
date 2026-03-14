@@ -24,7 +24,8 @@ spec:
         # Reload Caddy on config change - use kubectl rollout restart to apply config updates
     spec:
       serviceAccountName: caddy-ingress
-      hostNetwork: true
+      # hostNetwork: true - REMOVED: Breaks DNS access to cluster services
+      # Use hostPort instead to expose ports on host while keeping pod network
       # Run on Ready nodes only (skip Forge if it's NotReady)
       affinity:
         nodeAffinity:
@@ -34,8 +35,7 @@ spec:
               - key: kubernetes.io/os
                 operator: In
                 values: ["linux"]
-              - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
+      # NOTE: Removed control-plane exclusion to allow ingress on all nodes
       tolerations:
       # Allow scheduling on control-plane nodes
       - key: node-role.kubernetes.io/control-plane
@@ -98,9 +98,11 @@ spec:
         ports:
         - name: http
           containerPort: 80
+          hostPort: 80
           protocol: TCP
         - name: https
           containerPort: 443
+          hostPort: 443
           protocol: TCP
         - name: admin
           containerPort: 2019
@@ -108,6 +110,7 @@ spec:
         # HTTP/3 (QUIC) - requires UDP
         - name: https-udp
           containerPort: 443
+          hostPort: 443
           protocol: UDP
         livenessProbe:
           httpGet:

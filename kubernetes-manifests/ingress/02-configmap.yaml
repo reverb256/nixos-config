@@ -37,27 +37,31 @@ data:
     # CLUSTER INTERNAL SERVICES (.cluster.local)
     # ============================================================================
 
-    # AI Inference Gateway
-    ai.zephyr.cluster.local,
-    ai.cluster.local {
-      reverse_proxy ai-inference.default.svc.cluster.local:8080 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Host {host}
-        header_up X-Forwarded-Proto {scheme}
-      }
-    }
+    # DISABLED: ai-inference service not deployed yet
+    # # AI Inference Gateway
+    # ai.zephyr.cluster.local,
+    # ai.cluster.local {
+    #   tls internal
+    #   reverse_proxy ai-inference.default.svc.cluster.local:8080 {
+    #     header_up Host {host}
+    #     header_up X-Real-IP {remote_host}
+    #     header_up X-Forwarded-For {remote_host}
+    #     header_up X-Forwarded-Host {host}
+    #     header_up X-Forwarded-Proto {scheme}
+    #   }
+    # }
 
-    # SearXNG Privacy-Friendly Search
-    search.zephyr.cluster.local,
-    search.cluster.local {
-      reverse_proxy searxng.default.svc.cluster.local:7777 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-      }
-    }
+    # DISABLED: searxng service not deployed yet
+    # # SearXNG Privacy-Friendly Search
+    # search.zephyr.cluster.local,
+    # search.cluster.local {
+    #   tls internal
+    #   reverse_proxy searxng.default.svc.cluster.local:7777 {
+    #     header_up Host {host}
+    #     header_up X-Real-IP {remote_host}
+    #     header_up X-Forwarded-For {remote_host}
+    #   }
+    # }
 
     # ============================================================================
     # TEST SERVICES
@@ -66,6 +70,7 @@ data:
     # Echo Test Server - for testing ingress
     echo.cluster.local,
     echo.test.cluster.local {
+      tls internal
       reverse_proxy echo-server.test-echo.svc.cluster.local:80 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
@@ -74,63 +79,70 @@ data:
     }
 
     # Echo Test Server - HTTP only (for testing without TLS)
-    http://echo-http.cluster.local:8080 {
-      reverse_proxy echo-server.test-echo.svc.cluster.local:80
-    }
+    # DISABLED: Conflicts with host services when hostNetwork=true
+    # http://echo-http.cluster.local:8080 {
+    #   reverse_proxy echo-server.test-echo.svc.cluster.local:80
+    # }
 
     # ============================================================================
     # TAILSCALE SERVICES (.ts.net) - Auto HTTPS via internal CA
     # ============================================================================
 
-    # AI Inference Gateway (via Tailscale)
-    ai.zephyr.tigris-ule.ts.net:9002 {
-      tls internal
-      reverse_proxy ai-inference.default.svc.cluster.local:8080 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-      }
-    }
+    # DISABLED: ai-inference service not deployed yet
+    # # AI Inference Gateway (via Tailscale)
+    # ai.zephyr.tigris-ule.ts.net:9002 {
+    #   tls internal
+    #   reverse_proxy ai-inference.default.svc.cluster.local:8080 {
+    #     header_up Host {host}
+    #     header_up X-Real-IP {remote_host}
+    #     header_up X-Forwarded-For {remote_host}
+    #   }
+    # }
 
-    # SearXNG (via Tailscale)
-    search.zephyr.tigris-ule.ts.net:9001 {
-      tls internal
-      reverse_proxy searxng.default.svc.cluster.local:7777 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-      }
-    }
+    # DISABLED: searxng service not deployed yet
+    # # SearXNG (via Tailscale)
+    # search.zephyr.tigris-ule.ts.net:9001 {
+    #   tls internal
+    #   reverse_proxy searxng.default.svc.cluster.local:7777 {
+    #     header_up Host {host}
+    #     header_up X-Real-IP {remote_host}
+    #     header_up X-Forwarded-For {remote_host}
+    #   }
+    # }
 
-    # Vaultwarden (via Tailscale)
-    vaultwarden.zephyr.tigris-ule.ts.net {
-      tls internal
-      reverse_proxy vaultwarden.default.svc.cluster.local:80 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        # WebSocket support for WebSockets notifications
-        header_up Connection {>Connection}
-        header_up Upgrade {>Upgrade}
-      }
-    }
+    # DISABLED: vaultwarden service not deployed yet
+    # # Vaultwarden (via Tailscale)
+    # vaultwarden.zephyr.tigris-ule.ts.net {
+    #   tls internal
+    #   reverse_proxy vaultwarden.default.svc.cluster.local:80 {
+    #     header_up Host {host}
+    #     header_up X-Real-IP {remote_host}
+    #     header_up X-Forwarded-For {remote_host}
+    #     # WebSocket support for WebSockets notifications
+    #     header_up Connection {>Connection}
+    #     header_up Upgrade {>Upgrade}
+    #   }
+    # }
 
-    # GlitchTip Error Tracking
-    glitchtip.zephyr.tigris-ule.ts.net {
-      tls internal
-      reverse_proxy glitchtip-web.default.svc.cluster.local:8000 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-      }
-    }
+    # DISABLED: glitchtip service not deployed yet
+    # # GlitchTip Error Tracking
+    # glitchtip.zephyr.tigris-ule.ts.net {
+    #   tls internal
+    #   reverse_proxy glitchtip-web.default.svc.cluster.local:8000 {
+    #     header_up Host {host}
+    #     header_up X-Real-IP {remote_host}
+    #     header_up X-Forwarded-For {remote_host}
+    #   }
+    # }
 
     # ============================================================================
     # AKASH PROVIDER SERVICES
     # ============================================================================
 
     # Akash Provider (GPU compute marketplace)
+    # NOTE: Pod is crashing - needs investigation
     provider.cluster.local {
+      tls internal
       reverse_proxy akash-provider.akash-services.svc.cluster.local:8443 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
@@ -154,6 +166,7 @@ data:
     # Zephyr Dashboard - Control Plane, Workstation, Gaming
     zephyr.lan,
     zephyr.cluster.local {
+      tls internal
       reverse_proxy zephyr-dashboard.default.svc.cluster.local:80 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
@@ -164,6 +177,7 @@ data:
     # Nexus Dashboard - Storage, Build Server
     nexus.lan,
     nexus.cluster.local {
+      tls internal
       reverse_proxy nexus-dashboard.default.svc.cluster.local:80 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
@@ -174,6 +188,7 @@ data:
     # Forge Dashboard - Multi-GPU, Mining
     forge.lan,
     forge.cluster.local {
+      tls internal
       reverse_proxy forge-dashboard.default.svc.cluster.local:80 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
@@ -184,6 +199,7 @@ data:
     # Sentry Dashboard - Monitoring, CPU Mining
     sentry.lan,
     sentry.cluster.local {
+      tls internal
       reverse_proxy sentry-dashboard.default.svc.cluster.local:80 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
