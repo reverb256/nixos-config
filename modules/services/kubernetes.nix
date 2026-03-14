@@ -93,9 +93,8 @@
       # KUBERNETES SERVICES - Consolidated configuration
       # ============================================================================
       services.kubernetes = {
-        # Use kubernetes from nixos-25.11 (pkgs-stable) to avoid broken 1.35.0 in unstable
-        # See: https://github.com/NixOS/nixpkgs/issues/xxxxx
-        package = pkgs-stable.kubernetes;
+        # Using default kubernetes from unstable (1.35.0)
+        # Note: pkgs-stable had 1.34.3, reverting to unstable for 1.35.0
 
         # Master address
         masterAddress = config.services.kubernetes-module.masterAddress;
