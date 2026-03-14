@@ -60,26 +60,26 @@ check:
 #  LOCAL OPERATIONS
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Apply to current host (uses nh wrapper)
+# Apply to current host
 switch:
     #!/usr/bin/env bash
     set -e
     echo "▸ Switching $(hostname -s)..."
-    sudo nh os switch {{FLAKE}}
+    cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#$(hostname -s)
 
 # Build without applying (local host only)
 build:
     #!/usr/bin/env bash
     set -e
     echo "▸ Building $(hostname -s)..."
-    sudo nh os build {{FLAKE}}
+    cd {{FLAKE}} && sudo nixos-rebuild build --flake .#$(hostname -s)
 
 # Test rollback-safe switch
 test-apply:
     #!/usr/bin/env bash
     set -e
     echo "▸ Testing $(hostname -s) (rollback on next boot)..."
-    sudo nh os test {{FLAKE}}
+    cd {{FLAKE}} && sudo nixos-rebuild test --flake .#$(hostname -s)
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  FLAKE MANAGEMENT

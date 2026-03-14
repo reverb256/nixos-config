@@ -828,6 +828,14 @@
         owner = "root";
         group = "root";
       };
+
+      # Akash Provider wallet key (for earning AKT/USDC from GPU compute)
+      akash-provider-key = {
+        file = "${inputs.self}/secrets/akash-provider-key.age";
+        mode = "400";
+        owner = "root";
+        group = "root";
+      };
     };
   };
 
