@@ -55,6 +55,13 @@
       example = "10.1.1.140";
       description = "This node's IP address for etcd to listen on (must be actual IP, not VIP)";
     };
+
+    apiserverBindAddress = lib.mkOption {
+      type = lib.types.str;
+      default = config.services.kubernetes-module.etcdListenHost;
+      example = "10.1.1.120";
+      description = "This node's IP address for apiserver to bind to (must be actual IP, not VIP)";
+    };
   };
 
   config =
@@ -105,7 +112,7 @@
           serviceAccountSigningKeyFile = lib.mkForce "/etc/kubernetes/service-account-key.pem";
           serviceAccountKeyFile = lib.mkForce "/etc/kubernetes/service-account-key.pem";
           enable = isMaster;
-          bindAddress = config.services.kubernetes-module.masterAddress;
+          bindAddress = config.services.kubernetes-module.apiserverBindAddress;
           securePort = 6443;
           allowPrivileged = true;
           # Connect to local etcd (for multi-master HA, use load balancer or list all members)
