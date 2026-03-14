@@ -109,12 +109,10 @@
     # Without this, remote build users cannot access the Nix store
     trusted-users = ["j_kro"];
 
-    # System features - declare x86-64-v3 microarchitecture support
-    # This allows building v3-optimized packages (gccarch-x86-64-v3)
-    # All cluster CPUs support AVX2: Zen 3 (Zephyr), Zen 2 (Nexus),
-    # Coffee Lake (Forge), Zen 1 (Sentry with AVX2)
-    # Use mkAfter to append to the default system-features list
-    system-features = lib.mkAfter ["gccarch-x86-64-v3"];
+    # System features - do NOT set gccarch-x86-64-v3 globally
+    # V3 migration is phased - see mkNixosSystemV3 in flake.nix
+    # When v3 is enabled, system-features is set in the v3 module
+    # This allows non-v3 configs to use binary caches normally
 
     # Fallback to public caches if local cache miss
     # https://cache.nixos.org
