@@ -181,6 +181,8 @@
       # Create symlink from /run/flannel to /var/lib/flannel for CNI plugin compatibility
       # Create local-path-provisioner directories for Kubernetes storage
       systemd.tmpfiles.rules = [
+        # Create etcd data directory with correct ownership (etcd user:group)
+        "d /var/lib/etcd 0700 etcd etcd -"
         # Create writable CNI directories (both for kubelet and containerd)
         "d /var/lib/cni/net.d 0755 root root -"
         # Create /etc/cni/net.d only if it doesn't exist (C mode = non-destructive)

@@ -6,7 +6,7 @@
   ...
 }: let
   # ========================================================================
-  # CPU TUNING - Base x86_64 (v3 reverted 2026-03-14)
+  # CPU TUNING - Base x86_64
   # ========================================================================
   # All cluster nodes use base x86_64 for binary cache compatibility
   tunedNixpkgs = system:
@@ -29,14 +29,6 @@
 
     # Overlays configuration - applies overlays.default to all hosts
     {nixpkgs.overlays = [self.overlays.default];}
-
-    # x86-64-v3 microarchitecture tuning DISABLED - reverting to base x86_64
-    # {
-    #   nixpkgs.hostPlatform = {
-    #     system = "x86_64-linux";
-    #     gcc.arch = "x86-64-v3";
-    #   };
-    # }
   ];
 
   # ========================================================================
@@ -75,7 +67,7 @@ in {
       config.allowUnfree = true;
     };
 
-    # Per-node CPU microarchitecture tuning - unified x86-64-v3
+    # Per-node CPU microarchitecture tuning - unified x86_64
     nodeNixpkgs = {
       zephyr = tunedNixpkgs "x86_64-linux";
       nexus = tunedNixpkgs "x86_64-linux";
