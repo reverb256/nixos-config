@@ -174,12 +174,8 @@ in {
       RemainAfterExit = true;
     };
     script = ''
-      # Only run on zephyr (the build coordinator)
-      if [ "$(hostname)" != "zephyr" ]; then
-        exit 0
-      fi
-
       # Copy j_kro's SSH key to root-readable location for nix-daemon
+      # ALL nodes need this for distributed builds to work bidirectionally
       if [ ! -f /etc/nixos/ssh/id_ed25519 ]; then
         install -m 600 /home/j_kro/.ssh/id_ed25519 /etc/nixos/ssh/id_ed25519
         install -m 644 /home/j_kro/.ssh/id_ed25519.pub /etc/nixos/ssh/id_ed25519.pub
