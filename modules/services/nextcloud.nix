@@ -352,34 +352,33 @@ in {
       allowedTCPPorts = [80 443];
     };
 
-    # Synapse integration directories
-    systemd.tmpfiles.rules = mkIf cfg.synapseIntegration.enable [
-      "d ${cfg.synapseIntegration.dataDir} 0755 nextcloud nextcloud -"
-      "d ${cfg.synapseIntegration.dataDir}/agent-logs 0755 nextcloud nextcloud -"
-      "d ${cfg.synapseIntegration.dataDir}/conversation-history 0755 nextcloud nextcloud -"
-      "d ${cfg.synapseIntegration.dataDir}/project-artifacts 0755 nextcloud nextcloud -"
-    ];
+    # Synapse integration directories and systemd hardening
+    systemd = mkIf cfg.synapseIntegration.enable {
+      tmpfiles.rules = [
+        "d ${cfg.synapseIntegration.dataDir} 0755 nextcloud nextcloud -"
+        "d ${cfg.synapseIntegration.dataDir}/agent-logs 0755 nextcloud nextcloud -"
+        "d ${cfg.synapseIntegration.dataDir}/conversation-history 0755 nextcloud nextcloud -"
+        "d ${cfg.synapseIntegration.dataDir}/project-artifacts 0755 nextcloud nextcloud -"
+      ];
 
-    # Systemd service security hardening for Nextcloud services
-    systemd.services.nextcloud-setup = {
-      serviceConfig = {
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        RestrictRealtime = true;
-        RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
-      };
-    };
+      services = {
+        nextcloud-setup.serviceConfig = {
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          ProtectSystem = "strict";
+          ProtectHome = true;
+          RestrictRealtime = true;
+          RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+        };
 
-    systemd.services."php-fpm-nextcloud" = {
-      serviceConfig = {
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        RestrictRealtime = true;
-        RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+        "php-fpm-nextcloud".serviceConfig = {
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          ProtectSystem = "strict";
+          ProtectHome = true;
+          RestrictRealtime = true;
+          RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+        };
       };
     };
 

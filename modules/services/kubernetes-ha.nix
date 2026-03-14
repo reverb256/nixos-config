@@ -61,20 +61,18 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # ========================================================================
-    # DISABLE EASYCERTS - Use external certificates
-    # ========================================================================
-    services.kubernetes.easyCerts = false;
+    services = {
+      kubernetes.easyCerts = false;
 
-    # ========================================================================
-    # CA CERTIFICATE - Public, distributed to all nodes
-    # ========================================================================
-    services.kubernetes.caFile = "${cfg.pkiPath}/ca.pem";
+      # ========================================================================
+      # CA CERTIFICATE - Public, distributed to all nodes
+      # ========================================================================
+      kubernetes.caFile = "${cfg.pkiPath}/ca.pem";
 
-    # ========================================================================
-    # API SERVER CONFIGURATION
-    # ========================================================================
-    services.kubernetes.apiserver = {
+      # ========================================================================
+      # API SERVER CONFIGURATION
+      # ========================================================================
+      kubernetes.apiserver = {
       enable = true;
 
       # Bind to all interfaces for VIP support
@@ -139,11 +137,10 @@ in {
       # Allow privileged containers
       allowPrivileged = true;
     };
-
-    # ========================================================================
-    # CONTROLLER MANAGER CONFIGURATION
-    # ========================================================================
-    services.kubernetes.controllerManager = {
+      # ========================================================================
+      # CONTROLLER MANAGER CONFIGURATION
+      # ========================================================================
+      kubernetes.controllerManager = {
       enable = true;
 
       # Client authentication
@@ -172,11 +169,10 @@ in {
         "--v=2"
       ];
     };
-
-    # ========================================================================
-    # SCHEDULER CONFIGURATION
-    # ========================================================================
-    services.kubernetes.scheduler = {
+      # ========================================================================
+      # SCHEDULER CONFIGURATION
+      # ========================================================================
+      kubernetes.scheduler = {
       enable = true;
 
       # Client authentication
@@ -198,24 +194,24 @@ in {
       ];
     };
 
-    # ========================================================================
-    # KUBELET CONFIGURATION
-    # ========================================================================
-    services.kubernetes.kubelet.extraOpts = [
-      "--cluster-dns=${config.services.kubernetes.dnsIp}"
-      "--cluster-domain=cluster.local"
-      "--container-runtime=remote"
-      "--container-runtime-endpoint=unix:///run/podman/podman.sock"
-      "--cgroup-driver=systemd"
-      "--kubeconfig=/etc/kubernetes/kubelet.kubeconfig"
-      "--network-plugin=cni"
-      "--v=2"
-    ];
+      # ========================================================================
+      # KUBELET CONFIGURATION
+      # ========================================================================
+      kubernetes.kubelet.extraOpts = [
+        "--cluster-dns=${config.services.kubernetes.dnsIp}"
+        "--cluster-domain=cluster.local"
+        "--container-runtime=remote"
+        "--container-runtime-endpoint=unix:///run/podman/podman.sock"
+        "--cgroup-driver=systemd"
+        "--kubeconfig=/etc/kubernetes/kubelet.kubeconfig"
+        "--network-plugin=cni"
+        "--v=2"
+      ];
 
-    # ========================================================================
-    # ETCD PEER CERTIFICATES (for etcd-cluster module)
-    # ========================================================================
-    services.etcd = {
+      # ========================================================================
+      # ETCD PEER CERTIFICATES (for etcd-cluster module)
+      # ========================================================================
+      etcd = {
       # Peer certificates for etcd cluster communication
       peerCertFile = "${cfg.pkiPath}/etcd-peer.pem";
       peerKeyFile = config.age.secrets."etcd-peer-key".path;
@@ -227,9 +223,10 @@ in {
       trustedCaFile = "${cfg.pkiPath}/ca.pem";
     };
 
-    # ========================================================================
-    # FIREWALL - Kubernetes API and etcd ports
-    # ========================================================================
+      # ========================================================================
+      # FIREWALL - Kubernetes API and etcd ports
+      # ========================================================================
+    };
     networking.firewall = {
       allowedTCPPorts = [
         6443  # Kubernetes API server
