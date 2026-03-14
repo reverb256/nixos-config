@@ -71,7 +71,7 @@ in {
     systemd.services.vaultwarden = {
       description = "Vaultwarden Password Manager";
       after = ["network-online.target" "podman.service"];
-      wants = ["podman.service"];
+      wants = ["podman.service" "network-online.target"];  # Fix ordering warning
       wantedBy = ["multi-user.target"];
 
       serviceConfig = {

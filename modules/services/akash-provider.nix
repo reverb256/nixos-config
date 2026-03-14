@@ -288,16 +288,38 @@
         description = "Add Akash Helm repository";
         # DISABLED: Manual invocation only via `systemctl start akash-helm-init`
         enable = false;
-        path = [pkgs.helm];
+        # Explicitly stop and disable if previously enabled
+        stopIfChanged = false;
+        restartIfChanged = false;
+        path = [pkgs.helm pkgs.gnupg];
         serviceConfig = {
           Type = "oneshot";
-          # Prevent X11 connection attempts
-          Environment = "DISPLAY=";
+          # Prevent X11 connection attempts and GPG pinentry
+          Environment = [
+            "DISPLAY="
+            "GPG_TTY=/dev/null"
+            "PINENTRY_USER_DATA=use-agent"
+          ];
+          # Run in non-interactive mode
+          StandardInput = "null";
+          StandardOutput = "journal";
+          StandardError = "journal";
         };
         script = ''
-          # Add Akash Helm repository
+          # Add Akash Helm repository (non-interactive)
+          export GNUPGHOME=/tmp/helm-gpghome-$$
+          mkdir -p "$GNUPGHOME"
+          chmod 700 "$GNUPGHOME"
+
+          # Configure GPG for non-interactive use (batch mode)
+          echo "disable-ipv6" > "$GNUPGHOME/dirmngr.conf"
+          echo "use-agent" > "$GNUPGHOME/gpg.conf"
+          echo "pinentry-mode loopback" >> "$GNUPGHOME/gpg.conf"
+
           helm repo add akash https://akash-network.github.io/helm-charts || true
           helm repo update
+
+          rm -rf "$GNUPGHOME"
         '';
       };
 
@@ -342,6 +364,9 @@
         description = "Akash Provider Prerequisites Check";
         # DISABLED: Manual invocation only via `systemctl start akash-provider-prereq`
         enable = false;
+        # Explicitly stop and disable if previously enabled
+        stopIfChanged = false;
+        restartIfChanged = false;
         after = [
           "kubernetes.target"
           "akash-node-labels.service"
@@ -356,6 +381,23 @@
         script = ''
           # Verify prerequisites
           echo "Checking Akash provider prerequisites..."
+
+          # Check API server is ready
+          echo "Waiting for Kubernetes API server..."
+          timeout=60
+          while [ $timeout -gt 0 ]; do
+            if kubectl get nodes >/dev/null 2>&1; then
+              echo "Kubernetes API server is ready"
+              break
+            fi
+            sleep 2
+            ((timeout -= 2))
+          done
+
+          if [ $timeout -le 0 ]; then
+            echo "ERROR: Kubernetes API server not ready after 60 seconds"
+            exit 1
+          fi
 
           # Check nodes
           kubectl get nodes
