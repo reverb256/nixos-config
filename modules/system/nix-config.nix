@@ -8,8 +8,9 @@
 
       # Binary caches (local cache checked first)
       # Harmonia runs on port 5000 (not 50000 - that was old nix-serve)
+      # Use cluster IP address instead of Tailscale hostname for DNS reliability
       substituters = [
-        "http://zephyr.tigris-ule.ts.net:5000?trusted=1"
+        "http://10.1.1.110:5000?trusted=1"
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
         "https://ezkea.cachix.org"
@@ -19,6 +20,7 @@
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
+        "nexus-cache:qR+dIToYHrN3iJlg2puMRM8zrMtgZ4H7cISSR9E0iEE="
       ];
 
       trusted-users = ["root" "@wheel"];
