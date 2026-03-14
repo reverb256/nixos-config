@@ -600,13 +600,6 @@
     nix-cache = {
       enable = true;
     };
-    # Auto-build service - builds all nodes nightly at 2 AM
-    nix-cache.auto-build = {
-      enable = true;
-      buildTime = "02:00";
-      nodes = ["zephyr" "nexus" "sentry" "forge"];
-      cores = 1; # Conservative for stability
-    };
   };
 
   # ============================================================================

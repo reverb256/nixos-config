@@ -585,9 +585,17 @@ class MCPBroker:
                                 else:
                                     headers[header_name] = api_key
                         except Exception as e:
-                            logger.error(f"Failed to read API key: {e}")
-                            return {"error": f"Failed to read API key: {e}"}
+                            logger.error(
+                                f"Failed to read API key from {file_path}: {e}"
+                            )
+                            # Fall back to raw value (will fail at ZAI but preserves error context)
+                            logger.warning(
+                                f"Using raw header value as fallback for {server.name}"
+                            )
+                            headers[header_name] = header_value
                     else:
+                        # Not a file path - use value directly
+                        logger.debug(f"Using direct header value for {header_name}")
                         headers[header_name] = header_value
 
             # Use ZAI Coding API endpoint
@@ -766,10 +774,16 @@ class MCPBroker:
                             )
                         except Exception as e:
                             logger.error(
-                                f"Failed to read API key from {header_value}: {e}"
+                                f"Failed to read API key from {file_path}: {e}"
                             )
-                            return {"error": f"Failed to read API key: {e}"}
+                            # Fall back to raw value (will fail at ZAI but preserves error context)
+                            logger.warning(
+                                f"Using raw header value as fallback for {server.name}"
+                            )
+                            headers[header_name] = header_value
                     else:
+                        # Not a file path - use value directly
+                        logger.debug(f"Using direct header value for {header_name}")
                         headers[header_name] = header_value
 
             # Use standard MCP JSON-RPC protocol
@@ -783,6 +797,14 @@ class MCPBroker:
 
             # ZAI MCP servers require SSE-capable Accept header
             headers["Accept"] = "application/json, text/event-stream"
+
+            # CRITICAL DEBUG: Log the actual headers being sent
+            logger.warning(f"=== FINAL HEADERS for {server.name}.{tool_name} ===")
+            for k, v in headers.items():
+                if k.lower() == "authorization":
+                    logger.warning(f"  {k}: {v[:30]}...")
+                else:
+                    logger.warning(f"  {k}: {v}")
 
             # Debug logging
             logger.debug(f"Calling MCP tool: {server.name}.{tool_name}")
@@ -989,7 +1011,11 @@ class MCPBroker:
                 # Process environment variables - read from file if needed
                 for env_name, env_value in server.environment.items():
                     # Check if this is an API key file reference (ends with _FILE)
-                    if env_name.endswith("_FILE") and isinstance(env_value, str) and env_value.startswith("/"):
+                    if (
+                        env_name.endswith("_FILE")
+                        and isinstance(env_value, str)
+                        and env_value.startswith("/")
+                    ):
                         try:
                             with open(env_value, "r") as f:
                                 file_content = f.read().strip()
