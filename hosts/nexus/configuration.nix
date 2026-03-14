@@ -94,13 +94,14 @@
       roles = lib.mkForce ["master" "node"];
       # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
       masterAddress = lib.mkForce "10.1.1.110";
-      # etcd clustering configuration (Nexus joins existing cluster)
+      # etcd clustering configuration (3-node HA cluster)
       etcdInitialState = "existing";
       etcdName = "nexus";
       etcdListenHost = "10.1.1.120";
       etcdClusterMembers = [
         "zephyr=http://10.1.1.110:2380"
         "nexus=http://10.1.1.120:2380"
+        "sentry=http://10.1.1.140:2380"
       ];
     };
 

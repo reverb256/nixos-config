@@ -120,12 +120,12 @@
       # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
       # TODO: Generate custom certificates with VIP (10.1.1.100) in SANs for proper HA
       masterAddress = lib.mkForce "10.1.1.110";
-      # etcd clustering configuration (Zephyr is initial node)
-      etcdInitialState = "new";
+      # etcd clustering configuration (3-node HA cluster operational)
+      etcdInitialState = "existing";  # Cluster already formed
       etcdName = "zephyr";
       etcdListenHost = "10.1.1.110";
-      etcdBootstrapOnly = true;  # Single-node etcd until Nexus/Sentry join cluster
-      # Full cluster list (will be used after bootstrap)
+      # etcdBootstrapOnly removed - multi-node cluster is operational
+      # All 3 cluster members
       etcdClusterMembers = [
         "zephyr=http://10.1.1.110:2380"
         "nexus=http://10.1.1.120:2380"
