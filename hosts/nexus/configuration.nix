@@ -20,6 +20,7 @@
 
     # NVIDIA GPU Wayland support (host-dependent)
     ../../modules/hardware/nvidia-wayland.nix
+    ../../modules/hardware/rgb-control.nix
 
     # Desktop environment modules
     ../../modules/desktop/gamescope-tty.nix
@@ -121,6 +122,23 @@
     monitoring = {
       autoDetect = true; # Auto-detect sensor chips
       fanControl = false; # BIOS fan control for now
+    };
+
+    # RGB control for Razer Naga Pro and Gigabyte motherboard
+    rgb-control = {
+      enable = true;
+      openrgb.enable = true;
+      openrazer.enable = true; # Razer Naga Pro
+      temperatureReactive = {
+        enable = true;
+        sensor = "cpu"; # Monitor CPU temps
+        thresholds = {
+          cool = 50;
+          warm = 65;
+          hot = 75;
+        };
+        interval = 5;
+      };
     };
   };
 

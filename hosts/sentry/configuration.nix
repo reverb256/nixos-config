@@ -21,6 +21,7 @@
 
     # AMD GPU Wayland optimizations (includes nvtopPackages.full)
     ../../modules/hardware/amdgpu-wayland.nix
+    ../../modules/hardware/rgb-control.nix
 
     # Podman support
     ../../modules/services/podman-support.nix
@@ -113,6 +114,23 @@
     monitoring = {
       autoDetect = false; # Disabled: sensors-detect path issues
       fanControl = false; # BIOS fan control for now
+    };
+
+    # RGB control for AMD Wraith Prism cooler and MSI motherboard
+    rgb-control = {
+      enable = true;
+      openrgb.enable = true;
+      wraithRgb.enable = true; # AMD Wraith Prism cooler
+      temperatureReactive = {
+        enable = true;
+        sensor = "cpu"; # Monitor CPU temps
+        thresholds = {
+          cool = 45;
+          warm = 60;
+          hot = 70;
+        };
+        interval = 5;
+      };
     };
   };
 

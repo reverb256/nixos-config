@@ -176,4 +176,18 @@ in {
     users.j_kro
     hosts.zephyr
   ];
+
+  # ========================================================================
+  # AKASH PROVIDER SECRETS
+  # ========================================================================
+
+  # Akash provider wallet key - For earning AKT/USDC from GPU compute
+  "secrets/akash-provider-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr    # Control plane node - primary provider
+    # Add other hosts if running provider on multiple nodes:
+    # hosts.forge
+    # hosts.nexus
+    # hosts.sentry
+  ];
 }

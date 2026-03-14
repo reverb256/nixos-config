@@ -22,6 +22,7 @@
     # GPU support (wayland-specific, host-dependent)
     ../../modules/hardware/nvidia-wayland.nix
     ../../modules/hardware/amdgpu-wayland.nix
+    ../../modules/hardware/rgb-control.nix
     ../../modules/system/security.nix
     ../../modules/services/podman-support.nix
 
@@ -180,6 +181,22 @@
       enable = true;
       autoDetect = true; # Auto-detect sensor chips
       fanControl = false; # BIOS fan control for now
+    };
+
+    # RGB control for ASRock RX 5700 XT and motherboard
+    rgb-control = {
+      enable = true;
+      openrgb.enable = true;
+      temperatureReactive = {
+        enable = true;
+        sensor = "gpu"; # Monitor GPU temps for mining
+        thresholds = {
+          cool = 60;
+          warm = 70;
+          hot = 75;
+        };
+        interval = 10; # Poll every 10 seconds
+      };
     };
   };
 

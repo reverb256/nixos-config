@@ -19,11 +19,16 @@
     ../../modules/services/kubernetes.nix
     # Keepalived VIP for Kubernetes HA
     ../../modules/services/keepalived-vip.nix
+    # Akash Provider - Earn AKT/USDC from GPU compute
+    ../../modules/services/akash-provider.nix
 
     # All other modules auto-imported via ../../modules/default.nix
     # This includes: system, desktop, shell, gaming, development, services,
     # plus zephyr-specific modules (nvidia-common, gstreamer, spotify, cluster networking)
     ../../modules/default.nix
+
+    # RGB control for peripherals and components
+    ../../modules/hardware/rgb-control.nix
   ];
 
   # ============================================================================
@@ -131,6 +136,28 @@
   };
 
   # ============================================================================
+  # AKASH PROVIDER - Decentralized GPU Compute Marketplace
+  # ============================================================================
+  # Earn AKT/USDC by hosting AI/ML workloads on your GPUs
+  services.akash-provider = {
+    enable = true; # Wallet created with agenix, ready to deploy
+    # Provider address: cluster-provider (created 2026-03-14)
+    providerAddress = "akash1s97zjxzn3tnudawjhjhpus9x7yn6dgukzar372";
+    # Domain for provider ingress (use dynamic DNS like duckdns.org)
+    domain = "cluster.local"; # TODO: Update with public domain
+    clusterPublicHostname = "provider.cluster.local"; # TODO: Update with provider hostname
+
+    # GPU pricing (uakt per block) - adjust based on market demand
+    pricing = {
+      rtx3090 = 20000; # ~$8.70/month per GPU at 50% util
+      rtx4060 = 18000; # ~$7.80/month per GPU at 50% util
+      rtx3060ti = 15000; # ~$6.50/month per GPU at 50% util
+      rx5700xt = 8000; # ~$3.50/month per GPU at 50% util
+      rx5600xt = 7000; # ~$3.00/month per GPU at 50% util
+    };
+  };
+
+  # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
   # Base profiles provided by node-profiles.zephyr-workstation:
@@ -156,6 +183,23 @@
       aio.enable = true; # Corsair H115i AIO control
       rgb.enable = true; # OpenRGB for RGB control
       autoStartRgb = false; # Don't auto-start (conflicts with liquidctl)
+    };
+
+    # RGB control for peripherals and components
+    rgb-control = {
+      enable = true;
+      openrgb.enable = true; # Motherboard, GPU, Corsair devices
+      openrazer.enable = true; # Razer Naga Pro mouse
+      temperatureReactive = {
+        enable = true;
+        sensor = "both"; # Monitor both CPU and GPU temps
+        thresholds = {
+          cool = 50;
+          warm = 65;
+          hot = 75;
+        };
+        interval = 5;
+      };
     };
 
     # Bluetooth support via BlueZ
@@ -226,7 +270,7 @@
     # Compute Workload Monitor - Use conservative profile for memory-constrained system
     # Zephyr has 31GB RAM and runs AI workloads - earlier intervention needed
     compute-workload-monitor = {
-      profile = "conservative";  # Lower PSI thresholds for earlier build/mining pause
+      profile = "conservative"; # Lower PSI thresholds for earlier build/mining pause
     };
 
     # Gaming HDR for 4K HDR TV
@@ -588,11 +632,11 @@
     garage-cluster = {
       enable = true;
       dataDir = "/data/garage"; # Local storage (nvme1n1p2 - 434GB available)
-      replicationFactor = 3;  # 3-node cluster
-      consistencyMode = "consistent";  # Full consistency with 3 zones
-      enableMetrics = true;  # Prometheus metrics on port 3903
-      enableBackup = true;   # Daily metadata backups to NFS
-      backupDir = "/data/shared/garage-backups";  # NFS from nexus
+      replicationFactor = 3; # 3-node cluster
+      consistencyMode = "consistent"; # Full consistency with 3 zones
+      enableMetrics = true; # Prometheus metrics on port 3903
+      enableBackup = true; # Daily metadata backups to NFS
+      backupDir = "/data/shared/garage-backups"; # NFS from nexus
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
 
@@ -1042,7 +1086,7 @@
     accessKey = "GKac91d924fc76a30b9bcf6c3e";
     secretKeyFile = "/run/agenix/garage-s3-secret-key";
     retentionDays = 30;
-    startAt = "02:00";  # 2 AM daily
+    startAt = "02:00"; # 2 AM daily
   };
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
