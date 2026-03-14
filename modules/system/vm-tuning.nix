@@ -35,9 +35,10 @@
     # - Using Zswap pool first (20% RAM = 6.4GB)
     # - Only swap to SSD when Zswap is full
     #
-    # 10-20 is optimal for Zswap systems
+    # 20-25 is optimal for Zswap systems with high memory pressure
+    # Increased from 15 to 20 to reduce pressure spikes and direct reclaim
     # 1 = minimal swap, 100 = aggressive swap
-    "vm.swappiness" = lib.mkForce 15; # Conservative with Zswap
+    "vm.swappiness" = lib.mkForce 20; # Balanced - reduces PSI pressure spikes
 
     # ========================================================================
     # VFS CACHE PRESSURE - Controls kernel cache reclaim priority

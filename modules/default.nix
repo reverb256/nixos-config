@@ -29,7 +29,9 @@
     ./system/cluster-storage.nix
     ./system/security-hardening.nix
     ./system/btrfs-compression.nix
+    ./system/btrfs-tuning.nix
     ./system/compute-workload-monitor.nix
+    ./system/compute-workload-monitor-profiles.nix
 
     # Security
     ./security/pam-vaultwarden.nix
@@ -96,6 +98,7 @@
     ./services/health-checks.nix
 
     # NixOS Binary Cache
+    ./services/nix-cache/default.nix  # Wrapper module (must come before harmonia/auto-build)
     ./services/nix-cache/harmonia.nix
     ./services/nix-cache/auto-build.nix
 

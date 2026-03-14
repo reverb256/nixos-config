@@ -54,7 +54,7 @@
       8080 # AI Inference Gateway
       53317 # LocalSend (file sharing)
       8888 # CFSSL CA API server (for worker node certificate generation)
-      50000 # Nix binary cache server (nix-serve)
+      5000 # Harmonia binary cache server (not 50000 - that was old nix-serve)
     ];
     firewall.allowedUDPPorts = [
       9757 # WiVRn
@@ -163,6 +163,16 @@
   };
 
   # ============================================================================
+  # FILESYSTEM COMPRESSION - Enable zstd on all BTRFS filesystems
+  # ============================================================================
+  # Root and home filesystems lack compression in hardware-configuration.nix
+  # Use mkOptionDefault to add compression without breaking other options
+  fileSystems = {
+    "/".options = lib.mkOptionDefault ["compress=zstd:3" "ssd" "discard=async"];
+    "/home".options = lib.mkOptionDefault ["compress=zstd:3" "ssd" "discard=async"];
+  };
+
+  # ============================================================================
   # WIRELESS HARDWARE
   # ============================================================================
 
@@ -215,10 +225,6 @@
   services = {
     # Gaming HDR for 4K HDR TV
     gaming.hdr.enable = true;
-
-    # Disable compute-workload-monitor due to crash loop (thrashing between MINING/BUILDS profiles)
-    # Use mkForce to override gaming module's enable=true
-    compute-workload-monitor.enable = lib.mkForce false;
 
     # XMRig Proxy - Centralized stratum proxy for CPU (RandomX) and GPU (CR29) mining
     xmrig-proxy = {
