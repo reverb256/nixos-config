@@ -210,6 +210,20 @@
     "${pkgs.coreutils}/bin/rm -f /run/avahi-daemon/pid"
   ];
 
+  # Don't let systemd-networkd-wait-online block boot
+  # We use NetworkManager, not systemd-networkd for network management
+  # The wait-online service expects systemd-networkd to manage interfaces
+  systemd.services.systemd-networkd-wait-online = {
+    serviceConfig = {
+      # Override to not fail activation if it times out
+      RemainAfterExit = true;
+    };
+    # Don't require this service for network-online.target
+    wantedBy = lib.mkForce [];
+    # Don't block multi-user.target
+    upholds = lib.mkForce [];
+  };
+
   # ============================================================================
   # FAIL2BAN CONFIGURATION
   # NOTE: Fail2ban configuration moved to modules/system/security.nix
