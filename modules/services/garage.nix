@@ -115,76 +115,80 @@ in {
       metrics_token = ${lib.optionalString cfg.enableMetrics "\"garage_metrics_token\""}
     '';
 
-    # Create data directory with correct permissions
-    systemd.tmpfiles.rules = [
-      "d ${cfg.dataDir} 0750 garage garage -"
-      "d ${cfg.dataDir}/meta 0750 garage garage -"
-      "d ${cfg.dataDir}/data 0750 garage garage -"
-    ] ++ lib.optional cfg.enableBackup ''
-      d ${cfg.backupDir} 0755 garage garage - -
-    '';
+    # Systemd services and timers
+    systemd = {
+      tmpfiles.rules = [
+        "d ${cfg.dataDir} 0750 garage garage -"
+        "d ${cfg.dataDir}/meta 0750 garage garage -"
+        "d ${cfg.dataDir}/data 0750 garage garage -"
+      ] ++ lib.optional cfg.enableBackup ''
+        d ${cfg.backupDir} 0755 garage garage - -
+      '';
 
-    systemd.services.garage = {
-      description = "Garage S3-compatible object storage";
-      after = ["network-online.target"];
-      wants = ["network-online.target"];
-      wantedBy = ["multi-user.target"];
+      services = {
+        garage = {
+          description = "Garage S3-compatible object storage";
+          after = ["network-online.target"];
+          wants = ["network-online.target"];
+          wantedBy = ["multi-user.target"];
 
-      serviceConfig = {
-        Type = "simple";
-        User = "garage";
-        Group = "garage";
+          serviceConfig = {
+            Type = "simple";
+            User = "garage";
+            Group = "garage";
 
-        # Security hardening
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
+            # Security hardening
+            NoNewPrivileges = true;
+            PrivateTmp = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
 
-        # Allow write access to custom data directory
-        ReadWritePaths = ["${cfg.dataDir}"] ++ lib.optional cfg.enableBackup cfg.backupDir;
+            # Allow write access to custom data directory
+            ReadWritePaths = ["${cfg.dataDir}"] ++ lib.optional cfg.enableBackup cfg.backupDir;
 
-        ExecStart = "${pkgs.garage}/bin/garage -c /etc/garage.toml server";
+            ExecStart = "${pkgs.garage}/bin/garage -c /etc/garage.toml server";
 
-        # Hardening
-        CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
-        AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
-        RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
-        RestrictRealtime = true;
-        SystemCallFilter = ["@system-service" "~@privileged"];
-        MemoryDenyWriteExecute = true;
+            # Hardening
+            CapabilityBoundingSet = ["CAP_NET_BIND_SERVICE"];
+            AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+            RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
+            RestrictRealtime = true;
+            SystemCallFilter = ["@system-service" "~@privileged"];
+            MemoryDenyWriteExecute = true;
 
-        Restart = "always";
-        RestartSec = "5s";
+            Restart = "always";
+            RestartSec = "5s";
+          };
+        };
+
+        # Automated backup service
+        garage-backup = lib.mkIf cfg.enableBackup {
+          description = "Garage metadata backup";
+          after = ["garage.service"];
+          requires = ["garage.service"];
+
+          serviceConfig = {
+            Type = "oneshot";
+            User = "garage";
+            Group = "garage";
+            ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.garage}/bin/garage -c /etc/garage.toml meta snapshot ${cfg.backupDir}/meta-$(date +%%Y-%%m-%%d_%%H-%%M-%%S).db && cp ${cfg.dataDir}/meta/db.lmdb ${cfg.backupDir}/db.lmdb-$(date +%%Y-%%m-%%d_%%H-%%M-%%S)'";
+            IOSchedulingClass = "idle";
+            IOSchedulingPriority = "7";
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            ReadWritePaths = [cfg.backupDir cfg.dataDir];
+          };
+        };
       };
-    };
 
-    # Automated backup service
-    systemd.services.garage-backup = lib.mkIf cfg.enableBackup {
-      description = "Garage metadata backup";
-      after = ["garage.service"];
-      requires = ["garage.service"];
-
-      serviceConfig = {
-        Type = "oneshot";
-        User = "garage";
-        Group = "garage";
-        ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.garage}/bin/garage -c /etc/garage.toml meta snapshot ${cfg.backupDir}/meta-$(date +%%Y-%%m-%%d_%%H-%%M-%%S).db && cp ${cfg.dataDir}/meta/db.lmdb ${cfg.backupDir}/db.lmdb-$(date +%%Y-%%m-%%d_%%H-%%M-%%S)'";
-        IOSchedulingClass = "idle";
-        IOSchedulingPriority = "7";
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadWritePaths = [cfg.backupDir cfg.dataDir];
-      };
-    };
-
-    systemd.timers.garage-backup = lib.mkIf cfg.enableBackup {
-      description = "Daily Garage metadata backup";
-      wantedBy = ["timers.target"];
-      timerConfig = {
-        OnCalendar = cfg.backupInterval;
-        Persistent = true;
-        Unit = "garage-backup.service";
+      timers.garage-backup = lib.mkIf cfg.enableBackup {
+        description = "Daily Garage metadata backup";
+        wantedBy = ["timers.target"];
+        timerConfig = {
+          OnCalendar = cfg.backupInterval;
+          Persistent = true;
+          Unit = "garage-backup.service";
+        };
       };
     };
 
