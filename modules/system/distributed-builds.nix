@@ -104,8 +104,9 @@ in {
 
       # Binary cache configuration (1Gbps network - fast downloads)
       # Use mkForce to completely override default substituters and prevent duplicates
-      # NOTE: Local Harmonia cache removed - service not configured
+      # NOTE: Nexus Harmonia cache for cluster builds
       substituters = lib.mkForce [
+        "http://10.1.1.120:5000"  # Nexus Harmonia cache (cluster)
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
         "https://ezkea.cachix.org"
@@ -113,10 +114,10 @@ in {
         "https://nix-gaming.cachix.org"
       ];
       trusted-public-keys = [
+        "nexus-cache:qR+dIToYHrN3iJlg2puMRM8zrMtgZ4H7cISSR9E0iEE=" # Nexus Harmonia cache
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-        # "nexus-cache:qR+dIToYHrN3iJlg2puMRM8zrMtgZ4H7cISSR9E0iEE=" # Local Harmonia cache - service not configured
         # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
         "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
       ];
