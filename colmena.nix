@@ -6,12 +6,9 @@
   ...
 }: let
   # ========================================================================
-  # CPU TUNING - Unified x86-64-v3 microarchitecture
+  # CPU TUNING - Base x86_64 (v3 reverted 2026-03-14)
   # ========================================================================
-  # All cluster nodes now use x86-64-v3 (requires AVX2)
-  # Per-node tuning replaced with unified v3 for cache efficiency
-  #
-  # Implementation: Module-level nixpkgs.hostPlatform.gcc.arch (not localSystem)
+  # All cluster nodes use base x86_64 for binary cache compatibility
   tunedNixpkgs = system:
     import inputs.nixpkgs {
       inherit system;
@@ -33,13 +30,13 @@
     # Overlays configuration - applies overlays.default to all hosts
     {nixpkgs.overlays = [self.overlays.default];}
 
-    # x86-64-v3 microarchitecture tuning (module-level, not localSystem)
-    {
-      nixpkgs.hostPlatform = {
-        system = "x86_64-linux";
-        gcc.arch = "x86-64-v3";
-      };
-    }
+    # x86-64-v3 microarchitecture tuning DISABLED - reverting to base x86_64
+    # {
+    #   nixpkgs.hostPlatform = {
+    #     system = "x86_64-linux";
+    #     gcc.arch = "x86-64-v3";
+    #   };
+    # }
   ];
 
   # ========================================================================
