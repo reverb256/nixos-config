@@ -38,7 +38,7 @@
     enable = true;
     hostName = "forge";
     ipAddress = "10.1.1.130";
-    interfaceName = "lan0"; # Native hardware interface name (FIXED: was enp0s31f6)
+    interfaceName = "enp0s31f6"; # Native hardware interface name
     wireless.enable = false; # Mining rig - no WiFi needed
     unbound.listenAddress = "10.1.1.130"; # Listen on node IP for cluster DNS
   };
