@@ -159,14 +159,40 @@ in {
   systemd.tmpfiles.rules = [
     "d /home/j_kro/.ssh 0700 j_kro users -"
     "d /root/.ssh 0700 root root -"
+    "d /etc/nixos/ssh 0755 root root -"
   ];
 
+  # Copy j_kro's SSH key for nix-daemon distributed builds
+  # Root SSH is disabled on remote nodes, so we use j_kro's key
+  systemd.services.copy-build-ssh-key = {
+    description = "Copy SSH key for distributed builds";
+    wantedBy = ["multi-user.target"];
+    after = ["local-fs.target"];
+    before = ["nix-daemon.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      # Only run on zephyr (the build coordinator)
+      if [ "$(hostname)" != "zephyr" ]; then
+        exit 0
+      fi
+
+      # Copy j_kro's SSH key to root-readable location for nix-daemon
+      if [ ! -f /etc/nixos/ssh/id_ed25519 ]; then
+        install -m 600 /home/j_kro/.ssh/id_ed25519 /etc/nixos/ssh/id_ed25519
+        install -m 644 /home/j_kro/.ssh/id_ed25519.pub /etc/nixos/ssh/id_ed25519.pub
+      fi
+    '';
+  };
+
   # SSH config for root (nix-daemon) to use for distributed builds
-  # Use j_kro's SSH key since remote nodes trust that key
+  # Use copied j_kro SSH key since root SSH is disabled on remote nodes
   environment.etc."ssh/ssh_config.d/50-build-machines.conf".text = ''
     Host zephyr nexus forge sentry
       User j_kro
-      IdentityFile /home/j_kro/.ssh/id_ed25519
+      IdentityFile /etc/nixos/ssh/id_ed25519
       IdentitiesOnly yes
       StrictHostKeyChecking accept-new
       ConnectTimeout 30
