@@ -400,6 +400,19 @@
                 self.authorized = True
                 self.pool.add_subscriber(self)
 
+                # Forward authorization to pool so it can track this worker
+                # This allows the pool to accept shares from this specific worker ID
+                try:
+                    # Send mining.authorize to pool with this worker's full ID
+                    await self.pool.send_json({
+                        "id": 4,  # Use different ID range for miner forwards
+                        "method": "mining.authorize",
+                        "params": [worker_name, password]
+                    })
+                    logging.info(f"Forwarded authorization to pool for worker: {worker_name}")
+                except Exception as e:
+                    logging.warning(f"Failed to forward auth to pool: {e}")
+
                 await self.send_json({
                     "id": request.get("id"),
                     "result": True,
@@ -561,23 +574,20 @@
                 """Handle messages from the pool."""
                 logging.info(f"Pool message loop started for {pool.pool.name}")
 
-                # Initialize pool connection (subscribe, authorize) now that loop is running
+                # Initialize pool connection (subscribe, configure) now that loop is running
+                # NOTE: No pool-level pre-authorization. Kryptex (and many pools) expect:
+                # 1. Pool connection with subscribe/configure only
+                # 2. Each miner authorizes individually through the proxy
+                # The proxy forwards each miner's authorization to the pool
                 if not pool.initialized:
                     try:
                         logging.info("Initializing pool connection...")
                         await pool.subscribe()
                         await pool.configure()
-                        # Use first configured worker for pool authorization
-                        # Kryptex requires full worker ID like krxXVNVMM7.nexus-gpu
-                        if self.config.workers:
-                            first_worker_id = self.config.workers[0].id
-                            logging.info(f"Authorizing pool with worker: {first_worker_id}")
-                            await pool.authorize_with_full_worker(first_worker_id)
-                        else:
-                            # Fallback to base wallet auth
-                            await pool.authorize(worker=None)
+                        # Don't pre-authorize - let miners authorize individually
+                        # This allows pool to track each worker separately
                         pool.initialized = True
-                        logging.info("Pool connection initialized")
+                        logging.info("Pool connection initialized (waiting for miners to authorize)")
                     except Exception as e:
                         logging.error(f"Error initializing pool: {e}")
                         await self.failover_pool()
