@@ -90,7 +90,8 @@ in {
       # The ssh-ng protocol is used for efficient remote builds
 
       # V3 MIGRATION: Limit cores per build to prevent memory exhaustion
-      cores = 2;
+      # mkForce prevents override by NixOS auto-detection (cores = 0 = auto)
+      cores = lib.mkForce 2;
 
       # Use substituters on remote builders (download from cache instead of copying)
       builders-use-substitutes = true;
@@ -119,13 +120,13 @@ in {
       #
       # CRITICAL: mkForce required because NixOS defaults max-jobs to CPU count
       # which would cause OOM on all nodes during heavy builds (KDE/Qt)
-      max-jobs = lib.mkForce (lib.mkMerge [
-        (lib.mkIf (currentHost == "zephyr") 2) # V3 MIGRATION: Very conservative
-        (lib.mkIf (currentHost == "nexus") 2)   # V3 MIGRATION: Very conservative (was 18, OOM at 6)
-        (lib.mkIf (currentHost == "sentry") 2) # V3 MIGRATION: Participating now
-        (lib.mkIf (currentHost == "forge") 2)   # V3 MIGRATION: Very conservative
-        2 # Safe fallback (no mkDefault - force this value)
-      ]);
+      max-jobs = lib.mkForce (
+        if currentHost == "zephyr" then 2
+        else if currentHost == "nexus" then 2
+        else if currentHost == "sentry" then 2
+        else if currentHost == "forge" then 2
+        else 2
+      );
 
       # Network optimization (1Gbps networking with TP-Link Easy Smart switches)
       http-connections = 100; # More parallel downloads (1Gbps can handle it)
