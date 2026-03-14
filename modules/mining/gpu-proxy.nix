@@ -250,27 +250,13 @@
             async def subscribe(self):
                 """Send mining.subscribe to the pool."""
                 logging.info("Sending mining.subscribe to pool")
+                # Standard stratum subscribe format
                 await self.send_json({
                     "id": 1,
                     "method": "mining.subscribe",
                     "params": ["gpu-proxy/1.0", None]
                 })
-
-                # Wait a moment and check if pool responds
-                await asyncio.sleep(1)
-                # Check if there's any data available to read
-                if self.reader and not self.reader.at_eof():
-                    try:
-                        # Try to read with a short timeout
-                        line = await asyncio.wait_for(self.reader.readline(), timeout=2.0)
-                        if line:
-                            logging.info(f"Pool sent data after subscribe: {line.decode().strip()}")
-                        else:
-                            logging.warning("Pool sent empty response after subscribe")
-                    except asyncio.TimeoutError:
-                        logging.warning("No response from pool after subscribe (timeout)")
-                else:
-                    logging.warning(f"Pool reader at_eof={self.reader.at_eof() if self.reader else 'no reader'}")
+                # Note: Response will be handled by pool_message_loop
 
             async def authorize(self, worker: Optional[str] = None):
                 """Send mining.authorize to the pool.
@@ -603,20 +589,15 @@
                 logging.info(f"Pool message loop started for {pool.pool.name}")
 
                 # Initialize pool connection (subscribe, configure) now that loop is running
-                # NOTE: No pool-level pre-authorization. Kryptex (and many pools) expect:
-                # 1. Pool connection with subscribe/configure only
-                # 2. Each miner authorizes individually through the proxy
-                # The proxy forwards each miner's authorization to the pool
+                # NOTE: Kryptex and some pools don't respond to standard subscribe
+                # They just start sending jobs immediately after connection
                 if not pool.initialized:
                     try:
                         logging.info("Initializing pool connection...")
-                        await pool.subscribe()
-                        # Skip configure() - some pools (Kryptex) don't support it
-                        # await pool.configure()
-                        # Don't pre-authorize - let miners authorize individually
-                        # This allows pool to track each worker separately
+                        # Don't send subscribe - let pool send first message (job)
+                        # await pool.subscribe()
                         pool.initialized = True
-                        logging.info("Pool connection initialized (waiting for miners to authorize)")
+                        logging.info("Pool connection initialized (waiting for pool to send jobs)")
                     except Exception as e:
                         logging.error(f"Error initializing pool: {e}")
                         await self.failover_pool()
