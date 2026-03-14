@@ -4,18 +4,20 @@
 # Each line: [protocol://]user@host system ssh-key max-jobs speed-factor supported-features mandatory-features
 # Note: Empty fields use defaults, - means "not specified"
 
-# MEMORY CONSTRAINT: 31GB RAM on Zephyr requires conservative max-jobs
-# Rule of thumb: ~6GB per build job max (leaves room for system + AI workloads)
-# Zephyr: 31GB RAM / 6GB per job = 5 jobs max, using 4 for safety margin
-# Nexus: 46GB RAM / 6GB per job = 7 jobs max, using 6 for safety margin
+# All 4 cluster nodes are build servers (base x86_64, reverted from v3 on 2026-03-14)
 
 # Zephyr - K8s control plane + node (32 cores, 31GB RAM)
-# CONSERVATIVE maxJobs=4 (~7.5GB per job, leaves 1GB headroom for system + AI)
-ssh-ng://j_kro@zephyr x86_64-linux - 4 8 kvm,big-parallel,x86-64-v3 -
-# Nexus - K8s storage worker + NFS (24 cores, 46GB RAM)
-# CONSERVATIVE maxJobs=6 (~7GB per job, leaves 4GB headroom for NFS)
-ssh-ng://j_kro@nexus x86_64-linux - 6 5 big-parallel,x86-64-v3 -
+# maxJobs=4 (~7.5GB per job, leaves 1GB headroom for system + AI)
+ssh-ng://j_kro@zephyr x86_64-linux - 4 8 kvm,big-parallel -
 
-# REMOVED: Forge and Sentry are build CLIENTS only (not servers)
-# Only Zephyr (control plane) and Nexus (storage) are build servers
-# This prevents build contention with GPU workloads (forge) and monitoring stack (sentry)
+# Nexus - K8s storage worker + NFS (24 cores, 46GB RAM)
+# maxJobs=6 (~7GB per job, leaves 4GB headroom for NFS)
+ssh-ng://j_kro@nexus x86_64-linux - 6 5 big-parallel -
+
+# Forge - GPU worker (6 cores, 15GB RAM, 2x RTX 4060 + 2x RX 5700 XT)
+# CONSERVATIVE maxJobs=1 (only 15GB RAM, GPU workloads need memory)
+ssh-ng://j_kro@forge x86_64-linux - 1 2 big-parallel -
+
+# Sentry - Monitoring worker (16 cores, 31GB RAM, RX 5600 XT)
+# maxJobs=2 (~15GB per job, leaves headroom for monitoring stack)
+ssh-ng://j_kro@sentry x86_64-linux - 2 3 big-parallel -
