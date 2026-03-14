@@ -12,7 +12,28 @@
         inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord
         ./fish.nix
-        ./starship.nix
+        {config, ...}: {
+          imports = [./starship.nix];
+          # Host-specific prompt colors passed to Starship
+          programs.starship.settings = {
+            # Hostname color - different for each cluster node
+            hostname.style =
+              {
+                zephyr = "bold green";
+                nexus = "bold blue";
+                forge = "bold red";
+                sentry = "bold yellow";
+              }.${config.networking.hostName} or "bold white";
+            # Character prompt color matches hostname
+            character.success_symbol =
+              {
+                zephyr = "[❯](bold green)";
+                nexus = "[❯](bold blue)";
+                forge = "[❯](bold red)";
+                sentry = "[❯](bold yellow)";
+              }.${config.networking.hostName} or "[❯](bold cyan)";
+          };
+        }
         ./wayland-tools.nix
         ./zen-browser.nix
         ./nixcord-config.nix

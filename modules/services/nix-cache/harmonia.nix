@@ -75,7 +75,8 @@ in {
 
   config = lib.mkIf cfg.enable {
     # Harmonia binary cache from nixpkgs
-    services.harmonia = {
+    # Note: Options are under services.harmonia.cache.* namespace
+    services.harmonia.cache = {
       enable = true;
       signKeyPaths = cfg.signKeyPaths;
       settings = {
