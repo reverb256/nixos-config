@@ -84,6 +84,36 @@ in {
 
     lolminer = {
       enable = mkEnableOption "lolMiner Service";
+
+      # Multi-pool failover configuration
+      pools = mkOption {
+        type = types.listOf (types.submodule {
+          options = {
+            url = mkOption {
+              type = types.str;
+              description = "Pool URL (format: host:port or stratum+tcp://host:port)";
+            };
+            wallet = mkOption {
+              type = types.str;
+              description = "Wallet address or worker ID";
+            };
+            password = mkOption {
+              type = types.str;
+              default = "x";
+              description = "Pool password (default: 'x')";
+            };
+            tls = mkOption {
+              type = types.bool;
+              default = true;
+              description = "Enable TLS for this pool connection";
+            };
+          };
+        });
+        default = [];
+        description = "List of pools for failover (priority order). If empty, uses single pool config.";
+      };
+
+      # Single pool configuration (backward compatibility, used if pools list is empty)
       algorithm = mkOption {
         type = types.str;
         default = "CR29";
@@ -91,16 +121,17 @@ in {
       pool = mkOption {
         type = types.str;
         default = "xtm-c29-us.kryptex.network:8040";
-        description = "Mining pool (format: host:port)";
+        description = "Mining pool (format: host:port) - only used if pools list is empty";
       };
       wallet = mkOption {
         type = types.str;
         default = defaultWallet;
+        description = "Wallet address - only used if pools list is empty";
       };
       tls = mkOption {
         type = types.bool;
         default = true;
-        description = "TLS IS REQUIRED for CR29 port 8040.";
+        description = "TLS IS REQUIRED for CR29 port 8040 - only used if pools list is empty";
       };
       nvidia = {
         enable = mkEnableOption "NVIDIA GPU Mining";
@@ -313,15 +344,35 @@ in {
               User = cfg.user;
               Group = "mining";
               Slice = "mining.slice";
-              ExecStart =
-                "${pkgs.lolminer}/bin/lolMiner "
-                + "--algo ${cfg.lolminer.algorithm} "
-                + "--pool ${cfg.lolminer.pool} "
-                + "--user ${cfg.lolminer.wallet} "
-                + "--devices ${cfg.lolminer.nvidia.devices} "
-                + "--apiport ${toString cfg.lolminer.nvidia.apiPort} "
-                + "--mode b "
-                + lib.optionalString cfg.lolminer.tls "--tls on";
+
+              # Build pool arguments for failover support
+              # If pools list is provided, use multi-pool mode; otherwise use single pool config
+              ExecStart = let
+                # Helper function to build pool arguments
+                poolArgs = pools: lib.concatMapStrings (p: ''
+                  --pool ${p.url} \
+                  --user ${p.wallet} \
+                  --pass ${p.password} \
+                  ${lib.optionalString p.tls "--tls on"} \
+                '') pools;
+
+                # Use pools list if provided, otherwise fall back to single pool config
+                poolsToUse = if cfg.lolminer.pools != [] then cfg.lolminer.pools else [
+                  {
+                    url = cfg.lolminer.pool;
+                    wallet = cfg.lolminer.wallet;
+                    password = "x";
+                    tls = cfg.lolminer.tls;
+                  }
+                ];
+              in ''
+                ${pkgs.lolminer}/bin/lolMiner \
+                  --algo ${cfg.lolminer.algorithm} \
+                  ${poolArgs poolsToUse}\
+                  --devices ${cfg.lolminer.nvidia.devices} \
+                  --apiport ${toString cfg.lolminer.nvidia.apiPort} \
+                  --mode b
+              '';
               Restart = "always";
               RestartSec = "30s";
               Environment = [
@@ -345,15 +396,32 @@ in {
               User = cfg.user;
               Group = "mining";
               Slice = "mining.slice";
-              ExecStart =
-                "${pkgs.lolminer}/bin/lolMiner "
-                + "--algo ${cfg.lolminer.algorithm} "
-                + "--pool ${cfg.lolminer.pool} "
-                + "--user ${cfg.lolminer.wallet} "
-                + "--devices ${cfg.lolminer.amd.devices} "
-                + "--apiport ${toString cfg.lolminer.amd.apiPort} "
-                + "--mode b "
-                + lib.optionalString cfg.lolminer.tls "--tls on";
+
+              # Build pool arguments for failover support (same as NVIDIA)
+              ExecStart = let
+                poolArgs = pools: lib.concatMapStrings (p: ''
+                  --pool ${p.url} \
+                  --user ${p.wallet} \
+                  --pass ${p.password} \
+                  ${lib.optionalString p.tls "--tls on"} \
+                '') pools;
+
+                poolsToUse = if cfg.lolminer.pools != [] then cfg.lolminer.pools else [
+                  {
+                    url = cfg.lolminer.pool;
+                    wallet = cfg.lolminer.wallet;
+                    password = "x";
+                    tls = cfg.lolminer.tls;
+                  }
+                ];
+              in ''
+                ${pkgs.lolminer}/bin/lolMiner \
+                  --algo ${cfg.lolminer.algorithm} \
+                  ${poolArgs poolsToUse}\
+                  --devices ${cfg.lolminer.amd.devices} \
+                  --apiport ${toString cfg.lolminer.amd.apiPort} \
+                  --mode b
+              '';
               Restart = "always";
               RestartSec = "30s";
               Environment = [

@@ -65,35 +65,30 @@ in {
       # DNS search domains for cluster
       search = ["lan" "cluster.local" "tigris-ule.ts.net"];
 
-      # NetworkManager for flexible network configuration
-      networkmanager = {
-        enable = true;
-        dns = "none"; # Use Unbound, not NetworkManager's DNS
+      # Use systemd-networkd for wired (primary connection)
+      useNetworkd = true;
 
-        # Wired connection profile
-        ensureProfiles.profiles."Wired connection 1" = {
-          connection = {
-            id = "Wired connection 1";
-            type = "ethernet";
-            interface-name = cfg.interfaceName;
-            autoconnect = true;
-          };
-          ipv4 = {
-            method = "manual";
-            address1 = "${cfg.ipAddress}/24";
-            gateway = "10.1.1.1"; # Modem/gateway
-            dns = "127.0.0.1"; # Use local Unbound resolver (IPv4)
-          };
-          ipv6 = {
-            method = "auto";
-            dns = "::1"; # Use local Unbound resolver (IPv6)
-          };
-        };
+      # Static IP for wired interface (managed by systemd-networkd)
+      interfaces.${cfg.interfaceName}.ipv4.addresses = [{
+        address = cfg.ipAddress;
+        prefixLength = 24;
+      }];
+
+      # Default route via gateway
+      defaultGateway = "10.1.1.1";
+      defaultGateway6 = { via = "fe80::1"; interface = cfg.interfaceName; };
+
+      # NetworkManager for WiFi backup only (not wired)
+      networkmanager = {
+        enable = cfg.wireless.enable;
+        dns = "none"; # Use Unbound, not NetworkManager's DNS
+        wifi.backend = "wpa_supplicant"; # Use wpa_supplicant for WiFi
+        # Note: No ensureProfiles for wired - systemd-networkd handles that
+        # WiFi profiles are managed interactively via nmcli/nmtui
       };
 
-      # Note: WiFi is handled by NetworkManager, not wpa_supplicant
-      # The wpa_supplicant wireless (networking.wireless) conflicts with NetworkManager
-      # Wireless connections are configured via NetworkManager connection profiles
+      # Enable wpa_supplicant for WiFi (only when NetworkManager is enabled)
+      wireless.enable = cfg.wireless.enable;
     };
 
     # ============================================================================

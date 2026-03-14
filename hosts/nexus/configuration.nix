@@ -239,6 +239,9 @@
   };
 
   services = {
+    # Compute workload monitor - pauses mining during builds
+    compute-workload-monitor.enable = true;
+
     # Crash detection and logging
     crash-watchdog.enable = true;
 
@@ -265,9 +268,22 @@
       };
 
       # GPU mining configuration (shared by NVIDIA)
+      # Multi-pool failover: local proxy first, then direct Kryptex
       lolminer = {
-        pool = "xtm-c29-us.kryptex.network:8040";
-        wallet = "krxXVNVMM7.nexus-gpu";
+        pools = [
+          {
+            url = "127.0.0.1:3334";  # Local gpu-proxy (primary)
+            wallet = "krxXVNVMM7.nexus-gpu";
+            password = "x";
+            tls = false;  # No TLS for local proxy
+          }
+          {
+            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex (fallback)
+            wallet = "krxXVNVMM7.nexus-gpu";
+            password = "x";
+            tls = true;  # TLS required for Kryptex
+          }
+        ];
       };
 
       # NVIDIA GPU mining (RTX 3060 Ti @ 130W)
@@ -289,19 +305,19 @@
       pools = [
         {
           name = "Kryptex US";
-          url = "xtm-c29-us.kryptex.network:8038";
+          url = "stratum+tcp://xtm-c29-us.kryptex.network:8040";  # TLS port
           wallet = "krxXVNVMM7";
           password = "x";
           priority = 1;
-          tls = false;
+          tls = true;  # Kryptex requires TLS for port 8040
         }
         {
           name = "Kryptex EU";
-          url = "xtm-c29-eu.kryptex.network:8038";
+          url = "stratum+tcp://xtm-c29-eu.kryptex.network:8040";  # TLS port
           wallet = "krxXVNVMM7";
           password = "x";
           priority = 2;
-          tls = false;
+          tls = true;  # Kryptex requires TLS for port 8040
         }
       ];
       workers = [
