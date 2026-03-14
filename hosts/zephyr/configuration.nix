@@ -50,43 +50,45 @@
       populateLocal = true;
     };
     # Zephyr-specific firewall rules (in addition to cluster defaults)
-    firewall.allowedTCPPorts = [
-      9757 # WiVRn main port
-      18789 # Steam Remote Play
-      18790 # Steam Remote Play (secondary)
-      19898 # Moonlight/GameStream AND Spacebot Web UI
-      1234 # LM Studio API server
-      8080 # AI Inference Gateway
-      53317 # LocalSend (file sharing)
-      8888 # CFSSL CA API server (for worker node certificate generation)
-      5000 # Harmonia binary cache server (not 50000 - that was old nix-serve)
-    ];
-    firewall.allowedUDPPorts = [
-      9757 # WiVRn
-      9758 # WiVRn
-      9759 # WiVRn
-      27031 # Steam UDP
-      27036 # Steam UDP
-      5353 # mDNS
-      9947 # WiVRn
-      53317 # LocalSend (multicast discovery)
-    ];
-    firewall.interfaces = {
-      "tailscale0".allowedTCPPorts = [
-        18789
-        18790
+    firewall = {
+      allowedTCPPorts = [
+        9757 # WiVRn main port
+        18789 # Steam Remote Play
+        18790 # Steam Remote Play (secondary)
+        19898 # Moonlight/GameStream AND Spacebot Web UI
+        1234 # LM Studio API server
+        8080 # AI Inference Gateway
+        53317 # LocalSend (file sharing)
+        8888 # CFSSL CA API server (for worker node certificate generation)
+        5000 # Harmonia binary cache server (not 50000 - that was old nix-serve)
       ];
-      # NFS server - allow local network only
-      "enp38s0".allowedTCPPorts = [
-        111
-        2049
-        20048
-      ]; # rpcbind, nfs, mountd
-      "enp38s0".allowedUDPPorts = [
-        111
-        2049
-        20048
+      allowedUDPPorts = [
+        9757 # WiVRn
+        9758 # WiVRn
+        9759 # WiVRn
+        27031 # Steam UDP
+        27036 # Steam UDP
+        5353 # mDNS
+        9947 # WiVRn
+        53317 # LocalSend (multicast discovery)
       ];
+      interfaces = {
+        "tailscale0".allowedTCPPorts = [
+          18789
+          18790
+        ];
+        # NFS server - allow local network only
+        "enp38s0".allowedTCPPorts = [
+          111
+          2049
+          20048
+        ]; # rpcbind, nfs, mountd
+        "enp38s0".allowedUDPPorts = [
+          111
+          2049
+          20048
+        ];
+      };
     };
   };
 
@@ -96,33 +98,6 @@
   # This profile bundles role profiles, Kubernetes config, hardware profiles,
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.zephyr-workstation.enable = true;
-
-  # ============================================================================
-  # KUBERNETES HA - Control Plane Configuration
-  # ============================================================================
-  # Override profile defaults for HA setup with etcd clustering and VIP
-  services.kubernetes-module = {
-    # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
-    # TODO: Generate custom certificates with VIP (10.1.1.100) in SANs for proper HA
-    masterAddress = lib.mkForce "10.1.1.110";
-    # etcd clustering configuration (Zephyr is initial node)
-    etcdInitialState = "new";
-    etcdName = "zephyr";
-    etcdListenHost = "10.1.1.110";
-    etcdClusterMembers = [
-      "zephyr=http://10.1.1.110:2380"
-      "nexus=http://10.1.1.120:2380"
-      "sentry=http://10.1.1.140:2380"
-    ];
-  };
-
-  # Keepalived VIP - priority 110 (highest - preferred master)
-  services.keepalived-vip = {
-    enable = true;
-    vip = "10.1.1.100";
-    interface = "enp38s0";
-    priority = 110;
-  };
 
   # ============================================================================
   # SECURITY AUDIT REMEDIATION
@@ -136,24 +111,67 @@
   };
 
   # ============================================================================
-  # AKASH PROVIDER - Decentralized GPU Compute Marketplace
+  # SERVICES - All service configurations consolidated here
   # ============================================================================
-  # Earn AKT/USDC by hosting AI/ML workloads on your GPUs
-  services.akash-provider = {
-    enable = true; # Wallet created with agenix, ready to deploy
-    # Provider address: cluster-provider (created 2026-03-14)
-    providerAddress = "akash1s97zjxzn3tnudawjhjhpus9x7yn6dgukzar372";
-    # Domain for provider ingress (use dynamic DNS like duckdns.org)
-    domain = "cluster.local"; # TODO: Update with public domain
-    clusterPublicHostname = "provider.cluster.local"; # TODO: Update with provider hostname
+  services = {
+    # KUBERNETES HA - Control Plane Configuration
+    # Override profile defaults for HA setup with etcd clustering and VIP
+    kubernetes-module = {
+      # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
+      # TODO: Generate custom certificates with VIP (10.1.1.100) in SANs for proper HA
+      masterAddress = lib.mkForce "10.1.1.110";
+      # etcd clustering configuration (Zephyr is initial node)
+      etcdInitialState = "new";
+      etcdName = "zephyr";
+      etcdListenHost = "10.1.1.110";
+      etcdClusterMembers = [
+        "zephyr=http://10.1.1.110:2380"
+        "nexus=http://10.1.1.120:2380"
+        "sentry=http://10.1.1.140:2380"
+      ];
+    };
 
-    # GPU pricing (uakt per block) - adjust based on market demand
-    pricing = {
-      rtx3090 = 20000; # ~$8.70/month per GPU at 50% util
-      rtx4060 = 18000; # ~$7.80/month per GPU at 50% util
-      rtx3060ti = 15000; # ~$6.50/month per GPU at 50% util
-      rx5700xt = 8000; # ~$3.50/month per GPU at 50% util
-      rx5600xt = 7000; # ~$3.00/month per GPU at 50% util
+    # Keepalived VIP - priority 110 (highest - preferred master)
+    keepalived-vip = {
+      enable = true;
+      vip = "10.1.1.100";
+      interface = "enp38s0";
+      priority = 110;
+    };
+
+    # AKASH PROVIDER - Decentralized GPU Compute Marketplace
+    # Earn AKT/USDC by hosting AI/ML workloads on your GPUs
+    akash-provider = {
+      enable = true; # Wallet created with agenix, ready to deploy
+      # Provider address: cluster-provider (created 2026-03-14)
+      providerAddress = "akash1s97zjxzn3tnudawjhjhpus9x7yn6dgukzar372";
+      # Domain for provider ingress (use dynamic DNS like duckdns.org)
+      domain = "cluster.local"; # TODO: Update with public domain
+      clusterPublicHostname = "provider.cluster.local"; # TODO: Update with provider hostname
+
+      # GPU pricing (uakt per block) - adjust based on market demand
+      pricing = {
+        rtx3090 = 20000; # ~$8.70/month per GPU at 50% util
+        rtx4060 = 18000; # ~$7.80/month per GPU at 50% util
+        rtx3060ti = 15000; # ~$6.50/month per GPU at 50% util
+        rx5700xt = 8000; # ~$3.50/month per GPU at 50% util
+        rx5600xt = 7000; # ~$3.00/month per GPU at 50% util
+      };
+    };
+
+    # Crash watchdog - detect and log system crashes
+    crash-watchdog.enable = true;
+
+    # Backup to Garage S3 - automated daily backups
+    backup-to-garage = {
+      enable = true;
+      endpoint = "http://10.1.1.110:3900";
+      region = "garage";
+      bucket = "backups";
+      accessKey = "GKac91d924fc76a30b9bcf6c3e";
+      secretKeyFile = "/run/agenix/garage-s3-secret-key";
+      retentionDays = 30;
+      startAt = "02:00"; # 2 AM daily
     };
   };
 
@@ -374,11 +392,12 @@
     };
 
     # NFS Client - Mount shared storage from nexus
+    # TEMPORARILY DISABLED: NFS server on Nexus is down, causing hangs/crashes
     nfs-client = {
       enable = true;
-      mountShared = true;
+      mountShared = false;  # DISABLED until Nexus NFS server is fixed
       mountHome = false; # Zephyr has local home
-      mountMedia = true;
+      mountMedia = false;  # DISABLED until Nexus NFS server is fixed
     };
 
     # Caddy reverse proxy - Replace nginx for all services
@@ -1072,22 +1091,13 @@
   # CRASH DETECTION
   # ============================================================================
   # Enable crash watchdog to detect and log system crashes
-  services.crash-watchdog.enable = true;
+  # Configured in services block above
 
   # ============================================================================
   # BACKUP TO GARAGE S3
   # ============================================================================
   # Automated daily backups to Garage S3 cluster (runs at 2 AM)
-  services.backup-to-garage = {
-    enable = true;
-    endpoint = "http://10.1.1.110:3900";
-    region = "garage";
-    bucket = "backups";
-    accessKey = "GKac91d924fc76a30b9bcf6c3e";
-    secretKeyFile = "/run/agenix/garage-s3-secret-key";
-    retentionDays = 30;
-    startAt = "02:00"; # 2 AM daily
-  };
+  # Configured in services block above
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
 
