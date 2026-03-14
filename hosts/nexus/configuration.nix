@@ -312,7 +312,10 @@
     nfs.server.enable = true;
 
     # Nix binary cache server for x86-64-v3 migration
-    nix-cache.harmonia.enable = true;
+    nix-cache.harmonia = {
+      enable = true;
+      signKeyPaths = ["/var/lib/secrets/harmonia.secret"];
+    };
 
     # Syncthing P2P file sync for /etc/nixos config sync
     syncthing-cluster = {
@@ -355,6 +358,16 @@
   environment.systemPackages = with pkgs; [
     opencode # AI coding agent (migrated from nix profile)
   ];
+
+  # ============================================================================
+  # NIX SETTINGS - Nexus-specific cache configuration
+  # ============================================================================
+  # Nexus hosts the Harmonia cache server, so it should use localhost
+  nix.settings = {
+    substituters = lib.mkOptionDefault [
+      "http://127.0.0.1:5000?trusted=1"  # Local Harmonia cache
+    ];
+  };
 
   # ============================================================================
   # x86-64-v3 MIGRATION: Rollback Strategy

@@ -111,8 +111,9 @@
 
     # Binary cache substituters - check local Harmonia cache first
     # Harmonia runs on port 5000 (not 50000 - that was old nix-serve)
+    # Use cluster IP address instead of Tailscale hostname for DNS reliability
     substituters = lib.mkOptionDefault [
-      "http://zephyr.tigris-ule.ts.net:5000?trusted=1"
+      "http://10.1.1.110:5000?trusted=1"
     ];
 
     # System features - declare x86-64-v3 microarchitecture support
