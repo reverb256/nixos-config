@@ -35,11 +35,11 @@
   # HOST IDENTIFICATION
   # ============================================================================
   # Centralized cluster networking (search domains, DNS, firewall basics)
+  # Note: interfaceName provided by node-profiles.zephyr-workstation
   clusterNetworking = {
     enable = true;
     hostName = "zephyr";
     ipAddress = "10.1.1.110";
-    interfaceName = "lan0"; # Standardized cluster interface name
     wireless.enable = true; # WiFi interface: wlo1 (native: wlp40s0)
     unbound.listenAddress = "10.1.1.110"; # Listen on node IP for cluster DNS
   };
@@ -57,6 +57,7 @@
         18790 # Steam Remote Play (secondary)
         19898 # Moonlight/GameStream AND Spacebot Web UI
         1234 # LM Studio API server
+        3333 # XMRig stratum proxy (for GPU miners)
         8080 # AI Inference Gateway
         53317 # LocalSend (file sharing)
         8888 # CFSSL CA API server (for worker node certificate generation)

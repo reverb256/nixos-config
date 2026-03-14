@@ -111,7 +111,7 @@ in {
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.110";
-          interfaceName = "enp38s0";
+          interfaceName = "lan0";
           unboundListenAddress = "10.1.1.110";
           wireless.enable = true;
         };
@@ -176,7 +176,7 @@ in {
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.120";
-          interfaceName = "enp7s0";
+          interfaceName = "lan0";
           unboundListenAddress = "10.1.1.120";
           wireless.enable = true;
         };
@@ -247,7 +247,7 @@ in {
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.130";
-          interfaceName = "enp0s31f6";
+          interfaceName = "lan0";
           unboundListenAddress = "10.1.1.130";
           wireless.enable = false;
         };
@@ -315,7 +315,7 @@ in {
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.140";
-          interfaceName = "enp7s0";
+          interfaceName = "lan0";
           unboundListenAddress = "10.1.1.140";
           wireless.enable = false;
         };

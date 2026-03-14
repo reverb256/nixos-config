@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "/data/@projects/infra/xnm1-upgrade-worktree/"
+    ]
+  },
+  "outputStyle": "Explanatory"
+}
