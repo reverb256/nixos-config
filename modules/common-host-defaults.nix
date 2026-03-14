@@ -109,11 +109,6 @@
     # Without this, remote build users cannot access the Nix store
     trusted-users = ["j_kro"];
 
-    # System features - do NOT set gccarch-x86-64-v3 globally
-    # V3 migration is phased - see mkNixosSystemV3 in flake.nix
-    # When v3 is enabled, system-features is set in the v3 module
-    # This allows non-v3 configs to use binary caches normally
-
     # Fallback to public caches if local cache miss
     # https://cache.nixos.org
   };

@@ -80,6 +80,16 @@ in {
       default = "/home/${cfg.user}/.lmstudio/models";
       description = "Path to store downloaded models";
     };
+
+    # CUDA library path (for LM Studio's CUDA backend)
+    # LM Studio extracts its AppImage to ~/.lmstudio/app-*/
+    cudaLibPath = lib.mkOption {
+      type = lib.types.str;
+      # Default uses wildcard for auto-detection at runtime
+      # The shell script will expand ~/.lmstudio/app-* to find the actual directory
+      default = "~/.lmstudio/app-*/resources/app/.webpack/bin/extensions/backends/vendor/linux-llama-cuda-vendor-v1";
+      description = "Path to LM Studio's CUDA vendor libraries (supports * wildcard for version-agnostic path)";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -95,6 +105,27 @@ in {
     systemd.services.lm-studio-headless = let
       # Build CUDA device environment variable (empty string if no GPU specified)
       gpuEnv = lib.optionalString (cfg.gpuDevice != null) "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
+
+      # Helper script to resolve wildcard and set LD_LIBRARY_PATH
+      # LM Studio stores CUDA libraries in versioned app-* directories
+      # We expand the wildcard at runtime to avoid hardcoded store paths
+      shellScript = ''
+        # Resolve wildcard in CUDA library path
+        # First try: expand wildcard in user's .lmstudio directory
+        CUDA_LIB_PATH=$(echo /home/${cfg.user}/.lmstudio/app-*/resources/app/.webpack/bin/extensions/backends/vendor/linux-llama-cuda-vendor-v1 2>/dev/null | head -n1)
+        # Second try: use the configured path (may contain ~ or wildcards)
+        if [ -z "$CUDA_LIB_PATH" ] || [ ! -d "$CUDA_LIB_PATH" ]; then
+          # Expand ~ in configured path and try again
+          CONFIG_PATH="${cfg.cudaLibPath}"
+          CONFIG_PATH="''${CONFIG_PATH/#\~/$HOME}"
+          CUDA_LIB_PATH=$(echo $CONFIG_PATH 2>/dev/null | head -n1)
+        fi
+        # Set LD_LIBRARY_PATH if we found a valid path
+        if [ -n "$CUDA_LIB_PATH" ] && [ -d "$CUDA_LIB_PATH" ]; then
+          export LD_LIBRARY_PATH="$CUDA_LIB_PATH:$${LD_LIBRARY_PATH:-}"
+        fi
+        exec "$@"
+      '';
     in {
       description = "LM Studio Headless Service (llmster daemon)";
       after = ["network.target"];
@@ -110,8 +141,6 @@ in {
         # PATH for root (su will set PATH for the target user)
         Environment = [
           "PATH=/run/current-system/sw/bin"
-          # Add CUDA vendor library path for LM Studio's CUDA backend
-          "LD_LIBRARY_PATH=/nix/store/jvfs2y324lhbcjqyplhc3c9ji16z85ak-lmstudio-0.4.6-1-extracted/resources/app/.webpack/bin/extensions/backends/vendor/linux-llama-cuda-vendor-v1:$${LD_LIBRARY_PATH:-}"
         ];
 
         # Daemon lifecycle following official docs:
@@ -129,13 +158,14 @@ in {
         #
         # ExecStop:
         # lms daemon down - Clean shutdown
+
         ExecStartPre = lib.optionalString (cfg.preloadModel != null) ''
-          /bin/sh -c 'export LD_LIBRARY_PATH=/nix/store/jvfs2y324lhbcjqyplhc3c9ji16z85ak-lmstudio-0.4.6-1-extracted/resources/app/.webpack/bin/extensions/backends/vendor/linux-llama-cuda-vendor-v1:$${LD_LIBRARY_PATH:-} && ${gpuEnv} su - ${cfg.user} -c "${lmsBin} daemon up" &&
-                  export LD_LIBRARY_PATH=/nix/store/jvfs2y324lhbcjqyplhc3c9ji16z85ak-lmstudio-0.4.6-1-extracted/resources/app/.webpack/bin/extensions/backends/vendor/linux-llama-cuda-vendor-v1:$${LD_LIBRARY_PATH:-} && ${gpuEnv} su - ${cfg.user} -c "${lmsBin} load ${cfg.preloadModel} --yes ${lib.escapeShellArgs cfg.modelLoadArgs}"'
+          /bin/sh -c '${shellScript} && ${gpuEnv} su - ${cfg.user} -c "${lmsBin} daemon up" &&
+                  ${shellScript} && ${gpuEnv} su - ${cfg.user} -c "${lmsBin} load ${cfg.preloadModel} --yes ${lib.escapeShellArgs cfg.modelLoadArgs}"'
         '';
 
         ExecStart = ''
-          /bin/sh -c 'export LD_LIBRARY_PATH=/nix/store/jvfs2y324lhbcjqyplhc3c9ji16z85ak-lmstudio-0.4.6-1-extracted/resources/app/.webpack/bin/extensions/backends/vendor/linux-llama-cuda-vendor-v1:$${LD_LIBRARY_PATH:-} && ${gpuEnv} su - ${cfg.user} -c "${lmsBin} daemon up && ${lmsBin} server start --port ${toString cfg.port} --bind ${cfg.host}"'
+          /bin/sh -c '${shellScript} && ${gpuEnv} su - ${cfg.user} -c "${lmsBin} daemon up && ${lmsBin} server start --port ${toString cfg.port} --bind ${cfg.host}"'
         '';
 
         ExecStop = "/bin/sh -c 'su - ${cfg.user} -c \"${lmsBin} daemon down\"'";

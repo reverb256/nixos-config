@@ -432,10 +432,17 @@ class MCPBroker:
                 return direct_result
 
         # If direct call failed with 401 and this is a ZAI server, try Chat API fallback
+        # Check for various error indicators: 401 codes, "MCP error" prefix, or API key messages
         if (
             server.url
             and "api.z.ai/api/mcp" in server.url
-            and ("401" in error_str or "401" in result_str or "Api key not found" in result_str)
+            and (
+                "401" in error_str
+                or "401" in result_str
+                or "Api key not found" in result_str
+                or "MCP error" in error_str
+                or "MCP error" in result_str
+            )
         ):
             logger.info(
                 f"Direct MCP call failed for {server.name}.{tool_name}, trying Chat API fallback"
@@ -915,6 +922,11 @@ class MCPBroker:
                                     if "result" in data:
                                         result = data["result"]
 
+                                        # CRITICAL: Check for Z.AI MCP error format BEFORE processing content
+                                        # Z.AI returns errors as: {"result": {"content": [{"text": "MCP error -401..."}], "isError": true}}
+                                        is_error = result.get("isError", False)
+                                        error_message = None
+
                                         # Extract content from MCP result format
                                         # MCP returns: {"content": [{"type": "text", "text": "..."}], "isError": false}
                                         if (
@@ -929,6 +941,23 @@ class MCPBroker:
                                                 and "text" in content_item
                                             ):
                                                 text_content = content_item["text"]
+
+                                                # Check if text content contains an error message
+                                                if "MCP error" in text_content or "Api key not found" in text_content:
+                                                    is_error = True
+                                                    error_message = text_content
+                                                    logger.warning(
+                                                        f"Z.AI MCP returned error in content: {text_content[:200]}"
+                                                    )
+
+                                                # If this is an error response, return it with error key
+                                                if is_error:
+                                                    return {
+                                                        "error": error_message or "MCP server returned an error",
+                                                        "server": server.name,
+                                                        "tool": tool_name,
+                                                        "routed_via": "direct_mcp",
+                                                    }
 
                                                 # Try to parse nested JSON (some tools wrap results in JSON strings)
                                                 try:
@@ -951,6 +980,15 @@ class MCPBroker:
                                             # Handle other content types
                                             return {
                                                 "result": content_item,
+                                                "server": server.name,
+                                                "tool": tool_name,
+                                                "routed_via": "direct_mcp",
+                                            }
+
+                                        # If isError flag was set but no content, return error
+                                        if is_error:
+                                            return {
+                                                "error": error_message or "MCP server returned isError=true",
                                                 "server": server.name,
                                                 "tool": tool_name,
                                                 "routed_via": "direct_mcp",
@@ -988,6 +1026,31 @@ class MCPBroker:
                                 "server": server.name,
                                 "tool": tool_name,
                             }
+                        # Check for Z.AI MCP result with isError flag
+                        if "result" in result:
+                            mcp_result = result["result"]
+                            # Check if this is an error response from Z.AI
+                            if isinstance(mcp_result, dict):
+                                is_error = mcp_result.get("isError", False)
+                                error_msg = None
+
+                                # Check content for error messages
+                                if "content" in mcp_result and len(mcp_result["content"]) > 0:
+                                    content_item = mcp_result["content"][0]
+                                    if isinstance(content_item, dict):
+                                        text_content = content_item.get("text", "")
+                                        if "MCP error" in text_content or "Api key not found" in text_content:
+                                            is_error = True
+                                            error_msg = text_content
+
+                                if is_error:
+                                    return {
+                                        "error": error_msg or "MCP server returned isError=true",
+                                        "server": server.name,
+                                        "tool": tool_name,
+                                        "routed_via": "direct_mcp",
+                                    }
+
                         # Return the result part of JSON-RPC response
                         return result.get("result", result)
                 else:

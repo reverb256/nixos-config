@@ -83,21 +83,6 @@
     };
 
     # ========================================================================
-    # x86-64-v3 MICROARCHITECTURE NOTES
-    # ========================================================================
-    # All cluster CPUs support AVX2 and v3 requirements:
-    # - Zephyr: Ryzen 9 5950X (Zen 3)
-    # - Nexus: Ryzen 9 3900X (Zen 2)
-    # - Forge: i5-9500 (Coffee Lake)
-    # - Sentry: Ryzen 7 1700 (Zen 1, has AVX2)
-    #
-    # Benefits: 10-30% SIMD performance uplift for AI, mining, crypto
-    # Cost: No binary cache compatibility (must build from source)
-    #
-    # Implementation: v3 is set via nixpkgs.hostPlatform.gcc.arch at module
-    # level in mkNixosSystemV3 below (NOT via localSystem in flake imports).
-
-    # ========================================================================
     # COMMON MODULES - Shared across all hosts (single source of truth)
     # ========================================================================
     commonModules = [
@@ -157,57 +142,6 @@
       };
 
     # ========================================================================
-    # x86-64-v3 MICROARCHITECTURE NOTES
-    # ========================================================================
-    # All cluster CPUs support AVX2 and v3 requirements:
-    # - Zephyr: Ryzen 9 5950X (Zen 3)
-    # - Nexus: Ryzen 9 3900X (Zen 2)
-    # - Forge: i5-9500 (Coffee Lake)
-    # - Sentry: Ryzen 7 1700 (Zen 1, has AVX2)
-    #
-    # Benefits: 10-30% SIMD performance uplift for AI, mining, crypto
-    # Cost: No binary cache compatibility (must build from source)
-    #
-    # Implementation: Module-level nixpkgs.hostPlatform.gcc.arch (NOT localSystem)
-    # The system-features = ["gccarch-x86-64-v3"] is declared in
-    # modules/common-host-defaults.nix to enable sandbox access.
-    # ========================================================================
-
-    # Helper to build v3 NixOS system
-    # Uses module-level nixpkgs.hostPlatform.gcc.arch for microarch tuning
-    mkNixosSystemV3 = {
-      hostName,
-      extraModules ? [],
-    }:
-      nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = {
-          inherit inputs;
-          # Import stable nixpkgs for packages with known issues in unstable
-          pkgs-stable = import nixpkgs-stable {
-            inherit system;
-            config.allowUnfree = true;
-          };
-        };
-        modules =
-          commonModules
-          ++ [
-            ./hosts/${hostName}/configuration.nix
-            {
-              # DISABLED: x86-64-v3 microarchitecture tuning
-              # This breaks binary cache compatibility with cache.nixos.org
-              # To enable per-package v3 optimization, use packageOverrides instead
-              # nixpkgs.hostPlatform = {
-              #   system = "x86_64-linux";
-              #   gcc.arch = "x86-64-v3";
-              # };
-              # nix.settings.system-features = ["gccarch-x86-64-v3"];
-            }
-          ]
-          ++ extraModules;
-      };
-
-    # ========================================================================
     # HOST DEFINITIONS - Single source of truth
     # ========================================================================
     hosts = {
@@ -220,28 +154,7 @@
     # ========================================================================
     # OUTPUT 1: nixosConfigurations (for local nixos-rebuild)
     # ========================================================================
-    nixosConfigurations =
-      # Baseline configurations (no microarchitecture tuning)
-      builtins.mapAttrs
-      (_name: value: mkNixosSystem {inherit (value) hostName;})
-      hosts
-      // {
-        # x86-64-v3 configurations (suffix: -v3)
-        # Use: sudo nixos-rebuild switch --flake .#nexus-v3
-        nexus-v3 = mkNixosSystemV3 {hostName = "nexus";};
-        zephyr-v3 = mkNixosSystemV3 {hostName = "zephyr";};
-        forge-v3 = mkNixosSystemV3 {hostName = "forge";};
-        sentry-v3 = mkNixosSystemV3 {hostName = "sentry";};
-      };
-
-    # ========================================================================
-    # OUTPUT 1.5: nixosConfigurationsV3 (x86-64-v3 microarchitecture)
-    # ========================================================================
-    # Kept for Colmena and programmatic access
-    nixosConfigurationsV3 =
-      builtins.mapAttrs
-      (_name: value: mkNixosSystemV3 {inherit (value) hostName;})
-      hosts;
+    nixosConfigurations = builtins.mapAttrs (_name: value: mkNixosSystem {inherit (value) hostName;}) hosts;
 
     # ========================================================================
     # OUTPUT 2: colmena (raw hive configuration)
