@@ -55,12 +55,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Harmonia - Modern Nix binary cache server
-    harmonia = {
-      url = "github:nix-community/harmonia";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # Colmena - Multi-host deployment
     colmena = {
       url = "github:zhaofengli/colmena";
