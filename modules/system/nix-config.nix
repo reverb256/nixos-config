@@ -9,12 +9,10 @@
       # Binary caches (local cache checked first)
       # Harmonia runs on port 5000 (not 50000 - that was old nix-serve)
       # Use cluster IP address instead of Tailscale hostname for DNS reliability
-      # Use mkOptionDefault to allow merging with additional caches from other modules
-      substituters = lib.mkOptionDefault [
+      # Use mkBefore to ensure local cache is first before other modules' substituters
+      # Public caches are now in distributed-builds.nix (to reduce duplication)
+      substituters = lib.mkBefore [
         "http://10.1.1.110:5000?trusted=1"
-        "https://cache.nixos.org"
-        "https://nix-community.cachix.org"
-        "https://ezkea.cachix.org"
       ];
 
       trusted-public-keys = [
