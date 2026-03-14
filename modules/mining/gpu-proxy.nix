@@ -437,7 +437,7 @@
                 try:
                     # Send mining.authorize to pool with this worker's full ID
                     await self.pool.send_json({
-                        "id": 4,  # Use different ID range for miner forwards
+                        "id": 10,  # Use ID 10+ for forwarded miner authorizations
                         "method": "mining.authorize",
                         "params": [worker_name, password]
                     })
@@ -606,14 +606,37 @@
                 """Handle messages from the pool."""
                 logging.info(f"Pool message loop started for {pool.pool.name}")
 
-                # Initialize pool connection (subscribe, configure) now that loop is running
-                # Initialize pool connection (subscribe, configure) now that loop is running
+                # Initialize pool connection with CR29-specific sequence
+                # CR29 pools may require authorization BEFORE subscription
                 if not pool.initialized:
                     try:
                         logging.info("Initializing pool connection...")
-                        await pool.subscribe()
+
+                        # STEP 1: Authorize with base wallet FIRST (CR29 requirement?)
+                        logging.info("STEP 1: Sending mining.authorize with base wallet")
+                        await pool.send_json({
+                            "id": 1,  # Use ID 1 for authorize
+                            "method": "mining.authorize",
+                            "params": [pool.pool.wallet, pool.pool.password]
+                        })
+
+                        # STEP 2: Then send subscribe
+                        logging.info("STEP 2: Sending mining.subscribe")
+                        await pool.send_json({
+                            "id": 2,  # Use ID 2 for subscribe
+                            "method": "mining.subscribe",
+                            "params": ["gpu-proxy/1.0", None]
+                        })
+
                         pool.initialized = True
                         logging.info("Pool connection initialized (waiting for pool response)")
+
+                        # Check if connection is still alive after sending
+                        if pool.writer and pool.writer.is_closing():
+                            logging.error("Connection closed immediately after sending init messages!")
+                        else:
+                            logging.info("Connection still alive after init messages, waiting for response...")
+
                     except Exception as e:
                         logging.error(f"Error initializing pool: {e}")
                         logging.error(f"Traceback: {traceback.format_exc()}")
@@ -648,14 +671,19 @@
                             logging.info(f"Difficulty set to {pool.difficulty}")
 
                         elif msg_id in [1, 2, 3]:
-                            # Response to subscribe/authorize/configure
+                            # Response to authorize/subscribe/configure (ID 1=authorize, 2=subscribe for CR29)
                             if msg_id == 1:
-                                logging.info(f"Pool {pool.pool.name} subscription confirmed")
-                            elif msg_id == 2:
+                                # Response to authorize
                                 if result is True:
                                     logging.info(f"Pool {pool.pool.name} authorization successful")
                                 else:
                                     logging.error(f"Pool {pool.pool.name} authorization failed: result={result}")
+                            elif msg_id == 2:
+                                # Response to subscribe
+                                logging.info(f"Pool {pool.pool.name} subscription confirmed: {result}")
+                            elif msg_id == 3:
+                                # Response to configure
+                                logging.info(f"Pool {pool.pool.name} configure response: {result}")
 
                         elif msg_id == 4:
                             # Response to share submission
@@ -665,8 +693,21 @@
                                 error = message.get("error", [])
                                 logging.warning(f"Share rejected: {error}")
 
+                        elif msg_id == 10:
+                            # Response to forwarded miner authorization
+                            if result is True:
+                                logging.info(f"Forwarded miner authorization accepted by pool")
+                            else:
+                                logging.warning(f"Forwarded miner authorization rejected: {result}")
+                            # Response to share submission
+                            if result is True:
+                                logging.info("Share accepted")
+                            else:
+                                error = message.get("error", [])
+                                logging.warning(f"Share rejected: {error}")
+
                         # Log any unhandled pool messages
-                        if msg_id not in [1, 2, 3, 4] and method not in ["mining.notify", "mining.set_difficulty"]:
+                        if msg_id not in [1, 2, 3, 4, 10] and method not in ["mining.notify", "mining.set_difficulty"]:
                             logging.debug(f"Unhandled pool message: {message}")
 
                 except Exception as e:
