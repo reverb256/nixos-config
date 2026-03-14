@@ -308,19 +308,19 @@
       pools = [
         {
           name = "Kryptex US";
-          url = "xtm-c29-us.kryptex.network:8040";  # Pool URL (no stratum+tcp prefix)
+          url = "xtm-c29-us.kryptex.network:8040";
           wallet = "krxXVNVMM7";
           password = "x";
           priority = 1;
-          tls = true;  # Enable TLS connection
+          tls = true;  # TLS required for port 8040
         }
         {
           name = "Kryptex EU";
-          url = "xtm-c29-eu.kryptex.network:8040";  # Pool URL (no stratum+tcp prefix)
+          url = "xtm-c29-eu.kryptex.network:8040";
           wallet = "krxXVNVMM7";
           password = "x";
           priority = 2;
-          tls = true;  # Enable TLS connection
+          tls = true;  # TLS required for port 8040
         }
       ];
       workers = [

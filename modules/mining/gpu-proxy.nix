@@ -212,11 +212,20 @@
 
                 try:
                     if self.pool.tls:
-                        ssl_context = ssl.create_default_context()
+                        # Create SSL context with maximum compatibility for mining pools
+                        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
                         ssl_context.check_hostname = False
                         ssl_context.verify_mode = ssl.CERT_NONE
+                        # Enable TLS 1.2 and 1.3 (disable older insecure versions)
+                        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+                        ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
+                        # Set SNI (Server Name Indication) explicitly
+                        ssl_context.server_hostname = self.host
+                        # Use broad cipher suite for compatibility
+                        if hasattr(ssl, 'OP_LEGACY_SERVER_CONNECT'):
+                            ssl_context.options |= ssl.OP_LEGACY_SERVER_CONNECT
                         self.reader, self.writer = await asyncio.wait_for(
-                            asyncio.open_connection(self.host, self.port, ssl=ssl_context),
+                            asyncio.open_connection(self.host, self.port, ssl=ssl_context, server_hostname=self.host),
                             timeout=30
                         )
                     else:
