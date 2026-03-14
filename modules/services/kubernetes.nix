@@ -62,6 +62,12 @@
       example = "10.1.1.120";
       description = "This node's IP address for apiserver to bind to (must be actual IP, not VIP)";
     };
+
+    etcdBootstrapOnly = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "If true, this node starts etcd with only itself in initial-cluster (for bootstrap)";
+    };
   };
 
   config =
@@ -154,10 +160,15 @@
         advertiseClientUrls = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2379" ];
         listenPeerUrls = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2380" ];
         initialAdvertisePeerUrls = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2380" ];
-        initialCluster = lib.mkForce (if useEtcdCluster then
-          config.services.kubernetes-module.etcdClusterMembers
-        else
-          [ "${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380" ]);
+        initialCluster = let
+          clusterMembers = if useEtcdCluster then config.services.kubernetes-module.etcdClusterMembers else
+            [ "${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380" ];
+          # If bootstrapping, use only this node; otherwise use full cluster list
+          effectiveMembers = if config.services.kubernetes-module.etcdBootstrapOnly then
+            [ "${config.services.kubernetes-module.etcdName}=http://${config.services.kubernetes-module.etcdListenHost}:2380" ]
+          else
+            clusterMembers;
+        in lib.mkForce effectiveMembers;
         initialClusterToken = "zephyr-etcd-cluster";
         initialClusterState = config.services.kubernetes-module.etcdInitialState;
       };

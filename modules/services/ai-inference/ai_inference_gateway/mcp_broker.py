@@ -415,22 +415,34 @@ class MCPBroker:
         logger.debug(f"Attempting direct MCP call for {server.name}.{tool_name}")
         direct_result = await self._call_direct_mcp(server, tool_name, arguments)
 
-        # If direct call succeeded, return the result
+        # Check if direct call succeeded or failed
+        result_str = str(direct_result.get("result", ""))
+        error_str = str(direct_result.get("error", ""))
+
+        # If direct call succeeded (no error), return the result
+        # But also check for 401 errors embedded in the result
         if "error" not in direct_result:
-            return direct_result
+            # Check for 401 in result (Z.AI MCP returns 401 as text in result field)
+            if "401" in result_str or "Api key not found" in result_str:
+                logger.info(
+                    f"Direct MCP call returned 401 for {server.name}.{tool_name}, trying Chat API fallback"
+                )
+                # Fall through to Chat API below
+            else:
+                return direct_result
 
         # If direct call failed with 401 and this is a ZAI server, try Chat API fallback
         if (
             server.url
             and "api.z.ai/api/mcp" in server.url
-            and "401" in str(direct_result.get("error", ""))
+            and ("401" in error_str or "401" in result_str or "Api key not found" in result_str)
         ):
             logger.info(
                 f"Direct MCP call failed for {server.name}.{tool_name}, trying Chat API fallback"
             )
             return await self._call_via_chat_api(server, tool_name, arguments)
 
-        # Otherwise return the direct call error
+        # Otherwise return the direct call result/error
         return direct_result
 
     async def _call_via_chat_api(
@@ -454,7 +466,7 @@ class MCPBroker:
             # Map MCP tool names to Chat API function definitions
             # ZAI Chat API uses standard function calling format
             tool_mapping = {
-                "webSearchPrime": {
+                "web_search_prime": {
                     "type": "function",
                     "function": {
                         "name": "web_search",
@@ -602,13 +614,21 @@ class MCPBroker:
             chat_url = "https://api.z.ai/api/coding/paas/v4/chat/completions"
 
             # Build Chat API request with tool definition
-            tool_def = tool_mapping[tool_name]
+            tool_def = tool_mapping.get(tool_name)
+            if not tool_def:
+                return {
+                    "error": f"Tool {tool_name} not mapped for Chat API fallback",
+                    "server": server.name,
+                    "tool": tool_name,
+                }
+
+            # First call: Request tool invocation
             chat_request = {
                 "model": "glm-4.7",
                 "messages": [
                     {
                         "role": "user",
-                        "content": f"Please use the {tool_def['function']['name']} tool with these arguments: {arguments}",
+                        "content": f"Use {tool_def['function']['name']} to search",
                     }
                 ],
                 "tools": [tool_def],
@@ -621,88 +641,120 @@ class MCPBroker:
 
             logger.debug(f"Calling Chat API for {server.name}.{tool_name}")
             logger.debug(f"Request URL: {chat_url}")
-            logger.debug(f"Request headers: {headers}")
-            logger.debug(f"Request body: {chat_request}")
 
             async with httpx.AsyncClient(timeout=30.0) as client:
+                # First call: Get tool_call from Z.AI
                 response = await client.post(
                     chat_url, json=chat_request, headers=headers
                 )
-                logger.debug(f"Response status: {response.status_code}")
+                logger.debug(f"First response status: {response.status_code}")
 
-                if response.status_code == 200:
-                    result = response.json()
-
-                    # Log the full response for debugging
-                    logger.info(
-                        f"Chat API response for {server.name}.{tool_name}: {json.dumps(result, indent=2)[:1000]}"
-                    )
-
-                    # Extract tool call result from Chat API response
-                    if "choices" in result and len(result["choices"]) > 0:
-                        choice = result["choices"][0]
-
-                        # Check for tool calls in response
-                        if "message" in choice and "tool_calls" in choice["message"]:
-                            tool_calls = choice["message"]["tool_calls"]
-                            if tool_calls and len(tool_calls) > 0:
-                                tool_call = tool_calls[0]
-
-                                # Check if tool call has function result
-                                if "function" in tool_call:
-                                    func = tool_call["function"]
-                                    # Some APIs return output directly in function
-                                    if "output" in func or "result" in func:
-                                        output = func.get(
-                                            "output", func.get("result", "")
-                                        )
-                                        return {
-                                            "result": output,
-                                            "server": server.name,
-                                            "tool": tool_name,
-                                            "routed_via": "chat_api",
-                                        }
-                                    # Check if arguments contain the result
-                                    if "arguments" in func:
-                                        try:
-                                            args = json.loads(func["arguments"])
-                                            # Some APIs return results in arguments
-                                            if "output" in args or "result" in args:
-                                                output = args.get(
-                                                    "output", args.get("result", "")
-                                                )
-                                                return {
-                                                    "result": output,
-                                                    "server": server.name,
-                                                    "tool": tool_name,
-                                                    "routed_via": "chat_api",
-                                                }
-                                        except json.JSONDecodeError:
-                                            pass
-
-                        # Check if content has the result
-                        if "message" in choice and "content" in choice["message"]:
-                            content = choice["message"]["content"]
-                            if content and content.strip():
-                                return {
-                                    "result": content,
-                                    "server": server.name,
-                                    "tool": tool_name,
-                                    "routed_via": "chat_api",
-                                }
-
+                if response.status_code != 200:
                     return {
-                        "error": "No tool result in Chat API response",
+                        "error": f"Chat API HTTP {response.status_code}: {response.text[:200]}",
+                        "server": server.name,
+                        "tool": tool_name,
+                    }
+
+                result = response.json()
+
+                # Extract tool_call from response
+                if "choices" not in result or len(result["choices"]) == 0:
+                    return {
+                        "error": "No choices in Chat API response",
                         "server": server.name,
                         "tool": tool_name,
                         "response": result,
                     }
-                else:
+
+                choice = result["choices"][0]
+                if "message" not in choice or "tool_calls" not in choice["message"]:
                     return {
-                        "error": f"HTTP {response.status_code}: {response.text[:200]}",
+                        "error": "No tool_calls in Chat API response",
+                        "server": server.name,
+                        "tool": tool_name,
+                        "response": result,
+                    }
+
+                tool_calls = choice["message"]["tool_calls"]
+                if not tool_calls or len(tool_calls) == 0:
+                    return {
+                        "error": "Empty tool_calls in Chat API response",
+                        "server": server.name,
+                        "tool": tool_name,
+                        "response": result,
+                    }
+
+                tool_call = tool_calls[0]
+                tool_call_id = tool_call.get("id", "")
+                tool_call_args = tool_call.get("function", {}).get("arguments", "{}")
+
+                # Second call: Submit tool execution request with actual arguments
+                # For web_search, Z.AI will execute the search and return results
+                second_request = {
+                    "model": "glm-4.7",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": f"Use {tool_def['function']['name']} to search",
+                        },
+                        {
+                            "role": "assistant",
+                            "content": "",
+                            "tool_calls": [tool_call],
+                        },
+                        {
+                            "role": "tool",
+                            "tool_id": tool_call_id,
+                            "content": "",  # Empty content - Z.AI will execute the tool
+                        },
+                    ],
+                    "tools": [tool_def],
+                    "stream": False,
+                }
+
+                response2 = await client.post(
+                    chat_url, json=second_request, headers=headers
+                )
+                logger.debug(f"Second response status: {response2.status_code}")
+
+                if response2.status_code != 200:
+                    return {
+                        "error": f"Chat API (2nd) HTTP {response2.status_code}: {response2.text[:200]}",
                         "server": server.name,
                         "tool": tool_name,
                     }
+
+                result2 = response2.json()
+
+                # Extract final response with tool results
+                if "choices" in result2 and len(result2["choices"]) > 0:
+                    choice2 = result2["choices"][0]
+                    if "message" in choice2 and "content" in choice2["message"]:
+                        content = choice2["message"]["content"]
+                        # Try to parse as JSON for structured results
+                        try:
+                            parsed = json.loads(content)
+                            return {
+                                "result": parsed,
+                                "server": server.name,
+                                "tool": tool_name,
+                                "routed_via": "chat_api_two_step",
+                            }
+                        except json.JSONDecodeError:
+                            return {
+                                "result": content,
+                                "server": server.name,
+                                "tool": tool_name,
+                                "routed_via": "chat_api_two_step",
+                            }
+
+                return {
+                    "error": "No content in Chat API (2nd) response",
+                    "server": server.name,
+                    "tool": tool_name,
+                    "response": result2,
+                }
 
         except httpx.HTTPError as e:
             logger.error(
