@@ -280,7 +280,13 @@
             tls = false;  # No TLS for local proxy
           }
           {
-            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex (fallback)
+            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (fallback)
+            wallet = "krxXVNVMM7.nexus-gpu";
+            password = "x";
+            tls = true;  # TLS required for Kryptex
+          }
+          {
+            url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback 2)
             wallet = "krxXVNVMM7.nexus-gpu";
             password = "x";
             tls = true;  # TLS required for Kryptex
@@ -406,19 +412,4 @@
     ];
   };
 
-  # ============================================================================
-  # x86-64-v3 MIGRATION: Rollback Strategy
-  # ============================================================================
-  # IMPORTANT: Specialisations cannot change CPU microarchitecture (gcc.arch)
-  # because that's set at evaluation time, not runtime.
-  #
-  # Rollback strategy: NixOS naturally keeps previous generations available.
-  # To rollback after v3 migration, select the previous generation from boot menu.
-  #
-  # Boot menu entries show generations by date/timestamp:
-  # - Current generation (v3) - latest
-  # - Previous generation (baseline) - select to rollback
-  #
-  # After 5 days of stable v3 operation, old generations can be garbage collected.
-  # ============================================================================
 }
