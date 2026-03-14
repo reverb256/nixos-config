@@ -74,34 +74,29 @@ in {
   # The harmonia input should be imported in the host configuration
 
   config = lib.mkIf cfg.enable {
-    # Use harmonia from nixpkgs
-    # Note: harmonia-dev from the flake input provides newer features
-    # but requires adding harmonia input to flake.nix
-    # TEMPORARY: Disabled - harmonia not available in nixos-25.11
-    # Re-enable after adding harmonia input to flake.nix:
-    #   harmonia.url = "github:nix-community/harmonia";
-    # services.harmonia.cache = {
-    #   enable = true;
-    #   signKeyPaths = cfg.signKeyPaths;
-    #   settings = {
-    #     bind = cfg.bindAddress;
-    #     workers = cfg.workers;
-    #     enable_compression = cfg.enableCompression;
-    #     priority = cfg.priority;
-    #   };
-    # };
+    # Harmonia binary cache from nixpkgs
+    services.harmonia = {
+      enable = true;
+      signKeyPaths = cfg.signKeyPaths;
+      settings = {
+        bind = cfg.bindAddress;
+        workers = cfg.workers;
+        enable_compression = cfg.enableCompression;
+        priority = cfg.priority;
+      };
+    };
 
-    # Firewall (disabled while harmonia is disabled)
-    # networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [ 5000 ];
+    # Firewall for Harmonia port
+    networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [ 5000 ];
 
-    # Systemd hardening (disabled while harmonia is disabled)
-    # systemd.services.harmonia.serviceConfig = {
-    #   ProtectHome = true;
-    #   ProtectSystem = "strict";
-    #   ReadWritePaths = ["/nix/store" "/nix/var/nix"];
-    #   PrivateTmp = true;
-    #   NoNewPrivileges = true;
-    #   MemoryLimit = "4G";
-    # };
+    # Systemd hardening for harmonia
+    systemd.services.harmonia.serviceConfig = {
+      ProtectHome = true;
+      ProtectSystem = "strict";
+      ReadWritePaths = ["/nix/store" "/nix/var/nix"];
+      PrivateTmp = true;
+      NoNewPrivileges = true;
+      MemoryLimit = "4G";
+    };
   };
 }
