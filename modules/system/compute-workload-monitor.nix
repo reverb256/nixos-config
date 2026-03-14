@@ -779,7 +779,7 @@
               # Reduce CPU mining to 50% (K8s workloads may need CPU for orchestration)
               if systemctl is-active --quiet xmrig; then
                   log "Limiting xmrig to 50% CPU for Kubernetes workloads"
-                  systemctl set-property xmrig.service CPUQuota="50%" --runtime
+                  systemctl set-property xmrig.service CPUQuota="50%" --runtime 2>/dev/null || true
               fi
           }
 
@@ -841,7 +841,7 @@
               # Reduce CPU mining to 25% (free CPU for game logic)
               if systemctl is-active --quiet xmrig; then
                   log "Limiting xmrig to 25% CPU for gaming"
-                  systemctl set-property xmrig.service CPUQuota="25%" --runtime
+                  systemctl set-property xmrig.service CPUQuota="25%" --runtime 2>/dev/null || true
               fi
           }
 
@@ -903,7 +903,7 @@
               # Keep CPU mining at 100% (GPU is bottleneck, CPU just coordinates)
               if systemctl is-active --quiet xmrig; then
                   log "Keeping xmrig at 100% CPU (GPU is bottleneck for AI)"
-                  systemctl set-property xmrig.service CPUQuota="100%" --runtime
+                  systemctl set-property xmrig.service CPUQuota="100%" --runtime 2>/dev/null || true
               fi
           }
 
@@ -925,18 +925,18 @@
               # Reduce GPU mining to 10% (builds may need GPU for CUDA/heavy workloads)
               if systemctl is-active --quiet lolminer-nvidia; then
                   log "Limiting lolminer-nvidia to 10% CPU for builds"
-                  systemctl set-property lolminer-nvidia.service CPUQuota="10%" --runtime
+                  systemctl set-property lolminer-nvidia.service CPUQuota="10%" --runtime 2>/dev/null || true
               fi
 
               if systemctl is-active --quiet lolminer-amd; then
                   log "Limiting lolminer-amd to 10% CPU for builds"
-                  systemctl set-property lolminer-amd.service CPUQuota="10%" --runtime
+                  systemctl set-property lolminer-amd.service CPUQuota="10%" --runtime 2>/dev/null || true
               fi
 
               # Reduce CPU mining to 10% (builds need maximum CPU)
               if systemctl is-active --quiet xmrig; then
                   log "Limiting xmrig to 10% CPU for builds"
-                  systemctl set-property xmrig.service CPUQuota="10%" --runtime
+                  systemctl set-property xmrig.service CPUQuota="10%" --runtime 2>/dev/null || true
               fi
 
               # Ensure nix-daemon gets high priority for builds
@@ -995,18 +995,18 @@
               # Reset all mining to 100% CPU
               if systemctl is-active --quiet lolminer-nvidia; then
                   log "Resetting lolminer-nvidia to 100% CPU"
-                  systemctl set-property lolminer-nvidia.service CPUQuota="100%" --runtime
+                  systemctl set-property lolminer-nvidia.service CPUQuota="100%" --runtime 2>/dev/null || true
               fi
 
               if systemctl is-active --quiet lolminer-amd; then
                   log "Resetting lolminer-amd to 100% CPU"
-                  systemctl set-property lolminer-amd.service CPUQuota="100%" --runtime
+                  systemctl set-property lolminer-amd.service CPUQuota="100%" --runtime 2>/dev/null || true
               fi
 
               if systemctl is-active --quiet xmrig; then
                   local idle_threads=$(get_xmrig_idle_threads)
                   log "Resetting xmrig to 100% CPU ($idle_threads threads)"
-                  systemctl set-property xmrig.service CPUQuota="100%" --runtime
+                  systemctl set-property xmrig.service CPUQuota="100%" --runtime 2>/dev/null || true
                   reset_xmrig_threads "$idle_threads"
               fi
 
