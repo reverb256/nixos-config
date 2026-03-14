@@ -363,6 +363,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-stable": {
+      "locked": {
+        "lastModified": 1773375660,
+        "narHash": "sha256-SEzUWw2Rf5Ki3bcM26nSKgbeoqi2uYy8IHVBqOKjX3w=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "3e20095fe3c6cbb1ddcef89b26969a69a1570776",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-25.11",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixpkgs_2": {
       "locked": {
         "lastModified": 1773222311,
@@ -381,16 +397,16 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1773375660,
-        "narHash": "sha256-SEzUWw2Rf5Ki3bcM26nSKgbeoqi2uYy8IHVBqOKjX3w=",
+        "lastModified": 1773282481,
+        "narHash": "sha256-b/GV2ysM8mKHhinse2wz+uP37epUrSE+sAKXy/xvBY4=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "3e20095fe3c6cbb1ddcef89b26969a69a1570776",
+        "rev": "fe416aaedd397cacb33a610b33d60ff2b431b127",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-25.11",
+        "ref": "nixos-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -403,11 +419,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773465247,
-        "narHash": "sha256-umNeuz0uF9DBepDsUJf6vSIOUygbUfMOVL6bWN3VdZg=",
+        "lastModified": 1773471821,
+        "narHash": "sha256-t+OediWQkq3hp9B4sZLtLZhxvKqAIYfUoRUfhKJ5W2o=",
         "owner": "nix-community",
         "repo": "NUR",
-        "rev": "b88f7e597f041e12de9c30136b70de2ce8ac2167",
+        "rev": "5e3e275af9a871ca78eeee68b4579708d689bedc",
         "type": "github"
       },
       "original": {
@@ -426,6 +442,7 @@
         "home-manager": "home-manager_2",
         "nixcord": "nixcord",
         "nixpkgs": "nixpkgs_3",
+        "nixpkgs-stable": "nixpkgs-stable",
         "nur": "nur",
         "scopebuddy": "scopebuddy",
         "zen-browser": "zen-browser"
