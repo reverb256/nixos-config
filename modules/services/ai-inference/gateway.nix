@@ -47,7 +47,7 @@
   modularGatewayPkg = let
     gatewaySrc = ./ai_inference_gateway;
   in
-    pkgs.runCommand "ai-inference-gateway-modular-pkg"
+    pkgs.runCommand "ai-inference-gateway-modular-pkg-v2"
     {
       preferLocalBuild = true;
       passAsFile = ["buildScript"];
@@ -119,7 +119,7 @@ in {
         MAX_REQUEST_SIZE = toString cfg.security.maxRequestSize;
         SECURITY_PROXY_ENABLED = lib.boolToString cfg.security.enableProxy;
         MCP_ENABLED = lib.boolToString cfg.mcp.enable;
-        MCP_SERVERS = lib.generators.toJSON {} cfg.mcp.servers;
+        MCP_SERVERS = builtins.toJSON cfg.mcp.servers;
         # RAG configuration
         RAG_ENABLED = lib.boolToString cfg.rag.enable;
         QDRANT_URL = cfg.rag.qdrantUrl;
@@ -151,7 +151,7 @@ in {
       };
 
       serviceConfig = {
-        ExecStart = "${gatewayPython}/bin/uvicorn ai_inference_gateway.main:app --host ${cfg.gateway.host} --port ${toString cfg.gateway.port} --workers ${toString cfg.gateway.workers} --log-level info --app-dir ${gatewayPkg}";
+        ExecStart = "${gatewayPython}/bin/uvicorn ai_inference_gateway.main:app --host ${cfg.gateway.host} --port ${toString cfg.gateway.port} --workers ${toString cfg.gateway.workers} --log-level debug --app-dir ${gatewayPkg}";
         ExecReload = "/bin/kill -HUP $MAINPID";
         Restart = "on-failure";
         RestartSec = "10s";

@@ -124,7 +124,8 @@
       etcdInitialState = "new";
       etcdName = "zephyr";
       etcdListenHost = "10.1.1.110";
-      etcdBootstrapOnly = true;  # Start with only this node, add others later
+      etcdBootstrapOnly = true;  # Single-node etcd until Nexus/Sentry join cluster
+      # Full cluster list (will be used after bootstrap)
       etcdClusterMembers = [
         "zephyr=http://10.1.1.110:2380"
         "nexus=http://10.1.1.120:2380"

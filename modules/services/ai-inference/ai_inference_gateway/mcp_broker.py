@@ -622,13 +622,31 @@ class MCPBroker:
                     "tool": tool_name,
                 }
 
+            # Build user message with actual search query
+            # This ensures the LLM knows what to search for
+            if tool_name == "web_search_prime" and "search_query" in arguments:
+                user_message = f'Search for: {arguments["search_query"]}'
+            elif tool_name == "webReader" and "url" in arguments:
+                user_message = f'Read this URL: {arguments["url"]}'
+            elif tool_name == "search_doc" and "query" in arguments:
+                repo_name = arguments.get("repo_name", "unknown/repo")
+                user_message = f'Search in {repo_name} for: {arguments["query"]}'
+            elif tool_name == "read_file" and "file_path" in arguments:
+                repo_name = arguments.get("repo_name", "unknown/repo")
+                user_message = f'Read {file_path} from {repo_name}'
+            elif tool_name == "get_repo_structure" and "repo_name" in arguments:
+                user_message = f'Get structure of {arguments["repo_name"]}'
+            else:
+                # Generic fallback
+                user_message = f"Use {tool_def['function']['name']} with these arguments: {json.dumps(arguments)}"
+
             # First call: Request tool invocation
             chat_request = {
                 "model": "glm-4.7",
                 "messages": [
                     {
                         "role": "user",
-                        "content": f"Use {tool_def['function']['name']} to search",
+                        "content": user_message,
                     }
                 ],
                 "tools": [tool_def],
@@ -687,7 +705,16 @@ class MCPBroker:
 
                 tool_call = tool_calls[0]
                 tool_call_id = tool_call.get("id", "")
-                tool_call_args = tool_call.get("function", {}).get("arguments", "{}")
+
+                # Override tool_call arguments with our actual arguments
+                # The LLM might generate different arguments, but we want to use exactly what was requested
+                modified_tool_call = {
+                    **tool_call,
+                    "function": {
+                        **tool_call.get("function", {}),
+                        "arguments": json.dumps(arguments),
+                    },
+                }
 
                 # Second call: Submit tool execution request with actual arguments
                 # For web_search, Z.AI will execute the search and return results
@@ -696,12 +723,12 @@ class MCPBroker:
                     "messages": [
                         {
                             "role": "user",
-                            "content": f"Use {tool_def['function']['name']} to search",
+                            "content": user_message,
                         },
                         {
                             "role": "assistant",
                             "content": "",
-                            "tool_calls": [tool_call],
+                            "tool_calls": [modified_tool_call],
                         },
                         {
                             "role": "tool",
