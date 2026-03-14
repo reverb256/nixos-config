@@ -116,13 +116,16 @@ in {
       # - Sentry: 2 of 16 cores (12%) - monitoring worker
       # - Forge: 2 of 6 cores (33%) - GPU workloads
       # compute-workload-monitor pauses mining during builds
-      max-jobs = lib.mkMerge [
+      #
+      # CRITICAL: mkForce required because NixOS defaults max-jobs to CPU count
+      # which would cause OOM on all nodes during heavy builds (KDE/Qt)
+      max-jobs = lib.mkForce (lib.mkMerge [
         (lib.mkIf (currentHost == "zephyr") 2) # V3 MIGRATION: Very conservative
         (lib.mkIf (currentHost == "nexus") 2)   # V3 MIGRATION: Very conservative (was 18, OOM at 6)
         (lib.mkIf (currentHost == "sentry") 2) # V3 MIGRATION: Participating now
         (lib.mkIf (currentHost == "forge") 2)   # V3 MIGRATION: Very conservative
-        (lib.mkDefault 2) # Safe fallback
-      ];
+        2 # Safe fallback (no mkDefault - force this value)
+      ]);
 
       # Network optimization (1Gbps networking with TP-Link Easy Smart switches)
       http-connections = 100; # More parallel downloads (1Gbps can handle it)
