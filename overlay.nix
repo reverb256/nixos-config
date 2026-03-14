@@ -17,15 +17,17 @@ _: prev: {
   });
 
   # steam-run: Fix bubblewrap issue with NFS autofs mounts
-  # Patch steam-run to ignore /data and /etc/nixos from auto-mounting
+  # Patch steam-run to ignore /data (NFS autofs) from auto-mounting
+  # Note: /etc/nixos is now mounted to /run/nixos-shared instead (see nixos-share.nix)
   # This fixes anime-game-launcher and similar launchers that use steam-run
   steam-run = prev.runCommand "steam-run-patched" {
     nativeBuildInputs = [prev.bash prev.coreutils];
     preferLocalBuild = true;
   } ''
     mkdir -p $out/bin
-    # Patch steam-run to ignore /data (NFS autofs) and /etc/nixos (NFS mount)
-    sed 's|ignored=(/nix /dev /proc /etc /tmp)|ignored=(/nix /dev /proc /etc /tmp /data /etc/nixos)|' \
+    # Patch steam-run to ignore /data (NFS autofs with /data/shared)
+    # /run is already excluded by default, so /run/nixos-shared works fine
+    sed 's|ignored=(/nix /dev /proc /etc /tmp)|ignored=(/nix /dev /proc /etc /tmp /data)|' \
       ${prev.steam-run}/bin/steam-run > $out/bin/steam-run
     chmod +x $out/bin/steam-run
   '';
