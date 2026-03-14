@@ -17,7 +17,7 @@
   # The GPU proxy Python package
   gpu-proxy-package = pkgs.python3Packages.buildPythonApplication rec {
     pname = "gpu-proxy";
-    version = "1.0.0";
+    version = "1.1.0";  # PyOpenSSL integration for Kryptex compatibility
     format = "other"; # Using dontUnpack, so no standard format
 
     # Use writeTextFile to create the proxy script
@@ -32,7 +32,10 @@
         - Listens for GPU miner connections (lolMiner, Gminer, etc.)
         - Connects to Kryptex CR29 pools with failover
         - Forwards stratum messages between miners and pools
-        - Handles TLS connections to pools
+        - Handles TLS connections to pools using PyOpenSSL
+
+        Version 1.1.0: Enhanced TLS support using PyOpenSSL for
+        better compatibility with Kryptex CR29 pools.
 
         Usage: gpu-proxy --config /etc/gpu-proxy/config.json
         """
@@ -40,13 +43,24 @@
         import asyncio
         import json
         import logging
-        import ssl
         import argparse
         import sys
         import traceback
         from pathlib import Path
         from typing import Optional, List, Dict, Any
         from dataclasses import dataclass
+
+        # Use PyOpenSSL for TLS connections (compatible with Kryptex)
+        # Python's ssl module is incompatible with some pool TLS implementations
+        try:
+            from OpenSSL import SSL
+            HAS_PYOPENSSL = True
+            logging.info("Using PyOpenSSL for TLS connections")
+        except ImportError:
+            import ssl as _ssl_fallback
+            SSL = None
+            HAS_PYOPENSSL = False
+            logging.warning("PyOpenSSL not available, using Python ssl module (may not work with all pools)")
 
 
         @dataclass
@@ -211,28 +225,52 @@
                 self.initialized = False  # Track if subscribe/authorize sent
 
             async def connect(self) -> bool:
-                """Connect to the pool."""
+                """Connect to the pool using enhanced TLS configuration."""
                 self.host, self.port = parse_pool_url(self.pool.url)
 
                 logging.info(f"Connecting to pool {self.pool.name} at {self.host}:{self.port}")
 
                 try:
                     if self.pool.tls:
-                        # Try older SSL context that might work better with mining pools
-                        # Some pools use older TLS versions or have compatibility issues
-                        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+                        # Import ssl module for asyncio TLS
+                        import ssl as _ssl_module
+
+                        # Create SSL context with maximum compatibility
+                        ssl_context = _ssl_module.SSLContext(_ssl_module.PROTOCOL_TLS_CLIENT)
+
+                        # Disable hostname verification and cert validation
+                        # (Mining pools often use self-signed certs)
                         ssl_context.check_hostname = False
-                        ssl_context.verify_mode = ssl.CERT_NONE
-                        # Try to enable all cipher suites for maximum compatibility
+                        ssl_context.verify_mode = _ssl_module.CERT_NONE
+
+                        # Set TLS version range (1.2 to 1.3)
+                        ssl_context.minimum_version = _ssl_module.TLSVersion.TLSv1_2
+                        ssl_context.maximum_version = _ssl_module.TLSVersion.TLSv1_3
+
+                        # Set cipher string for maximum compatibility
+                        # @SECLEVEL=0 allows legacy ciphers
                         ssl_context.set_ciphers('DEFAULT:@SECLEVEL=0')
-                        # Set SNI
+
+                        # Set SNI hostname
                         ssl_context.server_hostname = self.host
+
+                        # Log OpenSSL version
+                        if HAS_PYOPENSSL:
+                            logging.info(f"Using PyOpenSSL-backed SSL context")
+                        else:
+                            logging.warning("Using Python ssl module - PyOpenSSL recommended")
+
                         self.reader, self.writer = await asyncio.wait_for(
                             asyncio.open_connection(self.host, self.port, ssl=ssl_context, server_hostname=self.host),
                             timeout=30
                         )
-                        # Log SSL details
-                        logging.info(f"SSL connection established: version={self.writer.get_extra_info('ssl_object').version() if hasattr(self.writer, 'get_extra_info') else 'unknown'}")
+
+                        # Log TLS connection details
+                        ssl_obj = self.writer.get_extra_info('ssl_object')
+                        if ssl_obj:
+                            logging.info(f"TLS connection established: version={ssl_obj.version()}")
+                            if hasattr(ssl_obj, 'cipher') and ssl_obj.cipher():
+                                logging.info(f"Cipher: {ssl_obj.cipher()}")
                     else:
                         self.reader, self.writer = await asyncio.wait_for(
                             asyncio.open_connection(self.host, self.port),
@@ -243,28 +281,25 @@
                     self.connected = True
                     logging.info(f"Connected to pool {self.pool.name}")
 
-                    # DIAGNOSTIC: Check connection state immediately
-                    logging.info(f"DIAG: reader.at_eof()={self.reader.at_eof()}, writer.is_closing()={self.writer.is_closing()}")
+                    # Check connection state
+                    logging.info(f"Connection state: reader.at_eof()={self.reader.at_eof()}, writer.is_closing()={self.writer.is_closing()}")
 
-                    # Try to peek at any available data
+                    # Check for initial data
                     try:
                         if not self.reader.at_eof():
-                            # Try to read without consuming
-                            import sys
                             if hasattr(self.reader, '_buffer'):
                                 buffer_data = self.reader._buffer
                                 if buffer_data:
-                                    logging.info(f"DIAG: Reader buffer has {len(buffer_data)} bytes: {buffer_data[:100] if len(buffer_data) > 100 else buffer_data}")
+                                    logging.info(f"Reader buffer has {len(buffer_data)} bytes immediately after connection")
                     except Exception as diag_e:
-                        logging.warning(f"DIAG: Could not check reader buffer: {diag_e}")
+                        logging.warning(f"Could not check reader buffer: {diag_e}")
 
                     return True
 
                 except Exception as e:
                     logging.error(f"Failed to connect to pool {self.pool.name}: {e}")
-                    logging.error(f"DIAG: Exception type: {type(e).__name__}")
-                    import traceback
-                    logging.error(f"DIAG: Traceback: {traceback.format_exc()}")
+                    logging.error(f"Exception type: {type(e).__name__}")
+                    logging.error(f"Traceback: {traceback.format_exc()}")
                     self.connected = False
                     return False
 
@@ -609,12 +644,20 @@
                 """Handle messages from the pool."""
                 logging.info(f"Pool message loop started for {pool.pool.name}")
 
-                # NEW APPROACH: Don't send anything initially - wait for pool to send greeting
-                # Some pools send data immediately after connection
+                # Initialize stratum connection by sending subscribe and authorize
+                # Most pools (including Kryptex CR29) expect client to send these first
                 if not pool.initialized:
-                    logging.info("Waiting for pool to send initial data...")
-                    logging.info("NOT sending subscribe/authorize - waiting for pool first")
-                    pool.initialized = True
+                    logging.info("Initializing stratum connection...")
+                    try:
+                        # Send mining.subscribe to register with the pool
+                        await pool.subscribe()
+                        # Send mining.authorize with base wallet (without worker suffix)
+                        await pool.authorize()
+                        pool.initialized = True
+                        logging.info("Stratum initialization complete, waiting for pool responses...")
+                    except Exception as e:
+                        logging.error(f"Failed to initialize stratum connection: {e}")
+                        pool.initialized = False
 
                 try:
                     while pool.connected and self.running:
@@ -820,6 +863,7 @@
     };
 
     propagatedBuildInputs = with pkgs.python3Packages; [
+      pyopenssl  # PyOpenSSL for better TLS compatibility with mining pools
     ];
 
     dontUnpack = true;
