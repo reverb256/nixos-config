@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-03-13 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
+**Last Updated:** 2026-03-14 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 
@@ -88,6 +88,12 @@ sentry   Ready    <none>          3d      v1.35.0
 ---
 
 ## Recent Changes
+
+**2026-03-14:**
+- Fixed NixOS build issues (Python corruption, substituter URLs, NFS automount)
+- Fixed agenix boot error (removed corrupted tplink-password.age)
+- Fixed DOCUMENTATION_INDEX.md hookify rules section (removed incorrect paths)
+- Fixed CNI tmpfiles directive (will fully apply on next reboot)
 
 **2026-03-13:**
 - Created STATUS.md for real-time cluster state tracking
