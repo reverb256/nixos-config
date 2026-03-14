@@ -245,7 +245,7 @@
     # Kubernetes worker configuration provided by node-profiles.nexus-gaming
     # No need to duplicate here
 
-    garnix.enable = false;
+    garnix.enable = true;
     nixos-auto-update.enable = true;
 
     # Spotify with SpotX patch (ad-free, premium features)

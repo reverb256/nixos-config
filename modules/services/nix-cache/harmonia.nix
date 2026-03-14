@@ -11,7 +11,7 @@
 #
 # USAGE:
 #   1. Generate signing key:
-#      nix-store --generate-binary-cache-key zephyr-cache-1 \
+#      nix-store --generate-binary-cache-key nexus-cache \
 #        /var/lib/secrets/harmonia.secret \
 #        /var/lib/secrets/harmonia.pub
 #
@@ -19,8 +19,8 @@
 #      harmonia.url = "github:nix-community/harmonia";
 #
 #   3. Configure client nodes:
-#      nix.settings.substituters = [ "https://zephyr:5000" ];
-#      nix.settings.trusted-public-keys = [ "zephyr-cache-1:KEY_HERE" ];
+#      nix.settings.substituters = [ "https://10.1.1.120:5000" ];
+#      nix.settings.trusted-public-keys = [ "nexus-cache:KEY_HERE" ];
 {
   config,
   lib,
@@ -29,6 +29,7 @@
   ...
 }: let
   cfg = config.services.nix-cache.harmonia;
+  harmoniaModule = inputs.harmonia.nixosModules.default;
 in {
   options.services.nix-cache.harmonia = {
     enable = lib.mkEnableOption "Harmonia binary cache server";
@@ -70,11 +71,11 @@ in {
     };
   };
 
-  # Note: Harmonia module import must be at the flake level, not here
-  # The harmonia input should be imported in the host configuration
-
   config = lib.mkIf cfg.enable {
-    # Harmonia binary cache from nixpkgs
+    # Import the harmonia flake module
+    imports = [ harmoniaModule ];
+
+    # Harmonia binary cache configuration
     # Note: Options are under services.harmonia.cache.* namespace
     services.harmonia.cache = {
       enable = true;
