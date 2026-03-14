@@ -104,14 +104,14 @@ in {
 
       # Binary cache configuration (1Gbps network - fast downloads)
       # Use mkForce to completely override default substituters and prevent duplicates
-      # NOTE: Nexus Harmonia cache for cluster builds
+      # NOTE: cache.nixos.org first (fast, reliable), then local caches
       substituters = lib.mkForce [
-        "http://10.1.1.120:5000"  # Nexus Harmonia cache (cluster)
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
         "https://ezkea.cachix.org"
-        # "https://cache.nixos-cuda.org" # TEMPORARILY DISABLED - connectivity issues
         "https://nix-gaming.cachix.org"
+        "http://10.1.1.120:5000"  # Nexus Harmonia cache (cluster) - LAST due to intermittent availability
+        # "https://cache.nixos-cuda.org" # TEMPORARILY DISABLED - connectivity issues
       ];
       trusted-public-keys = [
         "nexus-cache:qR+dIToYHrN3iJlg2puMRM8zrMtgZ4H7cISSR9E0iEE=" # Nexus Harmonia cache
