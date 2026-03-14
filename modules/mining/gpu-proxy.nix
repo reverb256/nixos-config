@@ -154,9 +154,12 @@
                 try:
                     line = await self.reader.readline()
                     if not line:
-                        logging.warning("Received empty line from pool")
+                        logging.warning("Connection closed by peer")
                         return None
                     line = line.decode().strip()
+                    # Skip empty lines (some pools send them as keepalive)
+                    if not line:
+                        return await self.recv_line()  # Recursive call to get next line
                     logging.info(f"Received line: {line}")
                     return line
                 except Exception as e:
