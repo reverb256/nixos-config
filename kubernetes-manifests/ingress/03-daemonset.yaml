@@ -24,7 +24,7 @@ spec:
         # Reload Caddy on config change - use kubectl rollout restart to apply config updates
     spec:
       serviceAccountName: caddy-ingress
-      hostNetwork: false
+      hostNetwork: true
       # Run on Ready nodes only (skip Forge if it's NotReady)
       affinity:
         nodeAffinity:
