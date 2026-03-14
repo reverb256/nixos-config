@@ -161,9 +161,9 @@
       systemd.tmpfiles.rules = [
         # Create writable CNI directories (both for kubelet and containerd)
         "d /var/lib/cni/net.d 0755 root root -"
-        # Remove /etc/cni/net.d if it exists as a symlink from old activation
-        # Then create it as a writable directory for containerd's CNI config
-        "r /etc/cni/net.d"
+        # Remove /etc/cni/net.d if it exists (symlink or directory) from old activation
+        # Use C to recursively clean, then create as writable directory
+        "C /etc/cni/net.d - - - -"
         "d /etc/cni/net.d 0755 root root -"
         # Create symlinks from read-only NixOS store to writable directories
         # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)

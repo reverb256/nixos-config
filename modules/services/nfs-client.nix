@@ -30,9 +30,12 @@ in {
     # NFS client settings
     services.rpcbind.enable = true;
 
-    # Create mount points
+    # Create mount points for local directories only
+    # Note: Automount paths (/data/shared, /data/home, /data/media) don't need mkdir
+    # They will be created automatically by systemd when first accessed
     system.activationScripts.nfs-mounts = lib.stringAfter ["var"] ''
-      mkdir -p /data/shared /data/home /data/media
+      # Skip creating directories for automount paths - they don't exist until accessed
+      # The NFS mounts will create these directories automatically when needed
     '';
 
     # Filesystem mounts
