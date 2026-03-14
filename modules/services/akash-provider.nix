@@ -286,8 +286,14 @@
 
       akash-helm-init = {
         description = "Add Akash Helm repository";
-        wantedBy = ["multi-user.target"];
+        # Don't auto-start - requires manual invocation
+        # wantedBy = ["multi-user.target"];
         path = [pkgs.helm];
+        serviceConfig = {
+          Type = "oneshot";
+          # Prevent X11 connection attempts
+          Environment = "DISPLAY=";
+        };
         script = ''
           # Add Akash Helm repository
           helm repo add akash https://akash-network.github.io/helm-charts || true
@@ -334,13 +340,19 @@
 
       akash-provider-prereq = {
         description = "Akash Provider Prerequisites Check";
-        wantedBy = ["multi-user.target"];
+        # Don't auto-start - requires manual invocation after Kubernetes is ready
+        # wantedBy = ["multi-user.target"];
         after = [
           "kubernetes.target"
           "akash-node-labels.service"
           "akash-wallet-secret.service"
         ];
         path = [pkgs.kubectl];
+        serviceConfig = {
+          Type = "oneshot";
+          # Use correct kubeconfig and API server
+          Environment = "KUBECONFIG=/etc/kubernetes/cluster-admin.kubeconfig";
+        };
         script = ''
           # Verify prerequisites
           echo "Checking Akash provider prerequisites..."
