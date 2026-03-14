@@ -264,6 +264,20 @@
                     "params": [wallet, self.pool.password]
                 })
 
+            async def authorize_with_full_worker(self, full_worker_id: str):
+                """Send mining.authorize to the pool with full worker ID.
+
+                Args:
+                    full_worker_id: Full worker ID including wallet (e.g., "krxXVNVMM7.nexus-gpu")
+                """
+                # Use the full worker ID directly (no wallet concatenation)
+                logging.info(f"Sending mining.authorize to pool with full_worker_id={full_worker_id}")
+                await self.send_json({
+                    "id": 2,
+                    "method": "mining.authorize",
+                    "params": [full_worker_id, self.pool.password]
+                })
+
             async def configure(self):
                 """Send mining.configure to the pool (if supported)."""
                 # Some pools don't support configure, ignore errors
@@ -422,7 +436,13 @@
                 # Extract base wallet from pool wallet (handles both "krxXVNVMM7" and "krxXVNVMM7.forge")
                 base_wallet = self.pool.wallet.split('.')[0]
                 original_worker = self.worker_id or worker
-                full_worker = f"{base_wallet}.{original_worker}"
+
+                # If worker_id already contains the wallet prefix, use it as-is
+                # Otherwise, prepend the wallet (avoiding duplicate wallet prefixes)
+                if original_worker.startswith(f"{base_wallet}."):
+                    full_worker = original_worker
+                else:
+                    full_worker = f"{base_wallet}.{original_worker}"
 
                 logging.info(f"Submitting share for worker={full_worker}")
                 await self.pool.submit(full_worker, job_id, nonce, result)
@@ -547,8 +567,15 @@
                         logging.info("Initializing pool connection...")
                         await pool.subscribe()
                         await pool.configure()
-                        # Authorize with base wallet only (per-worker auth happens during submit)
-                        await pool.authorize(worker=None)
+                        # Use first configured worker for pool authorization
+                        # Kryptex requires full worker ID like krxXVNVMM7.nexus-gpu
+                        if self.config.workers:
+                            first_worker_id = self.config.workers[0].id
+                            logging.info(f"Authorizing pool with worker: {first_worker_id}")
+                            await pool.authorize_with_full_worker(first_worker_id)
+                        else:
+                            # Fallback to base wallet auth
+                            await pool.authorize(worker=None)
                         pool.initialized = True
                         logging.info("Pool connection initialized")
                     except Exception as e:

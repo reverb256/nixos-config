@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-03-14 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
+**Last Updated:** 2026-03-14 14:00 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 
@@ -12,10 +12,11 @@
 |-----------|--------|---------|
 | **Kubernetes** | 🟢 RUNNING | v1.35.0, 4 nodes joined |
 | **Control Plane** | 🟢 OPERATIONAL | Zephyr: apiserver, etcd, scheduler, controller-manager |
-| **Worker Nodes** | 🟢 4/4 READY | Zephyr, Nexus, Forge, Sentry |
-| **Networking** | 🟢 OPERATIONAL | Flannel CNI (VXLAN), CoreDNS |
+| **Worker Nodes** | 🟢 3/4 READY | Zephyr, Nexus, Sentry (Forge: NotReady) |
+| **Networking** | 🟢 OPERATIONAL | Flannel CNI (VXLAN), CoreDNS, Unbound cluster DNS |
+| **Ingress Controller** | 🟢 DEPLOYED | Caddy Ingress (DaemonSet on 2 nodes) |
 | **GPU Passthrough** | 🟢 PARTIAL | Zephyr: 2x NVIDIA (✓), Forge: 2x AMD + 2x NVIDIA (⚠️) |
-| **Monitoring** | 🟢 RUNNING | Prometheus, Grafana, AlertManager, node-exporters |
+| **Monitoring** | 🟢 RUNNING | Prometheus, Grafana, AlertManager, node-exporters, Caddy metrics |
 | **Storage** | 🟢 OPERATIONAL | NFS shared storage, local-path provisioner |
 
 ---
@@ -46,14 +47,14 @@ sentry   Ready    <none>          3d      v1.35.0
 | Phase | Status | Completion | Notes |
 |-------|--------|------------|-------|
 | **Phase 1: Foundation** | ✅ COMPLETE | 100% | Control plane, networking, core DNS |
-| **Phase 2: Worker Nodes** | 🟡 IN PROGRESS | 80% | Nodes joined, storage classes created |
+| **Phase 2: Worker Nodes** | 🟡 IN PROGRESS | 90% | Nodes joined, storage classes, **ingress controller deployed** |
 | **Phase 3: Stateful Services** | ⏳ PENDING | 0% | Not started |
-| **Phase 4: Stateless Services** | ⏳ PENDING | 0% | Not started |
+| **Phase 4: Stateless Services** | 🟢 STARTED | 5% | **Caddy Ingress deployed, backend migration pending** |
 | **Phase 5: GPU Workloads** | ⏳ PENDING | 0% | Not started |
-| **Phase 6: Monitoring** | ✅ COMPLETE | 100% | Prometheus + Grafana running |
+| **Phase 6: Monitoring** | ✅ COMPLETE | 100% | Prometheus + Grafana running, **Caddy metrics configured** |
 | **Phase 7: Cleanup** | ⏳ PENDING | 0% | Not started |
 
-**Overall Progress:** ~25% complete (2 of 7 phases)
+**Overall Progress:** ~30% complete (2.5 of 7 phases)
 
 ---
 
@@ -69,10 +70,13 @@ sentry   Ready    <none>          3d      v1.35.0
 - **Mining:** lolminer-nvidia
 
 ### Kubernetes Pods (Namespaces)
+- **ingress-system:** caddy-ingress DS (2 pods on nexus, sentry)
 - **kube-system:** coredns, flannel, nvidia-device-plugin, amd-gpu-device-plugin
 - **kube-flannel:** flannel DS pods
 - **local-path-storage:** local-path-provisioner
 - **mining:** xmrig-proxy
+- **test-echo:** echo-server test deployment
+- **akash-services:** akash-provider, operator-* services
 - **default:** test pods (gpu-test, test-nfs, etc.)
 
 ---
@@ -88,6 +92,13 @@ sentry   Ready    <none>          3d      v1.35.0
 ---
 
 ## Recent Changes
+
+**2026-03-14 14:00:**
+- ✅ **DEPLOYED: Caddy Ingress Controller** (DaemonSet on nexus, sentry)
+- ✅ **CONFIGURED: Prometheus metrics scraping** for Caddy admin API
+- ✅ **UPDATED: network-constants.nix** with Caddy port definitions
+- ✅ **CREATED: kubernetes-manifests/ingress/** with full Caddy configuration
+- 📝 **UPDATED: prometheus.nix** with Caddy ingress scrape job
 
 **2026-03-14:**
 - Fixed NixOS build issues (Python corruption, substituter URLs, NFS automount)

@@ -344,7 +344,11 @@
 **Services to migrate:**
 
 **Tier 1 - Core Infrastructure (Week 4):**
-- Service Gateway (Caddy) → NGINX Ingress Controller
+- ✅ ~~Service Gateway (Caddy) → NGINX Ingress Controller~~ **Caddy Ingress deployed (2026-03-14)**
+  - DaemonSet on nexus, sentry
+  - Prometheus metrics configured
+  - Routes: ai.cluster.local, search.cluster.local, provider.cluster.local
+  - NodePort access: 30080 (HTTP), 30443 (HTTPS)
 - NVIDIA GPU exporters
 - Mining exporters
 

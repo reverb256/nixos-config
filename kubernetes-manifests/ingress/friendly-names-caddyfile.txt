@@ -1,0 +1,200 @@
+# Caddy Ingress - Friendly Service Names
+# All cluster services accessible via *.cluster.local
+#
+# NAMING CONVENTION:
+# - service.cluster.local → Kubernetes service
+# - app.zephyr.cluster.local → Systemd service on specific host
+# - category.cluster.local → Group of related services
+#
+# UPDATE INSTRUCTIONS:
+# 1. Add route to this Caddyfile
+# 2. Optionally: add service deployment to k8s/
+# 3. Apply: kubectl apply -f 02-configmap.yaml
+# 4. Restart: kubectl -n ingress-system rollout restart daemonset/caddy-ingress
+
+{
+  # Admin API
+  admin localhost:2019
+  email admin@cluster.local
+  default_sni cluster.local
+}
+
+# ================================================================================
+# CATEGORY SHORTCUTS - Convenience redirects
+# ================================================================================
+
+# AI/ML Services
+ai.cluster.local,
+llm.cluster.local,
+rag.cluster.local {
+  # AI Inference Gateway (primary)
+  reverse_proxy ai-inference.default.svc.cluster.local:8080
+}
+
+# Home Lab
+home.cluster.local,
+hass.cluster.local {
+  reverse_proxy home-assistant.default.svc.cluster.local:8123
+}
+
+# Passwords & Secrets
+vault.cluster.local,
+bitwarden.cluster.local,
+pass.cluster.local {
+  reverse_proxy vaultwarden.default.svc.cluster.local:80
+}
+
+# File Storage
+files.cluster.local,
+cloud.cluster.local,
+nextcloud.cluster.local {
+  reverse_proxy nextcloud.default.svc.cluster.local:8080
+}
+
+# Search & Research
+search.cluster.local {
+  reverse_proxy searxng.default.svc.cluster.local:7777
+}
+
+# Automation
+n8n.cluster.local,
+automate.cluster.local {
+  reverse_proxy n8n.default.svc.cluster.local:5678
+}
+
+# Error Tracking
+errors.cluster.local,
+glitchtip.cluster.local,
+sentry.cluster.local {
+  reverse_proxy glitchtip-web.default.svc.cluster.local:8000
+}
+
+# Development
+git.cluster.local {
+  # Gitea/Gogs or similar
+  reverse_proxy gitea.infrastructure.svc.cluster.local:3000
+}
+
+# CI/CD
+ci.cluster.local,
+garnix.cluster.local {
+  reverse_proxy garnix.default.svc.cluster.local:3000
+}
+
+# Metrics & Monitoring
+metrics.cluster.local,
+prom.cluster.local {
+  # Forward to Prometheus (needs nginx/basic-auth wrapper)
+  reverse_proxy prometheus.default.svc.cluster.local:9090
+}
+
+dash.cluster.local,
+grafana.cluster.local {
+  # Forward to Grafana
+  reverse_proxy grafana.default.svc.cluster.local:3000
+}
+
+# Database Admin
+db.cluster.local,
+adminer.cluster.local,
+phpmyadmin.cluster.local {
+  reverse_proxy adminer.default.svc.cluster.local:8080
+}
+
+# Containers
+registry.cluster.local,
+docker.cluster.local {
+  # Container registry
+  reverse_proxy registry.default.svc.cluster.local:5000
+}
+
+# GPU/Compute
+gpu.cluster.local {
+  # Akash provider or similar
+  reverse_proxy akash-provider.akash-services.svc.cluster.local:8443
+}
+
+# ================================================================================
+# HOST-SPECIFIC SERVICES (systemd services on specific nodes)
+# ================================================================================
+
+# Zephyr services (gaming, VR, desktop)
+stream.zephyr.cluster.local {
+  # Redirect to Zephyr's service gateway
+  reverse_proxy zephyr:9001
+}
+
+vr.zephyr.cluster.local {
+  reverse_proxy zephyr:9002
+}
+
+# Nexus services (storage, builds)
+storage.nexus.cluster.local,
+nfs.cluster.local {
+  reverse_proxy nexus:8080
+}
+
+# Sentry services (monitoring)
+monitor.sentry.cluster.local {
+  reverse_proxy sentry:9090
+}
+
+# ================================================================================
+# TAILSCALE VPN SERVICES (.ts.net) - auto HTTPS via internal CA
+# ================================================================================
+
+# AI Inference
+ai.zephyr.tigris-ule.ts.net:9002 {
+  tls internal
+  reverse_proxy ai-inference.default.svc.cluster.local:8080
+}
+
+# SearXNG
+search.zephyr.tigris-ule.ts.net:9001 {
+  tls internal
+  reverse_proxy searxng.default.svc.cluster.local:7777
+}
+
+# Vaultwarden
+vaultwarden.zephyr.tigris-ule.ts.net {
+  tls internal
+  reverse_proxy vaultwarden.default.svc.cluster.local:80
+}
+
+# GlitchTip
+glitchtip.zephyr.tigris-ule.ts.net {
+  tls internal
+  reverse_proxy glitchtip-web.default.svc.cluster.local:8000
+}
+
+# Home Assistant
+home.zephyr.tigris-ule.ts.net:8123 {
+  tls internal
+  reverse_proxy home-assistant.default.svc.cluster.local:8123
+}
+
+# ================================================================================
+# SPECIAL PURPOSE ROUTES
+# ================================================================================
+
+# Websockets / Terminal
+terminal.cluster.local,
+ttyd.cluster.local {
+  reverse_proxy ttyd.default.svc.cluster.local:7681 {
+    header_up Connection {>Connection}
+    header_up Upgrade {>Upgrade}
+  }
+}
+
+# Debug / Testing
+debug.cluster.local,
+echo.cluster.local {
+  reverse_proxy echo-server.test-echo.svc.cluster.local:80
+}
+
+# Health check endpoint
+health.cluster.local,
+status.cluster.local {
+  respond /health "Cluster Healthy" 200
+  respond {"requester}{remote_host}" 200
+}

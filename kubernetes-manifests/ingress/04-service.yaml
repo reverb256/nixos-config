@@ -1,0 +1,84 @@
+# Caddy Ingress Service - External Access
+# Using NodePort for simplicity (can use LoadBalancer with MetalLB later)
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-ingress
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+  annotations:
+    # Optional: Use MetalLB for LoadBalancer IP
+    # metallb.universe.tf/address-pool: ingress-pool
+    # metallb.universe.tf/allow-shared-ip: "true"
+spec:
+  type: NodePort
+  # For production with MetalLB or cloud LB, use LoadBalancer instead:
+  # type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+    nodePort: 30080  # HTTP from outside
+  - name: https
+    port: 443
+    targetPort: https
+    protocol: TCP
+    nodePort: 30443  # HTTPS from outside
+  - name: https-udp
+    port: 443
+    targetPort: https-udp
+    protocol: UDP
+    nodePort: 30443  # HTTP/3 (QUIC)
+  sessionAffinity: None
+
+---
+# Internal cluster access (ClusterIP only)
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-ingress-internal
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: https
+    protocol: TCP
+
+---
+# Admin API service (for metrics and management)
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-admin
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress
+  ports:
+  - name: admin
+    port: 2019
+    targetPort: admin
+    protocol: TCP

@@ -110,6 +110,7 @@ in {
           local-data = [
             # Kubernetes API server
             ''"kubernetes.default.svc.cluster.local. IN A 10.0.0.1"''
+
             # Cluster hosts (cluster.local domain)
             ''"zephyr.cluster.local. IN A 10.1.1.110"''
             ''"zephyr IN A 10.1.1.110"''
@@ -119,11 +120,49 @@ in {
             ''"forge IN A 10.1.1.130"''
             ''"sentry.cluster.local. IN A 10.1.1.140"''
             ''"sentry IN A 10.1.1.140"''
+
             # Cluster hosts (.lan domain for convenience)
             ''"zephyr.lan. IN A 10.1.1.110"''
             ''"nexus.lan. IN A 10.1.1.120"''
             ''"forge.lan. IN A 10.1.1.130"''
             ''"sentry.lan. IN A 10.1.1.140"''
+
+            # ================================================================================
+            # FRIENDLY SERVICE NAMES - Wildcard for *.cluster.local → Caddy Ingress
+            # ================================================================================
+            # All *.cluster.local queries will fall through to Caddy ingress
+            # Caddy then routes to the appropriate backend service
+
+            # Kubernetes Caddy Ingress (primary ingress for cluster.local)
+            ''"*.cluster.local. IN CNAME caddy-ingress.ingress-system.svc.cluster.local."''
+
+            # Kubernetes services (direct access via short names)
+            # These are fallbacks if ingress routing is not used
+
+            # AI/ML Services
+            ''"ai.cluster.local. IN A 10.1.1.120"''
+            ''"llm.cluster.local. IN A 10.1.1.120"''
+            ''"rag.cluster.local. IN A 10.1.1.120"''
+
+            # Home Lab Services
+            ''"home.cluster.local. IN A 10.1.1.110"''
+            ''"vault.cluster.local. IN A 10.1.1.110"''
+            ''"media.cluster.local. IN A 10.1.1.120"''
+
+            # Development Tools
+            ''"git.cluster.local. IN A 10.1.1.110"''
+            ''"ci.cluster.local. IN A 10.1.1.110"''
+            ''"nix.cluster.local. IN A 10.1.1.110"''
+
+            # Monitoring
+            ''"metrics.cluster.local. IN A 10.1.1.110"''
+            ''"logs.cluster.local. IN A 10.1.1.110"''
+            ''"dash.cluster.local. IN A 10.1.1.110"''
+
+            # Utilities
+            ''"search.cluster.local. IN A 10.1.1.110"''
+            ''"chat.cluster.local. IN A 10.1.1.110"''
+            ''"files.cluster.local. IN A 10.1.1.120"''
           ];
         };
 

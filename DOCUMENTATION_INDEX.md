@@ -462,10 +462,36 @@ This document provides a comprehensive index of all documentation for the NixOS 
 - Designing storage for new workloads
 - Troubleshooting storage issues
 - Configuring automated backups
-- Kubernetes commands and workflows
-- Service migration patterns
-- NixOS Kubernetes configuration
+
+### Kubernetes Ingress Documentation (NEW - 2026-03-14)
+**Location:** `/etc/nixos/docs/kubernetes/caddy-ingress.md`
+
+**Purpose:** Complete documentation for Caddy Ingress Controller deployment
+
+**Status:** ✅ Production Ready
+
+**Key Contents:**
+- Architecture and deployment model (DaemonSet)
+- Route configuration (Caddyfile)
+- TLS certificate management (internal CA + Let's Encrypt)
+- Monitoring and metrics (Prometheus integration)
 - Troubleshooting guide
+- Migration notes from systemd Caddy
+
+**Manifests Location:** `/etc/nixos/kubernetes-manifests/ingress/`
+
+**Key Features:**
+- Automatic HTTPS (Let's Encrypt or internal CA)
+- HTTP/3 (QUIC) support
+- Simple Caddyfile configuration
+- Prometheus metrics on port 2019
+- NodePort access (30080/30443)
+
+**When to Read:**
+- Configuring ingress for new services
+- Troubleshooting routing issues
+- Setting up TLS certificates
+- Understanding ingress metrics
 
 ### Quick Reference
 
@@ -787,6 +813,18 @@ kubectl logs <pod-name> -n <namespace>
 ## Change Log
 
 ### 2026-03-14
+- **KUBERNETES INGRESS:** Deployed Caddy Ingress Controller (replacing planned NGINX Ingress)
+  - DaemonSet deployment on nexus, sentry (2 pods)
+  - Prometheus metrics scraping configured (port 2019)
+  - Routes: ai.cluster.local, search.cluster.local, provider.cluster.local, echo.cluster.local
+  - NodePort access: 30080 (HTTP), 30443 (HTTPS)
+  - Documentation: `/etc/nixos/docs/kubernetes/caddy-ingress.md`
+  - Manifests: `/etc/nixos/kubernetes-manifests/ingress/`
+- **NETWORK CONSTANTS:** Added Caddy ports to `modules/network-constants.nix`
+  - `caddy-admin = 2019`, `caddy-http = 80`, `caddy-https = 443`
+  - `caddy-nodeport-http = 30080`, `caddy-nodeport-https = 30443`
+- **PROMETHEUS:** Updated `modules/services/monitoring/prometheus.nix` with Caddy scrape job
+- **DOCUMENTATION:** Updated STATUS.md, ROADMAP.md, DOCUMENTATION_INDEX.md
 - **BUILD FIXES:** Fixed multiple NixOS build issues on x86-64-v3-migration branch
   - Fixed Python encodings module error (nix-store --repair-path)
   - Fixed wrong substituter URL (consolidated in distributed-builds.nix with lib.mkForce)

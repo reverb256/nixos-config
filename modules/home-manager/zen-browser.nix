@@ -104,10 +104,9 @@
         // Performance optimizations
         user_pref("gfx.webrender.all", true);
         user_pref("media.ffmpeg.vaapi.enabled", true);
-        // NOTE: Disabled widget.dmabuf.force-enabled for NVIDIA + Wayland compatibility
-        // Forced DMA-BUF causes image corruption in WebGL/Canvas applications (e.g., Facebook Messenger)
-        // Browser will auto-detect appropriate buffer mechanism per-GPU
-        // user_pref("widget.dmabuf.force-enabled", true);
+        // TESTING: Re-enabled widget.dmabuf.force-enabled to test if NVIDIA + Wayland issues are resolved
+        // If WebGL/Canvas corruption occurs (e.g., Facebook Messenger), comment this out again
+        user_pref("widget.dmabuf.force-enabled", true);
 
         // Privacy enhancements
         user_pref("privacy.resistFingerprinting", true);

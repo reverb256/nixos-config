@@ -1,0 +1,9 @@
+# Priority Class for Caddy Ingress
+# Ensures ingress starts before application workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: caddy-ingress-critical
+value: 1000
+globalDefault: false
+description: "Critical priority for Caddy Ingress Controller pods. Higher than system-node-critical (1000000000) is not recommended, but this ensures ingress runs before most apps."
