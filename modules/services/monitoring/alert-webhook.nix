@@ -199,9 +199,6 @@ in {
 
         # Allow writing to log directory
         ReadWritePaths = ["/var/log/alert-webhook"];
-
-        # Access to notify-send for desktop notifications
-        PathAccessibility = "strict";
       };
     };
 
