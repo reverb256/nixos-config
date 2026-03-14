@@ -6,14 +6,8 @@
     settings = {
       experimental-features = ["nix-command" "flakes"];
 
-      # Binary caches (local cache checked first)
-      # Harmonia runs on port 5000 (not 50000 - that was old nix-serve)
-      # Use cluster IP address instead of Tailscale hostname for DNS reliability
-      # Use mkBefore to ensure local cache is first before other modules' substituters
-      # Public caches are now in distributed-builds.nix (to reduce duplication)
-      substituters = lib.mkBefore [
-        "http://10.1.1.110:5000?trusted=1"
-      ];
+      # Substituters and trusted keys are now configured in distributed-builds.nix
+      # to avoid duplication and ensure proper merge order
 
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="

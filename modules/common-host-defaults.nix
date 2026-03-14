@@ -109,13 +109,6 @@
     # Without this, remote build users cannot access the Nix store
     trusted-users = ["j_kro"];
 
-    # Binary cache substituters - check local Harmonia cache first
-    # Harmonia runs on port 5000 (not 50000 - that was old nix-serve)
-    # Use cluster IP address instead of Tailscale hostname for DNS reliability
-    substituters = lib.mkOptionDefault [
-      "http://10.1.1.110:5000?trusted=1"
-    ];
-
     # System features - declare x86-64-v3 microarchitecture support
     # This allows building v3-optimized packages (gccarch-x86-64-v3)
     # All cluster CPUs support AVX2: Zen 3 (Zephyr), Zen 2 (Nexus),
