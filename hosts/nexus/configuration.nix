@@ -316,7 +316,7 @@
     nfs.server.enable = true;
 
     # Nix binary cache server for x86-64-v3 migration
-    nix-cache.enable = true;
+    nix-cache.harmonia.enable = true;
 
     # Syncthing P2P file sync for /etc/nixos config sync
     syncthing-cluster = {
