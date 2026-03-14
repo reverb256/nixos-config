@@ -152,19 +152,22 @@
                 logging.info(f"Sending JSON: {line}")
                 await self.send_line(line)
 
-            async def recv_line(self) -> Optional[str]:
-                """Receive a line."""
+            async def recv_line(self, timeout: float = 30.0) -> Optional[str]:
+                """Receive a line with timeout."""
                 try:
-                    line = await self.reader.readline()
+                    line = await asyncio.wait_for(self.reader.readline(), timeout=timeout)
                     if not line:
-                        logging.warning("Connection closed by peer")
+                        logging.warning(f"Connection closed by peer (no data received in {timeout}s)")
                         return None
                     line = line.decode().strip()
                     # Skip empty lines (some pools send them as keepalive)
                     if not line:
-                        return await self.recv_line()  # Recursive call to get next line
+                        return await self.recv_line(timeout)  # Recursive call to get next line
                     logging.info(f"Received line: {line}")
                     return line
+                except asyncio.TimeoutError:
+                    logging.warning(f"Receive timeout after {timeout}s - no data from pool")
+                    return None
                 except Exception as e:
                     logging.error(f"Error receiving: {e}")
                     return None
@@ -606,42 +609,12 @@
                 """Handle messages from the pool."""
                 logging.info(f"Pool message loop started for {pool.pool.name}")
 
-                # Initialize pool connection with CR29-specific sequence
-                # CR29 pools may require authorization BEFORE subscription
+                # NEW APPROACH: Don't send anything initially - wait for pool to send greeting
+                # Some pools send data immediately after connection
                 if not pool.initialized:
-                    try:
-                        logging.info("Initializing pool connection...")
-
-                        # STEP 1: Authorize with base wallet FIRST (CR29 requirement?)
-                        logging.info("STEP 1: Sending mining.authorize with base wallet")
-                        await pool.send_json({
-                            "id": 1,  # Use ID 1 for authorize
-                            "method": "mining.authorize",
-                            "params": [pool.pool.wallet, pool.pool.password]
-                        })
-
-                        # STEP 2: Then send subscribe
-                        logging.info("STEP 2: Sending mining.subscribe")
-                        await pool.send_json({
-                            "id": 2,  # Use ID 2 for subscribe
-                            "method": "mining.subscribe",
-                            "params": ["gpu-proxy/1.0", None]
-                        })
-
-                        pool.initialized = True
-                        logging.info("Pool connection initialized (waiting for pool response)")
-
-                        # Check if connection is still alive after sending
-                        if pool.writer and pool.writer.is_closing():
-                            logging.error("Connection closed immediately after sending init messages!")
-                        else:
-                            logging.info("Connection still alive after init messages, waiting for response...")
-
-                    except Exception as e:
-                        logging.error(f"Error initializing pool: {e}")
-                        logging.error(f"Traceback: {traceback.format_exc()}")
-                        await self.failover_pool()
-                        return
+                    logging.info("Waiting for pool to send initial data...")
+                    logging.info("NOT sending subscribe/authorize - waiting for pool first")
+                    pool.initialized = True
 
                 try:
                     while pool.connected and self.running:
