@@ -6,27 +6,30 @@
   inputs,
   ...
 }: let
+  # Gateway package as a Python package (for site-packages)
+  gatewayPythonPkg = pkgs.runCommand "ai-inference-gateway-python-pkg"
+    {
+      preferLocalBuild = true;
+      passAsFile = ["buildScript"];
+      buildScript = ''
+        mkdir -p $out/lib/python3.13/site-packages
+        cp -r ${../../modules/services/ai-inference/ai_inference_gateway} $out/lib/python3.13/site-packages/ai_inference_gateway
+        chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
+        find $out -name "*.pyc" -delete
+        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+      '';
+    }
+    ''
+      . $buildScriptPath
+    '';
+
   # Python environment for SearXNG MCP server
-  # Includes mcp SDK and the ai_inference_gateway package
-  searxngPython = pkgs.python3.withPackages (ps: [
-    ps.mcp
-  ] ++ [
-    (pkgs.runCommand "ai-inference-gateway-python-pkg"
-      {
-        preferLocalBuild = true;
-        passAsFile = ["buildScript"];
-        buildScript = ''
-          mkdir -p $out/lib/python3.13/site-packages
-          cp -r ${../../modules/services/ai-inference/ai_inference_gateway} $out/lib/python3.13/site-packages/ai_inference_gateway
-          chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
-          find $out -name "*.pyc" -delete
-          find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-        '';
-      }
-      ''
-        . $buildScriptPath
-      '')
-  ]);
+  # Use symlinkJoin to combine the base Python with the gateway package
+  searxngPythonBase = pkgs.python3.withPackages (ps: [ ps.mcp ]);
+  searxngPython = pkgs.symlinkJoin {
+    name = "searxng-python-with-gateway";
+    paths = [ searxngPythonBase gatewayPythonPkg ];
+  };
 in {
   imports = [
     # ========================================================================
