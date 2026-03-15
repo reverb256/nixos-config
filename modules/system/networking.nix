@@ -212,17 +212,17 @@
 
   # Don't let systemd-networkd-wait-online block boot
   # We use NetworkManager, not systemd-networkd for network management
+  # Don't let systemd-networkd-wait-online block boot
+  # We use NetworkManager, not systemd-networkd for network management
   # The wait-online service expects systemd-networkd to manage interfaces
   systemd.services.systemd-networkd-wait-online = {
     serviceConfig = {
       # Override to not fail activation if it times out
       RemainAfterExit = true;
     };
-    # Don't require this service for network-online.target
-    wantedBy = lib.mkForce [];
-    # Don't block multi-user.target
-    upholds = lib.mkForce [];
   };
+  # Don't require systemd-networkd-wait-online for network-online.target
+  systemd.targets.network-online.wantedBy = lib.mkForce [ "network-online.target" ];
 
   # ============================================================================
   # FAIL2BAN CONFIGURATION

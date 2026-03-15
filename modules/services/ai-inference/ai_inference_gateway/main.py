@@ -45,6 +45,19 @@ except ImportError as e:
     SemanticCache = None
     CacheConfig = None
 
+# Import SearXNG integration
+try:
+    from ai_inference_gateway.searxng_integration import (
+        SearxngIntegration,
+        get_searxng,
+    )
+
+    SEARXNG_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"SearXNG integration not available: {e}")
+    SEARXNG_AVAILABLE = False
+    SearxngIntegration = None
+
 # Import RAG ingestion
 try:
     from ai_inference_gateway.rag.ingestion import (
@@ -202,6 +215,8 @@ class GatewayState:
         self.mcp_broker = None
         # RAG ingestion service (initialized if enabled)
         self.rag_ingestion = None
+        # SearXNG integration (initialized if enabled)
+        self.searxng = None
 
 
 def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
@@ -488,6 +503,22 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("Semantic cache not available (install redis, qdrant-client)")
 
+    # Initialize SearXNG integration if enabled
+    if SEARXNG_AVAILABLE:
+        try:
+            searxng_enabled = os.getenv("SEARXNG_ENABLED", "true").lower() == "true"
+            cache_ttl = int(os.getenv("SEARXNG_CACHE_TTL", "300"))
+
+            if searxng_enabled:
+                logger.info("Initializing SearXNG integration...")
+                state.searxng = get_searxng(cache_ttl=cache_ttl)
+                logger.info("SearXNG integration initialized (auto-improving features enabled)")
+            else:
+                logger.info("SearXNG integration disabled (set SEARXNG_ENABLED=true to enable)")
+        except Exception as e:
+            logger.warning(f"SearXNG initialization failed: {e}")
+            state.searxng = None
+
     # Initialize GPU scheduler communication
     try:
         gpu_scheduler.init_scheduler_comms()
@@ -510,6 +541,10 @@ async def lifespan(app: FastAPI):
     if state.semantic_cache:
         await state.semantic_cache.close()
         logger.info("Semantic cache connections closed")
+
+    if state.searxng:
+        await state.searxng.close()
+        logger.info("SearXNG integration closed")
 
     if state.rag_ingestion:
         await state.rag_ingestion.close()
@@ -1990,6 +2025,119 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "healthy": is_healthy,
             "exists": server_name in state.mcp_broker.servers,
         }
+
+    # ============================================================================
+    # SEARXNG SEARCH ENDPOINTS
+    # ============================================================================
+    if SEARXNG_AVAILABLE:
+
+        @app.post("/search")
+        async def searxng_search(request: Request):
+            """
+            Perform web search using SearXNG with auto-improving features.
+
+            Body: {
+                "query": str (required),
+                "category": str (optional, default="general"),
+                "language": str (optional, default="all"),
+                "max_results": int (optional, default=10),
+                "time_range": str (optional, values: day, week, month, year),
+                "use_cache": bool (optional, default=true)
+            }
+
+            Categories: general, images, videos, news, science, it, files, map, music
+            """
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501,
+                    detail="SearXNG integration not enabled. Set SEARXNG_ENABLED=true."
+                )
+
+            body = await request.json()
+            query = body.get("query", "").strip()
+
+            if not query:
+                raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+            # Extract parameters
+            category = body.get("category", "general")
+            language = body.get("language", "all")
+            max_results = min(body.get("max_results", 10), 50)
+            time_range = body.get("time_range")
+            use_cache = body.get("use_cache", True)
+
+            # Perform search
+            result = await state.searxng.search(
+                query=query,
+                category=category,
+                language=language,
+                max_results=max_results,
+                time_range=time_range,
+                use_cache=use_cache,
+                learning_enabled=True,
+            )
+
+            return result
+
+        @app.get("/search/stats")
+        async def searxng_stats():
+            """Get SearXNG learning statistics and search patterns."""
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501,
+                    detail="SearXNG integration not enabled"
+                )
+
+            stats = await state.searxng.get_learning_stats()
+            return stats
+
+        @app.post("/search/cache/clear")
+        async def searxng_clear_cache():
+            """Clear SearXNG response cache."""
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501,
+                    detail="SearXNG integration not enabled"
+                )
+
+            state.searxng.clear_cache()
+            return {"success": True, "message": "SearXNG cache cleared"}
+
+        @app.get("/search/ping")
+        async def searxng_ping():
+            """Check if SearXNG service is accessible."""
+            import httpx
+
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    response = await client.get(
+                        "http://127.0.0.1:7777/search",
+                        params={"q": "test"}
+                    )
+                    if response.status_code == 200:
+                        return {
+                            "status": "healthy",
+                            "service": "SearXNG",
+                            "url": "http://127.0.0.1:7777"
+                        }
+                    else:
+                        return {
+                            "status": "unhealthy",
+                            "service": "SearXNG",
+                            "code": response.status_code
+                        }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "service": "SearXNG",
+                    "error": str(e)
+                }
 
     # ============================================================================
     # RAG ENDPOINTS
