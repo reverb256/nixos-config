@@ -633,9 +633,10 @@
 
               # Per-GPU thresholds based on VRAM capacity and use case
               case "$gpu_name" in
-                  *"3060"*|*"3050"*)
+                  *"3060"*|*"3050"*|*"4060"*)
                       # Small GPUs (8GB): Allow mining when needed
                       # Miner needs 7GB, so 90% threshold = 7.2GB allowed
+                      # RTX 4060 (8GB) included for Forge mining rig
                       echo "90"
                       ;;
                   *"3090"*|*"3080"*)
