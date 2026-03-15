@@ -64,6 +64,7 @@
 
     # Mining
     ./mining/mining.nix
+    ./mining/dual-xmrig.nix
     ./mining/xmrig-proxy.nix
     ./mining/mining-proxy.nix
     ./mining/gpu-proxy.nix

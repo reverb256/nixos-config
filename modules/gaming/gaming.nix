@@ -62,8 +62,26 @@ in {
               nv_mem_clock_mhz_offset = 400;
             };
             custom = {
-              start = "${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'";
-              end = "${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'";
+              start = "${pkgs.writeShellScript "gamemode-start" ''
+                ${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'
+
+                # Pause flexible XMRig instance during gaming
+                if systemctl is-active --quiet xmrig-flexible 2>/dev/null; then
+                  echo "[$(date '+%Y-%m-%d %H:%M:%S')] GameMode: Pausing xmrig-flexible" >> /var/log/gamemode-mining.log
+                  systemctl stop xmrig-flexible
+                  ${pkgs.libnotify}/bin/notify-send 'Mining paused' 'Flexible XMRig instance paused during gaming'
+                fi
+              ''}";
+              end = "${pkgs.writeShellScript "gamemode-end" ''
+                ${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'
+
+                # Resume flexible XMRig instance after gaming
+                if ! systemctl is-active --quiet xmrig-flexible 2>/dev/null; then
+                  echo "[$(date '+%Y-%m-%d %H:%M:%S')] GameMode: Resuming xmrig-flexible" >> /var/log/gamemode-mining.log
+                  systemctl start xmrig-flexible
+                  ${pkgs.libnotify}/bin/notify-send 'Mining resumed' 'Flexible XMRig instance resumed'
+                fi
+              ''}";
             };
           };
         };

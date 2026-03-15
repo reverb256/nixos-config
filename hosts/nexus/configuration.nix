@@ -7,6 +7,7 @@
 {
   lib,
   pkgs,
+  inputs,
   ...
 }: {
   imports = [
@@ -281,12 +282,30 @@
     # Uses defaults from mining.nix for pool URLs and wallet format
     # Note: profiles.role.mining enables services.mining automatically
     mining = {
-      xmrig = {
+      # Dual XMRig setup (always-on + pause-able)
+      # Total when idle: 12 threads (50%) - Total when gaming: 4 threads (17%)
+      xmrigDual = {
         enable = true;
-        autostart = true;
-        threads = 12;
+        # Always-on instance - mines even during gaming
+        alwaysOn = {
+          enable = true;
+          threads = 4; # 17% of 24 cores
+          httpPort = 8081;
+          httpTokenFile = "/run/agenix/xmrig-always-api-token";
+          autostart = true;
+        };
+        # Flexible instance - pauses during gaming/builds
+        flexible = {
+          enable = true;
+          threads = 8; # 33% of 24 cores
+          httpPort = 8082;
+          httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
+          autostart = true;
+        };
+        # Common settings for both instances
         pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
         wallet = "nexus-cpu"; # Worker ID for proxy
+        password = "x";
         tls = false; # No TLS needed for local proxy
       };
 
@@ -425,6 +444,30 @@
   # garnix.enable = true configures cache.garnix.io remote cache access
   nix.settings = {
     # No local substituters needed - using common caches from distributed-builds.nix
+  };
+
+  # ============================================================================
+  # AGENIX SECRETS
+  # ============================================================================
+  # XMRig HTTP API tokens for dual-instance mining setup
+  age = {
+    identityPaths = ["/home/j_kro/.age/key.txt"];
+    secrets = {
+      # Always-on XMRig instance API token
+      xmrig-always-api-token = {
+        file = "${inputs.self}/secrets/xmrig-always-api-token.age";
+        mode = "440";
+        owner = "mining";
+        group = "mining";
+      };
+      # Flexible XMRig instance API token (paused during gaming)
+      xmrig-flexible-api-token = {
+        file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
+        mode = "440";
+        owner = "mining";
+        group = "mining";
+      };
+    };
   };
 
 }
