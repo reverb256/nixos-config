@@ -55,6 +55,7 @@
     firewall = {
       allowedTCPPorts = lib.mkOptionDefault [
         10250 # Kubelet API
+        3334  # gpu-proxy-cpp (centralized proxy for cluster)
         3900  # Garage S3 API (if needed)
         3901  # Garage RPC (if needed)
       ];
