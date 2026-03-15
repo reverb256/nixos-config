@@ -100,5 +100,11 @@
     "kernel.hung_task_warnings" = 10; # Warn up to 10 times before panic
     "kernel.softlockup_panic" = 1; # Panic on soft lockup (via boot param)
     "kernel.nmi_watchdog" = 1; # NMI watchdog enabled
+
+    # Reverse path filtering - loose mode for VIP compatibility
+    # Strict mode (1) drops packets arriving on unexpected interfaces
+    # This breaks VIP traffic where return path differs from source path
+    "net.ipv4.conf.all.rp_filter" = 2; # Loose mode
+    "net.ipv4.conf.default.rp_filter" = 2;
   };
 }
