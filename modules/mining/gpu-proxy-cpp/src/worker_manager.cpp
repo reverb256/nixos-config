@@ -1,0 +1,314 @@
+#include "worker_manager.hpp"
+#include "event_loop.hpp"
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstdio>
+#include <cstring>
+#include <cerrno>
+#include <sstream>
+#include <iomanip>
+
+namespace gpu_proxy {
+
+WorkerManager::WorkerManager(EventLoop& loop, uint16_t port, const std::vector<WorkerConfig>& workers)
+    : loop_(loop), listen_port_(port), worker_configs_(workers) {
+    require_whitelist_ = !workers.empty();
+}
+
+WorkerManager::~WorkerManager() {
+    if (listen_fd_ >= 0) {
+        close(listen_fd_);
+    }
+}
+
+void WorkerManager::start() {
+    // Create listening socket
+    listen_fd_ = socket(AF_INET, SOCK_STREAM, 0);
+    if (listen_fd_ < 0) {
+        fprintf(stderr, "[WorkerManager] Failed to create socket: %s\n",
+                strerror(errno));
+        return;
+    }
+
+    // Set reuse address
+    int opt = 1;
+    setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    // Bind to port
+    struct sockaddr_in addr {};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(listen_port_);
+
+    if (bind(listen_fd_, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        fprintf(stderr, "[WorkerManager] Failed to bind to port %d: %s\n",
+                listen_port_, strerror(errno));
+        close(listen_fd_);
+        listen_fd_ = -1;
+        return;
+    }
+
+    // Listen
+    if (listen(listen_fd_, 5) < 0) {
+        fprintf(stderr, "[WorkerManager] Failed to listen: %s\n", strerror(errno));
+        close(listen_fd_);
+        listen_fd_ = -1;
+        return;
+    }
+
+    // Set non-blocking
+    int flags = fcntl(listen_fd_, F_GETFL, 0);
+    fcntl(listen_fd_, F_SETFL, flags | O_NONBLOCK);
+
+    fprintf(stderr, "[WorkerManager] Listening on port %d\n", listen_port_);
+
+    // Add a periodic callback to check for new connections
+    // We'll use the event loop's timeout mechanism to poll for accept
+    loop_.set_timeout(100, [this]() {
+        accept_worker();
+    });
+}
+
+void WorkerManager::accept_worker() {
+    if (listen_fd_ < 0) return;
+
+    struct sockaddr_in client_addr {};
+    socklen_t addr_len = sizeof(client_addr);
+
+    int client_fd = accept(listen_fd_, (struct sockaddr*)&client_addr, &addr_len);
+    if (client_fd < 0) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            fprintf(stderr, "[WorkerManager] Accept error: %s\n", strerror(errno));
+        }
+        return;
+    }
+
+    // Get client address
+    char client_ip[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, sizeof(client_ip));
+
+    std::string worker_name = "worker:" + std::string(client_ip) + ":" + std::to_string(ntohs(client_addr.sin_port));
+    fprintf(stderr, "[WorkerManager] Accepted connection from %s (fd=%d)\n",
+            worker_name.c_str(), client_fd);
+
+    // Create connection
+    auto conn = std::make_unique<Connection>(client_fd, ConnectionType::WORKER, worker_name);
+
+    // Set up callbacks
+    conn->set_state_callback([this, conn_ptr = conn.get()](ConnectionState state) {
+        on_worker_state(conn_ptr, state);
+    });
+
+    conn->set_message_callback([this, conn_ptr = conn.get()](const std::string& line) {
+        on_worker_message(conn_ptr, line);
+    });
+
+    // Store worker info
+    WorkerInfo info;
+    info.conn = std::move(conn);
+
+    // Generate unique extra_nonce2 for this worker
+    std::ostringstream oss;
+    oss << std::hex << std::setfill('0') << std::setw(8) << next_extra_nonce2_++;
+    info.extra_nonce2 = oss.str();
+
+    workers_[client_fd] = std::move(info);
+
+    // Send current job if available
+    if (has_job_) {
+        send_job(current_job_);
+    }
+}
+
+void WorkerManager::on_worker_state(Connection* conn, ConnectionState state) {
+    if (!conn) return;
+
+    int fd = conn->fd();
+
+    switch (state) {
+        case ConnectionState::ERROR:
+        case ConnectionState::DISCONNECTED:
+            fprintf(stderr, "[WorkerManager] Worker %d disconnected\n", fd);
+            workers_.erase(fd);
+            break;
+
+        default:
+            break;
+    }
+}
+
+void WorkerManager::on_worker_message(Connection* conn, const std::string& line) {
+    if (!conn) return;
+
+    fprintf(stderr, "[WorkerManager] Worker %d: %s\n", conn->fd(), line.c_str());
+
+    try {
+        StratumRequest req = StratumRequest::parse(line);
+
+        switch (req.method) {
+            case StratumMethod::SUBSCRIBE:
+                handle_subscribe(conn, req);
+                break;
+
+            case StratumMethod::AUTHORIZE:
+                handle_authorize(conn, req);
+                break;
+
+            case StratumMethod::SUBMIT:
+                handle_submit(conn, req);
+                break;
+
+            default:
+                fprintf(stderr, "[WorkerManager] Unknown method from worker\n");
+                break;
+        }
+    } catch (const std::exception& e) {
+        fprintf(stderr, "[WorkerManager] Failed to parse worker message: %s\n", e.what());
+    }
+}
+
+void WorkerManager::handle_subscribe(Connection* conn, const StratumRequest& req) {
+    int fd = conn->fd();
+    auto it = workers_.find(fd);
+    if (it == workers_.end()) return;
+
+    // Build subscribe response
+    // Format: [[[mining.notify, subscription ID], extra_nonce1], extra_nonce2_size]
+    std::string response = R"({"id": )" + std::to_string(req.id) +
+        R"(, "result": [[["mining.notify", "]" + std::to_string(fd) +
+        R"("], ""], "8"], "error": null})";
+
+    conn->send_line(response);
+
+    it->second.subscribed = true;
+    fprintf(stderr, "[WorkerManager] Worker %d subscribed\n", fd);
+
+    // Send job if available
+    if (has_job_) {
+        send_job(current_job_);
+    }
+}
+
+void WorkerManager::handle_authorize(Connection* conn, const StratumRequest& req) {
+    int fd = conn->fd();
+    auto it = workers_.find(fd);
+    if (it == workers_.end()) return;
+
+    // Extract worker_id from params
+    std::string worker_id;
+    if (req.params.is_array() && req.params.size() > 0) {
+        worker_id = req.params[0].get<std::string>();
+    }
+
+    it->second.worker_id = worker_id;
+
+    // Check whitelist
+    bool allowed = !require_whitelist_ || is_worker_allowed(worker_id);
+
+    // Build authorize response
+    std::string response = R"({"id": )" + std::to_string(req.id) +
+        R"(, "result": )" + (allowed ? "true" : "false") +
+        R"(, "error": null})";
+
+    conn->send_line(response);
+
+    if (allowed) {
+        it->second.authorized = true;
+        fprintf(stderr, "[WorkerManager] Worker %s (fd=%d) authorized\n",
+                worker_id.c_str(), fd);
+    } else {
+        fprintf(stderr, "[WorkerManager] Worker %s (fd=%d) not in whitelist\n",
+                worker_id.c_str(), fd);
+        it->second.conn->mark_for_closing();
+    }
+}
+
+void WorkerManager::handle_submit(Connection* conn, const StratumRequest& req) {
+    int fd = conn->fd();
+    auto it = workers_.find(fd);
+    if (it == workers_.end()) return;
+
+    // Extract params: worker_id, job_id, nonce, result
+    std::string worker_id, job_id, nonce, result;
+
+    if (req.params.is_array() && req.params.size() >= 4) {
+        worker_id = req.params[0];
+        job_id = req.params[1];
+        nonce = req.params[2];
+        result = req.params[3];
+    }
+
+    fprintf(stderr, "[WorkerManager] Share from %s: job=%s nonce=%s\n",
+            worker_id.c_str(), job_id.c_str(), nonce.c_str());
+
+    // Forward to pool via callback
+    if (share_cb_) {
+        share_cb_(worker_id, job_id, nonce, result);
+    }
+}
+
+bool WorkerManager::is_worker_allowed(const std::string& worker_id) {
+    if (!require_whitelist_) return true;
+
+    for (const auto& config : worker_configs_) {
+        if (config.id == worker_id) return true;
+    }
+    return false;
+}
+
+void WorkerManager::send_job(const Job& job) {
+    current_job_ = job;
+    has_job_ = true;
+
+    if (workers_.empty()) {
+        return;
+    }
+
+    // Build mining.notify message
+    // Format: ["job_id", "extra_nonce2", "target", "difficulty", height, clean_jobs]
+    // Note: extra_nonce2 varies per worker
+    std::string msg = R"({"id": null, "method": "mining.notify", "params": [")" +
+        job.job_id + R"(", ")" +
+        R"(", ")" +  // extra_nonce1 (empty for CR29)
+        job.target + R"(", ")" +
+        job.difficulty + R"(, )" +
+        std::to_string(job.height) + R"(, )" +
+        (job.clean_jobs ? "true" : "false") + R"(]})";
+
+    // The message above needs extra_nonce2 inserted
+    // Let's rebuild it properly:
+    // notify params: [job_id, blob, target, difficulty, height, clean_jobs]
+    // blob = extra_nonce1 + extra_nonce2 (per worker)
+
+    for (auto& [fd, info] : workers_) {
+        if (!info.subscribed || !info.authorized) continue;
+
+        // Build worker-specific blob
+        std::string worker_blob = job.blob;  // This includes extra_nonce1
+        worker_blob += info.extra_nonce2;    // Add worker's extra_nonce2
+
+        // Build notification with worker's blob
+        std::string notify = R"({"id": null, "method": "mining.notify", "params": [")" +
+            job.job_id + R"(", ")" + worker_blob + R"(", ")" +
+            job.target + R"(", ")" + job.difficulty + R"(, )" +
+            std::to_string(job.height) + R"(, )" +
+            (job.clean_jobs ? "true" : "false") + R"(]})";
+
+        info.conn->send_line(notify);
+    }
+
+    fprintf(stderr, "[WorkerManager] Sent job %s to %zu workers\n",
+            job.job_id.c_str(), workers_.size());
+}
+
+void WorkerManager::send_response(int worker_fd, const std::string& response) {
+    auto it = workers_.find(worker_fd);
+    if (it != workers_.end()) {
+        it->second.conn->send_line(response);
+    }
+}
+
+} // namespace gpu_proxy

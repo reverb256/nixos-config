@@ -121,37 +121,43 @@
         apiPort = 4069;
       };
 
-      # Direct Kryptex connection (no gpu-proxy - was causing connection issues)
-      # Multi-pool failover: US primary, EU fallback
-      pool = "xtm-c29-us.kryptex.network:8040";  # Fallback if pools list empty
+      # Primary: gpu-proxy (localhost:3334) with direct Kryptex failover
+      # Proxy handles Monero Stratum protocol translation and TLS to Kryptex
+      pool = "127.0.0.1:3334";
       wallet = "krxXVNVMM7.forge-gpu";
       pools = [
         {
-          url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (primary)
+          url = "127.0.0.1:3334";  # gpu-proxy on localhost (handles upstream TLS + Monero Stratum)
           wallet = "krxXVNVMM7.forge-gpu";
           password = "x";
-          tls = true;  # TLS required for Kryptex
+          tls = false;  # Proxy handles TLS, miner uses plain TCP
         }
         {
-          url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback)
+          url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (failover)
           wallet = "krxXVNVMM7.forge-gpu";
           password = "x";
-          tls = true;  # TLS required for Kryptex
+          tls = true;  # TLS required for direct Kryptex connection
+        }
+        {
+          url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (failover)
+          wallet = "krxXVNVMM7.forge-gpu";
+          password = "x";
+          tls = true;  # TLS required for direct Kryptex connection
         }
       ];
     };
 
-    # GPU Stratum Proxy with Kryptex pool failover
-    # DISABLED: Now using gpu-proxy on Nexus
-    gpu-proxy = {
-      enable = false;
+    # C++ GPU Stratum Proxy with Monero Stratum protocol support
+    # Translates between Bitcoin Stratum (lolMiner) and Monero Stratum (Kryptex)
+    gpu-proxy-cpp = {
+      enable = true;
       listenPort = 3334;
       apiPort = 8083;
       logLevel = "INFO";
       pools = [
         {
           name = "Kryptex US";
-          url = "stratum+tcp://xtm-c29-us.kryptex.network:8040";
+          url = "xtm-c29-us.kryptex.network:8040";
           wallet = "krxXVNVMM7";
           password = "x";
           priority = 1;
@@ -159,7 +165,7 @@
         }
         {
           name = "Kryptex EU";
-          url = "stratum+tcp://xtm-c29-eu.kryptex.network:8040";
+          url = "xtm-c29-eu.kryptex.network:8040";
           wallet = "krxXVNVMM7";
           password = "x";
           priority = 2;
@@ -172,7 +178,6 @@
           password = "x";
         }
       ];
-      openFirewall = false;
     };
 
     # NFS Client - Mount shared storage from nexus
