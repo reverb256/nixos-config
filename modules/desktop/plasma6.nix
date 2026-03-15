@@ -238,10 +238,9 @@ in {
     displayManager = {
       sddm.enable = true;
       sddm.settings.General.DisplayServer = "wayland";
-      autoLogin = {
-        enable = true;
-        user = "j_kro";
-      };
+      # autoLogin is configured in common-host-defaults.nix to avoid duplication
+      autoLogin.enable = lib.mkDefault true;
+      autoLogin.user = lib.mkDefault "j_kro";
     };
     desktopManager.plasma6.enable = true;
   };

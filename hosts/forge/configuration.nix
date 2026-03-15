@@ -10,6 +10,8 @@
   pkgs,
   ...
 }: {
+  # Disable zswap for Forge (Intel i5-9500 causes kernel panics with zswap enabled)
+  kernel-hardening.zswap.enable = false;
   imports = [
     # Monitoring configuration
     ./monitoring.nix

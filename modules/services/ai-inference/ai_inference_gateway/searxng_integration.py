@@ -340,21 +340,23 @@ class SearxngIntegration:
 
     async def get_learning_stats(self) -> Dict[str, Any]:
         """Get statistics about learned search patterns."""
+        # Get top cached queries with safe popularity access
+        cached_entries = [
+            {
+                "query": r.get("query", "unknown"),
+                "popularity": r.get("popularity", 0),
+                "engines": r.get("engines_used", [])
+            }
+            for r in self.response_cache.values()
+        ]
+        top_cached = sorted(cached_entries, key=lambda x: x.get("popularity", 0), reverse=True)[:10]
+
         return {
             "total_queries": len(self.successful_queries),
             "query_patterns": dict(self.query_patterns.most_common(20)),
             "engine_performance": dict(self.engine_performance),
             "cache_size": len(self.response_cache),
-            "top_cached_queries": sorted(
-                [
-                    {"query": r["query"], "popularity": r["popularity"], "engines": r["engines_used"]}
-                    for r in sorted(
-                        self.response_cache.values(),
-                        key=lambda x: x["popularity"],
-                        reverse=True
-                    )
-                ][:10]
-            ),
+            "top_cached_queries": top_cached,
         }
 
     def clear_cache(self):

@@ -185,8 +185,13 @@ void PoolManager::handle_response(const StratumResponse& resp) {
             on_pool_state(ConnectionState::AUTHENTICATED);
 
             // Distribute this job to workers via callback
+            fprintf(stderr, "[PoolManager] DEBUG: About to call job callback, has_job_=%d\n", has_job_);
             if (job_cb_) {
+                fprintf(stderr, "[PoolManager] DEBUG: Calling job callback for job %s\n", current_job_.job_id.c_str());
                 job_cb_(current_job_);
+                fprintf(stderr, "[PoolManager] DEBUG: Job callback returned\n");
+            } else {
+                fprintf(stderr, "[PoolManager] DEBUG: No job callback set!\n");
             }
             return;
         }
@@ -258,13 +263,14 @@ void PoolManager::submit_share(const std::string& worker_id,
     int id = get_next_id();
     const auto& pool = pools_[current_pool_index_];
 
-    // Build mining.submit params
-    std::string params = R"([")" + worker_id + R"(", ")" + job_id + R"(", )" +
-                        R"()" + extra_nonce1_ + R"()" + nonce + R"(, )" +
-                        result + R"(])";
-
+    // Monero Stratum submit format: {"method":"submit","params":{"id":worker,"job_id":...,"nonce":...,"result":...},"id":N}
+    // Note: For CR29/Tari, we forward the nonce as-is (worker already computed full result)
     std::string msg = R"({"id": )" + std::to_string(id) +
-        R"(, "method": "mining.submit", "params": )" + params + R"(})";
+        R"(, "method": "submit", "params": {"id": ")" + worker_id +
+        R"(", "job_id": ")" + job_id +
+        R"(", "nonce": ")" + nonce +
+        R"(", "result": ")" + result +
+        R"("}, "jsonrpc": "2.0"})";
 
     auto* conn = loop_.get_connection(
         pool_conn_ ? pool_fd_ : -1

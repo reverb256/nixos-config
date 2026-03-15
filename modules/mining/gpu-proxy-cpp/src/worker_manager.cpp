@@ -266,11 +266,11 @@ void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
         // Note: For CR29, the blob is complete, no need to add extra_nonce2
         response = R"({"id": )" + std::to_string(req.id) +
             R"(, "jsonrpc": "2.0", "result": {"id": ")" + std::to_string(fd) +
-            R"(", "job": {"algo":"cuckaroo","job_id":")" + current_job_.job_id +
-            R"(","blob":")" + current_job_.blob +
+            R"(, "job": {"algo":"cuckaroo","blob":")" + current_job_.blob +
+            R"(","job_id":")" + current_job_.job_id +
             R"(","target":")" + current_job_.target +
             R"(","height":)" + std::to_string(current_job_.height) +
-            R"(}}, "status": "OK"}, "error": null})";
+            R"(}, "status": "OK"}, "error": null})";
     } else {
         // No job yet, just acknowledge login
         response = R"({"id": )" + std::to_string(req.id) +
@@ -278,6 +278,7 @@ void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
             R"("}, "status": "OK"}, "error": null})";
     }
 
+    fprintf(stderr, "[WorkerManager] Sending login response: %s\n", response.c_str());
     conn->send_line(response);
 
     if (allowed) {
@@ -317,8 +318,9 @@ void WorkerManager::handle_submit(Connection* conn, const StratumRequest& req) {
             worker_id.c_str(), job_id.c_str(), nonce.c_str());
 
     // Send immediate acknowledgment (share accepted)
+    // Monero Stratum submit response format: result should be boolean true for accepted
     std::string response = R"({"id": )" + std::to_string(req.id) +
-        R"(, "jsonrpc": "2.0", "result": {"status": "OK"}, "error": null})";
+        R"(, "jsonrpc": "2.0", "result": true})";
     conn->send_line(response);
 
     // Forward to pool via callback
@@ -363,16 +365,11 @@ void WorkerManager::send_job(const Job& job) {
     for (auto& [fd, info] : workers_) {
         if (!info.subscribed || !info.authorized) continue;
 
-        // Build worker-specific blob
-        std::string worker_blob = job.blob;  // This includes extra_nonce1
-        worker_blob += info.extra_nonce2;    // Add worker's extra_nonce2
-
-        // Build notification with worker's blob
-        std::string notify = R"({"id": null, "method": "mining.notify", "params": [")" +
-            job.job_id + R"(", ")" + worker_blob + R"(", ")" +
-            job.target + R"(", ")" + job.difficulty + R"(, )" +
-            std::to_string(job.height) + R"(, )" +
-            (job.clean_jobs ? "true" : "false") + R"(]})";
+        // Monero Stratum job notification format
+        // Format: {"jsonrpc":"2.0","method":"job","params":{"algo":"cuckaroo","blob":"...","job_id":"...","target":"...","height":...}}
+        std::string notify = R"({"jsonrpc":"2.0", "method": "job", "params": {"algo": "cuckaroo", "blob": ")" +
+            job.blob + R"(", "job_id": )" + job.job_id + R"(, "target": )" + job.target +
+            R"(, "height": )" + std::to_string(job.height) + R"(}})";
 
         info.conn->send_line(notify);
     }
