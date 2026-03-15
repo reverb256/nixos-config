@@ -74,6 +74,8 @@ class MCPBroker:
         """
         self.servers = {server.name: server for server in servers}
         self.active_connections: Dict[str, Any] = {}
+        # Track MCP server initialization state (MCP protocol requires initialize before tools/call)
+        self._initialized_servers: Dict[str, bool] = {}
 
         # Initialize tool schema cache
         self.enable_cache = enable_cache and CACHE_AVAILABLE
@@ -88,6 +90,116 @@ class MCPBroker:
             logger.info(
                 f"MCP Broker initialized with {len(servers)} servers (cache disabled)"
             )
+
+    async def _ensure_initialized(self, server: MCPServer) -> bool:
+        """
+        Ensure MCP server is initialized (required by MCP protocol).
+
+        Many MCP servers (including Z.AI) require an initialize handshake before
+        accepting tools/call requests. This method calls initialize if not already done.
+
+        Args:
+            server: MCP server configuration
+
+        Returns:
+            True if initialization succeeded, False otherwise
+        """
+        # Skip initialization for local servers (stdio manages its own handshake)
+        if server.type != MCPServerType.REMOTE or not server.url:
+            return True
+
+        # Check if already initialized
+        if server.name in self._initialized_servers:
+            return self._initialized_servers[server.name]
+
+        try:
+            headers = {"Content-Type": "application/json"}
+            if server.headers:
+                # Process headers - handle file paths for API keys
+                for header_name, header_value in server.headers.items():
+                    if isinstance(header_value, str) and (
+                        "-key" in header_name.lower()
+                        or "_key" in header_name.lower()
+                        or "token" in header_name.lower()
+                    ):
+                        try:
+                            if header_value.startswith("Bearer "):
+                                file_path = header_value.split(" ", 1)[1].strip()
+                                use_bearer = True
+                            else:
+                                file_path = header_value
+                                use_bearer = False
+
+                            with open(file_path, "r") as f:
+                                api_key = f.read().strip()
+                                if use_bearer:
+                                    headers[header_name] = f"Bearer {api_key}"
+                                else:
+                                    headers[header_name] = api_key
+                        except Exception as e:
+                            logger.warning(f"Failed to read API key for init: {e}")
+                            headers[header_name] = header_value
+                    else:
+                        headers[header_name] = header_value
+
+            # MCP initialize request
+            init_request = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {
+                        "name": "ai-inference-gateway",
+                        "version": "2.0.0"
+                    }
+                }
+            }
+
+            headers["Accept"] = "application/json, text/event-stream"
+
+            logger.debug(f"Initializing MCP server: {server.name}")
+
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    server.url, json=init_request, headers=headers
+                )
+
+                if response.status_code == 200:
+                    # Parse SSE response
+                    content_type = response.headers.get("content-type", "")
+                    if "text/event-stream" in content_type:
+                        async for line in response.aiter_lines():
+                            if line.startswith("data:"):
+                                try:
+                                    data = json.loads(line[5:].strip())
+                                    if "result" in data:
+                                        logger.info(
+                                            f"Initialized {server.name}: {data['result'].get('serverInfo', {})}"
+                                        )
+                                        self._initialized_servers[server.name] = True
+                                        return True
+                                except json.JSONDecodeError:
+                                    continue
+                    else:
+                        # JSON response
+                        result = response.json()
+                        if "result" in result:
+                            logger.info(
+                                f"Initialized {server.name}: {result['result'].get('serverInfo', {})}"
+                            )
+                            self._initialized_servers[server.name] = True
+                            return True
+
+                logger.warning(f"Failed to initialize {server.name}: HTTP {response.status_code}")
+                self._initialized_servers[server.name] = False
+                return False
+
+        except Exception as e:
+            logger.error(f"Error initializing {server.name}: {e}")
+            self._initialized_servers[server.name] = False
+            return False
 
     async def list_servers(self) -> List[Dict]:
         """
@@ -817,6 +929,13 @@ class MCPBroker:
         Returns:
             Tool execution result
         """
+        # CRITICAL: Ensure MCP server is initialized before making tool calls
+        # Many MCP servers (Z.AI, etc.) require initialize handshake before tools/call
+        if not await self._ensure_initialized(server):
+            logger.warning(
+                f"Failed to initialize {server.name}, tool call may fail"
+            )
+
         logger.info(f"=== _call_direct_mcp called for {server.name}.{tool_name} ===")
         logger.info(f"server.headers = {server.headers}")
 
