@@ -258,36 +258,32 @@ void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
     // Check whitelist
     bool allowed = !require_whitelist_ || is_worker_allowed(worker_id);
 
-    // Send login response with job (Bitcoin Stratum format for CR29)
-    // CR29/lolMiner expects mining.notify format: [job_id, blob, target, difficulty, height, clean_jobs]
+    // For Monero-style login, respond with job if available
+    // Format matches Monero stratum response
     std::string response;
     if (has_job_) {
-        // Build Bitcoin Stratum mining.notify format
-        // params: [job_id, extra_nonce2, target, difficulty, height, clean_jobs]
-        // For CR29, we include the blob directly (no extra_nonce2 needed for this algo)
+        // Include job in login response (Monero-style)
+        // Note: For CR29, the blob is complete, no need to add extra_nonce2
         response = R"({"id": )" + std::to_string(req.id) +
-            R"(, "error": null, "result": [[)";  // Empty subscriptions (not used for CR29)
-            R"(), "mining.notify", )"  // subscription ID (not used)
-            R"(], ")"
-            R"({\"id\": null, "method": "mining.notify", "params": [")" +
-            current_job_.job_id + R"(", ")" +
-            current_job_.blob + R"(", ")" +  // blob (full data for CR29)
-            current_job_.target + R"(", ")" +
-            current_job_.difficulty + R"(, )" +
-            std::to_string(current_job_.height) + R"(, false)]}))"
-            R"(]})";
+            R"(, "jsonrpc": "2.0", "result": {"id": ")" + std::to_string(fd) +
+            R"(", "job": {"algo":"cuckaroo","job_id":")" + current_job_.job_id +
+            R"(","blob":")" + current_job_.blob +
+            R"(","target":")" + current_job_.target +
+            R"(","height":)" + std::to_string(current_job_.height) +
+            R"(}}, "status": "OK"}, "error": null})";
     } else {
-        // No job yet, send basic acknowledgment
+        // No job yet, just acknowledge login
         response = R"({"id": )" + std::to_string(req.id) +
-            R"(, "error": null, "result": []})";
+            R"(, "jsonrpc": "2.0", "result": {"id": ")" + std::to_string(fd) +
+            R"("}, "status": "OK"}, "error": null})";
     }
 
     conn->send_line(response);
 
     if (allowed) {
-        it->second.subscribed = true;
+        it->second.subscribed = true;  // Login counts as subscribe for Monero
         it->second.authorized = true;
-        fprintf(stderr, "[WorkerManager] Worker %s (fd=%d) logged in (CR29 format)\n",
+        fprintf(stderr, "[WorkerManager] Worker %s (fd=%d) logged in (Monero-style)\n",
                 worker_id.c_str(), fd);
     } else {
         fprintf(stderr, "[WorkerManager] Worker %s (fd=%d) not in whitelist\n",
