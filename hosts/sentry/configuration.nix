@@ -83,8 +83,9 @@
       enable = true;
       # Override roles to include master
       roles = lib.mkForce ["master" "node"];
-      # Use VIP (10.1.1.100) for HA control plane - certificates now include VIP and all node IPs in SANs
-      masterAddress = lib.mkForce "10.1.1.100";
+      # TEMPORARY: Use direct IP instead of VIP - VIP IPv4 connections from remote hosts failing
+      # TODO: Investigate why 10.1.1.100:6443 not reachable from sentry
+      masterAddress = lib.mkForce "10.1.1.110";
       # etcd clustering configuration (3-node HA cluster)
       etcdInitialState = "existing";
       etcdName = "sentry";
