@@ -401,12 +401,13 @@
       deviceId = "NEXUS-PLACEHOLDER";
     };
 
-    # Garage S3-compatible distributed object storage (3-node cluster)
+    # Garage S3-compatible object storage (single-node cluster)
     # Nexus hosts the primary storage on local bcache0
+    # Zephyr and Sentry Garage nodes disabled - centralized storage
     garage-cluster = {
       enable = true;
       dataDir = "/data/shared/garage"; # Local on nexus (bcache0)
-      replicationFactor = 2;  # 2-way replication (tolerate 1 node failure)
+      replicationFactor = 1;  # Single-node operation (no replication)
       consistencyMode = "consistent";  # Full consistency with zones
       enableMetrics = true;  # Prometheus metrics on port 3903
       enableBackup = false;  # Nexus IS the backup storage
