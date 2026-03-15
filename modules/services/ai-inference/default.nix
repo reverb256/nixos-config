@@ -181,6 +181,14 @@ in {
         description = "Number of uvicorn workers";
       };
 
+      python = mkOption {
+        type = types.nullOr types.package;
+        default = null;
+        description = "Gateway Python environment (set by gateway.nix)";
+        readOnly = true;
+        internal = true;
+      };
+
       # Middleware configuration
       middleware = {
         redis = {

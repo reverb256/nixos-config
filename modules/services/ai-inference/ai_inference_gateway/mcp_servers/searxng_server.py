@@ -123,7 +123,7 @@ TOOLS: list[Tool] = [
             "and adaptive engine selection. Supports different categories: general, images, videos, "
             "news, science, IT, files, music, map."
         ),
-        inputSchema=WebSearchParams.model_json_schema,
+        inputSchema=WebSearchParams.model_json_schema(),
     ),
     Tool(
         name="search_stats",
@@ -132,7 +132,7 @@ TOOLS: list[Tool] = [
             "engine performance metrics, cache size, and top cached queries. "
             "Useful for understanding what the system has learned from previous searches."
         ),
-        inputSchema=EmptyParams.model_json_schema,
+        inputSchema=EmptyParams.model_json_schema(),
     ),
     Tool(
         name="clear_search_cache",
@@ -140,7 +140,7 @@ TOOLS: list[Tool] = [
             "Clear the SearXNG response cache. Useful when you want fresh results "
             "or to free up memory. Cached results are automatically refreshed after 5 minutes."
         ),
-        inputSchema=EmptyParams.model_json_schema,
+        inputSchema=EmptyParams.model_json_schema(),
     ),
     Tool(
         name="ping_searxng",
@@ -148,7 +148,7 @@ TOOLS: list[Tool] = [
             "Check if SearXNG service is accessible and healthy. "
             "Returns status and connection information."
         ),
-        inputSchema=EmptyParams.model_json_schema,
+        inputSchema=EmptyParams.model_json_schema(),
     ),
 ]
 
