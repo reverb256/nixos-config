@@ -68,6 +68,7 @@ endif()
 add_executable(gpu-proxy
     src/main.cpp
     src/config.cpp
+    src/ssl_utils.cpp
 )
 
 if(NLOHMANN_JSON_INCLUDE_DIR)
