@@ -879,6 +879,7 @@ class MCPBroker:
             # For module-style commands (using -m), add PYTHONPATH to find ai_inference_gateway
             if server.command and len(server.command) >= 2 and server.command[1] == "-m":
                 # Try to find the gateway package in the system closure
+                print(f"[DEBUG] Spawning MCP server {server.name}, command: {server.command}")
                 try:
                     import subprocess
                     result = subprocess.run(
@@ -962,7 +963,9 @@ class MCPBroker:
                 return False
 
         except Exception as e:
+            import traceback
             logger.error(f"Failed to spawn local MCP server {server.name}: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             server.process = None
             return False
 
