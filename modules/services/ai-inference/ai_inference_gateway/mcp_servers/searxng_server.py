@@ -297,7 +297,7 @@ async def serve() -> None:
 # MAIN ENTRY POINT
 # ============================================================================
 
-def main():
+async def main():
     """Main entry point for SearXNG MCP server."""
     logger.info(f"Starting {SERVER_NAME} v{SERVER_VERSION}")
     logger.info(f"SearXNG URL: {SEARXNG_URL}")

@@ -393,7 +393,21 @@ in {
             };
           })
         );
-        default = {};
+        default = {
+          # SearXNG local MCP server - privacy-respecting metasearch
+          searxng = {
+            type = "local";
+            command = [
+              "${pkgs.python3}/bin/python3"
+              "-m"
+              "ai_inference_gateway.mcp_servers.searxng_server"
+            ];
+            environment = {
+              SEARXNG_URL = "http://127.0.0.1:7777";
+              SEARXNG_CACHE_TTL = "300";
+            };
+          };
+        };
         example = literalExpression ''
           {
             # Remote HTTP MCP server

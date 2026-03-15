@@ -32,6 +32,8 @@
     ps.pydantic
     ps.pydantic-settings
     ps.sentry-sdk
+    # MCP SDK for SearXNG MCP server integration
+    ps.mcp
   ]);
 
   # Gateway main.py v2
@@ -47,7 +49,7 @@
   modularGatewayPkg = let
     gatewaySrc = ./ai_inference_gateway;
   in
-    pkgs.runCommand "ai-inference-gateway-modular-pkg-v6"
+    pkgs.runCommand "ai-inference-gateway-modular-pkg-v7"
     {
       preferLocalBuild = true;
       passAsFile = ["buildScript"];
