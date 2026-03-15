@@ -289,9 +289,10 @@
       # Custom Search Engines with Aliases
       search = {
         force = true;
-        default = "google";
-        privateDefault = "ddg";
+        default = "searxng";
+        privateDefault = "searxng";
         order = [
+          "searxng"
           "google"
           "ddg"
           "github"
@@ -426,6 +427,11 @@
             urls = [{template = "https://developer.mozilla.org/en-US/search?q={searchTerms}";}];
             icon = "https://developer.mozilla.org/favicon.ico";
             definedAliases = ["@mdn"];
+          };
+          searxng = {
+            urls = [{template = "http://127.0.0.1:7777/search?q={searchTerms}&format=json";}];
+            icon = "https://searxng.org/static/img/logo_small.svg";
+            definedAliases = ["@sx", "@searxng"];
           };
         };
       };

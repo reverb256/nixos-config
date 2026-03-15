@@ -27,6 +27,7 @@ spec:
       # hostNetwork: true - REMOVED: Breaks DNS access to cluster services
       # Use hostPort instead to expose ports on host while keeping pod network
       # Run on Ready nodes only (skip Forge if it's NotReady)
+      # NOTE: Skip zephyr - it uses system Caddy for LAN dashboard access
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -35,7 +36,9 @@ spec:
               - key: kubernetes.io/os
                 operator: In
                 values: ["linux"]
-      # NOTE: Removed control-plane exclusion to allow ingress on all nodes
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values: ["zephyr"]
       tolerations:
       # Allow scheduling on control-plane nodes
       - key: node-role.kubernetes.io/control-plane

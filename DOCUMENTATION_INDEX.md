@@ -124,6 +124,19 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **Location:** `/etc/nixos/docs/compute-market.md`
 **When to Read:** Configuring GPU marketplace, troubleshooting auction behavior
 
+#### compute-market-testing.md (NEW - 2026-03-14)
+**Purpose:** Testing guide for GPU Resource Marketplace verification
+**Status:** ✅ Created
+**Contents:**
+- Pre-deployment checklist
+- Deployment steps
+- Functional tests (mining, K8s, gaming, Akash)
+- Integration tests (full auction cycle)
+- Grafana dashboard verification
+- Rollback procedures
+**Location:** `/etc/nixos/docs/compute-market-testing.md`
+**When to Read:** Before deploying marketplace, verifying functionality
+
 ### Deployment Guides
 
 #### DEPLOYMENT_COMPLETE.md
