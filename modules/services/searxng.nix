@@ -3,7 +3,7 @@
 {config, lib, pkgs, ...}: let
   inherit (lib) mkEnableOption mkOption types mkIf literalExpression;
 in {
-  options.services.searx = {
+  options.services.searxng = {
     enable = mkEnableOption "SearXNG privacy-respecting metasearch engine";
 
     enableEngine = mkOption {
@@ -26,7 +26,7 @@ in {
     };
   };
 
-  config = mkIf config.services.searx.enable {
+  config = mkIf config.services.searxng.enable {
     # ============================================================================
     # SEARXNG - Privacy-Focused Metasearch Engine
     # ============================================================================

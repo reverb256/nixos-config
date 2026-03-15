@@ -517,6 +517,9 @@ in {
     # Redis - For gateway rate limiting and caching
     redis.servers."".enable = true;
 
+    # SearXNG - Privacy-respecting metasearch engine for AI gateway
+    searxng.enable = true;
+
     # AI Inference Service - Gateway with authentication and metrics
     ai-inference = {
       enable = true;

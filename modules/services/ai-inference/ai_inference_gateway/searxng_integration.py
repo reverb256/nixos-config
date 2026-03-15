@@ -200,14 +200,22 @@ class SearxngIntegration:
                 }
 
         # Select optimal engines based on learning
-        engines = self._get_optimal_engines(category)
+        # For site: searches, use no engine filter to let SearXNG choose
+        is_site_search = "site:" in query.lower()
+        if not is_site_search:
+            engines = self._get_optimal_engines(category)
+        else:
+            engines = []
 
         # Build request parameters
         params = {
             "q": query,
             "format": "json",
-            "engines": ",".join(engines),
         }
+
+        # Only add engines parameter if not a site search and engines are selected
+        if engines:
+            params["engines"] = ",".join(engines)
 
         if category != "general":
             params["categories"] = category
