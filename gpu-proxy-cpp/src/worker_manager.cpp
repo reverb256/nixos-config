@@ -315,8 +315,9 @@ void WorkerManager::handle_submit(Connection* conn, const StratumRequest& req) {
             worker_id.c_str(), job_id.c_str(), nonce.c_str());
 
     // Send immediate acknowledgment (share accepted)
+    // Monero Stratum submit response format: result should be boolean true for accepted
     std::string response = R"({"id": )" + std::to_string(req.id) +
-        R"(, "jsonrpc": "2.0", "result": {"status": "OK"}, "error": null})";
+        R"(, "jsonrpc": "2.0", "result": true})";
     conn->send_line(response);
 
     // Forward to pool via callback
