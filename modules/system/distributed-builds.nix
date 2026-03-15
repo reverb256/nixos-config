@@ -95,9 +95,10 @@ in {
       trusted-users = lib.mkForce ["root" "*" "@wheel"];
 
       # Binary cache configuration (1Gbps network - fast downloads)
-      # Use mkForce to completely override default substituters and prevent duplicates
-      # Priority: Official caches > Personal caches > Local cache
-      substituters = lib.mkForce [
+      # Use mkAfter to append common caches after host-specific additions
+      # Host-specific caches (e.g., nexus Harmonia) use mkBefore to prepend
+      # Priority: Host-specific > Official caches > Personal caches
+      substituters = lib.mkAfter [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
         "https://cache.garnix.io"  # Garnix CI/CD cache
@@ -106,7 +107,7 @@ in {
         "https://nix-gaming.cachix.org"
         # "https://cache.nixos-cuda.org" # TEMPORARILY DISABLED - connectivity issues
       ];
-      trusted-public-keys = [
+      trusted-public-keys = lib.mkAfter [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="  # Garnix cache
