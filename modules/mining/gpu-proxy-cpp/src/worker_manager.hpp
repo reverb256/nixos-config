@@ -60,6 +60,9 @@ private:
     // Handle authorize request
     void handle_authorize(Connection* conn, const StratumRequest& req);
 
+    // Handle Monero-style login request (CR29/Tari)
+    void handle_login(Connection* conn, const StratumRequest& req);
+
     // Handle share submit
     void handle_submit(Connection* conn, const StratumRequest& req);
 
