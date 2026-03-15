@@ -8,6 +8,7 @@
 {
   lib,
   pkgs,
+  inputs,
   ...
 }: {
   imports = [
@@ -161,6 +162,9 @@
     # Crash detection and logging
     crash-watchdog.enable = true;
 
+    # Compute Workload Monitor - Pause mining during builds/gaming
+    compute-workload-monitor.enable = true;
+
     xserver.videoDrivers = ["amdgpu"];
 
     # MINING (CPU only - 8 threads = 50% of 16 cores)
@@ -175,6 +179,7 @@
         pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
         wallet = "sentry-cpu"; # Worker ID for proxy
         tls = false; # No TLS needed for local proxy
+        httpTokenFile = "/run/agenix/xmrig-api-token"; # For HTTP API control
       };
       lolminer.enable = false; # No GPU mining on Sentry
     };
@@ -315,5 +320,17 @@
     # Git configuration now provided by common-host-defaults.nix
     # Sentry-specific git remote override (if needed):
     # programs.git.config.remote.origin.url = "git@github.com:reverb256/nixos-config.git";
+  };
+
+  # Agenix secrets for mining
+  age = {
+    identityPaths = ["/home/j_kro/.age/key.txt"];
+
+    secrets.xmrig-api-token = {
+      file = "${inputs.self}/secrets/xmrig-api-token.age";
+      mode = "440";
+      owner = "mining";
+      group = "mining";
+    };
   };
 }
