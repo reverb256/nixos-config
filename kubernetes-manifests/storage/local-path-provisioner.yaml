@@ -76,6 +76,26 @@ spec:
           - start
           - --config
           - /etc/config/config.json
+        # Health probes - storage provisioner is critical
+        livenessProbe:
+          tcpSocket:
+            port: 9387  # Default local-path-provisioner metrics port
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep -x local-path-provisioner || exit 1"
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
         volumeMounts:
           - name: config-volume
             mountPath: /etc/config/

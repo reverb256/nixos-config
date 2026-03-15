@@ -410,21 +410,32 @@
     </html>
   '';
 
-  # Simple HTTP server for dashboard
-  httpServer = pkgs.writeShellScriptBin "host-dashboard-server" ''
-    PORT="$${1:-${toString cfg.port}}"
-    DATA_DIR="$${2:-${cfg.dataDir}}"
+  # Simple HTTP server for dashboard - build script carefully to avoid Nix escaping issues
+  httpServer = pkgs.stdenv.mkDerivation {
+    name = "host-dashboard-server";
+    buildCommand = ''
+      mkdir -p $out/bin
+      cat > $out/bin/host-dashboard-server << 'EOF'
+    #!${pkgs.bash}/bin/bash
+    set -euo pipefail
+
+    # Accept arguments or use defaults
+    PORT="''${1:-${toString cfg.port}}"
+    DATA_DIR="''${2:-${cfg.dataDir}}"
 
     echo "Starting host dashboard on port $PORT"
 
     # Ensure data directory exists
     mkdir -p "$DATA_DIR"
 
-    # Simple Python HTTP server with proper headers
-    ${pkgs.python3}/bin/python3 -m http.server "$PORT" \
+    # Simple Python HTTP server
+    exec ${pkgs.python3}/bin/python3 -m http.server "$PORT" \
       --directory "$DATA_DIR" \
       --bind 127.0.0.1
-  '';
+    EOF
+      chmod +x $out/bin/host-dashboard-server
+    '';
+  };
 
   # Update script for fetching metrics
   updateScript = pkgs.writeShellScriptBin "host-dashboard-update" ''
@@ -544,7 +555,7 @@ in {
       after = [ "network.target" "host-dashboard-setup.service" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
-        ExecStart = "${httpServer} ${toString cfg.port} ${cfg.dataDir}";
+        ExecStart = "${httpServer}/bin/host-dashboard-server ${toString cfg.port} ${cfg.dataDir}";
         Restart = "on-failure";
         RestartSec = "5s";
         # Security hardening
@@ -561,7 +572,7 @@ in {
       description = "Update dashboard metrics";
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = updateScript;
+        ExecStart = "${updateScript}/bin/host-dashboard-update";
       };
     };
 

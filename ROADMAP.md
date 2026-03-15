@@ -666,22 +666,21 @@
 
 ### Immediate (This Week)
 
-1. **Review and approve this roadmap** ✅ (in progress)
-2. **Commit ROADMAP.md** to git
-3. **Create Phase 1 detailed plan** (using writing-plans skill)
-4. **Bootstrap cluster** on Zephyr (control plane only)
+1. **Test storage classes** - Verify PVC creation and binding
+2. **Begin Phase 3 planning** - GlitchTip PostgreSQL migration strategy
+3. **Commit updated documentation** - STATUS.md, ROADMAP.md changes
 
 ### This Month
 
-1. **Complete Phase 1-2** (Foundation + Worker nodes)
-2. **Begin Phase 3** (Stateful services - GlitchTip DB)
-3. **Document everything** in CLAUDE.md
+1. **Complete Phase 3** (Stateful Services - GlitchTip DB, Nextcloud)
+2. **Investigate Forge GPU** - RTX 4060 Ada Lovelace support
+3. **Document migrations** - Update CLAUDE.md with learnings
 
 ### Next 3 Months
 
-1. **Complete Phases 1-6** (through monitoring)
-2. **Begin production migration** (stateless services)
-3. **Update documentation** as we learn
+1. **Complete Phases 4-6** (Stateless services, GPU workloads, Monitoring)
+2. **Begin production migration** - Migrate remaining stateless services
+3. **Update documentation** - Capture all lessons learned
 
 ---
 

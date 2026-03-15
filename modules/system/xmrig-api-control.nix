@@ -58,7 +58,7 @@ in {
             fi
         }
 
-        # Get current XMRig status
+        # Get current XMRig status (paused or running)
         xmrig_status() {
             if [ ! -r "$XMRIG_API_TOKEN_FILE" ]; then
                 echo "unknown"
@@ -71,7 +71,7 @@ in {
                 return 1
             fi
 
-            local url="http://''${XMRIG_API_HOST}:''${XMRIG_API_PORT}/api/status"
+            local url="http://''${XMRIG_API_HOST}:''${XMRIG_API_PORT}/1/summary"
             local status
             status=$(curl -s -X GET "$url" \
                 -H "Authorization: Bearer $token" 2>/dev/null)
@@ -89,14 +89,16 @@ in {
         case "$1" in
             pause)
                 if systemctl is-active --quiet xmrig; then
-                    xmrig_api "/api/pause" "{}" && echo "XMRig paused" || echo "Failed to pause"
+                    # XMRig v2 API: use /2/control with pause command
+                    xmrig_api "/2/control" "{\"command\":\"pause\"}" && echo "XMRig paused" || echo "Failed to pause"
                 else
                     echo "XMRig not running"
                 fi
                 ;;
             resume)
                 if systemctl is-active --quiet xmrig; then
-                    xmrig_api "/api/resume" "{}" && echo "XMRig resumed" || echo "Failed to resume"
+                    # XMRig v2 API: use /2/control with resume command
+                    xmrig_api "/2/control" "{\"command\":\"resume\"}" && echo "XMRig resumed" || echo "Failed to resume"
                 else
                     echo "XMRig not running, starting..."
                     systemctl start xmrig
@@ -111,7 +113,8 @@ in {
                     exit 1
                 fi
                 if systemctl is-active --quiet xmrig; then
-                    xmrig_api "/api/threadcount" "{\"thread_count\": $2}" && echo "XMRig threads set to $2" || echo "Failed to set threads"
+                    # XMRig v1 API: use /1/threads to set thread count
+                    xmrig_api "/1/threads" "{\"threads_count\": $2}" && echo "XMRig threads set to $2" || echo "Failed to set threads"
                 else
                     echo "XMRig not running"
                 fi

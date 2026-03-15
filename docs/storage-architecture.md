@@ -16,26 +16,28 @@ The cluster uses a hybrid storage architecture combining traditional NFS file sh
 **Exports:**
 | Path | Size | Clients | Purpose |
 |------|------|---------|---------|
-| `/data/shared` | 3.7TB | All nodes | Cluster data, shared projects |
-| `/data/home` | 3.7TB | Forge, others | User home directories |
-| `/data/media` | 3.7TB | Zephyr (read-only) | Media library |
-| `/data/backups` | 3.7TB | Read-only | Backup archive |
+| `/data/shared` | 3.7TB | Forge, Sentry | Cluster data, shared projects |
+| `/data/home` | 3.7TB | Forge | User home directories |
+| `/data/media` | 3.7TB | Forge | Media library |
+| `/data/backups` | 3.7TB | Local only | Backup archive (on NFS server) |
 
 **Client Mounts:**
 ```bash
-# Zephyr
-/data/media    → 10.1.1.120:/data/media    (ro)
-/data/shared  → 10.1.1.120:/data/shared  (rw)
+# Zephyr (control plane)
+# Uses local NVMe storage - no NFS mounts for /data
+/data (local NVMe)
 
 # Nexus (server)
 # Local on /dev/bcache0 (SSD cache + HDD backing)
+/data/shared, /data/home, /data/media, /data/backups (local)
 
-# Forge
-/data/shared  → 10.1.1.120:/data/shared  (rw)
-/data/home    → 10.1.1.120:/data/home    (rw)
+# Forge (GPU compute)
+/data/shared  → 10.1.1.120:/data/shared  (rw, via NFS)
+/data/home    → 10.1.1.120:/data/home    (rw, via NFS)
+/data/media   → 10.1.1.120:/data/media   (rw, via NFS)
 
-# Sentry
-/data/shared  → 10.1.1.120:/data/shared  (rw)
+# Sentry (monitoring)
+/data/shared  → 10.1.1.120:/data/shared  (rw, via NFS)
 ```
 
 ### 2. Garage (S3-Compatible Object Storage)

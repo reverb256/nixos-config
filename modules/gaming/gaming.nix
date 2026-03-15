@@ -269,8 +269,8 @@ in {
           GAMEMODE_AUTO_RELOAD_CONFIG = "1";
           # SDL2 GameControllerDB path for custom controller mappings
           SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
-          # SDL2 joystick deadzone (0-100, default 15) - 2% for all joysticks
-          SDL_JOYSTICK_AXIS_DEADZONE = "2";
+          # SDL2 joystick deadzone (0-100, default 15) - 5% for all joysticks
+          SDL_JOYSTICK_AXIS_DEADZONE = "5";
         };
 
         # Common gaming packages
