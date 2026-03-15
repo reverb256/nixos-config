@@ -55,6 +55,8 @@
     firewall = {
       allowedTCPPorts = lib.mkOptionDefault [
         10250 # Kubelet API
+        3900  # Garage S3 API (if needed)
+        3901  # Garage RPC (if needed)
       ];
       allowedTCPPortRanges = [
         {

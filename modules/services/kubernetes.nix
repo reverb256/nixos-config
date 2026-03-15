@@ -121,8 +121,26 @@
           bindAddress = config.services.kubernetes-module.apiserverBindAddress;
           securePort = 6443;
           allowPrivileged = true;
-          # Connect to local etcd (for multi-master HA, use load balancer or list all members)
-          etcd.servers = lib.mkForce [ "http://${config.services.kubernetes-module.masterAddress}:2379" ];
+          # HA Certificates: Include VIP and all control plane node IPs in SANs
+          extraSANs = [
+            # VIP for HA failover
+            "10.1.1.100"
+            # All control plane node IPs
+            "10.1.1.110"  # zephyr
+            "10.1.1.120"  # nexus
+            "10.1.1.140"  # sentry
+            # Local hostname and cluster domain
+            config.networking.hostName
+            "${config.networking.hostName}.lan"
+            "${config.networking.hostName}.cluster.local"
+            "cluster.local"
+            "kubernetes"
+            "kubernetes.default"
+            "kubernetes.default.svc"
+            "kubernetes.default.svc.cluster.local"
+          ];
+          # Connect to local etcd (for multi-master HA, each node connects to its local etcd)
+          etcd.servers = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2379" ];
           # Note: Pod Security Admission is enabled by default in Kubernetes 1.25+
           # No extra configuration needed - uses built-in 'restricted' profile
         };
@@ -294,6 +312,8 @@
             iptables -I FLANNEL-FWD 2 -d 10.244.0.0/16 -j ACCEPT -m comment --comment "flanneld forward"
         fi
       '';
+    }  # Close worker config
+      ];  # Close lib.mkMerge
 
       # ============================================================================
       # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
