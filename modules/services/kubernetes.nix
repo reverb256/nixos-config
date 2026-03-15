@@ -277,13 +277,11 @@
             }
           ];
           allowedUDPPorts = [ 8472 ]; # Flannel VXLAN
-        }
-      ];
 
-      # Fix Flannel firewall rules for pod CIDR migration
-      # Flannel creates FLANNEL-FWD chain with old CIDR (10.1.0.0/16)
-      # This script updates it to use new CIDR (10.244.0.0/16)
-      networking.firewall.extraCommands = ''
+          # Fix Flannel firewall rules for pod CIDR migration
+          # Flannel creates FLANNEL-FWD chain with old CIDR (10.1.0.0/16)
+          # This script updates it to use new CIDR (10.244.0.0/16)
+          extraCommands = ''
         # Update FLANNEL-FWD chain for new pod CIDR
         if iptables -L FLANNEL-FWD -n &>/dev/null; then
           # Delete old rules with 10.1.0.0/16 CIDR
