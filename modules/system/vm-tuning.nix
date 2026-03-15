@@ -2,8 +2,24 @@
   # ============================================================================
   # VM TUNING - Memory pressure defense and OOM prevention
   # ============================================================================
-  # 2026-03-13: Updated to prevent crashes from memory pressure
-  # Context: 32GB RAM system with Zswap enabled (20% pool = 6.4GB)
+  # 2026-03-15: Updated for heavy build/mining workloads
+  # Context: 32GB RAM system with Zswap enabled (40% pool = 12GB)
+  # - Increased zswap pool for better compressed swap caching
+  # - Earlier swappiness to prevent emergency thrashing
+  # - earlyoom as last resort against death spirals
+
+  # ============================================================================
+  # EARLYOOM - OOM prevention daemon (nuclear option)
+  # ============================================================================
+  # Kills processes before system thrashes to death
+  # Better to OOM one process than freeze entire system for hours
+  # PSI-based: triggers when memory pressure is sustained
+  services.earlyoom = {
+    enable = true;
+    freeMemThreshold = 5; # Kill at 5% RAM free (~1.6GB)
+    freeSwapThreshold = 10; # Kill at 10% swap free (~3.2GB)
+    enableNotifications = true; # Notify user before killing
+  };
 
   boot.kernel.sysctl = {
     # ========================================================================
@@ -32,13 +48,14 @@
     # ========================================================================
     # Default 60 is too aggressive with Zswap. Lower value prefers:
     # - Keeping anonymous pages in RAM
-    # - Using Zswap pool first (20% RAM = 6.4GB)
+    # - Using Zswap pool first (40% RAM = 12GB with increased pool)
     # - Only swap to SSD when Zswap is full
     #
-    # 20-25 is optimal for Zswap systems with high memory pressure
-    # Increased from 15 to 20 to reduce pressure spikes and direct reclaim
-    # 1 = minimal swap, 100 = aggressive swap
-    "vm.swappiness" = lib.mkForce 20; # Balanced - reduces PSI pressure spikes
+    # 40 is optimal for Zswap systems with variable memory pressure:
+    # - Earlier, more gradual swapping vs emergency thrashing
+    # - Trades background swapping for panic-driven swap storms
+    # - 1 = minimal swap, 100 = aggressive swap
+    "vm.swappiness" = lib.mkForce 40; # Earlier swap = smoother than thrashing
 
     # ========================================================================
     # VFS CACHE PRESSURE - Controls kernel cache reclaim priority
@@ -54,5 +71,29 @@
     # Limit page cache to prevent it from consuming all memory
     # Helps keep working sets in RAM under memory pressure
     "vm.page-cache-limit" = lib.mkDefault 0; # Disable (use default for now)
+
+    # ========================================================================
+    # PAGE CLUSTER - Swap read-ahead performance
+    # ========================================================================
+    # Controls how many pages are read ahead from swap at once
+    # Default 2 (32 pages), increase to 3 (64 pages) for better swap throughput
+    # Helps when system reads back swapped-out pages
+    "vm.page-cluster" = lib.mkForce 3; # Read ahead 64 pages from swap
+
+    # ========================================================================
+    # WATERMARK SCALE FACTOR - More proactive memory reclaim
+    # ========================================================================
+    # Controls when kernel starts reclaiming memory before hitting hard limits
+    # Default 10 (very low), 150 = start reclaiming earlier and more gradually
+    # Prevents "all at once" reclaim storms that cause system freezes
+    "vm.watermark_scale_factor" = lib.mkForce 150; # Start reclaim earlier
+
+    # ========================================================================
+    # EXTRA FREE KBYTES - Additional memory headroom
+    # ========================================================================
+    # Extra free memory the kernel tries to keep available
+    # Reduces allocation latency under memory pressure
+    # 512MB = comfortable buffer for desktop workloads
+    "vm.extra_free_kbytes" = lib.mkForce 524288; # 512MB extra free
   };
 }
