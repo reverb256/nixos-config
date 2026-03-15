@@ -10,6 +10,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <cstdio>
+#include <chrono>
 
 namespace gpu_proxy {
 
@@ -160,53 +161,79 @@ std::string TLSConnection::recv_line(int timeout_sec) {
     std::string result;
     char buf[1024];
 
-    // Use poll() for timeout with better granularity
-    struct pollfd pfd;
-    pfd.fd = socket_fd_;
-    pfd.events = POLLIN;
+    // Set socket to non-blocking mode for poll
+    int flags = fcntl(socket_fd_, F_GETFL, 0);
+    fcntl(socket_fd_, F_SETFL, flags | O_NONBLOCK);
 
-    int poll_ret = poll(&pfd, 1, timeout_sec * 1000);
-    if (poll_ret <= 0) {
-        if (poll_ret == 0) {
-            fprintf(stderr, "Poll timeout after %d seconds\n", timeout_sec);
-        } else {
-            fprintf(stderr, "Poll error\n");
+    auto start = std::chrono::steady_clock::now();
+    auto deadline = start + std::chrono::seconds(timeout_sec);
+
+    while (std::chrono::steady_clock::now() < deadline) {
+        // Check for pending SSL data first
+        if (SSL_pending(ssl_) > 0) {
+            int received = SSL_read(ssl_, buf, sizeof(buf) - 1);
+            if (received > 0) {
+                buf[received] = '\0';
+                fprintf(stderr, "SSL_read (pending): %d bytes: %s\n", received, buf);
+                result += buf;
+                if (result.find('\n') != std::string::npos) {
+                    break;
+                }
+                continue;
+            }
         }
-        return "";
-    }
 
-    while (true) {
+        // Wait for socket data
+        struct pollfd pfd;
+        pfd.fd = socket_fd_;
+        pfd.events = POLLIN;
+
+        auto now = std::chrono::steady_clock::now();
+        auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count();
+        if (remaining <= 0) break;
+
+        int poll_ret = poll(&pfd, 1, remaining);
+        if (poll_ret < 0) {
+            fprintf(stderr, "Poll error: %s\n", strerror(errno));
+            break;
+        }
+        if (poll_ret == 0) {
+            continue;  // Timeout, loop again to check deadline
+        }
+
+        // Data available, try SSL_read
         int received = SSL_read(ssl_, buf, sizeof(buf) - 1);
         if (received <= 0) {
             int err = SSL_get_error(ssl_, received);
             if (err == SSL_ERROR_ZERO_RETURN) {
-                // Clean shutdown
-                fprintf(stderr, "SSL: Clean shutdown\n");
+                fprintf(stderr, "SSL: Clean shutdown by peer\n");
                 break;
             }
             if (err == SSL_ERROR_WANT_READ) {
-                // Need more data
-                continue;
+                continue;  // Need more data
             }
             if (err == SSL_ERROR_WANT_WRITE) {
-                // Need to write first
-                continue;
+                continue;  // Need to write first
             }
-            // Error - print debug info
+            // Error
             fprintf(stderr, "SSL_read error: received=%d, ssl_err=%d\n", received, err);
-            ERR_print_errors_fp(stderr);
+            char err_buf[256];
+            ERR_error_string_n(err, err_buf, sizeof(err_buf));
+            fprintf(stderr, "SSL error string: %s\n", err_buf);
             break;
         }
 
         buf[received] = '\0';
-        fprintf(stderr, "SSL_read: received %d bytes: %s\n", received, buf);
+        fprintf(stderr, "SSL_read: %d bytes: %s\n", received, buf);
         result += buf;
 
-        // Check if we have a complete line
         if (result.find('\n') != std::string::npos) {
             break;
         }
     }
+
+    // Restore blocking mode
+    fcntl(socket_fd_, F_SETFL, flags);
 
     // Trim at newline
     size_t newline_pos = result.find('\n');
