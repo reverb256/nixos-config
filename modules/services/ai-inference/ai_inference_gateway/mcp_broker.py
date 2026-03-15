@@ -509,11 +509,7 @@ class MCPBroker:
         self, server: MCPServer, tool_name: str, arguments: Dict
     ) -> Dict:
         """
-        Call a tool on a remote MCP server.
-
-        Uses a hybrid approach:
-        1. First tries direct MCP protocol call (faster, simpler)
-        2. Falls back to Chat API routing for ZAI servers if direct call fails
+        Call a tool on a remote MCP server via direct MCP JSON-RPC protocol.
 
         Args:
             server: MCP server configuration
@@ -523,46 +519,8 @@ class MCPBroker:
         Returns:
             Tool execution result
         """
-        # Try direct MCP protocol first
-        logger.debug(f"Attempting direct MCP call for {server.name}.{tool_name}")
-        direct_result = await self._call_direct_mcp(server, tool_name, arguments)
-
-        # Check if direct call succeeded or failed
-        result_str = str(direct_result.get("result", ""))
-        error_str = str(direct_result.get("error", ""))
-
-        # If direct call succeeded (no error), return the result
-        # But also check for 401 errors embedded in the result
-        if "error" not in direct_result:
-            # Check for 401 in result (Z.AI MCP returns 401 as text in result field)
-            if "401" in result_str or "Api key not found" in result_str:
-                logger.info(
-                    f"Direct MCP call returned 401 for {server.name}.{tool_name}, trying Chat API fallback"
-                )
-                # Fall through to Chat API below
-            else:
-                return direct_result
-
-        # If direct call failed with 401 and this is a ZAI server, try Chat API fallback
-        # Check for various error indicators: 401 codes, "MCP error" prefix, or API key messages
-        if (
-            server.url
-            and "api.z.ai/api/mcp" in server.url
-            and (
-                "401" in error_str
-                or "401" in result_str
-                or "Api key not found" in result_str
-                or "MCP error" in error_str
-                or "MCP error" in result_str
-            )
-        ):
-            logger.info(
-                f"Direct MCP call failed for {server.name}.{tool_name}, trying Chat API fallback"
-            )
-            return await self._call_via_chat_api(server, tool_name, arguments)
-
-        # Otherwise return the direct call result/error
-        return direct_result
+        # Call direct MCP protocol
+        return await self._call_direct_mcp(server, tool_name, arguments)
 
     async def _call_via_chat_api(
         self, server: MCPServer, tool_name: str, arguments: Dict

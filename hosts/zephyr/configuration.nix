@@ -475,22 +475,6 @@
       mcp = {
         enable = true;
         servers = {
-          web-search-prime = {
-            url = "https://api.z.ai/api/mcp/web_search_prime/mcp";
-            headers.Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-          web-reader = {
-            url = "https://api.z.ai/api/mcp/web_reader/mcp";
-            headers.Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-          zread = {
-            url = "https://api.z.ai/api/mcp/zread/mcp";
-            headers.Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-          "4-5v-mcp-server" = {
-            url = "https://api.z.ai/api/mcp/4_5v/mcp";
-            headers.Authorization = "Bearer /run/agenix/zai-api-key";
-          };
           nix-rebuild = {
             type = "local";
             command = [
