@@ -236,8 +236,8 @@
     garage-cluster = {
       enable = true;
       dataDir = "/storage/garage"; # Local on sentry
-      replicationFactor = 3;  # 3-node cluster
-      consistencyMode = "consistent";  # Full consistency with 3 zones
+      replicationFactor = 2;  # 2-way replication (tolerate 1 node failure)
+      consistencyMode = "consistent";  # Full consistency with zones
       enableMetrics = true;  # Prometheus metrics on port 3903
       enableBackup = true;   # Daily metadata backups to NFS
       backupDir = "/data/shared/garage-backups";  # NFS from nexus

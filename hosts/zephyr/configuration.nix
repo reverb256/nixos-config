@@ -663,14 +663,14 @@ in {
     # Direct Kryptex connection (no gpu-proxy - was causing issues)
     mining = {
       lolminer = {
-        pool = "10.1.1.130:3334";  # Fallback if pools list empty (Forge gpu-proxy)
+        pool = "stratum+tcp://127.0.0.1:3333";  # Local stratum proxy
         wallet = "krxXVNVMM7.zephyr-gpu";
         pools = [
           {
-            url = "10.1.1.130:3334";  # Forge gpu-proxy (primary - handles protocol translation)
+            url = "stratum+tcp://127.0.0.1:3333";  # Local stratum proxy
             wallet = "krxXVNVMM7.zephyr-gpu";
             password = "x";
-            tls = false;  # Proxy handles TLS upstream
+            tls = true;
           }
           {
             url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (fallback)
@@ -767,8 +767,8 @@ in {
     garage-cluster = {
       enable = true;
       dataDir = "/data/garage"; # Local storage (nvme1n1p2 - 434GB available)
-      replicationFactor = 3; # 3-node cluster
-      consistencyMode = "consistent"; # Full consistency with 3 zones
+      replicationFactor = 2; # 2-way replication (tolerate 1 node failure)
+      consistencyMode = "consistent"; # Full consistency with zones
       enableMetrics = true; # Prometheus metrics on port 3903
       enableBackup = true; # Daily metadata backups to NFS
       backupDir = "/data/shared/garage-backups"; # NFS from nexus
@@ -1020,8 +1020,6 @@ in {
   # ============================================================================
   # MINING - GPU Mining (RTX 3090)
   # DISABLED: Mining conflicts with AI inference services (LM Studio)
-  # Re-enable when AI services are not in use
-  # ============================================================================
   # Note: profiles.role.mining enables services.mining automatically
 
   # ============================================================================
