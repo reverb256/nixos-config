@@ -80,6 +80,7 @@
     pkgs = import nixpkgs {
       inherit system;
       config.allowUnfree = true;
+      config.cudaSupport = true; # Enable CUDA in source packages (PyTorch, TensorFlow, etc.)
     };
 
     # ========================================================================
@@ -145,6 +146,7 @@
           pkgs-stable = import nixpkgs-stable {
             inherit system;
             config.allowUnfree = true;
+            config.cudaSupport = true; # Enable CUDA in stable packages too
           };
         };
         modules =

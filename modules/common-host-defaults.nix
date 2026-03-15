@@ -17,6 +17,7 @@
   # TIME ZONE - CLUSTER STANDARD
   # ============================================================================
   # All cluster nodes use UTC for consistent logging and to avoid DST issues
+  # User sessions see local time (America/Winnipeg) via environment.sessionVariables
   # This is a default; individual nodes can override if needed
   time.timeZone = lib.mkDefault "UTC";
 
@@ -89,6 +90,19 @@
     # Automated backups to Garage cluster (disabled by default, enable on backup node)
     # Enable on Zephyr: services.backup-to-garage.enable = true;
     backup-to-garage.enable = lib.mkDefault false;
+
+    # RCLONE CLOUD STORAGE SYNC
+    # Sync with 70+ cloud providers (S3, Google Drive, OneDrive, Dropbox, Box, Mega, B2, etc.)
+    # Example configuration:
+    #   rclone-sync.enable = true;
+    #   rclone-sync.remotes.garage.type = "s3";
+    #   rclone-sync.remotes.garage.endpoint = "http://10.1.1.110:3900";
+    #   rclone-sync.remotes.garage.accessKeyId = "GKac91d924fc76a30b9bcf6c3e";
+    #   rclone-sync.remotes.garage.secretAccessKey = ""; # Use agenix!
+    #   rclone-sync.syncJobs = [
+    #     { name = "garage-to-onedrive"; source = "garage:backups"; destination = "onedrive:backups"; }
+    #   ];
+    rclone-sync.enable = lib.mkDefault false;
 
     # COMPUTE WORKLOAD MONITOR
     # Autonomous GPU workload detection and profile management

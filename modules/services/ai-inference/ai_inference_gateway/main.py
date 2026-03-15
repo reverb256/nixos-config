@@ -577,6 +577,47 @@ def build_middleware_pipeline(
         pipeline.add(ObservabilityMiddleware(config.middleware.observability))
         logger.info("Added ObservabilityMiddleware")
 
+    # Add RAG injector middleware (injects knowledge context automatically)
+    # Must come AFTER observability but BEFORE security filter
+    # so we can track RAG usage metrics
+    if config.middleware.RAG_ENABLED:
+        from ai_inference_gateway.middleware.rag_injector import RAGInjectorMiddleware
+        
+        # Create RAG middleware with config (search_service injected later via context)
+        rag_middleware = RAGInjectorMiddleware(
+            search_service=None,  # Will be injected from state.rag_search during request
+            enabled=config.middleware.RAG_ENABLED,
+            collection="knowledge-base",
+            min_confidence=0.5,
+            max_chunks=config.middleware.RAG_TOP_K,
+        )
+        pipeline.add(rag_middleware)
+        logger.info("Added RAGInjectorMiddleware (automatic knowledge injection)")
+
+    # Add Knowledge Fabric middleware (unified multi-source retrieval)
+    if config.middleware.knowledge_fabric.enabled:
+        from ai_inference_gateway.middleware.knowledge_fabric import create_knowledge_fabric
+
+        # Prepare knowledge fabric config
+        fabric_config = {
+            "rag_enabled": config.middleware.knowledge_fabric.rag_enabled,
+            "rag_top_k": config.middleware.knowledge_fabric.rag_top_k,
+            "code_search_paths": config.middleware.knowledge_fabric.code_search_paths,
+            "searxng_url": config.middleware.knowledge_fabric.searxng_url,
+            "mcp_url": config.middleware.knowledge_fabric.mcp_url,
+            "web_max_results": config.middleware.knowledge_fabric.web_max_results,
+            "searxng_max_results": config.middleware.knowledge_fabric.searxng_max_results,
+            "code_max_results": config.middleware.knowledge_fabric.code_max_results,
+        }
+
+        fabric_middleware = create_knowledge_fabric(
+            rrf_k=config.middleware.knowledge_fabric.rrf_k,
+            enabled=config.middleware.knowledge_fabric.enabled,
+            config=fabric_config,
+        )
+        pipeline.add(fabric_middleware)
+        logger.info("Added KnowledgeFabricMiddleware (multi-source unified retrieval)")
+
     # Add security filter
     if config.middleware.security.enabled:
         pipeline.add(SecurityFilterMiddleware(config.middleware.security))
@@ -1074,6 +1115,11 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "metrics_tracker": metrics_tracker,  # Metrics tracker
         }
 
+        # Inject RAG search service if available (for RAGInjectorMiddleware)
+        if state.rag_search:
+            context["rag_search_service"] = state.rag_search
+            logger.debug("RAG search service available for automatic injection")
+
         # Process request through middleware pipeline
         should_continue, error = await state.pipeline.process_request(request, context)
 
@@ -1082,6 +1128,11 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             if error:
                 raise error
             raise HTTPException(status_code=403, detail="Request blocked by middleware")
+
+        # Check if RAG middleware enhanced the request with knowledge context
+        if "rag_enhanced_body" in context:
+            body = context["rag_enhanced_body"]
+            logger.info(f"Using RAG-enhanced request body with injected context")
 
         # Forward to backend using OpenAI SDK
         if stream:
