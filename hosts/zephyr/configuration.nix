@@ -506,14 +506,13 @@
           searxng = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "${config.services.ai-inference.gateway.python}/bin/python3"
               "-m"
               "ai_inference_gateway.mcp_servers.searxng_server"
             ];
             environment = {
               SEARXNG_URL = "http://127.0.0.1:7777";
               SEARXNG_CACHE_TTL = "300";
-              PYTHONPATH = "/run/current-system/sw/lib/python3.13/site-packages";
             };
             enabled = true;
           };
@@ -677,6 +676,31 @@
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
 
+    # Host Dashboard - Web interface for cluster host status
+    host-dashboard = {
+      enable = true;
+      role = "control-plane + ai-workstation";
+      port = 8090;
+      prometheusUrl = "http://127.0.0.1:9090";
+      featuredServices = [
+        { name = "AI Gateway"; url = "http://127.0.0.1:8080"; }
+        { name = "Prometheus"; url = "http://127.0.0.1:9090"; }
+        { name = "Grafana"; url = "http://127.0.0.1:3000"; }
+        { name = "Home Assistant"; url = "http://127.0.0.1:8123"; }
+      ];
+      services = [
+        { name = "AI Inference Gateway"; active = true; }
+        { name = "Prometheus"; active = true; }
+        { name = "Grafana"; active = true; }
+        { name = "Loki"; active = true; }
+        { name = "Home Assistant"; active = true; }
+        { name = "Vaultwarden"; active = true; }
+        { name = "GlitchTip"; active = true; }
+        { name = "Garage S3"; active = true; }
+        { name = "NFS Server"; active = true; }
+        { name = "XMRig Proxy"; active = true; }
+      ];
+    };
 
   };
 
@@ -1082,25 +1106,6 @@
     # Network automation - for switch/modem configuration scripts
     python3Packages.playwright
   ];
-
-  # Host Dashboard - Cluster status web interface
-  services.host-dashboard = {
-    enable = true;
-    role = "control-plane + ai-workstation";
-    featuredServices = [
-      { name = "AI Gateway"; url = "http://127.0.0.1:8080"; }
-      { name = "Prometheus"; url = "http://127.0.0.1:9090"; }
-      { name = "Grafana"; url = "http://127.0.0.1:3000"; }
-      { name = "SearXNG"; url = "http://127.0.0.1:7777"; }
-    ];
-    services = [
-      { name = "kubelet"; active = true; }
-      { name = "containerd"; active = true; }
-      { name = "cfssl"; active = true; }
-      { name = "keepalived"; active = true; }
-      { name = "ai-inference"; active = true; }
-    ];
-  };
 
   # ============================================================================
   # MULTI-GPU ENVIRONMENT VARIABLES - RTX 3090 + 3060 Ti
