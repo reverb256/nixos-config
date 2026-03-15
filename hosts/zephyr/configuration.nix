@@ -316,6 +316,51 @@ in {
       profile = "conservative"; # Lower PSI thresholds for earlier build/mining pause
     };
 
+    # GPU Resource Marketplace - Unified auction engine for GPU allocation
+    # Coordinates between mining, Kubernetes, Akash, and gaming workloads
+    compute-market = {
+      enable = true;
+      auctionInterval = 30; # Run auction every 30 seconds
+
+      # Mining bidder configuration
+      bidders.mining = {
+        enable = true;
+        hourlyRevenue = 0.10; # $0.10/hr per GPU (baseline bid)
+        services = ["lolminer-nvidia" "xmrig"];
+      };
+
+      # Kubernetes bidder configuration
+      bidders.kubernetes = {
+        enable = true;
+        baseBid = 2.50; # $2.50/hr base bid for K8s workloads
+        urgencyMultiplier = 2.0; # 2x multiplier for urgent jobs
+        namespace = "default";
+      };
+
+      # Akash bidder configuration
+      bidders.akash = {
+        enable = true;
+        profitMargin = 0.90; # Bid 90% of market rate (10% buffer)
+        namespace = "akash-services";
+      };
+
+      # Gaming override (always wins)
+      bidders.gaming = {
+        enable = true;
+        processes = [
+          "steam" "steamwebhelper" "steamapps"
+          "lutris" "heroic" "Lutris" "HeroicGamesLauncher"
+          "wine" "proton"
+        ];
+      };
+
+      # Prometheus metrics
+      prometheus = {
+        enable = true;
+        port = 9200;
+      };
+    };
+
     # Gaming HDR for 4K HDR TV
     gaming.hdr.enable = true;
 
@@ -440,11 +485,11 @@ in {
           reverse_proxy 127.0.0.1:8080
         }
 
-        # Host Dashboard (LAN access)
-        zephyr.lan:80 {
+        # Host Dashboard (LAN access - no TLS)
+        http://zephyr.lan {
           reverse_proxy 127.0.0.1:8090
         }
-        dashboard.zephyr.lan:80 {
+        http://dashboard.zephyr.lan {
           reverse_proxy 127.0.0.1:8090
         }
       '';

@@ -108,6 +108,22 @@ This document provides a comprehensive index of all documentation for the NixOS 
 
 ## Operational Documentation
 
+### Marketplace & Compute Scheduling
+
+#### compute-market.md (NEW - 2026-03-14)
+**Purpose:** Complete documentation for GPU Resource Marketplace
+**Status:** ✅ Implemented
+**Contents:**
+- Architecture overview (auction engine, bidders, state management)
+- Configuration options (per-host tuning)
+- Prometheus metrics and Grafana dashboard
+- Bidding algorithms (mining, kubernetes, akash, gaming)
+- Troubleshooting guide
+- Testing procedures
+- Future enhancement roadmap
+**Location:** `/etc/nixos/docs/compute-market.md`
+**When to Read:** Configuring GPU marketplace, troubleshooting auction behavior
+
 ### Deployment Guides
 
 #### DEPLOYMENT_COMPLETE.md
