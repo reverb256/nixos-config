@@ -61,7 +61,6 @@
     firewall = {
       allowedTCPPorts = lib.mkOptionDefault [
         10250 # Kubelet API
-        5000  # Harmonia binary cache
         3900  # Garage S3 API
         3901  # Garage RPC
       ];
@@ -402,11 +401,11 @@
   # ============================================================================
   # NIX SETTINGS - Nexus-specific cache configuration
   # ============================================================================
-  # Nexus hosts the Harmonia cache server, so it should use localhost
+  # Nexus uses common substituters from distributed-builds.nix
+  # Note: Harmonia binary cache was removed (no local cache server running)
+  # garnix.enable = true configures cache.garnix.io remote cache access
   nix.settings = {
-    substituters = lib.mkOptionDefault [
-      "http://127.0.0.1:5000?trusted=1"  # Local Harmonia cache
-    ];
+    # No local substituters needed - using common caches from distributed-builds.nix
   };
 
 }
