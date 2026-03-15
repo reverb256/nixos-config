@@ -315,16 +315,10 @@
       lolminer = {
         pools = [
           {
-            url = "10.1.1.130:3334";  # Forge gpu-proxy (primary - handles protocol translation)
+            url = "stratum+tcp://127.0.0.1:3333";  # Local stratum proxy
             wallet = "krxXVNVMM7.nexus-gpu";
             password = "x";
-            tls = false;  # Proxy handles TLS upstream
-          }
-          {
-            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (fallback)
-            wallet = "krxXVNVMM7.nexus-gpu";
-            password = "x";
-            tls = true;  # TLS required for Kryptex
+            tls = true;
           }
           {
             url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback)
@@ -412,8 +406,8 @@
     garage-cluster = {
       enable = true;
       dataDir = "/data/shared/garage"; # Local on nexus (bcache0)
-      replicationFactor = 3;  # 3-node cluster
-      consistencyMode = "consistent";  # Full consistency with 3 zones
+      replicationFactor = 2;  # 2-way replication (tolerate 1 node failure)
+      consistencyMode = "consistent";  # Full consistency with zones
       enableMetrics = true;  # Prometheus metrics on port 3903
       enableBackup = false;  # Nexus IS the backup storage
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
