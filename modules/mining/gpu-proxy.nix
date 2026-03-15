@@ -17,7 +17,7 @@
   # The GPU proxy Python package
   gpu-proxy-package = pkgs.python3Packages.buildPythonApplication rec {
     pname = "gpu-proxy";
-    version = "1.1.0";  # PyOpenSSL integration for Kryptex compatibility
+    version = "1.2.0";  # Fixed ssl import for miner TLS connections
     format = "other"; # Using dontUnpack, so no standard format
 
     # Use writeTextFile to create the proxy script
@@ -46,18 +46,18 @@
         import argparse
         import sys
         import traceback
+        import ssl  # Standard ssl module for basic TLS functionality
         from pathlib import Path
         from typing import Optional, List, Dict, Any
         from dataclasses import dataclass
 
-        # Use PyOpenSSL for TLS connections (compatible with Kryptex)
-        # Python's ssl module is incompatible with some pool TLS implementations
+        # Try to use PyOpenSSL for enhanced TLS connections (compatible with Kryptex)
+        # If not available, fall back to Python's ssl module
         try:
             from OpenSSL import SSL
             HAS_PYOPENSSL = True
-            logging.info("Using PyOpenSSL for TLS connections")
+            logging.info("Using PyOpenSSL for enhanced TLS connections")
         except ImportError:
-            import ssl as _ssl_fallback
             SSL = None
             HAS_PYOPENSSL = False
             logging.warning("PyOpenSSL not available, using Python ssl module (may not work with all pools)")
