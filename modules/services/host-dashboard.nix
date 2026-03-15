@@ -9,6 +9,60 @@
   cfg = config.services.host-dashboard;
   hostname = config.networking.hostName or "localhost";
 
+  # JavaScript for dashboard (external file to avoid Nix parsing issues)
+  dashboardJS = pkgs.writeText "dashboard.js" ''
+    // Host Dashboard JavaScript
+    // Safe DOM manipulation to avoid XSS
+
+    function setTextContent(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    function loadServices() {
+      const services = /* SERVICES_PLACEHOLDER */;
+
+      const servicesList = document.getElementById('services');
+      if (servicesList && services.length > 0) {
+        servicesList.innerHTML = '';
+        services.forEach(function(service) {
+          const li = document.createElement('li');
+          li.className = 'service-item';
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'service-name';
+          nameSpan.textContent = service.name;
+
+          const statusSpan = document.createElement('span');
+          statusSpan.className = 'service-status ' + (service.active ? 'active' : 'inactive');
+          statusSpan.textContent = service.active ? '● Running' : '○ Stopped';
+
+          li.appendChild(nameSpan);
+          li.appendChild(statusSpan);
+          servicesList.appendChild(li);
+        });
+      } else {
+        if (servicesList) {
+          servicesList.innerHTML = '<li class="service-item"><span class="service-name">No services configured</span></li>';
+        }
+      }
+    }
+
+    function updateUptime() {
+      fetch('/api/uptime')
+        .then(function(r) { return r.text(); })
+        .then(function(text) { setTextContent('uptime', text); })
+        .catch(function() { setTextContent('uptime', 'Unknown'); });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      loadServices();
+      updateUptime();
+      setInterval(updateUptime, 30000);
+    });
+  '';
+
   # CSS for dark theme dashboard
   dashboardCSS = pkgs.writeText "dashboard.css" ''
     * {
@@ -241,6 +295,7 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${hostname} - Cluster Host Dashboard</title>
       <link rel="stylesheet" href="/style.css">
+      <script src="/dashboard.js"></script>
       <meta http-equiv="refresh" content="30">
     </head>
     <body>
@@ -350,70 +405,6 @@
         <p>Cluster Dashboard • Auto-refreshes every 30 seconds</p>
         <p>Powered by NixOS + Kubernetes + Prometheus</p>
       </footer>
-
-      <script>
-        // Safe DOM manipulation to avoid XSS
-        function setTextContent(id, text) {
-          const el = document.getElementById(id);
-          if (el) el.textContent = text;
-        }
-
-        function setHTML(id, html) {
-          const el = document.getElementById(id);
-          if (el) el.innerHTML = html;
-        }
-
-        // Fetch system info from node_exporter (via proxy)
-        async function fetchSystemInfo() {
-          try {
-            const response = await fetch('/api/metrics?target=node_load1');
-            const data = await response.json();
-            // Parse and display metrics
-          } catch (error) {
-            console.error('Failed to fetch metrics:', error);
-          }
-        }
-
-        // Load running services from service list
-        async function loadServices() {
-          const services = ${lib.strings.toJSON cfg.services};
-          const servicesList = document.getElementById('services');
-
-          if (servicesList && services.length > 0) {
-            let html = '';
-            services.forEach(service => {
-              html += `
-                <li class="service-item">
-                  <span class="service-name">${service.name}</span>
-                  <span class="service-status ${service.active ? 'active' : 'inactive'}">
-                    ${service.active ? '● Running' : '○ Stopped'}
-                  </span>
-                </li>
-              `;
-            });
-            servicesList.innerHTML = html;
-          } else {
-            if (servicesList) {
-              servicesList.innerHTML = '<li class="service-item"><span class="service-name">No services configured</span></li>';
-            }
-          }
-        }
-
-        // Update uptime
-        function updateUptime() {
-          fetch('/api/uptime')
-            .then(r => r.text())
-            .then(text => setTextContent('uptime', text))
-            .catch(() => setTextContent('uptime', 'Unknown'));
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-          loadServices();
-          updateUptime();
-          setInterval(updateUptime, 30000);
-        });
-      </script>
     </body>
     </html>
   '';
@@ -538,6 +529,10 @@ in {
           mkdir -p ${cfg.dataDir}/api
           cp ${dashboardHTML} ${cfg.dataDir}/index.html
           cp ${dashboardCSS} ${cfg.dataDir}/style.css
+
+          # Generate JS file with services data embedded
+          sed 's|/* SERVICES_PLACEHOLDER */|${lib.strings.toJSON cfg.services}|' \
+            ${dashboardJS} > ${cfg.dataDir}/dashboard.js
         '';
       };
     };
