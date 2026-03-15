@@ -431,7 +431,10 @@
           searxng = {
             urls = [{template = "http://127.0.0.1:7777/search?q={searchTerms}&format=json";}];
             icon = "https://searxng.org/static/img/logo_small.svg";
-            definedAliases = ["@sx", "@searxng"];
+            definedAliases = [
+              "@sx"
+              "@searxng"
+            ];
           };
         };
       };
