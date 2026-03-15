@@ -62,6 +62,8 @@
       allowedTCPPorts = lib.mkOptionDefault [
         10250 # Kubelet API
         5000  # Harmonia binary cache
+        3900  # Garage S3 API
+        3901  # Garage RPC
       ];
       allowedTCPPortRanges = [
         {
@@ -92,8 +94,8 @@
       enable = true;
       # Override roles to include master
       roles = lib.mkForce ["master" "node"];
-      # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
-      masterAddress = lib.mkForce "10.1.1.110";
+      # Use VIP (10.1.1.100) for HA control plane - certificates now include VIP and all node IPs in SANs
+      masterAddress = lib.mkForce "10.1.1.100";
       # etcd clustering configuration (3-node HA cluster)
       etcdInitialState = "existing";
       etcdName = "nexus";

@@ -61,6 +61,8 @@
         8080 # AI Inference Gateway
         53317 # LocalSend (file sharing)
         8888 # CFSSL CA API server (for worker node certificate generation)
+        3900 # Garage S3 API
+        3901 # Garage RPC
       ];
       allowedUDPPorts = [
         9757 # WiVRn
@@ -117,9 +119,9 @@
     # KUBERNETES HA - Control Plane Configuration
     # Override profile defaults for HA setup with etcd clustering and VIP
     kubernetes-module = {
-      # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
-      # TODO: Generate custom certificates with VIP (10.1.1.100) in SANs for proper HA
-      masterAddress = lib.mkForce "10.1.1.110";
+      # Use VIP (10.1.1.100) for HA control plane - certificates now include VIP and all node IPs in SANs
+      # If zephyr (highest priority) fails, nexus or sentry takes over the VIP automatically
+      masterAddress = lib.mkForce "10.1.1.100";
       # etcd clustering configuration (3-node HA cluster operational)
       etcdInitialState = "existing";  # Cluster already formed
       etcdName = "zephyr";

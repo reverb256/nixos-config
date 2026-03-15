@@ -52,7 +52,7 @@
     };
     # Kubernetes worker firewall rules
     firewall = {
-      allowedTCPPorts = lib.mkOptionDefault [22 10250 3100]; # SSH + Kubelet API + Loki (merges with cluster defaults)
+      allowedTCPPorts = lib.mkOptionDefault [22 10250 3100 3900 3901]; # SSH + Kubelet API + Loki + Garage (merges with cluster defaults)
       allowedTCPPortRanges = lib.mkOptionDefault [
         {
           from = 30000;
@@ -82,8 +82,8 @@
       enable = true;
       # Override roles to include master
       roles = lib.mkForce ["master" "node"];
-      # Use direct IP for now (easyCerts doesn't support custom SANs for VIP)
-      masterAddress = lib.mkForce "10.1.1.110";
+      # Use VIP (10.1.1.100) for HA control plane - certificates now include VIP and all node IPs in SANs
+      masterAddress = lib.mkForce "10.1.1.100";
       # etcd clustering configuration (3-node HA cluster)
       etcdInitialState = "existing";
       etcdName = "sentry";
