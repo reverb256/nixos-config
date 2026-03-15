@@ -1,0 +1,197 @@
+# GPU Scheduling Examples for Mixed NVIDIA/AMD Cluster
+# This file demonstrates various patterns for scheduling GPU workloads
+
+# ============================================================================
+# Example 1: NVIDIA-specific workload (AI inference with CUDA)
+# ============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ai-inference-nvidia
+spec:
+  restartPolicy: OnFailure
+  nodeSelector:
+    accelerator: nvidia-gpu  # Target NVIDIA nodes only
+  containers:
+  - name: inference
+    image: nvidia/cuda:12.1.0-runtime
+    command: ["nvidia-smi", "--query-gpu=gpu_name,memory.total", "--format=csv"]
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+
+---
+# ============================================================================
+# Example 2: AMD-specific workload (ROCm compute)
+# ============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rocm-compute
+spec:
+  restartPolicy: OnFailure
+  nodeSelector:
+    gpu: amd  # Target AMD nodes only
+  containers:
+  - name: rocm-test
+    image: rocm/dev-ubuntu-22.04:6.2
+    command: ["rocm-smi", "--showproductname"]
+    resources:
+      limits:
+        amd.com/gpu: 1
+    securityContext:
+      privileged: true  # Required for AMD GPU access
+
+---
+# ============================================================================
+# Example 3: Multi-GPU workload on Forge (2x NVIDIA + 2x AMD)
+# Forge has both vendors - use nodeSelector to target it specifically
+# ============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-gpu-nvidia-forge
+spec:
+  restartPolicy: OnFailure
+  nodeSelector:
+    kubernetes.io/hostname: forge  # Pin to Forge specifically
+  containers:
+  - name: multi-gpu-test
+    image: nvidia/cuda:12.1.0-base
+    command: ["nvidia-smi", "--list-gpus"]
+    resources:
+      limits:
+        nvidia.com/gpu: 2  # Request both NVIDIA GPUs on Forge
+
+---
+# ============================================================================
+# Example 4: Preferred node selector (try NVIDIA first, fall back to AMD)
+# Uses nodeAffinity for soft constraints
+# ============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: flexible-gpu-workload
+spec:
+  restartPolicy: OnFailure
+  affinity:
+    nodeAffinity:
+      # Prefer NVIDIA nodes but allow AMD as fallback
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - key: accelerator
+            operator: In
+            values:
+            - nvidia-gpu
+  containers:
+  - name: worker
+    image: ubuntu:22.04
+    command: ["sh", "-c", "echo 'GPU workload running' && sleep 30"]
+    resources:
+      limits:
+        # This will match either nvidia.com/gpu OR amd.com/gpu
+        # depending on which node is selected
+        nvidia.com/gpu: 1
+
+---
+# ============================================================================
+# Example 5: DaemonSet for GPU monitoring (runs on all GPU nodes)
+# ============================================================================
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gpu-monitor
+spec:
+  selector:
+    matchLabels:
+      app: gpu-monitor
+  template:
+    metadata:
+      labels:
+        app: gpu-monitor
+    spec:
+      # Run on any node with GPUs (NVIDIA or AMD)
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: accelerator
+                operator: In
+                values:
+                - nvidia-gpu
+            - matchExpressions:
+              - key: gpu
+                operator: In
+                values:
+                - amd
+      containers:
+      - name: nvidia-smi
+        image: nvidia/cuda:12.1.0-base
+        command: ["nvidia-smi"]
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+      # Note: For mixed GPU clusters, you'd typically use init containers
+      # to detect GPU type and run appropriate diagnostics
+
+---
+# ============================================================================
+# Example 6: Deployment with GPU resource requests
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-worker-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: gpu-worker
+  template:
+    metadata:
+      labels:
+        app: gpu-worker
+    spec:
+      containers:
+      - name: worker
+        image: nvidia/cuda:12.1.0-runtime
+        command: ["nvidia-smi"]
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+      # Allow scheduling on GPU nodes
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+
+---
+# ============================================================================
+# Cluster GPU Inventory Summary:
+# ============================================================================
+# Node    | NVIDIA GPUs | AMD GPUs | Total
+# --------|-------------|----------|-------
+# Zephyr  | 2           | 0        | 2
+# Nexus   | 1           | 0        | 1
+# Forge   | 2           | 2        | 4
+# Sentry  | 0           | 1        | 1
+# --------|-------------|----------|-------
+# Total   | 5           | 3        | 8
+#
+# Resource Types:
+# - nvidia.com/gpu (NVIDIA CUDA)
+# - amd.com/gpu (AMD ROCm)
+#
+# Node Labels:
+# - accelerator=nvidia-gpu (Zephyr, Nexus, Forge)
+# - gpu=amd (Forge, Sentry)
+# ============================================================================
