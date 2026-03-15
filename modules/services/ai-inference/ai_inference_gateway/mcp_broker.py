@@ -907,6 +907,7 @@ class MCPBroker:
                                 except Exception:
                                     pass
 
+                        print(f"[DEBUG] [MCP {server.name}] gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
                         logger.info(f"[MCP {server.name}] gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
 
                         # Build PYTHONPATH with both paths
@@ -922,8 +923,10 @@ class MCPBroker:
                                 pythonpath_parts.append(existing_pythonpath)
                             env["PYTHONPATH"] = ":".join(pythonpath_parts)
                             logger.info(f"[MCP {server.name}] Set PYTHONPATH: {env['PYTHONPATH'][:300]}...")
+                            print(f"[DEBUG] PYTHONPATH for {server.name}: {env['PYTHONPATH'][:300]}...")
                         else:
                             logger.warning(f"[MCP {server.name}] No gateway paths found, PYTHONPATH not set")
+                            print(f"[DEBUG] No gateway paths found for {server.name}")
                 except Exception as e:
                     logger.warning(f"Failed to add PYTHONPATH for {server.name}: {e}")
 
@@ -966,7 +969,13 @@ class MCPBroker:
             import traceback
             logger.error(f"Failed to spawn local MCP server {server.name}: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
-            server.process = None
+            # Clean up process if it was created
+            if server.process:
+                try:
+                    server.process.terminate()
+                except Exception:
+                    pass
+                server.process = None
             return False
 
     async def _send_local_request(
