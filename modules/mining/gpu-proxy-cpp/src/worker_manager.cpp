@@ -65,11 +65,11 @@ void WorkerManager::start() {
 
     fprintf(stderr, "[WorkerManager] Listening on port %d\n", listen_port_);
 
-    // Add a periodic callback to check for new connections
-    // We'll use the event loop's timeout mechanism to poll for accept
+    // Add a RECURRING callback to check for new connections
+    // The recurring=true flag ensures accept_worker() is called every 100ms
     loop_.set_timeout(100, [this]() {
         accept_worker();
-    });
+    }, true);  // true = recurring
 }
 
 void WorkerManager::accept_worker() {
