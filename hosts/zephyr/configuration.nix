@@ -502,6 +502,21 @@
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
+          # SearXNG local MCP server - privacy-respecting metasearch
+          searxng = {
+            type = "local";
+            command = [
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "-m"
+              "ai_inference_gateway.mcp_servers.searxng_server"
+            ];
+            environment = {
+              SEARXNG_URL = "http://127.0.0.1:7777";
+              SEARXNG_CACHE_TTL = "300";
+              PYTHONPATH = "/run/current-system/sw/lib/python3.13/site-packages";
+            };
+            enabled = true;
+          };
         };
       };
       rag = {
@@ -525,19 +540,6 @@
       enable = true;
       servers.playwright.enable = true;
       servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
-      # SearXNG local MCP server - privacy-respecting metasearch
-      servers.searxng = {
-        type = "local";
-        command = [
-          "/run/current-system/sw/bin/python3"
-          "-m"
-          "ai_inference_gateway.mcp_servers.searxng_server"
-        ];
-        environment = {
-          SEARXNG_URL = "http://127.0.0.1:7777";
-          SEARXNG_CACHE_TTL = "300";
-        };
-      };
     };
 
     # WEB TESTING - Playwright/Puppeteer system dependencies
@@ -1080,6 +1082,25 @@
     # Network automation - for switch/modem configuration scripts
     python3Packages.playwright
   ];
+
+  # Host Dashboard - Cluster status web interface
+  services.host-dashboard = {
+    enable = true;
+    role = "control-plane + ai-workstation";
+    featuredServices = [
+      { name = "AI Gateway"; url = "http://127.0.0.1:8080"; }
+      { name = "Prometheus"; url = "http://127.0.0.1:9090"; }
+      { name = "Grafana"; url = "http://127.0.0.1:3000"; }
+      { name = "SearXNG"; url = "http://127.0.0.1:7777"; }
+    ];
+    services = [
+      { name = "kubelet"; active = true; }
+      { name = "containerd"; active = true; }
+      { name = "cfssl"; active = true; }
+      { name = "keepalived"; active = true; }
+      { name = "ai-inference"; active = true; }
+    ];
+  };
 
   # ============================================================================
   # MULTI-GPU ENVIRONMENT VARIABLES - RTX 3090 + 3060 Ti
