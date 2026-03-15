@@ -1023,18 +1023,18 @@
 
                   case "$gpu_name" in
                       *"3060"*)
-                          # 3060 Ti: Use mining module's power limits (don't override)
-                          # Power limits are set by nvidia-gpu-power-limit.service from mining.nix
+                          # 3060 Ti: Reset to mining power limits (zephyr/nexus mining config
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 130
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1700
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 5200
-                          echo "  3060 Ti: 1700 MHz GPU, 5200 MHz mem (power limit from mining module)"
+                          echo "  3060 Ti: 1700 MHz GPU, 5200 MHz mem (130W limit (mining-optimized)"
                           ;;
                       *"3090"*)
-                          # 3090: Use mining module's power limits (don't override)
-                          # Power limits are set by nvidia-gpu-power-limit.service from mining.nix
+                          # 3090: Reset to mining power limits (zephyr mining config
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 250
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1750
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6500
-                          echo "  3090: 1750 MHz GPU (liquid-cooled), 6500 MHz mem (power limit from mining module)"
+                          echo "  3090: 1750 MHz GPU (liquid-cooled), 6500 MHz mem (250W limit (mining-optimized)"
                           ;;
                       *)
                           # Default: Don't override power limits, let mining module manage
