@@ -726,10 +726,10 @@ class MCPBroker:
                                 "server": server.name,
                                 "tool": tool_name,
                             }
-                        # Check for Z.AI MCP result with isError flag
+                        # Check for MCP result with isError flag
                         if "result" in result:
                             mcp_result = result["result"]
-                            # Check if this is an error response from Z.AI
+                            # Check if this is an error response from MCP server
                             if isinstance(mcp_result, dict):
                                 is_error = mcp_result.get("isError", False)
                                 error_msg = None

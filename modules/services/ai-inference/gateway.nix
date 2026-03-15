@@ -47,7 +47,7 @@
   modularGatewayPkg = let
     gatewaySrc = ./ai_inference_gateway;
   in
-    pkgs.runCommand "ai-inference-gateway-modular-pkg-v5"
+    pkgs.runCommand "ai-inference-gateway-modular-pkg-v6"
     {
       preferLocalBuild = true;
       passAsFile = ["buildScript"];
