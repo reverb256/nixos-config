@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-03-14 21:00 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
+**Last Updated:** 2026-03-14 22:30 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 
@@ -93,11 +93,22 @@ sentry   Ready    monitoring                     15m     v1.35.0
 | 🟡 MEDIUM | Storage classes not fully tested | PVC creation may fail | Testing needed |
 | 🟢 LOW | ~~Forge nixos-share mount~~ | ~~Read-write mount~~ | ✅ FIXED - Now read-only |
 | 🟢 LOW | NFS hard mounts | System hangs if NFS down | ✅ FIXED - Soft mounts with 10s timeout |
-| 🟢 LOW | GPU workload coordination needed | Mining vs K8s GPU conflict | Design phase |
+| 🟢 LOW | ~~GPU workload coordination needed~~ | Mining vs K8s GPU conflict | ✅ **SOLVED:** GPU Resource Marketplace deployed |
 
 ---
 
 ## Recent Changes
+
+**2026-03-14 22:30:**
+- ✅ **DEPLOYED: GPU Resource Marketplace** - Unified auction engine for GPU allocation
+- ✅ **CREATED: modules/compute-market/default.nix** - Core marketplace module with bidders
+- ✅ **BIDDERS IMPLEMENTED:** Mining (baseline), Kubernetes (AI workloads), Akash (leases), Gaming (override)
+- ✅ **GRAFANA DASHBOARD:** Auto-provisioned dashboard for marketplace metrics
+- ✅ **CONFIGURED: Prometheus metrics** on port 9200
+- ✅ **DOCUMENTATION:** docs/compute-market.md with architecture, troubleshooting, testing
+- 📝 **UPDATED: modules/default.nix** - Added compute-market import
+- 📝 **UPDATED: hosts/zephyr/configuration.nix** - Enabled marketplace on control plane
+- 📝 **UPDATED: DOCUMENTATION_INDEX.md** - Added compute-market documentation entry
 
 **2026-03-14 21:00:**
 - ✅ **TESTED: Garage S3 API from Kubernetes** - Successfully connected, authenticated, listed buckets
