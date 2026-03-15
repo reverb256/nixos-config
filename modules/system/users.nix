@@ -1,5 +1,5 @@
 # User Accounts Module
-{pkgs, ...}: {
+{pkgs, lib, ...}: {
   users.users.j_kro = {
     isNormalUser = true;
     description = "Jeremy Kroeker";
@@ -15,9 +15,18 @@
 
   # User timezone - Local time for user sessions (system time remains UTC)
   # This ensures users see their local timezone while system logs use UTC
-  environment.sessionVariables = {
+  # Use mkOptionDefault so it can be overridden if needed
+  environment.sessionVariables = lib.mkOptionDefault {
     TZ = "America/Winnipeg"; # Central Time (CDT/CST)
   };
+
+  # PAM environment - ensures TZ is set for all sessions including SSH
+  security.pam.services.login.setEnvironment = true;
+
+  # Also write TZ to /etc/environment for systemd user services
+  environment.etc."environment".text = ''
+    TZ=America/Winnipeg
+  '';
 
   # Allow passwordless sudo for j_kro
   security.sudo = {

@@ -116,7 +116,7 @@ in {
         "https://reverb-os.cachix.org"  # Personal Cachix cache
         "https://ezkea.cachix.org"
         "https://nix-gaming.cachix.org"
-        # "https://cache.nixos-cuda.org" # TEMPORARILY DISABLED - connectivity issues
+        "https://cache.nixos-cuda.org"  # CUDA binary cache (pre-built CUDA packages)
       ];
       trusted-public-keys = lib.mkAfter [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
@@ -125,7 +125,7 @@ in {
         "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="  # reverb-os Cachix
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
         "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-        # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+        "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="  # CUDA cache key
       ];
 
       # Maximum number of parallel build jobs (LOCAL builds on this host)

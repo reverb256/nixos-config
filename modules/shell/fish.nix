@@ -4,7 +4,16 @@
 # in modules/home-manager/fish.nix to avoid conflicts and ensure DRY.
 {pkgs, ...}: {
   # Enable Fish shell at system level (required for proper PATH setup)
-  programs.fish.enable = true;
+  programs.fish = {
+    enable = true;
+
+    # Set user timezone for all fish sessions (including SSH)
+    # This ensures TZ is set even when systemd user services don't inherit sessionVariables
+    interactiveShellInit = ''
+      # User time zone (system runs UTC, user sees local time)
+      set -gx TZ America/Winnipeg
+    '';
+  };
 
   # Install required packages system-wide
   environment.systemPackages = with pkgs; [

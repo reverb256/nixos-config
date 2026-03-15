@@ -10,6 +10,8 @@ This module provides production-grade configuration with:
 - Schema generation
 """
 
+from __future__ import annotations
+
 from typing import Optional, List, Dict
 from pydantic import BaseModel, Field, field_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -261,6 +263,10 @@ class MiddlewareConfig(BaseModel):
     mcp: MCPConfig = Field(
         default_factory=MCPConfig, description="MCP broker configuration"
     )
+    knowledge_fabric: KnowledgeFabricConfig = Field(
+        default_factory=KnowledgeFabricConfig,
+        description="Knowledge Fabric middleware configuration"
+    )
 
     # RAG configuration (optional - loaded from environment variables)
     # These use the exact env var names from gateway.nix for compatibility
@@ -274,6 +280,29 @@ class MiddlewareConfig(BaseModel):
         default=True, description="Enable hybrid search"
     )
     RERANKER_ENABLED: bool = Field(default=True, description="Enable reranking")
+
+
+class KnowledgeFabricConfig(BaseModel):
+    """Knowledge Fabric middleware configuration"""
+
+    enabled: bool = Field(default=False, description="Enable Knowledge Fabric middleware")
+    rrf_k: int = Field(
+        default=60, ge=1, le=100, description="RRF constant for fusion"
+    )
+    rag_enabled: bool = Field(default=False, description="Enable RAG source")
+    code_search_enabled: bool = Field(default=True, description="Enable code search source")
+    searxng_enabled: bool = Field(default=False, description="Enable SearXNG source")
+    web_search_enabled: bool = Field(default=False, description="Enable MCP web search source")
+    code_search_paths: List[str] = Field(
+        default_factory=lambda: ["/etc/nixos"],
+        description="Paths to search for code"
+    )
+    rag_top_k: int = Field(default=5, ge=1, le=20, description="RAG top-K results")
+    searxng_url: str = Field(default="http://127.0.0.1:7777", description="SearXNG URL")
+    mcp_url: str = Field(default="http://127.0.0.1:8080/mcp/call", description="MCP broker URL")
+    web_max_results: int = Field(default=5, ge=1, le=20, description="Web search max results")
+    searxng_max_results: int = Field(default=5, ge=1, le=20, description="SearXNG max results")
+    code_max_results: int = Field(default=5, ge=1, le=20, description="Code search max results")
 
 
 class GatewayConfig(BaseSettings):

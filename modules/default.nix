@@ -100,6 +100,7 @@
     ./services/syncthing.nix
     ./services/garage.nix # S3-compatible distributed object storage
     ./services/backup-to-garage.nix # Automated backups to Garage S3
+    ./services/rclone.nix # Cloud storage sync (70+ providers)
     ./services/n8n.nix
     ./services/vaultwarden.nix
     ./services/health-checks.nix
