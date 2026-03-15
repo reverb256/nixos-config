@@ -159,7 +159,7 @@ class MCPBroker:
 
             headers["Accept"] = "application/json, text/event-stream"
 
-            logger.debug(f"Initializing MCP server: {server.name}")
+            logger.warning(f"Initializing MCP server: {server.name}")
 
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
@@ -175,8 +175,8 @@ class MCPBroker:
                                 try:
                                     data = json.loads(line[5:].strip())
                                     if "result" in data:
-                                        logger.info(
-                                            f"Initialized {server.name}: {data['result'].get('serverInfo', {})}"
+                                        logger.warning(
+                                            f"Successfully initialized {server.name}: {data['result'].get('serverInfo', {})}"
                                         )
                                         self._initialized_servers[server.name] = True
                                         return True
@@ -186,8 +186,8 @@ class MCPBroker:
                         # JSON response
                         result = response.json()
                         if "result" in result:
-                            logger.info(
-                                f"Initialized {server.name}: {result['result'].get('serverInfo', {})}"
+                            logger.warning(
+                                f"Successfully initialized {server.name}: {result['result'].get('serverInfo', {})}"
                             )
                             self._initialized_servers[server.name] = True
                             return True
