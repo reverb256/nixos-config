@@ -26,5 +26,23 @@
 
     # Mining exporter for xmrig/lolminer metrics
     mining-exporter.enable = true;
+
+    # Self-healing alerts via Plasma desktop notifications
+    self-healing-alerts = {
+      enable = true;
+      monitoredServices = [
+        "kubelet"
+        "kube-apiserver"
+        "containerd"
+        "etcd"
+        "keepalived"
+        "gpu-proxy"
+      ];
+      enableCircuitBreakerAlerts = false;  # No AI gateway on Nexus
+      enableVIPFailoverAlerts = true;
+      enableResourceAlerts = true;
+      memoryThreshold = 90;
+      diskThreshold = 90;
+    };
   };
 }

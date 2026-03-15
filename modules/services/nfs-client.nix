@@ -44,10 +44,21 @@ in {
         "/data/shared" = {
           device = "${cfg.serverIp}:/data/shared";
           fsType = "nfs4";
+          # GRACEFUL FAILURE OPTIONS:
+          # - soft: Return errors after timeout instead of hanging indefinitely
+          # - timeo=50: 5 second timeout (in deciseconds)
+          # - retrans=2: Give up after 2 retries (total ~10 seconds)
+          # - x-systemd.automount: Mount on first access, not at boot
+          # - x-systemd.device-timeout=5s: Give up on device after 5s
+          # - nofail: Don't fail boot if NFS server is down
           options = [
+            "soft"
+            "timeo=50"
+            "retrans=2"
             "x-systemd.automount"
             "x-systemd.idle-timeout=600"
             "x-systemd.device-timeout=5s"
+            "x-systemd.mount-timeout=10s"
             "_netdev"
             "noatime"
             "rw"
@@ -59,9 +70,13 @@ in {
           device = "${cfg.serverIp}:/data/home";
           fsType = "nfs4";
           options = [
+            "soft"
+            "timeo=50"
+            "retrans=2"
             "x-systemd.automount"
             "x-systemd.idle-timeout=600"
             "x-systemd.device-timeout=5s"
+            "x-systemd.mount-timeout=10s"
             "_netdev"
             "noatime"
             "rw"
@@ -73,9 +88,13 @@ in {
           device = "${cfg.serverIp}:/data/media";
           fsType = "nfs4";
           options = [
+            "soft"
+            "timeo=50"
+            "retrans=2"
             "x-systemd.automount"
             "x-systemd.idle-timeout=600"
             "x-systemd.device-timeout=5s"
+            "x-systemd.mount-timeout=10s"
             "_netdev"
             "noatime"
             "ro"

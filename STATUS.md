@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-03-14 14:00 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
+**Last Updated:** 2026-03-14 21:00 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 
@@ -12,7 +12,7 @@
 |-----------|--------|---------|
 | **Kubernetes** | 🟢 RUNNING | v1.35.0, 4 nodes joined |
 | **Control Plane** | 🟢 OPERATIONAL | Zephyr: apiserver, etcd, scheduler, controller-manager |
-| **Worker Nodes** | 🟢 3/4 READY | Zephyr, Nexus, Sentry (Forge: NotReady) |
+| **Worker Nodes** | 🟢 4/4 READY | Zephyr, Nexus, Sentry, Forge |
 | **Networking** | 🟢 OPERATIONAL | Flannel CNI (VXLAN), CoreDNS, Unbound cluster DNS |
 | **Ingress Controller** | 🟢 DEPLOYED | Caddy Ingress (DaemonSet on 2 nodes) |
 | **GPU Passthrough** | 🟢 PARTIAL | Zephyr: 2x NVIDIA (✓), Forge: 2x AMD + 2x NVIDIA (⚠️) |
@@ -24,12 +24,15 @@
 ## Kubernetes Nodes
 
 ```
-NAME     STATUS   ROLES           AGE     VERSION
-zephyr   Ready    control-plane   4d7h    v1.35.0
-forge    Ready    worker          3d12h   v1.35.0
-nexus    Ready    <none>          3d      v1.35.0
-sentry   Ready    <none>          3d      v1.35.0
+NAME     STATUS   ROLES                          AGE     VERSION
+zephyr   Ready    ai-workstation,control-plane   15m     v1.35.0
+forge    Ready    gpu-compute                    16m     v1.35.0
+nexus    Ready    storage                        15m     v1.35.0
+sentry   Ready    monitoring                     15m     v1.35.0
 ```
+
+> **Note:** Node ages reflect CIDR fix + role label application. Roles describe node function for pod scheduling.
+> etcd HA cluster (zephyr, nexus, sentry) remains unchanged from original setup.
 
 ### GPU Resources by Node
 
@@ -46,15 +49,15 @@ sentry   Ready    <none>          3d      v1.35.0
 
 | Phase | Status | Completion | Notes |
 |-------|--------|------------|-------|
-| **Phase 1: Foundation** | ✅ COMPLETE | 100% | Control plane, networking, core DNS |
-| **Phase 2: Worker Nodes** | 🟡 IN PROGRESS | 90% | Nodes joined, storage classes, **ingress controller deployed** |
+| **Phase 1: Foundation** | ✅ COMPLETE | 100% | Control plane, networking, CoreDNS |
+| **Phase 2: Worker Nodes** | ✅ COMPLETE | 100% | All nodes joined, correct CIDRs, DNS functional |
 | **Phase 3: Stateful Services** | ⏳ PENDING | 0% | Not started |
 | **Phase 4: Stateless Services** | 🟢 STARTED | 5% | **Caddy Ingress deployed, backend migration pending** |
 | **Phase 5: GPU Workloads** | ⏳ PENDING | 0% | Not started |
 | **Phase 6: Monitoring** | ✅ COMPLETE | 100% | Prometheus + Grafana running, **Caddy metrics configured** |
 | **Phase 7: Cleanup** | ⏳ PENDING | 0% | Not started |
 
-**Overall Progress:** ~30% complete (2.5 of 7 phases)
+**Overall Progress:** ~40% complete (3 of 7 phases)
 
 ---
 
@@ -87,11 +90,31 @@ sentry   Ready    <none>          3d      v1.35.0
 |----------|-------|--------|--------|
 | 🔴 HIGH | Forge RTX 4060 GPU passthrough | NVIDIA workloads can't schedule on Forge | Investigating |
 | 🟡 MEDIUM | Storage classes not fully tested | PVC creation may fail | Testing needed |
+| 🟢 LOW | ~~Forge nixos-share mount~~ | ~~Read-write mount~~ | ✅ FIXED - Now read-only |
+| 🟢 LOW | NFS hard mounts | System hangs if NFS down | ✅ FIXED - Soft mounts with 10s timeout |
 | 🟢 LOW | GPU workload coordination needed | Mining vs K8s GPU conflict | Design phase |
 
 ---
 
 ## Recent Changes
+
+**2026-03-14 21:00:**
+- ✅ **TESTED: Garage S3 API from Kubernetes** - Successfully connected, authenticated, listed buckets
+- ✅ **CREATED: Kubernetes S3 key** - Dedicated `kubernetes-s3-key` for K8s Garage access
+- ✅ **VERIFIED: Garage 3-node cluster** - All nodes healthy (zephyr, nexus, sentry) with 4.4TB total
+- ✅ **FIXED: NFS documentation** - Corrected inaccuracies about Zephyr /data mounts and Forge nixos-share
+- ✅ **VERIFIED: All nixos-share mounts** - Read-only on all remote nodes (Nexus, Forge, Sentry)
+- ✅ **CONFIGURED: NFS graceful failure** - Changed to soft mounts with 10s timeout (was hard/hang forever)
+- 📝 **CREATED: docs/nfs-graceful-failure.md** - Complete documentation for NFS behavior
+- 📝 **UPDATED: storage-*.md docs** - Accurate storage architecture documentation
+
+**2026-03-14 20:30:**
+- ✅ **FIXED: Kubernetes networking** - Resolved CIDR mismatch (10.1.x.0/24 → 10.244.x.0/24)
+- ✅ **DEPLOYED: CoreDNS** - 2 replicas running, DNS fully functional
+- ✅ **LABELED: Node roles** - Applied functional role labels (ai-workstation, gpu-compute, storage, monitoring)
+- ✅ **VERIFIED: DNS resolution** - Service discovery working (service.namespace.svc.cluster.local)
+- ✅ **CREATED: manifests/coredns.yaml** - CoreDNS deployment manifest for cluster
+- 📝 **UPDATED: STATUS.md, ROADMAP.md** - Documentation current as of Phase 2 complete
 
 **2026-03-14 14:00:**
 - ✅ **DEPLOYED: Caddy Ingress Controller** (DaemonSet on nexus, sentry)
@@ -149,9 +172,9 @@ systemctl status prometheus              # Prometheus status
 
 ## Next Actions
 
-1. **IMMEDIATE:** Investigate Forge RTX 4060 Ada Lovelace GPU plugin issue
-2. **THIS WEEK:** Test storage classes and PVC creation
-3. **THIS MONTH:** Begin Phase 3 (Stateful Services migration)
+1. **IMMEDIATE:** Test storage classes and PVC creation
+2. **THIS WEEK:** Begin Phase 3 (Stateful Services migration - GlitchTip DB)
+3. **ONGOING:** Investigate Forge RTX 4060 Ada Lovelace GPU plugin issue
 
 ---
 

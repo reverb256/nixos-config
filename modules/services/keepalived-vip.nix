@@ -35,6 +35,12 @@ in {
       default = 51;
       description = "VRRP Virtual Router ID (must match across cluster)";
     };
+
+    enableHealthCheck = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable kube-apiserver health check (reduces priority when unhealthy)";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -55,23 +61,25 @@ in {
           }
         ];
 
-        # Optional: enable health checks (disabled for initial setup, enable after cluster is stable)
-        # trackScripts = ["check-kube-apiserver"];
+        # Enable health checks if configured (reduces priority when apiserver is unhealthy)
+        trackScripts = lib.optional cfg.enableHealthCheck "check-kube-apiserver";
       };
 
-      # Health check script for kube-apiserver (disabled by default)
-      # Uncomment vrrpScripts and trackScripts above to enable
-      # vrrpScripts.check-kube-apiserver = {
-      #   script = ''
-      #     #!/bin/sh
-      #     # Check if kube-apiserver is responding
-      #     ${pkgs.curl}/bin/curl -f -s -o /dev/null --connect-timeout 3 http://127.0.0.1:6443/healthz
-      #   '';
-      #   weight = -20; # Decrease priority by 20 if script fails
-      #   interval = 2; # Check every 2 seconds
-      #   fall = 2; # Need 2 failures to fail
-      #   rise = 2; # Need 2 successes to recover
-      # };
+      # Health check script for kube-apiserver (enabled when enableHealthCheck = true)
+      vrrpScripts = lib.optionalAttrs cfg.enableHealthCheck {
+        check-kube-apiserver = {
+          script = ''
+            #!/bin/sh
+            # Check if kube-apiserver is responding
+            # Note: Kubernetes API server serves HTTPS on 6443, healthz endpoint may require --insecure-skip-tls-verify
+            ${pkgs.curl}/bin/curl -f -s -o /dev/null --connect-timeout 3 --insecure https://127.0.0.1:6443/healthz
+          '';
+          weight = -20; # Decrease priority by 20 if script fails (triggers failover)
+          interval = 2; # Check every 2 seconds
+          fall = 2; # Need 2 failures to fail
+          rise = 2; # Need 2 successes to recover
+        };
+      };
     };
 
     # Firewall: allow VRRP protocol (UDP port 112 for VRRP)

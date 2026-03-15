@@ -12,7 +12,7 @@
 #   zephyr: ✅ Server (32 cores, 31GB RAM, znver3)  → Control plane
 #   nexus:  ❌ REMOVED (2026-03-14)                  → Storage worker only
 #   forge:  ✅ Server (6 cores, 15GB RAM)              → GPU worker (limited jobs)
-#   sentry: ✅ Server (16 cores, 31GB RAM, Zen 1)   → Monitoring worker
+#   sentry: ✅ Server (16 cores, 31GB RAM, Zen 1)   → Monitoring worker (4 jobs × 2 cores)
 #
 # NETWORK: 1Gbps with 4x TP-Link Easy Smart switches
 #
@@ -71,7 +71,7 @@ in {
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 2; # Conservative - 31GB RAM but monitoring needs headroom
+        maxJobs = 4; # 4 jobs × 2 cores = 8 cores total (50% utilization)
         speedFactor = 3;
         supportedFeatures = ["big-parallel"];
         mandatoryFeatures = [];
@@ -85,7 +85,18 @@ in {
 
       # Limit cores per build to prevent memory exhaustion
       # mkForce prevents override by NixOS auto-detection (cores = 0 = auto)
-      cores = lib.mkForce 4;
+      # Per-host allocation for optimal build parallelism:
+      # - Zephyr: 4 cores per build (32 cores total)
+      # - Nexus: 4 cores per build (24 cores total)
+      # - Sentry: 2 cores per build (16 cores total) - more parallel jobs
+      # - Forge: 2 cores per build (6 cores total)
+      cores = lib.mkForce (
+        if currentHost == "zephyr" then 4
+        else if currentHost == "nexus" then 4
+        else if currentHost == "sentry" then 2
+        else if currentHost == "forge" then 2
+        else 4
+      );
 
       # Use substituters on remote builders (download from cache instead of copying)
       builders-use-substitutes = true;
@@ -121,7 +132,7 @@ in {
       # Per-host allocation based on RAM and role:
       # - Zephyr: 4 of 32 cores (12%) - control plane needs headroom
       # - Nexus: 6 of 24 cores (25%) - local builds only (removed from distributed builds)
-      # - Sentry: 2 of 16 cores (12%) - monitoring worker
+      # - Sentry: 4 of 16 cores (25%) - monitoring worker (more parallel, smaller jobs)
       # - Forge: 1 of 6 cores (16%) - GPU workloads, limited RAM
       # compute-workload-monitor pauses mining during builds
       #
@@ -129,7 +140,7 @@ in {
       max-jobs = lib.mkForce (
         if currentHost == "zephyr" then 4
         else if currentHost == "nexus" then 6
-        else if currentHost == "sentry" then 2
+        else if currentHost == "sentry" then 4
         else if currentHost == "forge" then 1
         else 2
       );

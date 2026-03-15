@@ -177,12 +177,11 @@ Verified in `modules/default.nix`:
 
 ## Issues Found
 
-### 1. Forge nixos-share Mount is Read-Write
+### 1. ~~Forge nixos-share Mount is Read-Write~~ ✅ FIXED
 
-**Current**: Forge mounts `/etc/nixos` as `rw`
-**Expected**: Should be `ro` like Nexus and Sentry
-**Risk**: Forge could modify config, causing drift
-**Fix**: Add `ro` option to Forge's nixos-share mount
+**Status**: Forge correctly mounts `/etc/nixos` as read-only (`ro`)
+**Verification**: All nodes (Nexus, Forge, Sentry) have read-only mounts
+**Mount Point**: `/run/nixos-shared` on Nexus/Forge, `/etc/nixos` on Sentry
 
 ### 2. Zephyr NFS Automount Not Verified
 
@@ -208,8 +207,8 @@ Verified in `modules/default.nix`:
 
 ### Immediate (This Week)
 
-1. **Fix Forge nixos-share mount** - Change to read-only
-2. **Verify Zephyr NFS automount** - Test `/data/shared` access
+1. ~~**Fix Forge nixos-share mount**~~ - ✅ Already read-only
+2. **Verify Zephyr storage** - Uses local NVMe, not NFS for /data
 3. **Run end-to-end tests** - Verify all services working together
 
 ### Short-term (This Month)
