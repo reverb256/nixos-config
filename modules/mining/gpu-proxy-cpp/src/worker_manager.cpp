@@ -106,15 +106,22 @@ void WorkerManager::accept_worker() {
         on_worker_message(conn_ptr, line);
     });
 
-    // Store worker info
-    WorkerInfo info;
-    info.conn = std::move(conn);
+    // IMPORTANT: Add to event loop so messages get polled!
+    // The event loop only polls fds in its connections_ map
+    loop_.add_connection(std::move(conn));
+
+    // Worker is now owned by event loop, get raw pointer for local use
+    Connection* conn_ptr = loop_.get_connection(client_fd);
 
     // Generate unique extra_nonce2 for this worker
     std::ostringstream oss;
     oss << std::hex << std::setfill('0') << std::setw(8) << next_extra_nonce2_++;
-    info.extra_nonce2 = oss.str();
+    std::string extra_nonce2 = oss.str();
 
+    // Store worker info (with non-owning pointer)
+    WorkerInfo info;
+    info.conn = conn_ptr;
+    info.extra_nonce2 = extra_nonce2;
     workers_[client_fd] = std::move(info);
 
     // Send current job if available
@@ -132,6 +139,8 @@ void WorkerManager::on_worker_state(Connection* conn, ConnectionState state) {
         case ConnectionState::ERROR:
         case ConnectionState::DISCONNECTED:
             fprintf(stderr, "[WorkerManager] Worker %d disconnected\n", fd);
+            // Note: EventLoop owns the connection and will clean it up
+            // We just remove our reference to it
             workers_.erase(fd);
             break;
 
