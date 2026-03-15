@@ -663,11 +663,17 @@ in {
     # Direct Kryptex connection (no gpu-proxy - was causing issues)
     mining = {
       lolminer = {
-        pool = "xtm-c29-us.kryptex.network:8040";  # Fallback if pools list empty
+        pool = "10.1.1.130:3334";  # Fallback if pools list empty (Forge gpu-proxy)
         wallet = "krxXVNVMM7.zephyr-gpu";
         pools = [
           {
-            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (primary)
+            url = "10.1.1.130:3334";  # Forge gpu-proxy (primary - handles protocol translation)
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = false;  # Proxy handles TLS upstream
+          }
+          {
+            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (fallback)
             wallet = "krxXVNVMM7.zephyr-gpu";
             password = "x";
             tls = true;  # TLS required for Kryptex
