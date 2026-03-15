@@ -140,13 +140,18 @@ in {
   # ========================================================================
 
   # XMRig HTTP API token - Used to pause/resume mining during builds
+  # Required on all Ryzen nodes (zephyr, nexus, sentry) for build detection
   "xmrig-api-token.age".publicKeys = [
     users.j_kro
     hosts.zephyr
+    hosts.nexus
+    hosts.sentry
   ];
   "secrets/xmrig-api-token.age".publicKeys = [
     users.j_kro
     hosts.zephyr
+    hosts.nexus
+    hosts.sentry
   ];
 
   # Tailscale API key - Tailscale service authentication
