@@ -2,7 +2,6 @@
 #include "connection.hpp"
 #include "stratum.hpp"
 #include "config.hpp"
-#include <memory>
 #include <unordered_map>
 #include <string>
 #include <functional>
@@ -76,7 +75,7 @@ private:
 
     // Connected workers
     struct WorkerInfo {
-        std::unique_ptr<Connection> conn;
+        Connection* conn;  // Non-owning pointer (EventLoop owns the connection)
         std::string worker_id;
         bool subscribed = false;
         bool authorized = false;
