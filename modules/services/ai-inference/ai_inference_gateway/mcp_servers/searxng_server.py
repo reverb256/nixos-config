@@ -111,6 +111,28 @@ class EmptyParams(BaseModel):
     pass
 
 
+class SiteSearchParams(BaseModel):
+    """Parameters for site-specific search."""
+
+    query: Annotated[str, Field(description="Search query string")]
+    max_results: Annotated[
+        int,
+        Field(
+            default=10,
+            description="Maximum number of results to return",
+            ge=1,
+            le=50,
+        ),
+    ]
+    use_cache: Annotated[
+        bool,
+        Field(
+            default=True,
+            description="Use cached results if available",
+        ),
+    ]
+
+
 # ============================================================================
 # TOOL DEFINITIONS
 # ============================================================================
@@ -126,6 +148,51 @@ TOOLS: list[Tool] = [
             "news, science, IT, files, music, map."
         ),
         inputSchema=WebSearchParams.model_json_schema(),
+    ),
+    Tool(
+        name="search_github",
+        description=(
+            "Search GitHub for code, repositories, and developers. "
+            "Finds relevant GitHub repositories, code snippets, and discussions. "
+            "Useful for finding open source libraries, examples, and implementations."
+        ),
+        inputSchema=SiteSearchParams.model_json_schema(),
+    ),
+    Tool(
+        name="search_nixos_options",
+        description=(
+            "Search NixOS configuration options documentation. "
+            "Directly searches the official NixOS options manual for configuration settings. "
+            "Useful for finding the correct NixOS configuration options for services and settings."
+        ),
+        inputSchema=SiteSearchParams.model_json_schema(),
+    ),
+    Tool(
+        name="search_mdn",
+        description=(
+            "Search MDN Web Docs for web development documentation. "
+            "Searches Mozilla Developer Network for HTML, CSS, JavaScript, and web API references. "
+            "Useful for finding accurate web development documentation and examples."
+        ),
+        inputSchema=SiteSearchParams.model_json_schema(),
+    ),
+    Tool(
+        name="search_stackoverflow",
+        description=(
+            "Search Stack Overflow for programming Q&A. "
+            "Finds solutions to common programming problems and errors. "
+            "Useful for troubleshooting and finding practical code solutions."
+        ),
+        inputSchema=SiteSearchParams.model_json_schema(),
+    ),
+    Tool(
+        name="search_reddit",
+        description=(
+            "Search Reddit for community discussions. "
+            "Finds discussions on subreddits for programming, Linux, self-hosting, and more. "
+            "Useful for finding community opinions and real-world experiences."
+        ),
+        inputSchema=SiteSearchParams.model_json_schema(),
     ),
     Tool(
         name="search_stats",
@@ -238,6 +305,73 @@ async def main():
                     lines.append("## Suggestions")
                     for suggestion in result["suggestions"]:
                         lines.append(f"- **{suggestion.get('suggestion', '')}:** {suggestion.get('reason', '')}")
+
+                return [TextContent(
+                    type="text",
+                    text="\n".join(lines)
+                )]
+
+            # Site-specific search handlers
+            elif name in ("search_github", "search_nixos_options", "search_mdn",
+                          "search_stackoverflow", "search_reddit"):
+                params = SiteSearchParams(**arguments)
+
+                # Map tool names to their search sites
+                site_mappings = {
+                    "search_github": ("github.com", "GitHub"),
+                    "search_nixos_options": ("search.nixos.org/options", "NixOS Options"),
+                    "search_mdn": ("developer.mozilla.org", "MDN Web Docs"),
+                    "search_stackoverflow": ("stackoverflow.com", "Stack Overflow"),
+                    "search_reddit": ("reddit.com", "Reddit"),
+                }
+
+                site, site_name = site_mappings.get(name, ("", ""))
+
+                # Build site-specific query
+                site_query = f"site:{site} {params.query}"
+
+                result = await searxng.search(
+                    query=site_query,
+                    category="general",
+                    max_results=params.max_results,
+                    language="all",
+                    time_range=None,
+                    use_cache=params.use_cache,
+                    learning_enabled=True,
+                )
+
+                # Format results for AI consumption
+                if "error" in result:
+                    return [TextContent(
+                        type="text",
+                        text=f"Search Error on {site_name}: {result['error']}"
+                    )]
+
+                if not result.get("results"):
+                    return [TextContent(
+                        type="text",
+                        text=f"No results found on {site_name} for query: '{params.query}'"
+                    )]
+
+                # Build formatted response
+                lines = []
+                lines.append(f"# {site_name} Search Results for: {params.query}")
+                lines.append(f"**Site:** {site}")
+                lines.append(f"**Cached:** {result.get('cached', False)}")
+                lines.append(f"**Engines:** {', '.join(result.get('engines_used', []))}")
+                lines.append("")
+
+                for i, item in enumerate(result.get("results", [])[:params.max_results], 1):
+                    lines.append(f"## {i}. {item.get('title', 'Untitled')}")
+                    lines.append(f"- **URL:** {item.get('url', 'N/A')}")
+                    lines.append(f"- **Engine:** {item.get('engine', 'unknown')}")
+
+                    if item.get('content'):
+                        content = item['content'][:400]
+                        if len(item['content']) > 400:
+                            content += "..."
+                        lines.append(f"- **Snippet:** {content}")
+                    lines.append("")
 
                 return [TextContent(
                     type="text",

@@ -70,6 +70,9 @@
     ./mining/gpu-proxy.nix
     ./mining/gpu-proxy-cpp.nix
 
+    # GPU Resource Marketplace
+    ./compute-market/default.nix
+
     # Services
     ./services/mcp-servers.nix
     ./services/nfs-server.nix
