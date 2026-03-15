@@ -18,6 +18,7 @@
       # Set environment variables
       export EDITOR=nvim
       export VISUAL=nvim
+      export TZ=America/Winnipeg  # User timezone (system time remains UTC)
 
       # Better history
       export HISTSIZE=100000

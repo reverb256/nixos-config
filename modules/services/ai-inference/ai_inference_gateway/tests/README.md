@@ -325,3 +325,122 @@ pytest tests/ --cov=ai_inference_gateway --cov-report=html
 **For more information, see:**
 - Main roadmap: `/etc/nixos/docs/comprehensive-implementation-roadmap.md`
 - Phase 1 summary: `/tmp/phase1-summary.md`
+
+---
+
+# Knowledge Fabric Tests (Phase 4)
+
+## Overview
+
+The Knowledge Fabric tests validate the semantic routing, parallel retrieval, RRF fusion, and context synthesis features.
+
+## Test Environment
+
+**Using Nix Shell (Recommended):**
+
+The Knowledge Fabric tests require pytest with async support. Use the provided Nix shell:
+
+```bash
+cd /etc/nixos/modules/services/ai-inference/ai_inference_gateway
+nix-shell
+```
+
+This enters an isolated environment with all required dependencies:
+- pytest
+- pytest-asyncio
+- pytest-cov
+- pytest-mock
+- pydantic
+- httpx
+- requests
+
+## Running Knowledge Fabric Tests
+
+```bash
+# Run all Knowledge Fabric tests
+pytest tests/test_knowledge_fabric.py tests/test_fabric_routing.py tests/test_fabric_fusion.py tests/test_fabric_sources.py
+
+# Run specific test file
+pytest tests/test_knowledge_fabric.py -v
+
+# Run with coverage
+pytest --cov=ai_inference_gateway.middleware.knowledge_fabric --cov-report=term-missing tests/test_knowledge_fabric.py
+
+# Run with verbose output
+pytest tests/test_knowledge_fabric.py -v -s
+```
+
+## Test Files
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `test_knowledge_fabric.py` | 470 | Main orchestrator, query extraction, parallel retrieval |
+| `test_fabric_routing.py` | 375 | Semantic router intent classification |
+| `test_fabric_fusion.py` | 461 | RRF algorithm and context synthesis |
+| `test_fabric_sources.py` | 464 | RAG, SearXNG, web search, code search adapters |
+
+## Coverage Goals
+
+- Line coverage: >80%
+- Branch coverage: >70%
+- Function coverage: >90%
+
+## Key Test Scenarios
+
+### Semantic Routing
+- CODE intent detection (code keywords, syntax patterns)
+- FACTUAL queries (encyclopedic, definitional)
+- PROCEDURAL queries (how-to, step-by-step)
+- REALTIME queries (current events, prices, weather)
+- COMPARATIVE queries (X vs Y, differences)
+- CONTEXTUAL queries (conversation references)
+
+### Parallel Retrieval
+- Multiple sources queried simultaneously
+- Graceful handling of source failures
+- Query extraction from various message formats
+- Multi-modal content (text + images)
+
+### RRF Fusion
+- Single source fusion
+- Multi-source deduplication
+- Rank score calculation verification
+- Empty result handling
+
+### Source Adapters
+- RAG: search service integration
+- SearXNG: web meta-search with categories
+- Web search: MCP JSON-RPC format
+- Code search: file globbing and content matching
+
+## Troubleshooting Knowledge Fabric Tests
+
+### Import errors for knowledge_fabric module
+
+```bash
+# Ensure you're in the correct directory
+cd /etc/nixos/modules/services/ai-inference/ai_inference_gateway
+nix-shell  # Enters environment with all dependencies
+```
+
+### Tests fail with "No module named 'pytest'"
+
+```bash
+# Use nix-shell instead of system Python
+nix-shell
+pytest tests/
+```
+
+### Async tests hang or timeout
+
+```bash
+# Use pytest-asyncio (included in nix-shell)
+pytest tests/test_knowledge_fabric.py --timeout=30
+```
+
+### Mock objects not behaving as expected
+
+The tests use `unittest.mock.Mock` and `AsyncMock`. Ensure:
+- Mock return values are set with `return_value=`
+- Async functions use `AsyncMock(return_value=...)`
+- Patch paths match actual import locations

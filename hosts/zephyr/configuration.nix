@@ -868,6 +868,14 @@ in {
         group = "users";
       };
 
+      # Context7 API key - Documentation search for AI tools
+      context7-api-key = {
+        file = "${inputs.self}/secrets/context7-api-key.age";
+        mode = "440";
+        owner = "ai-inference";
+        group = "ai-inference";
+      };
+
       # GlitchTip error tracking secrets
       glitchtip-db-password = {
         file = "${inputs.self}/secrets/glitchtip-db-password.age";
