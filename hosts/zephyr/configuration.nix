@@ -567,26 +567,20 @@
     };
 
     # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
-    # Multi-pool failover: Nexus proxy first, then direct Kryptex US/EU
+    # Direct Kryptex connection (no gpu-proxy - was causing issues)
     mining = {
       lolminer = {
         pool = "xtm-c29-us.kryptex.network:8040";  # Fallback if pools list empty
         wallet = "krxXVNVMM7.zephyr-gpu";
         pools = [
           {
-            url = "10.1.1.120:3334";  # gpu-proxy on Nexus (primary)
-            wallet = "krxXVNVMM7.zephyr-gpu";
-            password = "x";
-            tls = false;  # No TLS for local proxy
-          }
-          {
-            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (fallback)
+            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (primary)
             wallet = "krxXVNVMM7.zephyr-gpu";
             password = "x";
             tls = true;  # TLS required for Kryptex
           }
           {
-            url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback 2)
+            url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback)
             wallet = "krxXVNVMM7.zephyr-gpu";
             password = "x";
             tls = true;  # TLS required for Kryptex
