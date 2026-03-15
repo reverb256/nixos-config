@@ -292,6 +292,7 @@
     # Compute Workload Monitor - Use conservative profile for memory-constrained system
     # Zephyr has 31GB RAM and runs AI workloads - earlier intervention needed
     compute-workload-monitor = {
+      enable = true;
       profile = "conservative"; # Lower PSI thresholds for earlier build/mining pause
     };
 
