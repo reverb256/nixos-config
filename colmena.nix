@@ -29,6 +29,16 @@
 
     # Overlays configuration - applies overlays.default to all hosts
     {nixpkgs.overlays = [self.overlays.default];}
+
+    # Agenix identity paths - use Syncthing-synced location
+    # Priority: /etc/nixos/.age/key.txt (synced) > /etc/age/key.txt (system) > /home/j_kro/.age/key.txt (local)
+    {
+      age.identityPaths = [
+        "/etc/nixos/.age/key.txt"
+        "/etc/age/key.txt"
+        "/home/j_kro/.age/key.txt"
+      ];
+    }
   ];
 
   # ========================================================================

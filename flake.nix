@@ -111,6 +111,23 @@
       # See: modules/system/home-manager.nix for useGlobalPkgs setting
       # ========================================================================
       {nixpkgs.overlays = [self.overlays.default];}
+
+      # ========================================================================
+      # AGENIX IDENTITY PATHS - Cluster-wide secret decryption
+      # ========================================================================
+      # Priority: Syncthing-synced > System > Home directory
+      #
+      # /etc/nixos/.age/key.txt - Synced via Syncthing across all hosts
+      # /etc/age/key.txt - System location (fallback, populated by activation script)
+      # /home/j_kro/.age/key.txt - Original location (Zephyr only)
+      # ========================================================================
+      {
+        age.identityPaths = [
+          "/etc/nixos/.age/key.txt"
+          "/etc/age/key.txt"
+          "/home/j_kro/.age/key.txt"
+        ];
+      }
     ];
 
     # ========================================================================
