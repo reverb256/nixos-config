@@ -75,6 +75,7 @@ in {
       after = [
         "network.target"
         "network-online.target"
+        "searx.service"
       ];
       wants = ["network-online.target"];
       wantedBy = ["multi-user.target"];
@@ -148,6 +149,9 @@ in {
           lib.optionalString (cfg.sentry.dsnFile != null) cfg.sentry.dsnFile;
         SENTRY_ENVIRONMENT = cfg.sentry.environment;
         SENTRY_TRACES_SAMPLE_RATE = builtins.toString cfg.sentry.tracesSampleRate;
+        # SearXNG search integration
+        SEARXNG_ENABLED = "true";
+        SEARXNG_CACHE_TTL = "300";  # 5 minutes
       };
 
       serviceConfig = {
