@@ -270,24 +270,18 @@
         tls = false; # No TLS needed for local proxy
       };
 
-      # GPU mining configuration (shared by NVIDIA)
-      # Multi-pool failover: local proxy first, then direct Kryptex
+      # GPU mining configuration - direct Kryptex connection
+      # Multi-pool failover: US primary, EU fallback
       lolminer = {
         pools = [
           {
-            url = "127.0.0.1:3334";  # Local gpu-proxy (primary)
-            wallet = "krxXVNVMM7.nexus-gpu";
-            password = "x";
-            tls = false;  # No TLS for local proxy
-          }
-          {
-            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (fallback)
+            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (primary)
             wallet = "krxXVNVMM7.nexus-gpu";
             password = "x";
             tls = true;  # TLS required for Kryptex
           }
           {
-            url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback 2)
+            url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback)
             wallet = "krxXVNVMM7.nexus-gpu";
             password = "x";
             tls = true;  # TLS required for Kryptex
