@@ -347,44 +347,44 @@
 
     # GPU Proxy - DISABLED: Using centralized gpu-proxy-cpp on Forge (10.1.1.130:3334)
     # gpu-proxy = {
-    #   enable = false;  # Disabled - using Forge's centralized proxy
-      listenPort = 3334;
-      apiPort = 8083;
-      logLevel = "INFO";
-      pools = [
-        {
-          name = "Kryptex US";
-          url = "xtm-c29-us.kryptex.network:8040";
-          wallet = "krxXVNVMM7";
-          password = "x";
-          priority = 1;
-          tls = true;  # TLS required for port 8040
-        }
-        {
-          name = "Kryptex EU";
-          url = "xtm-c29-eu.kryptex.network:8040";
-          wallet = "krxXVNVMM7";
-          password = "x";
-          priority = 2;
-          tls = true;  # TLS required for port 8040
-        }
-      ];
-      workers = [
-        {
-          id = "krxXVNVMM7.nexus-gpu";
-          password = "x";
-        }
-        {
-          id = "krxXVNVMM7.zephyr-gpu";
-          password = "x";
-        }
-        {
-          id = "krxXVNVMM7.forge-gpu";
-          password = "x";
-        }
-      ];
-      openFirewall = true;
-    };
+    #   enable = false;
+    #   listenPort = 3334;
+    #   apiPort = 8083;
+    #   logLevel = "INFO";
+    #   pools = [
+    #     {
+    #       name = "Kryptex US";
+    #       url = "xtm-c29-us.kryptex.network:8040";
+    #       wallet = "krxXVNVMM7";
+    #       password = "x";
+    #       priority = 1;
+    #       tls = true;
+    #     }
+    #     {
+    #       name = "Kryptex EU";
+    #       url = "xtm-c29-eu.kryptex.network:8040";
+    #       wallet = "krxXVNVMM7";
+    #       password = "x";
+    #       priority = 2;
+    #       tls = true;
+    #     }
+    #   ];
+    #   workers = [
+    #     {
+    #       id = "krxXVNVMM7.nexus-gpu";
+    #       password = "x";
+    #     }
+    #     {
+    #       id = "krxXVNVMM7.zephyr-gpu";
+    #       password = "x";
+    #     }
+    #     {
+    #       id = "krxXVNVMM7.forge-gpu";
+    #       password = "x";
+    #     }
+    #   ];
+    #   openFirewall = true;
+    # };
 
     # MCP servers
     mcp-servers = {
