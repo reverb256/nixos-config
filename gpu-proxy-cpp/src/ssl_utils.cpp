@@ -2,12 +2,14 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <sys/socket.h>
+#include <poll.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
 #include <netdb.h>
+#include <cstdio>
 
 namespace gpu_proxy {
 
@@ -26,8 +28,9 @@ bool TLSConnection::create_ssl_context() {
         return false;
     }
 
-    // Set minimum protocol version to TLS 1.2
+    // Set protocol version to TLS 1.2 only (Kryptex may not like 1.3)
     SSL_CTX_set_min_proto_version(ctx_, TLS1_2_VERSION);
+    SSL_CTX_set_max_proto_version(ctx_, TLS1_2_VERSION);
 
     // Set cipher list for maximum compatibility
     // This matches xmrig-proxy settings
@@ -49,8 +52,8 @@ bool TLSConnection::perform_ssl_handshake() {
         return false;
     }
 
-    // Set SNI hostname
-    SSL_set_tlsext_host_name(ssl_, host_.c_str());
+    // Set SNI hostname - Kryptex expects "kryptex.com" not the pool subdomain
+    SSL_set_tlsext_host_name(ssl_, "kryptex.com");
 
     // Create SSL file descriptor
     if (!SSL_set_fd(ssl_, socket_fd_)) {
@@ -157,23 +160,46 @@ std::string TLSConnection::recv_line(int timeout_sec) {
     std::string result;
     char buf[1024];
 
+    // Use poll() for timeout with better granularity
+    struct pollfd pfd;
+    pfd.fd = socket_fd_;
+    pfd.events = POLLIN;
+
+    int poll_ret = poll(&pfd, 1, timeout_sec * 1000);
+    if (poll_ret <= 0) {
+        if (poll_ret == 0) {
+            fprintf(stderr, "Poll timeout after %d seconds\n", timeout_sec);
+        } else {
+            fprintf(stderr, "Poll error\n");
+        }
+        return "";
+    }
+
     while (true) {
         int received = SSL_read(ssl_, buf, sizeof(buf) - 1);
         if (received <= 0) {
             int err = SSL_get_error(ssl_, received);
             if (err == SSL_ERROR_ZERO_RETURN) {
                 // Clean shutdown
+                fprintf(stderr, "SSL: Clean shutdown\n");
                 break;
             }
-            if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
-                // In non-blocking mode, would retry
+            if (err == SSL_ERROR_WANT_READ) {
+                // Need more data
                 continue;
             }
-            // Error
+            if (err == SSL_ERROR_WANT_WRITE) {
+                // Need to write first
+                continue;
+            }
+            // Error - print debug info
+            fprintf(stderr, "SSL_read error: received=%d, ssl_err=%d\n", received, err);
+            ERR_print_errors_fp(stderr);
             break;
         }
 
         buf[received] = '\0';
+        fprintf(stderr, "SSL_read: received %d bytes: %s\n", received, buf);
         result += buf;
 
         // Check if we have a complete line

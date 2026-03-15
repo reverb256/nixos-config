@@ -35,30 +35,24 @@ int main(int argc, char* argv[]) {
 
         std::cout << "Connected successfully!" << std::endl;
 
-        // Send subscribe
+        // Send subscribe immediately (some pools require this before authorize)
         std::string subscribe_msg = R"({"id": 1, "method": "mining.subscribe", "params": ["gpu-proxy/2.0", null]})";
         if (conn.send_line(subscribe_msg)) {
             std::cout << "Sent subscribe" << std::endl;
         }
 
-        // Wait for response
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-        std::string response = conn.recv_line();
-        if (!response.empty()) {
-            std::cout << "Received: " << response << std::endl;
-        }
-
-        // Send authorize
+        // Small delay then send authorize
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         std::string auth_msg = R"({"id": 2, "method": "mining.authorize", "params":[")"
             + pool.wallet + R"(", "x"]})";
         if (conn.send_line(auth_msg)) {
-            std::cout << "Sent authorize" << std::endl;
+            std::cout << "Sent authorize for " << pool.wallet << std::endl;
         }
 
-        // Wait for more responses
-        for (int i = 0; i < 10; i++) {
+        // Now wait for responses
+        for (int i = 0; i < 15; i++) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
-            std::string line = conn.recv_line();
+            std::string line = conn.recv_line(5);
             if (!line.empty()) {
                 std::cout << "Received: " << line << std::endl;
             }
