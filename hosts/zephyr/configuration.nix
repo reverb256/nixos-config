@@ -1021,33 +1021,14 @@ in {
   # ============================================================================
 
   # ============================================================================
-  # PER-GPU POWER LIMITS (RTX 3090 + 3060 Ti)
+  # PER-GPU POWER LIMITS
   # ============================================================================
-  # RTX 3060 Ti (GPU 0): 100W for efficient mining
-  systemd.services."gpu-0-power-limit" = {
-    description = "Set RTX 3060 Ti power limit to 100W";
-    wantedBy = ["multi-user.target"];
-    before = ["lolminer-nvidia.service"];
-    requiredBy = ["lolminer-nvidia.service"];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 0 -pl 100";
-    };
-  };
-
-  # RTX 3090 (GPU 1): 200W for balanced performance/efficiency
-  systemd.services."gpu-1-power-limit" = {
-    description = "Set RTX 3090 power limit to 200W";
-    wantedBy = ["multi-user.target"];
-    before = ["lolminer-nvidia.service"];
-    requiredBy = ["lolminer-nvidia.service"];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 1 -pl 200";
-    };
-  };
+  # NOTE: Power limits are now managed by the mining.nix module via
+  # nvidia-gpu-power-limit.service using perGpuPowerLimits configuration.
+  # The old gpu-0-power-limit and gpu-1-power-limit services have been
+  # removed to avoid conflicts. Current limits: 3060 Ti @ 130W, 3090 @ 250W.
+  #
+  # See: modules/mining/mining.nix -> nvidia-gpu-power-limit.service
 
   # Mining plasmoid for KDE Plasma
   #programs.mining-plasmoid.enable = true;  # TODO: Requires plasmoids/mining-monitor

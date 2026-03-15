@@ -1023,25 +1023,24 @@
 
                   case "$gpu_name" in
                       *"3060"*)
-                          # 3060 Ti: Efficiency-focused
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 100
+                          # 3060 Ti: Use mining module's power limits (don't override)
+                          # Power limits are set by nvidia-gpu-power-limit.service from mining.nix
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1700
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 5200
-                          echo "  3060 Ti: 1700 MHz GPU, 5200 MHz mem, 100W limit"
+                          echo "  3060 Ti: 1700 MHz GPU, 5200 MHz mem (power limit from mining module)"
                           ;;
                       *"3090"*)
-                          # 3090: Efficiency with liquid cooling
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 270
+                          # 3090: Use mining module's power limits (don't override)
+                          # Power limits are set by nvidia-gpu-power-limit.service from mining.nix
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1750
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6500
-                          echo "  3090: 1750 MHz GPU (liquid-cooled), 6500 MHz mem, 270W limit"
+                          echo "  3090: 1750 MHz GPU (liquid-cooled), 6500 MHz mem (power limit from mining module)"
                           ;;
                       *)
-                          # Default: Efficiency
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
+                          # Default: Don't override power limits, let mining module manage
                           nvidia_safe nvidia-smi -i "$gpu_id" -rgc
-                          nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-                          echo "  $gpu_name: Default efficiency profile"
+                          nvidia-safe nvidia-smi -i "$gpu_id" -rmc
+                          echo "  $gpu_name: Default efficiency profile (power limit from mining module)"
                           ;;
                   esac
               done
