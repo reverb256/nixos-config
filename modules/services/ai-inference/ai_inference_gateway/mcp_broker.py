@@ -887,16 +887,33 @@ class MCPBroker:
                         text=True,
                     )
                     if result.returncode == 0:
+                        gateway_pkg = None
+                        gateway_python = None
                         for line in result.stdout.splitlines():
-                            if "ai-inference-gateway-modular-pkg" in line:
-                                # Add the package to PYTHONPATH
-                                pythonpath = env.get("PYTHONPATH", "")
-                                if pythonpath:
-                                    env["PYTHONPATH"] = f"{line}:{pythonpath}"
-                                else:
-                                    env["PYTHONPATH"] = line
-                                logger.debug(f"Added {line} to PYTHONPATH for {server.name}")
-                                break
+                            if "ai-inference-gateway-modular-pkg-v7" in line and not "base" in line:
+                                gateway_pkg = line
+                            elif "python3.*-env" in line or "python3-3.13.12-env" in line:
+                                # Check if this Python has mcp (gateway Python)
+                                mcp_check = subprocess.run(
+                                    ["ls", f"{line}/lib/python3.13/site-packages/mcp"],
+                                    capture_output=True,
+                                )
+                                if mcp_check.returncode == 0:
+                                    gateway_python = line
+
+                        # Build PYTHONPATH with both paths
+                        pythonpath_parts = []
+                        if gateway_pkg:
+                            pythonpath_parts.append(gateway_pkg)
+                        if gateway_python:
+                            pythonpath_parts.append(f"{gateway_python}/lib/python3.13/site-packages")
+
+                        if pythonpath_parts:
+                            existing_pythonpath = env.get("PYTHONPATH", "")
+                            if existing_pythonpath:
+                                pythonpath_parts.append(existing_pythonpath)
+                            env["PYTHONPATH"] = ":".join(pythonpath_parts)
+                            logger.debug(f"Set PYTHONPATH for {server.name}: {env['PYTHONPATH'][:200]}...")
                 except Exception as e:
                     logger.warning(f"Failed to add PYTHONPATH for {server.name}: {e}")
 
