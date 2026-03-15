@@ -24,12 +24,22 @@
     '';
 
   # Python environment for SearXNG MCP server
-  # Use symlinkJoin to combine the base Python with the gateway package
+  # Use makeWrapper to set PYTHONPATH
   searxngPythonBase = pkgs.python3.withPackages (ps: [ ps.mcp ]);
-  searxngPython = pkgs.symlinkJoin {
-    name = "searxng-python-with-gateway";
-    paths = [ searxngPythonBase gatewayPythonPkg ];
-  };
+  searxngPython = pkgs.runCommand "searxng-python-with-gateway"
+    {
+      preferLocalBuild = true;
+      buildInputs = [ pkgs.makeWrapper ];
+      buildCommand = ''
+        mkdir -p $out/bin
+        ln -s ${searxngPythonBase}/bin/* $out/bin/
+        rm $out/bin/python3 $out/bin/python3.*
+        ln -s ${searxngPythonBase}/bin/python3.* $out/bin/python3
+        wrapProgram $out/bin/python3 \
+          --prefix PYTHONPATH : ${gatewayPythonPkg}/lib/python3.13/site-packages \
+          --prefix PYTHONPATH : ${searxngPythonBase}/lib/python3.13/site-packages
+      '';
+    };
 in {
   imports = [
     # ========================================================================
