@@ -148,7 +148,7 @@
     };
 
     # C++ GPU Stratum Proxy with Monero Stratum protocol support
-    # Translates between Bitcoin Stratum (lolMiner) and Monero Stratum (Kryptex)
+    # Translates between Monero Stratum (lolMiner/CR29) and Monero Stratum (Kryptex)
     gpu-proxy-cpp = {
       enable = true;
       listenPort = 3334;
@@ -174,7 +174,7 @@
       ];
       workers = [
         {
-          id = "forge-gpu";
+          id = "krxXVNVMM7.forge-gpu";
           password = "x";
         }
       ];
