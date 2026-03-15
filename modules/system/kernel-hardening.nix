@@ -58,7 +58,7 @@
     # Benefits: Faster than SSD swap, less SSD wear, better for AI/ML workloads
     "zswap.enabled=1"
     "zswap.compressor=zstd" # Best compression ratio (zstd > lzo > lz4)
-    "zswap.max_pool_percent=20" # Use up to 20% of RAM for compressed swap
+    "zswap.max_pool_percent=40" # Use up to 40% of RAM for compressed swap (~12GB cache)
     "zswap.zpool=z3fold" # Better allocator than default zbud
 
     # ============================================================================
