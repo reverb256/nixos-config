@@ -143,6 +143,7 @@
           };
         };
         proxy.enable = true;
+        proxy.extraOpts = "--cluster-cidr=10.244.0.0/16";
         # Flannel runs as DaemonSet in Kubernetes, not as systemd service
         # flannel.enable = true;  # Disabled: causes systemd symlink conflict
       };
@@ -278,6 +279,23 @@
           allowedUDPPorts = [ 8472 ]; # Flannel VXLAN
         }
       ];
+
+      # Fix Flannel firewall rules for pod CIDR migration
+      # Flannel creates FLANNEL-FWD chain with old CIDR (10.1.0.0/16)
+      # This script updates it to use new CIDR (10.244.0.0/16)
+      networking.firewall.extraCommands = ''
+        # Update FLANNEL-FWD chain for new pod CIDR
+        if iptables -L FLANNEL-FWD -n &>/dev/null; then
+          # Delete old rules with 10.1.0.0/16 CIDR
+          iptables -D FLANNEL-FWD -s 10.1.0.0/16 -j ACCEPT 2>/dev/null || true
+          iptables -D FLANNEL-FWD -d 10.1.0.0/16 -j ACCEPT 2>/dev/null || true
+          # Add new rules with 10.244.0.0/16 CIDR
+          iptables -C FLANNEL-FWD -s 10.244.0.0/16 -j ACCEPT 2>/dev/null || \
+            iptables -I FLANNEL-FWD 1 -s 10.244.0.0/16 -j ACCEPT -m comment --comment "flanneld forward"
+          iptables -C FLANNEL-FWD -d 10.244.0.0/16 -j ACCEPT 2>/dev/null || \
+            iptables -I FLANNEL-FWD 2 -d 10.244.0.0/16 -j ACCEPT -m comment --comment "flanneld forward"
+        fi
+      '';
 
       # ============================================================================
       # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
