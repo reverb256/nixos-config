@@ -24,8 +24,9 @@
 
       const servicesList = document.getElementById('services');
       if (servicesList && Object.keys(services).length > 0) {
-        servicesList.innerHTML = '';
-        Object.values(services).forEach(function(service) {
+        servicesList.innerHTML = "";
+        for (const key in services) {
+          const service = services[key];
           const li = document.createElement('li');
           li.className = 'service-item';
 
@@ -40,7 +41,7 @@
           li.appendChild(nameSpan);
           li.appendChild(statusSpan);
           servicesList.appendChild(li);
-        });
+        }
       } else {
         if (servicesList) {
           servicesList.innerHTML = '<li class="service-item"><span class="service-name">No services configured</span></li>';
