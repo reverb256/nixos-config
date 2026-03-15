@@ -32,6 +32,7 @@
     ./system/btrfs-tuning.nix
     ./system/compute-workload-monitor.nix
     ./system/compute-workload-monitor-profiles.nix
+    ./system/xmrig-api-control.nix
 
     # Security
     ./security/pam-vaultwarden.nix
@@ -66,6 +67,7 @@
     ./mining/xmrig-proxy.nix
     ./mining/mining-proxy.nix
     ./mining/gpu-proxy.nix
+    ./mining/gpu-proxy-cpp.nix
 
     # Services
     ./services/mcp-servers.nix

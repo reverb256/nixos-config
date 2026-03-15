@@ -35,6 +35,7 @@
         systemd # systemctl
         kubernetes # kubectl for Kubernetes GPU workload detection
         bc # for floating point arithmetic in nix-daemon CPU detection
+        curl # for XMRig HTTP API control
       ];
 
       serviceConfig = {
@@ -564,6 +565,7 @@
           get_xmrig_gaming_threads() {
               local host=$(get_hostname)
               case "$host" in
+                  zephyr) echo "6" ;;   # ~19% of 32 threads - always mining
                   nexus)  echo "4" ;;   # 17% of 24 threads
                   sentry) echo "4" ;;   # 25% of 16 threads
                   *)      echo "4" ;;   # Conservative default
@@ -573,6 +575,7 @@
           get_xmrig_idle_threads() {
               local host=$(get_hostname)
               case "$host" in
+                  zephyr) echo "20" ;;  # ~63% of 32 threads
                   nexus)  echo "12" ;;  # 50% of 24 threads
                   sentry) echo "8" ;;   # 50% of 16 threads
                   *)      echo "8" ;;   # Conservative default
@@ -614,15 +617,54 @@
               log "Reset XMRig (PID $xmrig_pid) CPU affinity to all cores"
           }
 
+          # ============================================================================
+          # XMRIG HTTP API CONTROL (via xmrig-api-control helper)
+          # ============================================================================
+          # Uses the modular xmrig-api-control script for pause/resume/thread control
+          # ============================================================================
+          
           pause_xmrig() {
-              log "Pausing XMRig completely"
-              systemctl stop xmrig
+              log "Pausing XMRig via HTTP API"
+              if systemctl is-active --quiet xmrig; then
+                  if xmrig-api-control pause; then
+                      log "XMRig paused via HTTP API"
+                  else
+                      log "HTTP API pause failed, stopping service"
+                      systemctl stop xmrig
+                  fi
+              fi
           }
 
           resume_xmrig() {
-              local threads=$1
-              log "Resuming XMRig with $threads threads"
-              systemctl start xmrig
+              local threads="''$1"
+              log "Resuming XMRig via HTTP API (threads: ''${threads:-auto})"
+              if ! systemctl is-active --quiet xmrig; then
+                  systemctl start xmrig
+                  sleep 2
+              fi
+              if xmrig-api-control resume; then
+                  log "XMRig resumed via HTTP API"
+                  if [ -n "''$threads" ]; then
+                      log "Setting XMRig threads to ''$threads"
+                      xmrig-api-control threads "''$threads"
+                  fi
+              else
+                  log "HTTP API resume failed, using CPUQuota method"
+                  systemctl set-property xmrig.service CPUQuota="100%" --runtime 2>/dev/null || true
+              fi
+          }
+          
+          set_xmrig_threads() {
+              local target_threads="''$1"
+              log "Setting XMRig threads to ''$target_threads via HTTP API"
+              if systemctl is-active --quiet xmrig; then
+                  xmrig-api-control threads "''$target_threads"
+              fi
+          }
+          
+          # Get XMRig status for state tracking
+          xmrig_status() {
+              xmrig-api-control status 2>/dev/null || echo "unknown"
           }
 
           # VRAM pressure detection to prevent desktop freezes
@@ -839,10 +881,19 @@
                   systemctl stop lolminer-amd
               fi
 
-              # Reduce CPU mining to 25% (free CPU for game logic)
+              # Reduce CPU mining during gaming
+              # On zephyr: use HTTP API to reduce thread count (more elegant than CPUQuota)
+              # On other hosts: use CPUQuota method
               if systemctl is-active --quiet xmrig; then
-                  log "Limiting xmrig to 25% CPU for gaming"
-                  systemctl set-property xmrig.service CPUQuota="25%" --runtime 2>/dev/null || true
+                  local host=$(get_hostname)
+                  if [ "$host" = "zephyr" ]; then
+                      local gaming_threads=$(get_xmrig_gaming_threads)
+                      log "Reducing xmrig to $gaming_threads threads on zephyr for gaming"
+                      set_xmrig_threads "$gaming_threads"
+                  else
+                      log "Limiting xmrig to 25% CPU for gaming"
+                      systemctl set-property xmrig.service CPUQuota="25%" --runtime 2>/dev/null || true
+                  fi
               fi
           }
 
@@ -923,6 +974,13 @@
                   echo "Detected $gpu_count GPU(s) for builds profile"
               fi
 
+              # Detect if we're on a Ryzen node (should pause xmrig during builds)
+              local host=$(get_hostname)
+              local is_ryzen_node=false
+              case "$host" in
+                  zephyr|nexus|sentry) is_ryzen_node=true ;;
+              esac
+
               # Reduce GPU mining to 10% (builds may need GPU for CUDA/heavy workloads)
               if systemctl is-active --quiet lolminer-nvidia; then
                   log "Limiting lolminer-nvidia to 10% CPU for builds"
@@ -934,10 +992,16 @@
                   systemctl set-property lolminer-amd.service CPUQuota="10%" --runtime 2>/dev/null || true
               fi
 
-              # Reduce CPU mining to 10% (builds need maximum CPU)
+              # PAUSE CPU mining on Ryzen nodes (builds need maximum CPU)
+              # Use HTTP API pause for clean suspend without restart
               if systemctl is-active --quiet xmrig; then
-                  log "Limiting xmrig to 10% CPU for builds"
-                  systemctl set-property xmrig.service CPUQuota="10%" --runtime 2>/dev/null || true
+                  if [ "$is_ryzen_node" = true ]; then
+                      log "PAUSING xmrig completely on Ryzen node during builds"
+                      pause_xmrig
+                  else
+                      log "Limiting xmrig to 10% CPU on non-Ryzen node during builds"
+                      systemctl set-property xmrig.service CPUQuota="10%" --runtime 2>/dev/null || true
+                  fi
               fi
 
               # Ensure nix-daemon gets high priority for builds
@@ -946,7 +1010,7 @@
                   systemctl set-property nix-daemon.service CPUWeight=2048 --runtime
               fi
 
-              echo "BUILDS profile applied: Mode: 10% mining, builds get priority"
+              echo "BUILDS profile applied: Mode: $([ "$is_ryzen_node" = true ] && echo "PAUSED xmrig" || echo "10% mining"), builds get priority"
           }
 
           apply_mining_profile() {
@@ -1008,7 +1072,15 @@
                   local idle_threads=$(get_xmrig_idle_threads)
                   log "Resetting xmrig to 100% CPU ($idle_threads threads)"
                   systemctl set-property xmrig.service CPUQuota="100%" --runtime 2>/dev/null || true
-                  reset_xmrig_threads "$idle_threads"
+                  
+                  # Use HTTP API to resume if it was paused
+                  local current_status=$(xmrig_status)
+                  if [ "$current_status" = "paused" ]; then
+                      log "XMRig is paused, resuming via HTTP API"
+                      resume_xmrig "$idle_threads"
+                  else
+                      reset_xmrig_threads "$idle_threads"
+                  fi
               fi
 
               # Start GPU mining if not running AND no VRAM pressure
