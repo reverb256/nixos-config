@@ -8,7 +8,54 @@
   cfg = config.services.ai-inference;
   inherit (lib) mkIf;
 
-  # Python environment with gateway dependencies (including RAG)
+  # Gateway source directory
+  gatewaySrc = ./ai_inference_gateway;
+
+  # Gateway package (plain files, not a Python package yet)
+  # Used for --app-dir in uvicorn
+  modularGatewayPkgBase = pkgs.runCommand "ai-inference-gateway-modular-pkg-base"
+    {
+      preferLocalBuild = true;
+      passAsFile = ["buildScript"];
+      buildScript = ''
+        mkdir -p $out/ai_inference_gateway
+        # Copy the entire modular gateway package
+        cp -r ${gatewaySrc}/. $out/ai_inference_gateway/
+        # Fix permissions
+        chmod -R u+w $out/ai_inference_gateway
+        # Remove compiled Python files
+        find $out -name "*.pyc" -delete
+        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+      '';
+    }
+    ''
+      . $buildScriptPath
+    '';
+
+  # Gateway as a proper Python package (installable in site-packages)
+  # This allows `import ai_inference_gateway` without --app-dir
+  modularGatewayPkgPython = pkgs.runCommand "ai-inference-gateway-modular-pkg-python"
+    {
+      preferLocalBuild = true;
+      passAsFile = ["buildScript"];
+      buildScript = ''
+        # Create site-packages structure
+        mkdir -p $out/lib/python3.13/site-packages
+        # Copy gateway package to site-packages
+        cp -r ${gatewaySrc}/. $out/lib/python3.13/site-packages/ai_inference_gateway
+        # Fix permissions
+        chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
+        # Remove compiled Python files
+        find $out -name "*.pyc" -delete
+        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+      '';
+    }
+    ''
+      . $buildScriptPath
+    '';
+
+  # Python environment with gateway dependencies AND the gateway package
+  # The gateway package is added as an extra package
   gatewayPython = pkgs.python3.withPackages (ps: [
     ps.fastapi
     ps.uvicorn
@@ -34,44 +81,25 @@
     ps.sentry-sdk
     # MCP SDK for SearXNG MCP server integration
     ps.mcp
-  ]);
+  ] ++ [ modularGatewayPkgPython ]);
 
-  # Gateway main.py v2
-
-  # Gateway __init__.py
-
-  # Gateway package directory (OLD - monolithic)
-  # Kept for rollback if needed
-
-  # Modular gateway package (NEW - with middleware pipeline architecture)
-  # Production-ready with rate limiting, circuit breaker, security, observability
-  # Now using OpenAI SDK for better backend communication
-  modularGatewayPkg = let
-    gatewaySrc = ./ai_inference_gateway;
-  in
-    pkgs.runCommand "ai-inference-gateway-modular-pkg-v7"
-    {
-      preferLocalBuild = true;
-      passAsFile = ["buildScript"];
-      buildScript = ''
-        mkdir -p $out/ai_inference_gateway
-        # Copy the entire modular gateway package
-        cp -r ${gatewaySrc}/. $out/ai_inference_gateway/
-        # Fix permissions
-        chmod -R u+w $out/ai_inference_gateway
-        # Remove compiled Python files
-        find $out -name "*.pyc" -delete
-        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-      '';
-    }
-    ''
-      . $buildScriptPath
-    '';
+  # Combined package: gateway source + Python environment in one
+  # This allows both --app-dir usage and direct imports
+  modularGatewayPkg = pkgs.symlinkJoin {
+    name = "ai-inference-gateway-modular-pkg-v7";
+    paths = [
+      modularGatewayPkgBase
+      gatewayPython
+    ];
+  };
 
   # Use modular gateway by default (set to false to use old monolithic version)
   gatewayPkg = modularGatewayPkg;
 in {
   config = mkIf (cfg.enable && cfg.gateway.enable) {
+    # Expose the gateway Python environment for use by MCP servers
+    services.ai-inference.gateway.python = gatewayPython;
+
     systemd.services.ai-inference-gateway = {
       description = "AI Inference API Gateway v2";
       after = [
