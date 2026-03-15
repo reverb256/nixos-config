@@ -25,8 +25,9 @@ in {
       hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
     })
 
-    (lib.mkIf cfg.nvidia.enable {
+        (lib.mkIf cfg.nvidia.enable {
       hardware.nvidia-common.enable = true;
+      hardware.nvidia.wayland.enable = true;
       boot.kernelModules = ["nvidia" "nvidia_uvm" "nvidia_drm" "nvidia_modeset"];
     })
 
@@ -35,9 +36,13 @@ in {
         kernelModules = ["amdgpu"];
         initrd.kernelModules = ["amdgpu"];
       };
+      # Note: hardware.amdgpu.wayland option removed in newer nixpkgs
+      # Using direct amdgpu module configuration instead
+      # Enable ROCm OpenCL for compute workloads
+      hardware.amdgpu.opencl.enable = true;
     })
 
-    (lib.mkIf (cfg.nvidia.multiGpu || cfg.amdgpu.wayland) {
+    (lib.mkIf cfg.nvidia.multiGpu {
       environment.sessionVariables = lib.mkMerge [
         (lib.mkIf cfg.nvidia.multiGpu {
           CUDA_VISIBLE_DEVICES = "0,1";
@@ -46,9 +51,8 @@ in {
           NCCL_IB_DISABLE = "1";
           NCCL_ALGO = "Tree";
         })
-        (lib.mkIf cfg.amdgpu.wayland {
-          ROC_ENABLE_PRE_VEGA = "1";
-        })
+        # AMDGPU Wayland-specific environment vars removed
+        # (hardware.amdgpu.wayland option no longer exists)
       ];
     })
 

@@ -51,7 +51,8 @@ in {
       open = cfg.openModules;
       modesetting.enable = true;
       nvidiaSettings = true;
-      powerManagement.enable = cfg.powerManagement;
+      # Use mkForce to override nvidia-common.nix default (false → true)
+      powerManagement.enable = lib.mkForce cfg.powerManagement;
       powerManagement.finegrained = false;
       gsp.enable = cfg.openModules;
     };
