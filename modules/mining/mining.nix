@@ -353,7 +353,7 @@ in {
                   --pool ${p.url} \
                   --user ${p.wallet} \
                   --pass ${p.password} \
-                  ${lib.optionalString p.tls "--tls on"} \
+                  --tls ${if p.tls then "on" else "off"} \
                 '') pools;
 
                 # Use pools list if provided, otherwise fall back to single pool config
@@ -403,7 +403,7 @@ in {
                   --pool ${p.url} \
                   --user ${p.wallet} \
                   --pass ${p.password} \
-                  ${lib.optionalString p.tls "--tls on"} \
+                  --tls ${if p.tls then "on" else "off"} \
                 '') pools;
 
                 poolsToUse = if cfg.lolminer.pools != [] then cfg.lolminer.pools else [
