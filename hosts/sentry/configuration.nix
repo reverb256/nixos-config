@@ -103,6 +103,26 @@
       interface = "enp7s0";
       priority = 90;
     };
+
+    # Host Dashboard - Web interface for cluster host status
+    host-dashboard = {
+      enable = true;
+      role = "control-plane + monitoring";
+      port = 8090;
+      prometheusUrl = "http://127.0.0.1:9090";
+      featuredServices = [
+        { name = "Prometheus"; url = "http://127.0.0.1:9090"; }
+        { name = "Grafana"; url = "http://127.0.0.1:3000"; }
+        { name = "Loki"; url = "http://127.0.0.1:3100"; }
+      ];
+      services = [
+        { name = "kubelet"; active = true; }
+        { name = "containerd"; active = true; }
+        { name = "cfssl"; active = true; }
+        { name = "keepalived"; active = true; }
+        { name = "xmrig"; active = true; }
+      ];
+    };
   };
 
   # ============================================================================

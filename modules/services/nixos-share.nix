@@ -68,9 +68,14 @@ in {
       "${cfg.client.mountPoint}" = {
         device = "${cfg.client.serverHost}:/etc/nixos";
         fsType = "nfs";
-        # Use nofail to prevent boot hang, bg for background mount
-        # x-systemd.mount-timeout=30s gives up quickly if server not ready
-        options = ["ro" "noatime" "hard" "intr" "timeo=600" "retrans=2" "_netdev" "nofail" "bg" "x-systemd.mount-timeout=30s"];
+        # GRACEFUL FAILURE OPTIONS:
+        # - soft: Return errors after timeout instead of hanging (hard would hang forever)
+        # - timeo=50: 5 second timeout (in deciseconds) for soft mount
+        # - retrans=2: Give up after 2 retries (total ~10 seconds)
+        # - nofail: Don't fail boot if mount unavailable
+        # - bg: Background mount if foreground fails
+        # - x-systemd.mount-timeout=10s: Systemd gives up after 10s
+        options = ["ro" "noatime" "soft" "timeo=50" "retrans=2" "_netdev" "nofail" "bg" "x-systemd.mount-timeout=10s"];
       };
     };
 

@@ -1,10 +1,10 @@
 # NixOS Cluster Deployment — Streamlined
 #
 # Quick start:
-#   just test          # Build all hosts (validation)
-#   just switch        # Apply to current host (uses nh)
-#   just deploy        # Deploy to all hosts (uses colmena)
-#   just deploy <host> # Deploy single host
+#   just check         # Validate flake (quick, no build)
+#   just deploy        # Build + deploy to all hosts
+#   just deploy <host> # Build + deploy single host
+#   just switch        # Apply to current host (local)
 #   just status        # Show cluster status
 
 export FLAKE := "/etc/nixos"
@@ -20,6 +20,11 @@ _default:
 deploy target *args:
     #!/usr/bin/env bash
     set -e
+    # Prevent concurrent colmena runs (lock timeout 5 seconds)
+    exec {LOCK_FD}>/tmp/colmena-deploy.lock || exit 1
+    flock -x -w 5 $LOCK_FD || { echo "⚠ Another deploy is already running"; exit 1; }
+    trap "flock -u $LOCK_FD" EXIT
+
     if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
         echo "▸ Deploying to all hosts..."
         cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply
@@ -39,21 +44,14 @@ sentry:
     just deploy sentry
 
 # ──────────────────────────────────────────────────────────────────────────────
-#  TESTING
+#  VALIDATION
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Build all hosts (validation only, no switch)
-test:
-    #!/usr/bin/env bash
-    set -e
-    echo "▸ Building all hosts..."
-    cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- build
-
-# Check configuration syntax
+# Check flake (quick validation, no build)
 check:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Checking configuration..."
+    echo "▸ Checking flake..."
     cd {{FLAKE}} && nix flake check
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -180,6 +178,35 @@ optimize:
 generations:
     #!/usr/bin/env bash
     nix-env --list-generations --profile /nix/var/nix/profiles/system
+
+# Prune stale nix-store/colmena processes (fixes lock contention)
+prune-stale:
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Pruning stale nix-store/colmena processes..."
+
+    # Kill stale colmena processes (older than 30 minutes with 0% CPU)
+    echo "  Checking for stale colmena..."
+    pgrep -af colmena | while read pid cmdline; do
+        cpu=$(ps -p "${pid%% *}" -o %cpu= 2>/dev/null || echo "0")
+        if [ "${cpu%.*}" = "0" ]; then
+            echo "    Killing stale colmena PID ${pid%% *}"
+            kill -9 "${pid%% *}" 2>/dev/null || true
+        fi
+    done
+
+    # Kill stale nix-store --realise processes (stuck waiting for locks)
+    echo "  Checking for stale nix-store processes..."
+    pgrep -af "nix-store.*--realise" | while read pid cmdline; do
+        # Check if process has been running over 1 hour with 0% CPU
+        cpu=$(ps -p "${pid%% *}" -o %cpu= 2>/dev/null || echo "0")
+        if [ "${cpu%.*}" = "0" ]; then
+            echo "    Killing stale nix-store PID ${pid%% *}"
+            kill -9 "${pid%% *}" 2>/dev/null || true
+        fi
+    done
+
+    echo "✓ Prune complete"
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  MODEL MANAGEMENT

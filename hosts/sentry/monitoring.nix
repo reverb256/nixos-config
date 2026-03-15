@@ -35,5 +35,22 @@
 
     # Mining exporter for CPU mining metrics
     mining-exporter.enable = true;
+
+    # Self-healing alerts via Plasma desktop notifications
+    self-healing-alerts = {
+      enable = true;
+      monitoredServices = [
+        "kubelet"
+        "kube-apiserver"
+        "containerd"
+        "etcd"
+        "keepalived"
+      ];
+      enableCircuitBreakerAlerts = false;  # No AI gateway on Sentry
+      enableVIPFailoverAlerts = true;
+      enableResourceAlerts = true;
+      memoryThreshold = 90;
+      diskThreshold = 90;
+    };
   };
 }

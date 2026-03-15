@@ -86,6 +86,7 @@
     ./services/caddy.nix
     ./services/nextcloud.nix
     ./services/service-gateway.nix
+    ./services/host-dashboard.nix
     ./services/ci-runner.nix
     ./services/garnix.nix
     ./services/auto-update.nix
@@ -98,6 +99,7 @@
     ./services/n8n.nix
     ./services/vaultwarden.nix
     ./services/health-checks.nix
+    ./services/self-healing-alerts.nix
 
     # Monitoring
     # ./services/monitoring/default.nix  # TEMP: Compatibility issues with latest NixOS

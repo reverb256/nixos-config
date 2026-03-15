@@ -41,5 +41,27 @@
     # Mining exporter (for mining operations on zephyr)
     # Track hashrate, power usage, shares accepted/rejected
     mining-exporter.enable = true;
+
+    # Self-healing alerts via Plasma desktop notifications
+    # Monitors service failures, restarts, VIP failover, circuit breaker, resources
+    self-healing-alerts = {
+      enable = true;
+      monitoredServices = [
+        "kubelet"
+        "kube-apiserver"
+        "kube-scheduler"
+        "kube-controller-manager"
+        "containerd"
+        "etcd"
+        "keepalived"
+        "ai-gateway"
+        "gpu-proxy"
+      ];
+      enableCircuitBreakerAlerts = true;
+      enableVIPFailoverAlerts = true;
+      enableResourceAlerts = true;
+      memoryThreshold = 90;
+      diskThreshold = 90;
+    };
   };
 }

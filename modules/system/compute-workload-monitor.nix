@@ -624,33 +624,24 @@
           # ============================================================================
           
           pause_xmrig() {
-              log "Pausing XMRig via HTTP API"
+              log "Stopping XMRig service during build workload"
               if systemctl is-active --quiet xmrig; then
-                  if xmrig-api-control pause; then
-                      log "XMRig paused via HTTP API"
-                  else
-                      log "HTTP API pause failed, stopping service"
-                      systemctl stop xmrig
-                  fi
+                  systemctl stop xmrig
+                  log "XMRig stopped - builds get full CPU priority"
+              else
+                  log "XMRig was not running"
               fi
           }
 
           resume_xmrig() {
               local threads="''$1"
-              log "Resuming XMRig via HTTP API (threads: ''${threads:-auto})"
+              log "Resuming XMRig service (threads: ''${threads:-auto})"
               if ! systemctl is-active --quiet xmrig; then
                   systemctl start xmrig
                   sleep 2
-              fi
-              if xmrig-api-control resume; then
-                  log "XMRig resumed via HTTP API"
-                  if [ -n "''$threads" ]; then
-                      log "Setting XMRig threads to ''$threads"
-                      xmrig-api-control threads "''$threads"
-                  fi
+                  log "XMRig started - mining resumed"
               else
-                  log "HTTP API resume failed, using CPUQuota method"
-                  systemctl set-property xmrig.service CPUQuota="100%" --runtime 2>/dev/null || true
+                  log "XMRig was already running"
               fi
           }
           
