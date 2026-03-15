@@ -89,11 +89,6 @@
           20048
         ];
       };
-      # Fix kube-proxy MASQUERADE issue for host IPs in pod network CIDR
-      # Host IPs (10.1.1.x) are in pod CIDR (10.1.0.0/16), causing routing issues
-      extraCommands = ''
-        iptables -t nat -A POSTROUTING -s 10.1.1.110/32 -d 10.1.0.0/16 -j MASQUERADE || true
-      '';
     };
   };
 

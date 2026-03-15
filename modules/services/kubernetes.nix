@@ -129,9 +129,8 @@
         scheduler.enable = isMaster;
         controllerManager = {
           enable = isMaster;
-          # Cluster is using 10.1.0.0/16 for pod network (established, working)
-          # TODO: Document migration plan to 10.244.0.0/16 for proper Flannel standard
-          clusterCidr = lib.mkForce "10.1.0.0/16";
+          # Migrated to 10.244.0.0/16 (Flannel default) to avoid overlap with host network (10.1.1.0/24)
+          clusterCidr = lib.mkForce "10.244.0.0/16";
           extraOpts = "--allocate-node-cidrs=true";
         };
         kubelet = {
