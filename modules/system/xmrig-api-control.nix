@@ -37,7 +37,7 @@ in {
                 return 1
             fi
 
-            local url="http://${XMRIG_API_HOST}:${XMRIG_API_PORT}${endpoint}"
+            local url="http://''${XMRIG_API_HOST}:''${XMRIG_API_PORT}''${endpoint}"
             local response
             response=$(curl -s -X POST "$url" \
                 -H "Authorization: Bearer $token" \
@@ -71,7 +71,7 @@ in {
                 return 1
             fi
 
-            local url="http://${XMRIG_API_HOST}:${XMRIG_API_PORT}/api/status"
+            local url="http://''${XMRIG_API_HOST}:''${XMRIG_API_PORT}/api/status"
             local status
             status=$(curl -s -X GET "$url" \
                 -H "Authorization: Bearer $token" 2>/dev/null)
