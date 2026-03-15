@@ -79,7 +79,7 @@ with lib; let
 
     if [ -r "$TOKEN_FILE" ]; then
       TOKEN=$(cat "$TOKEN_FILE")
-      ${pkgs.jq}/bin/jq ".http.\"access-token\" = \"$TOKEN\"" /etc/xmrig-${name}/config.json > "$CONFIG_DIR/config.json"
+      ${pkgs.jq}/bin/jq --arg token "$TOKEN" '.http."access-token" = $token' /etc/xmrig-${name}/config.json > "$CONFIG_DIR/config.json"
     else
       cp /etc/xmrig-${name}/config.json "$CONFIG_DIR/config.json"
     fi
