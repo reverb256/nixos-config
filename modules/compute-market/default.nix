@@ -219,14 +219,15 @@
           log() {
               local level="''${1:-INFO}"
               shift
-              echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*" | tee -a "$LOG_FILE"
+              local msg="[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $*"
+              echo "$msg" | tee -a "$LOG_FILE" >&2
           }
 
           log_debug() { log "DEBUG" "$@"; }
           log_info() { log "INFO" "$@"; }
           log_warn() { log "WARN" "$@"; }
           log_error() { log "ERROR" "$@"; }
-          log_auction() { log "AUCTION" "$@"; }
+          log_auction() { log "AUCTION" "$@" >&2; }
 
           # ============================================================================
           # PROMETHEUS METRICS
@@ -238,31 +239,33 @@
               local k8s_bid=''${4:-0}
               local akash_bid=''${5:-0}
               local gaming_active=''${6:-false}
+              local auction_count=$(cat "$STATE_DIR/auction_count" 2>/dev/null || echo 0)
 
-              cat > "$STATE_DIR/metrics.prom" << EOF
-          # HELP compute_market_auction_winner The current auction winner
-          # TYPE compute_market_auction_winner gauge
-          compute_market_auction_winner{winner="$winner"} 1
-
-          # HELP compute_market_winning_bid_usd The winning bid amount in USD
-          # TYPE compute_market_winning_bid_usd gauge
-          compute_market_winning_bid_usd ''${winning_bid}
-
-          # HELP compute_market_bid_current Current bid by bidder type
-          # TYPE compute_market_bid_current gauge
-          compute_market_bid_current{bidder="mining"} ''${mining_bid}
-          compute_market_bid_current{bidder="kubernetes"} ''${k8s_bid}
-          compute_market_bid_current{bidder="akash"} ''${akash_bid}
-          compute_market_bid_current{bidder="gaming"} 999.99
-
-          # HELP compute_market_gaming_active Whether gaming is currently active
-          # TYPE compute_market_gaming_active gauge
-          compute_market_gaming_active ''${gaming_active}
-
-          # HELP compute_market_auction_total Total auctions run
-          # TYPE compute_market_auction_total counter
-          compute_market_auction_total $(cat "$STATE_DIR/auction_count" 2>/dev/null || echo 0)
-          EOF
+              # Write Prometheus metrics file
+              {
+                  echo "# HELP compute_market_auction_winner The current auction winner"
+                  echo "# TYPE compute_market_auction_winner gauge"
+                  echo "compute_market_auction_winner{winner=\"''${winner}\"} 1"
+                  echo ""
+                  echo "# HELP compute_market_winning_bid_usd The winning bid amount in USD"
+                  echo "# TYPE compute_market_winning_bid_usd gauge"
+                  echo "compute_market_winning_bid_usd ''${winning_bid}"
+                  echo ""
+                  echo "# HELP compute_market_bid_current Current bid by bidder type"
+                  echo "# TYPE compute_market_bid_current gauge"
+                  echo "compute_market_bid_current{bidder=\"mining\"} ''${mining_bid}"
+                  echo "compute_market_bid_current{bidder=\"kubernetes\"} ''${k8s_bid}"
+                  echo "compute_market_bid_current{bidder=\"akash\"} ''${akash_bid}"
+                  echo "compute_market_bid_current{bidder=\"gaming\"} 999.99"
+                  echo ""
+                  echo "# HELP compute_market_gaming_active Whether gaming is currently active"
+                  echo "# TYPE compute_market_gaming_active gauge"
+                  echo "compute_market_gaming_active ''${gaming_active}"
+                  echo ""
+                  echo "# HELP compute_market_auction_total Total auctions run"
+                  echo "# TYPE compute_market_auction_total counter"
+                  echo "compute_market_auction_total ''${auction_count}"
+              } > "$STATE_DIR/metrics.prom"
           }
 
           # ============================================================================
@@ -499,8 +502,8 @@
           pause_all_mining() {
               for service in $MINING_SERVICES; do
                   if systemctl is-active --quiet "$service"; then
-                      log_info "Pausing $service (CPUQuota=0%)"
-                      systemctl set-property "$service.service" CPUQuota="0%" --runtime
+                      log_info "Pausing $service (stopping)"
+                      systemctl stop "$service" --runtime
                       echo "$service" >> "$STATE_DIR/paused_services"
                   fi
               done
@@ -511,8 +514,8 @@
               if [ -f "$STATE_DIR/paused_services" ]; then
                   while IFS= read -r service; do
                       [ -z "$service" ] && continue
-                      log_info "Resuming $service (CPUQuota=100%)"
-                      systemctl set-property "$service.service" CPUQuota="100%" --runtime
+                      log_info "Resuming $service (starting)"
+                      systemctl start "$service"
                   done < "$STATE_DIR/paused_services"
                   rm -f "$STATE_DIR/paused_services"
               fi
@@ -558,7 +561,7 @@
 
           # Run main function
           main "$@"
-        ''}";
+        ''}/bin/compute-market-engine";
       };
     };
 

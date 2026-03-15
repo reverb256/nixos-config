@@ -687,12 +687,12 @@ in {
         ];
       };
       # NVIDIA GPU mining with per-GPU power limits
-      # Device 0: RTX 3060 Ti @ 130W (efficient), Device 1: RTX 3090 @ 250W (VRAM-safe)
+      # Device 1: RTX 3090 @ 250W (VRAM-safe) - 3060 Ti disabled
       lolminer.nvidia = {
         enable = true;
         autostart = true;
-        devices = "0,1";
-        perGpuPowerLimits = [130 250]; # [3060 Ti, 3090] - optimized for efficiency
+        devices = "1";
+        perGpuPowerLimits = [250]; # [3090] - 3060 Ti disabled
         apiPort = 4068;
       };
       # CPU mining - Dual XMRig setup (always-on + pause-able)
@@ -1026,7 +1026,7 @@ in {
   # NOTE: Power limits are now managed by the mining.nix module via
   # nvidia-gpu-power-limit.service using perGpuPowerLimits configuration.
   # The old gpu-0-power-limit and gpu-1-power-limit services have been
-  # removed to avoid conflicts. Current limits: 3060 Ti @ 130W, 3090 @ 250W.
+  # removed to avoid conflicts. Current limits: 3090 @ 250W (3060 Ti disabled).
   #
   # See: modules/mining/mining.nix -> nvidia-gpu-power-limit.service
 

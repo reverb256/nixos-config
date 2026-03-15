@@ -58,9 +58,9 @@
 
     apiserverBindAddress = lib.mkOption {
       type = lib.types.str;
-      default = config.services.kubernetes-module.etcdListenHost;
+      default = "0.0.0.0";  # Bind to all interfaces so VIP (10.1.1.100) works
       example = "10.1.1.120";
-      description = "This node's IP address for apiserver to bind to (must be actual IP, not VIP)";
+      description = "API server bind address. Use 0.0.0.0 for VIP access, or specific IP for direct access only.";
     };
 
     etcdBootstrapOnly = lib.mkOption {
