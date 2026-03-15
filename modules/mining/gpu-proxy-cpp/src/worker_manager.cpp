@@ -166,7 +166,14 @@ void WorkerManager::on_worker_message(Connection* conn, const std::string& line)
                 handle_authorize(conn, req);
                 break;
 
+            case StratumMethod::LOGIN:
+                // CR29/Tari workers use Monero-style login
+                handle_login(conn, req);
+                break;
+
             case StratumMethod::SUBMIT:
+            case StratumMethod::MONERO_SUBMIT:
+                // Handle both Bitcoin and Monero style submit
                 handle_submit(conn, req);
                 break;
 
@@ -235,15 +242,71 @@ void WorkerManager::handle_authorize(Connection* conn, const StratumRequest& req
     }
 }
 
+void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
+    int fd = conn->fd();
+    auto it = workers_.find(fd);
+    if (it == workers_.end()) return;
+
+    // Monero-style login: {"method":"login","params":{"login":wallet,"pass":password,"agent":...},"id":1}
+    std::string worker_id;
+    if (req.params.is_object() && req.params.contains("login")) {
+        worker_id = req.params["login"];
+    }
+
+    it->second.worker_id = worker_id;
+
+    // Check whitelist
+    bool allowed = !require_whitelist_ || is_worker_allowed(worker_id);
+
+    // For Monero-style login, respond with job if available
+    // Format matches Monero stratum response
+    std::string response;
+    if (has_job_) {
+        // Include job in login response (Monero-style)
+        // Note: For CR29, the blob is complete, no need to add extra_nonce2
+        response = R"({"id": )" + std::to_string(req.id) +
+            R"(, "jsonrpc": "2.0", "result": {"id": ")" + std::to_string(fd) +
+            R"(", "job": {"algo":"cuckaroo","job_id":")" + current_job_.job_id +
+            R"(","blob":")" + current_job_.blob +
+            R"(","target":")" + current_job_.target +
+            R"(","height":)" + std::to_string(current_job_.height) +
+            R"(}}, "status": "OK"}, "error": null})";
+    } else {
+        // No job yet, just acknowledge login
+        response = R"({"id": )" + std::to_string(req.id) +
+            R"(, "jsonrpc": "2.0", "result": {"id": ")" + std::to_string(fd) +
+            R"("}, "status": "OK"}, "error": null})";
+    }
+
+    conn->send_line(response);
+
+    if (allowed) {
+        it->second.subscribed = true;  // Login counts as subscribe for Monero
+        it->second.authorized = true;
+        fprintf(stderr, "[WorkerManager] Worker %s (fd=%d) logged in (Monero-style)\n",
+                worker_id.c_str(), fd);
+    } else {
+        fprintf(stderr, "[WorkerManager] Worker %s (fd=%d) not in whitelist\n",
+                worker_id.c_str(), fd);
+        it->second.conn->mark_for_closing();
+    }
+}
+
 void WorkerManager::handle_submit(Connection* conn, const StratumRequest& req) {
     int fd = conn->fd();
     auto it = workers_.find(fd);
     if (it == workers_.end()) return;
 
-    // Extract params: worker_id, job_id, nonce, result
     std::string worker_id, job_id, nonce, result;
 
-    if (req.params.is_array() && req.params.size() >= 4) {
+    if (req.method == StratumMethod::MONERO_SUBMIT && req.params.is_object()) {
+        // Monero-style submit: {"method":"submit","params":{"id":worker,"job_id":...,"nonce":...,"result":...},"id":2}
+        if (req.params.contains("id")) worker_id = req.params["id"];
+        if (req.params.contains("job_id")) job_id = req.params["job_id"];
+        if (req.params.contains("nonce")) nonce = req.params["nonce"];
+        if (req.params.contains("result")) result = req.params["result"];
+    } else if (req.params.is_array() && req.params.size() >= 4) {
+        // Bitcoin-style submit: ["worker", "job_id", "nonce", "result"]
         worker_id = req.params[0];
         job_id = req.params[1];
         nonce = req.params[2];
@@ -252,6 +315,11 @@ void WorkerManager::handle_submit(Connection* conn, const StratumRequest& req) {
 
     fprintf(stderr, "[WorkerManager] Share from %s: job=%s nonce=%s\n",
             worker_id.c_str(), job_id.c_str(), nonce.c_str());
+
+    // Send immediate acknowledgment (share accepted)
+    std::string response = R"({"id": )" + std::to_string(req.id) +
+        R"(, "jsonrpc": "2.0", "result": {"status": "OK"}, "error": null})";
+    conn->send_line(response);
 
     // Forward to pool via callback
     if (share_cb_) {
