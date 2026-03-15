@@ -258,31 +258,25 @@ void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
     // Check whitelist
     bool allowed = !require_whitelist_ || is_worker_allowed(worker_id);
 
-    // Send login response with job (Bitcoin Stratum format for CR29)
-    // CR29/lolMiner expects mining.notify format: [job_id, blob, target, difficulty, height, clean_jobs]
-    std::string response;
+    // Send login response with job (Monero Stratum format for CR29)
+    // lolMiner expects: {"id":1,"result":{"id":"worker","job":{"blob":"...","job_id":"...","target":"...","height":...},"status":"OK"},"error":null}
     if (has_job_) {
-        // Build Bitcoin Stratum mining.notify format
-        // params: [job_id, extra_nonce2, target, difficulty, height, clean_jobs]
-        // For CR29, we include the blob directly (no extra_nonce2 needed for this algo)
-        response = R"({"id": )" + std::to_string(req.id) +
-            R"(, "error": null, "result": [[)";  // Empty subscriptions (not used for CR29)
-            R"(), "mining.notify", )"  // subscription ID (not used)
-            R"(], ")"
-            R"({\"id\": null, "method": "mining.notify", "params": [")" +
-            current_job_.job_id + R"(", ")" +
-            current_job_.blob + R"(", ")" +  // blob (full data for CR29)
-            current_job_.target + R"(", ")" +
-            current_job_.difficulty + R"(, )" +
-            std::to_string(current_job_.height) + R"(, false)]}))"
-            R"(]})";
-    } else {
-        // No job yet, send basic acknowledgment
-        response = R"({"id": )" + std::to_string(req.id) +
-            R"(, "error": null, "result": []})";
-    }
+        // Build Monero Stratum login response with job
+        std::string response = R"({"id": )" + std::to_string(req.id) +
+            R"(, "jsonrpc": "2.0", "result": {"id": ")" + worker_id +
+            R"(", "job": {"algo": "cuckaroo", "blob": ")" + current_job_.blob +
+            R"(", "job_id": ")" + current_job_.job_id +
+            R"(", "target": ")" + current_job_.target +
+            R"(", "height": )" + std::to_string(current_job_.height) +
+            R"(}, "status": "OK"}, "error": null})";
 
-    conn->send_line(response);
+        fprintf(stderr, "[WorkerManager] Sending login response: %s\n", response.c_str());
+        conn->send_line(response);
+    } else {
+        // No job yet - mark as pending and respond when job arrives
+        it->second.pending_login = true;
+        fprintf(stderr, "[WorkerManager] Worker %s waiting for job\n", worker_id.c_str());
+    }
 
     if (allowed) {
         it->second.subscribed = true;
@@ -348,37 +342,37 @@ void WorkerManager::send_job(const Job& job) {
         return;
     }
 
-    // Build mining.notify message
-    // Format: ["job_id", "extra_nonce2", "target", "difficulty", height, clean_jobs]
-    // Note: extra_nonce2 varies per worker
-    std::string msg = R"({"id": null, "method": "mining.notify", "params": [")" +
-        job.job_id + R"(", ")" +
-        R"(", ")" +  // extra_nonce1 (empty for CR29)
-        job.target + R"(", ")" +
-        job.difficulty + R"(, )" +
-        std::to_string(job.height) + R"(, )" +
-        (job.clean_jobs ? "true" : "false") + R"(]})";
-
-    // The message above needs extra_nonce2 inserted
-    // Let's rebuild it properly:
-    // notify params: [job_id, blob, target, difficulty, height, clean_jobs]
-    // blob = extra_nonce1 + extra_nonce2 (per worker)
+    // For CR29/Monero Stratum, send job notification
+    // Format: {"jsonrpc":"2.0","method":"job","params":{"algo":"cuckaroo","job_id":"...","blob":"...","target":"...","height":...}}
+    // Note: extra_nonce2 is appended to blob (CR29 doesn't use extra_nonce in the traditional sense)
 
     for (auto& [fd, info] : workers_) {
-        if (!info.subscribed || !info.authorized) continue;
+        if (!info.authorized) continue;
 
         // Build worker-specific blob
-        std::string worker_blob = job.blob;  // This includes extra_nonce1
-        worker_blob += info.extra_nonce2;    // Add worker's extra_nonce2
+        std::string worker_blob = job.blob;
+        worker_blob += info.extra_nonce2;
 
-        // Build notification with worker's blob
-        std::string notify = R"({"id": null, "method": "mining.notify", "params": [")" +
-            job.job_id + R"(", ")" + worker_blob + R"(", ")" +
-            job.target + R"(", ")" + job.difficulty + R"(, )" +
-            std::to_string(job.height) + R"(, )" +
-            (job.clean_jobs ? "true" : "false") + R"(]})";
-
-        info.conn->send_line(notify);
+        if (info.pending_login) {
+            // Send login response with job (first time)
+            std::string response = R"({"id": 1, "jsonrpc": "2.0", "result": {"id": ")" + info.worker_id +
+                R"(", "job": {"algo": "cuckaroo", "blob": ")" + worker_blob +
+                R"(", "job_id": ")" + job.job_id +
+                R"(", "target": ")" + job.target +
+                R"(", "height": )" + std::to_string(job.height) +
+                R"(}, "status": "OK"}, "error": null})";
+            info.conn->send_line(response);
+            info.pending_login = false;
+            info.subscribed = true;
+            fprintf(stderr, "[WorkerManager] Sent delayed login response to %s\n", info.worker_id.c_str());
+        } else {
+            // Send job notification
+            std::string notify = R"({"jsonrpc": "2.0", "method": "job", "params": {"algo": "cuckaroo", "job_id": ")" +
+                job.job_id + R"(", "blob": ")" + worker_blob +
+                R"(", "target": ")" + job.target +
+                R"(", "height": )" + std::to_string(job.height) + R"(}})";
+            info.conn->send_line(notify);
+        }
     }
 
     fprintf(stderr, "[WorkerManager] Sent job %s to %zu workers\n",

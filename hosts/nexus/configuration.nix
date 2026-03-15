@@ -309,12 +309,19 @@
         tls = false; # No TLS needed for local proxy
       };
 
-      # GPU mining configuration - direct Kryptex connection
-      # Multi-pool failover: US primary, EU fallback
+      # GPU mining configuration - centralized proxy approach
+      # Primary: Forge gpu-proxy (handles protocol translation)
+      # Fallback: Direct Kryptex connections
       lolminer = {
         pools = [
           {
-            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (primary)
+            url = "10.1.1.130:3334";  # Forge gpu-proxy (primary - handles protocol translation)
+            wallet = "krxXVNVMM7.nexus-gpu";
+            password = "x";
+            tls = false;  # Proxy handles TLS upstream
+          }
+          {
+            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (fallback)
             wallet = "krxXVNVMM7.nexus-gpu";
             password = "x";
             tls = true;  # TLS required for Kryptex
@@ -338,9 +345,9 @@
       };
     };
 
-    # GPU Proxy - Stratum proxy for GPU miners (lolMiner)
-    gpu-proxy = {
-      enable = true;
+    # GPU Proxy - DISABLED: Using centralized gpu-proxy-cpp on Forge (10.1.1.130:3334)
+    # gpu-proxy = {
+    #   enable = false;  # Disabled - using Forge's centralized proxy
       listenPort = 3334;
       apiPort = 8083;
       logLevel = "INFO";

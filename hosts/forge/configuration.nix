@@ -177,6 +177,14 @@
           id = "krxXVNVMM7.forge-gpu";
           password = "x";
         }
+        {
+          id = "krxXVNVMM7.zephyr-gpu";
+          password = "x";
+        }
+        {
+          id = "krxXVNVMM7.nexus-gpu";
+          password = "x";
+        }
       ];
     };
 

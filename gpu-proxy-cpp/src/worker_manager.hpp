@@ -82,6 +82,7 @@ private:
         std::string worker_id;
         bool subscribed = false;
         bool authorized = false;
+        bool pending_login = false;  // Waiting for job to send login response
         std::string extra_nonce2;  // Assigned to this worker
     };
     std::unordered_map<int, WorkerInfo> workers_;

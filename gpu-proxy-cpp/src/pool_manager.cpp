@@ -183,6 +183,11 @@ void PoolManager::handle_response(const StratumResponse& resp) {
                     current_job_.job_id.c_str());
 
             on_pool_state(ConnectionState::AUTHENTICATED);
+
+            // Distribute this job to workers via callback
+            if (job_cb_) {
+                job_cb_(current_job_);
+            }
             return;
         }
     }
