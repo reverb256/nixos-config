@@ -152,10 +152,10 @@ class SearxngIntegration:
         # Learn from past performance
         engine_scores = {}
         for engine in engines:
-            perf = self.engine_performance.get(engine, {})
-            if perf["attempts"] > 0:
+            perf = self.engine_performance.get(engine, {"attempts": 0, "successes": 0, "avg_results": 0})
+            if perf.get("attempts", 0) > 0:
                 # Score: success rate * average results (more results is better)
-                score = (perf["successes"] / perf["attempts"]) * min(perf["avg_results"] / 10, 1.0)
+                score = (perf.get("successes", 0) / perf["attempts"]) * min(perf.get("avg_results", 0) / 10, 1.0)
                 engine_scores[engine] = score
             else:
                 engine_scores[engine] = 0.5  # Default score
