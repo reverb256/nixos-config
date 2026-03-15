@@ -575,7 +575,7 @@
           get_xmrig_idle_threads() {
               local host=$(get_hostname)
               case "$host" in
-                  zephyr) echo "20" ;;  # ~63% of 32 threads
+                  zephyr) echo "16" ;;  # 50% of 32 threads
                   nexus)  echo "12" ;;  # 50% of 24 threads
                   sentry) echo "8" ;;   # 50% of 16 threads
                   *)      echo "8" ;;   # Conservative default
