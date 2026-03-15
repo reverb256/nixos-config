@@ -525,6 +525,19 @@
       enable = true;
       servers.playwright.enable = true;
       servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
+      # SearXNG local MCP server - privacy-respecting metasearch
+      servers.searxng = {
+        type = "local";
+        command = [
+          "/run/current-system/sw/bin/python3"
+          "-m"
+          "ai_inference_gateway.mcp_servers.searxng_server"
+        ];
+        environment = {
+          SEARXNG_URL = "http://127.0.0.1:7777";
+          SEARXNG_CACHE_TTL = "300";
+        };
+      };
     };
 
     # WEB TESTING - Playwright/Puppeteer system dependencies
