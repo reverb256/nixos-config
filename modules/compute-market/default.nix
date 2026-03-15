@@ -315,11 +315,21 @@
               local hostname=$(hostname)
               local total_bid=0
 
-              # Get GPU pods on this node
-              local gpu_pods=$(kubectl get pods --all-namespaces \
+              # Get GPU pods on this node (NVIDIA and AMD)
+              # NVIDIA GPUs: nvidia.com/gpu resource
+              local nvidia_pods=$(kubectl get pods --all-namespaces \
                   --field-selector=spec.nodeName="$hostname" \
                   -o jsonpath='{range .items[?(@.spec.containers[*].resources.limits.nvidia\\.com/gpu)]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}' \
                   2>/dev/null || echo "")
+
+              # AMD GPUs: amd.com/gpu resource
+              local amd_pods=$(kubectl get pods --all-namespaces \
+                  --field-selector=spec.nodeName="$hostname" \
+                  -o jsonpath='{range .items[?(@.spec.containers[*].resources.limits.amd\\.com/gpu)]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}' \
+                  2>/dev/null || echo "")
+
+              # Combine both lists
+              local gpu_pods="$([ -n "$nvidia_pods" ] && echo "$nvidia_pods")$([ -n "$amd_pods" ] && echo "$amd_pods")"
 
               if [ -z "$gpu_pods" ]; then
                   echo 0
