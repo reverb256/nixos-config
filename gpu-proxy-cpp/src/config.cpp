@@ -2,8 +2,23 @@
 #include <fstream>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
+#include <sstream>
 
 namespace gpu_proxy {
+
+// Helper to parse "host:port" string
+static void parse_host_port(const std::string& url, std::string& host, uint16_t& port) {
+    size_t colon_pos = url.find(':');
+    if (colon_pos != std::string::npos) {
+        host = url.substr(0, colon_pos);
+        std::string port_str = url.substr(colon_pos + 1);
+        std::istringstream iss(port_str);
+        iss >> port;
+    } else {
+        host = url;
+        port = 3333;  // Default stratum port
+    }
+}
 
 ProxyConfig ConfigLoader::load_from_file(const std::string& path) {
     std::ifstream file(path);
@@ -29,7 +44,9 @@ ProxyConfig ConfigLoader::load_from_file(const std::string& path) {
         for (const auto& p : j["pools"]) {
             PoolConfig pool;
             p["name"].get_to(pool.name);
-            p["url"].get_to(pool.host);  // Will parse host:port later
+            std::string url;
+            p["url"].get_to(url);
+            parse_host_port(url, pool.host, pool.port);
             p["wallet"].get_to(pool.wallet);
             p["password"].get_to(pool.password);
             p["tls"].get_to(pool.tls);
