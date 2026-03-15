@@ -23,9 +23,9 @@
       const services = /* SERVICES_PLACEHOLDER */;
 
       const servicesList = document.getElementById('services');
-      if (servicesList && services.length > 0) {
+      if (servicesList && Object.keys(services).length > 0) {
         servicesList.innerHTML = '';
-        services.forEach(function(service) {
+        Object.values(services).forEach(function(service) {
           const li = document.createElement('li');
           li.className = 'service-item';
 
