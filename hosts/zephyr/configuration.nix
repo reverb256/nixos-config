@@ -439,6 +439,14 @@ in {
         ai.zephyr.tigris-ule.ts.net:9002 {
           reverse_proxy 127.0.0.1:8080
         }
+
+        # Host Dashboard (LAN access)
+        zephyr.lan:80 {
+          reverse_proxy 127.0.0.1:8090
+        }
+        dashboard.zephyr.lan:80 {
+          reverse_proxy 127.0.0.1:8090
+        }
       '';
     };
 
@@ -633,14 +641,31 @@ in {
         perGpuPowerLimits = [130 250]; # [3060 Ti, 3090] - optimized for efficiency
         apiPort = 4068;
       };
-      # CPU mining (16 threads = 50% of 32 cores)
-      xmrig = {
+      # CPU mining - Dual XMRig setup (always-on + pause-able)
+      # Total when idle: 16 threads (50%) - Total when gaming: 4 threads (12%)
+      xmrigDual = {
         enable = true;
-        autostart = true;
-        threads = 16;
+        # Always-on instance - mines even during gaming
+        alwaysOn = {
+          enable = true;
+          threads = 4; # 12% of 32 cores - unintrusive during gaming
+          httpPort = 8081;
+          httpTokenFile = "/run/agenix/xmrig-always-api-token";
+          autostart = true;
+        };
+        # Flexible instance - pauses during gaming/builds
+        flexible = {
+          enable = true;
+          threads = 12; # 38% of 32 cores - extra capacity when idle
+          httpPort = 8082;
+          httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
+          autostart = true;
+        };
+        # Common settings for both instances
         pool = "10.1.1.110:3333"; # Point to local proxy
         wallet = "zephyr-cpu"; # Worker ID for proxy
         password = "x";
+        tls = false; # Disable TLS for local proxy connection
       };
     };
 
@@ -806,9 +831,23 @@ in {
         symlink = true;
       };
 
-      # XMRig HTTP API token - For pause/resume via API during builds
+      # XMRig HTTP API tokens - For pause/resume via API during builds/gaming
       xmrig-api-token = {
         file = "${inputs.self}/secrets/xmrig-api-token.age";
+        mode = "440";
+        owner = "mining";
+        group = "mining";
+      };
+      # Always-on XMRig instance API token
+      xmrig-always-api-token = {
+        file = "${inputs.self}/secrets/xmrig-always-api-token.age";
+        mode = "440";
+        owner = "mining";
+        group = "mining";
+      };
+      # Flexible XMRig instance API token (paused during gaming)
+      xmrig-flexible-api-token = {
+        file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
         mode = "440";
         owner = "mining";
         group = "mining";
