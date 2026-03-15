@@ -889,10 +889,11 @@ class MCPBroker:
                     if result.returncode == 0:
                         gateway_pkg = None
                         gateway_python = None
+                        import re
                         for line in result.stdout.splitlines():
                             if "ai-inference-gateway-modular-pkg-v7" in line and not "base" in line:
                                 gateway_pkg = line
-                            elif "python3.*-env" in line or "python3-3.13.12-env" in line:
+                            elif re.search(r'python3-.*?\d+\.?\d*-env', line) or "python3-3.13.12-env" in line:
                                 # Check if this Python has mcp (gateway Python)
                                 mcp_check = subprocess.run(
                                     ["ls", f"{line}/lib/python3.13/site-packages/mcp"],
