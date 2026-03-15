@@ -763,17 +763,9 @@ in {
       deviceId = "ZEPHYR-PLACEHOLDER";
     };
 
-    # Garage S3-compatible distributed object storage (3-node cluster)
-    garage-cluster = {
-      enable = true;
-      dataDir = "/data/garage"; # Local storage (nvme1n1p2 - 434GB available)
-      replicationFactor = 2; # 2-way replication (tolerate 1 node failure)
-      consistencyMode = "consistent"; # Full consistency with zones
-      enableMetrics = true; # Prometheus metrics on port 3903
-      enableBackup = true; # Daily metadata backups to NFS
-      backupDir = "/data/shared/garage-backups"; # NFS from nexus
-      rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
-    };
+    # Garage S3 disabled - using nexus as primary storage node
+    # Access Garage S3 at: http://10.1.1.120:3900
+    garage-cluster.enable = false;
 
     # Host Dashboard - Web interface for cluster host status
     host-dashboard = {
