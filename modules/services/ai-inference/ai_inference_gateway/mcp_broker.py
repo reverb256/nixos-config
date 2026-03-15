@@ -902,6 +902,8 @@ class MCPBroker:
                                 if mcp_check.returncode == 0:
                                     gateway_python = line
 
+                        logger.info(f"[MCP {server.name}] gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
+
                         # Build PYTHONPATH with both paths
                         pythonpath_parts = []
                         if gateway_pkg:
@@ -914,7 +916,9 @@ class MCPBroker:
                             if existing_pythonpath:
                                 pythonpath_parts.append(existing_pythonpath)
                             env["PYTHONPATH"] = ":".join(pythonpath_parts)
-                            logger.debug(f"Set PYTHONPATH for {server.name}: {env['PYTHONPATH'][:200]}...")
+                            logger.info(f"[MCP {server.name}] Set PYTHONPATH: {env['PYTHONPATH'][:300]}...")
+                        else:
+                            logger.warning(f"[MCP {server.name}] No gateway paths found, PYTHONPATH not set")
                 except Exception as e:
                     logger.warning(f"Failed to add PYTHONPATH for {server.name}: {e}")
 
