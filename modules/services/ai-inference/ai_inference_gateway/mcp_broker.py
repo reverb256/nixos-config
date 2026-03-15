@@ -876,6 +876,30 @@ class MCPBroker:
                     else:
                         env[env_name] = env_value
 
+            # For module-style commands (using -m), add PYTHONPATH to find ai_inference_gateway
+            if server.command and len(server.command) >= 2 and server.command[1] == "-m":
+                # Try to find the gateway package in the system closure
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ["nix-store", "-q", "--requisites", "/run/current-system"],
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode == 0:
+                        for line in result.stdout.splitlines():
+                            if "ai-inference-gateway-modular-pkg" in line:
+                                # Add the package to PYTHONPATH
+                                pythonpath = env.get("PYTHONPATH", "")
+                                if pythonpath:
+                                    env["PYTHONPATH"] = f"{line}:{pythonpath}"
+                                else:
+                                    env["PYTHONPATH"] = line
+                                logger.debug(f"Added {line} to PYTHONPATH for {server.name}")
+                                break
+                except Exception as e:
+                    logger.warning(f"Failed to add PYTHONPATH for {server.name}: {e}")
+
             # Spawn the subprocess
             server.process = await asyncio.create_subprocess_exec(
                 *server.command,
