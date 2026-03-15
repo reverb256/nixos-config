@@ -2,7 +2,6 @@
 #include "connection.hpp"
 #include "stratum.hpp"
 #include "config.hpp"
-#include <memory>
 #include <unordered_map>
 #include <string>
 #include <functional>
@@ -61,6 +60,9 @@ private:
     // Handle authorize request
     void handle_authorize(Connection* conn, const StratumRequest& req);
 
+    // Handle Monero-style login request (CR29/Tari)
+    void handle_login(Connection* conn, const StratumRequest& req);
+
     // Handle share submit
     void handle_submit(Connection* conn, const StratumRequest& req);
 
@@ -76,7 +78,7 @@ private:
 
     // Connected workers
     struct WorkerInfo {
-        std::unique_ptr<Connection> conn;
+        Connection* conn;  // Non-owning pointer (EventLoop owns the connection)
         std::string worker_id;
         bool subscribed = false;
         bool authorized = false;

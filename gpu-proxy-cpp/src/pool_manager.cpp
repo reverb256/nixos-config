@@ -121,7 +121,8 @@ void PoolManager::on_pool_message(const std::string& line) {
         if (j.contains("method")) {
             // It's a notification (from pool)
             StratumRequest req = StratumRequest::parse(line);
-            if (req.method == StratumMethod::NOTIFY) {
+            // Handle both Bitcoin Stratum NOTIFY and Monero Stratum JOB
+            if (req.method == StratumMethod::NOTIFY || req.method == StratumMethod::JOB) {
                 handle_notification(req);
             }
         } else {

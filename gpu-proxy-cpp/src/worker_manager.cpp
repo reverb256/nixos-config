@@ -65,11 +65,11 @@ void WorkerManager::start() {
 
     fprintf(stderr, "[WorkerManager] Listening on port %d\n", listen_port_);
 
-    // Add a periodic callback to check for new connections
-    // We'll use the event loop's timeout mechanism to poll for accept
+    // Add a RECURRING callback to check for new connections
+    // The recurring=true flag ensures accept_worker() is called every 100ms
     loop_.set_timeout(100, [this]() {
         accept_worker();
-    });
+    }, true);  // true = recurring
 }
 
 void WorkerManager::accept_worker() {
@@ -106,15 +106,22 @@ void WorkerManager::accept_worker() {
         on_worker_message(conn_ptr, line);
     });
 
-    // Store worker info
-    WorkerInfo info;
-    info.conn = std::move(conn);
+    // IMPORTANT: Add to event loop so messages get polled!
+    // The event loop only polls fds in its connections_ map
+    loop_.add_connection(std::move(conn));
+
+    // Worker is now owned by event loop, get raw pointer for local use
+    Connection* conn_ptr = loop_.get_connection(client_fd);
 
     // Generate unique extra_nonce2 for this worker
     std::ostringstream oss;
     oss << std::hex << std::setfill('0') << std::setw(8) << next_extra_nonce2_++;
-    info.extra_nonce2 = oss.str();
+    std::string extra_nonce2 = oss.str();
 
+    // Store worker info (with non-owning pointer)
+    WorkerInfo info;
+    info.conn = conn_ptr;
+    info.extra_nonce2 = extra_nonce2;
     workers_[client_fd] = std::move(info);
 
     // Send current job if available
@@ -132,6 +139,8 @@ void WorkerManager::on_worker_state(Connection* conn, ConnectionState state) {
         case ConnectionState::ERROR:
         case ConnectionState::DISCONNECTED:
             fprintf(stderr, "[WorkerManager] Worker %d disconnected\n", fd);
+            // Note: EventLoop owns the connection and will clean it up
+            // We just remove our reference to it
             workers_.erase(fd);
             break;
 
@@ -157,7 +166,14 @@ void WorkerManager::on_worker_message(Connection* conn, const std::string& line)
                 handle_authorize(conn, req);
                 break;
 
+            case StratumMethod::LOGIN:
+                // CR29/Tari workers use Monero-style login
+                handle_login(conn, req);
+                break;
+
             case StratumMethod::SUBMIT:
+            case StratumMethod::MONERO_SUBMIT:
+                // Handle both Bitcoin and Monero style submit
                 handle_submit(conn, req);
                 break;
 
@@ -226,15 +242,75 @@ void WorkerManager::handle_authorize(Connection* conn, const StratumRequest& req
     }
 }
 
+void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
+    int fd = conn->fd();
+    auto it = workers_.find(fd);
+    if (it == workers_.end()) return;
+
+    // Monero-style login: {"method":"login","params":{"login":wallet,"pass":password,"agent":...},"id":1}
+    std::string worker_id;
+    if (req.params.is_object() && req.params.contains("login")) {
+        worker_id = req.params["login"];
+    }
+
+    it->second.worker_id = worker_id;
+
+    // Check whitelist
+    bool allowed = !require_whitelist_ || is_worker_allowed(worker_id);
+
+    // Send login response with job (Bitcoin Stratum format for CR29)
+    // CR29/lolMiner expects mining.notify format: [job_id, blob, target, difficulty, height, clean_jobs]
+    std::string response;
+    if (has_job_) {
+        // Build Bitcoin Stratum mining.notify format
+        // params: [job_id, extra_nonce2, target, difficulty, height, clean_jobs]
+        // For CR29, we include the blob directly (no extra_nonce2 needed for this algo)
+        response = R"({"id": )" + std::to_string(req.id) +
+            R"(, "error": null, "result": [[)";  // Empty subscriptions (not used for CR29)
+            R"(), "mining.notify", )"  // subscription ID (not used)
+            R"(], ")"
+            R"({\"id\": null, "method": "mining.notify", "params": [")" +
+            current_job_.job_id + R"(", ")" +
+            current_job_.blob + R"(", ")" +  // blob (full data for CR29)
+            current_job_.target + R"(", ")" +
+            current_job_.difficulty + R"(, )" +
+            std::to_string(current_job_.height) + R"(, false)]}))"
+            R"(]})";
+    } else {
+        // No job yet, send basic acknowledgment
+        response = R"({"id": )" + std::to_string(req.id) +
+            R"(, "error": null, "result": []})";
+    }
+
+    conn->send_line(response);
+
+    if (allowed) {
+        it->second.subscribed = true;
+        it->second.authorized = true;
+        fprintf(stderr, "[WorkerManager] Worker %s (fd=%d) logged in (CR29 format)\n",
+                worker_id.c_str(), fd);
+    } else {
+        fprintf(stderr, "[WorkerManager] Worker %s (fd=%d) not in whitelist\n",
+                worker_id.c_str(), fd);
+        it->second.conn->mark_for_closing();
+    }
+}
+
 void WorkerManager::handle_submit(Connection* conn, const StratumRequest& req) {
     int fd = conn->fd();
     auto it = workers_.find(fd);
     if (it == workers_.end()) return;
 
-    // Extract params: worker_id, job_id, nonce, result
     std::string worker_id, job_id, nonce, result;
 
-    if (req.params.is_array() && req.params.size() >= 4) {
+    if (req.method == StratumMethod::MONERO_SUBMIT && req.params.is_object()) {
+        // Monero-style submit: {"method":"submit","params":{"id":worker,"job_id":...,"nonce":...,"result":...},"id":2}
+        if (req.params.contains("id")) worker_id = req.params["id"];
+        if (req.params.contains("job_id")) job_id = req.params["job_id"];
+        if (req.params.contains("nonce")) nonce = req.params["nonce"];
+        if (req.params.contains("result")) result = req.params["result"];
+    } else if (req.params.is_array() && req.params.size() >= 4) {
+        // Bitcoin-style submit: ["worker", "job_id", "nonce", "result"]
         worker_id = req.params[0];
         job_id = req.params[1];
         nonce = req.params[2];
@@ -243,6 +319,11 @@ void WorkerManager::handle_submit(Connection* conn, const StratumRequest& req) {
 
     fprintf(stderr, "[WorkerManager] Share from %s: job=%s nonce=%s\n",
             worker_id.c_str(), job_id.c_str(), nonce.c_str());
+
+    // Send immediate acknowledgment (share accepted)
+    std::string response = R"({"id": )" + std::to_string(req.id) +
+        R"(, "jsonrpc": "2.0", "result": {"status": "OK"}, "error": null})";
+    conn->send_line(response);
 
     // Forward to pool via callback
     if (share_cb_) {
