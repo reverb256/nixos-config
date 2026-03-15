@@ -95,7 +95,7 @@ class MCPBroker:
         """
         Ensure MCP server is initialized (required by MCP protocol).
 
-        Many MCP servers (including Z.AI) require an initialize handshake before
+        Many MCP servers require an initialize handshake before
         accepting tools/call requests. This method calls initialize if not already done.
 
         Args:
@@ -287,7 +287,7 @@ class MCPBroker:
                 # Use MCP JSON-RPC protocol to list tools
                 mcp_request = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
 
-                # ZAI MCP servers require SSE-capable Accept header
+                # MCP servers require SSE-capable Accept header
                 headers["Accept"] = "application/json, text/event-stream"
 
                 async with httpx.AsyncClient(timeout=10.0) as client:
@@ -500,7 +500,7 @@ class MCPBroker:
         self, server: MCPServer, tool_name: str, arguments: Dict
     ) -> Dict:
         """
-        Call a tool on a non-ZAI MCP server via direct MCP JSON-RPC protocol.
+        Call a tool on a remote MCP server via direct MCP JSON-RPC protocol.
 
         Args:
             server: MCP server configuration
@@ -511,7 +511,7 @@ class MCPBroker:
             Tool execution result
         """
         # CRITICAL: Ensure MCP server is initialized before making tool calls
-        # Many MCP servers (Z.AI, etc.) require initialize handshake before tools/call
+        # Many MCP servers require initialize handshake before tools/call
         if not await self._ensure_initialized(server):
             logger.warning(
                 f"Failed to initialize {server.name}, tool call may fail"
@@ -562,7 +562,7 @@ class MCPBroker:
                             logger.error(
                                 f"Failed to read API key from {file_path}: {e}"
                             )
-                            # Fall back to raw value (will fail at ZAI but preserves error context)
+                            # Fall back to raw value (preserves error context)
                             logger.warning(
                                 f"Using raw header value as fallback for {server.name}"
                             )
@@ -581,7 +581,7 @@ class MCPBroker:
                 "params": {"name": tool_name, "arguments": arguments},
             }
 
-            # ZAI MCP servers require SSE-capable Accept header
+            # MCP servers require SSE-capable Accept header
             headers["Accept"] = "application/json, text/event-stream"
 
             # CRITICAL DEBUG: Log the actual headers being sent
@@ -604,7 +604,7 @@ class MCPBroker:
                 )
                 logger.debug(f"Response status: {response.status_code}")
 
-                # Handle SSE response from ZAI MCP servers
+                # Handle SSE response from MCP servers
                 if response.status_code == 200:
                     # Check if response is SSE format
                     content_type = response.headers.get("content-type", "")
@@ -622,8 +622,8 @@ class MCPBroker:
                                     if "result" in data:
                                         result = data["result"]
 
-                                        # CRITICAL: Check for Z.AI MCP error format BEFORE processing content
-                                        # Z.AI returns errors as: {"result": {"content": [{"text": "MCP error -401..."}], "isError": true}}
+                                        # CRITICAL: Check for MCP error format BEFORE processing content
+                                        # Some MCP servers return errors as: {"result": {"content": [{"text": "MCP error -401..."}], "isError": true}}
                                         is_error = result.get("isError", False)
                                         error_message = None
 
@@ -647,7 +647,7 @@ class MCPBroker:
                                                     is_error = True
                                                     error_message = text_content
                                                     logger.warning(
-                                                        f"Z.AI MCP returned error in content: {text_content[:200]}"
+                                                        f"MCP server returned error in content: {text_content[:200]}"
                                                     )
 
                                                 # If this is an error response, return it with error key
