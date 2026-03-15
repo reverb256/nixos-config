@@ -25,21 +25,22 @@
 
   # Python environment for SearXNG MCP server
   # Use makeWrapper to set PYTHONPATH
-  searxngPythonBase = pkgs.python3.withPackages (ps: [ ps.mcp ]);
+  searxngPythonBaseEnv = pkgs.python3.withPackages (ps: [ ps.mcp ]);
   searxngPython = pkgs.runCommand "searxng-python-with-gateway"
     {
       preferLocalBuild = true;
       buildInputs = [ pkgs.makeWrapper ];
       buildCommand = ''
         mkdir -p $out/bin
-        ln -s ${searxngPythonBase}/bin/* $out/bin/
+        ln -s ${searxngPythonBaseEnv}/bin/* $out/bin/
         rm $out/bin/python3 $out/bin/python3.*
-        ln -s ${searxngPythonBase}/bin/python3.* $out/bin/python3
+        ln -s ${searxngPythonBaseEnv}/bin/python3.* $out/bin/python3
         wrapProgram $out/bin/python3 \
           --prefix PYTHONPATH : ${gatewayPythonPkg}/lib/python3.13/site-packages \
-          --prefix PYTHONPATH : ${searxngPythonBase}/lib/python3.13/site-packages
+          --prefix PYTHONPATH : ${searxngPythonBaseEnv}/lib/python3.13/site-packages
       '';
     };
+  searxngPythonInterpreter = "${searxngPython}/bin/python3";
 in {
   imports = [
     # ========================================================================
@@ -541,7 +542,7 @@ in {
           searxng = {
             type = "local";
             command = [
-              "${searxngPython}/bin/python3"
+              searxngPythonInterpreter
               "-m"
               "ai_inference_gateway.mcp_servers.searxng_server"
             ];
