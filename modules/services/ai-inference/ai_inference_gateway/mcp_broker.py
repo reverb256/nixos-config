@@ -891,24 +891,31 @@ class MCPBroker:
                         gateway_pkg = None
                         gateway_python = None
                         import re
+                        line_count = 0
                         for line in result.stdout.splitlines():
-                            if "ai-inference-gateway-modular-pkg-v7" in line and "base" not in line and "python" not in line:
+                            line_count += 1
+                            # Check if this is the gateway package
+                            if "ai-inference-gateway-modular-pkg-v" in line and "base" not in line and "python" not in line:
                                 gateway_pkg = line
+                                print(f"[DEBUG] [MCP {server.name}] Found gateway_pkg at line {line_count}: {line}")
                             elif re.search(r'python3-.*?\d+\.?\d*-env', line):
                                 # Check if this Python has mcp (gateway Python)
-                                try:
-                                    mcp_check = subprocess.run(
-                                        ["test", "-d", f"{line}/lib/python3.13/site-packages/mcp"],
-                                        capture_output=True,
-                                    )
-                                    if mcp_check.returncode == 0:
-                                        gateway_python = line
-                                        break  # Use the first Python with mcp
-                                except Exception:
-                                    pass
+                                # Only set if not already found (prefer first Python with mcp)
+                                if gateway_python is None:
+                                    try:
+                                        mcp_check = subprocess.run(
+                                            ["test", "-d", f"{line}/lib/python3.13/site-packages/mcp"],
+                                            capture_output=True,
+                                        )
+                                        if mcp_check.returncode == 0:
+                                            gateway_python = line
+                                            print(f"[DEBUG] [MCP {server.name}] Found gateway_python at line {line_count}: {line}")
+                                    except Exception:
+                                        pass
+                                # Don't break - continue to find gateway_pkg
 
-                        print(f"[DEBUG] [MCP {server.name}] gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
-                        logger.info(f"[MCP {server.name}] gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
+                        print(f"[DEBUG] [MCP {server.name}] Processed {line_count} lines, gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
+                        logger.info(f"[MCP {server.name}] Processed {line_count} lines, gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
 
                         # Build PYTHONPATH with both paths
                         pythonpath_parts = []
@@ -916,6 +923,13 @@ class MCPBroker:
                             pythonpath_parts.append(gateway_pkg)
                         if gateway_python:
                             pythonpath_parts.append(f"{gateway_python}/lib/python3.13/site-packages")
+
+                        # Build the modified command with gateway Python
+                        modified_command = list(server.command)
+                        if gateway_python and modified_command[0] == "python3":
+                            # Use the gateway Python interpreter which has all the dependencies
+                            modified_command[0] = f"{gateway_python}/bin/python3"
+                            print(f"[DEBUG] [MCP {server.name}] Using gateway Python: {modified_command[0]}")
 
                         if pythonpath_parts:
                             existing_pythonpath = env.get("PYTHONPATH", "")
@@ -930,9 +944,12 @@ class MCPBroker:
                 except Exception as e:
                     logger.warning(f"Failed to add PYTHONPATH for {server.name}: {e}")
 
+            # Determine the command to use (possibly modified with gateway Python)
+            command_to_use = modified_command if 'modified_command' in locals() else server.command
+
             # Spawn the subprocess
             server.process = await asyncio.create_subprocess_exec(
-                *server.command,
+                *command_to_use,
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,

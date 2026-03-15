@@ -35,6 +35,8 @@ from typing import Annotated
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
+from mcp.server.models import InitializationOptions
+from mcp.server.lowlevel.server import NotificationOptions
 from pydantic import BaseModel, Field
 
 # Import SearXNG integration
@@ -154,15 +156,19 @@ TOOLS: list[Tool] = [
 
 
 # ============================================================================
-# SERVER IMPLEMENTATION
+# MAIN ENTRY POINT
 # ============================================================================
 
-async def serve() -> None:
-    """Run the SearXNG MCP server."""
+async def main():
+    """Main entry point for SearXNG MCP server."""
     if not SEARXNG_AVAILABLE:
         logger.error("SearXNG integration not available. Exiting.")
         logger.error("Ensure searxng_integration.py is in the Python path.")
         return
+
+    logger.info(f"Starting {SERVER_NAME} v{SERVER_VERSION}")
+    logger.info(f"SearXNG URL: {SEARXNG_URL}")
+    logger.info(f"Cache TTL: {SEARXNG_CACHE_TTL}s")
 
     # Initialize SearXNG integration
     searxng = SearxngIntegration(cache_ttl=SEARXNG_CACHE_TTL)
@@ -292,19 +298,20 @@ async def serve() -> None:
                 text=f"Error: {str(e)}"
             )]
 
-
-# ============================================================================
-# MAIN ENTRY POINT
-# ============================================================================
-
-async def main():
-    """Main entry point for SearXNG MCP server."""
-    logger.info(f"Starting {SERVER_NAME} v{SERVER_VERSION}")
-    logger.info(f"SearXNG URL: {SEARXNG_URL}")
-    logger.info(f"Cache TTL: {SEARXNG_CACHE_TTL}s")
-
+    # Run the server with stdio transport
     async with stdio_server() as (read_stream, write_stream):
-        await serve()
+        await server.run(
+            read_stream,
+            write_stream,
+            InitializationOptions(
+                server_name="mcp-searxng",
+                server_version="1.0.0",
+                capabilities=server.get_capabilities(
+                    notification_options=NotificationOptions(),
+                    experimental_capabilities={}
+                )
+            )
+        )
 
 
 if __name__ == "__main__":

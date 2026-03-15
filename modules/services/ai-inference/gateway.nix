@@ -13,23 +13,22 @@
 
   # Gateway package (plain files, not a Python package yet)
   # Used for --app-dir in uvicorn
+  # NOTE: We use symlinkJoin with source tracking to ensure changes are detected
   modularGatewayPkgBase = pkgs.runCommand "ai-inference-gateway-modular-pkg-base"
     {
       preferLocalBuild = true;
-      passAsFile = ["buildScript"];
-      buildScript = ''
-        mkdir -p $out/ai_inference_gateway
-        # Copy the entire modular gateway package
-        cp -r ${gatewaySrc}/. $out/ai_inference_gateway/
-        # Fix permissions
-        chmod -R u+w $out/ai_inference_gateway
-        # Remove compiled Python files
-        find $out -name "*.pyc" -delete
-        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-      '';
+      # Track source changes by including it in the name/hash
+      src = gatewaySrc;
     }
     ''
-      . $buildScriptPath
+      mkdir -p $out/ai_inference_gateway
+      # Copy the entire modular gateway package
+      cp -r ${gatewaySrc}/. $out/ai_inference_gateway/
+      # Fix permissions
+      chmod -R u+w $out/ai_inference_gateway
+      # Remove compiled Python files
+      find $out -name "*.pyc" -delete
+      find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
     '';
 
   # Gateway as a proper Python package (installable in site-packages)
@@ -37,21 +36,19 @@
   modularGatewayPkgPython = pkgs.runCommand "ai-inference-gateway-modular-pkg-python"
     {
       preferLocalBuild = true;
-      passAsFile = ["buildScript"];
-      buildScript = ''
-        # Create site-packages structure
-        mkdir -p $out/lib/python3.13/site-packages
-        # Copy gateway package to site-packages
-        cp -r ${gatewaySrc}/. $out/lib/python3.13/site-packages/ai_inference_gateway
-        # Fix permissions
-        chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
-        # Remove compiled Python files
-        find $out -name "*.pyc" -delete
-        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-      '';
+      # Track source changes by including it in the name/hash
+      src = gatewaySrc;
     }
     ''
-      . $buildScriptPath
+      # Create site-packages structure
+      mkdir -p $out/lib/python3.13/site-packages
+      # Copy gateway package to site-packages
+      cp -r ${gatewaySrc}/. $out/lib/python3.13/site-packages/ai_inference_gateway
+      # Fix permissions
+      chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
+      # Remove compiled Python files
+      find $out -name "*.pyc" -delete
+      find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
     '';
 
   # Python environment with gateway dependencies AND the gateway package
@@ -86,7 +83,7 @@
   # Combined package: gateway source + Python environment in one
   # This allows both --app-dir usage and direct imports
   modularGatewayPkg = pkgs.symlinkJoin {
-    name = "ai-inference-gateway-modular-pkg-v7";
+    name = "ai-inference-gateway-modular-pkg-v11";
     paths = [
       modularGatewayPkgBase
       gatewayPython
@@ -232,3 +229,4 @@ in {
     ];
   };
 }
+# force rebuild 2 1773547683
