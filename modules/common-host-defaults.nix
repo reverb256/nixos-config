@@ -146,23 +146,14 @@
   # GPU COMPUTE - CUDA, ROCm, Vulkan support for AI inference
   # Provides GPU acceleration backends for llama.cpp, PyTorch, etc.
   # Each host can override based on available GPU hardware
-  hardware.gpu-compute = lib.mkDefault {
-    enable = lib.mkDefault true; # Enable GPU compute on all nodes by default
+  hardware.gpu-compute.enable = lib.mkDefault true;
 
-    # Vulkan universal backend (works on NVIDIA, AMD, Intel)
-    # Recommended for llama.cpp and most AI workloads
-    vulkan.enable = lib.mkDefault true;
+  # Vulkan universal backend (works on NVIDIA, AMD, Intel)
+  # Recommended for llama.cpp and most AI workloads
+  hardware.gpu-compute.vulkan.enable = lib.mkDefault true;
 
-    # CUDA support (NVIDIA GPUs only)
-    # Provides cuda_cudart for CUDA-accelerated applications
-    # Enable on NVIDIA nodes: Zephyr, Nexus
-    cuda.enable = lib.mkDefault false;
-
-    # ROCm support (AMD GPUs only)
-    # Provides ROCm runtime for AMD GPU compute
-    # Enable on AMD nodes: Forge, Sentry
-    rocm.enable = lib.mkDefault false;
-  };
+  # Note: CUDA and ROCm defaults to false (defined in gpu-compute.nix)
+  # Enable per-host based on available GPU hardware
 
   # ============================================================================
   # NIX SETTINGS
