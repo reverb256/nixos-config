@@ -21,12 +21,29 @@ from .core import (
 )
 from .routing import SemanticRouter, QueryIntent
 from .fusion import RRFFusion, ContextSynthesizer
+from .circuit_breaker import (
+    CircuitBreakerRegistry,
+    execute_with_circuit_breaker,
+    create_circuit_breaker_registry,
+)
+from .metrics import (
+    get_metrics,
+    create_metrics,
+    KnowledgeFabricMetrics,
+)
 from .sources import (
     RAGKnowledgeSource,
     WebSearchKnowledgeSource,
     SearXNGKnowledgeSource,
     CodeSearchKnowledgeSource,
 )
+
+try:
+    from prometheus_client import CollectorRegistry
+    PROMETHEUS_AVAILABLE = True
+except ImportError:
+    PROMETHEUS_AVAILABLE = False
+    CollectorRegistry = None
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +97,28 @@ class KnowledgeFabricMiddleware(Middleware):
         self.fusion = RRFFusion(k=rrf_k)
         self.synthesizer = ContextSynthesizer()
 
+        # Initialize Prometheus metrics with isolated registry
+        # This prevents duplicate registration errors when multiple instances exist
+        if PROMETHEUS_AVAILABLE:
+            metrics_registry = CollectorRegistry()
+            self.metrics = create_metrics(registry=metrics_registry)
+        else:
+            self.metrics = create_metrics()
+
+        # Initialize circuit breaker for source resilience
+        circuit_config = self.config.get("circuit_breaker", {})
+        self.circuit_registry = create_circuit_breaker_registry(
+            failure_threshold=circuit_config.get("failure_threshold", 5),
+            timeout=circuit_config.get("timeout", 60.0),
+            success_threshold=circuit_config.get("success_threshold", 2),
+            metrics=self.metrics
+        )
+
         # Store sources by name for quick access
         self._sources_by_name = {s.name: s for s in sources}
+
+        # Record initial active sources count
+        self.metrics.set_active_sources(len(sources))
 
         logger.info(
             f"KnowledgeFabric initialized with {len(sources)} sources: "
@@ -177,9 +214,14 @@ class KnowledgeFabricMiddleware(Middleware):
             if not query:
                 return True, None
 
+            # Start query timing
+            query_timer = self.metrics.time_query()
+            query_timer.__enter__()
+
             # Skip for very short queries (likely greetings)
             if len(query.strip()) < 10:
                 logger.debug(f"Query too short for knowledge retrieval: {query[:50]}")
+                self.metrics.record_query_skipped()
                 return True, None
 
             logger.info(f"Processing knowledge query: {query[:100]}")
@@ -190,6 +232,13 @@ class KnowledgeFabricMiddleware(Middleware):
                 f"Routing decision: {routing_decision.intent.value} "
                 f"(confidence: {routing_decision.confidence:.2f})"
             )
+
+            # Record classification metrics
+            self.metrics.record_classification(
+                intent=routing_decision.intent.value,
+                confidence=routing_decision.confidence
+            )
+            self.metrics.record_sources_selected(len(routing_decision.selected_sources))
 
             # Step 2: Create fabric context
             fabric_context = FabricContext(
@@ -205,11 +254,12 @@ class KnowledgeFabricMiddleware(Middleware):
             selected_sources = routing_decision.selected_sources
             if not selected_sources:
                 logger.info("No sources selected for this query")
+                query_timer.__exit__(None, None, None)
                 return True, None
 
             logger.info(f"Querying {len(selected_sources)} sources: {selected_sources}")
 
-            # Prepare retrieval tasks
+            # Prepare retrieval tasks with circuit breaker protection
             retrieval_tasks = []
             for source_name in selected_sources:
                 if source_name in self._sources_by_name:
@@ -226,7 +276,15 @@ class KnowledgeFabricMiddleware(Middleware):
                             )
                             continue
 
-                    retrieval_tasks.append(source.retrieve(query, context=context))
+                    # Wrap retrieve with circuit breaker protection
+                    protected_retrieve = execute_with_circuit_breaker(
+                        registry=self.circuit_registry,
+                        source_name=source_name,
+                        callable_func=source.retrieve,
+                        query=query,
+                        context=context,
+                    )
+                    retrieval_tasks.append(protected_retrieve)
 
             # Execute parallel retrieval
             if retrieval_tasks:
@@ -252,8 +310,16 @@ class KnowledgeFabricMiddleware(Middleware):
                 # Step 4: Fuse results using RRF
                 if fabric_context.results:
                     result_list = list(fabric_context.results.values())
+                    chunks_before = sum(len(r.chunks) for r in result_list)
+
                     fused_chunks = self.fusion.fuse(result_list, fabric_context)
                     fabric_context.fused_chunks = fused_chunks
+
+                    # Record fusion metrics
+                    self.metrics.record_fusion_operation(
+                        chunks_before=chunks_before,
+                        chunks_after=len(fused_chunks)
+                    )
 
                     logger.info(
                         f"RRF fused into {len(fused_chunks)} chunks "
@@ -268,12 +334,23 @@ class KnowledgeFabricMiddleware(Middleware):
                         context[FABRIC_CONTEXT_KEY] = fabric_context
                         context[KNOWLEDGE_CONTEXT_KEY] = knowledge_context
 
+                        # Record context generation metrics
+                        self.metrics.system_context_chars.inc(len(knowledge_context))
+
                         logger.info(
                             f"Injected {len(knowledge_context)} chars of knowledge context"
                         )
 
+            # Close query timing
+            query_timer.__exit__(None, None, None)
+
         except Exception as e:
             logger.exception(f"Error in knowledge fabric process_request: {e}")
+            # Close query timer on error
+            try:
+                query_timer.__exit__(type(e), e, None)
+            except Exception:
+                pass
             # Don't fail the request on knowledge errors
             # Log and continue
 
@@ -366,6 +443,7 @@ class KnowledgeFabricMiddleware(Middleware):
                     "total_retrieval_time": sum(
                         r.retrieval_time for r in fabric_context.results.values()
                     ),
+                    "circuit_breakers": self.circuit_registry.get_all_metrics(),
                 }
             }
 

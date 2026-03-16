@@ -3,13 +3,16 @@ Knowledge fusion using Reciprocal Rank Fusion (RRF).
 
 Combines results from multiple knowledge sources into a single
 ranked list, handling score normalization and duplicate detection.
+Supports optional cross-encoder reranking for result refinement.
 """
 
+import asyncio
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 from collections import defaultdict
 
-from .core import KnowledgeChunk, KnowledgeResult, FabricContext, QueryIntent
+from .core import KnowledgeChunk, KnowledgeResult, FabricContext
+from .routing import QueryIntent
 
 logger = logging.getLogger(__name__)
 
@@ -27,20 +30,54 @@ class RRFFusion:
 
     RRF is robust to score scale differences and works well
     when combining ranked lists from heterogeneous sources.
+
+    Supports optional cross-encoder reranking for result refinement.
     """
 
     DEFAULT_K = 60  # RRF constant (higher = more weight to lower ranks)
+    DEFAULT_RERANKER_MODEL = "BAAI/bge-reranker-v2-base"
 
-    def __init__(self, k: int = DEFAULT_K):
+    def __init__(
+        self,
+        k: int = DEFAULT_K,
+        reranker_enabled: bool = False,
+        reranker_model: str = DEFAULT_RERANKER_MODEL,
+        final_k: int = 5,
+        max_chunks_for_rerank: int = 30
+    ):
         """
         Initialize RRF fusion.
 
         Args:
             k: RRF constant (default 60 is standard)
+            reranker_enabled: Enable cross-encoder reranking after RRF
+            reranker_model: Model name for cross-encoder reranker
+            final_k: Number of results to return after reranking
+            max_chunks_for_rerank: Max chunks to feed to reranker (recall)
         """
         self.k = k
+        self.reranker_enabled = reranker_enabled
+        self.reranker_model = reranker_model
+        self.final_k = final_k
+        self.max_chunks_for_rerank = max_chunks_for_rerank
+        self._reranker = None
 
-    def fuse(
+    async def initialize_reranker(self) -> None:
+        """Initialize the reranker model (lazy loading)."""
+        if self.reranker_enabled and self._reranker is None:
+            try:
+                from sentence_transformers import CrossEncoder
+                logger.info(f"Loading reranker model: {self.reranker_model}")
+                self._reranker = CrossEncoder(self.reranker_model)
+                logger.info("Reranker model loaded successfully")
+            except ImportError as e:
+                logger.error(f"sentence_transformers not available: {e}")
+                self.reranker_enabled = False
+            except Exception as e:
+                logger.error(f"Failed to load reranker: {e}")
+                self.reranker_enabled = False
+
+    async def fuse(
         self,
         results: List[KnowledgeResult],
         context: FabricContext
@@ -55,6 +92,10 @@ class RRFFusion:
         Returns:
             List of KnowledgeChunks sorted by fused RRF score
         """
+        # Ensure reranker is initialized if enabled
+        if self.reranker_enabled and self._reranker is None:
+            await self.initialize_reranker()
+
         # Track RRF scores for each unique chunk
         rrf_scores: Dict[str, float] = defaultdict(float)
         chunk_data: Dict[str, KnowledgeChunk] = {}
@@ -93,6 +134,11 @@ class RRFFusion:
             fused_chunks.append(chunk)
 
         logger.debug(f"RRF fused {len(results)} sources into {len(fused_chunks)} chunks")
+
+        # Apply reranking if enabled
+        if self.reranker_enabled and self._reranker is not None and fused_chunks:
+            return await self._rerank_chunks(context.query, fused_chunks)
+
         return fused_chunks[:self._max_chunks(context)]
 
     def _chunk_key(self, chunk: KnowledgeChunk) -> str:
@@ -105,6 +151,61 @@ class RRFFusion:
         if "file_path" in chunk.metadata:
             return chunk.metadata["file_path"]
         return content_preview
+
+    async def _rerank_chunks(
+        self,
+        query: str,
+        chunks: List[KnowledgeChunk]
+    ) -> List[KnowledgeChunk]:
+        """
+        Rerank chunks using cross-encoder model.
+
+        Implements recall-then-rerank pattern:
+        1. Take top-N chunks from RRF (recall phase)
+        2. Score query-document pairs with cross-encoder
+        3. Return top-K after reranking
+
+        Args:
+            query: Original user query
+            chunks: Fused chunks from RRF (sorted by RRF score)
+
+        Returns:
+            Reranked chunks (top-K by cross-encoder score)
+        """
+        if not self._reranker:
+            logger.warning("Reranking enabled but model not loaded, skipping")
+            return chunks[:self.final_k]
+
+        # Limit chunks for reranking (recall phase)
+        recall_chunks = chunks[:self.max_chunks_for_rerank]
+
+        # Prepare query-document pairs
+        pairs = [(query, chunk.content) for chunk in recall_chunks]
+
+        try:
+            # Run cross-encoder in executor to avoid blocking event loop
+            loop = asyncio.get_event_loop()
+            scores = await loop.run_in_executor(
+                None, lambda: self._reranker.predict(pairs)
+            )
+
+            # Update chunks with reranker scores
+            for chunk, score in zip(recall_chunks, scores):
+                chunk.metadata["reranker_score"] = float(score)
+                chunk.score = float(score)
+
+            # Sort by reranker score and return top-K
+            recall_chunks.sort(key=lambda c: c.score, reverse=True)
+            result = recall_chunks[:self.final_k]
+
+            logger.debug(
+                f"Reranked {len(recall_chunks)} chunks, returning top {len(result)}"
+            )
+            return result
+
+        except Exception as e:
+            logger.error(f"Reranking failed: {e}, falling back to RRF results")
+            return chunks[:self.final_k]
 
     def _max_chunks(self, context: FabricContext) -> int:
         """Determine max chunks to return based on query type."""
@@ -215,11 +316,20 @@ Use this information to help answer the query, supplementing with general knowle
 
         for i, chunk in enumerate(context.fused_chunks, 1):
             source_str = chunk.metadata.get("sources", [chunk.source])[0]
-            score = chunk.metadata.get("rrf_score", chunk.score)
+            # Prefer reranker_score if available, otherwise rrf_score or base score
+            if "reranker_score" in chunk.metadata:
+                score = chunk.metadata["reranker_score"]
+                score_type = "reranker"
+            elif "rrf_score" in chunk.metadata:
+                score = chunk.metadata["rrf_score"]
+                score_type = "rrf"
+            else:
+                score = chunk.score
+                score_type = "score"
 
             if context.query_type == QueryIntent.CODE:
                 parts.append(
-                    f"Example {i} (from {source_str}, score={score:.2f}):\n"
+                    f"Example {i} (from {source_str}, {score_type}={score:.2f}):\n"
                     f"```\n{chunk.content}\n```"
                 )
             elif context.query_type == QueryIntent.PROCEDURAL:
@@ -233,15 +343,38 @@ Use this information to help answer the query, supplementing with general knowle
             else:
                 # Default formatting
                 parts.append(
-                    f"[{i}] From {source_str} (score={score:.2f}):\n{chunk.content}"
+                    f"[{i}] From {source_str} ({score_type}={score:.2f}):\n{chunk.content}"
                 )
 
         return "\n\n".join(parts)
 
 
-def create_fusion(k: int = 60) -> RRFFusion:
-    """Factory function to create RRF fusion."""
-    return RRFFusion(k=k)
+def create_fusion(
+    k: int = 60,
+    reranker_enabled: bool = False,
+    reranker_model: str = RRFFusion.DEFAULT_RERANKER_MODEL,
+    final_k: int = 5,
+    max_chunks_for_rerank: int = 30
+) -> RRFFusion:
+    """Factory function to create RRF fusion.
+
+    Args:
+        k: RRF constant (default 60 is standard)
+        reranker_enabled: Enable cross-encoder reranking after RRF
+        reranker_model: Model name for cross-encoder reranker
+        final_k: Number of results to return after reranking
+        max_chunks_for_rerank: Max chunks to feed to reranker (recall)
+
+    Returns:
+        Configured RRFFusion instance
+    """
+    return RRFFusion(
+        k=k,
+        reranker_enabled=reranker_enabled,
+        reranker_model=reranker_model,
+        final_k=final_k,
+        max_chunks_for_rerank=max_chunks_for_rerank
+    )
 
 
 def create_synthesizer() -> ContextSynthesizer:

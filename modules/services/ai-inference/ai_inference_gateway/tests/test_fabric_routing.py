@@ -114,7 +114,7 @@ def router(mock_sources):
     ("What's the current stock price of AAPL?", QueryIntent.REALTIME),
     ("Latest news about the election", QueryIntent.REALTIME),
     ("Current weather in Tokyo", QueryIntent.REALTIME),
-    "Today's USD to EUR exchange rate",
+    ("Today's USD to EUR exchange rate", QueryIntent.REALTIME),
 
     # COMPARATIVE intent queries
     ("Python vs JavaScript: which is better?", QueryIntent.COMPARATIVE),

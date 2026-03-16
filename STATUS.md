@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-03-14 22:30 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
+**Last Updated:** 2026-03-16 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 

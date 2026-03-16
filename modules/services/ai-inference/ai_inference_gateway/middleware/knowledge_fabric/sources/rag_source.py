@@ -40,10 +40,10 @@ class RAGKnowledgeSource:
 
     def __post_init__(self):
         """Validate configuration after initialization."""
-        if not self.search_service:
-            raise ValueError("search_service is required")
         if self.max_chunks < 1:
             raise ValueError("max_chunks must be at least 1")
+        # Note: search_service can be None for runtime injection
+        # It will be validated during retrieve() if needed
 
     async def retrieve(self, query: str, **kwargs) -> KnowledgeResult:
         """
@@ -56,6 +56,18 @@ class RAGKnowledgeSource:
         collection = kwargs.get("collection", self.collection)
         top_k = kwargs.get("top_k", self.max_chunks)
         rerank = kwargs.get("rerank", None)
+
+        # Check if search_service is available
+        if not self.search_service:
+            return KnowledgeResult(
+                source_name=self.name,
+                chunks=[],
+                query=query,
+                retrieval_time=time.time() - start,
+                metadata={
+                    "note": "search_service not available (needs runtime injection)",
+                },
+            )
 
         try:
             # Perform hybrid search

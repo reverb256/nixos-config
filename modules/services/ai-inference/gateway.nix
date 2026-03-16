@@ -83,6 +83,17 @@ let
       ps.sentry-sdk
       # MCP SDK for SearXNG MCP server integration
       ps.mcp
+      # TTS support (Qwen3-TTS via transformers)
+      ps.transformers
+      ps.torch
+      ps.torchaudio
+      ps.accelerate
+      ps.datasets
+      # Audio processing for TTS/STT format conversion
+      ps.pydub  # For MP3 conversion (requires ffmpeg in systemPackages)
+      ps.soundfile # For FLAC/WAV handling
+      # Vision support (Qwen3-VL via transformers)
+      ps.pillow  # For image processing
     ]
     ++ [ modularGatewayPkgPython ]
   );
@@ -145,6 +156,17 @@ in
         ) cfg.backend.zai.apiKeyFile;
         ZAI_BASE_URL = cfg.backend.zai.baseUrl;
         ZAI_MODELS = lib.generators.toJSON { } cfg.backend.zai.models;
+        # Pollinations backend configuration
+        POLLINATIONS_API_KEY =
+          if cfg.backend.pollinations.apiKeyFile != null then
+            "" # Will be loaded from file by gateway
+          else
+            cfg.backend.pollinations.apiKey;
+        POLLINATIONS_API_KEY_FILE = lib.optionalString (
+          cfg.backend.pollinations.apiKeyFile != null
+        ) cfg.backend.pollinations.apiKeyFile;
+        POLLINATIONS_BASE_URL = cfg.backend.pollinations.baseUrl;
+        POLLINATIONS_MODELS = lib.generators.toJSON { } cfg.backend.pollinations.models;
         PYTHONUNBUFFERED = "1";
         ROUTING_ENABLED = lib.boolToString cfg.routing.enable;
         DEFAULT_MODEL = cfg.routing.defaultModel;
@@ -214,6 +236,7 @@ in
         ]
         ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
         ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
+        ++ lib.optional (cfg.backend.pollinations.apiKeyFile != null) (dirOf cfg.backend.pollinations.apiKeyFile)
         ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/zai-api-key")
         ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/context7-api-key")
         ++ lib.optional (

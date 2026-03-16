@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/etc/nixos/modules/mining/gpu-proxy-cpp/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

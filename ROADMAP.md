@@ -1,6 +1,6 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
-**Status:** Phase 1 Complete, Phase 2 In Progress | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-03-13
+**Status:** Phase 2 Complete, Phase 4 Started | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-03-16
 
 ## Executive Summary
 
@@ -110,14 +110,18 @@
 - Better for learning professional K8s operations
 - NixOS native module (version 1.35.0)
 
-**Control Plane:**
-- **Zephyr:** Single master (apiserver, scheduler, controller-manager, etcd)
-- **Future:** HA control plane (3+ masters) if needed
+**Control Plane (3-Node HA):**
+- **Zephyr** (10.1.1.110): Primary master (apiserver, scheduler, controller-manager, etcd)
+- **Nexus** (10.1.1.120): Secondary master (priority 100)
+- **Sentry** (10.1.1.140): Tertiary master (priority 90)
+- **VIP** (10.1.1.100): Floating virtual IP via Keepalived for API server HA
+- **etcd Cluster:** 3-node quorum (zephyr, nexus, sentry)
 
 **Worker Nodes:**
-- **Nexus:** Storage worker (large local storage)
-- **Forge:** Multi-GPU worker (mixed NVIDIA + AMD)
-- **Sentry:** AMD GPU worker + monitoring
+- **Zephyr:** GPU worker + control plane (2x NVIDIA)
+- **Nexus:** Storage worker + control plane (1x NVIDIA, large local storage)
+- **Forge:** Multi-GPU worker (2x NVIDIA + 2x AMD)
+- **Sentry:** Monitoring worker + control plane (1x AMD)
 
 ### Networking
 
@@ -216,7 +220,22 @@
 - ✅ Monitoring deployed (Prometheus + Grafana - operational)
 - ⚠️ **NEW REQUIREMENT:** Compute scheduler coordination for GPU workloads
 
-**Phase 1 Status: ✅ COMPLETE (100%)**
+**Phase 2 Status: ✅ COMPLETE (100%)**
+
+**Completed:**
+- ✅ Nexus joined as worker + master (HA control plane)
+- ✅ Sentry joined as worker + master (HA control plane)
+- ✅ Forge joined as worker (GPU compute)
+- ✅ All 4 nodes in cluster with Ready status
+- ✅ Keepalived VIP configured (10.1.1.100)
+- ✅ etcd 3-node cluster operational
+- ✅ CoreDNS deployed and functional
+- ✅ Flannel CNI networking operational
+- ✅ GPU passthrough working on Zephyr (2x NVIDIA)
+
+**Outstanding Issues:**
+- ⚠️ Forge GPU registration failing (RTX 4060 Ada Lovelace support issue)
+- ⚠️ Storage classes deployed but not fully tested
 
 **Completed:**
 - ✅ Kubernetes control plane deployed and operational
@@ -245,7 +264,40 @@
 
 ---
 
-### Phase 2: Worker Nodes (Week 2-3)
+### Phase 2: Worker Nodes & HA Control Plane (Week 2-3) ✅ COMPLETE
+
+**Objectives:**
+- Add Nexus, Forge, Sentry as worker nodes
+- Configure GPU passthrough for each node type
+- Set up storage provisioners
+- Deploy HA control plane with 3 masters
+
+**Tasks Completed:**
+1. ✅ **Configure Nexus worker + master** (1x NVIDIA)
+   - Joined as worker node
+   - Promoted to master for HA
+   - Configured Keepalived VIP (priority 100)
+   - Storage worker with large local storage
+
+2. ✅ **Configure Forge worker** (2x NVIDIA + 2x AMD - mixed vendor)
+   - Joined as worker node
+   - GPU passthrough: NVIDIA working, AMD plugin issues
+
+3. ✅ **Configure Sentry worker + master** (1x AMD)
+   - Joined as worker node
+   - Promoted to master for HA
+   - Configured Keepalived VIP (priority 90)
+   - Monitoring stack operational
+
+4. ✅ **Deploy HA Control Plane**
+   - 3-master control plane (Zephyr, Nexus, Sentry)
+   - Keepalived VIP (10.1.1.100) for API server failover
+   - 3-node etcd cluster with quorum
+
+5. ✅ **Activate cluster storage**
+   - Nexus 3.8TB storage active
+   - Storage classes created (beta2, beta3, ram)
+   - NFS shared storage operational
 
 **Objectives:**
 - Add Nexus, Forge, Sentry as worker nodes
@@ -662,6 +714,18 @@
 
 ---
 
+**GPU Marketplace: ✅ DEPLOYED (2026-03-14)**
+
+**Architecture:**
+- Unified auction engine for GPU resource allocation
+- Bidders: Mining (baseline), Kubernetes (AI workloads), Akash (leases), Gaming (priority override)
+- Prometheus metrics on port 9200
+- Auto-scales mining based on cluster demand
+
+**Documentation:** `modules/compute-market/default.nix`, `docs/compute-market.md`
+
+---
+
 ## Next Steps
 
 ### Immediate (This Week)
@@ -725,6 +789,6 @@
 
 ---
 
-**Last Updated:** 2026-03-13
-**Status:** Phase 1 Complete → Ready to begin Phase 2
-**Next Review:** After Phase 2 completion
+**Last Updated:** 2026-03-16
+**Status:** Phase 2 Complete → Phase 4 Started (Caddy Ingress deployed)
+**Next Review:** After Phase 4 completion

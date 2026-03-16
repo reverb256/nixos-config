@@ -14,9 +14,9 @@ from ai_inference_gateway.middleware.knowledge_fabric.core import (
     KnowledgeChunk,
     KnowledgeResult,
     FabricContext,
-    QueryIntent,
     SourceCapability,
 )
+from ai_inference_gateway.middleware.knowledge_fabric.routing import QueryIntent
 
 
 # ============================================================================

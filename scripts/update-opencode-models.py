@@ -483,12 +483,17 @@ def update_opencode_config(
 def sync_to_cluster(config: Dict[str, Any]) -> None:
     """Sync configuration to cluster nodes (forge, nexus, sentry)."""
     import subprocess
+    import tempfile
 
     nodes = ["forge", "nexus", "sentry"]
-    config_json = json.dumps(config, indent=2)
 
     for node in nodes:
         try:
+            # Write config to a temporary file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:
+                json.dump(config, tmp_file, indent=2)
+                tmp_path = tmp_file.name
+
             # Copy to user directory
             result = subprocess.run(
                 [
@@ -496,13 +501,19 @@ def sync_to_cluster(config: Dict[str, Any]) -> None:
                     "-o",
                     "ConnectTimeout=5",
                     "-q",
-                    "/dev/stdin",
+                    tmp_path,
                     f"j_kro@{node}:/home/j_kro/.config/opencode/opencode.json",
                 ],
-                input=config_json.encode(),
                 capture_output=True,
                 timeout=10,
             )
+
+            # Clean up temp file
+            try:
+                Path(tmp_path).unlink()
+            except:
+                pass
+
             if result.returncode == 0:
                 # Copy to root directory via sudo
                 subprocess.run(

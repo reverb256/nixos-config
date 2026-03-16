@@ -1,0 +1,31 @@
+{
+  "settings": {
+    "listen_port": 3334,
+    "api_port": 8083,
+    "log_level": "INFO"
+  },
+  "pools": [
+    {
+      "name": "Kryptex US",
+      "url": "xtm-c29-us.kryptex.network:8040",
+      "wallet": "krxXVNVMM7",
+      "password": "x",
+      "priority": 1,
+      "tls": true
+    }
+  ],
+  "workers": [
+    {
+      "id": "krxXVNVMM7.forge-gpu",
+      "password": "x"
+    },
+    {
+      "id": "krxXVNVMM7.zephyr-gpu",
+      "password": "x"
+    },
+    {
+      "id": "krxXVNVMM7.nexus-gpu",
+      "password": "x"
+    }
+  ]
+}

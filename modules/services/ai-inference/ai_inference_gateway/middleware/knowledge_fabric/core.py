@@ -104,6 +104,7 @@ class FabricContext:
         total_retrieval_time: Cumulative time across all sources
         synthesis: Optional synthesized context for LLM
         timestamp: When this query was executed
+        routing_reasoning: Explanation of routing decision
     """
     query: str
     query_type: "QueryIntent"
@@ -113,6 +114,7 @@ class FabricContext:
     total_retrieval_time: float = 0.0
     synthesis: Optional[str] = None
     timestamp: datetime = field(default_factory=datetime.utcnow)
+    routing_reasoning: Optional[str] = None
 
     @property
     def total_sources_queried(self) -> int:
