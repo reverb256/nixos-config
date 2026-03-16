@@ -87,13 +87,13 @@
   # ============================================================================
   # GPU COMPUTE - Vulkan support for AI inference
   # ============================================================================
+  # Using Vulkan as primary compute backend
+  # CUDA temporarily disabled due to nixpkgs cuda_compat issue
+  # See: https://github.com/NixOS/nixpkgs/issues/458799
   hardware.gpu-compute = {
     enable = true;
-    # Vulkan works as universal backend for NVIDIA GPUs
-    vulkan.enable = true;
-    # CUDA TEMPORARILY DISABLED - cuda_compat build issue
-    # TODO: Fix properly - need to override cudaPackages scope or use cuda-redist
-    # cuda.enable = true;
+    vulkan.enable = true; # Vulkan works on NVIDIA/AMD/Intel (~85-95% of CUDA perf)
+    # cuda.enable = true; # TODO: Re-enable when nixpkgs fixes cuda_compat issue
   };
 
   # ============================================================================
