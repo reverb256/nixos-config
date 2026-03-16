@@ -95,21 +95,6 @@ in {
       description = "User to run llamafile as";
     };
 
-    # Integration with AI gateway
-    gatewayFallback = {
-      enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Register as fallback backend with AI gateway";
-      };
-
-      priority = mkOption {
-        type = types.int;
-        default = 100;  # Lower priority = tried last
-        description = "Fallback priority (higher = tried earlier)";
-      };
-    };
-
     # Performance tuning
     batchSize = mkOption {
       type = types.int;
@@ -244,10 +229,7 @@ in {
       '')
     ];
 
-    # Integration with AI gateway (if enabled)
-    services.ai-inference.gateway = lib.mkIf cfg.gatewayFallback.enable {
-      # Add llamafile as a fallback backend
-      routing.fallbackChain = lib.mkAfter ["llamafile"];
-    };
+    # Note: To integrate with AI gateway as fallback, add to gateway config:
+    # services.ai-inference.routing.fallbackChain = [ "lm-studio" "llamafile" "zai" ];
   };
 }
