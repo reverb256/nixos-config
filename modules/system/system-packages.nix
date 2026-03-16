@@ -157,17 +157,15 @@
     # ============================================================================
     # CUDA AND ML LIBRARIES
     # System libraries for CUDA/ML workloads
-    # These provide the runtime libraries, not user tools
-    # NOTE: PyTorch/TensorFlow/ollama moved to home-manager to avoid long builds
+    # NOTE: These packages are now managed by hardware.gpu-compute module
+    # NOTE: cudatoolkit was causing cuda_compat dependency (Jetson-only package)
+    # REMOVED: cudatoolkit, cudnn, libcufft, libcusparse, libcutensor, libcurand, libcusolver, libnvjpeg
+    # The gpu-compute module provides cuda_cudart for basic CUDA runtime support
+    # Re-add individual packages here if needed for specific ML workloads
     # ============================================================================
-    pkgs.cudaPackages.cudatoolkit
-    pkgs.cudaPackages.cudnn
-    pkgs.cudaPackages.libcufft
-    pkgs.cudaPackages.libcusparse
-    pkgs.cudaPackages.libcutensor
-    pkgs.cudaPackages.libcurand
-    pkgs.cudaPackages.libcusolver
-    pkgs.cudaPackages.libnvjpeg
+    # pkgs.cudaPackages.cudatoolkit  # REMOVED: pulls in broken cuda_compat (Jetson-only)
+    # pkgs.cudaPackages.cudnn         # REMOVED: pulls in cuda_compat
+    # ... other CUDA packages removed for same reason
 
     # ============================================================================
     # SYSTEM MANAGEMENT TOOLS
