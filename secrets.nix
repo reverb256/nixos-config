@@ -49,6 +49,16 @@ in {
     hosts.zephyr
   ];
 
+  # Pollinations API key - Free AI service (text, image, TTS)
+  "pollinations-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/pollinations-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+
   # Kilo API key - Additional AI service
   "kilo-api-key.age".publicKeys = [
     users.j_kro

@@ -9,7 +9,7 @@ import re
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from .core import KnowledgeSource, SourceCapability
 
@@ -53,6 +53,9 @@ class SemanticRouter:
     Uses pattern matching heuristics to determine query intent,
     then selects sources based on capabilities and priorities.
     """
+
+    # Minimum confidence threshold for routing
+    MIN_CONFIDENCE = 0.5
 
     # Patterns for each intent type
     PATTERNS = {
@@ -104,15 +107,21 @@ class SemanticRouter:
             }
         return cls._compiled_patterns
 
-    def __init__(self, sources: List[KnowledgeSource]):
+    def __init__(
+        self,
+        sources: List[KnowledgeSource],
+        confidence_threshold: float = MIN_CONFIDENCE
+    ):
         """
         Initialize router with available knowledge sources.
 
         Args:
             sources: All available knowledge sources (used for selection)
+            confidence_threshold: Minimum confidence for routing (0-1)
         """
         self.sources_by_name = {s.name: s for s in sources}
         self.sources_by_priority = sorted(sources, key=lambda s: s.priority)
+        self.confidence_threshold = confidence_threshold
 
     def classify(self, query: str, history: Optional[List] = None) -> RoutingDecision:
         """
@@ -167,6 +176,20 @@ class SemanticRouter:
         reasoning += f"Required capabilities: {[c.name for c in SourceCapability if c in required_caps]}. "
         reasoning += f"Selected {len(selected)} sources: {selected}"
 
+        # Apply confidence threshold - skip retrieval if too uncertain
+        if confidence < self.confidence_threshold:
+            logger.info(
+                f"Confidence {confidence:.2f} below threshold "
+                f"{self.confidence_threshold:.2f} - skipping routing"
+            )
+            return RoutingDecision(
+                intent=primary_intent,
+                confidence=confidence,
+                required_capabilities=required_caps,
+                selected_sources=[],  # Empty = no retrieval
+                reasoning=reasoning + " | SKIPPED: low confidence"
+            )
+
         return RoutingDecision(
             intent=primary_intent,
             confidence=confidence,
@@ -220,6 +243,17 @@ class SemanticRouter:
         return selected
 
 
-def create_router(sources: List[KnowledgeSource]) -> SemanticRouter:
-    """Factory function to create a SemanticRouter."""
-    return SemanticRouter(sources)
+def create_router(
+    sources: List[KnowledgeSource],
+    confidence_threshold: float = SemanticRouter.MIN_CONFIDENCE
+) -> SemanticRouter:
+    """Factory function to create a SemanticRouter.
+
+    Args:
+        sources: All available knowledge sources
+        confidence_threshold: Minimum confidence for routing (0-1)
+
+    Returns:
+        Configured SemanticRouter instance
+    """
+    return SemanticRouter(sources, confidence_threshold=confidence_threshold)

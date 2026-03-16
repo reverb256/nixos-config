@@ -62,6 +62,7 @@ in
           "llama-cpp"
           "sglang"
           "zai"
+          "pollinations"
         ];
         default = "lm-studio";
         description = "Backend inference engine type";
@@ -152,6 +153,57 @@ in
             };
           };
           description = "Available ZAI models";
+        };
+      };
+
+      # Pollinations-specific configuration
+      pollinations = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Pollinations AI service (free text, image, TTS)";
+        };
+
+        apiKey = mkOption {
+          type = types.str;
+          default = "";
+          description = "Pollinations API key";
+        };
+
+        apiKeyFile = mkOption {
+          type = types.nullOr types.path;
+          default = null;
+          example = literalExpression "/run/agenix/pollinations-api-key";
+          description = "Path to file containing Pollinations API key (takes precedence over apiKey)";
+        };
+
+        baseUrl = mkOption {
+          type = types.str;
+          default = "https://text.pollinations.ai";
+          description = "Pollinations API base URL";
+        };
+
+        # Available models on Pollinations
+        models = mkOption {
+          type = types.attrs;
+          default = {
+            "openai" = {
+              name = "OpenAI-compatible (GPT-4, GPT-4.1, GPT-4o, o1)";
+            };
+            "anthropic" = {
+              name = "Anthropic-compatible (Claude Sonnet, Opus, Haiku)";
+            };
+            "qwen" = {
+              name = "Qwen2.5 72B, 7B";
+            };
+            "flux" = {
+              name = "Flux image generation";
+            };
+            "turbo" = {
+              name = "Fast generation";
+            };
+          };
+          description = "Available Pollinations models";
         };
       };
     };
@@ -752,6 +804,7 @@ in
     environment.systemPackages = with pkgs; [
       config.services.ai-inference.package
       inputs.claude-native.packages.x86_64-linux.claude
+      ffmpeg # Required for pydub MP3 conversion in TTS
       (pkgs.writeShellScriptBin "ai-inference-status" ''
         #!/bin/bash
         echo "=== AI Inference Service Status ==="

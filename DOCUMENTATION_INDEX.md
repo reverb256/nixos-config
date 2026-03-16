@@ -1,6 +1,6 @@
 # NixOS Cluster Documentation Index
 
-**Last Updated:** 2026-03-15 | **Cluster Version:** Phase 1 Complete (K8s v1.35.0 running) | **Agent Files:** Template-based v1.0
+**Last Updated:** 2026-03-16 | **Cluster Version:** Phase 2 Complete, HA Control Plane (K8s v1.35.0) | **Agent Files:** Template-based v1.0
 
 This document provides a comprehensive index of all documentation for the NixOS cluster, including the ongoing Kubernetes migration.
 
@@ -25,6 +25,21 @@ This document provides a comprehensive index of all documentation for the NixOS 
 ---
 
 ## Core Documentation
+
+### DECISION_LOG.md (NEW - 2026-03-16)
+**Purpose:** Record architectural decisions and their rationale (from git history analysis)
+**Key Sections:**
+- **19 decisions recorded** from 1,539 commits (2026-01-24 to 2026-03-16)
+- Control plane: Keepalived VIP vs HAProxy, 3-master etcd, VIP IPv4 workaround
+- Storage: Garage evolution (3-way → 2-way → single-node)
+- Networking: Caddy vs NGINX, CIDR migration, interface naming
+- AI/Gateway: Z.AI MCP abandoned, SearXNG integration
+- Compute: GPU marketplace, centralized proxy, compute-workload-monitor evolution
+- Build system: x86-64-v3 partial, Harmonia cache disabled
+- Project origins: Initial 4-host architecture
+- Revert costs for each decision
+**When to Read:** Questioning why something was built a certain way, considering changes
+**Location:** `/etc/nixos/docs/DECISION_LOG.md`
 
 ### STATUS.md (NEW - 2026-03-13)
 **Purpose:** Real-time cluster health and migration progress snapshot
@@ -175,23 +190,14 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **When to Read:** Understanding cluster storage layout, troubleshooting mount issues
 **Location:** `/etc/nixos/docs/storage-configuration.md`
 
-#### storage-architecture.md (Updated - 2026-03-13)
-**Purpose:** Complete cluster storage architecture including K8s integration
-**Status:** ✅ Complete
-**Contents:**
-- All storage technologies (NFS, Garage S3, Syncthing)
-- Kubernetes storage classes and tier selection
-- Storage design diagrams
-- S3 configuration examples
-- Backup automation
-- Troubleshooting guides
-**Location:** `/etc/nixos/docs/storage-architecture.md`
+#### storage-configuration.md
+**Purpose:** Storage drive inventory, mount status, and known issues
+**Contents:** All storage drives across cluster, BTRFS subvolumes, implementation priorities
+**When to Read:** Understanding cluster storage layout, troubleshooting mount issues
+**Location:** `/etc/nixos/docs/storage-configuration.md`
 
-#### STORAGE-CLUSTER-STATUS-REPORT.md
-**Purpose:** Current status of cluster storage architecture (NFS, Syncthing, Loki/Promtail)
-**Contents:** Service deployment status, mount verification, remaining work, issues found
-**When to Read:** Understanding cluster storage state, troubleshooting NFS/Syncthing
-**Location:** `/etc/nixos/docs/storage-cluster-status-report.md`
+**Note:** For Kubernetes storage architecture, see `/etc/nixos/docs/kubernetes/storage/storage-architecture.md`
+**Archived:** Old storage-architecture.md and status reports moved to `docs/archive/obsolete/storage/` (incorrect 3-way replication claims)
 
 ### Monitoring & Testing
 
@@ -403,23 +409,40 @@ This document provides a comprehensive index of all documentation for the NixOS 
 - NixOS Kubernetes configuration
 - Troubleshooting guide
 
-### Kubernetes Storage Documentation (NEW - 2026-03-13)
+### Kubernetes Control Plane Documentation (Updated - 2026-03-16)
+
+**Note:** Previous HA documentation (ha-implementation-guide.md, ha-deployment-checklist.md) archived to `docs/archive/obsolete/kubernetes/` - those docs referenced HAProxy which was never implemented (actual config uses Keepalived VIP directly).
+
+##### control-plane-architecture.md (NEW)
+**Purpose:** 3-node HA control plane architecture documentation
+**Status:** ✅ Complete
+**Contents:**
+- 3-node HA control plane overview (Zephyr, Nexus, Sentry)
+- Keepalived VIP configuration (10.1.1.100)
+- etcd 3-node cluster setup
+- API server high availability
+- Failover and recovery procedures
+- Architecture diagrams
+**Location:** `/etc/nixos/docs/kubernetes/control-plane-architecture.md`
+
+### Kubernetes Storage Documentation (Updated - 2026-03-16)
 **Location:** `/etc/nixos/docs/kubernetes/storage/`
 
 **Purpose:** Complete storage integration for Kubernetes workloads
 
 #### Key Documents
 
-##### storage-architecture.md (Updated)
-**Purpose:** Complete cluster storage architecture including K8s integration
+##### storage-architecture.md (NEW - 2026-03-16)
+**Purpose:** Complete Kubernetes storage architecture with storage classes
 **Status:** ✅ Complete
 **Contents:**
-- All storage technologies (NFS, Garage S3, Syncthing)
-- Kubernetes storage classes and tier selection
-- Storage design diagrams
-- S3 configuration examples
-- Backup automation
+- All storage classes (beta2, beta3, ram, garage-s3)
+- Node storage capacity and recommendations
+- Garage S3 object storage configuration
+- NFS shared storage setup
+- Storage architecture diagram
 - Troubleshooting guides
+**Location:** `/etc/nixos/docs/kubernetes/storage/storage-architecture.md`
 
 ##### README.md (NEW)
 **Purpose:** Kubernetes storage integration guide
@@ -850,6 +873,35 @@ kubectl logs <pod-name> -n <namespace>
 ---
 
 ## Change Log
+
+### 2026-03-16
+- **DOCUMENTATION AUDIT & CLEANUP:** Comprehensive audit and cleanup completed
+  - **Archived incorrect storage documentation:** Moved to `docs/archive/obsolete/storage/`
+    - `storage-architecture.md` - Incorrectly claimed 3-way Garage replication (actual: single-node)
+    - `storage-status-verified-2026-03-13.md` - Outdated status report
+    - `storage-cluster-status-report.md` - Outdated status report
+    - `storage-test-results-2026-03-13.md` - Historical test results
+  - **Archived incorrect HA documentation:** Moved to `docs/archive/obsolete/kubernetes/`
+    - `ha-implementation-guide.md` - Referenced HAProxy which was never implemented
+    - `ha-deployment-checklist.md` - Depended on obsolete HAProxy guide
+  - **Created DOCUMENTATION_CLEANUP_PLAN.md:** Comprehensive analysis of documentation sprawl, dropped ideas, and consolidation plan
+  - **Created DECISION_LOG.md:** Architectural decision log recording why HAProxy, 3-way Garage, NGINX Ingress, etc. were not implemented
+  - **Key Findings:**
+    - HAProxy was planned but Keepalived VIP used instead (simpler architecture)
+    - Garage simplified from planned 3-node to actual single-node operation
+    - Gateway "quick wins" (debug logs, README update) still pending after 12+ days
+    - ROADMAP phases 3-7 (Stateful/Stateless Services, GPU Workloads, Cleanup) not started
+  - **Decision Rationale Documented:**
+    - Keepalived VIP: Simpler, sufficient for 3-node cluster
+    - Single-node Garage: Homelab data not critical enough for 3x storage overhead
+    - Caddy Ingress: HTTP/3 support, simpler than NGINX
+    - GPU Marketplace: Dynamic allocation vs wasteful static partitioning
+  - **Updated DOCUMENTATION_INDEX.md:** Removed references to archived files
+  - **Key Findings:**
+    - HAProxy was planned but Keepalived VIP used instead (simpler architecture)
+    - Garage simplified from planned 3-node to actual single-node operation
+    - Gateway "quick wins" (debug logs, README update) still pending after 12+ days
+    - ROADMAP phases 3-7 (Stateful/Stateless Services, GPU Workloads, Cleanup) not started
 
 ### 2026-03-15
 - **AI GATEWAY QUICK WINS:** Completed three high-impact improvements (~4 hours)

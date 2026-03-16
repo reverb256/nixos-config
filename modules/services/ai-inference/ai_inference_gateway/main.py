@@ -9,6 +9,9 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 import httpx
 
+# Initialize logger early (needed for import error handling)
+logger = logging.getLogger(__name__)
+
 from ai_inference_gateway.config import GatewayConfig
 from ai_inference_gateway.pipeline import MiddlewarePipeline
 from ai_inference_gateway.utils.redis_client import RedisClient
@@ -33,8 +36,75 @@ from ai_inference_gateway.claude_client import (
     ClaudeRequest,
 )
 
-# Initialize logger early (needed for import error handling)
-logger = logging.getLogger(__name__)
+# Import TTS handler
+try:
+    from ai_inference_gateway.tts_handler import (
+        get_tts_handler,
+        close_tts_handler,
+        TTSRequest,
+        TTSResponse,
+        QWEN3_TTS_MODELS,
+        get_content_type,
+        get_audio_extension,
+        POLLINATIONS_TTS_URL,
+    )
+    TTS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"TTS handler not available: {e}")
+    TTS_AVAILABLE = False
+    TTSRequest = None
+    TTSResponse = None
+    QWEN3_TTS_MODELS = {}
+    get_audio_extension = None
+    POLLINATIONS_TTS_URL = None
+
+# Import Audio handler (STT - Speech-to-Text)
+try:
+    from ai_inference_gateway.audio_handler import (
+        get_audio_handler,
+        close_audio_handler,
+        TranscriptionRequest,
+        TranscriptionResponse,
+        TranslationRequest,
+        QWEN3_AUDIO_MODELS,
+        read_audio_file,
+        SUPPORTED_AUDIO_FORMATS,
+    )
+    AUDIO_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Audio handler not available: {e}")
+    AUDIO_AVAILABLE = False
+    TranscriptionRequest = None
+    TranscriptionResponse = None
+    TranslationRequest = None
+    QWEN3_AUDIO_MODELS = {}
+    read_audio_file = None
+    SUPPORTED_AUDIO_FORMATS = []
+
+# Import Vision handler (Qwen3-VL for image understanding)
+try:
+    from ai_inference_gateway.vision_handler import (
+        get_vision_handler,
+        close_vision_handler,
+        VisionRequest,
+        VisionResponse,
+        VisionMessage,
+        ImageContent,
+        QWEN3_VISION_MODELS,
+        read_image_from_url,
+        encode_image_to_base64,
+    )
+    VISION_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Vision handler not available: {e}")
+    VISION_AVAILABLE = False
+    VisionRequest = None
+    VisionResponse = None
+    VisionMessage = None
+    ImageContent = None
+    QWEN3_VISION_MODELS = {}
+    read_image_from_url = None
+    encode_image_to_base64 = None
 
 # Import semantic cache
 try:
@@ -280,6 +350,10 @@ def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
                 headers["Authorization"] = f"Bearer {api_key}"
         elif config.backend_type == "zai":
             api_key = config.get_zai_api_key()
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+        elif config.backend_type == "pollinations":
+            api_key = config.get_pollinations_api_key()
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
 
@@ -582,6 +656,32 @@ async def lifespan(app: FastAPI):
     if state.openai_client:
         await state.openai_client.close()
         logger.info("OpenAI clients closed")
+
+    # Close TTS handler
+    if TTS_AVAILABLE:
+        try:
+            await close_tts_handler()
+            logger.info("TTS handler closed")
+        except Exception as e:
+            logger.warning(f"Failed to close TTS handler: {e}")
+
+    # Close Audio handler
+    if AUDIO_AVAILABLE:
+        try:
+            from ai_inference_gateway.audio_handler import close_audio_handler
+            await close_audio_handler()
+            logger.info("Audio handler closed")
+        except Exception as e:
+            logger.warning(f"Failed to close audio handler: {e}")
+
+    # Close Vision handler
+    if VISION_AVAILABLE:
+        try:
+            from ai_inference_gateway.vision_handler import close_vision_handler
+            await close_vision_handler()
+            logger.info("Vision handler closed")
+        except Exception as e:
+            logger.warning(f"Failed to close vision handler: {e}")
 
     logger.info("Gateway shutdown complete")
 
@@ -961,7 +1061,99 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 )
 
             # Convert to dict for JSON response
-            return JSONResponse(content=models.model_dump())
+            models_dict = models.model_dump()
+
+            # Add TTS models if TTS is available
+            if TTS_AVAILABLE and QWEN3_TTS_MODELS:
+                tts_models = []
+                for model_key, config in QWEN3_TTS_MODELS.items():
+                    backend = config.get("backend", "local")
+                    if backend == "pollinations":
+                        model_id = model_key  # Use clean model names for Pollinations
+                        owned_by = "pollinations"
+                    else:
+                        model_id = f"qwen3-tts-{model_key}"
+                        owned_by = "qwen"
+
+                    tts_models.append({
+                        "id": model_id,
+                        "object": "model",
+                        "created": int(datetime.now().timestamp()),
+                        "owned_by": owned_by,
+                        "permission": [{"id": "model", "object": "model_permission", "created": int(datetime.now().timestamp())}],
+                        "root": model_id,
+                        "parent": None,
+                        # TTS-specific metadata
+                        "capabilities": {
+                            "type": "tts",
+                            "audio_formats": ["mp3", "wav", "opus", "aac", "flac"],
+                            "sample_rate": config["sample_rate"],
+                            "languages": config.get("language", "en"),
+                            "quality": config["quality"],
+                            "description": config["description"],
+                            "backend": backend,
+                        }
+                    })
+
+                # Add TTS models to the response
+                if "data" in models_dict:
+                    models_dict["data"].extend(tts_models)
+
+            # Add Qwen3-Audio (STT) models if available
+            if AUDIO_AVAILABLE and QWEN3_AUDIO_MODELS:
+                stt_models = []
+                for model_key, config in QWEN3_AUDIO_MODELS.items():
+                    stt_models.append({
+                        "id": model_key,
+                        "object": "model",
+                        "created": int(datetime.now().timestamp()),
+                        "owned_by": "qwen",
+                        "permission": [{"id": "model", "object": "model_permission", "created": int(datetime.now().timestamp())}],
+                        "root": model_key,
+                        "parent": None,
+                        # STT-specific metadata
+                        "capabilities": {
+                            "type": "stt",
+                            "sample_rate": config["sample_rate"],
+                            "max_duration": config["max_duration"],
+                            "languages": config.get("languages", ["en"]),
+                            "supports_translation": config.get("supports_translation", False),
+                            "supports_timestamps": config.get("supports_timestamps", False),
+                            "description": config["description"],
+                        }
+                    })
+
+                # Add STT models to the response
+                if "data" in models_dict:
+                    models_dict["data"].extend(stt_models)
+
+            # Add Qwen3-Vision models if available
+            if VISION_AVAILABLE and QWEN3_VISION_MODELS:
+                vision_models = []
+                for model_key, config in QWEN3_VISION_MODELS.items():
+                    vision_models.append({
+                        "id": model_key,
+                        "object": "model",
+                        "created": int(datetime.now().timestamp()),
+                        "owned_by": "qwen",
+                        "permission": [{"id": "model", "object": "model_permission", "created": int(datetime.now().timestamp())}],
+                        "root": model_key,
+                        "parent": None,
+                        # Vision-specific metadata
+                        "capabilities": {
+                            "type": "vision",
+                            "max_tokens": config["max_tokens"],
+                            "max_images": config.get("max_images", 1),
+                            "supports_video": config.get("supports_video", False),
+                            "description": config["description"],
+                        }
+                    })
+
+                # Add vision models to the response
+                if "data" in models_dict:
+                    models_dict["data"].extend(vision_models)
+
+            return JSONResponse(content=models_dict)
 
         except OpenAIBackendError as e:
             logger.error(f"Error fetching models: {e}")
@@ -2781,6 +2973,367 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         return {"embedding": embedding}
 
     print(
+        "[DEBUG] create_app: Adding TTS API endpoints...", file=sys.stderr, flush=True
+    )
+    # TTS (Text-to-Speech) API endpoints
+    if TTS_AVAILABLE:
+
+        @app.post("/v1/audio/speech")
+        async def create_speech(request: Request):
+            """
+            Generate audio from text using TTS.
+
+            Supports:
+            - Pollinations.ai (free, cloud-based) - Use model: "tts-1", "tts-1-hd", or "pollinations-tts"
+            - OpenAI-compatible voices: alloy, echo, fable, onyx, nova, shimmer
+
+            Compatible with: POST /v1/audio/speech
+            OpenAI-compatible TTS endpoint.
+
+            Request body:
+            {
+                "model": "tts-1",
+                "input": "Hello, world!",
+                "voice": "alloy",
+                "response_format": "mp3",
+                "speed": 1.0
+            }
+
+            Returns: Audio file or JSON with base64 encoded audio
+            """
+            state: GatewayState = app.state.gateway
+
+            # Parse request
+            body = await request.json()
+            try:
+                tts_request = TTSRequest(**body)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid TTS request: {e}")
+
+            # TTS uses Pollinations by default (no LM Studio required)
+            # Use any backend URL or the default Pollinations URL
+            backend_url = state.config.lm_studio_url or POLLINATIONS_TTS_URL
+
+            try:
+                tts_handler = get_tts_handler(backend_url)
+
+                # Generate speech
+                audio_data, content_type, sample_rate = await tts_handler.generate_speech(
+                    text=tts_request.input,
+                    model=tts_request.model,
+                    voice=tts_request.voice,
+                    speed=tts_request.speed,
+                    response_format=tts_request.response_format
+                )
+
+                # Return audio file
+                ext = get_audio_extension(tts_request.response_format) if get_audio_extension else ".mp3"
+                return Response(
+                    content=audio_data,
+                    media_type=content_type,
+                    headers={
+                        "Content-Disposition": f'attachment; filename="speech_{tts_request.model[:20]}{ext}"',
+                        "X-Sample-Rate": str(sample_rate),
+                    }
+                )
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"TTS generation failed: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Speech generation failed: {str(e)}"
+                )
+
+    print(
+        "[DEBUG] create_app: Adding STT API endpoints...", file=sys.stderr, flush=True
+    )
+    # STT (Speech-to-Text) API endpoints
+    if AUDIO_AVAILABLE:
+
+        @app.post("/v1/audio/transcriptions")
+        async def create_transcription(request: Request):
+            """
+            Transcribe audio using Qwen3-Audio models.
+
+            Compatible with: POST /v1/audio/transcriptions
+            OpenAI-compatible audio transcription endpoint.
+
+            Request body (multipart/form-data):
+            - file: Audio file (mp3, mp4, mpeg, mpga, m4a, wav, webm)
+            - model: Model to use (e.g., "qwen2-audio-7b-instruct")
+            - language: Optional language code
+            - prompt: Optional context to guide transcription
+            - response_format: Response format (json, text, verbose_json, srt)
+            - temperature: Sampling temperature (0-1)
+            - timestamp_granularities: Optional ["word"] for word-level timestamps
+
+            Returns:
+                Transcription with text, language, duration, and timestamps
+            """
+            state: GatewayState = app.state.gateway
+
+            # Parse multipart form data
+            form = await request.form()
+            file_field = form.get("file")
+            model = form.get("model", "qwen2-audio-7b-instruct")
+            language = form.get("language")  # Optional
+            prompt = form.get("prompt")  # Optional
+            response_format = form.get("response_format", "json")  # Optional
+            temperature = float(form.get("temperature", "0.0"))  # Optional
+            timestamp_granularities = form.get("timestamp_granularities")  # Optional
+
+            if not file_field:
+                raise HTTPException(status_code=400, detail="Audio file is required")
+
+            # Convert UploadFile to our expected format
+            class SimpleUploadFile:
+                def __init__(self, filename, content, content_type):
+                    self.filename = filename
+                    self._content = content
+                    self.content_type = content_type
+
+                async def read(self):
+                    return self._content
+
+            audio_handler = get_audio_handler(state.config.lm_studio_url or "https://api.openai.com")
+
+            try:
+                # Read audio file
+                audio_data, audio_format = await read_audio_file(file_field)
+
+                # Perform transcription
+                result = await audio_handler.transcribe_audio(
+                    audio_data=audio_data,
+                    audio_format=audio_format,
+                    model=model,
+                    language=language,
+                    prompt=prompt,
+                    temperature=temperature,
+                    response_format=response_format,
+                    timestamp_granularities=[timestamp_granularities] if timestamp_granularities else None
+                )
+
+                # Return based on response format
+                if response_format == "text":
+                    return Response(content=result["text"], media_type="text/plain")
+                elif response_format == "srt":
+                    return Response(content=_generate_srt(result), media_type="text/plain")
+                elif response_format == "verbose_json":
+                    return JSONResponse(content=result)
+                else:  # json
+                    return JSONResponse(content={"text": result["text"]})
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Audio transcription failed: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Transcription failed: {str(e)}"
+                )
+
+        @app.post("/v1/audio/translations")
+        async def create_translation(request: Request):
+            """
+            Translate audio to English text using Qwen3-Audio models.
+
+            Compatible with: POST /v1/audio/translations
+            OpenAI-compatible audio translation endpoint.
+
+            Request body (multipart/form-data):
+            - file: Audio file
+            - model: Model to use
+            - prompt: Optional context
+            - response_format: Response format
+            - temperature: Sampling temperature
+
+            Returns:
+                Translated text in English
+            """
+            state: GatewayState = app.state.gateway
+
+            # Parse multipart form data
+            form = await request.form()
+            file_field = form.get("file")
+            model = form.get("model", "qwen2-audio-7b-instruct")
+            prompt = form.get("prompt")  # Optional
+            response_format = form.get("response_format", "json")  # Optional
+            temperature = float(form.get("temperature", "0.0"))  # Optional
+
+            if not file_field:
+                raise HTTPException(status_code=400, detail="Audio file is required")
+
+            audio_handler = get_audio_handler(state.config.lm_studio_url or "https://api.openai.com")
+
+            try:
+                # Read audio file
+                audio_data, audio_format = await read_audio_file(file_field)
+
+                # Perform transcription (Qwen3-Audio handles translation internally)
+                result = await audio_handler.transcribe_audio(
+                    audio_data=audio_data,
+                    audio_format=audio_format,
+                    model=model,
+                    language="en",  # Target language for translation
+                    prompt=prompt,
+                    temperature=temperature,
+                    response_format=response_format
+                )
+
+                # Translation result
+                if response_format == "text":
+                    return Response(content=result["text"], media_type="text/plain")
+                else:
+                    return JSONResponse(content={"text": result["text"]})
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Audio translation failed: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Translation failed: {str(e)}"
+                )
+
+        def _generate_srt(transcription: dict) -> str:
+            """Generate SRT subtitle format from transcription."""
+            if "words" not in transcription:
+                # Simple SRT with full text
+                return f"1\n00:00:00,000 --> 00:00:05,000\n{transcription['text']}\n\n"
+
+            srt_lines = []
+            duration = transcription.get("duration", 0)
+            words = transcription["words"]
+
+            # Group words into subtitle chunks (e.g., 10 words per subtitle)
+            chunk_size = 10
+            for i in range(0, len(words), chunk_size):
+                chunk = words[i:i + chunk_size]
+                start_time = chunk[0]["start"]
+                end_time = chunk[-1]["end"]
+                text = " ".join(w["word"] for w in chunk)
+
+                srt_lines.append(f"{i // chunk_size + 1}")
+                srt_lines.append(f"{_format_srt_time(start_time)} --> {_format_srt_time(end_time)}")
+                srt_lines.append(text)
+                srt_lines.append("")
+
+            return "\n".join(srt_lines)
+
+        def _format_srt_time(seconds: float) -> str:
+            """Format seconds to SRT time format (HH:MM:SS,mmm)."""
+            hours = int(seconds // 3600)
+            minutes = int((seconds % 3600) // 60)
+            secs = int(seconds % 60)
+            millis = int((seconds % 1) * 1000)
+            return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+    print(
+        "[DEBUG] create_app: Adding Vision API endpoints...", file=sys.stderr, flush=True
+    )
+    # Vision API endpoints (Qwen3-VL image understanding)
+    if VISION_AVAILABLE:
+
+        @app.post("/v1/vision/chat")
+        async def vision_chat(request: Request):
+            """
+            Analyze images using Qwen3-VL models.
+
+            Compatible with OpenAI Vision API format.
+
+            Request body:
+            {
+                "model": "qwen2-vl-7b-instruct",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "What's in this image?"},
+                            {"type": "image_url", "image_url": {"url": "https://..."}}
+                        ]
+                    }
+                ],
+                "max_tokens": 2048,
+                "temperature": 0.7
+            }
+
+            Returns:
+                Chat completion with image analysis
+            """
+            state: GatewayState = app.state.gateway
+
+            body = await request.json()
+            try:
+                vision_request = VisionRequest(**body)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid vision request: {e}")
+
+            vision_handler = get_vision_handler(state.config.lm_studio_url or "https://api.openai.com")
+
+            try:
+                # Process messages to extract images and text
+                user_message = None
+                images = []
+
+                for msg in vision_request.messages:
+                    if msg.role == "user":
+                        user_message = msg
+                        break
+
+                if not user_message:
+                    raise HTTPException(status_code=400, detail="No user message found")
+
+                # Extract images and text from content
+                content = user_message.content
+                if isinstance(content, str):
+                    text_prompt = content
+                else:
+                    text_prompt = ""
+                    for item in content:
+                        if isinstance(item, str):
+                            text_prompt += item
+                        elif hasattr(item, "type"):
+                            if item.type == "text":
+                                text_prompt += getattr(item, "text", "")
+                            elif item.type == "image_url":
+                                image_url_obj = getattr(item, "image_url", None)
+                                if image_url_obj:
+                                    url = getattr(image_url_obj, "url", "")
+                                    if url:
+                                        # Read image from URL
+                                        image_data, image_format = await read_image_from_url(url)
+                                        images.append((image_data, image_format))
+
+                if not images:
+                    raise HTTPException(status_code=400, detail="No images found in request")
+
+                # Use the first image for now (Qwen3-VL can handle multiple)
+                image_data, image_format = images[0]
+
+                # Analyze image
+                result = await vision_handler.analyze_image(
+                    image_data=image_data,
+                    image_format=image_format,
+                    prompt=text_prompt or "Describe this image in detail.",
+                    model=vision_request.model,
+                    max_tokens=vision_request.max_tokens,
+                    temperature=vision_request.temperature
+                )
+
+                return JSONResponse(content=result)
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Vision analysis failed: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Vision analysis failed: {str(e)}"
+                )
+
+    print(
         "[DEBUG] create_app: Adding files API endpoints...", file=sys.stderr, flush=True
     )
     # Files API endpoints (Garage S3 storage)
@@ -3049,7 +3602,7 @@ async def stream_backend_response(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream"]
+            k: v for k, v in body.items() if k not in ["messages", "model", "stream", "backend"]
         }
 
         # Get backend from route decision if available
@@ -3182,7 +3735,7 @@ async def stream_backend_response_with_tools(
         extra_params = {
             k: v
             for k, v in body.items()
-            if k not in ["messages", "model", "stream", "tools"]
+            if k not in ["messages", "model", "stream", "tools", "backend"]
         }
 
         # Get backend from route decision if available
@@ -3481,6 +4034,12 @@ async def try_backends_with_failover(
                         headers["Authorization"] = f"Bearer {api_key}"
                     else:
                         logger.warning("ZAI API key not found for fallback backend")
+                elif backend_api_type == "pollinations":
+                    api_key = config.get_pollinations_api_key()
+                    if api_key:
+                        headers["Authorization"] = f"Bearer {api_key}"
+                    else:
+                        logger.warning("Pollinations API key not found for fallback backend")
 
             logger.info(
                 f"Request headers for {backend_type_name} backend: Authorization={'Bearer ' + (headers.get('Authorization', 'NO-AUTH')[:20] + '...' if 'Authorization' in headers else 'NOT SET')}"
@@ -3507,6 +4066,14 @@ async def try_backends_with_failover(
                     )
                     logger.debug(f"ZAI Body model: {content.get('model', 'NO_MODEL')}")
 
+                # Debug logging for Pollinations (only at DEBUG level)
+                if backend_api_type == "pollinations" and logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Pollinations URL: {url}")
+                    logger.debug(
+                        f"Pollinations Headers: Authorization={headers.get('Authorization', 'MISSING')[:30]}..."
+                    )
+                    logger.debug(f"Pollinations Body model: {content.get('model', 'NO_MODEL')}")
+
                 if method.upper() == "POST":
                     response = await client.post(
                         url,
@@ -3530,6 +4097,15 @@ async def try_backends_with_failover(
                     if response.status_code != 200:
                         try:
                             logger.debug(f"ZAI Response body: {response.text[:500]}")
+                        except Exception:
+                            pass
+
+                # Debug logging for Pollinations responses (only at DEBUG level)
+                if backend_api_type == "pollinations" and logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Pollinations Response status: {response.status_code}")
+                    if response.status_code != 200:
+                        try:
+                            logger.debug(f"Pollinations Response body: {response.text[:500]}")
                         except Exception:
                             pass
 
@@ -3585,7 +4161,7 @@ async def handle_non_streaming_request(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream"]
+            k: v for k, v in body.items() if k not in ["messages", "model", "stream", "backend"]
         }
 
         # Get backend from route decision if available
@@ -3717,7 +4293,7 @@ async def stream_anthropic_response(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream"]
+            k: v for k, v in body.items() if k not in ["messages", "model", "stream", "backend"]
         }
 
         route_decision = context.get("route_decision")
@@ -3847,7 +4423,7 @@ async def handle_anthropic_non_streaming(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream"]
+            k: v for k, v in body.items() if k not in ["messages", "model", "stream", "backend"]
         }
 
         route_decision = context.get("route_decision")

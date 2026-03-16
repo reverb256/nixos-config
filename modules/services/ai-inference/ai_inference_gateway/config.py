@@ -415,7 +415,7 @@ class GatewayConfig(BaseSettings):
     )
     backend_type: str = Field(
         default="lm-studio",
-        pattern="^(lm-studio|vllm|llama-cpp|sglang|zai)$",
+        pattern="^(lm-studio|vllm|llama-cpp|sglang|zai|pollinations)$",
         description="Primary backend type",
     )
 
@@ -440,6 +440,13 @@ class GatewayConfig(BaseSettings):
     )
     zai_api_key_file: Optional[str] = Field(
         default=None, description="Path to file containing ZAI API key"
+    )
+
+    pollinations_api_key: Optional[SecretStr] = Field(
+        default=None, repr=False, exclude=True, description="Pollinations API key"
+    )
+    pollinations_api_key_file: Optional[str] = Field(
+        default=None, description="Path to file containing Pollinations API key"
     )
 
     # Middleware configuration
@@ -511,6 +518,28 @@ class GatewayConfig(BaseSettings):
         if self.zai_api_key_file:
             try:
                 with open(self.zai_api_key_file, "r") as f:
+                    return f.read().strip()
+            except Exception:
+                return None
+
+        return None
+
+    def get_pollinations_api_key(self) -> Optional[str]:
+        """
+        Get Pollinations API key value.
+
+        Priority:
+        1. Environment variable POLLINATIONS_API_KEY
+        2. File specified in POLLINATIONS_API_KEY_FILE
+        """
+        # Try secret field first
+        if self.pollinations_api_key:
+            return self.pollinations_api_key.get_secret_value()
+
+        # Try file
+        if self.pollinations_api_key_file:
+            try:
+                with open(self.pollinations_api_key_file, "r") as f:
                     return f.read().strip()
             except Exception:
                 return None
