@@ -836,18 +836,18 @@
 
                   case "$gpu_name" in
                       *"3060"*)
-                          # 3060 Ti: Max performance
-                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
-                          nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2100
-                          nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7000
-                          echo "  3060 Ti: 2100 MHz GPU, 7000 MHz mem, 200W limit"
+                          # 3060 Ti: Skip power limit changes (tight power budget, not primary gaming GPU)
+                          # Keep clock locks for stability but don't touch power limit
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1800
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6000
+                          echo "  3060 Ti: Clock locks only (1800/6000 MHz), power limit unchanged"
                           ;;
                       *"3090"*)
-                          # 3090: Aggressive GPU (liquid cooled), conservative VRAM
+                          # 3090: Primary gaming GPU - max performance (liquid cooled)
                           nvidia_safe nvidia-smi -i "$gpu_id" -pl 350
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2050
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7500
-                          echo "  3090: 2050 MHz GPU (liquid-cooled), 7500 MHz mem, 350W limit"
+                          echo "  3090: 2050 MHz GPU (liquid-cooled), 7500 MHz mem, 350W limit (PRIMARY GAMING GPU)"
                           ;;
                       *)
                           # Default: Max performance
