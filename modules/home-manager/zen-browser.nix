@@ -143,6 +143,14 @@
         user_pref("privacy.resistFingerprinting", true);
         user_pref("network.http.referer.spoofSource", true);
         user_pref("privacy.trackingprotection.enabled", true);
+
+        // HTTPS-only mode - always use secure connections
+        user_pref("dom.security.https_only_mode", true);
+        user_pref("dom.security.https_only_mode_ever_enabled", true);
+        user_pref("dom.security.https_only_mode_send_http_background_request", false);
+
+        // Enhanced cookie isolation - prevent cross-site tracking
+        user_pref("network.cookie.cookieBehavior", 5); // Block third-party + isolate first-party
       '';
 
       # Declarative Containers (Multi-Account Containers)
