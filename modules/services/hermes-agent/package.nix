@@ -1,22 +1,53 @@
-# Hermes Agent - Python Package
-# Placeholder for Task 1 - will be implemented in Task 4
-{
-  lib,
-  python3Packages,
-}:
-python3Packages.buildPythonApplication {
+{ pkgs, lib, config, ... }:
+let
+  cfg = config.services.hermes-agent;
+  python = pkgs.python311;
+in
+python.pkgs.buildPythonApplication rec {
   pname = "hermes-agent";
-  version = "0.1.0";
-  pyproject = true;
+  version = "0.1.0-unstable";
 
-  # TODO: Implement Python package build
-  # This will include:
-  # - Source specification
-  # - Dependencies
-  # - Build configuration
+  src = config.services.hermes-agent.packageSrc;
 
-  meta = {
-    description = "Multi-node deployment agent for NixOS clusters";
-    license = lib.licenses.mit;
+  # Enable submodules (mini-swe-agent, tinker-atropos)
+  postUnpack = ''
+    chmod -R u+w source
+    cd source
+    git submodule update --init --recursive || true
+  '';
+
+  propagatedBuildInputs = with python.pkgs; [
+    openai
+    python-dotenv
+    fire
+    httpx
+    rich
+    tenacity
+    pyyaml
+    requests
+    jinja2
+    pydantic
+    prompt_toolkit
+    firecrawl-py
+    fal-client
+    edge-tts
+    litellm
+    typer
+    platformdirs
+    PyJWT
+  ];
+
+  nativeBuildInputs = with pkgs; [
+    git
+    installShellFiles
+  ];
+
+  # Skip tests for now
+  doCheck = false;
+
+  meta = with lib; {
+    description = "Self-improving AI agent by Nous Research";
+    homepage = "https://hermes-agent.nousresearch.com/";
+    license = licenses.mit;
   };
 }
