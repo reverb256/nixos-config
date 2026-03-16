@@ -1,6 +1,6 @@
 # NixOS Cluster Documentation Index
 
-**Last Updated:** 2026-03-13 | **Cluster Version:** Phase 1 Complete (K8s v1.35.0 running) | **Agent Files:** Template-based v1.0
+**Last Updated:** 2026-03-15 | **Cluster Version:** Phase 1 Complete (K8s v1.35.0 running) | **Agent Files:** Template-based v1.0
 
 This document provides a comprehensive index of all documentation for the NixOS cluster, including the ongoing Kubernetes migration.
 
@@ -10,7 +10,11 @@ This document provides a comprehensive index of all documentation for the NixOS 
 
 **For AI Agents (Claude Code, Cursor, Copilot, Qwen-Agent):**
 1. Read `/etc/nixos/AGENTS.md` for universal cluster patterns (all agents)
-2. Read agent-specific file: `CLAUDE.md` or `QWEN.md`
+2. Read agent-specific file:
+   - **Claude Code**: `CLAUDE.md` or `@.claude/CLAUDE.md`
+   - **GitHub Copilot**: `.github/copilot-instructions.md`
+   - **Cursor**: `.cursorrules`
+   - **Qwen-Agent**: `QWEN.md`
 3. Check `/etc/nixos/ROADMAP.md` for current migration status
 
 **For Human Operators:**
@@ -33,17 +37,6 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **Location:** `/etc/nixos/STATUS.md`
 **Refresh:** Run `just status` or manually update this file
 
-### 1. CLAUDE.md
-**Purpose:** Claude Code agent guidelines and workspace overview
-**Key Sections:**
-- Workspace overview (multi-project structure)
-- Project categories (active vs archive)
-- Common patterns (NixOS flakes, MCP integration)
-- Local infrastructure (AI gateway, GPU mining cluster)
-- Git workflow and deployment methods
-**When to Read:** First time using Claude Code on this cluster
-**Location:** `/etc/nixos/CLAUDE.md`
-
 ### 1. AGENTS.md
 **Purpose:** Universal agent guidelines for ALL AI agents (Claude Code, Cursor, Copilot, Qwen-Agent, etc.)
 **Key Sections:**
@@ -59,38 +52,55 @@ This document provides a comprehensive index of all documentation for the NixOS 
 - Hookify rules (deployment pattern enforcement)
 - Service management and testing
 - Documentation index
-**Length:** 327 lines (template-generated)
+**Length:** ~200 lines (universal patterns)
 **When to Read:** First time working on this cluster (universal patterns)
 **Location:** `/etc/nixos/AGENTS.md`
 
 ### 2. CLAUDE.md
 **Purpose:** Claude Code-specific patterns (extends AGENTS.md)
 **Key Sections:**
-- Quick start (refer to AGENTS.md for universal patterns)
-- Serena semantic tools (find_symbol, find_referencing_symbols, get_symbols_overview)
-- Async agent launching (parallel independent tasks)
-- Claude MCP integration (Accept header requirements)
-- Workflow patterns (Plan mode vs Editing mode)
-- See also (links to AGENTS.md and other docs)
-**Length:** 106 lines (template-generated)
+- Project overview (WHAT)
+- Commands (HOW)
+- Project structure
+- Conventions
+- Workflow
+- Serena tools usage
+- Reference documents (progressive disclosure)
+**Length:** ~120 lines (optimized for context window)
 **When to Read:** Using Claude Code on this cluster
 **Location:** `/etc/nixos/CLAUDE.md`
 
-### 3. QWEN.md
+### 3. GitHub Copilot Instructions
+**Purpose:** GitHub Copilot-specific guidelines
+**Key Sections:**
+- Quick start commands
+- Critical safety rules (lib.mkOptionDefault)
+- Project structure
+- Multi-host considerations
+**Location:** `/etc/nixos/.github/copilot-instructions.md`
+
+### 4. Cursor Rules
+**Purpose:** Cursor IDE-specific guidelines
+**Key Sections:**
+- Quick start commands
+- Critical safety rules
+- Project structure
+- Multi-host considerations
+**Location:** `/etc/nixos/.cursorrules`
+
+### 5. QWEN.md
 **Purpose:** Qwen-Agent-specific patterns (extends AGENTS.md)
 **Key Sections:**
-- Quick start (refer to AGENTS.md for universal patterns)
-- Qwen framework (installation, tool usage)
-- Function calling and code interpreter
-- MCP integration (Qwen-specific configuration)
-- RAG patterns (KnowledgeRetrieval)
-- Memory and multi-turn conversations
-- See also (links to AGENTS.md and other docs)
-**Length:** 98 lines (template-generated)
+- Project overview (WHAT)
+- Commands (HOW)
+- Qwen framework setup
+- Workflow
+- Reference documents
+**Length:** ~120 lines (optimized for context window)
 **When to Read:** Using Qwen-Agent on this cluster
 **Location:** `/etc/nixos/QWEN.md`
 
-### 4. ROADMAP.md
+### 6. ROADMAP.md
 **Purpose:** Complete Kubernetes migration plan (9-week timeline)
 **Key Sections:**
 - Executive summary (goals, approach, timeline)
@@ -841,6 +851,26 @@ kubectl logs <pod-name> -n <namespace>
 
 ## Change Log
 
+### 2026-03-15
+- **AI GATEWAY QUICK WINS:** Completed three high-impact improvements (~4 hours)
+  - **Tool calling loop detection** (`utils/tool_utils.py`)
+    - Added `has_tool_calls_openai()`, `has_tool_calls_anthropic()`, `has_tool_calls()` functions
+    - Added `is_tool_response_format()` to distinguish tool results from tool calls
+    - Enables safe agentic workflows without infinite loops
+  - **Streaming for tools** (`main.py`)
+    - Implemented `stream_backend_response_with_tools()` function
+    - Returns both content and tool_use blocks in streaming responses
+    - Enables real-time agentic workflows
+  - **Files API with Garage S3** (`files.py`, `main.py`)
+    - New `files.py` module with complete Garage S3 client implementation
+    - Three new OpenAI/Anthropic-compatible endpoints:
+      - `POST /v1/files` - Upload files
+      - `GET /v1/files/{file_id}` - Retrieve files
+      - `DELETE /v1/files/{file_id}` - Delete files
+    - Uses local Garage S3 at `127.0.0.1:3900` (bucket: `ai-gateway-files`)
+    - Supports 50+ MIME types, custom metadata, file ID generation
+  - **Documentation:** Updated `docs/gateway/gateway-improvement-roadmap.md`
+
 ### 2026-03-14
 - **KUBERNETES INGRESS:** Deployed Caddy Ingress Controller (replacing planned NGINX Ingress)
   - DaemonSet deployment on nexus, sentry (2 pods)
@@ -899,6 +929,49 @@ See individual documentation files for detailed change history
 
 ---
 
+## Additional Agent Configuration Files
+
+### Claude-Specific Files
+- **Multi-Host Validator**: `.claude/agents/multi-host-validator.md`
+  - Triggers when editing `modules/` directory
+  - Validates multi-host impact using checklist
+- **Add-Service Skill**: `.claude/skills/add-service/SKILL.md`
+  - Step-by-step service addition workflow
+- **Nix-Rebuild Skill**: `.claude/skills/nix-rebuild/SKILL.md`
+  - Safe rebuild patterns and troubleshooting
+
+### Hookify Rules
+- **Hookify Configuration**: `.claude/hookify-*.md`
+  - Enforces safe deployment patterns
+  - Blocks error suppression (`|| true`)
+  - Warns on unsafe practices
+
+---
+
+## Documentation Standards
+
+### Multi-File Pattern (New - v2.0)
+Based on best practices from 2,500+ repositories:
+
+| File | Purpose | Scope |
+|------|---------|-------|
+| `AGENTS.md` | Universal patterns | All AI agents |
+| `CLAUDE.md` | Claude Code context | Claude-specific |
+| `.github/copilot-instructions.md` | Copilot instructions | GitHub Copilot |
+| `.cursorrules` | Cursor rules | Cursor IDE |
+| `QWEN.md` | Qwen-Agent context | Qwen-specific |
+
+### Progressive Disclosure
+- Root files contain essential patterns (<200 lines)
+- Detailed docs referenced via `@imports`
+- Skills loaded on-demand based on triggers
+- Hookify rules enforce safety constraints
+
+---
+
 **Document Owner:** j_kro
 **Cluster Version:** Phase 1 Complete (K8s v1.35.0 running)
 **Next Review:** After Phase 2 completion (Week 3)
+
+**Version**: 2.0 | **Updated**: 2026-03-15
+**Changes**: Multi-file agent pattern alignment, added Copilot/Cursor instructions

@@ -126,6 +126,40 @@ class ConcurrencyLimiterConfig(BaseModel):
     )
 
 
+class KnowledgeFabricConfig(BaseModel):
+    """Knowledge Fabric middleware configuration"""
+
+    enabled: bool = Field(
+        default=False, description="Enable Knowledge Fabric middleware"
+    )
+    rrf_k: int = Field(default=60, ge=1, le=100, description="RRF constant for fusion")
+    rag_enabled: bool = Field(default=False, description="Enable RAG source")
+    code_search_enabled: bool = Field(
+        default=True, description="Enable code search source"
+    )
+    searxng_enabled: bool = Field(default=False, description="Enable SearXNG source")
+    web_search_enabled: bool = Field(
+        default=False, description="Enable MCP web search source"
+    )
+    code_search_paths: List[str] = Field(
+        default_factory=lambda: ["/etc/nixos"], description="Paths to search for code"
+    )
+    rag_top_k: int = Field(default=5, ge=1, le=20, description="RAG top-K results")
+    searxng_url: str = Field(default="http://127.0.0.1:7777", description="SearXNG URL")
+    mcp_url: str = Field(
+        default="http://127.0.0.1:8080/mcp/call", description="MCP broker URL"
+    )
+    web_max_results: int = Field(
+        default=5, ge=1, le=20, description="Web search max results"
+    )
+    searxng_max_results: int = Field(
+        default=5, ge=1, le=20, description="SearXNG max results"
+    )
+    code_max_results: int = Field(
+        default=5, ge=1, le=20, description="Code search max results"
+    )
+
+
 class MCPServerConfig(BaseModel):
     """Configuration for an MCP server."""
 
@@ -154,6 +188,67 @@ class MCPConfig(BaseModel):
     servers: List[MCPServerConfig] = Field(
         default_factory=list, description="Configured MCP servers"
     )
+
+
+class SystemPromptsConfig(BaseModel):
+    """System prompts configuration for different request types."""
+
+    enabled: bool = Field(default=False, description="Enable custom system prompts")
+    default: str = Field(
+        default="", description="Default system prompt for all requests"
+    )
+    coding: str = Field(
+        default="You are an expert coding assistant. Write clean, efficient, and well-documented code.",
+        description="System prompt for coding-related requests",
+    )
+    reasoning: str = Field(
+        default="You are an expert reasoning assistant. Think step-by-step and provide clear explanations.",
+        description="System prompt for reasoning-related requests",
+    )
+    analysis: str = Field(
+        default="You are an expert analysis assistant. Provide thorough and structured analysis.",
+        description="System prompt for analysis-related requests",
+    )
+    agentic: str = Field(
+        default="You are an autonomous agent capable of multi-step planning and execution.",
+        description="System prompt for agentic/workflow requests",
+    )
+    fast: str = Field(
+        default="You are a fast and efficient assistant. Provide concise, direct answers.",
+        description="System prompt for fast response requests",
+    )
+    custom: Dict[str, str] = Field(
+        default_factory=dict, description="Custom system prompts by name"
+    )
+
+    def get_prompt(self, category: str) -> Optional[str]:
+        """
+        Get system prompt for a specific category.
+
+        Args:
+            category: One of 'default', 'coding', 'reasoning', 'analysis', 'agentic', 'fast', or custom name
+
+        Returns:
+            System prompt string or None if not found
+        """
+        if not self.enabled:
+            return None
+
+        # Check built-in categories
+        if hasattr(self, category):
+            value = getattr(self, category)
+            if value:
+                return value
+
+        # Check custom prompts
+        if category in self.custom and self.custom[category]:
+            return self.custom[category]
+
+        # Fall back to default
+        if self.default:
+            return self.default
+
+        return None
 
 
 class SentryConfig(BaseModel):
@@ -265,7 +360,7 @@ class MiddlewareConfig(BaseModel):
     )
     knowledge_fabric: KnowledgeFabricConfig = Field(
         default_factory=KnowledgeFabricConfig,
-        description="Knowledge Fabric middleware configuration"
+        description="Knowledge Fabric middleware configuration",
     )
 
     # RAG configuration (optional - loaded from environment variables)
@@ -280,29 +375,6 @@ class MiddlewareConfig(BaseModel):
         default=True, description="Enable hybrid search"
     )
     RERANKER_ENABLED: bool = Field(default=True, description="Enable reranking")
-
-
-class KnowledgeFabricConfig(BaseModel):
-    """Knowledge Fabric middleware configuration"""
-
-    enabled: bool = Field(default=False, description="Enable Knowledge Fabric middleware")
-    rrf_k: int = Field(
-        default=60, ge=1, le=100, description="RRF constant for fusion"
-    )
-    rag_enabled: bool = Field(default=False, description="Enable RAG source")
-    code_search_enabled: bool = Field(default=True, description="Enable code search source")
-    searxng_enabled: bool = Field(default=False, description="Enable SearXNG source")
-    web_search_enabled: bool = Field(default=False, description="Enable MCP web search source")
-    code_search_paths: List[str] = Field(
-        default_factory=lambda: ["/etc/nixos"],
-        description="Paths to search for code"
-    )
-    rag_top_k: int = Field(default=5, ge=1, le=20, description="RAG top-K results")
-    searxng_url: str = Field(default="http://127.0.0.1:7777", description="SearXNG URL")
-    mcp_url: str = Field(default="http://127.0.0.1:8080/mcp/call", description="MCP broker URL")
-    web_max_results: int = Field(default=5, ge=1, le=20, description="Web search max results")
-    searxng_max_results: int = Field(default=5, ge=1, le=20, description="SearXNG max results")
-    code_max_results: int = Field(default=5, ge=1, le=20, description="Code search max results")
 
 
 class GatewayConfig(BaseSettings):
@@ -378,6 +450,11 @@ class GatewayConfig(BaseSettings):
     # Sentry error tracking configuration
     sentry: SentryConfig = Field(
         default_factory=SentryConfig, description="Sentry error tracking configuration"
+    )
+
+    # System prompts configuration
+    system_prompts: SystemPromptsConfig = Field(
+        default_factory=SystemPromptsConfig, description="System prompts configuration"
     )
 
     @field_validator("backend_url")

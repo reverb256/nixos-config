@@ -1,80 +1,66 @@
-# NixOS Configuration - Claude Code Agent Patterns
+# NixOS Cluster - Claude Code Context
 
-## Purpose
+## WHAT
+NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) for AI inference, GPU computing, storage, and monitoring.
 
-Claude Code-specific patterns for this NixOS configuration. Extends @AGENTS.md with Serena semantic tools and async agent launching.
-
-**Read @AGENTS.md first** for universal cluster patterns, build commands, and deployment workflows.
+**Tech stack**: NixOS flakes, Kubernetes, Colmena, Just, Serena tools
 
 ---
 
-## Critical Safety Constraints
-
-### Module System: mkOptionDefault Required
-
-In shared modules, use `lib.mkOptionDefault` for extensible options:
-
-```nix
-# ❌ WRONG - REPLACES node configs
-networking.firewall.allowedTCPPorts = [22 53 6443];
-
-# ✅ CORRECT - MERGES with node configs
-networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
-```
-
-**Why:** Direct assignment prevents nodes from extending the option, breaking SSH and other critical services.
-
-### Build Commands: Use Justfile Only
-
+## COMMANDS
 ```bash
-# ✅ Safe - idempotent with auto-cleanup
-just switch
-just deploy
-just test
-
-# ❌ Forbidden - causes 30-60 minute hangs
-colmena apply --on zephyr
-nix build .#nixosConfigurations.zephyr.config.system.build.toplevel
+just test              # Verify configuration builds
+just switch            # Apply to local host (auto-pauses CPU mining)
+just deploy            # Deploy to all hosts via Colmena
+just ci-local          # Full CI pipeline locally
 ```
 
-**Why:** Justfile commands kill conflicting processes and clear locks. Direct colmena/nix-build commands do not.
+---
 
-### Testing Before Deployment
-
-- `modules/networking/*` → Test SSH on zephyr AND nexus
-- `modules/system/ssh.nix` → Test SSH on all 4 nodes
-- `modules/system/users.nix` → Test login on all 4 nodes
-- `modules/default.nix` → Test entire cluster
-
-### Stop Work Immediately If
-
-- SSH breaks on any node → Document incident, wait for human
-- Login breaks on any node → Document incident, wait for human
-- Multiple nodes affected → STOP ALL WORK, create urgent task
+## PROJECT STRUCTURE
+```
+/etc/nixos/
+├── flake.nix              # Main flake with host definitions
+├── hosts/                 # Per-host configs (zephyr, nexus, forge, sentry)
+├── modules/               # Reusable modules
+│   ├── profiles/          # Hardware, role, network profiles
+│   └── system/            # System-level modules
+├── justfile               # CI/CD commands
+├── AGENTS.md              # Universal patterns for ALL agents
+└── .claude/               # Claude-specific files (agents, skills, settings)
+```
 
 ---
 
-## Code Style
-
-- **2-space indentation**, trailing semicolons
-- **kebab-case** for files and modules
-- **Line length**: 80-100 chars (soft limit 120)
-- Use `lib.mkOptionDefault` for extensible options in shared modules
+## CONVENTIONS
+- **IMPORTANT**: Use `lib.mkOptionDefault` in shared modules (NEVER direct assignment)
+  - Direct assignment breaks SSH on all nodes
+  - See @AGENTS.md Critical Safety Constraints for examples
+- 2-space indentation, trailing semicolons
+- kebab-case for files and modules
+- Line length 80-100 chars (soft limit 120)
 
 ---
 
-## Workflow
-
-### Standard Development Flow
-
+## WORKFLOW
 1. Make changes
 2. `git add` new files (Nix only packages git-tracked files!)
 3. `git commit`
 4. `just test` (verifies configuration)
 5. `just deploy` (applies to all hosts via Colmena)
 
-### When to Use Serena Semantic Tools
+**Test before deployment:**
+- `modules/networking/*` → Test SSH on zephyr AND nexus
+- `modules/system/ssh.nix` → Test SSH on all 4 nodes
+- `modules/system/users.nix` → Test login on all 4 nodes
 
+**Stop immediately if:**
+- SSH breaks on any node → Document incident, wait for human
+- Multiple nodes affected → STOP ALL WORK
+
+---
+
+## SERENA TOOLS
 **Use Serena for:**
 - Understanding module structure (`get_symbols_overview()`)
 - Finding symbol definitions (`find_symbol()`)
@@ -88,29 +74,36 @@ nix build .#nixosConfigurations.zephyr.config.system.build.toplevel
 
 ---
 
-## Project Structure
+## REFERENCE DOCUMENTS
 
-```
-/etc/nixos/
-├── flake.nix              # Flake inputs/outputs
-├── hosts/                 # Per-host configs
-├── modules/               # Reusable modules
-│   ├── profiles/          # Profile-based configs
-│   └── system/            # System-level modules
-├── justfile               # CI/CD commands
-├── AGENTS.md              # Universal patterns
-└── CLAUDE.md              # This file
-```
+### AGENTS.md — `@AGENTS.md`
+**Read when:** First time working on this cluster
+Universal patterns for ALL AI agents (Claude, Cursor, Copilot, Qwen-Agent)
+
+### Multi-Host Validator — `.claude/agents/multi-host-validator.md`
+**Read when:** Editing files in `modules/` directory
+Validates multi-host impact using checklist
+
+### Add-Service Skill — `.claude/skills/add-service/SKILL.md`
+**Read when:** Adding new NixOS services
+Step-by-step service addition workflow
+
+### Nix-Rebuild Skill — `.claude/skills/nix-rebuild/SKILL.md`
+**Read when:** Working with NixOS rebuild commands
+Safe rebuild patterns and troubleshooting
+
+### Kubernetes Roadmap — `@ROADMAP.md`
+**Read when:** Working on Kubernetes migration
+Complete 9-week migration plan
 
 ---
 
-## See Also
-
-- **@AGENTS.md**: Universal patterns for all agents
-- **@DOCUMENTATION_INDEX.md**: Comprehensive documentation index
-- **@ROADMAP.md**: Kubernetes migration plan
+## RELATED RESOURCES
+- **Cluster Health**: `just status` or read STATUS.md
+- **Documentation Index**: `@DOCUMENTATION_INDEX.md` for full catalog
+- **Hookify Rules**: `.claude/hookify-*.md` for deployment safety
 
 ---
 
-**Version**: 3.0 | **Updated**: 2026-03-12
-**Changes**: Streamlined per Anthropic CLAUDE.md best practices - ruthlessly pruned
+**Version**: 4.0 | **Updated**: 2026-03-15
+**Changes**: Reformatted per Anthropic best practices - WHY/WHAT/HOW structure, under 200 lines, progressive disclosure via @imports
