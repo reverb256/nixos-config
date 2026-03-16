@@ -6,25 +6,39 @@
   pkgs,
   ...
 }: {
-  # OVERLAY: Disable cuda_compat (Jetson/ARM64-only, breaks x86_64 builds)
-  # cuda_cudart's setup hook auto-adds cuda_compat which fails on x86_64
+  # OVERLAY: Fix cuda_compat issue (Jetson/ARM64-only, breaks x86_64 builds)
+  # cuda_cudart has cuda_compat as propagatedBuildInput which fails on x86_64
+  # We provide a dummy cuda_compat package and override propagatedBuildInputs
   nixpkgs.overlays = [
     (final: prev: {
+      # Create dummy cuda_compat for x86_64 (Jetson-only package has no source)
+      cuda_compat =
+        prev.runCommand "cuda_compat-dummy"
+        {}
+        ''
+          mkdir -p $out
+          # Dummy package - cuda_compat is only needed for Jetson (aarch64)
+            # On x86_64, regular CUDA drivers work fine without it
+        '';
+
       cudaPackages =
         prev.cudaPackages
         // {
-          cuda_cudart = prev.cudaPackages.cuda_cudart.overrideAttrs (old: {
-            # Remove the auto-add-cuda-compat-runpath-hook that pulls in cuda_compat
-            # cuda_compat is Jetson-only (aarch64) and fails on x86_64
-            postFixup =
-              ""
-              + builtins.replaceStrings
-              ["auto-add-cuda-compat-runpath-hook"]
-              [""]
-              old.postFixup;
-            # Also clear any setupHooks that reference cuda_compat
-            setupHooks = lib.filter (hook: !lib.hasInfix "cuda-compat" hook) (old.setupHooks or []);
-          });
+          cuda_cudart =
+            prev.cudaPackages.cuda_cudart.overrideAttrs
+            (old: {
+              # Remove cuda_compat from propagatedBuildInputs
+              # cuda_compat is Jetson-only (aarch64) and fails on x86_64
+              propagatedBuildInputs =
+                lib.filter
+                (pkg: pkg.pname or "" != "cuda_compat")
+                (old.propagatedBuildInputs or []);
+              # Also remove any setup hooks that reference cuda-compat
+              setupHooks =
+                lib.filter
+                (hook: !lib.hasInfix "cuda-compat" hook)
+                (old.setupHooks or []);
+            });
         };
     })
   ];

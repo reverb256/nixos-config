@@ -105,6 +105,10 @@
           installation_mode = "normal_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/privacy-pass/latest.xpi";
         };
+        "containe@search.uky.edu" = {
+          installation_mode = "normal_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/containerise/latest.xpi";
+        };
       };
     };
 
@@ -132,6 +136,9 @@
         user_pref("browser.in-content.dark-mode", true);
         user_pref("layout.css.prefers-color-scheme.content-override", 2); // 2 = dark
 
+        // Zen theme mode - follow system dark/light preference
+        user_pref("zen.theme.mode", "system");
+
         // Performance optimizations
         user_pref("gfx.webrender.all", true);
         user_pref("media.ffmpeg.vaapi.enabled", true);
@@ -151,6 +158,22 @@
 
         // Enhanced cookie isolation - prevent cross-site tracking
         user_pref("network.cookie.cookieBehavior", 5); // Block third-party + isolate first-party
+
+        // GPU acceleration for AI/ML web apps
+        user_pref("gfx.webrender.compositor", true);
+        user_pref("layers.gpu-process.enabled", true);
+        user_pref("media.hardware-video-decoding.enabled", true);
+
+        // Increase cache for large web apps
+        user_pref("browser.cache.disk.capacity", 1048576);  // 1GB
+        user_pref("browser.cache.memory.capacity", 65536);   // 64MB
+
+        // Tab grouping - auto-group by domain
+        user_pref("zen.tab.grouping.enabled", true);
+
+        // Web activity tracking - see time spent per site
+        user_pref("zen.web-activity.enabled", true);
+        user_pref("zen.web-activity.show-in-sidebar", true);
       '';
 
       # Declarative Containers (Multi-Account Containers)
@@ -184,6 +207,11 @@
           color = "blue";
           icon = "cart";
           id = 6;
+        };
+        "Clients" = {
+          color = "pink";
+          icon = "circle";
+          id = 7;
         };
       };
 
@@ -219,6 +247,12 @@
           position = 5000;
           container = 3; # Finance container
         };
+        "Clients" = {
+          id = "clients-7h1i2j3k-4l5m-6n7o-8p9q-0r1s2t3u4v5w6";
+          icon = "💼";
+          position = 5500;
+          container = 7; # Clients container
+        };
         "System" = {
           id = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
           icon = "⚙️";
@@ -244,26 +278,12 @@
           container = 1;
           position = 110;
         };
-        "TrovesAndCoves" = {
-          id = "pin-dev-003";
-          url = "https://trovesandcoves.ca";
-          workspace = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
-          container = 1;
-          position = 115;
-        };
         "Reverb256" = {
-          id = "pin-dev-004";
+          id = "pin-dev-003";
           url = "https://reverb256.github.io";
           workspace = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
           container = 1;
-          position = 116;
-        };
-        "Hair At Home" = {
-          id = "pin-dev-005";
-          url = "https://reverb256.github.io/hairathome";
-          workspace = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
-          container = 1;
-          position = 117;
+          position = 115;
         };
 
         # AI Space
@@ -281,6 +301,20 @@
           container = 5;
           position = 210;
         };
+        "Hugging Face" = {
+          id = "pin-ai-003";
+          url = "https://huggingface.co";
+          workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
+          container = 5;
+          position = 215;
+        };
+        "Civitai" = {
+          id = "pin-ai-004";
+          url = "https://civitai.com";
+          workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
+          container = 5;
+          position = 220;
+        };
 
         # Gaming Space
         "Discord" = {
@@ -296,6 +330,43 @@
           workspace = "game-3c7e2b6d-9f5a-4b41-8f77-1e9c5a4d2c03";
           container = 4;
           position = 310;
+        };
+
+        # Clients Space
+        "TrovesAndCoves" = {
+          id = "pin-client-001";
+          url = "https://trovesandcoves.ca";
+          workspace = "clients-7h1i2j3k-4l5m-6n7o-8p9q-0r1s2t3u4v5w6";
+          container = 7;
+          position = 350;
+        };
+        "TrovesAndCoves Etsy" = {
+          id = "pin-client-002";
+          url = "https://www.etsy.com/ca/shop/TrovesAndCoves";
+          workspace = "clients-7h1i2j3k-4l5m-6n7o-8p9q-0r1s2t3u4v5w6";
+          container = 7;
+          position = 355;
+        };
+        "Hair At Home" = {
+          id = "pin-client-003";
+          url = "https://reverb256.github.io/hairathome";
+          workspace = "clients-7h1i2j3k-4l5m-6n7o-8p9q-0r1s2t3u4v5w6";
+          container = 7;
+          position = 360;
+        };
+        "TrovesAndCoves Repo" = {
+          id = "pin-client-004";
+          url = "https://github.com/reverb256/trovesandcoves";
+          workspace = "clients-7h1i2j3k-4l5m-6n7o-8p9q-0r1s2t3u4v5w6";
+          container = 7;
+          position = 365;
+        };
+        "HairAtHome Repo" = {
+          id = "pin-client-005";
+          url = "https://github.com/reverb256/hairathome";
+          workspace = "clients-7h1i2j3k-4l5m-6n7o-8p9q-0r1s2t3u4v5w6";
+          container = 7;
+          position = 370;
         };
 
         # Personal Space
@@ -322,13 +393,6 @@
           container = 3;
           position = 500;
         };
-        "MiningPoolStats" = {
-          id = "pin-min-002";
-          url = "https://miningpoolstats.stream";
-          workspace = "mining-5e9g4d8f-1b7c-6e63-0a99-3g1e7c6f4e25";
-          container = 3;
-          position = 510;
-        };
 
         # System Space
         "Tailscale" = {
@@ -337,6 +401,174 @@
           workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
           container = 2;
           position = 600;
+        };
+        "Grafana" = {
+          id = "pin-sys-002";
+          url = "http://zephyr.lan:3001";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 610;
+        };
+        "Prometheus" = {
+          id = "pin-sys-003";
+          url = "http://zephyr.lan:9090";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 615;
+        };
+        "AlertManager" = {
+          id = "pin-sys-004";
+          url = "http://zephyr.lan:9093";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 620;
+        };
+        "AI Gateway" = {
+          id = "pin-sys-005";
+          url = "http://zephyr.lan:8080";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 625;
+        };
+        "Spacebot" = {
+          id = "pin-sys-006";
+          url = "http://zephyr.lan:19898";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 630;
+        };
+        "Switch 1" = {
+          id = "pin-sys-007";
+          url = "http://10.1.1.10";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 635;
+        };
+        "Switch 2" = {
+          id = "pin-sys-008";
+          url = "http://10.1.1.11";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 640;
+        };
+        "Switch 3" = {
+          id = "pin-sys-009";
+          url = "http://10.1.1.12";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 645;
+        };
+        "Switch 4" = {
+          id = "pin-sys-010";
+          url = "http://10.1.1.13";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 650;
+        };
+        "Vaultwarden" = {
+          id = "pin-sys-011";
+          url = "https://vaultwarden.zephyr.tigris-ule.ts.net";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 655;
+        };
+        "Garage S3 (Nexus)" = {
+          id = "pin-sys-012";
+          url = "http://nexus.lan:3900";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 660;
+        };
+        "Llamafile" = {
+          id = "pin-sys-013";
+          url = "http://zephyr.lan:8083";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 665;
+        };
+        "Syncthing (Zephyr)" = {
+          id = "pin-sys-014";
+          url = "http://127.0.0.1:8384";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 670;
+        };
+        "SearXNG" = {
+          id = "pin-sys-015";
+          url = "http://127.0.0.1:7777";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 675;
+        };
+        "Host Dashboard (Zephyr)" = {
+          id = "pin-sys-016";
+          url = "http://zephyr.lan:8090";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 680;
+        };
+        "Host Dashboard (Nexus)" = {
+          id = "pin-sys-017";
+          url = "http://nexus.lan:8090";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 685;
+        };
+        "Host Dashboard (Forge)" = {
+          id = "pin-sys-018";
+          url = "http://forge.lan:8090";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 690;
+        };
+        "Host Dashboard (Sentry)" = {
+          id = "pin-sys-019";
+          url = "http://sentry.lan:8090";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 695;
+        };
+        "GitHub Actions (TrovesAndCoves)" = {
+          id = "pin-sys-020";
+          url = "https://github.com/reverb256/trovesandcoves/actions";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 700;
+        };
+        "GitHub Actions (HairAtHome)" = {
+          id = "pin-sys-021";
+          url = "https://github.com/reverb256/hairathome/actions";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 705;
+        };
+        "GitHub Actions (Reverb256)" = {
+          id = "pin-sys-022";
+          url = "https://github.com/reverb256/reverb256.github.io/actions";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 710;
+        };
+        "GitHub Actions (Frostbite)" = {
+          id = "pin-sys-023";
+          url = "https://github.com/reverb256/frostbite-gazette/actions";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 715;
+        };
+        "Cloudflare" = {
+          id = "pin-sys-024";
+          url = "https://dash.cloudflare.com";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 720;
+        };
+        "Namecheap" = {
+          id = "pin-sys-025";
+          url = "https://www.namecheap.com";
+          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          container = 2;
+          position = 725;
         };
       };
 
