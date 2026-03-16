@@ -134,15 +134,16 @@ in {
   };
 
   # ============================================================================
-  # GPU COMPUTE - CUDA/Vulkan support for AI inference
+  # GPU COMPUTE - Vulkan support for AI inference
   # ============================================================================
   hardware.gpu-compute = {
     enable = true;
     # Vulkan works as universal backend for both NVIDIA and AMD
     vulkan.enable = true;
-    # CUDA support - minimal packages only (cuda_cudart)
-    # Overlay in nix-config.nix removes cuda_compat dependency
-    cuda.enable = true;
+    # CUDA TEMPORARILY DISABLED - cuda_compat build issue
+    # The overlay in nix-config.nix doesn't fully resolve the issue
+    # TODO: Fix properly - need to override cudaPackages scope or use cuda-redist
+    # cuda.enable = true;
   };
 
   # ============================================================================

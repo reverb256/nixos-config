@@ -81,12 +81,14 @@
   profiles.node.forge-mining.enable = true;
 
   # ============================================================================
-  # GPU COMPUTE - CUDA + ROCm + Vulkan support for AI inference
+  # GPU COMPUTE - ROCm + Vulkan support for AI inference
   # ============================================================================
   hardware.gpu-compute = {
     enable = true;
     # Forge has BOTH AMD (5700XT) and NVIDIA GPUs
-    cuda.enable = true; # For NVIDIA GPUs (RTX 4060)
+    # CUDA TEMPORARILY DISABLED - cuda_compat build issue
+    # TODO: Fix properly - need to override cudaPackages scope or use cuda-redist
+    # cuda.enable = true; # For NVIDIA GPUs (RTX 4060)
     rocm.enable = true; # For AMD 5700XT
     # Vulkan as universal backend (works with all GPU types)
     vulkan.enable = true;
