@@ -140,9 +140,9 @@ in {
     enable = true;
     # Vulkan works as universal backend for both NVIDIA and AMD
     vulkan.enable = true;
-    # CUDA disabled - cuda_compat build issue (Jetson/ARM64 package breaks x86_64)
-    # Re-enable after fix: https://github.com/nixos/nixpkgs/issues/458799
-    # cuda.enable = true;
+    # CUDA support - minimal packages only (cuda_cudart)
+    # Overlay in nix-config.nix removes cuda_compat dependency
+    cuda.enable = true;
   };
 
   # ============================================================================
@@ -1310,6 +1310,32 @@ in {
     gpuLayers = 999; # Full offload to 3060Ti (2.4GB fits in 8GB VRAM)
     ctxSize = 16384; # 16K context (safe for VRAM)
     threads = 8;
+  };
+
+  # ============================================================================
+
+  # ============================================================================
+  # HERMES AGENT - Multi-Host Orchestration
+  # ============================================================================
+  # Autonomous agent for cluster-wide task execution and coordination
+  # Uses MCP protocol for inter-service communication
+  services.hermes-agent = {
+    enable = true;
+    user = "j_kro"; # Use existing user
+    sharedStorage = {
+      enable = true;
+      mountPoint = "/home/j_kro/.hermes";
+      nfsServer = "10.1.1.120"; # Nexus
+      nfsPath = "/mnt/garage/hermes";
+    };
+    aiGateway = {
+      enable = true;
+      url = "http://127.0.0.1:8080/v1";
+    };
+    terminal = {
+      enable = true;
+      requireApproval = false;
+    };
   };
 
   # ============================================================================
