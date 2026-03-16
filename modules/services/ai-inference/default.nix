@@ -6,10 +6,10 @@
   pkgs,
   inputs,
   ...
-}: let
+}:
+let
   cfg = config.services.ai-inference;
-  inherit
-    (lib)
+  inherit (lib)
     mkEnableOption
     mkOption
     mkIf
@@ -33,7 +33,8 @@
     ps.rank-bm25
     ps.numpy
   ]);
-in {
+in
+{
   options.services.ai-inference = {
     enable = mkEnableOption "AI Inference Service (integrates with LM Studio)";
 
@@ -302,7 +303,7 @@ in {
       tailscale = {
         aclTags = mkOption {
           type = types.listOf types.str;
-          default = [];
+          default = [ ];
           example = [
             "tag:ai-inference"
             "tag:trusted"
@@ -349,57 +350,117 @@ in {
       };
     };
 
+    # System Prompts Configuration
+    systemPrompts = {
+      enable = mkEnableOption "Custom system prompts for different request types";
+
+      default = mkOption {
+        type = types.str;
+        default = "";
+        description = "Default system prompt applied to all requests (unless overridden)";
+      };
+
+      coding = mkOption {
+        type = types.str;
+        default = "You are an expert coding assistant. Write clean, efficient, and well-documented code.";
+        description = "System prompt for coding-related requests";
+      };
+
+      reasoning = mkOption {
+        type = types.str;
+        default = "You are an expert reasoning assistant. Think step-by-step and provide clear explanations.";
+        description = "System prompt for reasoning-related requests";
+      };
+
+      analysis = mkOption {
+        type = types.str;
+        default = "You are an expert analysis assistant. Provide thorough and structured analysis.";
+        description = "System prompt for analysis-related requests";
+      };
+
+      agentic = mkOption {
+        type = types.str;
+        default = "You are an autonomous agent capable of multi-step planning and execution.";
+        description = "System prompt for agentic/workflow requests";
+      };
+
+      fast = mkOption {
+        type = types.str;
+        default = "You are a fast and efficient assistant. Provide concise, direct answers.";
+        description = "System prompt for fast response requests";
+      };
+
+      custom = mkOption {
+        type = types.attrsOf types.str;
+        default = { };
+        example = literalExpression ''
+          {
+            nixos = "You are a NixOS configuration expert. Always use lib.mkOptionDefault for shared modules.";
+            kubernetes = "You are a Kubernetes expert. Use best practices for manifests and configurations.";
+          }
+        '';
+        description = "Custom system prompts by name";
+      };
+    };
+
     # MCP Broker configuration
     mcp = {
       enable = mkEnableOption "MCP broker for aggregating tools from multiple MCP servers";
 
       servers = mkOption {
         type = types.attrsOf (
-          types.submodule ({config, ...}: {
-            options = {
-              type = mkOption {
-                type = types.enum ["local" "remote"];
-                default = "remote";
-                description = "MCP server type: local (stdio subprocess) or remote (HTTP)";
-              };
+          types.submodule (
+            { config, ... }:
+            {
+              options = {
+                type = mkOption {
+                  type = types.enum [
+                    "local"
+                    "remote"
+                  ];
+                  default = "remote";
+                  description = "MCP server type: local (stdio subprocess) or remote (HTTP)";
+                };
 
-              url = mkOption {
-                type = types.nullOr types.str;
-                default =
-                  if config.type == "remote"
-                  then null
-                  else null;
-                description = "MCP server URL (required for remote type)";
-              };
+                url = mkOption {
+                  type = types.nullOr types.str;
+                  default = if config.type == "remote" then null else null;
+                  description = "MCP server URL (required for remote type)";
+                };
 
-              command = mkOption {
-                type = types.nullOr (types.listOf types.str);
-                default = null;
-                example = literalExpression ''[ "${pkgs.python3}/bin/python3" "/etc/nixos/skills/my-skill/server.py" ]'';
-                description = "Command to run for local MCP servers (required for local type)";
-              };
+                command = mkOption {
+                  type = types.nullOr (types.listOf types.str);
+                  default = null;
+                  example = literalExpression ''[ "${pkgs.python3}/bin/python3" "/etc/nixos/skills/my-skill/server.py" ]'';
+                  description = "Command to run for local MCP servers (required for local type)";
+                };
 
-              environment = mkOption {
-                type = types.attrsOf types.str;
-                default = {};
-                example = {NIX_HOST = "zephyr";};
-                description = "Environment variables for local MCP servers";
-              };
+                environment = mkOption {
+                  type = types.attrsOf types.str;
+                  default = { };
+                  example = {
+                    NIX_HOST = "zephyr";
+                  };
+                  description = "Environment variables for local MCP servers";
+                };
 
-              headers = mkOption {
-                type = types.attrsOf types.str;
-                default = {};
-                example = {Authorization = "Bearer token";};
-                description = "HTTP headers for authentication (remote type only)";
-              };
+                headers = mkOption {
+                  type = types.attrsOf types.str;
+                  default = { };
+                  example = {
+                    Authorization = "Bearer token";
+                  };
+                  description = "HTTP headers for authentication (remote type only)";
+                };
 
-              enabled = mkOption {
-                type = types.bool;
-                default = true;
-                description = "Whether this server is enabled";
+                enabled = mkOption {
+                  type = types.bool;
+                  default = true;
+                  description = "Whether this server is enabled";
+                };
               };
-            };
-          })
+            }
+          )
         );
         default = {
           # SearXNG local MCP server - privacy-respecting metasearch
@@ -622,7 +683,11 @@ in {
       };
 
       environment = mkOption {
-        type = types.enum ["development" "staging" "production"];
+        type = types.enum [
+          "development"
+          "staging"
+          "production"
+        ];
         default = "production";
         description = "Sentry environment name";
       };
@@ -710,7 +775,7 @@ in {
           job_name = "ai-inference-${config.networking.hostName}";
           static_configs = [
             {
-              targets = ["${cfg.gateway.host}:${toString cfg.monitoring.port}"];
+              targets = [ "${cfg.gateway.host}:${toString cfg.monitoring.port}" ];
               labels = {
                 instance = config.networking.hostName;
                 backend = cfg.backend.type;
@@ -723,7 +788,12 @@ in {
       # LM Studio headless service (optional)
       lm-studio-headless = mkIf (cfg.lm-studio-headless != null && cfg.lm-studio-headless.enable) {
         enable = true;
-        inherit (cfg.lm-studio-headless) port host user openFirewall;
+        inherit (cfg.lm-studio-headless)
+          port
+          host
+          user
+          openFirewall
+          ;
       };
 
       # Redis for gateway middleware (caching, rate limiting, circuit breaker)
@@ -735,10 +805,9 @@ in {
     };
 
     # Open firewall for gateway and metrics
-    networking.firewall.allowedTCPPorts =
-      [
-        cfg.gateway.port
-      ]
-      ++ (lib.optional cfg.monitoring.enable cfg.monitoring.port);
+    networking.firewall.allowedTCPPorts = [
+      cfg.gateway.port
+    ]
+    ++ (lib.optional cfg.monitoring.enable cfg.monitoring.port);
   };
 }

@@ -1,36 +1,56 @@
-# NixOS Configuration - Qwen-Agent Patterns
+# NixOS Cluster - Qwen-Agent Context
 
-## Purpose
-This document contains Qwen-Agent-specific patterns and workflows for this NixOS configuration. It extends the universal guidelines in `AGENTS.md` with Qwen framework features like function calling, code interpreter, and Qwen MCP integration.
+## WHAT
+NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) for AI inference, GPU computing, storage, and monitoring.
 
-**Read AGENTS.md first** for universal cluster patterns, build commands, and deployment workflows.
-
----
-
-## Quick Start
-
-1. Read `AGENTS.md` for universal cluster patterns
-2. Use Qwen framework patterns for agent workflows
-3. Configure MCP with Qwen-specific settings
-4. Follow universal deployment workflows
-
+**Tech stack**: NixOS flakes, Kubernetes, Colmena, Just, Qwen framework
 
 ---
 
-
+## COMMANDS
+```bash
+just test              # Verify configuration builds
+just switch            # Apply to local host (auto-pauses CPU mining)
+just deploy            # Deploy to all hosts via Colmena
+just ci-local          # Full CI pipeline locally
+```
 
 ---
 
+## PROJECT STRUCTURE
+```
+/etc/nixos/
+├── flake.nix              # Main flake with host definitions
+├── hosts/                 # Per-host configs (zephyr, nexus, forge, sentry)
+├── modules/               # Reusable modules
+│   ├── profiles/          # Hardware, role, network profiles
+│   └── system/            # System-level modules
+├── justfile               # CI/CD commands
+├── AGENTS.md              # Universal patterns for ALL agents
+├── QWEN.md                # This file
+└── .github/copilot-instructions.md  # GitHub Copilot instructions
+```
 
+---
 
-## Qwen-Agent-Specific Features
+## CONVENTIONS
+- **IMPORTANT**: Use `lib.mkOptionDefault` in shared modules (NEVER direct assignment)
+  - Direct assignment breaks SSH on all nodes
+  - See @AGENTS.md Critical Safety Constraints for examples
+- 2-space indentation, trailing semicolons
+- kebab-case for files and modules
+- Line length 80-100 chars (soft limit 120)
 
-### Qwen Framework
+---
+
+## QWEN-SPECIFIC SETUP
+
+### Framework Installation
 ```bash
 pip install -U 'qwen-agent[mcp,rag,code_interpreter]'
 ```
 
-### Tool Usage
+### Agent Configuration
 ```python
 from qwen_agent import Agent
 
@@ -54,44 +74,47 @@ agent = Agent(
 
 ---
 
+## WORKFLOW
+1. Make changes
+2. `git add` new files (Nix only packages git-tracked files!)
+3. `git commit`
+4. `just test` (verifies configuration)
+5. `just deploy` (applies to all hosts via Colmena)
+
+**Test before deployment:**
+- `modules/networking/*` → Test SSH on zephyr AND nexus
+- `modules/system/ssh.nix` → Test SSH on all 4 nodes
+- `modules/system/users.nix` → Test login on all 4 nodes
+
+**Stop immediately if:**
+- SSH breaks on any node → Document incident, wait for human
+- Multiple nodes affected → STOP ALL WORK
 
 ---
 
+## REFERENCE DOCUMENTS
+
+### AGENTS.md — `@AGENTS.md`
+**Read when:** First time working on this cluster
+Universal patterns for ALL AI agents (Claude, Cursor, Copilot, Qwen-Agent)
+
+### CLAUDE.md — `@CLAUDE.md`
+**Read when:** Using Claude Code on this cluster
+Claude Code-specific patterns and Serena tools
+
+### Kubernetes Roadmap — `@ROADMAP.md`
+**Read when:** Working on Kubernetes migration
+Complete 9-week migration plan
 
 ---
 
+## RELATED RESOURCES
+- **Cluster Health**: `just status` or read STATUS.md
+- **Documentation Index**: `@DOCUMENTATION_INDEX.md` for full catalog
+- **Hookify Rules**: `.claude/hookify-*.md` for deployment safety
 
 ---
 
-
-
-## See Also
-
-### Universal Documentation
-- **AGENTS.md**: Universal patterns for all agents
-  - Build & test commands (just commands)
-  - Deployment workflows (Colmena, multi-host)
-  - Kubernetes migration (9-week plan)
-  - MCP integration (protocol, troubleshooting)
-
-- **DOCUMENTATION_INDEX.md**: Comprehensive documentation index
-- **ROADMAP.md**: Complete Kubernetes migration plan
-
-### Cluster Information
-- **Hosts**: Zephyr (control plane), Nexus (storage), Forge (GPU), Sentry (monitoring)
-- **Resources**: 78 cores, 123GB RAM, 7 GPUs (5x NVIDIA + 2x AMD), 8.4TB storage
-- **Architecture**: NixOS flakes, profile-based, declarative configuration
-
-### Workflow Commands
-```bash
-just test              # Verify configuration
-just switch            # Apply to local host
-just deploy            # Deploy to all hosts
-# just sync              # Sync all nodes to current branch (DEPRECATED: Colmena handles this automatically)
-```
-
----
-
-**Version**: 1.0 | **Updated**: 2026-03-08
-**Generated from**: `/etc/nixos/docs/templates/base-template.md.j2`
+**Version**: 2.0 | **Updated**: 2026-03-15
+**Changes**: Reformatted to match CLAUDE.md structure, added progressive disclosure
 

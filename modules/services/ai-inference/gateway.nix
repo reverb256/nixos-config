@@ -4,7 +4,8 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.ai-inference;
   inherit (lib) mkIf;
 
@@ -14,71 +15,77 @@
   # Gateway package (plain files, not a Python package yet)
   # Used for --app-dir in uvicorn
   # NOTE: We use symlinkJoin with source tracking to ensure changes are detected
-  modularGatewayPkgBase = pkgs.runCommand "ai-inference-gateway-modular-pkg-base"
-    {
-      preferLocalBuild = true;
-      # Track source changes by including it in the name/hash
-      src = gatewaySrc;
-    }
-    ''
-      mkdir -p $out/ai_inference_gateway
-      # Copy the entire modular gateway package
-      cp -r ${gatewaySrc}/. $out/ai_inference_gateway/
-      # Fix permissions
-      chmod -R u+w $out/ai_inference_gateway
-      # Remove compiled Python files
-      find $out -name "*.pyc" -delete
-      find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-    '';
+  modularGatewayPkgBase =
+    pkgs.runCommand "ai-inference-gateway-modular-pkg-base"
+      {
+        preferLocalBuild = true;
+        # Track source changes by including it in the name/hash
+        src = gatewaySrc;
+      }
+      ''
+        mkdir -p $out/ai_inference_gateway
+        # Copy the entire modular gateway package
+        cp -r ${gatewaySrc}/. $out/ai_inference_gateway/
+        # Fix permissions
+        chmod -R u+w $out/ai_inference_gateway
+        # Remove compiled Python files
+        find $out -name "*.pyc" -delete
+        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+      '';
 
   # Gateway as a proper Python package (installable in site-packages)
   # This allows `import ai_inference_gateway` without --app-dir
-  modularGatewayPkgPython = pkgs.runCommand "ai-inference-gateway-modular-pkg-python"
-    {
-      preferLocalBuild = true;
-      # Track source changes by including it in the name/hash
-      src = gatewaySrc;
-    }
-    ''
-      # Create site-packages structure
-      mkdir -p $out/lib/python3.13/site-packages
-      # Copy gateway package to site-packages
-      cp -r ${gatewaySrc}/. $out/lib/python3.13/site-packages/ai_inference_gateway
-      # Fix permissions
-      chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
-      # Remove compiled Python files
-      find $out -name "*.pyc" -delete
-      find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-    '';
+  modularGatewayPkgPython =
+    pkgs.runCommand "ai-inference-gateway-modular-pkg-python"
+      {
+        preferLocalBuild = true;
+        # Track source changes by including it in the name/hash
+        src = gatewaySrc;
+      }
+      ''
+        # Create site-packages structure
+        mkdir -p $out/lib/python3.13/site-packages
+        # Copy gateway package to site-packages
+        cp -r ${gatewaySrc}/. $out/lib/python3.13/site-packages/ai_inference_gateway
+        # Fix permissions
+        chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
+        # Remove compiled Python files
+        find $out -name "*.pyc" -delete
+        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+      '';
 
   # Python environment with gateway dependencies AND the gateway package
   # The gateway package is added as an extra package
-  gatewayPython = pkgs.python3.withPackages (ps: [
-    ps.fastapi
-    ps.uvicorn
-    ps.httpx
-    ps.openai # OpenAI SDK for proper API communication
-    ps.anthropic # Anthropic SDK for Claude API compatibility
-    ps.prometheus-client
-    ps.pyjwt
-    ps.cryptography
-    ps.python-multipart
-    ps.uvloop
-    ps.httptools
-    ps.aiohttp
-    ps.psutil
-    ps.qdrant-client
-    ps.sentence-transformers
-    ps.rank-bm25
-    ps.numpy
-    ps.beautifulsoup4 # For RAG URL ingestion (HTML parsing)
-    ps.redis
-    ps.pydantic
-    ps.pydantic-settings
-    ps.sentry-sdk
-    # MCP SDK for SearXNG MCP server integration
-    ps.mcp
-  ] ++ [ modularGatewayPkgPython ]);
+  gatewayPython = pkgs.python3.withPackages (
+    ps:
+    [
+      ps.fastapi
+      ps.uvicorn
+      ps.httpx
+      ps.openai # OpenAI SDK for proper API communication
+      ps.anthropic # Anthropic SDK for Claude API compatibility
+      ps.prometheus-client
+      ps.pyjwt
+      ps.cryptography
+      ps.python-multipart
+      ps.uvloop
+      ps.httptools
+      ps.aiohttp
+      ps.psutil
+      ps.qdrant-client
+      ps.sentence-transformers
+      ps.rank-bm25
+      ps.numpy
+      ps.beautifulsoup4 # For RAG URL ingestion (HTML parsing)
+      ps.redis
+      ps.pydantic
+      ps.pydantic-settings
+      ps.sentry-sdk
+      # MCP SDK for SearXNG MCP server integration
+      ps.mcp
+    ]
+    ++ [ modularGatewayPkgPython ]
+  );
 
   # Combined package: gateway source + Python environment in one
   # This allows both --app-dir usage and direct imports
@@ -92,7 +99,8 @@
 
   # Use modular gateway by default (set to false to use old monolithic version)
   gatewayPkg = modularGatewayPkg;
-in {
+in
+{
   config = mkIf (cfg.enable && cfg.gateway.enable) {
     # Expose the gateway Python environment for use by MCP servers
     services.ai-inference.gateway.python = gatewayPython;
@@ -104,8 +112,8 @@ in {
         "network-online.target"
         "searx.service"
       ];
-      wants = ["network-online.target"];
-      wantedBy = ["multi-user.target"];
+      wants = [ "network-online.target" ];
+      wantedBy = [ "multi-user.target" ];
 
       environment = {
         PATH = lib.mkForce "/run/current-system/sw/bin:/run/current-system/sw/sbin:${config.system.path}";
@@ -119,26 +127,24 @@ in {
         PORT = toString cfg.gateway.port;
         AUTH_MODE = cfg.auth.mode;
         LM_STUDIO_API_KEY =
-          if cfg.backend.lmStudio.apiKeyFile != null
-          then "" # Will be loaded from file by gateway
-          else cfg.backend.lmStudio.apiKey;
-        LM_STUDIO_API_KEY_FILE =
-          lib.optionalString (
-            cfg.backend.lmStudio.apiKeyFile != null
-          )
-          cfg.backend.lmStudio.apiKeyFile;
+          if cfg.backend.lmStudio.apiKeyFile != null then
+            "" # Will be loaded from file by gateway
+          else
+            cfg.backend.lmStudio.apiKey;
+        LM_STUDIO_API_KEY_FILE = lib.optionalString (
+          cfg.backend.lmStudio.apiKeyFile != null
+        ) cfg.backend.lmStudio.apiKeyFile;
         # ZAI backend configuration
         ZAI_API_KEY =
-          if cfg.backend.zai.apiKeyFile != null
-          then "" # Will be loaded from file by gateway
-          else cfg.backend.zai.apiKey;
-        ZAI_API_KEY_FILE =
-          lib.optionalString (
-            cfg.backend.zai.apiKeyFile != null
-          )
-          cfg.backend.zai.apiKeyFile;
+          if cfg.backend.zai.apiKeyFile != null then
+            "" # Will be loaded from file by gateway
+          else
+            cfg.backend.zai.apiKey;
+        ZAI_API_KEY_FILE = lib.optionalString (
+          cfg.backend.zai.apiKeyFile != null
+        ) cfg.backend.zai.apiKeyFile;
         ZAI_BASE_URL = cfg.backend.zai.baseUrl;
-        ZAI_MODELS = lib.generators.toJSON {} cfg.backend.zai.models;
+        ZAI_MODELS = lib.generators.toJSON { } cfg.backend.zai.models;
         PYTHONUNBUFFERED = "1";
         ROUTING_ENABLED = lib.boolToString cfg.routing.enable;
         DEFAULT_MODEL = cfg.routing.defaultModel;
@@ -169,16 +175,25 @@ in {
         # Sentry error tracking
         SENTRY_ENABLED = lib.boolToString cfg.sentry.enable;
         SENTRY_DSN =
-          if cfg.sentry.dsnFile != null
-          then "" # Will be loaded from file by gateway
-          else cfg.sentry.dsn or "";
-        SENTRY_DSN_FILE =
-          lib.optionalString (cfg.sentry.dsnFile != null) cfg.sentry.dsnFile;
+          if cfg.sentry.dsnFile != null then
+            "" # Will be loaded from file by gateway
+          else
+            cfg.sentry.dsn or "";
+        SENTRY_DSN_FILE = lib.optionalString (cfg.sentry.dsnFile != null) cfg.sentry.dsnFile;
         SENTRY_ENVIRONMENT = cfg.sentry.environment;
         SENTRY_TRACES_SAMPLE_RATE = builtins.toString cfg.sentry.tracesSampleRate;
         # SearXNG search integration
         SEARXNG_ENABLED = "true";
-        SEARXNG_CACHE_TTL = "300";  # 5 minutes
+        SEARXNG_CACHE_TTL = "300"; # 5 minutes
+        # System Prompts configuration
+        SYSTEM_PROMPTS_ENABLED = lib.boolToString cfg.systemPrompts.enable;
+        SYSTEM_PROMPTS_DEFAULT = cfg.systemPrompts.default;
+        SYSTEM_PROMPTS_CODING = cfg.systemPrompts.coding;
+        SYSTEM_PROMPTS_REASONING = cfg.systemPrompts.reasoning;
+        SYSTEM_PROMPTS_ANALYSIS = cfg.systemPrompts.analysis;
+        SYSTEM_PROMPTS_AGENTIC = cfg.systemPrompts.agentic;
+        SYSTEM_PROMPTS_FAST = cfg.systemPrompts.fast;
+        SYSTEM_PROMPTS_CUSTOM = builtins.toJSON cfg.systemPrompts.custom;
       };
 
       serviceConfig = {
@@ -192,17 +207,18 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths =
-          [
-            "/tmp"
-            "/var/cache/ai-inference"
-            "/run/gpu-scheduler"
-          ]
-          ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
-          ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
-          ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/zai-api-key")
-          ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/context7-api-key")
-          ++ lib.optional (lib.hasAttr "sentry" cfg && lib.hasAttr "dsnFile" cfg.sentry && cfg.sentry.dsnFile != null) (dirOf cfg.sentry.dsnFile);
+        ReadWritePaths = [
+          "/tmp"
+          "/var/cache/ai-inference"
+          "/run/gpu-scheduler"
+        ]
+        ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
+        ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
+        ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/zai-api-key")
+        ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/context7-api-key")
+        ++ lib.optional (
+          lib.hasAttr "sentry" cfg && lib.hasAttr "dsnFile" cfg.sentry && cfg.sentry.dsnFile != null
+        ) (dirOf cfg.sentry.dsnFile);
         # Memory limits with OOM protection
         MemoryMax = "2G";
         MemoryHigh = "1.5G"; # Start soft limiting at 1.5GB
@@ -220,7 +236,7 @@ in {
       group = "ai-inference";
       description = "AI Inference Gateway";
     };
-    users.groups.ai-inference = {};
+    users.groups.ai-inference = { };
 
     # Create cache directory and GPU scheduler communication directory
     systemd.tmpfiles.rules = [

@@ -1,103 +1,115 @@
-# NixOS Configuration - Agent Guidelines
+# NixOS Cluster - Universal Agent Guidelines
 
 ## Purpose
-This document provides guidelines for AI agents (OpenCode, Cursor, Copilot, Qwen-Agent, etc.) working on this NixOS configuration. It focuses on universal workflows, testing strategies, and common patterns.
+Universal guidelines for ALL AI agents (Claude Code, Cursor, Copilot, Qwen-Agent, OpenCode, etc.) working on this NixOS configuration.
 
-**For Claude Code-specific patterns**, see `CLAUDE.md`.
+**Agent-specific instructions**: See `@.claude/CLAUDE.md` (Claude Code), `.github/copilot-instructions.md` (GitHub Copilot), or agent-specific instruction files.
 
 ---
 
 ## Quick Start
 
 **For AI Agents:**
-1. Use `just test` before making changes
-2. Use `just deploy` to apply changes
-3. See DOCUMENTATION_INDEX.md for comprehensive docs
+1. Read this file for universal cluster patterns
+2. Use agent-specific instructions for your tool
+3. Use `just` commands for all operations
 
 **For Humans:**
 1. Read this file for universal patterns
-2. Check CLAUDE.md or QWEN.md for agent-specific patterns
+2. Check agent-specific files for your AI tool
 3. Use `just` commands for all operations
 
+---
+
+## WHAT: Project Overview
+
+NixOS flake-based 4-host Linux cluster:
+- **Zephyr** (10.1.1.110) - Control plane, gaming, AI inference
+- **Nexus** (10.1.1.120) - Storage, GPU computing
+- **Forge** (10.1.1.130) - GPU computing, mining
+- **Sentry** (10.1.1.140) - Monitoring, logging
+
+**Resources**: 78 cores, 123GB RAM, 7 GPUs (5x NVIDIA + 2x AMD), 8.4TB storage
+
+**Architecture**: Declarative, reproducible, composable (profile-based), scalable (multi-host)
 
 ---
 
-## Project Overview
-NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) with declarative configuration, profile-based architecture, and multi-host deployment via Colmena.
+## HOW: Commands & Workflow
 
-**Cluster Resources**: 78 cores, 123GB RAM, 7 GPUs (5x NVIDIA + 2x AMD), 8.4TB storage
-
-**Architecture**:
-- **Declarative**: All configuration in Nix expressions
-- **Reproducible**: Same inputs → same output
-- **Composable**: Profile-based system
-- **Scalable**: Multi-host deployment
-
-
-## Build & Test Commands
-
-### Primary Workflow: Just Commands
+### Essential Commands
 ```bash
-just test              # Verify configuration
-just switch            # Apply to local host (wrapper auto-pauses CPU mining)
-just deploy            # Deploy to all cluster hosts (via Colmena)
-just ci-local          # Run full CI pipeline locally
+just test              # Verify configuration builds
+just switch            # Apply to local host (auto-pauses CPU mining)
+just deploy            # Deploy to all hosts via Colmena
+just ci-local          # Full CI pipeline locally
 ```
 
-### Direct Commands (via wrapper)
-```bash
-# nixos-rebuild wrapper translates to Colmena automatically
-sudo nixos-rebuild switch --flake .#zephyr   # Apply locally (mining pause)
-sudo nixos-rebuild build --flake .#zephyr    # Build without applying
-sudo nixos-rebuild test --flake .#zephyr     # Test (rollback safe)
-nix flake update                              # Update flake inputs
-```
-
-**Wrapper Behavior:**
-- All `nixos-rebuild` commands use the wrapper script (installed via NixOS module)
-- Wrapper translates commands to Colmena for deployment consistency
-- Automatically pauses CPU mining (xmrig) during builds, GPU mining (lolminer) continues
-- Writes state files to `/run/nixos-deploy/{host}.json` for visibility
-- Native bypass: `NIXOS_REBUILD_NATIVE=1 sudo nixos-rebuild ...`
-
-### Critical Workflows
-**Before Deployment**:
-1. `just test` - Verify configuration builds
-2. Check storage mounts
-3. Review hookify warnings
-
-**Git Workflow**:
+### Development Workflow
 1. Make changes
-2. `git add` new files (Nix only packages git-tracked files!)
+2. `git add` new files (Nix packages git-tracked files!)
 3. `git commit`
-4. `just test`
-5. `just deploy`
+4. `just test` (verify configuration)
+5. `just deploy` (apply to all hosts)
 
-**Note:** Colmena automatically handles configuration distribution to all hosts. Manual `just sync` is no longer required.
+### Testing Before Deployment
+- `modules/networking/*` → Test SSH on zephyr AND nexus
+- `modules/system/ssh.nix` → Test SSH on all 4 nodes
+- `modules/system/users.nix` → Test login on all 4 nodes
+- `modules/default.nix` → Test entire cluster
+
+### Stop Immediately If
+- SSH breaks on any node → Document incident, wait for human
+- Multiple nodes affected → STOP ALL WORK, create urgent task
 
 ---
 
+## WHAT: Project Structure
 
-## Code Style Guidelines
+```
+/etc/nixos/
+├── flake.nix                    # Main flake with host definitions
+├── hosts/                       # Host-specific configurations
+│   ├── zephyr/
+│   ├── nexus/
+│   ├── forge/
+│   └── sentry/
+├── modules/                     # Reusable NixOS modules
+│   ├── profiles/                # Hardware, role, network profiles
+│   └── system/                  # System-level modules
+├── .claude/                     # Claude-specific files
+│   ├── agents/                  # Agent definitions
+│   └── skills/                  # Skill definitions
+├── .github/                     # GitHub-specific files
+│   └── copilot-instructions.md  # GitHub Copilot instructions
+├── justfile                     # CI/CD commands
+├── AGENTS.md                    # Universal patterns (this file)
+└── ROADMAP.md                   # Kubernetes migration plan
+```
+
+---
+
+## HOW: Code Style & Conventions
+
+### Nix Language Style
 - **2-space indentation**, trailing semicolons
 - **kebab-case** for files and modules
 - **Line length**: 80-100 chars (soft limit 120)
 
-## Project Structure
-```
-/etc/nixos/
-├── flake.nix              # Flake inputs/outputs
-├── hosts/                 # Per-host configs
-├── modules/               # Reusable modules
-│   ├── profiles/          # Profile-based configs
-│   └── system/            # System-level modules
-├── justfile               # CI/CD commands
-├── AGENTS.md              # Universal patterns
-├── CLAUDE.md              # Claude Code patterns
-└── ROADMAP.md             # Kubernetes plan
+### Critical: Module System
+In shared modules, use `lib.mkOptionDefault` for extensible options:
+
+```nix
+# ❌ WRONG - REPLACES node configs
+networking.firewall.allowedTCPPorts = [22 53 6443];
+
+# ✅ CORRECT - MERGES with node configs
+networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 ```
 
-## Profile System
+**Why:** Direct assignment breaks SSH and other critical services on all nodes.
+
+### Profile System
 Composable configurations for hardware, roles, and networking:
 ```nix
 imports = [
@@ -107,22 +119,14 @@ imports = [
 ];
 ```
 
-**Profile Types**:
-- **Hardware**: CPU/GPU capabilities (amd-zen, nvidia-gpu, etc.)
-- **Role**: Host function (workstation, storage, mining, ai)
-- **Network**: Connectivity (tailscale, cluster)
-
 ---
 
-
-
-## Multi-Host Deployment (Colmena)
+## HOW: Multi-Host Deployment
 
 ### Colmena Commands
 ```bash
 nix run .#apps.x86_64-linux.colmena -- build          # Build all hosts
 nix run .#apps.x86_64-linux.colmena -- apply --on <host>  # Apply to host
-nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry boot  # Remote deploy (boot goal)
 just deploy                                     # Deploy to all hosts
 ```
 
@@ -131,204 +135,67 @@ just deploy                                     # Deploy to all hosts
 - Local host (zephyr) uses `switch` goal
 - Mining auto-pauses during deployment
 
-### Cluster Storage Verification
-The `modules/system/cluster-storage.nix` module ensures all storage mounts are active on boot.
-
-```bash
-systemctl status ensure-cluster-storage
-/data/@projects/infra/nixos/verify-cluster-storage.sh
-```
-
 ### Important Notes
 - Keep `system.stateVersion` and `home.stateVersion` current
 - Never edit `hardware-configuration.nix` or `flake.lock`
 - Always use `just` commands for CI/CD integration
 - Never suppress build errors (no `|| true`)
 - Check storage mounts after deployment
-- Hookify rules enforce safe patterns (see `.claude/hookify-*.md`)
 
 ---
 
-## Kubernetes Migration
+## WHAT: Kubernetes Migration
 
-### Overview
-Migrating from systemd services to Kubernetes using `services.kubernetes` (full upstream, not K3s). See `/etc/nixos/ROADMAP.md` for the complete 9-week plan.
+**Status**: Phase 1 Complete (K8s v1.35.0 running)
 
-### Migration Phases
-1. **Week 1-2**: ✅ Bootstrap single-node cluster on Zephyr
-2. **Week 2-3**: 🔄 Add worker nodes (Nexus, Forge, Sentry) - IN PROGRESS
-3. **Week 3-4**: Migrate stateful services (PostgreSQL, Redis)
-4. **Week 4-6**: Migrate stateless services
-5. **Week 6-7**: GPU workloads with device plugins
-6. **Week 7-8**: Monitoring and observability (✅ Already operational)
-7. **Week 8-9**: Cleanup and optimization
+**Architecture**:
+- **Control Plane (Zephyr)**: API server, etcd, Flannel CNI, CoreDNS
+- **Worker Nodes**: Nexus (storage), Forge (GPU), Sentry (monitoring)
+- **Storage**: Longhorn (distributed), NFS (shared), local (databases)
 
-### Architecture
-**Control Plane (Zephyr)**: API server, etcd, Flannel CNI, CoreDNS
-**Worker Nodes**: Nexus (storage), Forge (GPU), Sentry (monitoring)
-**Storage**: Longhorn (distributed), NFS (shared), local (databases)
-**Networking**: Tailscale VPN, Flannel VXLAN, Caddy ingress
-
-### GPU Passthrough
-```nix
-# NVIDIA nodes
-hardware.graphics.nvidia.enable = true;
-
-# AMD nodes
-hardware.graphics.amdgpu.enable = true;
-
-# Mixed vendor (Forge) - deploy both plugins
-```
-
-### Key Commands
-```bash
-# Cluster management
-kubectl get nodes
-kubectl get pods --all-namespaces
-kubectl logs <pod-name> -n <namespace>
-
-# Deployment
-kubectl apply -f manifests/
-kubectl rollout restart deployment/<name> -n <namespace>
-
-# Storage
-kubectl get pv,pvc -n <namespace>
-```
-
-### Service Migration Workflow
-1. Create Kubernetes manifest (Deployment + Service)
-2. Test in development namespace
-3. Migrate data (if stateful): `pg_dump` → `kubectl cp`
-4. Switch traffic to Kubernetes service
-5. Monitor and rollback if needed
-
-### NixOS Configuration
-```nix
-services.kubernetes = {
-  enable = true;
-  roles = ["master" "node"];
-  apiserverAddress = "https://10.0.0.10:6443";
-  podNets = ["10.244.0.0/16"];
-  easyCerts = true;
-};
-
-virtualisation.docker.enable = true;
-```
-
-### Documentation
-- **Full Plan**: `/etc/nixos/ROADMAP.md`
-- **Kubernetes Docs**: https://kubernetes.io/docs/
-- **NixOS Module**: https://search.nixos.org/options?query=services.kubernetes
+**Full Plan**: See `@ROADMAP.md`
 
 ---
 
-## MCP (Model Context Protocol) Integration
+## HOW: MCP Integration
 
-### Overview
-AI inference gateway includes MCP broker aggregating tools from multiple MCP servers.
+**Protocol**: JSON-RPC 2.0 over HTTP/SSE
+**Critical Header**: `Accept: application/json, text/event-stream`
 
-### Server Configuration
-```json
-{
-  "mcpServers": {
-    "web-search-prime": {
-      "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-      "headers": {
-        "Authorization": "Bearer /run/agenix/zai-api-key"
-      }
-    }
-  }
-}
-```
+**Server Config**: `.claude/settings.json`
 
-### Protocol Details
-- **Format**: JSON-RPC 2.0 over HTTP/SSE
-- **Methods**: `initialize`, `tools/list`, `tools/call`
-- **Response**: Server-Sent Events (SSE)
-- **Critical Header**: `Accept: application/json, text/event-stream`
+**Common Tools**: `webSearchPrime`, `imageSearchPrime`
 
-### Authentication Pattern
-Headers with file paths need special handling:
-```python
-if header_value.startswith("Bearer "):
-    file_path = header_value.split(" ", 1)[1].strip()
-    with open(file_path, "r") as f:
-        api_key = f.read().strip()
-        headers[header_name] = f"Bearer {api_key}"
-```
-
-### Common Tools
-- **webSearchPrime**: Web search with ranking
-- **imageSearchPrime**: Image search and analysis
-
-### Usage Examples
-```bash
-# List available tools
-curl http://127.0.0.1:8080/mcp/tools | jq '.'
-
-# Invoke tool
-curl -X POST http://127.0.0.1:8080/mcp/call \
-  -H "Content-Type: application/json" \
-  -d '{"server": "web-search-prime", "tool": "webSearchPrime"}'
-```
-
-### Troubleshooting
-**400 Bad Request from ZAI MCP**: Missing Accept header
-- Fix: Always include `Accept: application/json, text/event-stream`
-- See: `.claude/hookify.warn-mcp-accept-headers.local.md`
-
-**404 Not Found**: Incorrect tool name (case-sensitive)
-- Fix: Use exact name from `/mcp/tools`
-- Example: `webSearchPrime` not `web_search`
-
-### Documentation
-- **MCP Spec**: https://modelcontextprotocol.io/
-- **Cluster Architecture**: See ROADMAP.md
+**Troubleshooting**:
+- 400 Bad Request: Missing Accept header
+- 404 Not Found: Case-sensitive tool names
 
 ---
 
+## Reference Documents
 
-## Hookify Rules
-Safe deployment pattern enforcement in `.claude/hookify-*.md`:
+### Agent-Specific Instructions
+- **Claude Code**: `@.claude/CLAUDE.md`
+- **GitHub Copilot**: `.github/copilot-instructions.md`
+- **Qwen-Agent**: `@QWEN.md`
 
-**Critical**: Block error suppression (`|| true`)
+### Cluster Information
+- **Cluster Health**: `just status` or read `STATUS.md`
+- **Full Documentation Index**: `@DOCUMENTATION_INDEX.md`
+- **Kubernetes Roadmap**: `@ROADMAP.md`
 
-**High Priority**:
-- Warn: Wrong deploy goals for remote hosts
-- Warn: Git sync before deploy
+### Claude-Specific Files
+- **Multi-Host Validator**: `.claude/agents/multi-host-validator.md`
+- **Add-Service Skill**: `.claude/skills/add-service/SKILL.md`
+- **Nix-Rebuild Skill**: `.claude/skills/nix-rebuild/SKILL.md`
 
-**Medium Priority**:
-- Warn: Autogen file edits (flake.lock)
-- Warn: Git new files (remind to add)
-- Warn: Test before deploy
-
-## Service Management
-```bash
-systemctl status <service>
-journalctl -u <service> -f
-systemctl start/stop/restart/enable <service>
-```
-
-## Testing & Verification
-```bash
-just test                                    # Config test
-/data/@projects/infra/nixos/verify-cluster-storage.sh  # Storage
-just health-check                            # Service health
-```
-
-## Documentation
-- **DOCUMENTATION_INDEX.md**: Comprehensive index
-- **AGENTS.md**: Universal patterns (this file)
-- **CLAUDE.md**: Claude Code patterns
-- **QWEN.md**: Qwen-Agent patterns
-- **ROADMAP.md**: Kubernetes migration
-
-## Getting Help
-**AI Agents**: Read docs, use semantic tools, follow hookify guidance
-**Humans**: Start with DOCUMENTATION_INDEX.md, use `just status`, check `journalctl -xe`
+### Safety & Deployment
+- **Hookify Rules**: `.claude/hookify-*.md`
+- **Incident Reports**: `AGENT_INCIDENT_REPORT.md`
 
 ---
 
-**Version**: 1.0 | **Updated**: 2026-03-08 | **Template**: `/etc/nixos/docs/templates/base-template.md.j2`
+**Version**: 2.0 | **Updated**: 2026-03-15
+**Changes**: Multi-file pattern alignment, progressive disclosure, universal agent focus
 
 
