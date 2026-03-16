@@ -81,6 +81,7 @@
     ./services/tplink-cli.nix
     ./services/lm-studio.nix
     ./services/lm-studio-headless.nix
+    ./services/llamafile.nix
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
     ./services/nixos-share.nix
