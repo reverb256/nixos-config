@@ -33,6 +33,7 @@
     ./system/compute-workload-monitor.nix
     ./system/compute-workload-monitor-profiles.nix
     ./system/xmrig-api-control.nix
+    ./system/boot-emergency-diagnostics.nix
 
     # Security
     ./security/pam-vaultwarden.nix
@@ -124,6 +125,7 @@
     ./hardware/nvidia-common.nix
     ./hardware/monitoring.nix
     ./hardware/corsair.nix
+    ./hardware/gpu-compute.nix
 
     # Multimedia modules
     ./multimedia/gstreamer.nix
