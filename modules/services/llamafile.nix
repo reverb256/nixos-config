@@ -40,13 +40,13 @@ in {
     # Model configuration
     modelPath = mkOption {
       type = types.path;
-      default = /home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-9B-Unredacted-MAX-i1-GGUF/Qwen3.5-9B-Unredacted-MAX.i1-Q4_K_S.gguf;
+      default = /home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-4B-Unredacted-MAX-i1-GGUF/Qwen3.5-4B-Unredacted-MAX.i1-Q4_K_S.gguf;
       description = "Path to the GGUF model file";
     };
 
     modelName = mkOption {
       type = types.str;
-      default = "qwen3.5-9b-unredacted";
+      default = "qwen3.5-4b-unredacted";
       description = "Model name for API responses";
     };
 
