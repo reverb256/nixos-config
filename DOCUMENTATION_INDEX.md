@@ -184,6 +184,21 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **When to Read:** Debugging mining service failures or performance issues
 **Location:** `/etc/nixos/docs/MINING_TROUBLESHOOTING.md`
 
+#### CUDA_TROUBLESHOOTING.md (NEW - 2026-03-16)
+**Purpose:** CUDA setup, troubleshooting, and multi-GPU configuration
+**Status:** ✅ Working (resolved `allowUnsupportedSystem` issue)
+**Contents:**
+- Quick start for enabling CUDA
+- Common issues (cuda_compat, allowUnsupportedSystem, platform filters)
+- CUDA package reference (cuda_cudart, cudnn, nccl)
+- Multi-GPU setup (kernel modules, environment variables)
+- ROCm (AMD GPUs) and Vulkan (universal backend)
+- Cluster GPU inventory
+- Performance tips (persistence mode, optimization)
+**When to Read:** Setting up CUDA, debugging build failures, configuring multi-GPU
+**Location:** `/etc/nixos/docs/CUDA_TROUBLESHOOTING.md`
+**Key Issue Fixed:** https://github.com/NixOS/nixpkgs/issues/458799 (closed Nov 7, 2025)
+
 #### storage-configuration.md
 **Purpose:** Storage drive inventory, mount status, and known issues
 **Contents:** All storage drives across cluster, BTRFS subvolumes, implementation priorities

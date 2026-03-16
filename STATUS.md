@@ -37,12 +37,14 @@ sentry   Ready    monitoring                     15m     v1.35.0
 
 ### GPU Resources by Node
 
-| Node | NVIDIA GPUs | AMD GPUs | Status |
-|------|-------------|----------|--------|
-| **Zephyr** | 2 (RTX 3090 + 3060 Ti) | 0 | ✅ Fully operational |
-| **Nexus** | 1 (RTX 3060 Ti) | 0 | ✅ Operational |
-| **Forge** | 2 (RTX 4060) | 2 (RX 5700 XT) | ⚠️ NVIDIA plugin issues |
-| **Sentry** | 0 | 1 (RX 5600 XT) | ✅ Operational |
+| Node | NVIDIA GPUs | AMD GPUs | CUDA | ROCm | Vulkan |
+|------|-------------|----------|------|------|--------|
+| **Zephyr** | 2 (RTX 3090 + 3060 Ti) | 0 | ✅ | - | ✅ |
+| **Nexus** | 1 (RTX 3060 Ti) | 0 | ✅ | - | ✅ |
+| **Forge** | 2 (RTX 4060) | 2 (RX 5700 XT) | ✅ | ✅ | ✅ |
+| **Sentry** | 0 | 1 (RX 5600 XT) | - | ✅ | ✅ |
+
+> **Note (2026-03-16):** CUDA issue resolved by removing `allowUnsupportedSystem = true;` from flake.nix. See `docs/CUDA_TROUBLESHOOTING.md` for details.
 
 ---
 
@@ -98,6 +100,16 @@ sentry   Ready    monitoring                     15m     v1.35.0
 ---
 
 ## Recent Changes
+
+**2026-03-16 14:30:**
+- ✅ **FIXED: CUDA compute on all NVIDIA GPU hosts** - Removed `allowUnsupportedSystem` causing cuda_compat build failure
+- ✅ **RESOLVED: GitHub issue #458799** - cuda_compat was being built on x86_64 due to `allowUnsupportedSystem = true`
+- ✅ **ENABLED: CUDA** on Zephyr (2× NVIDIA), Nexus (1× NVIDIA), Forge (2× NVIDIA)
+- ✅ **ADDED: CUDA binary cache** (cache.nixos-cuda.org) to distributed-builds.nix
+- ✅ **CREATED: docs/CUDA_TROUBLESHOOTING.md** - Comprehensive CUDA setup and troubleshooting guide
+- 📝 **UPDATED: STATUS.md** - GPU Resources section now shows CUDA/ROCm/Vulkan status
+- 📝 **UPDATED: docs/archive/2026-03-13-x86-64-v3-migration.md** - Historical reference (removed `allowUnsupportedSystem`)
+- ⏸️ **TEMPORARY: Disabled bitwarden-desktop** - electron-39 patch issue blocking builds
 
 **2026-03-14 22:30:**
 - ✅ **DEPLOYED: GPU Resource Marketplace** - Unified auction engine for GPU allocation
