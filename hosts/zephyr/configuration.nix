@@ -79,6 +79,7 @@ in {
         1234 # LM Studio API server
         3333 # XMRig stratum proxy (for GPU miners)
         8080 # AI Inference Gateway
+        8083 # Llamafile standalone LLM service
         53317 # LocalSend (file sharing)
         8888 # CFSSL CA API server (for worker node certificate generation)
         3900 # Garage S3 API
@@ -532,6 +533,11 @@ in {
           apiKeyFile = "/run/agenix/zai-api-key";
           baseUrl = "https://api.z.ai/api/coding/paas/v4";
         };
+        pollinations = {
+          enable = true;
+          apiKeyFile = "/run/agenix/pollinations-api-key";
+          baseUrl = "https://text.pollinations.ai";
+        };
       };
       gateway = {
         enable = true;
@@ -852,6 +858,14 @@ in {
         group = "ai-inference";
       };
 
+      # Pollinations API key - Free AI service (text, image, TTS)
+      pollinations-api-key = {
+        file = "${inputs.self}/secrets/pollinations-api-key.age";
+        mode = "440";
+        owner = "ai-inference";
+        group = "ai-inference";
+      };
+
       # Kilo API key - Kilo Code provider for Spacebot
       kilo-api-key = {
         file = "${inputs.self}/secrets/kilo-api-key.age";
@@ -933,12 +947,13 @@ in {
       };
 
       # Garage S3-compatible object storage - RPC secret for cluster communication
-      garage-rpc-secret = {
-        file = "${inputs.self}/secrets/garage-rpc-secret.age";
-        mode = "440";
-        owner = "garage";
-        group = "garage";
-      };
+      # DISABLED on zephyr (garage runs on nexus)
+      # garage-rpc-secret = {
+      #   file = "${inputs.self}/secrets/garage-rpc-secret.age";
+      #   mode = "440";
+      #   owner = "garage";
+      #   group = "garage";
+      # };
 
       # Garage S3 admin secret key - For automated backups to S3
       garage-s3-secret-key = {
@@ -1217,6 +1232,24 @@ in {
     GGML_CUDA_GPU_MEMORY_FRACTION = "0.9"; # Use 90% of GPU VRAM (leave headroom)
     LLAMA_GRAPH_POOL_SIZE = "0.2"; # CUDA Graphs pool (20% of VRAM)
     # KV cache quantization (Q4_0) is configured per-model in LM Studio GUI
+  };
+
+  # ============================================================================
+
+  # ============================================================================
+  # LLAMAFILE - STANDALONE LLM FALLBACK
+  # ============================================================================
+  # llama.cpp provides a standalone LLM fallback using llama-server
+  # Uses Qwen3.5-4B-IQ4_NL (2.4GB) - fits in 8GB VRAM with full offload
+  # Runs on port 8083 (8081/8082 used by xmrig, 8080 used by LM Studio)
+  services.llamafile = {
+    enable = true;
+    modelPath = "/home/j_kro/.lmstudio/models/mradermacher/Crow-4B-Opus-4.6-Distill-Heretic_Qwen3.5-i1-GGUF/Crow-4B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-IQ4_NL.gguf";
+    host = "0.0.0.0";  # Accept cluster connections
+    port = 8083;
+    gpuLayers = 999;  # Full offload to 3060Ti (2.4GB fits in 8GB VRAM)
+    ctxSize = 16384;  # 16K context (safe for VRAM)
+    threads = 8;
   };
 
   # ============================================================================
