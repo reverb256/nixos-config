@@ -88,7 +88,7 @@ in {
     # Distributed builds
     machinesFile = ./machines;
 
-    specialArgs = {inherit inputs self;};
+    specialArgs = {inherit (inputs) hermes-agent inputs self;};
   };
 
   # ========================================================================
