@@ -85,6 +85,7 @@
     ./services/llamafile.nix
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
+    ./services/hermes-agent/default.nix
     ./services/nixos-share.nix
     ./services/spacebot.nix
     ./services/podman-auto-update.nix
