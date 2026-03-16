@@ -58,14 +58,14 @@ in {
       # For llama.cpp, cuda_cudart is sufficient - it provides the core CUDA runtime
       # For PyTorch/TensorFlow, add cudnn back when cuda_compat is fixed
       cudaPackages = with pkgs.cudaPackages; [
-        cuda_cudart    # Core CUDA runtime library (sufficient for llama.cpp)
+        cuda_cudart # Core CUDA runtime library (sufficient for llama.cpp)
       ];
 
       # ROCm packages for AMD GPUs
       rocmPackages = with pkgs.rocmPackages; [
-        clr            # ROCm Core Runtime
-        clr.icd        # OpenCL ICD loader
-        rocm-smi       # ROCm System Management Interface
+        clr # ROCm Core Runtime
+        clr.icd # OpenCL ICD loader
+        rocm-smi # ROCm System Management Interface
       ];
 
       # Vulkan packages for universal GPU compute

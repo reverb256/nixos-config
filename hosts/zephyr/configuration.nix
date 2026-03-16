@@ -7,7 +7,8 @@
   ...
 }: let
   # Gateway package as a Python package (for site-packages)
-  gatewayPythonPkg = pkgs.runCommand "ai-inference-gateway-python-pkg"
+  gatewayPythonPkg =
+    pkgs.runCommand "ai-inference-gateway-python-pkg"
     {
       preferLocalBuild = true;
       passAsFile = ["buildScript"];
@@ -22,7 +23,6 @@
     ''
       . $buildScriptPath
     '';
-
   # Add the gateway package to system packages so it's importable
   # The mcp_broker will add the correct PYTHONPATH when spawning
 in {
@@ -155,7 +155,7 @@ in {
       # If zephyr (highest priority) fails, nexus or sentry takes over the VIP automatically
       masterAddress = lib.mkForce "10.1.1.100";
       # etcd clustering configuration (3-node HA cluster operational)
-      etcdInitialState = "existing";  # Cluster already formed
+      etcdInitialState = "existing"; # Cluster already formed
       etcdName = "zephyr";
       etcdListenHost = "10.1.1.110";
       # etcdBootstrapOnly removed - multi-node cluster is operational
@@ -360,9 +360,15 @@ in {
       bidders.gaming = {
         enable = true;
         processes = [
-          "steam" "steamwebhelper" "steamapps"
-          "lutris" "heroic" "Lutris" "HeroicGamesLauncher"
-          "wine" "proton"
+          "steam"
+          "steamwebhelper"
+          "steamapps"
+          "lutris"
+          "heroic"
+          "Lutris"
+          "HeroicGamesLauncher"
+          "wine"
+          "proton"
         ];
       };
 
@@ -477,9 +483,9 @@ in {
     # TEMPORARILY DISABLED: NFS server on Nexus is down, causing hangs/crashes
     nfs-client = {
       enable = true;
-      mountShared = false;  # DISABLED until Nexus NFS server is fixed
+      mountShared = false; # DISABLED until Nexus NFS server is fixed
       mountHome = false; # Zephyr has local home
-      mountMedia = false;  # DISABLED until Nexus NFS server is fixed
+      mountMedia = false; # DISABLED until Nexus NFS server is fixed
     };
 
     # Caddy reverse proxy - Replace nginx for all services
@@ -680,26 +686,26 @@ in {
     # Direct Kryptex connection (no gpu-proxy - was causing issues)
     mining = {
       lolminer = {
-        pool = "stratum+tcp://127.0.0.1:3333";  # Local stratum proxy
+        pool = "stratum+tcp://127.0.0.1:3333"; # Local stratum proxy
         wallet = "krxXVNVMM7.zephyr-gpu";
         pools = [
           {
-            url = "stratum+tcp://127.0.0.1:3333";  # Local stratum proxy
+            url = "stratum+tcp://127.0.0.1:3333"; # Local stratum proxy
             wallet = "krxXVNVMM7.zephyr-gpu";
             password = "x";
             tls = true;
           }
           {
-            url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (fallback)
+            url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (fallback)
             wallet = "krxXVNVMM7.zephyr-gpu";
             password = "x";
-            tls = true;  # TLS required for Kryptex
+            tls = true; # TLS required for Kryptex
           }
           {
-            url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback)
+            url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (fallback)
             wallet = "krxXVNVMM7.zephyr-gpu";
             password = "x";
-            tls = true;  # TLS required for Kryptex
+            tls = true; # TLS required for Kryptex
           }
         ];
       };
@@ -791,25 +797,66 @@ in {
       port = 8090;
       prometheusUrl = "http://127.0.0.1:9090";
       featuredServices = [
-        { name = "AI Gateway"; url = "http://127.0.0.1:8080"; }
-        { name = "Prometheus"; url = "http://127.0.0.1:9090"; }
-        { name = "Grafana"; url = "http://127.0.0.1:3000"; }
-        { name = "Home Assistant"; url = "http://127.0.0.1:8123"; }
+        {
+          name = "AI Gateway";
+          url = "http://127.0.0.1:8080";
+        }
+        {
+          name = "Prometheus";
+          url = "http://127.0.0.1:9090";
+        }
+        {
+          name = "Grafana";
+          url = "http://127.0.0.1:3000";
+        }
+        {
+          name = "Home Assistant";
+          url = "http://127.0.0.1:8123";
+        }
       ];
       services = [
-        { name = "AI Inference Gateway"; active = true; }
-        { name = "Prometheus"; active = true; }
-        { name = "Grafana"; active = true; }
-        { name = "Loki"; active = true; }
-        { name = "Home Assistant"; active = true; }
-        { name = "Vaultwarden"; active = true; }
-        { name = "GlitchTip"; active = true; }
-        { name = "Garage S3"; active = true; }
-        { name = "NFS Server"; active = true; }
-        { name = "XMRig Proxy"; active = true; }
+        {
+          name = "AI Inference Gateway";
+          active = true;
+        }
+        {
+          name = "Prometheus";
+          active = true;
+        }
+        {
+          name = "Grafana";
+          active = true;
+        }
+        {
+          name = "Loki";
+          active = true;
+        }
+        {
+          name = "Home Assistant";
+          active = true;
+        }
+        {
+          name = "Vaultwarden";
+          active = true;
+        }
+        {
+          name = "GlitchTip";
+          active = true;
+        }
+        {
+          name = "Garage S3";
+          active = true;
+        }
+        {
+          name = "NFS Server";
+          active = true;
+        }
+        {
+          name = "XMRig Proxy";
+          active = true;
+        }
       ];
     };
-
   };
 
   # ============================================================================
@@ -1256,11 +1303,11 @@ in {
   services.llamafile = {
     enable = true;
     modelPath = "/home/j_kro/.lmstudio/models/mradermacher/Crow-4B-Opus-4.6-Distill-Heretic_Qwen3.5-i1-GGUF/Crow-4B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-IQ4_NL.gguf";
-    host = "0.0.0.0";  # Accept cluster connections
+    host = "0.0.0.0"; # Accept cluster connections
     port = 8083;
-    gpu = "vulkan";  # Use Vulkan universal GPU backend (works with NVIDIA and AMD)
-    gpuLayers = 999;  # Full offload to 3060Ti (2.4GB fits in 8GB VRAM)
-    ctxSize = 16384;  # 16K context (safe for VRAM)
+    gpu = "vulkan"; # Use Vulkan universal GPU backend (works with NVIDIA and AMD)
+    gpuLayers = 999; # Full offload to 3060Ti (2.4GB fits in 8GB VRAM)
+    ctxSize = 16384; # 16K context (safe for VRAM)
     threads = 8;
   };
 
