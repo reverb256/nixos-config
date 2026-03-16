@@ -1,12 +1,40 @@
-# Common Host Defaults - Shared settings for all cluster nodes
-# This module provides consistent defaults across all hosts
-# Host-specific overrides should be placed in hosts/<hostname>/configuration.nix
+# ==============================================================================
+# COMMON HOST DEFAULTS
+# ==============================================================================
+# Shared settings for all cluster nodes in the NixOS cluster
+#
+# Purpose: Provides consistent defaults across all hosts (Zephyr, Nexus, Forge, Sentry)
+# Location: /etc/nixos/modules/common-host-defaults.nix
+#
+# Overriding Defaults:
+# - Use lib.mkDefault for optional settings (allows host-specific override)
+# - Use lib.mkOptionDefault for list/attribute set merging
+# - Place host-specific overrides in hosts/<hostname>/configuration.nix
+#
+# Table of Contents:
+# 1. System State Version
+# 2. Time Zone
+# 3. Services Configuration
+#    3.1 SSH Certificate Authority
+#    3.2 Logind & Power Management
+#    3.3 Display Manager
+#    3.4 Speech-to-Text Dictation
+#    3.5 Backup Services
+#    3.6 Compute Workload Monitor
+# 4. Nix Settings
+# 5. Bootloader Defaults
+# 6. Kernel Defaults
+# 7. Kubernetes Firewall Defaults
+# 8. Programs - Platform Defaults
+# ==============================================================================
+
 {
   config,
   lib,
   pkgs,
   ...
-}: {
+}:
+{
   # ============================================================================
   # SYSTEM STATE VERSION
   # ============================================================================
@@ -110,7 +138,7 @@
     # Uses hysteresis to prevent thrashing between states
     compute-workload-monitor = lib.mkDefault {
       enable = true;
-      checkInterval = 10;  # Check every 10 seconds
+      checkInterval = 10; # Check every 10 seconds
     };
   };
 
@@ -121,7 +149,7 @@
   nix.settings = {
     # Trusted users required for distributed builds across cluster
     # Without this, remote build users cannot access the Nix store
-    trusted-users = ["j_kro"];
+    trusted-users = [ "j_kro" ];
 
     # Fallback to public caches if local cache miss
     # https://cache.nixos.org

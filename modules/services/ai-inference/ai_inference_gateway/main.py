@@ -13,6 +13,11 @@ from ai_inference_gateway.config import GatewayConfig
 from ai_inference_gateway.pipeline import MiddlewarePipeline
 from ai_inference_gateway.utils.redis_client import RedisClient
 from ai_inference_gateway.openai_client import create_openai_client, OpenAIBackendError
+from ai_inference_gateway.utils.tool_utils import (
+    has_tool_calls_openai,
+    extract_tool_calls_openai,
+    create_tool_result_openai,
+)
 from ai_inference_gateway.router import (
     create_default_router,
     RouteDecision,
@@ -124,6 +129,26 @@ except ImportError as e:
     RAG_AVAILABLE = False
     RAGConfig = None
     get_qdrant_manager = None
+
+# Import files module (Garage S3 storage)
+try:
+    from ai_inference_gateway.files import (
+        GarageS3Client,
+        get_garage_client,
+        FileMetadata,
+        FileStorageError,
+        FileNotFoundError,
+        FileUploadError,
+        get_mime_type,
+        generate_file_id,
+    )
+
+    FILES_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Files module not available: {e}")
+    FILES_AVAILABLE = False
+    GarageS3Client = None
+    get_garage_client = None
 
 # Import middleware (placed here after conditional imports)
 from ai_inference_gateway.middleware.observability import ObservabilityMiddleware  # noqa: E402
@@ -512,9 +537,13 @@ async def lifespan(app: FastAPI):
             if searxng_enabled:
                 logger.info("Initializing SearXNG integration...")
                 state.searxng = get_searxng(cache_ttl=cache_ttl)
-                logger.info("SearXNG integration initialized (auto-improving features enabled)")
+                logger.info(
+                    "SearXNG integration initialized (auto-improving features enabled)"
+                )
             else:
-                logger.info("SearXNG integration disabled (set SEARXNG_ENABLED=true to enable)")
+                logger.info(
+                    "SearXNG integration disabled (set SEARXNG_ENABLED=true to enable)"
+                )
         except Exception as e:
             logger.warning(f"SearXNG initialization failed: {e}")
             state.searxng = None
@@ -582,7 +611,7 @@ def build_middleware_pipeline(
     # so we can track RAG usage metrics
     if config.middleware.RAG_ENABLED:
         from ai_inference_gateway.middleware.rag_injector import RAGInjectorMiddleware
-        
+
         # Create RAG middleware with config (search_service injected later via context)
         rag_middleware = RAGInjectorMiddleware(
             search_service=None,  # Will be injected from state.rag_search during request
@@ -596,7 +625,9 @@ def build_middleware_pipeline(
 
     # Add Knowledge Fabric middleware (unified multi-source retrieval)
     if config.middleware.knowledge_fabric.enabled:
-        from ai_inference_gateway.middleware.knowledge_fabric import create_knowledge_fabric
+        from ai_inference_gateway.middleware.knowledge_fabric import (
+            create_knowledge_fabric,
+        )
 
         # Prepare knowledge fabric config
         fabric_config = {
@@ -944,6 +975,66 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             )
 
     print("[DEBUG] create_app: Models endpoint added", file=sys.stderr, flush=True)
+
+    # Add system prompts endpoint
+    @app.get("/system-prompts")
+    async def get_system_prompts(request: Request):
+        """
+        Get current system prompts configuration.
+
+        Returns the configured system prompts for different request types.
+        """
+        state: GatewayState = app.state.gateway
+        cfg = state.config.system_prompts
+
+        return JSONResponse(
+            content={
+                "enabled": cfg.enabled,
+                "default": cfg.default,
+                "coding": cfg.coding,
+                "reasoning": cfg.reasoning,
+                "analysis": cfg.analysis,
+                "agentic": cfg.agentic,
+                "fast": cfg.fast,
+                "custom": cfg.custom,
+            }
+        )
+
+    @app.post("/system-prompts")
+    async def update_system_prompts(request: Request):
+        """
+        Update system prompts configuration.
+
+        Accepts JSON with system prompts for different categories.
+        """
+        state: GatewayState = app.state.gateway
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON")
+
+        # Update configuration
+        cfg = state.config.system_prompts
+        if "enabled" in body:
+            cfg.enabled = body["enabled"]
+        if "default" in body:
+            cfg.default = body["default"]
+        if "coding" in body:
+            cfg.coding = body["coding"]
+        if "reasoning" in body:
+            cfg.reasoning = body["reasoning"]
+        if "analysis" in body:
+            cfg.analysis = body["analysis"]
+        if "agentic" in body:
+            cfg.agentic = body["agentic"]
+        if "fast" in body:
+            cfg.fast = body["fast"]
+        if "custom" in body:
+            cfg.custom = body["custom"]
+
+        logger.info("System prompts configuration updated")
+        return JSONResponse(content={"status": "updated"})
+
     # Add chat completions endpoint
     print(
         "[DEBUG] create_app: Adding chat completions endpoint...",
@@ -1134,20 +1225,37 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             body = context["rag_enhanced_body"]
             logger.info(f"Using RAG-enhanced request body with injected context")
 
+        # Check if tools are requested for agentic workflow
+        has_tools = "tools" in body and body.get("tools")
+
         # Forward to backend using OpenAI SDK
         if stream:
             # Handle streaming response
+            # Use tool-enabled streaming if tools are present
+            stream_func = (
+                stream_backend_response_with_tools
+                if has_tools and state.mcp_broker
+                else stream_backend_response
+            )
+
+            # Prepare kwargs for streaming function
+            stream_kwargs = {
+                "openai_client": state.openai_client,
+                "body": body,
+                "pipeline": state.pipeline,
+                "context": context,
+                "config": state.config,
+                "router": state.router,
+                "request_id": request_id,
+                "metrics_tracker": metrics_tracker,
+            }
+
+            # Add mcp_broker for tool-enabled streaming
+            if has_tools and state.mcp_broker:
+                stream_kwargs["mcp_broker"] = state.mcp_broker
+
             return StreamingResponse(
-                stream_backend_response(
-                    state.openai_client,
-                    body,
-                    state.pipeline,
-                    context,
-                    state.config,
-                    state.router,
-                    request_id,
-                    metrics_tracker,
-                ),
+                stream_func(**stream_kwargs),
                 media_type="text/event-stream",
                 headers={
                     "Cache-Control": "no-cache",
@@ -1220,6 +1328,50 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         messages = body.get("messages", [])
         system = body.get("system", None)
         stream = body.get("stream", False)
+
+        # Apply configured system prompts if no explicit system prompt provided
+        if not system and state.config.system_prompts.enabled:
+            # Determine which system prompt to use based on request type
+            # Check for coding patterns
+            is_coding = any(
+                keyword in str(messages).lower()
+                for keyword in [
+                    "def ",
+                    "class ",
+                    "function",
+                    "import ",
+                    "code",
+                    "function(",
+                    "return ",
+                ]
+            )
+            # Check for reasoning patterns
+            is_reasoning = any(
+                keyword in str(messages).lower()
+                for keyword in ["reason", "think", "step", "explain", "why", "how"]
+            )
+            # Check for agentic patterns
+            is_agentic = any(
+                keyword in str(messages).lower()
+                for keyword in ["agent", "workflow", "multi-step", "plan", "execute"]
+            )
+            # Check for fast response request
+            is_fast = any(
+                keyword in str(messages).lower()
+                for keyword in ["quickly", "asap", "fast", "brief", "short"]
+            )
+
+            if is_coding:
+                system = state.config.system_prompts.get_prompt("coding")
+            elif is_agentic:
+                system = state.config.system_prompts.get_prompt("agentic")
+            elif is_reasoning:
+                system = state.config.system_prompts.get_prompt("reasoning")
+            elif is_fast:
+                system = state.config.system_prompts.get_prompt("fast")
+            else:
+                # Use default system prompt
+                system = state.config.system_prompts.get_prompt("default")
 
         # Extended thinking / thinking intensity parameters
         # Effort levels (low/medium/high) map to budget_tokens, NOT model selection
@@ -1458,7 +1610,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                                 }
                                 zai_api_key = state.config.get_zai_api_key()
                                 if zai_api_key:
-                                    zai_headers["Authorization"] = f"Bearer {zai_api_key}"
+                                    zai_headers["Authorization"] = (
+                                        f"Bearer {zai_api_key}"
+                                    )
 
                                 # ZAI uses /chat/completions (no /v1/ prefix)
                                 zai_endpoint = f"{fallback_url}/chat/completions"
@@ -1507,9 +1661,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                                             input_tokens=usage.get("input_tokens", 0),
                                             output_tokens=usage.get("output_tokens", 0),
                                             total_tokens=usage.get("total_tokens", 0),
-                                            latency_ms=response_data["gateway_metadata"].get(
-                                                "processing_time_ms", 0
-                                            ),
+                                            latency_ms=response_data[
+                                                "gateway_metadata"
+                                            ].get("processing_time_ms", 0),
                                         )
 
                                         state.router.track_request_end(request_id)
@@ -2103,7 +2257,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             if not state.searxng:
                 raise HTTPException(
                     status_code=501,
-                    detail="SearXNG integration not enabled. Set SEARXNG_ENABLED=true."
+                    detail="SearXNG integration not enabled. Set SEARXNG_ENABLED=true.",
                 )
 
             body = await request.json()
@@ -2139,8 +2293,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
             if not state.searxng:
                 raise HTTPException(
-                    status_code=501,
-                    detail="SearXNG integration not enabled"
+                    status_code=501, detail="SearXNG integration not enabled"
                 )
 
             stats = await state.searxng.get_learning_stats()
@@ -2153,8 +2306,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
             if not state.searxng:
                 raise HTTPException(
-                    status_code=501,
-                    detail="SearXNG integration not enabled"
+                    status_code=501, detail="SearXNG integration not enabled"
                 )
 
             state.searxng.clear_cache()
@@ -2168,27 +2320,22 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     response = await client.get(
-                        "http://127.0.0.1:7777/search",
-                        params={"q": "test"}
+                        "http://127.0.0.1:7777/search", params={"q": "test"}
                     )
                     if response.status_code == 200:
                         return {
                             "status": "healthy",
                             "service": "SearXNG",
-                            "url": "http://127.0.0.1:7777"
+                            "url": "http://127.0.0.1:7777",
                         }
                     else:
                         return {
                             "status": "unhealthy",
                             "service": "SearXNG",
-                            "code": response.status_code
+                            "code": response.status_code,
                         }
             except Exception as e:
-                return {
-                    "status": "error",
-                    "service": "SearXNG",
-                    "error": str(e)
-                }
+                return {"status": "error", "service": "SearXNG", "error": str(e)}
 
     # ============================================================================
     # RAG ENDPOINTS
@@ -2633,6 +2780,221 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         return {"embedding": embedding}
 
+    print(
+        "[DEBUG] create_app: Adding files API endpoints...", file=sys.stderr, flush=True
+    )
+    # Files API endpoints (Garage S3 storage)
+    if FILES_AVAILABLE:
+
+        @app.post("/v1/files")
+        async def upload_file(request: Request):
+            """
+            Upload a file to Garage S3 storage.
+
+            Compatible with Anthropic/OpenAI Files API.
+            Accepts multipart/form-data with file and optional purpose field.
+
+            Returns:
+                File metadata including id, filename, bytes, created_at
+            """
+            state: GatewayState = app.state.gateway
+
+            # Parse multipart form data
+            form = await request.form()
+            file_obj = request._form.get("file")
+
+            if not file_obj:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No file provided. Use multipart/form-data with 'file' field.",
+                )
+
+            # Read file content
+            content = await file_obj.read()
+
+            # Get optional purpose field
+            purpose = form.get("purpose")
+
+            # Generate file ID
+            file_id = generate_file_id()
+
+            # Detect MIME type
+            filename = file_obj.filename
+            mime_type = get_mime_type(filename) or "application/octet-stream"
+
+            # Get Garage client from state (create if not exists)
+            if not hasattr(state, "garage_client") or state.garage_client is None:
+                state.garage_client = get_garage_client()
+
+            try:
+                # Upload to Garage S3 with metadata
+                result = await state.garage_client.put_file(
+                    bucket="ai-gateway-files",
+                    key=file_id,
+                    content=content,
+                    content_type=mime_type,
+                    metadata={
+                        "filename": filename,
+                        "purpose": purpose or "",
+                        "created_at": datetime.utcnow().isoformat() + "Z",
+                    },
+                )
+
+                logger.info(
+                    f"File uploaded: {file_id} ({len(content)} bytes, {filename})"
+                )
+
+                return {
+                    "id": result["id"],
+                    "filename": result["filename"],
+                    "bytes": result["bytes"],
+                    "created_at": result["created_at"],
+                    "object": "file",
+                    "purpose": purpose,
+                }
+
+            except FileUploadError as e:
+                logger.error(f"File upload failed: {e.message}")
+                raise HTTPException(status_code=e.status_code or 500, detail=e.message)
+            except Exception as e:
+                logger.error(f"Unexpected error during file upload: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"File upload failed: {str(e)}"
+                )
+
+        @app.get("/v1/files/{file_id}")
+        async def get_file(file_id: str):
+            """
+            Retrieve file metadata and content by ID.
+
+            Compatible with Anthropic/OpenAI Files API.
+            Returns file content with appropriate Content-Type header.
+
+            Args:
+                file_id: The ID of the file to retrieve
+
+            Returns:
+                File content with metadata headers
+            """
+            state: GatewayState = app.state.gateway
+
+            # Get Garage client from state
+            if not hasattr(state, "garage_client") or state.garage_client is None:
+                state.garage_client = get_garage_client()
+
+            try:
+                # Get file content and metadata from Garage S3
+                content, metadata = await state.garage_client.get_file(
+                    bucket="ai-gateway-files", key=file_id
+                )
+
+                # Extract filename and mime type from metadata
+                filename = metadata.get("filename", file_id)
+                mime_type = metadata.get("mime_type", "application/octet-stream")
+
+                logger.info(
+                    f"File retrieved: {file_id} ({len(content)} bytes, {filename})"
+                )
+
+                # Return file with appropriate headers
+                return Response(
+                    content=content,
+                    media_type=mime_type,
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}"',
+                    },
+                )
+
+            except FileNotFoundError:
+                logger.warning(f"File not found: {file_id}")
+                raise HTTPException(
+                    status_code=404, detail=f"File not found: {file_id}"
+                )
+            except FileStorageError as e:
+                logger.error(f"File retrieval failed: {e.message}")
+                raise HTTPException(status_code=e.status_code or 500, detail=e.message)
+            except Exception as e:
+                logger.error(f"Unexpected error during file retrieval: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"File retrieval failed: {str(e)}"
+                )
+
+        @app.delete("/v1/files/{file_id}")
+        async def delete_file(file_id: str):
+            """
+            Delete a file by ID.
+
+            Compatible with Anthropic/OpenAI Files API.
+
+            Args:
+                file_id: The ID of the file to delete
+
+            Returns:
+                Deletion confirmation
+            """
+            state: GatewayState = app.state.gateway
+
+            # Get Garage client from state
+            if not hasattr(state, "garage_client") or state.garage_client is None:
+                state.garage_client = get_garage_client()
+
+            try:
+                # Delete file from Garage S3
+                await state.garage_client.delete_file(
+                    bucket="ai-gateway-files", key=file_id
+                )
+
+                logger.info(f"File deleted: {file_id}")
+
+                return {
+                    "id": file_id,
+                    "object": "file",
+                    "deleted": True,
+                }
+
+            except FileNotFoundError:
+                # File doesn't exist - consider it already deleted
+                logger.info(f"File already deleted (not found): {file_id}")
+                return {
+                    "id": file_id,
+                    "object": "file",
+                    "deleted": True,
+                }
+            except FileStorageError as e:
+                logger.error(f"File deletion failed: {e.message}")
+                raise HTTPException(status_code=e.status_code or 500, detail=e.message)
+            except Exception as e:
+                logger.error(f"Unexpected error during file deletion: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"File deletion failed: {str(e)}"
+                )
+
+    else:
+
+        @app.post("/v1/files")
+        async def upload_file_disabled():
+            """File upload endpoint not available."""
+            raise HTTPException(
+                status_code=501,
+                detail="Files API not available. Ensure files module is installed.",
+            )
+
+        @app.get("/v1/files/{file_id}")
+        async def get_file_disabled():
+            """File retrieval endpoint not available."""
+            raise HTTPException(
+                status_code=501,
+                detail="Files API not available. Ensure files module is installed.",
+            )
+
+        @app.delete("/v1/files/{file_id}")
+        async def delete_file_disabled():
+            """File deletion endpoint not available."""
+            raise HTTPException(
+                status_code=501,
+                detail="Files API not available. Ensure files module is installed.",
+            )
+
     print("[DEBUG] create_app: Adding metrics endpoint...", file=sys.stderr, flush=True)
     # Add metrics endpoint for Prometheus
     if PROMETHEUS_AVAILABLE:
@@ -2776,6 +3138,279 @@ async def stream_backend_response(
         router.track_request_end(request_id)
         # Signal GPU scheduler that AI workload is stopping
         gpu_scheduler.notify_ai_stopping()
+
+
+async def stream_backend_response_with_tools(
+    openai_client,
+    body: dict,
+    pipeline: MiddlewarePipeline,
+    context: dict,
+    config: GatewayConfig,
+    router,
+    request_id: str,
+    metrics_tracker: ModelMetricsTracker,
+    mcp_broker,
+):
+    """
+    Stream backend response with tool calling support using OpenAI SDK.
+
+    Implements an agentic loop that:
+    1. Streams the model response
+    2. Detects when the model requests tool calls
+    3. Executes tools via MCP broker
+    4. Feeds tool results back to the model
+    5. Continues streaming until stop_reason == "end_turn"
+
+    Args:
+        openai_client: OpenAI client wrapper
+        body: Request body
+        pipeline: Middleware pipeline
+        context: Request context (must contain GatewayState with mcp_broker)
+        config: Gateway configuration
+        router: Router instance for tracking requests
+        request_id: Request ID for tracking
+        metrics_tracker: Metrics tracker for this request
+        mcp_broker: MCP broker for tool execution
+
+    Yields:
+        SSE formatted response chunks
+    """
+    try:
+        messages = body.get("messages", [])
+        model = body.get("model", "default")
+        tools = body.get("tools", [])
+        extra_params = {
+            k: v
+            for k, v in body.items()
+            if k not in ["messages", "model", "stream", "tools"]
+        }
+
+        # Get backend from route decision if available
+        route_decision = context.get("route_decision")
+        backend = route_decision.backend if route_decision else None
+
+        # Agentic loop: continue until model finishes
+        max_iterations = 10  # Prevent infinite loops
+        iteration = 0
+
+        while iteration < max_iterations:
+            iteration += 1
+
+            # Create streaming chat completion
+            stream = await openai_client.chat_completion(
+                messages=messages,
+                model=model,
+                stream=True,
+                backend=backend,
+                tools=tools if tools else None,
+                **extra_params,
+            )
+
+            # Accumulate chunks to detect tool calls
+            chunks_buffer = []
+            has_tool_calls = False
+            tool_calls_chunk = None
+            first_chunk = True
+
+            async for chunk in stream:
+                # Record first token time
+                if first_chunk:
+                    metrics_tracker.record_first_token()
+                    first_chunk = False
+
+                # Buffer chunks for tool call detection
+                chunks_buffer.append(chunk)
+
+                # Check for tool calls in this chunk
+                if hasattr(chunk, "choices") and chunk.choices:
+                    choice = chunk.choices[0]
+                    if hasattr(choice, "delta") and choice.delta:
+                        delta = choice.delta
+                        # Check if tool_calls are present in delta
+                        if hasattr(delta, "tool_calls") and delta.tool_calls:
+                            has_tool_calls = True
+                            tool_calls_chunk = chunk
+
+                # Stream chunk to client immediately for low latency
+                chunk_str = chunk.model_dump_json()
+                yield f"data: {chunk_str}\n\n"
+
+            # After streaming completes, check if we need to execute tools
+            if not has_tool_calls:
+                # No tool calls, we're done
+                break
+
+            # Extract tool calls from the accumulated response
+            # Build a complete response-like object from chunks
+            accumulated_response = {
+                "choices": [{"message": {"tool_calls": []}}],
+                "finish_reason": "tool_calls",
+            }
+
+            # Extract tool calls from the chunk that had them
+            if tool_calls_chunk and hasattr(tool_calls_chunk, "choices"):
+                choice = tool_calls_chunk.choices[0]
+                if hasattr(choice, "delta") and hasattr(choice.delta, "tool_calls"):
+                    accumulated_response["choices"][0]["message"]["tool_calls"] = [
+                        tc.model_dump() for tc in choice.delta.tool_calls
+                    ]
+
+            # Extract tool calls using our utility
+            extracted_calls = extract_tool_calls_openai(accumulated_response)
+
+            if not extracted_calls:
+                # Model signaled tool_calls but we couldn't extract them
+                logger.warning("Tool calls detected but extraction failed")
+                break
+
+            logger.info(
+                f"Executing {len(extracted_calls)} tool calls (iteration {iteration})"
+            )
+
+            # Execute each tool call
+            tool_results = []
+            for tool_call in extracted_calls:
+                tool_id = tool_call.get("id")
+                tool_name = tool_call.get("name")
+                tool_args_str = tool_call.get("arguments", "{}")
+
+                # Parse arguments
+                try:
+                    import json
+
+                    tool_args = (
+                        json.loads(tool_args_str)
+                        if isinstance(tool_args_str, str)
+                        else tool_args
+                    )
+                except json.JSONDecodeError:
+                    logger.error(f"Failed to parse tool arguments: {tool_args_str}")
+                    tool_args = {}
+
+                # Map tool name to MCP server
+                # For now, we'll use a convention: tool_name -> server_name mapping
+                # TODO: Make this configurable or discover from MCP broker
+                server_name = _infer_mcp_server_for_tool(tool_name, mcp_broker)
+
+                if not server_name:
+                    # Try to execute the tool directly via MCP broker
+                    error_msg = f"Tool '{tool_name}' not found in any MCP server"
+                    logger.warning(error_msg)
+                    tool_results.append(
+                        create_tool_result_openai(
+                            tool_call_id=tool_id, result=error_msg, tool_type="error"
+                        )
+                    )
+                    continue
+
+                try:
+                    # Execute tool via MCP broker
+                    result = await mcp_broker.call_tool(
+                        server_name=server_name,
+                        tool_name=tool_name,
+                        arguments=tool_args,
+                    )
+
+                    # Format result as string
+                    if isinstance(result, dict):
+                        result_str = json.dumps(result)
+                    else:
+                        result_str = str(result)
+
+                    logger.info(
+                        f"Tool {tool_name} executed successfully, result length: {len(result_str)}"
+                    )
+
+                    tool_results.append(
+                        create_tool_result_openai(
+                            tool_call_id=tool_id, result=result_str
+                        )
+                    )
+
+                except Exception as e:
+                    logger.error(f"Tool execution failed for {tool_name}: {e}")
+                    tool_results.append(
+                        create_tool_result_openai(
+                            tool_call_id=tool_id, result=f"Error: {str(e)}"
+                        )
+                    )
+
+            # Append tool results as a new user message
+            if tool_results:
+                messages.append({"role": "user", "content": tool_results})
+
+                # Continue the loop to get the model's final response
+                continue
+            else:
+                # No tool results (all failed), break
+                break
+
+        # Record success metrics (agentic loop complete)
+        latency_ms = (time.time() - metrics_tracker.start_time) * 1000
+        metrics_tracker.record_success(
+            input_tokens=0,  # Token tracking in agentic loops needs more work
+            output_tokens=0,
+            total_tokens=0,
+            latency_ms=latency_ms,
+        )
+
+        # Notify circuit breaker of success
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_success()
+
+    except OpenAIBackendError as e:
+        logger.error(f"Backend error in agentic streaming request: {e}")
+        metrics_tracker.record_error("backend_error")
+        yield f"data: {json.dumps({'error': str(e).replace("'", '&#39;')})}\n\n"
+    except Exception as e:
+        logger.error(f"Unexpected error in agentic streaming request: {e}")
+        metrics_tracker.record_error("unexpected_error")
+        yield f"data: {json.dumps({'error': f'Unexpected error: {str(e)}'})}\n\n"
+    finally:
+        router.track_request_end(request_id)
+        gpu_scheduler.notify_ai_stopping()
+
+
+def _infer_mcp_server_for_tool(tool_name: str, mcp_broker) -> Optional[str]:
+    """
+    Infer which MCP server can handle the given tool.
+
+    Uses the MCP broker's list_tools to find the server that provides
+    the tool. Returns None if tool not found.
+
+    Args:
+        tool_name: Name of the tool to locate
+        mcp_broker: MCP broker instance
+
+    Returns:
+        Server name that can execute the tool, or None
+    """
+    try:
+        # Get all available servers and their tools
+        import asyncio
+
+        async def find_server():
+            servers = await mcp_broker.list_servers()
+            for server_name in servers.get("servers", {}):
+                try:
+                    tools_response = await mcp_broker.get_tools(server_name)
+                    tools = tools_response.get("tools", [])
+                    for tool in tools:
+                        if tool.get("name") == tool_name:
+                            return server_name
+                except Exception:
+                    continue
+            return None
+
+        # Run the async find function
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(find_server())
+
+    except Exception as e:
+        logger.warning(f"Failed to infer MCP server for tool {tool_name}: {e}")
+        return None
 
 
 async def try_backends_with_failover(
