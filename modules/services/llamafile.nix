@@ -1,5 +1,5 @@
 # Llamafile Service Module
-# Provides a standalone LLM fallback using Mozilla llamafile
+# Provides a standalone LLM fallback using llama.cpp (llama-server)
 # Runs a single GGUF model as an OpenAI-compatible API service
 {
   config,
@@ -18,24 +18,13 @@
     optionalString
     ;
 
-  # Llamafile binary from GitHub releases
-  llamafilePackage = pkgs.stdenv.mkDerivation {
-    pname = "llamafile";
-    version = "0.8.17";
-    src = pkgs.fetchurl {
-      url = "https://github.com/Mozilla-Ocho/llamafile/releases/download/0.8.17/llamafile-0.8.17";
-      hash = "sha256-1R3jFM7V9FQmW6qBzLQY9vqJ8K9nG3pHh3QYvP4wR6k=";
-    };
-    dontUnpack = true;
-    installPhase = ''
-      mkdir -p $out/bin
-      cp $src $out/bin/llamafile
-      chmod +x $out/bin/llamafile
-    '';
-  };
+  # Select llama-cpp variant based on GPU type
+  llamaPkg = if cfg.gpu == "amd" || cfg.gpu == "rocm" then pkgs.llama-cpp-rocm
+             else if cfg.gpu == "vulkan" then pkgs.llama-cpp-vulkan
+             else pkgs.llama-cpp;
 in {
   options.services.llamafile = {
-    enable = mkEnableOption "llamafile - standalone LLM service using Mozilla llamafile";
+    enable = mkEnableOption "llamafile - standalone LLM service using llama.cpp";
 
     # Model configuration
     modelPath = mkOption {
@@ -71,9 +60,9 @@ in {
     };
 
     gpu = mkOption {
-      type = types.nullOr (types.enum ["nvidia" "amd"]);
+      type = types.nullOr (types.enum ["nvidia" "amd" "rocm" "vulkan"]);
       default = null;
-      description = "GPU type (null = auto-detect, nvidia, or amd)";
+      description = "GPU type (null = auto-detect, nvidia, amdgpu/rocm, or vulkan)";
     };
 
     ctxSize = mkOption {
@@ -108,25 +97,49 @@ in {
       description = "User batch size (logical batch size)";
     };
 
-    # Mirostat sampling (optional)
-    mirostat = mkOption {
-      type = types.nullOr (types.enum [1 2]);
-      default = 2;
-      description = "Mirostat sampling (1 or 2, null = disabled)";
+    # Sampling parameters
+    temperature = mkOption {
+      type = types.float;
+      default = 0.7;
+      description = "Sampling temperature";
+    };
+
+    topK = mkOption {
+      type = types.int;
+      default = 40;
+      description = "Top-k sampling";
+    };
+
+    topP = mkOption {
+      type = types.float;
+      default = 0.9;
+      description = "Top-p sampling";
+    };
+
+    minP = mkOption {
+      type = types.float;
+      default = 0.05;
+      description = "Min-p sampling";
     };
   };
 
   config = mkIf cfg.enable {
     # Systemd service
     systemd.services.llamafile = {
-      description = "Mozilla Llamafile LLM Service";
+      description = "Llama.cpp LLM Service";
       after = ["network.target"];
       wantedBy = ["multi-user.target"];
 
-      # Build GPU-specific flags
+      # Build GPU-specific flags for llama-server
       serviceConfig = let
-        gpuFlags = lib.optionalString (cfg.gpu != null) "--gpu ${cfg.gpu}";
-        mirostatFlag = lib.optionalString (cfg.mirostat != null) "--mirostat ${toString cfg.mirostat}";
+        # llama-server uses different flag names than llamafile
+        gpuLayersFlag = "-ngl ${toString cfg.gpuLayers}";
+        gpuFlag = optionalString (cfg.gpu != null) (
+          if cfg.gpu == "nvidia" then "-ngl ${toString cfg.gpuLayers}" # CUDA is default
+          else if cfg.gpu == "amd" || cfg.gpu == "rocm" then "--gpu-layers ${toString cfg.gpuLayers} --rocm"
+          else if cfg.gpu == "vulkan" then "--gpu-layers ${toString cfg.gpuLayers} --vulkan"
+          else ""
+        );
       in {
         Type = "simple";
         User = cfg.user;
@@ -135,22 +148,26 @@ in {
         # Working directory for the model
         WorkingDirectory = "/home/${cfg.user}";
 
-        # ExecStart with all the flags
+        # ExecStart with llama-server flags
         ExecStart = ''
-          ${llamafilePackage}/bin/llamafile \
-            --server \
-            --v2 \
-            -m ${cfg.modelPath} \
+          ${llamaPkg}/bin/llama-server \
+            --model ${cfg.modelPath} \
             --host ${cfg.host} \
             --port ${toString cfg.port} \
-            -ngl ${toString cfg.gpuLayers} \
+            ${gpuLayersFlag} \
             -c ${toString cfg.ctxSize} \
             -t ${toString cfg.threads} \
             --batch-size ${toString cfg.batchSize} \
             --ubatch-size ${toString cfg.ubatchSize} \
-            ${gpuFlags} \
-            ${mirostatFlag}
+            --temp ${lib.strings.floatToString cfg.temperature} \
+            --top-k ${toString cfg.topK} \
+            --top-p ${lib.strings.floatToString cfg.topP} \
+            --min-p ${lib.strings.floatToString cfg.minP} \
+            --metrics
         '';
+
+        # Environment to prioritize bundled libraries
+        Environment = "LD_LIBRARY_PATH=${llamaPkg}/lib";
 
         # Security settings
         NoNewPrivileges = false;  # Needed for GPU access
@@ -173,15 +190,15 @@ in {
     };
 
     # Open firewall for the service
-    networking.firewall.allowedTCPPorts = [cfg.port];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
     # Environment variables for llamafile
     environment.sessionVariables = {
-      LLAMAFILE_URL = "http://${cfg.host}:${toString cfg.port}/v1";
+      LLAMAFILE_URL = "http://${cfg.host}:${toString cfg.port}";
       LLAMAFILE_MODEL = cfg.modelName;
     };
 
-    # Convenience script for testing
+    # Convenience scripts
     environment.systemPackages = with pkgs; [
       (pkgs.writeShellScriptBin "llamafile-test" ''
         #!/bin/bash
@@ -196,20 +213,19 @@ in {
           echo "✓ Service is running"
         else
           echo "✗ Service is not running"
-          systemctl status llamafile
+          systemctl status llamafile --no-pager
           exit 1
         fi
 
         echo ""
         echo "Testing API..."
-        curl -s "$LLAMAFILE_URL/chat/completions" \
+        curl -s "$LLAMAFILE_URL/v1/chat/completions" \
           -H "Content-Type: application/json" \
-          -H "Authorization: Bearer no-key" \
           -d '{
-            "model": "LLaMA_CPP",
+            "model": "gguf",
             "messages": [{"role": "user", "content": "Say hi in 3 words"}],
             "max_tokens": 10
-          }' | ${pkgs.jq}/bin/jq -r '.choices[0].message.content'
+          }' | ${jq}/bin/jq -r '.choices[0].message.content // .error // "No response"'
         echo ""
         echo "✓ Test complete"
       '')
@@ -217,11 +233,10 @@ in {
       (pkgs.writeShellScriptBin "llamafile-chat" ''
         #!/bin/bash
         if [ -n "''${1:-}" ]; then
-          curl -s "$LLAMAFILE_URL/chat/completions" \
+          curl -s "$LLAMAFILE_URL/v1/chat/completions" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer no-key" \
-            -d "''$(jq -n --arg prompt "$*" '{"model":"LLaMA_CPP","messages":[{"role":"user","content":$prompt}],"max_tokens":500}')" \
-            | ${pkgs.jq}/bin/jq -r '.choices[0].message.content'
+            -d "''$(jq -n --arg prompt "$*" '{"model":"gguf","messages":[{"role":"user","content":$prompt}],"max_tokens":500}')" \
+            | ${jq}/bin/jq -r '.choices[0].message.content // .error'
         else
           echo "Usage: llamafile-chat 'your prompt here'"
           echo "Example: llamafile-chat 'Explain quantum computing in simple terms'"
