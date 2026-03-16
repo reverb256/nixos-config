@@ -862,14 +862,20 @@
               echo "GAMING profile applied: Mode: Maximum performance"
 
               # STOP GPU mining completely to free VRAM (prevents desktop freeze)
-              if systemctl is-active --quiet lolminer-nvidia; then
-                  log "Stopping lolminer-nvidia to free VRAM for gaming"
-                  systemctl stop lolminer-nvidia
-              fi
+              # Only stop on nexus due to heat issues - other hosts can mine while gaming
+              local host=$(get_hostname)
+              if [ "$host" = "nexus" ]; then
+                  if systemctl is-active --quiet lolminer-nvidia; then
+                      log "Stopping lolminer-nvidia to free VRAM for gaming (nexus heat management)"
+                      systemctl stop lolminer-nvidia
+                  fi
 
-              if systemctl is-active --quiet lolminer-amd; then
-                  log "Stopping lolminer-amd to free VRAM for gaming"
-                  systemctl stop lolminer-amd
+                  if systemctl is-active --quiet lolminer-amd; then
+                      log "Stopping lolminer-amd to free VRAM for gaming (nexus heat management)"
+                      systemctl stop lolminer-amd
+                  fi
+              else
+                  log "Gaming detected on $host - allowing GPU mining to continue (no heat issues)"
               fi
 
               # Reduce CPU mining during gaming
@@ -973,14 +979,19 @@
               esac
 
               # Reduce GPU mining to 10% (builds may need GPU for CUDA/heavy workloads)
-              if systemctl is-active --quiet lolminer-nvidia; then
-                  log "Limiting lolminer-nvidia to 10% CPU for builds"
-                  systemctl set-property lolminer-nvidia.service CPUQuota="10%" --runtime 2>/dev/null || true
-              fi
+              # Only limit on nexus due to heat issues - other hosts can mine while building
+              if [ "$host" = "nexus" ]; then
+                  if systemctl is-active --quiet lolminer-nvidia; then
+                      log "Limiting lolminer-nvidia to 10% CPU for builds (nexus heat management)"
+                      systemctl set-property lolminer-nvidia.service CPUQuota="10%" --runtime 2>/dev/null || true
+                  fi
 
-              if systemctl is-active --quiet lolminer-amd; then
-                  log "Limiting lolminer-amd to 10% CPU for builds"
-                  systemctl set-property lolminer-amd.service CPUQuota="10%" --runtime 2>/dev/null || true
+                  if systemctl is-active --quiet lolminer-amd; then
+                      log "Limiting lolminer-amd to 10% CPU for builds (nexus heat management)"
+                      systemctl set-property lolminer-amd.service CPUQuota="10%" --runtime 2>/dev/null || true
+                  fi
+              else
+                  log "Build detected on $host - allowing GPU mining to continue (no heat issues)"
               fi
 
               # PAUSE CPU mining on Ryzen nodes (builds need maximum CPU)
@@ -1224,9 +1235,32 @@
               esac
           }
 
+          # Store original power limits for restoration
+          store_original_power_limits() {
+              local gpus=$(get_gpu_list)
+              for gpu_id in $gpus; do
+                  local current_limit=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits 2>/dev/null | tr -d '[:space:]')
+                  echo "$current_limit" > /run/compute-workload-monitor/gpu"$gpu_id"_original_power
+                  log "Stored original power limit for GPU $gpu_id: $current_limit W"
+              done
+          }
+
+          restore_original_power_limits() {
+              local gpus=$(get_gpu_list)
+              for gpu_id in $gpus; do
+                  local stored_file="/run/compute-workload-monitor/gpu"$gpu_id"_original_power"
+                  if [ -f "$stored_file" ]; then
+                      local original_limit=$(cat "$stored_file")
+                      log "Restoring GPU $gpu_id power limit to $original_limit W"
+                      nvidia_safe nvidia-smi -i "$gpu_id" -pl "$original_limit"
+                  fi
+              done
+          }
+
           # State tracking
           CURRENT_WORKLOAD="idle"
           CHECK_INTERVAL="${toString config.services.compute-workload-monitor.checkInterval}"
+          FIRST_RUN=true
 
           # Signal handler for runtime reload
           reload_thresholds() {
@@ -1246,11 +1280,26 @@
           log "Starting GPU workload monitor (check interval: ''${CHECK_INTERVAL}s)"
           log "Thresholds: CPU_BUILD=$PSI_CPU_BUILD_THRESHOLD MEM_SOME=$PSI_MEM_SOME_THRESHOLD IO_FULL=$PSI_IO_FULL_THRESHOLD"
 
+          # Store original power limits on first run (before any profile changes them)
+          log "Storing original GPU power limits for restoration..."
+          store_original_power_limits
+
           while true; do
               new_workload=$(get_workload_type)
 
               if [ "$new_workload" != "$CURRENT_WORKLOAD" ]; then
                   log "Workload changed: $CURRENT_WORKLOAD -> $new_workload"
+
+                  # If switching FROM ai/gaming/kubernetes-gpu/builds back to mining/idle, restore original limits
+                  case "$CURRENT_WORKLOAD" in
+                      ai|gaming|kubernetes-gpu|builds)
+                          if [[ "$new_workload" =~ (mining|idle) ]]; then
+                              log "Restoring original power limits after $CURRENT_WORKLOAD workload"
+                              restore_original_power_limits
+                          fi
+                          ;;
+                  esac
+
                   CURRENT_WORKLOAD="$new_workload"
                   apply_profile "$new_workload"
               fi
@@ -1267,7 +1316,7 @@
       };
     };
 
-    # Runtime config directory for imperative threshold overrides
+    # Runtime config directory for imperative threshold overrides and state storage
     systemd.tmpfiles.rules = [
       "d /run/compute-workload-monitor 0755 root root - -"
     ];
