@@ -93,4 +93,41 @@ in
       description = "Path to custom NixOS-specific skills";
     };
   };
+
+  config = lib.mkIf cfg.enable {
+    # Create user and group
+    users.users.${cfg.user} = lib.mkIf (cfg.user == "hermes") {
+      isNormalUser = true;
+      createHome = true;
+      home = cfg.sharedStorage.mountPoint;
+      group = cfg.group;
+      extraGroups = [ "wheel" "video" "render" ];
+      shell = pkgs.fish;
+    };
+
+    users.groups.${cfg.group} = lib.mkIf (cfg.group == "hermes") {};
+
+    # System packages
+    environment.systemPackages = lib.mkOptionDefault (with pkgs; [
+      hermesPackage
+      ripgrep  # For file search
+      ffmpeg   # For TTS
+    ]);
+
+    # NFS mount for shared storage
+    systemd.mounts = lib.mkIf cfg.sharedStorage.enable [{
+      where = cfg.sharedStorage.mountPoint;
+      what = "${cfg.sharedStorage.nfsServer}:${cfg.sharedStorage.nfsPath}";
+      type = "nfs";
+      options = "nofail,_netdev,hard,intr,timeo=600";
+      wantedBy = [ "multi-user.target" ];
+    }];
+
+    # Environment variables
+    environment.sessionVariables = lib.mkIf cfg.aiGateway.enable {
+      HERMES_AI_GATEWAY_URL = cfg.aiGateway.url;
+      OPENAI_API_KEY = "not-needed";
+      OPENAI_BASE_URL = cfg.aiGateway.url;
+    };
+  };
 }
