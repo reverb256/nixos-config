@@ -51,20 +51,12 @@ in {
   config = mkIf cfg.enable (
     let
       # CUDA packages for x86_64 systems
-      # NOTE: CUDA is TEMPORARILY DISABLED due to cuda_compat issue
+      # Using cudaPackages (defaults to latest CUDA 12.x)
+      # FIXED: allowUnsupportedSystem=false prevents cuda_compat (Jetson/ARM64) on x86_64
       # See: https://github.com/NixOS/nixpkgs/issues/458799
-      #
-      # cuda_compat is Jetson-only (aarch64) with no x86_64 source
-      # Affects ALL CUDA versions 12.6+ in current nixpkgs
-      #
-      # WORKAROUND: Use Vulkan compute backend instead
-      # - Vulkan provides ~85-95% of CUDA performance on NVIDIA GPUs
-      # - Works on ALL GPUs (NVIDIA, AMD, Intel)
-      # - Supported by llama.cpp, most AI software
-      #
-      # TO RE-ENABLE CUDA: When nixpkgs fixes cuda_compat issue, uncomment:
-      # cudaPackages = with pkgs.cudaPackages_12_6; [ cuda_cudart ];
-      cudaPackages = [ ];
+      cudaPackages = with pkgs.cudaPackages; [
+        cuda_cudart # Core CUDA runtime library (sufficient for llama.cpp)
+      ];
 
       # ROCm packages for AMD GPUs
       rocmPackages = with pkgs.rocmPackages; [
