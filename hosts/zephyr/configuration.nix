@@ -141,8 +141,9 @@ in {
     autoDetect = true;
     # Vulkan works as universal backend for both NVIDIA and AMD
     vulkan.enable = true;
-    # CUDA for NVIDIA-specific workloads
-    cuda.enable = true;
+    # CUDA temporarily disabled due to broken cuda_compat package in nixpkgs
+    # TODO: Re-enable when cuda_compat is fixed
+    cuda.enable = false;
   };
 
   # ============================================================================
