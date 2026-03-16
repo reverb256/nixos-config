@@ -15,25 +15,36 @@ llamafile is a Mozilla project that lets you distribute and run LLMs with a sing
 | GPU support | Metal, CUDA, ROCm | CUDA, Metal |
 | API | OpenAI-compatible | OpenAI-compatible |
 
-## Chosen Model: Qwen3.5-9B-Unredacted-MAX
+## Chosen Model: Qwen3.5-4B-Unredacted-MAX (Recommended)
 
 ### Specifications
 
 | Property | Value |
 |----------|-------|
-| **Parameters** | 9 billion |
+| **Parameters** | 4 billion |
 | **Quantization** | Q4_K_S |
-| **File Size** | 5.0 GB |
+| **File Size** | 2.4 GB |
 | **Context Window** | 32K tokens |
-| **Fit on 3060Ti** | ✅ (12GB VRAM) |
-| **Fit on 5600XT** | ✅ (8GB VRAM) |
+| **Fit on 3060Ti** | ✅ (8GB VRAM - comfortable) |
+| **Fit on 5600XT** | ✅ (6GB VRAM - fits well) |
 
 ### Why This Model?
 
-1. **Fits both GPUs** - 5GB fits comfortably on both 3060Ti and 5600XT
+1. **Fits both GPUs comfortably** - 2.4GB leaves headroom for KV cache and compute
 2. **Unredacted** - Less filtered responses for more creative output
-3. **Good balance** - 9B parameters offer quality without excessive resource usage
-4. **Fast inference** - Quantized to Q4_K_S for efficient GPU inference
+3. **Fast inference** - Smaller model = faster token generation
+4. **Low resource usage** - Can run full GPU offload (-ngl 999) on both GPUs
+
+### Alternative: Qwen3.5-9B-Unredacted-MAX (For 3060Ti only)
+
+| Property | Value |
+|----------|-------|
+| **Parameters** | 9 billion |
+| **File Size** | 5.0 GB |
+| **Fit on 3060Ti** | ⚠️ Tight (8GB VRAM, ~3GB headroom) |
+| **Fit on 5600XT** | ❌ Won't fit full GPU (6GB VRAM) |
+
+For 9B on 3060Ti, use `-ngl 32` (partial offload) instead of 999.
 
 ## NixOS Configuration
 
@@ -46,8 +57,8 @@ Add to your host configuration (e.g., `hosts/zephyr/configuration.nix`):
   services.llamafile = {
     enable = true;
 
-    # Model path (GGUF format)
-    modelPath = /home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-9B-Unredacted-MAX-i1-GGUF/Qwen3.5-9B-Unredacted-MAX.i1-Q4_K_S.gguf;
+    # Model path (GGUF format) - 4B recommended for both GPUs
+    modelPath = /home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-4B-Unredacted-MAX-i1-GGUF/Qwen3.5-4B-Unredacted-MAX.i1-Q4_K_S.gguf;
 
     # Server settings
     host = "127.0.0.1";  # Change to "0.0.0.0" for cluster access
@@ -55,7 +66,6 @@ Add to your host configuration (e.g., `hosts/zephyr/configuration.nix`):
 
     # GPU settings
     gpuLayers = 999;     # Offload all layers to GPU
-    # gpu = "nvidia";     # Force NVIDIA (auto-detect by default)
 
     # Performance
     ctxSize = 8192;      # Context window
@@ -66,25 +76,39 @@ Add to your host configuration (e.g., `hosts/zephyr/configuration.nix`):
 
 ### Per-Host Configuration
 
-**Zephyr (3060Ti - NVIDIA):**
+**Zephyr (3060Ti - 8GB VRAM):**
 ```nix
 services.llamafile = {
   enable = true;
-  modelPath = "/home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-9B-Unredacted-MAX-i1-GGUF/Qwen3.5-9B-Unredacted-MAX.i1-Q4_K_S.gguf";
+  # 4B model (recommended)
+  modelPath = "/home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-4B-Unredacted-MAX-i1-GGUF/Qwen3.5-4B-Unredacted-MAX.i1-Q4_K_S.gguf";
   gpu = "nvidia";
-  gpuLayers = 999;
+  gpuLayers = 999;  # Full offload, 2.4GB fits in 8GB
   ctxSize = 8192;
 };
 ```
 
-**Sentry (5600XT - AMD):**
+**Sentry (5600XT - 6GB VRAM):**
 ```nix
 services.llamafile = {
   enable = true;
-  modelPath = "/home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-9B-Unredacted-MAX-i1-GGUF/Qwen3.5-9B-Unredacted-MAX.i1-Q4_K_S.gguf";
+  # 4B model (recommended)
+  modelPath = "/home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-4B-Unredacted-MAX-i1-GGUF/Qwen3.5-4B-Unredacted-MAX.i1-Q4_K_S.gguf";
   gpu = "amd";
-  gpuLayers = 32;  # Conservative for 8GB VRAM
-  ctxSize = 4096;  # Smaller context for AMD
+  gpuLayers = 999;  # Full offload, 2.4GB fits in 6GB
+  ctxSize = 4096;  # Smaller context to be safe
+};
+```
+
+**Alternative: 9B model on Zephyr only (tight fit):**
+```nix
+services.llamafile = {
+  enable = true;
+  # 9B model (5GB - tight fit for 8GB VRAM)
+  modelPath = "/home/j_kro/.lmstudio/models/mradermacher/Qwen3.5-9B-Unredacted-MAX-i1-GGUF/Qwen3.5-9B-Unredacted-MAX.i1-Q4_K_S.gguf";
+  gpu = "nvidia";
+  gpuLayers = 24;  # Partial offload, ~3GB VRAM for model
+  ctxSize = 4096;  # Smaller context to fit in remaining VRAM
 };
 ```
 
@@ -169,9 +193,13 @@ The `-ngl` flag controls how many transformer layers run on GPU:
 | `-ngl 32` | ~3-4 GB | Medium |
 | `-ngl 999` | All layers | Fastest (if VRAM allows) |
 
-**For 9B model on your GPUs:**
-- **3060Ti (12GB)**: `-ngl 999` (all layers ~5GB)
-- **5600XT (8GB)**: `-ngl 32-40` (partial, safer for 8GB)
+**For 4B model (2.4GB) on your GPUs:**
+- **3060Ti (8GB)**: `-ngl 999` ✅ (all layers, ~3.5GB headroom)
+- **5600XT (6GB)**: `-ngl 999` ✅ (all layers, ~2.5GB headroom)
+
+**For 9B model (5GB) on your GPUs:**
+- **3060Ti (8GB)**: `-ngl 24-32` ⚠️ (partial, tight fit)
+- **5600XT (6GB)**: Won't fit on GPU, use CPU or smaller model
 
 ## Integration with AI Gateway
 
@@ -271,12 +299,19 @@ services.llamafile.modelPath = /path/to/your/model.gguf;
 
 ## Performance Benchmarks
 
-Expected performance on **Qwen3.5-9B Q4_K_S**:
+Expected performance on **Qwen3.5-4B Q4_K_S** (recommended):
 
 | Hardware | Tokens/sec | Time/100 tokens |
 |----------|-------------|-----------------|
-| 3060Ti (12GB) -ngl 999 | ~40-50 t/s | ~2-2.5s |
-| 5600XT (8GB) -ngl 32 | ~15-20 t/s | ~5-6s |
+| 3060Ti (8GB) -ngl 999 | ~60-80 t/s | ~1.2-1.6s |
+| 5600XT (6GB) -ngl 999 | ~25-35 t/s | ~2.8-4s |
+| CPU only -ngl 0 | ~5-8 t/s | ~12-20s |
+
+For **Qwen3.5-9B Q4_K_S** (tight fit on 3060Ti only):
+
+| Hardware | Tokens/sec | Time/100 tokens |
+|----------|-------------|-----------------|
+| 3060Ti (8GB) -ngl 24 | ~30-40 t/s | ~2.5-3.3s |
 | CPU only -ngl 0 | ~3-5 t/s | ~20-30s |
 
 ## Advanced Configuration
