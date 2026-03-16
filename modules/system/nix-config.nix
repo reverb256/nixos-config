@@ -55,8 +55,10 @@
   # cuda_compat is pulled in transitively by cuda_cudart → Steam/NVIDIA drivers
   # It's unfree (CUDA EULA) and completely unnecessary on x86_64 systems
   # Explicitly exclude it to prevent build failures and reduce closure size
-  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
-    "cuda_compat"
-    "cuda_compat_12_8"
-  ] -> false;
+  nixpkgs.config.allowUnfreePredicate = pkg:
+    builtins.elem (lib.getName pkg) [
+      "cuda_compat"
+      "cuda_compat_12_8"
+    ]
+    -> false;
 }

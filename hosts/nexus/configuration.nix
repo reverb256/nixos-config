@@ -62,8 +62,8 @@
     firewall = {
       allowedTCPPorts = lib.mkOptionDefault [
         10250 # Kubelet API
-        3900  # Garage S3 API
-        3901  # Garage RPC
+        3900 # Garage S3 API
+        3901 # Garage RPC
       ];
       allowedTCPPortRanges = [
         {
@@ -132,15 +132,36 @@
       port = 8090;
       prometheusUrl = "http://127.0.0.1:9090";
       featuredServices = [
-        { name = "Prometheus"; url = "http://127.0.0.1:9090"; }
-        { name = "Grafana"; url = "http://127.0.0.1:3000"; }
+        {
+          name = "Prometheus";
+          url = "http://127.0.0.1:9090";
+        }
+        {
+          name = "Grafana";
+          url = "http://127.0.0.1:3000";
+        }
       ];
       services = [
-        { name = "kubelet"; active = true; }
-        { name = "containerd"; active = true; }
-        { name = "cfssl"; active = true; }
-        { name = "keepalived"; active = true; }
-        { name = "NFS Server"; active = true; }
+        {
+          name = "kubelet";
+          active = true;
+        }
+        {
+          name = "containerd";
+          active = true;
+        }
+        {
+          name = "cfssl";
+          active = true;
+        }
+        {
+          name = "keepalived";
+          active = true;
+        }
+        {
+          name = "NFS Server";
+          active = true;
+        }
       ];
     };
   };
@@ -325,16 +346,16 @@
       lolminer = {
         pools = [
           {
-            url = "stratum+tcp://127.0.0.1:3333";  # Local stratum proxy
+            url = "stratum+tcp://127.0.0.1:3333"; # Local stratum proxy
             wallet = "krxXVNVMM7.nexus-gpu";
             password = "x";
             tls = true;
           }
           {
-            url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (fallback)
+            url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (fallback)
             wallet = "krxXVNVMM7.nexus-gpu";
             password = "x";
-            tls = true;  # TLS required for Kryptex
+            tls = true; # TLS required for Kryptex
           }
         ];
       };
@@ -417,10 +438,10 @@
     garage-cluster = {
       enable = true;
       dataDir = "/data/shared/garage"; # Local on nexus (bcache0)
-      replicationFactor = 1;  # Single-node operation (no replication)
-      consistencyMode = "consistent";  # Full consistency with zones
-      enableMetrics = true;  # Prometheus metrics on port 3903
-      enableBackup = false;  # Nexus IS the backup storage
+      replicationFactor = 1; # Single-node operation (no replication)
+      consistencyMode = "consistent"; # Full consistency with zones
+      enableMetrics = true; # Prometheus metrics on port 3903
+      enableBackup = false; # Nexus IS the backup storage
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
   };
@@ -481,5 +502,4 @@
       };
     };
   };
-
 }
