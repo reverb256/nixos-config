@@ -18,9 +18,16 @@
     optionalString
     ;
 
-  # Select llama-cpp variant based on GPU type
-  llamaPkg = if cfg.gpu == "amd" || cfg.gpu == "rocm" then pkgs.llama-cpp-rocm
-             else if cfg.gpu == "vulkan" then pkgs.llama-cpp-vulkan
+  # Auto-detect GPU backend from gpu-compute module or use explicit setting
+  hasGpuCompute = config.hardware.gpu-compute.enable or false;
+  useCuda = config.hardware.gpu-compute.cuda.enable or false;
+  useRocm = config.hardware.gpu-compute.rocm.enable or false;
+  useVulkan = config.hardware.gpu-compute.vulkan.enable or false;
+
+  # Select llama-cpp variant (prioritize vulkan as universal backend)
+  llamaPkg = if cfg.gpu == "amd" || cfg.gpu == "rocm" || useRocm then pkgs.llama-cpp-rocm
+             else if cfg.gpu == "vulkan" || useVulkan then pkgs.llama-cpp-vulkan
+             else if cfg.gpu == "nvidia" || useCuda then pkgs.llama-cpp-vulkan # Vulkan works for NVIDIA too
              else pkgs.llama-cpp;
 in {
   options.services.llamafile = {

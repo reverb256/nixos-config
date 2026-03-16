@@ -134,6 +134,18 @@ in {
   };
 
   # ============================================================================
+  # GPU COMPUTE - CUDA/Vulkan support for AI inference
+  # ============================================================================
+  hardware.gpu-compute = {
+    enable = true;
+    autoDetect = true;
+    # Vulkan works as universal backend for both NVIDIA and AMD
+    vulkan.enable = true;
+    # CUDA for NVIDIA-specific workloads
+    cuda.enable = true;
+  };
+
+  # ============================================================================
   # SERVICES - All service configurations consolidated here
   # ============================================================================
   services = {
@@ -1247,6 +1259,7 @@ in {
     modelPath = "/home/j_kro/.lmstudio/models/mradermacher/Crow-4B-Opus-4.6-Distill-Heretic_Qwen3.5-i1-GGUF/Crow-4B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-IQ4_NL.gguf";
     host = "0.0.0.0";  # Accept cluster connections
     port = 8083;
+    gpu = "vulkan";  # Use Vulkan universal GPU backend (works with NVIDIA and AMD)
     gpuLayers = 999;  # Full offload to 3060Ti (2.4GB fits in 8GB VRAM)
     ctxSize = 16384;  # 16K context (safe for VRAM)
     threads = 8;

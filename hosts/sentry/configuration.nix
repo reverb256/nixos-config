@@ -74,6 +74,18 @@
   profiles.node.sentry-monitoring.enable = true;
 
   # ============================================================================
+  # GPU COMPUTE - ROCm/Vulkan support for AI inference
+  # ============================================================================
+  hardware.gpu-compute = {
+    enable = true;
+    autoDetect = true;
+    # ROCm for AMD-specific compute (5600XT)
+    rocm.enable = true;
+    # Vulkan as universal backend
+    vulkan.enable = true;
+  };
+
+  # ============================================================================
   # SERVICES - All service configurations
   # ============================================================================
   services = {

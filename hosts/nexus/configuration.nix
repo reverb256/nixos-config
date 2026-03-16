@@ -85,6 +85,16 @@
   profiles.node.nexus-gaming.enable = true;
 
   # ============================================================================
+  # GPU COMPUTE - CUDA/Vulkan support for AI inference
+  # ============================================================================
+  hardware.gpu-compute = {
+    enable = true;
+    autoDetect = true;
+    vulkan.enable = true;
+    cuda.enable = true;
+  };
+
+  # ============================================================================
   # SERVICES - All service configurations
   # ============================================================================
   services = {
