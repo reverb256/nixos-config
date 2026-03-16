@@ -108,9 +108,10 @@
       processes = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [
-          "steam" "steamwebhelper" "steamapps"
-          "lutris" "heroic" "Lutris" "HeroicGamesLauncher"
-          "wine" "proton"
+          # More specific patterns to avoid false positives (e.g., steam-run wrapper)
+          "steam\\.exe" "steamwebhelper" "steamapps" "/Steam/"
+          "lutris\\.bin" "heroic" "HeroicGamesLauncher"
+          "wine(32|64)\\.exe" "proton:"
         ];
         description = "Process names that indicate gaming activity";
       };
@@ -510,7 +511,14 @@
           }
 
           pause_all_mining() {
+              local host=$(hostname)
               for service in $MINING_SERVICES; do
+                  # Skip stopping lolminer on hosts other than nexus (no heat issues)
+                  if [[ "$service" =~ lolminer ]] && [ "$host" != "nexus" ]; then
+                      log_info "Skipping $service on $host (allowed to mine during gaming/builds)"
+                      continue
+                  fi
+                  
                   if systemctl is-active --quiet "$service"; then
                       log_info "Pausing $service (stopping)"
                       systemctl stop "$service" --runtime
