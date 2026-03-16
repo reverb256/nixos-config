@@ -85,8 +85,10 @@
   # ============================================================================
   hardware.gpu-compute = {
     enable = true;
-    # Forge has BOTH AMD (5700XT) and NVIDIA GPUs - enable both backends
-    cuda.enable = true; # For NVIDIA GPUs
+    # Forge has BOTH AMD (5700XT) and NVIDIA GPUs
+    # CUDA disabled for NVIDIA - cuda_compat build issue
+    # Re-enable after fix: https://github.com/nixos/nixpkgs/issues/458799
+    # cuda.enable = true; # For NVIDIA GPUs (RTX 4060)
     rocm.enable = true; # For AMD 5700XT
     # Vulkan as universal backend (works with all GPU types)
     vulkan.enable = true;

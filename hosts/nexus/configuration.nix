@@ -89,9 +89,11 @@
   # ============================================================================
   hardware.gpu-compute = {
     enable = true;
-    # autoDetect removed - not needed
+    # Vulkan works as universal backend for NVIDIA GPUs
     vulkan.enable = true;
-    cuda.enable = true;
+    # CUDA disabled - cuda_compat build issue (Jetson/ARM64 package breaks x86_64)
+    # Re-enable after fix: https://github.com/nixos/nixpkgs/issues/458799
+    # cuda.enable = true;
   };
 
   # ============================================================================
