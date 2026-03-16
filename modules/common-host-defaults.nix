@@ -140,6 +140,27 @@
       enable = true;
       checkInterval = 10; # Check every 10 seconds
     };
+
+    # GPU COMPUTE - CUDA, ROCm, Vulkan support for AI inference
+    # Provides GPU acceleration backends for llama.cpp, PyTorch, etc.
+    # Each host can override based on available GPU hardware
+    hardware.gpu-compute = lib.mkDefault {
+      enable = lib.mkDefault true;  # Enable GPU compute on all nodes by default
+
+      # Vulkan universal backend (works on NVIDIA, AMD, Intel)
+      # Recommended for llama.cpp and most AI workloads
+      vulkan.enable = lib.mkDefault true;
+
+      # CUDA support (NVIDIA GPUs only)
+      # Provides cuda_cudart for CUDA-accelerated applications
+      # Enable on NVIDIA nodes: Zephyr, Nexus
+      cuda.enable = lib.mkDefault false;
+
+      # ROCm support (AMD GPUs only)
+      # Provides ROCm runtime for AMD GPU compute
+      # Enable on AMD nodes: Forge, Sentry
+      rocm.enable = lib.mkDefault false;
+    };
   };
 
   # ============================================================================
@@ -159,6 +180,7 @@
   # BOOTLOADER DEFAULTS
   # ============================================================================
   # systemd-boot configuration for all hosts
+  # Includes security hardening, boot counting, and recovery tools
   boot.loader = {
     # Enable systemd-boot by default (UEFI systems)
     systemd-boot.enable = lib.mkDefault true;
@@ -171,6 +193,41 @@
     # This prevents accumulation of 75+ old generations on the ESP
     # When true (default), old entries are kept for rollback safety
     systemd-boot.graceful = lib.mkDefault false;
+
+    # GENERATION LIMIT - Keep boot menu manageable
+    # Limits the number of generations shown in boot menu
+    # 20 generations = ~1MB on ESP vs ~50MB with unlimited
+    # Older generations remain accessible via nixos-rebuild --rollback
+    systemd-boot.configurationLimit = lib.mkDefault 20;
+
+    # SECURITY: Disable editor to prevent root access via init=/bin/sh
+    # Set to true temporarily if you need to debug boot issues
+    systemd-boot.editor = lib.mkDefault false;
+
+    # RECOVERY & DEBUGGING TOOLS
+    # EDK2 UEFI Shell - for firmware debugging and manual boot recovery
+    # Accessible from boot menu if system won't boot
+    systemd-boot.edk2-uefi-shell.enable = lib.mkDefault true;
+
+    # MemTest86+ - memory testing without separate boot media
+    # Useful for diagnosing RAM issues without Live USB
+    systemd-boot.memtest86.enable = lib.mkDefault true;
+
+    # BOOT COUNTING - Automatic rollback on boot failures
+    # NixOS doesn't have native boot counting, so we inject it manually
+    # systemd-boot will try new entries and fallback after 3 failed boots
+    systemd-boot.extraInstallCommands = ''
+      # Add boot-count fields to all NixOS entries for automatic rollback
+      for entry in /boot/loader/entries/nixos-generation-*.conf; do
+        # Don't modify already-modified entries or specialisation entries
+        grep -q "boot-count" "$entry" && continue
+        grep -q "specialisation" "$entry" && continue
+
+        # Add boot counting: try entry, fallback after 3 failed boots
+        # This is appended after the 'options' line for proper placement
+        sed -i '/^options/a boot-count try\nboot-count-min-success 3' "$entry"
+      done
+    '';
   };
 
   # ============================================================================
