@@ -233,6 +233,23 @@
         "type": "github"
       }
     },
+    "hermes-agent": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1773660885,
+        "narHash": "sha256-HZ77ieKBJGsCGnBPiEH0jP+J3oyvKr7nZXQ23KoiybQ=",
+        "owner": "NousResearch",
+        "repo": "hermes-agent",
+        "rev": "c1da1fdcd56900868deffdf3f8026de657005598",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NousResearch",
+        "ref": "main",
+        "repo": "hermes-agent",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -425,6 +442,7 @@
         "claude-native": "claude-native",
         "colmena": "colmena",
         "firefox-addons": "firefox-addons",
+        "hermes-agent": "hermes-agent",
         "home-manager": "home-manager_2",
         "nixcord": "nixcord",
         "nixpkgs": "nixpkgs_2",
