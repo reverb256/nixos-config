@@ -86,9 +86,7 @@
   hardware.gpu-compute = {
     enable = true;
     # Forge has BOTH AMD (5700XT) and NVIDIA GPUs
-    # CUDA disabled for NVIDIA - cuda_compat build issue
-    # Re-enable after fix: https://github.com/nixos/nixpkgs/issues/458799
-    # cuda.enable = true; # For NVIDIA GPUs (RTX 4060)
+    cuda.enable = true; # For NVIDIA GPUs (RTX 4060)
     rocm.enable = true; # For AMD 5700XT
     # Vulkan as universal backend (works with all GPU types)
     vulkan.enable = true;
@@ -249,6 +247,26 @@
           active = true;
         }
       ];
+    };
+
+    # Hermes Agent - AI assistant with shared storage and AI Gateway
+    hermes-agent = {
+      enable = true;
+      user = "j_kro";
+      sharedStorage = {
+        enable = true;
+        mountPoint = "/home/j_kro/.hermes";
+        nfsServer = "10.1.1.120"; # Nexus NFS server
+        nfsPath = "/mnt/garage/hermes";
+      };
+      aiGateway = {
+        enable = true;
+        url = "http://10.1.1.110:8080/v1"; # Zephyr AI Gateway
+      };
+      terminal = {
+        enable = true;
+        requireApproval = false;
+      };
     };
   };
 
