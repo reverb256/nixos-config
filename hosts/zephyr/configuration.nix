@@ -140,8 +140,9 @@ in {
     enable = true;
     # Vulkan works as universal backend for both NVIDIA and AMD
     vulkan.enable = true;
-    # CUDA support - minimal packages only
-    cuda.enable = true;
+    # CUDA disabled - cuda_compat build issue (Jetson/ARM64 package breaks x86_64)
+    # Re-enable after fix: https://github.com/nixos/nixpkgs/issues/458799
+    # cuda.enable = true;
   };
 
   # ============================================================================

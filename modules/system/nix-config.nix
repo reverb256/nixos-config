@@ -1,6 +1,34 @@
 # Nix Configuration Module
 # Binary caches, experimental features, and Nix settings
-{lib, ...}: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
+  # OVERLAY: Disable cuda_compat (Jetson/ARM64-only, breaks x86_64 builds)
+  # cuda_cudart's setup hook auto-adds cuda_compat which fails on x86_64
+  nixpkgs.overlays = [
+    (final: prev: {
+      cudaPackages =
+        prev.cudaPackages
+        // {
+          cuda_cudart = prev.cudaPackages.cuda_cudart.overrideAttrs (old: {
+            # Remove the auto-add-cuda-compat-runpath-hook that pulls in cuda_compat
+            # cuda_compat is Jetson-only (aarch64) and fails on x86_64
+            postFixup =
+              ""
+              + builtins.replaceStrings
+              ["auto-add-cuda-compat-runpath-hook"]
+              [""]
+              old.postFixup;
+            # Also clear any setupHooks that reference cuda_compat
+            setupHooks = lib.filter (hook: !lib.hasInfix "cuda-compat" hook) (old.setupHooks or []);
+          });
+        };
+    })
+  ];
+
   nix = {
     # Enable nix-command and flakes
     settings = {
