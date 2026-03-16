@@ -21,11 +21,12 @@
             # On x86_64, regular CUDA drivers work fine without it
         '';
 
-      cudaPackages =
-        prev.cudaPackages
+      # Apply fix to cudaPackages_12_4 (which we use in gpu-compute.nix)
+      cudaPackages_12_4 =
+        prev.cudaPackages_12_4
         // {
           cuda_cudart =
-            prev.cudaPackages.cuda_cudart.overrideAttrs
+            prev.cudaPackages_12_4.cuda_cudart.overrideAttrs
             (old: {
               # Remove cuda_compat from propagatedBuildInputs
               # cuda_compat is Jetson-only (aarch64) and fails on x86_64
@@ -55,6 +56,8 @@
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
+        # CUDA binary cache - provides prebuilt CUDA packages
+        "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
       ];
 
       trusted-users = ["root" "@wheel"];
@@ -100,6 +103,7 @@
   nixpkgs.config.allowUnfreePredicate = pkg:
     builtins.elem (lib.getName pkg) [
       "cuda_compat"
+      "cuda_compat_12_6"
       "cuda_compat_12_8"
     ]
     -> false;
