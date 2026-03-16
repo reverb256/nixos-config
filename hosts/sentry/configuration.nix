@@ -271,6 +271,26 @@
     # Access Garage S3 at: http://10.1.120:3900
     # Note: /storage/garage directory still exists for local use
     garage-cluster.enable = false;
+
+    # Hermes Agent - AI assistant with shared storage and AI Gateway
+    hermes-agent = {
+      enable = true;
+      user = "j_kro";
+      sharedStorage = {
+        enable = true;
+        mountPoint = "/home/j_kro/.hermes";
+        nfsServer = "10.1.1.120"; # Nexus NFS server
+        nfsPath = "/mnt/garage/hermes";
+      };
+      aiGateway = {
+        enable = true;
+        url = "http://10.1.1.110:8080/v1"; # Zephyr AI Gateway
+      };
+      terminal = {
+        enable = true;
+        requireApproval = false;
+      };
+    };
   };
 
   # ============================================================================

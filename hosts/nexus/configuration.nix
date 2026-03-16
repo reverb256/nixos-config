@@ -91,9 +91,8 @@
     enable = true;
     # Vulkan works as universal backend for NVIDIA GPUs
     vulkan.enable = true;
-    # CUDA disabled - cuda_compat build issue (Jetson/ARM64 package breaks x86_64)
-    # Re-enable after fix: https://github.com/nixos/nixpkgs/issues/458799
-    # cuda.enable = true;
+    # CUDA support - overlay in nix-config.nix fixes cuda_compat issue
+    cuda.enable = true;
   };
 
   # ============================================================================
@@ -445,6 +444,26 @@
       enableMetrics = true; # Prometheus metrics on port 3903
       enableBackup = false; # Nexus IS the backup storage
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
+    };
+
+    # Hermes Agent - AI assistant with shared storage and AI Gateway
+    hermes-agent = {
+      enable = true;
+      user = "j_kro";
+      sharedStorage = {
+        enable = true;
+        mountPoint = "/home/j_kro/.hermes";
+        nfsServer = "10.1.1.120"; # Nexus itself
+        nfsPath = "/mnt/garage/hermes";
+      };
+      aiGateway = {
+        enable = true;
+        url = "http://10.1.1.110:8080/v1"; # Zephyr AI Gateway
+      };
+      terminal = {
+        enable = true;
+        requireApproval = false;
+      };
     };
   };
 
