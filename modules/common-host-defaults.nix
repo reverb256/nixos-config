@@ -27,14 +27,12 @@
 # 7. Kubernetes Firewall Defaults
 # 8. Programs - Platform Defaults
 # ==============================================================================
-
 {
   config,
   lib,
   pkgs,
   ...
-}:
-{
+}: {
   # ============================================================================
   # SYSTEM STATE VERSION
   # ============================================================================
@@ -140,27 +138,30 @@
       enable = true;
       checkInterval = 10; # Check every 10 seconds
     };
+  };
 
-    # GPU COMPUTE - CUDA, ROCm, Vulkan support for AI inference
-    # Provides GPU acceleration backends for llama.cpp, PyTorch, etc.
-    # Each host can override based on available GPU hardware
-    hardware.gpu-compute = lib.mkDefault {
-      enable = lib.mkDefault true;  # Enable GPU compute on all nodes by default
+  # ============================================================================
+  # HARDWARE CONFIGURATION
+  # ============================================================================
+  # GPU COMPUTE - CUDA, ROCm, Vulkan support for AI inference
+  # Provides GPU acceleration backends for llama.cpp, PyTorch, etc.
+  # Each host can override based on available GPU hardware
+  hardware.gpu-compute = lib.mkDefault {
+    enable = lib.mkDefault true; # Enable GPU compute on all nodes by default
 
-      # Vulkan universal backend (works on NVIDIA, AMD, Intel)
-      # Recommended for llama.cpp and most AI workloads
-      vulkan.enable = lib.mkDefault true;
+    # Vulkan universal backend (works on NVIDIA, AMD, Intel)
+    # Recommended for llama.cpp and most AI workloads
+    vulkan.enable = lib.mkDefault true;
 
-      # CUDA support (NVIDIA GPUs only)
-      # Provides cuda_cudart for CUDA-accelerated applications
-      # Enable on NVIDIA nodes: Zephyr, Nexus
-      cuda.enable = lib.mkDefault false;
+    # CUDA support (NVIDIA GPUs only)
+    # Provides cuda_cudart for CUDA-accelerated applications
+    # Enable on NVIDIA nodes: Zephyr, Nexus
+    cuda.enable = lib.mkDefault false;
 
-      # ROCm support (AMD GPUs only)
-      # Provides ROCm runtime for AMD GPU compute
-      # Enable on AMD nodes: Forge, Sentry
-      rocm.enable = lib.mkDefault false;
-    };
+    # ROCm support (AMD GPUs only)
+    # Provides ROCm runtime for AMD GPU compute
+    # Enable on AMD nodes: Forge, Sentry
+    rocm.enable = lib.mkDefault false;
   };
 
   # ============================================================================
@@ -170,7 +171,7 @@
   nix.settings = {
     # Trusted users required for distributed builds across cluster
     # Without this, remote build users cannot access the Nix store
-    trusted-users = [ "j_kro" ];
+    trusted-users = ["j_kro"];
 
     # Fallback to public caches if local cache miss
     # https://cache.nixos.org

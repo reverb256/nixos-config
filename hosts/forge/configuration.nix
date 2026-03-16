@@ -57,9 +57,9 @@
     firewall = {
       allowedTCPPorts = lib.mkOptionDefault [
         10250 # Kubelet API
-        3334  # gpu-proxy-cpp (centralized proxy for cluster)
-        3900  # Garage S3 API (if needed)
-        3901  # Garage RPC (if needed)
+        3334 # gpu-proxy-cpp (centralized proxy for cluster)
+        3900 # Garage S3 API (if needed)
+        3901 # Garage RPC (if needed)
       ];
       allowedTCPPortRanges = [
         {
@@ -86,8 +86,8 @@
   hardware.gpu-compute = {
     enable = true;
     # Forge has BOTH AMD (5700XT) and NVIDIA GPUs - enable both backends
-    cuda.enable = true;   # For NVIDIA GPUs
-    rocm.enable = true;   # For AMD 5700XT
+    cuda.enable = true; # For NVIDIA GPUs
+    rocm.enable = true; # For AMD 5700XT
     # Vulkan as universal backend (works with all GPU types)
     vulkan.enable = true;
   };
@@ -142,22 +142,22 @@
       wallet = "krxXVNVMM7.forge-gpu";
       pools = [
         {
-          url = "127.0.0.1:3334";  # gpu-proxy on localhost (handles upstream TLS + Monero Stratum)
+          url = "127.0.0.1:3334"; # gpu-proxy on localhost (handles upstream TLS + Monero Stratum)
           wallet = "krxXVNVMM7.forge-gpu";
           password = "x";
-          tls = false;  # Proxy handles TLS, miner uses plain TCP
+          tls = false; # Proxy handles TLS, miner uses plain TCP
         }
         {
-          url = "xtm-c29-us.kryptex.network:8040";  # Direct Kryptex US (failover)
+          url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (failover)
           wallet = "krxXVNVMM7.forge-gpu";
           password = "x";
-          tls = true;  # TLS required for direct Kryptex connection
+          tls = true; # TLS required for direct Kryptex connection
         }
         {
-          url = "xtm-c29-eu.kryptex.network:8040";  # Direct Kryptex EU (failover)
+          url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (failover)
           wallet = "krxXVNVMM7.forge-gpu";
           password = "x";
-          tls = true;  # TLS required for direct Kryptex connection
+          tls = true; # TLS required for direct Kryptex connection
         }
       ];
     };
@@ -224,13 +224,28 @@
       port = 8090;
       prometheusUrl = "http://127.0.0.1:9090";
       featuredServices = [
-        { name = "GPU Proxy"; url = "http://127.0.0.1:8083"; }
+        {
+          name = "GPU Proxy";
+          url = "http://127.0.0.1:8083";
+        }
       ];
       services = [
-        { name = "kubelet"; active = true; }
-        { name = "containerd"; active = true; }
-        { name = "gpu-proxy-cpp"; active = true; }
-        { name = "lolminer"; active = true; }
+        {
+          name = "kubelet";
+          active = true;
+        }
+        {
+          name = "containerd";
+          active = true;
+        }
+        {
+          name = "gpu-proxy-cpp";
+          active = true;
+        }
+        {
+          name = "lolminer";
+          active = true;
+        }
       ];
     };
   };
