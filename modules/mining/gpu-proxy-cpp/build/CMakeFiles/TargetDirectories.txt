@@ -1,0 +1,7 @@
+/etc/nixos/modules/mining/gpu-proxy-cpp/build/CMakeFiles/gpu-proxy.dir
+/etc/nixos/modules/mining/gpu-proxy-cpp/build/CMakeFiles/edit_cache.dir
+/etc/nixos/modules/mining/gpu-proxy-cpp/build/CMakeFiles/rebuild_cache.dir
+/etc/nixos/modules/mining/gpu-proxy-cpp/build/CMakeFiles/list_install_components.dir
+/etc/nixos/modules/mining/gpu-proxy-cpp/build/CMakeFiles/install.dir
+/etc/nixos/modules/mining/gpu-proxy-cpp/build/CMakeFiles/install/local.dir
+/etc/nixos/modules/mining/gpu-proxy-cpp/build/CMakeFiles/install/strip.dir

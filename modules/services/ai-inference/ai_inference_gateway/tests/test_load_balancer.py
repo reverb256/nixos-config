@@ -179,7 +179,7 @@ class TestLoadBalancerMiddleware:
         backend = lb.select_backend()
         assert backend.name == "backend2"
 
-    def test_process_request_success(self):
+    async def test_process_request_success(self):
         """Test successful request processing."""
         config = LoadBalancerConfig(enabled=True)
         backends = [BackendInstance(name="backend1", url="http://localhost:8001")]

@@ -13,6 +13,10 @@ pkgs.mkShell {
     httpx
     requests
     starlette
+    sentence-transformers
+    qdrant-client
+    openai
+    prometheus-client
   ];
 
   shellHook = ''

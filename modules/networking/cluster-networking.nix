@@ -65,6 +65,9 @@ in {
       # DNS search domains for cluster
       search = ["lan" "cluster.local" "tigris-ule.ts.net"];
 
+      # Disable IPv6 - not used in cluster, reduces attack surface
+      enableIPv6 = false;
+
       # Use systemd-networkd for wired (primary connection)
       useNetworkd = true;
 
@@ -123,15 +126,18 @@ in {
     # Uses mkOptionDefault so nodes can extend these without replacing them
     networking.firewall = {
       enable = true;
+      # Base ports - K8s API (6443) restricted to Tailscale only (see below)
       allowedTCPPorts = lib.mkOptionDefault [
         53 # DNS (Unbound)
         22 # SSH
-        6443 # Kubernetes API
       ];
       allowedUDPPorts = lib.mkOptionDefault [
         53 # DNS (Unbound)
         41641 # Tailscale coordination server
       ];
+      # SECURITY: Kubernetes API accessible via Tailscale VPN only
+      # This reduces exposure to local network and provides encrypted access
+      interfaces."tailscale0".allowedTCPPorts = [6443];
     };
   };
 }

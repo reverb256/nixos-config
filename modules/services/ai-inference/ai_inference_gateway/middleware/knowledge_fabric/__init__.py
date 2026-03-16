@@ -22,16 +22,31 @@ from .core import (
     KnowledgeSource,
 )
 
-from .routing import SemanticRouter, QueryIntent
+from .routing import SemanticRouter, QueryIntent, RoutingDecision
 from .fusion import (
     RRFFusion,
     ContextSynthesizer,
     create_fusion,
     create_synthesizer,
 )
+from .circuit_breaker import (
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    CircuitBreakerRegistry,
+    CircuitState,
+    execute_with_circuit_breaker,
+    create_circuit_breaker_registry,
+)
+from .metrics import (
+    KnowledgeFabricMetrics,
+    create_metrics,
+    get_metrics,
+)
 from .fabric import (
     KnowledgeFabricMiddleware,
     create_knowledge_fabric,
+    FABRIC_CONTEXT_KEY,
+    KNOWLEDGE_CONTEXT_KEY,
 )
 from .sources import (
     RAGKnowledgeSource,
@@ -56,14 +71,28 @@ __all__ = [
     # Routing
     "SemanticRouter",
     "QueryIntent",
+    "RoutingDecision",
     # Fusion
     "RRFFusion",
     "ContextSynthesizer",
     "create_fusion",
     "create_synthesizer",
+    # Circuit Breaker
+    "CircuitBreaker",
+    "CircuitBreakerConfig",
+    "CircuitBreakerRegistry",
+    "CircuitState",
+    "execute_with_circuit_breaker",
+    "create_circuit_breaker_registry",
+    # Metrics
+    "KnowledgeFabricMetrics",
+    "create_metrics",
+    "get_metrics",
     # Fabric (Main Orchestrator)
     "KnowledgeFabricMiddleware",
     "create_knowledge_fabric",
+    "FABRIC_CONTEXT_KEY",
+    "KNOWLEDGE_CONTEXT_KEY",
     # Source Adapters
     "RAGKnowledgeSource",
     "create_rag_source",

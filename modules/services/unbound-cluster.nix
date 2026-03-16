@@ -64,6 +64,7 @@ in {
           inherit (cfg) port;
 
           # Access control - allow local network
+          # Controls which CLIENTS can query this DNS server (not domain blocking)
           access-control = [
             "127.0.0.0/8 allow"
             "10.1.1.0/24 allow"
@@ -103,6 +104,32 @@ in {
             ''"10.in-addr.arpa" static'' # 10.0.0.0/8 reverse DNS
             ''"168.192.in-addr.arpa" static'' # 192.168.0.0/16 reverse DNS
             ''"16.172.in-addr.arpa" static'' # 172.16.0.0/12 reverse DNS
+            # ================================================================================
+            # SECURITY: Analytics & Telemetry Blocklist (DNS-level blocking)
+            # ================================================================================
+            # Blocks VRChat, Unity, and related analytics/telemetry for privacy
+            # Using "refuse" action returns REFUSED response (not NXDOMAIN)
+            # This prevents the application from falling back to other DNS servers
+            # Source: https://github.com/louisa-uno/VRChatAnalyticsBlocklist
+            # VRChat/Amplitude Analytics
+            ''"api.amplitude.com" refuse''
+            ''"api2.amplitude.com" refuse''
+            ''"api.lab.amplitude.com" refuse''
+            ''"api.eu.amplitude.com" refuse''
+            ''"regionconfig.amplitude.com" refuse''
+            ''"regionconfig.eu.amplitude.com" refuse''
+            ''"api3.amplitude.com" refuse''
+            ''"cdn.amplitude.com" refuse''
+            ''"info.amplitude.com" refuse''
+            ''"static.amplitude.com" refuse''
+            # Unity Analytics
+            ''"api.uca.cloud.unity3d.com" refuse''
+            ''"config.uca.cloud.unity3d.com" refuse''
+            ''"perf-events.cloud.unity3d.com" refuse''
+            ''"public.cloud.unity3d.com" refuse''
+            ''"cdp.cloud.unity3d.com" refuse''
+            ''"data-optout-service.uca.cloud.unity3d.com" refuse''
+            ''"ecommerce.iap.unity.com" refuse''
             # Note: tigris-ule.ts.net handled by forward-zone to Tailscale DNS
           ];
 

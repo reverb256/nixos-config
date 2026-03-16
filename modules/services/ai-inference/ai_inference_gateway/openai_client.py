@@ -4,6 +4,7 @@ OpenAI SDK client wrapper for AI Gateway.
 This module provides OpenAI client instances configured for different backends:
 - LM Studio (local OpenAI-compatible server)
 - ZAI (cloud OpenAI-compatible API)
+- Pollinations (free OpenAI-compatible API)
 
 The OpenAI SDK handles:
 - Automatic header management (User-Agent, etc.)
@@ -119,6 +120,7 @@ class OpenAIClientWrapper:
             "thinking",       # Qwen thinking mode flag
             "thinking_enabled", # Qwen thinking mode
             "supports_thinking_toggle", # Qwen capability flag
+            "backend",        # Gateway routing parameter (not for SDK)
         ]
         for param in unsupported_params:
             kwargs.pop(param, None)
@@ -152,6 +154,20 @@ class OpenAIClientWrapper:
             except Exception as e:
                 logger.error(f"LM Studio backend failed: {str(e)}")
                 raise OpenAIBackendError(f"LM Studio backend error: {str(e)}")
+        elif backend == "pollinations":
+            logger.info(f"Using Pollinations backend directly for model: {model}")
+            try:
+                response = await self.primary_client.chat.completions.create(
+                    messages=messages,
+                    model=model,
+                    stream=stream,
+                    **kwargs,
+                )
+                logger.info(f"Pollinations backend succeeded with model: {model}")
+                return response
+            except Exception as e:
+                logger.error(f"Pollinations backend failed: {str(e)}")
+                raise OpenAIBackendError(f"Pollinations backend error: {str(e)}")
 
         # Auto-detect: try primary backend first
         try:
@@ -350,6 +366,8 @@ def create_openai_client(config) -> OpenAIClientWrapper:
         primary_api_key = config.get_lm_studio_api_key()
     elif config.backend_type == "zai":
         primary_api_key = config.get_zai_api_key()
+    elif config.backend_type == "pollinations":
+        primary_api_key = config.get_pollinations_api_key()
 
     # Get fallback backend credentials
     fallback_url = None
