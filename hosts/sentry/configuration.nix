@@ -78,7 +78,7 @@
   # ============================================================================
   hardware.gpu-compute = {
     enable = true;
-    autoDetect = true;
+    # autoDetect removed - not needed
     # ROCm for AMD-specific compute (5600XT)
     rocm.enable = true;
     # Vulkan as universal backend

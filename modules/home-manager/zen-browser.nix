@@ -228,7 +228,6 @@
           workspace = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
           container = 1;
           position = 100;
-          isEssential = true;
         };
         "NixOS Wiki" = {
           id = "pin-nw-002";
@@ -236,6 +235,27 @@
           workspace = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
           container = 1;
           position = 110;
+        };
+        "TrovesAndCoves" = {
+          id = "pin-dev-003";
+          url = "https://trovesandcoves.ca";
+          workspace = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
+          container = 1;
+          position = 115;
+        };
+        "Reverb256" = {
+          id = "pin-dev-004";
+          url = "https://reverb256.github.io";
+          workspace = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
+          container = 1;
+          position = 116;
+        };
+        "Hair At Home" = {
+          id = "pin-dev-005";
+          url = "https://reverb256.github.io/hairathome";
+          workspace = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
+          container = 1;
+          position = 117;
         };
 
         # AI Space
@@ -245,7 +265,6 @@
           workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
           container = 5;
           position = 200;
-          isEssential = true;
         };
         "LM Studio" = {
           id = "pin-ai-002";
@@ -262,7 +281,6 @@
           workspace = "game-3c7e2b6d-9f5a-4b41-8f77-1e9c5a4d2c03";
           container = 4;
           position = 300;
-          isEssential = true;
         };
         "Steam" = {
           id = "pin-game-002";
@@ -287,18 +305,11 @@
           container = 2;
           position = 405;
         };
-        "Reddit" = {
-          id = "pin-per-002";
-          url = "https://reddit.com";
-          workspace = "personal-4d8f3c7e-0a6b-5d52-9f88-2f0d6b5e3d14";
-          container = 2;
-          position = 410;
-        };
 
         # Mining Space
-        "NiceHash" = {
+        "Kryptex" = {
           id = "pin-min-001";
-          url = "https://www.nicehash.com";
+          url = "https://kryptex.com";
           workspace = "mining-5e9g4d8f-1b7c-6e63-0a99-3g1e7c6f4e25";
           container = 3;
           position = 500;
@@ -318,7 +329,6 @@
           workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
           container = 2;
           position = 600;
-          isEssential = true;
         };
       };
 
