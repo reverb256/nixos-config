@@ -60,6 +60,12 @@
       url = "github:zhaofengli/colmena";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Hermes Agent - Multi-node deployment agent
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent/main";
+      flake = false;
+    };
   };
 
   outputs = inputs @ {
@@ -142,6 +148,7 @@
         system = "x86_64-linux";
         specialArgs = {
           inherit inputs;
+          inherit (inputs) hermes-agent;
           # Import stable nixpkgs for packages with known issues in unstable
           pkgs-stable = import nixpkgs-stable {
             inherit system;
