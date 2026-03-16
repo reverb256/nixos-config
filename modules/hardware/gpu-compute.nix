@@ -115,9 +115,9 @@ in {
             enable = true;
             extraPackages = with pkgs.rocmPackages; [
               clr
+              clr.icd
               comgr
               rocm-smi
-              hip-runtime
             ];
           };
           environment.systemPackages = with pkgs.rocmPackages; [
@@ -127,6 +127,8 @@ in {
           ];
           # Ensure amdgpu driver is loaded
           boot.kernelModules = ["amdgpu"];
+          # Set ROCM_PATH
+          environment.sessionVariables.ROCM_PATH = lib.mkOverride 1100 "${pkgs.rocmPackages.clr}";
         })
 
         # Vulkan compute support
@@ -145,21 +147,8 @@ in {
           ];
         })
 
-        # Environment variables for GPU compute
+        # Make llama-cpp variant available as a package
         {
-          # CUDA environment
-          environment.sessionVariables = lib.mkMerge [
-            (lib.mkIf useCuda {
-              CUDA_HOME = "${pkgs.cudaPackages.cudatoolkit}";
-            })
-            # ROCm environment
-            (lib.mkIf useRocm {
-              ROCM_PATH = "${pkgs.rocmPackages.clr}";
-              HIP_PATH = "${pkgs.rocmPackages.hip-runtime}";
-            })
-          ];
-
-          # Make llama-cpp variant available as a package
           environment.systemPackages = with pkgs; [
             (lib.hiPrio llamaPkg)
           ];

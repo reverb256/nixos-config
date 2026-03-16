@@ -11,11 +11,34 @@
     X-KDE-autostart-after-panel=false
   '';
 
+  # XDG MIME associations - make Zen the default browser for all web protocols
+  xdg.mimeApps.enable = true;
+  xdg.mimeApps.defaultApplications = {
+    "text/html" = "zen-browser.desktop";
+    "text/xml" = "zen-browser.desktop";
+    "application/xhtml+xml" = "zen-browser.desktop";
+    "application/vnd.mozilla.xul+xml" = "zen-browser.desktop";
+    "text/mml" = "zen-browser.desktop";
+    "application/rss+xml" = "zen-browser.desktop";
+    "application/rdf+xml" = "zen-browser.desktop";
+    "x-scheme-handler/http" = "zen-browser.desktop";
+    "x-scheme-handler/https" = "zen-browser.desktop";
+    "x-scheme-handler/ftp" = "zen-browser.desktop";
+    "x-scheme-handler/chrome" = "zen-browser.desktop";
+    "x-scheme-handler/about" = "zen-browser.desktop";
+    "x-scheme-handler/unknown" = "zen-browser.desktop";
+    "x-scheme-handler/webcal" = "zen-browser.desktop";
+    "x-scheme-handler/mailto" = "zen-browser.desktop";  # For web email
+    "x-scheme-handler/irc" = "zen-browser.desktop";      # For web IRC clients
+  };
+
   programs.zen-browser = {
     enable = true;
 
-    # PWA Support - enables installing websites as native applications
-    nativeMessagingHosts = [pkgs.firefoxpwa];
+    # Native Messaging Hosts - bridge browser to native apps
+    nativeMessagingHosts = with pkgs; [
+      firefoxpwa  # PWA support - install websites as apps
+    ];
 
     policies = {
       DisableAppUpdate = true;
@@ -30,6 +53,13 @@
         Locked = true;
         Cryptomining = true;
         Fingerprinting = true;
+      };
+
+      # DNS-over-HTTPS - encrypted DNS queries
+      DNSOverHTTPS = {
+        Enabled = true;
+        Locked = true;
+        ProviderURL = "https://security.cloudflare-dns.com/dns-query";
       };
 
       # Extension Management via Policies
@@ -83,10 +113,11 @@
       name = "default";
       isDefault = true;
 
-      # Prevent manual changes to declarative settings
-      containersForce = true;
-      pinsForce = true;
-      spacesForce = true;
+      # Allow manual changes to declarative settings
+      # Setting to false prevents Zen from resetting your customizations
+      containersForce = false;
+      pinsForce = false;
+      spacesForce = false;
 
       # Custom about:config preferences
       extraConfig = ''
@@ -140,6 +171,11 @@
           color = "turquoise";
           icon = "pet";
           id = 5;
+        };
+        "Temporary" = {
+          color = "blue";
+          icon = "cart";
+          id = 6;
         };
       };
 
@@ -429,7 +465,7 @@
             definedAliases = ["@mdn"];
           };
           searxng = {
-            urls = [{template = "http://127.0.0.1:7777/search?q={searchTerms}&format=json";}];
+            urls = [{template = "http://127.0.0.1:7777/search?q={searchTerms}";}];
             icon = "https://searxng.org/static/img/logo_small.svg";
             definedAliases = [
               "@sx"

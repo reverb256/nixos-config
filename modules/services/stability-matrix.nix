@@ -147,9 +147,10 @@ in {
     ];
 
     # Environment variables for CUDA
+    # Use mkDefault so CUDA packages can override with proper toolkit path
     environment.variables = lib.mkIf cfg.enableCuda {
-      CUDA_PATH = "/run/opengl-driver";
-      CUDA_HOME = "/run/opengl-driver";
+      CUDA_PATH = lib.mkDefault "/run/opengl-driver";
+      CUDA_HOME = lib.mkDefault "/run/opengl-driver";
     };
   };
 }
