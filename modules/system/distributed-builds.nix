@@ -240,7 +240,7 @@ in {
       supportedFeatures = ["big-parallel"];
       mandatoryFeatures = [];
     }
-  ]);
+  ];
 
   # ============================================================================
   # BUILD OPTIMIZATION
