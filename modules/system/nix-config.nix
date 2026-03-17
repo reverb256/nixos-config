@@ -107,4 +107,10 @@
       "cuda_compat_12_8"
     ]
     -> false;
+
+  # Compiler cache for faster rebuilds
+  programs.ccache = {
+    enable = true;
+    cacheDir = "/var/cache/ccache";
+  };
 }
