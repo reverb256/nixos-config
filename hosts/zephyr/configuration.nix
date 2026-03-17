@@ -179,10 +179,9 @@ in {
       enable = true; # Wallet created with agenix, ready to deploy
       # Provider address: cluster-provider (created 2026-03-14)
       providerAddress = "akash1s97zjxzn3tnudawjhjhpus9x7yn6dgukzar372";
-      # Domain for provider ingress (using Cloudflare Tunnel)
-      # TODO: Create CNAME in Cloudflare DNS: provider.<your-domain> -> <tunnel-id>.cfargotunnel.com
-      domain = "akash.example.com"; # Replace with your actual domain
-      clusterPublicHostname = "provider.akash.example.com"; # Replace with your actual hostname
+      # Domain for provider ingress (using Cloudflare Tunnel URL)
+      domain = "09cb0ea8-051e-4207-8e7c-3acc43408915.cfargotunnel.com";
+      clusterPublicHostname = "09cb0ea8-051e-4207-8e7c-3acc43408915.cfargotunnel.com";
 
       # GPU pricing (uakt per block) - adjust based on market demand
       pricing = {
@@ -196,13 +195,14 @@ in {
 
     # Cloudflare Tunnel - Secure ingress for Akash provider without public ports
     # Tunnel ID: 09cb0ea8-051e-4207-8e7c-3acc43408915
+    # Tunnel URL: https://09cb0ea8-051e-4207-8e7c-3acc43408915.cfargotunnel.com
     cloudflared-tunnel = {
       enable = true;
       tunnelId = "09cb0ea8-051e-4207-8e7c-3acc43408915";
       ingressRules = [
         {
-          # Akash provider ingress
-          hostname = "provider.akash.example.com"; # TODO: Replace with your actual hostname
+          # Route all tunnel traffic to Kubernetes API server VIP
+          hostname = "09cb0ea8-051e-4207-8e7c-3acc43408915.cfargotunnel.com";
           service = "https://10.1.1.100:6443"; # Kubernetes API server VIP
         }
       ];
