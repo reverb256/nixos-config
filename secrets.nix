@@ -221,4 +221,15 @@ in {
     users.j_kro
     hosts.zephyr
   ];
+
+  # ========================================================================
+  # CLOUDFLARE TUNNEL SECRETS
+  # ========================================================================
+
+  # Cloudflare Tunnel credentials - For Akash provider public ingress
+  # Token contains: AccountID, TunnelID, TunnelSecret
+  "secrets/cloudflared-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr    # Primary node running cloudflared
+  ];
 }
