@@ -16,15 +16,16 @@
 #
 # NETWORK: 1Gbps with 4x TP-Link Easy Smart switches
 #
-# SELF-EXCLUSION FIX (2026-03-10):
-#   Each host must NOT list itself as a builder to avoid SSH-to-self loopback
-#   which causes nix-daemon lock contention (multiple daemons competing for same store)
+# SELF-EXCLUSION REMOVED (2026-03-16):
+#   The previous self-exclusion filter prevented hosts from using their own
+#   cores for distributed builds. Nix correctly handles localhost by using
+#   local cores directly without SSH when a host is in its own buildMachines.
 {
   lib,
   config,
   ...
 }: let
-  # Current hostname for self-exclusion
+  # Current hostname for per-host configuration
   currentHost = config.networking.hostName or "unknown";
 in {
   # ============================================================================
@@ -34,11 +35,9 @@ in {
     # Enabled: Distributed builds across the cluster
     distributedBuilds = lib.mkDefault true;
 
-    # Build machines configuration (base x86_64)
-    # REFERENCE: /etc/nixos/machines (Colmena machinesFile)
-    # NOTE: sshUser defaults to root when running with sudo, must specify j_kro
-    # IMPORTANT: Filter out current host to avoid SSH-to-self loopback causing daemon locks
-    buildMachines = lib.filter (m: m.hostName != currentHost) [
+    # Build machines list - includes ALL hosts for distributed builds
+    # Nix correctly handles localhost without SSH when building locally
+    buildMachines = [
       {
         # Zephyr: 32 cores, Ryzen 9 5950X (znver3)
         # Role: K8s control plane + build coordinator + worker
@@ -46,7 +45,7 @@ in {
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 4; # Increased now that we're on base x86_64
+        maxJobs = 4;
         speedFactor = 8;
         supportedFeatures = ["kvm" "big-parallel"];
         mandatoryFeatures = [];
@@ -59,7 +58,7 @@ in {
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 1; # Very conservative - only 15GB RAM
+        maxJobs = 1;
         speedFactor = 2;
         supportedFeatures = ["big-parallel"];
         mandatoryFeatures = [];
@@ -71,7 +70,7 @@ in {
         system = "x86_64-linux";
         sshUser = "j_kro";
         protocol = "ssh-ng";
-        maxJobs = 4; # 4 jobs × 2 cores = 8 cores total (50% utilization)
+        maxJobs = 4;
         speedFactor = 3;
         supportedFeatures = ["big-parallel"];
         mandatoryFeatures = [];
@@ -201,6 +200,47 @@ in {
   '';
 
   # SSH client configuration for user sessions is managed by modules/ssh.nix
+
+  # ============================================================================
+  # /etc/nix/machines FILE GENERATION
+  # ============================================================================
+  # Manually create /etc/nix/machines since buildMachines activation doesn't work
+  # This file is read by nix-daemon for distributed builds
+  # Includes ALL hosts - Nix correctly handles localhost without SSH
+  environment.etc."nix/machines".text = lib.concatMapStrings (m: ''
+    ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${if m.sshKey != null then m.sshKey else "-"} ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
+  '') [
+    {
+      hostName = "zephyr";
+      system = "x86_64-linux";
+      sshUser = "j_kro";
+      sshKey = "/etc/nixos/ssh/id_ed25519";
+      maxJobs = 4;
+      speedFactor = 8;
+      supportedFeatures = ["kvm" "big-parallel"];
+      mandatoryFeatures = [];
+    }
+    {
+      hostName = "forge";
+      system = "x86_64-linux";
+      sshUser = "j_kro";
+      sshKey = "/etc/nixos/ssh/id_ed25519";
+      maxJobs = 1;
+      speedFactor = 2;
+      supportedFeatures = ["big-parallel"];
+      mandatoryFeatures = [];
+    }
+    {
+      hostName = "sentry";
+      system = "x86_64-linux";
+      sshUser = "j_kro";
+      sshKey = "/etc/nixos/ssh/id_ed25519";
+      maxJobs = 4;
+      speedFactor = 3;
+      supportedFeatures = ["big-parallel"];
+      mandatoryFeatures = [];
+    }
+  ]);
 
   # ============================================================================
   # BUILD OPTIMIZATION
