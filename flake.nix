@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.11";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -71,7 +70,6 @@
   outputs = inputs @ {
     self,
     nixpkgs,
-    nixpkgs-stable,
     home-manager,
     aagl,
     nur,
@@ -149,12 +147,6 @@
         specialArgs = {
           inherit inputs;
           inherit (inputs) hermes-agent;
-          # Import stable nixpkgs for packages with known issues in unstable
-          pkgs-stable = import nixpkgs-stable {
-            inherit system;
-            config.allowUnfree = true;
-            config.cudaSupport = true; # Enable CUDA in stable packages too
-          };
         };
         modules =
           commonModules

@@ -68,7 +68,7 @@
     ./mining/dual-xmrig.nix
     ./mining/xmrig-proxy.nix
     ./mining/mining-proxy.nix
-    ./mining/gpu-proxy.nix
+    # Note: Python gpu-proxy removed - replaced by gpu-proxy-cpp (centralized on Forge)
     ./mining/gpu-proxy-cpp.nix
 
     # GPU Resource Marketplace

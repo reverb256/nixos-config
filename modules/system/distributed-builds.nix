@@ -3,6 +3,7 @@
 {
   lib,
   config,
+  pkgs,
   ...
 }: let
   currentHost = config.networking.hostName or "unknown";
@@ -59,12 +60,6 @@ in {
   };
 
   programs.ssh.startAgent = true;
-
-  systemd.tmpfiles.rules = [
-    "d /home/j_kro/.ssh 0700 j_kro users -"
-    "d /root/.ssh 0700 root root -"
-    "d /etc/nixos/ssh 0755 root root -"
-  ];
 
   systemd.services.copy-build-ssh-key = {
     description = "Copy SSH key for distributed builds";
@@ -137,4 +132,39 @@ in {
   };
 
   nix.settings.auto-optimise-store = true;
+
+  # ============================================================================
+  # CCACHE - 20GB compiler cache for faster rebuilds
+  # ============================================================================
+  # Cache directory: /var/cache/ccache (persistent, not on tmpfs)
+  # Size: 20GB (~500K-1M cached compiler objects)
+  # Shared across: GCC, Clang, and any compiler supporting CCACHE_PATH
+
+  # Enable ccache in Nix sandbox (allows builds to access cache directory)
+  nix.settings.extra-sandbox-paths = ["/var/cache/ccache"];
+
+  # Set 20GB cache size and configure ccache behavior via environment
+  environment.variables = {
+    CCACHE_DIR = "/var/cache/ccache";
+    CCACHE_SIZE = "20G";
+    CCACHE_COMPRESS = "1";
+    CCACHE_COMPRESSLEVEL = "6";
+    CCACHE_MAXFILES = "1000000";
+    CCACHE_DIRLEVELS = "3";
+    CCACHE_LOGFILE = "/var/log/ccache.log";
+  };
+
+  # Consolidated tmpfiles rules (SSH keys + ccache directories)
+  systemd.tmpfiles.rules = [
+    # SSH key directories for distributed builds
+    "d /home/j_kro/.ssh 0700 j_kro users -"
+    "d /root/.ssh 0700 root root -"
+    "d /etc/nixos/ssh 0755 root root -"
+    # ccache cache directory and log file
+    "d /var/cache/ccache 0755 root root -"
+    "f /var/log/ccache.log 0644 root root -"
+  ];
+
+  # Ensure ccache is in PATH for all users
+  environment.systemPackages = with pkgs; [ccache];
 }

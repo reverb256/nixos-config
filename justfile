@@ -13,6 +13,39 @@ _default:
     @just --list
 
 # ──────────────────────────────────────────────────────────────────────────────
+#  FLAKE LOCK SYNC
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Sync flake.lock to remote hosts (before deployment)
+sync-lock:
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Syncing flake.lock to remote hosts..."
+    for host in nexus forge; do
+        echo "  → $host"
+        scp -o ConnectTimeout=5 {{FLAKE}}/flake.lock $host:/etc/nixos/flake.lock.tmp
+        ssh $host "mv /etc/nixos/flake.lock.tmp /etc/nixos/flake.lock && chmod 644 /etc/nixos/flake.lock"
+    done
+    echo "✓ Synced flake.lock to all hosts"
+
+# Check flake.lock drift across hosts
+check-drift:
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Checking flake.lock drift..."
+    ZEPHYR_SUM=$(md5sum {{FLAKE}}/flake.lock | cut -d' ' -f1)
+    echo "  Zephyr: $ZEPHYR_SUM"
+
+    for host in nexus forge; do
+        REMOTE_SUM=$(ssh -o ConnectTimeout=5 $host "md5sum /etc/nixos/flake.lock 2>/dev/null | cut -d' ' -f1" || echo "unreachable")
+        if [ "$REMOTE_SUM" = "$ZEPHYR_SUM" ]; then
+            echo "  $host: ✓ in sync"
+        else
+            echo "  $host: ✗ DRIFT (got: $REMOTE_SUM)"
+        fi
+    done
+
+# ──────────────────────────────────────────────────────────────────────────────
 #  DEPLOYMENT
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -25,10 +58,21 @@ deploy target *args:
     flock -x -w 5 $LOCK_FD || { echo "⚠ Another deploy is already running"; exit 1; }
     trap "flock -u $LOCK_FD" EXIT
 
+    # Sync flake.lock before deploying to remote hosts
     if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
+        echo "▸ Syncing flake.lock to remote hosts..."
+        just sync-lock
         echo "▸ Deploying to all hosts..."
         cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply
     else
+        # Sync to specific host if it's remote
+        case "{{target}}" in
+            nexus|forge|sentry)
+                echo "▸ Syncing flake.lock to {{target}}..."
+                scp -o ConnectTimeout=5 {{FLAKE}}/flake.lock {{target}}:/etc/nixos/flake.lock.tmp
+                ssh {{target}} "mv /etc/nixos/flake.lock.tmp /etc/nixos/flake.lock && chmod 644 /etc/nixos/flake.lock"
+                ;;
+        esac
         echo "▸ Deploying to {{target}}..."
         cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}}
     fi
