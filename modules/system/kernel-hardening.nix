@@ -29,68 +29,65 @@
     # ============================================================================
     # KERNEL BOOT PARAMETERS
     # ============================================================================
-    boot.kernelParams = lib.mkForce (
-      # Base parameters
-      [
-        # Quiet boot with minimal output
-        "quiet"
-        "splash"
-        "loglevel=3"
-        "rd.udev.log_priority=3"
-        "systemd.show_status=auto"
+    boot.kernelParams = lib.mkForce ([
+      # Quiet boot with minimal output
+      "quiet"
+      "splash"
+      "loglevel=3"
+      "rd.udev.log_priority=3"
+      "systemd.show_status=auto"
 
-        # Console improvements
-        "fbcon=nodefer"
-        "vt.global_cursor_default=0"
+      # Console improvements
+      "fbcon=nodefer"
+      "vt.global_cursor_default=0"
 
-        # Security: Disable kernel module loading after boot
-        # WARNING: This prevents loading new modules until reboot
-        # Comment out if you need to load modules dynamically (e.g., USB devices, virtualization)
-        # "kernel.modules_disabled=1"
+      # Security: Disable kernel module loading after boot
+      # WARNING: This prevents loading new modules until reboot
+      # Comment out if you need to load modules dynamically (e.g., USB devices, virtualization)
+      # "kernel.modules_disabled=1"
 
-        # Linux Security Modules stack
-        "lsm=landlock,lockdown,yama,integrity,apparmor,bpf"
+      # Linux Security Modules stack
+      "lsm=landlock,lockdown,yama,integrity,apparmor,bpf"
 
-        # Disable USB autosuspend (can cause issues with some devices)
-        "usbcore.autosuspend=-1"
+      # Disable USB autosuspend (can cause issues with some devices)
+      "usbcore.autosuspend=-1"
 
-        # Video4Linux support
-        "video4linux"
+      # Video4Linux support
+      "video4linux"
 
-        # ACPI revision override for better hardware compatibility
-        "acpi_rev_override=5"
+      # ACPI revision override for better hardware compatibility
+      "acpi_rev_override=5"
 
-        # ============================================================================
-        # CRASH RECOVERY - Auto-reboot on hard lock to capture crash dump
-        # ============================================================================
-        # panic=10: Reboot after 10 seconds on kernel panic
-        # panic_on_oops=1: Treat oops as panic (hard hang without logs)
-        # softlockup_panic=1: Panic on soft lockup (process stuck in kernel)
-        "panic=10"
-        "panic_on_oops=1"
-        "softlockup_panic=1"
+      # ============================================================================
+      # CRASH RECOVERY - Auto-reboot on hard lock to capture crash dump
+      # ============================================================================
+      # panic=10: Reboot after 10 seconds on kernel panic
+      # panic_on_oops=1: Treat oops as panic (hard hang without logs)
+      # softlockup_panic=1: Panic on soft lockup (process stuck in kernel)
+      "panic=10"
+      "panic_on_oops=1"
+      "softlockup_panic=1"
 
-        # ============================================================================
-        # NMI WATCHDOG - Detect hard hangs
-        # ============================================================================
-        # nmi_watchdog=1 enables NMI watchdog for detecting hard CPU hangs
-        "nmi_watchdog=1"
-      ] ++ lib.optionals config.kernel-hardening.zswap.enable [
-        # ============================================================================
-        # ZSWAP - Compressed swap cache (better than traditional swap)
-        # ============================================================================
-        # Enables compressed swap in RAM (2:1 compression ratio = ~64GB effective)
-        # Falls back to real swap on SSD when cache is full
-        # Benefits: Faster than SSD swap, less SSD wear, better for AI/ML workloads
-        "zswap.enabled=1"
-        "zswap.compressor=zstd" # Best compression ratio (zstd > lzo > lz4)
-        "zswap.max_pool_percent=40" # Use up to 40% of RAM for compressed swap (~12GB cache)
-        "zswap.zpool=z3fold" # Better allocator than default zbud
-      ] ++ lib.optionals (!config.kernel-hardening.zswap.enable) [
-        # ZSWAP DISABLED - Explicitly disable for problematic CPUs
-        "zswap.enabled=0"
-      ]
-    );
+      # ============================================================================
+      # NMI WATCHDOG - Detect hard hangs
+      # ============================================================================
+      # nmi_watchdog=1 enables NMI watchdog for detecting hard CPU hangs
+      "nmi_watchdog=1"
+    ] ++ lib.optionals config.kernel-hardening.zswap.enable [
+      # ============================================================================
+      # ZSWAP - Compressed swap cache (better than traditional swap)
+      # ============================================================================
+      # Enables compressed swap in RAM (2:1 compression ratio = ~64GB effective)
+      # Falls back to real swap on SSD when cache is full
+      # Benefits: Faster than SSD swap, less SSD wear, better for AI/ML workloads
+      "zswap.enabled=1"
+      "zswap.compressor=zstd" # Best compression ratio (zstd > lzo > lz4)
+      "zswap.max_pool_percent=40" # Use up to 40% of RAM for compressed swap (~12GB cache)
+      "zswap.zpool=z3fold" # Better allocator than default zbud
+    ] ++ lib.optionals (!config.kernel-hardening.zswap.enable) [
+      # ZSWAP DISABLED - Explicitly disable for problematic CPUs
+      "zswap.enabled=0"
+    ]);
 
     # ============================================================================
     # KERNEL HUNG TASK DETECTION
