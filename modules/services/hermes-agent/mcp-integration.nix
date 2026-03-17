@@ -57,11 +57,11 @@ mcpServers:
 export HERMES_MCP_CONFIG="/etc/hermes/mcp-servers.yaml"
 
 # AI Gateway endpoint for Hermes
-export HERMES_AI_GATEWAY_URL="${aiGateway.url}"
+export HERMES_AI_GATEWAY_URL="http://${aiGateway.gateway.host}:${toString aiGateway.gateway.port}"
 
 # OpenAI-compatible configuration
 export OPENAI_API_KEY="not-needed"
-export OPENAI_BASE_URL="${aiGateway.url}"
+export OPENAI_BASE_URL="http://${aiGateway.gateway.host}:${toString aiGateway.gateway.port}"
 
 # Enable MCP tools in Hermes
 export HERMES_ENABLE_MCP="true"

@@ -28,11 +28,10 @@
 {
   config,
   lib,
-  pkgs,
   inputs,
   ...
 }: let
-  inherit (lib) mkOption types mkIf optional;
+  inherit (lib) mkOption types mkIf;
 in {
   options.services.agenix-secrets-registry = {
     enable = mkOption {
@@ -277,7 +276,6 @@ in {
           group = "glitchtip";
         };
       })
-
     ];
   };
 }

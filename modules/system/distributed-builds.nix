@@ -87,7 +87,7 @@ in {
     '';
 
     "nix/machines".text = let
-      machines = [
+      allMachines = [
         {
           hostName = "zephyr";
           system = "x86_64-linux";
@@ -129,6 +129,8 @@ in {
           mandatoryFeatures = [];
         }
       ];
+      # Exclude current host from machines list (builds locally via nix-daemon instead)
+      machines = builtins.filter (m: m.hostName != currentHost) allMachines;
       formatMachine = m: ''
         ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${if m.sshKey != null then m.sshKey else "-"} ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
       '';
