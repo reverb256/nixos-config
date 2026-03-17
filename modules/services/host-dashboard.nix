@@ -444,8 +444,8 @@
     DATA_DIR="${cfg.dataDir}"
     PROMETHEUS_URL="${cfg.prometheusUrl}"
 
-    # Fetch uptime
-    uptime -p | sed 's/up //' > "$DATA_DIR/api/uptime"
+    # Fetch uptime (parse from /proc/uptime for portability)
+    awk '{printf("%.0f days, %.0f hours\n", $1/86400, ($1%86400)/3600)}' /proc/uptime > "$DATA_DIR/api/uptime"
 
     # Fetch basic metrics
     curl -s "$PROMETHEUS_URL/api/v1/query?query=node_load1{instance=\"${hostname}\"}" \
