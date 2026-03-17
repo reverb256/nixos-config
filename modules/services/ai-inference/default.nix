@@ -238,7 +238,6 @@ in
         type = types.nullOr types.package;
         default = null;
         description = "Gateway Python environment (set by gateway.nix)";
-        readOnly = true;
         internal = true;
       };
 

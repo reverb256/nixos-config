@@ -5,6 +5,8 @@ _: prev: {
   # LM Studio - both names point to the same custom package
   lmstudio = prev.callPackage ./packages/lmstudio.nix {};
   lm-studio = prev.callPackage ./packages/lmstudio.nix {};
+  # Qwen3-TTS Python package (PyPI)
+  qwen-tts = prev.callPackage ./pkgs/qwen-tts/default.nix {};
   # WiVRn with Lighthouse support for Tundra trackers
   wivrn = prev.wivrn.overrideAttrs (old: {
     cmakeFlags = old.cmakeFlags ++ ["-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON"];
