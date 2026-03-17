@@ -24,7 +24,7 @@ in lib.mkIf cfg.enable {
       echo "[Hermes Health Check] ✓ Version: $HERMES_VERSION"
 
       # 3. Check AI Gateway is reachable (only on zephyr or if enabled)
-      ${lib.optionalString cfg.aiGateway.enable ''
+      if [[ "true" == "true" ]]; then
         GATEWAY_URL=''${cfg.aiGateway.url}
         # Try to reach the gateway (health check uses full URL)
         if curl -sSf --max-time 5 "$GATEWAY_URL/health" >/dev/null 2>&1; then
@@ -33,18 +33,10 @@ in lib.mkIf cfg.enable {
           echo "[Hermes Health Check] ⚠️  AI Gateway not reachable ($GATEWAY_URL)"
           echo "[Hermes Health Check]     This is expected on non-zephyr nodes if gateway runs only on zephyr"
         fi
-      ''}
+      fi
 
       # 4. Check shared storage
-      ${lib.optionalString cfg.sharedStorage.enable ''
-        MOUNT_POINT=''${cfg.sharedStorage.mountPoint}
-        if mountpoint -q "$MOUNT_POINT"; then
-          echo "[Hermes Health Check] ✓ Shared storage mounted ($MOUNT_POINT)"
-        else
-          echo "[Hermes Health Check] ⚠️  Shared storage not mounted ($MOUNT_POINT)"
-          echo "[Hermes Health Check]     NFS server may be unavailable"
-        fi
-      ''}
+      if [[ "true" == "true" ]]; then
         MOUNT_POINT=''${cfg.sharedStorage.mountPoint}
         if mountpoint -q "$MOUNT_POINT"; then
           echo "[Hermes Health Check] ✓ Shared storage mounted ($MOUNT_POINT)"
