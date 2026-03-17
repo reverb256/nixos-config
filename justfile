@@ -45,6 +45,17 @@ check-drift:
         fi
     done
 
+# Trigger immediate sync on all remote hosts
+sync-trigger:
+    #!/usr/bin/env bash
+    set -e
+    echo "▸ Triggering flake.lock sync on remote hosts..."
+    for host in nexus forge sentry; do
+        echo "  → $host"
+        ssh $host "systemctl start flake-lock-sync.service" || echo "    ⚠ Failed (host may be down)"
+    done
+    echo "✓ Sync triggered on all hosts"
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  DEPLOYMENT
 # ──────────────────────────────────────────────────────────────────────────────
