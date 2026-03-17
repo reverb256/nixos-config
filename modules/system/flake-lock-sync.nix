@@ -1,18 +1,29 @@
 # Flake Lock Sync Module
 # Automatically syncs flake.lock from NFS source to local /etc/nixos
 # Prevents drift between Zephyr (source) and remote hosts
+# Auto-enabled on remote hosts (Nexus, Forge, Sentry), disabled on Zephyr
 {
   lib,
   config,
   pkgs,
   ...
 }: let
-  cfg = config.services.flake-lock-sync;
   currentHost = config.networking.hostName or "unknown";
   isZephyr = currentHost == "zephyr";
+  # Auto-enable on remote hosts, disable on Zephyr (source)
+  cfg = {
+    enable = !isZephyr;
+    interval = "15min";
+    sourcePath = "/run/nixos-shared/flake.lock";
+    targetPath = "/etc/nixos/flake.lock";
+  };
 in {
   options.services.flake-lock-sync = {
-    enable = lib.mkEnableOption "flake.lock sync from NFS mount";
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = !isZephyr;
+      description = "Enable flake.lock sync from NFS mount (auto-disabled on Zephyr)";
+    };
 
     interval = lib.mkOption {
       type = lib.types.str;
@@ -34,13 +45,6 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Only run on remote hosts (not Zephyr, which is the source)
-    assertions = [
-      {
-        assertion = isZephyr -> !cfg.enable;
-        message = "flake-lock-sync should not be enabled on Zephyr (it is the source)";
-      }
-    ];
 
     # Sync script
     environment.etc."nixos/scripts/sync-flake-lock.sh" = {
@@ -97,10 +101,7 @@ in {
         ExecStart = "/etc/nixos/scripts/sync-flake-lock.sh";
         RemainAfterExit = false;
       };
-
-      # Don't start on Zephyr (it's the source)
-      stopIfChanged = false;
-    } // lib.optionalAttrs isZephyr {enable = false;};
+    };
 
     # Systemd timer for periodic sync
     systemd.timers.flake-lock-sync = {
@@ -112,7 +113,7 @@ in {
         OnUnitActiveSec = cfg.interval;
         AccuracySec = "1s";
       };
-    } // lib.optionalAttrs isZephyr {enable = false;};
+    };
 
     # State directory for sync tracking
     systemd.tmpfiles.rules = [
