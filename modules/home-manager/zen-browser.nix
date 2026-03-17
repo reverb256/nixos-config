@@ -14,7 +14,6 @@
   # XDG MIME associations - make Zen the default browser for all web protocols
   # NOTE: Desktop file is named zen-twilight.desktop (not zen-browser.desktop)
   xdg.mimeApps.enable = true;
-  xdg.mimeApps.force = true;  # Idempotent: overwrite existing files without backup errors
   xdg.mimeApps.defaultApplications = {
     "text/html" = "zen-twilight.desktop";
     "text/xml" = "zen-twilight.desktop";
