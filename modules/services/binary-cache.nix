@@ -26,6 +26,9 @@ in {
   };
 
   config = mkIf cfg.enable {
+    # Ensure openssl is available for key generation
+    environment.systemPackages = with pkgs; [openssl];
+
     # nix-serve service - serves binary cache via HTTP
     services.nix-serve = {
       enable = true;
@@ -47,15 +50,15 @@ in {
         if [ ! -f /etc/nix/cache-priv.key ]; then
           # Generate binary cache signing keys using OpenSSL
           # Nix expects specific key format
-          openssl genrsa -out /etc/nix/cache-priv.key 4096
+          ${pkgs.openssl}/bin/openssl genrsa -out /etc/nix/cache-priv.key 4096
           chmod 640 /etc/nix/cache-priv.key
 
           # Extract and format public key for Nix
-          openssl rsa -in /etc/nix/cache-priv.key -pubout -out /etc/nix/cache-pub.key.pem
+          ${pkgs.openssl}/bin/openssl rsa -in /etc/nix/cache-priv.key -pubout -out /etc/nix/cache-pub.key.pem
           chmod 444 /etc/nix/cache-pub.key.pem
 
           # Convert to Nix format (cache-name-1:BASE64_KEY)
-          PUB_KEY=$(openssl rsa -in /etc/nix/cache-priv.key -pubout | openssl rsa -pubin -RSAPublicKey_in -outform DER 2>/dev/null | base64 | head -c 52)
+          PUB_KEY=$(${pkgs.openssl}/bin/openssl rsa -in /etc/nix/cache-priv.key -pubout | ${pkgs.openssl}/bin/openssl rsa -pubin -RSAPublicKey_in -outform DER 2>/dev/null | ${pkgs.coreutils}/bin/base64 | ${pkgs.coreutils}/bin/head -c 52)
           echo "zephyr-cache-1:$PUB_KEY" > /etc/nix/cache-pub.key
           chmod 444 /etc/nix/cache-pub.key
 
