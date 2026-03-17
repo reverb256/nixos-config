@@ -1,7 +1,13 @@
-# NixOS Cluster Deployment — Streamlined
+# NixOS Cluster Deployment — NFS-Based Architecture
+#
+# Architecture:
+#   • Zephyr: Local /etc/nixos (source of truth)
+#   • Remote hosts: Read-only NFS mount at /run/nixos-shared
+#   • No config sync needed - all hosts share same flake
 #
 # Quick start:
 #   just check         # Validate flake (quick, no build)
+#   just check-nfs     # Verify NFS mount health
 #   just deploy        # Build + deploy to all hosts
 #   just deploy <host> # Build + deploy single host
 #   just switch        # Apply to current host (local)
@@ -13,58 +19,64 @@ _default:
     @just --list
 
 # ──────────────────────────────────────────────────────────────────────────────
-#  FLAKE LOCK SYNC
+#  NFS MOUNT HEALTH
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Sync flake.lock to remote hosts (before deployment)
-# Note: Sentry is excluded - it reads from NFS mount /run/nixos-shared (no local copy)
-sync-lock:
+# Check NFS mount health on all remote hosts
+# Architecture: All remote hosts read from /run/nixos-shared (NFS from Zephyr)
+check-nfs:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Syncing flake.lock to remote hosts..."
-    for host in nexus forge; do
-        echo "  → $host"
-        if scp -o ConnectTimeout=5 {{FLAKE}}/flake.lock $host:/tmp/flake.lock.tmp; then
-            ssh $host "sudo mv /tmp/flake.lock.tmp /etc/nixos/flake.lock && sudo chmod 644 /etc/nixos/flake.lock"
-        else
-            echo "    ⚠ $host unreachable, skipping"
-        fi
-    done
-    echo "✓ Synced flake.lock to nexus and forge (sentry uses NFS mount)"
-
-# Check flake.lock drift across hosts
-check-drift:
-    #!/usr/bin/env bash
-    set -e
-    echo "▸ Checking flake.lock drift..."
-    ZEPHYR_SUM=$(md5sum {{FLAKE}}/flake.lock | cut -d' ' -f1)
-    echo "  Zephyr: $ZEPHYR_SUM"
-
-    for host in nexus forge; do
-        REMOTE_SUM=$(ssh -o ConnectTimeout=5 $host "md5sum /etc/nixos/flake.lock 2>/dev/null | cut -d' ' -f1" || echo "unreachable")
-        if [ "$REMOTE_SUM" = "$ZEPHYR_SUM" ]; then
-            echo "  $host: ✓ in sync"
-        else
-            echo "  $host: ✗ DRIFT (got: $REMOTE_SUM)"
-        fi
-    done
-
-# Trigger immediate sync on all remote hosts
-sync-trigger:
-    #!/usr/bin/env bash
-    set -e
-    echo "▸ Triggering flake.lock sync on remote hosts..."
+    echo "▸ Checking NFS mount health..."
     for host in nexus forge sentry; do
         echo "  → $host"
-        ssh $host "systemctl start flake-lock-sync.service" || echo "    ⚠ Failed (host may be down)"
+        if ssh -o ConnectTimeout=5 $host "mountpoint -q /run/nixos-shared"; then
+            # Check if flake.nix is readable
+            if ssh -o ConnectTimeout=5 $host "test -f /run/nixos-shared/flake.nix"; then
+                echo "    ✓ NFS mount healthy, flake.nix accessible"
+            else
+                echo "    ⚠ NFS mounted but flake.nix not accessible"
+            fi
+            # Check fallback cache status
+            if ssh -o ConnectTimeout=5 $host "test -f /var/cache/nixos-config/.last-sync"; then
+                LAST_SYNC=$(ssh -o ConnectTimeout=5 $host "cat /var/cache/nixos-config/.last-sync")
+                echo "    ℹ Fallback cache last sync: $LAST_SYNC"
+            fi
+        else
+            echo "    ✗ NFS mount not available"
+            # Check if fallback cache exists
+            if ssh -o ConnectTimeout=5 $host "test -f /var/cache/nixos-config/flake.nix"; then
+                echo "    ℹ Fallback cache available"
+            else
+                echo "    ✗ No fallback cache either - host cannot rebuild!"
+            fi
+        fi
     done
-    echo "✓ Sync triggered on all hosts"
+
+# Show current NFS architecture status
+nfs-status:
+    #!/usr/bin/env bash
+    echo "▸ NixOS Cluster NFS Architecture"
+    echo ""
+    echo "  Zephyr (10.1.1.110):"
+    echo "    • Local /etc/nixos (source of truth)"
+    echo "    • Exports via NFS to /run/nixos-shared"
+    echo ""
+    echo "  Remote hosts (nexus, forge, sentry):"
+    echo "    • Read-only mount: /run/nixos-shared (from Zephyr)"
+    echo "    • Fallback cache: /var/cache/nixos-config (hourly sync)"
+    echo "    • No local config files"
+    echo ""
+    echo "  Commands:"
+    echo "    just check-nfs    # Verify NFS mount health"
+    echo "    just deploy       # Uses NFS, no sync needed"
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  DEPLOYMENT
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Deploy to all hosts or specific host
+# Note: No sync needed - all remote hosts use NFS mount /run/nixos-shared
 deploy target *args:
     #!/usr/bin/env bash
     set -e
@@ -73,25 +85,11 @@ deploy target *args:
     flock -x -w 5 $LOCK_FD || { echo "⚠ Another deploy is already running"; exit 1; }
     trap "flock -u $LOCK_FD" EXIT
 
-    # Sync flake.lock before deploying to remote hosts
     if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
-        echo "▸ Syncing flake.lock to remote hosts..."
-        just sync-lock
-        echo "▸ Deploying to all hosts..."
+        echo "▸ Deploying to all hosts (NFS-based, no sync needed)..."
         cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply
     else
-        # Sync to specific host if it's remote (sentry uses NFS, no sync needed)
-        case "{{target}}" in
-            nexus|forge)
-                echo "▸ Syncing flake.lock to {{target}}..."
-                scp -o ConnectTimeout=5 {{FLAKE}}/flake.lock {{target}}:/tmp/flake.lock.tmp
-                ssh {{target}} "sudo mv /tmp/flake.lock.tmp /etc/nixos/flake.lock && sudo chmod 644 /etc/nixos/flake.lock"
-                ;;
-            sentry)
-                echo "▸ Note: sentry uses NFS mount /run/nixos-shared, no local sync needed"
-                ;;
-        esac
-        echo "▸ Deploying to {{target}}..."
+        echo "▸ Deploying to {{target}} (uses NFS mount /run/nixos-shared)..."
         cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}}
     fi
 
@@ -163,19 +161,21 @@ info:
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Git status across all nodes
+# Note: Remote hosts use NFS mount, so we check Zephyr's git status
 status:
     #!/usr/bin/env bash
-    echo "▸ Git status on all nodes:"
-    for host in zephyr nexus forge sentry; do
-        if [ "$host" = "$(hostname -s)" ]; then
-            commit=$(cd {{FLAKE}} && git log -1 --oneline)
-            echo "  ● $host: $commit"
-        elif commit=$(ssh -o ConnectTimeout=2 "$host" "cd {{FLAKE}} && git log -1 --oneline" 2>/dev/null); then
-            echo "  ● $host: $commit"
-        else
-            echo "  ● $host: unreachable"
-        fi
-    done
+    echo "▸ Git status (all hosts read from Zephyr via NFS):"
+    commit=$(cd {{FLAKE}} && git log -1 --oneline)
+    branch=$(cd {{FLAKE}} && git branch --show-current)
+    echo "  ● Zephyr (source): $branch | $commit"
+    echo "  ● Remote hosts: read from /run/nixos-shared (NFS)"
+    echo ""
+    echo "▸ Uncommitted changes:"
+    if cd {{FLAKE}} && git status --short | grep -q .; then
+        cd {{FLAKE}} && git status --short | sed 's/^/  /'
+    else
+        echo "  ✓ Working tree clean"
+    fi
 
 # Cluster health check
 health:
