@@ -47,17 +47,19 @@
     };
   };
 
-  config = lib.mkIf config.services.cloudflared-tunnel.enable {
-    # ============================================================================
-    # REQUIRED PACKAGES
-    # ============================================================================
-    environment.systemPackages = with pkgs; [cloudflared];
+  config = let
+    cfg = config.services.cloudflared-tunnel;
+  in
+    lib.mkIf cfg.enable {
+      # ============================================================================
+      # REQUIRED PACKAGES
+      # ============================================================================
+      environment.systemPackages = with pkgs; [cloudflared];
 
-    # ============================================================================
-    # CLOUDFLARED CONFIGURATION
-    # ============================================================================
-    environment.etc."cloudflared/config.yml".text = let
-      cfg = config.services.cloudflared-tunnel;
+      # ============================================================================
+      # CLOUDFLARED CONFIGURATION
+      # ============================================================================
+      environment.etc."cloudflared/config.yml".text = let
       # Generate ingress YAML entries
       ingressYaml = lib.concatMapStrings (rule: ''
         - hostname: ${rule.hostname}
