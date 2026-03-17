@@ -48,14 +48,13 @@ in {
       serviceConfig.Type = "oneshot";
       script = ''
         if [ ! -f /etc/nix/cache-priv.key ]; then
-          # Generate binary cache signing keys using OpenSSL
-          ${pkgs.openssl}/bin/openssl genrsa -out /etc/nix/cache-priv.key 4096
+          # Generate binary cache signing keys using Nix CLI
+          ${pkgs.nix}/bin/nix key generate-secret --key-name zephyr-cache-1 > /etc/nix/cache-priv.key.tmp
+          mv /etc/nix/cache-priv.key.tmp /etc/nix/cache-priv.key
           chmod 640 /etc/nix/cache-priv.key
 
-          # Convert to Nix format (cache-name-1:BASE64_KEY)
-          # The full public key in DER format, base64 encoded
-          PUB_KEY=$(${pkgs.openssl}/bin/openssl rsa -in /etc/nix/cache-priv.key -pubout | ${pkgs.openssl}/bin/openssl rsa -pubin -RSAPublicKey_in -outform DER 2>/dev/null | ${pkgs.coreutils}/bin/base64 -w 0)
-          echo "zephyr-cache-1:$PUB_KEY" > /etc/nix/cache-pub.key
+          # Extract public key
+          ${pkgs.nix}/bin/nix key convert-secret-to-public < /etc/nix/cache-priv.key > /etc/nix/cache-pub.key
           chmod 444 /etc/nix/cache-pub.key
 
           echo "Binary cache keys generated"
