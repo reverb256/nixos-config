@@ -137,6 +137,9 @@
     # Distributed builds
     ./system/distributed-builds.nix
 
+    # Flake lock sync (auto-enabled on remote hosts only)
+    ./system/flake-lock-sync.nix
+
     # Profile system
     ./profiles/default.nix
     ./profiles/node-profiles.nix
