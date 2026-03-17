@@ -212,7 +212,18 @@ void PoolManager::handle_response(const StratumResponse& resp) {
     if (authenticated_ && share_response_cb_) {
         bool accepted = (resp.error.is_null() || resp.error.empty());
         std::string error_str = resp.error.is_string() ? resp.error.get<std::string>() : "";
-        share_response_cb_(resp.id, accepted, error_str);
+
+        // Look up which worker submitted this share
+        auto it = share_to_worker_.find(resp.id);
+        if (it != share_to_worker_.end()) {
+            const std::string& worker_id = it->second;
+            share_response_cb_(worker_id, accepted, error_str);
+            // Clean up the mapping after use
+            share_to_worker_.erase(it);
+        } else {
+            // Unknown share ID (possibly from before a restart)
+            fprintf(stderr, "[PoolManager] Share response for unknown id=%d\n", resp.id);
+        }
     }
 }
 
@@ -257,6 +268,9 @@ void PoolManager::submit_share(const std::string& worker_id,
     }
 
     int id = get_next_id();
+    // Track which worker submitted this share so we can route the response back
+    share_to_worker_[id] = worker_id;
+
     const auto& pool = pools_[current_pool_index_];
 
     // Monero Stratum submit format: {"method":"submit","params":{"id":worker,"job_id":...,"nonce":...,"result":...},"id":N}

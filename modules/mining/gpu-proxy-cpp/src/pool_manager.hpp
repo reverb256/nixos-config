@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <map>
 
 namespace gpu_proxy {
 
@@ -13,7 +14,7 @@ class EventLoop;
 
 // Callback types for pool events
 using JobCallback = std::function<void(const Job& job)>;
-using ShareResponseCallback = std::function<void(int id, bool accepted, const std::string& error)>;
+using ShareResponseCallback = std::function<void(const std::string& worker_id, bool accepted, const std::string& error)>;
 using PoolStateCallback = std::function<void(const std::string& pool_name, bool connected)>;
 
 class PoolManager {
@@ -81,6 +82,9 @@ private:
     JobCallback job_cb_;
     ShareResponseCallback share_response_cb_;
     PoolStateCallback state_cb_;
+
+    // Track which worker submitted each share (id -> worker_id)
+    std::map<int, std::string> share_to_worker_;
 
     // Next message ID
     int next_id_ = 1;
