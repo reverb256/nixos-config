@@ -26,6 +26,7 @@
     ./system/fetch-tools.nix
     ./system/boot-error-fixes.nix
     ./system/agenix-fixes.nix
+    ./system/agenix-secrets-registry.nix
     ./system/cluster-storage.nix
     ./system/security-hardening.nix
     ./system/btrfs-compression.nix
