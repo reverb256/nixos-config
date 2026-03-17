@@ -49,10 +49,13 @@ just ci-local          # Full CI pipeline locally
 
 ## WORKFLOW
 1. Make changes
-2. `git add` new files (Nix only packages git-tracked files!)
-3. `git commit`
-4. `just test` (verifies configuration)
-5. `just deploy` (applies to all hosts via Colmena)
+2. `nix flake check` (validate options, syntax)
+3. `git add` new files (Nix only packages git-tracked files!)
+4. `git commit`
+5. `just test` (verifies configuration builds)
+6. `just deploy` (applies to all hosts via Colmena)
+
+**Pre-commit validation:** Always run `nix flake check` to catch non-existent options before committing.
 
 **Test before deployment:**
 - `modules/networking/*` → Test SSH on zephyr AND nexus
@@ -110,5 +113,5 @@ Complete 9-week migration plan
 
 ---
 
-**Version**: 4.0 | **Updated**: 2026-03-15
-**Changes**: Reformatted per Anthropic best practices - WHY/WHAT/HOW structure, under 200 lines, progressive disclosure via @imports
+**Version**: 4.1 | **Updated**: 2026-03-16
+**Changes**: Add pre-commit validation (nix flake check) after Home Manager option incident
