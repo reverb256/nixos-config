@@ -179,9 +179,10 @@ in {
       enable = true; # Wallet created with agenix, ready to deploy
       # Provider address: cluster-provider (created 2026-03-14)
       providerAddress = "akash1s97zjxzn3tnudawjhjhpus9x7yn6dgukzar372";
-      # Domain for provider ingress (use dynamic DNS like duckdns.org)
-      domain = "cluster.local"; # TODO: Update with public domain
-      clusterPublicHostname = "provider.cluster.local"; # TODO: Update with provider hostname
+      # Domain for provider ingress (using Cloudflare Tunnel)
+      # TODO: Create CNAME in Cloudflare DNS: provider.<your-domain> -> <tunnel-id>.cfargotunnel.com
+      domain = "akash.example.com"; # Replace with your actual domain
+      clusterPublicHostname = "provider.akash.example.com"; # Replace with your actual hostname
 
       # GPU pricing (uakt per block) - adjust based on market demand
       pricing = {
@@ -191,6 +192,20 @@ in {
         rx5700xt = 8000; # ~$3.50/month per GPU at 50% util
         rx5600xt = 7000; # ~$3.00/month per GPU at 50% util
       };
+    };
+
+    # Cloudflare Tunnel - Secure ingress for Akash provider without public ports
+    # Tunnel ID: 09cb0ea8-051e-4207-8e7c-3acc43408915
+    cloudflared-tunnel = {
+      enable = true;
+      tunnelId = "09cb0ea8-051e-4207-8e7c-3acc43408915";
+      ingressRules = [
+        {
+          # Akash provider ingress
+          hostname = "provider.akash.example.com"; # TODO: Replace with your actual hostname
+          service = "https://10.1.1.100:6443"; # Kubernetes API server VIP
+        }
+      ];
     };
 
     # Crash watchdog - detect and log system crashes
@@ -1054,6 +1069,14 @@ in {
       # Akash Provider wallet key (for earning AKT/USDC from GPU compute)
       akash-provider-key = {
         file = "${inputs.self}/secrets/akash-provider-key.age";
+        mode = "400";
+        owner = "root";
+        group = "root";
+      };
+
+      # Cloudflare Tunnel credentials (for Akash provider public ingress)
+      cloudflared-token = {
+        file = "${inputs.self}/secrets/cloudflared-token.age";
         mode = "400";
         owner = "root";
         group = "root";
