@@ -65,7 +65,7 @@ export -f hermes_failed_increment
 
   # Prometheus node_exporter textfile collector
   services.prometheus.exporters.node = {
-    enabled = true;
+    enable = true;
     port = 9100;
     enabledCollectors = [ "textfile" ];
     extraOpts = [
