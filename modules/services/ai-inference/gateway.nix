@@ -101,7 +101,7 @@ let
   # Combined package: gateway source + Python environment in one
   # This allows both --app-dir usage and direct imports
   modularGatewayPkg = pkgs.symlinkJoin {
-    name = "ai-inference-gateway-modular-pkg-v11";
+    name = "ai-inference-gateway-modular-pkg-v12";
     paths = [
       modularGatewayPkgBase
       gatewayPython
@@ -268,4 +268,4 @@ in
     ];
   };
 }
-# force rebuild 2 1773547683
+# force rebuild 3 1773547684

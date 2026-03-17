@@ -121,6 +121,7 @@
           bindAddress = config.services.kubernetes-module.apiserverBindAddress;
           securePort = 6443;
           allowPrivileged = true;
+          extraOpts = "--api-audiences=api,https://kubernetes.default.svc,https://kubernetes.default.svc.cluster.local";
           # HA Certificates: Include VIP and all control plane node IPs in SANs
           extraSANs = [
             # VIP for HA failover
