@@ -143,16 +143,13 @@
   # ============================================================================
   # HARDWARE CONFIGURATION
   # ============================================================================
-  # GPU COMPUTE - Vulkan support for AI inference
+  # GPU COMPUTE - Vulkan and CUDA support for AI inference
   # Vulkan provides universal GPU backend for llama.cpp, PyTorch, etc.
   # Works on NVIDIA, AMD, and Intel GPUs with ~85-95% of CUDA performance
-  # TODO: Re-enable CUDA once cuda_compat issue is resolved (Jetson-only package breaks x86_64)
+  # CUDA provides native NVIDIA GPU support for maximum performance
   hardware.gpu-compute.enable = lib.mkDefault true;
   hardware.gpu-compute.vulkan.enable = lib.mkDefault true;
-
-  # CUDA temporarily disabled due to cuda_compat build failure
-  # CUDA is Jetson-only (ARM64) and fails to build on x86_64
-  # hardware.gpu-compute.cuda.enable = lib.mkDefault false;
+  hardware.gpu-compute.cuda.enable = lib.mkDefault true;
 
   # ============================================================================
   # NIX SETTINGS
