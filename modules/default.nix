@@ -113,9 +113,7 @@
     ./services/self-healing-alerts.nix
 
     # Monitoring
-    # ./services/monitoring/default.nix  # TEMP: Compatibility issues with latest NixOS
-    # ./services/monitoring/prometheus.nix
-    # ./services/monitoring/grafana.nix
+    ./services/monitoring/default.nix
     ./services/monitoring/node-exporter.nix
 
     # Crash detection and diagnostics
