@@ -1,7 +1,11 @@
 # Searxng Module
 # Privacy-respecting metasearch engine (from XNM1)
-{config, lib, pkgs, ...}: let
-  inherit (lib) mkEnableOption mkOption types mkIf literalExpression;
+{
+  config,
+  lib,
+  ...
+}: let
+  inherit (lib) mkEnableOption mkOption types mkIf;
 in {
   options.services.searxng = {
     enable = mkEnableOption "SearXNG privacy-respecting metasearch engine";
@@ -32,10 +36,9 @@ in {
     # ============================================================================
     services.searx = {
       enable = true;
-      settings = let
-        # SearXNG secret key from agenix
-        secretKeyFile = config.age.secrets.searxng-secret.path or "/run/agenix/searxng-secret";
-      in {
+      settings = {
+        # Note: Secret key is managed via environmentFile (see line ~98)
+        # The @SEARXNG_SECRET_KEY@ placeholder is replaced by the environment variable
         server = {
           port = 7777;
           bind_address = "127.0.0.1"; # Localhost only

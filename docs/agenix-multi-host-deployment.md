@@ -118,14 +118,48 @@ The `agenix-secrets-registry` module provides category-based selection:
 ```
 
 ```nix
-# In hosts/forge/configuration.nix
+# In hosts/nexus/configuration.nix (storage + mining node)
 {
   services.agenix-secrets-registry = {
     enable = true;
-    mining = true;          # Only mining secrets needed
-    cloud = true;           # Akash provider runs here
+    mining = true;          # XMRig API tokens
+    storage = true;         # Garage S3 cluster (Nexus is a storage node)
+  };
+
+  # Override specific secret permissions for mining service
+  age.secrets.xmrig-always-api-token = {
+    mode = "440";
+    owner = "mining";
+    group = "mining";
   };
 }
+```
+
+```nix
+# In hosts/sentry/configuration.nix (monitoring node)
+{
+  services.agenix-secrets-registry = {
+    enable = true;
+    mining = true;          # XMRig API token
+  };
+
+  # Override specific secret permissions for mining service
+  age.secrets.xmrig-api-token = {
+    mode = "440";
+    owner = "mining";
+    group = "mining";
+  };
+}
+```
+
+```nix
+# In hosts/forge/configuration.nix (compute + mining node)
+# Note: No secrets currently configured. Add registry when needed.
+# For future use (Akash provider):
+# services.agenix-secrets-registry = {
+#   enable = true;
+#   cloud = true;           # Tailscale, Cloudflare, Akash
+# };
 ```
 
 ### Manual Declaration (For Special Cases)

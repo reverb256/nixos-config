@@ -86,7 +86,7 @@
     ./services/llamafile.nix
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
-    ./services/qwen3-tts-preload.nix
+    # ./services/qwen3-tts-preload.nix  # TEMP: Build failure (qwen-tts package)
     ./services/hermes-agent/default.nix
     ./services/nixos-share.nix
     ./services/spacebot.nix

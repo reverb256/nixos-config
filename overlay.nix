@@ -5,8 +5,6 @@ _: prev: {
   # LM Studio - both names point to the same custom package
   lmstudio = prev.callPackage ./packages/lmstudio.nix {};
   lm-studio = prev.callPackage ./packages/lmstudio.nix {};
-  # Qwen3-TTS Python package (PyPI)
-  qwen-tts = prev.callPackage ./pkgs/qwen-tts/default.nix {};
   # WiVRn with Lighthouse support for Tundra trackers
   wivrn = prev.wivrn.overrideAttrs (old: {
     cmakeFlags = old.cmakeFlags ++ ["-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON"];
@@ -17,19 +15,53 @@ _: prev: {
     doCheck = false;
   });
 
-  # steam-run: Fix bubblewrap issue with NFS autofs mounts
-  # Patch steam-run to ignore /data (NFS autofs) from auto-mounting
-  # Note: /etc/nixos is now mounted to /run/nixos-shared instead (see nixos-share.nix)
-  # This fixes anime-game-launcher and similar launchers that use steam-run
-  steam-run = prev.runCommand "steam-run-patched" {
-    nativeBuildInputs = [prev.bash prev.coreutils];
-    preferLocalBuild = true;
-  } ''
-    mkdir -p $out/bin
-    # Patch steam-run to ignore /data (NFS autofs with /data/shared)
-    # /run is already excluded by default, so /run/nixos-shared works fine
-    sed 's|ignored=(/nix /dev /proc /etc /tmp)|ignored=(/nix /dev /proc /etc /tmp /data)|' \
-      ${prev.steam-run}/bin/steam-run > $out/bin/steam-run
-    chmod +x $out/bin/steam-run
-  '';
+  # Python packages overlay
+  python3 = prev.python3.override {
+    packageOverrides = py-self: py-super: {
+      # qwen-tts: Official Qwen3-TTS Python package from PyPI
+      # Source: https://github.com/QwenLM/Qwen3-TTS
+      # PyPI: https://pypi.org/project/qwen-tts/
+      # Models loaded from HuggingFace: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+      qwen-tts = py-self.buildPythonPackage rec {
+        pname = "qwen-tts";
+        version = "0.1.1";
+        pyproject = true;
+
+        src = prev.fetchurl {
+          url = "https://files.pythonhosted.org/packages/39/5d/b339c4f34f22ce838d39d1c015bbad103cd4003f6826ac3afaf1553973a0/qwen_tts-0.1.1.tar.gz";
+          hash = "sha256-r7pfojWAamiD9Go4nmdUC0b4pV2kVyFr8dc0KQOBR4A=";
+        };
+
+        # Dependencies from pyproject.toml
+        dependencies = with py-super; [
+          transformers
+          accelerate
+          gradio
+          librosa
+          torchaudio
+          soundfile
+          onnxruntime
+          einops
+          torch
+          numpy
+        ];
+
+        # Patch metadata to remove sox references (optional external dep)
+        postPatch = ''
+          sed -i '/sox/d' pyproject.toml setup.cfg setup.py 2>/dev/null || true
+        '';
+
+        # Relax version constraints - qwen-tts pins specific versions
+        pythonRelaxDeps = true;
+        # Disable tests - they require downloading models
+        doCheck = false;
+
+        meta = {
+          description = "Official Qwen3-TTS Python package for text-to-speech with voice cloning, voice design, and custom voice generation";
+          homepage = "https://github.com/QwenLM/Qwen3-TTS";
+          license = prev.lib.licenses.asl20;
+        };
+      };
+    };
+  };
 }

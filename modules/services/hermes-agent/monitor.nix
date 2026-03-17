@@ -32,7 +32,7 @@ hermes_ai_gateway_calls_total{node="${config.networking.hostName}"} 0
 
 # HELP hermes_active_skills Number of active skills loaded
 # TYPE hermes_active_skills gauge
-hermes_active_skills{node="${config.networking.hostName}"} ${toString (lib.length (lib.attrNames cfg.customSkills))}
+hermes_active_skills{node="${config.networking.hostName}"} ${toString cfg.activeSkillsCount}
 
 # HELP hermes_up Whether Hermes is up (1=up, 0=down)
 # TYPE hermes_up gauge

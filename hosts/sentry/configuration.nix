@@ -396,15 +396,20 @@
     # programs.git.config.remote.origin.url = "git@github.com:reverb256/nixos-config.git";
   };
 
-  # Agenix secrets for mining
-  age = {
-    identityPaths = ["/home/j_kro/.age/key.txt"];
+  # ============================================================================
+  # AGENIX SECRETS
+  # ============================================================================
+  # Centralized registry - see modules/system/agenix-secrets-registry.nix
+  services.agenix-secrets-registry = {
+    enable = true;
+    mining = true; # XMRig API token
+  };
 
-    secrets.xmrig-api-token = {
-      file = "${inputs.self}/secrets/xmrig-api-token.age";
-      mode = "440";
-      owner = "mining";
-      group = "mining";
-    };
+  # Override specific secret permissions for mining service
+  age.secrets.xmrig-api-token = lib.mkForce {
+    file = "${inputs.self}/secrets/xmrig-api-token.age";
+    mode = "440";
+    owner = "mining";
+    group = "mining";
   };
 }

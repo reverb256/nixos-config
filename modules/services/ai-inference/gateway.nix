@@ -12,6 +12,12 @@ let
   # Gateway source directory
   gatewaySrc = ./ai_inference_gateway;
 
+  # Qwen3-TTS: Self-hosted TTS via qwen-tts Python package (overlay)
+  # Source: https://github.com/QwenLM/Qwen3-TTS
+  # PyPI: https://pypi.org/project/qwen-tts/
+  # Models from HuggingFace: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice, Qwen/Qwen3-TTS-Tokenizer-12Hz
+  # Pre-download: huggingface-cli download Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice --local-dir /var/cache/ai-inference/
+
   # Gateway package (plain files, not a Python package yet)
   # Used for --app-dir in uvicorn
   # NOTE: We use symlinkJoin with source tracking to ensure changes are detected
@@ -85,8 +91,8 @@ let
       ps.mcp
       # HuggingFace CLI for model downloads
       ps.huggingface-hub
-      # TTS support (Qwen3-TTS via official qwen-tts package from PyPI)
-      ps.qwen-tts  # Official Qwen3-TTS package from PyPI (via overlay)
+      # TTS support: Qwen3-TTS (models loaded from HuggingFace)
+      ps.qwen-tts
       ps.transformers
       ps.torch
       ps.torchaudio
@@ -95,8 +101,11 @@ let
       # Audio processing for TTS/STT format conversion
       ps.pydub  # For MP3 conversion (requires ffmpeg in systemPackages)
       ps.soundfile # For FLAC/WAV handling
+      ps.librosa  # Audio analysis for qwen-tts
+      ps.einops  # Tensor manipulation for qwen-tts
       # Vision support (Qwen3-VL via transformers)
       ps.pillow  # For image processing
+      ps.onnxruntime  # For ONNX model support
     ]
     ++ [ modularGatewayPkgPython ]
   );

@@ -810,4 +810,11 @@
   # TAILSCALE - Now managed by modules/system/tailscale.nix
   # ============================================================================
   # Tailscale routing automatically configured via network-constants
+
+  # ============================================================================
+  # AGENIX SECRETS
+  # ============================================================================
+  # No Agenix secrets currently configured for Forge.
+  # Enable via services.agenix-secrets-registry when needed (e.g., for Akash provider).
+  # See modules/system/agenix-secrets-registry.nix for available categories.
 }

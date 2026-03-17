@@ -5,6 +5,6 @@
     wl-clipboard # Wayland clipboard utilities (wl-copy, wl-paste)
     grim # Screenshot utility for Wayland
     slurp # Region selection for Wayland
-    bitwarden-desktop
+    # bitwarden-desktop  # TEMP: Disabled - Electron 39.8.2 patch failure (2026-03-16)
   ];
 }
