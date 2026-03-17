@@ -12,24 +12,26 @@
   '';
 
   # XDG MIME associations - make Zen the default browser for all web protocols
+  # NOTE: Desktop file is named zen-twilight.desktop (not zen-browser.desktop)
   xdg.mimeApps.enable = true;
+  xdg.mimeApps.force = true;  # Idempotent: overwrite existing files without backup errors
   xdg.mimeApps.defaultApplications = {
-    "text/html" = "zen-browser.desktop";
-    "text/xml" = "zen-browser.desktop";
-    "application/xhtml+xml" = "zen-browser.desktop";
-    "application/vnd.mozilla.xul+xml" = "zen-browser.desktop";
-    "text/mml" = "zen-browser.desktop";
-    "application/rss+xml" = "zen-browser.desktop";
-    "application/rdf+xml" = "zen-browser.desktop";
-    "x-scheme-handler/http" = "zen-browser.desktop";
-    "x-scheme-handler/https" = "zen-browser.desktop";
-    "x-scheme-handler/ftp" = "zen-browser.desktop";
-    "x-scheme-handler/chrome" = "zen-browser.desktop";
-    "x-scheme-handler/about" = "zen-browser.desktop";
-    "x-scheme-handler/unknown" = "zen-browser.desktop";
-    "x-scheme-handler/webcal" = "zen-browser.desktop";
-    "x-scheme-handler/mailto" = "zen-browser.desktop";  # For web email
-    "x-scheme-handler/irc" = "zen-browser.desktop";      # For web IRC clients
+    "text/html" = "zen-twilight.desktop";
+    "text/xml" = "zen-twilight.desktop";
+    "application/xhtml+xml" = "zen-twilight.desktop";
+    "application/vnd.mozilla.xul+xml" = "zen-twilight.desktop";
+    "text/mml" = "zen-twilight.desktop";
+    "application/rss+xml" = "zen-twilight.desktop";
+    "application/rdf+xml" = "zen-twilight.desktop";
+    "x-scheme-handler/http" = "zen-twilight.desktop";
+    "x-scheme-handler/https" = "zen-twilight.desktop";
+    "x-scheme-handler/ftp" = "zen-twilight.desktop";
+    "x-scheme-handler/chrome" = "zen-twilight.desktop";
+    "x-scheme-handler/about" = "zen-twilight.desktop";
+    "x-scheme-handler/unknown" = "zen-twilight.desktop";
+    "x-scheme-handler/webcal" = "zen-twilight.desktop";
+    "x-scheme-handler/mailto" = "zen-twilight.desktop";  # For web email
+    "x-scheme-handler/irc" = "zen-twilight.desktop";      # For web IRC clients
   };
 
   programs.zen-browser = {

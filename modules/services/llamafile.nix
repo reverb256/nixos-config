@@ -191,8 +191,9 @@ in {
         StandardOutput = "journal";
         StandardError = "journal";
 
-        # Watchdog
-        WatchdogSec = "60s";
+        # Watchdog disabled - llama-server doesn't implement sd_notify() heartbeat
+        # When idle, all threads wait in pthread_cond_wait, triggering false timeouts
+        # WatchdogSec = "60s";  # BUG: Causes SIGABRT on idle after 60 seconds
       };
     };
 

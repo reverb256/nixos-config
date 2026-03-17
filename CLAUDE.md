@@ -36,6 +36,11 @@ just ci-local          # Full CI pipeline locally
 - **IMPORTANT**: Use `lib.mkOptionDefault` in shared modules (NEVER direct assignment)
   - Direct assignment breaks SSH on all nodes
   - See @AGENTS.md Critical Safety Constraints for examples
+- **CRITICAL**: NEVER background nixos-rebuild or similar long-running commands
+  - Commands like `nixos-rebuild test`, `nixos-build`, `colmena apply` MUST show real-time output
+  - User needs to see build progress, errors, and ETA
+  - Backgrounding hides output and causes confusion
+  - Always let these commands run normally with visible output
 - 2-space indentation, trailing semicolons
 - kebab-case for files and modules
 - Line length 80-100 chars (soft limit 120)
