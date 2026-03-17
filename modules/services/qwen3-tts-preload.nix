@@ -17,7 +17,7 @@ in
   config = mkIf cfg.pre-download {
     # Pre-download script using huggingface-cli
     environment.systemPackages = with pkgs; [
-      (pkgs.writeShellScriptBin "qwen3-tts-pre-download" ''
+      (pkgs.writeShellScriptBin "qwen3-tts-pre-download-script" ''
         #!/usr/bin/env bash
         set -euo pipefail
 
@@ -77,7 +77,7 @@ in
         User = "ai-inference";
         Group = "ai-inference";
         WorkingDirectory = "/var/cache/ai-inference";
-        ExecStart = "${pkgs.qwen3-tts-pre-download}/bin/qwen3-tts-pre-download";
+        ExecStart = "${pkgs.qwen3-tts-pre-download-script}/bin/qwen3-tts-pre-download-script";
         # Don't fail if pre-download fails (models will download on first use)
         RemainAfterExit = "no";
         StandardOutput = "journal";
