@@ -15,28 +15,30 @@ Deploy NixOS flake configurations across zephyr, nexus, forge, sentry.
 
 ## Quick Commands
 
-### Test Configuration
+### Validate Configuration
 ```bash
-just test
+nix flake check        # Quick validation (~5 seconds)
+just build              # Build local configuration (~2 minutes)
 ```
 
 ### Deploy to All Hosts
 ```bash
-just deploy
+just deploy            # Deploy to all hosts via Colmena
 ```
 
 ### Apply to Local Host Only
 ```bash
-just switch
+just switch            # Apply to local host (auto-pauses mining)
 ```
 
 ## Safety Rules
 
 CRITICAL: Always follow these rules:
-1. **ALWAYS** run `just test` before `just deploy`
-2. If SSH breaks on any node, STOP immediately
-3. Check `modules/networking/*` changes affect zephyr AND nexus
-4. Read commit messages before deploying
+1. **ALWAYS** run `nix flake check` before committing
+2. **Run** `just build` to verify configuration builds
+3. If SSH breaks on any node, STOP immediately
+4. Check `modules/networking/*` changes affect zephyr AND nexus
+5. Read commit messages before deploying
 
 ## Troubleshooting
 
@@ -46,7 +48,7 @@ CRITICAL: Always follow these rules:
 nix log .#nixosConfigurations.zephyr
 
 # Fix and rebuild
-just test
+just build
 ```
 
 ### SSH Issues
