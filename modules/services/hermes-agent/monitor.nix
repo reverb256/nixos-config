@@ -5,8 +5,14 @@ let
   cfg = config.services.hermes-agent;
 in lib.mkIf cfg.enable {
   # Text file metrics for Prometheus node_exporter
-  environment.etc."hermes-metrics/prometheus" = {
-    enable = true;
+  # The default textfile collector directory is /var/lib/node_exporter/textfile_collector
+  systemd.tmpfiles.settings."hermes-metrics" = {
+    "/var/lib/node_exporter/textfile_collector/hermes.prom".L = {
+      argument = "/etc/hermes-metrics.prom";
+    };
+  };
+
+  environment.etc."hermes-metrics.prom" = {
     text = ''
 # HELP hermes_commands_total Total number of Hermes commands executed
 # TYPE hermes_commands_total counter
@@ -34,42 +40,6 @@ hermes_up{node="${config.networking.hostName}"} 1
 '';
   };
 
-  # Script to update metrics (called by Hermes wrapper or systemd)
-  environment.etc."hermes-metrics/update-metrics.sh" = {
-    enable = true;
-    executable = true;
-    text = ''
-#!/usr/bin/env bash
-# Update Hermes metrics for Prometheus node_exporter
-METRICS_DIR="/etc/hermes-metrics/prometheus"
-METRICS_FILE="$METRICS_DIR/.prom"
-
-hermes_command_increment() {
-  sed -i "s/hermes_commands_total.*/hermes_commands_total{node=\"$(hostname)\"} $(('hermes_commands_total{node=\"$(hostname)\"}' + 1))/" "$METRICS_FILE"
-}
-
-hermes_success_increment() {
-  sed -i "s/hermes_commands_success_total.*/hermes_commands_success_total{node=\"$(hostname)\"} $(('hermes_commands_success_total{node=\"$(hostname)\"}' + 1))/" "$METRICS_FILE"
-}
-
-hermes_failed_increment() {
-  sed -i "s/hermes_commands_failed_total.*/hermes_commands_failed_total{node=\"$(hostname)\"} $(('hermes_commands_failed_total{node=\"$(hostname)\"}' + 1))/" "$METRICS_FILE"
-}
-
-# Export functions for use in Hermes wrapper
-export -f hermes_command_increment
-export -f hermes_success_increment
-export -f hermes_failed_increment
-'';
-  };
-
-  # Prometheus node_exporter textfile collector
-  services.prometheus.exporters.node = {
-    enable = true;
-    port = 9100;
-    enabledCollectors = [ "textfile" ];
-    extraOpts = [
-      "--collector.textfile.directories=${config.environment.etc."hermes-metrics".directory}"
-    ];
-  };
+  # Ensure textfile collector is enabled
+  services.prometheus.exporters.node.enabledCollectors = [ "textfile" ];
 }
