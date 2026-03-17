@@ -28,8 +28,8 @@ in {
         "https://cache.nixos-cuda.org"
       ];
       trusted-public-keys = lib.mkAfter [
-        # Zephyr binary cache (cluster-internal) - key will be added after generation
-        # "zephyr-cache-1:PUBLIC_KEY_HERE"
+        # Zephyr binary cache (cluster-internal)
+        "zephyr-cache-1:MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAwsmMIYbtuFSPH+b259X2d7BwtjeaA96d4xQRaAjmSDKYF8xjbLaRIHrx0nX+budA58wFivmI3FCTQtzQ+w75rm/ydaZOSfEv2BpHH/iQzYkvbTjqgVDSxFvuQ2fOIsIzPl6uFJLBOzgPw5XTp5vWDpS8C8qz36pPnG/zDEyCnJlF/DqSql8J4wJvYcBiq39wNxDX2Jbie9KhU84zquoEE0Zfon/RmbJTVtqYNHQ5OAWAlymWwhbdLYRyri8HZck6ECFsNhcYznREGIGcB1pAhqXwdzABJSPZ22fA4t315R2Q7DgfhElGe1pJDooiB0HlCtB7njmEFAXGO5iKTzsBPkQ4wszVTDcSf9J2eoxvlMrNgzkCz/Vjszm/ETs90/Io+qr6jo5aS0CroVbNBRwoybzrUymHOuquWwxOWSZqodxMgheBcIZQjb7EOGMdRBcoPMt4lYRU+U6xUsM3aetdnD5hPxizD+AsAxNTqrMtHv4lIaEQsyf2nyajd9kh+fKFmv+wBgKu7ET8DNBYhz7IzlxIV6rqrPfqEK1loyl+fH7Kvs+zkLmVUdeZCzsNDwwpN6/c9Q7/5BHaS/50YqX7giAcooAAU8aq7Q3atLKActI7UCqkQ3uJPTlEoH4RoueXDxUsn4NBEeXrBtvEUskgAAHplgrcdvfSaB2xTuJ6l7kCAwEAAQ=="
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
