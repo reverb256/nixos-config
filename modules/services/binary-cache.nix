@@ -49,16 +49,12 @@ in {
       script = ''
         if [ ! -f /etc/nix/cache-priv.key ]; then
           # Generate binary cache signing keys using OpenSSL
-          # Nix expects specific key format
           ${pkgs.openssl}/bin/openssl genrsa -out /etc/nix/cache-priv.key 4096
           chmod 640 /etc/nix/cache-priv.key
 
-          # Extract and format public key for Nix
-          ${pkgs.openssl}/bin/openssl rsa -in /etc/nix/cache-priv.key -pubout -out /etc/nix/cache-pub.key.pem
-          chmod 444 /etc/nix/cache-pub.key.pem
-
           # Convert to Nix format (cache-name-1:BASE64_KEY)
-          PUB_KEY=$(${pkgs.openssl}/bin/openssl rsa -in /etc/nix/cache-priv.key -pubout | ${pkgs.openssl}/bin/openssl rsa -pubin -RSAPublicKey_in -outform DER 2>/dev/null | ${pkgs.coreutils}/bin/base64 | ${pkgs.coreutils}/bin/head -c 52)
+          # The full public key in DER format, base64 encoded
+          PUB_KEY=$(${pkgs.openssl}/bin/openssl rsa -in /etc/nix/cache-priv.key -pubout | ${pkgs.openssl}/bin/openssl rsa -pubin -RSAPublicKey_in -outform DER 2>/dev/null | ${pkgs.coreutils}/bin/base64 -w 0)
           echo "zephyr-cache-1:$PUB_KEY" > /etc/nix/cache-pub.key
           chmod 444 /etc/nix/cache-pub.key
 
