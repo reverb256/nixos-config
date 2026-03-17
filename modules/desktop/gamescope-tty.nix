@@ -39,7 +39,6 @@ in {
       gamescope
       steam
       mangohud
-      # gamescopectl  # TODO: Not packaged in nixpkgs yet
     ];
   };
 
