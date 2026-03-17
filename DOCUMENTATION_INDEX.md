@@ -129,6 +129,50 @@ This document provides a comprehensive index of all documentation for the NixOS 
 **When to Read:** Before starting Kubernetes work, weekly during migration
 **Location:** `/etc/nixos/ROADMAP.md`
 
+### 7. Agenix Secrets Management
+**Purpose:** Age-encrypted secrets management for multi-host NixOS deployments
+**Key Sections:**
+- **`skills/agenix-secrets/SKILL.md`** - Complete skill documentation with workflows
+- **`skills/agenix-secrets/README.md`** - Quick reference and architecture overview
+- **`skills/agenix-secrets/HOST_KEY_SETUP_GUIDE.md`** - Guide for automatic decryption setup
+- **`modules/system/agenix-secrets-registry.nix`** - Central secret declarations by category
+- **`docs/security/secrets-rotation.md`** - Secret rotation procedures
+**Key Concepts:**
+- **User keys** (j_kro) - For manual secret management
+- **Host keys** (zephyr, forge, nexus, sentry) - For automatic decryption at build time
+- **Dual path entries** - Both `"name.age"` AND `"secrets/name.age"` required in secrets.nix
+- **Runtime location** - Decrypted secrets appear at `/run/agenix/<name>`
+**When to Read:** Adding new API keys, setting up new hosts, rotating secrets
+**Location:** `/etc/nixos/skills/agenix-secrets/`
+
+#### Multi-Host Deployment Guide
+**Purpose:** Complete guide to secret deployment across 4-host cluster
+**Key Sections:**
+- Secret lifecycle (creation → git → deploy → decrypt)
+- How secrets reach hosts via Colmena
+- Selective decryption by host key
+- Current secret distribution matrix
+- Adding secrets to new hosts
+- Troubleshooting guide
+**Location:** `/etc/nixos/docs/agenix-multi-host-deployment.md`
+
+#### Quick Reference: Adding a Secret
+```bash
+# 1. Create encrypted file
+cd /etc/nixos
+echo "my-secret-value" | agenix -e secrets/my-secret.age
+
+# 2. Add to secrets.nix (BOTH path entries)
+"my-secret.age".publicKeys = [users.j_kro hosts.zephyr];
+"secrets/my-secret.age".publicKeys = [users.j_kro hosts.zephyr];
+
+# 3. Declare in host config (use registry module)
+services.agenix-secrets-registry.aiServices = true;
+
+# 4. Rebuild
+sudo nixos-rebuild switch --flake .#zephyr
+```
+
 ---
 
 ## Operational Documentation
