@@ -24,6 +24,7 @@
         ../../modules/home-manager/starship.nix
         ../../modules/home-manager/wayland-tools.nix
         ../../modules/home-manager/nixcord-config.nix
+        ../../modules/home-manager/caprine.nix
         ../../modules/home-manager/zen-browser.nix
       ];
 

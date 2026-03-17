@@ -90,15 +90,12 @@
   };
 
   # ============================================================================
-  # ELECTRON/WAYLAND COMPATIBILITY - Fix electron app crashes
+  # ELECTRON/WAYLAND COMPATIBILITY
   # ============================================================================
   environment.sessionVariables = {
-    # Force XWayland for electron apps that crash on native Wayland
-    # This prevents "Failed to connect to Wayland display" errors
-    ELECTRON_OZONE_PLATFORM_HINT = "x11";
-
-    # Disable Wayland for problematic electron apps
-    NIXOS_OZONE_WL = "1";
+    # Let Electron auto-detect best backend (Wayland or XWayland)
+    # Modern Electron versions work well with native Wayland
+    ELECTRON_OZONE_PLATFORM_HINT = "auto";
 
     # GTK apps should use portal for better KDE integration
     GTK_USE_PORTAL = "1";
