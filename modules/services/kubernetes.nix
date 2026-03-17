@@ -6,7 +6,6 @@
 # See: docs/kubernetes/service-account-security.md
 { config
 , pkgs
-, pkgs-stable
 , lib
 , ...
 }: {
@@ -107,7 +106,6 @@
       # ============================================================================
       services.kubernetes = {
         # Using default kubernetes from unstable (1.35.0)
-        # Note: pkgs-stable had 1.34.3, reverting to unstable for 1.35.0
 
         # Master address
         masterAddress = config.services.kubernetes-module.masterAddress;

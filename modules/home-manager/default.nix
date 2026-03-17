@@ -2,7 +2,8 @@
 # Centralized user configuration for j_kro across all cluster nodes
 {inputs, ...}: {
   home-manager = {
-    backupFileExtension = "bak";
+    # No backups - configs are declarative and version-controlled
+    backupFileExtension = null;
 
     # Pass inputs to user configs so flake inputs are accessible
     extraSpecialArgs = {inherit inputs;};
