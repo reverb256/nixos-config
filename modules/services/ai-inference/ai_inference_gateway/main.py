@@ -44,6 +44,8 @@ try:
         TTSRequest,
         TTSResponse,
         QWEN3_TTS_MODELS,
+        QWEN3_TTS_SPEAKERS,
+        QWEN3_TTS_LANGUAGES,
         get_content_type,
         get_audio_extension,
         POLLINATIONS_TTS_URL,
@@ -55,6 +57,8 @@ except ImportError as e:
     TTSRequest = None
     TTSResponse = None
     QWEN3_TTS_MODELS = {}
+    QWEN3_TTS_SPEAKERS = {}
+    QWEN3_TTS_LANGUAGES = []
     get_audio_extension = None
     POLLINATIONS_TTS_URL = None
 

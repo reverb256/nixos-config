@@ -83,7 +83,8 @@ let
       ps.sentry-sdk
       # MCP SDK for SearXNG MCP server integration
       ps.mcp
-      # TTS support (Qwen3-TTS via transformers)
+      # TTS support (Qwen3-TTS via official qwen-tts package)
+      ps.qwen-tts  # Official Qwen3-TTS package
       ps.transformers
       ps.torch
       ps.torchaudio
@@ -101,7 +102,7 @@ let
   # Combined package: gateway source + Python environment in one
   # This allows both --app-dir usage and direct imports
   modularGatewayPkg = pkgs.symlinkJoin {
-    name = "ai-inference-gateway-modular-pkg-v12";
+    name = "ai-inference-gateway-modular-pkg-v13";  # Bump for Qwen3-TTS official package
     paths = [
       modularGatewayPkgBase
       gatewayPython
