@@ -6,28 +6,26 @@ let
 in lib.mkIf cfg.enable {
   systemd.services.hermes-health-check = {
     description = "Verify Hermes Agent is functional";
+    path = with pkgs; [ curl coreutils systemd ];
     script = ''
       #!/usr/bin/env bash
       set -e
 
       echo "[Hermes Health Check] Starting..."
 
-      # 1. Check Hermes CLI is available
-      if ! command -v hermes &>/dev/null; then
-        echo "[Hermes Health Check] ✗ Hermes CLI not found in PATH"
+      # 1. Check Hermes agent service is running
+      if systemctl is-active --quiet hermes-agent.service; then
+        echo "[Hermes Health Check] ✓ Hermes Agent service is running"
+      else
+        echo "[Hermes Health Check] ✗ Hermes Agent service is not running"
         exit 1
       fi
-      echo "[Hermes Health Check] ✓ Hermes CLI found"
 
-      # 2. Check Hermes version
-      HERMES_VERSION=$(hermes --version 2>&1 || echo "unknown")
-      echo "[Hermes Health Check] ✓ Version: $HERMES_VERSION"
-
-      # 3. Check AI Gateway is reachable (only on zephyr or if enabled)
-      if [[ "true" == "true" ]]; then
+      # 2. Check AI Gateway is reachable (only if enabled)
+      if ${lib.boolToString cfg.aiGateway.enable}; then
         GATEWAY_URL=''${cfg.aiGateway.url}
-        # Try to reach the gateway (health check uses full URL)
-        if curl -sSf --max-time 5 "$GATEWAY_URL/health" >/dev/null 2>&1; then
+        # Try to reach the gateway (health check uses root endpoint)
+        if ${pkgs.curl}/bin/curl -sSf --max-time 5 "$GATEWAY_URL/health" >/dev/null 2>&1; then
           echo "[Hermes Health Check] ✓ AI Gateway reachable ($GATEWAY_URL)"
         else
           echo "[Hermes Health Check] ⚠️  AI Gateway not reachable ($GATEWAY_URL)"
@@ -35,10 +33,10 @@ in lib.mkIf cfg.enable {
         fi
       fi
 
-      # 4. Check shared storage
-      if [[ "true" == "true" ]]; then
+      # 3. Check shared storage
+      if ${lib.boolToString cfg.sharedStorage.enable}; then
         MOUNT_POINT=''${cfg.sharedStorage.mountPoint}
-        if mountpoint -q "$MOUNT_POINT"; then
+        if ${pkgs.util-linux}/bin/mountpoint -q "$MOUNT_POINT"; then
           echo "[Hermes Health Check] ✓ Shared storage mounted ($MOUNT_POINT)"
         else
           echo "[Hermes Health Check] ⚠️  Shared storage not mounted ($MOUNT_POINT)"
@@ -46,9 +44,9 @@ in lib.mkIf cfg.enable {
         fi
       fi
 
-      # 5. Check custom skills directory exists
+      # 4. Check custom skills directory exists
       if [[ -d "${cfg.customSkills}" ]]; then
-        SKILL_COUNT=$(find "${cfg.customSkills}" -name "SKILL.md" 2>/dev/null | wc -l)
+        SKILL_COUNT=$(${pkgs.findutils}/bin/find "${cfg.customSkills}" -name "SKILL.md" 2>/dev/null | wc -l)
         echo "[Hermes Health Check] ✓ Custom skills directory found ($SKILL_COUNT skills)"
       else
         echo "[Hermes Health Check] ⚠️  Custom skills directory not found (${cfg.customSkills})"

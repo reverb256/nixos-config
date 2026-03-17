@@ -57,9 +57,12 @@ class OpenAIClientWrapper:
             zai_models: List of ZAI models to try (in order)
         """
         self.primary_url = primary_url.rstrip("/")
-        self.primary_api_key = (
-            primary_api_key or "not-needed"
-        )  # LM Studio doesn't need key
+        # For local servers (LM Studio), use placeholder if no key provided
+        # OpenAI SDK requires api_key to be set, but local servers don't validate it
+        if primary_api_key and primary_api_key.strip():
+            self.primary_api_key = primary_api_key
+        else:
+            self.primary_api_key = "not-needed"  # Placeholder for local servers
         self.fallback_url = fallback_url.rstrip("/") if fallback_url else None
         self.fallback_api_key = fallback_api_key
         self.timeout = timeout

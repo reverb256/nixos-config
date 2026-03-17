@@ -47,7 +47,7 @@
         fi
         if [ "$i" -eq 30 ]; then
           echo "  ✗ Gateway not ready after 30 seconds"
-          exit 1
+          exit 0
         fi
         sleep 1
       done
@@ -55,16 +55,17 @@
       # Run the Python update script
       echo "Fetching models from gateway..."
       if [ -f "$UPDATE_SCRIPT" ]; then
-        python3 "$UPDATE_SCRIPT" "$@" || {
-          echo "  ✗ Update script failed"
-          exit 1
-        }
+        if python3 "$UPDATE_SCRIPT" "$@" 2>&1; then
+          echo "  ✓ Model update complete"
+        else
+          echo "  ⚠️  Update script failed (gateway may have no models configured)"
+          echo "  This is non-critical - OpenCode will use fallback provider"
+          exit 0
+        fi
       else
         echo "  ✗ Update script not found: $UPDATE_SCRIPT"
-        exit 1
+        exit 0
       fi
-
-      echo "  ✓ Model update complete"
     '';
   };
 in {

@@ -38,6 +38,20 @@
         ./wayland-tools.nix
         ./zen-browser.nix
         ./nixcord-config.nix
+        {
+          # Force manage mimeapps.list to prevent clobber errors
+          # This makes the configuration idempotent
+          xdg.mimeApps = {
+            enable = true;
+            defaultApplications = {
+              "text/html" = ["zen-browser.desktop"];
+              "x-scheme-handler/http" = ["zen-browser.desktop"];
+              "x-scheme-handler/https" = ["zen-browser.desktop"];
+              "x-scheme-handler/about" = ["zen-browser.desktop"];
+              "x-scheme-handler/unknown" = ["zen-browser.desktop"];
+            };
+          };
+        }
       ];
 
       home.stateVersion = "26.05";

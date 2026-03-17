@@ -48,7 +48,7 @@ in {
         "tcpstat"
         "vmstat"
         # "zfs"  # Disabled - no ZFS pools in cluster
-        "textfile"
+        # "textfile"  # Disabled - configured via extraFlags to avoid duplicate flag
         # "nfs"  # Disabled - causes metrics endpoint to hang on hosts with NFS mounts
       ];
 
