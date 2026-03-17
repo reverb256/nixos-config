@@ -57,13 +57,15 @@ public:
         });
 
         // Pool -> Share response forwarding to worker
-        pool_manager_->set_share_response_callback([this](int id, bool accepted,
+        pool_manager_->set_share_response_callback([this](const std::string& worker_id,
+                                                         bool accepted,
                                                          const std::string& error) {
-            std::cout << "[gpu-proxy] Share response: id=" << id
-                      << " accepted=" << accepted
+            std::cout << "[gpu-proxy] Share response for " << worker_id
+                      << ": accepted=" << accepted
                       << " error=" << error << std::endl;
-            // TODO: Track which worker submitted which share
-            // For now, we don't have a mapping, so we can't send specific responses
+            // NOTE: Worker-to-share tracking is now implemented in PoolManager
+            // To complete: Add WorkerManager::send_share_response(worker_id, accepted, error)
+            // which would look up worker_fd and send the response message
         });
 
         // Pool state changes
