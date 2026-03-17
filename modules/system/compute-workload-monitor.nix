@@ -624,29 +624,29 @@
           # ============================================================================
           
           pause_xmrig() {
-              log "Pausing XMRig via HTTP API during build workload"
-              # Pause both instances using xmrig-api-control helper
+              log "Pausing XMRig during build workload"
+              # Stop both instances (XMRig API v2 /2/control endpoint not available, using systemctl stop)
               if systemctl is-active --quiet xmrig-always; then
-                  xmrig-api-control pause always 2>/dev/null || systemctl stop xmrig-always
-                  log "XMRig [always] paused - builds get full CPU priority"
+                  systemctl stop xmrig-always
+                  log "XMRig [always] stopped - builds get full CPU priority"
               fi
               if systemctl is-active --quiet xmrig-flexible; then
-                  xmrig-api-control pause flexible 2>/dev/null || systemctl stop xmrig-flexible
-                  log "XMRig [flexible] paused - builds get full CPU priority"
+                  systemctl stop xmrig-flexible
+                  log "XMRig [flexible] stopped - builds get full CPU priority"
               fi
           }
 
           resume_xmrig() {
               local threads="''$1"
-              log "Resuming XMRig via HTTP API (threads: ''${threads:-auto})"
-              # Resume both instances using xmrig-api-control helper
-              if systemctl is-active --quiet xmrig-always || ! systemctl is-active --quiet xmrig-flexible; then
-                  xmrig-api-control resume always 2>/dev/null || systemctl start xmrig-always
-                  log "XMRig [always] resumed"
+              log "Resuming XMRig (threads: ''${threads:-auto})"
+              # Start both instances (XMRig API v2 /2/control endpoint not available, using systemctl start)
+              if ! systemctl is-active --quiet xmrig-always; then
+                  systemctl start xmrig-always
+                  log "XMRig [always] started"
               fi
-              if systemctl is-active --quiet xmrig-flexible || ! systemctl is-active --quiet xmrig-flexible; then
-                  xmrig-api-control resume flexible 2>/dev/null || systemctl start xmrig-flexible
-                  log "XMRig [flexible] resumed"
+              if ! systemctl is-active --quiet xmrig-flexible; then
+                  systemctl start xmrig-flexible
+                  log "XMRig [flexible] started"
               fi
           }
           
@@ -659,9 +659,13 @@
               fi
           }
           
-          # Get XMRig status for state tracking
+          # Get XMRig status for state tracking (check if service is running)
           xmrig_status() {
-              xmrig-api-control status 2>/dev/null || echo "unknown"
+              if systemctl is-active --quiet xmrig-flexible || systemctl is-active --quiet xmrig-always; then
+                  echo "running"
+              else
+                  echo "stopped"
+              fi
           }
 
           # VRAM pressure detection to prevent desktop freezes
