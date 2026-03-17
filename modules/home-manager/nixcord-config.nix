@@ -49,7 +49,7 @@
     # and Vencord settings are managed declaratively via nixcord.
   };
 
-  # Autostart Vesktop on login with X11 backend for tray icon support
+  # Autostart Vesktop on login
   # Note: nixcord manages plugins and settings declaratively - no additional service needed
   systemd.user.services.vesktop-autostart = {
     Unit = {
@@ -63,16 +63,10 @@
     };
     Service = {
       Type = "simple";
-      Environment = [
-        # Force X11 backend for StatusNotifierItem/tray icon support
-        # This is required for KDE Plasma 6 on Wayland
-        "XDG_CURRENT_DESKTOP=KDE"
-        "ELECTRON_OZONE_PLATFORM_HINT=x11"
-      ];
-      # Use XWayland for proper tray icon support on Wayland
-      # --enable-features=UseOzonePlatform --ozone-platform-hint=x11 enables StatusNotifierItem
+      Environment = ["XDG_CURRENT_DESKTOP=KDE"];
+      # Global ELECTRON_OZONE_PLATFORM_HINT=auto handles backend selection
       # --start-minimized: tray settings are in ~/.config/vesktop/settings.json (writable)
-      ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-speech-dispatcher --enable-features=UseOzonePlatform --ozone-platform-hint=x11 --start-minimized";
+      ExecStart = "${pkgs.vesktop}/bin/vesktop --start-minimized";
       Restart = "on-failure";
       RestartSec = 5;
     };
