@@ -4,11 +4,11 @@ Text-to-Speech Handler
 
 Supports multiple TTS backends:
 - Pollinations.ai (free, cloud-based, multiple voices)
-- Qwen3-TTS models (local, via HuggingFace transformers)
+- Qwen3-TTS models (local, via official qwen-tts package)
 
 Based on:
 - Pollinations TTS API: https://text.pollinations.ai
-- OpenAI API reference: https://platform.openai.com/docs/api-reference/audio/createSpeech
+- Qwen3-TTS: https://github.com/QwenLM/Qwen3-TTS
 """
 
 import logging
@@ -106,46 +106,83 @@ QWEN3_TTS_MODELS = {
         "language": "en",
         "backend": "pollinations",
     },
-    # Qwen3-TTS models (local, via transformers)
-    "qwen3-tts-12hz-0.6b": {
-        "model_id": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
-        "sample_rate": 12000,
+    # Qwen3-TTS CustomVoice models (9 premium speakers, instruction control)
+    "qwen3-tts-customvoice-0.6b": {
+        "model_id": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+        "sample_rate": 24000,
         "max_tokens": 2048,
-        "description": "Lightweight TTS model, faster inference (local, requires transformers)",
+        "description": "Qwen3-TTS CustomVoice 0.6B - 9 premium speakers with instruction control",
         "quality": "standard",
-        "language": "en",
-        "backend": "local",
+        "supports_speakers": ["Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden", "Ono_Anna", "Sohee"],
+        "supports_instruction": True,
+        "streaming": True,
+        "backend": "qwen3-tts",
     },
-    "qwen3-tts-12hz-1.7b": {
-        "model_id": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
-        "sample_rate": 12000,
-        "max_tokens": 2048,
-        "description": "Full TTS model, better quality (local, requires transformers)",
-        "quality": "high",
-        "language": "en",
-        "backend": "local",
-    },
-    "qwen3-tts-12hz-1.7b-customvoice": {
+    "qwen3-tts-customvoice-1.7b": {
         "model_id": "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
-        "sample_rate": 12000,
+        "sample_rate": 24000,
         "max_tokens": 2048,
-        "description": "Voice cloning capabilities (local, requires transformers)",
+        "description": "Qwen3-TTS CustomVoice 1.7B - 9 premium speakers, highest quality",
+        "quality": "high",
+        "supports_speakers": ["Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden", "Ono_Anna", "Sohee"],
+        "supports_instruction": True,
+        "streaming": True,
+        "backend": "qwen3-tts",
+    },
+    # Qwen3-TTS VoiceDesign model (text-to-voice synthesis)
+    "qwen3-tts-voicedesign-1.7b": {
+        "model_id": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        "sample_rate": 24000,
+        "max_tokens": 2048,
+        "description": "Qwen3-TTS VoiceDesign - Create voices from natural language descriptions",
+        "quality": "high",
+        "supports_voice_design": True,
+        "supports_instruction": True,
+        "streaming": True,
+        "backend": "qwen3-tts",
+    },
+    # Qwen3-TTS Base models (3-second voice cloning)
+    "qwen3-tts-base-0.6b": {
+        "model_id": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+        "sample_rate": 24000,
+        "max_tokens": 2048,
+        "description": "Qwen3-TTS Base 0.6B - 3-second rapid voice cloning",
+        "quality": "standard",
+        "supports_voice_cloning": True,
+        "streaming": True,
+        "backend": "qwen3-tts",
+    },
+    "qwen3-tts-base-1.7b": {
+        "model_id": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+        "sample_rate": 24000,
+        "max_tokens": 2048,
+        "description": "Qwen3-TTS Base 1.7B - 3-second rapid voice cloning, best quality",
         "quality": "high",
         "supports_voice_cloning": True,
-        "language": "en",
-        "backend": "local",
-    },
-    "qwen3-tts-12hz-1.7b-voicedesign": {
-        "model_id": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
-        "sample_rate": 12000,
-        "max_tokens": 2048,
-        "description": "Procedural voice generation (local, requires transformers)",
-        "quality": "high",
-        "supports_procedural_voices": True,
-        "language": "en",
-        "backend": "local",
+        "streaming": True,
+        "backend": "qwen3-tts",
     },
 }
+
+# Qwen3-TTS CustomVoice speaker descriptions (for API documentation)
+QWEN3_TTS_SPEAKERS = {
+    "Vivian": "Bright, slightly edgy young female voice (Chinese native)",
+    "Serena": "Warm, gentle young female voice (Chinese native)",
+    "Uncle_Fu": "Seasoned male voice with low, mellow timbre (Chinese native)",
+    "Dylan": "Youthful Beijing male voice with clear, natural timbre (Beijing dialect)",
+    "Eric": "Lively Chengdu male voice with slightly husky brightness (Sichuan dialect)",
+    "Ryan": "Dynamic male voice with strong rhythmic drive (English native)",
+    "Aiden": "Sunny American male voice with clear midrange (English native)",
+    "Ono_Anna": "Playful Japanese female voice with light, nimble timbre (Japanese native)",
+    "Sohee": "Warm Korean female voice with rich emotion (Korean native)",
+}
+
+# Qwen3-TTS supported languages
+QWEN3_TTS_LANGUAGES = [
+    "Chinese", "English", "Japanese", "Korean",
+    "German", "French", "Russian", "Portuguese", "Spanish", "Italian",
+    "Auto",  # Auto-detect from text
+]
 
 
 # Voice mapping (OpenAI voices → Pollinations voices)
@@ -324,10 +361,23 @@ class TTSHandler:
         model: str,
         voice: str = "alloy",
         speed: float = 1.0,
-        response_format: str = "mp3"
+        response_format: str = "mp3",
+        ref_audio: Optional[str] = None,
+        ref_text: Optional[str] = None,
+        voice_clone_prompt: Optional[Any] = None,
     ) -> tuple[bytes, str, int]:
         """
         Generate speech from text using the best available backend.
+
+        Args:
+            text: Text to synthesize
+            model: Model name or ID
+            voice: Voice name (for CustomVoice models)
+            speed: Speech speed multiplier
+            response_format: Output audio format
+            ref_audio: Reference audio URL for voice cloning (Base models)
+            ref_text: Transcript of reference audio for voice cloning
+            voice_clone_prompt: Pre-computed voice clone prompt for reuse
 
         Returns:
             (audio_data, content_type, sample_rate)
@@ -339,45 +389,52 @@ class TTSHandler:
         if backend == "pollinations":
             return await self.generate_speech_pollinations(text, voice, speed, response_format)
 
-        # Local model support (transformers, etc.)
-        if not self.enable_local_models:
-            raise HTTPException(
-                status_code=501,
-                detail=f"Local TTS models not yet enabled. "
-                      f"Set enable_local_models=True or use a Pollinations model (tts-1, tts-1-hd, pollinations-tts)."
+        # Qwen3-TTS via official qwen-tts package
+        if backend == "qwen3-tts":
+            return await self.generate_speech_qwen3_official(
+                text=text,
+                model=model,
+                model_config=model_config,
+                voice=voice,
+                speed=speed,
+                response_format=response_format,
+                ref_audio=ref_audio,
+                ref_text=ref_text,
+                voice_clone_prompt=voice_clone_prompt,
             )
 
-        # Local Qwen3-TTS model
-        return await self.generate_speech_qwen3(
-            text=text,
-            model=model,
-            model_config=model_config,
-            voice=voice,
-            speed=speed,
-            response_format=response_format
+        # Legacy fallback
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unknown TTS backend: {backend}"
         )
 
-    async def generate_speech_qwen3(
+    async def generate_speech_qwen3_official(
         self,
         text: str,
         model: str,
         model_config: Dict[str, Any],
         voice: str = "alloy",
         speed: float = 1.0,
-        response_format: str = "mp3"
+        response_format: str = "mp3",
+        ref_audio: Optional[str] = None,
+        ref_text: Optional[str] = None,
+        voice_clone_prompt: Optional[Any] = None,
     ) -> tuple[bytes, str, int]:
         """
-        Generate speech from text using local Qwen3-TTS models via transformers.
+        Generate speech using official Qwen3-TTS package via qwen-tts.
 
-        Qwen3-TTS uses a transformer-based architecture for speech synthesis.
-        The models are available on HuggingFace and use the Qwen3TTSForConditionalGeneration class.
+        Supports three model types:
+        - CustomVoice: Pre-built speakers with instruction control
+        - VoiceDesign: Text-to-voice synthesis
+        - Base/VoiceClone: 3-second rapid voice cloning
 
         Returns:
             (audio_data, content_type, sample_rate)
         """
         import torch
         import numpy as np
-        import io
+        import soundfile as sf
 
         model_id = model_config["model_id"]
         sample_rate = model_config["sample_rate"]
@@ -385,151 +442,284 @@ class TTSHandler:
         logger.info(f"Loading Qwen3-TTS model: {model_id}")
 
         try:
-            # Import the Qwen3-TTS model classes
-            from transformers import AutoTokenizer, AutoModelForCausalLM
-            from transformers.generation import GenerationConfig
+            # Import the official Qwen3-TTS package
+            from qwen_tts import Qwen3TTSModel, Qwen3TTSTokenizer
 
-            # Load model and tokenizer in a thread pool to avoid blocking
+            # Determine model type from model_id
+            model_type = None
+            if "CustomVoice" in model_id:
+                model_type = "custom_voice"
+            elif "VoiceDesign" in model_id:
+                model_type = "voice_design"
+            elif "Base" in model_id:
+                model_type = "voice_clone"
+
+            # Load model in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
 
-            def load_model_components():
-                # Load the Qwen3-TTS model
-                # These models use a specific architecture for TTS
-                model = AutoModelForCausalLM.from_pretrained(
-                    model_id,
-                    torch_dtype=torch.float16,
-                    device_map="auto",
-                    trust_remote_code=True
-                )
-                tokenizer = AutoTokenizer.from_pretrained(
-                    model_id,
-                    trust_remote_code=True
-                )
-                return model, tokenizer
+            def load_model():
+                # Determine device and dtype
+                device = "cuda:0" if torch.cuda.is_available() else "cpu"
+                dtype = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
 
-            model, tokenizer = await loop.run_in_executor(None, load_model_components)
+                # Try flash_attention_2 if available
+                try:
+                    return Qwen3TTSModel.from_pretrained(
+                        model_id,
+                        device_map=device,
+                        dtype=dtype,
+                        attn_implementation="flash_attention_2",
+                    )
+                except Exception:
+                    # Fallback without flash attention
+                    return Qwen3TTSModel.from_pretrained(
+                        model_id,
+                        device_map=device,
+                        dtype=dtype,
+                    )
 
-            logger.info(f"Model loaded, generating speech for text: {text[:50]}...")
+            qwen_model = await loop.run_in_executor(None, load_model)
+            logger.info(f"Model loaded ({model_type}), generating speech for text: {text[:50]}...")
 
-            # Qwen3-TTS models have a specific text-to-speech method
+            # Generate audio based on model type
             def generate_audio():
-                with torch.no_grad():
-                    # Check if model has a dedicated TTS method
-                    if hasattr(model, 'generate_speech'):
-                        # Use the built-in TTS generation method
-                        audio_array = model.generate_speech(
+                if model_type == "custom_voice":
+                    # CustomVoice: generate_custom_voice(text, language, speaker, instruct)
+                    # Map OpenAI voice names to Qwen speakers
+                    speaker = self._map_to_qwen_speaker(voice)
+                    language = self._detect_language(text)  # Auto-detect or use default
+
+                    # Use instruct parameter for emotion/style if provided in voice name
+                    # Format: "voice_name:instruct" e.g., "alloy:speak happily"
+                    instruct = None
+                    if ":" in speaker:
+                        speaker, instruct = speaker.split(":", 1)
+
+                    wavs, sr = qwen_model.generate_custom_voice(
+                        text=text,
+                        language=language,
+                        speaker=speaker,
+                        instruct=instruct or "",
+                    )
+                    return wavs[0], sr
+
+                elif model_type == "voice_design":
+                    # VoiceDesign: generate_voice_design(text, language, instruct)
+                    # Use voice parameter as the instruct for voice design
+                    language = self._detect_language(text)
+                    instruct = voice  # The "voice" parameter becomes the design instruction
+
+                    wavs, sr = qwen_model.generate_voice_design(
+                        text=text,
+                        language=language,
+                        instruct=instruct,
+                    )
+                    return wavs[0], sr
+
+                elif model_type == "voice_clone":
+                    # VoiceClone: generate_voice_clone(text, language, ref_audio, ref_text)
+                    language = self._detect_language(text)
+
+                    if voice_clone_prompt is not None:
+                        # Reuse pre-computed voice clone prompt
+                        wavs, sr = qwen_model.generate_voice_clone(
                             text=text,
-                            voice=voice,
-                            speed=speed
+                            language=language,
+                            voice_clone_prompt=voice_clone_prompt,
                         )
-                    elif hasattr(model, 'tts'):
-                        # Alternative TTS method
-                        audio_array = model.tts(
+                    elif ref_audio:
+                        # Create new voice clone prompt from reference
+                        wavs, sr = qwen_model.generate_voice_clone(
                             text=text,
-                            speaker=voice
+                            language=language,
+                            ref_audio=ref_audio,
+                            ref_text=ref_text or "",
                         )
                     else:
-                        # Use the generate method with TTS-specific parameters
-                        # Qwen3-TTS models accept text input and output audio
-                        inputs = tokenizer(text, return_tensors="pt")
-
-                        # Move inputs to the same device as model
-                        if hasattr(model, 'device'):
-                            device = model.device
-                        else:
-                            device = next(model.parameters()).device
-
-                        inputs = {k: v.to(device) for k, v in inputs.items()}
-
-                        # Generate with TTS parameters
-                        generation_config = GenerationConfig(
-                            max_new_tokens=2048,
-                            do_sample=True,
-                            temperature=0.7,
-                            top_p=0.9,
+                        # Fallback to CustomVoice if no reference provided
+                        speaker = self._map_to_qwen_speaker(voice)
+                        wavs, sr = qwen_model.generate_custom_voice(
+                            text=text,
+                            language=language,
+                            speaker=speaker,
                         )
+                    return wavs[0], sr
 
-                        outputs = model.generate(
-                            **inputs,
-                            generation_config=generation_config
-                        )
+                else:
+                    raise ValueError(f"Unknown Qwen3-TTS model type: {model_type}")
 
-                        # The output needs to be decoded to audio
-                        # For Qwen3-TTS, the output is audio tokens that need to be decoded
-                        if hasattr(model, 'decode_audio'):
-                            audio_array = model.decode_audio(outputs)
-                        elif hasattr(tokenizer, 'decode_audio'):
-                            audio_array = tokenizer.decode_audio(outputs)
-                        else:
-                            # Fallback: convert output to numpy array
-                            audio_array = outputs[0].cpu().numpy()
+            audio_array, sr = await loop.run_in_executor(None, generate_audio)
 
-                return audio_array
-
-            audio_array = await loop.run_in_executor(None, generate_audio)
-
-            # Ensure we have a numpy array
+            # Convert to numpy if needed
             if not isinstance(audio_array, np.ndarray):
                 if torch.is_tensor(audio_array):
                     audio_array = audio_array.cpu().numpy()
                 else:
                     audio_array = np.array(audio_array)
 
-            # Normalize audio if it's floating point
+            # Normalize if floating point
             if audio_array.dtype in [np.float32, np.float64]:
                 if np.max(np.abs(audio_array)) > 1.0:
                     audio_array = audio_array / np.max(np.abs(audio_array))
                 audio_array = (audio_array * 32767).astype(np.int16)
 
-            # Apply speed adjustment if needed
-            if speed != 1.0 and speed > 0:
-                original_length = len(audio_array)
-                new_length = int(original_length / speed)
-                if new_length > 0:
-                    indices = np.linspace(0, original_length - 1, new_length)
-                    audio_array = np.interp(indices, np.arange(original_length), audio_array).astype(np.int16)
-
             # Convert to requested format
             audio_bytes, content_type = self._convert_audio_format(
-                audio_array, sample_rate, response_format
+                audio_array, sr, response_format
             )
 
             logger.info(f"Qwen3-TTS success: {len(audio_bytes)} bytes, format={response_format}")
 
-            return audio_bytes, content_type, sample_rate
+            return audio_bytes, content_type, sr
 
         except ImportError as e:
-            logger.error(f"Missing dependencies for local TTS: {e}")
+            logger.error(f"Missing qwen-tts package: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Local TTS requires transformers and torch. Missing: {e}"
+                detail="Qwen3-TTS requires the qwen-tts package. Install with: pip install qwen-tts"
             )
         except OSError as e:
-            # Model download errors
             logger.error(f"Failed to load Qwen3-TTS model: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to load TTS model. Ensure you have internet access for the first download: {e}"
+                detail=f"Failed to load TTS model. Check internet connection for model download: {e}"
             )
         except Exception as e:
             logger.error(f"Qwen3-TTS generation failed: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Local TTS generation failed: {str(e)}"
+                detail=f"TTS generation failed: {str(e)}"
             )
 
-        except ImportError as e:
-            logger.error(f"Missing dependencies for local TTS: {e}")
+    def _map_to_qwen_speaker(self, voice: str) -> str:
+        """Map OpenAI/Custom voice names to Qwen3-TTS CustomVoice speakers."""
+        voice_lower = voice.lower()
+
+        # Direct Qwen speaker names
+        qwen_speakers = ["vivian", "serena", "uncle_fu", "dylan", "eric", "ryan", "aiden", "ono_anna", "sohee"]
+        if voice_lower in [s.replace("_", "") for s in qwen_speakers]:
+            return voice_lower.replace("_", "")
+
+        # Map OpenAI voices to similar Qwen speakers
+        openai_to_qwen = {
+            "alloy": "Ryan",      # Dynamic female → Dynamic male
+            "echo": "Aiden",       # Clear male → Sunny male
+            "fable": "Ono_Anna",  # Playful female → Playful Japanese
+            "onyx": "Uncle_Fu",   # Deep male → Seasoned male
+            "nova": "Serena",     # Warm female → Warm female
+            "shimmer": "Vivian",  # Bright female → Bright female
+        }
+
+        return openai_to_qwen.get(voice_lower, "Ryan")  # Default to Ryan
+
+    def _detect_language(self, text: str) -> str:
+        """
+        Detect language from text or return Auto.
+
+        Simple heuristic: check for CJK characters, etc.
+        """
+        import re
+
+        # Check for Chinese characters
+        if re.search(r'[\u4e00-\u9fff]', text):
+            return "Chinese"
+
+        # Check for Japanese characters
+        if re.search(r'[\u3040-\u309f\u30a0-\u30ff]', text):
+            return "Japanese"
+
+        # Check for Korean characters
+        if re.search(r'[\uac00-\ud7af]', text):
+            return "Korean"
+
+        # Default to Auto for let the model decide
+        return "Auto"
+
+    async def create_voice_clone_prompt(
+        self,
+        model: str,
+        ref_audio: str,
+        ref_text: str,
+        x_vector_only_mode: bool = False,
+    ) -> Any:
+        """
+        Create a reusable voice clone prompt from reference audio.
+
+        This allows you to extract speaker features once and reuse them
+        for multiple generations, avoiding recomputing features each time.
+
+        Args:
+            model: Base model ID (e.g., "qwen3-tts-base-1.7b")
+            ref_audio: Reference audio URL or file path
+            ref_text: Transcript of reference audio
+            x_vector_only_mode: Use only speaker embedding (faster but lower quality)
+
+        Returns:
+            Voice clone prompt object for use with generate_voice_clone
+        """
+        import torch
+        from qwen_tts import Qwen3TTSModel
+
+        model_config = self.get_model_config(model)
+        model_id = model_config["model_id"]
+
+        if model_config.get("backend") != "qwen3-tts":
             raise HTTPException(
-                status_code=500,
-                detail=f"Local TTS requires transformers, torch, and torchaudio. Missing: {e}"
+                status_code=400,
+                detail="Voice cloning is only supported by Qwen3-TTS Base models"
             )
+
+        try:
+            loop = asyncio.get_event_loop()
+
+            def load_and_create_prompt():
+                device = "cuda:0" if torch.cuda.is_available() else "cpu"
+                dtype = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
+
+                qwen_model = Qwen3TTSModel.from_pretrained(
+                    model_id,
+                    device_map=device,
+                    dtype=dtype,
+                )
+
+                return qwen_model.create_voice_clone_prompt(
+                    ref_audio=ref_audio,
+                    ref_text=ref_text,
+                    x_vector_only_mode=x_vector_only_mode,
+                )
+
+            return await loop.run_in_executor(None, load_and_create_prompt)
+
         except Exception as e:
-            logger.error(f"Qwen3-TTS generation failed: {e}")
+            logger.error(f"Failed to create voice clone prompt: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Local TTS generation failed: {str(e)}"
+                detail=f"Failed to create voice clone prompt: {str(e)}"
             )
+
+    def get_supported_speakers(self, model: str = None) -> list[str]:
+        """
+        Get list of supported speakers for Qwen3-TTS CustomVoice models.
+
+        Args:
+            model: Optional model ID (uses default CustomVoice model if not specified)
+
+        Returns:
+            List of speaker names
+        """
+        return list(QWEN3_TTS_SPEAKERS.keys())
+
+    def get_supported_languages(self, model: str = None) -> list[str]:
+        """
+        Get list of supported languages for Qwen3-TTS.
+
+        Args:
+            model: Optional model ID
+
+        Returns:
+            List of language names
+        """
+        return QWEN3_TTS_LANGUAGES.copy()
 
     def _convert_audio_format(
         self,
@@ -565,7 +755,6 @@ class TTSHandler:
             # Try to use pydub for MP3 conversion (requires ffmpeg)
             try:
                 from pydub import AudioSegment
-                import io
 
                 # Create AudioSegment from raw audio data
                 audio_segment = AudioSegment(
