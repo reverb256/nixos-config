@@ -179,9 +179,10 @@ in {
       enable = true; # Wallet created with agenix, ready to deploy
       # Provider address: cluster-provider (created 2026-03-14)
       providerAddress = "akash1s97zjxzn3tnudawjhjhpus9x7yn6dgukzar372";
-      # Domain for provider ingress (using Cloudflare Tunnel URL)
-      domain = "09cb0ea8-051e-4207-8e7c-3acc43408915.cfargotunnel.com";
-      clusterPublicHostname = "09cb0ea8-051e-4207-8e7c-3acc43408915.cfargotunnel.com";
+      # Domain for provider ingress (using Quick Tunnel for testing)
+      # WARNING: Quick Tunnel URLs change on restart - use own domain for production
+      domain = "tech-trace-sunny-sciences.trycloudflare.com";
+      clusterPublicHostname = "tech-trace-sunny-sciences.trycloudflare.com";
 
       # GPU pricing (uakt per block) - adjust based on market demand
       pricing = {
@@ -193,20 +194,18 @@ in {
       };
     };
 
-    # Cloudflare Tunnel - Secure ingress for Akash provider without public ports
-    # Tunnel ID: 09cb0ea8-051e-4207-8e7c-3acc43408915
-    # Tunnel URL: https://09cb0ea8-051e-4207-8e7c-3acc43408915.cfargotunnel.com
-    cloudflared-tunnel = {
-      enable = true;
-      tunnelId = "09cb0ea8-051e-4207-8e7c-3acc43408915";
-      ingressRules = [
-        {
-          # Route all tunnel traffic to Kubernetes API server VIP
-          hostname = "09cb0ea8-051e-4207-8e7c-3acc43408915.cfargotunnel.com";
-          service = "https://10.1.1.100:6443"; # Kubernetes API server VIP
-        }
-      ];
-    };
+    # Cloudflare Tunnel - DISABLED: Using manual Quick Tunnel for testing
+    # Will re-enable when we add the real domain
+    # cloudflared-tunnel = {
+    #   enable = true;
+    #   tunnelId = "09cb0ea8-051e-4207-8e7c-3acc43408915";
+    #   ingressRules = [
+    #     {
+    #       hostname = "akash.your-domain.com";
+    #       service = "https://10.1.1.100:6443";
+    #     }
+    #   ];
+    # };
 
     # Crash watchdog - detect and log system crashes
     crash-watchdog.enable = true;
