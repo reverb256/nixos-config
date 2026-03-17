@@ -5,27 +5,7 @@
   lib,
   inputs,
   ...
-}: let
-  # Gateway package as a Python package (for site-packages)
-  gatewayPythonPkg =
-    pkgs.runCommand "ai-inference-gateway-python-pkg"
-    {
-      preferLocalBuild = true;
-      passAsFile = ["buildScript"];
-      buildScript = ''
-        mkdir -p $out/lib/python3.13/site-packages
-        cp -r ${../../modules/services/ai-inference/ai_inference_gateway} $out/lib/python3.13/site-packages/ai_inference_gateway
-        chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
-        find $out -name "*.pyc" -delete
-        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-      '';
-    }
-    ''
-      . $buildScriptPath
-    '';
-  # Add the gateway package to system packages so it's importable
-  # The mcp_broker will add the correct PYTHONPATH when spawning
-in {
+}: {
   imports = [
     # ========================================================================
     # BASE MODULES
@@ -346,42 +326,45 @@ in {
       enable = true;
       auctionInterval = 30; # Run auction every 30 seconds
 
-      # Mining bidder configuration
-      bidders.mining = {
-        enable = true;
-        hourlyRevenue = 0.10; # $0.10/hr per GPU (baseline bid)
-        services = ["lolminer-nvidia" "xmrig"];
-      };
+      # Bidders configuration
+      bidders = {
+        # Mining bidder configuration
+        mining = {
+          enable = true;
+          hourlyRevenue = 0.10; # $0.10/hr per GPU (baseline bid)
+          services = ["lolminer-nvidia" "xmrig"];
+        };
 
-      # Kubernetes bidder configuration
-      bidders.kubernetes = {
-        enable = true;
-        baseBid = 2.50; # $2.50/hr base bid for K8s workloads
-        urgencyMultiplier = 2.0; # 2x multiplier for urgent jobs
-        namespace = "default";
-      };
+        # Kubernetes bidder configuration
+        kubernetes = {
+          enable = true;
+          baseBid = 2.50; # $2.50/hr base bid for K8s workloads
+          urgencyMultiplier = 2.0; # 2x multiplier for urgent jobs
+          namespace = "default";
+        };
 
-      # Akash bidder configuration
-      bidders.akash = {
-        enable = true;
-        profitMargin = 0.90; # Bid 90% of market rate (10% buffer)
-        namespace = "akash-services";
-      };
+        # Akash bidder configuration
+        akash = {
+          enable = true;
+          profitMargin = 0.90; # Bid 90% of market rate (10% buffer)
+          namespace = "akash-services";
+        };
 
-      # Gaming override (always wins)
-      bidders.gaming = {
-        enable = true;
-        processes = [
-          "steam"
-          "steamwebhelper"
-          "steamapps"
-          "lutris"
-          "heroic"
-          "Lutris"
-          "HeroicGamesLauncher"
-          "wine"
-          "proton"
-        ];
+        # Gaming override (always wins)
+        gaming = {
+          enable = true;
+          processes = [
+            "steam"
+            "steamwebhelper"
+            "steamapps"
+            "lutris"
+            "heroic"
+            "Lutris"
+            "HeroicGamesLauncher"
+            "wine"
+            "proton"
+          ];
+        };
       };
 
       # Prometheus metrics
@@ -902,185 +885,57 @@ in {
     dockerSocket.enable = true;
   };
 
-  # Agenix secrets for AI services
+  # ============================================================================
+  # AGENIX SECRETS - Centralized registry (2026-03-16 migration)
+  # ============================================================================
+  # All secrets managed via agenix-secrets-registry module
+  # Categories: aiServices, monitoring, storage, mining, cloud, selfHosting
+  # See: modules/system/agenix-secrets-registry.nix
+  services.agenix-secrets-registry = {
+    enable = true;
+    aiServices = true;
+    monitoring = false;  # TODO: Re-enable after creating sentry-dsn.age
+    storage = false;     # Garage runs on nexus, not zephyr
+    mining = true;
+    cloud = true;
+    selfHosting = false; # These services run on other hosts
+  };
+
+  # Override specific secret permissions (registry defaults can be overridden)
   age = {
     identityPaths = ["/home/j_kro/.age/key.txt"];
-
-    secrets = {
-      lm-studio-api-key = {
-        file = "${inputs.self}/secrets/lm-studio-api-key.age";
-        mode = "440";
-        owner = "ai-inference";
-        group = "ai-inference";
-      };
-
-      huggingface-token = {
-        file = "${inputs.self}/secrets/huggingface-token.age";
-        mode = "440";
-        owner = "j_kro";
-        group = "users";
-      };
-
-      zai-api-key = {
-        file = "${inputs.self}/secrets/zai-api-key.age";
-        mode = "440";
-        owner = "j_kro";
-        group = "ai-inference";
-      };
-
-      # Pollinations API key - Free AI service (text, image, TTS)
-      pollinations-api-key = {
-        file = "${inputs.self}/secrets/pollinations-api-key.age";
-        mode = "440";
-        owner = "ai-inference";
-        group = "ai-inference";
-      };
-
-      # Kilo API key - Kilo Code provider for Spacebot
-      kilo-api-key = {
-        file = "${inputs.self}/secrets/kilo-api-key.age";
-        mode = "440";
-        owner = "j_kro";
-        group = "users";
-      };
-
-      # Context7 API key - Documentation search for AI tools
-      context7-api-key = {
-        file = "${inputs.self}/secrets/context7-api-key.age";
-        mode = "440";
-        owner = "ai-inference";
-        group = "ai-inference";
-      };
-
-      # GlitchTip error tracking secrets
-      glitchtip-db-password = {
-        file = "${inputs.self}/secrets/glitchtip-db-password.age";
-        mode = "440";
-        owner = "root";
-        group = "root";
-        symlink = true;
-      };
-
-      glitchtip-secret-key = {
-        file = "${inputs.self}/secrets/glitchtip-secret-key.age";
-        mode = "440";
-        owner = "root";
-        group = "root";
-        symlink = true;
-      };
-
-      # XMRig HTTP API tokens - For pause/resume via API during builds/gaming
-      xmrig-api-token = {
-        file = "${inputs.self}/secrets/xmrig-api-token.age";
-        mode = "440";
-        owner = "mining";
-        group = "mining";
-      };
-      # Always-on XMRig instance API token
-      xmrig-always-api-token = {
-        file = "${inputs.self}/secrets/xmrig-always-api-token.age";
-        mode = "440";
-        owner = "mining";
-        group = "mining";
-      };
-      # Flexible XMRig instance API token (paused during gaming)
-      xmrig-flexible-api-token = {
-        file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
-        mode = "440";
-        owner = "mining";
-        group = "mining";
-      };
-
-      # Tailscale API key - Tailscale service authentication
-      tailscale-api-key = {
-        file = "${inputs.self}/secrets/tailscale-api-key.age";
-        mode = "440";
-        owner = "j_kro";
-        group = "users";
-      };
-
-      # Spacebot Discord bot token
-      # TEMPORARILY DISABLED: Secret file not yet created
-      # spacebot-discord-token = {
-      #   file = "${inputs.self}/secrets/spacebot-discord-token.age";
-      #   mode = "440";
-      #   owner = "root";
-      #   group = "root";
-      # };
-
-      # Spacebot Telegram bot token - TrovesAndCoves client communication
-      spacebot-telegram-token = {
-        file = "${inputs.self}/secrets/spacebot-telegram-token.age";
-        mode = "440";
-        owner = "root";
-        group = "root";
-      };
-
-      # Garage S3-compatible object storage - RPC secret for cluster communication
-      # DISABLED on zephyr (garage runs on nexus)
-      # garage-rpc-secret = {
-      #   file = "${inputs.self}/secrets/garage-rpc-secret.age";
-      #   mode = "440";
-      #   owner = "garage";
-      #   group = "garage";
-      # };
-
-      # Garage S3 admin secret key - For automated backups to S3
-      garage-s3-secret-key = {
-        file = "${inputs.self}/secrets/garage-s3-secret-key.age";
-        mode = "440";
-        owner = "root";
-        group = "root";
-      };
-
-      # Nextcloud admin password (DISABLED - service not enabled)
-      # nextcloud-admin = {
-      #   file = "${inputs.self}/secrets/nextcloud-admin.age";
-      #   mode = "440";
-      #   owner = "nextcloud";
-      #   group = "nextcloud";
-      # };
-
-      # Grafana admin password
-      grafana-admin = {
-        file = "${inputs.self}/secrets/grafana-admin.age";
-        mode = "440";
-        owner = "grafana";
-        group = "grafana";
-      };
-
-      # TP-Link switch admin password
-      switch-admin = {
-        file = "${inputs.self}/secrets/switch-admin.age";
-        mode = "440";
-        owner = "root";
-        group = "root";
-      };
-
-      # Vaultwarden admin token
-      vaultwarden-admin-token = {
-        file = "${inputs.self}/secrets/vaultwarden-admin-token.age";
-        mode = "440";
-        owner = "root";
-        group = "root";
-      };
-
-      # Akash Provider wallet key (for earning AKT/USDC from GPU compute)
-      akash-provider-key = {
-        file = "${inputs.self}/secrets/akash-provider-key.age";
-        mode = "400";
-        owner = "root";
-        group = "root";
-      };
-
-      # Cloudflare Tunnel credentials (for Akash provider public ingress)
-      cloudflared-token = {
-        file = "${inputs.self}/secrets/cloudflared-token.age";
-        mode = "400";
-        owner = "root";
-        group = "root";
-      };
+    secrets.xmrig-api-token = lib.mkForce {
+      file = "${inputs.self}/secrets/xmrig-api-token.age";
+      mode = "440";
+      owner = "mining";
+      group = "mining";
     };
+    secrets.xmrig-always-api-token = lib.mkForce {
+      file = "${inputs.self}/secrets/xmrig-always-api-token.age";
+      mode = "440";
+      owner = "mining";
+      group = "mining";
+    };
+    secrets.xmrig-flexible-api-token = lib.mkForce {
+      file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
+      mode = "440";
+      owner = "mining";
+      group = "mining";
+    };
+    secrets.akash-provider-key = lib.mkForce {
+      file = "${inputs.self}/secrets/akash-provider-key.age";
+      mode = "400";
+      owner = "root";
+      group = "root";
+    };
+    secrets.cloudflared-token = lib.mkForce {
+      file = "${inputs.self}/secrets/cloudflared-token.age";
+      mode = "400";
+      owner = "root";
+      group = "root";
+    };
+    # Note: spacebot-telegram-token uses registry default (owner=j_kro)
+    # because the hermes-agent service runs as user=j_kro
   };
 
   # ============================================================================

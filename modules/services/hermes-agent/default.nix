@@ -97,6 +97,12 @@ in
       defaultText = "./skills";
       description = "Path to custom NixOS-specific skills";
     };
+
+    activeSkillsCount = lib.mkOption {
+      type = lib.types.int;
+      default = 0;
+      description = "Number of active skills loaded (for metrics)";
+    };
   };
 
   config = lib.mkIf cfg.enable {

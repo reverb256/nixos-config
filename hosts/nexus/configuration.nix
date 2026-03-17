@@ -506,24 +506,24 @@
   # ============================================================================
   # AGENIX SECRETS
   # ============================================================================
-  # XMRig HTTP API tokens for dual-instance mining setup
-  age = {
-    identityPaths = ["/home/j_kro/.age/key.txt"];
-    secrets = {
-      # Always-on XMRig instance API token
-      xmrig-always-api-token = {
-        file = "${inputs.self}/secrets/xmrig-always-api-token.age";
-        mode = "440";
-        owner = "mining";
-        group = "mining";
-      };
-      # Flexible XMRig instance API token (paused during gaming)
-      xmrig-flexible-api-token = {
-        file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
-        mode = "440";
-        owner = "mining";
-        group = "mining";
-      };
-    };
+  # Centralized registry - see modules/system/agenix-secrets-registry.nix
+  services.agenix-secrets-registry = {
+    enable = true;
+    mining = true; # XMRig API tokens
+    storage = true; # Garage S3 cluster (Nexus is a storage node)
+  };
+
+  # Override specific secret permissions for mining service
+  age.secrets.xmrig-always-api-token = lib.mkForce {
+    file = "${inputs.self}/secrets/xmrig-always-api-token.age";
+    mode = "440";
+    owner = "mining";
+    group = "mining";
+  };
+  age.secrets.xmrig-flexible-api-token = lib.mkForce {
+    file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
+    mode = "440";
+    owner = "mining";
+    group = "mining";
   };
 }
