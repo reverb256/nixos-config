@@ -624,32 +624,38 @@
           # ============================================================================
           
           pause_xmrig() {
-              log "Stopping XMRig service during build workload"
-              if systemctl is-active --quiet xmrig; then
-                  systemctl stop xmrig
-                  log "XMRig stopped - builds get full CPU priority"
-              else
-                  log "XMRig was not running"
+              log "Pausing XMRig via HTTP API during build workload"
+              # Pause both instances using xmrig-api-control helper
+              if systemctl is-active --quiet xmrig-always; then
+                  xmrig-api-control pause always 2>/dev/null || systemctl stop xmrig-always
+                  log "XMRig [always] paused - builds get full CPU priority"
+              fi
+              if systemctl is-active --quiet xmrig-flexible; then
+                  xmrig-api-control pause flexible 2>/dev/null || systemctl stop xmrig-flexible
+                  log "XMRig [flexible] paused - builds get full CPU priority"
               fi
           }
 
           resume_xmrig() {
               local threads="''$1"
-              log "Resuming XMRig service (threads: ''${threads:-auto})"
-              if ! systemctl is-active --quiet xmrig; then
-                  systemctl start xmrig
-                  sleep 2
-                  log "XMRig started - mining resumed"
-              else
-                  log "XMRig was already running"
+              log "Resuming XMRig via HTTP API (threads: ''${threads:-auto})"
+              # Resume both instances using xmrig-api-control helper
+              if systemctl is-active --quiet xmrig-always || ! systemctl is-active --quiet xmrig-flexible; then
+                  xmrig-api-control resume always 2>/dev/null || systemctl start xmrig-always
+                  log "XMRig [always] resumed"
+              fi
+              if systemctl is-active --quiet xmrig-flexible || ! systemctl is-active --quiet xmrig-flexible; then
+                  xmrig-api-control resume flexible 2>/dev/null || systemctl start xmrig-flexible
+                  log "XMRig [flexible] resumed"
               fi
           }
           
           set_xmrig_threads() {
               local target_threads="''$1"
               log "Setting XMRig threads to ''$target_threads via HTTP API"
-              if systemctl is-active --quiet xmrig; then
-                  xmrig-api-control threads "''$target_threads"
+              # Set threads on always instance (primary miner)
+              if systemctl is-active --quiet xmrig-always; then
+                  xmrig-api-control threads "''$target_threads" always
               fi
           }
           
@@ -811,9 +817,9 @@
               fi
 
               # Reduce CPU mining to 50% (K8s workloads may need CPU for orchestration)
-              if systemctl is-active --quiet xmrig; then
+              if systemctl is-active --quiet xmrig-always; then
                   log "Limiting xmrig to 50% CPU for Kubernetes workloads"
-                  systemctl set-property xmrig.service CPUQuota="50%" --runtime 2>/dev/null || true
+                  systemctl set-property xmrig-always.service CPUQuota="50%" --runtime 2>/dev/null || true
               fi
           }
 
@@ -881,7 +887,7 @@
               # Reduce CPU mining during gaming
               # On zephyr: use HTTP API to reduce thread count (more elegant than CPUQuota)
               # On other hosts: use CPUQuota method
-              if systemctl is-active --quiet xmrig; then
+              if systemctl is-active --quiet xmrig-always; then
                   local host=$(get_hostname)
                   if [ "$host" = "zephyr" ]; then
                       local gaming_threads=$(get_xmrig_gaming_threads)
@@ -889,7 +895,7 @@
                       set_xmrig_threads "$gaming_threads"
                   else
                       log "Limiting xmrig to 25% CPU for gaming"
-                      systemctl set-property xmrig.service CPUQuota="25%" --runtime 2>/dev/null || true
+                      systemctl set-property xmrig-always.service CPUQuota="25%" --runtime 2>/dev/null || true
                   fi
               fi
           }
@@ -950,9 +956,9 @@
               fi
 
               # Keep CPU mining at 100% (GPU is bottleneck, CPU just coordinates)
-              if systemctl is-active --quiet xmrig; then
+              if systemctl is-active --quiet xmrig-always; then
                   log "Keeping xmrig at 100% CPU (GPU is bottleneck for AI)"
-                  systemctl set-property xmrig.service CPUQuota="100%" --runtime 2>/dev/null || true
+                  systemctl set-property xmrig-always.service CPUQuota="100%" --runtime 2>/dev/null || true
               fi
           }
 
@@ -996,13 +1002,13 @@
 
               # PAUSE CPU mining on Ryzen nodes (builds need maximum CPU)
               # Use HTTP API pause for clean suspend without restart
-              if systemctl is-active --quiet xmrig; then
+              if systemctl is-active --quiet xmrig-always; then
                   if [ "$is_ryzen_node" = true ]; then
                       log "PAUSING xmrig completely on Ryzen node during builds"
                       pause_xmrig
                   else
                       log "Limiting xmrig to 10% CPU on non-Ryzen node during builds"
-                      systemctl set-property xmrig.service CPUQuota="10%" --runtime 2>/dev/null || true
+                      systemctl set-property xmrig-always.service CPUQuota="10%" --runtime 2>/dev/null || true
                   fi
               fi
 
@@ -1069,10 +1075,10 @@
                   systemctl set-property lolminer-amd.service CPUQuota="100%" --runtime 2>/dev/null || true
               fi
 
-              if systemctl is-active --quiet xmrig; then
+              if systemctl is-active --quiet xmrig-always; then
                   local idle_threads=$(get_xmrig_idle_threads)
                   log "Resetting xmrig to 100% CPU ($idle_threads threads)"
-                  systemctl set-property xmrig.service CPUQuota="100%" --runtime 2>/dev/null || true
+                  systemctl set-property xmrig-always.service CPUQuota="100%" --runtime 2>/dev/null || true
                   
                   # Use HTTP API to resume if it was paused
                   local current_status=$(xmrig_status)
