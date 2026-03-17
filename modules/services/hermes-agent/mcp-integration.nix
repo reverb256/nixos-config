@@ -74,7 +74,6 @@ echo "[Hermes MCP] Configuration loaded"
 echo "[Hermes MCP] MCP Config: $HERMES_MCP_CONFIG"
 echo "[Hermes MCP] AI Gateway: $HERMES_AI_GATEWAY_URL"
 '';
-    executable = true;
   };
 
   # Systemd user service to keep MCP tools synced
