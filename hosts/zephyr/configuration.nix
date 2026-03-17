@@ -320,6 +320,14 @@
       profile = "conservative"; # Lower PSI thresholds for earlier build/mining pause
     };
 
+    # NIX BINARY CACHE - Serve pre-built packages to cluster
+    # Eliminates redundant builds across nodes, speeds up deployments
+    binary-cache = {
+      enable = true;
+      port = 50000;
+      bindAddress = "10.1.1.110";
+    };
+
     # GPU Resource Marketplace - Unified auction engine for GPU allocation
     # Coordinates between mining, Kubernetes, Akash, and gaming workloads
     compute-market = {
@@ -1200,7 +1208,7 @@
       enable = true;
       mountPoint = "/home/j_kro/.hermes";
       nfsServer = "10.1.1.120"; # Nexus
-      nfsPath = "/mnt/garage/hermes";
+      nfsPath = "/data/home";  # Fixed: matches actual NFS export on nexus
     };
     aiGateway = {
       enable = true;
