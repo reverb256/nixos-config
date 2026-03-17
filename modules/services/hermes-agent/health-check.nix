@@ -25,12 +25,8 @@ in lib.mkIf cfg.enable {
 
       # 3. Check AI Gateway is reachable (only on zephyr or if enabled)
       if [[ "${cfg.aiGateway.enable}" == "true" ]]; then
-        GATEWAY_URL=''${cfg.aiGateway.url}''
-        # Extract host and port from URL
-        GATEWAY_HOST=''${GATEWAY_URL#http://}''
-        GATEWAY_HOST=''${GATEWAY_HOST%/*}''
-
-        # Try to reach the gateway
+        GATEWAY_URL=''${cfg.aiGateway.url}
+        # Try to reach the gateway (health check uses full URL)
         if curl -sSf --max-time 5 "$GATEWAY_URL/health" >/dev/null 2>&1; then
           echo "[Hermes Health Check] ✓ AI Gateway reachable ($GATEWAY_URL)"
         else
@@ -41,7 +37,7 @@ in lib.mkIf cfg.enable {
 
       # 4. Check shared storage
       if [[ "${cfg.sharedStorage.enable}" == "true" ]]; then
-        MOUNT_POINT=''${cfg.sharedStorage.mountPoint}''
+        MOUNT_POINT=''${cfg.sharedStorage.mountPoint}
         if mountpoint -q "$MOUNT_POINT"; then
           echo "[Hermes Health Check] ✓ Shared storage mounted ($MOUNT_POINT)"
         else
@@ -76,5 +72,4 @@ in lib.mkIf cfg.enable {
       AccuracySec = "1s";
     };
   };
-}
 }
