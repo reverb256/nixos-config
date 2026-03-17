@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: akash-provider-script
+  namespace: akash-provider
+data:
+  run.sh: |
+    #!/bin/bash
+    set -x
+
+    type curl || exit 1
+    type jq || exit 1
+    type awk || exit 1
+    type bc || exit 1
+
+    echo "=== Starting provider startup sequence ==="
+
+    echo "Step 1: Waiting for RPC..."
+    /scripts/wait_for_rpc.sh
+    echo "RPC ready"
+
+    echo "Step 2: Setting up provider certificate..."
+
+    PROVIDER_ADDRESS="$(provider-services keys show $AKASH_FROM -a)"
+    if [[ -z "$PROVIDER_ADDRESS" ]]; then
+      echo "PROVIDER_ADDRESS variable is empty. Something went wrong"
+      exit 1
+    fi
+
+    CERT_SYMLINK="${AKASH_HOME}/${PROVIDER_ADDRESS}.pem"
+    CERT_REAL_PATH="/config/provider.pem"
+
+    rm -f "$CERT_REAL_PATH"
+    rm -f "$CERT_SYMLINK"
+
+    # Generate RSA PRIVATE KEY (traditional format, not PKCS#8)
+    openssl genrsa -out /tmp/key.rsa 2048 2>/dev/null
+    openssl req -new -x509 -key /tmp/key.rsa -out /tmp/cert.pem \
+      -subj "/CN=${PROVIDER_ADDRESS}" \
+      -days 365 2>/dev/null
+
+    cat /tmp/cert.pem /tmp/key.rsa > "${CERT_REAL_PATH}"
+    chmod 600 "${CERT_REAL_PATH}"
+    rm -f /tmp/key.rsa /tmp/cert.pem
+
+    ln -s "$CERT_REAL_PATH" "$CERT_SYMLINK"
+
+    echo "Certificate ready at $CERT_REAL_PATH"
+
+    echo "Step 3: Starting provider..."
+    exec /usr/bin/provider-services run 2>&1

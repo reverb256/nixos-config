@@ -8,6 +8,12 @@
   cfg = config.services.nfs.server;
 in {
   config = lib.mkIf cfg.enable {
+    # Create Hermes storage directory
+    systemd.tmpfiles.rules = [
+      "d /mnt/garage 0755 root root - -"
+      "d /mnt/garage/hermes 0775 root wheel - -"
+    ];
+
     # Export definitions for NFS server
     services.nfs.server.exports = ''
       # Shared data - read/write for all cluster nodes
@@ -24,6 +30,9 @@ in {
 
       # Backups - read-only for clients (written locally)
       /data/backups 10.1.1.0/24(ro,sync,no_subtree_check,crossmnt,fsid=103)
+
+      # Hermes Agent shared storage - skills, memory, and knowledge base
+      /mnt/garage/hermes 10.1.1.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=104)
     '';
 
     # NFSv4 idmapd configuration

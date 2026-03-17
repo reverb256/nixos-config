@@ -248,24 +248,29 @@
       ];
     };
 
-    # Hermes Agent - AI assistant with shared storage and AI Gateway
-    hermes-agent = {
+    # Hermes Agent is now configured at top-level as services.hermes-agent
+  };
+
+  # ============================================================================
+  # HERMES AGENT - Multi-Host Orchestration
+  # ============================================================================
+  # Autonomous agent for cluster-wide task execution and coordination
+  services.hermes-agent = {
+    enable = true;
+    user = "j_kro";
+    sharedStorage = {
       enable = true;
-      user = "j_kro";
-      sharedStorage = {
-        enable = true;
-        mountPoint = "/home/j_kro/.hermes";
-        nfsServer = "10.1.1.120"; # Nexus NFS server
-        nfsPath = "/mnt/garage/hermes";
-      };
-      aiGateway = {
-        enable = true;
-        url = "http://10.1.1.110:8080/v1"; # Zephyr AI Gateway
-      };
-      terminal = {
-        enable = true;
-        requireApproval = false;
-      };
+      mountPoint = "/home/j_kro/.hermes";
+      nfsServer = "10.1.1.120"; # Nexus NFS server
+      nfsPath = "/mnt/garage/hermes";
+    };
+    aiGateway = {
+      enable = true;
+      url = "http://10.1.1.110:8080/v1"; # Zephyr AI Gateway
+    };
+    terminal = {
+      enable = true;
+      requireApproval = false;
     };
   };
 
