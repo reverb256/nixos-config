@@ -85,9 +85,8 @@ let
       ps.mcp
       # HuggingFace CLI for model downloads
       ps.huggingface-hub
-      # TTS support (Qwen3-TTS via official qwen-tts package)
-      # TEMP: Disabled due to build issue - fix needed
-      # ps.qwen-tts  # Official Qwen3-TTS package from PyPI (via overlay)
+      # TTS support (Qwen3-TTS via official qwen-tts package from PyPI)
+      ps.qwen-tts  # Official Qwen3-TTS package from PyPI (via overlay)
       ps.transformers
       ps.torch
       ps.torchaudio
