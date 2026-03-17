@@ -2,6 +2,7 @@
 let
   cfg = config.services.hermes-agent;
   hermesPackage = import ./package.nix { inherit pkgs lib config; };
+  healthCheck = import ./health-check.nix { inherit config lib pkgs; };
 in
 {
   options.services.hermes-agent = {
@@ -129,5 +130,12 @@ in
       OPENAI_API_KEY = "not-needed";
       OPENAI_BASE_URL = cfg.aiGateway.url;
     };
+
+    # Imports (health check, monitoring, MCP integration)
+    imports = [
+      healthCheck
+      ./monitor.nix
+      ./mcp-integration.nix
+    ];
   };
 }

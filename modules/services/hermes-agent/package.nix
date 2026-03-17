@@ -13,7 +13,19 @@ python.pkgs.buildPythonApplication rec {
   postUnpack = ''
     chmod -R u+w source
     cd source
-    git submodule update --init --recursive || true
+
+    # Attempt to initialize submodules
+    echo "[Hermes] Initializing submodules..." >&2
+    if git submodule update --init --recursive 2>&1; then
+      echo "[Hermes] ✓ Submodules initialized successfully" >&2
+    else
+      echo "[Hermes] ⚠️  Submodule initialization failed (non-critical)" >&2
+      echo "[Hermes]     Features requiring submodules may not work:" >&2
+      echo "[Hermes]     - mini-swe-agent (code editing)" >&2
+      echo "[Hermes]     - tinker-atropos (code generation)" >&2
+      echo "[Hermes]     Core Hermes functionality remains available" >&2
+    fi
+    echo "[Hermes] ✓ Build preparation completed" >&2
   '';
 
   propagatedBuildInputs = with python.pkgs; [
