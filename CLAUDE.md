@@ -9,10 +9,11 @@ NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) for AI inf
 
 ## COMMANDS
 ```bash
-just test              # Verify configuration builds
+just check             # Validate flake (quick, no build)
+just build             # Build configuration for local host
 just switch            # Apply to local host (auto-pauses CPU mining)
 just deploy            # Deploy to all hosts via Colmena
-just ci-local          # Full CI pipeline locally
+just status            # Show cluster status
 ```
 
 ---
@@ -52,7 +53,7 @@ just ci-local          # Full CI pipeline locally
 2. `nix flake check` (validate options, syntax)
 3. `git add` new files (Nix only packages git-tracked files!)
 4. `git commit`
-5. `just test` (verifies configuration builds)
+5. `just build` (verifies configuration builds locally)
 6. `just deploy` (applies to all hosts via Colmena)
 
 **Pre-commit validation:** Always run `nix flake check` to catch non-existent options before committing.
