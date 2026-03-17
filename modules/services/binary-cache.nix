@@ -45,10 +45,20 @@ in {
       serviceConfig.Type = "oneshot";
       script = ''
         if [ ! -f /etc/nix/cache-priv.key ]; then
-          # Generate binary cache signing keys
-          ${pkgs.nix}/bin/nix-store --generate-binary-cache-key /etc/nix/cache-priv.key /etc/nix/cache-pub.key
+          # Generate binary cache signing keys using OpenSSL
+          # Nix expects specific key format
+          openssl genrsa -out /etc/nix/cache-priv.key 4096
           chmod 640 /etc/nix/cache-priv.key
+
+          # Extract and format public key for Nix
+          openssl rsa -in /etc/nix/cache-priv.key -pubout -out /etc/nix/cache-pub.key.pem
+          chmod 444 /etc/nix/cache-pub.key.pem
+
+          # Convert to Nix format (cache-name-1:BASE64_KEY)
+          PUB_KEY=$(openssl rsa -in /etc/nix/cache-priv.key -pubout | openssl rsa -pubin -RSAPublicKey_in -outform DER 2>/dev/null | base64 | head -c 52)
+          echo "zephyr-cache-1:$PUB_KEY" > /etc/nix/cache-pub.key
           chmod 444 /etc/nix/cache-pub.key
+
           echo "Binary cache keys generated"
           echo "Public key:"
           cat /etc/nix/cache-pub.key
@@ -70,7 +80,7 @@ in {
         echo "========================================="
         echo "Add this to trusted-public-keys on other nodes:"
         echo "nix.settings.trusted-public-keys = ["
-        echo "  \"$(cat /etc/nix/cache-pub.key)\""
+        echo "  \"zephyr-cache-1:$(cat /etc/nix/cache-pub.key | cut -d: -f2)\""
         echo "];"
         echo "========================================="
       '';
