@@ -278,16 +278,6 @@ in {
         };
       })
 
-      # Infrastructure Secrets (always available if registry enabled)
-      {
-        # Switch admin password (infrastructure)
-        switch-admin = {
-          file = "${inputs.self}/secrets/switch-admin.age";
-          mode = "440";
-          owner = "j_kro";
-          group = "users";
-        };
-      }
     ];
   };
 }
