@@ -85,6 +85,7 @@
     ./services/llamafile.nix
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
+    ./services/qwen3-tts-preload.nix
     ./services/hermes-agent/default.nix
     ./services/nixos-share.nix
     ./services/spacebot.nix
@@ -140,6 +141,9 @@
 
     # Flake lock sync (auto-enabled on remote hosts only)
     ./system/flake-lock-sync.nix
+
+    # Fallback cache for remote hosts (graceful NFS failure)
+    ./system/nixos-fallback-cache.nix
 
     # Profile system
     ./profiles/default.nix
