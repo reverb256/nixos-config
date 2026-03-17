@@ -12,10 +12,7 @@ let
 
 in
 {
-  options.services.ai-inference.pre-download = mkEnableOption "Qwen3-TTS model pre-download service" {
-    description = "Download Qwen3-TTS models in background during first boot via huggingface-cli";
-    default = false;
-  };
+  options.services.ai-inference.pre-download = mkEnableOption "Qwen3-TTS model pre-download service";
 
   config = mkIf cfg.pre-download {
     # Pre-download script using huggingface-cli
