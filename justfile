@@ -17,16 +17,20 @@ _default:
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Sync flake.lock to remote hosts (before deployment)
+# Note: Sentry is excluded - it reads from NFS mount /run/nixos-shared (no local copy)
 sync-lock:
     #!/usr/bin/env bash
     set -e
     echo "▸ Syncing flake.lock to remote hosts..."
     for host in nexus forge; do
         echo "  → $host"
-        scp -o ConnectTimeout=5 {{FLAKE}}/flake.lock $host:/etc/nixos/flake.lock.tmp
-        ssh $host "mv /etc/nixos/flake.lock.tmp /etc/nixos/flake.lock && chmod 644 /etc/nixos/flake.lock"
+        if scp -o ConnectTimeout=5 {{FLAKE}}/flake.lock $host:/tmp/flake.lock.tmp; then
+            ssh $host "sudo mv /tmp/flake.lock.tmp /etc/nixos/flake.lock && sudo chmod 644 /etc/nixos/flake.lock"
+        else
+            echo "    ⚠ $host unreachable, skipping"
+        fi
     done
-    echo "✓ Synced flake.lock to all hosts"
+    echo "✓ Synced flake.lock to nexus and forge (sentry uses NFS mount)"
 
 # Check flake.lock drift across hosts
 check-drift:
@@ -76,12 +80,15 @@ deploy target *args:
         echo "▸ Deploying to all hosts..."
         cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply
     else
-        # Sync to specific host if it's remote
+        # Sync to specific host if it's remote (sentry uses NFS, no sync needed)
         case "{{target}}" in
-            nexus|forge|sentry)
+            nexus|forge)
                 echo "▸ Syncing flake.lock to {{target}}..."
-                scp -o ConnectTimeout=5 {{FLAKE}}/flake.lock {{target}}:/etc/nixos/flake.lock.tmp
-                ssh {{target}} "mv /etc/nixos/flake.lock.tmp /etc/nixos/flake.lock && chmod 644 /etc/nixos/flake.lock"
+                scp -o ConnectTimeout=5 {{FLAKE}}/flake.lock {{target}}:/tmp/flake.lock.tmp
+                ssh {{target}} "sudo mv /tmp/flake.lock.tmp /etc/nixos/flake.lock && sudo chmod 644 /etc/nixos/flake.lock"
+                ;;
+            sentry)
+                echo "▸ Note: sentry uses NFS mount /run/nixos-shared, no local sync needed"
                 ;;
         esac
         echo "▸ Deploying to {{target}}..."
