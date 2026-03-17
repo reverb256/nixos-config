@@ -445,10 +445,10 @@
     PROMETHEUS_URL="${cfg.prometheusUrl}"
 
     # Fetch uptime (parse from /proc/uptime for portability)
-    awk '{printf("%.0f days, %.0f hours\n", $1/86400, ($1%86400)/3600)}' /proc/uptime > "$DATA_DIR/api/uptime"
+    ${pkgs.gawk}/bin/awk '{printf("%.0f days, %.0f hours\n", $1/86400, ($1%86400)/3600)}' /proc/uptime > "$DATA_DIR/api/uptime"
 
     # Fetch basic metrics
-    curl -s "$PROMETHEUS_URL/api/v1/query?query=node_load1{instance=\"${hostname}\"}" \
+    ${pkgs.curl}/bin/curl -s "$PROMETHEUS_URL/api/v1/query?query=node_load1{instance=\"${hostname}\"}" \
       | ${pkgs.jq}/bin/jq -r '.data.result[0].value[1]' \
       > "$DATA_DIR/api/load1" 2>/dev/null || echo "N/A" > "$DATA_DIR/api/load1"
   '';

@@ -488,9 +488,11 @@ class GatewayConfig(BaseSettings):
         1. Environment variable LM_STUDIO_API_KEY
         2. File specified in LM_STUDIO_API_KEY_FILE
         """
-        # Try secret field first
+        # Try secret field first (but not empty strings)
         if self.lm_studio_api_key:
-            return self.lm_studio_api_key.get_secret_value()
+            value = self.lm_studio_api_key.get_secret_value()
+            if value and value.strip():
+                return value
 
         # Try file
         if self.lm_studio_api_key_file:
@@ -510,9 +512,11 @@ class GatewayConfig(BaseSettings):
         1. Environment variable ZAI_API_KEY
         2. File specified in ZAI_API_KEY_FILE
         """
-        # Try secret field first
+        # Try secret field first (but not empty strings)
         if self.zai_api_key:
-            return self.zai_api_key.get_secret_value()
+            value = self.zai_api_key.get_secret_value()
+            if value and value.strip():
+                return value
 
         # Try file
         if self.zai_api_key_file:
@@ -532,9 +536,11 @@ class GatewayConfig(BaseSettings):
         1. Environment variable POLLINATIONS_API_KEY
         2. File specified in POLLINATIONS_API_KEY_FILE
         """
-        # Try secret field first
+        # Try secret field first (but not empty strings)
         if self.pollinations_api_key:
-            return self.pollinations_api_key.get_secret_value()
+            value = self.pollinations_api_key.get_secret_value()
+            if value and value.strip():
+                return value
 
         # Try file
         if self.pollinations_api_key_file:
