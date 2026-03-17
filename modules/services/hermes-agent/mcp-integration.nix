@@ -115,4 +115,3 @@ echo "[Hermes MCP] AI Gateway: $HERMES_AI_GATEWAY_URL"
     wantedBy = [ "default.target" ];
   };
 }
-}
