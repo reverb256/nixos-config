@@ -1,10 +1,5 @@
 # modules/services/ai-inference/ai_inference_gateway/main.py
 import logging
-
-# Initialize logger IMMEDIATELY - must be before any other code
-# This prevents build process reordering from causing NameError
-logger = logging.getLogger(__name__)
-
 import os
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -13,6 +8,9 @@ from datetime import datetime
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 import httpx
+
+# Initialize logger early (needed for import error handling)
+logger = logging.getLogger(__name__)
 
 from ai_inference_gateway.config import GatewayConfig
 from ai_inference_gateway.pipeline import MiddlewarePipeline

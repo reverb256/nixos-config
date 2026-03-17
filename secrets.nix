@@ -80,6 +80,10 @@ in {
   ];
 
   # Spacebot Telegram token - AI agent Telegram integration
+  "spacebot-telegram-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
   "secrets/spacebot-telegram-token.age".publicKeys = [
     users.j_kro
     hosts.zephyr
@@ -98,12 +102,20 @@ in {
   # ========================================================================
 
   # Grafana admin password - Monitoring dashboard access
+  "grafana-admin.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
   "secrets/grafana-admin.age".publicKeys = [
     users.j_kro
     hosts.zephyr
   ];
 
   # Sentry DSN - Error tracking for AI inference gateway
+  "sentry-dsn.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
   "secrets/sentry-dsn.age".publicKeys = [
     users.j_kro
     hosts.zephyr
@@ -114,12 +126,20 @@ in {
   # ========================================================================
 
   # GlitchTip database password
+  "glitchtip-db-password.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
   "secrets/glitchtip-db-password.age".publicKeys = [
     users.j_kro
     hosts.zephyr
   ];
 
   # GlitchTip Django secret key
+  "glitchtip-secret-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
   "secrets/glitchtip-secret-key.age".publicKeys = [
     users.j_kro
     hosts.zephyr
@@ -130,6 +150,10 @@ in {
   # ========================================================================
 
   # Nextcloud admin password
+  "nextcloud-admin.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
   "secrets/nextcloud-admin.age".publicKeys = [
     users.j_kro
     hosts.zephyr
@@ -140,6 +164,10 @@ in {
   # ========================================================================
 
   # Vaultwarden admin token - Admin panel access
+  "vaultwarden-admin-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
   "secrets/vaultwarden-admin-token.age".publicKeys = [
     users.j_kro
     hosts.zephyr
@@ -169,9 +197,17 @@ in {
     users.j_kro
     hosts.zephyr
   ];
+  "secrets/xmrig-always-api-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # XMRig flexible (pause-able) instance API token - Dual XMRig architecture
   "xmrig-flexible-api-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/xmrig-flexible-api-token.age".publicKeys = [
     users.j_kro
     hosts.zephyr
   ];
@@ -191,6 +227,12 @@ in {
   # ========================================================================
 
   # Garage RPC secret - Cluster authentication for distributed S3 storage
+  "garage-rpc-secret.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+    hosts.nexus
+    hosts.sentry
+  ];
   "secrets/garage-rpc-secret.age".publicKeys = [
     users.j_kro
     hosts.zephyr
@@ -200,6 +242,10 @@ in {
 
   # Garage S3 admin secret key - For automated backups to S3
   "garage-s3-secret-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/garage-s3-secret-key.age".publicKeys = [
     users.j_kro
     hosts.zephyr
   ];
@@ -228,6 +274,10 @@ in {
 
   # Cloudflare Tunnel credentials - For Akash provider public ingress
   # Token contains: AccountID, TunnelID, TunnelSecret
+  "cloudflared-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr    # Primary node running cloudflared
+  ];
   "secrets/cloudflared-token.age".publicKeys = [
     users.j_kro
     hosts.zephyr    # Primary node running cloudflared
