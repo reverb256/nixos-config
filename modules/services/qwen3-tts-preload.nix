@@ -1,5 +1,5 @@
 # Qwen3-TTS Model Pre-download Service
-# Downloads Qwen3-TTS models on first boot for instant availability
+# Downloads Qwen3-TTS models to HuggingFace cache on first boot
 {
   config,
   lib,
@@ -13,18 +13,19 @@ let
 in
 {
   options.services.ai-inference.pre-download = mkEnableOption "Qwen3-TTS model pre-download service" {
-    description = "Download Qwen3-TTS models in background during first boot";
+    description = "Download Qwen3-TTS models in background during first boot via huggingface-cli";
     default = false;
   };
 
   config = mkIf cfg.pre-download {
-    # Pre-download script
+    # Pre-download script using huggingface-cli
     environment.systemPackages = with pkgs; [
       (pkgs.writeShellScriptBin "qwen3-tts-pre-download" ''
         #!/usr/bin/env bash
         set -euo pipefail
 
         CACHE_DIR="/var/cache/ai-inference"
+        # Models to download - Tokenizer + main generation models
         MODELS=(
           "Qwen/Qwen3-TTS-Tokenizer-12Hz"
           "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
@@ -35,14 +36,13 @@ in
         echo "Cache directory: $CACHE_DIR"
         echo ""
 
-        # Create cache directory
-        mkdir -p "$CACHE_DIR/hub"
+        # Create cache directory structure
+        mkdir -p "$CACHE_DIR"
 
-        # Run as ai-inference user if available, otherwise current user
-        RUN_AS="ai-inference"
-        if ! id "$RUN_AS" &>/dev/null; then
-          RUN_AS="root"
-        fi
+        # Set HF_HOME for huggingface-cli
+        export HF_HOME="$CACHE_DIR"
+        export TRANSFORMERS_CACHE="$CACHE_DIR"
+        export HF_HUB_CACHE="$CACHE_DIR/hub"
 
         echo "Checking for installed models..."
         for model in "''${MODELS[@]}"; do
@@ -52,31 +52,19 @@ in
             echo "✓ $model - already cached"
           else
             echo "⬇ $model - downloading..."
-            # Use qwen-tts Python package to download model
-            # This uses HuggingFace under the hood
-            su - "$RUN_AS" -c "
-              PYTHONPATH=${config.services.ai-inference.gateway.python}:$PYTHONPATH \\
-              TRANSFORMERS_CACHE=$CACHE_DIR \\
-              HF_HOME=$CACHE_DIR \\
-              python3 -c '
-import torch
-from qwen_tts import Qwen3TTSModel
-
-print(f\"Loading model: $model...\")
-model = Qwen3TTSModel.from_pretrained(
-    \"$model\",
-    device_map=\"cpu\",
-    dtype=torch.float16,
-)
-print(\"Model loaded successfully!\")
-' 2>&1 || echo "  ✗ Download failed (check internet connection)"
+            # Use huggingface-cli from gateway Python environment
+            ${config.services.ai-inference.gateway.python}/bin/huggingface-cli download \
+              "$model" \
+              --local-dir "$CACHE_DIR/$model" \
+              --local-dir-use-symlinks False \
+              2>&1 || echo "  ✗ Download failed (will retry on next boot)"
           fi
         done
 
         echo ""
         echo "=== Pre-download complete ==="
-        echo "Models cached in: $CACHE_DIR/hub/"
-        echo "Total size: $(du -sh $CACHE_DIR/hub 2>/dev/null | cut -f1 || echo 'N/A')"
+        echo "Models cached in: $CACHE_DIR/"
+        echo "Total size: $(du -sh $CACHE_DIR 2>/dev/null | cut -f1 || echo 'N/A')"
       '')
     ];
 
@@ -84,8 +72,7 @@ print(\"Model loaded successfully!\")
     systemd.services.qwen3-tts-pre-download = {
       description = "Pre-download Qwen3-TTS models for instant availability";
       wantedBy = ["multi-user.target"];
-      after = ["network-online.target" "ai-inference-gateway.service"];
-      # Don't fail if gateway isn't available yet
+      after = ["network-online.target"];
       requires = ["network-online.target"];
 
       serviceConfig = {
