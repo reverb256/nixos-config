@@ -202,21 +202,21 @@
     systemd-boot.memtest86.enable = lib.mkDefault true;
 
     # BOOT COUNTING - Automatic rollback on boot failures
-    # NixOS doesn't have native boot counting, so we inject it manually
-    # systemd-boot will try new entries and fallback after 3 failed boots
-    systemd-boot.extraInstallCommands = ''
-      # Add boot-count fields to all NixOS entries for automatic rollback
-      # Use full paths for grep/sed to work in x86-64-v3 builds where PATH is limited
-      for entry in /boot/loader/entries/nixos-generation-*.conf; do
-        # Don't modify already-modified entries or specialisation entries
-        ${pkgs.gnugrep}/bin/grep -q "boot-count" "$entry" && continue
-        ${pkgs.gnugrep}/bin/grep -q "specialisation" "$entry" && continue
-
-        # Add boot counting: try entry, fallback after 3 failed boots
-        # This is appended after the 'options' line for proper placement
-        ${pkgs.gnused}/bin/sed -i '/^options/a boot-count try\nboot-count-min-success 3' "$entry"
-      done
-    '';
+    # DISABLED: systemd-boot doesn't recognize boot-count options
+    # Use systemd-boot's built-in automatic fallback instead
+    # systemd-boot.extraInstallCommands = ''
+    #   # Add boot-count fields to all NixOS entries for automatic rollback
+    #   # Use full paths for grep/sed to work in builds where PATH is limited
+    #   for entry in /boot/loader/entries/nixos-generation-*.conf; do
+    #     # Don't modify already-modified entries or specialisation entries
+    #     ${pkgs.gnugrep}/bin/grep -q "boot-count" "$entry" && continue
+    #     ${pkgs.gnugrep}/bin/grep -q "specialisation" "$entry" && continue
+    #
+    #     # Add boot counting: try entry, fallback after 3 failed boots
+    #     # This is appended after the 'options' line for proper placement
+    #     ${pkgs.gnused}/bin/sed -i '/^options/a boot-count try\nboot-count-min-success 3' "$entry"
+    #   done
+    # '';
   };
 
   # ============================================================================

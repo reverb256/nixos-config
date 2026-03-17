@@ -113,7 +113,7 @@ let
   # Combined package: gateway source + Python environment in one
   # This allows both --app-dir usage and direct imports
   modularGatewayPkg = pkgs.symlinkJoin {
-    name = "ai-inference-gateway-modular-pkg-v13";  # Bump for Qwen3-TTS official package
+    name = "ai-inference-gateway-modular-pkg-v14";  # Bump for LM Studio API key fix
     paths = [
       modularGatewayPkgBase
       gatewayPython
