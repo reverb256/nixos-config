@@ -99,6 +99,16 @@ in {
           mandatoryFeatures = [];
         }
         {
+          hostName = "nexus";
+          system = "x86_64-linux";
+          sshUser = "j_kro";
+          sshKey = "/etc/nixos/ssh/id_ed25519";
+          maxJobs = 6;
+          speedFactor = 5;
+          supportedFeatures = ["big-parallel"];
+          mandatoryFeatures = [];
+        }
+        {
           hostName = "forge";
           system = "x86_64-linux";
           sshUser = "j_kro";
