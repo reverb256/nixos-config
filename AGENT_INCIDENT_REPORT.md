@@ -183,3 +183,149 @@ Changes to these files now require human review:
 **Severity:** Critical (SSH completely broken on 2 nodes)
 **Recovery Time:** ~15 minutes from identification to fix commit
 **Total Recovery:** ~35 minutes from incident start to full resolution
+
+---
+
+# Agent Incident Report - 2026-03-16
+
+## What Broke
+`nix flake check` failed after commit `4321891` with "option does not exist" error for `home-manager.users.j_kro.xdg.mimeApps.force`.
+
+**Symptoms:**
+- `nix flake check` evaluation failed
+- Error: "The option `home-manager.users.j_kro.xdg.mimeApps.force' does not exist"
+- Configuration could not be validated before deployment
+
+## Changes Made
+
+**Problematic Commit:** `4321891 fix(electron): use auto backend detection, add Caprine from Nixpkgs`
+
+**Files Modified:**
+- `modules/home-manager/zen-browser.nix` - Added invalid `xdg.mimeApps.force = true` option
+
+**Code Added (WRONG):**
+```nix
+# modules/home-manager/zen-browser.nix
+xdg.mimeApps.enable = true;
+xdg.mimeApps.force = true;  # ❌ This option does NOT exist in Home Manager
+xdg.mimeApps.defaultApplications = { ... };
+```
+
+## Affected Nodes
+
+- ✅ **All hosts** - `nix flake check` fails for all configurations
+- ✅ **No runtime impact** - Configuration not deployed, caught at validation stage
+
+## Root Cause
+
+**Home Manager Option Assumption:**
+
+The commit assumed `xdg.mimeApps.force` existed based on:
+1. Earlier commit `84f0518` which added the same invalid option
+2. No validation that the option actually existed in Home Manager
+
+**Valid `xdg.mimeApps` options:**
+- `enable` (boolean)
+- `associations` (attrs)
+- `defaultApplications` (attrs)
+- `mimeapps.list` additions
+
+**Invalid `xdg.mimeApps` options:**
+- `force` (does NOT exist in any Home Manager version)
+
+## Fix Applied
+
+**Commit:** `11703f5 fix(home-manager): remove invalid xdg.mimeApps.force option`
+
+**Removed code:**
+```nix
+-xdg.mimeApps.force = true;  # Idempotent: overwrite existing files without backup errors
+```
+
+**Why this works:**
+- The `force` option never existed
+- Removing it restores valid configuration
+- Idempotent activation issue that prompted the "fix" needs a different solution
+
+## Additional Fix
+
+**Commit:** `8bd8568 fix(justfile): remove duplicate echo and redundant esac in deploy target`
+
+**Issue found during investigation:**
+- `just deploy` target had duplicate `echo "▸ Deploying to {{target}}..."` line
+- Redundant `esac` statement after case block
+- Benign but caused confusion during editing
+
+## Timeline
+
+- **20:39** - Commit `84f0518` added invalid `force = true` option
+- **21:08** - Commit `e6452c9` accidentally removed the invalid option (unrelated mining refactor)
+- **21:21** - Commit `4321891` re-added the invalid option
+- **21:22** - User asked "is there a problem with home-manager on zephyr?"
+- **21:30** - Root cause identified: `force` option doesn't exist
+- **21:35** - Fix committed (`11703f5`)
+- **21:40** - justfile fix committed (`8bd8568`)
+
+## Lessons Learned
+
+### For AI Agents
+1. **Never assume options exist** - Always validate against actual module definitions
+2. **Use `nix flake check` before committing** - Would have caught this immediately
+3. **Multi-file commits require scope verification** - Check all changed files match commit intent
+4. **Git staging can cause confusion** - Staged changes may differ from working directory
+
+### For Option Validation
+1. **Check Home Manager documentation** - Verify options exist before using
+2. **Use `nix eval` for option testing** - `nix eval .#nixosConfigurations.<host>.config.<path>`
+3. **Search for "does not exist" errors** - `nix flake check 2>&1 | grep "does not exist"`
+
+### For Process
+1. **Pre-commit validation** - `nix flake check` should pass before commit
+2. **Scope verification** - `git diff --cached --name-only` to verify commit scope
+3. **Clean staging** - `git status` to ensure only intended changes are staged
+
+## Prevention Measures Implemented
+
+### 1. Documentation Updated
+- Added "Home Manager Module Validation" section to INSIGHTS.md
+- Documented valid vs invalid `xdg.mimeApps` options
+- Added option validation workflow
+
+### 2. Pre-Commit Checklist
+Added to INSIGHTS.md:
+```bash
+# 1. Syntax validation
+nix flake check .
+
+# 2. Check for non-existent options
+nix flake check . 2>&1 | grep "does not exist"
+
+# 3. Verify staged changes
+git status
+git diff --cached --stat
+```
+
+### 3. Multi-File Commit Mitigation
+```bash
+# After making changes, verify scope:
+git diff --cached --name-only
+
+# If unrelated files appear, unstage them:
+git restore --staged <unrelated-file>
+```
+
+## Status
+
+- ✅ Root cause identified
+- ✅ Fix implemented and committed (`11703f5`)
+- ✅ justfile fix committed (`8bd8568`)
+- ✅ Documentation updated (INSIGHTS.md)
+- ✅ `nix flake check` passes
+- 🎉 **INCIDENT RESOLVED**
+
+---
+
+**Report Generated:** 2026-03-16 21:45
+**Agent:** Claude Opus 4.6
+**Severity:** Medium (validation blocked, no runtime impact)
+**Recovery Time:** ~15 minutes from question to fix commit

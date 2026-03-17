@@ -357,3 +357,123 @@ services.grafana.settings.security.admin_password = "$__file{/run/agenix/grafana
    - Local access: http://127.0.0.1:3001
    - Via Tailscale: https://grafana.ts.krogh.dev/
    - Credentials stored in agenix: `secrets/grafana-admin.age`
+
+## Home Manager Module Validation (2026-03-16)
+
+### Always Validate Options Before Committing
+
+**Problem**: Assuming options exist without validation leads to broken configurations.
+
+**Case Study**: `xdg.mimeApps.force` option
+- Commit `84f0518` attempted to fix idempotent activation with `force = true`
+- Commit `4321891` perpetuated this "fix"
+- **Problem**: The option doesn't exist in Home Manager's `xdg.mimeApps` module
+- **Impact**: `nix flake check` fails with "option does not exist" error
+
+### Home Manager xdg.mimeApps Valid Options
+
+```nix
+# VALID options in Home Manager's xdg.mimeApps module:
+xdg.mimeApps.enable = true;              # Boolean
+xdg.mimeApps.associations = { ... };     # Custom MIME associations
+xdg.mimeApps.defaultApplications = {     # Default app mappings
+  "text/html" = "zen-twilight.desktop";
+  "x-scheme-handler/https" = "zen-twilight.desktop";
+};
+
+# INVALID - does NOT exist:
+xdg.mimeApps.force = true;  # ❌ This option is not real
+```
+
+### Option Validation Workflow
+
+```bash
+# Before committing ANY option, validate it exists:
+nix flake check . 2>&1 | grep -i "option.*does not exist"
+
+# For Home Manager specific options, check docs:
+nix build -f '<home-manager>' docs  # If available
+
+# Or evaluate the option directly:
+nix eval .#nixosConfigurations.zephyr.config.home-manager.users.j_kro.xdg.mimeApps
+```
+
+### Multi-File Commit Risks
+
+**Problem**: Scoped commits (e.g., "refactor(mining)") can accidentally touch unrelated files.
+
+**Example**: Commit `e6452c9` was titled "refactor(mining): remove deprecated Python gpu-proxy module" but also modified `modules/home-manager/zen-browser.nix`.
+
+**Mitigation**:
+```bash
+# After making changes, verify the scope:
+git diff --cached --name-only
+
+# If unrelated files appear, unstage them:
+git restore --staged <unrelated-file>
+```
+
+### Git Staging Confusion
+
+**Problem**: Staged changes can silently override HEAD, causing confusion about what's actually committed.
+
+**Scenario**:
+1. Edit file, stage it (`git add`)
+2. Later, `git checkout HEAD -- file` restores to HEAD
+3. Working directory now differs from staged version
+4. Commit uses staged version, not working directory
+
+**Mitigation**: Always check `git status` before committing:
+```bash
+# Shows what will be committed (staged):
+git status
+
+# Compare staged vs working directory:
+git diff --cached <file>
+git diff <file>
+```
+
+### Idempotent Activation Without `force`
+
+Since `xdg.mimeApps.force` doesn't exist, handle activation differently:
+
+```nix
+# Approach 1: Use xdg.configFile for manual control
+xdg.configFile."mimeapps.list".force = true;  # This DOES exist
+
+# Approach 2: Accept that Home Manager may create .bak files
+# The backup files are harmless and indicate idempotent runs
+```
+
+## Testing Before Deployment (2026-03-16)
+
+### Pre-Commit Checklist
+
+```bash
+# 1. Syntax validation (fast, ~5 seconds)
+nix flake check .
+
+# 2. Check for non-existent options
+nix flake check . 2>&1 | grep "does not exist"
+
+# 3. Verify staged changes match intent
+git status
+git diff --cached --stat
+
+# 4. Only then commit
+git commit -m "feat(description): details"
+```
+
+### Understanding Flake Check Warnings
+
+```
+warning: 'system' has been renamed to/replaced by 'stdenv.hostPlatform.system'
+```
+- **Impact**: Usually benign, indicates using deprecated variable names
+- **Action**: Update `system` → `stdenv.hostPlatform.system` when convenient
+
+```
+warning: unknown flake output 'colmenaHive'
+```
+- **Impact**: Benign, output exists but `nix flake check` doesn't recognize the schema
+- **Action**: Can be ignored
