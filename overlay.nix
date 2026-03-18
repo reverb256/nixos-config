@@ -73,7 +73,7 @@ _: prev: {
 
         src = prev.fetchurl {
           url = "https://github.com/SYSTRAN/faster-whisper/archive/refs/tags/v1.2.1.tar.gz";
-          hash = "sha256-0bvgn3api3c6jzhf5q18p8xzvngp47x77bl0ymiwsx50ncl582zz";
+          hash = "sha256-/wtUKLOgdM1j9YCuc/oh99n9O7oo4OLgl4aNeNWwby8=";
         };
 
         # Core dependencies
@@ -111,7 +111,7 @@ _: prev: {
 
         src = prev.fetchurl {
           url = "https://github.com/rany2/edge-tts/archive/refs/tags/7.2.7.tar.gz";
-          hash = "sha256-0k52lgnw28xas2qxnz0b1nnj7ny5ali90a002f1hi5la357c2z7v";
+          hash = "sha256-+3zBThmKlgiDEwAokCJVxdsjrQ0LfNux0Kojwe2jokw=";
         };
 
         # Dependencies
