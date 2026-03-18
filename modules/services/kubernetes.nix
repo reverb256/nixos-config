@@ -162,6 +162,7 @@
           enable = true;
           hostname = config.networking.hostName;
           clusterDns = [ "10.0.0.10" ]; # CoreDNS service IP
+          cniConfDir = "/var/lib/cni/net.d"; # Use writable CNI directory (not read-only /etc/cni/net.d)
           extraConfig = {
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
@@ -242,15 +243,13 @@
         "d /var/lib/etcd 0700 etcd etcd -"
         # Create writable CNI directories (both for kubelet and containerd)
         "d /var/lib/cni/net.d 0755 root root -"
-        # Create /etc/cni/net.d only if it doesn't exist (C mode = non-destructive)
-        # Avoids conflict with activation script that may have already created it
-        "C /etc/cni/net.d 0755 root root -"
-        # Create symlinks from read-only NixOS store to writable directories
+        # Create a writable /etc/cni/net.d by bind mounting from /var/lib/cni/net.d
+        # This allows us to override the read-only /etc/static/cni/net.d
+        # The bind mount is created in the activation script below
         # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)
-        # Use 00-flannel.conflist to ensure it comes before cilium (05-cilium.conflist)
         "L+ /var/lib/cni/net.d/00-flannel.conflist - - - - /etc/cni/flannel.conflist"
-        # Containerd reads from /etc/cni/net.d (default CNI path)
-        "L+ /etc/cni/net.d/00-flannel.conflist - - - - /etc/cni/flannel.conflist"
+        # Containerd reads from /etc/cni/net.d (default CNI path) - will be bind mounted
+        "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
         # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
         "d /var/lib/flannel 0755 root root -"
         "L+ /run/flannel - - - - /var/lib/flannel"
@@ -359,6 +358,30 @@
       # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
       # ============================================================================
       systemd.services = {
+        # Create bind mount for /etc/cni/net.d to override read-only Nix store
+        # This allows containerd to use Flannel CNI instead of Cilium
+        cni-net-setup = {
+          description = "Setup CNI network configuration bind mount";
+          before = [ "containerd.service" ];
+          requiredBy = [ "containerd.service" ];
+          serviceConfig.Type = "oneshot";
+          script = ''
+            # Create a writable directory for CNI configs
+            mkdir -p /var/lib/cni/net.d
+
+            # Copy flannel config if not exists
+            if [ ! -f /var/lib/cni/net.d/10-flannel.conflist ]; then
+              cp /etc/cni/flannel.conflist /var/lib/cni/net.d/10-flannel.conflist
+            fi
+
+            # Bind mount /etc/cni/net.d to the writable directory
+            # This allows containerd to use our configs instead of the read-only store
+            if ! mountpoint -q /etc/cni/net.d; then
+              mount --bind /var/lib/cni/net.d /etc/cni/net.d
+            fi
+          '';
+        };
+
         containerd = {
           after = lib.mkForce [ "network.target" ];
           before = [ "kubelet.service" ];
