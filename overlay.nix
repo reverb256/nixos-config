@@ -62,6 +62,77 @@ _: prev: {
           license = prev.lib.licenses.asl20;
         };
       };
+
+      # faster-whisper: Faster Whisper transcription with CTranslate2
+      # Source: https://github.com/SYSTRAN/faster-whisper
+      # Note: No source distribution on PyPI, using GitHub release
+      faster-whisper = py-self.buildPythonPackage rec {
+        pname = "faster-whisper";
+        version = "1.2.1";
+        format = "setuptools";
+
+        src = prev.fetchurl {
+          url = "https://github.com/SYSTRAN/faster-whisper/archive/refs/tags/v1.2.1.tar.gz";
+          hash = "sha256-0bvgn3api3c6jzhf5q18p8xzvngp47x77bl0ymiwsx50ncl582zz";
+        };
+
+        # Core dependencies
+        propagatedBuildInputs = with py-super; [
+          click
+          ctranslate2
+          ffmpeg-python
+          huggingface-hub
+          numpy
+          onnxruntime
+          tokenizers
+          torch
+        ];
+
+        # Relax version constraints - faster-whisper pins specific versions
+        pythonRelaxDeps = true;
+        # Disable dependency checks
+        pythonRemoveDepsCheckHook = true;
+        doCheck = false;
+
+        meta = {
+          description = "Faster Whisper transcription with CTranslate2";
+          homepage = "https://github.com/SYSTRAN/faster-whisper";
+          license = prev.lib.licenses.mit;
+        };
+      };
+
+      # edge-tts: Microsoft Edge's online text-to-speech service
+      # Source: https://github.com/rany2/edge-tts
+      # Note: PyPI source distribution has certifi dependency issues, using GitHub release
+      edge-tts = py-self.buildPythonPackage rec {
+        pname = "edge-tts";
+        version = "7.2.7";
+        format = "setuptools";
+
+        src = prev.fetchurl {
+          url = "https://github.com/rany2/edge-tts/archive/refs/tags/7.2.7.tar.gz";
+          hash = "sha256-0k52lgnw28xas2qxnz0b1nnj7ny5ali90a002f1hi5la357c2z7v";
+        };
+
+        # Dependencies
+        propagatedBuildInputs = with py-super; [
+          aiohttp
+          certifi
+          click
+        ];
+
+        # Relax version constraints for certifi compatibility
+        pythonRelaxDeps = true;
+        # Disable dependency checks
+        pythonRemoveDepsCheckHook = true;
+        doCheck = false;
+
+        meta = {
+          description = "Use Microsoft Edge's online text-to-speech service from Python code or using the provided edge-tts command";
+          homepage = "https://github.com/rany2/edge-tts";
+          license = prev.lib.licenses.mit;
+        };
+      };
     };
   };
 }
