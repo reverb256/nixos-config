@@ -1,0 +1,102 @@
+# Default LimitRange for all namespaces
+# Ensures pods have default resource requests and limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-resource-limits
+  namespace: default
+spec:
+  limits:
+    # Combined defaults with min/max constraints
+    - default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "128Mi"
+      max:
+        cpu: "4"
+        memory: "8Gi"
+      min:
+        cpu: "10m"
+        memory: "16Mi"
+      type: Container
+---
+# LimitRange for system-critical workloads
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: system-resource-limits
+  namespace: kube-system
+spec:
+  limits:
+    - default:
+        cpu: "200m"
+        memory: "256Mi"
+      defaultRequest:
+        cpu: "50m"
+        memory: "64Mi"
+      max:
+        cpu: "1"
+        memory: "1Gi"
+      min:
+        cpu: "10m"
+        memory: "32Mi"
+      type: Container
+---
+# LimitRange for ingress workloads
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ingress-resource-limits
+  namespace: ingress-system
+spec:
+  limits:
+    - default:
+        cpu: "500m"
+        memory: "256Mi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "128Mi"
+      max:
+        cpu: "2"
+        memory: "1Gi"
+      type: Container
+---
+# LimitRange for Akash workloads
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: akash-resource-limits
+  namespace: akash-services
+spec:
+  limits:
+    - default:
+        cpu: "300m"
+        memory: "256Mi"
+      defaultRequest:
+        cpu: "50m"
+        memory: "64Mi"
+      max:
+        cpu: "2"
+        memory: "2Gi"
+      type: Container
+---
+# LimitRange for envoy-gateway workloads
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: envoy-resource-limits
+  namespace: envoy-gateway-system
+spec:
+  limits:
+    - default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "256Mi"
+      max:
+        cpu: "2"
+        memory: "1Gi"
+      type: Container
