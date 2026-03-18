@@ -226,7 +226,7 @@ in
         # Context7 API key for documentation search
         CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
         # Git configuration for nix-rebuild MCP tools
-        GIT_CONFIG_SYSTEM = "/etc/gitconfig-safe-nixos.conf";
+        GIT_CONFIG_SYSTEM = "/etc/gitconfig";
         # Semantic cache configuration (Redis + Qdrant)
         SEMANTIC_CACHE_ENABLED = lib.boolToString cfg.gateway.middleware.redis.enable;
         # System Prompts configuration
@@ -290,8 +290,14 @@ in
     systemd.tmpfiles.rules = [
       "d /var/cache/ai-inference 0755 ai-inference ai-inference - -"
       "d /run/gpu-scheduler 0755 ai-inference ai-inference - -"
-      "w /etc/gitconfig-safe-nixos.conf - - - - - [safe]\\n directory = /etc/nixos"
+      "C /etc/gitconfig /etc/gitconfig-safe-nixos.conf"
     ];
+
+    # Create gitconfig for nix-rebuild MCP tools to access /etc/nixos
+    environment.etc."/etc/gitconfig-safe-nixos.conf".text = ''
+      [safe]
+        directory = /etc/nixos
+    '';
   };
 }
 # force rebuild 3 1773547684
