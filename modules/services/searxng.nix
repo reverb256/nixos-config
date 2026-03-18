@@ -44,7 +44,7 @@ in {
           bind_address = "127.0.0.1"; # Localhost only
           secret_key = "@SEARXNG_SECRET_KEY@";
           method = "GET";
-          limiter = true;
+          limiter = false; # DISABLE RATE LIMITING (user requested)
           image_proxy = true;
         };
 
@@ -62,7 +62,7 @@ in {
           center_alignment = true;
         };
 
-        limiter = true;
+        limiter = false; # DISABLE RATE LIMITING (user requested)
 
         botdetection.ip_limit.link_token = false;
         botdetection.ip_limit.ip_lists.pass_searxng_org = true;

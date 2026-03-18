@@ -30,9 +30,11 @@
   lib,
   inputs,
   ...
-}: let
+}:
+let
   inherit (lib) mkOption types mkIf;
-in {
+in
+{
   options.services.agenix-secrets-registry = {
     enable = mkOption {
       type = types.bool;
@@ -172,14 +174,15 @@ in {
       # Storage Secrets (Garage S3 cluster)
       (lib.mkIf config.services.agenix-secrets-registry.storage {
         # Garage RPC secret - Cluster authentication
-        garage-rpc-secret = {
+        # Only define if garage service is actually enabled on this host
+        garage-rpc-secret = lib.mkIf config.services.garage-cluster.enable {
           file = "${inputs.self}/secrets/garage-rpc-secret.age";
           mode = "440";
           owner = "garage";
           group = "garage";
         };
 
-        # Garage S3 admin secret key
+        # Garage S3 admin secret key - available on all hosts that need S3 access
         garage-s3-secret-key = {
           file = "${inputs.self}/secrets/garage-s3-secret-key.age";
           mode = "440";

@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-final-config
+  namespace: akash-services
+data:
+  config.yml: |
+    tunnel: 1df5f905-a5ba-41d6-a7bd-22733e786368
+    credentials-file: /etc/cloudflared/credentials.json
+    protocol: http2
+
+    metrics: 20241
+
+    ingress:
+      - hostname: provider.reverb256.ca
+        service: http://akash-provider.akash-services.svc.cluster.local:8443
+        originRequest:
+          noTLSVerify: true
+      - hostname: '*.ingress.reverb256.ca'
+        service: http://traefik.ingress-cluster-http.svc.cluster.local:80
+      - service: http_status:404
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared-tunnel
+  namespace: akash-services
+  labels:
+    app: cloudflared-tunnel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared-tunnel
+  template:
+    metadata:
+      labels:
+        app: cloudflared-tunnel
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:2024.8.2
+        command: ["cloudflared"]
+        args: ["tunnel", "--config", "/etc/cloudflared/config.yml", "run"]
+        volumeMounts:
+        - name: config
+          mountPath: /etc/cloudflared
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 20241
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 20241
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: config
+        projected:
+          sources:
+          - configMap:
+              name: cloudflared-final-config
+          - secret:
+              name: cloudflared-final-credentials
+              items:
+              - key: credentials.json
+                path: credentials.json
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudflared-metrics
+  namespace: akash-services
+spec:
+  type: ClusterIP
+  ports:
+  - port: 20241
+    targetPort: 20241
