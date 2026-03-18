@@ -137,6 +137,47 @@ except ImportError as e:
     SEARXNG_AVAILABLE = False
     SearxngIntegration = None
 
+# Import agent search enhancements
+try:
+    from ai_inference_gateway.agent_search import (
+        AgentSearchEngine,
+        SearchIntent,
+        get_agent_search_engine,
+    )
+
+    AGENT_SEARCH_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Agent search enhancements not available: {e}")
+    AGENT_SEARCH_AVAILABLE = False
+    AgentSearchEngine = None
+    SearchIntent = None
+
+# Import HTTP-MCP bridge
+try:
+    from ai_inference_gateway.mcp_http_bridge import (
+        HTTPMCPBridge,
+        get_http_mcp_bridge,
+    )
+
+    HTTP_MCP_BRIDGE_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"HTTP-MCP bridge not available: {e}")
+    HTTP_MCP_BRIDGE_AVAILABLE = False
+    HTTPMCPBridge = None
+
+# Import hybrid search (RAG + SearXNG)
+try:
+    from ai_inference_gateway.hybrid_search import (
+        HybridSearchEngine,
+        get_hybrid_search,
+    )
+
+    HYBRID_SEARCH_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Hybrid search not available: {e}")
+    HYBRID_SEARCH_AVAILABLE = False
+    HybridSearchEngine = None
+
 # Import RAG ingestion
 try:
     from ai_inference_gateway.rag.ingestion import (
@@ -2532,6 +2573,321 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                         }
             except Exception as e:
                 return {"status": "error", "service": "SearXNG", "error": str(e)}
+
+    # ============================================================================
+    # AGENT-OPTIMIZED SEARCH ENDPOINTS
+    # ============================================================================
+    if AGENT_SEARCH_AVAILABLE and SEARXNG_AVAILABLE:
+
+        @app.post("/search/agent")
+        async def agent_search(request: Request):
+            """
+            Agent-optimized search with intent detection and result summarization.
+
+            Body: {
+                "query": str (required),
+                "context": str (optional, conversation context),
+                "intent": str (optional, auto-detected if not provided),
+                "max_results": int (optional, default=10),
+                "use_cache": bool (optional, default=true)
+            }
+
+            Intents: research, code, facts, troubleshooting, discovery
+            """
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            body = await request.json()
+            query = body.get("query", "").strip()
+
+            if not query:
+                raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+            # Get agent search engine
+            agent_engine = get_agent_search_engine(state.searxng)
+
+            # Extract parameters
+            context = body.get("context")
+            intent_str = body.get("intent")
+            max_results = min(body.get("max_results", 10), 50)
+            use_cache = body.get("use_cache", True)
+
+            # Parse intent if provided
+            intent = None
+            if intent_str and SearchIntent:
+                intent_map = {
+                    "research": SearchIntent.RESEARCH,
+                    "code": SearchIntent.CODE,
+                    "facts": SearchIntent.FACTS,
+                    "troubleshooting": SearchIntent.TROUBLESHOOTING,
+                    "discovery": SearchIntent.DISCOVERY,
+                }
+                intent = intent_map.get(intent_str.lower())
+
+            # Perform agent-optimized search
+            result = await agent_engine.search_with_agent_workflow(
+                query=query,
+                context=context,
+                intent=intent,
+                max_results=max_results,
+                use_cache=use_cache,
+            )
+
+            return result
+
+        @app.get("/search/agent/stats")
+        async def agent_search_stats():
+            """Get agent search learning statistics."""
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            agent_engine = get_agent_search_engine(state.searxng)
+            stats = agent_engine.get_learning_stats()
+            return stats
+
+        @app.post("/search/agent/feedback")
+        async def agent_search_feedback(request: Request):
+            """Record feedback for progressive improvement."""
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            body = await request.json()
+            query = body.get("query", "").strip()
+            selected_results = body.get("selected_results", [])
+            rating = body.get("rating")
+
+            if not query:
+                raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+            agent_engine = get_agent_search_engine(state.searxng)
+            await agent_engine.feedback(query, selected_results, rating)
+
+            return {"success": True, "message": "Feedback recorded"}
+
+    # ============================================================================
+    # HTTP-MCP BRIDGE ENDPOINTS
+    # ============================================================================
+    if HTTP_MCP_BRIDGE_AVAILABLE:
+
+        @app.get("/mcp/v1/tools")
+        async def list_mcp_tools(request: Request):
+            """List available MCP tools via HTTP."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(
+                    status_code=501, detail="MCP broker not available"
+                )
+
+            server_name = request.query_params.get("server")
+            refresh = request.query_params.get("refresh", "false").lower() == "true"
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            tools = await bridge.list_tools(server_name=server_name, refresh_cache=refresh)
+
+            return {"tools": tools}
+
+        @app.post("/mcp/v1/tools/{tool_name}/execute")
+        async def execute_mcp_tool(tool_name: str, request: Request):
+            """Execute an MCP tool via HTTP."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(
+                    status_code=501, detail="MCP broker not available"
+                )
+
+            body = await request.json()
+            arguments = body.get("arguments", {})
+            server_name = body.get("server_name")
+            timeout = body.get("timeout", 30.0)
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            result = await bridge.call_tool(tool_name, arguments, server_name, timeout)
+
+            return result
+
+        @app.get("/mcp/v1/tools/{tool_name}")
+        async def get_mcp_tool_info(tool_name: str, request: Request):
+            """Get detailed information about a specific MCP tool."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(
+                    status_code=501, detail="MCP broker not available"
+                )
+
+            server_name = request.query_params.get("server")
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            tool_info = await bridge.get_tool_info(tool_name, server_name)
+
+            return tool_info
+
+        @app.get("/mcp/v1/servers")
+        async def list_mcp_servers(request: Request):
+            """List all available MCP servers."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(
+                    status_code=501, detail="MCP broker not available"
+                )
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            servers = await bridge.list_servers()
+
+            return {"servers": servers}
+
+        @app.get("/mcp/v1/servers/{server_name}/health")
+        async def get_mcp_server_health(server_name: str, request: Request):
+            """Get health status of an MCP server."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(
+                    status_code=501, detail="MCP broker not available"
+                )
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            health = await bridge.get_server_health(server_name)
+
+            return health
+
+        @app.post("/mcp/v1/cache/clear")
+        async def clear_mcp_cache(request: Request):
+            """Clear MCP tool cache."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(
+                    status_code=501, detail="MCP broker not available"
+                )
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            bridge.clear_cache()
+
+            return {"success": True, "message": "MCP tool cache cleared"}
+
+    # ============================================================================
+    # HYBRID SEARCH ENDPOINTS (RAG + SearXNG)
+    # ============================================================================
+    if HYBRID_SEARCH_AVAILABLE and SEARXNG_AVAILABLE:
+
+        @app.post("/search/hybrid")
+        async def hybrid_search(request: Request):
+            """
+            Hybrid search combining RAG (local knowledge) and SearXNG (web).
+
+            Body: {
+                "query": str (required),
+                "max_results": int (optional, default=10),
+                "use_rag": bool (optional, default=true),
+                "use_web": bool (optional, default=true),
+                "collection": str (optional, default="default"),
+                "rerank": bool (optional, default=true),
+                "time_range": str (optional, values: day, week, month, year)
+            }
+            """
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            body = await request.json()
+            query = body.get("query", "").strip()
+
+            if not query:
+                raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+            # Extract parameters
+            max_results = min(body.get("max_results", 10), 50)
+            use_rag = body.get("use_rag", True)
+            use_web = body.get("use_web", True)
+            collection = body.get("collection", "default")
+            rerank = body.get("rerank", True)
+            time_range = body.get("time_range")
+
+            # Get RAG search service if available
+            rag_search = state.rag_search if RAG_AVAILABLE and use_rag else None
+
+            # Get hybrid search engine
+            hybrid_engine = get_hybrid_search(state.searxng, rag_search)
+
+            # Perform hybrid search
+            result = await hybrid_engine.search(
+                query=query,
+                max_results=max_results,
+                use_rag=use_rag and rag_search is not None,
+                use_web=use_web,
+                collection=collection,
+                rerank=rerank,
+                time_range=time_range,
+            )
+
+            return result
+
+        @app.post("/search/hybrid/progressive")
+        async def progressive_search(request: Request):
+            """
+            Progressive search with automatic query refinement.
+
+            Keeps refining the query until sufficient results are found.
+
+            Body: {
+                "query": str (required),
+                "max_results": int (optional, default=10),
+                "min_results": int (optional, default=5),
+                "max_iterations": int (optional, default=3)
+            }
+            """
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            body = await request.json()
+            query = body.get("query", "").strip()
+
+            if not query:
+                raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+            # Extract parameters
+            max_results = min(body.get("max_results", 10), 50)
+            min_results = body.get("min_results", 5)
+            max_iterations = body.get("max_iterations", 3)
+
+            # Get RAG search service if available
+            rag_search = state.rag_search if RAG_AVAILABLE else None
+
+            # Get hybrid search engine
+            hybrid_engine = get_hybrid_search(state.searxng, rag_search)
+
+            # Perform progressive search
+            result = await hybrid_engine.search_with_progressive_refinement(
+                query=query,
+                max_results=max_results,
+                min_results=min_results,
+                max_iterations=max_iterations,
+            )
+
+            return result
 
     # ============================================================================
     # RAG ENDPOINTS
