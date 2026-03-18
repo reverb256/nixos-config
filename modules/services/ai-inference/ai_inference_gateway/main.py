@@ -152,6 +152,18 @@ except ImportError as e:
     AgentSearchEngine = None
     SearchIntent = None
 
+# Import Self-Improvement System (meta-learning from all interactions)
+try:
+    from ai_inference_gateway.self_improvement_api import create_self_improvement_router
+    from ai_inference_gateway.self_improvement import get_self_improvement_engine
+    from ai_inference_gateway.hermes_integration import get_hermes_bridge
+
+    SELF_IMPROVEMENT_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Self-improvement system not available: {e}")
+    SELF_IMPROVEMENT_AVAILABLE = False
+    create_self_improvement_router = None
+
 # Import HTTP-MCP bridge
 try:
     from ai_inference_gateway.mcp_http_bridge import (
@@ -681,6 +693,15 @@ async def lifespan(app: FastAPI):
 
     # Shutdown cleanup
     logger.info("Shutting down gateway")
+
+    # Flush self-improvement memory buffers
+    if SELF_IMPROVEMENT_AVAILABLE:
+        try:
+            from ai_inference_gateway.self_improvement import shutdown_self_improvement
+            await shutdown_self_improvement()
+            logger.info("Self-improvement engine shutdown complete")
+        except Exception as e:
+            logger.warning(f"Failed to shutdown self-improvement engine: {e}")
 
     if state.redis_client:
         await state.redis_client.close()
@@ -1313,16 +1334,40 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Get messages for routing
         messages = body.get("messages", [])
 
+        # Extract headers and query params for category-based routing (oh-my-opencode style)
+        headers = dict(request.headers)
+        query_params = dict(request.query_params)
+
         # Use router to select best model
         requested_model = body.get("model", None)
         route_decision: RouteDecision = await state.router.route(
             messages=messages,
             requested_model=requested_model,
             urgency="normal",  # Could be made configurable
+            headers=headers,
+            query_params=query_params,
         )
 
         # Update model in body based on routing decision
         body["model"] = route_decision.model
+
+        # Log routing decision to self-improvement system (non-blocking)
+        if SELF_IMPROVEMENT_AVAILABLE:
+            try:
+                import asyncio
+                engine = get_self_improvement_engine()
+                # Don't await - log in background
+                asyncio.create_task(engine.log_routing_decision(
+                    model_requested=requested_model or "auto",
+                    model_routed=route_decision.model,
+                    routing_reason=route_decision.reason,
+                    token_count=route_decision.estimated_tokens,
+                    task_type=route_decision.specialization.value if route_decision.specialization else "general",
+                    latency_ms=0,  # Will be updated after request completes
+                    backend_used=route_decision.backend,
+                ))
+            except Exception as log_error:
+                logger.warning(f"Failed to log routing decision: {log_error}")
 
         # Detect if this is a vision request
         is_vision_request = False
@@ -1657,10 +1702,16 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 body["thinking"]["intensity"] = thinking_intensity
 
         # Use router to determine the best model (based on model name only, not intensity)
+        # Extract headers and query params for category-based routing (oh-my-opencode style)
+        headers = dict(request.headers)
+        query_params = dict(request.query_params)
+
         route_decision: RouteDecision = await state.router.route(
             messages=messages,
             requested_model=model,
             urgency="normal",
+            headers=headers,
+            query_params=query_params,
         )
 
         # Apply prefill optimization limits based on model variant
@@ -3304,7 +3355,128 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "details": {
                 "backend": "gateway-proxy",
                 "committed": True,
-                "features": ["ollama-api", "openai-api", "rag", "mcp"],
+                "features": ["ollama-api", "openai-api", "rag", "mcp", "category-routing"],
+            },
+        }
+
+    @app.get("/api/categories")
+    async def get_categories():
+        """
+        Get available task categories for category-based routing (oh-my-opencode style).
+
+        Compatible with: GET /api/categories
+
+        Returns information about all available categories, their descriptions,
+        and which models they route to.
+
+        Categories:
+        - quick: Fast, lightweight tasks
+        - ultrabrain: Deep logical reasoning, architecture decisions
+        - deep: Complex algorithms, business logic
+        - unspecified-high: High uncertainty, high quality needed
+        - unspecified-low: Medium complexity with clear requirements
+        - visual-engineering: UI/UX, design (vision models)
+        - artistry: Creative work
+        - writing: Documentation, prose
+
+        Usage:
+            curl -H "X-Task-Category: ultrabrain" http://gateway:8080/v1/chat/completions
+            curl http://gateway:8080/v1/chat/completions?category=deep
+        """
+        state: GatewayState = app.state.gateway
+
+        # Get category info from router
+        category_info = state.router.get_category_info()
+
+        return {
+            "categories": category_info,
+            "usage": {
+                "header": "X-Task-Category: <category>",
+                "query_param": "?category=<category>",
+                "complexity_header": "X-Task-Complexity: <low|medium|high>",
+                "complexity_param": "?complexity=<low|medium|high>",
+            },
+            "examples": {
+                "quick": "Simple config edits, quick queries",
+                "ultrabrain": "Architecture decisions, strategic planning",
+                "deep": "Complex algorithms, business logic",
+                "unspecified-high": "Complex tasks with high uncertainty",
+                "unspecified-low": "Medium complexity with clear requirements",
+                "visual-engineering": "UI/UX, frontend components",
+                "artistry": "Creative writing, marketing copy",
+                "writing": "Documentation, technical prose",
+            },
+        }
+
+    @app.post("/api/route")
+    async def test_route(request: Request):
+        """
+        Test category-based routing without making a full inference request.
+
+        Compatible with: POST /api/route
+
+        Request body:
+        {
+            "category": "ultrabrain",           // Optional: X-Task-Category
+            "complexity": "high",                // Optional: X-Task-Complexity
+            "content": "my request content...",  // Optional: for auto-detection
+            "messages": [...],                  // Optional: messages for routing
+        }
+
+        Returns the routing decision that would be made for the given request.
+        """
+        state: GatewayState = app.state.gateway
+
+        body = await request.json()
+
+        # Extract routing parameters
+        category = body.get("category")
+        complexity = body.get("complexity")
+        content = body.get("content")
+        messages = body.get("messages")
+
+        # Build headers and query params
+        headers = {}
+        query_params = {}
+
+        if category:
+            headers["X-Task-Category"] = category
+            query_params["category"] = category
+        if complexity:
+            headers["X-Task-Complexity"] = complexity
+            query_params["complexity"] = complexity
+
+        # Get messages for routing
+        if messages:
+            route_messages = messages
+        elif content:
+            route_messages = [{"role": "user", "content": content}]
+        else:
+            route_messages = []
+
+        # Get routing decision
+        route_decision = await state.router.route(
+            messages=route_messages,
+            requested_model=None,
+            urgency="normal",
+            headers=headers,
+            query_params=query_params,
+        )
+
+        return {
+            "decision": {
+                "model": route_decision.model,
+                "backend": route_decision.backend,
+                "confidence": route_decision.confidence,
+                "reason": route_decision.reason,
+                "specialization": route_decision.specialization.value if route_decision.specialization else None,
+                "expected_latency_ms": route_decision.expected_latency_ms,
+            },
+            "input": {
+                "category": category,
+                "complexity": complexity,
+                "has_content": bool(content),
+                "has_messages": bool(messages),
             },
         }
 
@@ -3926,6 +4098,24 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 status_code=501,
                 detail="Prometheus metrics not available. Install prometheus-client package.",
             )
+
+    print("[DEBUG] create_app: Adding self-improvement endpoints...", file=sys.stderr, flush=True)
+    # Add self-improvement system endpoints
+    if SELF_IMPROVEMENT_AVAILABLE:
+        try:
+            self_improvement_router = create_self_improvement_router(
+                enabled=True,
+                auto_extract_patterns=True,
+                min_confidence_for_update=0.7,
+            )
+            # Include all routes from self-improvement router
+            for route in self_improvement_router.routes:
+                app.routes.append(route)
+            logger.info("Self-improvement endpoints registered")
+        except Exception as e:
+            import traceback
+            logger.warning(f"Failed to initialize self-improvement system: {e}")
+            logger.warning(f"Traceback: {traceback.format_exc()}")
 
     print("[DEBUG] create_app: About to return app", file=sys.stderr, flush=True)
     return app
@@ -4914,6 +5104,20 @@ async def handle_anthropic_non_streaming(
         logger.error(f"Backend error in Anthropic request: {e}")
         metrics_tracker.record_error("backend_error")
 
+        # Log error episode to self-improvement system
+        if SELF_IMPROVEMENT_AVAILABLE:
+            try:
+                engine = get_self_improvement_engine()
+                import asyncio
+                asyncio.create_task(engine.log_error(
+                    error_type="backend_error",
+                    error_message=str(e),
+                    context={"endpoint": "/v1/messages", "model": body.get("model")},
+                    resolution="circuit_breaker_triggered",
+                ))
+            except Exception:
+                pass  # Don't fail logging
+
         if config.middleware.circuit_breaker.enabled:
             for middleware in pipeline.middleware:
                 if isinstance(middleware, CircuitBreaker):
@@ -4924,6 +5128,19 @@ async def handle_anthropic_non_streaming(
     except Exception as e:
         logger.error(f"Unexpected error in Anthropic request: {e}")
         metrics_tracker.record_error("unexpected_error")
+
+        # Log error episode to self-improvement system
+        if SELF_IMPROVEMENT_AVAILABLE:
+            try:
+                engine = get_self_improvement_engine()
+                import asyncio
+                asyncio.create_task(engine.log_error(
+                    error_type="unexpected_error",
+                    error_message=str(e),
+                    context={"endpoint": "/v1/messages", "model": body.get("model")},
+                ))
+            except Exception:
+                pass  # Don't fail logging
 
         if config.middleware.circuit_breaker.enabled:
             for middleware in pipeline.middleware:
