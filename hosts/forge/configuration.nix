@@ -821,4 +821,9 @@
   # No Agenix secrets currently configured for Forge.
   # Enable via services.agenix-secrets-registry when needed (e.g., for Akash provider).
   # See modules/system/agenix-secrets-registry.nix for available categories.
+
+  # CRITICAL: Disable agenix-fixes module - it causes boot loops on hosts without age keys
+  # This module expects /etc/nixos/.age/key.txt which doesn't exist on Forge
+  # Without this, the activation script fails during boot and triggers kernel panic
+  services.agenix-fixes.enable = false;
 }
