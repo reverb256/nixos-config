@@ -108,6 +108,25 @@ python.pkgs.buildPythonApplication rec {
   preInstallCheck = "";
   postInstallCheck = "";
 
+  # Install CLI scripts and binaries
+  postInstall = ''
+    # Install the main hermes CLI
+    install -D -m755 $src/cli.py $out/bin/hermes
+    # Fix shebang to use the correct Python interpreter
+    substituteInPlace $out/bin/hermes \
+      --replace "#!/usr/bin/env python3" "#!${python}/bin/python"
+
+    # Install hermes-agent binary (gateway runner)
+    install -D -m755 $src/run_agent.py $out/bin/hermes-agent
+    substituteInPlace $out/bin/hermes-agent \
+      --replace "#!/usr/bin/env python3" "#!${python}/bin/python"
+
+    # Install hermes-acp binary
+    install -D -m755 $src/acp_adapter/entry.py $out/bin/hermes-acp
+    substituteInPlace $out/bin/hermes-acp \
+      --replace "#!/usr/bin/env python3" "#!${python}/bin/python"
+  '';
+
   meta = with lib; {
     description = "Self-improving AI agent by Nous Research";
     homepage = "https://hermes-agent.nousresearch.com/";

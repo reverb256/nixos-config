@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared-tunnel
+  namespace: akash-services
+  labels:
+    app: cloudflared-tunnel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared-tunnel
+  template:
+    metadata:
+      labels:
+        app: cloudflared-tunnel
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:2026.2.0
+        command:
+        - cloudflared
+        - tunnel
+        - --config
+        - /etc/cloudflared/config.yml
+        - run
+        env:
+        - name: TUNNEL_ID
+          value: "e67aedf0-a025-4231-9ee4-3fa6887c2d21"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/cloudflared
+          readOnly: true
+        - name: credentials
+          mountPath: /run/agenix
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "curl -s http://localhost:20241/metrics || exit 1"
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "curl -s http://localhost:20241/metrics || exit 1"
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 20241
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 20241
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: cloudflared-config
+      - name: credentials
+        secret:
+          secretName: cloudflared-tunnel-credentials
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: akash-services
+  labels:
+    app: cloudflared-tunnel
+data:
+  config.yml: |
+    tunnel: e67aedf0-a025-4231-9ee4-3fa6887c2d21
+    credentials-file: /run/agenix/credentials.json
+
+    metrics: 20241
+
+    ingress:
+      - hostname: provider.reverb256.ca
+        service: http://akash-provider.akash-services.svc.cluster.local:8443
+        originRequest:
+          noTLSVerify: true
+      - hostname: '*.ingress.reverb256.ca'
+        service: http://traefik.ingress-cluster-http.svc.cluster.local:80
+      - service: http_status:404
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudflared-metrics
+  namespace: akash-services
+  labels:
+    app: cloudflared-tunnel
+spec:
+  type: ClusterIP
+  ports:
+  - port: 20241
+    targetPort: 20241
+    name: metrics
+  selector:
+    app: cloudflared-tunnel

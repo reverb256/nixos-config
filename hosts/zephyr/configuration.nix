@@ -161,8 +161,8 @@
       providerAddress = "akash1s97zjxzn3tnudawjhjhpus9x7yn6dgukzar372";
       # Domain for provider ingress (using Quick Tunnel for testing)
       # WARNING: Quick Tunnel URLs change on restart - use own domain for production
-      domain = "tech-trace-sunny-sciences.trycloudflare.com";
-      clusterPublicHostname = "tech-trace-sunny-sciences.trycloudflare.com";
+      domain = "provider.reverb256.ca";
+      clusterPublicHostname = "provider.reverb256.ca";
 
       # GPU pricing (uakt per block) - adjust based on market demand
       pricing = {

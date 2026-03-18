@@ -1,0 +1,138 @@
+# Test Pod for Storage Classes
+# Verifies fast-local-ssd, slow-hdd, and large-nfs-storage work correctly
+
+---
+# Test Pod for fast-local-ssd (Zephyr NVMe)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-fast-local-ssd
+  namespace: default
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test-storage
+    image: busybox:latest
+    command: ["/bin/sh", "-c"]
+    args: 
+      - |
+        echo "Testing fast-local-ssd storage..."
+        df -h /data
+        echo "Writing test file..."
+        dd if=/dev/zero of=/data/test-file bs=1M count=10
+        ls -lh /data/test-file
+        echo "Test completed successfully"
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: test-fast-local-ssd
+  nodeSelector:
+    kubernetes.io/hostname: zephyr
+
+---
+# Test Pod for slow-hdd (Sentry HDD)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-slow-hdd
+  namespace: default
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test-storage
+    image: busybox:latest
+    command: ["/bin/sh", "-c"]
+    args: 
+      - |
+        echo "Testing slow-hdd storage..."
+        df -h /data
+        echo "Writing test file..."
+        dd if=/dev/zero of=/data/test-file bs=1M count=10
+        ls -lh /data/test-file
+        echo "Test completed successfully"
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: test-slow-hdd
+  nodeSelector:
+    kubernetes.io/hostname: sentry
+
+---
+# Test Pod for large-nfs-storage (Nexus NFS)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-nfs-storage
+  namespace: default
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test-storage
+    image: busybox:latest
+    command: ["/bin/sh", "-c"]
+    args: 
+      - |
+        echo "Testing large-nfs-storage..."
+        df -h /data
+        echo "Writing test file..."
+        dd if=/dev/zero of=/data/test-file bs=1M count=10
+        ls -lh /data/test-file
+        echo "Reading test file..."
+        cat /data/test-file > /dev/null
+        echo "Test completed successfully"
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: test-nfs-storage
+
+---
+# Test Pod for local-path-provisioner (default)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-local-path
+  namespace: default
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test-storage
+    image: busybox:latest
+    command: ["/bin/sh", "-c"]
+    args: 
+      - |
+        echo "Testing local-path-provisioner (default)..."
+        df -h /data
+        echo "Writing test file..."
+        dd if=/dev/zero of=/data/test-file bs=1M count=10
+        ls -lh /data/test-file
+        echo "Test completed successfully"
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: test-local-path
+
+---
+# Test PVC for local-path-provisioner (default)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-local-path
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

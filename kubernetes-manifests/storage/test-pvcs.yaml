@@ -1,0 +1,61 @@
+# Test PersistentVolumeClaims for all storage classes
+# These can be used to verify storage class functionality
+
+---
+# Test PVC for fast-local-ssd storage class
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-fast-local-ssd
+  namespace: default
+spec:
+  storageClassName: fast-local-ssd
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# Test PVC for slow-hdd storage class
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-slow-hdd
+  namespace: default
+spec:
+  storageClassName: slow-hdd
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# Test PVC for large-nfs-storage storage class
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-nfs-storage
+  namespace: default
+spec:
+  storageClassName: large-nfs-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# Test PVC for local-path-provisioner (default)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-local-path
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
