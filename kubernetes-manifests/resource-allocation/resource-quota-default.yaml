@@ -1,0 +1,67 @@
+# ResourceQuota for default namespace
+# Prevents resource exhaustion and ensures fair allocation
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-resources
+  namespace: default
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: "8Gi"
+    limits.cpu: "16"
+    limits.memory: "16Gi"
+    persistentvolumeclaims: "10"
+    requests.nvidia.com/gpu: "2"
+---
+# ResourceQuota for kube-system
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: system-resources
+  namespace: kube-system
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: "4Gi"
+    limits.cpu: "8"
+    limits.memory: "8Gi"
+---
+# ResourceQuota for ingress-system
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: ingress-resources
+  namespace: ingress-system
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: "2Gi"
+    limits.cpu: "4"
+    limits.memory: "4Gi"
+---
+# ResourceQuota for Akash services
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: akash-resources
+  namespace: akash-services
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: "4Gi"
+    limits.cpu: "8"
+    limits.memory: "8Gi"
+---
+# ResourceQuota for envoy-gateway
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: envoy-resources
+  namespace: envoy-gateway-system
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: "2Gi"
+    limits.cpu: "4"
+    limits.memory: "4Gi"
