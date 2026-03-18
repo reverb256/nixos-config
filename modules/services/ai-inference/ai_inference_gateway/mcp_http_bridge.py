@@ -63,19 +63,20 @@ class HTTPMCPBridge:
 
         # Get all servers
         servers = await self.mcp_broker.list_servers()
-        for server in servers:
+        for server_info in servers:
+            server_name = server_info.get("name", {}).get("name") if isinstance(server_info.get("name"), dict) else server_info.get("name")
             try:
-                tools = await self.mcp_broker.list_tools(server)
+                tools = await self.mcp_broker.get_tools(server_name)
                 for tool in tools:
                     tool_info = {
-                        "name": tool.name,
-                        "description": tool.description,
-                        "server": server,
-                        "input_schema": tool.inputSchema,
+                        "name": tool.get("name"),
+                        "description": tool.get("description"),
+                        "server": server_name,
+                        "input_schema": tool.get("inputSchema"),
                     }
                     all_tools.append(tool_info)
             except Exception as e:
-                logger.warning(f"Failed to list tools from {server}: {e}")
+                logger.warning(f"Failed to list tools from {server_name}: {e}")
 
         # Update cache
         self.tool_cache = {"tools": all_tools}
@@ -226,7 +227,7 @@ class HTTPMCPBridge:
         for server in servers:
             try:
                 # Get tools for this server
-                tools = await self.mcp_broker.list_tools(server)
+                tools = await self.mcp_broker.get_tools(server)
                 server_info.append({
                     "name": server,
                     "tool_count": len(tools),
@@ -253,7 +254,7 @@ class HTTPMCPBridge:
         """
         try:
             # Try to list tools as a health check
-            tools = await self.mcp_broker.list_tools(server_name)
+            tools = await self.mcp_broker.get_tools(server_name)
             return {
                 "server": server_name,
                 "status": "healthy",
