@@ -347,6 +347,7 @@ class MCPBroker:
                                         "name": tool.get("name"),
                                         "description": tool.get("description", ""),
                                         "type": "remote",
+                                        "inputSchema": tool.get("inputSchema", {}),
                                     }
                                 )
                             break  # Got the tools, stop parsing
@@ -381,6 +382,7 @@ class MCPBroker:
                             "name": tool.get("name"),
                             "description": tool.get("description", ""),
                             "type": "remote",
+                            "inputSchema": tool.get("inputSchema", {}),
                         }
                     )
                 return tools
