@@ -789,6 +789,82 @@
 
 ---
 
-**Last Updated:** 2026-03-16
-**Status:** Phase 2 Complete → Phase 4 Started (Caddy Ingress deployed)
-**Next Review:** After Phase 4 completion
+## AI Stack Improvements (Phase 5)
+
+### Objectives
+- Enhance observability with Loki/Tempo stack
+- Implement MLflow model registry for Qwen3.5 models
+- Optimize GPU workload coordination between mining and Kubernetes
+- Improve multi-modal model serving capabilities
+- Deploy advanced caching strategies
+- Implement zero-trust security model
+- Expand MCP server ecosystem
+
+### Completed Quick Fixes (2026-03-18)
+- ✅ Sentry: Enabled lolminer-amd for RX 5600 XT GPU mining
+- ✅ Zephyr: Fixed Redis port conflict (changed to 6380)
+- ✅ All hosts: Fixed hermes-agent systemd ordering dependencies
+- ✅ All hosts: Fixed flake-lock-sync systemd ordering dependencies
+
+### Implementation Plan
+
+| Feature | Priority | Est. Time | Dependencies | Status |
+|----------|-----------|------------|---------------|---------|
+| Sentry lolminer-amd | P0 | 15 min | None | ✅ Done |
+| Redis port conflict | P0 | 10 min | None | ✅ Done |
+| Systemd ordering fixes | P0 | 10 min | None | ✅ Done |
+| Unified Redis service | P1 | 1 hr | Port conflict fix | 📋 Planning |
+| MLflow integration | P2 | 4-6 hr | Unified Redis | 📋 Planning |
+| Loki/Tempo stack | P2 | 4-6 hr | Systemd hardening | 📋 Planning |
+| GPU workload optimization | P2 | 6-8 hr | Basic fixes | 📋 Planning |
+| Multi-modal serving | P2 | 8-12 hr | MLflow integration | 📋 Planning |
+| Advanced caching | P3 | 4-6 hr | Unified Redis | 📋 Planning |
+| Zero-trust security | P3 | 6-8 hr | Observability + multi-modal | 📋 Planning |
+| MCP ecosystem | P3 | 4-8 hr | Zero-trust security | 📋 Planning |
+
+### Key Improvements Detail
+
+#### 1. MLflow Model Registry
+- Track Qwen3.5 model experiments, versions, and metadata
+- Store model artifacts on NFS (/mnt/garage/mlflow)
+- Integrate with AI Gateway for inference logging
+
+#### 2. Loki/Tempo Observability
+- Add Loki for log aggregation
+- Add Tempo for distributed tracing
+- Integrate with existing Grafana dashboards
+
+#### 3. GPU Workload Optimization
+- Coordinate mining vs Kubernetes GPU workloads
+- Implement GPU preemption for critical workloads
+- Add GPU utilization dashboards
+
+#### 4. Multi-Modal Serving
+- Enhance AI Gateway with vision/audio support
+- Integrate CLIP for image understanding
+- Add Whisper STT endpoints
+
+#### 5. Advanced Caching
+- Cache warming for common queries
+- Cache eviction strategies (LFU)
+- Cache analytics dashboard
+
+#### 6. Zero-Trust Security
+- Service mesh with mTLS
+- Fine-grained RBAC
+- Request signing
+
+#### 7. MCP Ecosystem
+- MCP discovery protocol
+- MCP marketplace
+- MCP deployment automation
+
+### Skills Available
+- `mlops-engineer` - Full ML lifecycle management
+- `machine-learning-engineer` - Model deployment and serving
+
+---
+
+**Last Updated:** 2026-03-18
+**Status:** Phase 2 Complete → Phase 4 Started (Caddy Ingress deployed) → AI Stack Improvements Started
+**Next Review:** After Phase 5 quick fixes deployed

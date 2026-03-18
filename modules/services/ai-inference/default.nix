@@ -849,10 +849,11 @@ in
       };
 
       # Redis for gateway middleware (caching, rate limiting, circuit breaker)
+      # Using port 6380 to avoid conflict with fwupd-redis on 6379
       redis.servers.ai-gateway = {
         inherit (cfg.gateway.middleware.redis) enable;
         bind = "127.0.0.1";
-        port = 6379;
+        port = 6380;
       };
     };
 
