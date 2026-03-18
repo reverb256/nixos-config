@@ -168,10 +168,14 @@
     config = {
       # Common git settings
       init.defaultBranch = "main";
-      # Allow ai-inference service user to access /etc/nixos git repo
-      # Git 2.35+ requires explicit approval for owned repos
-      # Note: Using quoted key for multi-value option
-      "safe.directory".value = "/etc/nixos";
     };
   };
+
+  # Append safe.directory setting to system gitconfig
+  # Git 2.35+ requires explicit approval for owned repos
+  # This allows ai-inference service user to access /etc/nixos git repo
+  environment.etc."gitconfig".text = lib.mkAfter ''
+    [safe]
+      directory = /etc/nixos
+  '';
 }
