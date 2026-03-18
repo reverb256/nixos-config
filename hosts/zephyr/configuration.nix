@@ -5,7 +5,8 @@
   lib,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
     # ========================================================================
     # BASE MODULES
@@ -268,8 +269,16 @@
   # Root and home filesystems lack compression in hardware-configuration.nix
   # Use mkOptionDefault to add compression without breaking other options
   fileSystems = {
-    "/".options = lib.mkOptionDefault ["compress=zstd:3" "ssd" "discard=async"];
-    "/home".options = lib.mkOptionDefault ["compress=zstd:3" "ssd" "discard=async"];
+    "/".options = lib.mkOptionDefault [
+      "compress=zstd:3"
+      "ssd"
+      "discard=async"
+    ];
+    "/home".options = lib.mkOptionDefault [
+      "compress=zstd:3"
+      "ssd"
+      "discard=async"
+    ];
   };
 
   # ============================================================================
@@ -350,7 +359,10 @@
         mining = {
           enable = true;
           hourlyRevenue = 0.10; # $0.10/hr per GPU (baseline bid)
-          services = ["lolminer-nvidia" "xmrig"];
+          services = [
+            "lolminer-nvidia"
+            "xmrig"
+          ];
         };
 
         # Kubernetes bidder configuration
@@ -594,7 +606,7 @@
           nix-rebuild = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
@@ -604,15 +616,15 @@
           add-service = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
             ];
-            environment = {};
+            environment = { };
             enabled = true;
           };
           context7 = {
             type = "local";
-            command = ["mcp-context7"];
+            command = [ "mcp-context7" ];
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
@@ -730,7 +742,7 @@
         enable = true;
         autostart = true;
         devices = "1";
-        perGpuPowerLimits = [250]; # [3090] - 3060 Ti disabled
+        perGpuPowerLimits = [ 250 ]; # [3090] - 3060 Ti disabled
         apiPort = 4068;
       };
       # CPU mining - Dual XMRig setup (always-on + pause-able)
@@ -914,8 +926,8 @@
   services.agenix-secrets-registry = {
     enable = true;
     aiServices = true;
-    monitoring = false;  # TODO: Re-enable after creating sentry-dsn.age
-    storage = true;      # Required for backup-to-garage service (S3 API key)
+    monitoring = false; # TODO: Re-enable after creating sentry-dsn.age
+    storage = true; # Required for backup-to-garage service (S3 API key)
     mining = true;
     cloud = true;
     selfHosting = false; # These services run on other hosts
@@ -923,7 +935,7 @@
 
   # Override specific secret permissions (registry defaults can be overridden)
   age = {
-    identityPaths = ["/home/j_kro/.age/key.txt"];
+    identityPaths = [ "/home/j_kro/.age/key.txt" ];
     secrets.xmrig-api-token = lib.mkForce {
       file = "${inputs.self}/secrets/xmrig-api-token.age";
       mode = "440";
@@ -1220,7 +1232,7 @@
       enable = true;
       mountPoint = "/home/j_kro/.hermes";
       nfsServer = "10.1.1.120"; # Nexus
-      nfsPath = "/data/home";  # Fixed: matches actual NFS export on nexus
+      nfsPath = "/data/home"; # Fixed: matches actual NFS export on nexus
     };
     aiGateway = {
       enable = true;
@@ -1252,4 +1264,3 @@
   # Configured in services block above
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
-

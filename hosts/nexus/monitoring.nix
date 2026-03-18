@@ -1,48 +1,34 @@
 # Nexus Monitoring Configuration
+# Storage/GPU node
 {...}: {
   imports = [
     ../../modules/services/monitoring/default.nix
   ];
 
-  # Services configuration
+  # SERVICES CONFIGURATION
   services = {
-    monitoring = {
-      # Node exporter for system metrics
-      node-exporter.enable = true;
-
-      # SMART exporter for disk health monitoring
-      smart-exporter.enable = true;
-
-      # Promtail - ship logs to Loki on sentry
-      promtail.enable = true;
-      promtail.lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
-    };
-
-    # NVIDIA GPU exporter for RTX 3060 Ti (2x GPUs)
-    gpu-exporters = {
+    # System monitoring CLI tools
+    monitoring.system-tools = {
       enable = true;
-      nvidia.enable = true;
+      packageSet = "standard";
     };
 
-    # Mining exporter for xmrig/lolminer metrics
+    # Node exporter for Prometheus scraping (from Sentry)
+    monitoring.node-exporter = {
+      enable = true;
+      listenAddress = "0.0.0.0"; # Allow cluster scraping
+    };
+
+    # SMART exporter for disk health monitoring
+    monitoring.smart-exporter.enable = true;
+
+    # Mining exporter for CPU/GPU mining metrics
     mining-exporter.enable = true;
 
-    # Self-healing alerts via Plasma desktop notifications
-    self-healing-alerts = {
+    # Log aggregation to Sentry's Loki
+    monitoring.promtail = {
       enable = true;
-      monitoredServices = [
-        "kubelet"
-        "kube-apiserver"
-        "containerd"
-        "etcd"
-        "keepalived"
-        "gpu-proxy"
-      ];
-      enableCircuitBreakerAlerts = false;  # No AI gateway on Nexus
-      enableVIPFailoverAlerts = true;
-      enableResourceAlerts = true;
-      memoryThreshold = 90;
-      diskThreshold = 90;
+      lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
     };
   };
 }

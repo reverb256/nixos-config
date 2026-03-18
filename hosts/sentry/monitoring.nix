@@ -6,6 +6,12 @@
 
   # SERVICES CONFIGURATION
   services = {
+    # System monitoring CLI tools
+    monitoring.system-tools = {
+      enable = true;
+      packageSet = "standard"; # htop, iotop, nethogs, iftop, perf
+    };
+
     # Monitoring stack
     monitoring = {
       # Core monitoring services

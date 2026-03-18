@@ -1,31 +1,34 @@
 # Forge Monitoring Configuration
+# GPU computing node
 {...}: {
   imports = [
     ../../modules/services/monitoring/default.nix
   ];
 
-  # Services configuration
+  # SERVICES CONFIGURATION
   services = {
-    monitoring = {
-      # Node exporter for system metrics
-      node-exporter.enable = true;
-
-      # SMART exporter for disk health monitoring
-      smart-exporter.enable = true;
-
-      # Promtail - ship logs to Loki on sentry
-      promtail.enable = true;
-      promtail.lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
-    };
-
-    # GPU exporters for RTX 4060 (2x NVIDIA) + RX 5700 XT (2x AMD)
-    gpu-exporters = {
+    # System monitoring CLI tools
+    monitoring.system-tools = {
       enable = true;
-      nvidia.enable = true;
-      amd.enable = true;
+      packageSet = "standard";
     };
 
-    # Mining exporter for xmrig/lolminer metrics
+    # Node exporter for Prometheus scraping (from Sentry)
+    monitoring.node-exporter = {
+      enable = true;
+      listenAddress = "0.0.0.0"; # Allow cluster scraping
+    };
+
+    # SMART exporter for disk health monitoring
+    monitoring.smart-exporter.enable = true;
+
+    # Mining exporter for GPU mining metrics
     mining-exporter.enable = true;
+
+    # Log aggregation to Sentry's Loki
+    monitoring.promtail = {
+      enable = true;
+      lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
+    };
   };
 }
