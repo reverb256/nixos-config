@@ -1,0 +1,98 @@
+# Vertical Pod Autoscaler (VPA)
+# Automatically adjusts pod resource requests based on actual usage
+# This makes resource allocation intelligent and autonomous
+
+---
+# VPA Recommender - analyzes historical resource usage
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: coredns-vpa
+  namespace: kube-system
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: coredns
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "*"
+        minAllowed:
+          cpu: "50m"
+          memory: "64Mi"
+        maxAllowed:
+          cpu: "500m"
+          memory: "512Mi"
+        controlledResources: ["cpu", "memory"]
+        controlledValues: RequestsAndLimits
+---
+# VPA for dashboards
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: dashboard-vpa
+  namespace: default
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: zephyr-dashboard
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "*"
+        minAllowed:
+          cpu: "25m"
+          memory: "32Mi"
+        maxAllowed:
+          cpu: "500m"
+          memory: "512Mi"
+---
+# VPA for envoy-gateway
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: envoy-gateway-vpa
+  namespace: envoy-gateway-system
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: envoy-gateway
+  updatePolicy:
+    updateMode: "Auto"  # Automatically updates pods
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "*"
+        minAllowed:
+          cpu: "50m"
+          memory: "128Mi"
+        maxAllowed:
+          cpu: "2"
+          memory: "2Gi"
+---
+# VPA for cloudflared tunnel
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: cloudflared-vpa
+  namespace: akash-services
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cloudflared-tunnel
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "*"
+        minAllowed:
+          cpu: "50m"
+          memory: "64Mi"
+        maxAllowed:
+          cpu: "500m"
+          memory: "256Mi"
