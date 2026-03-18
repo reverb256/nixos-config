@@ -165,11 +165,14 @@
 
   # System gitconfig with safe.directory for ai-inference user
   # Git 2.35+ requires explicit approval for owned repos
-  # Use activation script to append to gitconfig after each rebuild
-  system.activationScripts.gitSafeDirectory = lib.stringAfter [ "etc" ] ''
-    # Add safe.directory setting to system gitconfig
-    if ! grep -q "^\[safe\]" /etc/gitconfig 2>/dev/null; then
-      echo -e "\n[safe]\n  directory = /etc/nixos" >> /etc/gitconfig
-    fi
-  '';
+  # Use tmpfiles to create override config
+  systemd.tmpfiles.rules = [
+    "f /etc/gitconfig-safe - - - - -"
+    "w /etc/gitconfig-safe - - - - [safe]\n  directory = /etc/nixos"
+  ];
+
+  # Tell git to include our override config
+  environment.sessionVariables = {
+    GIT_CONFIG_SYSTEM = "/etc/gitconfig-safe";
+  };
 }
