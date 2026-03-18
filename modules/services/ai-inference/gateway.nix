@@ -289,13 +289,6 @@ in
       "d /var/cache/ai-inference 0755 ai-inference ai-inference - -"
       "d /run/gpu-scheduler 0755 ai-inference ai-inference - -"
     ];
-
-    # Create gitconfig for nix-rebuild MCP tools to access /etc/nixos
-    # Git 2.35+ requires explicit approval for owned repos
-    environment.etc."gitconfig".text = ''
-      [safe]
-        directory = /etc/nixos
-    '';
   };
 }
 # force rebuild 3 1773547684
