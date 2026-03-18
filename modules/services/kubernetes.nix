@@ -247,9 +247,10 @@
         "C /etc/cni/net.d 0755 root root -"
         # Create symlinks from read-only NixOS store to writable directories
         # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)
-        "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
+        # Use 00-flannel.conflist to ensure it comes before cilium (05-cilium.conflist)
+        "L+ /var/lib/cni/net.d/00-flannel.conflist - - - - /etc/cni/flannel.conflist"
         # Containerd reads from /etc/cni/net.d (default CNI path)
-        "L+ /etc/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
+        "L+ /etc/cni/net.d/00-flannel.conflist - - - - /etc/cni/flannel.conflist"
         # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
         "d /var/lib/flannel 0755 root root -"
         "L+ /run/flannel - - - - /var/lib/flannel"
