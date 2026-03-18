@@ -131,7 +131,7 @@ async def get_learning_status():
     bridge = get_hermes_bridge()
     
     # Count semantic patterns
-    semantic_file = Path("/home/j_kro/.claude/projects/-etc-nixos/memory/semantic-patterns.json")
+    semantic_file = Path("/run/ai-inference/memory/semantic-patterns.json")
     semantic_count = 0
     if semantic_file.exists():
         try:
@@ -227,7 +227,7 @@ async def get_episodes(
     outcome: Optional[str] = Query(default=None, description="Filter by outcome"),
 ) -> EpisodeListResponse:
     """Get episodes for a specific date"""
-    episodic_dir = Path("/home/j_kro/.claude/projects/-etc-nixos/memory/episodic")
+    episodic_dir = Path("/run/ai-inference/memory/episodic")
     episode_file = episodic_dir / f"{date}-gateway.json"
     
     if not episode_file.exists():
@@ -283,7 +283,7 @@ async def get_semantic_patterns(
     min_confidence: float = Query(default=0.0, ge=0.0, le=1.0),
 ):
     """Get learned semantic patterns"""
-    semantic_file = Path("/home/j_kro/.claude/projects/-etc-nixos/memory/semantic-patterns.json")
+    semantic_file = Path("/run/ai-inference/memory/semantic-patterns.json")
     
     if not semantic_file.exists():
         return {"patterns": {}, "total": 0}
@@ -392,8 +392,18 @@ def create_self_improvement_router(**config) -> APIRouter:
     """Create and configure the self-improvement router"""
     # Initialize engine with config
     if SELF_IMPROVEMENT_AVAILABLE:
-        get_self_improvement_engine(**config)
-        get_hermes_bridge(**config)
+        # Extract relevant parameters for each component
+        engine_config = {
+            k: v for k, v in config.items()
+            if k in {'enabled', 'auto_extract_patterns', 'min_confidence_for_update', 'memory_base'}
+        }
+        bridge_config = {
+            k: v for k, v in config.items()
+            if k in {'enabled', 'hermes_memory', 'cluster_memory'}
+        }
+
+        get_self_improvement_engine(**engine_config)
+        get_hermes_bridge(**bridge_config)
         logger.info("Self-improvement system initialized")
-    
+
     return router
