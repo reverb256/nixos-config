@@ -27,6 +27,8 @@
     };
 
     # GPU pricing configuration (uakt per block)
+    # NOTE: Only NVIDIA GPUs are supported by Akash Network
+    # AMD GPU support was added in 2024 but has since regressed (AEP-54)
     pricing = {
       rtx3090 = lib.mkOption {
         type = lib.types.ints.u16;
@@ -42,16 +44,6 @@
         type = lib.types.ints.u16;
         default = 15000;
         description = "Price for RTX 3060 Ti (uakt/block)";
-      };
-      rx5700xt = lib.mkOption {
-        type = lib.types.ints.u16;
-        default = 8000;
-        description = "Price for RX 5700 XT (uakt/block)";
-      };
-      rx5600xt = lib.mkOption {
-        type = lib.types.ints.u16;
-        default = 7000;
-        description = "Price for RX 5600 XT (uakt/block)";
       };
     };
   };
@@ -167,15 +159,13 @@
           memory_price=$(echo "scale=6; $memory / 1073741824 * 0.8" | bc)
           storage_price=$(echo "scale=6; $storage / 1073741824 * 0.02" | bc)
 
-          # GPU pricing by model
+          # GPU pricing by model (NVIDIA only - AMD not supported by Akash)
           if [ "$gpu" -gt 0 ]; then
             case "$gpu_model" in
               *rtx3090*|*RTX3090*) gpu_price=$(echo "scale=6; $gpu * ${toString config.services.akash-provider.pricing.rtx3090}" | bc) ;;
               *rtx4060*|*RTX4060*) gpu_price=$(echo "scale=6; $gpu * ${toString config.services.akash-provider.pricing.rtx4060}" | bc) ;;
               *rtx3060*|*RTX3060*) gpu_price=$(echo "scale=6; $gpu * ${toString config.services.akash-provider.pricing.rtx3060ti}" | bc) ;;
-              *rx5700*|*RX5700*) gpu_price=$(echo "scale=6; $gpu * ${toString config.services.akash-provider.pricing.rx5700xt}" | bc) ;;
-              *rx5600*|*RX5600*) gpu_price=$(echo "scale=6; $gpu * ${toString config.services.akash-provider.pricing.rx5600xt}" | bc) ;;
-              *) gpu_price=$(echo "scale=6; $gpu * 10000" | bc) ;;  # Default pricing
+              *) gpu_price=$(echo "scale=6; $gpu * 10000" | bc) ;;  # Default pricing (NVIDIA unknown)
             esac
           else
             gpu_price=0
@@ -256,27 +246,25 @@
           # Wait for Kubernetes to be ready
           until kubectl get nodes > /dev/null 2>&1; do sleep 5; done
 
-          # Zephyr: RTX 3090 + RTX 3060 Ti (NVIDIA)
+          # Zephyr: RTX 3090 + RTX 3060 Ti (NVIDIA - supported)
           if [ "$(hostname)" = "zephyr" ]; then
             kubectl label node zephyr akash.network/capabilities.gpu.vendor.nvidia.model.rtx3090=true --overwrite 2>/dev/null || true
             kubectl label node zephyr akash.network/capabilities.gpu.vendor.nvidia.model.rtx3060ti=true --overwrite 2>/dev/null || true
           fi
 
-          # Nexus: RTX 3060 Ti (NVIDIA)
+          # Nexus: RTX 3060 Ti (NVIDIA - supported)
           if [ "$(hostname)" = "nexus" ]; then
             kubectl label node nexus akash.network/capabilities.gpu.vendor.nvidia.model.rtx3060ti=true --overwrite 2>/dev/null || true
           fi
 
-          # Forge: 2x RTX 4060 (NVIDIA) + 2x RX 5700 XT (AMD)
+          # Forge: 2x RTX 4060 (NVIDIA - supported)
+          # Note: Also has 2x RX 5700 XT (AMD) but AMD GPUs not supported by Akash
           if [ "$(hostname)" = "forge" ]; then
             kubectl label node forge akash.network/capabilities.gpu.vendor.nvidia.model.rtx4060=true --overwrite 2>/dev/null || true
-            kubectl label node forge akash.network/capabilities.gpu.vendor.amd.model.rx5700xt=true --overwrite 2>/dev/null || true
           fi
 
-          # Sentry: RX 5600 XT (AMD)
-          if [ "$(hostname)" = "sentry" ]; then
-            kubectl label node sentry akash.network/capabilities.gpu.vendor.amd.model.rx5600xt=true --overwrite 2>/dev/null || true
-          fi
+          # Sentry: RX 5600 XT (AMD) - NOT SUPPORTED by Akash
+          # Note: AMD GPU support regressed in 2024, only NVIDIA GPUs currently work
 
           # Region labels for all nodes
           kubectl label node $(hostname) topology.kubernetes.io/region=us-west --overwrite 2>/dev/null || true
