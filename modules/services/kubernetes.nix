@@ -4,11 +4,13 @@
 # Note: Service account tokens are NOT auto-mounted by default.
 # Set automountServiceAccountToken: false in pod specs unless needed.
 # See: docs/kubernetes/service-account-security.md
-{ config
-, pkgs
-, lib
-, ...
-}: {
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+{
   options.services.kubernetes-module = {
     enable = lib.mkEnableOption "Kubernetes cluster configuration";
 
@@ -20,13 +22,19 @@
 
     roles = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "master" "node" ];
+      default = [
+        "master"
+        "node"
+      ];
       description = "Kubernetes roles for this node";
     };
 
     # etcd HA clustering options
     etcdInitialState = lib.mkOption {
-      type = lib.types.enum [ "new" "existing" ];
+      type = lib.types.enum [
+        "new"
+        "existing"
+      ];
       default = "existing";
       description = "etcd initial cluster state: 'new' for first node, 'existing' for joining nodes";
     };
@@ -57,7 +65,7 @@
 
     apiserverBindAddress = lib.mkOption {
       type = lib.types.str;
-      default = "0.0.0.0";  # Bind to all interfaces so VIP (10.1.1.100) works
+      default = "0.0.0.0"; # Bind to all interfaces so VIP (10.1.1.100) works
       example = "10.1.1.120";
       description = "API server bind address. Use 0.0.0.0 for VIP access, or specific IP for direct access only.";
     };
@@ -125,9 +133,9 @@
             # VIP for HA failover
             "10.1.1.100"
             # All control plane node IPs
-            "10.1.1.110"  # zephyr
-            "10.1.1.120"  # nexus
-            "10.1.1.140"  # sentry
+            "10.1.1.110" # zephyr
+            "10.1.1.120" # nexus
+            "10.1.1.140" # sentry
             # Local hostname and cluster domain
             config.networking.hostName
             "${config.networking.hostName}.lan"
@@ -158,6 +166,18 @@
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
           };
+          # Node labels for GPU device plugin scheduling
+          # NVIDIA device plugin requires: accelerator=nvidia-gpu
+          # AMD device plugin requires: gpu=amd
+          # Build conditional labels based on GPU types present on node
+          extraOpts =
+            let
+              labels = lib.concatStringsSep "," (
+                (lib.optional config.hardware.nvidia.enabled "accelerator=nvidia-gpu")
+                ++ (lib.optional config.hardware.gpu-compute.rocm.enable "gpu=amd")
+              );
+            in
+            lib.mkIf (labels != "") "--node-labels=${labels}";
         };
         proxy.enable = true;
         proxy.extraOpts = "--cluster-cidr=10.244.0.0/16";
@@ -174,18 +194,32 @@
           "http://127.0.0.1:2379"
           "http://${config.services.kubernetes-module.etcdListenHost}:2379"
         ];
-        advertiseClientUrls = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2379" ];
+        advertiseClientUrls = lib.mkForce [
+          "http://${config.services.kubernetes-module.etcdListenHost}:2379"
+        ];
         listenPeerUrls = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2380" ];
-        initialAdvertisePeerUrls = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2380" ];
-        initialCluster = let
-          clusterMembers = if useEtcdCluster then config.services.kubernetes-module.etcdClusterMembers else
-            [ "${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380" ];
-          # If bootstrapping, use only this node; otherwise use full cluster list
-          effectiveMembers = if config.services.kubernetes-module.etcdBootstrapOnly then
-            [ "${config.services.kubernetes-module.etcdName}=http://${config.services.kubernetes-module.etcdListenHost}:2380" ]
-          else
-            clusterMembers;
-        in lib.mkForce effectiveMembers;
+        initialAdvertisePeerUrls = lib.mkForce [
+          "http://${config.services.kubernetes-module.etcdListenHost}:2380"
+        ];
+        initialCluster =
+          let
+            clusterMembers =
+              if useEtcdCluster then
+                config.services.kubernetes-module.etcdClusterMembers
+              else
+                [
+                  "${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380"
+                ];
+            # If bootstrapping, use only this node; otherwise use full cluster list
+            effectiveMembers =
+              if config.services.kubernetes-module.etcdBootstrapOnly then
+                [
+                  "${config.services.kubernetes-module.etcdName}=http://${config.services.kubernetes-module.etcdListenHost}:2380"
+                ]
+              else
+                clusterMembers;
+          in
+          lib.mkForce effectiveMembers;
         initialClusterToken = "zephyr-etcd-cluster";
         initialClusterState = config.services.kubernetes-module.etcdInitialState;
       };
@@ -299,118 +333,130 @@
           # Flannel creates FLANNEL-FWD chain with old CIDR (10.1.0.0/16)
           # This script updates it to use new CIDR (10.244.0.0/16)
           extraCommands = ''
-        # Update FLANNEL-FWD chain for new pod CIDR
-        if iptables -L FLANNEL-FWD -n &>/dev/null; then
-          # Delete old rules with 10.1.0.0/16 CIDR
-          iptables -D FLANNEL-FWD -s 10.1.0.0/16 -j ACCEPT 2>/dev/null || true
-          iptables -D FLANNEL-FWD -d 10.1.0.0/16 -j ACCEPT 2>/dev/null || true
-          # Add new rules with 10.244.0.0/16 CIDR
-          iptables -C FLANNEL-FWD -s 10.244.0.0/16 -j ACCEPT 2>/dev/null || \
-            iptables -I FLANNEL-FWD 1 -s 10.244.0.0/16 -j ACCEPT -m comment --comment "flanneld forward"
-          iptables -C FLANNEL-FWD -d 10.244.0.0/16 -j ACCEPT 2>/dev/null || \
-            iptables -I FLANNEL-FWD 2 -d 10.244.0.0/16 -j ACCEPT -m comment --comment "flanneld forward"
-        fi
-      '';
-    }  # Close worker config
-      ];  # Close lib.mkMerge
+            # Update FLANNEL-FWD chain for new pod CIDR
+            if iptables -L FLANNEL-FWD -n &>/dev/null; then
+              # Delete old rules with 10.1.0.0/16 CIDR
+              iptables -D FLANNEL-FWD -s 10.1.0.0/16 -j ACCEPT 2>/dev/null || true
+              iptables -D FLANNEL-FWD -d 10.1.0.0/16 -j ACCEPT 2>/dev/null || true
+              # Add new rules with 10.244.0.0/16 CIDR
+              iptables -C FLANNEL-FWD -s 10.244.0.0/16 -j ACCEPT 2>/dev/null || \
+                iptables -I FLANNEL-FWD 1 -s 10.244.0.0/16 -j ACCEPT -m comment --comment "flanneld forward"
+              iptables -C FLANNEL-FWD -d 10.244.0.0/16 -j ACCEPT 2>/dev/null || \
+                iptables -I FLANNEL-FWD 2 -d 10.244.0.0/16 -j ACCEPT -m comment --comment "flanneld forward"
+            fi
+          '';
+        } # Close worker config
+      ]; # Close lib.mkMerge
 
       # ============================================================================
       # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
       # ============================================================================
       systemd.services = {
-          containerd = {
-            after = lib.mkForce [ "network.target" ];
-            before = [ "kubelet.service" ];
-          };
+        containerd = {
+          after = lib.mkForce [ "network.target" ];
+          before = [ "kubelet.service" ];
+        };
 
-          kubelet = {
-            after = lib.mkForce [ "containerd.service" "network.target" ];
-            requires = lib.mkForce [ "containerd.service" ];
-            serviceConfig = {
-              ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
-                echo "Waiting for containerd to be ready..."
-                timeout=60
-                while [ $timeout -gt 0 ]; do
-                  if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
-                    echo "containerd is ready"
-                    exit 0
-                  fi
-                  sleep 1
-                  ((timeout--))
-                done
-                echo "ERROR: containerd not ready after 60 seconds"
-                exit 1
-              '';
-              # Kubelet memory limits (applied to all nodes)
-              MemoryMax = "2G";
-              MemoryHigh = "1.5G";
-              OOMScoreAdjust = -500;
-            };
+        kubelet = {
+          after = lib.mkForce [
+            "containerd.service"
+            "network.target"
+          ];
+          requires = lib.mkForce [ "containerd.service" ];
+          serviceConfig = {
+            ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
+              echo "Waiting for containerd to be ready..."
+              timeout=60
+              while [ $timeout -gt 0 ]; do
+                if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
+                  echo "containerd is ready"
+                  exit 0
+                fi
+                sleep 1
+                ((timeout--))
+              done
+              echo "ERROR: containerd not ready after 60 seconds"
+              exit 1
+            '';
+            # Kubelet memory limits (applied to all nodes)
+            MemoryMax = "2G";
+            MemoryHigh = "1.5G";
+            OOMScoreAdjust = -500;
           };
+        };
 
-          kube-apiserver = {
-            after = lib.mkForce [ "kubelet.service" "network.target" ];
-            requires = lib.mkForce [ "kubelet.service" ];
-            serviceConfig = {
-              ExecStartPre = pkgs.writeShellScript "wait-for-kubelet" ''
-                echo "Waiting for kubelet to be ready..."
-                timeout=120
-                while [ $timeout -gt 0 ]; do
-                  # Check if kubelet process is running and responding
-                  # kubelet serves healthz on http://localhost:10248/healthz
-                  # Note: kubelet doesn't need to be fully registered (API server connection)
-                  # Just needs to be running and healthy
-                  if ${pkgs.curl}/bin/curl -f -s http://localhost:10248/healthz >/dev/null 2>&1; then
-                    echo "Kubelet is ready (healthz responding)"
-                    exit 0
-                  fi
-                  # Also check if kubelet binary is running as fallback
-                  if pgrep -f "kubelet.*--hostname-override=zephyr" >/dev/null 2>&1; then
-                    echo "Kubelet is ready (process running)"
-                    exit 0
-                  fi
-                  sleep 2
-                  ((timeout--))
-                done
-                echo "ERROR: Kubelet not ready after 120 seconds"
-                exit 1
-              '';
-              # ========================================================================
-              # MEMORY PROTECTION - Prevent OOM kills of control plane
-              # ========================================================================
-              # API server typically uses 200-500MB. Set limits to prevent runaway.
-              # Max 2GB is generous but prevents it from consuming all RAM.
-              MemoryMax = "2G";
-              MemoryHigh = "1.5G"; # Start soft limiting at 1.5GB
-              # Negative OOM score = protects from OOM killer (-500 = highly protected)
-              OOMScoreAdjust = -500;
-            };
+        kube-apiserver = {
+          after = lib.mkForce [
+            "kubelet.service"
+            "network.target"
+          ];
+          requires = lib.mkForce [ "kubelet.service" ];
+          serviceConfig = {
+            ExecStartPre = pkgs.writeShellScript "wait-for-kubelet" ''
+              echo "Waiting for kubelet to be ready..."
+              timeout=120
+              while [ $timeout -gt 0 ]; do
+                # Check if kubelet process is running and responding
+                # kubelet serves healthz on http://localhost:10248/healthz
+                # Note: kubelet doesn't need to be fully registered (API server connection)
+                # Just needs to be running and healthy
+                if ${pkgs.curl}/bin/curl -f -s http://localhost:10248/healthz >/dev/null 2>&1; then
+                  echo "Kubelet is ready (healthz responding)"
+                  exit 0
+                fi
+                # Also check if kubelet binary is running as fallback
+                if pgrep -f "kubelet.*--hostname-override=zephyr" >/dev/null 2>&1; then
+                  echo "Kubelet is ready (process running)"
+                  exit 0
+                fi
+                sleep 2
+                ((timeout--))
+              done
+              echo "ERROR: Kubelet not ready after 120 seconds"
+              exit 1
+            '';
+            # ========================================================================
+            # MEMORY PROTECTION - Prevent OOM kills of control plane
+            # ========================================================================
+            # API server typically uses 200-500MB. Set limits to prevent runaway.
+            # Max 2GB is generous but prevents it from consuming all RAM.
+            MemoryMax = "2G";
+            MemoryHigh = "1.5G"; # Start soft limiting at 1.5GB
+            # Negative OOM score = protects from OOM killer (-500 = highly protected)
+            OOMScoreAdjust = -500;
           };
+        };
 
-          kube-scheduler = {
-            after = lib.mkForce [ "kube-apiserver.service" "network.target" ];
-            requires = lib.mkForce [ "kube-apiserver.service" ];
-            # Don't override ExecStart - let upstream handle it
-            serviceConfig = {
-              # Scheduler is lightweight (~100MB typical)
-              MemoryMax = "512M";
-              MemoryHigh = "256M";
-              OOMScoreAdjust = -500;
-            };
+        kube-scheduler = {
+          after = lib.mkForce [
+            "kube-apiserver.service"
+            "network.target"
+          ];
+          requires = lib.mkForce [ "kube-apiserver.service" ];
+          # Don't override ExecStart - let upstream handle it
+          serviceConfig = {
+            # Scheduler is lightweight (~100MB typical)
+            MemoryMax = "512M";
+            MemoryHigh = "256M";
+            OOMScoreAdjust = -500;
           };
+        };
 
-          kube-controller-manager = {
-            after = lib.mkForce [ "kube-apiserver.service" "network.target" ];
-            requires = lib.mkForce [ "kube-apiserver.service" ];
-            # Don't override ExecStart - let upstream handle it
-            serviceConfig = {
-              # Controller manager uses ~200-400MB
-              MemoryMax = "1G";
-              MemoryHigh = "512M";
-              OOMScoreAdjust = -500;
-            };
+        kube-controller-manager = {
+          after = lib.mkForce [
+            "kube-apiserver.service"
+            "network.target"
+          ];
+          requires = lib.mkForce [ "kube-apiserver.service" ];
+          # Don't override ExecStart - let upstream handle it
+          serviceConfig = {
+            # Controller manager uses ~200-400MB
+            MemoryMax = "1G";
+            MemoryHigh = "512M";
+            OOMScoreAdjust = -500;
           };
-        }; # Close systemd.services
+        };
+      }; # Close systemd.services
 
       # ============================================================================
       # KUBERNETES TOOLS

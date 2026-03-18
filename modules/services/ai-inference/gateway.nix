@@ -245,7 +245,8 @@ in
         RestartSec = "10s";
         User = "ai-inference";
         Group = "ai-inference";
-        NoNewPrivileges = true;
+        # NoNewPrivileges removed to allow nix-rebuild MCP tools to use sudo
+        # NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;

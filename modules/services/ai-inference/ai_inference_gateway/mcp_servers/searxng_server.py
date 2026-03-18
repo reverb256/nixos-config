@@ -55,7 +55,7 @@ SERVER_NAME = "mcp-searxng"
 SERVER_VERSION = "1.0.0"
 
 # SearXNG configuration
-SEARXNG_URL = os.getenv("SEARXNG_URL", "http://127.0.0.1:7777")
+SEARXNG_URL = os.getenv("SEARXNG_URL", "http://127.0.0.1:8889")  # Load balancer
 SEARXNG_CACHE_TTL = int(os.getenv("SEARXNG_CACHE_TTL", "300"))
 
 
@@ -138,6 +138,9 @@ class SiteSearchParams(BaseModel):
 # ============================================================================
 
 TOOLS: list[Tool] = [
+    # ========================================================================
+    # GENERAL SEARCH TOOLS
+    # ========================================================================
     Tool(
         name="web_search",
         description=(
@@ -149,6 +152,54 @@ TOOLS: list[Tool] = [
         ),
         inputSchema=WebSearchParams.model_json_schema(),
     ),
+
+    # ========================================================================
+    # DOMAIN-SPECIFIC SEARCH TOOLS (AI-Optimized)
+    # ========================================================================
+    Tool(
+        name="search_code",
+        description=(
+            "Search for code examples, libraries, and implementations with AI optimization. "
+            "Intelligently routes queries to GitHub, StackOverflow, GitLab, and developer docs. "
+            "Results are quality-scored for relevance. Use for: finding implementations, "
+            "code examples, API usage, library documentation, troubleshooting code issues."
+        ),
+        inputSchema=SiteSearchParams.model_json_schema(),
+    ),
+    Tool(
+        name="search_research",
+        description=(
+            "Search academic papers, research, and technical documentation. "
+            "Routes queries to Google Scholar, ArXiv, Semantic Scholar, and academic sources. "
+            "Results are quality-scored for academic relevance. Use for: finding papers, "
+            "researching algorithms, scholarly articles, technical documentation, state-of-the-art methods."
+        ),
+        inputSchema=SiteSearchParams.model_json_schema(),
+    ),
+    Tool(
+        name="search_devops",
+        description=(
+            "Search DevOps, infrastructure, and deployment content. "
+            "Routes queries to Docker Hub, GitLab, StackExchange, and infrastructure docs. "
+            "Results are quality-scored for operations relevance. Use for: Kubernetes deployments, "
+            "Docker configurations, CI/CD pipelines, infrastructure automation, monitoring."
+        ),
+        inputSchema=SiteSearchParams.model_json_schema(),
+    ),
+    Tool(
+        name="search_data",
+        description=(
+            "Search data science, ML, and AI-related content. "
+            "Routes queries to HuggingFace, Kaggle, ArXiv ML papers, and AI repositories. "
+            "Results are quality-scored for data science relevance. Use for: finding datasets, "
+            "ML models, training techniques, AI research, data engineering, LLM fine-tuning."
+        ),
+        inputSchema=SiteSearchParams.model_json_schema(),
+    ),
+
+    # ========================================================================
+    # SITE-SPECIFIC SEARCH TOOLS
+    # ========================================================================
     Tool(
         name="search_github",
         description=(
@@ -194,6 +245,10 @@ TOOLS: list[Tool] = [
         ),
         inputSchema=SiteSearchParams.model_json_schema(),
     ),
+
+    # ========================================================================
+    # UTILITY TOOLS
+    # ========================================================================
     Tool(
         name="search_stats",
         description=(
@@ -305,6 +360,77 @@ async def main():
                     lines.append("## Suggestions")
                     for suggestion in result["suggestions"]:
                         lines.append(f"- **{suggestion.get('suggestion', '')}:** {suggestion.get('reason', '')}")
+
+                return [TextContent(
+                    type="text",
+                    text="\n".join(lines)
+                )]
+
+            # ========================================================================
+            # DOMAIN-SPECIFIC SEARCH HANDLERS (AI-Optimized)
+            # ========================================================================
+            elif name in ("search_code", "search_research", "search_devops", "search_data"):
+                params = SiteSearchParams(**arguments)
+
+                # Map tool names to domains
+                domain_mapping = {
+                    "search_code": "code",
+                    "search_research": "research",
+                    "search_devops": "devops",
+                    "search_data": "data",
+                }
+
+                domain = domain_mapping.get(name, "general")
+
+                # Use domain-aware search routing
+                result = await searxng.search_with_domain_routing(
+                    query=params.query,
+                    domain=domain,
+                    max_results=params.max_results,
+                    use_cache=params.use_cache,
+                )
+
+                # Format results for AI consumption
+                if "error" in result:
+                    return [TextContent(
+                        type="text",
+                        text=f"Search Error ({domain}): {result['error']}"
+                    )]
+
+                if not result.get("results"):
+                    return [TextContent(
+                        type="text",
+                        text=f"No results found for {domain} query: '{params.query}'"
+                    )]
+
+                # Build formatted response with quality scores
+                lines = []
+                domain_display = domain.capitalize()
+                lines.append(f"# {domain_display} Search Results for: {params.query}")
+                lines.append(f"**Domain:** {domain}")
+
+                # Add routing metadata if available
+                if result.get("routing"):
+                    routing = result["routing"]
+                    lines.append(f"**Detected Domain:** {routing.get('detected_domain', domain)}")
+                    lines.append(f"**Engines Used:** {', '.join(routing.get('engines_selected', []))}")
+                    lines.append(f"**Quality Scoring:** Enabled")
+
+                lines.append(f"**Cached:** {result.get('cached', False)}")
+                lines.append("")
+
+                for i, item in enumerate(result.get("results", [])[:params.max_results], 1):
+                    lines.append(f"## {i}. {item.get('title', 'Untitled')}")
+                    lines.append(f"- **URL:** {item.get('url', 'N/A')}")
+                    lines.append(f"- **Engine:** {item.get('engine', 'unknown')}")
+                    lines.append(f"- **Quality Score:** {item.get('quality_score', 0):.2f}")
+
+                    if item.get('content'):
+                        content = item['content'][:400]
+                        if len(item['content']) > 400:
+                            content += "..."
+                        lines.append(f"- **Snippet:** {content}")
+                    lines.append("")
 
                 return [TextContent(
                     type="text",
