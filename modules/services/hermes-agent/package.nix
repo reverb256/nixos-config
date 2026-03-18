@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   cfg = config.services.hermes-agent;
   # Use pkgs.python3 to get overlay packages (firecrawl-py, edge-tts, etc.)
@@ -36,28 +41,26 @@ python.pkgs.buildPythonApplication rec {
     # Patch pyproject.toml to remove unavailable dependencies
     if [ -f pyproject.toml ]; then
       echo "[Hermes] Patching pyproject.toml to remove unavailable dependencies..." >&2
-      sed -i '/parallel-web/d; /firecrawl-py/d; /edge-tts/d; /faster-whisper/d; /fal-client/d' pyproject.toml || true
+      # Remove packages that don't have source distributions on PyPI
+      sed -i '/parallel-web/d; /firecrawl-py/d; /fal-client/d' pyproject.toml || true
       echo "[Hermes] ✓ Patched pyproject.toml" >&2
     fi
 
     # Patch Python imports to be conditional (for unavailable packages)
     echo "[Hermes] Patching Python imports for unavailable packages..." >&2
 
-    # Simply comment out problematic imports and function calls
+    # Comment out imports for packages without source distributions
     if [ -f tools/web_tools.py ]; then
-      sed -i 's/^from firecrawl import Firecrawl/# from firecrawl import Firecrawl  # DISABLED: package not available/' tools/web_tools.py || true
-    fi
-
-    if [ -f tools/vision_tools.py ]; then
-      sed -i 's/^from edge_tts import/# from edge_tts import  # DISABLED: package not available/' tools/vision_tools.py || true
-    fi
-
-    if [ -f tools/transcription_tools.py ]; then
-      sed -i 's/^from faster_whisper import/# from faster_whisper import  # DISABLED: package not available/' tools/transcription_tools.py || true
+      sed -i 's/^from firecrawl import Firecrawl/# from firecrawl import Firecrawl  # DISABLED: no source distribution available/' tools/web_tools.py || true
     fi
 
     if [ -f tools/image_generation_tool.py ]; then
-      sed -i 's/^import fal_client/# import fal_client  # DISABLED: package not available/' tools/image_generation_tool.py || true
+      sed -i 's/^import fal_client/# import fal_client  # DISABLED: no source distribution available/' tools/image_generation_tool.py || true
+    fi
+
+    if [ -f tools/terminal_tool.py ]; then
+      sed -i 's/^from minisweagent_path import/# from minisweagent_path import  # DISABLED: submodule not available/' tools/terminal_tool.py || true
+      sed -i 's/^ensure_minisweagent_on_path/# ensure_minisweagent_on_path  # DISABLED: submodule not available/' tools/terminal_tool.py || true
     fi
 
     echo "[Hermes] ✓ Patched Python imports" >&2
@@ -80,12 +83,12 @@ python.pkgs.buildPythonApplication rec {
     litellm
     typer
     platformdirs
-    pyjwt  # Note: using pyjwt instead of PyJWT[crypto]
+    pyjwt # Note: using pyjwt instead of PyJWT[crypto]
 
     # Advanced features - available via overlay
-    # Note: Hermes references these in pyproject.toml, so we patch them out below
-    # qwen-tts is available and working
-    qwen-tts  # Official Qwen3-TTS for text-to-speech
+    qwen-tts # Official Qwen3-TTS for text-to-speech
+    faster-whisper # Faster Whisper transcription with CTranslate2
+    edge-tts # Microsoft Edge's online text-to-speech service
   ];
 
   nativeBuildInputs = with pkgs; [
