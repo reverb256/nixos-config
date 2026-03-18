@@ -97,23 +97,14 @@
   # SERVICES - All service configurations
   # ============================================================================
   services = {
-    # KUBERNETES HA - Control Plane Configuration
-    # Override profile defaults: Nexus becomes a master node for HA
+    # KUBERNETES - Worker Node Configuration
+    # Nexus is a worker/storage node (not a control plane node)
     kubernetes-module = {
       enable = true;
-      # Override roles to include master
-      roles = lib.mkForce ["master" "node"];
-      # Use VIP (10.1.1.100) for HA control plane - certificates now include VIP and all node IPs in SANs
+      # Worker node only (no master role)
+      roles = lib.mkForce ["node"];
+      # Use zephyr's IP or VIP for master address
       masterAddress = lib.mkForce "10.1.1.100";
-      # etcd clustering configuration (3-node HA cluster)
-      etcdInitialState = "existing";
-      etcdName = "nexus";
-      etcdListenHost = "10.1.1.120";
-      etcdClusterMembers = [
-        "zephyr=http://10.1.1.110:2380"
-        "nexus=http://10.1.1.120:2380"
-        "sentry=http://10.1.1.140:2380"
-      ];
     };
 
     # Keepalived VIP - priority 100 (middle priority)
