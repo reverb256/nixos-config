@@ -226,10 +226,13 @@ class HTTPMCPBridge:
         server_info = []
         for server in servers:
             try:
+                # Extract server name from dict
+                server_name = server.get("name") if isinstance(server, dict) else server
+
                 # Get tools for this server
-                tools = await self.mcp_broker.get_tools(server)
+                tools = await self.mcp_broker.get_tools(server_name)
                 server_info.append({
-                    "name": server,
+                    "name": server_name,
                     "tool_count": len(tools),
                     "status": "available",
                 })
