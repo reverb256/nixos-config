@@ -87,10 +87,10 @@ deploy target *args:
 
     if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
         echo "▸ Deploying to all hosts (NFS-based, no sync needed)..."
-        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --verbose --show-trace {{args}}
+        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --verbose {{args}}
     else
         echo "▸ Deploying to {{target}} (uses NFS mount /run/nixos-shared)..."
-        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}} --verbose --show-trace {{args}}
+        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}} --verbose {{args}}
     fi
 
 # Convenience aliases
