@@ -10,7 +10,8 @@
   pkgs,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -53,16 +54,22 @@
     };
     # Kubernetes worker firewall rules
     firewall = {
-      allowedTCPPorts = lib.mkOptionDefault [22 10250 3100 3900 3901]; # SSH + Kubelet API + Loki + Garage (merges with cluster defaults)
+      allowedTCPPorts = lib.mkOptionDefault [
+        22
+        10250
+        3100
+        3900
+        3901
+      ]; # SSH + Kubelet API + Loki + Garage (merges with cluster defaults)
       allowedTCPPortRanges = lib.mkOptionDefault [
         {
           from = 30000;
           to = 32767;
         }
       ];
-      allowedUDPPorts = lib.mkOptionDefault [8472]; # Flannel VXLAN (merges with cluster defaults)
+      allowedUDPPorts = lib.mkOptionDefault [ 8472 ]; # Flannel VXLAN (merges with cluster defaults)
       # Open Loki port on main interface for cluster access (module only opens on tailscale0)
-      interfaces."enp7s0".allowedTCPPorts = [3100];
+      interfaces."enp7s0".allowedTCPPorts = [ 3100 ];
     };
   };
 
@@ -94,7 +101,10 @@
     kubernetes-module = {
       enable = true;
       # Override roles to include master
-      roles = lib.mkForce ["master" "node"];
+      roles = lib.mkForce [
+        "master"
+        "node"
+      ];
       # TEMPORARY: Use direct IP instead of VIP - VIP IPv4 connections from remote hosts failing
       # TODO: Investigate why 10.1.1.100:6443 not reachable from sentry
       masterAddress = lib.mkForce "10.1.1.110";
@@ -222,12 +232,12 @@
     # Compute Workload Monitor - Pause mining during builds/gaming
     compute-workload-monitor.enable = true;
 
-    xserver.videoDrivers = ["amdgpu"];
+    xserver.videoDrivers = [ "amdgpu" ];
 
     # MINING (CPU only - 8 threads = 50% of 16 cores)
     # Uses xmrig-proxy on Zephyr for centralized hashrate aggregation
     # Note: profiles.role.mining enables services.mining automatically
-    # Sentry: RX 5600 XT available but not used for mining
+    # Sentry: RX 5600 XT available for mining
     mining = {
       xmrig = {
         enable = true;
@@ -238,7 +248,40 @@
         tls = false; # No TLS needed for local proxy
         httpTokenFile = "/run/agenix/xmrig-api-token"; # For HTTP API control
       };
-      lolminer.enable = false; # No GPU mining on Sentry
+      # AMD GPU (RX 5600 XT) - single device
+      lolminer = {
+        enable = true;
+        amd = {
+          enable = true;
+          autostart = true;
+          devices = "0"; # RX 5600 XT (single AMD GPU)
+          powerLimit = 140; # Safe power limit for RX 5600 XT
+          apiPort = 4069;
+        };
+        # Use local xmrig-proxy on Zephyr for pooled mining
+        pool = "10.1.1.110:3334";
+        wallet = "krxXVNVMM7.sentry-gpu";
+        pools = [
+          {
+            url = "10.1.1.110:3334"; # gpu-proxy on Zephyr
+            wallet = "krxXVNVMM7.sentry-gpu";
+            password = "x";
+            tls = false;
+          }
+          {
+            url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (failover)
+            wallet = "krxXVNVMM7.sentry-gpu";
+            password = "x";
+            tls = true;
+          }
+          {
+            url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (failover)
+            wallet = "krxXVNVMM7.sentry-gpu";
+            password = "x";
+            tls = true;
+          }
+        ];
+      };
     };
 
     # Spotify with SpotX patch (ad-free, premium features)
@@ -321,21 +364,23 @@
     ];
   };
 
-  systemd.tmpfiles.rules = let
-    rocmEnv = pkgs.symlinkJoin {
-      name = "rocm-combined";
-      paths = with pkgs.rocmPackages; [
-        clr
-        clr.icd
-        rocblas
-        hipblas
-        rpp
-      ];
-    };
-  in [
-    "L+ /opt/rocm - - - - ${rocmEnv}"
-    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-  ];
+  systemd.tmpfiles.rules =
+    let
+      rocmEnv = pkgs.symlinkJoin {
+        name = "rocm-combined";
+        paths = with pkgs.rocmPackages; [
+          clr
+          clr.icd
+          rocblas
+          hipblas
+          rpp
+        ];
+      };
+    in
+    [
+      "L+ /opt/rocm - - - - ${rocmEnv}"
+      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+    ];
 
   # ============================================================================
   # SECONDARY STORAGE (sda - 1TB SSD)

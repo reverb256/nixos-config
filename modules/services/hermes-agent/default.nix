@@ -1,4 +1,10 @@
-{ config, lib, pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 let
   cfg = config.services.hermes-agent;
   hermesPackage = import ./package.nix { inherit pkgs lib config; };
@@ -112,33 +118,103 @@ in
       createHome = true;
       home = cfg.sharedStorage.mountPoint;
       group = cfg.group;
-      extraGroups = [ "wheel" "video" "render" ];
+      extraGroups = [
+        "wheel"
+        "video"
+        "render"
+      ];
       shell = pkgs.fish;
     };
 
-    users.groups.${cfg.group} = lib.mkIf (cfg.group == "hermes") {};
+    users.groups.${cfg.group} = lib.mkIf (cfg.group == "hermes") { };
 
     # System packages
-    environment.systemPackages = lib.mkOptionDefault (with pkgs; [
-      hermesPackage
-      ripgrep  # For file search
-      ffmpeg   # For TTS
-    ]);
+    environment.systemPackages = lib.mkOptionDefault (
+      with pkgs;
+      [
+        hermesPackage
+        ripgrep # For file search
+        ffmpeg # For TTS
+      ]
+    );
 
     # NFS mount for shared storage
-    systemd.mounts = lib.mkIf cfg.sharedStorage.enable [{
-      where = cfg.sharedStorage.mountPoint;
-      what = "${cfg.sharedStorage.nfsServer}:${cfg.sharedStorage.nfsPath}";
-      type = "nfs";
-      options = "nofail,_netdev,hard,intr,timeo=600";
-      wantedBy = [ "multi-user.target" ];
-    }];
+    systemd.mounts = lib.mkIf cfg.sharedStorage.enable [
+      {
+        where = cfg.sharedStorage.mountPoint;
+        what = "${cfg.sharedStorage.nfsServer}:${cfg.sharedStorage.nfsPath}";
+        type = "nfs";
+        options = "nofail,_netdev,hard,intr,timeo=600";
+        wantedBy = [ "multi-user.target" ];
+      }
+    ];
 
     # Environment variables
     environment.sessionVariables = lib.mkIf cfg.aiGateway.enable {
       HERMES_AI_GATEWAY_URL = cfg.aiGateway.url;
       OPENAI_API_KEY = "not-needed";
       OPENAI_BASE_URL = cfg.aiGateway.url;
+    };
+
+    # Systemd service for Hermes Agent
+    systemd.services.hermes-agent = {
+      description = "Hermes Agent - Self-improving AI Agent";
+      after = lib.mkMerge [
+        [
+          "network-online.target"
+          "multi-user.target"
+        ]
+        (lib.mkIf cfg.aiGateway.enable [ "ai-inference-gateway.service" ])
+      ];
+      wants = [
+        "network-online.target"
+      ]
+      ++ lib.optionals cfg.aiGateway.enable [ "ai-inference-gateway.service" ];
+      requires = lib.optionals cfg.aiGateway.enable [ "ai-inference-gateway.service" ];
+      wantedBy = [ "multi-user.target" ];
+
+      environment = {
+        HERMES_AI_GATEWAY_URL = lib.mkIf cfg.aiGateway.enable cfg.aiGateway.url;
+        OPENAI_API_KEY = "not-needed";
+        OPENAI_BASE_URL = lib.mkIf cfg.aiGateway.enable cfg.aiGateway.url;
+        HERMES_CUSTOM_SKILLS = cfg.customSkills;
+        HERMES_SHARED_STORAGE = lib.mkIf cfg.sharedStorage.enable cfg.sharedStorage.mountPoint;
+      };
+
+      serviceConfig = {
+        ExecStart = "${hermesPackage}/bin/hermes gateway run";
+        Restart = "on-failure";
+        RestartSec = "10s";
+        User = cfg.user;
+        Group = cfg.group;
+
+        # Allow hermes to run terminal commands
+        PrivateDevices = false;
+        PrivateNetwork = false; # Needs network for AI Gateway
+
+        # Allow access to user's X11 session for GUI apps
+        Display = ":0";
+
+        # Security settings
+        NoNewPrivileges = false; # Hermes needs elevated privileges for some tasks
+        ProtectSystem = "strict";
+        ProtectHome = false; # Needs access to home directory
+
+        # Resource limits
+        MemoryMax = "4G";
+        CPUWeight = 100;
+
+        # Allow access to temp directories
+        ReadWritePaths = [
+          "/tmp"
+          "/var/tmp"
+        ];
+
+        # Logging
+        StandardOutput = "journal";
+        StandardError = "journal";
+        SyslogIdentifier = "hermes-agent";
+      };
     };
   };
 }
