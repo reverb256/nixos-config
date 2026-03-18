@@ -170,7 +170,9 @@
       init.defaultBranch = "main";
       # Allow ai-inference service user to access /etc/nixos git repo
       # Git 2.35+ requires explicit approval for owned repos
-      safe.directory = "/etc/nixos";
+      safe = {
+        directory = "/etc/nixos";
+      };
     };
   };
 }
