@@ -598,7 +598,7 @@
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
-            environment.GIT_CONFIG_SYSTEM = "/etc/gitconfig-safe-nixos.conf";
+            environment.NIX_ACCEPT_FLAKE_CONFIG = "1";
             enabled = true;
           };
           add-service = {
