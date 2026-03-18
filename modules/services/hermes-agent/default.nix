@@ -128,15 +128,14 @@ in
 
     users.groups.${cfg.group} = lib.mkIf (cfg.group == "hermes") { };
 
-    # System packages
-    environment.systemPackages = lib.mkOptionDefault (
-      with pkgs;
-      [
-        hermesPackage
-        ripgrep # For file search
-        ffmpeg # For TTS
-      ]
-    );
+    # System packages - direct list assignment merges with host config by default
+    # Note: Using direct assignment instead of mkOptionDefault because we want
+    # these packages to merge with, not be overridden by, host packages
+    environment.systemPackages = [
+      hermesPackage
+      pkgs.ripgrep # For file search
+      pkgs.ffmpeg # For TTS
+    ];
 
     # NFS mount for shared storage
     systemd.mounts = lib.mkIf cfg.sharedStorage.enable [

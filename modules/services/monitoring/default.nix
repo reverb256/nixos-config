@@ -13,5 +13,6 @@
     ./smart-exporter.nix
     ./loki.nix
     ./promtail.nix # Log aggregation to Loki
+    ./system-tools.nix # CLI monitoring tools (htop, iotop, nethogs, sysstat)
   ];
 }
