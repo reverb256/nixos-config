@@ -1,0 +1,166 @@
+# Prometheus Alerting Rules for Cluster Health
+# Deployed via Prometheus on Sentry (10.1.1.140:9090)
+
+groups:
+  - name: cluster_health
+    interval: 30s
+    rules:
+      # Node memory pressure alerts
+      - alert: NodeMemoryPressure
+        expr: |
+          (
+            sum(node_memory_MemAvailable_bytes{node=~"zephyr|forge"}) / sum(node_memory_MemTotal_bytes{node=~"zephyr|forge"}) < 0.15
+          ) or (node_memory_MemAvailable_bytes{node="zephyr"} < 5000000000)
+        for: 5m
+        labels:
+          severity: critical
+          tier: control-plane
+        annotations:
+          summary: "Critical memory pressure on control plane node"
+          description: "Node {{ $labels.node }} has less than 15% memory available (or <5GB on Zephyr)"
+
+      # API server down
+      - alert: APIServerDown
+        expr: up{job="kube-apiserver"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          tier: control-plane
+        annotations:
+          summary: "Kubernetes API server is down"
+          description: "The API server on {{ $labels.instance }} has been down for more than 2 minutes"
+
+      # Kubelet not reporting
+      - alert: KubeletDown
+        expr: |
+          count(up{job="kubelet"} == 0) / count(up{job="kubelet"}) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          tier: control-plane
+        annotations:
+          summary: "Multiple kubelets are down"
+          description: "{{ $value | humanizePercentage }} of kubelets are down"
+
+      # Pod crash looping
+      - alert: PodCrashLooping
+        expr: |
+          rate(kube_pod_container_status_restarts_total{container!="POD",container!=""}[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          tier: workload
+        annotations:
+          summary: "Pod is crash looping"
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is restarting frequently"
+
+      # Namespace resource quota exceeded
+      - alert: NamespaceResourceQuotaExceeded
+        expr: |
+          sum(kube_resourcequota{type="hard"}) by (namespace, resource)
+            unless sum(kube_resourcequota{type="used"}) by (namespace, resource)
+        for: 5m
+        labels:
+          severity: warning
+          tier: resource
+        annotations:
+          summary: "Namespace resource quota exceeded"
+          description: "Namespace {{ $labels.namespace }} has exceeded its resource quota"
+
+      # Pending pods
+      - alert: TooManyPendingPods
+        expr: |
+          sum(kube_pod_status_phase{phase="Pending"}) by (namespace) > 10
+        for: 15m
+        labels:
+          severity: warning
+          tier: scheduling
+        annotations:
+          summary: "Too many pending pods"
+          description: "Namespace {{ $labels.namespace }} has {{ $value }} pending pods"
+
+      # Pod stuck in terminating
+      - alert: PodStuckInTerminating
+        expr: |
+          (kube_pod_status_phase{phase="Failed"} > 0)
+          and (time() - kube_pod_status_phase{phase="Failed"}) > 3600
+        for: 10m
+        labels:
+          severity: warning
+          tier: workload
+        annotations:
+          summary: "Pod stuck in Failed state"
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has been Failed for over an hour"
+
+  - name: workload_health
+    interval: 1m
+    rules:
+      # High restart count pods
+      - alert: HighRestartCountPod
+        expr: |
+          max(kube_pod_container_status_restarts_total) by (namespace, pod) > 50
+        for: 10m
+        labels:
+          severity: warning
+          tier: workload
+        annotations:
+          summary: "Pod has excessive restarts"
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has restarted {{ $value }} times"
+
+      # envoy-gateway restarts specifically
+      - alert: EnvoyGatewayUnhealthy
+        expr: |
+          increase(kube_pod_container_status_restarts_total{pod=~"envoy-gateway.*"}[15m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          tier: workload
+        annotations:
+          summary: "Envoy Gateway is restarting frequently"
+          description: "Envoy Gateway pod {{ $labels.pod }} has restarted {{ $value }} times in 15 minutes"
+
+  - name: mining_monitoring
+    interval: 5m
+    rules:
+      # Mining operations impact on cluster
+      - alert: HighMiningCPUUsage
+        expr: |
+          (
+            sum(rate(node_cpu_seconds_total{mode!="idle"}[5m])) by (node)
+            > node:cpu_count:sum(kube_node_info) * 0.8
+          ) and (node_workload_type{workload="mining"} == 1)
+        for: 15m
+        labels:
+          severity: info
+          tier: workload
+        annotations:
+          summary: "Mining node under high CPU pressure"
+          description: "Node {{ $labels.node }} (mining) is using >80% CPU"
+
+  - name: storage_health
+    interval: 5m
+    rules:
+      # Disk space low
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint=~"/data|/storage|/var"}
+            / node_filesystem_size_bytes{mountpoint=~"/data|/storage|/var"}) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          tier: storage
+        annotations:
+          summary: "Disk space low on node"
+          description: "Node {{ $labels.node }} mountpoint {{ $labels.mountpoint }} has less than 10% space available"
+
+      # etcd cluster health
+      - alert: EtcdInsufficientMembers
+        expr: |
+          count(etcd_server_has_leader) == 0
+        for: 5m
+        labels:
+          severity: critical
+          tier: control-plane
+        annotations:
+          summary: "etcd cluster has no leader"
+          description: "etcd cluster is unhealthy - no leader elected"

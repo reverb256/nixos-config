@@ -127,7 +127,7 @@
           bindAddress = config.services.kubernetes-module.apiserverBindAddress;
           securePort = 6443;
           allowPrivileged = true;
-          extraOpts = "--api-audiences=api,https://kubernetes.default.svc,https://kubernetes.default.svc.cluster.local";
+          extraOpts = "--api-audiences=api,https://kubernetes.default.svc,https://kubernetes.default.svc.cluster.local --endpoint-reconciler-type=none";
           # HA Certificates: Include VIP and all control plane node IPs in SANs
           extraSANs = [
             # VIP for HA failover
@@ -165,6 +165,12 @@
           extraConfig = {
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
+            # Enable metrics-server to scrape kubelet metrics (anonymous read-only access)
+            authentication = {
+              anonymous = {
+                enabled = true;
+              };
+            };
           };
           # Node labels for GPU device plugin scheduling
           # NVIDIA device plugin requires: accelerator=nvidia-gpu
