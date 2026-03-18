@@ -27,3 +27,6 @@ package.json
 vllm-env/
 ssh/
 .age/
+
+# Git worktrees - isolated development workspaces
+.worktrees/
