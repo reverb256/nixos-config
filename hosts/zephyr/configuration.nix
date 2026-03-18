@@ -169,23 +169,33 @@
         rtx3090 = 20000; # ~$8.70/month per GPU at 50% util
         rtx4060 = 18000; # ~$7.80/month per GPU at 50% util
         rtx3060ti = 15000; # ~$6.50/month per GPU at 50% util
-        rx5700xt = 8000; # ~$3.50/month per GPU at 50% util
-        rx5600xt = 7000; # ~$3.00/month per GPU at 50% util
+        # rx5700xt = 8000; # AMD GPU not supported by akash-provider module
+        # rx5600xt = 7000; # AMD GPU not supported by akash-provider module
       };
     };
 
-    # Cloudflare Tunnel - DISABLED: Using manual Quick Tunnel for testing
-    # Will re-enable when we add the real domain
-    # cloudflared-tunnel = {
-    #   enable = true;
-    #   tunnelId = "09cb0ea8-051e-4207-8e7c-3acc43408915";
-    #   ingressRules = [
-    #     {
-    #       hostname = "akash.your-domain.com";
-    #       service = "https://10.1.1.100:6443";
-    #     }
-    #   ];
-    # };
+    # Cloudflare Tunnel - Akash provider ingress
+    cloudflared-tunnel = {
+      enable = true;
+      tunnelId = "2face449-f837-4fb1-87c5-a5a11c17e9ae";
+      ingressRules = [
+        # Provider bid engine
+        {
+          hostname = "provider.reverb256.ca";
+          service = "http://localhost:8443";
+        }
+        # Tenant ingress (wildcard for deployments)
+        {
+          hostname = "*.ingress.reverb256.ca";
+          service = "http://localhost:80";
+        }
+        # Fallback for bare ingress domain
+        {
+          hostname = "ingress.reverb256.ca";
+          service = "http://localhost:80";
+        }
+      ];
+    };
 
     # Crash watchdog - detect and log system crashes
     crash-watchdog.enable = true;
@@ -564,6 +574,7 @@
         host = "127.0.0.1";
         port = 8080;
         workers = 1;
+        middleware.redis.enable = true;
       };
       routing = {
         enable = true;
@@ -587,6 +598,7 @@
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
+            environment.GIT_CONFIG_SYSTEM = "/etc/gitconfig-safe-nixos.conf";
             enabled = true;
           };
           add-service = {
@@ -903,7 +915,7 @@
     enable = true;
     aiServices = true;
     monitoring = false;  # TODO: Re-enable after creating sentry-dsn.age
-    storage = false;     # Garage runs on nexus, not zephyr
+    storage = true;      # Required for backup-to-garage service (S3 API key)
     mining = true;
     cloud = true;
     selfHosting = false; # These services run on other hosts
