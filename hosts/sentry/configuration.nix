@@ -97,26 +97,14 @@
   # ============================================================================
   services = {
     # KUBERNETES HA - Control Plane Configuration
-    # Override profile defaults: Sentry becomes a master node for HA
+    # KUBERNETES - Worker Node Configuration
+    # Sentry is a worker/monitoring node (not a control plane node)
     kubernetes-module = {
       enable = true;
-      # Override roles to include master
-      roles = lib.mkForce [
-        "master"
-        "node"
-      ];
-      # TEMPORARY: Use direct IP instead of VIP - VIP IPv4 connections from remote hosts failing
-      # TODO: Investigate why 10.1.1.100:6443 not reachable from sentry
-      masterAddress = lib.mkForce "10.1.1.110";
-      # etcd clustering configuration (3-node HA cluster)
-      etcdInitialState = "existing";
-      etcdName = "sentry";
-      etcdListenHost = "10.1.1.140";
-      etcdClusterMembers = [
-        "zephyr=http://10.1.1.110:2380"
-        "nexus=http://10.1.1.120:2380"
-        "sentry=http://10.1.1.140:2380"
-      ];
+      # Worker node only (no master role)
+      roles = lib.mkForce ["node"];
+      # Use zephyr's IP or VIP for master address
+      masterAddress = lib.mkForce "10.1.1.100";
     };
 
     # Keepalived VIP - priority 90 (lowest - backup master)
