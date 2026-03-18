@@ -113,7 +113,7 @@ let
   # Combined package: gateway source + Python environment in one
   # This allows both --app-dir usage and direct imports
   modularGatewayPkg = pkgs.symlinkJoin {
-    name = "ai-inference-gateway-modular-pkg-v14"; # Bump for LM Studio API key fix
+    name = "ai-inference-gateway-modular-pkg-v15"; # Bump for self-improvement system integration
     paths = [
       modularGatewayPkgBase
       gatewayPython
@@ -239,6 +239,7 @@ in
       };
 
       serviceConfig = {
+        RuntimeDirectory = "ai-inference";  # Creates /run/ai-inference
         ExecStart = "${gatewayPython}/bin/uvicorn ai_inference_gateway.main:app --host ${cfg.gateway.host} --port ${toString cfg.gateway.port} --workers ${toString cfg.gateway.workers} --log-level debug --app-dir ${gatewayPkg}";
         ExecReload = "/bin/kill -HUP $MAINPID";
         Restart = "on-failure";
@@ -254,6 +255,7 @@ in
           "/tmp"
           "/var/cache/ai-inference"
           "/run/gpu-scheduler"
+          "/run/ai-inference"  # Self-improvement memory
         ]
         ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
         ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)

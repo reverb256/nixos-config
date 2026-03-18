@@ -26,8 +26,8 @@ import hashlib
 logger = logging.getLogger(__name__)
 
 
-# Memory paths (aligned with NixOS cluster memory system)
-MEMORY_BASE = Path("/home/j_kro/.claude/projects/-etc-nixos/memory")
+# Memory paths (using /run for ai-inference user access)
+MEMORY_BASE = Path("/run/ai-inference/memory")
 EPISODIC_DIR = MEMORY_BASE / "episodic"
 WORKING_DIR = MEMORY_BASE / "working"
 SEMANTIC_FILE = MEMORY_BASE / "semantic-patterns.json"

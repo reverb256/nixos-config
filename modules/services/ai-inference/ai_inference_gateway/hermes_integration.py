@@ -6,7 +6,7 @@ Provides bidirectional learning between:
 - Hermes Agent: Task execution, skill usage, cluster operations
 
 Shared memory location: /var/lib/hermes/memory/
-Cluster memory location: /home/j_kro/.claude/projects/-etc-nixos/memory/
+Cluster memory location: /run/ai-inference/memory/
 """
 
 from __future__ import annotations
@@ -23,7 +23,9 @@ logger = logging.getLogger(__name__)
 
 # Dual memory paths
 HERMES_MEMORY = Path("/var/lib/hermes/memory")
-CLUSTER_MEMORY = Path("/home/j_kro/.claude/projects/-etc-nixos/memory")
+# Use /run for self-improvement memory (writable by ai-inference user)
+CLUSTER_MEMORY_BASE = Path("/run/ai-inference")
+CLUSTER_MEMORY = CLUSTER_MEMORY_BASE / "memory"
 EPISODIC_DIR = CLUSTER_MEMORY / "episodic"
 
 
@@ -47,11 +49,20 @@ class HermesBridge:
         self.hermes_memory = hermes_memory
         self.cluster_memory = cluster_memory
         self.enabled = enabled
-        
-        # Ensure directories exist
-        self.hermes_memory.mkdir(parents=True, exist_ok=True)
+
+        # Ensure cluster memory directories exist (we have write access here)
         self.cluster_memory.mkdir(parents=True, exist_ok=True)
         EPISODIC_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Try to create hermes memory, but don't fail if we can't
+        # (systemd should create this directory with proper permissions)
+        try:
+            self.hermes_memory.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, OSError) as e:
+            logger.warning(f"Cannot create hermes memory directory: {e}")
+            logger.info(f"Hermes integration will use cluster memory only")
+            # Use cluster memory as fallback
+            self.hermes_memory = self.cluster_memory / "hermes"
     
     async def sync_gateway_to_hermes(
         self,
@@ -286,7 +297,7 @@ in the AI Gateway and Hermes Agent operations.
 
 ## Related Patterns
 
-See cluster memory: /home/j_kro/.claude/projects/-etc-nixos/memory/semantic-patterns.json
+See cluster memory: /run/ai-inference/memory/semantic-patterns.json
 """
         
         # Write to Hermes skills directory
