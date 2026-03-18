@@ -219,6 +219,10 @@ in
         # SearXNG search integration
         SEARXNG_ENABLED = "true";
         SEARXNG_CACHE_TTL = "300"; # 5 minutes
+        # Context7 API key for documentation search
+        CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
+        # Semantic cache configuration (Redis + Qdrant)
+        SEMANTIC_CACHE_ENABLED = lib.boolToString cfg.gateway.middleware.redis.enable;
         # System Prompts configuration
         SYSTEM_PROMPTS_ENABLED = lib.boolToString cfg.systemPrompts.enable;
         SYSTEM_PROMPTS_DEFAULT = cfg.systemPrompts.default;
@@ -270,6 +274,7 @@ in
       isSystemUser = true;
       group = "ai-inference";
       description = "AI Inference Gateway";
+      extraGroups = ["users"]; # Allow access to /etc/nixos git repo for nix-rebuild MCP tools
     };
     users.groups.ai-inference = { };
 
