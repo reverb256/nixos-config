@@ -163,16 +163,9 @@
   # GIT CONFIGURATION
   # ============================================================================
 
-  programs.git = {
-    enable = true;
-    config = {
-      # Common git settings
-      init.defaultBranch = "main";
-    };
-  };
-
   # System gitconfig with safe.directory for ai-inference user
   # Git 2.35+ requires explicit approval for owned repos
+  # Note: Don't use programs.git.config as it overrides environment.etc
   environment.etc."gitconfig".text = ''
     [init]
       defaultBranch = main
