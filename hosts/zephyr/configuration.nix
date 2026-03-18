@@ -127,23 +127,18 @@
   # SERVICES - All service configurations consolidated here
   # ============================================================================
   services = {
-    # KUBERNETES HA - Control Plane Configuration
-    # Override profile defaults for HA setup with etcd clustering and VIP
+    # KUBERNETES - Single Control Plane Configuration
+    # Zephyr is the sole control-plane node
     kubernetes-module = {
-      # Use VIP (10.1.1.100) for HA control plane - certificates now include VIP and all node IPs in SANs
-      # If zephyr (highest priority) fails, nexus or sentry takes over the VIP automatically
+      # Use VIP (10.1.1.100) for HA control plane access
       masterAddress = lib.mkForce "10.1.1.100";
-      # etcd clustering configuration (3-node HA cluster operational)
-      etcdInitialState = "existing"; # Cluster already formed
+      # Single-node etcd cluster (zephyr only)
+      etcdInitialState = "new";
       etcdName = "zephyr";
       etcdListenHost = "10.1.1.110";
-      # etcdBootstrapOnly removed - multi-node cluster is operational
-      # All 3 cluster members
-      etcdClusterMembers = [
-        "zephyr=http://10.1.1.110:2380"
-        "nexus=http://10.1.1.120:2380"
-        "sentry=http://10.1.1.140:2380"
-      ];
+      etcdBootstrapOnly = true;
+      # No cluster members needed for single-node setup
+      etcdClusterMembers = [ ];
     };
 
     # Keepalived VIP - priority 110 (highest - preferred master)
@@ -567,8 +562,8 @@
     ai-inference = {
       enable = true;
       backend = {
-        url = "http://127.0.0.1:1234";
-        type = "lm-studio";
+        url = "http://127.0.0.1:8083";
+        type = "llama-cpp";
         lmStudio.apiKeyFile = "/run/agenix/lm-studio-api-key";
         zai = {
           enable = true;
