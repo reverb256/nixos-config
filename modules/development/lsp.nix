@@ -171,10 +171,14 @@
     };
   };
 
-  # Append safe.directory setting to system gitconfig
+  # System gitconfig with safe.directory for ai-inference user
   # Git 2.35+ requires explicit approval for owned repos
-  # This allows ai-inference service user to access /etc/nixos git repo
-  environment.etc."gitconfig".text = lib.mkAfter ''
+  environment.etc."gitconfig".text = ''
+    [init]
+      defaultBranch = main
+    [user]
+      email = j_kro@zephyr
+      name = j_kro
     [safe]
       directory = /etc/nixos
   '';
