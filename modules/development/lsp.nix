@@ -171,8 +171,8 @@
     "w /etc/gitconfig-safe - - - - [safe]\n  directory = /etc/nixos"
   ];
 
-  # Tell git to include our override config
+  # Tell git to include our override config (note: NixOS adds -nixos suffix)
   environment.sessionVariables = {
-    GIT_CONFIG_SYSTEM = "/etc/gitconfig-safe";
+    GIT_CONFIG_SYSTEM = "/etc/gitconfig-safe-nixos.conf";
   };
 }
