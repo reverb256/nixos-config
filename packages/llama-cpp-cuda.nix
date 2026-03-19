@@ -19,7 +19,7 @@ stdenv.mkDerivation rec {
 
   src = fetchurl {
     url = "https://github.com/ggerganov/llama.cpp/archive/b739738dadf0b66a59546d7240c554d61c07c2f0.tar.gz";
-    hash = "sha256-Aimcr7FSqSoytucprXk5aH1BKg+mk08/2iZwbVC3Fg8=";
+    hash = "sha256-NvbsxrRpb5wCYpZ9sXOFm8QPr21LqJlnn1DQ9tg2CRM=";
   };
 
   nativeBuildInputs = [
