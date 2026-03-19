@@ -9,6 +9,21 @@
 with lib; let
   cfg = config.services.gaming;
   vrCfg = cfg.vr;
+
+  # Kernel-level deadzone tool for controllers
+  set-evdev-deadzone = pkgs.stdenv.mkDerivation {
+    pname = "set-evdev-deadzone";
+    version = "1.0.0";
+    src = ./files;
+    buildPhase = ''
+      gcc -O2 -Wall -o set-evdev-deadzone set-evdev-deadzone.c
+    '';
+    installPhase = ''
+      mkdir -p $out/bin
+      cp set-evdev-deadzone $out/bin/
+    '';
+    nativeBuildInputs = [ pkgs.gcc ];
+  };
 in {
   options.services.gaming = {
     enable = mkEnableOption "Gaming support (Steam, GameMode, Gamescope)";
@@ -237,11 +252,14 @@ in {
         # Disable DualSense/DualShock touchpad to prevent drift in games
         udev.extraRules = ''
           # Disable DualSense (PS5) touchpad
-          # Match by device name from parent (ATTRS) and unique touchpad capabilities
-          # The touchpad has unique ABS capabilities: 260800000000003
+          # Multiple matching strategies for maximum reliability
+          # Strategy 1: Exact full device name (most reliable)
+          SUBSYSTEM=="input", ATTRS{name}=="Sony Interactive Entertainment DualSense Wireless Controller Touchpad", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+          # Strategy 2: Partial name match (fallback)
           SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+          # Strategy 3: DualShock 4 touchpad
           SUBSYSTEM=="input", ATTRS{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
-          # Fallback: Match by capability signature if name matching fails
+          # Strategy 4: Match by capability signature (ultimate fallback)
           SUBSYSTEM=="input", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", ATTRS{capabilities/abs}=="260800000000003", ENV{LIBINPUT_IGNORE_DEVICE}="1"
 
           # DualSense (PS5) hidraw access for Wine/Proton controller support
@@ -253,11 +271,21 @@ in {
           KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", MODE="0660", TAG+="uaccess"
 
           # ============================================================================
-          # DualSense Deadzone Calibration (evdev kernel-level)
+          # Kernel-Level Deadzone for DualSense (GLOBAL - affects ALL games)
           # ============================================================================
-          # NOTE: linuxconsole package removed from nixpkgs (was evdev-joystick)
-          # Deadzone calibration now requires per-game configuration or userspace tools
-          # Use SDL_JOYSTICK_AXIS_DEADZONE environment variable for SDL2 games
+          # Sets deadzone at kernel level using EVIOCSABS ioctl
+          # This is the ONLY truly global deadzone solution for Linux
+          #
+          # Deadzone values: 0-65535 (typical: 2000-5000 for ~3-7%)
+          # Axis codes: 0=ABS_X, 1=ABS_Y, 3=ABS_RX, 4=ABS_RY
+          #
+          # IMPORTANT: RUN+ commands execute when controller is CONNECTED
+          # This applies deadzone globally for all games, Proton, native, everything
+          #
+          # DualSense USB (event joystick)
+          SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Wireless*Controller*Joystick*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:2500 1:2500 3:2000 4:2000"
+          # DualSense Bluetooth (event joystick)
+          SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Wireless*Controller*Touchpad*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:2500 1:2500 3:2000 4:2000"
         '';
       };
 
@@ -298,7 +326,8 @@ in {
           goverlay
           gamemode
           scx.full
-          # linuxconsole  # Package removed from nixpkgs - was evdev-joystick for deadzone calibration
+          # Kernel-level deadzone tool for controllers (GLOBAL solution)
+          set-evdev-deadzone
           (pkgs.writeShellScriptBin "launch-game" ''
             #!/usr/bin/env bash
             # launch-game - Wrapper to run games in gaming.slice with GameMode
