@@ -1,0 +1,36 @@
+# Pod Security Standards for Unprotected Namespaces
+# Applies defense-in-depth security policies
+
+---
+# Search Namespace (SearXNG) with PSS
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: search
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    name: search
+---
+# Akash Services Namespace (Cloudflared) with PSS
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: akash-services
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    name: akash-services
+---
+# Default Namespace with PSS
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: default
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    name: default
