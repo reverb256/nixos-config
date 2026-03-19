@@ -38,7 +38,7 @@ in {
     };
 
     # Open firewall for binary cache
-    networking.firewall.allowedTCPPorts = [cfg.port];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
 
     # Generate cache signing keys if they don't exist
     systemd.services.generate-nix-cache-keys = {

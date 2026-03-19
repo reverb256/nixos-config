@@ -65,13 +65,11 @@ in {
     # ============================================================================
     # ENVIRONMENT VARIABLES (Critical for NVIDIA + Wayland)
     # ============================================================================
+    # Use common environment variables module for Wayland
+#    environment.common.wayland.enable = true;
+
+    # NVIDIA-specific environment variables
     environment.sessionVariables = {
-      # Force Wayland backend for Qt applications (Plasma 6)
-      QT_QPA_PLATFORM = "wayland";
-
-      # Enable Wayland for Ozone-based applications (Chrome, Electron, etc.)
-      NIXOS_OZONE_WL = "1";
-
       # CRITICAL: Force NVIDIA Vulkan ICD (fixes DXVK initialization failures)
       # Without this, Vulkan loader can't find the NVIDIA driver
       VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
@@ -90,9 +88,6 @@ in {
 
       # Disable VRR for stability (can re-enable later)
       __GL_VRR_ALLOWED = "0";
-
-      # Disable hardware cursors for Wayland stability
-      WLR_NO_HARDWARE_CURSORS = "1";
 
       # Additional variables for NVIDIA EGL and NVENC
       NVD_BACKEND = "direct";

@@ -79,22 +79,16 @@ in {
         (lib.mkIf cfg.cuda.enable {
           environment.systemPackages = cudaPackages;
 
-          # CUDA environment variables for applications
-          # Use mkDefault to allow overrides by other modules (e.g., stability-matrix)
-          environment.sessionVariables = lib.mkDefault {
-            CUDA_PATH = "/run/opengl-driver";
-            CUDA_HOME = "/run/opengl-driver";
-          };
+          # Use common environment variables module for CUDA
+          # environment.common.cuda.enable = true;  # DISABLED: Module not loaded
         })
 
         # ROCm support (AMD GPUs)
         (lib.mkIf cfg.rocm.enable {
           environment.systemPackages = rocmPackages;
 
-          # ROCm environment variables
-          environment.sessionVariables = {
-            ROCM_PATH = "${pkgs.rocmPackages.clr}";
-          };
+          # Use common environment variables module for ROCm
+          # environment.common.rocm.enable = true;  # DISABLED: Module not loaded
 
           # Ensure amdgpu driver is loaded
           boot.kernelModules = ["amdgpu"];

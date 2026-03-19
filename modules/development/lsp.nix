@@ -143,11 +143,11 @@
   # DEVELOPMENT ENVIRONMENT VARIABLES
   # ============================================================================
 
-  environment.sessionVariables = {
-    # Editor
-    EDITOR = "nvim";
-    VISUAL = "nvim";
+  # Use common environment variables module for EDITOR/VISUAL
+  environment.common.development.editor = lib.mkDefault "nvim";
 
+  # Development-tool-specific environment variables
+  environment.sessionVariables = {
     # Language-specific overrides
     PYTHONPATH = "/var/lib/ai/python";
 
@@ -157,6 +157,9 @@
 
     # Rust
     CARGO_HOME = "$HOME/.cargo";
+
+    # Git configuration
+    GIT_CONFIG_SYSTEM = "/etc/gitconfig-safe-nixos.conf";
   };
 
   # ============================================================================
@@ -170,9 +173,4 @@
     "f /etc/gitconfig-safe - - - - -"
     "w /etc/gitconfig-safe - - - - [safe]\n  directory = /etc/nixos"
   ];
-
-  # Tell git to include our override config (note: NixOS adds -nixos suffix)
-  environment.sessionVariables = {
-    GIT_CONFIG_SYSTEM = "/etc/gitconfig-safe-nixos.conf";
-  };
 }

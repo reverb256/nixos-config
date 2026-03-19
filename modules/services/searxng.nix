@@ -102,7 +102,7 @@ in {
     };
 
     # Open firewall for local access
-    networking.firewall.allowedTCPPorts = [7777];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [7777];
   };
 
   # ============================================================================

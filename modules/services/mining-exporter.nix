@@ -291,7 +291,7 @@ in {
 
     # Open firewall port for Prometheus scraping
     # Allow from both Tailscale VPN and local network
-    networking.firewall.allowedTCPPorts = [cfg.port];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
   };
 }
