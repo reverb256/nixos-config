@@ -24,7 +24,7 @@ with lib; let
 
   # Select llama-cpp variant based on GPU type
   llamaPkg = if cfg.gpu == "amd" || cfg.gpu == "rocm" then pkgs.llama-cpp-rocm
-             else if cfg.gpu == "vulkan" then pkgs.llama-cpp-vulkan
+             else if cfg.gpu == "nvidia" || cfg.gpu == null && config.hardware.gpu-compute.cuda.enable then pkgs.llama-cpp
              else pkgs.llama-cpp;
 
   # Emergency type detection (heuristic, not AI)
@@ -174,9 +174,9 @@ in {
 
     # GPU type for llama-cpp variant selection
     gpu = mkOption {
-      type = types.nullOr (types.enum ["nvidia" "amd" "rocm" "vulkan"]);
+      type = types.nullOr (types.enum ["nvidia" "amd" "rocm"]);
       default = null;
-      description = "GPU type (null = auto-detect, nvidia, amdgpu/rocm, or vulkan)";
+      description = "GPU type (null = auto-detect, nvidia, or amdgpu/rocm)";
     };
 
     # How to detect available VRAM
