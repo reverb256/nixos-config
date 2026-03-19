@@ -117,6 +117,9 @@ in {
 
       # Display management
       kanshi
+
+      # Gaming detection daemon
+      gamemode
     ];
 
     # ============================================================================
