@@ -25,7 +25,7 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = with cudaPackages; [
     cmake
     git
-    cudatoolkit
+    cuda_nvcc
     cuda_cudart
     cuda_nvrtc
   ];
@@ -39,7 +39,7 @@ stdenv.mkDerivation rec {
     "-DLLAMA_CUDA=ON"
     "-DLLAMA_CUDA_F16=ON"
     "-DCMAKE_BUILD_TYPE=Release"
-    "-DCUDAToolkit_ROOT=${cudaPackages.cudatoolkit}"
+    "-DCUDAToolkit_ROOT=${cudaPackages.cuda_nvcc}"
   ];
 
   postInstall = ''
