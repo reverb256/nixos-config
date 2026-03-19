@@ -65,6 +65,11 @@ in {
       wants = ["network-online.target"];
     };
 
+    # Ensure textfile directory exists with correct permissions
+    systemd.tmpfiles.rules = [
+      "d /var/lib/prometheus/node-exporter/textfile-collector 0755 root root -"
+    ];
+
     # Open firewall for Prometheus to scrape metrics
     networking.firewall.allowedTCPPorts = [
       port
