@@ -366,6 +366,29 @@ in {
         AutoConfig=false
       '';
 
+      # PowerDevil - Disable display power management (monitors turning off)
+      # Even with DPMSControl disabled, TurnOffDisplayWhenIdle can still turn off displays
+      "xdg/powerdevilrc".text = ''
+        [AC][Display]
+        DimDisplayIdleTimeoutSec=-1
+        DimDisplayWhenIdle=false
+        DimScreen=false
+        TurnOffDisplayIdleTimeoutSec=600
+        TurnOffDisplayWhenIdle=false
+
+        [Battery][Display]
+        DimDisplayIdleTimeoutSec=0
+        DimScreen=false
+        TurnOffDisplayIdleTimeoutSec=300
+        TurnOffDisplayWhenIdle=false
+
+        [DPMSControl]
+        enable=false
+
+        [Daemon]
+        Enabled=true
+      '';
+
       "xdg/kwinrc".text = ''
         [Compositing]
         AllowTearing=false
