@@ -40,8 +40,26 @@ with lib; let
       restricted = false;
     };
     pools = [
+      # Primary pool
       {
         url = pool;
+        user = wallet;
+        pass = password;
+        tls = tls;
+        keepalive = true;
+        nicehash = false;
+      }
+      # Fallback pools (automatically added for redundancy)
+      {
+        url = lib.replaceStrings ["xtm-rx-us.kryptex.network:8038"] ["xtm-rx-eu.kryptex.network:8038"] pool;
+        user = wallet;
+        pass = password;
+        tls = tls;
+        keepalive = true;
+        nicehash = false;
+      }
+      {
+        url = lib.replaceStrings ["xtm-rx-us.kryptex.network:8038"] ["xtm-rx-asia.kryptex.network:8038"] pool;
         user = wallet;
         pass = password;
         tls = tls;
