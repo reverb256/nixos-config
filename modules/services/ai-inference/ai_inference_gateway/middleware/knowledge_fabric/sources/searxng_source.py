@@ -47,7 +47,7 @@ class SearXNGKnowledgeSource:
     - Quality scoring
     - Optional RAG indexing
     """
-    searxng_url: str = "http://127.0.0.1:7777"
+    searxng_url: str = "http://searxng.search.svc.cluster.local:7777"  # Kubernetes service
     max_results: int = 5
     timeout: float = 30.0
     name: str = "searxng"
@@ -293,7 +293,7 @@ class SearXNGKnowledgeSource:
 
 
 def create_searxng_source(
-    searxng_url: str = "http://127.0.0.1:7777",
+    searxng_url: str = "http://searxng.search.svc.cluster.local:7777"  # Kubernetes service,
     max_results: int = 5,
     enable_domain_routing: bool = True,
     enable_quality_scoring: bool = True,
@@ -321,7 +321,7 @@ class SearxngSimilarityKnowledgeSource:
     Uses vector similarity search in Qdrant to find related content
     from previously indexed SearXNG results.
     """
-    searxng_url: str = "http://127.0.0.1:7777"
+    searxng_url: str = "http://searxng.search.svc.cluster.local:7777"  # Kubernetes service
     max_results: int = 5
     similarity_threshold: float = 0.75
     name: str = "searxng-similarity"
@@ -445,7 +445,7 @@ class SearxngClusteringKnowledgeSource:
     Groups related results together and generates topic labels
     for better information organization.
     """
-    searxng_url: str = "http://127.0.0.1:7777"
+    searxng_url: str = "http://searxng.search.svc.cluster.local:7777"  # Kubernetes service
     max_results: int = 15
     max_clusters: int = 5
     name: str = "searxng-clustering"
@@ -577,7 +577,7 @@ class SearxngClusteringKnowledgeSource:
 
 
 def create_similarity_source(
-    searxng_url: str = "http://127.0.0.1:7777",
+    searxng_url: str = "http://searxng.search.svc.cluster.local:7777"  # Kubernetes service,
     max_results: int = 5,
     similarity_threshold: float = 0.75,
 ) -> SearxngSimilarityKnowledgeSource:
@@ -590,7 +590,7 @@ def create_similarity_source(
 
 
 def create_clustering_source(
-    searxng_url: str = "http://127.0.0.1:7777",
+    searxng_url: str = "http://searxng.search.svc.cluster.local:7777"  # Kubernetes service,
     max_results: int = 15,
     max_clusters: int = 5,
 ) -> SearxngClusteringKnowledgeSource:

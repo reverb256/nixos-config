@@ -573,6 +573,9 @@
     # AI Inference Service - Gateway with ALL FEATURES enabled
     ai-inference = {
       enable = true;
+      # Single source of truth for SearXNG URL
+      # Kubernetes SearXNG service (ClusterIP: 10.0.0.230:7777)
+      searxngUrl = "http://10.0.0.230:7777";
       backend = {
         url = "http://127.0.0.1:8083";
         type = "llama-cpp";
@@ -604,7 +607,7 @@
           # All knowledge sources enabled
           rag_enabled = true;
           searxng_enabled = true;
-          searxng_url = "http://10.1.1.110:30080";  # NodePort for LAN access (K8s SearXNG service)
+          searxng_url = "http://10.0.0.230:7777";  # TODO: Sync with services.ai-inference.searxngUrl
           searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [

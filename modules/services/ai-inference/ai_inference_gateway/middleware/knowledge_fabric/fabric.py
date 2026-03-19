@@ -161,7 +161,7 @@ class KnowledgeFabricMiddleware(Middleware):
 
         # SearXNG source (MEDIUM priority - meta-search)
         searxng = SearXNGKnowledgeSource(
-            searxng_url=self.config.get("searxng_url", "http://127.0.0.1:7777"),
+            searxng_url=self.config.get("searxng_url", "http://127.0.0.1:30080"),
             max_results=self.config.get("searxng_max_results", 5),
         )
         sources.append(searxng)
@@ -385,35 +385,23 @@ class KnowledgeFabricMiddleware(Middleware):
         if "user_query" in context:
             return context["user_query"]
 
-        # Try to get from cached request body
+        # Import shared utility
+        from ai_inference_gateway.utils.message_utils import (
+            extract_user_query_from_request_body,
+            parse_request_body_safely,
+        )
+
+        # Try to get from cached request body (populated by other middleware)
         if "parsed_body" in context:
             body = context["parsed_body"]
+        else:
+            # Parse the body ourselves using shared utility
+            body = await parse_request_body_safely(request)
+            if body is None:
+                return None
 
-            # Extract from messages
-            if "messages" in body:
-                messages = body["messages"]
-                if messages and isinstance(messages, list):
-                    # Get last user message
-                    for msg in reversed(messages):
-                        if msg.get("role") == "user":
-                            content = msg.get("content", "")
-                            if isinstance(content, str):
-                                return content
-                            elif isinstance(content, list):
-                                # Handle multi-modal content
-                                text_parts = [
-                                    part.get("text", "")
-                                    for part in content
-                                    if isinstance(part, dict)
-                                    and part.get("type") == "text"
-                                ]
-                                return " ".join(text_parts)
-
-            # Extract from prompt (chat completions format)
-            if "prompt" in body:
-                return str(body["prompt"])
-
-        return None
+        # Extract query using shared utility
+        return extract_user_query_from_request_body(body)
 
     async def process_response(self, response: dict, context: dict) -> dict:
         """

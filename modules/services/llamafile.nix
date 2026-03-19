@@ -68,9 +68,9 @@ in {
     };
 
     gpu = mkOption {
-      type = types.nullOr (types.enum ["nvidia" "amd" "rocm" "vulkan"]);
+      type = types.nullOr (types.enum ["nvidia" "amd" "rocm"]);
       default = null;
-      description = "GPU type (null = auto-detect, nvidia, amdgpu/rocm, or vulkan)";
+      description = "GPU type (null = auto-detect, nvidia, or amdgpu/rocm)";
     };
 
     ctxSize = mkOption {
@@ -182,7 +182,6 @@ in {
         gpuFlag = optionalString (cfg.gpu != null) (
           if cfg.gpu == "nvidia" then "-ngl ${toString cfg.gpuLayers}" # CUDA is default
           else if cfg.gpu == "amd" || cfg.gpu == "rocm" then "--gpu-layers ${toString cfg.gpuLayers} --rocm"
-          else if cfg.gpu == "vulkan" then "--gpu-layers ${toString cfg.gpuLayers} --vulkan"
           else ""
         );
       in {

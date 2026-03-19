@@ -2,6 +2,26 @@ from .redis_client import RedisClient
 
 __all__ = ["RedisClient"]
 
+# Message utilities for content extraction
+try:
+    from .message_utils import (
+        extract_last_user_message,
+        extract_message_content,
+        extract_user_query_from_messages,
+        extract_user_query_from_request_body,
+        parse_request_body_safely,
+    )
+
+    __all__.extend([
+        "extract_last_user_message",
+        "extract_message_content",
+        "extract_user_query_from_messages",
+        "extract_user_query_from_request_body",
+        "parse_request_body_safely",
+    ])
+except ImportError:
+    pass
+
 # Tool utilities for agentic workflows
 try:
     from .tool_utils import (
