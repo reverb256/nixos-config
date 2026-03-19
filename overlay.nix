@@ -25,7 +25,7 @@ _: prev: {
       owner = "ggml-org";
       repo = "llama.cpp";
       rev = "1e645345702154ba4813d3d9bbdbd97718de82c0";
-      sha256 = lib.fakeSha256;
+      sha256 = "A/FfrcZyF665nyuYFISyuP8jZJe7gItpXAhvrCPseZI=";
     };
   });
 
