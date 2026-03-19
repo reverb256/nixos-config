@@ -27,6 +27,7 @@ Item {
     property var alerts: []
     property var miningStats: ({})
     property var workloadTypes: ({})  // NEW: Track workload type per host
+    property var gamingState: ({})  // NEW: Track GameMode gaming state per host
 
     Timer {
         id: refreshTimer
@@ -49,6 +50,7 @@ Item {
         fetchAlerts()
         fetchMiningStats()
         fetchWorkloadTypes()  // NEW: Fetch workload types
+        fetchGamingState()  // NEW: Fetch GameMode gaming state
     }
 
     // Fetch node up/down status
@@ -215,6 +217,34 @@ Item {
         })
 
         miningStats.total = totalHashrate
+    }
+
+    // NEW: Fetch GameMode gaming state
+    function fetchGamingState() {
+        const clusterHosts = root.clusterNodes.split(',')
+        clusterHosts.forEach(host => {
+            const xhr = new XMLHttpRequest()
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        try {
+                            const data = JSON.parse(xhr.responseText)
+                            const result = data.data.result || []
+                            if (result.length > 0 && result[0].metric) {
+                                gamingState[host] = {
+                                    active: result[0].value[1] === "1",
+                                    method: result[0].metric.detection_method || "unknown"
+                                }
+                            }
+                        } catch (e) {
+                            gamingState[host] = { active: false, method: "error" }
+                        }
+                    }
+                }
+            }
+            xhr.open("GET", root.prometheusUrl + "/api/v1/query?query=gaming_active{host=\"" + host + "\"}")
+            xhr.send()
+        })
     }
 
     // NEW: Fetch workload type (mining/gaming/inference/idle)
@@ -532,7 +562,7 @@ Item {
 
                 // ENHANCED Mining Section with more details
                 GroupBox {
-                    title: "⛏️ Mining Operations" + (miningStats.total > 0 ? " • Total: " + formatHashrate(miningStats.total || 0) : "")
+                    title: "⛏️ Mining Operations" + (miningStats.total > 0 ? " • Total: " + formatHashrate(miningStats.total || 0) : "") + (Object.values(gamingState).some(s => s.active) ? " • 🎮 Gaming Active" : "")
                     Layout.fillWidth: true
 
                     ColumnLayout {
@@ -557,9 +587,9 @@ Item {
                                 RowLayout {
                                     spacing: units.smallSpacing
 
-                                    // Workload type icon
+                                    // Gaming state icon (takes priority)
                                     Text {
-                                        text: getWorkloadIcon(modelData)
+                                        text: gamingState[modelData]?.active ? "🎮" : getWorkloadIcon(modelData)
                                         font.pixelSize: units.mediumSpacing
                                     }
 
