@@ -83,6 +83,85 @@
               fi
           }
 
+          # Detect gaming by analyzing GPU utilization patterns (fallback)
+          # Returns: 1 if gaming pattern detected, 0 if mining/other pattern
+          # Uses: nvidia-smi to analyze utilization variability over time
+          detect_gpu_pattern() {
+              # Need NVIDIA GPU
+              if ! command -v nvidia-smi &>/dev/null; then
+                  log "No NVIDIA GPU available - assume no gaming"
+                  return 0
+              fi
+
+              # Get current GPU utilization
+              local current_util
+              current_util=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -1)
+
+              if [[ -z "$current_util" ]]; then
+                  log "Failed to query GPU utilization - assume no gaming"
+                  return 0
+              fi
+
+              # Read previous utilization from state file (if exists)
+              local prev_util=""
+              local util_history_file="/tmp/gpu-util-history"
+              if [[ -f "$util_history_file" ]]; then
+                  source "$util_history_file"
+                  prev_util="$LAST_GPU_UTIL"
+              fi
+
+              # Save current utilization
+              echo "LAST_GPU_UTIL=$current_util" > "$util_history_file"
+
+              # If we don't have history, can't detect pattern yet
+              if [[ -z "$prev_util" ]]; then
+                  log "No GPU utilization history - assume no gaming"
+                  return 0
+              fi
+
+              # Calculate variability (simple absolute difference)
+              local util_diff
+              util_diff=$((current_util - prev_util))
+              if [[ "$util_diff" -lt 0 ]]; then
+                  util_diff=$((-util_diff))
+              fi
+
+              # Gaming pattern: High utilization with HIGH variability (>15% change)
+              # Mining pattern: High utilization with LOW variability (<5% change)
+              if [[ "$current_util" -gt 80 ]] && [[ "$util_diff" -gt 15 ]]; then
+                  log "GPU pattern: Gaming detected (util=$current_util%, variance=$util_diff%)"
+                  return 1
+              else
+                  log "GPU pattern: No gaming (util=$current_util%, variance=$util_diff%)"
+                  return 0
+              fi
+          }
+
+          # Unified gaming detection (GameMode primary, GPU fallback)
+          # Returns: 1 if gaming detected, 0 if not
+          detect_gaming() {
+              # Try GameMode first (authoritative)
+              detect_gaming_gamemode
+              local gamemode_result=$?
+
+              case "$gamemode_result" in
+                  0|1)
+                      # GameMode available - use its result
+                      return $gamemode_result
+                      ;;
+                  2)
+                      # GameMode unavailable - use GPU fallback
+                      log "GameMode unavailable, using GPU pattern detection"
+                      detect_gpu_pattern
+                      return $?
+                      ;;
+                  *)
+                      log "Unexpected GameMode result: $gamemode_result"
+                      return 0
+                      ;;
+              esac
+          }
+
           log() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
           }
