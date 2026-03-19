@@ -92,6 +92,7 @@ sentry   Ready    monitoring                     15m     v1.35.0
 
 | Priority | Issue | Impact | Status |
 |----------|-------|--------|--------|
+| 🟡 MEDIUM | No global deadzone solution for controllers | Deadzone must be configured per-game framework | ⚠️ **LIMITATION:** Kernel-level evdev deadzone broken (linuxconsole package removed from nixpkgs) |
 | 🟢 LOW | ~~Forge RTX 4060 GPU passthrough~~ | ~~NVIDIA workloads can't schedule on Forge~~ | ✅ **FIXED** - Both RTX 4060s visible in Kubernetes (nvidia.com/gpu: 2) |
 | 🟡 MEDIUM | Storage classes not fully tested | PVC creation may fail | Testing needed |
 | 🟢 LOW | ~~Forge nixos-share mount~~ | ~~Read-write mount~~ | ✅ FIXED - Now read-only |
@@ -100,14 +101,62 @@ sentry   Ready    monitoring                     15m     v1.35.0
 
 ---
 
+## Recent Achievements
+
+### Gaming Detection & Automatic Mining Pause (2026-03-19)
+
+**Status:** ✅ COMPLETE
+
+Implemented per-host gaming detection using GameMode daemon with GPU
+pattern fallback. Each host independently pauses lolminer when gaming
+detected, resumes after hysteresis period (~15s).
+
+**Features:**
+- GameMode integration (authoritative detection)
+- GPU pattern fallback (catches unsupported games)
+- Hysteresis countdown (prevents rapid cycling)
+- Prometheus metrics (monitoring visibility)
+- Per-host decisions (no cluster coordination)
+
+**Implementation:**
+- Tasks 1-8 completed (detection, state management, pause/resume, metrics)
+- All code reviews passed (spec compliance + code quality)
+- Grafana dashboard created
+- Systems Intelligence plasmoid updated
+
+**Testing:**
+- Validation: nix flake check passed
+- Reviews: All tasks approved
+- Deployment: Pending (next phase)
+
+**Monitoring:**
+- Grafana dashboard: Gaming Detection
+- Prometheus metric: `gaming_active{host="...",detection_method="..."}`
+- Plasmoid: Systems Intelligence shows gaming status
+
+**Impact:**
+- Gaming performance: No GPU contention
+- Mining revenue: ~15s lost per session (hysteresis delay)
+- User experience: Seamless, automatic
+
+---
+
 ## Recent Changes
+
+**2026-03-19 11:45:**
+- ✅ **IMPLEMENTED: Gaming detection & automatic mining pause** - GameMode + GPU pattern fallback
+- ✅ **DOCUMENTED:** Complete user guide (docs/features/gaming-detection.md)
+- ✅ **CREATED:** System modules README (modules/system/README.md)
+- ✅ **UPDATED:** STATUS.md with feature completion
+- 📝 **NOTED:** Deployment pending (next phase)
 
 **2026-03-19 11:30:**
 - ✅ **CONFIGURED: DualSense controller for Genshin Impact** - PlayStation icons working
 - ✅ **CREATED:** User GameControllerDB (`~/.local/share/gamecontrollerdb/SDL_gamecontrollerdb.txt`)
 - ✅ **CREATED:** Diagnostic tool (`~/.local/bin/diagnose-controller`)
+- ✅ **CREATED:** Wine deadzone script (`~/.local/bin/set-wine-deadzone`)
 - ✅ **DOCUMENTED:** `docs/gaming/DUALSENSE-GENSHIN-CONFIG.md` - Complete controller configuration guide
-- 📝 **NOTED:** Kernel-level deadzone broken (linuxconsole package removed from nixpkgs)
+- ⚠️ **LIMITATION:** No global deadzone solution exists - Kernel-level evdev deadzone broken (linuxconsole package removed)
 - ✅ **COMMITTED:** DualSense controller configuration for Genshin Impact
 
 **2026-03-19 11:10:**

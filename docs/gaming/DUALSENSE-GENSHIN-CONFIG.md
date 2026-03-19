@@ -95,9 +95,23 @@ SUBSYSTEM=="input", ATTRS{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEV
 RUN+="${pkgs.linuxconsole}/bin/evdev-joystick --evdev /dev/input/%k --axis 0 --deadzone 1310"
 ```
 
-**Current workaround**:
+**Why this matters**:
+- The `evdev-joystick` tool was the ONLY truly global deadzone solution for Linux
+- It set deadzone at the kernel level using `EVIOCSABS` ioctl
+- This affected ALL games and applications uniformly
+- No replacement exists in nixpkgs or elsewhere
+
+**Current situation**:
+- ❌ NO global deadzone solution exists on Linux anymore
+- ⚠️ Only framework-specific workarounds available:
+  - SDL2 environment variables (native games only)
+  - Wine registry (Proton games only)
+  - Steam Input (Steam games only)
+
+**Workarounds**:
 - Use `SDL_JOYSTICK_AXIS_DEADZONE=5` environment variable (global, not per-axis)
-- Or configure per-game deadzones via Steam Input
+- Use `set-wine-deadzone` script for Proton games (like Genshin Impact)
+- Configure per-game deadzones via Steam Input
 
 ### ❌ System-Wide GameControllerDB for Proton
 
@@ -106,6 +120,60 @@ RUN+="${pkgs.linuxconsole}/bin/evdev-joystick --evdev /dev/input/%k --axis 0 --d
 **Why user location works better**:
 - Proton explicitly reads `~/.local/share/gamecontrollerdb/SDL_gamecontrollerdb.txt`
 - System-wide database is hit-or-miss with Proton
+
+---
+
+## Wine/Proton Deadzone (For Genshin Impact)
+
+**Status**: ⚠️ WORKAROUND - Framework-specific, not global
+
+### How It Works
+
+Genshin Impact runs via Proton (Wine), which does NOT respect SDL2 environment variables. Instead, deadzone must be set via the Wine registry.
+
+### Quick Setup
+
+```bash
+# Run the deadzone configuration script
+set-wine-deadzone 5000  # Sets ~7.5% deadzone
+
+# Values range from 0 (no deadzone) to 10000 (~15% deadzone)
+# 3276 = 5% deadzone
+# 5000 = ~7.5% deadzone (recommended)
+# 6553 = 10% deadzone
+```
+
+**Important**: This script requires that Genshin Impact has been launched at least once to create the Proton prefix.
+
+### What It Does
+
+The script sets the Wine registry key:
+```
+HKEY_CURRENT_USER\Software\Wine\DirectInput\DefaultDeadZone = 5000
+```
+
+This affects ALL Wine/Proton games, not just Genshin Impact.
+
+### Manual Configuration
+
+If the script doesn't work, you can set it manually:
+
+```bash
+# Find your Genshin Impact Proton prefix
+GENSHIN_PREFIX="$HOME/.steam/steam/steamapps/compatdata/955960/pfx"
+
+# Set the deadzone registry value
+reg add "$GENSHIN_PREFIX" \
+  "HKCU\\Software\\Wine\\DirectInput" \
+  /v DefaultDeadZone /t REG_DWORD /d 5000 /f
+```
+
+### Limitations
+
+- ⚠️ **NOT global**: Only affects Wine/Proton games
+- ⚠️ **NOT per-axis**: Sets same deadzone for all axes
+- ⚠️ **Requires game launch**: Proton prefix must exist first
+- ✅ **Works for Genshin Impact**: The game runs via Proton
 
 ---
 
@@ -291,10 +359,13 @@ sudo nixos-rebuild switch --flake /etc/nixos#zephyr
 **What works for Genshin Impact**:
 1. ✅ User GameControllerDB (`~/.local/share/gamecontrollerdb/SDL_gamecontrollerdb.txt`)
 2. ✅ Touchpad disable (udev rules in `gaming.nix`)
-3. ✅ Global SDL2 deadzone (environment variable)
+3. ⚠️ Wine/Proton registry deadzone (via `set-wine-deadzone` script)
 
 **What doesn't work**:
 1. ❌ Kernel-level per-axis deadzone (linuxconsole package removed)
-2. ❌ System-wide GameControllerDB (Proton ignores it)
+2. ❌ SDL2 environment variables (Proton doesn't respect them)
+3. ❌ System-wide GameControllerDB (Proton ignores it)
 
-**Current status**: Controller is properly configured for Genshin Impact with PlayStation icons and working inputs.
+**Critical limitation**: There is NO global deadzone solution on Linux anymore. The kernel-level `evdev-joystick` tool (the only truly global solution) is broken because the `linuxconsole` package was removed from nixpkgs.
+
+**Current status**: Controller is properly configured for Genshin Impact with PlayStation icons. Deadzone must be configured via Wine registry after launching the game.
