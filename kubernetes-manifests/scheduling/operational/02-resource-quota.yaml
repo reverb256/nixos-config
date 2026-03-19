@@ -1,0 +1,104 @@
+# Resource Quotas and LimitRanges for GPU Workloads
+# Prevents resource exhaustion and ensures fair allocation
+
+---
+# ResourceQuota for Mining Namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mining-quota
+  namespace: mining
+  labels:
+    app: gpu-scheduler
+spec:
+  hard:
+    # GPU limits (total across namespace)
+    requests.nvidia.com/gpu: "4"
+    limits.nvidia.com/gpu: "4"
+
+    # CPU/memory limits
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+    limits.cpu: "8"
+    limits.memory: "16Gi"
+
+    # Object counts
+    pods: "10"
+    persistentvolumeclaims: "5"
+    services: "5"
+
+    # Storage
+    requests.ephemeral-storage: "50Gi"
+    limits.ephemeral-storage: "100Gi"
+---
+# ResourceQuota for AI Inference Namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: ai-inference-quota
+  namespace: ai-inference
+  labels:
+    app: gpu-scheduler
+spec:
+  hard:
+    # GPU limits
+    requests.nvidia.com/gpu: "2"
+    limits.nvidia.com/gpu: "2"
+
+    # CPU/memory limits
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    limits.cpu: "16"
+    limits.memory: "32Gi"
+
+    # Object counts
+    pods: "20"
+    persistentvolumeclaims: "10"
+    services: "10"
+    deployments: "10"
+
+    # Storage
+    requests.ephemeral-storage: "100Gi"
+    limits.ephemeral-storage: "200Gi"
+---
+# LimitRange for Mining Namespace (default resource limits)
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: mining-limits
+  namespace: mining
+  labels:
+    app: gpu-scheduler
+spec:
+  limits:
+    - default:
+        cpu: "4"
+        memory: "8Gi"
+      defaultRequest:
+        cpu: "2"
+        memory: "4Gi"
+      type: Container
+    - max:
+        nvidia.com/gpu: "2"
+      type: Container
+---
+# LimitRange for AI Inference Namespace (default resource limits)
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ai-inference-limits
+  namespace: ai-inference
+  labels:
+    app: gpu-scheduler
+spec:
+  limits:
+    - default:
+        cpu: "2"
+        memory: "4Gi"
+      defaultRequest:
+        cpu: "500m"
+        memory: "1Gi"
+      type: Container
+    - max:
+        nvidia.com/gpu: "1"
+      type: Container

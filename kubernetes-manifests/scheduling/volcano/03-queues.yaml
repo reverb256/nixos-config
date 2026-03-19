@@ -1,0 +1,57 @@
+# Volcano Queues for GPU Resource Allocation
+# Defines resource quotas and priorities for different workload types
+
+---
+# AI Queue (high priority, guaranteed resources)
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: ai-queue
+  namespace: volcano-system
+spec:
+  # Guaranteed resources for AI workloads
+  guaranteed:
+    nvidia.com/gpu: "2"  # All GPUs can be used by AI
+    memory: "32Gi"
+    cpu: "16"
+  # Maximum resources AI can use
+  capacity:
+    nvidia.com/gpu: "2"
+    memory: "32Gi"
+    cpu: "16"
+  # Weight for fair sharing (higher = more priority)
+  weight: 100
+  # Reclaim resources from lower priority queues
+  reclaimable: true
+  # Preemption policy
+  preemption:
+    enable: true
+    # Allow preemption within same queue
+    withinClusterQueue: true
+---
+# Mining Queue (low priority, best-effort)
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: mining-queue
+  namespace: volcano-system
+spec:
+  # No guaranteed resources (best-effort only)
+  guaranteed:
+    nvidia.com/gpu: "0"
+    memory: "0Gi"
+    cpu: "0"
+  # Maximum resources mining can use when AI is idle
+  capacity:
+    nvidia.com/gpu: "2"
+    memory: "32Gi"
+    cpu: "16"
+  # Low weight for fair sharing
+  weight: 10
+  # Resources can be reclaimed by AI queue
+  reclaimable: true
+  # Preemption policy
+  preemption:
+    enable: true
+    # Mining can be preempted by higher priority queues
+    withinClusterQueue: false

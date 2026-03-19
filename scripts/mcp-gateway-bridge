@@ -18,6 +18,7 @@ Usage (in Claude Code settings.json):
 
 import asyncio
 import json
+import os
 import sys
 import logging
 from typing import Any, Dict, Optional

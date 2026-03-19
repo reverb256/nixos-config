@@ -9,7 +9,7 @@ data:
   AUTH_MODE: "none"
   BACKEND_TYPE: "llama-cpp"
   BACKEND_URL: "http://127.0.0.1:8083"
-  DEFAULT_MODEL: "qwen3.5-35b-a3b"
+  DEFAULT_MODEL: "qwen3.5-4b"
 
   # RAG Configuration
   RAG_ENABLED: "true"

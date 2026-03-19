@@ -1,0 +1,68 @@
+# Kustomization for GPU Scheduler Base Configuration
+# Environment-agnostic base manifests
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace configuration
+namespace: gpu-scheduler
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: gpu-scheduler
+  app.kubernetes.io/component: scheduler
+  app.kubernetes.io/managed-by: argocd
+  app.kubernetes.io/part-of: gpu-cluster
+
+# Resources to include
+resources:
+  # Namespaces with Pod Security Standards
+  - ../../scheduling/security/03-namespaces-pss.yaml
+
+  # YuniKorn scheduler
+  - ../../scheduling/yunikorn/00-namespace.yaml
+  - ../../scheduling/yunikorn/02-priority-classes.yaml
+
+  # Volcano scheduler
+  - ../../scheduling/volcano/00-namespace.yaml
+  - ../../scheduling/volcano/02-podgroups.yaml
+  - ../../scheduling/volcano/03-queues.yaml
+
+  # Security (RBAC, ServiceAccounts)
+  - ../../scheduling/security/01-serviceaccounts.yaml
+  - ../../scheduling/security/02-rbac-fixed.yaml
+
+  # Network policies
+  - ../../scheduling/network/01-default-deny.yaml
+
+  # Operational resources
+  - ../../scheduling/operational/01-pdb.yaml
+  - ../../scheduling/operational/02-resource-quota.yaml
+  - ../../scheduling/operational/03-servicemonitor.yaml
+
+# Generator options
+generatorOptions:
+  disableNameSuffixHash: false  # Enable hash for configmap/secret updates
+
+# ConfigMap generator
+configMapGenerator:
+  - name: gpu-scheduler-config
+    literals:
+      - SCHEDULER_TYPE=yunikorn
+      - PREEMPTION_ENABLED=true
+      - FAIRNESS_POLICY=drf
+
+# Secret generator (for production, use SealedSecrets)
+secretGenerator:
+  - name: gpu-scheduler-secrets
+    literals:
+      - STRATUM_PASSWORD=changeme
+    type: Opaque
+
+# Images to track (automated updates)
+images:
+  - name: lolminer
+    newTag: "1.98a-nixos"
+  - name: ai-inference-gateway
+    newTag: "v3.1.0"
+    # Use digest for production: newTag: sha256:abc123...

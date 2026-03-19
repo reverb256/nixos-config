@@ -1,0 +1,103 @@
+# YuniKorn Helm Values
+# Production-ready configuration for GPU workload scheduling
+
+admissionsController:
+  enable: true
+  replicas: 2
+  image:
+    tag: v1.4.0
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+
+scheduler:
+  image:
+    tag: v1.4.0
+    pullPolicy: IfNotPresent
+  replicas: 2
+  resources:
+    requests:
+      cpu: "1"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+  # Enable event-based scheduling (no polling)
+  enableConfigHotRefresh: true
+  # Enable scheduler health check
+  healthCheck:
+    enable: true
+    intervalSeconds: 10
+
+web:
+  image:
+    tag: v1.4.0
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  # Expose web UI via service
+  service:
+    type: ClusterIP
+    port: 9889
+
+# Prometheus metrics
+metrics:
+  enable: true
+  port: 9090
+
+# Logging configuration
+logging:
+  level: INFO  # INFO, DEBUG, WARN, ERROR
+  format: text  # text, json
+
+# Cluster configuration
+cluster:
+  # Default queue for unscheduled workloads
+  defaultQueue:
+    name: root.default
+    resources:
+      guaranteed:
+        nvidia.com/gpu: "2"  # Total GPUs in cluster
+        memory: "32Gi"
+        cpu: "16"
+      max:
+        nvidia.com/gpu: "2"
+        memory: "32Gi"
+        cpu: "16"
+
+# Policy configuration
+policy:
+  # Enable priority-based preemption
+  preemption:
+    enable: true
+    # Allow preemption across queues
+    preemptOthers: true
+    # Consider priority class for preemption
+    considerPriority: true
+
+  # Enable resource fairness
+  fairness:
+    enable: true
+    # DRF (Dominant Resource Fairness) algorithm
+    type: drf
+
+# Admission controller configuration
+admissionController:
+  # Intercept all pod creation/update
+  interceptAll: true
+  # Allow specific namespaces to bypass
+  bypassNamespaces:
+    - kube-system
+    - yunikorn
+    - volcano-system

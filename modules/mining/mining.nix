@@ -377,13 +377,6 @@ in {
 
                 # Use pools list if provided, otherwise add GPU proxy + Kryptex fallback pools
                 poolsToUse = if cfg.lolminer.pools != [] then cfg.lolminer.pools else [
-                  # Primary: GPU proxy (if available)
-                  {
-                    url = "127.0.0.1:3334";
-                    wallet = cfg.lolminer.wallet;
-                    password = "x";
-                    tls = false;
-                  }
                   # Fallback 1: Kryptex CR29 (US)
                   {
                     url = "xtm-c29-us.kryptex.network:8040";
@@ -448,13 +441,6 @@ in {
                 '') pools;
 
                 poolsToUse = if cfg.lolminer.pools != [] then cfg.lolminer.pools else [
-                  # Primary: GPU proxy (if available)
-                  {
-                    url = "127.0.0.1:3334";
-                    wallet = cfg.lolminer.wallet;
-                    password = "x";
-                    tls = false;
-                  }
                   # Fallback 1: Kryptex CR29 (US)
                   {
                     url = "xtm-c29-us.kryptex.network:8040";

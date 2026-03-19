@@ -1,0 +1,63 @@
+# GPU Scheduler State Management
+# ConfigMap-based state coordination between bare metal and Kubernetes
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-scheduler-state
+  namespace: kube-system
+  labels:
+    app: gpu-scheduler
+data:
+  # AI workload state: IDLE, AI_START, AI_STOP
+  ai-state: "IDLE"
+  # Last state update timestamp
+  last-updated: "2026-03-19T00:00:00Z"
+  # Current active workload (for debugging)
+  active-workload: "none"
+---
+# RBAC for bare metal host to update state
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gpu-scheduler-state-updater
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["gpu-scheduler-state"]
+    verbs: ["get", "patch", "update", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gpu-scheduler-state-updater
+  namespace: kube-system
+roleRef:
+  kind: Role
+  name: gpu-scheduler-state-updater
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  # Bare metal hosts (Zephyr, Forge)
+  - kind: User
+    name: "system:node:zephyr"
+    apiGroup: rbac.authorization.k8s.io
+  - kind: User
+    name: "system:node:forge"
+    apiGroup: rbac.authorization.k8s.io
+---
+# RBAC for YuniKorn scheduler to read state
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: yunikorn-state-reader
+  namespace: kube-system
+roleRef:
+  kind: Role
+  name: gpu-scheduler-state-updater
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: yunikorn-scheduler
+    namespace: yunikorn
