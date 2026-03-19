@@ -1,0 +1,15 @@
+---
+# Akash Services Namespace
+# Cloudflare tunnel and external service integrations
+# SECURITY: Pod Security Standards applied
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: akash-services
+  labels:
+    name: akash-services
+    # Pod Security Standards
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
