@@ -871,8 +871,9 @@
     };
 
     # GlitchTip error tracking (self-hosted Sentry alternative)
+    # MIGRATED TO KUBERNETES (2026-03-19) - See kubernetes-manifests/glitchtip/
     glitchtip-selfhosted = {
-      enable = true;
+      enable = false;  # MIGRATED TO KUBERNETES
       host = "127.0.0.1";
       port = 8000;
       openFirewall = false;
@@ -1288,7 +1289,7 @@
   # llama.cpp with Qwen3.5-optimized settings for low TTFT
   # Uses Qwen3.5-2B base model (not reasoning-distilled) for compatibility
   # Runs on port 8083 (8081/8082 used by xmrig, 8080 used by LM Studio)
-  # llama.cpp downgraded to 8244 for Qwen3.5 compatibility
+  # llama.cpp updated to b8419 (2026-03-19) for full Qwen3.5 support
   services.llamafile = {
     enable = true;
     modelPath = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-2B-GGUF/Qwen3.5-2B-IQ4_NL.gguf";

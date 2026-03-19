@@ -15,17 +15,17 @@ _: prev: {
     doCheck = false;
   });
 
-  # llama-cpp: Downgrade to 8244 for Qwen3.5 compatibility
-  # Issue: 8255+ has tokenizer incompatibility with Qwen3.5 models (produces garbage output)
-  # Working version: 8244 (commit 35bee031e17ed2b2e8e7278b284a6c8cd120d9f8)
-  # GitHub issue: https://github.com/ggml-org/llama.cpp/issues/20196
+  # llama-cpp: Updated to b8419 (2026-03-19) for Qwen3.5 compatibility
+  # The previous pin to 8244 was based on outdated information.
+  # Latest version includes all Qwen3.5 tokenizer and template fixes.
+  # Commit: 509a31d00f87804a466dee983a30ce29aa0441b1
   llama-cpp = prev.llama-cpp.overrideAttrs (old: {
-    version = "8244";
+    version = "b8419";
     src = prev.fetchFromGitHub {
       owner = "ggml-org";
       repo = "llama.cpp";
-      rev = "35bee031e17ed2b2e8e7278b284a6c8cd120d9f8";
-      sha256 = "07dz2wc24x8h60gpnm74bgfs537xgqhm03g7k6407i736zgw9lf2";
+      rev = "509a31d00f87804a466dee983a30ce29aa0441b1";
+      sha256 = "1ng89wcwy6avvhys36bvqdsx1jwp4sr8qfk83lmiqmkp0nj0x122";
     };
   });
 
