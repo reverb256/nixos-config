@@ -138,7 +138,8 @@
           }
 
           # Unified gaming detection (GameMode primary, GPU fallback)
-          # Returns: 1 if gaming detected, 0 if not
+          # Returns: exit code 1 if gaming detected, 0 if not
+          #          echoes detection method to stdout ("gamemode", "gpu_fallback", "none")
           detect_gaming() {
               # Try GameMode first (authoritative)
               detect_gaming_gamemode
@@ -147,19 +148,89 @@
               case "$gamemode_result" in
                   0|1)
                       # GameMode available - use its result
+                      if [[ "$gamemode_result" == "1" ]]; then
+                          echo "gamemode"
+                      else
+                          echo "none"
+                      fi
                       return $gamemode_result
                       ;;
                   2)
                       # GameMode unavailable - use GPU fallback
                       log "GameMode unavailable, using GPU pattern detection"
                       detect_gpu_pattern
-                      return $?
+                      local gpu_result=$?
+                      if [[ "$gpu_result" == "1" ]]; then
+                          echo "gpu_fallback"
+                      else
+                          echo "none"
+                      fi
+                      return $gpu_result
                       ;;
                   *)
                       log "Unexpected GameMode result: $gamemode_result"
+                      echo "none"
                       return 0
                       ;;
               esac
+          }
+
+          # ============================================================================
+          # GAMING STATE MANAGEMENT
+          # ============================================================================
+          # State directory for gaming detection
+          GAMING_STATE_DIR="/run/compute-workload-monitor"
+          GAMING_STATE_FILE="$GAMING_STATE_DIR/gaming_state"
+
+          # Read gaming state from file
+          # Sets: GAMING_ACTIVE (0 or 1), DETECTION_METHOD ("gamemode", "gpu_fallback", "none")
+          read_gaming_state() {
+              if [[ -f "$GAMING_STATE_FILE" ]]; then
+                  source "$GAMING_STATE_FILE"
+              else
+                  # Default state
+                  GAMING_ACTIVE=0
+                  DETECTION_METHOD="none"
+              fi
+          }
+
+          # Write gaming state to file
+          write_gaming_state() {
+              local gaming_active=$1  # 0 or 1
+              local detection_method=$2  # "gamemode" or "gpu_fallback" or "none"
+
+              mkdir -p "$GAMING_STATE_DIR"
+              {
+                  echo "GAMING_ACTIVE=$gaming_active"
+                  echo "DETECTION_METHOD=$detection_method"
+              } > "$GAMING_STATE_FILE"
+          }
+
+          # Export gaming state to Prometheus via node_exporter textfile collector
+          export_gaming_metric() {
+              local gaming_active=$1  # 0 or 1
+              local detection_method=$2  # "gamemode" or "gpu_fallback" or "none"
+              local hostname=$(get_hostname)
+
+              local metric_dir="/var/lib/node_exporter/textfile_collector"
+              local metric_file="$metric_dir/gaming.prom"
+
+              # Ensure directory exists
+              if [[ ! -d "$metric_dir" ]]; then
+                  mkdir -p "$metric_dir" || {
+                      log "Failed to create node_exporter directory: $metric_dir"
+                      return 1
+                  }
+              fi
+
+              # Write metric (with help and type for Prometheus)
+              {
+                  echo "# HELP gaming_active Whether a game is currently running (1=yes, 0=no)"
+                  echo "# TYPE gaming_active gauge"
+                  echo "gaming_active{host=\"$hostname\",detection_method=\"$detection_method\"} $gaming_active"
+              } > "$metric_file"
+
+              log "Exported gaming metric: gaming_active=$gaming_active (method=$detection_method)"
           }
 
           log() {
@@ -1424,6 +1495,17 @@
                   apply_profile "$new_workload"
               fi
 
+              # Gaming detection and pause/resume (per-host, all nodes)
+              local gaming_output=$(detect_gaming)
+              local gaming_detected=$?
+              local detection_method="$gaming_output"
+
+              # Write state BEFORE exporting (critical fix)
+              write_gaming_state "$gaming_detected" "$detection_method"
+
+              # Export gaming state to Prometheus (use current values, not stale state)
+              export_gaming_metric "$gaming_detected" "$detection_method"
+
               sleep "$CHECK_INTERVAL"
           done
         ''}/bin/compute-workload-monitor";
@@ -1437,8 +1519,10 @@
     };
 
     # Runtime config directory for imperative threshold overrides and state storage
+    # Also create node_exporter textfile collector directory for gaming metrics
     systemd.tmpfiles.rules = [
       "d /run/compute-workload-monitor 0755 root root - -"
+      "d /var/lib/node_exporter/textfile_collector 0755 root root - -"
     ];
   };
 }
