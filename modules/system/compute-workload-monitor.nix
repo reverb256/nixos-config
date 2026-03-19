@@ -53,6 +53,36 @@
           GAMING_PROCESSES=("steam\\.exe" "steamwebhelper" "steamapps" "Steam\\\\ Helper" "lutris" "heroic" "Lutris" "HeroicGamesLauncher" "wine(32|64)\\.exe" "proton")
           BUILD_PROCESSES=("nixos-rebuild" "colmena" "nix-build" "nix-daemon" "nix-store" "gcc" "clang" "cargo build" "make" "cmake" "ninja")
 
+          # Detect gaming using GameMode daemon (primary detection method)
+          # Returns: 1 if gaming active, 0 if not, 2 if unavailable (use GPU fallback)
+          # Uses: gamemoded -s (returns 1 if gaming, 0 if not)
+          detect_gaming_gamemode() {
+              # Check if gamemoded is available
+              if ! command -v gamemoded &>/dev/null; then
+                  log "GameMode not installed - will use GPU fallback"
+                  return 2  # Special code for "not available"
+              fi
+
+              # Check if GameMode daemon is running
+              if ! systemctl is-active --quiet gamemoded; then
+                  log "GameMode daemon not running - will use GPU fallback"
+                  return 2
+              fi
+
+              # Query GameMode state
+              local gaming_state
+              gaming_state=$(gamemoded -s 2>/dev/null || echo "0")
+
+              # gamemoded -s returns 1 if gaming active, 0 if not
+              if [[ "$gaming_state" == "1" ]]; then
+                  log "GameMode: Gaming detected"
+                  return 1  # Gaming active
+              else
+                  log "GameMode: No gaming detected"
+                  return 0  # No gaming
+              fi
+          }
+
           log() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
           }
