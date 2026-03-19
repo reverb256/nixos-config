@@ -1,7 +1,7 @@
 # Hyprland Module
 # Wayland compositor with full ecosystem (from XNM1)
 # Can be used alongside Plasma 6 - choose in display manager
-{pkgs, ...}: {
+{config, pkgs, ...}: {
   # ============================================================================
   # HYPRLAND WAYLAND COMPOSITOR
   # ============================================================================
@@ -10,11 +10,8 @@
     withUWSM = true; # uwsd-based session management
   };
 
-  # Wayland environment variables
-  environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1"; # Ozone Wayland support
-    WLR_NO_HARDWARE_CURSORS = "1"; # Software cursor rendering
-  };
+  # Enable common Wayland environment variables
+#  config.environment.common.wayland.enable = true;
 
   # ============================================================================
   # HYPRLAND ECOSYSTEM

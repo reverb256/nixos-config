@@ -920,9 +920,11 @@ in
     };
 
     # Open firewall for gateway and metrics
-    networking.firewall.allowedTCPPorts = [
-      cfg.gateway.port
-    ]
-    ++ (lib.optional cfg.monitoring.enable cfg.monitoring.port);
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault (
+      [
+        cfg.gateway.port
+      ]
+      ++ (lib.optional cfg.monitoring.enable cfg.monitoring.port)
+    );
   };
 }

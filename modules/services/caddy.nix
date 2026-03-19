@@ -94,8 +94,8 @@
     };
 
     # Open firewall ports for Caddy
-    networking.firewall.allowedTCPPorts = [80 443];
-    networking.firewall.allowedUDPPorts = [443]; # HTTP/3
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [80 443];
+    networking.firewall.allowedUDPPorts = lib.mkOptionDefault [443]; # HTTP/3
 
     # Systemd service security hardening
     systemd.services.caddy = {
