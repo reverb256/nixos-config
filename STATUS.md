@@ -143,6 +143,23 @@ detected, resumes after hysteresis period (~15s).
 
 ## Recent Changes
 
+**2026-03-19 20:15:**
+- ✅ **FIXED: Compute market mining revenue** - Corrected from $0.10 to $0.014/GPU/hr (actual: $96/month ÷ 7 GPUs ÷ 730 hrs)
+- ✅ **UPDATED: Akash bidder** - Now bids potential market rate ($0.045/GPU/hr) even without active leases
+- ✅ **REPRIORITIZED: Akash over mining** - Akash generates 3.2× more revenue than mining ($230 vs $96/month)
+- ✅ **ANALYZED: Akash pricing** - RTX 3060 Ti: $0.05/hr, RTX 3090: $0.07/hr (at AKT $0.498)
+- ✅ **COMMITTED: fix(compute-market)** - Revenue corrections and Akash prioritization (commit 153edba)
+- 📊 **REVENUE COMPARISON:** Mining: $96/mo, Akash: $230/mo (3.2×), Kubernetes: $12,775/mo (133×)
+
+**2026-03-19 20:00:**
+- ✅ **FIXED: AI Inference Gateway syntax error** - Corrected inline comment placement in searxng_source.py line 296
+- ✅ **CONFIGURED: Akash Provider attributes** - Comprehensive GPU and storage capabilities advertised on-chain
+- ✅ **RESOLVED: "Not absolute host URI" error** - Fixed YAML field name (host_uri → host) in provider config
+- ✅ **DEPLOYED: Provider attributes** - All GPU models (RTX 3060 Ti/3090/4060), storage classes (beta2/beta3/ram), console trials support
+- ✅ **INTEGRATED: Inventory service** - Automatic hardware detection from operator-inventory service
+- ✅ **VERIFIED: Provider bidding** - Successfully matching orders and attempting bids on Akash Network
+- ✅ **FIXED: ConfigMap persistence** - Provider now maintains correct configuration across pod restarts
+
 **2026-03-19 11:45:**
 - ✅ **IMPLEMENTED: Gaming detection & automatic mining pause** - GameMode + GPU pattern fallback
 - ✅ **DOCUMENTED:** Complete user guide (docs/features/gaming-detection.md)
