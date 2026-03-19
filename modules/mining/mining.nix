@@ -275,8 +275,27 @@ in {
           restricted = false;
         };
         pools = [
+          # Primary: Kryptex RandomX (US)
           {
             url = cfg.xmrig.pool;
+            user = cfg.xmrig.wallet;
+            pass = cfg.xmrig.password or "x";
+            tls = cfg.xmrig.tls;
+            keepalive = true;
+            nicehash = false;
+          }
+          # Fallback 1: Kryptex RandomX (EU)
+          {
+            url = "xtm-rx-eu.kryptex.network:8038";
+            user = cfg.xmrig.wallet;
+            pass = cfg.xmrig.password or "x";
+            tls = cfg.xmrig.tls;
+            keepalive = true;
+            nicehash = false;
+          }
+          # Fallback 2: Kryptex RandomX (Asia)
+          {
+            url = "xtm-rx-asia.kryptex.network:8038";
             user = cfg.xmrig.wallet;
             pass = cfg.xmrig.password or "x";
             tls = cfg.xmrig.tls;
@@ -356,13 +375,35 @@ in {
                   --tls ${if p.tls then "on" else "off"} \
                 '') pools;
 
-                # Use pools list if provided, otherwise fall back to single pool config
+                # Use pools list if provided, otherwise add GPU proxy + Kryptex fallback pools
                 poolsToUse = if cfg.lolminer.pools != [] then cfg.lolminer.pools else [
+                  # Primary: GPU proxy (if available)
                   {
-                    url = cfg.lolminer.pool;
+                    url = "127.0.0.1:3334";
                     wallet = cfg.lolminer.wallet;
                     password = "x";
-                    tls = cfg.lolminer.tls;
+                    tls = false;
+                  }
+                  # Fallback 1: Kryptex CR29 (US)
+                  {
+                    url = "xtm-c29-us.kryptex.network:8040";
+                    wallet = cfg.lolminer.wallet;
+                    password = "x";
+                    tls = true;
+                  }
+                  # Fallback 2: Kryptex CR29 (EU)
+                  {
+                    url = "xtm-c29-eu.kryptex.network:8040";
+                    wallet = cfg.lolminer.wallet;
+                    password = "x";
+                    tls = true;
+                  }
+                  # Fallback 3: Kryptex CR29 (Asia)
+                  {
+                    url = "xtm-c29-asia.kryptex.network:8040";
+                    wallet = cfg.lolminer.wallet;
+                    password = "x";
+                    tls = true;
                   }
                 ];
               in ''
@@ -407,11 +448,33 @@ in {
                 '') pools;
 
                 poolsToUse = if cfg.lolminer.pools != [] then cfg.lolminer.pools else [
+                  # Primary: GPU proxy (if available)
                   {
-                    url = cfg.lolminer.pool;
+                    url = "127.0.0.1:3334";
                     wallet = cfg.lolminer.wallet;
                     password = "x";
-                    tls = cfg.lolminer.tls;
+                    tls = false;
+                  }
+                  # Fallback 1: Kryptex CR29 (US)
+                  {
+                    url = "xtm-c29-us.kryptex.network:8040";
+                    wallet = cfg.lolminer.wallet;
+                    password = "x";
+                    tls = true;
+                  }
+                  # Fallback 2: Kryptex CR29 (EU)
+                  {
+                    url = "xtm-c29-eu.kryptex.network:8040";
+                    wallet = cfg.lolminer.wallet;
+                    password = "x";
+                    tls = true;
+                  }
+                  # Fallback 3: Kryptex CR29 (Asia)
+                  {
+                    url = "xtm-c29-asia.kryptex.network:8040";
+                    wallet = cfg.lolminer.wallet;
+                    password = "x";
+                    tls = true;
                   }
                 ];
               in ''
