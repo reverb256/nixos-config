@@ -521,10 +521,12 @@
       enable = true;
       # Custom Caddyfile for complex configurations (Nextcloud)
       configFile = pkgs.writeText "Caddyfile" ''
-        # SearXNG privacy-friendly search (via Tailscale)
-        search.zephyr.tigris-ule.ts.net:9001 {
-          reverse_proxy 127.0.0.1:7777
-        }
+        # SearXNG privacy-friendly search (MIGRATED TO KUBERNETES 2026-03-19)
+        # External access via Kubernetes Ingress (not yet implemented)
+        # To enable external access, create Ingress resource in search namespace
+        # search.zephyr.tigris-ule.ts.net:9001 {
+        #   reverse_proxy searxng.search.svc.cluster.local:7777
+        # }
 
         # AI Inference Gateway (via Tailscale)
         ai.zephyr.tigris-ule.ts.net:9002 {
@@ -680,7 +682,7 @@
               "ai_inference_gateway.mcp_servers.searxng_server"
             ];
             environment = {
-              SEARXNG_URL = "http://127.0.0.1:7777";
+              SEARXNG_URL = "http://searxng.search.svc.cluster.local:7777";  # MIGRATED TO KUBERNETES (2026-03-19)
               SEARXNG_CACHE_TTL = "300";
             };
             enabled = true;
@@ -856,8 +858,9 @@
 
     # MONITORED - Full monitoring stack
     # Note: Loki and Promtail moved to monitoring.nix (Loki now on Sentry)
+    # Prometheus and Grafana running on Kubernetes in ai-inference namespace
     monitoring = {
-      # MIGRATED TO KUBERNETES (2026-03-18)
+      # RUNNING ON KUBERNETES (ai-inference namespace) - See kubernetes-manifests/ai-inference/
       prometheus = {
         enable = false;
         retentionDays = 30;
@@ -868,7 +871,7 @@
         enable = true;
         retentionDays = 30;
       };
-      grafana.enable = false;  # MIGRATED TO KUBERNETES (2026-03-18)
+      grafana.enable = false;  # RUNNING ON KUBERNETES (ai-inference namespace)
     };
 
     # GlitchTip error tracking (self-hosted Sentry alternative)
