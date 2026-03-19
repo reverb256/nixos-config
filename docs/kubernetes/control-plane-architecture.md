@@ -1,16 +1,32 @@
-# Kubernetes HA Control Plane Architecture
+# Kubernetes Control Plane Architecture
 
-**Status:** ✅ Operational | **Last Updated:** 2026-03-16 | **K8s Version:** v1.35.0
+**Status:** ⚠️ **Single-Node Control Plane** (HA Planned) | **Last Updated:** 2026-03-19 | **K8s Version:** v1.35.2
 
 ---
 
 ## Overview
 
-This document describes the 3-node high-availability (HA) control plane architecture for the NixOS Kubernetes cluster.
+This document describes the current control plane architecture and the planned migration to high-availability (HA).
+
+> **⚠️ CURRENT STATE:** The cluster is **NOT highly available**. Only Zephyr runs a functional control plane with etcd. Nexus and Sentry have API servers running but are not connected to an etcd cluster. See [HA Migration Plan](#ha-migration-plan) below.
 
 ---
 
 ## Architecture Summary
+
+### Current State (Single-Node Control Plane)
+
+**Control Plane Node:** 1 master (Zephyr)
+| Node | IP | Role | Keepalived Priority | etcd Status |
+|------|-----|------|---------------------|-------------|
+| **Zephyr** | 10.1.1.110 | Primary Master | 110 | ✅ Running |
+| **Nexus** | 10.1.1.120 | Planned HA | 100 | ❌ Inactive |
+| **Sentry** | 10.1.1.140 | Planned HA | 90 | ❌ Inactive |
+
+**Virtual IP (VIP):** 10.1.1.100 (floating via Keepalived - configured)
+**API Server Access:** `https://10.1.1.100:6443` (VIP) or `https://10.1.1.110:6443` (direct to Zephyr)
+
+### Planned State (HA - Pending Migration)
 
 **Control Plane Nodes:** 3 masters with VIP failover
 | Node | IP | Role | Keepalived Priority | etcd Name |
@@ -26,9 +42,44 @@ This document describes the 3-node high-availability (HA) control plane architec
 
 ## Architecture Diagram
 
+### Current State (Single-Node Control Plane)
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        HA Control Plane                             │
+│                    ACTUAL: Single-Node Control Plane               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │                    Virtual IP: 10.1.1.100                      │ │
+│  │                    (Keepalived - Zephyr holds it)               │ │
+│  └───────────────────────────┬────────────────────────────────────┘ │
+│                              │                                         │
+│                              ▼                                         │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐               │
+│  │   Zephyr    │    │    Nexus    │    │   Sentry   │               │
+│  │ 10.1.1.110  │    │ 10.1.1.120  │    │ 10.1.1.140  │               │
+│  │ Priority 110│    │ Priority 100│    │  Priority 90 │               │
+│  ├─────────────┤    ├─────────────┤    ├─────────────┤               │
+│  │ apiserver   │    │ apiserver   │    │ apiserver   │               │
+│  │ scheduler   │    │ scheduler   │    │ scheduler   │               │
+│  │ controller  │    │ controller  │    │ controller  │               │
+│  │ etcd ✅     │    │ etcd ❌      │    │ etcd ❌      │               │
+│  │ kubelet     │    │ kubelet     │    │ kubelet     │               │
+│  │ proxy       │    │ proxy       │    │ proxy       │               │
+│  └─────────────┘    └─────────────┘    └─────────────┘               │
+│         ▲                   ✗                   ✗                     │
+│         │                   (NO etcd)          (NO etcd)               │
+│         │                                                              │
+│    Only Zephyr is functional control plane                           │
+│                                                                       │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Planned State (3-Node HA Control Plane - After Migration)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    PLANNED: HA Control Plane (After Migration)      │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                       │
 │  ┌────────────────────────────────────────────────────────────────┐ │
@@ -427,5 +478,117 @@ systemctl start kube-apiserver kube-scheduler kube-controller-manager
 - **STATUS.md:** Real-time cluster status
 - **NixOS Kubernetes Module:** https://search.nixos.org/options?query=kubernetes
 
-**Last Updated:** 2026-03-16
-**Maintainer:** j_kro
+---
+
+## Current Actual State (2026-03-19)
+
+### ⚠️ HA NOT CONFIGURED - Single Point of Failure
+
+**etcd Cluster Status:**
+```
+Member: e054b3a350f6bc1, started, zephyr, http://10.1.1.110:2380
+        ^^^^^^ ONLY ONE MEMBER - NO HA
+```
+
+| Component | Zephyr | Nexus | Sentry | Forge |
+|-----------|--------|-------|--------|-------|
+| **etcd** | ✅ Running | ❌ Dead (10+ hrs) | ❌ Dead (10+ hrs) | ❌ Not enabled |
+| **API Server** | ✅ Running | ✅ Running (not connected) | ✅ Running (not connected) | ❌ Not running |
+| **Scheduler** | ✅ Running | ✅ Running (not connected) | ✅ Running (not connected) | ❌ Not running |
+| **Controller** | ✅ Running | ✅ Running (not connected) | ✅ Running (not connected) | ❌ Not running |
+| **Kubelet** | ✅ Running | ✅ Running | ✅ Running | ✅ Running |
+| **In Cluster** | ✅ Yes | ❌ No | ❌ No | ✅ Worker only |
+
+### Root Cause
+
+The `etcdClusterMembers` option in `modules/services/kubernetes.nix` is **empty by default**:
+
+```nix
+etcdClusterMembers = lib.mkOption {
+  type = lib.types.listOf lib.types.str;
+  default = [ ];  # ← EMPTY! No HA clustering configured
+};
+```
+
+### Impact
+
+If **Zephyr goes down**:
+- ❌ VIP (10.1.1.100) would failover to Nexus/Sentry
+- ❌ But API servers on Nexus/Sentry cannot function (no etcd)
+- ❌ **Entire control plane becomes unavailable**
+- ❌ No new pods can be scheduled
+- ⚠️ Existing pods continue running but cluster is read-only
+
+---
+
+## HA Migration Plan
+
+### Phase 1: Configure etcd Cluster Members
+
+**Objective:** Add Nexus and Sentry to etcd cluster
+
+**Steps:**
+1. Update `modules/services/kubernetes.nix` with explicit etcdClusterMembers
+2. Configure etcd initial cluster state for new nodes
+3. Verify etcd cluster forms (3/3 members)
+
+**Configuration Changes:**
+```nix
+# modules/services/kubernetes.nix
+services.kubernetes-module = {
+  enable = true;
+
+  # On Zephyr (first node - already has data)
+  etcdInitialState = "new";  # Only for first setup
+
+  # On all control plane nodes
+  etcdClusterMembers = [
+    "zephyr=http://10.1.1.110:2380"
+    "nexus=http://10.1.1.120:2380"
+    "sentry=http://10.1.1.140:2380"
+  ];
+
+  # Per-node configuration (set in host configs)
+  etcdName = "zephyr";  # or "nexus" / "sentry"
+  etcdListenHost = "10.1.1.110";  # actual node IP
+};
+```
+
+### Phase 2: Verify Node Registration
+
+**Objective:** Ensure all nodes register as control-plane
+
+**Verification:**
+```bash
+# Should show 3 nodes with control-plane role
+kubectl get nodes
+
+# Should show 3 etcd members
+ETCDCTL_API=3 etcdctl member list
+
+# API servers should be accessible on all nodes
+curl -k https://10.1.1.110:6443/healthz
+curl -k https://10.1.1.120:6443/healthz
+curl -k https://10.1.1.140:6443/healthz
+```
+
+### Phase 3: Test Failover
+
+**Objective:** Verify VIP failover and etcd quorum
+
+**Tests:**
+1. Stop kube-apiserver on Zephyr → VIP should failover
+2. Verify cluster remains functional (2/3 etcd quorum)
+3. Restart Zephyr → verify rejoining
+
+### Rollout Order
+
+1. **Prepare:** Backup etcd data from Zephyr
+2. **Configure:** Add etcdClusterMembers to kubernetes.nix
+3. **Deploy:** Run `just deploy` to apply to all nodes
+4. **Verify:** Check etcd cluster membership
+5. **Test:** Failover test
+
+---
+
+## Disaster Recovery

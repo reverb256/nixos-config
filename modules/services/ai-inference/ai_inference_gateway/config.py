@@ -13,7 +13,7 @@ This module provides production-grade configuration with:
 from __future__ import annotations
 
 from typing import Optional, List, Dict
-from pydantic import BaseModel, Field, field_validator, SecretStr
+from pydantic import BaseModel, Field, field_validator, model_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -126,8 +126,14 @@ class ConcurrencyLimiterConfig(BaseModel):
     )
 
 
-class KnowledgeFabricConfig(BaseModel):
+class KnowledgeFabricConfig(BaseSettings):
     """Knowledge Fabric middleware configuration"""
+
+    model_config = SettingsConfigDict(
+        env_prefix="",  # No prefix for env vars
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     enabled: bool = Field(
         default=False, description="Enable Knowledge Fabric middleware"
@@ -326,8 +332,14 @@ class ObservabilityConfig(BaseModel):
         return v_upper
 
 
-class MiddlewareConfig(BaseModel):
-    """Complete middleware configuration"""
+class MiddlewareConfig(BaseSettings):
+    """Complete middleware configuration - inherits BaseSettings for env var support"""
+
+    model_config = SettingsConfigDict(
+        env_prefix="",  # No prefix for env vars
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     rate_limiting: RateLimitingConfig = Field(
         default_factory=RateLimitingConfig, description="Rate limiting configuration"
@@ -358,10 +370,78 @@ class MiddlewareConfig(BaseModel):
     mcp: MCPConfig = Field(
         default_factory=MCPConfig, description="MCP broker configuration"
     )
+
     knowledge_fabric: KnowledgeFabricConfig = Field(
         default_factory=KnowledgeFabricConfig,
         description="Knowledge Fabric middleware configuration",
     )
+
+    # Override knowledge_fabric using model_validator to parse env vars
+    @model_validator(mode="after")
+    def override_knowledge_fabric_from_env(self):
+        """Parse Knowledge Fabric env vars that use MIDDLEWARE__ prefix"""
+        import os
+        import json
+
+        # Read env vars with MIDDLEWARE__KNOWLEDGE_FABRIC__ prefix
+        enabled = os.environ.get("MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED", "").lower()
+        rrf_k = os.environ.get("MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K", "")
+        rag_enabled = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED", ""
+        ).lower()
+        searxng_enabled = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED", ""
+        ).lower()
+        searxng_url = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL", "http://127.0.0.1:7777"
+        )
+        code_search_enabled = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED", ""
+        ).lower()
+        web_search_enabled = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED", ""
+        ).lower()
+        code_search_paths_raw = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS", '["/etc/nixos"]'
+        )
+        rag_top_k = os.environ.get("MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K", "5")
+        searxng_max_results = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS", "5"
+        )
+        code_max_results = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS", "5"
+        )
+        web_max_results = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS", "5"
+        )
+
+        # Parse JSON paths
+        try:
+            code_search_paths = json.loads(code_search_paths_raw)
+        except:
+            code_search_paths = ["/etc/nixos"]
+
+        # Override knowledge_fabric fields
+        self.knowledge_fabric.enabled = enabled == "true"
+        self.knowledge_fabric.rrf_k = int(rrf_k) if rrf_k else 60
+        self.knowledge_fabric.rag_enabled = rag_enabled == "true"
+        self.knowledge_fabric.searxng_enabled = searxng_enabled == "true"
+        self.knowledge_fabric.searxng_url = searxng_url
+        self.knowledge_fabric.code_search_enabled = code_search_enabled == "true"
+        self.knowledge_fabric.web_search_enabled = web_search_enabled == "true"
+        self.knowledge_fabric.code_search_paths = code_search_paths
+        self.knowledge_fabric.rag_top_k = int(rag_top_k) if rag_top_k else 5
+        self.knowledge_fabric.searxng_max_results = (
+            int(searxng_max_results) if searxng_max_results else 5
+        )
+        self.knowledge_fabric.code_max_results = (
+            int(code_max_results) if code_max_results else 5
+        )
+        self.knowledge_fabric.web_max_results = (
+            int(web_max_results) if web_max_results else 5
+        )
+
+        return self
 
     # RAG configuration (optional - loaded from environment variables)
     # These use the exact env var names from gateway.nix for compatibility
@@ -451,7 +531,7 @@ class GatewayConfig(BaseSettings):
 
     # Middleware configuration
     middleware: MiddlewareConfig = Field(
-        default_factory=MiddlewareConfig, description="Middleware configuration"
+        default=MiddlewareConfig(), description="Middleware configuration"
     )
 
     # Sentry error tracking configuration

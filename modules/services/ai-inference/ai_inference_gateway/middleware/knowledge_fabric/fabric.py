@@ -40,6 +40,7 @@ from .sources import (
 
 try:
     from prometheus_client import CollectorRegistry
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -111,7 +112,7 @@ class KnowledgeFabricMiddleware(Middleware):
             failure_threshold=circuit_config.get("failure_threshold", 5),
             timeout=circuit_config.get("timeout", 60.0),
             success_threshold=circuit_config.get("success_threshold", 2),
-            metrics=self.metrics
+            metrics=self.metrics,
         )
 
         # Store sources by name for quick access
@@ -205,6 +206,13 @@ class KnowledgeFabricMiddleware(Middleware):
         Returns:
             Tuple of (should_continue, optional_error)
         """
+        import sys
+
+        print(
+            f"[DEBUG] KnowledgeFabricMiddleware.process_request called, enabled={self.enabled}",
+            file=sys.stderr,
+            flush=True,
+        )
         if not self.enabled:
             return True, None
 
@@ -236,7 +244,7 @@ class KnowledgeFabricMiddleware(Middleware):
             # Record classification metrics
             self.metrics.record_classification(
                 intent=routing_decision.intent.value,
-                confidence=routing_decision.confidence
+                confidence=routing_decision.confidence,
             )
             self.metrics.record_sources_selected(len(routing_decision.selected_sources))
 
@@ -265,7 +273,10 @@ class KnowledgeFabricMiddleware(Middleware):
                 if source_name in self._sources_by_name:
                     source = self._sources_by_name[source_name]
                     # Inject search_service if needed (for RAG)
-                    if hasattr(source, 'search_service') and source.search_service is None:
+                    if (
+                        hasattr(source, "search_service")
+                        and source.search_service is None
+                    ):
                         # Try to get from state (injected by app)
                         search_service = context.get("rag_search_service")
                         if search_service:
@@ -317,8 +328,7 @@ class KnowledgeFabricMiddleware(Middleware):
 
                     # Record fusion metrics
                     self.metrics.record_fusion_operation(
-                        chunks_before=chunks_before,
-                        chunks_after=len(fused_chunks)
+                        chunks_before=chunks_before, chunks_after=len(fused_chunks)
                     )
 
                     logger.info(
@@ -394,7 +404,8 @@ class KnowledgeFabricMiddleware(Middleware):
                                 text_parts = [
                                     part.get("text", "")
                                     for part in content
-                                    if isinstance(part, dict) and part.get("type") == "text"
+                                    if isinstance(part, dict)
+                                    and part.get("type") == "text"
                                 ]
                                 return " ".join(text_parts)
 
@@ -452,7 +463,9 @@ class KnowledgeFabricMiddleware(Middleware):
                 response["metadata"] = {}
 
             # Merge knowledge fabric metadata
-            response["metadata"]["knowledge_fabric"] = usage_metadata["knowledge_fabric"]
+            response["metadata"]["knowledge_fabric"] = usage_metadata[
+                "knowledge_fabric"
+            ]
 
             logger.debug(
                 f"Added knowledge fabric metadata: {fabric_context.sources_used}"

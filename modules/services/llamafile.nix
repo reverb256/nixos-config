@@ -74,13 +74,13 @@ in {
 
     ctxSize = mkOption {
       type = types.int;
-      default = 8192;
-      description = "Context window size in tokens";
+      default = 32768;  # Qwen3.5 supports up to 262K native
+      description = "Context window size in tokens (32768 for Qwen3.5)";
     };
 
     threads = mkOption {
       type = types.int;
-      default = 8;
+      default = 12;  # Better thread utilization for Qwen3.5
       description = "Number of CPU threads for inference";
     };
 
@@ -91,17 +91,54 @@ in {
       description = "User to run llamafile as";
     };
 
-    # Performance tuning
+    # Performance tuning (Qwen3.5-optimized defaults)
     batchSize = mkOption {
       type = types.int;
-      default = 512;
-      description = "Batch size for prompt processing";
+      default = 64;  # Lower latency for Qwen3.5
+      description = "Batch size for prompt processing (64 for low TTFT on Qwen3.5)";
     };
 
     ubatchSize = mkOption {
       type = types.int;
-      default = 512;
-      description = "User batch size (logical batch size)";
+      default = 16;  # Better micro-batch for Qwen3.5
+      description = "User batch size (16 for optimal Qwen3.5 performance)";
+    };
+
+    # Qwen3.5-specific optimizations
+    flashAttention = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Enable Flash Attention (Qwen3.5 benefits significantly)";
+    };
+
+    parallelDecoding = mkOption {
+      type = types.int;
+      default = 3;
+      description = "Parallel decoding slots for Qwen3.5";
+    };
+
+    enableThinking = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Enable Qwen3.5 thinking mode (chain-of-thought with <think> tags)";
+    };
+
+    reasoningBudget = mkOption {
+      type = types.int;
+      default = 0;
+      description = "Reasoning budget in tokens (0 = disable reasoning mode entirely)";
+    };
+
+    cacheTypeK = mkOption {
+      type = types.str;
+      default = "q8_0";
+      description = "KV cache type for keys (q8_0 for 8-bit quantization)";
+    };
+
+    cacheTypeV = mkOption {
+      type = types.str;
+      default = "q4_0";
+      description = "KV cache type for values (q4_0 for 4-bit quantization)";
     };
 
     # Sampling parameters
@@ -155,7 +192,7 @@ in {
         # Working directory for the model
         WorkingDirectory = "/home/${cfg.user}";
 
-        # ExecStart with llama-server flags
+        # ExecStart with Qwen3.5-optimized llama-server flags
         ExecStart = ''
           ${llamaPkg}/bin/llama-server \
             --model ${cfg.modelPath} \
@@ -166,6 +203,12 @@ in {
             -t ${toString cfg.threads} \
             --batch-size ${toString cfg.batchSize} \
             --ubatch-size ${toString cfg.ubatchSize} \
+            ${lib.optionalString cfg.flashAttention "--flash-attn on"} \
+            ${lib.optionalString (cfg.parallelDecoding > 0) "--parallel ${toString cfg.parallelDecoding}"} \
+            --chat-template-kwargs '{\"enable_thinking\":${if cfg.enableThinking then "true" else "false"}}' \
+            --reasoning-budget ${toString cfg.reasoningBudget} \
+            --cache-type-k ${cfg.cacheTypeK} \
+            --cache-type-v ${cfg.cacheTypeV} \
             --temp ${lib.strings.floatToString cfg.temperature} \
             --top-k ${toString cfg.topK} \
             --top-p ${lib.strings.floatToString cfg.topP} \

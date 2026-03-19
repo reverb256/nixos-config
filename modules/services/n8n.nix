@@ -4,8 +4,10 @@
   # ============================================================================
   # N8N - Workflow Automation
   # ============================================================================
+  # MIGRATED TO KUBERNETES (2026-03-18)
+  # Running in ai-inference namespace on cluster nodes
   services.n8n = {
-    enable = true;
+    enable = false;
   };
 
   # Ensure N8N has proper PATH access
