@@ -143,6 +143,13 @@ detected, resumes after hysteresis period (~15s).
 
 ## Recent Changes
 
+**2026-03-19 21:00:**
+- ✅ **EXPANDED: Akash provider capabilities** - Added 13 new capability attributes for specialized workloads
+- ✅ **NEW CAPABILITIES:** IPFS pinning, databases (PostgreSQL, MongoDB, Redis), video processing (NVENC, transcoding), GPU rendering (Blender), development workspaces, blockchain nodes, AI/ML infrastructure
+- ✅ **ON-CHAIN UPDATE:** Provider attributes successfully updated (tx: 0FA001FA48B72CA40158393A3E889B68F04DC993DE4EAB196137444A1BCDC566)
+- ✅ **REVENUE POTENTIAL:** Additional $680-2,150/month from specialized workloads (IPFS, databases, rendering, video)
+- 📝 **ATTRIBUTES ADDED:** ipfs/pinning, ipfs/gateway, database/postgresql, database/mongodb, database/redis, video/nvenc, video/transcoding, rendering/gpu, rendering/blender, development/workspace, blockchain/cosmos-sdk, ai/inference, ai/training
+
 **2026-03-19 20:15:**
 - ✅ **FIXED: Compute market mining revenue** - Corrected from $0.10 to $0.014/GPU/hr (actual: $96/month ÷ 7 GPUs ÷ 730 hrs)
 - ✅ **UPDATED: Akash bidder** - Now bids potential market rate ($0.045/GPU/hr) even without active leases
