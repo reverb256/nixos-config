@@ -61,6 +61,7 @@
 
     # Gaming
     ./gaming/gaming.nix
+    ./gaming/disable-cabc-triggers.nix
     ./gaming/gaming-hdr.nix
     ./gaming/scopebuddy.nix
 
