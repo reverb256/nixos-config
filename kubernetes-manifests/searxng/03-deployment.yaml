@@ -19,11 +19,26 @@ spec:
       labels:
         app: searxng
     spec:
+      # POD LEVEL SECURITY CONTEXT
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: searxng
         # Using the official SearXNG image
         image: searxng/searxng:latest
         imagePullPolicy: IfNotPresent
+        # CONTAINER LEVEL SECURITY CONTEXT
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: SEARXNG_SECRET
           value: "JRtva9yqdV87quESG4FqC6icvsCkRK3qfIVXm9eK4hUWbs3PR88EyJbJyX0hxuk7"
@@ -54,6 +69,17 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
+        # Volume mounts for read-only root filesystem
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /var/www/searxng/cache
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
 
 ---
 apiVersion: v1
