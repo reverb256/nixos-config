@@ -462,8 +462,9 @@
           }
 
           get_workload_type() {
-              # Priority: Gateway Signal (AI only) > Gaming > Kubernetes GPU > VRAM Pressure > Builds > Mining > Idle
+              # Priority: Gateway Signal (AI only) > MINING > Gaming > Kubernetes GPU > VRAM Pressure > Builds > Idle
               # AI workloads are detected ONLY via explicit gateway signal (no process-based detection)
+              # MINING takes priority over EVERYTHING (except AI) to prevent interference with lolminer power limits
 
               # Check for gateway signal (explicit AI workload notification)
               if check_gateway_signal; then
@@ -471,7 +472,16 @@
                   return
               fi
 
-              # Check for gaming
+              # Check for active mining (HIGHEST PRIORITY except AI)
+              # This prevents gaming/builds/other workloads from overriding mining power limits
+              for service in "''${MINING_SERVICES[@]}"; do
+                  if systemctl is-active --quiet "$service"; then
+                      echo "mining"
+                      return
+                  fi
+              done
+
+              # Check for gaming (only if mining is not active)
               for proc in "''${GAMING_PROCESSES[@]}"; do
                   if check_process_running "$proc"; then
                       echo "gaming"
@@ -528,15 +538,6 @@
                   echo "builds"
                   return
               fi
-
-              # Check for active mining
-              for service in "''${MINING_SERVICES[@]}"; do
-                  if systemctl is-active --quiet "$service"; then
-                      # Mining is only active if no higher priority workload
-                      echo "mining"
-                      return
-                  fi
-              done
 
               echo "idle"
           }

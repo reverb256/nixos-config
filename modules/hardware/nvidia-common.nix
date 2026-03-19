@@ -74,22 +74,25 @@ in {
     };
 
     # ============================================================================
-    # GPU POWER/PERFORMANCE MODE NOTES
+    # GPU POWER/PERFORMANCE MODE
     # ============================================================================
     # GPUPowerMizerMode controls dynamic clock scaling:
     # - 0 = Adaptive (default) - auto-scales based on load
     # - 1 = Prefer Maximum Performance - always full clocks
     # - 2 = Auto - same as Adaptive for RTX 30 series
     #
-    # Current: Both GPUs at default (0=Adaptive)
-    # GPU 0 (3060 Ti): 210 MHz idle → 420 MHz max
-    # GPU 1 (3090): 240 MHz idle → 2130 MHz max
-    #
-    # To change mode (requires X/Wayland session):
-    #   nvidia-settings -a [gpu:0]/GPUPowerMizerMode=1  # Max performance
-    #   nvidia-settings -a [gpu:0]/GPUPowerMizerMode=0  # Adaptive (default)
-    #
-    # Note: nvidia-settings requires DISPLAY variable, so this cannot be set
-    # via systemd service at boot. Run manually after login or add to autostart.
+    # Set to maximum performance to prevent HDMI TV brightness fluctuations
+    # when GPU power scales up/down based on mouse movement/activity.
+    systemd.services.nvidia-powermizer = {
+      description = "Set NVIDIA GPUs to maximum performance mode";
+      wantedBy = ["graphical-session.target"];
+      after = ["graphical-session.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = "${pkgs.nvidia-settings}/bin/nvidia-settings -a [gpu:0]/GPUPowerMizerMode=1 -a [gpu:1]/GPUPowerMizerMode=1";
+        Environment = "DISPLAY=:0";
+      };
+    };
   };
 }
