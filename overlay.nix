@@ -17,7 +17,7 @@ _: prev: {
 
   # llama-cpp: CUDA-enabled version from GitHub master
   # Replaces CPU-only nixpkgs version with GPU-accelerated build
-  llama-cpp = prev.callPackage ./packages/llama-cpp-cuda.nix { };
+  llama-cpp = (prev.callPackage ./packages/llama-cpp-cuda.nix { });
 
   # Python packages overlay
   python3 = prev.python3.override {

@@ -7,6 +7,11 @@
   fetchurl,
   cudaPackages,
   git,
+  # Accept but ignore extra parameters that nixpkgs llama-cpp might expect
+  cudaSupport ? true,
+  rocmSupport ? false,
+  vulkanSupport ? false,
+  ...
 }:
 stdenv.mkDerivation rec {
   pname = "llama-cpp";
