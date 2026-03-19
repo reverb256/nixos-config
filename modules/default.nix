@@ -7,6 +7,10 @@
     # ============================================================================
     ./common-host-defaults.nix
 
+    # Common shared modules
+    ./common/environment-variables.nix
+    ./common/firewall-ports.nix
+
     # Network configuration
     ./network-constants.nix
 
