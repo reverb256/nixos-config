@@ -573,6 +573,10 @@
     # AI Inference Service - Gateway with ALL FEATURES enabled
     ai-inference = {
       enable = true;
+      # Single source of truth for SearXNG URL
+      # WARNING: ClusterIP (10.0.0.230) may change if service is recreated
+      # TODO: Implement proper K8s service discovery (Ingress, ExternalName, or CoreDNS)
+      searxngUrl = "http://10.1.1.110:30080";
       backend = {
         url = "http://127.0.0.1:8083";
         type = "llama-cpp";
@@ -604,7 +608,7 @@
           # All knowledge sources enabled
           rag_enabled = true;
           searxng_enabled = true;
-          searxng_url = "http://searxng.search.svc.cluster.local:7777";  # MIGRATED TO KUBERNETES (2026-03-19)
+          searxng_url = "http://10.1.1.110:30080";
           searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
@@ -682,7 +686,7 @@
               "ai_inference_gateway.mcp_servers.searxng_server"
             ];
             environment = {
-              SEARXNG_URL = "http://searxng.search.svc.cluster.local:7777";  # MIGRATED TO KUBERNETES (2026-03-19)
+              SEARXNG_URL = "http://10.1.1.110:30080";
               SEARXNG_CACHE_TTL = "300";
             };
             enabled = true;
