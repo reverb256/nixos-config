@@ -58,9 +58,9 @@ sentry   Ready    monitoring                     15m     v1.35.0
 | **Phase 4: Stateless Services** | ✅ COMPLETE | 100% | **GlitchTip web/worker/redis, SearXNG migrated** (2026-03-19), Caddy Ingress, n8n, home-assistant |
 | **Phase 5: GPU Workloads** | ⏳ PENDING | 0% | Not started |
 | **Phase 6: Monitoring** | ✅ COMPLETE | 100% | Prometheus + Grafana running, **Caddy metrics configured** |
-| **Phase 7: Cleanup** | 🟢 IN PROGRESS | 20% | Old systemd services stopped, config updated |
+| **Phase 7: Cleanup** | 🟢 IN PROGRESS | 80% | Config updated, documentation aligned, removing old files |
 
-**Overall Progress:** ~75% complete (5.5 of 7 phases)
+**Overall Progress:** ~85% complete (6 of 7 phases, cleanup in progress)
 
 ---
 
@@ -68,7 +68,7 @@ sentry   Ready    monitoring                     15m     v1.35.0
 
 ### Systemd Services (Active)
 - **AI/ML:** ai-inference-monitor, qdrant
-- **Web:** n8n, searx, caddy, home-assistant
+- **Web:** n8n, caddy, home-assistant
 - **Monitoring:** prometheus, grafana, alertmanager, prometheus-node-exporter, prometheus-nvidia-gpu-exporter, promtail
 - **Kubernetes:** etcd, kube-apiserver, kube-scheduler, kube-controller-manager, kubelet, kube-proxy, containerd, docker
 - **Networking:** avahi, rpcbind, nfs-*
@@ -81,8 +81,9 @@ sentry   Ready    monitoring                     15m     v1.35.0
 - **local-path-storage:** local-path-provisioner
 - **mining:** xmrig-proxy
 - **akash-services:** akash-provider, operator-* services
-- **ai-inference:** n8n, postgres-n8n, qdrant
+- **ai-inference:** n8n, postgres-n8n, qdrant, prometheus, grafana ✅ **RUNNING ON K8S**
 - **glitchtip:** postgres, redis, web, worker ✅ **MIGRATED (2026-03-19)**
+- **search:** searxng ✅ **MIGRATED (2026-03-19)**
 - **default:** home-assistant ✅ **MIGRATED**
 
 ---
@@ -100,6 +101,13 @@ sentry   Ready    monitoring                     15m     v1.35.0
 ---
 
 ## Recent Changes
+
+**2026-03-19 04:30:**
+- ✅ **FIXED: Configuration inconsistencies** - MCP Server SearXNG URL, Caddy proxy, Prometheus/Grafana comments
+- ✅ **UPDATED: Migration progress** - All service references now coherent with Kubernetes deployment
+- ✅ **COMMITTED: fix(config)** - Resolved all Kubernetes migration inconsistencies (commit 8d5f638)
+- ✅ **VERIFIED: All migrated services running** - 10 pods across 4 namespaces operational
+- 📝 **UPDATED: STATUS.md** - Removed old systemd service references, added search namespace
 
 **2026-03-19 03:30:**
 - ✅ **MIGRATED: GlitchTip to Kubernetes** - PostgreSQL StatefulSet, Redis, Web, Worker deployments
