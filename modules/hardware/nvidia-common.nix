@@ -52,6 +52,10 @@ in {
       # Enable GSP firmware (required for Ampere/RTX 30 series)
       # GSP runs control firmware on the GPU for better performance
       options nvidia NVreg_EnableGpuFirmware=1
+
+      # Disable DynamicPowerManagement to prevent HDMI brightness fluctuations
+      # DPM=0 prevents GPU from auto-scaling power based on input activity
+      options nvidia NVreg_DynamicPowerManagement=0
     '';
 
     # ============================================================================
