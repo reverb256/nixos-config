@@ -25,23 +25,9 @@
   useVulkan = config.hardware.gpu-compute.vulkan.enable or false;
 
   # Select llama-cpp variant (prefer CUDA for NVIDIA GPUs)
-  # TEMPORARY: Use custom llama.cpp b8429 for Qwen3.5 compatibility
   llamaPkg = if cfg.gpu == "amd" || cfg.gpu == "rocm" || useRocm then pkgs.llama-cpp-rocm
              else if cfg.gpu == "vulkan" || useVulkan then pkgs.llama-cpp-vulkan
-             else if cfg.gpu == "nvidia" || useCuda then (
-               # Use latest llama.cpp b8429 for Qwen3.5 support
-               pkgs.llama-cpp.overrideAttrs (old: {
-                 version = "b8429";
-                 src = pkgs.fetchzip {
-                   url = "https://github.com/ggml-org/llama.cpp/archive/1e645345702154ba4813d3d9bbdbd97718de82c0.tar.gz";
-                   sha256 = "A/FfrcZyF665nyuYFISyuP8jZJe7gItpXAhvrCPseZI=";
-                 };
-                 npmDeps = pkgs.fetchurl {
-                   url = "https://github.com/ggml-org/llama.cpp/archive/1e645345702154ba4813d3d9bbdbd97718de82c0.tar.gz";
-                   sha256 = "NPmdpvKe1WPCT4u/zy9VYXVcXBBamDAQD5FMuOjfWyM=";
-                 };
-               })
-             )
+             else if cfg.gpu == "nvidia" || useCuda then pkgs.llama-cpp # CUDA for NVIDIA (Flash Attention support)
              else pkgs.llama-cpp;
 in {
   options.services.llamafile = {
