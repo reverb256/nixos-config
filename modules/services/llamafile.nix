@@ -24,10 +24,11 @@
   useRocm = config.hardware.gpu-compute.rocm.enable or false;
   useVulkan = config.hardware.gpu-compute.vulkan.enable or false;
 
-  # Select llama-cpp variant (prefer CUDA for NVIDIA GPUs)
-  llamaPkg = if cfg.gpu == "amd" || cfg.gpu == "rocm" || useRocm then pkgs.llama-cpp-rocm
-             else if cfg.gpu == "vulkan" || useVulkan then pkgs.llama-cpp-vulkan
-             else if cfg.gpu == "nvidia" || useCuda then pkgs.llama-cpp # CUDA for NVIDIA (Flash Attention support)
+  # Select llama-cpp variant (prefer explicit GPU setting, then auto-detect)
+  llamaPkg = if cfg.gpu == "amd" || cfg.gpu == "rocm" then pkgs.llama-cpp-rocm
+             else if cfg.gpu == "nvidia" then pkgs.llama-cpp # CUDA for NVIDIA (Flash Attention support)
+             else if cfg.gpu == null && useRocm then pkgs.llama-cpp-rocm
+             else if cfg.gpu == null && useCuda then pkgs.llama-cpp
              else pkgs.llama-cpp;
 in {
   options.services.llamafile = {
