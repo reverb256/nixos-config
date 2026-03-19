@@ -92,7 +92,7 @@ sentry   Ready    monitoring                     15m     v1.35.0
 
 | Priority | Issue | Impact | Status |
 |----------|-------|--------|--------|
-| 🔴 HIGH | Forge RTX 4060 GPU passthrough | NVIDIA workloads can't schedule on Forge | Investigating |
+| 🟢 LOW | ~~Forge RTX 4060 GPU passthrough~~ | ~~NVIDIA workloads can't schedule on Forge~~ | ✅ **FIXED** - Both RTX 4060s visible in Kubernetes (nvidia.com/gpu: 2) |
 | 🟡 MEDIUM | Storage classes not fully tested | PVC creation may fail | Testing needed |
 | 🟢 LOW | ~~Forge nixos-share mount~~ | ~~Read-write mount~~ | ✅ FIXED - Now read-only |
 | 🟢 LOW | NFS hard mounts | System hangs if NFS down | ✅ FIXED - Soft mounts with 10s timeout |
@@ -214,8 +214,8 @@ systemctl status prometheus              # Prometheus status
 ## Next Actions
 
 1. **IMMEDIATE:** Test storage classes and PVC creation
-2. **THIS WEEK:** Begin Phase 3 (Stateful Services migration - GlitchTip DB)
-3. **ONGOING:** Investigate Forge RTX 4060 Ada Lovelace GPU plugin issue
+2. **THIS WEEK:** Begin Phase 5 (GPU Workloads - AI/ML services)
+3. **READY:** Forge RTX 4060s operational for GPU workloads
 
 ---
 
