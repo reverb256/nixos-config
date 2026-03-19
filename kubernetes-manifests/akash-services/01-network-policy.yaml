@@ -1,0 +1,39 @@
+# Network Policies for Cloudflare Tunnel
+# Outbound-only service (tunnel to Cloudflare edge)
+
+---
+# Allow Cloudflared to reach Cloudflare edge servers
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cloudflared-egress
+  namespace: akash-services
+  labels:
+    app: cloudflared
+    policy: allow-egress
+spec:
+  podSelector:
+    matchLabels:
+      app: cloudflared-tunnel
+  policyTypes:
+  - Egress
+  egress:
+  # DNS queries
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Cloudflare edge (any IP, HTTPS only)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# No ingress allowed (outbound tunnel only)
+# Deny policy is implicit from default-deny
