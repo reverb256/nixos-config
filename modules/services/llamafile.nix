@@ -131,14 +131,14 @@ in {
 
     cacheTypeK = mkOption {
       type = types.str;
-      default = "q8_0";
-      description = "KV cache type for keys (q8_0 for 8-bit quantization)";
+      default = "bf16";
+      description = "KV cache type for keys (bf16 recommended for Qwen3.5 to fix garbled output)";
     };
 
     cacheTypeV = mkOption {
       type = types.str;
-      default = "q4_0";
-      description = "KV cache type for values (q4_0 for 4-bit quantization)";
+      default = "bf16";
+      description = "KV cache type for values (bf16 recommended for Qwen3.5 to fix garbled output)";
     };
 
     # Sampling parameters
