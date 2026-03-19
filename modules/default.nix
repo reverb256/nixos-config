@@ -42,6 +42,7 @@
 
     # Security
     ./security/pam-vaultwarden.nix
+    ./kubernetes-security.nix
 
     # Desktop environment
     ./desktop/desktop.nix
