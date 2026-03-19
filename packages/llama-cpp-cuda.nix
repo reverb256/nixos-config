@@ -26,18 +26,18 @@ stdenv.mkDerivation rec {
     cmake
     git
     cuda_nvcc
-    cuda_cudart
-    cuda_nvrtc
   ];
 
   buildInputs = with cudaPackages; [
     cuda_cudart
     cuda_nvrtc
+    libcublas
+    cudnn
   ];
 
   cmakeFlags = [
-    "-DLLAMA_CUDA=ON"
-    "-DLLAMA_CUDA_F16=ON"
+    "-DGGML_CUDA=ON"
+    "-DGGML_CUDA_F16=ON"
     "-DCMAKE_BUILD_TYPE=Release"
     "-DCUDAToolkit_ROOT=${cudaPackages.cuda_nvcc}"
   ];

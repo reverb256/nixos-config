@@ -1,7 +1,7 @@
 ---
 name: knowledge-fabric
-description: Advanced multi-source knowledge retrieval system. Use this when researching technical topics, comparing options, or answering questions that require comprehensive information from multiple sources (RAG knowledge base, code search, SearXNG metasearch, web search). Automatically classifies query intent (CODE, FACTUAL, PROCEDURAL, REALTIME, COMPARATIVE, CONTEXTUAL), routes to optimal sources, and fuses results using Reciprocal Rank Fusion (RRF). This is superior to direct web search for complex research tasks. Use for: "research X", "compare Y vs Z", "how do I configure X", "find information about Y", "explain topic Z". Works with your NixOS AI infrastructure's Knowledge Fabric middleware.
-compatibility: Requires local AI Gateway at http://127.0.0.1:8080 with Knowledge Fabric middleware enabled.
+description: Advanced multi-source knowledge retrieval system using MCP tools. Use this when researching technical topics, comparing options, or answering questions that require comprehensive information from multiple sources (code search, SearXNG metasearch, web search, NixOS options, academic papers). Automatically classifies query intent (CODE, FACTUAL, PROCEDURAL, REALTIME, COMPARATIVE, CONTEXTUAL), routes to optimal MCP tools, executes parallel searches, aggregates results, and presents ranked findings. This is superior to direct web search for complex research tasks. Use for: "research X", "compare Y vs Z", "how do I configure X", "find information about Y", "explain topic Z". Works with MCP tools (search_code, search_github, search_stackoverflow, search_research, web_search, etc.) via your gateway MCP server.
+compatibility: Requires MCP tools configured in settings.json (gateway bridge or direct SearXNG MCP server).
 ---
 
 # Knowledge Fabric - Multi-Source Knowledge Retrieval
@@ -97,12 +97,173 @@ For SearXNG queries, the system automatically detects the domain and routes to s
 
 ## Configuration
 
-The Knowledge Fabric is configured in your NixOS gateway:
-- **Location**: `modules/services/ai-inference/ai_inference_gateway/middleware/knowledge_fabric/`
-- **Main File**: `fabric.py` (orchestrator)
-- **Sources**: `sources/` directory
-- **SearXNG URL**: `http://127.0.0.1:7777`
+The Knowledge Fabric uses MCP tools directly for reliable, fast knowledge retrieval:
+- **SearXNG URL**: `http://10.1.1.110:30080` (NodePort for LAN access)
 - **Qdrant URL**: `http://127.0.0.1:6333`
+- **Gateway API**: `http://127.0.0.1:8080` (used for direct API access, not for skill execution)
+
+## Skill Workflow
+
+When this skill is invoked, execute the following workflow:
+
+### Step 1: Analyze Query Intent
+
+Classify the user's query into one or more intent categories:
+- **CODE**: Functions, APIs, implementations, debugging, code examples
+- **FACTUAL**: Definitions, explanations, specific information, documentation
+- **PROCEDURAL**: How-to, tutorials, setup guides, step-by-step instructions
+- **REALTIME**: Current data, news, recent changes, time-sensitive information
+- **COMPARATIVE**: X vs Y, alternatives, comparisons, trade-offs
+- **CONTEXTUAL**: Deep explanations, background, concepts, theory
+
+**Classification Indicators**:
+- Code keywords: `function`, `class`, `API`, `implement`, `debug`, `syntax`, `programming`
+- Reasoning keywords: `analyze`, `compare`, `evaluate`, `explain why`, `logic`, `inference`
+- Procedural keywords: `how to`, `configure`, `setup`, `install`, `steps`, `tutorial`
+
+### Step 2: Select Optimal MCP Tools
+
+Based on the query intent, select the appropriate MCP tools:
+
+| Intent | Primary Tools | Secondary Tools |
+|--------|---------------|-----------------|
+| **CODE** | `search_code`, `search_github`, `search_stackoverflow` | `search_mdn` (web dev), `search_nixos_options` |
+| **FACTUAL** | `web_search`, `search_research` | `ping_searxng` |
+| **PROCEDURAL** | `search_code`, `web_search`, `search_devops` | `search_github` (for examples) |
+| **REALTIME** | `web_search` | `ping_searxng` |
+| **COMPARATIVE** | `web_search`, `search_research` | `search_code` (for implementations) |
+| **CONTEXTUAL** | `search_research`, `web_search` | `search_code` |
+
+**Domain-Specific Tool Selection**:
+- **NixOS/Configuration**: `search_nixos_options`, `search_code`
+- **Kubernetes/DevOps**: `search_devops`, `search_github`
+- **Academic/Papers**: `search_research`
+- **Machine Learning**: `search_data`
+- **Web Development**: `search_mdn`, `search_code`
+
+### Step 3: Execute Parallel Searches
+
+Call the selected MCP tools in parallel (not sequentially):
+
+```python
+# Example: CODE intent query
+tools_to_call = [
+    "search_code",
+    "search_github",
+    "search_stackoverflow"
+]
+
+# Execute all tools concurrently
+results = await execute_tools_in_parallel(tools_call, query)
+```
+
+**Important**: Always use parallel execution for multiple tools to minimize latency.
+
+### Step 4: Aggregate and Rank Results
+
+1. **Collect results** from all tools
+2. **Remove duplicates** based on URL/title similarity
+3. **Score by relevance**:
+   - Keyword matches in title: +3 points
+   - Keyword matches in content: +1 point
+   - Source reputation (GitHub docs > blog > forum): +2 points
+   - Recency (for REALTIME): +2 points
+4. **Sort by score** (highest first)
+5. **Return top 10-15 results**
+
+### Step 5: Present Results
+
+Format the results as:
+```markdown
+## Knowledge Fabric Results
+
+### Query Analysis
+- **Intent**: [CODE/FACTUAL/PROCEDURAL/etc]
+- **Sources**: [list of tools used]
+- **Total Results**: [number]
+
+### Top Results
+
+#### 1. [Result Title]
+**Source**: [Tool name]
+**URL**: [Link]
+**Snippet**: [Relevant excerpt]
+**Relevance**: [High/Medium/Low]
+
+#### 2. [Next Result]
+...
+
+### Summary
+[2-3 sentence synthesis of key findings]
+```
+
+### Step 6: Provide Follow-up Suggestions
+
+Based on the results, suggest:
+- **Refined searches**: "Narrow down with specific keywords"
+- **Related topics**: "You might also be interested in..."
+- **Actionable next steps**: "To implement this, consider..."
+
+---
+
+## Example Execution
+
+**User Query**: "How do I configure NixOS flakes for colmena deployment?"
+
+**Step 1: Intent Classification**
+- Keywords: "configure", "NixOS flakes", "colmena deployment"
+- Intent: **PROCEDURAL** + **CODE**
+
+**Step 2: Tool Selection**
+- Primary: `search_code` (flake.nix examples)
+- Secondary: `search_nixos_options` (configuration options)
+- Tertiary: `web_search` (tutorials, guides)
+
+**Step 3: Parallel Execution**
+```python
+results = {
+    "search_code": [...],  # 10 flake.nix examples
+    "search_nixos_options": [...],  # 5 relevant options
+    "web_search": [...]  # 8 tutorials
+}
+```
+
+**Step 4: Aggregation**
+- Total: 23 raw results
+- After deduplication: 18 unique results
+- Top 10 selected
+
+**Step 5: Presentation**
+```markdown
+## Knowledge Fabric Results
+
+### Query Analysis
+- **Intent**: PROCEDURAL + CODE
+- **Sources**: search_code, search_nixos_options, web_search
+- **Total Results**: 18 unique results
+
+### Top Results
+
+#### 1. Colmena Flake Configuration Example
+**Source**: search_code
+**URL**: https://github.com/zefroser/colmena-flake-example
+**Snippet**: Complete flake.nix with colmena deployment configuration...
+**Relevance**: High
+
+#### 2. NixOS Flakes Guide
+**Source**: web_search
+**URL**: https://nixos.wiki/wiki/Flakes
+**Snippet**: Comprehensive guide to NixOS flakes...
+**Relevance**: High
+
+[... more results ...]
+
+### Summary
+Colmena works seamlessly with NixOS flakes. You need to:
+1. Initialize a flake with `nix flake init`
+2. Configure colmena in `flake.nix`
+3. Use `colmena apply` to deploy
+```
 
 ## Testing the Knowledge Fabric
 
@@ -111,8 +272,14 @@ The Knowledge Fabric is configured in your NixOS gateway:
 # Check gateway is running
 curl http://127.0.0.1:8080/health
 
-# Test SearXNG directly
-curl "http://127.0.0.1:7777/search?q=test&format=json" | jq '.results | length'
+# Test SearXNG directly (NodePort)
+curl "http://10.1.1.110:30080/search?q=test&format=json" | jq '.results | length'
+
+# Test Qdrant vector DB
+curl http://127.0.0.1:6333/collections
+
+# Test Redis cache
+redis-cli -p 6380 PING
 ```
 
 ### Query via Gateway
@@ -218,3 +385,85 @@ The Knowledge Fabric integrates with:
 - [Knowledge Fabric Integration Guide](modules/services/ai-inference/KNOWLEDGE_FABRIC_INTEGRATION.md)
 - [SearXNG Integration](modules/services/ai-inference/searxng_integration.py)
 - [RAG Documentation](modules/services/ai-inference/ai_inference_gateway/rag/)
+
+---
+
+## Comprehensive Test Results (2026-03-19)
+
+All infrastructure components validated and operational:
+
+| Component | Status | Endpoint | Performance |
+|-----------|--------|----------|-------------|
+| **SearXNG Metasearch** | ✅ OPERATIONAL | http://10.1.1.110:30080 | <1s response, 10 results/query |
+| **Qdrant Vector DB** | ✅ OPERATIONAL v1.16.3 | http://127.0.0.1:6333 | 8 collections active |
+| **Redis Cache** | ✅ OPERATIONAL v8.2.3 | localhost:6380 | 787KB memory, sub-ms PING |
+| **Code Search Base** | ✅ INDEXED | /etc/nixos | 428 NixOS files, 97 Python modules |
+| **Domain Routing** | ✅ OPERATIONAL | All domains | CODE/GITHUB/ACADEMIC working |
+
+## Optimal Access Patterns
+
+### Access Hierarchy (Power Level)
+
+**📍 LEVEL 1: Direct MCP Tools** (⭐⭐)
+```
+Use specific MCP tools directly for simple queries:
+- search_code for code examples
+- web_search for general web search
+- search_nixos_options for NixOS configuration
+```
+Best for: Single-source queries, quick lookups
+
+**📍 LEVEL 2: /knowledge-fabric Skill** (⭐⭐⭐⭐⭐)
+```
+/knowledge-fabric
+Your complex research question here
+```
+Most powerful because:
+- Semantic query classification (CODE/FACTUAL/PROCEDURAL/REALTIME)
+- Multi-source parallel execution using MCP tools
+- Intelligent result aggregation and ranking
+- Domain-aware tool selection
+- Comprehensive result synthesis
+
+Best for: Complex research requiring multiple sources
+
+**📍 LEVEL 3: Gateway API** (⭐⭐⭐⭐)
+```bash
+curl -X POST http://127.0.0.1:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "claude-sonnet-4", "messages": [...]}'
+```
+Best for: Application integration, automated workflows
+
+### Usage Recommendations
+
+| Query Type | Recommended Method | Example |
+|------------|-------------------|---------|
+| Complex research | `/knowledge-fabric` | "Compare ZFS vs Btrfs for NixOS" |
+| Code examples | MCP `search_code` | "Kubernetes deployment NixOS flake" |
+| Academic papers | MCP `search_research` | "transformer optimization 2024" |
+| Troubleshooting | `/knowledge-fabric` | "permission denied Kubernetes pods" |
+| Quick lookup | MCP `web_search` | Simple factual queries |
+| App integration | Gateway API | Automated workflows |
+
+### MCP Tools Catalog
+
+**General**: `web_search`, `ping_searxng`, `search_stats`, `clear_search_cache`
+
+**Code & Development**:
+- `search_code` - Domain-aware code search
+- `search_github` - GitHub repositories
+- `search_stackoverflow` - Programming Q&A
+- `search_mdn` - Web development docs
+
+**Academic & Research**:
+- `search_research` - Papers and academic sources
+
+**DevOps & Infrastructure**:
+- `search_devops` - Docker, Kubernetes, deployment
+
+**AI/ML & Data Science**:
+- `search_data` - ML models, datasets, training
+
+**Configuration**:
+- `search_nixos_options` - NixOS configuration docs

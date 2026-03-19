@@ -29,7 +29,7 @@ class SearXNGKnowledgeSource:
     Provides privacy-respecting search results from multiple engines
     through the local SearXNG instance.
     """
-    searxng_url: str = "http://127.0.0.1:7777"
+    searxng_url: str = "http://10.1.1.110:30080"
     max_results: int = 5
     timeout: float = 30.0
     name: str = "searxng"
@@ -139,7 +139,7 @@ class SearXNGKnowledgeSource:
 
 
 def create_searxng_source(
-    searxng_url: str = "http://127.0.0.1:7777",
+    searxng_url: str = "http://10.1.1.110:30080",
     max_results: int = 5,
 ) -> SearXNGKnowledgeSource:
     """Factory function to create SearXNG knowledge source."""
