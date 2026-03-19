@@ -217,7 +217,8 @@ in {
         '';
 
         # Environment to prioritize bundled libraries
-        Environment = "LD_LIBRARY_PATH=${llamaPkg}/lib";
+        # Force use of GPU 0 (RTX 3060 Ti) to avoid conflict with mining on GPU 1 (RTX 3090)
+        Environment = "LD_LIBRARY_PATH=${llamaPkg}/lib:CUDA_VISIBLE_DEVICES=0";
 
         # Security settings
         NoNewPrivileges = false;  # Needed for GPU access
