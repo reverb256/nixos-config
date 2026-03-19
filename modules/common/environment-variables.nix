@@ -39,8 +39,10 @@ in
         default = false;
         description = "Enable CUDA environment variables (CUDA_PATH, CUDA_HOME)";
       };
+    };
 
-      rocm = lib.mkOption {
+    rocm = {
+      enable = lib.mkOption {
         type = lib.types.bool;
         default = false;
         description = "Enable ROCm environment variables (ROCM_PATH)";
