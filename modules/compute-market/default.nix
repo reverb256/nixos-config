@@ -226,6 +226,38 @@
           GAMING_GAMES="''${GAMING_GAMES:-}"
 
           # ============================================================================
+          # GPU DETECTION
+          ============================================================================
+          list_available_gpus() {
+              # Detect available NVIDIA GPUs
+              if command -v nvidia-smi >/dev/null 2>&1; then
+                  nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null || echo "0"
+              else
+                  echo "0"  # No GPUs detected
+              fi
+          }
+
+          # ============================================================================
+          # PER-GPU STATE INITIALIZATION
+          ============================================================================
+          init_per_gpu_state() {
+              local gpu_count=$(list_available_gpus | wc -l)
+
+              for ((gpu_id=0; gpu_id<gpu_count; gpu_id++)); do
+                  local gpu_state_dir="$STATE_DIR/gpu$gpu_id"
+                  mkdir -p "$gpu_state_dir"
+
+                  # Initialize state files
+                  echo "idle" > "$gpu_state_dir/state"
+                  echo "0" > "$gpu_state_dir/workload_pid"
+                  echo "0.00" > "$gpu_state_dir/current_bid"
+                  echo "$(date +%s)" > "$gpu_state_dir/last_auction"
+              done
+
+              log_info "Initialized per-GPU state for $gpu_count GPUs"
+          }
+
+          # ============================================================================
           # LOGGING FUNCTIONS
           # ============================================================================
           log() {

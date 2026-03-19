@@ -1,0 +1,191 @@
+# ArgoCD App-of-Apps for GPU Scheduler
+# Manages all GPU scheduler components as a single application
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gpu-scheduler
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: gpu-scheduler
+    app.kubernetes.io/component: scheduler
+  annotations:
+    notifications.argoproj.io/subscribe.on-degraded.slack: gpu-scheduler-alerts
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: gpu-scheduler-alerts
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: gpu-scheduler-alerts
+spec:
+  # Project for RBAC and namespace restrictions
+  project: gpu-scheduler
+
+  # Source configuration
+  source:
+    repoURL: https://github.com/your-org/cluster.git
+    targetRevision: main
+    path: gitops/base
+    kustomize:
+      # Equivalent to running kustomize build . > final.yaml
+      # Kustomize will apply patches and generate resources
+
+  # Destination cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gpu-scheduler
+
+  # Sync policy
+  syncPolicy:
+    automated:
+      # Automatic sync when Git changes are detected
+      selfHeal: true  # Auto-revert drift
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true  # Create namespace if missing
+      - PrunePropagationPolicy=foreground  # Delete resources before removing dependent resources
+      - PruneLast=true  # Prune resources last (safer)
+    retry:
+      limit: 5  # Retry failed syncs up to 5 times
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences (prevent ArgoCD from fighting with controllers)
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # Allow HPA to manage replicas
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle  # Allow managed cert injection
+
+  # Revision history limit (for rollbacks)
+  revisionHistoryLimit: 10
+
+---
+# Project for GPU Scheduler (RBAC)
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: gpu-scheduler
+  namespace: argocd
+spec:
+  # Allowed namespaces
+  destinations:
+    - namespace: gpu-scheduler
+      server: https://kubernetes.default.svc
+    - namespace: mining
+      server: https://kubernetes.default.svc
+    - namespace: ai-inference
+      server: https://kubernetes.default.svc
+    - namespace: yunikorn
+      server: https://kubernetes.default.svc
+    - namespace: volcano-system
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+
+  # Allowed source repositories
+  sourceRepos:
+    - https://github.com/your-org/cluster.git
+
+  # Cluster resource restrictions
+  clusterResourceWhitelist:
+    - group: rbac.authorization.k8s.io
+      kinds:
+        - ClusterRole
+        - ClusterRoleBinding
+    - group: scheduling.k8s.io
+      kinds:
+        - PriorityClass
+
+  # Namespace resource whitelist
+  namespaceResourceWhitelist:
+    - group: ""
+      kinds:
+        - ConfigMap
+        - Secret
+        - ServiceAccount
+    - group: rbac.authorization.k8s.io
+      kinds:
+        - Role
+        - RoleBinding
+    - group: networking.k8s.io
+      kinds:
+        - NetworkPolicy
+    - group: policy
+      kinds:
+        - PodDisruptionBudget
+
+  # Sync windows (prevent deployments during critical hours)
+  syncWindows:
+    - kind: allow
+      schedule: "0 0 * * *"  # Allow sync at midnight UTC
+      duration: 2h
+      namespaces:
+        - gpu-scheduler
+        - mining
+        - ai-inference
+    - kind: deny
+      schedule: "0 9-17 * * 1-5"  # Block sync during business hours (9 AM - 5 PM, Mon-Fri)
+      duration: 8h
+      namespaces:
+        - production
+
+---
+# Analysis template for progressive delivery
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: gpu-scheduler-analysis
+  namespace: argocd
+spec:
+  args:
+    - name: target-gateway-hostname
+  metrics:
+    - name: webmetric.metric
+      successCondition: result == 'true'
+      failureLimit: 3
+      inconclusiveLimit: 5
+      provider:
+        web:
+          url: "https://{{args.target-gateway-hostname}}/health"
+          jsonPath: "{$.healthy}"
+
+    - name: prometheus.metric
+      successCondition: result < 0.05
+      failureLimit: 3
+      inconclusiveLimit: 5
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            rate(http_requests_total{job="ai-inference-gateway"}[5m])
+
+---
+# Rollout strategy for progressive delivery
+apiVersion: argoproj.io/v1alpha1
+kind: RolloutManager
+metadata:
+  name: gpu-scheduler-rollouts
+  namespace: argocd
+spec:
+  # Blue-green deployment strategy
+  strategy:
+    blueGreen:
+      activeService: ai-inference-gateway-active
+      previewService: ai-inference-gateway-preview
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 30
+      prePromotionAnalysis:
+        templates:
+          - templateName: gpu-scheduler-analysis
+        args:
+          - name: target-gateway-hostname
+            value: "https://ai-inference-gateway-preview.ai-inference.svc.cluster.local"
+      postPromotionAnalysis:
+        templates:
+          - templateName: gpu-scheduler-analysis
+        args:
+          - name: target-gateway-hostname
+            value: "https://ai-inference-gateway-active.ai-inference.svc.cluster.local"

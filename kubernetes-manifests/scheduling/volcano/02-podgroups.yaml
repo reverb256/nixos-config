@@ -1,0 +1,58 @@
+# Volcano PodGroups for GPU Workload Scheduling
+# Gang scheduling configuration for AI workloads
+
+---
+# Single GPU AI inference (minimal gang scheduling)
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: ai-inference-single-gpu
+  namespace: ai-inference
+spec:
+  # Minimum resources required to schedule this pod group
+  minMember: 1
+  minResources:
+    nvidia.com/gpu: "1"
+    memory: "8Gi"
+    cpu: "4"
+  # Priority class for this pod group
+  priorityClassName: ai-inference-high
+  # Queue for this pod group
+  queue: ai-queue
+  # Minimum task timeout (how long to wait for minMember)
+  minTaskTimeout: 10m
+---
+# Multi-GPU distributed training (gang scheduling)
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: ai-distributed-training
+  namespace: ai-inference
+spec:
+  # Gang scheduling: all or nothing
+  minMember: 2  # Requires 2 GPUs simultaneously
+  minResources:
+    nvidia.com/gpu: "2"  # Both GPUs at once
+    memory: "16Gi"
+    cpu: "8"
+  priorityClassName: ai-inference-critical
+  queue: ai-queue
+  minTaskTimeout: 15m
+  # Gang scheduling: fail if all resources not available
+  # This prevents partial deployment of distributed training jobs
+---
+# Mining workload (low priority, preemptible)
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: mining-gpu
+  namespace: mining
+spec:
+  minMember: 1
+  minResources:
+    nvidia.com/gpu: "1"
+    memory: "4Gi"
+    cpu: "2"
+  priorityClassName: mining-low
+  queue: mining-queue
+  minTaskTimeout: 5m

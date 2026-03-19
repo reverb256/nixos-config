@@ -94,7 +94,7 @@
 
         # Routing configuration
         ROUTING_ENABLED = os.getenv("ROUTING_ENABLED", "true").lower() == "true"
-        DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "qwen3.5-35b-a3b")
+        DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "qwen3.5-4b")
 
         # Security configuration
         RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"

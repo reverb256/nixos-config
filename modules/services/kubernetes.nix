@@ -240,6 +240,8 @@
       systemd.tmpfiles.rules = [
         # Create etcd data directory with correct ownership (etcd user:group)
         "d /var/lib/etcd 0700 etcd etcd -"
+        # Create writable containerd config directory for NVIDIA runtime
+        "d /etc/containerd/conf.d 0755 root root -"
         # Create writable CNI directories (both for kubelet and containerd)
         "d /var/lib/cni/net.d 0755 root root -"
         # Create a writable /etc/cni/net.d by bind mounting from /var/lib/cni/net.d
@@ -357,6 +359,30 @@
       # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
       # ============================================================================
       systemd.services = {
+        # Setup NVIDIA containerd runtime configuration for GPU access
+        nvidia-containerd-setup = lib.mkIf config.hardware.nvidia.enabled {
+          description = "Setup NVIDIA containerd runtime configuration";
+          before = [ "containerd.service" ];
+          requiredBy = [ "containerd.service" ];
+          path = [ pkgs.util-linux pkgs.coreutils pkgs.nvidia-container-toolkit ];
+          serviceConfig.Type = "oneshot";
+          script = ''
+            # Create writable directory for containerd drop-in configs
+            mkdir -p /etc/containerd/conf.d
+
+            # Generate NVIDIA runtime configuration using nvidia-ctk
+            # This creates /etc/containerd/conf.d/99-nvidia.toml with:
+            # - nvidia runtime definition
+            # - CDI enabled for GPU device passing
+            ${pkgs.nvidia-container-toolkit}/bin/nvidia-ctk runtime configure \
+              --runtime=containerd \
+              --config=/etc/containerd/config.toml \
+              --drop-in-config=/etc/containerd/conf.d/99-nvidia.toml \
+              --nvidia-runtime-name=nvidia \
+              --enable-cdi || echo "NVIDIA runtime configure failed, continuing..."
+          '';
+        };
+
         # Create bind mount for /etc/cni/net.d to override read-only Nix store
         # This allows containerd to use Flannel CNI instead of Cilium
         cni-net-setup = {

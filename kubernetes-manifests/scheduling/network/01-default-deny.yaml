@@ -1,0 +1,226 @@
+# Network Policies for GPU Scheduler Workloads
+# Implements defense-in-depth network segmentation
+
+---
+# Default deny all traffic in mining namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: mining
+  labels:
+    app: gpu-scheduler
+    policy: default-deny
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Default deny all traffic in ai-inference namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: ai-inference
+  labels:
+    app: gpu-scheduler
+    policy: default-deny
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Allow DNS from all namespaces (required for service discovery)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: mining
+  labels:
+    app: gpu-scheduler
+    policy: allow-dns
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: ai-inference
+  labels:
+    app: gpu-scheduler
+    policy: allow-dns
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+---
+# Allow mining pods to connect to stratum proxy (hostNetwork)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mining-stratum
+  namespace: mining
+  labels:
+    app: gpu-scheduler
+    policy: allow-mining
+spec:
+  podSelector:
+    matchLabels:
+      app: gpu-miner
+  policyTypes:
+    - Egress
+  egress:
+    # Allow to stratum proxy service
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: default  # Or your stratum proxy namespace
+      ports:
+        - protocol: TCP
+          port: 3333
+    # Allow to external stratum servers (if needed)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3333
+---
+# Allow AI Gateway to receive ingress traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: ai-inference
+  labels:
+    app: gpu-scheduler
+    policy: allow-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-inference-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from ingress controller (adjust namespace label as needed)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow from within cluster (internal services)
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# Allow AI Gateway to connect to backend services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-backend
+  namespace: ai-inference
+  labels:
+    app: gpu-scheduler
+    policy: allow-backend
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-inference-gateway
+  policyTypes:
+    - Egress
+  egress:
+    # Allow to llama-cpp backend
+    - to:
+        - podSelector:
+            matchLabels:
+              app: llama-cpp
+      ports:
+        - protocol: TCP
+          port: 8083
+    # Allow to Qdrant vector database
+    - to:
+        - podSelector:
+            matchLabels:
+              app: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+    # Allow to SearXNG
+    - to:
+        - podSelector:
+            matchLabels:
+              app: searxng
+      ports:
+        - protocol: TCP
+          port: 7777
+---
+# Allow monitoring (Prometheus) to scrape metrics
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring
+  namespace: mining
+  labels:
+    app: gpu-scheduler
+    policy: allow-monitoring
+spec:
+  podSelector:
+    matchLabels:
+      prometheus.io/scrape: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 4068
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring
+  namespace: ai-inference
+  labels:
+    app: gpu-scheduler
+    policy: allow-monitoring
+spec:
+  podSelector:
+    matchLabels:
+      prometheus.io/scrape: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9190

@@ -2,18 +2,26 @@
 # Built from latest GitHub master with GPU acceleration enabled
 {
   lib,
-  stdenv,
+  autoAddDriverRunpath,
   cmake,
   fetchurl,
   cudaPackages,
   git,
+  ninja,
   # Accept but ignore extra parameters that nixpkgs llama-cpp might expect
   cudaSupport ? true,
   rocmSupport ? false,
   vulkanSupport ? false,
   ...
 }:
-stdenv.mkDerivation rec {
+
+let
+  # Use CUDA-specific stdenv for compatibility
+  effectiveStdenv = cudaPackages.backendStdenv;
+  cmakeBool = option: value: "-D${option}=" + (if value then "ON" else "OFF");
+  cmakeFeature = feature: value: "-D${feature}=${value}";
+in
+effectiveStdenv.mkDerivation rec {
   pname = "llama-cpp";
   version = "0-unstable-2025-03-19";
 
@@ -26,20 +34,23 @@ stdenv.mkDerivation rec {
     cmake
     git
     cuda_nvcc
+    ninja
+    autoAddDriverRunpath  # CRITICAL: Makes CUDA libraries findable at runtime
   ];
 
   buildInputs = with cudaPackages; [
-    cuda_cudart
-    cuda_nvrtc
-    libcublas
-    cudnn
+    cuda_cccl    # CUDA C++ Core Libraries - REQUIRED for GGML_CUDA
+    cuda_cudart  # CUDA Runtime
+    libcublas    # CUDA BLAS library
   ];
 
   cmakeFlags = [
-    "-DGGML_CUDA=ON"
-    "-DGGML_CUDA_F16=ON"
-    "-DCMAKE_BUILD_TYPE=Release"
-    "-DCUDAToolkit_ROOT=${cudaPackages.cuda_nvcc}"
+    (cmakeBool "GGML_CUDA" true)
+    (cmakeBool "GGML_CUDA_F16" true)
+    (cmakeBool "GGML_NATIVE" false)  # Don't use -march=native (non-deterministic)
+    (cmakeBool "BUILD_SHARED_LIBS" true)
+    (cmakeFeature "CMAKE_CUDA_ARCHITECTURES" cudaPackages.flags.cmakeCudaArchitecturesString)
+    (cmakeFeature "CMAKE_BUILD_TYPE" "Release")
   ];
 
   postInstall = ''
@@ -48,8 +59,11 @@ stdenv.mkDerivation rec {
     install -Dm755 llama-cli $out/bin/llama-cli
     install -Dm755 llama-perplexity $out/bin/llama-perplexity
 
-    # Install libraries
-    install -Dm644 libllama.so $out/lib/libllama.so
+    # Install all GGML libraries (including CUDA backend if built)
+    find . -name "*.so*" -type f -exec install -Dm644 {} $out/lib/ \; || true
+
+    # Create symlink for backward compatibility
+    ln -sf $out/bin/llama-cli $out/bin/llama
   '';
 
   meta = {
