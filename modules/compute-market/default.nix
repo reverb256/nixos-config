@@ -242,6 +242,11 @@
               local gaming_active=''${6:-false}
               local auction_count=$(cat "$STATE_DIR/auction_count" 2>/dev/null || echo 0)
 
+              # Get GPU memory metrics
+              local gpu_mem_free=$(gpu_memory_available)
+              local gpu_mem_total=$(gpu_memory_total)
+              local gpu_mem_util=$(gpu_utilization)
+
               # Write Prometheus metrics file
               {
                   echo "# HELP compute_market_auction_winner The current auction winner"
@@ -266,6 +271,18 @@
                   echo "# HELP compute_market_auction_total Total auctions run"
                   echo "# TYPE compute_market_auction_total counter"
                   echo "compute_market_auction_total ''${auction_count}"
+                  echo ""
+                  echo "# HELP compute_market_gpu_memory_free_mb GPU memory free in MB"
+                  echo "# TYPE compute_market_gpu_memory_free_mb gauge"
+                  echo "compute_market_gpu_memory_free_mb ''${gpu_mem_free}"
+                  echo ""
+                  echo "# HELP compute_market_gpu_memory_total_mb Total GPU memory in MB"
+                  echo "# TYPE compute_market_gpu_memory_total_mb gauge"
+                  echo "compute_market_gpu_memory_total_mb ''${gpu_mem_total}"
+                  echo ""
+                  echo "# HELP compute_market_gpu_utilization GPU memory utilization ratio (0-1)"
+                  echo "# TYPE compute_market_gpu_utilization gauge"
+                  echo "compute_market_gpu_utilization ''${gpu_mem_util}"
               } > "$STATE_DIR/metrics.prom"
           }
 
@@ -363,6 +380,43 @@
               echo "$total_bid"
           }
 
+          # ============================================================================
+          # GPU MEMORY TRACKING
+          # ============================================================================
+          gpu_memory_available() {
+              # Get free GPU memory in MB using nvidia-smi
+              if command -v nvidia-smi >/dev/null 2>&1; then
+                  nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits 2>/dev/null | \
+                      awk '{s+=$1} END {print s}'
+              else
+                  # Fallback: assume 24GB free if nvidia-smi not available
+                  echo "24000"
+              fi
+          }
+
+          gpu_memory_total() {
+              # Get total GPU memory in MB
+              if command -v nvidia-smi >/dev/null 2>&1; then
+                  nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | \
+                      awk '{s+=$1} END {print s}'
+              else
+                  # Fallback: assume 24GB total
+                  echo "24000"
+              fi
+          }
+
+          gpu_utilization() {
+              # Get GPU memory utilization (0.0 to 1.0)
+              local mem_free=$(gpu_memory_available)
+              local mem_total=$(gpu_memory_total)
+
+              if [ "$mem_total" -gt 0 ]; then
+                  echo "scale=4; ($mem_total - $mem_free) / $mem_total" | bc
+              else
+                  echo "0.5"  # Assume 50% if can't determine
+              fi
+          }
+
           # Akash Bidder - Returns market rate for active leases OR potential market rate
           bid_akash() {
               if [ "$AKASH_ENABLE" != "true" ]; then
@@ -406,13 +460,33 @@
                   return
               fi
 
-              # No active leases - bid based on POTENTIAL market rate
-              # Based on observed order prices: 100,000 uakt = $0.05/hr for RTX 3060 Ti
-              # This is ~3.5× more than mining ($0.014/hr), so Akash should win
-              local potential_bid=0.05  # Conservative estimate based on actual orders
+              # No active leases - bid based on POTENTIAL market rate with GPU memory awareness
+              # Get current GPU utilization
+              local gpu_util=$(gpu_utilization)
+
+              # Base bid: $0.05/hr for RTX 3060 Ti
+              local base_bid=0.05
+
+              # Adjust bid based on GPU memory availability
+              # If GPU is idle (<50% utilized), bid higher to attract workloads
+              # If GPU is busy (>80% utilized), bid standard rate
+              local adjusted_bid=$base_bid
+              if (( $(echo "$gpu_util < 0.5" | bc -l) )); then
+                  # GPU is idle - bid 40% higher to attract workloads
+                  adjusted_bid=$(echo "scale=4; $base_bid * 1.40" | bc)
+                  log_debug "GPU idle ($gpu_util utilization), bidding premium: \$$adjusted_bid/hr"
+              elif (( $(echo "$gpu_util > 0.8" | bc -l) )); then
+                  # GPU is busy - bid standard rate
+                  adjusted_bid=$base_bid
+                  log_debug "GPU busy ($gpu_util utilization), bidding standard: \$$adjusted_bid/hr"
+              else
+                  # GPU moderately utilized - bid 20% higher
+                  adjusted_bid=$(echo "scale=4; $base_bid * 1.20" | bc)
+                  log_debug "GPU available ($gpu_util utilization), bidding moderate premium: \$$adjusted_bid/hr"
+              fi
 
               # Apply profit margin
-              local our_bid=$(echo "scale=4; $potential_bid * $AKASH_MARGIN" | bc)
+              local our_bid=$(echo "scale=4; $adjusted_bid * $AKASH_MARGIN" | bc)
 
               echo "$our_bid"
           }
