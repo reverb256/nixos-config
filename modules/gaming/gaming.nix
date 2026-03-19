@@ -286,8 +286,9 @@ in {
           # Auto-reload GameMode config when launching games
           GAMEMODE_AUTO_RELOAD_CONFIG = "1";
           # SDL2 joystick deadzone (0-100, default 15) - 5% for all joysticks
-          # Native DualSense support: SDL2 will use built-in controller mappings
           SDL_JOYSTICK_AXIS_DEADZONE = "5";
+          # SDL2 GameControllerDB path for proper DualSense mapping in Wine/Proton
+          SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
         };
 
         # Common gaming packages
@@ -353,11 +354,17 @@ in {
         ];
 
         etc = {
-          # Native SDL2 DualSense support
-          # Removed custom SDL2 GameControllerDB to restore native DualSense features
-          # Native support enables: haptic feedback, adaptive triggers, gyro, touchpad, LED control
-          # Deadzone control: SDL_JOYSTICK_AXIS_DEADZONE env var (set to "5" above)
-          # Reference: https://wiki.libsdl.org/SDL2/SupportedControllers
+          # SDL2 GameControllerDB for proper DualSense mapping in Wine/Proton games
+          # Required for Genshin Impact, Honkai Star Rail, and other Hoyoverse games
+          # Fixes: Xbox icons appearing, L2/R2 axis misreporting as right stick
+          "sdl2-dualsense-db".text = ''
+            # Sony DualSense Wireless Controller (USB & Bluetooth)
+            # GUID format: SDL2 controller mapping for proper button/axis detection
+            # Platform: Linux, Bus: USB (0x03) and Bluetooth (0x05)
+            0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,misc1:b1,paddle1:b11,paddle2:b12,paddle3:b13,paddle4:b14,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,Touchpad:b15,x:b2,y:b3,platform:Linux,
+            0500000054c0ce60000000000000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,misc1:b1,paddle1:b11,paddle2:b12,paddle3:b13,paddle4:b14,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,Touchpad:b15,x:b2,y:b3,platform:Linux,
+
+          '';
         };
       };
 

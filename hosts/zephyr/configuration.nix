@@ -562,11 +562,12 @@
 
     # Redis - For gateway rate limiting and caching
     redis.servers."".enable = true;
+    # Note: redis-ai-gateway.service already provides Redis on port 6380
 
     # SearXNG - Privacy-respecting metasearch engine for AI gateway
     searxng.enable = true;
 
-    # AI Inference Service - Gateway with authentication and metrics
+    # AI Inference Service - Gateway with ALL FEATURES enabled
     ai-inference = {
       enable = true;
       backend = {
@@ -577,6 +578,10 @@
           enable = true;
           apiKeyFile = "/run/agenix/zai-api-key";
           baseUrl = "https://api.z.ai/api/coding/paas/v4";
+          enableRetry = true;
+          maxRetries = 3;
+          retryDelay = 1.0;
+          timeout = 300.0;
         };
         pollinations = {
           enable = true;
@@ -588,19 +593,25 @@
         enable = true;
         host = "127.0.0.1";
         port = 8080;
-        workers = 1;
+        workers = 4;
         middleware.redis.enable = true;
         middleware.knowledgeFabric = {
           enable = true;
+          rrf_k = 60;
+          # All knowledge sources enabled
+          rag_enabled = true;
           searxng_enabled = true;
           searxng_url = "http://127.0.0.1:7777";
+          searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
             "/etc/nixos"
             "/home/j_kro"
           ];
-          rag_enabled = true;
+          code_max_results = 10;
           web_search_enabled = true;
+          web_max_results = 10;
+          rag_top_k = 10;
         };
       };
       routing = {
@@ -610,11 +621,28 @@
           "vllm"
           "lm-studio"
           "zai"
+          "pollinations"
         ];
       };
       auth.mode = "none";
       monitoring.enable = true;
-      rateLimit.enable = false;
+      # Enable rate limiting
+      rateLimit.enable = true;
+      rateLimit.requestsPerMinute = 120;
+      # Enable system prompts for different request types
+      systemPrompts = {
+        enable = true;
+        default = "You are a helpful AI assistant with access to comprehensive knowledge sources.";
+        coding = "You are an expert coding assistant. Write clean, efficient, and well-documented code. Use the retrieved knowledge to provide accurate implementations.";
+        reasoning = "You are an expert reasoning assistant. Think step-by-step and provide clear explanations backed by retrieved information.";
+        analysis = "You are an expert analysis assistant. Provide thorough and structured analysis using multiple sources.";
+        agentic = "You are an autonomous agent capable of multi-step planning and execution. Use available tools to complete complex tasks.";
+        fast = "You are a fast and efficient assistant. Provide concise, direct answers.";
+        custom = {
+          nixos = "You are a NixOS configuration expert. Always use lib.mkOptionDefault for shared modules. Reference the cluster documentation.";
+          kubernetes = "You are a Kubernetes expert. Use best practices for manifests, deployments, and troubleshooting.";
+        };
+      };
       mcp = {
         enable = true;
         servers = {
@@ -643,7 +671,6 @@
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
-          # SearXNG local MCP server - privacy-respecting metasearch
           searxng = {
             type = "local";
             command = [
@@ -659,11 +686,42 @@
           };
         };
       };
+      # RAG with Qdrant - FULLY ENABLED
       rag = {
         enable = true;
-        # MIGRATED TO KUBERNETES (2026-03-18)
-        qdrant.enable = false;
-        qdrant.memoryLimit = "4G";
+        qdrantUrl = "http://127.0.0.1:6333";
+        embeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
+        chunkSize = 512;
+        chunkOverlap = 50;
+        topK = 10;
+        hybridSearch = {
+          enable = true;
+          vectorWeight = 0.7;
+          bm25Weight = 0.3;
+        };
+        autoRag = {
+          enable = true;
+          threshold = 0.3;
+        };
+        tokenScopedCollections = true;
+        reranker = {
+          enable = true;
+          model = "BAAI/bge-reranker-v2-base";
+        };
+        # Qdrant service - ENABLED locally
+        qdrant = {
+          enable = true;
+          host = "127.0.0.1";
+          port = 6333;
+          grpcPort = 6334;
+          storagePath = "/var/lib/qdrant";
+          memoryLimit = "4G";
+        };
+      };
+      # Security options
+      security = {
+        maxRequestSize = 10485760; # 10MB
+        enableProxy = false; # Disabled for code assistants
       };
     };
 
@@ -1247,8 +1305,8 @@
     parallelDecoding = 0; # Parallel decoding not supported in this version
     enableThinking = false; # Thinking mode produces garbage output
     reasoningBudget = 0; # Explicitly disable reasoning (override model template)
-    cacheTypeK = "q8_0"; # Fast 8-bit quantization
-    cacheTypeV = "q4_0"; # 4-bit for V cache (works with Flash Attention)
+    cacheTypeK = "bf16"; # Unsloth recommendation: fixes garbled output with Qwen3.5
+    cacheTypeV = "bf16"; # Unsloth recommendation: fixes garbled output with Qwen3.5
   };
 
   # ============================================================================
