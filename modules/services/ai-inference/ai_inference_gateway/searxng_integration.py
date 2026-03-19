@@ -23,7 +23,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 # SearXNG configuration
-SEARXNG_URL = "http://127.0.0.1:7777"  # NixOS SearXNG service
+SEARXNG_URL = "http://10.0.0.230:7777"  # Kubernetes ClusterIP (accessible from host)
 SEARCH_ENDPOINT = "/search"
 
 # Learning storage

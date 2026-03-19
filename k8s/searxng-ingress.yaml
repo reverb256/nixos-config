@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app: searxng
+  annotations:
+    # Add X-Forwarded-For headers (Fixes bot detection issue)
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+    # Increase timeouts for long-running searches
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # Buffer size for large search results
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+spec:
+  # TODO: Update ingressClassName based on your ingress controller
+  # Options: akash-ingress-class, nginx, traefik, etc.
+  # ingressClassName: akash-ingress-class
+
+  rules:
+  # TODO: Replace with your actual hostname
+  # - host: search.example.com
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: searxng
+            port:
+              number: 7777
