@@ -61,7 +61,6 @@
 
     # Gaming
     ./gaming/gaming.nix
-    # ./gaming/disable-cabc-triggers.nix  # TEMPORARILY DISABLED - syntax errors
     ./gaming/gaming-hdr.nix
     ./gaming/scopebuddy.nix
 
