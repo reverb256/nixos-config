@@ -381,6 +381,109 @@
           }
 
           # ============================================================================
+          # DYNAMIC PRICING FUNCTIONS
+          # ============================================================================
+          # Time-based pricing adjustments
+          get_time_multiplier() {
+              local hour=$(date +%H)
+              local multiplier=1.0
+
+              # Night (00-06): 10% discount (low demand)
+              if [ "$hour" -ge 0 ] && [ "$hour" -lt 6 ]; then
+                  multiplier=0.9
+              # Morning (06-12): Standard rate
+              elif [ "$hour" -ge 6 ] && [ "$hour" -lt 12 ]; then
+                  multiplier=1.0
+              # Afternoon (12-18): 20% premium (high demand)
+              elif [ "$hour" -ge 12 ] && [ "$hour" -lt 18 ]; then
+                  multiplier=1.2
+              # Evening (18-24): 10% premium (moderate demand)
+              else
+                  multiplier=1.1
+              fi
+
+              echo "$multiplier"
+          }
+
+          # Demand-based pricing adjustments
+          get_demand_multiplier() {
+              local gpu_util=$1
+              local multiplier=1.0
+
+              # Low utilization: Bid 15% less to attract workloads
+              if (( $(echo "$gpu_util < 0.3" | bc -l) )); then
+                  multiplier=0.85
+              # High utilization: Bid 15% more (scarcity pricing)
+              elif (( $(echo "$gpu_util > 0.7" | bc -l) )); then
+                  multiplier=1.15
+              # Medium utilization: Standard rate
+              else
+                  multiplier=1.0
+              fi
+
+              echo "$multiplier"
+          }
+
+          # Detect workload type from lease attributes
+          detect_workload_type() {
+              local lease_name=$1
+
+              # Check for workload indicators in lease name or labels
+              if echo "$lease_name" | grep -qiE "(llm|inference|language|model)"; then
+                  echo "ai/inference"
+              elif echo "$lease_name" | grep -qiE "(training|ml|machine-learn|neural)"; then
+                  echo "ai/training"
+              elif echo "$lease_name" | grep -qiE "(video|transcod|ffmpeg|encode)"; then
+                  echo "video/transcoding"
+              elif echo "$lease_name" | grep -qiE "(render|blender|cycles|3d)"; then
+                  echo "rendering/gpu"
+              elif echo "$lease_name" | grep -qiE "(postgres|mongodb|redis|neo4j|mysql|database)"; then
+                  echo "database"
+              elif echo "$lease_name" | grep -qiE "(jupyter|vscode|ide|dev|workspace)"; then
+                  echo "development/workspace"
+              elif echo "$lease_name" | grep -qiE "(cicd|runner|pipeline|build|docker)"; then
+                  echo "cicd/runner"
+              else
+                  echo "default"
+              fi
+          }
+
+          # Workload-specific pricing
+          get_workload_multiplier() {
+              local workload=$1
+              local multiplier=1.0
+
+              case "$workload" in
+                  "ai/inference")
+                      multiplier=1.3  # LLM inference: 30% premium
+                      ;;
+                  "ai/training")
+                      multiplier=1.2  # ML training: 20% premium
+                      ;;
+                  "video/transcoding")
+                      multiplier=1.25  # Video: 25% premium
+                      ;;
+                  "rendering/gpu")
+                      multiplier=1.2  # Rendering: 20% premium
+                      ;;
+                  "development/workspace")
+                      multiplier=1.1  # Dev workloads: 10% premium
+                      ;;
+                  "cicd/runner")
+                      multiplier=1.15  # CI/CD: 15% premium
+                      ;;
+                  "database")
+                      multiplier=1.0  # Databases: standard
+                      ;;
+                  *)
+                      multiplier=1.0  # Default: standard
+                      ;;
+              esac
+
+              echo "$multiplier"
+          }
+
+          # ============================================================================
           # GPU MEMORY TRACKING
           # ============================================================================
           gpu_memory_available() {
@@ -436,11 +539,15 @@
                   -o jsonpath='{range .items[?(@.status.currentState == "active")]}{.metadata.name}{"\n"}{end}' \
                   2>/dev/null || echo "")
 
-              # If we have active leases, calculate actual revenue
+              # If we have active leases, calculate actual revenue with workload-specific pricing
               if [ -n "$active_leases" ]; then
                   local total_bid=0
                   while IFS= read -r lease; do
                       [ -z "$lease" ] && continue
+
+                      # Detect workload type from lease name
+                      local workload=$(detect_workload_type "$lease")
+                      local workload_mult=$(get_workload_multiplier "$workload")
 
                       # Get lease price (in uakt per block)
                       local price=$(kubectl get lease "$lease" -n "$AKASH_NAMESPACE" \
@@ -450,8 +557,13 @@
                       # uakt/block * AKT_price * (3600 / 6) / 1_000_000
                       local usd_hourly=$(echo "scale=4; $price * 0.50 * 600 / 1000000" | bc)
 
-                      # Apply profit margin (we bid slightly less than full market value)
-                      local our_bid=$(echo "$usd_hourly * $AKASH_MARGIN" | bc)
+                      # Apply workload-specific pricing
+                      local adjusted_bid=$(echo "scale=4; $usd_hourly * $workload_mult" | bc)
+
+                      log_debug "Lease $lease ($workload): \$$usd_hourly/hr × ${workload_mult}x = \$$adjusted_bid/hr"
+
+                      # Apply profit margin
+                      local our_bid=$(echo "$adjusted_bid * $AKASH_MARGIN" | bc)
 
                       total_bid=$(echo "$total_bid + $our_bid" | bc)
                   done <<< "$active_leases"
@@ -460,33 +572,25 @@
                   return
               fi
 
-              # No active leases - bid based on POTENTIAL market rate with GPU memory awareness
+              # No active leases - bid based on POTENTIAL market rate with DYNAMIC PRICING
               # Get current GPU utilization
               local gpu_util=$(gpu_utilization)
 
               # Base bid: $0.05/hr for RTX 3060 Ti
               local base_bid=0.05
 
-              # Adjust bid based on GPU memory availability
-              # If GPU is idle (<50% utilized), bid higher to attract workloads
-              # If GPU is busy (>80% utilized), bid standard rate
-              local adjusted_bid=$base_bid
-              if (( $(echo "$gpu_util < 0.5" | bc -l) )); then
-                  # GPU is idle - bid 40% higher to attract workloads
-                  adjusted_bid=$(echo "scale=4; $base_bid * 1.40" | bc)
-                  log_debug "GPU idle ($gpu_util utilization), bidding premium: \$$adjusted_bid/hr"
-              elif (( $(echo "$gpu_util > 0.8" | bc -l) )); then
-                  # GPU is busy - bid standard rate
-                  adjusted_bid=$base_bid
-                  log_debug "GPU busy ($gpu_util utilization), bidding standard: \$$adjusted_bid/hr"
-              else
-                  # GPU moderately utilized - bid 20% higher
-                  adjusted_bid=$(echo "scale=4; $base_bid * 1.20" | bc)
-                  log_debug "GPU available ($gpu_util utilization), bidding moderate premium: \$$adjusted_bid/hr"
-              fi
+              # Apply dynamic pricing adjustments
+              local time_mult=$(get_time_multiplier)
+              local demand_mult=$(get_demand_multiplier "$gpu_util")
+              local workload_mult=1.0  # Default workload (no active lease)
+
+              # Calculate dynamic bid with all multipliers
+              local dynamic_bid=$(echo "scale=4; $base_bid * $time_mult * $demand_mult * $workload_mult" | bc)
+
+              log_debug "Dynamic pricing: base=\$$base_bid time=${time_mult}x demand=${demand_mult}x → \$$dynamic_bid/hr"
 
               # Apply profit margin
-              local our_bid=$(echo "scale=4; $adjusted_bid * $AKASH_MARGIN" | bc)
+              local our_bid=$(echo "scale=4; $dynamic_bid * $AKASH_MARGIN" | bc)
 
               echo "$our_bid"
           }
