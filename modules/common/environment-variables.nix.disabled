@@ -6,8 +6,7 @@
   pkgs,
   ...
 }:
-let
-in
+
 {
   options.environment.common = {
     wayland = {
