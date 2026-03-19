@@ -285,9 +285,8 @@ in {
           MANGOHUD_CONFIG = "fps,frametime,cpu_stats,gpu_stats,vram,ram,cpu_temp,gpu_temp,core_load,background_alpha=0.5,position=top-left,toggle_hud=Shift_R+F12";
           # Auto-reload GameMode config when launching games
           GAMEMODE_AUTO_RELOAD_CONFIG = "1";
-          # SDL2 GameControllerDB path for custom controller mappings
-          SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
           # SDL2 joystick deadzone (0-100, default 15) - 5% for all joysticks
+          # Native DualSense support: SDL2 will use built-in controller mappings
           SDL_JOYSTICK_AXIS_DEADZONE = "5";
         };
 
@@ -354,16 +353,11 @@ in {
         ];
 
         etc = {
-          # SDL2 GameControllerDB for DualSense controller
-          # Note: SDL_GameControllerDB format does NOT support Deadzone: hints
-          # Deadzone is controlled via SDL_JOYSTICK_AXIS_DEADZONE env var (set above)
-          # and via evdev-joystick udev rules below
-          "sdl2-dualsense-db".source = pkgs.writeText "sdl2-dualsense-db" ''
-            # SDL2 GameControllerDB entry for Sony DualSense (PS5) Wireless Controller
-            # Standard mapping following Xbox layout convention
-            # GUID format: SDL_GAMECONTROLLERDB_V2
-            0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0,b:b1,x:b2,y:b3,back:b4,guide:b5,start:b6,leftstick:b7,rightstick:b8,leftshoulder:b9,rightshoulder:b10,dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:a4,righttrigger:a5,platform:Linux,
-          '';
+          # Native SDL2 DualSense support
+          # Removed custom SDL2 GameControllerDB to restore native DualSense features
+          # Native support enables: haptic feedback, adaptive triggers, gyro, touchpad, LED control
+          # Deadzone control: SDL_JOYSTICK_AXIS_DEADZONE env var (set to "5" above)
+          # Reference: https://wiki.libsdl.org/SDL2/SupportedControllers
         };
       };
 
