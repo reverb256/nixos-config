@@ -293,7 +293,7 @@ class SearXNGKnowledgeSource:
 
 
 def create_searxng_source(
-    searxng_url: str = "http://searxng.search.svc.cluster.local:7777"  # Kubernetes service,
+    searxng_url: str = "http://searxng.search.svc.cluster.local:7777",  # Kubernetes service
     max_results: int = 5,
     enable_domain_routing: bool = True,
     enable_quality_scoring: bool = True,
