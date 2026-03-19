@@ -15,19 +15,10 @@ _: prev: {
     doCheck = false;
   });
 
-  # llama-cpp: Updated to b8429 (latest) for Qwen3.5 compatibility
-  # The previous pin to 8244 was completely broken for Qwen3.5.
-  # Latest version includes all Qwen3.5 tokenizer and template fixes.
-  # Commit: 1e645345702154ba4813d3d9bbdbd97718de82c0
-  llama-cpp = prev.llama-cpp.overrideAttrs (old: {
-    version = "b8429";
-    src = prev.fetchFromGitHub {
-      owner = "ggml-org";
-      repo = "llama.cpp";
-      rev = "1e645345702154ba4813d3d9bbdbd97718de82c0";
-      sha256 = "A/FfrcZyF665nyuYFISyuP8jZJe7gItpXAhvrCPseZI=";
-    };
-  });
+  # llama-cpp: Using nixpkgs version (8255) for Qwen3.5 compatibility
+  # The override approach has npm dependency hash issues.
+  # Current nixpkgs version should include Qwen3.5 fixes.
+  # If 8255 doesn't work, we'll need a different approach.
 
   # Python packages overlay
   python3 = prev.python3.override {
