@@ -1,13 +1,13 @@
 # Custom Package Overlay
 _: prev: {
-  lolminer = prev.callPackage ./packages/lolminer.nix {};
-  xmrig = prev.callPackage ./packages/xmrig.nix {};
+  lolminer = prev.callPackage ./packages/lolminer.nix { };
+  xmrig = prev.callPackage ./packages/xmrig.nix { };
   # LM Studio - both names point to the same custom package
-  lmstudio = prev.callPackage ./packages/lmstudio.nix {};
-  lm-studio = prev.callPackage ./packages/lmstudio.nix {};
+  lmstudio = prev.callPackage ./packages/lmstudio.nix { };
+  lm-studio = prev.callPackage ./packages/lmstudio.nix { };
   # WiVRn with Lighthouse support for Tundra trackers
   wivrn = prev.wivrn.overrideAttrs (old: {
-    cmakeFlags = old.cmakeFlags ++ ["-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON"];
+    cmakeFlags = old.cmakeFlags ++ [ "-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON" ];
   });
   # assimp: Disable doCheck (tests have FMA-induced floating point differences)
   # See: https://github.com/assimp/assimp/issues/5687
@@ -25,7 +25,7 @@ _: prev: {
       owner = "ggml-org";
       repo = "llama.cpp";
       rev = "509a31d00f87804a466dee983a30ce29aa0441b1";
-      sha256 = "1ng89wcwy6avvhys36bvqdsx1jwp4sr8qfk83lmiqmkp0nj0x122";
+      sha256 = "0yyrid6k9yk23v30dmi5p3bmhh02j25silv3yd1jiwrh69yri4fm";
     };
   });
 

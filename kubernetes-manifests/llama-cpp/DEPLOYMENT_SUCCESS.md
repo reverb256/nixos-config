@@ -108,14 +108,29 @@ curl -X POST http://llama-cpp-qwen.ai-inference.svc.cluster.local:8080/v1/chat/c
 
 ## Integration with AI Gateway
 
-### Old Configuration (Host-based)
+### Architecture Decision
+The AI Gateway runs on the host (zephyr), not in Kubernetes. Therefore:
+- **Gateway → llama.cpp**: Uses `http://127.0.0.1:8083` (localhost)
+- **Kubernetes Pods → llama.cpp**: Use `http://llama-cpp-qwen.ai-inference.svc.cluster.local:8080`
+
+### Current Configuration
 ```bash
-LLAMA_CPP_URL = "http://127.0.0.1:8083"
+# Gateway backend URL (in /etc/nixos/hosts/zephyr/configuration.nix)
+BACKEND_URL = "http://127.0.0.1:8083"
+BACKEND_TYPE = "llama-cpp"
 ```
 
-### New Configuration (Kubernetes)
+### Verification (2026-03-19)
 ```bash
-LLAMA_CPP_URL = "http://llama-cpp-qwen.ai-inference.svc.cluster.local:8080"
+# Gateway health check
+curl http://127.0.0.1:8080/health
+# Response: {"status":"healthy","backend":{"healthy":true}}
+
+# End-to-end inference
+curl -X POST http://127.0.0.1:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"qwen","messages":[{"role":"user","content":"Hello!"}],"max_tokens":10}'
+# Response: Working ✅
 ```
 
 ## GPU Utilization
@@ -197,9 +212,9 @@ If needed, rollback to host-only configuration:
 
 ### Immediate
 1. ✅ **Service deployed** - Working
-2. ✅ **DNS configured** - Resolvable
+2. ✅ **DNS configured** - Resolvable within cluster
 3. ✅ **Health checks** - Passing
-4. ⏳ **AI Gateway integration** - Update configuration
+4. ✅ **AI Gateway integration** - Verified and working (2026-03-19)
 5. ⏳ **Load testing** - Verify concurrent requests
 6. ⏳ **Monitoring** - Prometheus metrics collection
 

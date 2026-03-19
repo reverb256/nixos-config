@@ -56,9 +56,9 @@ in {
       thresholds = lib.mkOption {
         type = lib.types.attrsOf lib.types.int;
         default = {
-          cool = 50;
-          warm = 65;
-          hot = 75;
+          cool = 55;  # Blue below 55°C
+          warm = 70;  # Yellow 55-70°C
+          hot = 80;   # Orange-Red 70-80°C
         };
         description = "Temperature thresholds for color changes";
       };
@@ -67,9 +67,9 @@ in {
       colors = lib.mkOption {
         type = lib.types.attrsOf lib.types.str;
         default = {
-          cool = "0000FF";   # Blue
-          warm = "00FF00";   # Green
-          hot = "FFFF00";    # Yellow
+          cool = "0000FF";     # Blue
+          warm = "FFFF00";     # Yellow (was green)
+          hot = "FF4500";      # Orange-Red
           critical = "FF0000"; # Red
         };
         description = "RGB colors for temperature zones";
@@ -156,9 +156,12 @@ in {
           HOT_COLOR="${cfg.temperatureReactive.colors.hot}"
           CRITICAL_COLOR="${cfg.temperatureReactive.colors.critical}"
 
-          # Device-specific settings
-          # Adjust these based on your actual hardware
-          OPENRGB_DEVICE=0  # First RGB device detected by OpenRGB
+          # Device-specific settings (from openrgb -l output)
+          # Zephyr: 0-1 RAM, 2=3090, 6=Motherboard, 7=Lighting Node (fans), 9=AIO
+          MOTHERBOARD_DEVICE=6
+          GPU_DEVICE=2
+          FAN_DEVICE=7
+          AIO_DEVICE=9
           OPENRAZER_DEVICE=0  # First Razer device
 
           log() {
@@ -241,23 +244,43 @@ done
             fi
           }
 
-          # Set OpenRGB color
+          # Set OpenRGB color for all devices
           set_openrgb_color() {
             local color=$1
+
+            # Validate color is 6-digit hex
+            if [[ ! "$color" =~ ^[0-9A-Fa-f]{6}$ ]]; then
+              echo "Invalid color format: $color (expected 6-digit hex)"
+              return 1
+            fi
+
             if command -v openrgb &>/dev/null; then
-              # Convert hex to RGB format for OpenRGB
+              # Convert hex to RGB decimal format for OpenRGB
               local r=$((16#${color:0:2}))
               local g=$((16#${color:2:2}))
               local b=$((16#${color:4:2}))
 
-              # Set color for device
-              openrgb -d $OPENRGB_DEVICE -c "$r,$g,$b" 2>/dev/null || true
+              # Set mode to Direct first, then set color for each device
+              # Motherboard
+              openrgb -d $MOTHERBOARD_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
+              # GPU (3090)
+              openrgb -d $GPU_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
+              # Fans (Lighting Node Pro)
+              openrgb -d $FAN_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
+              # AIO pump
+              openrgb -d $AIO_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
             fi
           }
 
           # Set Razer color (if available)
           set_razer_color() {
             local color=$1
+
+            # Validate color
+            if [[ ! "$color" =~ ^[0-9A-Fa-f]{6}$ ]]; then
+              return 1
+            fi
+
             if command -v razer-cli &>/dev/null; then
               # Convert hex to RGB format
               local r=$((16#${color:0:2}))
@@ -271,6 +294,12 @@ done
           # Set Wraith Prism color (if available)
           set_wraith_color() {
             local color=$1
+
+            # Validate color
+            if [[ ! "$color" =~ ^[0-9A-Fa-f]{6}$ ]]; then
+              return 1
+            fi
+
             if command -v cm-rgb &>/dev/null; then
               cm-rgb -c "$color" 2>/dev/null || true
             fi
@@ -315,7 +344,7 @@ done
         ProtectHome = true;
         PrivateTmp = true;
         RestrictRealtime = true;
-        RestrictAddressFamilies = ["AF_UNIX"];
+        RestrictAddressFamilies = ["AF_UNIX" "AF_INET"];
       };
     };
 

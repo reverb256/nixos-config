@@ -592,8 +592,11 @@ class Router:
                 # Try the health endpoint or models endpoint
                 for endpoint in ["/v1/models", "/health"]:
                     try:
+                        # Use localhost for all backends (Gateway runs on host)
+                        backend_url = f"http://127.0.0.1:{port}"
+
                         response = await client.get(
-                            f"http://127.0.0.1:{port}{endpoint}",
+                            f"{backend_url}{endpoint}",
                             headers=headers,
                             timeout=1.0,
                         )
