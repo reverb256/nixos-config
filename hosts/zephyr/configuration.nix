@@ -762,7 +762,7 @@
         autostart = true;
         devices = "1";
         perGpuPowerLimits = [
-          220  # GPU0: 3060 Ti @ 220W (max, not used by lolminer)
+          130  # GPU0: 3060 Ti @ 130W (reduced from 220W)
           250  # GPU1: RTX 3090 @ 250W (VRAM-safe)
         ];
         apiPort = 4068;
