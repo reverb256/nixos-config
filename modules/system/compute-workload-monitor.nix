@@ -528,6 +528,16 @@
               fi
           }
 
+          # Check if mining processes are causing PSI pressure (should not trigger BUILDS profile)
+          is_mining_causing_pressure() {
+              # Check if lolminer or xmrig are top memory consumers
+              local top_memory_procs=$(ps aux --sort=-%mem 2>/dev/null | head -10 | awk '{print $11}' | grep -E "lolMiner|xmrig" | wc -l)
+              if [ "$top_memory_procs" -gt 0 ]; then
+                  return 0  # Mining is causing pressure - don't apply BUILDS profile
+              fi
+              return 1
+          }
+
           check_psi_memory_pressure() {
               # Check if PSI is available
               if [ ! -f /proc/pressure/memory ]; then
@@ -571,6 +581,11 @@
               if [ -n "$full_avg10" ]; then
                   local full_critical=$(echo "$full_avg10" | awk "BEGIN {print (\$1 > $PSI_MEM_FULL_THRESHOLD)}")
                   if [ "$full_critical" = "1" ]; then
+                      # CRITICAL thrashing - check if mining is the cause
+                      if is_mining_causing_pressure; then
+                          log "PSI: Memory thrashing from mining (full avg10=$full_avg10) - ignoring for build detection"
+                          return 1
+                      fi
                       PSI_BUILD_CYCLES=0
                       log "PSI: CRITICAL memory thrashing detected (full avg10=$full_avg10 > $PSI_MEM_FULL_THRESHOLD)"
                       return 0
@@ -581,6 +596,11 @@
               if [ -n "$some_avg10" ]; then
                   local some_pressure=$(echo "$some_avg10" | awk "BEGIN {print (\$1 > $PSI_MEM_SOME_THRESHOLD)}")
                   if [ "$some_pressure" = "1" ]; then
+                      # Memory pressure detected - check if mining is the cause
+                      if is_mining_causing_pressure; then
+                          log "PSI: Memory pressure from mining (some avg10=$some_avg10) - ignoring for build detection"
+                          return 1
+                      fi
                       PSI_BUILD_CYCLES=0
                       log "PSI: Memory pressure detected (some avg10=$some_avg10 > $PSI_MEM_SOME_THRESHOLD)"
                       return 0
@@ -633,6 +653,11 @@
               if [ -n "$full_avg10" ]; then
                   local full_critical=$(echo "$full_avg10" | awk "BEGIN {print (\$1 > $PSI_IO_FULL_THRESHOLD)}")
                   if [ "$full_critical" = "1" ]; then
+                      # CRITICAL I/O stall - check if mining is the cause
+                      if is_mining_causing_pressure; then
+                          log "PSI: I/O pressure from mining (full avg10=$full_avg10) - ignoring for build detection"
+                          return 1
+                      fi
                       PSI_BUILD_CYCLES=0
                       log "PSI: CRITICAL I/O stall detected (full avg10=$full_avg10 > $PSI_IO_FULL_THRESHOLD)"
                       return 0
@@ -643,6 +668,11 @@
               if [ -n "$some_avg10" ]; then
                   local some_pressure=$(echo "$some_avg10" | awk "BEGIN {print (\$1 > $PSI_IO_SOME_THRESHOLD)}")
                   if [ "$some_pressure" = "1" ]; then
+                      # I/O pressure detected - check if mining is the cause
+                      if is_mining_causing_pressure; then
+                          log "PSI: I/O pressure from mining (some avg10=$some_avg10) - ignoring for build detection"
+                          return 1
+                      fi
                       PSI_BUILD_CYCLES=0
                       log "PSI: I/O pressure detected (some avg10=$some_avg10 > $PSI_IO_SOME_THRESHOLD)"
                       return 0

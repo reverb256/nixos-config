@@ -9,7 +9,7 @@ Usage:
     python -m ai_inference_gateway.mcp_servers.searxng_server
 
 Environment Variables:
-    SEARXNG_URL: SearXNG instance URL (default: http://127.0.0.1:7777)
+    SEARXNG_URL: SearXNG instance URL (default: http://10.1.1.110:30080)
     SEARXNG_CACHE_TTL: Cache TTL in seconds (default: 300)
 
 Configuration for Claude.app/Cursor:
@@ -19,7 +19,7 @@ Configuration for Claude.app/Cursor:
           "command": "python",
           "args": ["-m", "ai_inference_gateway.mcp_servers.searxng_server"],
           "env": {
-            "SEARXNG_URL": "http://127.0.0.1:7777"
+            "SEARXNG_URL": "http://10.1.1.110:30080"
           }
         }
       }
