@@ -1,0 +1,74 @@
+---
+# SearXNG Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app: searxng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: searxng
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: searxng
+    spec:
+      containers:
+      - name: searxng
+        # Using the official SearXNG image
+        image: searxng/searxng:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: SEARXNG_SECRET
+          value: "JRtva9yqdV87quESG4FqC6icvsCkRK3qfIVXm9eK4hUWbs3PR88EyJbJyX0hxuk7"
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app: searxng
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 7777
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: searxng

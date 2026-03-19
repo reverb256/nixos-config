@@ -220,7 +220,22 @@
 - ✅ Monitoring deployed (Prometheus + Grafana - operational)
 - ⚠️ **NEW REQUIREMENT:** Compute scheduler coordination for GPU workloads
 
-**Phase 2 Status: ✅ COMPLETE (100%)**
+**Phase 3 Status: ✅ COMPLETE (100%)**
+
+**Completed:**
+- ✅ GlitchTip PostgreSQL migrated to Kubernetes StatefulSet (10Gi PVC, fast-local-ssd)
+- ✅ GlitchTip Redis migrated to Kubernetes Deployment (2Gi PVC, fast-local-ssd)
+- ✅ GlitchTip Web migrated to Kubernetes Deployment
+- ✅ GlitchTip Worker migrated to Kubernetes Deployment
+- ✅ Old systemd services stopped (config updated with enable = false)
+- ✅ Data backup preserved before migration
+- ✅ GlitchTip accessible via kubectl port-forward
+
+**Outstanding Issues:**
+- ⏳ Need to configure ingress route for external GlitchTip access
+- ⏳ Need to test data persistence across pod restarts
+
+**Phase 4 Status: ✅ COMPLETE (100%)**
 
 **Completed:**
 - ✅ Nexus joined as worker + master (HA control plane)

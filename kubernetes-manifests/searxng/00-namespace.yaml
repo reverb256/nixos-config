@@ -1,0 +1,12 @@
+---
+# SearXNG Privacy-Respecting Metasearch Engine
+# Migrated from systemd to Kubernetes (2026-03-19)
+# Privacy-focused metasearch engine that doesn't track users
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: search
+  labels:
+    name: search

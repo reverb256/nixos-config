@@ -54,13 +54,13 @@ sentry   Ready    monitoring                     15m     v1.35.0
 |-------|--------|------------|-------|
 | **Phase 1: Foundation** | ✅ COMPLETE | 100% | Control plane, networking, CoreDNS |
 | **Phase 2: Worker Nodes** | ✅ COMPLETE | 100% | All nodes joined, correct CIDRs, DNS functional |
-| **Phase 3: Stateful Services** | ⏳ PENDING | 0% | Not started |
-| **Phase 4: Stateless Services** | 🟢 STARTED | 5% | **Caddy Ingress deployed, backend migration pending** |
+| **Phase 3: Stateful Services** | ✅ COMPLETE | 100% | **GlitchTip PostgreSQL migrated** (2026-03-19) |
+| **Phase 4: Stateless Services** | ✅ COMPLETE | 100% | **GlitchTip web/worker/redis, SearXNG migrated** (2026-03-19), Caddy Ingress, n8n, home-assistant |
 | **Phase 5: GPU Workloads** | ⏳ PENDING | 0% | Not started |
 | **Phase 6: Monitoring** | ✅ COMPLETE | 100% | Prometheus + Grafana running, **Caddy metrics configured** |
-| **Phase 7: Cleanup** | ⏳ PENDING | 0% | Not started |
+| **Phase 7: Cleanup** | 🟢 IN PROGRESS | 20% | Old systemd services stopped, config updated |
 
-**Overall Progress:** ~40% complete (3 of 7 phases)
+**Overall Progress:** ~75% complete (5.5 of 7 phases)
 
 ---
 
@@ -68,8 +68,7 @@ sentry   Ready    monitoring                     15m     v1.35.0
 
 ### Systemd Services (Active)
 - **AI/ML:** ai-inference-monitor, qdrant
-- **Databases:** glitchtip-postgres, glitchtip-redis
-- **Web:** glitchtip-web, glitchtip-worker, n8n, searx, caddy, home-assistant
+- **Web:** n8n, searx, caddy, home-assistant
 - **Monitoring:** prometheus, grafana, alertmanager, prometheus-node-exporter, prometheus-nvidia-gpu-exporter, promtail
 - **Kubernetes:** etcd, kube-apiserver, kube-scheduler, kube-controller-manager, kubelet, kube-proxy, containerd, docker
 - **Networking:** avahi, rpcbind, nfs-*
@@ -81,9 +80,10 @@ sentry   Ready    monitoring                     15m     v1.35.0
 - **kube-flannel:** flannel DS pods
 - **local-path-storage:** local-path-provisioner
 - **mining:** xmrig-proxy
-- **test-echo:** echo-server test deployment
 - **akash-services:** akash-provider, operator-* services
-- **default:** test pods (gpu-test, test-nfs, etc.)
+- **ai-inference:** n8n, postgres-n8n, qdrant
+- **glitchtip:** postgres, redis, web, worker ✅ **MIGRATED (2026-03-19)**
+- **default:** home-assistant ✅ **MIGRATED**
 
 ---
 
@@ -100,6 +100,15 @@ sentry   Ready    monitoring                     15m     v1.35.0
 ---
 
 ## Recent Changes
+
+**2026-03-19 03:30:**
+- ✅ **MIGRATED: GlitchTip to Kubernetes** - PostgreSQL StatefulSet, Redis, Web, Worker deployments
+- ✅ **CREATED:** kubernetes-manifests/glitchtip/ - Complete GlitchTip K8s manifests
+- ✅ **DISABLED:** Old GlitchTip systemd services (stopped, config set to enable = false)
+- ✅ **VERIFIED:** GlitchTip web accessible via port-forward (http://localhost:8000)
+- ✅ **MIGRATED:** n8n and home-assistant already running on Kubernetes
+- ✅ **CREATED:** NFS storage PVs (nfs-shared-pv, nfs-media-pv, nfs-backups-pv, nfs-home-pv)
+- 📝 **UPDATED:** STATUS.md - Migration progress now 70% complete (5 of 7 phases)
 
 **2026-03-16 14:30:**
 - ✅ **FIXED: CUDA compute on all NVIDIA GPU hosts** - Removed `allowUnsupportedSystem` causing cuda_compat build failure
