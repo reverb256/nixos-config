@@ -15,9 +15,9 @@ _: prev: {
     doCheck = false;
   });
 
-  # llama-cpp: REMOVED override - using nixpkgs version
-  # The override to b8429 has build system compatibility issues.
-  # Using nixpkgs version 8255 instead.
+  # llama-cpp: CUDA-enabled version from GitHub master
+  # Replaces CPU-only nixpkgs version with GPU-accelerated build
+  llama-cpp = prev.callPackage ./packages/llama-cpp-cuda.nix { };
 
   # Python packages overlay
   python3 = prev.python3.override {
