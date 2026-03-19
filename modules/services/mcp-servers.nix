@@ -364,16 +364,14 @@ in {
         '')
 
         # Context7 - fixed package name with API key support
-        # Note: apiKeyFile is read and passed as CONTEXT7_API_KEY (not _FILE)
-        # The @upstash/context7-mcp package expects CONTEXT7_API_KEY directly
+        # Note: The wrapper script (/run/current-system/sw/bin/mcp-context7) already
+        # reads apiKeyFile and exports it as CONTEXT7_API_KEY at runtime.
+        # We only need to pass the key directly if apiKey is used instead of apiKeyFile.
         (mkNpmMcpServer {
           name = "context7";
           package = "@upstash/context7-mcp";
           env =
-            lib.optionalAttrs (cfg.servers.context7.apiKeyFile != null) {
-              CONTEXT7_API_KEY = builtins.readFile cfg.servers.context7.apiKeyFile;
-            }
-            // lib.optionalAttrs (cfg.servers.context7.apiKeyFile == null && cfg.servers.context7.apiKey != "") {
+            lib.optionalAttrs (cfg.servers.context7.apiKeyFile == null && cfg.servers.context7.apiKey != "") {
               CONTEXT7_API_KEY = cfg.servers.context7.apiKey;
             };
         })
