@@ -41,12 +41,6 @@ stdenv.mkDerivation rec {
     "-DCUDAToolkit_ROOT=${cudaPackages.cuda_cudart}"
   ];
 
-  cmakeFlags = [
-    "-DLLAMA_CUDA=ON"
-    "-DLLAMA_CUDA_F16=ON"
-    "-DCMAKE_BUILD_TYPE=Release"
-  ];
-
   postInstall = ''
     # Install binaries
     install -Dm755 llama-server $out/bin/llama-server
