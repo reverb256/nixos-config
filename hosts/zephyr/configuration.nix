@@ -176,6 +176,10 @@
     cloudflared-tunnel = {
       enable = true;
       tunnelId = "e67aedf0-a025-4231-9ee4-3fa6887c2d21";
+
+      # Enable QUIC protocol for 30-50% faster connections
+      quicEnabled = true;
+
       ingressRules = [
         # Provider bid engine (NodePort 30843)
         {
