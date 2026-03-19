@@ -2665,13 +2665,13 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     response = await client.get(
-                        "http://127.0.0.1:7777/search", params={"q": "test"}
+                        "http://10.1.1.110:30080/search", params={"q": "test"}
                     )
                     if response.status_code == 200:
                         return {
                             "status": "healthy",
                             "service": "SearXNG",
-                            "url": "http://127.0.0.1:7777",
+                            "url": "http://10.1.1.110:30080",
                         }
                     else:
                         return {

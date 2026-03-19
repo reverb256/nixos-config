@@ -26,7 +26,7 @@ class SearchResultsExporter:
     Supports JSON, CSV, RSS, and ATOM formats.
     """
 
-    def __init__(self, base_url: str = "http://127.0.0.1:7777"):
+    def __init__(self, base_url: str = "http://10.1.1.110:30080"):
         """
         Initialize exporter.
 
@@ -338,7 +338,7 @@ class SearchResultsExporter:
             raise ValueError(f"Unsupported format: {format}")
 
 
-def create_exporter(base_url: str = "http://127.0.0.1:7777") -> SearchResultsExporter:
+def create_exporter(base_url: str = "http://10.1.1.110:30080") -> SearchResultsExporter:
     """
     Create search results exporter.
 

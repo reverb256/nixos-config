@@ -151,7 +151,7 @@ class KnowledgeFabricConfig(BaseSettings):
         default_factory=lambda: ["/etc/nixos"], description="Paths to search for code"
     )
     rag_top_k: int = Field(default=5, ge=1, le=20, description="RAG top-K results")
-    searxng_url: str = Field(default="http://127.0.0.1:7777", description="SearXNG URL")
+    searxng_url: str = Field(default="http://10.1.1.110:30080", description="SearXNG URL")
     mcp_url: str = Field(
         default="http://127.0.0.1:8080/mcp/call", description="MCP broker URL"
     )
@@ -393,7 +393,7 @@ class MiddlewareConfig(BaseSettings):
             "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED", ""
         ).lower()
         searxng_url = os.environ.get(
-            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL", "http://127.0.0.1:7777"
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL", "http://10.1.1.110:30080"
         )
         code_search_enabled = os.environ.get(
             "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED", ""

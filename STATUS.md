@@ -143,6 +143,17 @@ detected, resumes after hysteresis period (~15s).
 
 ## Recent Changes
 
+**2026-03-19 21:30:**
+- ✅ **OPTIMIZED: Akash provider competitiveness** - Implemented all recommendations for higher lease win rate
+- ✅ **INCREASED: Bid deposit** - Raised from 500k to 750k uakt ($0.25 → $0.38) for perceived reliability
+- ✅ **ENABLED: Resource overcommitment** - 10% CPU, 20% RAM overcommit (0% storage to protect data)
+- ✅ **ADDED: Network attributes** - public-ip, 1Gbps bandwidth, regional latency tier
+- ✅ **ADDED: Monitoring attributes** - Prometheus + Grafana capabilities advertised
+- ✅ **ON-CHAIN UPDATE:** Network and monitoring attributes (tx: D7AE1424B43EC7DED69969EE2E571F826E717F33665C264F05CF906FF3CC46FD)
+- ✅ **RESTARTED: Provider pod** - Applied new configuration (bid deposit, overcommitment)
+- 📊 **CAPACITY INCREASE:** Effective capacity +10% CPU, +20% RAM through overcommitment
+- 📝 **TOTAL ATTRIBUTES:** 18 specialized capabilities (was 13, now +5 networking/monitoring)
+
 **2026-03-19 21:00:**
 - ✅ **EXPANDED: Akash provider capabilities** - Added 13 new capability attributes for specialized workloads
 - ✅ **NEW CAPABILITIES:** IPFS pinning, databases (PostgreSQL, MongoDB, Redis), video processing (NVENC, transcoding), GPU rendering (Blender), development workspaces, blockchain nodes, AI/ML infrastructure

@@ -212,7 +212,18 @@
           AKASH_NAMESPACE=''${AKASH_NAMESPACE:-akash-services}
 
           GAMING_ENABLE=''${GAMING_ENABLE:-true}
-          GAMING_PROCESSES="''${GAMING_PROCESSES:-steam lutris heroic wine proton}"
+          # Whitelist of specific game executables (regex patterns, separated by spaces)
+          # Only matches exact process names, not launchers or helper processes
+          #
+          # Examples (configure via NixOS or environment variable):
+          #   GAMING_GAMES="Cyberpunk2077.exe eldenring.exe Dota2.exe"
+          #   GAMING_GAMES="steam_app_*.exe"  # Match all Steam games
+          #   GAMING_GAMES=".*\.exe"  # Match all executables (NOT RECOMMENDED)
+          #
+          # Default: empty (opt-in) to avoid false positives
+          # To enable gaming detection, add your games to /etc/nixos/hosts/*/configuration.nix:
+          #   systemd.services.compute-market.environment.GAMING_GAMES = "Game1.exe Game2.exe";
+          GAMING_GAMES="''${GAMING_GAMES:-}"
 
           # ============================================================================
           # LOGGING FUNCTIONS
@@ -560,7 +571,7 @@
                       # Apply workload-specific pricing
                       local adjusted_bid=$(echo "scale=4; $usd_hourly * $workload_mult" | bc)
 
-                      log_debug "Lease $lease ($workload): \$$usd_hourly/hr × ${workload_mult}x = \$$adjusted_bid/hr"
+                      log_debug "Lease $lease ($workload): \$$usd_hourly/hr × $workload_mult x = \$$adjusted_bid/hr"
 
                       # Apply profit margin
                       local our_bid=$(echo "$adjusted_bid * $AKASH_MARGIN" | bc)
@@ -587,7 +598,7 @@
               # Calculate dynamic bid with all multipliers
               local dynamic_bid=$(echo "scale=4; $base_bid * $time_mult * $demand_mult * $workload_mult" | bc)
 
-              log_debug "Dynamic pricing: base=\$$base_bid time=${time_mult}x demand=${demand_mult}x → \$$dynamic_bid/hr"
+              log_debug "Dynamic pricing: base=\$$base_bid time=$time_mult x demand=$demand_mult x → \$$dynamic_bid/hr"
 
               # Apply profit margin
               local our_bid=$(echo "scale=4; $dynamic_bid * $AKASH_MARGIN" | bc)
@@ -595,15 +606,37 @@
               echo "$our_bid"
           }
 
-          # Gaming Bidder - Priority override (returns sentinel value)
+          # Gaming Bidder - Priority override (uses GameMode signals)
           check_gaming() {
+              # Return false if gaming disabled
               if [ "$GAMING_ENABLE" != "true" ]; then
                   echo "false"
                   return
               fi
 
-              for proc in $GAMING_PROCESSES; do
-                  if pgrep -fi "$proc" >/dev/null 2>&1; then
+              # PRIMARY: Use GameMode signal if available (RECOMMENDED)
+              if command -v gamemoded >/dev/null 2>&1; then
+                  # Query GameMode status (0 = gaming, 1 = not gaming)
+                  if gamemoded -s >/dev/null 2>&1; then
+                      log_debug "Gaming detected via GameMode signal"
+                      echo "true"
+                      return
+                  fi
+                  echo "false"
+                  return
+              fi
+
+              # FALLBACK: Use whitelist if GameMode not available
+              if [ -z "$GAMING_GAMES" ]; then
+                  log_debug "No GameMode and no whitelist configured - gaming disabled"
+                  echo "false"
+                  return
+              fi
+
+              # Check for specific game executables (whitelist approach)
+              for game_pattern in $GAMING_GAMES; do
+                  if pgrep -x "$game_pattern" >/dev/null 2>&1; then
+                      log_debug "Gaming detected: process matching '$game_pattern'"
                       echo "true"
                       return
                   fi

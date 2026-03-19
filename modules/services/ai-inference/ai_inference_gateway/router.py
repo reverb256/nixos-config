@@ -63,7 +63,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 8192,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "ultra_fast",
         "recommended_for": ["fast", "simple_qa"],
@@ -87,7 +87,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-2b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 8192,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "fast",
         "recommended_for": ["fast", "reasoning"],
@@ -106,7 +106,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-4b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 16384,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "fast",
         "recommended_for": ["coding", "reasoning"],
@@ -130,7 +130,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-9b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 16384,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "balanced",
         "recommended_for": ["coding", "complex_reasoning"],
@@ -157,7 +157,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-27b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 32768,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "slow",
         "recommended_for": ["complex_reasoning", "agentic"],
@@ -165,7 +165,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-35b-a3b": {
         "max_tokens": 32768,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "slow",
         "recommended_for": ["complex_reasoning", "agentic", "analysis"],
@@ -1018,16 +1018,28 @@ class Router:
         )
 
         if not ranked_candidates:
-            # Fallback to default model
-            default_model = "qwen3.5-35b-a3b"
-            model_info = self.models[default_model]
-            return RouteDecision(
-                model=default_model,
-                confidence=0.5,
-                reason="No suitable candidates, using default",
-                estimated_tokens=estimated_tokens,
-                backend=model_info.backend,
-            )
+            # Fallback to default model (use fast model for quick responses)
+            default_model = "qwen3.5-4b"
+            model_info = self.models.get(default_model)
+            if model_info:
+                return RouteDecision(
+                    model=default_model,
+                    confidence=0.5,
+                    reason="No suitable candidates, using default",
+                    estimated_tokens=estimated_tokens,
+                    backend=model_info.backend,
+                )
+            else:
+                # Ultimate fallback if even default is unavailable
+                fallback_model = list(self.models.keys())[0]
+                model_info = self.models[fallback_model]
+                return RouteDecision(
+                    model=fallback_model,
+                    confidence=0.3,
+                    reason="Default model unavailable, using fallback",
+                    estimated_tokens=estimated_tokens,
+                    backend=model_info.backend,
+                )
 
         # Select best candidate
         best = ranked_candidates[0]

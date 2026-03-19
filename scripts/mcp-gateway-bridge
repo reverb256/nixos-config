@@ -25,8 +25,8 @@ from urllib import request
 from urllib.error import URLError, HTTPError
 
 # Configuration
-GATEWAY_URL = "http://127.0.0.1:8080"
-GATEWAY_TIMEOUT = 30.0
+GATEWAY_URL = os.getenv("GATEWAY_URL", "http://127.0.0.1:8080")
+GATEWAY_TIMEOUT = float(os.getenv("GATEWAY_TIMEOUT", "30.0"))
 
 # Setup logging
 logging.basicConfig(
