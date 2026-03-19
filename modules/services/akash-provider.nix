@@ -135,8 +135,73 @@
         from = "provider-wallet";
         keysecret = "akash-provider-keys";
 
+        # CRITICAL: Override init environment to NOT use test mnemonic
+        # The init script should import from secret's key.pem file instead
+        env = [
+          {
+            name = "AKASH_KEY_MNEMONIC";
+            value = "";
+          }
+        ];
+
+        # CRITICAL: Override init script to use mnemonic-based key import
+        # The Helm chart's default init.sh uses 'keys import' which expects
+        # an encrypted key file. We override to use 'keys add --recover'
+        # which accepts a mnemonic phrase directly.
+        scripts = {
+          "init.sh" = ''
+            #!/bin/bash
+            # Custom init script - imports wallet from mnemonic
+
+            set -x
+
+            ##
+            # Import wallet from mnemonic in /boot-keys/key.txt
+            # Uses --recover to read mnemonic from stdin
+            ##
+            cat /boot-keys/key.txt | provider-services --home="$AKASH_HOME" keys add "$AKASH_FROM" --recover --keyring-backend="$AKASH_KEYRING_BACKEND"
+
+            ##
+            # Verify key was imported correctly
+            ##
+            PROVIDER_ADDRESS="$(provider-services --home="$AKASH_HOME" keys show "$AKASH_FROM" -a)"
+            if [ -z "$PROVIDER_ADDRESS" ]; then
+              echo "ERROR: Failed to derive address from mnemonic"
+              exit 1
+            fi
+
+            echo "Wallet imported successfully!"
+            echo "Provider address: $PROVIDER_ADDRESS"
+
+            ##
+            # Wait for RPC
+            ##
+            /scripts/wait_for_rpc.sh
+
+            ##
+            # Create/Update Provider
+            ##
+            /scripts/create_provider.sh
+
+            ##
+            # Create/Update Provider certs
+            ##
+            /scripts/refresh_provider_cert.sh
+          '';
+        };
+
         # Networking
         inherit (config.services.akash-provider) domain clusterPublicHostname;
+
+        # Service configuration - expose as NodePort for external access
+        service = {
+          type = "NodePort";
+          ports = [
+            { name = "provider"; port = 8443; targetPort = 8443; nodePort = 30843; protocol = "TCP"; }
+            { name = "grpc"; port = 8444; targetPort = 8444; nodePort = 30844; protocol = "TCP"; }
+            { name = "http"; port = 80; targetPort = 80; nodePort = 30080; protocol = "TCP"; }
+          ];
+        };
 
         # Withdrawal period (blocks) - 720 blocks = ~72 minutes
         withdrawalperiod = 720;
@@ -184,7 +249,7 @@
         # Image configuration
         image = {
           repository = "ghcr.io/akash-network/provider";
-          tag = "0.6.4";
+          tag = "0.10.7";
         };
 
         # Resource limits for provider pod
@@ -338,9 +403,11 @@
           fi
 
           # Create secret from decrypted key file
+          # Note: Helm chart expects key.txt (not key.pem)
           kubectl create secret generic akash-provider-keys \
             --namespace akash-services \
-            --from-file=key.pem="$KEY_FILE" \
+            --from-literal=key-pass.txt="" \
+            --from-literal=key.txt="$(cat $KEY_FILE)" \
             --dry-run=client -o yaml | \
             kubectl apply -f -
 

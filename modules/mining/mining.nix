@@ -38,9 +38,15 @@ with lib; let
       if cfg.lolminer.nvidia.perGpuPowerLimits != null
       then ''
         # Per-GPU power limits
-        ${lib.concatStringsSep "\n" (lib.imap0 (idx: limit: ''
+        ${lib.concatStringsSep "\n" (lib.imap0 (idx: limit:
+            if limit != null
+            then ''
             echo "Setting GPU ${toString idx} power limit to ${toString limit}W..."
             nvidia-smi -i ${toString idx} -pl ${toString limit}
+            ''
+            else ''
+            echo "Skipping GPU ${toString idx} (no power limit set)..."
+            ''
           '')
           cfg.lolminer.nvidia.perGpuPowerLimits)}
       ''
@@ -150,10 +156,10 @@ in {
           description = "GPU power limit in watts. Null = let gpu-workload-monitor manage dynamically";
         };
         perGpuPowerLimits = mkOption {
-          type = types.nullOr (types.listOf types.int);
+          type = types.nullOr (types.listOf (types.nullOr types.int));
           default = null;
           example = [130 250];
-          description = "Per-GPU power limits in watts. List index corresponds to GPU ID. Overrides powerLimit if set.";
+          description = "Per-GPU power limits in watts. List index corresponds to GPU ID. Use null to skip setting limit for a specific GPU. Overrides powerLimit if set.";
         };
         apiPort = mkOption {
           type = types.int;

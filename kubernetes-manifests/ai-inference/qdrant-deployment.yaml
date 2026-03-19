@@ -1,0 +1,84 @@
+# Qdrant Vector Database for RAG/Semantic Cache
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant-service
+  namespace: ai-inference
+  labels:
+    app: qdrant
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6333
+    targetPort: 6333
+    name: http
+  - port: 6334
+    targetPort: 6334
+    name: grpc
+  selector:
+    app: qdrant
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qdrant
+  namespace: ai-inference
+  labels:
+    app: qdrant
+spec:
+  serviceName: qdrant-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+    spec:
+      containers:
+      - name: qdrant
+        image: qdrant/qdrant:v1.12.0
+        ports:
+        - containerPort: 6333
+          name: http
+        - containerPort: 6334
+          name: grpc
+        env:
+        - name: QDRANT__SERVICE__GRPC_PORT
+          value: "6334"
+        - name: QDRANT__LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+        volumeMounts:
+        - name: qdrant-storage
+          mountPath: /qdrant/storage
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 6333
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 6333
+          initialDelaySeconds: 10
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: qdrant-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 2Gi
