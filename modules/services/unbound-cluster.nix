@@ -219,7 +219,7 @@ in {
     };
 
     # Firewall - allow DNS from local network
-    networking.firewall.allowedUDPPorts = [cfg.port];
-    networking.firewall.allowedTCPPorts = [cfg.port];
+    networking.firewall.allowedUDPPorts = lib.mkOptionDefault [cfg.port];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
   };
 }

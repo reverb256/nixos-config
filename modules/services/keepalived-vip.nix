@@ -83,6 +83,6 @@ in {
     };
 
     # Firewall: allow VRRP protocol (UDP port 112 for VRRP)
-    networking.firewall.allowedUDPPorts = [112];
+    networking.firewall.allowedUDPPorts = lib.mkOptionDefault [112];
   };
 }

@@ -71,7 +71,7 @@ in {
     ];
 
     # Open firewall for Prometheus to scrape metrics
-    networking.firewall.allowedTCPPorts = [
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
       port
     ];
   };

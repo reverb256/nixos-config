@@ -19,6 +19,6 @@ in {
     };
 
     # Open firewall for Prometheus scraping
-    networking.firewall.allowedTCPPorts = [9121];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [9121];
   };
 }

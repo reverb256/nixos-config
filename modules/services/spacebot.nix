@@ -441,7 +441,7 @@ in {
     # ============================================================================
     # FIREWALL
     # ============================================================================
-    networking.firewall.allowedTCPPorts = [
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
       cfg.port
     ];
 
