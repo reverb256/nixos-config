@@ -1,6 +1,7 @@
 # modules/services/ai-inference/ai_inference_gateway/main.py
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager
 from typing import Optional
 from datetime import datetime
@@ -50,6 +51,7 @@ try:
         get_audio_extension,
         POLLINATIONS_TTS_URL,
     )
+
     TTS_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"TTS handler not available: {e}")
@@ -74,6 +76,7 @@ try:
         read_audio_file,
         SUPPORTED_AUDIO_FORMATS,
     )
+
     AUDIO_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Audio handler not available: {e}")
@@ -98,6 +101,7 @@ try:
         read_image_from_url,
         encode_image_to_base64,
     )
+
     VISION_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Vision handler not available: {e}")
@@ -698,6 +702,7 @@ async def lifespan(app: FastAPI):
     if SELF_IMPROVEMENT_AVAILABLE:
         try:
             from ai_inference_gateway.self_improvement import shutdown_self_improvement
+
             await shutdown_self_improvement()
             logger.info("Self-improvement engine shutdown complete")
         except Exception as e:
@@ -735,6 +740,7 @@ async def lifespan(app: FastAPI):
     if AUDIO_AVAILABLE:
         try:
             from ai_inference_gateway.audio_handler import close_audio_handler
+
             await close_audio_handler()
             logger.info("Audio handler closed")
         except Exception as e:
@@ -744,6 +750,7 @@ async def lifespan(app: FastAPI):
     if VISION_AVAILABLE:
         try:
             from ai_inference_gateway.vision_handler import close_vision_handler
+
             await close_vision_handler()
             logger.info("Vision handler closed")
         except Exception as e:
@@ -766,6 +773,17 @@ def build_middleware_pipeline(
         Configured middleware pipeline
     """
     pipeline = MiddlewarePipeline()
+
+    # DEBUG: Log knowledge fabric config
+    import os
+
+    env_enabled = os.environ.get("MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED", "NOT_SET")
+    print(
+        f"[DEBUG] knowledge_fabric config: enabled={config.middleware.knowledge_fabric.enabled}, "
+        f"rrf_k={config.middleware.knowledge_fabric.rrf_k}, env={env_enabled}",
+        file=sys.stderr,
+        flush=True,
+    )
 
     # Add observability middleware (should always be first)
     if config.middleware.observability.enabled:
@@ -790,7 +808,13 @@ def build_middleware_pipeline(
         logger.info("Added RAGInjectorMiddleware (automatic knowledge injection)")
 
     # Add Knowledge Fabric middleware (unified multi-source retrieval)
+    print(
+        f"[DEBUG] About to check knowledge_fabric.enabled: {config.middleware.knowledge_fabric.enabled}",
+        file=sys.stderr,
+        flush=True,
+    )
     if config.middleware.knowledge_fabric.enabled:
+        print(f"[DEBUG] Adding KnowledgeFabricMiddleware!", file=sys.stderr, flush=True)
         from ai_inference_gateway.middleware.knowledge_fabric import (
             create_knowledge_fabric,
         )
@@ -1141,25 +1165,33 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                         model_id = f"qwen3-tts-{model_key}"
                         owned_by = "qwen"
 
-                    tts_models.append({
-                        "id": model_id,
-                        "object": "model",
-                        "created": int(datetime.now().timestamp()),
-                        "owned_by": owned_by,
-                        "permission": [{"id": "model", "object": "model_permission", "created": int(datetime.now().timestamp())}],
-                        "root": model_id,
-                        "parent": None,
-                        # TTS-specific metadata
-                        "capabilities": {
-                            "type": "tts",
-                            "audio_formats": ["mp3", "wav", "opus", "aac", "flac"],
-                            "sample_rate": config["sample_rate"],
-                            "languages": config.get("language", "en"),
-                            "quality": config["quality"],
-                            "description": config["description"],
-                            "backend": backend,
+                    tts_models.append(
+                        {
+                            "id": model_id,
+                            "object": "model",
+                            "created": int(datetime.now().timestamp()),
+                            "owned_by": owned_by,
+                            "permission": [
+                                {
+                                    "id": "model",
+                                    "object": "model_permission",
+                                    "created": int(datetime.now().timestamp()),
+                                }
+                            ],
+                            "root": model_id,
+                            "parent": None,
+                            # TTS-specific metadata
+                            "capabilities": {
+                                "type": "tts",
+                                "audio_formats": ["mp3", "wav", "opus", "aac", "flac"],
+                                "sample_rate": config["sample_rate"],
+                                "languages": config.get("language", "en"),
+                                "quality": config["quality"],
+                                "description": config["description"],
+                                "backend": backend,
+                            },
                         }
-                    })
+                    )
 
                 # Add TTS models to the response
                 if "data" in models_dict:
@@ -1169,25 +1201,37 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             if AUDIO_AVAILABLE and QWEN3_AUDIO_MODELS:
                 stt_models = []
                 for model_key, config in QWEN3_AUDIO_MODELS.items():
-                    stt_models.append({
-                        "id": model_key,
-                        "object": "model",
-                        "created": int(datetime.now().timestamp()),
-                        "owned_by": "qwen",
-                        "permission": [{"id": "model", "object": "model_permission", "created": int(datetime.now().timestamp())}],
-                        "root": model_key,
-                        "parent": None,
-                        # STT-specific metadata
-                        "capabilities": {
-                            "type": "stt",
-                            "sample_rate": config["sample_rate"],
-                            "max_duration": config["max_duration"],
-                            "languages": config.get("languages", ["en"]),
-                            "supports_translation": config.get("supports_translation", False),
-                            "supports_timestamps": config.get("supports_timestamps", False),
-                            "description": config["description"],
+                    stt_models.append(
+                        {
+                            "id": model_key,
+                            "object": "model",
+                            "created": int(datetime.now().timestamp()),
+                            "owned_by": "qwen",
+                            "permission": [
+                                {
+                                    "id": "model",
+                                    "object": "model_permission",
+                                    "created": int(datetime.now().timestamp()),
+                                }
+                            ],
+                            "root": model_key,
+                            "parent": None,
+                            # STT-specific metadata
+                            "capabilities": {
+                                "type": "stt",
+                                "sample_rate": config["sample_rate"],
+                                "max_duration": config["max_duration"],
+                                "languages": config.get("languages", ["en"]),
+                                "supports_translation": config.get(
+                                    "supports_translation", False
+                                ),
+                                "supports_timestamps": config.get(
+                                    "supports_timestamps", False
+                                ),
+                                "description": config["description"],
+                            },
                         }
-                    })
+                    )
 
                 # Add STT models to the response
                 if "data" in models_dict:
@@ -1197,23 +1241,31 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             if VISION_AVAILABLE and QWEN3_VISION_MODELS:
                 vision_models = []
                 for model_key, config in QWEN3_VISION_MODELS.items():
-                    vision_models.append({
-                        "id": model_key,
-                        "object": "model",
-                        "created": int(datetime.now().timestamp()),
-                        "owned_by": "qwen",
-                        "permission": [{"id": "model", "object": "model_permission", "created": int(datetime.now().timestamp())}],
-                        "root": model_key,
-                        "parent": None,
-                        # Vision-specific metadata
-                        "capabilities": {
-                            "type": "vision",
-                            "max_tokens": config["max_tokens"],
-                            "max_images": config.get("max_images", 1),
-                            "supports_video": config.get("supports_video", False),
-                            "description": config["description"],
+                    vision_models.append(
+                        {
+                            "id": model_key,
+                            "object": "model",
+                            "created": int(datetime.now().timestamp()),
+                            "owned_by": "qwen",
+                            "permission": [
+                                {
+                                    "id": "model",
+                                    "object": "model_permission",
+                                    "created": int(datetime.now().timestamp()),
+                                }
+                            ],
+                            "root": model_key,
+                            "parent": None,
+                            # Vision-specific metadata
+                            "capabilities": {
+                                "type": "vision",
+                                "max_tokens": config["max_tokens"],
+                                "max_images": config.get("max_images", 1),
+                                "supports_video": config.get("supports_video", False),
+                                "description": config["description"],
+                            },
                         }
-                    })
+                    )
 
                 # Add vision models to the response
                 if "data" in models_dict:
@@ -1355,17 +1407,22 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         if SELF_IMPROVEMENT_AVAILABLE:
             try:
                 import asyncio
+
                 engine = get_self_improvement_engine()
                 # Don't await - log in background
-                asyncio.create_task(engine.log_routing_decision(
-                    model_requested=requested_model or "auto",
-                    model_routed=route_decision.model,
-                    routing_reason=route_decision.reason,
-                    token_count=route_decision.estimated_tokens,
-                    task_type=route_decision.specialization.value if route_decision.specialization else "general",
-                    latency_ms=0,  # Will be updated after request completes
-                    backend_used=route_decision.backend,
-                ))
+                asyncio.create_task(
+                    engine.log_routing_decision(
+                        model_requested=requested_model or "auto",
+                        model_routed=route_decision.model,
+                        routing_reason=route_decision.reason,
+                        token_count=route_decision.estimated_tokens,
+                        task_type=route_decision.specialization.value
+                        if route_decision.specialization
+                        else "general",
+                        latency_ms=0,  # Will be updated after request completes
+                        backend_used=route_decision.backend,
+                    )
+                )
             except Exception as log_error:
                 logger.warning(f"Failed to log routing decision: {log_error}")
 
@@ -2738,15 +2795,15 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             state: GatewayState = app.state.gateway
 
             if not state.mcp_broker:
-                raise HTTPException(
-                    status_code=501, detail="MCP broker not available"
-                )
+                raise HTTPException(status_code=501, detail="MCP broker not available")
 
             server_name = request.query_params.get("server")
             refresh = request.query_params.get("refresh", "false").lower() == "true"
 
             bridge = get_http_mcp_bridge(state.mcp_broker)
-            tools = await bridge.list_tools(server_name=server_name, refresh_cache=refresh)
+            tools = await bridge.list_tools(
+                server_name=server_name, refresh_cache=refresh
+            )
 
             return {"tools": tools}
 
@@ -2756,9 +2813,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             state: GatewayState = app.state.gateway
 
             if not state.mcp_broker:
-                raise HTTPException(
-                    status_code=501, detail="MCP broker not available"
-                )
+                raise HTTPException(status_code=501, detail="MCP broker not available")
 
             body = await request.json()
             arguments = body.get("arguments", {})
@@ -2776,9 +2831,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             state: GatewayState = app.state.gateway
 
             if not state.mcp_broker:
-                raise HTTPException(
-                    status_code=501, detail="MCP broker not available"
-                )
+                raise HTTPException(status_code=501, detail="MCP broker not available")
 
             server_name = request.query_params.get("server")
 
@@ -2793,9 +2846,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             state: GatewayState = app.state.gateway
 
             if not state.mcp_broker:
-                raise HTTPException(
-                    status_code=501, detail="MCP broker not available"
-                )
+                raise HTTPException(status_code=501, detail="MCP broker not available")
 
             bridge = get_http_mcp_bridge(state.mcp_broker)
             servers = await bridge.list_servers()
@@ -2808,9 +2859,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             state: GatewayState = app.state.gateway
 
             if not state.mcp_broker:
-                raise HTTPException(
-                    status_code=501, detail="MCP broker not available"
-                )
+                raise HTTPException(status_code=501, detail="MCP broker not available")
 
             bridge = get_http_mcp_bridge(state.mcp_broker)
             health = await bridge.get_server_health(server_name)
@@ -2823,9 +2872,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             state: GatewayState = app.state.gateway
 
             if not state.mcp_broker:
-                raise HTTPException(
-                    status_code=501, detail="MCP broker not available"
-                )
+                raise HTTPException(status_code=501, detail="MCP broker not available")
 
             bridge = get_http_mcp_bridge(state.mcp_broker)
             bridge.clear_cache()
@@ -3355,7 +3402,13 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "details": {
                 "backend": "gateway-proxy",
                 "committed": True,
-                "features": ["ollama-api", "openai-api", "rag", "mcp", "category-routing"],
+                "features": [
+                    "ollama-api",
+                    "openai-api",
+                    "rag",
+                    "mcp",
+                    "category-routing",
+                ],
             },
         }
 
@@ -3469,7 +3522,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 "backend": route_decision.backend,
                 "confidence": route_decision.confidence,
                 "reason": route_decision.reason,
-                "specialization": route_decision.specialization.value if route_decision.specialization else None,
+                "specialization": route_decision.specialization.value
+                if route_decision.specialization
+                else None,
                 "expected_latency_ms": route_decision.expected_latency_ms,
             },
             "input": {
@@ -3550,23 +3605,31 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 tts_handler = get_tts_handler(backend_url)
 
                 # Generate speech
-                audio_data, content_type, sample_rate = await tts_handler.generate_speech(
+                (
+                    audio_data,
+                    content_type,
+                    sample_rate,
+                ) = await tts_handler.generate_speech(
                     text=tts_request.input,
                     model=tts_request.model,
                     voice=tts_request.voice,
                     speed=tts_request.speed,
-                    response_format=tts_request.response_format
+                    response_format=tts_request.response_format,
                 )
 
                 # Return audio file
-                ext = get_audio_extension(tts_request.response_format) if get_audio_extension else ".mp3"
+                ext = (
+                    get_audio_extension(tts_request.response_format)
+                    if get_audio_extension
+                    else ".mp3"
+                )
                 return Response(
                     content=audio_data,
                     media_type=content_type,
                     headers={
                         "Content-Disposition": f'attachment; filename="speech_{tts_request.model[:20]}{ext}"',
                         "X-Sample-Rate": str(sample_rate),
-                    }
+                    },
                 )
 
             except HTTPException:
@@ -3574,8 +3637,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             except Exception as e:
                 logger.error(f"TTS generation failed: {e}")
                 raise HTTPException(
-                    status_code=500,
-                    detail=f"Speech generation failed: {str(e)}"
+                    status_code=500, detail=f"Speech generation failed: {str(e)}"
                 )
 
     print(
@@ -3629,7 +3691,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 async def read(self):
                     return self._content
 
-            audio_handler = get_audio_handler(state.config.lm_studio_url or "https://api.openai.com")
+            audio_handler = get_audio_handler(
+                state.config.lm_studio_url or "https://api.openai.com"
+            )
 
             try:
                 # Read audio file
@@ -3644,14 +3708,18 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     prompt=prompt,
                     temperature=temperature,
                     response_format=response_format,
-                    timestamp_granularities=[timestamp_granularities] if timestamp_granularities else None
+                    timestamp_granularities=[timestamp_granularities]
+                    if timestamp_granularities
+                    else None,
                 )
 
                 # Return based on response format
                 if response_format == "text":
                     return Response(content=result["text"], media_type="text/plain")
                 elif response_format == "srt":
-                    return Response(content=_generate_srt(result), media_type="text/plain")
+                    return Response(
+                        content=_generate_srt(result), media_type="text/plain"
+                    )
                 elif response_format == "verbose_json":
                     return JSONResponse(content=result)
                 else:  # json
@@ -3662,8 +3730,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             except Exception as e:
                 logger.error(f"Audio transcription failed: {e}")
                 raise HTTPException(
-                    status_code=500,
-                    detail=f"Transcription failed: {str(e)}"
+                    status_code=500, detail=f"Transcription failed: {str(e)}"
                 )
 
         @app.post("/v1/audio/translations")
@@ -3697,7 +3764,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             if not file_field:
                 raise HTTPException(status_code=400, detail="Audio file is required")
 
-            audio_handler = get_audio_handler(state.config.lm_studio_url or "https://api.openai.com")
+            audio_handler = get_audio_handler(
+                state.config.lm_studio_url or "https://api.openai.com"
+            )
 
             try:
                 # Read audio file
@@ -3711,7 +3780,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     language="en",  # Target language for translation
                     prompt=prompt,
                     temperature=temperature,
-                    response_format=response_format
+                    response_format=response_format,
                 )
 
                 # Translation result
@@ -3725,8 +3794,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             except Exception as e:
                 logger.error(f"Audio translation failed: {e}")
                 raise HTTPException(
-                    status_code=500,
-                    detail=f"Translation failed: {str(e)}"
+                    status_code=500, detail=f"Translation failed: {str(e)}"
                 )
 
         def _generate_srt(transcription: dict) -> str:
@@ -3742,13 +3810,15 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             # Group words into subtitle chunks (e.g., 10 words per subtitle)
             chunk_size = 10
             for i in range(0, len(words), chunk_size):
-                chunk = words[i:i + chunk_size]
+                chunk = words[i : i + chunk_size]
                 start_time = chunk[0]["start"]
                 end_time = chunk[-1]["end"]
                 text = " ".join(w["word"] for w in chunk)
 
                 srt_lines.append(f"{i // chunk_size + 1}")
-                srt_lines.append(f"{_format_srt_time(start_time)} --> {_format_srt_time(end_time)}")
+                srt_lines.append(
+                    f"{_format_srt_time(start_time)} --> {_format_srt_time(end_time)}"
+                )
                 srt_lines.append(text)
                 srt_lines.append("")
 
@@ -3763,7 +3833,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
     print(
-        "[DEBUG] create_app: Adding Vision API endpoints...", file=sys.stderr, flush=True
+        "[DEBUG] create_app: Adding Vision API endpoints...",
+        file=sys.stderr,
+        flush=True,
     )
     # Vision API endpoints (Qwen3-VL image understanding)
     if VISION_AVAILABLE:
@@ -3800,9 +3872,13 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             try:
                 vision_request = VisionRequest(**body)
             except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Invalid vision request: {e}")
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid vision request: {e}"
+                )
 
-            vision_handler = get_vision_handler(state.config.lm_studio_url or "https://api.openai.com")
+            vision_handler = get_vision_handler(
+                state.config.lm_studio_url or "https://api.openai.com"
+            )
 
             try:
                 # Process messages to extract images and text
@@ -3835,11 +3911,16 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                                     url = getattr(image_url_obj, "url", "")
                                     if url:
                                         # Read image from URL
-                                        image_data, image_format = await read_image_from_url(url)
+                                        (
+                                            image_data,
+                                            image_format,
+                                        ) = await read_image_from_url(url)
                                         images.append((image_data, image_format))
 
                 if not images:
-                    raise HTTPException(status_code=400, detail="No images found in request")
+                    raise HTTPException(
+                        status_code=400, detail="No images found in request"
+                    )
 
                 # Use the first image for now (Qwen3-VL can handle multiple)
                 image_data, image_format = images[0]
@@ -3851,7 +3932,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     prompt=text_prompt or "Describe this image in detail.",
                     model=vision_request.model,
                     max_tokens=vision_request.max_tokens,
-                    temperature=vision_request.temperature
+                    temperature=vision_request.temperature,
                 )
 
                 return JSONResponse(content=result)
@@ -3861,8 +3942,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             except Exception as e:
                 logger.error(f"Vision analysis failed: {e}")
                 raise HTTPException(
-                    status_code=500,
-                    detail=f"Vision analysis failed: {str(e)}"
+                    status_code=500, detail=f"Vision analysis failed: {str(e)}"
                 )
 
     print(
@@ -4099,7 +4179,11 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 detail="Prometheus metrics not available. Install prometheus-client package.",
             )
 
-    print("[DEBUG] create_app: Adding self-improvement endpoints...", file=sys.stderr, flush=True)
+    print(
+        "[DEBUG] create_app: Adding self-improvement endpoints...",
+        file=sys.stderr,
+        flush=True,
+    )
     # Add self-improvement system endpoints
     if SELF_IMPROVEMENT_AVAILABLE:
         try:
@@ -4114,6 +4198,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             logger.info("Self-improvement endpoints registered")
         except Exception as e:
             import traceback
+
             logger.warning(f"Failed to initialize self-improvement system: {e}")
             logger.warning(f"Traceback: {traceback.format_exc()}")
 
@@ -4152,7 +4237,9 @@ async def stream_backend_response(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream", "backend"]
+            k: v
+            for k, v in body.items()
+            if k not in ["messages", "model", "stream", "backend"]
         }
 
         # Get backend from route decision if available
@@ -4589,7 +4676,9 @@ async def try_backends_with_failover(
                     if api_key:
                         headers["Authorization"] = f"Bearer {api_key}"
                     else:
-                        logger.warning("Pollinations API key not found for fallback backend")
+                        logger.warning(
+                            "Pollinations API key not found for fallback backend"
+                        )
 
             logger.info(
                 f"Request headers for {backend_type_name} backend: Authorization={'Bearer ' + (headers.get('Authorization', 'NO-AUTH')[:20] + '...' if 'Authorization' in headers else 'NOT SET')}"
@@ -4617,12 +4706,16 @@ async def try_backends_with_failover(
                     logger.debug(f"ZAI Body model: {content.get('model', 'NO_MODEL')}")
 
                 # Debug logging for Pollinations (only at DEBUG level)
-                if backend_api_type == "pollinations" and logger.isEnabledFor(logging.DEBUG):
+                if backend_api_type == "pollinations" and logger.isEnabledFor(
+                    logging.DEBUG
+                ):
                     logger.debug(f"Pollinations URL: {url}")
                     logger.debug(
                         f"Pollinations Headers: Authorization={headers.get('Authorization', 'MISSING')[:30]}..."
                     )
-                    logger.debug(f"Pollinations Body model: {content.get('model', 'NO_MODEL')}")
+                    logger.debug(
+                        f"Pollinations Body model: {content.get('model', 'NO_MODEL')}"
+                    )
 
                 if method.upper() == "POST":
                     response = await client.post(
@@ -4651,11 +4744,17 @@ async def try_backends_with_failover(
                             pass
 
                 # Debug logging for Pollinations responses (only at DEBUG level)
-                if backend_api_type == "pollinations" and logger.isEnabledFor(logging.DEBUG):
-                    logger.debug(f"Pollinations Response status: {response.status_code}")
+                if backend_api_type == "pollinations" and logger.isEnabledFor(
+                    logging.DEBUG
+                ):
+                    logger.debug(
+                        f"Pollinations Response status: {response.status_code}"
+                    )
                     if response.status_code != 200:
                         try:
-                            logger.debug(f"Pollinations Response body: {response.text[:500]}")
+                            logger.debug(
+                                f"Pollinations Response body: {response.text[:500]}"
+                            )
                         except Exception:
                             pass
 
@@ -4711,7 +4810,9 @@ async def handle_non_streaming_request(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream", "backend"]
+            k: v
+            for k, v in body.items()
+            if k not in ["messages", "model", "stream", "backend"]
         }
 
         # Get backend from route decision if available
@@ -4843,7 +4944,9 @@ async def stream_anthropic_response(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream", "backend"]
+            k: v
+            for k, v in body.items()
+            if k not in ["messages", "model", "stream", "backend"]
         }
 
         route_decision = context.get("route_decision")
@@ -4973,7 +5076,9 @@ async def handle_anthropic_non_streaming(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream", "backend"]
+            k: v
+            for k, v in body.items()
+            if k not in ["messages", "model", "stream", "backend"]
         }
 
         route_decision = context.get("route_decision")
@@ -5109,12 +5214,18 @@ async def handle_anthropic_non_streaming(
             try:
                 engine = get_self_improvement_engine()
                 import asyncio
-                asyncio.create_task(engine.log_error(
-                    error_type="backend_error",
-                    error_message=str(e),
-                    context={"endpoint": "/v1/messages", "model": body.get("model")},
-                    resolution="circuit_breaker_triggered",
-                ))
+
+                asyncio.create_task(
+                    engine.log_error(
+                        error_type="backend_error",
+                        error_message=str(e),
+                        context={
+                            "endpoint": "/v1/messages",
+                            "model": body.get("model"),
+                        },
+                        resolution="circuit_breaker_triggered",
+                    )
+                )
             except Exception:
                 pass  # Don't fail logging
 
@@ -5134,11 +5245,17 @@ async def handle_anthropic_non_streaming(
             try:
                 engine = get_self_improvement_engine()
                 import asyncio
-                asyncio.create_task(engine.log_error(
-                    error_type="unexpected_error",
-                    error_message=str(e),
-                    context={"endpoint": "/v1/messages", "model": body.get("model")},
-                ))
+
+                asyncio.create_task(
+                    engine.log_error(
+                        error_type="unexpected_error",
+                        error_message=str(e),
+                        context={
+                            "endpoint": "/v1/messages",
+                            "model": body.get("model"),
+                        },
+                    )
+                )
             except Exception:
                 pass  # Don't fail logging
 

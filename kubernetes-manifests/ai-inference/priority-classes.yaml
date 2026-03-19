@@ -1,0 +1,36 @@
+# Priority Classes for AI Inference Workloads
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: gpu-critical
+value: 1000
+globalDefault: false
+description: "Critical GPU inference workloads - highest priority"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 500
+globalDefault: false
+description: "High priority inference workloads"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: normal-priority
+value: 100
+globalDefault: false
+description: "Normal priority workloads"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: low-priority
+value: 10
+globalDefault: false
+description: "Low priority batch workloads"

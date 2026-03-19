@@ -154,7 +154,9 @@
     akash-provider = {
       enable = true; # Wallet created with agenix, ready to deploy
       # Provider address: cluster-provider (created 2026-03-14)
-      providerAddress = "akash1s97zjxzn3tnudawjhjhpus9x7yn6dgukzar372";
+      # Provider address: updated 2026-03-18 with new mnemonic-based key
+      # Mnemonic: zebra unknown capital train decide glue sphere acid actual focus lounge green ancient never visual either glimpse vault verb athlete tiger lamp catch jewel
+      providerAddress = "akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6";
       # Domain for provider ingress (using Quick Tunnel for testing)
       # WARNING: Quick Tunnel URLs change on restart - use own domain for production
       domain = "provider.reverb256.ca";
@@ -173,22 +175,27 @@
     # Cloudflare Tunnel - Akash provider ingress
     cloudflared-tunnel = {
       enable = true;
-      tunnelId = "2face449-f837-4fb1-87c5-a5a11c17e9ae";
+      tunnelId = "e67aedf0-a025-4231-9ee4-3fa6887c2d21";
       ingressRules = [
-        # Provider bid engine
+        # Provider bid engine (NodePort 30843)
         {
           hostname = "provider.reverb256.ca";
-          service = "http://localhost:8443";
+          service = "https://10.1.1.120:30843";
         }
-        # Tenant ingress (wildcard for deployments)
+        # Provider gRPC (for lease management, NodePort 30844)
+        {
+          hostname = "grpc.provider.reverb256.ca";
+          service = "https://10.1.1.120:30844";
+        }
+        # Tenant ingress (wildcard for deployments, NodePort 30080)
         {
           hostname = "*.ingress.reverb256.ca";
-          service = "http://localhost:80";
+          service = "http://10.1.1.120:30080";
         }
         # Fallback for bare ingress domain
         {
           hostname = "ingress.reverb256.ca";
-          service = "http://localhost:80";
+          service = "http://10.1.1.120:30080";
         }
       ];
     };
@@ -393,8 +400,9 @@
       };
 
       # Prometheus metrics
+      # MIGRATED TO KUBERNETES (2026-03-18)
       prometheus = {
-        enable = true;
+        enable = false;
         port = 9200;
       };
     };
@@ -582,6 +590,18 @@
         port = 8080;
         workers = 1;
         middleware.redis.enable = true;
+        middleware.knowledgeFabric = {
+          enable = true;
+          searxng_enabled = true;
+          searxng_url = "http://127.0.0.1:7777";
+          code_search_enabled = true;
+          code_search_paths = [
+            "/etc/nixos"
+            "/home/j_kro"
+          ];
+          rag_enabled = true;
+          web_search_enabled = true;
+        };
       };
       routing = {
         enable = true;
@@ -641,7 +661,8 @@
       };
       rag = {
         enable = true;
-        qdrant.enable = true;
+        # MIGRATED TO KUBERNETES (2026-03-18)
+        qdrant.enable = false;
         qdrant.memoryLimit = "4G";
       };
     };
@@ -673,8 +694,10 @@
     };
 
     # HOME ASSISTANT - Smart Home Automation Platform
+    # MIGRATED TO KUBERNETES (2026-03-18)
+    # Running in default namespace on cluster nodes
     home-assistant = {
-      enable = true;
+      enable = false;
       openFirewall = true;
       config = {
         homeassistant = {
@@ -733,11 +756,15 @@
       };
       # NVIDIA GPU mining with per-GPU power limits
       # Device 1: RTX 3090 @ 250W (VRAM-safe) - 3060 Ti disabled
+      # perGpuPowerLimits: [220, 250] = [GPU0: 220W (max), GPU1: 250W]
       lolminer.nvidia = {
         enable = true;
         autostart = true;
         devices = "1";
-        perGpuPowerLimits = [ 250 ]; # [3090] - 3060 Ti disabled
+        perGpuPowerLimits = [
+          220  # GPU0: 3060 Ti @ 220W (max, not used by lolminer)
+          250  # GPU1: RTX 3090 @ 250W (VRAM-safe)
+        ];
         apiPort = 4068;
       };
       # CPU mining - Dual XMRig setup (always-on + pause-able)
@@ -771,8 +798,9 @@
     # MONITORED - Full monitoring stack
     # Note: Loki and Promtail moved to monitoring.nix (Loki now on Sentry)
     monitoring = {
+      # MIGRATED TO KUBERNETES (2026-03-18)
       prometheus = {
-        enable = true;
+        enable = false;
         retentionDays = 30;
         scrapeInterval = "15s";
         enableAlertRules = true;
@@ -781,7 +809,7 @@
         enable = true;
         retentionDays = 30;
       };
-      grafana.enable = true;
+      grafana.enable = false;  # MIGRATED TO KUBERNETES (2026-03-18)
     };
 
     # GlitchTip error tracking (self-hosted Sentry alternative)
@@ -1197,20 +1225,30 @@
   # ============================================================================
 
   # ============================================================================
-  # LLAMAFILE - STANDALONE LLM FALLBACK
+  # LLAMAFILE - STANDALONE LLM FALLBACK (Qwen3.5-Optimized)
   # ============================================================================
-  # llama.cpp provides a standalone LLM fallback using llama-server
-  # Uses Qwen3.5-4B-IQ4_NL (2.4GB) - fits in 8GB VRAM with full offload
+  # llama.cpp with Qwen3.5-optimized settings for low TTFT
+  # Uses Qwen3.5-2B base model (not reasoning-distilled) for compatibility
   # Runs on port 8083 (8081/8082 used by xmrig, 8080 used by LM Studio)
+  # llama.cpp downgraded to 8244 for Qwen3.5 compatibility
   services.llamafile = {
     enable = true;
-    modelPath = "/home/j_kro/.lmstudio/models/mradermacher/Crow-4B-Opus-4.6-Distill-Heretic_Qwen3.5-i1-GGUF/Crow-4B-Opus-4.6-Distill-Heretic_Qwen3.5.i1-IQ4_NL.gguf";
+    modelPath = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-2B-GGUF/Qwen3.5-2B-IQ4_NL.gguf";
     host = "0.0.0.0"; # Accept cluster connections
     port = 8083;
-    gpu = "vulkan"; # Use Vulkan universal GPU backend (works with NVIDIA and AMD)
-    gpuLayers = 999; # Full offload to 3060Ti (2.4GB fits in 8GB VRAM)
-    ctxSize = 16384; # 16K context (safe for VRAM)
+    gpu = "nvidia"; # Use CUDA backend (supports Flash Attention)
+    gpuLayers = 999; # Full offload
+    ctxSize = 16384; # 16K context (recommended for stability)
     threads = 8;
+    batchSize = 512; # Standard batch size
+    ubatchSize = 512; # Standard micro-batch
+    # Enable Flash Attention with CUDA (fixes quantized cache issues)
+    flashAttention = true; # Flash Attention works with CUDA backend
+    parallelDecoding = 0; # Parallel decoding not supported in this version
+    enableThinking = false; # Thinking mode produces garbage output
+    reasoningBudget = 0; # Explicitly disable reasoning (override model template)
+    cacheTypeK = "q8_0"; # Fast 8-bit quantization
+    cacheTypeV = "q4_0"; # 4-bit for V cache (works with Flash Attention)
   };
 
   # ============================================================================

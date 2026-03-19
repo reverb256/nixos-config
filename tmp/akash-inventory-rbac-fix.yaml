@@ -1,0 +1,49 @@
+# Fix for Akash Inventory Operator RBAC Permissions
+# This fixes the "Unauthorized" errors when watching PersistentVolumes
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: akash-operator-inventory-hardware-discovery-fixed
+  labels:
+    akash.network: "true"
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/name: inventory
+rules:
+  # Existing permissions
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch, create, delete, update]
+
+  # NEW: Add PersistentVolume permissions
+  - apiGroups: [""]
+    resources: [persistentvolumes]
+    verbs: [get, list, watch]
+
+  # NEW: Add PersistentVolumeClaim permissions
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims]
+    verbs: [get, list, watch]
+
+  # NEW: Add StorageClass permissions
+  - apiGroups: [storage.k8s.io]
+    resources: [storageclasses]
+    verbs: [get, list, watch]
+
+---
+# Update the ClusterRoleBinding to use the fixed ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: operator-inventory-hardware-discovery-fixed
+subjects:
+  - kind: ServiceAccount
+    name: operator-inventory-hardware-discovery
+    namespace: akash-services
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: akash-operator-inventory-hardware-discovery-fixed

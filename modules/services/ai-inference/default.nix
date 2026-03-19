@@ -260,6 +260,68 @@ in
             description = "Redis port";
           };
         };
+        knowledgeFabric = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable Knowledge Fabric middleware for synthesized search";
+          };
+          rrf_k = mkOption {
+            type = types.int;
+            default = 60;
+            description = "RRF constant for Reciprocal Rank Fusion";
+          };
+          rag_enabled = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable RAG knowledge source";
+          };
+          code_search_enabled = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable code search source";
+          };
+          searxng_enabled = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable SearXNG knowledge source";
+          };
+          web_search_enabled = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable MCP web search source";
+          };
+          code_search_paths = mkOption {
+            type = types.listOf types.str;
+            default = [ "/etc/nixos" ];
+            description = "Paths to search for code";
+          };
+          rag_top_k = mkOption {
+            type = types.int;
+            default = 5;
+            description = "RAG top-K results";
+          };
+          searxng_url = mkOption {
+            type = types.str;
+            default = "http://127.0.0.1:7777";
+            description = "SearXNG URL";
+          };
+          searxng_max_results = mkOption {
+            type = types.int;
+            default = 5;
+            description = "SearXNG max results";
+          };
+          code_max_results = mkOption {
+            type = types.int;
+            default = 5;
+            description = "Code search max results";
+          };
+          web_max_results = mkOption {
+            type = types.int;
+            default = 5;
+            description = "Web search max results";
+          };
+        };
       };
     };
 

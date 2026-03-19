@@ -106,6 +106,10 @@ let
       # Vision support (Qwen3-VL via transformers)
       ps.pillow # For image processing
       ps.onnxruntime # For ONNX model support
+      # SearXNG deep integration dependencies
+      ps.scikit-learn # For result clustering (DBSCAN, TF-IDF)
+      ps.lxml # Fast HTML parsing for ingestion
+      ps.feedgen # For RSS/ATOM export generation
     ]
     ++ [ modularGatewayPkgPython ]
   );
@@ -122,11 +126,22 @@ let
 
   # Use modular gateway by default (set to false to use old monolithic version)
   gatewayPkg = modularGatewayPkg;
+
+  # Wrapper script for OpenCode SearXNG MCP server
+  # Dynamically finds the gateway package to avoid hardcoded Nix store paths
+  opencodeSearxngMcpWrapper = pkgs.writeShellApplication {
+    name = "opencode-searxng-mcp";
+    runtimeInputs = with pkgs; [ coreutils findutils gnugrep gnused ];
+    text = builtins.readFile ./bin/opencode-searxng-mcp;
+  };
 in
 {
   config = mkIf (cfg.enable && cfg.gateway.enable) {
     # Expose the gateway Python environment for use by MCP servers
     services.ai-inference.gateway.python = gatewayPython;
+
+    # Install the OpenCode MCP wrapper script to system path
+    environment.systemPackages = [ opencodeSearxngMcpWrapper ];
 
     systemd.services.ai-inference-gateway = {
       description = "AI Inference API Gateway v2";
@@ -236,10 +251,23 @@ in
         SYSTEM_PROMPTS_AGENTIC = cfg.systemPrompts.agentic;
         SYSTEM_PROMPTS_FAST = cfg.systemPrompts.fast;
         SYSTEM_PROMPTS_CUSTOM = builtins.toJSON cfg.systemPrompts.custom;
+        # Knowledge Fabric middleware configuration (Pydantic nested: middleware.knowledge_fabric.*)
+        MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = lib.boolToString cfg.gateway.middleware.knowledgeFabric.enable;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K = toString cfg.gateway.middleware.knowledgeFabric.rrf_k;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = lib.boolToString cfg.gateway.middleware.knowledgeFabric.rag_enabled;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED = lib.boolToString cfg.gateway.middleware.knowledgeFabric.code_search_enabled;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = lib.boolToString cfg.gateway.middleware.knowledgeFabric.searxng_enabled;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED = lib.boolToString cfg.gateway.middleware.knowledgeFabric.web_search_enabled;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = builtins.toJSON cfg.gateway.middleware.knowledgeFabric.code_search_paths;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = toString cfg.gateway.middleware.knowledgeFabric.rag_top_k;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL = cfg.gateway.middleware.knowledgeFabric.searxng_url;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS = toString cfg.gateway.middleware.knowledgeFabric.searxng_max_results;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS = toString cfg.gateway.middleware.knowledgeFabric.code_max_results;
+        MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS = toString cfg.gateway.middleware.knowledgeFabric.web_max_results;
       };
 
       serviceConfig = {
-        RuntimeDirectory = "ai-inference";  # Creates /run/ai-inference
+        RuntimeDirectory = "ai-inference"; # Creates /run/ai-inference
         ExecStart = "${gatewayPython}/bin/uvicorn ai_inference_gateway.main:app --host ${cfg.gateway.host} --port ${toString cfg.gateway.port} --workers ${toString cfg.gateway.workers} --log-level debug --app-dir ${gatewayPkg}";
         ExecReload = "/bin/kill -HUP $MAINPID";
         Restart = "on-failure";
@@ -255,7 +283,7 @@ in
           "/tmp"
           "/var/cache/ai-inference"
           "/run/gpu-scheduler"
-          "/run/ai-inference"  # Self-improvement memory
+          "/run/ai-inference" # Self-improvement memory
         ]
         ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
         ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)

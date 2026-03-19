@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Serena MCP Server wrapper
+# Provides semantic code retrieval and editing tools for coding agents
+
+set -euo pipefail
+
+# Set npm cache to writable location for systemd services
+export npm_config_cache="/var/cache/ai-inference/npm"
+
+# Configure for NixOS - use uv to run Serena from GitHub
+exec uvx --from git+https://github.com/oraios/serena serena start-mcp-server "$@"

@@ -162,7 +162,6 @@
           enable = true;
           hostname = config.networking.hostName;
           clusterDns = [ "10.0.0.10" ]; # CoreDNS service IP
-          cniConfDir = "/var/lib/cni/net.d"; # Use writable CNI directory (not read-only /etc/cni/net.d)
           extraConfig = {
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
@@ -364,6 +363,7 @@
           description = "Setup CNI network configuration bind mount";
           before = [ "containerd.service" ];
           requiredBy = [ "containerd.service" ];
+          path = [ pkgs.util-linux pkgs.coreutils ];
           serviceConfig.Type = "oneshot";
           script = ''
             # Create a writable directory for CNI configs

@@ -10,8 +10,9 @@
     # rather than /nix/var/nix/profiles/per-user/root
     useUserPackages = true;
 
-    # No backups - configs are declarative and version-controlled
-    backupFileExtension = null;
+    # Automatic backups for idempotency - handles conflicting files gracefully
+    # Files are backed up with .backup extension before being replaced by symlinks
+    backupFileExtension = "backup";
 
     # Pass inputs to user configs so flake inputs are accessible
     extraSpecialArgs = {inherit inputs;};

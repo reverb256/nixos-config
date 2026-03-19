@@ -1,201 +1,130 @@
-# NixOS Cluster - Universal Agent Guidelines
-
-## Purpose
-Universal guidelines for ALL AI agents (Claude Code, Cursor, Copilot, Qwen-Agent, OpenCode, etc.) working on this NixOS configuration.
-
-**Agent-specific instructions**: See `@.claude/CLAUDE.md` (Claude Code), `.github/copilot-instructions.md` (GitHub Copilot), or agent-specific instruction files.
-
----
+# NixOS Cluster - Agent Guidelines
 
 ## Quick Start
 
-**For AI Agents:**
-1. Read this file for universal cluster patterns
-2. Use agent-specific instructions for your tool
-3. Use `just` commands for all operations
-
-**For Humans:**
-1. Read this file for universal patterns
-2. Check agent-specific files for your AI tool
-3. Use `just` commands for all operations
-
----
-
-## WHAT: Project Overview
-
-NixOS flake-based 4-host Linux cluster:
-- **Zephyr** (10.1.1.110) - Control plane, gaming, AI inference
-- **Nexus** (10.1.1.120) - Storage, GPU computing
-- **Forge** (10.1.1.130) - GPU computing, mining
-- **Sentry** (10.1.1.140) - Monitoring, logging
-
-**Resources**: 78 cores, 123GB RAM, 7 GPUs (5x NVIDIA + 2x AMD), 8.4TB storage
-
-**Architecture**: Declarative, reproducible, composable (profile-based), scalable (multi-host)
-
----
-
-## HOW: Commands & Workflow
-
-### Essential Commands
 ```bash
-just test              # Verify configuration builds
-just switch            # Apply to local host (auto-pauses CPU mining)
-just deploy            # Deploy to all hosts via Colmena
-just ci-local          # Full CI pipeline locally
+just check              # Quick flake validation (no build)
+just test               # Build all hosts (verify config)
+just switch             # Apply to local host
+just deploy [<host>]    # Deploy to all or specific host
+just rollback           # Rollback local host
 ```
 
-### Development Workflow
-1. Make changes
-2. `git add` new files (Nix packages git-tracked files!)
-3. `git commit`
-4. `just test` (verify configuration)
-5. `just deploy` (apply to all hosts)
+## Project Overview
 
-### Testing Before Deployment
-- `modules/networking/*` → Test SSH on zephyr AND nexus
-- `modules/system/ssh.nix` → Test SSH on all 4 nodes
-- `modules/system/users.nix` → Test login on all 4 nodes
-- `modules/default.nix` → Test entire cluster
+| Host | IP | Role |
+|------|-----|------|
+| Zephyr | 10.1.1.110 | Control plane, gaming, AI |
+| Nexus | 10.1.1.120 | Storage, GPU computing |
+| Forge | 10.1.1.130 | GPU computing, mining |
+| Sentry | 10.1.1.140 | Monitoring, logging |
 
-### Stop Immediately If
-- SSH breaks on any node → Document incident, wait for human
-- Multiple nodes affected → STOP ALL WORK, create urgent task
+**Resources**: 78 cores, 123GB RAM, 7 GPUs, 8.4TB storage
 
----
-
-## WHAT: Project Structure
+## Project Structure
 
 ```
 /etc/nixos/
-├── flake.nix                    # Main flake with host definitions
-├── hosts/                       # Host-specific configurations
-│   ├── zephyr/
-│   ├── nexus/
-│   ├── forge/
-│   └── sentry/
-├── modules/                     # Reusable NixOS modules
-│   ├── profiles/                # Hardware, role, network profiles
-│   └── system/                  # System-level modules
-├── .claude/                     # Claude-specific files
-│   ├── agents/                  # Agent definitions
-│   └── skills/                  # Skill definitions
-├── .github/                     # GitHub-specific files
-│   └── copilot-instructions.md  # GitHub Copilot instructions
-├── justfile                     # CI/CD commands
-├── AGENTS.md                    # Universal patterns (this file)
-└── ROADMAP.md                   # Kubernetes migration plan
+├── flake.nix              # Main flake
+├── colmena.nix            # Multi-host deployment
+├── hosts/<hostname>/      # Host configs (never edit hardware-configuration.nix)
+├── modules/               # Reusable modules (default.nix imports all)
+│   ├── profiles/          # Hardware/role/network profiles
+│   ├── system/            # Core system modules
+│   └── services/          # Background services
+└── secrets/               # Agenix encrypted secrets
 ```
 
----
+## ⚠️ Critical Safety Rules
 
-## HOW: Code Style & Conventions
-
-### Nix Language Style
-- **2-space indentation**, trailing semicolons
-- **kebab-case** for files and modules
-- **Line length**: 80-100 chars (soft limit 120)
-
-### Critical: Module System
-In shared modules, use `lib.mkOptionDefault` for extensible options:
+### mkOptionDefault (MANDATORY for extensible options)
 
 ```nix
-# ❌ WRONG - REPLACES node configs
+# ❌ WRONG - Replaces node configs (breaks SSH!)
 networking.firewall.allowedTCPPorts = [22 53 6443];
 
-# ✅ CORRECT - MERGES with node configs
+# ✅ CORRECT - Merges with node configs
 networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 ```
 
-**Why:** Direct assignment breaks SSH and other critical services on all nodes.
+| Use `mkOptionDefault` | Use Direct Assignment |
+|-----------------------|----------------------|
+| Lists (ports, packages) | Booleans |
+| Attrs that merge (systemd.services) | Strings (hostName) |
 
-### Profile System
-Composable configurations for hardware, roles, and networking:
+### Stop Immediately If
+- SSH breaks on any node
+- Multiple nodes affected
+- `nix flake check` fails
+
+## Code Style
+
+- **2-space indentation**, trailing semicolons
+- **kebab-case** for files: `gpu-exporters.nix`
+- **Line length**: 80-100 chars
+
+### Module Template
+
 ```nix
-imports = [
-  ../../modules/profiles/hardware/amd-zen.nix
-  ../../modules/profiles/role/mining.nix
-  ../../modules/profiles/network/tailscale.nix
-];
+{ config, lib, pkgs, ... }:
+let
+  cfg = config.services.my-service;
+  inherit (lib) mkEnableOption mkOption types mkIf;
+in {
+  options.services.my-service = {
+    enable = mkEnableOption "My Service";
+    port = mkOption { type = types.port; default = 8080; };
+  };
+  config = mkIf cfg.enable {
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
+    systemd.services.my-service = {
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig.ExecStart = "${pkgs.my-package}/bin/my-service";
+    };
+  };
+}
 ```
 
----
+### Naming Conventions
 
-## HOW: Multi-Host Deployment
+| Namespace | Usage |
+|-----------|-------|
+| `services.*` | Background daemons |
+| `programs.*` | Interactive GUI apps |
+| `hardware.*` | Hardware config |
+| `profiles.*` | Composable profiles |
 
-### Colmena Commands
-```bash
-nix run .#apps.x86_64-linux.colmena -- build          # Build all hosts
-nix run .#apps.x86_64-linux.colmena -- apply --on <host>  # Apply to host
-just deploy                                     # Deploy to all hosts
+## Deployment Workflow
+
+1. Edit config on Zephyr (source of truth)
+2. `git add` new files (Nix only sees git-tracked files!)
+3. `just check` → `just switch` → `just deploy`
+
+### Testing Checklist
+
+| File Changed | Test On |
+|--------------|---------|
+| `modules/networking/*` | zephyr AND nexus |
+| `modules/system/ssh.nix` | ALL 4 nodes |
+| `modules/system/users.nix` | ALL 4 nodes |
+| `modules/default.nix` | Entire cluster |
+
+## Profile System
+
+```nix
+hardware.profiles = { amd.zen = true; nvidia.enable = true; };
+profiles.role = { workstation = true; gaming = true; };
+profiles.network.tailscale.enable = true;
 ```
 
-### Remote Deployment Notes
-- Remote hosts use `boot` goal to avoid switch inhibitors
-- Local host (zephyr) uses `switch` goal
-- Mining auto-pauses during deployment
+## Reference
 
-### Important Notes
-- Keep `system.stateVersion` and `home.stateVersion` current
-- Never edit `hardware-configuration.nix` or `flake.lock`
-- Always use `just` commands for CI/CD integration
-- Never suppress build errors (no `|| true`)
-- Check storage mounts after deployment
+| Document | Purpose |
+|----------|---------|
+| `AGENT_INCIDENT_REPORT.md` | Post-mortems of past incidents |
+| `ROADMAP.md` | Kubernetes migration plan |
+| `modules/README.md` | Module development guide |
 
 ---
 
-## WHAT: Kubernetes Migration
-
-**Status**: Phase 1 Complete (K8s v1.35.0 running)
-
-**Architecture**:
-- **Control Plane (Zephyr)**: API server, etcd, Flannel CNI, CoreDNS
-- **Worker Nodes**: Nexus (storage), Forge (GPU), Sentry (monitoring)
-- **Storage**: Longhorn (distributed), NFS (shared), local (databases)
-
-**Full Plan**: See `@ROADMAP.md`
-
----
-
-## HOW: MCP Integration
-
-**Protocol**: JSON-RPC 2.0 over HTTP/SSE
-**Critical Header**: `Accept: application/json, text/event-stream`
-
-**Server Config**: `.claude/settings.json`
-
-**Common Tools**: `webSearchPrime`, `imageSearchPrime`
-
-**Troubleshooting**:
-- 400 Bad Request: Missing Accept header
-- 404 Not Found: Case-sensitive tool names
-
----
-
-## Reference Documents
-
-### Agent-Specific Instructions
-- **Claude Code**: `@.claude/CLAUDE.md`
-- **GitHub Copilot**: `.github/copilot-instructions.md`
-- **Qwen-Agent**: `@QWEN.md`
-
-### Cluster Information
-- **Cluster Health**: `just status` or read `STATUS.md`
-- **Full Documentation Index**: `@DOCUMENTATION_INDEX.md`
-- **Kubernetes Roadmap**: `@ROADMAP.md`
-
-### Claude-Specific Files
-- **Multi-Host Validator**: `.claude/agents/multi-host-validator.md`
-- **Add-Service Skill**: `.claude/skills/add-service/SKILL.md`
-- **Nix-Rebuild Skill**: `.claude/skills/nix-rebuild/SKILL.md`
-
-### Safety & Deployment
-- **Hookify Rules**: `.claude/hookify-*.md`
-- **Incident Reports**: `AGENT_INCIDENT_REPORT.md`
-
----
-
-**Version**: 2.0 | **Updated**: 2026-03-15
-**Changes**: Multi-file pattern alignment, progressive disclosure, universal agent focus
-
-
+**Version**: 3.1 | **Updated**: 2026-03-18

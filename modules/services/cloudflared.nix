@@ -17,7 +17,7 @@
 
     credentialsFile = lib.mkOption {
       type = lib.types.path;
-      default = "/run/agenix/cloudflared-token.json";
+      default = "/run/agenix/cloudflared-token";
       description = "Path to tunnel credentials file (JSON with AccountID, TunnelID, TunnelSecret)";
     };
 
@@ -60,16 +60,16 @@
       # CLOUDFLARED CONFIGURATION
       # ============================================================================
       environment.etc."cloudflared/config.yml".text = let
-      # Generate ingress YAML entries
+      # Generate ingress YAML entries with proper quoting
       ingressYaml = lib.concatMapStrings (rule: ''
-        - hostname: ${rule.hostname}
+        - hostname: "${rule.hostname}"
           service: ${rule.service}
       '') cfg.ingressRules;
     in ''
       tunnel: ${cfg.tunnelId}
       credentials-file: ${cfg.credentialsFile}
 
-      metrics: ${toString cfg.metricsPort}
+      metrics: 0.0.0.0:${toString cfg.metricsPort}
 
       ingress:
       ${lib.optionalString (cfg.ingressRules != []) ingressYaml}
@@ -89,13 +89,14 @@
         ExecStart = "${pkgs.cloudflared}/bin/cloudflared tunnel --config /etc/cloudflared/config.yml run";
         Restart = "on-failure";
         RestartSec = "5s";
-        DynamicUser = true;
+        # Run as root to read agenix-decrypted credentials
+        User = "root";
+        Group = "root";
         # Security hardening
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = ["/run/agenix"];
         AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
       };
 
