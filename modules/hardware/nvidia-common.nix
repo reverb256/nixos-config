@@ -80,27 +80,10 @@ in {
     # ============================================================================
     # GPU POWER/PERFORMANCE MODE
     # ============================================================================
-    # GPUPowerMizerMode controls dynamic clock scaling:
-    # - 0 = Adaptive (default) - auto-scales based on load
-    # - 1 = Prefer Maximum Performance - always full clocks
-    # - 2 = Auto - same as Adaptive for RTX 30 series
+    # DynamicPowerManagement disabled via NVreg_DynamicPowerManagement=0
+    # in boot.extraModprobeConfig above.
     #
-    # Set to maximum performance to prevent HDMI TV brightness fluctuations
-    # when GPU power scales up/down based on mouse movement/activity.
-    #
-    # TEMPORARILY DISABLED: nvidia-settings package not available
-    # TODO: Re-enable when nvidia-settings is added to packages
-    # systemd.services.nvidia-powermizer = {
-    #   description = "Set NVIDIA GPUs to maximum performance mode";
-    #   wantedBy = ["graphical.target"];
-    #   after = ["graphical.target"];
-    #   serviceConfig = {
-    #     Type = "oneshot";
-    #     RemainAfterExit = true;
-    #     ExecStart = "/run/current-system/sw/bin/nvidia-settings -a [gpu:0]/GPUPowerMizerMode=1 -a [gpu:1]/GPUPowerMizerMode=1";
-    #     Environment = "DISPLAY=:0";
-    #     User = "j_kro";
-    #   };
-    # };
+    # This prevents GPU from auto-scaling power based on input activity,
+    # which fixes HDMI TV brightness fluctuations when typing/moving mouse.
   };
 }

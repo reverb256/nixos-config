@@ -13,6 +13,8 @@ in {
   options.services.gaming = {
     enable = mkEnableOption "Gaming support (Steam, GameMode, Gamescope)";
 
+    disableCabcTriggers = mkEnableOption "Disable CABC triggers for HDMI TVs";
+
     vr = {
       enable = mkEnableOption "VR support (WiVRn, SteamVR, OpenXR)";
       encoder = mkOption {
