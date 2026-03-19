@@ -359,11 +359,10 @@ in {
 
     etc = {
       "xdg/kscreenlockerrc".text = ''
-        [General]
-        [Screen]
-        AutoscreenDisabled=true
         [Daemon]
-        AutoConfig=false
+        Autolock=false
+        Enabled=false
+        Timeout=0
       '';
 
       # PowerDevil - Disable display power management (monitors turning off)
