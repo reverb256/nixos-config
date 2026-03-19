@@ -15,17 +15,17 @@ _: prev: {
     doCheck = false;
   });
 
-  # llama-cpp: Updated to b8419 (2026-03-19) for Qwen3.5 compatibility
-  # The previous pin to 8244 was based on outdated information.
+  # llama-cpp: Updated to b8429 (latest) for Qwen3.5 compatibility
+  # The previous pin to 8244 was completely broken for Qwen3.5.
   # Latest version includes all Qwen3.5 tokenizer and template fixes.
-  # Commit: 509a31d00f87804a466dee983a30ce29aa0441b1
+  # Commit: 1e645345702154ba4813d3d9bbdbd97718de82c0
   llama-cpp = prev.llama-cpp.overrideAttrs (old: {
-    version = "b8419";
+    version = "b8429";
     src = prev.fetchFromGitHub {
       owner = "ggml-org";
       repo = "llama.cpp";
-      rev = "509a31d00f87804a466dee983a30ce29aa0441b1";
-      sha256 = "DxgUDVr+kwtW55C4b89Pl+j3u2ILmACcQOvOBjKWAKQ=";
+      rev = "1e645345702154ba4813d3d9bbdbd97718de82c0";
+      sha256 = lib.fakeSha256;
     };
   });
 
