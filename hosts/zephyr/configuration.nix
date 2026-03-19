@@ -608,7 +608,7 @@
           # All knowledge sources enabled
           rag_enabled = true;
           searxng_enabled = true;
-          searxng_url = "http://10.1.1.110:30080";
+          searxng_url = "http://10.0.0.230:7777";  # TODO: Sync with services.ai-inference.searxngUrl
           searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
