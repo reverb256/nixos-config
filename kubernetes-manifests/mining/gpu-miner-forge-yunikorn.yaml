@@ -1,0 +1,176 @@
+# GPU Miner Deployment for Forge (2x RTX 4060 + 2x RX 5700 XT)
+# MIGRATED: Now uses YuniKorn scheduler with priority-based preemption
+#
+# Changes from original:
+# - Added schedulerName: yunikorn
+# - Priority class maintained (low-priority-mining)
+# - PodGroup association for gang scheduling support
+# - Enhanced resource requests/limits for scheduler awareness
+# - Added eviction toleration for preemption
+
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: gpu-miner-forge-group
+  namespace: mining
+  labels:
+    app: gpu-miner
+    host: forge
+spec:
+  # Minimum resources for gang scheduling
+  minMember: 1
+  minResources:
+    nvidia.com/gpu: "2"
+    amd.com/gpu: "2"
+    memory: "8Gi"
+    cpu: "4"
+  # Priority class (low - preemptible by AI)
+  priorityClassName: low-priority-mining
+  # Queue for mining workloads
+  queue: mining-queue
+  # Timeout for resource allocation
+  minTaskTimeout: 5m
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge
+  namespace: mining
+  labels:
+    app: gpu-miner
+    host: forge
+    scheduler: yunikorn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-miner
+      host: forge
+  template:
+    metadata:
+      labels:
+        app: gpu-miner
+        host: forge
+        # PodGroup association for gang scheduling
+        scheduling.volcano.sh/pod-group: gpu-miner-forge-group
+      annotations:
+        # PromotePods annotation for faster preemption recovery
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4068"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Use YuniKorn scheduler
+      schedulerName: yunikorn
+      # Pin to Forge node (2x RTX 4060 + 2x RX 5700 XT)
+      nodeName: forge
+      # Use host network for stratum connection
+      hostNetwork: true
+      # Low priority (preemptible by AI workloads)
+      priorityClassName: low-priority-mining
+      # Allow this pod to be evicted for higher priority pods
+      - key: "scheduler.yunikorn.io/preemptible"
+        operator: "Exists"
+      containers:
+      # NVIDIA GPU mining (RTX 4060s)
+      - name: lolminer-nvidia
+        image: lolminer:1.98a-nixos
+        imagePullPolicy: Never  # Use local image built by Nix
+        args:
+          - "--algo=CR29"
+          - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
+          - "--user=forge-gpu"
+          - "--devices=2,3"  # RTX 4060s (GPU IDs on Forge)
+          - "--apiport=4068"
+          - "--mode=b"
+          - "--tls=1"
+        ports:
+        - containerPort: 4068
+          name: api
+          protocol: TCP
+        # Health probes - lolMiner API for monitoring
+        livenessProbe:
+          httpGet:
+            path: /
+            port: api
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: api
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        securityContext:
+          privileged: true  # Required for GPU access
+        volumeMounts:
+        - name: nvidia
+          mountPath: /usr/lib/nvidia
+        # Enhanced resource requests for YuniKorn scheduling
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+            nvidia.com/gpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+            nvidia.com/gpu: "2"
+      # AMD GPU mining (RX 5700 XTs)
+      - name: lolminer-amd
+        image: lolminer:1.98a-nixos
+        imagePullPolicy: Never  # Use local image built by Nix
+        args:
+          - "--algo=CR29"
+          - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
+          - "--user=forge-gpu"
+          - "--devices=0,1"  # RX 5700 XTs
+          - "--apiport=4069"
+          - "--mode=b"
+          - "--tls=1"
+        ports:
+        - containerPort: 4069
+          name: api-amd
+          protocol: TCP
+        # Health probes - lolMiner API for monitoring
+        livenessProbe:
+          httpGet:
+            path: /
+            port: api-amd
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: api-amd
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        securityContext:
+          privileged: true
+        # Enhanced resource requests for YuniKorn scheduling
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+      volumes:
+      - name: nvidia
+        hostPath:
+          path: /run/current-system/sw/lib/nvidia

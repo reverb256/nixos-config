@@ -172,7 +172,7 @@
       };
     };
 
-    # Cloudflare Tunnel - Akash provider ingress
+    # Cloudflare Tunnel - Akash provider ingress with Zero Trust
     cloudflared-tunnel = {
       enable = true;
       tunnelId = "e67aedf0-a025-4231-9ee4-3fa6887c2d21";
@@ -181,25 +181,43 @@
       quicEnabled = true;
 
       ingressRules = [
-        # Provider bid engine (NodePort 30843)
+        # Provider bid engine (NodePort 30843) - RESTRICTED ACCESS
         {
           hostname = "provider.reverb256.ca";
           service = "https://10.1.1.120:30843";
+          # Zero Trust: Only provider owner can access bid engine
+          accessPolicy = "j_kroeker@reverb256.ca";
         }
-        # Provider gRPC (for lease management, NodePort 30844)
+        # Provider gRPC (for lease management, NodePort 30844) - RESTRICTED ACCESS
         {
           hostname = "grpc.provider.reverb256.ca";
           service = "https://10.1.1.120:30844";
+          # Zero Trust: Only provider owner can access gRPC
+          accessPolicy = "j_kroeker@reverb256.ca";
         }
-        # Tenant ingress (wildcard for deployments, NodePort 30080)
+        # Tenant ingress (wildcard for deployments, NodePort 30080) - PUBLIC
         {
           hostname = "*.ingress.reverb256.ca";
           service = "http://10.1.1.120:30080";
+          # No access policy = Public (tenant deployments)
         }
-        # Fallback for bare ingress domain
+        # Fallback for bare ingress domain - PUBLIC
         {
           hostname = "ingress.reverb256.ca";
           service = "http://10.1.1.120:30080";
+          # No access policy = Public (tenant deployments)
+        }
+        # Akash Provider Health Dashboard - PUBLIC
+        {
+          hostname = "status.provider.reverb256.ca";
+          service = "http://10.1.1.140:8080";
+          # Served by nginx on Sentry (monitoring host)
+        }
+        # Akash Provider Status Page - PUBLIC
+        {
+          hostname = "akash.reverb256.ca";
+          service = "http://10.1.1.140:8080";
+          # Served by nginx on Sentry (monitoring host)
         }
       ];
     };

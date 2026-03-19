@@ -1,0 +1,48 @@
+# Priority Classes for GPU Workload Scheduling
+# Defines priority levels for AI inference vs mining workloads
+
+---
+# Critical priority for distributed AI training (gang scheduling)
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: ai-inference-critical
+value: 1000
+globalDefault: false
+description: "Critical priority for distributed AI training workloads requiring gang scheduling"
+---
+# High priority for interactive AI inference
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: ai-inference-high
+value: 900
+globalDefault: false
+description: "High priority for interactive AI inference workloads"
+---
+# Medium priority for batch AI inference
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: ai-inference-medium
+value: 800
+globalDefault: false
+description: "Medium priority for batch AI inference workloads"
+---
+# Low priority for mining workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: mining-low
+value: 100
+globalDefault: false
+description: "Low priority for mining workloads (preemptible by AI)"
+---
+# Background priority for opportunistic mining
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: mining-background
+value: 50
+globalDefault: false
+description: "Background priority for opportunistic mining (always preemptible)"

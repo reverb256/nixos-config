@@ -220,6 +220,31 @@
     # Compute Workload Monitor - Pause mining during builds/gaming
     compute-workload-monitor.enable = true;
 
+    # Nginx - Serve Akash provider dashboards
+    nginx = {
+      enable = true;
+      recommendedProxySettings = true;
+      recommendedGzipSettings = true;
+
+      virtualHosts."_" = {
+        default = true;
+        locations."=/akash-health/" = {
+          alias = "/var/www/akash-health/";
+          extraConfig = ''
+            autoindex off;
+          '';
+        };
+        locations."=/akash-status/" = {
+          alias = "/var/www/akash-status/";
+          extraConfig = ''
+            autoindex off;
+          '';
+        };
+        # Root redirects to status page
+        locations."= /".return = "301 /akash-status/";
+      };
+    };
+
     xserver.videoDrivers = [ "amdgpu" ];
 
     # MINING (CPU only - 4 threads = 25% of 16 cores)
