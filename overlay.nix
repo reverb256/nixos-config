@@ -15,19 +15,9 @@ _: prev: {
     doCheck = false;
   });
 
-  # llama-cpp: Updated to b8429 (latest) for Qwen3.5 compatibility
-  # Need to override both src and npmDeps to fix hash issues
-  llama-cpp = prev.llama-cpp.overrideAttrs (old: {
-    version = "b8429";
-    src = prev.fetchzip {
-      url = "https://github.com/ggml-org/llama.cpp/archive/1e645345702154ba4813d3d9bbdbd97718de82c0.tar.gz";
-      sha256 = "A/FfrcZyF665nyuYFISyuP8jZJe7gItpXAhvrCPseZI=";
-    };
-    npmDeps = prev.fetchurl {
-      url = "https://github.com/ggml-org/llama.cpp/archive/1e645345702154ba4813d3d9bbdbd97718de82c0.tar.gz";
-      sha256 = "NPmdpvKe1WPCT4u/zy9VYXVcXBBamDAQD5FMuOjfWyM=";
-    };
-  });
+  # llama-cpp: REMOVED override - using nixpkgs version
+  # The override to b8429 has build system compatibility issues.
+  # Using nixpkgs version 8255 instead.
 
   # Python packages overlay
   python3 = prev.python3.override {
