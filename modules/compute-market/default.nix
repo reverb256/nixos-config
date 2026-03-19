@@ -741,6 +741,74 @@
           }
 
           # ============================================================================
+          # MARKET INTELLIGENCE MODULE
+          # ============================================================================
+          # Analyze Akash market for competitive pricing
+          analyze_market() {
+              log_debug "Analyzing Akash market pricing..."
+
+              # Query Akash API for recent active leases with GPU resources
+              # Note: This is a simplified implementation. In production, you'd want more robust error handling.
+              local api_url="https://api.akash.network/api/v1/leases"
+
+              # Try to fetch recent lease data (with timeout)
+              local market_data=$(curl -s --max-time 10 "$api_url" 2>/dev/null || echo "")
+
+              if [ -z "$market_data" ]; then
+                  log_debug "Market API unavailable, using cached data"
+                  # Return cached percentiles if available
+                  if [ -f "$STATE_DIR/market_p50" ]; then
+                      cat "$STATE_DIR/market_p50"
+                  else
+                      echo "0.05"  # Fallback default
+                  fi
+                  return
+              fi
+
+              # Parse lease prices from API response (uakt per block)
+              # Extract prices for GPU leases and convert to USD/hour
+              local prices=$(echo "$market_data" | jq -r '.[] | select(.resources.gpu > 0) | .price' 2>/dev/null || echo "")
+
+              if [ -z "$prices" ]; then
+                  log_debug "No GPU lease data available"
+                  echo "0.05"
+                  return
+              fi
+
+              # Calculate percentiles from price data
+              local price_count=$(echo "$prices" | wc -l)
+              local p25=$(echo "$prices" | sort -n | awk "NR==$price_count/4" | head -1)
+              local p50=$(echo "$prices" | sort -n | awk "NR==$price_count/2" | head -1)
+              local p75=$(echo "$prices" | sort -n | awk "NR==$price_count*3/4" | head -1)
+
+              # Convert uakt to USD/hour (1 AKT ≈ $0.50, 600 blocks/hour)
+              # uakt/block * 0.50 * 600 / 1_000_000
+              local p25_usd=$(echo "scale=4; $p25 * 0.50 * 600 / 1000000" | bc)
+              local p50_usd=$(echo "scale=4; $p50 * 0.50 * 600 / 1000000" | bc)
+              local p75_usd=$(echo "scale=4; $p75 * 0.50 * 600 / 1000000" | bc)
+
+              # Store percentiles for bidding decisions
+              echo "$p25_usd" > "$STATE_DIR/market_p25"
+              echo "$p50_usd" > "$STATE_DIR/market_p50"
+              echo "$p75_usd" > "$STATE_DIR/market_p75"
+
+              log_info "Market analysis: P25=\$$p25_usd/hr P50=\$$p50_usd/hr P75=\$$p75_usd/hr (from $price_count leases)"
+
+              # Return median price for reference
+              echo "$p50_usd"
+          }
+
+          # Market monitoring loop (runs in background)
+          start_market_monitor() {
+              log_info "Starting market intelligence monitor (5-minute intervals)"
+
+              while true; do
+                  analyze_market
+                  sleep 300  # 5 minutes
+              done &
+          }
+
+          # ============================================================================
           # MAIN LOOP
           # ============================================================================
           main() {
@@ -755,6 +823,9 @@
 
               # Start metrics server in background
               # start_metrics_server  # Disabled: nc may not be available
+
+              # Start market intelligence monitor
+              start_market_monitor
 
               # Main auction loop
               while true; do
