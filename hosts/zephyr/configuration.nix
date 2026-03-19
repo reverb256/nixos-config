@@ -565,7 +565,8 @@
     # Note: redis-ai-gateway.service already provides Redis on port 6380
 
     # SearXNG - Privacy-respecting metasearch engine for AI gateway
-    searxng.enable = true;
+    # MIGRATED TO KUBERNETES (2026-03-19) - See kubernetes-manifests/searxng/
+    searxng.enable = false;
 
     # AI Inference Service - Gateway with ALL FEATURES enabled
     ai-inference = {
@@ -601,7 +602,7 @@
           # All knowledge sources enabled
           rag_enabled = true;
           searxng_enabled = true;
-          searxng_url = "http://127.0.0.1:7777";
+          searxng_url = "http://searxng.search.svc.cluster.local:7777";  # MIGRATED TO KUBERNETES (2026-03-19)
           searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
