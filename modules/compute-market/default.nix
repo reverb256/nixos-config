@@ -38,8 +38,8 @@
 
       hourlyRevenue = lib.mkOption {
         type = lib.types.float;
-        default = 0.10;
-        description = "Hourly revenue per GPU in USD (baseline bid)";
+        default = 0.014;
+        description = "Hourly revenue per GPU in USD (actual: ~$96/month ÷ 7 GPUs ÷ 730 hrs)";
       };
 
       services = lib.mkOption {
@@ -363,7 +363,7 @@
               echo "$total_bid"
           }
 
-          # Akash Bidder - Returns current market rate for active leases
+          # Akash Bidder - Returns market rate for active leases OR potential market rate
           bid_akash() {
               if [ "$AKASH_ENABLE" != "true" ]; then
                   echo 0
@@ -382,31 +382,39 @@
                   -o jsonpath='{range .items[?(@.status.currentState == "active")]}{.metadata.name}{"\n"}{end}' \
                   2>/dev/null || echo "")
 
-              if [ -z "$active_leases" ]; then
-                  echo 0
+              # If we have active leases, calculate actual revenue
+              if [ -n "$active_leases" ]; then
+                  local total_bid=0
+                  while IFS= read -r lease; do
+                      [ -z "$lease" ] && continue
+
+                      # Get lease price (in uakt per block)
+                      local price=$(kubectl get lease "$lease" -n "$AKASH_NAMESPACE" \
+                          -o jsonpath='{.spec.price}' 2>/dev/null || echo "0")
+
+                      # Convert to USD/hour (1 AKT ≈ $0.50, blocks ≈ 6s)
+                      # uakt/block * AKT_price * (3600 / 6) / 1_000_000
+                      local usd_hourly=$(echo "scale=4; $price * 0.50 * 600 / 1000000" | bc)
+
+                      # Apply profit margin (we bid slightly less than full market value)
+                      local our_bid=$(echo "$usd_hourly * $AKASH_MARGIN" | bc)
+
+                      total_bid=$(echo "$total_bid + $our_bid" | bc)
+                  done <<< "$active_leases"
+
+                  echo "$total_bid"
                   return
               fi
 
-              # For each active lease, calculate bid based on escrowed payment
-              local total_bid=0
-              while IFS= read -r lease; do
-                  [ -z "$lease" ] && continue
+              # No active leases - bid based on POTENTIAL market rate
+              # Based on observed order prices: 100,000 uakt = $0.05/hr for RTX 3060 Ti
+              # This is ~3.5× more than mining ($0.014/hr), so Akash should win
+              local potential_bid=0.05  # Conservative estimate based on actual orders
 
-                  # Get lease price (in uakt per block)
-                  local price=$(kubectl get lease "$lease" -n "$AKASH_NAMESPACE" \
-                      -o jsonpath='{.spec.price}' 2>/dev/null || echo "0")
+              # Apply profit margin
+              local our_bid=$(echo "scale=4; $potential_bid * $AKASH_MARGIN" | bc)
 
-                  # Convert to USD/hour (rough approximation: 1 AKT ≈ $0.50, blocks ≈ 6s)
-                  # uakt/block * AKT_price * (3600 / 6) / 1_000_000
-                  local usd_hourly=$(echo "scale=4; $price * 0.50 * 600 / 1000000" | bc)
-
-                  # Apply profit margin (we bid slightly less than full market value)
-                  local our_bid=$(echo "$usd_hourly * $AKASH_MARGIN" | bc)
-
-                  total_bid=$(echo "$total_bid + $our_bid" | bc)
-              done <<< "$active_leases"
-
-              echo "$total_bid"
+              echo "$our_bid"
           }
 
           # Gaming Bidder - Priority override (returns sentinel value)
