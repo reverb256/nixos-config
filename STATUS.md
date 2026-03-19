@@ -102,6 +102,14 @@ sentry   Ready    monitoring                     15m     v1.35.0
 
 ## Recent Changes
 
+**2026-03-19 11:30:**
+- ✅ **CONFIGURED: DualSense controller for Genshin Impact** - PlayStation icons working
+- ✅ **CREATED:** User GameControllerDB (`~/.local/share/gamecontrollerdb/SDL_gamecontrollerdb.txt`)
+- ✅ **CREATED:** Diagnostic tool (`~/.local/bin/diagnose-controller`)
+- ✅ **DOCUMENTED:** `docs/gaming/DUALSENSE-GENSHIN-CONFIG.md` - Complete controller configuration guide
+- 📝 **NOTED:** Kernel-level deadzone broken (linuxconsole package removed from nixpkgs)
+- ✅ **COMMITTED:** DualSense controller configuration for Genshin Impact
+
 **2026-03-19 11:10:**
 - ✅ **COMPLETE: Phase 7 Cleanup** - Removed obsolete deployment manifests (vLLM, test files, failed deployments)
 - ✅ **FINALIZED: Migration documentation** - All 7 phases 100% complete
