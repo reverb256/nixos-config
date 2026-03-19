@@ -1,6 +1,6 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
-**Status:** Phase 2 Complete, Phase 4 Started | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-03-16
+**Status:** Phase 4 Complete, Phase 7 In Progress | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-03-19
 
 ## Executive Summary
 
@@ -238,19 +238,16 @@
 **Phase 4 Status: ✅ COMPLETE (100%)**
 
 **Completed:**
-- ✅ Nexus joined as worker + master (HA control plane)
-- ✅ Sentry joined as worker + master (HA control plane)
-- ✅ Forge joined as worker (GPU compute)
-- ✅ All 4 nodes in cluster with Ready status
-- ✅ Keepalived VIP configured (10.1.1.100)
-- ✅ etcd 3-node cluster operational
-- ✅ CoreDNS deployed and functional
-- ✅ Flannel CNI networking operational
-- ✅ GPU passthrough working on Zephyr (2x NVIDIA)
+- ✅ Caddy Ingress deployed (DaemonSet on nexus, sentry)
+- ✅ n8n migrated to Kubernetes
+- ✅ home-assistant migrated to Kubernetes
+- ✅ SearXNG migrated to Kubernetes (2026-03-19)
+- ✅ GlitchTip web/worker/redis migrated (Phase 3)
+- ✅ Prometheus + Grafana running on Kubernetes (ai-inference namespace)
 
 **Outstanding Issues:**
-- ⚠️ Forge GPU registration failing (RTX 4060 Ada Lovelace support issue)
-- ⚠️ Storage classes deployed but not fully tested
+- ⏳ Configure ingress routes for external access
+- ⏳ Test service-to-service communication
 
 **Completed:**
 - ✅ Kubernetes control plane deployed and operational
@@ -433,7 +430,7 @@
 - Stability Matrix
 
 **Tier 4 - Utilities (Week 6):**
-- SearXNG
+- ✅ SearXNG **MIGRATED (2026-03-19)**
 - Garnix
 - CI Runner
 
@@ -880,6 +877,6 @@
 
 ---
 
-**Last Updated:** 2026-03-18
-**Status:** Phase 2 Complete → Phase 4 Started (Caddy Ingress deployed) → AI Stack Improvements Started
-**Next Review:** After Phase 5 quick fixes deployed
+**Last Updated:** 2026-03-19
+**Status:** Phase 4 Complete → Phase 7 In Progress (Cleanup 80% complete)
+**Next Review:** After Phase 7 cleanup complete
