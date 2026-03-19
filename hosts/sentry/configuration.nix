@@ -222,7 +222,7 @@
 
     xserver.videoDrivers = [ "amdgpu" ];
 
-    # MINING (CPU only - 8 threads = 50% of 16 cores)
+    # MINING (CPU only - 4 threads = 25% of 16 cores)
     # Uses xmrig-proxy on Zephyr for centralized hashrate aggregation
     # Note: profiles.role.mining enables services.mining automatically
     # Sentry: RX 5600 XT available for mining
@@ -230,7 +230,7 @@
       xmrig = {
         enable = true;
         autostart = true;
-        threads = 8;
+        threads = 4;
         pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
         wallet = "sentry-cpu"; # Worker ID for proxy
         tls = false; # No TLS needed for local proxy
