@@ -50,7 +50,6 @@
 
           LOG_FILE="${config.services.compute-workload-monitor.logFile}"
           MINING_SERVICES=("lolminer-nvidia" "xmrig")
-          GAMING_PROCESSES=("steam\\.exe" "steamwebhelper" "steamapps" "Steam\\\\ Helper" "lutris" "heroic" "Lutris" "HeroicGamesLauncher" "wine(32|64)\\.exe" "proton")
           BUILD_PROCESSES=("nixos-rebuild" "colmena" "nix-build" "nix-daemon" "nix-store" "gcc" "clang" "cargo build" "make" "cmake" "ninja")
 
           # Detect gaming using GameMode daemon (primary detection method)
@@ -198,11 +197,15 @@
           write_gaming_state() {
               local gaming_active=$1  # 0 or 1
               local detection_method=$2  # "gamemode" or "gpu_fallback" or "none"
+              local hysteresis_count=$3  # countdown before resume (0-3)
+              local pause_count=$4  # total number of pauses
 
               mkdir -p "$GAMING_STATE_DIR"
               {
                   echo "GAMING_ACTIVE=$gaming_active"
                   echo "DETECTION_METHOD=$detection_method"
+                  echo "HYSTERESIS_COUNT=$hysteresis_count"
+                  echo "PAUSE_COUNT=$pause_count"
               } > "$GAMING_STATE_FILE"
           }
 
@@ -231,6 +234,76 @@
               } > "$metric_file"
 
               log "Exported gaming metric: gaming_active=$gaming_active (method=$detection_method)"
+          }
+
+          # Manage lolminer pause/resume based on gaming detection with hysteresis
+          # Parameters: $1 = gaming_detected (0/1), $2 = detection_method ("gamemode"/"gpu_fallback"/"none")
+          manage_lolminer_for_gaming() {
+              local current_gaming=$1  # 1 if gaming, 0 if not
+              local detection_method=$2  # "gamemode" or "gpu_fallback"
+
+              # Read previous state
+              local previous_gaming=0
+              local hysteresis_count=0
+              local pause_count=0
+
+              if [[ -f "$GAMING_STATE_FILE" ]]; then
+                  source "$GAMING_STATE_FILE"
+                  previous_gaming=$GAMING_ACTIVE
+                  hysteresis_count=$HYSTERESIS_COUNT
+                  pause_count=$PAUSE_COUNT
+              fi
+
+              # State transition: NOT gaming -> gaming
+              # Pause immediately
+              if [[ "$previous_gaming" == "0" ]] && [[ "$current_gaming" == "1" ]]; then
+                  log "Gaming STARTED (detected by $detection_method)"
+                  log "Pausing lolminer-nvidia to free GPU for gaming"
+
+                  if systemctl is-active --quiet lolminer-nvidia; then
+                      systemctl stop lolminer-nvidia
+                      pause_count=$((pause_count + 1))
+                      log "lolminer-nvidia stopped (pause #$pause_count)"
+                  else
+                      log "lolminer-nvidia already stopped"
+                  fi
+
+                  # Update state
+                  write_gaming_state 1 "$detection_method" 0 "$pause_count"
+
+              # State transition: gaming -> NOT gaming
+              # Start hysteresis countdown
+              elif [[ "$previous_gaming" == "1" ]] && [[ "$current_gaming" == "0" ]]; then
+                  log "Gaming STOPPED - starting hysteresis countdown (3 checks)"
+
+                  # Initialize countdown at 3
+                  write_gaming_state 0 "$detection_method" 3 "$pause_count"
+
+              # State: Gaming stopped, in hysteresis countdown
+              # Decrement counter, resume when reaches 0
+              elif [[ "$previous_gaming" == "0" ]] && [[ "$current_gaming" == "0" ]] && [[ "$hysteresis_count" -gt 0 ]]; then
+                  local new_count=$((hysteresis_count - 1))
+                  log "Hysteresis countdown: $hysteresis_count -> $new_count"
+
+                  if [[ "$new_count" -eq 0 ]]; then
+                      log "Hysteresis complete - resuming lolminer-nvidia"
+
+                      if systemctl is-active --quiet lolminer-nvidia; then
+                          log "lolminer-nvidia already running"
+                      else
+                          systemctl start lolminer-nvidia
+                          log "lolminer-nvidia started"
+                      fi
+                  fi
+
+                  # Update state
+                  write_gaming_state 0 "$detection_method" "$new_count" "$pause_count"
+
+              # State: No change (gaming or not gaming)
+              # Just update state file with current timestamp
+              else
+                  write_gaming_state "$current_gaming" "$detection_method" "$hysteresis_count" "$pause_count"
+              fi
           }
 
           log() {
@@ -661,13 +734,8 @@
                   fi
               done
 
-              # Check for gaming (only if mining is not active)
-              for proc in "''${GAMING_PROCESSES[@]}"; do
-                  if check_process_running "$proc"; then
-                      echo "gaming"
-                      return
-                  fi
-              done
+              # Note: Gaming detection now handled by GameMode in main loop
+              # This get_workload_type() function focuses on GPU power profiles
 
               # Check for Kubernetes GPU workloads (Phase 1)
               if check_kubernetes_gpu_workload; then
@@ -1051,23 +1119,6 @@
               done
 
               echo "GAMING profile applied: Mode: Maximum performance"
-
-              # STOP GPU mining completely to free VRAM (prevents desktop freeze)
-              # Only stop on nexus due to heat issues - other hosts can mine while gaming
-              local host=$(get_hostname)
-              if [ "$host" = "nexus" ]; then
-                  if systemctl is-active --quiet lolminer-nvidia; then
-                      log "Stopping lolminer-nvidia to free VRAM for gaming (nexus heat management)"
-                      systemctl stop lolminer-nvidia
-                  fi
-
-                  if systemctl is-active --quiet lolminer-amd; then
-                      log "Stopping lolminer-amd to free VRAM for gaming (nexus heat management)"
-                      systemctl stop lolminer-amd
-                  fi
-              else
-                  log "Gaming detected on $host - allowing GPU mining to continue (no heat issues)"
-              fi
 
               # Reduce CPU mining during gaming
               # On zephyr: use HTTP API to reduce thread count (more elegant than CPUQuota)
@@ -1500,8 +1551,8 @@
               local gaming_detected=$?
               local detection_method="$gaming_output"
 
-              # Write state BEFORE exporting (critical fix)
-              write_gaming_state "$gaming_detected" "$detection_method"
+              # Manage lolminer pause/resume with hysteresis
+              manage_lolminer_for_gaming "$gaming_detected" "$detection_method"
 
               # Export gaming state to Prometheus (use current values, not stale state)
               export_gaming_metric "$gaming_detected" "$detection_method"
