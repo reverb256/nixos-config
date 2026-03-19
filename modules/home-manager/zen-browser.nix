@@ -500,7 +500,7 @@
         };
         "SearXNG" = {
           id = "pin-sys-015";
-          url = "http://127.0.0.1:7777";
+          url = "http://10.0.0.230:7777";
           workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
           container = 2;
           position = 675;
@@ -720,7 +720,7 @@
             definedAliases = ["@mdn"];
           };
           searxng = {
-            urls = [{template = "http://127.0.0.1:7777/search?q={searchTerms}";}];
+            urls = [{template = "http://10.0.0.230:7777/search?q={searchTerms}";}];
             icon = "https://searxng.org/static/img/logo_small.svg";
             definedAliases = [
               "@sx"

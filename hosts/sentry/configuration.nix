@@ -236,40 +236,41 @@
         tls = false; # No TLS needed for local proxy
         httpTokenFile = "/run/agenix/xmrig-api-token"; # For HTTP API control
       };
-      # AMD GPU (RX 5600 XT) - single device
-      lolminer = {
-        enable = true;
-        amd = {
-          enable = true;
-          autostart = true;
-          devices = "0"; # RX 5600 XT (single AMD GPU)
-          powerLimit = 140; # Safe power limit for RX 5600 XT
-          apiPort = 4069;
-        };
-        # Use local xmrig-proxy on Zephyr for pooled mining
-        pool = "10.1.1.110:3334";
-        wallet = "krxXVNVMM7.sentry-gpu";
-        pools = [
-          {
-            url = "10.1.1.110:3334"; # gpu-proxy on Zephyr
-            wallet = "krxXVNVMM7.sentry-gpu";
-            password = "x";
-            tls = false;
-          }
-          {
-            url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (failover)
-            wallet = "krxXVNVMM7.sentry-gpu";
-            password = "x";
-            tls = true;
-          }
-          {
-            url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (failover)
-            wallet = "krxXVNVMM7.sentry-gpu";
-            password = "x";
-            tls = true;
-          }
-        ];
-      };
+      # AMD GPU (RX 5600 XT) - DISABLED for AI inference
+      # Sentry should only CPU mine, GPU reserved for llamafile (ROCm)
+      # lolminer = {
+      #   enable = true;
+      #   amd = {
+      #     enable = true;
+      #     autostart = true;
+      #     devices = "0"; # RX 5600 XT (single AMD GPU)
+      #     powerLimit = 140; # Safe power limit for RX 5600 XT
+      #     apiPort = 4069;
+      #   };
+      #   # Use local xmrig-proxy on Zephyr for pooled mining
+      #   pool = "10.1.1.110:3334";
+      #   wallet = "krxXVNVMM7.sentry-gpu";
+      #   pools = [
+      #     {
+      #       url = "10.1.1.110:3334"; # gpu-proxy on Zephyr
+      #       wallet = "krxXVNVMM7.sentry-gpu";
+      #       password = "x";
+      #       tls = false;
+      #     }
+      #     {
+      #       url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (failover)
+      #       wallet = "krxXVNVMM7.sentry-gpu";
+      #       password = "x";
+      #       tls = true;
+      #     }
+      #     {
+      #       url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (failover)
+      #       wallet = "krxXVNVMM7.sentry-gpu";
+      #       password = "x";
+      #       tls = true;
+      #     }
+      #   ];
+      # };
     };
 
     # Spotify with SpotX patch (ad-free, premium features)
@@ -453,7 +454,7 @@
     modelPath = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-2B-GGUF/Qwen3.5-2B-IQ4_NL.gguf";
     host = "0.0.0.0";
     port = 8086;
-    gpu = "vulkan";
+    gpu = "rocm";
     gpuLayers = 999;
     ctxSize = 16384;
     threads = 8;

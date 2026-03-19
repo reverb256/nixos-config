@@ -55,7 +55,8 @@ SERVER_NAME = "mcp-searxng"
 SERVER_VERSION = "1.0.0"
 
 # SearXNG configuration
-SEARXNG_URL = os.getenv("SEARXNG_URL", "http://127.0.0.1:8889")  # Load balancer
+# Default: NodePort for LAN access (K8s SearXNG service)
+SEARXNG_URL = os.getenv("SEARXNG_URL", "http://10.1.1.110:30080")
 SEARXNG_CACHE_TTL = int(os.getenv("SEARXNG_CACHE_TTL", "300"))
 
 

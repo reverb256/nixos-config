@@ -265,6 +265,12 @@ class RAGInjectorMiddleware(Middleware):
             return True, None
 
         try:
+            # Import utility function
+            from ai_inference_gateway.utils.message_utils import (
+                extract_last_user_message,
+                extract_message_content,
+            )
+
             # Read request body
             body = await request.json()
 
@@ -273,23 +279,18 @@ class RAGInjectorMiddleware(Middleware):
             if not messages:
                 return True, None
 
-            # Get the last user message
-            last_message = None
-            for msg in reversed(messages):
-                if msg.get("role") == "user":
-                    last_message = msg
-                    break
+            # Get the last user message using shared utility
+            last_message = extract_last_user_message(messages)
 
             if not last_message:
                 return True, None
 
-            query = last_message.get("content", "")
+            query = extract_message_content(last_message)
             if not query or len(query) < 10:  # Skip very short queries
                 return True, None
 
             # Classify the query
             query_type, confidence = self.classifier.classify(query, messages)
-
             logger.debug(
                 f"RAG classifier: {query_type.value} (confidence: {confidence:.2f}) "
                 f"for query: {query[:50]}..."
@@ -366,7 +367,7 @@ class RAGInjectorMiddleware(Middleware):
                 "type": query_type.value,
                 "confidence": confidence,
                 "rag_applied": True,
-                "chunks_retrieved": len(search_result["results"]),
+                "chunks_retrieved": len(search_result['results']),
                 "collection": self.collection,
             }
 
@@ -374,7 +375,6 @@ class RAGInjectorMiddleware(Middleware):
             # Note: We can't modify request.json() directly, so we store in context
             # The chat handler needs to check for this
             context["rag_enhanced_body"] = body
-
             logger.info(
                 f"RAG context injected: {len(search_result['results'])} chunks "
                 f"for {query_type.value} query"
