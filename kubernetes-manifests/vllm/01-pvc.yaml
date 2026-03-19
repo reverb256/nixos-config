@@ -1,0 +1,14 @@
+---
+# PersistentVolumeClaim for vLLM model storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vllm-model-cache
+  namespace: ai-inference
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-local-ssd
+  resources:
+    requests:
+      storage: 50Gi
