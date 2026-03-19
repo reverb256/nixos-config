@@ -83,16 +83,20 @@ in {
     #
     # Set to maximum performance to prevent HDMI TV brightness fluctuations
     # when GPU power scales up/down based on mouse movement/activity.
-    systemd.services.nvidia-powermizer = {
-      description = "Set NVIDIA GPUs to maximum performance mode";
-      wantedBy = ["graphical-session.target"];
-      after = ["graphical-session.target"];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = "${pkgs.nvidia-settings}/bin/nvidia-settings -a [gpu:0]/GPUPowerMizerMode=1 -a [gpu:1]/GPUPowerMizerMode=1";
-        Environment = "DISPLAY=:0";
-      };
-    };
+    #
+    # TEMPORARILY DISABLED: nvidia-settings package not available
+    # TODO: Re-enable when nvidia-settings is added to packages
+    # systemd.services.nvidia-powermizer = {
+    #   description = "Set NVIDIA GPUs to maximum performance mode";
+    #   wantedBy = ["graphical.target"];
+    #   after = ["graphical.target"];
+    #   serviceConfig = {
+    #     Type = "oneshot";
+    #     RemainAfterExit = true;
+    #     ExecStart = "/run/current-system/sw/bin/nvidia-settings -a [gpu:0]/GPUPowerMizerMode=1 -a [gpu:1]/GPUPowerMizerMode=1";
+    #     Environment = "DISPLAY=:0";
+    #     User = "j_kro";
+    #   };
+    # };
   };
 }
