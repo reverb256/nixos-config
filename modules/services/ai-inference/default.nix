@@ -208,6 +208,13 @@ in
       };
     };
 
+    # SearXNG integration
+    searxngUrl = mkOption {
+      type = types.str;
+      default = "http://10.1.1.110:30080";
+      description = "SearXNG URL for knowledge fabric integration";
+    };
+
     # API Gateway configuration
     gateway = {
       enable = mkOption {
