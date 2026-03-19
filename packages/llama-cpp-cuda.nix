@@ -22,14 +22,23 @@ stdenv.mkDerivation rec {
     hash = "sha256-NvbsxrRpb5wCYpZ9sXOFm8QPr21LqJlnn1DQ9tg2CRM=";
   };
 
-  nativeBuildInputs = [
+  nativeBuildInputs = with cudaPackages; [
     cmake
     git
+    cuda_cudart
+    cuda_nvrtc
   ];
 
   buildInputs = with cudaPackages; [
-    cuda_nvrtc
     cuda_cudart
+    cuda_nvrtc
+  ];
+
+  cmakeFlags = [
+    "-DLLAMA_CUDA=ON"
+    "-DLLAMA_CUDA_F16=ON"
+    "-DCMAKE_BUILD_TYPE=Release"
+    "-DCUDAToolkit_ROOT=${cudaPackages.cuda_cudart}"
   ];
 
   cmakeFlags = [
