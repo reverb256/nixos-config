@@ -29,8 +29,6 @@ spec:
   priorityClassName: low-priority-mining
   # Queue for mining workloads
   queue: mining-queue
-  # Timeout for resource allocation
-  minTaskTimeout: 5m
 ---
 apiVersion: apps/v1
 kind: Deployment

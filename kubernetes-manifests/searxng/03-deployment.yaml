@@ -75,10 +75,14 @@ spec:
           mountPath: /tmp
         - name: cache
           mountPath: /var/www/searxng/cache
+        - name: settings
+          mountPath: /etc/searxng
       volumes:
       - name: tmp
         emptyDir: {}
       - name: cache
+        emptyDir: {}
+      - name: settings
         emptyDir: {}
 
 ---

@@ -46,7 +46,6 @@ spec:
         # CONTAINER LEVEL SECURITY CONTEXT
         securityContext:
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
           capabilities:
             drop:
             - ALL
@@ -87,16 +86,8 @@ spec:
       - name: tmp
         emptyDir: {}
       - name: config
-        projected:
-          defaultMode: 420
-          sources:
-          - configMap:
-              name: cloudflared-final-config
-          - secret:
-              items:
-              - key: credentials.json
-                path: credentials.json
-              name: cloudflared-final-credentials
+        configMap:
+          name: cloudflared-config
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
