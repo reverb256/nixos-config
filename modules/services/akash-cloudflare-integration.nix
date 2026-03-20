@@ -27,8 +27,8 @@ in {
 
     tokenFile = mkOption {
       type = types.path;
-      default = "/run/agenix/cloudflared-token";
-      description = "Path to Cloudflare API token (Dns:Edit, Zone:Read, Zone:Cache:Purge). Defaults to existing cloudflared-token which has all required permissions.";
+      default = "/run/agenix/cloudflare-api-token";
+      description = "Path to Cloudflare API token (Dns:Edit, Zone:Read, Zone:Cache:Purge). Defaults to cloudflare-api-token secret.";
     };
 
     providerEndpoint = mkOption {
@@ -183,7 +183,9 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = ["/var/lib/akash-cloudflare" "/var/log"];
+        ReadWritePaths = ["/var/lib/akash-cloudflare" "/var/log" "/etc/kubernetes"];
+
+        Environment = "KUBECONFIG=/etc/kubernetes/cluster-admin.kubeconfig";
 
         ExecStart = pkgs.writeShellScript "akash-dns-watcher" ''
           #!/bin/sh
@@ -198,6 +200,7 @@ in {
           PROVIDER_ENDPOINT="${cfg.providerEndpoint}"
           STATE_DIR="/var/lib/akash-cloudflare"
           PROCESSED_FILE="$STATE_DIR/processed-deployments.txt"
+          export KUBECONFIG=/etc/kubernetes/cluster-admin.kubeconfig
 
           # Ensure state directory exists
           mkdir -p "$STATE_DIR"
@@ -452,7 +455,7 @@ in {
 
       serviceConfig = {
         Type = "oneshot";
-        User = "node-exporter";
+        User = "root";  # Changed from node-exporter to read token file
         Environment = "METRICS_DIR=${cfg.metricsExporter.metricsDir}";
 
         # Security hardening
@@ -772,7 +775,8 @@ in {
     # ============================================================================
     # Merge all tmpfiles rules from different features
     systemd.tmpfiles.rules = lib.mkAfter (
-      lib.optional cfg.metricsExporter.enable "d ${cfg.metricsExporter.metricsDir} 0775 node-exporter node-exporter -"
+      lib.optional cfg.dnsWatcher.enable "d /var/lib/akash-cloudflare 0755 root root -"
+      ++ lib.optional cfg.metricsExporter.enable "d ${cfg.metricsExporter.metricsDir} 0775 node-exporter node-exporter -"
       ++ lib.optional cfg.healthDashboard.enable "d ${cfg.healthDashboard.outputDir} 0755 nginx nginx -"
       ++ lib.optional cfg.statusPage.enable "d ${cfg.statusPage.outputDir} 0755 nginx nginx -"
     );
