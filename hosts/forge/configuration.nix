@@ -137,7 +137,7 @@
         enable = false;
         autostart = false;
         devices = "0,1";
-        powerLimit = 140;
+        powerLimit = 110;  # 110W for optimal efficiency (from 140W default)
         apiPort = 4069;
       };
 
