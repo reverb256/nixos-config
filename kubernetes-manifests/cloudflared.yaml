@@ -1,0 +1,87 @@
+# Cloudflare Tunnel Deployment
+# Secure tunnel to Cloudflare edge for external access
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: akash-services
+  labels:
+    app: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      # POD LEVEL SECURITY CONTEXT
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:2026.3.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - tunnel
+        - --no-autoupdate
+        - run
+        - --token=eyJhIjoiMzk3MmQyZDljZDBkYTQxNzhlYjAzNzU0YzA4NjJhZjEiLCJ0IjoiOGRiZmM0ODgtNWIzYS00YWM1LTk2MjQtMWQzMWUzNjgyZTRlIiwicyI6IkVibEIxRlV6dFdQZmYxdWN1RStyMzdkMFVXK0xzbjJEaStUUis3MzM4ZDlIalM5dzN5MU93N21YUzIwZ0lDREVPKzV5eUxLdklDWFBnWk9hRUd5MlFnPT0ifQ==
+        env:
+        - name: TUNNEL_METRICS
+          value: 0.0.0.0:2000
+        # CONTAINER LEVEL SECURITY CONTEXT
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        ports:
+        - name: metrics
+          containerPort: 2000
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: 2000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 2000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

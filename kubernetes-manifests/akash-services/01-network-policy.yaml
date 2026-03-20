@@ -14,7 +14,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: cloudflared-tunnel
+      app: cloudflared
   policyTypes:
   - Egress
   egress:
