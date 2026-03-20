@@ -84,10 +84,9 @@ spec:
         operator: "Exists"
       containers:
       - name: lolminer
-        # Note: Using imagePullPolicy: IfNotPresent to allow pulling if needed
-        # The lolminer binary from NixOS will be mounted in via hostPath
-        image: lolminer:1.98a-nixos
-        imagePullPolicy: IfNotPresent
+        # Using imagePullPolicy: Never since image is built locally
+        image: docker.io/library/lolminer:1.98a-nixos
+        imagePullPolicy: Never
         args:
           - "--algo=CR29"
           - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
@@ -121,7 +120,8 @@ spec:
           privileged: true  # Required for GPU access
         volumeMounts:
         - name: nvidia
-          mountPath: /usr/lib/nvidia
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
         # Enhanced resource requests for YuniKorn scheduling
         resources:
           requests:
@@ -135,4 +135,4 @@ spec:
       volumes:
       - name: nvidia
         hostPath:
-          path: /run/current-system/sw/lib/nvidia
+          path: /run/opengl-driver/lib
