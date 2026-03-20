@@ -39,16 +39,27 @@
 | **Cloudflare Tunnel** | ✅ Running | Zero-trust ingress |
 | **ingress-nginx** | ✅ Running (1/1) | Tenant ingress controller |
 
+### Cloudflare Integration (6 Features - All Operational ✅)
+
+| Feature | Status | Service | Update Interval |
+|---------|--------|---------|-----------------|
+| **DNS Automation** | ✅ Operational | akash-cloudflare-dns-watcher.service | Continuous (30s poll) |
+| **Cache Purging** | ✅ Ready | akash-cloudflare-cache-purge@*.service | On-demand |
+| **Prometheus Metrics** | ✅ Operational | akash-cloudflare-metrics.service | Every 5 minutes |
+| **Health Dashboard** | ✅ Operational | akash-health-dashboard.service | Every 30 seconds |
+| **DNS Cleanup** | ✅ Scheduled | akash-cloudflare-dns-cleanup.service | Daily at 10 PM |
+| **Status Page** | ✅ Operational | akash-status-page.service | Every 5 minutes |
+
 ### Infrastructure (All Configured ✅)
 
 | Component | Status | Details |
 |-----------|--------|---------|
 | **Storage Classes** | ✅ Complete | beta1, beta2, beta3, ram (4 classes) |
 | **SSL/TLS** | ✅ Hardened | Full (strict) + TLS 1.2 |
-| **DNS Automation** | ✅ Ready | Auto-creates tenant DNS |
+| **DNS Automation** | ✅ Operational | Auto-creates tenant DNS |
 | **Cache Purging** | ✅ Ready | Auto-purges on deployments |
-| **Prometheus Metrics** | ✅ Ready | Real-time monitoring |
-| **Health Dashboards** | ✅ Ready | Status pages configured |
+| **Prometheus Metrics** | ✅ Operational | Real-time monitoring |
+| **Health Dashboards** | ✅ Operational | Status pages configured |
 
 ### Node Configuration (All 4 Nodes ✅)
 
@@ -110,8 +121,10 @@
 ### Deployment Features
 - ✅ Automated DNS setup (auto-creates `*.dedicated.ingress.reverb256.ca`)
 - ✅ Automatic cache purging (on deployments)
-- ✅ Prometheus metrics export
-- ✅ Real-time health monitoring
+- ✅ Prometheus metrics export (every 5 minutes)
+- ✅ Real-time health monitoring (every 30 seconds)
+- ✅ Public status page (every 5 minutes)
+- ✅ Daily DNS cleanup (10 PM CDT with 24-hour grace)
 - ✅ Public ingress via `*.ingress.reverb256.ca`
 - ✅ Enterprise-grade TLS security (Full strict + TLS 1.2)
 
@@ -160,15 +173,25 @@ expose:
 ### Configuration: ✅ 100% Complete
 
 - ✅ 8 core provider services running
+- ✅ 6 Cloudflare integration features operational
 - ✅ 4 storage classes available
 - ✅ 4 nodes fully labeled
 - ✅ ingress-nginx deployed
 - ✅ SSL/TLS hardened
-- ✅ Cloudflare automation ready
+- ✅ Cloudflare automation operational
+
+### Cloudflare Integration: ✅ PRODUCTION READY
+
+- ✅ DNS watcher monitoring deployments (30s poll interval)
+- ✅ Metrics exporting to Prometheus (7 metrics, 5min interval)
+- ✅ Health dashboard updating (30s interval)
+- ✅ Status page updating (5min interval)
+- ✅ DNS cleanup scheduled (daily at 10 PM)
+- ✅ Cache purge ready (triggers on new deployments)
 
 ### Ready for: ✅ TENANT DEPLOYMENTS
 
-Your provider is now **fully configured and ready** to accept tenant deployments!
+Your provider is now **fully configured and ready** to accept tenant deployments with full automation!
 
 ---
 
@@ -211,6 +234,11 @@ Your provider is now **fully configured and ready** to accept tenant deployments
 - ✅ 4 GPUs (48GB VRAM) available for tenants
 
 **Total Configuration Time:** 48 hours → **100% Complete** ✅
+
+**Documentation:**
+- Integration Status: `docs/akash-cloudflare-integration-status.md`
+- Provider Capabilities: `docs/akash-provider-capabilities.md`
+- Provider Services: `docs/akash-provider-services-complete.md`
 
 ---
 
