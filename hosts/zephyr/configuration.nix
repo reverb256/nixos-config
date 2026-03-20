@@ -750,7 +750,8 @@
           };
           context7 = {
             type = "local";
-            command = [ "mcp-context7" ];
+            # Use absolute path for reliable subprocess spawning
+            command = [ "/run/current-system/sw/bin/mcp-context7" ];
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };

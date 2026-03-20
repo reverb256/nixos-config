@@ -6,7 +6,8 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+{
   options.services.compute-market = {
     enable = lib.mkEnableOption "GPU Resource Marketplace - unified auction engine for GPU allocation";
 
@@ -44,7 +45,11 @@
 
       services = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = ["lolminer-nvidia" "lolminer-amd" "xmrig"];
+        default = [
+          "lolminer-nvidia"
+          "lolminer-amd"
+          "xmrig"
+        ];
         description = "Mining services to manage";
       };
     };
@@ -109,9 +114,15 @@
         type = lib.types.listOf lib.types.str;
         default = [
           # More specific patterns to avoid false positives (e.g., steam-run wrapper)
-          "steam\\.exe" "steamwebhelper" "steamapps" "/Steam/"
-          "lutris\\.bin" "heroic" "HeroicGamesLauncher"
-          "wine(32|64)\\.exe" "proton:"
+          "steam\\.exe"
+          "steamwebhelper"
+          "steamapps"
+          "/Steam/"
+          "lutris\\.bin"
+          "heroic"
+          "HeroicGamesLauncher"
+          "wine(32|64)\\.exe"
+          "proton:"
         ];
         description = "Process names that indicate gaming activity";
       };
@@ -138,15 +149,15 @@
     # REQUIRED PACKAGES
     # ============================================================================
     environment.systemPackages = with pkgs; [
-      procps           # pgrep for process detection
-      systemd          # systemctl for service control
-      kubernetes       # kubectl for K8s queries
-      kubectl          # Explicit kubectl
-      bc               # Floating-point arithmetic
-      curl             # HTTP API calls
-      jq               # JSON parsing for Akash bids
-      coreutils        # Basic utilities
-      util-linux       # For various utilities
+      procps # pgrep for process detection
+      systemd # systemctl for service control
+      kubernetes # kubectl for K8s queries
+      kubectl # Explicit kubectl
+      bc # Floating-point arithmetic
+      curl # HTTP API calls
+      jq # JSON parsing for Akash bids
+      coreutils # Basic utilities
+      util-linux # For various utilities
     ];
 
     # ============================================================================
@@ -162,12 +173,23 @@
     # ============================================================================
     systemd.services.compute-market = {
       description = "GPU Resource Marketplace Auction Engine";
-      wantedBy = ["multi-user.target"];
-      after = ["network.target" "kubernetes.target"];
-      wants = ["prometheus-node-exporter.service"];
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "network.target"
+        "kubernetes.target"
+      ];
+      wants = [ "prometheus-node-exporter.service" ];
 
       path = with pkgs; [
-        procps systemd kubernetes kubectl bc curl jq coreutils util-linux
+        procps
+        systemd
+        kubernetes
+        kubectl
+        bc
+        curl
+        jq
+        coreutils
+        util-linux
       ];
 
       serviceConfig = {
@@ -175,7 +197,22 @@
         Restart = "on-failure";
         RestartSec = "10s";
         Environment = [
-          "PATH=${lib.makeBinPath (with pkgs; [procps systemd kubernetes kubectl bc curl jq coreutils util-linux])}:/run/current-system/sw/bin"
+          "PATH=${
+            lib.makeBinPath (
+              with pkgs;
+              [
+                procps
+                systemd
+                kubernetes
+                kubectl
+                bc
+                curl
+                jq
+                coreutils
+                util-linux
+              ]
+            )
+          }:/run/current-system/sw/bin"
           "STATE_DIR=${config.services.compute-market.stateDirectory}"
           "LOG_FILE=${config.services.compute-market.logFile}"
         ];
@@ -225,9 +262,9 @@
           #   systemd.services.compute-market.environment.GAMING_GAMES = "Game1.exe Game2.exe";
           GAMING_GAMES="''${GAMING_GAMES:-}"
 
-          # ============================================================================
-          # GPU DETECTION
-          ============================================================================
+           # ============================================================================
+           # GPU DETECTION
+           # ============================================================================
           list_available_gpus() {
               # Detect available NVIDIA GPUs
               if command -v nvidia-smi >/dev/null 2>&1; then
@@ -911,9 +948,11 @@
     services.prometheus.scrapeConfigs = lib.mkIf config.services.compute-market.prometheus.enable [
       {
         job_name = "compute-market";
-        static_configs = [{
-          targets = ["127.0.0.1:${toString config.services.compute-market.prometheus.port}"];
-        }];
+        static_configs = [
+          {
+            targets = [ "127.0.0.1:${toString config.services.compute-market.prometheus.port}" ];
+          }
+        ];
       }
     ];
   };

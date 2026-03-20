@@ -28,6 +28,9 @@
     "nixos": {
       "command": "uvx",
       "args": ["mcp-nixos"]
+    },
+    "gateway": {
+      "command": "mcp-gateway-bridge"
     }
   }
 }

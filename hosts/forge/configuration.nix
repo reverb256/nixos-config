@@ -9,7 +9,8 @@
   lib,
   pkgs,
   ...
-}: {
+}:
+{
   # Forge-specific zswap tuning (Intel i5-9500 needs 20% pool, not 40%)
   kernel-hardening.zswap.maxPoolPercent = 20;
 
@@ -129,11 +130,12 @@
         apiPort = 4068;
       };
 
-      # AMD GPUs (RX 5700 XT) - OpenCL devices 0,1
-      # Note: PCI addresses 03:00.0 and 08:00.0, but OpenCL numbers from 0
+      # AMD GPUs DISABLED: RX 5700 XTs have insufficient VRAM for CR29 mining
+      # GPU[0]: 6.7GB/8GB used, GPU[1]: 6.4GB/8GB used - only ~2GB free each
+      # CR29 DAG requires ~7GB continuous memory which causes fragmentation errors
       amd = {
-        enable = true;
-        autostart = true;
+        enable = false;
+        autostart = false;
         devices = "0,1";
         powerLimit = 140;
         apiPort = 4069;
@@ -355,7 +357,7 @@
     # GPU DRIVERS (Hybrid AMD + NVIDIA)
     # Note: NVIDIA modules loaded via nvidia-wayland.nix
     # Note: AMDGPU loaded via hardware.profiles.amdgpu.wayland (initrd too)
-    kernelModules = ["tun"]; # amdgpu added by profile, not duplicated here
+    kernelModules = [ "tun" ]; # amdgpu added by profile, not duplicated here
   };
 
   # ============================================================================
@@ -380,8 +382,8 @@
     services = {
       amd-gpu-power-mgmt = {
         description = "AMD GPU Power Limit (140W for RX 5700 XT)";
-        wantedBy = ["multi-user.target"];
-        after = ["basic.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "basic.target" ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -416,8 +418,8 @@
 
       nvidia-compute-mode = {
         description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
-        wantedBy = ["multi-user.target"];
-        after = ["basic.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "basic.target" ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -456,8 +458,11 @@
       amd-gpu-fan-curve = {
         description = "AMD GPU Dynamic Fan Curve Control";
         # FIXED: awk escaping bug resolved by using bc instead of awk
-        wantedBy = ["multi-user.target"];
-        after = ["network.target" "amd-gpu-power-mgmt.service"];
+        wantedBy = [ "multi-user.target" ];
+        after = [
+          "network.target"
+          "amd-gpu-power-mgmt.service"
+        ];
         serviceConfig = {
           Type = "simple";
           Restart = "always";
@@ -500,9 +505,10 @@
             }
 
             # GPU to hwmon mapping (bypass rocm-smi which gets overridden by driver)
+            # Note: hwmon numbering can differ from card numbering
             declare -A GPU_HWMON
-            GPU_HWMON[0]="/sys/class/drm/card0/device/hwmon/hwmon0"
-            GPU_HWMON[1]="/sys/class/drm/card1/device/hwmon/hwmon1"
+            GPU_HWMON[0]="/sys/class/drm/card0/device/hwmon/hwmon1"
+            GPU_HWMON[1]="/sys/class/drm/card1/device/hwmon/hwmon0"
 
             get_temp() {
               local gpu=$1
@@ -644,8 +650,8 @@
       # AMD GPU HEALTH CHECKS
       "amd-gpu-check" = {
         description = "AMD GPU Detection and Health Check";
-        wantedBy = ["multi-user.target"];
-        after = ["basic.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "basic.target" ];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
@@ -659,7 +665,10 @@
       "amd-gpu-max-fan" = {
         description = "AMD GPU Max Fan Speed (100%) - DISABLED, using fan curve instead";
         # wantedBy = ["multi-user.target"];  # DISABLED
-        after = ["basic.target" "amd-gpu-power-mgmt.service"];
+        after = [
+          "basic.target"
+          "amd-gpu-power-mgmt.service"
+        ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -687,8 +696,8 @@
 
       "amd-gpu-info" = {
         description = "AMD GPU Information Service";
-        wantedBy = ["multi-user.target"];
-        after = ["basic.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "basic.target" ];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
@@ -697,24 +706,26 @@
       };
     };
 
-    tmpfiles.rules = let
-      rocmEnv = pkgs.symlinkJoin {
-        name = "rocm-combined";
-        paths = with pkgs.rocmPackages; [
-          clr
-          clr.icd
-          rocblas
-          hipblas
-          rpp
-        ];
-      };
-    in [
-      "c /dev/net/tun 666 root root - - - -"
-      "L+ /opt/rocm - - - - ${rocmEnv}"
-      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-      # lolMiner workaround for OpenCL ICD path bug
-      "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
-    ];
+    tmpfiles.rules =
+      let
+        rocmEnv = pkgs.symlinkJoin {
+          name = "rocm-combined";
+          paths = with pkgs.rocmPackages; [
+            clr
+            clr.icd
+            rocblas
+            hipblas
+            rpp
+          ];
+        };
+      in
+      [
+        "c /dev/net/tun 666 root root - - - -"
+        "L+ /opt/rocm - - - - ${rocmEnv}"
+        "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+        # lolMiner workaround for OpenCL ICD path bug
+        "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
+      ];
 
     slices.mining = {
       description = "Mining Services Slice";
@@ -746,7 +757,8 @@
     };
 
     # OpenCL ICD setup for AMD GPUs (lolminer needs this to detect AMD GPUs)
-    etc."OpenCL/vendors/amdocl64.icd".source = "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
+    etc."OpenCL/vendors/amdocl64.icd".source =
+      "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
 
     systemPackages = with pkgs; [
       rocmPackages.rocm-smi
