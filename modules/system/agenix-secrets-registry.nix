@@ -236,6 +236,14 @@ in
           group = "root";
         };
 
+        # Cloudflare API token - DNS and cache operations for Akash provider
+        cloudflare-api-token = {
+          file = "${inputs.self}/secrets/cloudflare-api-token.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
+        };
+
         # Akash provider wallet key
         akash-provider-key = {
           file = "${inputs.self}/secrets/akash-provider-key.age";

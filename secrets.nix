@@ -282,4 +282,11 @@ in {
     users.j_kro
     hosts.zephyr    # Primary node running cloudflared
   ];
+
+  # Cloudflare API token - DNS and cache operations for Akash provider
+  # Token contains: API token for Zone:DNS:Edit, Zone:Read, Zone:Cache:Purge
+  "secrets/cloudflare-api-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr    # Primary node running Akash Cloudflare integration
+  ];
 }
