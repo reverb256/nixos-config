@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-03-19 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
+**Last Updated:** 2026-03-20 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 
@@ -142,6 +142,15 @@ detected, resumes after hysteresis period (~15s).
 ---
 
 ## Recent Changes
+
+**2026-03-20 14:30:**
+- ✅ **APPLIED: GPU Power Limits** - NVIDIA 90W (from 115W), AMD 110W (from 140W)
+- ✅ **CREATED: amd-gpu-power-limit.service** - Systemd service for persistent AMD power limits
+- ✅ **UPDATED: modules/mining/mining.nix** - Added AMD power limit script and service
+- ✅ **UPDATED: hosts/forge/configuration.nix** - Set AMD powerLimit to 110W
+- ⚠️ **DOCUMENTED: AMD GPU mining GLIBC incompatibility** - See kubernetes-manifests/mining/AMD_MINING_ISSUES.md
+- ✅ **VERIFIED: NVIDIA mining working in Kubernetes** - 3 pods running successfully (gpu-miner-forge-nvidia-0/1, gpu-miner-nexus-0)
+- 📝 **RECOMMENDATION:** Keep AMD mining on host (systemd) due to GLIBC 2.42 vs 2.27 incompatibility
 
 **2026-03-19 22:45:**
 - ✅ **IMPLEMENTED: Cloudflare integration for Akash provider** - Complete automation of DNS, cache, and monitoring
