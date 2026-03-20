@@ -49,7 +49,9 @@ effectiveStdenv.mkDerivation rec {
     (cmakeBool "GGML_CUDA_F16" true)
     (cmakeBool "GGML_NATIVE" false)  # Don't use -march=native (non-deterministic)
     (cmakeBool "BUILD_SHARED_LIBS" true)
-    (cmakeFeature "CMAKE_CUDA_ARCHITECTURES" cudaPackages.flags.cmakeCudaArchitecturesString)
+    # Only build for GPUs we have: sm_86 (RTX 3060 Ti), sm_89 (RTX 4090)
+    # Much faster than building for all 7 architectures
+    (cmakeFeature "CMAKE_CUDA_ARCHITECTURES" "86;89")
     (cmakeFeature "CMAKE_BUILD_TYPE" "Release")
   ];
 
