@@ -1,0 +1,91 @@
+# GPU Miner for Forge - NVIDIA GPU 1 (RTX 4060)
+# Single pod per GPU for maximum scheduling flexibility
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-nvidia-1
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-type: nvidia
+    gpu-id: "1"
+    host: forge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-miner-forge
+      gpu-type: nvidia
+      gpu-id: "1"
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge
+        gpu-type: nvidia
+        gpu-id: "1"
+        host: forge
+    spec:
+      schedulerName: yunikorn
+      nodeName: forge
+      hostNetwork: true
+      priorityClassName: low-priority-mining
+      tolerations:
+      - key: "scheduler.yunikorn.io/preemptible"
+        operator: "Exists"
+      containers:
+      - name: lolminer
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - "--algo=CR29"
+        - "--pool=xtm-c29-us.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-n1"
+        - "--pass=x"
+        - "--tls=1"
+        - "--pool=xtm-c29-eu.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-n1"
+        - "--pass=x"
+        - "--tls=1"
+        - "--devices=1"
+        - "--apiport=4069"
+        - "--mode=b"
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/run/opengl-driver/lib:/nix/store"
+        ports:
+        - containerPort: 4069
+          name: api
+          protocol: TCP
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: nvidia
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        - name: dev
+          mountPath: /dev
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+            nvidia.com/gpu: "1"
+            amd.com/gpu: "0"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+            nvidia.com/gpu: "1"
+            amd.com/gpu: "0"
+      volumes:
+      - name: nvidia
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: nix-store
+        hostPath:
+          path: /nix/store
