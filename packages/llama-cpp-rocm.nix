@@ -22,8 +22,7 @@ stdenv.mkDerivation rec {
     cmake
     git
     ninja
-    rocmPackages.rocmcmake
-    rocmPackages.pythonPackagesROCM.lld
+    rocmPackages.rocm-cmake
   ];
 
   buildInputs = with rocmPackages; [

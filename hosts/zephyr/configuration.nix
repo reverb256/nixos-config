@@ -814,7 +814,7 @@
       user = "j_kro";
       port = 1234;
       host = "127.0.0.1";
-      gpuDevice = null;
+      gpuDevice = 0;  # RTX 3060 Ti - GPU 1 (RTX 3090) reserved for mining
     };
 
     # MCP Servers for AI tools

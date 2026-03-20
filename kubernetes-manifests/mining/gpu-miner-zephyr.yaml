@@ -1,4 +1,6 @@
 # GPU Miner Deployment for Zephyr (RTX 3060 Ti + RTX 3090)
+# Mining on RTX 3090 (GPU 1) only - AI on RTX 3060 Ti (GPU 0)
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,75 +30,50 @@ spec:
         effect: NoSchedule
       containers:
       - name: lolminer
-        image: lolminer:1.98a-nixos
-        imagePullPolicy: Never  # Use local image built by Nix
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
         args:
           - "--algo=CR29"
           - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
           - "--user=zephyr-gpu"
-          - "--devices=0,1"  # RTX 3060 Ti (GPU 0) + RTX 3090 (GPU 1)
+          - "--devices=1"  # RTX 3090 (GPU 1) only - AI on GPU 0
           - "--apiport=4068"
           - "--mode=b"
           - "--tls=1"
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/run/opengl-driver/lib:/nix/store"
         ports:
         - containerPort: 4068
           name: api
           protocol: TCP
-        # Health probes - lolMiner API for monitoring
-        livenessProbe:
-          httpGet:
-            path: /
-            port: api
-            scheme: HTTP
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 5
-          successThreshold: 1
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /
-            port: api
-            scheme: HTTP
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 3
-          successThreshold: 1
-          failureThreshold: 3
         securityContext:
           privileged: true  # Required for GPU access
         volumeMounts:
         - name: nvidia
-          mountPath: /usr/lib/nvidia
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        - name: dev
+          mountPath: /dev
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
         resources:
           requests:
             memory: "4Gi"
-            nvidia.com/gpu: "2"
+            cpu: "2"
+            nvidia.com/gpu: "1"
           limits:
             memory: "8Gi"
-            nvidia.com/gpu: "2"
+            cpu: "4"
+            nvidia.com/gpu: "1"
       volumes:
       - name: nvidia
         hostPath:
-          path: /run/current-system/sw/lib/nvidia
-      initContainers:
-      - name: set-gpu-power-limits
-        image: lolminer:1.98a-nixos
-        imagePullPolicy: Never
-        command:
-          - /bin/bash
-          - -c
-          - |
-            # Set per-GPU power limits using host's nvidia-smi
-            echo "Setting GPU power limits..."
-
-            # Use host's nvidia-smi via mount
-            /usr/lib/nvidia/bin/nvidia-smi -i 0 -pm 1 -pl 130  # RTX 3060 Ti
-            /usr/lib/nvidia/bin/nvidia-smi -i 1 -pm 1 -pl 250  # RTX 3090 (VRAM-safe)
-
-            echo "Power limits set successfully"
-        securityContext:
-          privileged: true
-        volumeMounts:
-        - name: nvidia
-          mountPath: /usr/lib/nvidia
+          path: /run/opengl-driver/lib
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: nix-store
+        hostPath:
+          path: /nix/store

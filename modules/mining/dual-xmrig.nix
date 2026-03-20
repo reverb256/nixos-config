@@ -259,8 +259,6 @@ in
           RestrictRealtime = true;
           ProtectSystem = "strict";
           ProtectHome = true;
-          ProtectKernelTunables = false;
-          ProtectControlGroups = true;
           ReadOnlyPaths = "/";
           ReadWritePaths = [
             "/var/lib/mining"
