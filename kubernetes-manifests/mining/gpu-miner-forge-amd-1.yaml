@@ -1,0 +1,85 @@
+# GPU Miner for Forge - AMD GPU 1 (RX 5700 XT)
+# Single pod per GPU for maximum scheduling flexibility
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-amd-1
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-type: amd
+    gpu-id: "1"
+    host: forge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-miner-forge
+      gpu-type: amd
+      gpu-id: "1"
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge
+        gpu-type: amd
+        gpu-id: "1"
+        host: forge
+    spec:
+      schedulerName: yunikorn
+      nodeName: forge
+      hostNetwork: true
+      priorityClassName: low-priority-mining
+      tolerations:
+      - key: "scheduler.yunikorn.io/preemptible"
+        operator: "Exists"
+      containers:
+      - name: lolminer
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - "--algo=CR29"
+        - "--pool=xtm-c29-us.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-a1"
+        - "--pass=x"
+        - "--tls=1"
+        - "--pool=xtm-c29-eu.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-a1"
+        - "--pass=x"
+        - "--tls=1"
+        - "--devices=1"
+        - "--apiport=4071"
+        - "--mode=b"
+        env:
+        - name: OCL_ICD_VENDORS
+          value: "/etc/OpenCL/vendors"
+        ports:
+        - containerPort: 4071
+          name: api
+          protocol: TCP
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: dev
+          mountPath: /dev
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+            amd.com/gpu: "1"
+            nvidia.com/gpu: "0"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+            amd.com/gpu: "1"
+            nvidia.com/gpu: "0"
+      volumes:
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: nix-store
+        hostPath:
+          path: /nix/store
