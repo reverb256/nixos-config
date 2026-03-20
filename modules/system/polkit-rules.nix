@@ -1,6 +1,6 @@
 # PolKit rules for NixOS
 # Disable password prompts for systemd service management
-{...}: {
+_: {
   # Add polkit extra rules for systemd service management
   security.polkit.extraConfig = ''
     // Allow wheel group to manage systemd services without authentication

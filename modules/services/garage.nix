@@ -117,13 +117,15 @@ in {
 
     # Systemd services and timers
     systemd = {
-      tmpfiles.rules = [
-        "d ${cfg.dataDir} 0750 garage garage -"
-        "d ${cfg.dataDir}/meta 0750 garage garage -"
-        "d ${cfg.dataDir}/data 0750 garage garage -"
-      ] ++ lib.optional cfg.enableBackup ''
-        d ${cfg.backupDir} 0755 garage garage - -
-      '';
+      tmpfiles.rules =
+        [
+          "d ${cfg.dataDir} 0750 garage garage -"
+          "d ${cfg.dataDir}/meta 0750 garage garage -"
+          "d ${cfg.dataDir}/data 0750 garage garage -"
+        ]
+        ++ lib.optional cfg.enableBackup ''
+          d ${cfg.backupDir} 0755 garage garage - -
+        '';
 
       services = {
         garage = {

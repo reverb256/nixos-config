@@ -1,7 +1,7 @@
 # Starship Prompt Configuration (Home Manager)
 # Centralized starship settings for j_kro across all cluster nodes
 # Accepts config to enable host-aware styling
-{config, ...}: {
+_: {
   programs.starship = {
     enable = true;
 
@@ -28,7 +28,7 @@
       hostname = {
         ssh_only = false;
         format = "[$hostname]($style) ";
-        style = "bold green";  # Default: overridden per-host in default.nix
+        style = "bold green"; # Default: overridden per-host in default.nix
         disabled = false;
       };
 

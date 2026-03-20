@@ -7,8 +7,7 @@
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   options.services.compute-workload-monitor = {
     enable = lib.mkEnableOption "Compute workload monitor for GPU scheduling";
 
@@ -29,7 +28,7 @@
     # Create the compute-workload-monitor service
     systemd.services.compute-workload-monitor = {
       description = "Compute Workload Monitor - GPU workload detection and profile management";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       after = [
         "network.target"
         "kubernetes.target"
@@ -46,8 +45,7 @@
         Type = "simple";
         Environment = "PATH=${
           lib.makeBinPath (
-            with pkgs;
-            [
+            with pkgs; [
               procps
               systemd
               kubernetes
@@ -1277,7 +1275,7 @@
                   local idle_threads=$(get_xmrig_idle_threads)
                   log "Resetting xmrig to 100% CPU ($idle_threads threads)"
                   systemctl set-property xmrig-always.service CPUQuota="100%" --runtime 2>/dev/null || true
-                  
+
                   # Use HTTP API to resume if it was paused
                   local current_status=$(xmrig_status)
                   if [ "$current_status" = "paused" ]; then
@@ -1527,7 +1525,7 @@
         Restart = "on-failure";
         RestartSec = "10s";
         # Allow access to nvidia-smi and systemd
-        AmbientCapabilities = [ "CAP_NET_ADMIN" ];
+        AmbientCapabilities = ["CAP_NET_ADMIN"];
       };
     };
 

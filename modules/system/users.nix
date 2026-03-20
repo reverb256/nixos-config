@@ -1,5 +1,9 @@
 # User Accounts Module
-{pkgs, lib, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   users.users.j_kro = {
     isNormalUser = true;
     description = "Jeremy Kroeker";

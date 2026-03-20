@@ -4,7 +4,6 @@
 {
   lib,
   config,
-  pkgs,
   ...
 }: let
   cfg = config.services.nixos-fallback-cache;
@@ -102,7 +101,7 @@ in {
 
         SOURCE="${cfg.sourcePath}"
         CACHE="${cfg.cachePath}"
-        FLAKE_DIR="\${FLAKE_DIR:-/etc/nixos}"
+        FLAKE_DIR="\${_FLAKE_DIR: -/etc/nixos}"
 
         # Prefer NFS, fall back to cache
         if [ -d "$SOURCE" ] && [ -f "$SOURCE/flake.nix" ]; then

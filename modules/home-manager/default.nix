@@ -13,45 +13,50 @@
         inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord
         ./fish.nix
-        {config, ...}: {
-          imports = [./starship.nix];
-          # Host-specific prompt colors passed to Starship
-          programs.starship.settings = {
-            # Hostname color - different for each cluster node
-            hostname.style =
-              {
-                zephyr = "bold green";
-                nexus = "bold blue";
-                forge = "bold red";
-                sentry = "bold yellow";
-              }.${config.networking.hostName} or "bold white";
-            # Character prompt color matches hostname
-            character.success_symbol =
-              {
-                zephyr = "[❯](bold green)";
-                nexus = "[❯](bold blue)";
-                forge = "[❯](bold red)";
-                sentry = "[❯](bold yellow)";
-              }.${config.networking.hostName} or "[❯](bold cyan)";
-          };
-        }
-        ./wayland-tools.nix
-        ./zen-browser.nix
-        ./nixcord-config.nix
-        {
-          # Force manage mimeapps.list to prevent clobber errors
-          # This makes the configuration idempotent
-          xdg.mimeApps = {
-            enable = true;
-            defaultApplications = {
-              "text/html" = ["zen-browser.desktop"];
-              "x-scheme-handler/http" = ["zen-browser.desktop"];
-              "x-scheme-handler/https" = ["zen-browser.desktop"];
-              "x-scheme-handler/about" = ["zen-browser.desktop"];
-              "x-scheme-handler/unknown" = ["zen-browser.desktop"];
+        {config, ...}:
+          {
+            imports = [./starship.nix];
+            # Host-specific prompt colors passed to Starship
+            programs.starship.settings = {
+              # Hostname color - different for each cluster node
+              hostname.style =
+                {
+                  zephyr = "bold green";
+                  nexus = "bold blue";
+                  forge = "bold red";
+                  sentry = "bold yellow";
+                }.${
+                  config.networking.hostName
+                } or "bold white";
+              # Character prompt color matches hostname
+              character.success_symbol =
+                {
+                  zephyr = "[❯](bold green)";
+                  nexus = "[❯](bold blue)";
+                  forge = "[❯](bold red)";
+                  sentry = "[❯](bold yellow)";
+                }.${
+                  config.networking.hostName
+                } or "[❯](bold cyan)";
             };
-          };
-        }
+          }
+          ./wayland-tools.nix
+          ./zen-browser.nix
+          ./nixcord-config.nix
+          {
+            # Force manage mimeapps.list to prevent clobber errors
+            # This makes the configuration idempotent
+            xdg.mimeApps = {
+              enable = true;
+              defaultApplications = {
+                "text/html" = ["zen-browser.desktop"];
+                "x-scheme-handler/http" = ["zen-browser.desktop"];
+                "x-scheme-handler/https" = ["zen-browser.desktop"];
+                "x-scheme-handler/about" = ["zen-browser.desktop"];
+                "x-scheme-handler/unknown" = ["zen-browser.desktop"];
+              };
+            };
+          }
       ];
 
       home.stateVersion = "26.05";

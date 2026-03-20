@@ -4,8 +4,7 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.ai-inference;
   inherit (lib) mkIf;
 
@@ -23,95 +22,95 @@ let
   # NOTE: We use symlinkJoin with source tracking to ensure changes are detected
   modularGatewayPkgBase =
     pkgs.runCommand "ai-inference-gateway-modular-pkg-base"
-      {
-        preferLocalBuild = true;
-        # Track source changes by including it in the name/hash
-        src = gatewaySrc;
-      }
-      ''
-        mkdir -p $out/ai_inference_gateway
-        # Copy the entire modular gateway package
-        cp -r ${gatewaySrc}/. $out/ai_inference_gateway/
-        # Fix permissions
-        chmod -R u+w $out/ai_inference_gateway
-        # Remove compiled Python files
-        find $out -name "*.pyc" -delete
-        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-      '';
+    {
+      preferLocalBuild = true;
+      # Track source changes by including it in the name/hash
+      src = gatewaySrc;
+    }
+    ''
+      mkdir -p $out/ai_inference_gateway
+      # Copy the entire modular gateway package
+      cp -r ${gatewaySrc}/. $out/ai_inference_gateway/
+      # Fix permissions
+      chmod -R u+w $out/ai_inference_gateway
+      # Remove compiled Python files
+      find $out -name "*.pyc" -delete
+      find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+    '';
 
   # Gateway as a proper Python package (installable in site-packages)
   # This allows `import ai_inference_gateway` without --app-dir
   modularGatewayPkgPython =
     pkgs.runCommand "ai-inference-gateway-modular-pkg-python"
-      {
-        preferLocalBuild = true;
-        # Track source changes by including it in the name/hash
-        src = gatewaySrc;
-      }
-      ''
-        # Create site-packages structure
-        mkdir -p $out/lib/python3.13/site-packages
-        # Copy gateway package to site-packages
-        cp -r ${gatewaySrc}/. $out/lib/python3.13/site-packages/ai_inference_gateway
-        # Fix permissions
-        chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
-        # Remove compiled Python files
-        find $out -name "*.pyc" -delete
-        find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-      '';
+    {
+      preferLocalBuild = true;
+      # Track source changes by including it in the name/hash
+      src = gatewaySrc;
+    }
+    ''
+      # Create site-packages structure
+      mkdir -p $out/lib/python3.13/site-packages
+      # Copy gateway package to site-packages
+      cp -r ${gatewaySrc}/. $out/lib/python3.13/site-packages/ai_inference_gateway
+      # Fix permissions
+      chmod -R u+w $out/lib/python3.13/site-packages/ai_inference_gateway
+      # Remove compiled Python files
+      find $out -name "*.pyc" -delete
+      find $out -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+    '';
 
   # Python environment with gateway dependencies AND the gateway package
   # The gateway package is added as an extra package
   gatewayPython = pkgs.python3.withPackages (
     ps:
-    [
-      ps.fastapi
-      ps.uvicorn
-      ps.httpx
-      ps.openai # OpenAI SDK for proper API communication
-      ps.anthropic # Anthropic SDK for Claude API compatibility
-      ps.prometheus-client
-      ps.pyjwt
-      ps.cryptography
-      ps.python-multipart
-      ps.uvloop
-      ps.httptools
-      ps.aiohttp
-      ps.psutil
-      ps.qdrant-client
-      ps.sentence-transformers
-      ps.rank-bm25
-      ps.numpy
-      ps.beautifulsoup4 # For RAG URL ingestion (HTML parsing)
-      ps.redis
-      ps.pydantic
-      ps.pydantic-settings
-      ps.sentry-sdk
-      # MCP SDK for SearXNG MCP server integration
-      ps.mcp
-      # HuggingFace CLI for model downloads
-      ps.huggingface-hub
-      # TTS support: Qwen3-TTS (models loaded from HuggingFace)
-      ps.qwen-tts
-      ps.transformers
-      ps.torch
-      ps.torchaudio
-      ps.accelerate
-      ps.datasets
-      # Audio processing for TTS/STT format conversion
-      ps.pydub # For MP3 conversion (requires ffmpeg in systemPackages)
-      ps.soundfile # For FLAC/WAV handling
-      ps.librosa # Audio analysis for qwen-tts
-      ps.einops # Tensor manipulation for qwen-tts
-      # Vision support (Qwen3-VL via transformers)
-      ps.pillow # For image processing
-      ps.onnxruntime # For ONNX model support
-      # SearXNG deep integration dependencies
-      ps.scikit-learn # For result clustering (DBSCAN, TF-IDF)
-      ps.lxml # Fast HTML parsing for ingestion
-      ps.feedgen # For RSS/ATOM export generation
-    ]
-    ++ [ modularGatewayPkgPython ]
+      [
+        ps.fastapi
+        ps.uvicorn
+        ps.httpx
+        ps.openai # OpenAI SDK for proper API communication
+        ps.anthropic # Anthropic SDK for Claude API compatibility
+        ps.prometheus-client
+        ps.pyjwt
+        ps.cryptography
+        ps.python-multipart
+        ps.uvloop
+        ps.httptools
+        ps.aiohttp
+        ps.psutil
+        ps.qdrant-client
+        ps.sentence-transformers
+        ps.rank-bm25
+        ps.numpy
+        ps.beautifulsoup4 # For RAG URL ingestion (HTML parsing)
+        ps.redis
+        ps.pydantic
+        ps.pydantic-settings
+        ps.sentry-sdk
+        # MCP SDK for SearXNG MCP server integration
+        ps.mcp
+        # HuggingFace CLI for model downloads
+        ps.huggingface-hub
+        # TTS support: Qwen3-TTS (models loaded from HuggingFace)
+        ps.qwen-tts
+        ps.transformers
+        ps.torch
+        ps.torchaudio
+        ps.accelerate
+        ps.datasets
+        # Audio processing for TTS/STT format conversion
+        ps.pydub # For MP3 conversion (requires ffmpeg in systemPackages)
+        ps.soundfile # For FLAC/WAV handling
+        ps.librosa # Audio analysis for qwen-tts
+        ps.einops # Tensor manipulation for qwen-tts
+        # Vision support (Qwen3-VL via transformers)
+        ps.pillow # For image processing
+        ps.onnxruntime # For ONNX model support
+        # SearXNG deep integration dependencies
+        ps.scikit-learn # For result clustering (DBSCAN, TF-IDF)
+        ps.lxml # Fast HTML parsing for ingestion
+        ps.feedgen # For RSS/ATOM export generation
+      ]
+      ++ [modularGatewayPkgPython]
   );
 
   # Combined package: gateway source + Python environment in one
@@ -131,17 +130,16 @@ let
   # Dynamically finds the gateway package to avoid hardcoded Nix store paths
   opencodeSearxngMcpWrapper = pkgs.writeShellApplication {
     name = "opencode-searxng-mcp";
-    runtimeInputs = with pkgs; [ coreutils findutils gnugrep gnused ];
+    runtimeInputs = with pkgs; [coreutils findutils gnugrep gnused];
     text = builtins.readFile ./bin/opencode-searxng-mcp;
   };
-in
-{
+in {
   config = mkIf (cfg.enable && cfg.gateway.enable) {
     # Expose the gateway Python environment for use by MCP servers
     services.ai-inference.gateway.python = gatewayPython;
 
     # Install the OpenCode MCP wrapper script to system path
-    environment.systemPackages = [ opencodeSearxngMcpWrapper ];
+    environment.systemPackages = [opencodeSearxngMcpWrapper];
 
     systemd.services.ai-inference-gateway = {
       description = "AI Inference API Gateway v2";
@@ -151,9 +149,9 @@ in
         "searx.service"
         "redis.service" # Wait for Redis to start
       ];
-      wants = [ "network-online.target" ];
-      requires = [ "redis.service" ]; # Depend on Redis
-      wantedBy = [ "multi-user.target" ];
+      wants = ["network-online.target"];
+      requires = ["redis.service"]; # Depend on Redis
+      wantedBy = ["multi-user.target"];
 
       environment = {
         PATH = lib.mkForce "/run/current-system/sw/bin:/run/current-system/sw/sbin:${config.system.path}";
@@ -167,35 +165,38 @@ in
         PORT = toString cfg.gateway.port;
         AUTH_MODE = cfg.auth.mode;
         LM_STUDIO_API_KEY =
-          if cfg.backend.lmStudio.apiKeyFile != null then
-            "" # Will be loaded from file by gateway
-          else
-            cfg.backend.lmStudio.apiKey;
-        LM_STUDIO_API_KEY_FILE = lib.optionalString (
-          cfg.backend.lmStudio.apiKeyFile != null
-        ) cfg.backend.lmStudio.apiKeyFile;
+          if cfg.backend.lmStudio.apiKeyFile != null
+          then "" # Will be loaded from file by gateway
+          else cfg.backend.lmStudio.apiKey;
+        LM_STUDIO_API_KEY_FILE =
+          lib.optionalString (
+            cfg.backend.lmStudio.apiKeyFile != null
+          )
+          cfg.backend.lmStudio.apiKeyFile;
         # ZAI backend configuration
         ZAI_API_KEY =
-          if cfg.backend.zai.apiKeyFile != null then
-            "" # Will be loaded from file by gateway
-          else
-            cfg.backend.zai.apiKey;
-        ZAI_API_KEY_FILE = lib.optionalString (
-          cfg.backend.zai.apiKeyFile != null
-        ) cfg.backend.zai.apiKeyFile;
+          if cfg.backend.zai.apiKeyFile != null
+          then "" # Will be loaded from file by gateway
+          else cfg.backend.zai.apiKey;
+        ZAI_API_KEY_FILE =
+          lib.optionalString (
+            cfg.backend.zai.apiKeyFile != null
+          )
+          cfg.backend.zai.apiKeyFile;
         ZAI_BASE_URL = cfg.backend.zai.baseUrl;
-        ZAI_MODELS = lib.generators.toJSON { } cfg.backend.zai.models;
+        ZAI_MODELS = lib.generators.toJSON {} cfg.backend.zai.models;
         # Pollinations backend configuration
         POLLINATIONS_API_KEY =
-          if cfg.backend.pollinations.apiKeyFile != null then
-            "" # Will be loaded from file by gateway
-          else
-            cfg.backend.pollinations.apiKey;
-        POLLINATIONS_API_KEY_FILE = lib.optionalString (
-          cfg.backend.pollinations.apiKeyFile != null
-        ) cfg.backend.pollinations.apiKeyFile;
+          if cfg.backend.pollinations.apiKeyFile != null
+          then "" # Will be loaded from file by gateway
+          else cfg.backend.pollinations.apiKey;
+        POLLINATIONS_API_KEY_FILE =
+          lib.optionalString (
+            cfg.backend.pollinations.apiKeyFile != null
+          )
+          cfg.backend.pollinations.apiKeyFile;
         POLLINATIONS_BASE_URL = cfg.backend.pollinations.baseUrl;
-        POLLINATIONS_MODELS = lib.generators.toJSON { } cfg.backend.pollinations.models;
+        POLLINATIONS_MODELS = lib.generators.toJSON {} cfg.backend.pollinations.models;
         # Redis configuration - using port 6380 to avoid conflict with fwupd-redis on 6379
         REDIS_URL = "redis://localhost:6380";
         PYTHONUNBUFFERED = "1";
@@ -228,10 +229,9 @@ in
         # Sentry error tracking
         SENTRY_ENABLED = lib.boolToString cfg.sentry.enable;
         SENTRY_DSN =
-          if cfg.sentry.dsnFile != null then
-            "" # Will be loaded from file by gateway
-          else
-            cfg.sentry.dsn or "";
+          if cfg.sentry.dsnFile != null
+          then "" # Will be loaded from file by gateway
+          else cfg.sentry.dsn or "";
         SENTRY_DSN_FILE = lib.optionalString (cfg.sentry.dsnFile != null) cfg.sentry.dsnFile;
         SENTRY_ENVIRONMENT = cfg.sentry.environment;
         SENTRY_TRACES_SAMPLE_RATE = builtins.toString cfg.sentry.tracesSampleRate;
@@ -279,22 +279,23 @@ in
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [
-          "/tmp"
-          "/var/cache/ai-inference"
-          "/run/gpu-scheduler"
-          "/run/ai-inference" # Self-improvement memory
-        ]
-        ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
-        ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
-        ++ lib.optional (cfg.backend.pollinations.apiKeyFile != null) (
-          dirOf cfg.backend.pollinations.apiKeyFile
-        )
-        ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/zai-api-key")
-        ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/context7-api-key")
-        ++ lib.optional (
-          lib.hasAttr "sentry" cfg && lib.hasAttr "dsnFile" cfg.sentry && cfg.sentry.dsnFile != null
-        ) (dirOf cfg.sentry.dsnFile);
+        ReadWritePaths =
+          [
+            "/tmp"
+            "/var/cache/ai-inference"
+            "/run/gpu-scheduler"
+            "/run/ai-inference" # Self-improvement memory
+          ]
+          ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
+          ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
+          ++ lib.optional (cfg.backend.pollinations.apiKeyFile != null) (
+            dirOf cfg.backend.pollinations.apiKeyFile
+          )
+          ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/zai-api-key")
+          ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/context7-api-key")
+          ++ lib.optional (
+            lib.hasAttr "sentry" cfg && lib.hasAttr "dsnFile" cfg.sentry && cfg.sentry.dsnFile != null
+          ) (dirOf cfg.sentry.dsnFile);
         # Memory limits with OOM protection
         MemoryMax = "2G";
         MemoryHigh = "1.5G"; # Start soft limiting at 1.5GB
@@ -311,9 +312,9 @@ in
       isSystemUser = true;
       group = "ai-inference";
       description = "AI Inference Gateway";
-      extraGroups = [ "users" ]; # Allow access to /etc/nixos git repo for nix-rebuild MCP tools
+      extraGroups = ["users"]; # Allow access to /etc/nixos git repo for nix-rebuild MCP tools
     };
-    users.groups.ai-inference = { };
+    users.groups.ai-inference = {};
 
     # Create cache directory and GPU scheduler communication directory
     systemd.tmpfiles.rules = [
@@ -323,3 +324,4 @@ in
   };
 }
 # force rebuild 3 1773547684
+

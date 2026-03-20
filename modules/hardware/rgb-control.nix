@@ -56,9 +56,9 @@ in {
       thresholds = lib.mkOption {
         type = lib.types.attrsOf lib.types.int;
         default = {
-          cool = 55;  # Blue below 55°C
-          warm = 70;  # Yellow 55-70°C
-          hot = 80;   # Orange-Red 70-80°C
+          cool = 55; # Blue below 55°C
+          warm = 70; # Yellow 55-70°C
+          hot = 80; # Orange-Red 70-80°C
         };
         description = "Temperature thresholds for color changes";
       };
@@ -67,9 +67,9 @@ in {
       colors = lib.mkOption {
         type = lib.types.attrsOf lib.types.str;
         default = {
-          cool = "0000FF";     # Blue
-          warm = "FFFF00";     # Yellow (was green)
-          hot = "FF4500";      # Orange-Red
+          cool = "0000FF"; # Blue
+          warm = "FFFF00"; # Yellow (was green)
+          hot = "FF4500"; # Orange-Red
           critical = "FF0000"; # Red
         };
         description = "RGB colors for temperature zones";
@@ -135,208 +135,208 @@ in {
         Restart = "always";
         RestartSec = "10s";
         ExecStart = pkgs.writeShellScript "rgb-temperature-control" ''
-          #!/usr/bin/env bash
-          set -euo pipefail
+                    #!/usr/bin/env bash
+                    set -euo pipefail
 
-          PATH=/run/current-system/sw/bin:$PATH
+                    PATH=/run/current-system/sw/bin:$PATH
 
-          # Configuration
-          COOL_THRESHOLD=${toString cfg.temperatureReactive.thresholds.cool}
-          WARM_THRESHOLD=${toString cfg.temperatureReactive.thresholds.warm}
-          HOT_THRESHOLD=${toString cfg.temperatureReactive.thresholds.hot}
-          CRITICAL_THRESHOLD=85
+                    # Configuration
+                    COOL_THRESHOLD=${toString cfg.temperatureReactive.thresholds.cool}
+                    WARM_THRESHOLD=${toString cfg.temperatureReactive.thresholds.warm}
+                    HOT_THRESHOLD=${toString cfg.temperatureReactive.thresholds.hot}
+                    CRITICAL_THRESHOLD=85
 
-          UPDATE_INTERVAL=${toString cfg.temperatureReactive.interval}
+                    UPDATE_INTERVAL=${toString cfg.temperatureReactive.interval}
 
-          SENSOR_TYPE="${cfg.temperatureReactive.sensor}"
+                    SENSOR_TYPE="${cfg.temperatureReactive.sensor}"
 
-          # Colors (RGB hex)
-          COOL_COLOR="${cfg.temperatureReactive.colors.cool}"
-          WARM_COLOR="${cfg.temperatureReactive.colors.warm}"
-          HOT_COLOR="${cfg.temperatureReactive.colors.hot}"
-          CRITICAL_COLOR="${cfg.temperatureReactive.colors.critical}"
+                    # Colors (RGB hex)
+                    COOL_COLOR="${cfg.temperatureReactive.colors.cool}"
+                    WARM_COLOR="${cfg.temperatureReactive.colors.warm}"
+                    HOT_COLOR="${cfg.temperatureReactive.colors.hot}"
+                    CRITICAL_COLOR="${cfg.temperatureReactive.colors.critical}"
 
-          # Device-specific settings (from openrgb -l output)
-          # Zephyr: 0-1 RAM, 2=3090, 6=Motherboard, 7=Lighting Node (fans), 9=AIO
-          MOTHERBOARD_DEVICE=6
-          GPU_DEVICE=2
-          FAN_DEVICE=7
-          AIO_DEVICE=9
-          OPENRAZER_DEVICE=0  # First Razer device
+                    # Device-specific settings (from openrgb -l output)
+                    # Zephyr: 0-1 RAM, 2=3090, 6=Motherboard, 7=Lighting Node (fans), 9=AIO
+                    MOTHERBOARD_DEVICE=6
+                    GPU_DEVICE=2
+                    FAN_DEVICE=7
+                    AIO_DEVICE=9
+                    OPENRAZER_DEVICE=0  # First Razer device
 
-          log() {
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-          }
+                    log() {
+                      echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+                    }
 
-          # Get CPU temperature
-          get_cpu_temp() {
-            # Try different temperature sensors
-            for sensor in /sys/class/thermal/thermal_zone*/temp; do
-              if [[ -r "$sensor" ]]; then
-                temp=$(cat "$sensor" 2>/dev/null || echo "0")
-                if [[ "$temp" -gt 1000 ]]; then
-                  echo $((temp / 1000))
-                  return 0
-                fi
-              fi
+                    # Get CPU temperature
+                    get_cpu_temp() {
+                      # Try different temperature sensors
+                      for sensor in /sys/class/thermal/thermal_zone*/temp; do
+                        if [[ -r "$sensor" ]]; then
+                          temp=$(cat "$sensor" 2>/dev/null || echo "0")
+                          if [[ "$temp" -gt 1000 ]]; then
+                            echo $((temp / 1000))
+                            return 0
+                          fi
+                        fi
 
 
-done
-
-            # Fallback to lm-sensors if available
-            if command -v sensors &>/dev/null; then
-              sensors -j 2>/dev/null | grep -oE '"Core.*_input": [0-9.]+' | head -1 | grep -oE '[0-9.]+' || echo "0"
-            else
-              echo "0"
-            fi
-          }
-
-          # Get GPU temperature
-          get_gpu_temp() {
-            # Try NVIDIA
-            if command -v nvidia-smi &>/dev/null; then
-              nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 || echo "0"
-            # Try AMD
-            elif command -v rocm-smi &>/dev/null; then
-              rocm-smi --showtemp --json 2>/dev/null | grep -oE '"GPU temp": [0-9.]+' | grep -oE '[0-9.]+' | head -1 || echo "0"
-            else
-              echo "0"
-            fi
-          }
-
-          # Get temperature based on sensor type
-          get_temperature() {
-            case "$SENSOR_TYPE" in
-              cpu)
-                get_cpu_temp
-                ;;
-              gpu)
-                get_gpu_temp
-                ;;
-              both)
-                cpu=$(get_cpu_temp)
-                gpu=$(get_gpu_temp)
-                # Return the higher temperature
-                if (( $(echo "$cpu > $gpu" | bc -l 2>/dev/null || echo "$cpu > $gpu") )); then
-                  echo "$cpu"
-                else
-                  echo "$gpu"
-                fi
-                ;;
-              *)
-                get_cpu_temp
-                ;;
-            esac
-          }
-
-          # Determine color based on temperature
-          get_color_for_temp() {
-            local temp=$1
-
-            if (( temp >= CRITICAL_THRESHOLD )); then
-              echo "$CRITICAL_COLOR"
-            elif (( temp >= HOT_THRESHOLD )); then
-              echo "$HOT_COLOR"
-            elif (( temp >= WARM_THRESHOLD )); then
-              echo "$WARM_COLOR"
-            else
-              echo "$COOL_COLOR"
-            fi
-          }
-
-          # Set OpenRGB color for all devices
-          set_openrgb_color() {
-            local color=$1
-
-            # Validate color is 6-digit hex
-            if [[ ! "$color" =~ ^[0-9A-Fa-f]{6}$ ]]; then
-              echo "Invalid color format: $color (expected 6-digit hex)"
-              return 1
-            fi
-
-            if command -v openrgb &>/dev/null; then
-              # Convert hex to RGB decimal format for OpenRGB
-              local r=$((16#${color:0:2}))
-              local g=$((16#${color:2:2}))
-              local b=$((16#${color:4:2}))
-
-              # Set mode to Direct first, then set color for each device
-              # Motherboard
-              openrgb -d $MOTHERBOARD_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
-              # GPU (3090)
-              openrgb -d $GPU_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
-              # Fans (Lighting Node Pro)
-              openrgb -d $FAN_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
-              # AIO pump
-              openrgb -d $AIO_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
-            fi
-          }
-
-          # Set Razer color (if available)
-          set_razer_color() {
-            local color=$1
-
-            # Validate color
-            if [[ ! "$color" =~ ^[0-9A-Fa-f]{6}$ ]]; then
-              return 1
-            fi
-
-            if command -v razer-cli &>/dev/null; then
-              # Convert hex to RGB format
-              local r=$((16#${color:0:2}))
-              local g=$((16#${color:2:2}))
-              local b=$((16#${color:4:2}))
-
-              razer-cli -c "$r,$g,$b" 2>/dev/null || true
-            fi
-          }
-
-          # Set Wraith Prism color (if available)
-          set_wraith_color() {
-            local color=$1
-
-            # Validate color
-            if [[ ! "$color" =~ ^[0-9A-Fa-f]{6}$ ]]; then
-              return 1
-            fi
-
-            if command -v cm-rgb &>/dev/null; then
-              cm-rgb -c "$color" 2>/dev/null || true
-            fi
-          }
-
-          # Main control loop
-          log "Starting temperature-reactive RGB control"
-          log "Sensor: $SENSOR_TYPE | Thresholds: $COOL_THRESHOLD°C / $WARM_THRESHOLD°C / $HOT_THRESHOLD°C"
-
-          # Initialize with current temperature
-          current_temp=$(get_temperature)
-          current_color=$(get_color_for_temp "$current_temp")
-          log "Initial temperature: $current_temp°C -> Color: #$current_color"
-
-          # Set initial colors
-          set_openrgb_color "$current_color"
-          set_razer_color "$current_color"
-          set_wraith_color "$current_color"
-
-          last_color="$current_color"
-
-          # Main loop
-          while true; do
-            temp=$(get_temperature)
-            new_color=$(get_color_for_temp "$temp")
-
-            # Only update if color changed
-            if [[ "$new_color" != "$last_color" ]]; then
-              log "Temperature: $temp°C -> Color: #$new_color"
-              set_openrgb_color "$new_color"
-              set_razer_color "$new_color"
-              set_wraith_color "$new_color"
-              last_color="$new_color"
-            fi
-
-            sleep "$UPDATE_INTERVAL"
           done
+
+                      # Fallback to lm-sensors if available
+                      if command -v sensors &>/dev/null; then
+                        sensors -j 2>/dev/null | grep -oE '"Core.*_input": [0-9.]+' | head -1 | grep -oE '[0-9.]+' || echo "0"
+                      else
+                        echo "0"
+                      fi
+                    }
+
+                    # Get GPU temperature
+                    get_gpu_temp() {
+                      # Try NVIDIA
+                      if command -v nvidia-smi &>/dev/null; then
+                        nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 || echo "0"
+                      # Try AMD
+                      elif command -v rocm-smi &>/dev/null; then
+                        rocm-smi --showtemp --json 2>/dev/null | grep -oE '"GPU temp": [0-9.]+' | grep -oE '[0-9.]+' | head -1 || echo "0"
+                      else
+                        echo "0"
+                      fi
+                    }
+
+                    # Get temperature based on sensor type
+                    get_temperature() {
+                      case "$SENSOR_TYPE" in
+                        cpu)
+                          get_cpu_temp
+                          ;;
+                        gpu)
+                          get_gpu_temp
+                          ;;
+                        both)
+                          cpu=$(get_cpu_temp)
+                          gpu=$(get_gpu_temp)
+                          # Return the higher temperature
+                          if (( $(echo "$cpu > $gpu" | bc -l 2>/dev/null || echo "$cpu > $gpu") )); then
+                            echo "$cpu"
+                          else
+                            echo "$gpu"
+                          fi
+                          ;;
+                        *)
+                          get_cpu_temp
+                          ;;
+                      esac
+                    }
+
+                    # Determine color based on temperature
+                    get_color_for_temp() {
+                      local temp=$1
+
+                      if (( temp >= CRITICAL_THRESHOLD )); then
+                        echo "$CRITICAL_COLOR"
+                      elif (( temp >= HOT_THRESHOLD )); then
+                        echo "$HOT_COLOR"
+                      elif (( temp >= WARM_THRESHOLD )); then
+                        echo "$WARM_COLOR"
+                      else
+                        echo "$COOL_COLOR"
+                      fi
+                    }
+
+                    # Set OpenRGB color for all devices
+                    set_openrgb_color() {
+                      local color=$1
+
+                      # Validate color is 6-digit hex
+                      if [[ ! "$color" =~ ^[0-9A-Fa-f]{6}$ ]]; then
+                        echo "Invalid color format: $color (expected 6-digit hex)"
+                        return 1
+                      fi
+
+                      if command -v openrgb &>/dev/null; then
+                        # Convert hex to RGB decimal format for OpenRGB
+                        local r=$((16#${"color:0:2"}))
+                        local g=$((16#${"color:2:2"}))
+                        local b=$((16#${"color:4:2"}))
+
+                        # Set mode to Direct first, then set color for each device
+                        # Motherboard
+                        openrgb -d $MOTHERBOARD_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
+                        # GPU (3090)
+                        openrgb -d $GPU_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
+                        # Fans (Lighting Node Pro)
+                        openrgb -d $FAN_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
+                        # AIO pump
+                        openrgb -d $AIO_DEVICE -m Direct -c "$r,$g,$b" 2>/dev/null || true
+                      fi
+                    }
+
+                    # Set Razer color (if available)
+                    set_razer_color() {
+                      local color=$1
+
+                      # Validate color
+                      if [[ ! "$color" =~ ^[0-9A-Fa-f]{6}$ ]]; then
+                        return 1
+                      fi
+
+                      if command -v razer-cli &>/dev/null; then
+                        # Convert hex to RGB format
+                        local r=$((16#${"color:0:2"}))
+                        local g=$((16#${"color:2:2"}))
+                        local b=$((16#${"color:4:2"}))
+
+                        razer-cli -c "$r,$g,$b" 2>/dev/null || true
+                      fi
+                    }
+
+                    # Set Wraith Prism color (if available)
+                    set_wraith_color() {
+                      local color=$1
+
+                      # Validate color
+                      if [[ ! "$color" =~ ^[0-9A-Fa-f]{6}$ ]]; then
+                        return 1
+                      fi
+
+                      if command -v cm-rgb &>/dev/null; then
+                        cm-rgb -c "$color" 2>/dev/null || true
+                      fi
+                    }
+
+                    # Main control loop
+                    log "Starting temperature-reactive RGB control"
+                    log "Sensor: $SENSOR_TYPE | Thresholds: $COOL_THRESHOLD°C / $WARM_THRESHOLD°C / $HOT_THRESHOLD°C"
+
+                    # Initialize with current temperature
+                    current_temp=$(get_temperature)
+                    current_color=$(get_color_for_temp "$current_temp")
+                    log "Initial temperature: $current_temp°C -> Color: #$current_color"
+
+                    # Set initial colors
+                    set_openrgb_color "$current_color"
+                    set_razer_color "$current_color"
+                    set_wraith_color "$current_color"
+
+                    last_color="$current_color"
+
+                    # Main loop
+                    while true; do
+                      temp=$(get_temperature)
+                      new_color=$(get_color_for_temp "$temp")
+
+                      # Only update if color changed
+                      if [[ "$new_color" != "$last_color" ]]; then
+                        log "Temperature: $temp°C -> Color: #$new_color"
+                        set_openrgb_color "$new_color"
+                        set_razer_color "$new_color"
+                        set_wraith_color "$new_color"
+                        last_color="$new_color"
+                      fi
+
+                      sleep "$UPDATE_INTERVAL"
+                    done
         '';
         # Security hardening
         NoNewPrivileges = true;
@@ -361,18 +361,18 @@ done
       # OpenRGB
       if command -v openrgb &>/dev/null; then
         echo "Setting OpenRGB color..."
-        r=$((16#${COLOR:0:2}))
-        g=$((16#${COLOR:2:2}))
-        b=$((16#${COLOR:4:2}))
+        r=$((16#${"COLOR:0:2"}))
+        g=$((16#${"COLOR:2:2"}))
+        b=$((16#${"COLOR:4:2"}))
         openrgb -d 0 -c "$r,$g,$b" 2>/dev/null || true
       fi
 
       # Razer
       if command -v razer-cli &>/dev/null; then
         echo "Setting Razer color..."
-        r=$((16#${COLOR:0:2}))
-        g=$((16#${COLOR:2:2}))
-        b=$((16#${COLOR:4:2}))
+        r=$((16#${"COLOR:0:2"}))
+        g=$((16#${"COLOR:2:2"}))
+        b=$((16#${"COLOR:4:2"}))
         razer-cli -c "$r,$g,$b" 2>/dev/null || true
       fi
 

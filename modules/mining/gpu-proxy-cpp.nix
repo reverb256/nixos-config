@@ -39,8 +39,8 @@
         api_port = cfg.apiPort;
         log_level = cfg.logLevel;
       };
-      pools = cfg.pools;
-      workers = cfg.workers;
+      inherit (cfg) pools;
+      inherit (cfg) workers;
     }
   );
 in {

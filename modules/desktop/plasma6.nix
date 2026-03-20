@@ -319,8 +319,6 @@ in {
         AnimationSpeed=3
       '';
 
-
-
       # Window rules for specific applications
       "xdg/kwinrulesrc".text = ''
         [General]
@@ -409,11 +407,11 @@ in {
           # Wait for GPU DRM devices to be ready (NVIDIA/CUDA or AMD/ROCm)
           # NVIDIA: /proc/driver/nvidia, /dev/nvidiactl
           # AMD: /sys/class/drm/card*/device/vendor (0x1002 = AMD)
-          
+
           log() {
             echo "[gpu-ready] $1" >&2
           }
-          
+
           # Check if any DRM device exists
           check_drm_devices() {
             for dev in /dev/dri/card*; do
@@ -423,27 +421,27 @@ in {
             done
             return 1
           }
-          
+
           # Check for NVIDIA GPUs (CUDA)
           has_nvidia() {
             [ -d /proc/driver/nvidia ] && [ -e /dev/nvidiactl ]
           }
-          
+
           # Check for AMD GPUs (ROCm)
           has_amd() {
             [ -d /sys/class/drm ] && grep -q "0x1002" /sys/class/drm/card*/device/vendor 2>/dev/null
           }
-          
+
           DETECTED_GPUS=""
           has_nvidia && DETECTED_GPUS="$DETECTED_GPUS NVIDIA(CUDA)"
           has_amd && DETECTED_GPUS="$DETECTED_GPUS AMD(ROCm)"
-          
+
           if [ -n "$DETECTED_GPUS" ]; then
             log "Detected GPUs:$DETECTED_GPUS"
           else
             log "No GPUs detected, waiting for DRM devices..."
           fi
-          
+
           # Wait up to 10 seconds for DRM devices
           for i in $(seq 1 50); do
             if check_drm_devices; then
@@ -452,7 +450,7 @@ in {
             fi
             sleep 0.2
           done
-          
+
           # Timeout - log warning but proceed (display manager has restart logic)
           log "WARNING: Timeout waiting for DRM devices, proceeding anyway"
           exit 0

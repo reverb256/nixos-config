@@ -370,10 +370,9 @@ in {
         (mkNpmMcpServer {
           name = "context7";
           package = "@upstash/context7-mcp";
-          env =
-            lib.optionalAttrs (cfg.servers.context7.apiKeyFile == null && cfg.servers.context7.apiKey != "") {
-              CONTEXT7_API_KEY = cfg.servers.context7.apiKey;
-            };
+          env = lib.optionalAttrs (cfg.servers.context7.apiKeyFile == null && cfg.servers.context7.apiKey != "") {
+            CONTEXT7_API_KEY = cfg.servers.context7.apiKey;
+          };
         })
 
         # Note: grep-app MCP server (@grepapp/mcp-server) does not exist in npm

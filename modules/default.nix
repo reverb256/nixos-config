@@ -105,8 +105,8 @@
     ./services/garnix.nix
     ./services/auto-update.nix
     ./services/whisper-dictation.nix
-    ./services/cloudflared.nix  # Cloudflare Tunnel for Akash provider ingress
-    ./services/akash-cloudflare-integration.nix  # DNS, cache, metrics for Akash
+    ./services/cloudflared.nix # Cloudflare Tunnel for Akash provider ingress
+    ./services/akash-cloudflare-integration.nix # DNS, cache, metrics for Akash
     ./services/unbound-cluster.nix
     ./services/searxng.nix
     ./services/syncthing.nix

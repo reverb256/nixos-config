@@ -197,9 +197,27 @@
         service = {
           type = "NodePort";
           ports = [
-            { name = "provider"; port = 8443; targetPort = 8443; nodePort = 30843; protocol = "TCP"; }
-            { name = "grpc"; port = 8444; targetPort = 8444; nodePort = 30844; protocol = "TCP"; }
-            { name = "http"; port = 80; targetPort = 80; nodePort = 30080; protocol = "TCP"; }
+            {
+              name = "provider";
+              port = 8443;
+              targetPort = 8443;
+              nodePort = 30843;
+              protocol = "TCP";
+            }
+            {
+              name = "grpc";
+              port = 8444;
+              targetPort = 8444;
+              nodePort = 30844;
+              protocol = "TCP";
+            }
+            {
+              name = "http";
+              port = 80;
+              targetPort = 80;
+              nodePort = 30080;
+              protocol = "TCP";
+            }
           ];
         };
 

@@ -131,7 +131,7 @@ in {
   config = lib.mkIf cfg.enable {
     # Create user and group
     users.users.${cfg.user} = {
-      group = cfg.group;
+      inherit (cfg) group;
       isSystemUser = true;
       description = "Mining proxy service user";
     };
@@ -147,18 +147,18 @@ in {
     environment.etc."mining-proxy/config.json".text = builtins.toJSON {
       pools =
         builtins.map (pool: {
-          name = pool.name;
-          url = pool.url;
-          priority = pool.priority;
-          weight = pool.weight;
+          inherit (pool) name;
+          inherit (pool) url;
+          inherit (pool) priority;
+          inherit (pool) weight;
           tls = lib.hasPrefix "ssl" pool.url;
         })
         cfg.pools;
 
       workers =
         builtins.map (worker: {
-          id = worker.id;
-          password = worker.password;
+          inherit (worker) id;
+          inherit (worker) password;
         })
         cfg.workers;
 

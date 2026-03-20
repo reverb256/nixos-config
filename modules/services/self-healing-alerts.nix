@@ -9,10 +9,12 @@
 # - Resource threshold alerts
 #
 # Requires: Plasma desktop (knotify5/notify-send)
-
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.self-healing-alerts;
 in {
   options.services.self-healing-alerts = {
@@ -68,8 +70,8 @@ in {
   config = lib.mkIf cfg.enable {
     # Required packages
     environment.systemPackages = with pkgs; [
-      libnotify  # For notify-send command
-      coreutils  # For df, free commands
+      libnotify # For notify-send command
+      coreutils # For df, free commands
     ];
 
     # Create alert notification script
@@ -121,7 +123,7 @@ in {
     # Service failure monitoring (monitoring path for all services)
     systemd.paths.self-healing-monitor-services = lib.mkIf (cfg.monitoredServices != []) {
       description = "Monitor service failures for self-healing alerts";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       pathConfig = {
         DirectoryNotEmpty = "/run/self-healing/failures";
         MakeDirectory = true;
@@ -130,7 +132,7 @@ in {
 
     systemd.services.self-healing-monitor-services = {
       description = "Service failure monitor for self-healing alerts";
-      after = [ "network.target" ];
+      after = ["network.target"];
       serviceConfig = {
         Type = "simple";
         ExecStart = pkgs.writeShellScript "service-failure-monitor" ''
@@ -201,7 +203,7 @@ in {
     # Service restart monitoring (via journal)
     systemd.services.self-healing-monitor-restarts = lib.mkIf (cfg.monitoredServices != []) {
       description = "Monitor service restarts for self-healing alerts";
-      after = [ "network.target" "systemd-journald.service" ];
+      after = ["network.target" "systemd-journald.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "restart-monitor" ''
@@ -270,8 +272,8 @@ in {
     # VIP failover monitoring
     systemd.services.self-healing-monitor-vip = lib.mkIf cfg.enableVIPFailoverAlerts {
       description = "Monitor VIP failover events";
-      after = [ "keepalived.service" ];
-      wants = [ "keepalived.service" ];
+      after = ["keepalived.service"];
+      wants = ["keepalived.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "vip-monitor" ''
@@ -321,7 +323,7 @@ in {
     # Timer for VIP monitoring (every 10 seconds)
     systemd.timers.self-healing-monitor-vip = lib.mkIf cfg.enableVIPFailoverAlerts {
       description = "Periodic VIP state monitoring";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnUnitActiveSec = "10s";
         AccuracySec = "1s";
@@ -394,7 +396,7 @@ in {
     # Timer for resource monitoring (every minute)
     systemd.timers.self-healing-monitor-resources = lib.mkIf cfg.enableResourceAlerts {
       description = "Periodic resource monitoring";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnUnitActiveSec = "1m";
         AccuracySec = "1s";
@@ -404,8 +406,8 @@ in {
     # Circuit breaker monitoring (via metrics endpoint)
     systemd.services.self-healing-monitor-circuit-breaker = lib.mkIf cfg.enableCircuitBreakerAlerts {
       description = "Monitor circuit breaker state changes";
-      after = [ "network.target" "ai-gateway.service" ];
-      wants = [ "ai-gateway.service" ];
+      after = ["network.target" "ai-gateway.service"];
+      wants = ["ai-gateway.service"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "circuit-breaker-monitor" ''
@@ -468,7 +470,7 @@ in {
     # Timer for circuit breaker monitoring (every 30 seconds)
     systemd.timers.self-healing-monitor-circuit-breaker = lib.mkIf cfg.enableCircuitBreakerAlerts {
       description = "Periodic circuit breaker monitoring";
-      wantedBy = [ "timers.target" ];
+      wantedBy = ["timers.target"];
       timerConfig = {
         OnUnitActiveSec = "30s";
         AccuracySec = "1s";

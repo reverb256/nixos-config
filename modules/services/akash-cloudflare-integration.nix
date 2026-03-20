@@ -7,7 +7,7 @@
   ...
 }: let
   cfg = config.services.akash-cloudflare-integration;
-  inherit (lib) mkEnableOption mkOption types mkIf mkOptionDefault optional optionalString concatMapStrings concatStringsSep strings;
+  inherit (lib) mkEnableOption mkOption types mkIf;
 in {
   options.services.akash-cloudflare-integration = {
     enable = mkEnableOption "Cloudflare integration for Akash Provider (all features)";
@@ -351,10 +351,10 @@ in {
                   echo "$deployment_uid" >> "$PROCESSED_FILE"
 
                   ${lib.optionalString cfg.cachePurge.enable ''
-                  # Trigger cache purge
-                  log "Triggering cache purge for $tenant_name"
-                  systemctl start akash-cloudflare-cache-purge@"$tenant_name"
-                  ''}
+            # Trigger cache purge
+            log "Triggering cache purge for $tenant_name"
+            systemctl start akash-cloudflare-cache-purge@"$tenant_name"
+          ''}
                 fi
               done
             fi
@@ -455,7 +455,7 @@ in {
 
       serviceConfig = {
         Type = "oneshot";
-        User = "root";  # Changed from node-exporter to read token file
+        User = "root"; # Changed from node-exporter to read token file
         Environment = "METRICS_DIR=${cfg.metricsExporter.metricsDir}";
 
         # Security hardening

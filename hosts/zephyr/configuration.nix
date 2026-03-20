@@ -5,8 +5,7 @@
   lib,
   inputs,
   ...
-}:
-{
+}: {
   imports = [
     # ========================================================================
     # BASE MODULES
@@ -141,7 +140,7 @@
       etcdListenHost = "10.1.1.110";
       etcdBootstrapOnly = true;
       # No cluster members needed for single-node setup
-      etcdClusterMembers = [ ];
+      etcdClusterMembers = [];
     };
 
     # Keepalived VIP - priority 110 (highest - preferred master)
@@ -241,41 +240,41 @@
       # Feature 1: Automated Tenant DNS Setup (⭐⭐⭐ HIGH PRIORITY)
       dnsWatcher = {
         enable = true;
-        pollInterval = 30;  # Check every 30 seconds
-        dnsRecordPrefix = "dedicated";  # Creates *.dedicated.ingress.reverb256.ca
+        pollInterval = 30; # Check every 30 seconds
+        dnsRecordPrefix = "dedicated"; # Creates *.dedicated.ingress.reverb256.ca
       };
 
       # Feature 2: Smart Cache Invalidation (⭐⭐ HIGH PRIORITY)
       cachePurge = {
         enable = true;
-        purgeDelay = 5;  # Wait 5 seconds after DNS creation
+        purgeDelay = 5; # Wait 5 seconds after DNS creation
       };
 
       # Feature 3: Prometheus Integration (⭐⭐ HIGH PRIORITY)
       metricsExporter = {
         enable = true;
-        scrapeInterval = 300;  # 5 minutes
+        scrapeInterval = 300; # 5 minutes
         metricsDir = "/var/lib/prometheus/node-exporter/textfile-collector";
       };
 
       # Feature 4: Health Monitoring Dashboard (⭐⭐ NICE TO HAVE)
       healthDashboard = {
         enable = true;
-        updateInterval = 30;  # 30 seconds
+        updateInterval = 30; # 30 seconds
         outputDir = "/var/www/akash-health";
       };
 
       # Feature 5: DNS Cleanup Automation (⭐ MEDIUM PRIORITY)
       dnsCleanup = {
         enable = true;
-        gracePeriod = 86400;  # 24 hours in seconds
-        cleanupTime = "03:00:00";  # 3 AM daily
+        gracePeriod = 86400; # 24 hours in seconds
+        cleanupTime = "03:00:00"; # 3 AM daily
       };
 
       # Feature 6: Status Page (⭐ OPTIONAL)
       statusPage = {
         enable = true;
-        updateInterval = 300;  # 5 minutes
+        updateInterval = 300; # 5 minutes
         outputDir = "/var/www/akash-status";
       };
     };
@@ -684,7 +683,7 @@
           # All knowledge sources enabled
           rag_enabled = true;
           searxng_enabled = true;
-          searxng_url = "http://10.1.1.110:30080";  # NodePort for LAN access (K8s SearXNG service)
+          searxng_url = "http://10.1.1.110:30080"; # NodePort for LAN access (K8s SearXNG service)
           searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
@@ -732,7 +731,7 @@
           nix-rebuild = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
@@ -742,16 +741,16 @@
           add-service = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
             ];
-            environment = { };
+            environment = {};
             enabled = true;
           };
           context7 = {
             type = "local";
             # Use absolute path for reliable subprocess spawning
-            command = [ "/run/current-system/sw/bin/mcp-context7" ];
+            command = ["/run/current-system/sw/bin/mcp-context7"];
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
@@ -900,12 +899,12 @@
       # Device 1: RTX 3090 @ 250W (VRAM-safe) - 3060 Ti disabled
       # perGpuPowerLimits: [220, 250] = [GPU0: 220W (max), GPU1: 250W]
       lolminer.nvidia = {
-        enable = true;
-        autostart = true;
-        devices = "1";
+        enable = false; # DISABLED: GPU0 (3060 Ti, 8GB) can't handle CR29 VRAM
+        autostart = false;
+        devices = "0,1";
         perGpuPowerLimits = [
-          130  # GPU0: 3060 Ti @ 130W (reduced from 220W)
-          250  # GPU1: RTX 3090 @ 250W (VRAM-safe)
+          130 # GPU0: 3060 Ti @ 130W (reduced from 220W)
+          250 # GPU1: RTX 3090 @ 250W (VRAM-safe)
         ];
         apiPort = 4068;
       };
@@ -952,13 +951,13 @@
         enable = true;
         retentionDays = 30;
       };
-      grafana.enable = false;  # RUNNING ON KUBERNETES (ai-inference namespace)
+      grafana.enable = false; # RUNNING ON KUBERNETES (ai-inference namespace)
     };
 
     # GlitchTip error tracking (self-hosted Sentry alternative)
     # MIGRATED TO KUBERNETES (2026-03-19) - See kubernetes-manifests/glitchtip/
     glitchtip-selfhosted = {
-      enable = false;  # MIGRATED TO KUBERNETES
+      enable = false; # MIGRATED TO KUBERNETES
       host = "127.0.0.1";
       port = 8000;
       openFirewall = false;
@@ -1102,7 +1101,7 @@
 
   # Override specific secret permissions (registry defaults can be overridden)
   age = {
-    identityPaths = [ "/home/j_kro/.age/key.txt" ];
+    identityPaths = ["/home/j_kro/.age/key.txt"];
     secrets.xmrig-api-token = lib.mkForce {
       file = "${inputs.self}/secrets/xmrig-api-token.age";
       mode = "440";
@@ -1441,3 +1440,4 @@
   # Configured in services block above
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
+

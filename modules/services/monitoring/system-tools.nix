@@ -25,24 +25,25 @@ in {
 
   config = mkIf config.services.monitoring.system-tools.enable {
     # Base packages always included
-    environment.systemPackages = with pkgs; [
-      htop
-      iotop
-      sysstat
-      pciutils
-      usbutils
-      lm_sensors
-    ]
-    ++ lib.optionals (config.services.monitoring.system-tools.packageSet != "basic") [
-      nethogs
-      iftop
-      perf
-    ]
-    ++ lib.optionals (config.services.monitoring.system-tools.packageSet == "full") [
-      bpftrace
-      bcc-tools
-      strace
-      ltrace
-    ];
+    environment.systemPackages = with pkgs;
+      [
+        htop
+        iotop
+        sysstat
+        pciutils
+        usbutils
+        lm_sensors
+      ]
+      ++ lib.optionals (config.services.monitoring.system-tools.packageSet != "basic") [
+        nethogs
+        iftop
+        perf
+      ]
+      ++ lib.optionals (config.services.monitoring.system-tools.packageSet == "full") [
+        bpftrace
+        bcc-tools
+        strace
+        ltrace
+      ];
   };
 }

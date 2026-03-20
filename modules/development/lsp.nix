@@ -1,6 +1,10 @@
 # LSP and Development Tools Module
 # Language servers and development tools for multiple languages
-{pkgs, lib, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   # Install LSP servers and development tools
   environment.systemPackages = with pkgs; [
     # ============================================================================

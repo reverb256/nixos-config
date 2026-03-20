@@ -5,10 +5,8 @@
 {
   lib,
   config,
-  pkgs,
   ...
-}:
-let
+}: let
   currentHost = config.networking.hostName or "unknown";
   isZephyr = currentHost == "zephyr";
   # Auto-enable on remote hosts, disable on Zephyr (source)
@@ -18,8 +16,7 @@ let
     sourcePath = "/run/nixos-shared/flake.lock";
     targetPath = "/etc/nixos/flake.lock";
   };
-in
-{
+in {
   options.services.flake-lock-sync = {
     enable = lib.mkOption {
       type = lib.types.bool;
@@ -47,7 +44,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-
     # Sync script
     environment.etc."nixos/scripts/sync-flake-lock.sh" = {
       mode = "0755";
@@ -94,7 +90,7 @@ in
     # Systemd service for on-demand sync
     systemd.services.flake-lock-sync = {
       description = "Sync flake.lock from NFS mount";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       after = [
         "nixos-shared.mount"
         "network-online.target"
@@ -103,7 +99,7 @@ in
         "nixos-shared.mount"
         "network-online.target"
       ];
-      requires = [ "nixos-shared.mount" ];
+      requires = ["nixos-shared.mount"];
 
       serviceConfig = {
         Type = "oneshot";
@@ -115,8 +111,8 @@ in
     # Systemd timer for periodic sync
     systemd.timers.flake-lock-sync = {
       description = "Periodic flake.lock sync from NFS";
-      wantedBy = [ "timers.target" ];
-      partOf = [ "flake-lock-sync.service" ];
+      wantedBy = ["timers.target"];
+      partOf = ["flake-lock-sync.service"];
       timerConfig = {
         OnBootSec = "1min";
         OnUnitActiveSec = cfg.interval;

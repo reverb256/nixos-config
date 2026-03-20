@@ -25,7 +25,7 @@ in {
       hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
     })
 
-        (lib.mkIf cfg.nvidia.enable {
+    (lib.mkIf cfg.nvidia.enable {
       hardware.nvidia-common.enable = true;
       hardware.nvidia.wayland.enable = true;
       boot.kernelModules = ["nvidia" "nvidia_uvm" "nvidia_drm" "nvidia_modeset"];

@@ -12,7 +12,6 @@
 # - Uses same llama-cpp package as services.llamafile
 # - References existing GGUF models in ~/.lmstudio/models/
 # - Compatible with create-llamafile.sh for standalone binaries
-
 {
   config,
   lib,
@@ -23,9 +22,12 @@ with lib; let
   cfg = config.services.boot-emergency-diagnostics;
 
   # Select llama-cpp variant based on GPU type
-  llamaPkg = if cfg.gpu == "amd" || cfg.gpu == "rocm" then pkgs.llama-cpp-rocm
-             else if cfg.gpu == "nvidia" || cfg.gpu == null && config.hardware.gpu-compute.cuda.enable then pkgs.llama-cpp
-             else pkgs.llama-cpp;
+  llamaPkg =
+    if cfg.gpu == "amd" || cfg.gpu == "rocm"
+    then pkgs.llama-cpp-rocm
+    else if cfg.gpu == "nvidia" || cfg.gpu == null && config.hardware.gpu-compute.cuda.enable
+    then pkgs.llama-cpp
+    else pkgs.llama-cpp;
 
   # Emergency type detection (heuristic, not AI)
   detectEmergencyType = pkgs.writeShellScript "detect-emergency" ''
@@ -91,7 +93,6 @@ with lib; let
         ;;
     esac
   '';
-
 in {
   options.services.boot-emergency-diagnostics = {
     enable = mkEnableOption "Emergency boot diagnostics with Qwen 3.5 models";
@@ -166,7 +167,7 @@ in {
           vramRequired = "512M";
           ctxSize = 2048;
           bestFor = ["emergency" "fallback" "low-vram"];
-          gpuLayers = 0;  # CPU-only for truly minimal
+          gpuLayers = 0; # CPU-only for truly minimal
         };
       };
       description = "Available diagnostic models";
@@ -214,262 +215,262 @@ in {
         "multi-user.target"
         "ai-inference-gateway.service"
       ];
-      wantedBy = ["emergency.target"];  # Only run in emergency
+      wantedBy = ["emergency.target"]; # Only run in emergency
 
       # Only run if there was a boot failure
       conditionPathExists = ["/run/systemd/emergency"];
 
       serviceConfig = {
         Type = "oneshot";
-        RemainAfterExit = false;  # Self-unload after completion
+        RemainAfterExit = false; # Self-unload after completion
 
         # Resource limits
-        MemoryMax = "8G";  # Enough for 9B model
+        MemoryMax = "8G"; # Enough for 9B model
         CPUQuota = "75%";
 
         WorkingDirectory = "/var/lib/emergency-diagnostics";
 
         ExecStart = pkgs.writeShellScript "emergency-diagnostic" ''
-          set -euo pipefail
+                    set -euo pipefail
 
-          STATE="/var/lib/emergency-diagnostics"
-          CACHE="/var/cache/emergency-diagnostics"
-          mkdir -p "$STATE" "$CACHE"
+                    STATE="/var/lib/emergency-diagnostics"
+                    CACHE="/var/cache/emergency-diagnostics"
+                    mkdir -p "$STATE" "$CACHE"
 
-          LOG="$STATE/emergency_$(date +%F_%H%M%S).log"
+                    LOG="$STATE/emergency_$(date +%F_%H%M%S).log"
 
-          echo "=== EMERGENCY DIAGNOSTICS ACTIVATED ===" | tee "$LOG"
-          echo "System: $(hostname)" | tee -a "$LOG"
-          echo "Time: $(date)" | tee -a "$LOG"
-          echo "Uptime: $(uptime)" | tee -a "$LOG"
+                    echo "=== EMERGENCY DIAGNOSTICS ACTIVATED ===" | tee "$LOG"
+                    echo "System: $(hostname)" | tee -a "$LOG"
+                    echo "Time: $(date)" | tee -a "$LOG"
+                    echo "Uptime: $(uptime)" | tee -a "$LOG"
 
-          # =============================================================================
-          # STEP 1: Detect emergency type
-          # =============================================================================
-          EMERGENCY_TYPE=$(${detectEmergencyType})
-          echo "Emergency type: $EMERGENCY_TYPE" | tee -a "$LOG"
+                    # =============================================================================
+                    # STEP 1: Detect emergency type
+                    # =============================================================================
+                    EMERGENCY_TYPE=$(${detectEmergencyType})
+                    echo "Emergency type: $EMERGENCY_TYPE" | tee -a "$LOG"
 
-          # =============================================================================
-          # STEP 2: Detect available resources
-          # =============================================================================
-          case "${cfg.vramDetectionMethod}" in
-            nvidia-smi)
-              if command -v nvidia-smi >/dev/null 2>&1; then
-                FREE_VRAM=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits | head -1)
-                # nvidia-smi returns in MB
-                AVAILABLE_VRAM="$${FREE_VRAM:-0}"
-              else
-                AVAILABLE_VRAM="0"  # No NVIDIA GPU
+                    # =============================================================================
+                    # STEP 2: Detect available resources
+                    # =============================================================================
+                    case "${cfg.vramDetectionMethod}" in
+                      nvidia-smi)
+                        if command -v nvidia-smi >/dev/null 2>&1; then
+                          FREE_VRAM=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits | head -1)
+                          # nvidia-smi returns in MB
+                          AVAILABLE_VRAM="$${FREE_VRAM:-0}"
+                        else
+                          AVAILABLE_VRAM="0"  # No NVIDIA GPU
+                        fi
+                        ;;
+                      free)
+                        # Use system RAM as fallback (in MB)
+                        AVAILABLE_VRAM=$(free -m | awk '/^Mem:/{print $2}')
+                        ;;
+                      fixed)
+                        AVAILABLE_VRAM="${toString cfg.fixedVram}"
+                        ;;
+                    esac
+
+                    echo "Available VRAM/RAM: $AVAILABLE_VRAM MB" | tee -a "$LOG"
+
+                    # =============================================================================
+                    # STEP 3: Select appropriate model
+                    # =============================================================================
+                    MODEL_NAME=$(${selectModel} "$EMERGENCY_TYPE" "$AVAILABLE_VRAM")
+
+                    # Get model config
+                    case "$MODEL_NAME" in
+                      qwen-0.8b)
+                        MODEL_PATH="${cfg.models.quick.ggufPath}"
+                        CTX_SIZE="${toString cfg.models.quick.ctxSize}"
+                        GPU_LAYERS="${toString cfg.models.quick.gpuLayers}"
+                        ;;
+                      qwen-4b)
+                        MODEL_PATH="${cfg.models.code.ggufPath}"
+                        CTX_SIZE="${toString cfg.models.code.ctxSize}"
+                        GPU_LAYERS="${toString cfg.models.code.gpuLayers}"
+                        ;;
+                      qwen-9b)
+                        MODEL_PATH="${cfg.models.capable.ggufPath}"
+                        CTX_SIZE="${toString cfg.models.capable.ctxSize}"
+                        GPU_LAYERS="${toString cfg.models.capable.gpuLayers}"
+                        ;;
+                      qwen-0.8b-minimal)
+                        MODEL_PATH="${cfg.models.minimal.ggufPath}"
+                        CTX_SIZE="${toString cfg.models.minimal.ctxSize}"
+                        GPU_LAYERS="${toString cfg.models.minimal.gpuLayers}"
+                        ;;
+                      *)
+                        echo "Unknown model: $MODEL_NAME" | tee -a "$LOG"
+                        MODEL_PATH="${cfg.models.minimal.ggufPath}"
+                        CTX_SIZE="${toString cfg.models.minimal.ctxSize}"
+                        GPU_LAYERS="0"
+                        ;;
+                    esac
+
+                    # Verify model exists
+                    if [ ! -f "$MODEL_PATH" ]; then
+                      echo "ERROR: Model not found: $MODEL_PATH" | tee -a "$LOG"
+                      echo "Falling back to minimal diagnostics..." | tee -a "$LOG"
+                      MODEL_PATH="${cfg.models.minimal.ggufPath}"
+                      CTX_SIZE="2048"
+                      GPU_LAYERS="0"
+                    fi
+
+                    echo "Selected model: $MODEL_NAME" | tee -a "$LOG"
+                    echo "Model path: $MODEL_PATH" | tee -a "$LOG"
+                    echo "Context size: $CTX_SIZE" | tee -a "$LOG"
+                    echo "GPU layers: $GPU_LAYERS" | tee -a "$LOG"
+
+                    # =============================================================================
+                    # STEP 4: Gather relevant symptoms (scoped)
+                    # =============================================================================
+                    SYMPTOMS="$STATE/symptoms.txt"
+
+                    case "$EMERGENCY_TYPE" in
+                      hardware-gpu|hardware-storage)
+                        dmesg 2>/dev/null | grep -iE "error|fail" | tail -20 > "$SYMPTOMS" || echo "No hardware errors found" > "$SYMPTOMS"
+                        ;;
+                      nixos-build)
+                        journalctl -u nixos-rebuild --since "1 day ago" --no-pager 2>/dev/null | grep -iE "error|fail" | tail -10 > "$SYMPTOMS" || echo "No nixos-rebuild errors found" > "$SYMPTOMS"
+                        ;;
+                      services)
+                        systemctl --failed --no-legend 2>/dev/null > "$SYMPTOMS" || echo "No service failures" > "$SYMPTOMS"
+                        echo "" >> "$SYMPTOMS"
+                        systemctl --failed --no-legend -p 2>/dev/null | head -5 >> "$SYMPTOMS" || true
+                        ;;
+                      *)
+                        journalctl -b -1 --no-pager 2>/dev/null | tail -15 > "$SYMPTOMS" || echo "No journal data available" > "$SYMPTOMS"
+                        ;;
+                    esac
+
+                    # =============================================================================
+                    # STEP 5: Run diagnostics with llama-cli
+                    # =============================================================================
+                    cat > "$CACHE/prompt.txt" <<EOF
+          You are an emergency system diagnostic AI specialized in NixOS systems.
+
+          Given these boot failure symptoms:
+
+          === SYSTEM STATE ===
+          $(cat "$SYMPTOMS")
+
+          === HOSTNAME ===
+          $(hostname)
+
+          Identify:
+          1. Root cause (one line, specific)
+          2. Fix command (one bash command, or "manual")
+          3. Confidence (high/medium/low)
+
+          Output ONLY this JSON format:
+          {
+            "root_cause": "brief specific description",
+            "fix_command": "exact command or 'manual'",
+            "confidence": "high|medium|low"
+          }
+          EOF
+
+                    echo "Running diagnostic model..." | tee -a "$LOG"
+                    timeout 120s ${llamaPkg}/bin/llama-cli \
+                      -m "$MODEL_PATH" \
+                      -ngl "$GPU_LAYERS" \
+                      -c "$CTX_SIZE" \
+                      --temp 0 \
+                      -n 512 \
+                      -p "$(< "$CACHE/prompt.txt")" \
+                      2>&1 | tee -a "$LOG" | tee "$CACHE/response.txt"
+
+                    # =============================================================================
+                    # STEP 6: Parse and generate fix script
+                    # =============================================================================
+                    FIX_SCRIPT="$STATE/fix_$(date +%H%M%S).sh"
+
+                    # Extract JSON (simple parsing, handle various formats)
+                    RESPONSE=$(cat "$CACHE/response.txt")
+                    ROOT_CAUSE=$(echo "$RESPONSE" | grep -oP '"root_cause":\s*"\K[^"]+' 2>/dev/null || echo "unknown - check diagnostic log")
+                    FIX_COMMAND=$(echo "$RESPONSE" | grep -oP '"fix_command":\s*"\K[^"]+' 2>/dev/null || echo "manual")
+                    CONFIDENCE=$(echo "$RESPONSE" | grep -oP '"confidence":\s*"\K[^"]+' 2>/dev/null || echo "low")
+
+                    # Sanitize extracted values (remove control characters, escapes)
+                    ROOT_CAUSE=$(echo "$ROOT_CAUSE" | tr -d '\n\r' | sed 's/\\n/ /g' | sed 's/\\t/ /g')
+                    FIX_COMMAND=$(echo "$FIX_COMMAND" | tr -d '\n\r' | sed 's/\\n/ /g' | sed 's/\\t/ /g')
+
+                    cat > "$FIX_SCRIPT" <<FIXEOF
+          #!/bin/bash
+          # Emergency fix script generated at $(date)
+          # Emergency type: $EMERGENCY_TYPE
+          # Root cause: $ROOT_CAUSE
+          # Model used: $MODEL_NAME
+          # Confidence: $CONFIDENCE
+
+          DIAGNOSTIC_LOG="$LOG"
+
+          echo "=== EMERGENCY FIX SCRIPT ==="
+          echo "Emergency type: $EMERGENCY_TYPE"
+          echo "Root cause: $ROOT_CAUSE"
+          echo "Suggested fix: $FIX_COMMAND"
+          echo "Model: $MODEL_NAME"
+          echo "Confidence: $CONFIDENCE"
+          echo ""
+          echo "Full diagnostic log: $DIAGNOSTIC_LOG"
+          echo ""
+
+          case "$CONFIDENCE" in
+            high)
+              echo "High confidence - fix can be auto-applied"
+              echo ""
+              read -p "Execute fix? [y/N/v/d] " choice
+              case "$choice" in
+                y|Y)
+                  echo "Executing: $FIX_COMMAND"
+                  eval "$FIX_COMMAND" || echo "Fix failed - manual intervention required"
+                  ;;
+                v|V)
+                  echo "Fix command: $FIX_COMMAND"
+                  ;;
+                d|D)
+                  less "$DIAGNOSTIC_LOG"
+                  exec "$0"  # Restart menu
+                  ;;
+                *)
+                  echo "Skipped - fix not applied"
+                  ;;
+              esac
+              ;;
+            medium)
+              echo "Medium confidence - review before executing:"
+              echo "$FIX_COMMAND"
+              echo ""
+              read -p "Execute this fix? [y/N] " answer
+              if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+                echo "Executing: $FIX_COMMAND"
+                eval "$FIX_COMMAND" || echo "Fix failed - manual intervention required"
               fi
               ;;
-            free)
-              # Use system RAM as fallback (in MB)
-              AVAILABLE_VRAM=$(free -m | awk '/^Mem:/{print $2}')
-              ;;
-            fixed)
-              AVAILABLE_VRAM="${toString cfg.fixedVram}"
-              ;;
-          esac
-
-          echo "Available VRAM/RAM: $AVAILABLE_VRAM MB" | tee -a "$LOG"
-
-          # =============================================================================
-          # STEP 3: Select appropriate model
-          # =============================================================================
-          MODEL_NAME=$(${selectModel} "$EMERGENCY_TYPE" "$AVAILABLE_VRAM")
-
-          # Get model config
-          case "$MODEL_NAME" in
-            qwen-0.8b)
-              MODEL_PATH="${cfg.models.quick.ggufPath}"
-              CTX_SIZE="${toString cfg.models.quick.ctxSize}"
-              GPU_LAYERS="${toString cfg.models.quick.gpuLayers}"
-              ;;
-            qwen-4b)
-              MODEL_PATH="${cfg.models.code.ggufPath}"
-              CTX_SIZE="${toString cfg.models.code.ctxSize}"
-              GPU_LAYERS="${toString cfg.models.code.gpuLayers}"
-              ;;
-            qwen-9b)
-              MODEL_PATH="${cfg.models.capable.ggufPath}"
-              CTX_SIZE="${toString cfg.models.capable.ctxSize}"
-              GPU_LAYERS="${toString cfg.models.capable.gpuLayers}"
-              ;;
-            qwen-0.8b-minimal)
-              MODEL_PATH="${cfg.models.minimal.ggufPath}"
-              CTX_SIZE="${toString cfg.models.minimal.ctxSize}"
-              GPU_LAYERS="${toString cfg.models.minimal.gpuLayers}"
-              ;;
-            *)
-              echo "Unknown model: $MODEL_NAME" | tee -a "$LOG"
-              MODEL_PATH="${cfg.models.minimal.ggufPath}"
-              CTX_SIZE="${toString cfg.models.minimal.ctxSize}"
-              GPU_LAYERS="0"
+            low)
+              echo "Low confidence - manual intervention recommended"
+              echo "Diagnostic log: $DIAGNOSTIC_LOG"
+              echo ""
+              echo "To view logs: less $DIAGNOSTIC_LOG"
               ;;
           esac
+          FIXEOF
 
-          # Verify model exists
-          if [ ! -f "$MODEL_PATH" ]; then
-            echo "ERROR: Model not found: $MODEL_PATH" | tee -a "$LOG"
-            echo "Falling back to minimal diagnostics..." | tee -a "$LOG"
-            MODEL_PATH="${cfg.models.minimal.ggufPath}"
-            CTX_SIZE="2048"
-            GPU_LAYERS="0"
-          fi
+                    chmod +x "$FIX_SCRIPT"
+                    echo "Fix script: $FIX_SCRIPT" | tee -a "$LOG"
+                    ln -sf "$FIX_SCRIPT" "$STATE/fix.sh"
 
-          echo "Selected model: $MODEL_NAME" | tee -a "$LOG"
-          echo "Model path: $MODEL_PATH" | tee -a "$LOG"
-          echo "Context size: $CTX_SIZE" | tee -a "$LOG"
-          echo "GPU layers: $GPU_LAYERS" | tee -a "$LOG"
+                    # =============================================================================
+                    # STEP 7: Self-unload
+                    # =============================================================================
+                    echo "Diagnostics complete, service unloading..." | tee -a "$LOG"
 
-          # =============================================================================
-          # STEP 4: Gather relevant symptoms (scoped)
-          # =============================================================================
-          SYMPTOMS="$STATE/symptoms.txt"
+                    # Clean up marker - allow normal boot next time
+                    rm -f /run/systemd/emergency
 
-          case "$EMERGENCY_TYPE" in
-            hardware-gpu|hardware-storage)
-              dmesg 2>/dev/null | grep -iE "error|fail" | tail -20 > "$SYMPTOMS" || echo "No hardware errors found" > "$SYMPTOMS"
-              ;;
-            nixos-build)
-              journalctl -u nixos-rebuild --since "1 day ago" --no-pager 2>/dev/null | grep -iE "error|fail" | tail -10 > "$SYMPTOMS" || echo "No nixos-rebuild errors found" > "$SYMPTOMS"
-              ;;
-            services)
-              systemctl --failed --no-legend 2>/dev/null > "$SYMPTOMS" || echo "No service failures" > "$SYMPTOMS"
-              echo "" >> "$SYMPTOMS"
-              systemctl --failed --no-legend -p 2>/dev/null | head -5 >> "$SYMPTOMS" || true
-              ;;
-            *)
-              journalctl -b -1 --no-pager 2>/dev/null | tail -15 > "$SYMPTOMS" || echo "No journal data available" > "$SYMPTOMS"
-              ;;
-          esac
-
-          # =============================================================================
-          # STEP 5: Run diagnostics with llama-cli
-          # =============================================================================
-          cat > "$CACHE/prompt.txt" <<EOF
-You are an emergency system diagnostic AI specialized in NixOS systems.
-
-Given these boot failure symptoms:
-
-=== SYSTEM STATE ===
-$(cat "$SYMPTOMS")
-
-=== HOSTNAME ===
-$(hostname)
-
-Identify:
-1. Root cause (one line, specific)
-2. Fix command (one bash command, or "manual")
-3. Confidence (high/medium/low)
-
-Output ONLY this JSON format:
-{
-  "root_cause": "brief specific description",
-  "fix_command": "exact command or 'manual'",
-  "confidence": "high|medium|low"
-}
-EOF
-
-          echo "Running diagnostic model..." | tee -a "$LOG"
-          timeout 120s ${llamaPkg}/bin/llama-cli \
-            -m "$MODEL_PATH" \
-            -ngl "$GPU_LAYERS" \
-            -c "$CTX_SIZE" \
-            --temp 0 \
-            -n 512 \
-            -p "$(< "$CACHE/prompt.txt")" \
-            2>&1 | tee -a "$LOG" | tee "$CACHE/response.txt"
-
-          # =============================================================================
-          # STEP 6: Parse and generate fix script
-          # =============================================================================
-          FIX_SCRIPT="$STATE/fix_$(date +%H%M%S).sh"
-
-          # Extract JSON (simple parsing, handle various formats)
-          RESPONSE=$(cat "$CACHE/response.txt")
-          ROOT_CAUSE=$(echo "$RESPONSE" | grep -oP '"root_cause":\s*"\K[^"]+' 2>/dev/null || echo "unknown - check diagnostic log")
-          FIX_COMMAND=$(echo "$RESPONSE" | grep -oP '"fix_command":\s*"\K[^"]+' 2>/dev/null || echo "manual")
-          CONFIDENCE=$(echo "$RESPONSE" | grep -oP '"confidence":\s*"\K[^"]+' 2>/dev/null || echo "low")
-
-          # Sanitize extracted values (remove control characters, escapes)
-          ROOT_CAUSE=$(echo "$ROOT_CAUSE" | tr -d '\n\r' | sed 's/\\n/ /g' | sed 's/\\t/ /g')
-          FIX_COMMAND=$(echo "$FIX_COMMAND" | tr -d '\n\r' | sed 's/\\n/ /g' | sed 's/\\t/ /g')
-
-          cat > "$FIX_SCRIPT" <<FIXEOF
-#!/bin/bash
-# Emergency fix script generated at $(date)
-# Emergency type: $EMERGENCY_TYPE
-# Root cause: $ROOT_CAUSE
-# Model used: $MODEL_NAME
-# Confidence: $CONFIDENCE
-
-DIAGNOSTIC_LOG="$LOG"
-
-echo "=== EMERGENCY FIX SCRIPT ==="
-echo "Emergency type: $EMERGENCY_TYPE"
-echo "Root cause: $ROOT_CAUSE"
-echo "Suggested fix: $FIX_COMMAND"
-echo "Model: $MODEL_NAME"
-echo "Confidence: $CONFIDENCE"
-echo ""
-echo "Full diagnostic log: $DIAGNOSTIC_LOG"
-echo ""
-
-case "$CONFIDENCE" in
-  high)
-    echo "High confidence - fix can be auto-applied"
-    echo ""
-    read -p "Execute fix? [y/N/v/d] " choice
-    case "$choice" in
-      y|Y)
-        echo "Executing: $FIX_COMMAND"
-        eval "$FIX_COMMAND" || echo "Fix failed - manual intervention required"
-        ;;
-      v|V)
-        echo "Fix command: $FIX_COMMAND"
-        ;;
-      d|D)
-        less "$DIAGNOSTIC_LOG"
-        exec "$0"  # Restart menu
-        ;;
-      *)
-        echo "Skipped - fix not applied"
-        ;;
-    esac
-    ;;
-  medium)
-    echo "Medium confidence - review before executing:"
-    echo "$FIX_COMMAND"
-    echo ""
-    read -p "Execute this fix? [y/N] " answer
-    if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
-      echo "Executing: $FIX_COMMAND"
-      eval "$FIX_COMMAND" || echo "Fix failed - manual intervention required"
-    fi
-    ;;
-  low)
-    echo "Low confidence - manual intervention recommended"
-    echo "Diagnostic log: $DIAGNOSTIC_LOG"
-    echo ""
-    echo "To view logs: less $DIAGNOSTIC_LOG"
-    ;;
-esac
-FIXEOF
-
-          chmod +x "$FIX_SCRIPT"
-          echo "Fix script: $FIX_SCRIPT" | tee -a "$LOG"
-          ln -sf "$FIX_SCRIPT" "$STATE/fix.sh"
-
-          # =============================================================================
-          # STEP 7: Self-unload
-          # =============================================================================
-          echo "Diagnostics complete, service unloading..." | tee -a "$LOG"
-
-          # Clean up marker - allow normal boot next time
-          rm -f /run/systemd/emergency
-
-          echo "System ready for normal boot or manual intervention" | tee -a "$LOG"
+                    echo "System ready for normal boot or manual intervention" | tee -a "$LOG"
         '';
       };
     };

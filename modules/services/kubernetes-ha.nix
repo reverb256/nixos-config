@@ -18,11 +18,9 @@
 #   4. Set services.kubernetes.ha.enable = true
 #
 # =============================================================================
-
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 with lib; let
@@ -46,9 +44,9 @@ in {
     etcdEndpoints = mkOption {
       type = types.listOf types.str;
       default = [
-        "https://10.1.1.110:2379"  # Zephyr
-        "https://10.1.1.120:2379"  # Nexus
-        "https://10.1.1.140:2379"  # Sentry
+        "https://10.1.1.110:2379" # Zephyr
+        "https://10.1.1.120:2379" # Nexus
+        "https://10.1.1.140:2379" # Sentry
       ];
       description = "etcd cluster endpoints for API server";
     };
@@ -233,9 +231,9 @@ in {
     };
     networking.firewall = {
       allowedTCPPorts = [
-        6443  # Kubernetes API server
-        2379  # etcd client
-        2380  # etcd peer
+        6443 # Kubernetes API server
+        2379 # etcd client
+        2380 # etcd peer
       ];
     };
 

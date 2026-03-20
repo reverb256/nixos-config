@@ -257,7 +257,7 @@ in {
   # Akash provider wallet key - For earning AKT/USDC from GPU compute
   "akash-provider-key.age".publicKeys = [
     users.j_kro
-    hosts.zephyr    # Control plane node - primary provider
+    hosts.zephyr # Control plane node - primary provider
     # Add other hosts if running provider on multiple nodes:
     # hosts.forge
     # hosts.nexus
@@ -276,17 +276,17 @@ in {
   # Token contains: AccountID, TunnelID, TunnelSecret
   "cloudflared-token.age".publicKeys = [
     users.j_kro
-    hosts.zephyr    # Primary node running cloudflared
+    hosts.zephyr # Primary node running cloudflared
   ];
   "secrets/cloudflared-token.age".publicKeys = [
     users.j_kro
-    hosts.zephyr    # Primary node running cloudflared
+    hosts.zephyr # Primary node running cloudflared
   ];
 
   # Cloudflare API token - DNS and cache operations for Akash provider
   # Token contains: API token for Zone:DNS:Edit, Zone:Read, Zone:Cache:Purge
   "secrets/cloudflare-api-token.age".publicKeys = [
     users.j_kro
-    hosts.zephyr    # Primary node running Akash Cloudflare integration
+    hosts.zephyr # Primary node running Akash Cloudflare integration
   ];
 }

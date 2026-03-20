@@ -26,7 +26,7 @@ in {
       wantedBy = ["multi-user.target"];
       after = ["network-online.target" "systemd-journald.service"];
       requires = ["systemd-journald.service"];
-      wants = ["network-online.target"];  # Fix ordering warning
+      wants = ["network-online.target"]; # Fix ordering warning
 
       serviceConfig = {
         ExecStart = ''

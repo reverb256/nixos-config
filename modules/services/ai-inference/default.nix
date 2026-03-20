@@ -6,10 +6,10 @@
   pkgs,
   inputs,
   ...
-}:
-let
+}: let
   cfg = config.services.ai-inference;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     mkIf
@@ -33,8 +33,7 @@ let
     ps.rank-bm25
     ps.numpy
   ]);
-in
-{
+in {
   options.services.ai-inference = {
     enable = mkEnableOption "AI Inference Service (integrates with LM Studio)";
 
@@ -300,7 +299,7 @@ in
           };
           code_search_paths = mkOption {
             type = types.listOf types.str;
-            default = [ "/etc/nixos" ];
+            default = ["/etc/nixos"];
             description = "Paths to search for code";
           };
           rag_top_k = mkOption {
@@ -423,7 +422,7 @@ in
       tailscale = {
         aclTags = mkOption {
           type = types.listOf types.str;
-          default = [ ];
+          default = [];
           example = [
             "tag:ai-inference"
             "tag:trusted"
@@ -512,7 +511,7 @@ in
 
       custom = mkOption {
         type = types.attrsOf types.str;
-        default = { };
+        default = {};
         example = literalExpression ''
           {
             nixos = "You are a NixOS configuration expert. Always use lib.mkOptionDefault for shared modules.";
@@ -530,8 +529,7 @@ in
       servers = mkOption {
         type = types.attrsOf (
           types.submodule (
-            { config, ... }:
-            {
+            {config, ...}: {
               options = {
                 type = mkOption {
                   type = types.enum [
@@ -544,7 +542,10 @@ in
 
                 url = mkOption {
                   type = types.nullOr types.str;
-                  default = if config.type == "remote" then null else null;
+                  default =
+                    if config.type == "remote"
+                    then null
+                    else null;
                   description = "MCP server URL (required for remote type)";
                 };
 
@@ -557,7 +558,7 @@ in
 
                 environment = mkOption {
                   type = types.attrsOf types.str;
-                  default = { };
+                  default = {};
                   example = {
                     NIX_HOST = "zephyr";
                   };
@@ -566,7 +567,7 @@ in
 
                 headers = mkOption {
                   type = types.attrsOf types.str;
-                  default = { };
+                  default = {};
                   example = {
                     Authorization = "Bearer token";
                   };
@@ -896,7 +897,7 @@ in
           job_name = "ai-inference-${config.networking.hostName}";
           static_configs = [
             {
-              targets = [ "${cfg.gateway.host}:${toString cfg.monitoring.port}" ];
+              targets = ["${cfg.gateway.host}:${toString cfg.monitoring.port}"];
               labels = {
                 instance = config.networking.hostName;
                 backend = cfg.backend.type;
@@ -909,7 +910,8 @@ in
       # LM Studio headless service (optional)
       lm-studio-headless = mkIf (cfg.lm-studio-headless != null && cfg.lm-studio-headless.enable) {
         enable = true;
-        inherit (cfg.lm-studio-headless)
+        inherit
+          (cfg.lm-studio-headless)
           port
           host
           user

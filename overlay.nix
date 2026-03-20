@@ -1,30 +1,30 @@
 # Custom Package Overlay
-final: prev: {
-  lolminer = prev.callPackage ./packages/lolminer.nix { };
-  xmrig = prev.callPackage ./packages/xmrig.nix { };
+_final: prev: {
+  lolminer = prev.callPackage ./packages/lolminer.nix {};
+  xmrig = prev.callPackage ./packages/xmrig.nix {};
   # LM Studio - both names point to the same custom package
-  lmstudio = prev.callPackage ./packages/lmstudio.nix { };
-  lm-studio = prev.callPackage ./packages/lmstudio.nix { };
+  lmstudio = prev.callPackage ./packages/lmstudio.nix {};
+  lm-studio = prev.callPackage ./packages/lmstudio.nix {};
   # WiVRn with Lighthouse support for Tundra trackers
   wivrn = prev.wivrn.overrideAttrs (old: {
-    cmakeFlags = old.cmakeFlags ++ [ "-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON" ];
+    cmakeFlags = old.cmakeFlags ++ ["-DWIVRN_FEATURE_STEAMVR_LIGHTHOUSE=ON"];
   });
   # assimp: Disable doCheck (tests have FMA-induced floating point differences)
   # See: https://github.com/assimp/assimp/issues/5687
-  assimp = prev.assimp.overrideAttrs (old: {
+  assimp = prev.assimp.overrideAttrs (_old: {
     doCheck = false;
   });
 
   # llama-cpp: CUDA-enabled version from GitHub master
   # Replaces CPU-only nixpkgs version with GPU-accelerated build
   # Note: Pass config to allow unfree cuda_cccl dependency
-  llama-cpp = (prev.callPackage ./packages/llama-cpp-cuda.nix {
+  llama-cpp = prev.callPackage ./packages/llama-cpp-cuda.nix {
     inherit (prev) config;
-  });
+  };
 
   # llama-cpp-rocm: Separate ROCm-enabled package (doesn't replace base)
   # Needed because nixpkgs llama-cpp-rocm uses .override which would inherit CUDA build
-  llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix { };
+  llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
 
   # Python packages overlay
   python3 = prev.python3.override {

@@ -72,10 +72,12 @@ in {
       useNetworkd = true;
 
       # Static IP for wired interface (managed by systemd-networkd)
-      interfaces.${cfg.interfaceName}.ipv4.addresses = [{
-        address = cfg.ipAddress;
-        prefixLength = 24;
-      }];
+      interfaces.${cfg.interfaceName}.ipv4.addresses = [
+        {
+          address = cfg.ipAddress;
+          prefixLength = 24;
+        }
+      ];
 
       # Default route via gateway
       defaultGateway = {
@@ -85,7 +87,7 @@ in {
 
       # NetworkManager for WiFi backup only (not wired)
       networkmanager = {
-        enable = cfg.wireless.enable;
+        inherit (cfg.wireless) enable;
         dns = "none"; # Use Unbound, not NetworkManager's DNS
         wifi.backend = "wpa_supplicant"; # Use wpa_supplicant for WiFi
         # Note: No ensureProfiles for wired - systemd-networkd handles that
@@ -101,8 +103,8 @@ in {
     # ============================================================================
     services = {
       unbound-cluster = {
-        enable = cfg.unbound.enable;
-        listenAddress = cfg.unbound.listenAddress;
+        inherit (cfg.unbound) enable;
+        inherit (cfg.unbound) listenAddress;
       };
 
       # Tailscale VPN for secure remote access
