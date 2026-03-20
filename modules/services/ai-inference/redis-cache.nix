@@ -1,14 +1,13 @@
 # Redis/Valkey Configuration for SearXNG Caching
 # Provides persistent, distributed caching for multi-instance SearXNG deployment
-
-{ config, lib, pkgs, ... }:
-
-with lib;
-
-let
-  cfg = config.services.redis.servers.searxng;
-in
 {
+  config,
+  lib,
+  ...
+}:
+with lib; let
+  cfg = config.services.redis.servers.searxng;
+in {
   options.services.redis.servers.searxng = {
     enable = mkEnableOption "Redis server for SearXNG caching";
 
@@ -43,11 +42,11 @@ in
 
       # Performance tuning for AI workloads
       databases = 1;
-      save = [];  # Disable RDB snapshots for pure cache use
-      appendonly = false;  # Disable AOF for cache (faster)
+      save = []; # Disable RDB snapshots for pure cache use
+      appendonly = false; # Disable AOF for cache (faster)
 
       # Security
-      requirePass = false;  # No password for local use
+      requirePass = false; # No password for local use
       unixSocket = "/run/redis-searxng/redis.sock";
 
       # Logging
@@ -75,11 +74,11 @@ in
         maxclients = 10000;
 
         # Slow log
-        slowlog-log-slower-than = 10000;  # 10ms
+        slowlog-log-slower-than = 10000; # 10ms
         slowlog-max-len = 128;
 
         # Latency monitoring
-        latency-monitor-threshold = 100;  # ms
+        latency-monitor-threshold = 100; # ms
       };
     };
 

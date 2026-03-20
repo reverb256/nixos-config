@@ -7,12 +7,12 @@
   ...
 }: let
   cfg = config.services.opencode;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     mkIf
     types
-    literalExpression
     optional
     optionalString
     ;
@@ -254,40 +254,39 @@ in {
     };
 
     # System packages for OpenCode management
-    environment.systemPackages = with pkgs;
-      [
-        updateScript
-        (pkgs.writeShellScriptBin "opencode-sync" ''
-          #!/bin/bash
-          # Manual trigger for OpenCode model sync
-          echo "=== OpenCode Model Sync ==="
-          systemctl start opencode-model-update.service
-          journalctl -u opencode-model-update.service -n 50 --no-pager
-        '')
-        (pkgs.writeShellScriptBin "opencode-status" ''
-          #!/bin/bash
-          # Show OpenCode configuration status
-          echo "=== OpenCode Status ==="
-          echo ""
-          echo "Gateway:"
-          curl -sf "${cfg.gatewayUrl}/health" && echo "  ✓ Gateway is healthy" || echo "  ✗ Gateway is down"
-          echo ""
-          echo "Models from gateway:"
-          curl -sf "${cfg.gatewayUrl}/v1/models" | ${pkgs.jq}/bin/jq -r '.data[].id' 2>/dev/null | sed 's/^/  /' || echo "  ✗ Could not fetch models"
-          echo ""
-          echo "OpenCode config:"
-          [ -f "/home/${cfg.user}/.config/opencode/opencode.json" ] && echo "  ✓ User config exists" || echo "  ✗ User config missing"
-          [ -f "/root/.config/opencode/opencode.json" ] && echo "  ✓ Root config exists" || echo "  ✗ Root config missing"
-          echo ""
-          echo "Last sync:"
-          journalctl -u opencode-model-update.service -n 1 --no-pager -o short | grep -oP 'Started at.*' || echo "  No sync logs found"
-          echo ""
-          echo "Available commands:"
-          echo "  opencode-sync        - Trigger model sync now"
-          echo "  opencode-status      - Show this status"
-          echo "  systemctl status opencode-model-update.timer"
-        '')
-      ];
+    environment.systemPackages = with pkgs; [
+      updateScript
+      (pkgs.writeShellScriptBin "opencode-sync" ''
+        #!/bin/bash
+        # Manual trigger for OpenCode model sync
+        echo "=== OpenCode Model Sync ==="
+        systemctl start opencode-model-update.service
+        journalctl -u opencode-model-update.service -n 50 --no-pager
+      '')
+      (pkgs.writeShellScriptBin "opencode-status" ''
+        #!/bin/bash
+        # Show OpenCode configuration status
+        echo "=== OpenCode Status ==="
+        echo ""
+        echo "Gateway:"
+        curl -sf "${cfg.gatewayUrl}/health" && echo "  ✓ Gateway is healthy" || echo "  ✗ Gateway is down"
+        echo ""
+        echo "Models from gateway:"
+        curl -sf "${cfg.gatewayUrl}/v1/models" | ${pkgs.jq}/bin/jq -r '.data[].id' 2>/dev/null | sed 's/^/  /' || echo "  ✗ Could not fetch models"
+        echo ""
+        echo "OpenCode config:"
+        [ -f "/home/${cfg.user}/.config/opencode/opencode.json" ] && echo "  ✓ User config exists" || echo "  ✗ User config missing"
+        [ -f "/root/.config/opencode/opencode.json" ] && echo "  ✓ Root config exists" || echo "  ✗ Root config missing"
+        echo ""
+        echo "Last sync:"
+        journalctl -u opencode-model-update.service -n 1 --no-pager -o short | grep -oP 'Started at.*' || echo "  No sync logs found"
+        echo ""
+        echo "Available commands:"
+        echo "  opencode-sync        - Trigger model sync now"
+        echo "  opencode-status      - Show this status"
+        echo "  systemctl status opencode-model-update.timer"
+      '')
+    ];
 
     # Create config directories
     systemd.tmpfiles.rules = [
@@ -360,12 +359,12 @@ in {
         "$schema": "https://opencode.ai/config.json",
         "provider": {
           ${optionalString cfg.zai.enable ''
-          "zai-coding-plan": {
-            "options": {
-              "apiKey": "{env:ZAI_API_KEY}"
-            }
-          },
-          ''}
+        "zai-coding-plan": {
+          "options": {
+            "apiKey": "{env:ZAI_API_KEY}"
+          }
+        },
+      ''}
           "gateway": {
             "npm": "@ai-sdk/openai-compatible",
             "name": "AI Gateway v2 (Local)",

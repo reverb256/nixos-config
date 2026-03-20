@@ -4,12 +4,10 @@
   pkgs,
   inputs,
   ...
-}:
-let
+}: let
   cfg = config.services.hermes-agent;
-  hermesPackage = import ./package.nix { inherit pkgs lib config; };
-in
-{
+  hermesPackage = import ./package.nix {inherit pkgs lib config;};
+in {
   imports = [
     ./health-check.nix
     ./monitor.nix
@@ -117,7 +115,7 @@ in
       isNormalUser = true;
       createHome = true;
       home = cfg.sharedStorage.mountPoint;
-      group = cfg.group;
+      inherit (cfg) group;
       extraGroups = [
         "wheel"
         "video"
@@ -126,7 +124,7 @@ in
       shell = pkgs.fish;
     };
 
-    users.groups.${cfg.group} = lib.mkIf (cfg.group == "hermes") { };
+    users.groups.${cfg.group} = lib.mkIf (cfg.group == "hermes") {};
 
     # System packages - direct list assignment merges with host config by default
     # Note: Using direct assignment instead of mkOptionDefault because we want
@@ -144,7 +142,7 @@ in
         what = "${cfg.sharedStorage.nfsServer}:${cfg.sharedStorage.nfsPath}";
         type = "nfs";
         options = "nofail,_netdev,hard,intr,timeo=600";
-        wantedBy = [ "multi-user.target" ];
+        wantedBy = ["multi-user.target"];
       }
     ];
 
@@ -163,14 +161,15 @@ in
           "network-online.target"
           "multi-user.target"
         ]
-        (lib.mkIf cfg.aiGateway.enable [ "ai-inference-gateway.service" ])
+        (lib.mkIf cfg.aiGateway.enable ["ai-inference-gateway.service"])
       ];
-      wants = [
-        "network-online.target"
-      ]
-      ++ lib.optionals cfg.aiGateway.enable [ "ai-inference-gateway.service" ];
-      requires = lib.optionals cfg.aiGateway.enable [ "ai-inference-gateway.service" ];
-      wantedBy = [ "multi-user.target" ];
+      wants =
+        [
+          "network-online.target"
+        ]
+        ++ lib.optionals cfg.aiGateway.enable ["ai-inference-gateway.service"];
+      requires = lib.optionals cfg.aiGateway.enable ["ai-inference-gateway.service"];
+      wantedBy = ["multi-user.target"];
 
       environment = {
         HERMES_AI_GATEWAY_URL = lib.mkIf cfg.aiGateway.enable cfg.aiGateway.url;

@@ -9,8 +9,7 @@
   pkgs,
   inputs,
   ...
-}:
-{
+}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -103,7 +102,7 @@
     kubernetes-module = {
       enable = true;
       # Worker node only (no master role)
-      roles = lib.mkForce [ "node" ];
+      roles = lib.mkForce ["node"];
       # Use zephyr's IP or VIP for master address
       masterAddress = lib.mkForce "10.1.1.100";
     };

@@ -8,28 +8,28 @@
   ...
 }: let
   cfg = config.services.llamafile;
-  inherit (lib)
+  inherit
+    (lib)
     mkEnableOption
     mkOption
     mkIf
-    types
-    literalExpression
-    optional
-    optionalString
-    ;
+    types;
 
   # Auto-detect GPU backend from gpu-compute module or use explicit setting
-  hasGpuCompute = config.hardware.gpu-compute.enable or false;
   useCuda = config.hardware.gpu-compute.cuda.enable or false;
   useRocm = config.hardware.gpu-compute.rocm.enable or false;
-  useVulkan = config.hardware.gpu-compute.vulkan.enable or false;
 
   # Select llama-cpp variant (prefer explicit GPU setting, then auto-detect)
-  llamaPkg = if cfg.gpu == "amd" || cfg.gpu == "rocm" then pkgs.llama-cpp-rocm
-             else if cfg.gpu == "nvidia" then pkgs.llama-cpp # CUDA for NVIDIA (Flash Attention support)
-             else if cfg.gpu == null && useRocm then pkgs.llama-cpp-rocm
-             else if cfg.gpu == null && useCuda then pkgs.llama-cpp
-             else pkgs.llama-cpp;
+  llamaPkg =
+    if cfg.gpu == "amd" || cfg.gpu == "rocm"
+    then pkgs.llama-cpp-rocm
+    else if cfg.gpu == "nvidia"
+    then pkgs.llama-cpp # CUDA for NVIDIA (Flash Attention support)
+    else if cfg.gpu == null && useRocm
+    then pkgs.llama-cpp-rocm
+    else if cfg.gpu == null && useCuda
+    then pkgs.llama-cpp
+    else pkgs.llama-cpp;
 in {
   options.services.llamafile = {
     enable = mkEnableOption "llamafile - standalone LLM service using llama.cpp";
@@ -56,14 +56,14 @@ in {
 
     port = mkOption {
       type = types.port;
-      default = 8081;  # Different from gateway's 8080
+      default = 8081; # Different from gateway's 8080
       description = "Listen port for llamafile API server";
     };
 
     # GPU configuration
     gpuLayers = mkOption {
       type = types.int;
-      default = 999;  # Offload all possible layers to GPU
+      default = 999; # Offload all possible layers to GPU
       description = "Number of layers to offload to GPU (999 = all)";
     };
 
@@ -75,13 +75,13 @@ in {
 
     ctxSize = mkOption {
       type = types.int;
-      default = 32768;  # Qwen3.5 supports up to 262K native
+      default = 32768; # Qwen3.5 supports up to 262K native
       description = "Context window size in tokens (32768 for Qwen3.5)";
     };
 
     threads = mkOption {
       type = types.int;
-      default = 12;  # Better thread utilization for Qwen3.5
+      default = 12; # Better thread utilization for Qwen3.5
       description = "Number of CPU threads for inference";
     };
 
@@ -95,13 +95,13 @@ in {
     # Performance tuning (Qwen3.5-optimized defaults)
     batchSize = mkOption {
       type = types.int;
-      default = 64;  # Lower latency for Qwen3.5
+      default = 64; # Lower latency for Qwen3.5
       description = "Batch size for prompt processing (64 for low TTFT on Qwen3.5)";
     };
 
     ubatchSize = mkOption {
       type = types.int;
-      default = 16;  # Better micro-batch for Qwen3.5
+      default = 16; # Better micro-batch for Qwen3.5
       description = "User batch size (16 for optimal Qwen3.5 performance)";
     };
 
@@ -179,11 +179,6 @@ in {
       serviceConfig = let
         # llama-server uses different flag names than llamafile
         gpuLayersFlag = "-ngl ${toString cfg.gpuLayers}";
-        gpuFlag = optionalString (cfg.gpu != null) (
-          if cfg.gpu == "nvidia" then "-ngl ${toString cfg.gpuLayers}" # CUDA is default
-          else if cfg.gpu == "amd" || cfg.gpu == "rocm" then "--gpu-layers ${toString cfg.gpuLayers} --rocm"
-          else ""
-        );
       in {
         Type = "simple";
         User = cfg.user;
@@ -205,7 +200,11 @@ in {
             --ubatch-size ${toString cfg.ubatchSize} \
             ${lib.optionalString cfg.flashAttention "--flash-attn on"} \
             ${lib.optionalString (cfg.parallelDecoding > 0) "--parallel ${toString cfg.parallelDecoding}"} \
-            --chat-template-kwargs '{\"enable_thinking\":${if cfg.enableThinking then "true" else "false"}}' \
+            --chat-template-kwargs '{\"enable_thinking\":${
+            if cfg.enableThinking
+            then "true"
+            else "false"
+          }}' \
             --reasoning-budget ${toString cfg.reasoningBudget} \
             --cache-type-k ${cfg.cacheTypeK} \
             --cache-type-v ${cfg.cacheTypeV} \
@@ -221,7 +220,7 @@ in {
         Environment = "LD_LIBRARY_PATH=${llamaPkg}/lib:CUDA_VISIBLE_DEVICES=0";
 
         # Security settings
-        NoNewPrivileges = false;  # Needed for GPU access
+        NoNewPrivileges = false; # Needed for GPU access
         PrivateTmp = true;
 
         # Resource limits

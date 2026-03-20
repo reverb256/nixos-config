@@ -1,16 +1,14 @@
 # Nix Configuration Module
 # Binary caches, experimental features, and Nix settings
 {
-  config,
   lib,
-  pkgs,
   ...
 }: {
   # OVERLAY: Fix cuda_compat issue (Jetson/ARM64-only, breaks x86_64 builds)
   # cuda_cudart has cuda_compat as propagatedBuildInput which fails on x86_64
   # We provide a dummy cuda_compat package and override propagatedBuildInputs
   nixpkgs.overlays = [
-    (final: prev: {
+    (_final: prev: {
       # Create dummy cuda_compat for x86_64 (Jetson-only package has no source)
       cuda_compat =
         prev.runCommand "cuda_compat-dummy"

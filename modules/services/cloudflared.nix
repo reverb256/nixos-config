@@ -22,7 +22,7 @@
     };
 
     ingressRules = lib.mkOption {
-      type = lib.types.listOf (lib.types.submodule ({ ... }: {
+      type = lib.types.listOf (lib.types.submodule (_: {
         options = {
           hostname = lib.mkOption {
             type = lib.types.str;
@@ -62,7 +62,7 @@
 
     # NEW: Origin request configuration
     originRequest = lib.mkOption {
-      type = lib.types.submodule ({ ... }: {
+      type = lib.types.submodule (_: {
         options = {
           connectTimeout = lib.mkOption {
             type = lib.types.str;
@@ -114,74 +114,76 @@
       # CLOUDFLARED CONFIGURATION
       # ============================================================================
       environment.etc."cloudflared/config.yml".text = let
-      # Generate ingress YAML entries with proper quoting
-      ingressYaml = lib.concatMapStrings (rule: ''
-        - hostname: "${rule.hostname}"
-          service: ${rule.service}
-          ${lib.optionalString (rule.accessPolicy != null) "# Access policy configured via Cloudflare Dashboard\n          # Policy: ${rule.accessPolicy}"}
-      '') cfg.ingressRules;
-    in ''
-      tunnel: ${cfg.tunnelId}
-      credentials-file: ${cfg.credentialsFile}
+        # Generate ingress YAML entries with proper quoting
+        ingressYaml =
+          lib.concatMapStrings (rule: ''
+            - hostname: "${rule.hostname}"
+              service: ${rule.service}
+              ${lib.optionalString (rule.accessPolicy != null) "# Access policy configured via Cloudflare Dashboard\n          # Policy: ${rule.accessPolicy}"}
+          '')
+          cfg.ingressRules;
+      in ''
+        tunnel: ${cfg.tunnelId}
+        credentials-file: ${cfg.credentialsFile}
 
-      metrics: 0.0.0.0:${toString cfg.metricsPort}
+        metrics: 0.0.0.0:${toString cfg.metricsPort}
 
-      # QUIC protocol for faster connections (30-50% improvement)
-      ${lib.optionalString cfg.quicEnabled "quic: true"}
+        # QUIC protocol for faster connections (30-50% improvement)
+        ${lib.optionalString cfg.quicEnabled "quic: true"}
 
-      # Origin request configuration for connection pooling
-      originRequest:
-        connectTimeout: ${cfg.originRequest.connectTimeout}
-        tlsTimeout: ${cfg.originRequest.tlsTimeout}
-        tcpKeepAlive: ${toString cfg.originRequest.tcpKeepAlive}s
-        noHappyEyeballs: ${lib.boolToString cfg.originRequest.noHappyEyeballs}
-        keepAliveConnections: ${toString cfg.originRequest.keepAliveConnections}
-        keepAliveTimeout: ${toString cfg.originRequest.keepAliveTimeout}s
+        # Origin request configuration for connection pooling
+        originRequest:
+          connectTimeout: ${cfg.originRequest.connectTimeout}
+          tlsTimeout: ${cfg.originRequest.tlsTimeout}
+          tcpKeepAlive: ${toString cfg.originRequest.tcpKeepAlive}s
+          noHappyEyeballs: ${lib.boolToString cfg.originRequest.noHappyEyeballs}
+          keepAliveConnections: ${toString cfg.originRequest.keepAliveConnections}
+          keepAliveTimeout: ${toString cfg.originRequest.keepAliveTimeout}s
 
-      ingress:
-      ${lib.optionalString (cfg.ingressRules != []) ingressYaml}
-      # Catch-all: return 404 for unmatched routes
-      - service: http_status:404
-    '';
+        ingress:
+        ${lib.optionalString (cfg.ingressRules != []) ingressYaml}
+        # Catch-all: return 404 for unmatched routes
+        - service: http_status:404
+      '';
 
-    # ============================================================================
-    # SYSTEMD SERVICE
-    # ============================================================================
-    systemd.services.cloudflared-tunnel = {
-      description = "Cloudflare Tunnel - secure ingress";
-      wantedBy = ["multi-user.target"];
-      after = ["network.target" "agenix-rekey.service"];
+      # ============================================================================
+      # SYSTEMD SERVICE
+      # ============================================================================
+      systemd.services.cloudflared-tunnel = {
+        description = "Cloudflare Tunnel - secure ingress";
+        wantedBy = ["multi-user.target"];
+        after = ["network.target" "agenix-rekey.service"];
 
-      serviceConfig = {
-        ExecStart = "${pkgs.cloudflared}/bin/cloudflared tunnel --config /etc/cloudflared/config.yml run";
-        Restart = "on-failure";
-        RestartSec = "5s";
-        # Run as root to read agenix-decrypted credentials
-        User = "root";
-        Group = "root";
-        # Security hardening
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+        serviceConfig = {
+          ExecStart = "${pkgs.cloudflared}/bin/cloudflared tunnel --config /etc/cloudflared/config.yml run";
+          Restart = "on-failure";
+          RestartSec = "5s";
+          # Run as root to read agenix-decrypted credentials
+          User = "root";
+          Group = "root";
+          # Security hardening
+          NoNewPrivileges = true;
+          PrivateTmp = true;
+          ProtectSystem = "strict";
+          ProtectHome = true;
+          AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+        };
+
+        # Verify token exists before starting
+        preStart = ''
+          if [ ! -f ${cfg.credentialsFile} ]; then
+            echo "ERROR: cloudflared credentials not found at ${cfg.credentialsFile}"
+            echo "Please ensure the secret is properly configured in agenix."
+            exit 1
+          fi
+        '';
       };
 
-      # Verify token exists before starting
-      preStart = ''
-        if [ ! -f ${cfg.credentialsFile} ]; then
-          echo "ERROR: cloudflared credentials not found at ${cfg.credentialsFile}"
-          echo "Please ensure the secret is properly configured in agenix."
-          exit 1
-        fi
-      '';
+      # ============================================================================
+      # FIREWALL (for metrics)
+      # ============================================================================
+      networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
+        config.services.cloudflared-tunnel.metricsPort
+      ];
     };
-
-    # ============================================================================
-    # FIREWALL (for metrics)
-    # ============================================================================
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
-      config.services.cloudflared-tunnel.metricsPort
-    ];
-  };
 }

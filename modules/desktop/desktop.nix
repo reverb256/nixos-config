@@ -1,6 +1,10 @@
 # Desktop Module - Pure Wayland with XWayland Fallback
 # Optimized for Steam and gaming with Wayland-first approach
-{pkgs, lib, ...}: let
+{
+  pkgs,
+  lib,
+  ...
+}: let
   # Monitor Setup Script - Auto-configures displays based on what's connected
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";

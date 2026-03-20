@@ -122,7 +122,7 @@
         nvidia-exporter = 9400;
 
         # Kubernetes Ingress (Caddy)
-        caddy-admin = 2019;       # Admin API & metrics
+        caddy-admin = 2019; # Admin API & metrics
         caddy-http = 80;
         caddy-https = 443;
         caddy-nodeport-http = 30080;

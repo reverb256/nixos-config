@@ -1,6 +1,10 @@
 # Kernel Hardening Module
 # Security-focused kernel parameters and settings from XNM1
-{lib, config, ...}: {
+{
+  lib,
+  config,
+  ...
+}: {
   options = {
     kernel-hardening = {
       zswap.enable = lib.mkOption {
@@ -85,18 +89,22 @@
       ];
 
       # Conditional zswap parameters
-      zswapParams = if config.kernel-hardening.zswap.enable then [
-        "zswap.enabled=1"
-        "zswap.compressor=zstd"
-        "zswap.max_pool_percent=${builtins.toString config.kernel-hardening.zswap.maxPoolPercent}"
-        "zswap.zpool=z3fold"
-      ] else [
-        "zswap.enabled=0"
-      ];
+      zswapParams =
+        if config.kernel-hardening.zswap.enable
+        then [
+          "zswap.enabled=1"
+          "zswap.compressor=zstd"
+          "zswap.max_pool_percent=${builtins.toString config.kernel-hardening.zswap.maxPoolPercent}"
+          "zswap.zpool=z3fold"
+        ]
+        else [
+          "zswap.enabled=0"
+        ];
 
       # Combine all parameters
       allParams = baseParams ++ zswapParams;
-    in lib.mkForce allParams;
+    in
+      lib.mkForce allParams;
 
     # ============================================================================
     # KERNEL HUNG TASK DETECTION

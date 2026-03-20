@@ -6,8 +6,7 @@
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   options.services.compute-market = {
     enable = lib.mkEnableOption "GPU Resource Marketplace - unified auction engine for GPU allocation";
 
@@ -173,12 +172,12 @@
     # ============================================================================
     systemd.services.compute-market = {
       description = "GPU Resource Marketplace Auction Engine";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       after = [
         "network.target"
         "kubernetes.target"
       ];
-      wants = [ "prometheus-node-exporter.service" ];
+      wants = ["prometheus-node-exporter.service"];
 
       path = with pkgs; [
         procps
@@ -199,8 +198,7 @@
         Environment = [
           "PATH=${
             lib.makeBinPath (
-              with pkgs;
-              [
+              with pkgs; [
                 procps
                 systemd
                 kubernetes
@@ -806,7 +804,7 @@
                       log_info "Skipping $service on $host (allowed to mine during gaming/builds)"
                       continue
                   fi
-                  
+
                   if systemctl is-active --quiet "$service"; then
                       log_info "Pausing $service (stopping)"
                       systemctl stop "$service" --runtime
@@ -950,7 +948,7 @@
         job_name = "compute-market";
         static_configs = [
           {
-            targets = [ "127.0.0.1:${toString config.services.compute-market.prometheus.port}" ];
+            targets = ["127.0.0.1:${toString config.services.compute-market.prometheus.port}"];
           }
         ];
       }

@@ -69,7 +69,7 @@ in {
   config = lib.mkIf cfg.enable {
     # Create user and group
     users.users.${cfg.user} = {
-      group = cfg.group;
+      inherit (cfg) group;
       isSystemUser = true;
       description = "XMRig proxy service user";
     };
@@ -139,49 +139,51 @@ in {
       };
 
       # Runtime token replacement (if using tokenFile)
-      services.xmrig-proxy-preStart = lib.mkIf (cfg.tokenFile != null) {
-        description = "Inject API token into xmrig-proxy config";
-        wantedBy = ["xmrig-proxy.service"];
-        before = ["xmrig-proxy.service"];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          ExecStart = pkgs.writeShellScript "xmrig-proxy-inject-token" ''
-            #!${pkgs.bash}/bin/bash
-            set -euo pipefail
+      services.xmrig-proxy-preStart =
+        lib.mkIf (cfg.tokenFile != null) {
+          description = "Inject API token into xmrig-proxy config";
+          wantedBy = ["xmrig-proxy.service"];
+          before = ["xmrig-proxy.service"];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = pkgs.writeShellScript "xmrig-proxy-inject-token" ''
+              #!${pkgs.bash}/bin/bash
+              set -euo pipefail
 
-            TOKEN_FILE="${cfg.tokenFile}"
-            CONFIG_FILE="/etc/xmrig-proxy/config.json"
-            RUNTIME_CONFIG="/run/xmrig-proxy/config.json"
+              TOKEN_FILE="${cfg.tokenFile}"
+              CONFIG_FILE="/etc/xmrig-proxy/config.json"
+              RUNTIME_CONFIG="/run/xmrig-proxy/config.json"
 
-            # Wait for token file to exist
-            if [ ! -f "$TOKEN_FILE" ]; then
-              echo "[xmrig-proxy] Waiting for token file: $TOKEN_FILE"
-              for i in {1..30}; do
-                if [ -f "$TOKEN_FILE" ]; then
-                  break
-                fi
-                sleep 1
-              done
+              # Wait for token file to exist
               if [ ! -f "$TOKEN_FILE" ]; then
-                echo "[xmrig-proxy] ERROR: Token file not found after 30 seconds"
-                exit 1
+                echo "[xmrig-proxy] Waiting for token file: $TOKEN_FILE"
+                for i in {1..30}; do
+                  if [ -f "$TOKEN_FILE" ]; then
+                    break
+                  fi
+                  sleep 1
+                done
+                if [ ! -f "$TOKEN_FILE" ]; then
+                  echo "[xmrig-proxy] ERROR: Token file not found after 30 seconds"
+                  exit 1
+                fi
               fi
-            fi
 
-            # Read token and inject into config
-            TOKEN=$(${pkgs.coreutils}/bin/cat "$TOKEN_FILE")
-            mkdir -p /run/xmrig-proxy
-            ${pkgs.jq}/bin/jq --arg token "$TOKEN" '.api.token = $token' "$CONFIG_FILE" > "$RUNTIME_CONFIG"
-            chmod 640 "$RUNTIME_CONFIG"
-            chown ${cfg.user}:${cfg.group} "$RUNTIME_CONFIG"
+              # Read token and inject into config
+              TOKEN=$(${pkgs.coreutils}/bin/cat "$TOKEN_FILE")
+              mkdir -p /run/xmrig-proxy
+              ${pkgs.jq}/bin/jq --arg token "$TOKEN" '.api.token = $token' "$CONFIG_FILE" > "$RUNTIME_CONFIG"
+              chmod 640 "$RUNTIME_CONFIG"
+              chown ${cfg.user}:${cfg.group} "$RUNTIME_CONFIG"
 
-            echo "[xmrig-proxy] Token injected successfully"
-          '';
+              echo "[xmrig-proxy] Token injected successfully"
+            '';
+          };
+        }
+        // lib.optionalAttrs (cfg.tokenFile != null) {
+          serviceConfig.ExecStart = lib.mkForce "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/xmrig-proxy --config /run/xmrig-proxy/config.json --no-color'";
         };
-      } // lib.optionalAttrs (cfg.tokenFile != null) {
-        serviceConfig.ExecStart = lib.mkForce "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/xmrig-proxy --config /run/xmrig-proxy/config.json --no-color'";
-      };
     };
   };
 }

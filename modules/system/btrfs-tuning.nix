@@ -1,9 +1,6 @@
 # BTRFS Tuning - Reduce memory overhead and improve performance
 # Applies to all BTRFS filesystems cluster-wide
-{
-  lib,
-  ...
-}: {
+_: {
   # ============================================================================
   # BTRFS TUNING - Commit interval and memory optimizations
   # ============================================================================

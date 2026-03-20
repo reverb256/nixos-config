@@ -9,7 +9,6 @@
   git,
   stdenv,
 }:
-
 stdenv.mkDerivation rec {
   pname = "llama-cpp-rocm";
   version = "0-unstable-2025-03-19";

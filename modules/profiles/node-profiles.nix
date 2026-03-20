@@ -28,15 +28,17 @@
             wireless = profileCfg.wireless or {enable = false;};
           };
         # Ensure wireless has a default value
-        networkingCfg = networkingCfgBase // {
-          wireless = networkingCfgBase.wireless or {enable = false;};
-        };
+        networkingCfg =
+          networkingCfgBase
+          // {
+            wireless = networkingCfgBase.wireless or {enable = false;};
+          };
       in {
         # Apply networking configuration (only if ipAddress is set)
         clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
           enable = true;
-          ipAddress = networkingCfg.ipAddress;
-          interfaceName = networkingCfg.interfaceName;
+          inherit (networkingCfg) ipAddress;
+          inherit (networkingCfg) interfaceName;
           wireless = lib.mkDefault networkingCfg.wireless;
           unbound = {
             enable = true;
@@ -111,7 +113,7 @@ in {
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.110";
-          interfaceName = "enp38s0";  # Native hardware interface name
+          interfaceName = "enp38s0"; # Native hardware interface name
           unboundListenAddress = "10.1.1.110";
           wireless.enable = true;
         };
@@ -176,7 +178,7 @@ in {
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.120";
-          interfaceName = "enp7s0";  # Native hardware interface name
+          interfaceName = "enp7s0"; # Native hardware interface name
           unboundListenAddress = "10.1.1.120";
           wireless.enable = true;
         };
@@ -247,7 +249,7 @@ in {
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.130";
-          interfaceName = "enp0s31f6";  # Native hardware interface name
+          interfaceName = "enp0s31f6"; # Native hardware interface name
           unboundListenAddress = "10.1.1.130";
           wireless.enable = false;
         };
@@ -315,7 +317,7 @@ in {
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.140";
-          interfaceName = "enp7s0";  # Native hardware interface name
+          interfaceName = "enp7s0"; # Native hardware interface name
           unboundListenAddress = "10.1.1.140";
           wireless.enable = false;
         };

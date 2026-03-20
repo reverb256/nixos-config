@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> {} }:
+{pkgs ? import <nixpkgs> {}}:
 pkgs.runCommand "steam-run-patched" {
   nativeBuildInputs = [pkgs.bash pkgs.coreutils];
   preferLocalBuild = true;

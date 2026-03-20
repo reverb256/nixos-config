@@ -52,7 +52,7 @@
         "etcd"
         "keepalived"
       ];
-      enableCircuitBreakerAlerts = false;  # No AI gateway on Sentry
+      enableCircuitBreakerAlerts = false; # No AI gateway on Sentry
       enableVIPFailoverAlerts = true;
       enableResourceAlerts = true;
       memoryThreshold = 90;

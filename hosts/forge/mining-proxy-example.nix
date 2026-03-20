@@ -1,6 +1,6 @@
 # Example Mining Proxy Configuration
 # For multi-algorithm support (GPU + CPU)
-{...}: {
+_: {
   services.mining-proxy = {
     enable = true;
 

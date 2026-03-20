@@ -66,7 +66,7 @@ in {
     # ENVIRONMENT VARIABLES (Critical for NVIDIA + Wayland)
     # ============================================================================
     # Use common environment variables module for Wayland
-#    environment.common.wayland.enable = true;
+    #    environment.common.wayland.enable = true;
 
     # NVIDIA-specific environment variables
     environment.sessionVariables = {

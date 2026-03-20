@@ -18,7 +18,7 @@ in {
 
       # Binary cache priority: Zephyr cluster cache first, then external caches
       substituters = lib.mkAfter [
-        "http://10.1.1.110:50000"  # Zephyr's binary cache (cluster-internal)
+        "http://10.1.1.110:50000" # Zephyr's binary cache (cluster-internal)
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
         "https://cache.garnix.io"
@@ -40,18 +40,26 @@ in {
       ];
 
       cores = lib.mkForce (
-        if currentHost == "zephyr" then 4
-        else if currentHost == "nexus" then 4
-        else if currentHost == "sentry" then 2
-        else if currentHost == "forge" then 2
+        if currentHost == "zephyr"
+        then 4
+        else if currentHost == "nexus"
+        then 4
+        else if currentHost == "sentry"
+        then 2
+        else if currentHost == "forge"
+        then 2
         else 4
       );
 
       max-jobs = lib.mkForce (
-        if currentHost == "zephyr" then 4
-        else if currentHost == "nexus" then 6
-        else if currentHost == "sentry" then 4
-        else if currentHost == "forge" then 1
+        if currentHost == "zephyr"
+        then 4
+        else if currentHost == "nexus"
+        then 6
+        else if currentHost == "sentry"
+        then 4
+        else if currentHost == "forge"
+        then 1
         else 2
       );
 
@@ -136,9 +144,14 @@ in {
       # Exclude current host from machines list (builds locally via nix-daemon instead)
       machines = builtins.filter (m: m.hostName != currentHost) allMachines;
       formatMachine = m: ''
-        ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${if m.sshKey != null then m.sshKey else "-"} ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
+        ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${
+          if m.sshKey != null
+          then m.sshKey
+          else "-"
+        } ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
       '';
-    in lib.concatMapStrings formatMachine machines;
+    in
+      lib.concatMapStrings formatMachine machines;
   };
 
   nix.gc = {

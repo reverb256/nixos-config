@@ -199,7 +199,7 @@ in {
         "garage.service"
       ];
       environment.PATH = lib.mkForce (lib.makeBinPath (
-        [pkgs.coreutils] ++ lib.optionals (config.services.cluster-storage.enable) [pkgs.util-linux]
+        [pkgs.coreutils] ++ lib.optionals config.services.cluster-storage.enable [pkgs.util-linux]
       ));
 
       serviceConfig = {

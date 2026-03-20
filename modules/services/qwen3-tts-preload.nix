@@ -5,10 +5,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.ai-inference;
-  inherit (lib) mkEnableOption mkIf mkOption types literalExpression;
+  inherit (lib) mkEnableOption mkIf;
 
   # Pre-download script package
   preDownloadScript = pkgs.writeShellScriptBin "qwen3-tts-pre-download" ''
@@ -57,14 +56,12 @@ let
     echo "Models cached in: $CACHE_DIR/"
     echo "Total size: $(du -sh $CACHE_DIR 2>/dev/null | cut -f1 || echo 'N/A')"
   '';
-
-in
-{
+in {
   options.services.ai-inference.pre-download = mkEnableOption "Qwen3-TTS model pre-download service";
 
   config = mkIf cfg.pre-download {
     # Pre-download script using huggingface-cli
-    environment.systemPackages = [ preDownloadScript ];
+    environment.systemPackages = [preDownloadScript];
 
     # Systemd service for one-shot pre-download
     systemd.services.qwen3-tts-pre-download = {
@@ -92,9 +89,9 @@ in
       description = "Trigger Qwen3-TTS pre-download after boot";
       wantedBy = ["timers.target"];
       timerConfig = {
-        OnActiveSec = "5min";  # Run 5 minutes after boot
-        AccuracySec = "1h";    # Retry within 1 hour if missed
-        Persistent = "true";  # Run even if previous run was missed
+        OnActiveSec = "5min"; # Run 5 minutes after boot
+        AccuracySec = "1h"; # Retry within 1 hour if missed
+        Persistent = "true"; # Run even if previous run was missed
       };
     };
   };
