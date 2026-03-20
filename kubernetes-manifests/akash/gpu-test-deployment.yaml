@@ -1,0 +1,34 @@
+---
+# GPU Test Deployment - Direct to Kubernetes
+# Tests that your GPUs are accessible and working
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-test
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cuda-vector-add
+  namespace: gpu-test
+spec:
+  restartPolicy: OnFailure
+  containers:
+  - name: cuda-vector-add
+    image: nvidia/cuda:11.8.0-base-ubuntu22.04
+    command: ["sh", "-c"]
+    args:
+      - |
+        apt-get update && apt-get install -y wget && \
+        wget https://github.com/karust/cuda-vector-add/raw/master/vectorAdd && \
+        chmod +x vectorAdd && \
+        ./vectorAdd && \
+        echo "GPU test completed successfully!"
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+  nodeSelector:
+    # Deploy to forge (has GPUs)
+    kubernetes.io/hostname: forge
