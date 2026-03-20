@@ -69,10 +69,12 @@ spec:
             memory: "4Gi"
             cpu: "2"
             nvidia.com/gpu: "2"
+            amd.com/gpu: "0"
           limits:
             memory: "8Gi"
             cpu: "4"
             nvidia.com/gpu: "2"
+            amd.com/gpu: "0"
       # AMD GPU mining (RX 5700 XTs)
       - name: lolminer-amd
         image: docker.io/swamp7/lolminer:latest
@@ -82,7 +84,7 @@ spec:
           - "--pool=xtm-c29-us.kryptex.network:8040"
           - "--user=krxXVNVMM7.forge-gpu"
           - "--pass=x"
-          "--tls=1"
+          - "--tls=1"
           - "--pool=xtm-c29-eu.kryptex.network:8040"
           - "--user=krxXVNVMM7.forge-gpu"
           - "--pass=x"
@@ -109,9 +111,13 @@ spec:
           requests:
             memory: "4Gi"
             cpu: "2"
+            amd.com/gpu: "2"
+            nvidia.com/gpu: "0"
           limits:
             memory: "8Gi"
             cpu: "4"
+            amd.com/gpu: "2"
+            nvidia.com/gpu: "0"
       volumes:
       - name: nvidia
         hostPath:
