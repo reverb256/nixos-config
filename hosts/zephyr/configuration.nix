@@ -222,6 +222,61 @@
       ];
     };
 
+    # Akash Cloudflare Integration - DNS, cache, metrics automation
+    akash-cloudflare-integration = {
+      enable = true;
+
+      # Domain configuration
+      domain = "reverb256.ca";
+      zoneId = "9062487114ef5404de8de6689cb54895";
+
+      # Provider endpoints (already configured above)
+      providerEndpoint = "http://10.1.1.120:30843";
+      providerGrpcEndpoint = "10.1.1.120:30844";
+      ingressDomain = "ingress.reverb256.ca";
+
+      # Feature 1: Automated Tenant DNS Setup (⭐⭐⭐ HIGH PRIORITY)
+      dnsWatcher = {
+        enable = true;
+        pollInterval = 30;  # Check every 30 seconds
+        dnsRecordPrefix = "dedicated";  # Creates *.dedicated.ingress.reverb256.ca
+      };
+
+      # Feature 2: Smart Cache Invalidation (⭐⭐ HIGH PRIORITY)
+      cachePurge = {
+        enable = true;
+        purgeDelay = 5;  # Wait 5 seconds after DNS creation
+      };
+
+      # Feature 3: Prometheus Integration (⭐⭐ HIGH PRIORITY)
+      metricsExporter = {
+        enable = true;
+        scrapeInterval = 300;  # 5 minutes
+        metricsDir = "/var/lib/prometheus/node-exporter/textfile-collector";
+      };
+
+      # Feature 4: Health Monitoring Dashboard (⭐⭐ NICE TO HAVE)
+      healthDashboard = {
+        enable = true;
+        updateInterval = 30;  # 30 seconds
+        outputDir = "/var/www/akash-health";
+      };
+
+      # Feature 5: DNS Cleanup Automation (⭐ MEDIUM PRIORITY)
+      dnsCleanup = {
+        enable = true;
+        gracePeriod = 86400;  # 24 hours in seconds
+        cleanupTime = "03:00:00";  # 3 AM daily
+      };
+
+      # Feature 6: Status Page (⭐ OPTIONAL)
+      statusPage = {
+        enable = true;
+        updateInterval = 300;  # 5 minutes
+        outputDir = "/var/www/akash-status";
+      };
+    };
+
     # Crash watchdog - detect and log system crashes
     crash-watchdog.enable = true;
 
