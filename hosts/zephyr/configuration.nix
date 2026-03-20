@@ -114,6 +114,9 @@
     bindServicesToLocalhost = true;
   };
 
+  # Kubernetes security tools for runtime monitoring
+  security.kubernetes.enable = true;
+
   # ============================================================================
   # GPU COMPUTE - CUDA + Vulkan support for AI inference
   # ============================================================================
