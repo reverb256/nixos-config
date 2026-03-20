@@ -247,39 +247,37 @@
         };
       };
 
-      # TODO: lolminer package not available - commented out to unblock deployments
-      # Re-enable after verifying lolminer overlay is properly applied
-      # packages.x86_64-linux.lolminer-image = pkgs.dockerTools.buildImage {
-      #   name = "lolminer";
-      #   tag = "1.98a-nixos";
-      #
-      #   copyToRoot = pkgs.buildEnv {
-      #     name = "lolminer-root";
-      #     paths = [
-      #       pkgs.lolminer
-      #       pkgs.bash
-      #       pkgs.coreutils
-      #       pkgs.cacert
-      #     ];
-      #     pathsToLink = ["/bin" "/etc" "/lib"];
-      #   };
-      #
-      #   config = {
-      #     Entrypoint = ["/bin/lolMiner"];
-      #     Cmd = [];
-      #
-      #     ExposedPorts = {
-      #       "4068/tcp" = {}; # API port
-      #     };
-      #
-      #     Env = [
-      #       "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
-      #       "PATH=/bin"
-      #       "GPU_MAX_HEAP_SIZE=100"
-      #       "GPU_MAX_ALLOC_PERCENT=100"
-      #     ];
-      #   };
-      # };
+      packages.x86_64-linux.lolminer-image = pkgs.dockerTools.buildImage {
+        name = "lolminer";
+        tag = "1.98a-nixos";
+
+        copyToRoot = pkgs.buildEnv {
+          name = "lolminer-root";
+          paths = [
+            pkgs.lolminer
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.cacert
+          ];
+          pathsToLink = ["/bin" "/etc" "/lib"];
+        };
+
+        config = {
+          Entrypoint = ["/bin/lolMiner"];
+          Cmd = [];
+
+          ExposedPorts = {
+            "4068/tcp" = {}; # API port
+          };
+
+          Env = [
+            "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+            "PATH=/bin"
+            "GPU_MAX_HEAP_SIZE=100"
+            "GPU_MAX_ALLOC_PERCENT=100"
+          ];
+        };
+      };
 
       overlays.default = import ./overlay.nix;
 

@@ -84,9 +84,9 @@ spec:
         operator: "Exists"
       containers:
       - name: lolminer
-        # Using imagePullPolicy: Never since image is built locally
-        image: docker.io/library/lolminer:1.98a-nixos
-        imagePullPolicy: Never
+        # Using existing Docker Hub image for lolminer
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: Always
         args:
           - "--algo=CR29"
           - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
@@ -122,6 +122,14 @@ spec:
         - name: nvidia
           mountPath: /run/opengl-driver/lib
           readOnly: true
+        - name: dev
+          mountPath: /dev
+        - name: sys-module
+          mountPath: /sys/module
+          readOnly: true
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
         # Enhanced resource requests for YuniKorn scheduling
         resources:
           requests:
@@ -136,3 +144,12 @@ spec:
       - name: nvidia
         hostPath:
           path: /run/opengl-driver/lib
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: sys-module
+        hostPath:
+          path: /sys/module
+      - name: nix-store
+        hostPath:
+          path: /nix/store
