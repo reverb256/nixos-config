@@ -1,97 +1,81 @@
 # Rclone Cloud Storage Sync Module
 # Supports 70+ cloud providers (S3, Google Drive, Dropbox, OneDrive, Box, Mega, B2, etc.)
 # Integrates with agenix for secure credential storage
-
-{ config, lib, pkgs, ... }:
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.services.rclone-sync;
 
   # Helper function to generate rclone config section
-  formatRemote = name: remote: {
-    "${name}" = {
-      type = remote.type or "s3";
-      provider = remote.provider or "Other";
-      access_key_id = remote.accessKeyId or null;
-      secret_access_key = remote.secretAccessKey or null;
-      region = remote.region or "us-east-1";
-      endpoint = remote.endpoint or "";
-      force_path_style = remote.forcePathStyle or true;
-    } // lib.optionalAttrs (remote.type == "onedrive") {
-      type = "onedrive";
-    } // lib.optionalAttrs (remote.type == "dropbox") {
-      type = "dropbox";
-    } // lib.optionalAttrs (remote.type == "box") {
-      type = "box";
-    } // lib.optionalAttrs (remote.type == "mega") {
-      type = "mega";
-      user = remote.user or "";
-      pass = remote.pass or "";
-    } // lib.optionalAttrs (remote.type == "b2") {
-      type = "b2";
-      account = remote.account or "";
-      key = remote.key or "";
-    } // lib.optionalAttrs (remote.type == "drive") {
-      type = "drive";
-      scope = remote.scope or "drive";
-      client_id = remote.client_id or "";
-      client_secret = remote.client_secret or "";
-    } // lib.optionalAttrs (remote.token != null) {
-      token = remote.token;
-    };
-  };
 
   # Generate rclone.conf from remotes
-  rcloneConfig = lib.mkMerge (lib.mapAttrsToList formatRemote cfg.remotes);
 
   # Create sync script for a job
-  syncScript = job: pkgs.writeShellScriptBin "rclone-${job.name}" ''
-    set -euo pipefail
+  syncScript = job:
+    pkgs.writeShellScriptBin "rclone-${job.name}" ''
+      set -euo pipefail
 
-    # Configuration
-    SOURCE="''${SOURCE:-${job.source}}"
-    DEST="''${DEST:-${job.destination}}"
-    SYNC_MODE="''${SYNC_MODE:-${job.mode or "sync"}}"
-    OPTIONS="''${OPTIONS:-${toString job.options or ""}}"
+      # Configuration
+      SOURCE="''${SOURCE:-${job.source}}"
+      DEST="''${DEST:-${job.destination}}"
+      SYNC_MODE="''${SYNC_MODE:-${job.mode or "sync"}}"
+      OPTIONS="''${OPTIONS:-${toString job.options or ""}}"
 
-    # Colors
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    BLUE='\033[0;34m'
-    NC='\033[0m'
+      # Colors
+      RED='\033[0;31m'
+      GREEN='\033[0;32m'
+      YELLOW='\033[1;33m'
+      BLUE='\033[0;34m'
+      NC='\033[0m'
 
-    log_info() { echo -e "''${BLUE}[INFO]''${NC} $1"; }
-    log_success() { echo -e "''${GREEN}[SUCCESS]''${NC} $1"; }
-    log_warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; }
-    log_error() { echo -e "''${RED}[ERROR]''${NC} $1"; }
+      log_info() { echo -e "''${BLUE}[INFO]''${NC} $1"; }
+      log_success() { echo -e "''${GREEN}[SUCCESS]''${NC} $1"; }
+      log_warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; }
+      log_error() { echo -e "''${RED}[ERROR]''${NC} $1"; }
 
-    log_info "Starting rclone job: ${job.name}"
-    log_info "Source: $SOURCE"
-    log_info "Destination: $DEST"
-    log_info "Mode: $SYNC_MODE"
+      log_info "Starting rclone job: ${job.name}"
+      log_info "Source: $SOURCE"
+      log_info "Destination: $DEST"
+      log_info "Mode: $SYNC_MODE"
 
-    # Run rclone
-    if ${pkgs.rclone}/bin/rclone "$SYNC_MODE" "$SOURCE" "$DEST" \
-      --config "${cfg.configFile}" \
-      --progress \
-      --transfers ${toString job.transfers or 4} \
-      --checkers ${toString job.checkers or 8} \
-      ${if job.exclude != null then "--exclude=${job.exclude}" else ""} \
-      ${if job.excludeFrom != null then "--exclude-from=${job.excludeFrom}" else ""} \
-      ${if job.include != null then "--include=${job.include}" else ""} \
-      ${if job.includeFrom != null then "--include-from=${job.includeFrom}" else ""} \
-      ${lib.concatStringsSep " " (map (o: "--${o}") (job.extraFlags or []))} \
-      $OPTIONS; then
-      log_success "Job '${job.name}' completed"
-    else
-      log_error "Job '${job.name}' failed"
-      exit 1
-    fi
-  '';
-
-in
-{
+      # Run rclone
+      if ${pkgs.rclone}/bin/rclone "$SYNC_MODE" "$SOURCE" "$DEST" \
+        --config "${cfg.configFile}" \
+        --progress \
+        --transfers ${toString job.transfers or 4} \
+        --checkers ${toString job.checkers or 8} \
+        ${
+        if job.exclude != null
+        then "--exclude=${job.exclude}"
+        else ""
+      } \
+        ${
+        if job.excludeFrom != null
+        then "--exclude-from=${job.excludeFrom}"
+        else ""
+      } \
+        ${
+        if job.include != null
+        then "--include=${job.include}"
+        else ""
+      } \
+        ${
+        if job.includeFrom != null
+        then "--include-from=${job.includeFrom}"
+        else ""
+      } \
+        ${lib.concatStringsSep " " (map (o: "--${o}") (job.extraFlags or []))} \
+        $OPTIONS; then
+        log_success "Job '${job.name}' completed"
+      else
+        log_error "Job '${job.name}' failed"
+        exit 1
+      fi
+    '';
+in {
   options.services.rclone-sync = {
     enable = lib.mkEnableOption "Rclone cloud storage synchronization";
 
@@ -304,7 +288,7 @@ in
 
   config = lib.mkIf cfg.enable {
     # Ensure rclone is installed
-    environment.systemPackages = [ pkgs.rclone ];
+    environment.systemPackages = [pkgs.rclone];
 
     # Generate rclone.conf from NixOS configuration
     environment.etc."rclone/rclone.conf".text = lib.concatStringsSep "\n" (
@@ -316,7 +300,11 @@ in
         ${lib.optionalString (remote.secret_access_key != null) "secret_access_key = ${remote.secret_access_key}"}
         ${lib.optionalString (remote.region != null) "region = ${remote.region}"}
         ${lib.optionalString (remote.endpoint != null && remote.endpoint != "") "endpoint = ${remote.endpoint}"}
-        ${lib.optionalString (remote.force_path_style != null) "force_path_style = ${if remote.force_path_style then "true" else "false"}"}
+        ${lib.optionalString (remote.force_path_style != null) "force_path_style = ${
+          if remote.force_path_style
+          then "true"
+          else "false"
+        }"}
         ${lib.optionalString (remote.token != null) "token = ${remote.token}"}
         ${lib.optionalString (remote.user != null) "user = ${remote.user}"}
         ${lib.optionalString (remote.pass != null) "pass = ${remote.pass}"}
@@ -325,47 +313,52 @@ in
         ${lib.optionalString (remote.client_id != null) "client_id = ${remote.client_id}"}
         ${lib.optionalString (remote.client_secret != null) "client_secret = ${remote.client_secret}"}
         ${lib.optionalString (remote.scope != null) "scope = ${remote.scope}"}
-      '') cfg.remotes
+      '')
+      cfg.remotes
     );
 
     # Create systemd services for each sync job
     systemd.services = lib.listToAttrs (map (job: {
-      name = "rclone-${job.name}";
-      value = {
-        description = "Rclone sync: ${job.name}";
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
-        serviceConfig = {
-          Type = "oneshot";
-          User = cfg.user;
-          Group = cfg.group;
-          ExecStart = "${syncScript job}/bin/rclone-${job.name}";
-          Environment = [
-            "PATH=/run/current-system/sw/bin"
-            "RCLONE_CONFIG=${cfg.configFile}"
-          ];
-          PrivateTmp = true;
-          NoNewPrivileges = true;
-          # Security hardening
-          RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
-          SystemCallFilter = [ "@system-service" "~@privileged" ];
+        name = "rclone-${job.name}";
+        value = {
+          description = "Rclone sync: ${job.name}";
+          after = ["network-online.target"];
+          wants = ["network-online.target"];
+          serviceConfig = {
+            Type = "oneshot";
+            User = cfg.user;
+            Group = cfg.group;
+            ExecStart = "${syncScript job}/bin/rclone-${job.name}";
+            Environment = [
+              "PATH=/run/current-system/sw/bin"
+              "RCLONE_CONFIG=${cfg.configFile}"
+            ];
+            PrivateTmp = true;
+            NoNewPrivileges = true;
+            # Security hardening
+            RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
+            SystemCallFilter = ["@system-service" "~@privileged"];
+          };
         };
-      };
-    }) cfg.syncJobs);
+      })
+      cfg.syncJobs);
 
     # Create systemd timers for each job
     systemd.timers = lib.listToAttrs (map (job: {
-      name = "rclone-${job.name}";
-      value = {
-        inherit (job) enableTimer;
-      } // lib.optionalAttrs job.enableTimer {
-        wantedBy = [ "timers.target" ];
-        timerConfig = {
-          OnCalendar = job.startAt;
-          Persistent = true;
-          Unit = "rclone-${job.name}.service";
-        };
-      };
-    }) cfg.syncJobs);
+        name = "rclone-${job.name}";
+        value =
+          {
+            inherit (job) enableTimer;
+          }
+          // lib.optionalAttrs job.enableTimer {
+            wantedBy = ["timers.target"];
+            timerConfig = {
+              OnCalendar = job.startAt;
+              Persistent = true;
+              Unit = "rclone-${job.name}.service";
+            };
+          };
+      })
+      cfg.syncJobs);
   };
 }

@@ -50,8 +50,8 @@
     # Re-enabled with proper cluster IP whitelisting
     fail2ban = {
       enable = true;
-      maxretry = 3;  # Reduced from 5 - faster lockout for attackers
-      bantime = "4h";  # Increased from 1h - longer ban time
+      maxretry = 3; # Reduced from 5 - faster lockout for attackers
+      bantime = "4h"; # Increased from 1h - longer ban time
 
       # Whitelist cluster IPs to prevent accidental bans
       ignoreIP = [

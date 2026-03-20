@@ -3,9 +3,7 @@
 # Uses Nixpkgs instead of Flatpak for better Wayland integration
 # Auto-detects best backend (Wayland or XWayland)
 {
-  config,
   pkgs,
-  lib,
   ...
 }: {
   # Install Caprine package

@@ -6,7 +6,7 @@
   pkgs,
   ...
 }: let
-  inherit (lib) types mkEnableOption mkOption mkIf mkBefore;
+  inherit (lib) types mkEnableOption mkOption mkIf;
   cfg = config.services.binary-cache;
 in {
   options.services.binary-cache = {
@@ -33,8 +33,8 @@ in {
     services.nix-serve = {
       enable = true;
       secretKeyFile = "/etc/nix/cache-priv.key";
-      port = cfg.port;
-      bindAddress = cfg.bindAddress;
+      inherit (cfg) port;
+      inherit (cfg) bindAddress;
     };
 
     # Open firewall for binary cache

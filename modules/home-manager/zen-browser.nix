@@ -29,8 +29,8 @@
     "x-scheme-handler/about" = "zen-twilight.desktop";
     "x-scheme-handler/unknown" = "zen-twilight.desktop";
     "x-scheme-handler/webcal" = "zen-twilight.desktop";
-    "x-scheme-handler/mailto" = "zen-twilight.desktop";  # For web email
-    "x-scheme-handler/irc" = "zen-twilight.desktop";      # For web IRC clients
+    "x-scheme-handler/mailto" = "zen-twilight.desktop"; # For web email
+    "x-scheme-handler/irc" = "zen-twilight.desktop"; # For web IRC clients
   };
 
   programs.zen-browser = {
@@ -38,7 +38,7 @@
 
     # Native Messaging Hosts - bridge browser to native apps
     nativeMessagingHosts = with pkgs; [
-      firefoxpwa  # PWA support - install websites as apps
+      firefoxpwa # PWA support - install websites as apps
     ];
 
     policies = {

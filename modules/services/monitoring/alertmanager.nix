@@ -114,7 +114,7 @@ in {
             # Local webhook (no auth required)
             webhook_configs = lib.optionals cfg.webhook.enable [
               {
-                url = cfg.webhook.url;
+                inherit (cfg.webhook) url;
                 send_resolved = true;
               }
             ];
@@ -124,8 +124,8 @@ in {
             // {
               email_configs = [
                 {
-                  to = cfg.email.to;
-                  from = cfg.email.from;
+                  inherit (cfg.email) to;
+                  inherit (cfg.email) from;
                   smarthost = cfg.email.smtphost;
                   auth_username = cfg.email.from;
                   auth_password_file = cfg.email.passwordFile;

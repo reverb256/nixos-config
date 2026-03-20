@@ -49,11 +49,14 @@ in {
 
       vrrpInstances.kubernetes-api = {
         # MASTER state if priority >= 110, otherwise BACKUP
-        state = if cfg.priority >= 110 then "MASTER" else "BACKUP";
+        state =
+          if cfg.priority >= 110
+          then "MASTER"
+          else "BACKUP";
 
-        interface = cfg.interface;
+        inherit (cfg) interface;
         virtualRouterId = cfg.vrid;
-        priority = cfg.priority;
+        inherit (cfg) priority;
 
         virtualIps = [
           {

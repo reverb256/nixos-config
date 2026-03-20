@@ -30,11 +30,9 @@
   lib,
   inputs,
   ...
-}:
-let
+}: let
   inherit (lib) mkOption types mkIf;
-in
-{
+in {
   options.services.agenix-secrets-registry = {
     enable = mkOption {
       type = types.bool;
@@ -251,9 +249,7 @@ in
           owner = "root";
           group = "root";
         };
-
       })
-
 
       # Self-Hosted Service Secrets
       (lib.mkIf config.services.agenix-secrets-registry.selfHosting {

@@ -1,7 +1,7 @@
 # Hyprland Module
 # Wayland compositor with full ecosystem (from XNM1)
 # Can be used alongside Plasma 6 - choose in display manager
-{config, pkgs, ...}: {
+{pkgs, ...}: {
   # ============================================================================
   # HYPRLAND WAYLAND COMPOSITOR
   # ============================================================================
@@ -11,7 +11,7 @@
   };
 
   # Enable common Wayland environment variables
-#  config.environment.common.wayland.enable = true;
+  #  config.environment.common.wayland.enable = true;
 
   # ============================================================================
   # HYPRLAND ECOSYSTEM

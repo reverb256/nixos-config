@@ -222,7 +222,7 @@
     };
   };
   # Don't require systemd-networkd-wait-online for network-online.target
-  systemd.targets.network-online.wantedBy = lib.mkForce [ "network-online.target" ];
+  systemd.targets.network-online.wantedBy = lib.mkForce ["network-online.target"];
 
   # ============================================================================
   # FAIL2BAN CONFIGURATION

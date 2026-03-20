@@ -22,7 +22,7 @@ with lib; let
       mkdir -p $out/bin
       cp set-evdev-deadzone $out/bin/
     '';
-    nativeBuildInputs = [ pkgs.gcc ];
+    nativeBuildInputs = [pkgs.gcc];
   };
 in {
   options.services.gaming = {

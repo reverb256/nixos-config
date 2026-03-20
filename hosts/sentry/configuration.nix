@@ -10,8 +10,7 @@
   pkgs,
   inputs,
   ...
-}:
-{
+}: {
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -67,9 +66,9 @@
           to = 32767;
         }
       ];
-      allowedUDPPorts = lib.mkOptionDefault [ 8472 ]; # Flannel VXLAN (merges with cluster defaults)
+      allowedUDPPorts = lib.mkOptionDefault [8472]; # Flannel VXLAN (merges with cluster defaults)
       # Open Loki port on main interface for cluster access (module only opens on tailscale0)
-      interfaces."enp7s0".allowedTCPPorts = [ 3100 ];
+      interfaces."enp7s0".allowedTCPPorts = [3100];
     };
   };
 
@@ -245,7 +244,7 @@
       };
     };
 
-    xserver.videoDrivers = [ "amdgpu" ];
+    xserver.videoDrivers = ["amdgpu"];
 
     # MINING (CPU only - 4 threads = 25% of 16 cores)
     # Uses xmrig-proxy on Zephyr for centralized hashrate aggregation
@@ -378,23 +377,21 @@
     ];
   };
 
-  systemd.tmpfiles.rules =
-    let
-      rocmEnv = pkgs.symlinkJoin {
-        name = "rocm-combined";
-        paths = with pkgs.rocmPackages; [
-          clr
-          clr.icd
-          rocblas
-          hipblas
-          rpp
-        ];
-      };
-    in
-    [
-      "L+ /opt/rocm - - - - ${rocmEnv}"
-      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-    ];
+  systemd.tmpfiles.rules = let
+    rocmEnv = pkgs.symlinkJoin {
+      name = "rocm-combined";
+      paths = with pkgs.rocmPackages; [
+        clr
+        clr.icd
+        rocblas
+        hipblas
+        rpp
+      ];
+    };
+  in [
+    "L+ /opt/rocm - - - - ${rocmEnv}"
+    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+  ];
 
   # ============================================================================
   # SECONDARY STORAGE (sda - 1TB SSD)
@@ -491,5 +488,4 @@
     cacheTypeK = "bf16";
     cacheTypeV = "bf16";
   };
-
 }

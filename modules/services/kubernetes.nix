@@ -9,8 +9,7 @@
   pkgs,
   lib,
   ...
-}:
-{
+}: {
   options.services.kubernetes-module = {
     enable = lib.mkEnableOption "Kubernetes cluster configuration";
 
@@ -41,7 +40,7 @@
 
     etcdClusterMembers = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ ];
+      default = [];
       example = [
         "zephyr=http://10.1.1.110:2380"
         "nexus=http://10.1.1.120:2380"
@@ -77,11 +76,10 @@
     };
   };
 
-  config =
-    let
-      isMaster = builtins.elem "master" config.services.kubernetes-module.roles;
-      useEtcdCluster = config.services.kubernetes-module.etcdClusterMembers != [ ];
-    in
+  config = let
+    isMaster = builtins.elem "master" config.services.kubernetes-module.roles;
+    useEtcdCluster = config.services.kubernetes-module.etcdClusterMembers != [];
+  in
     lib.mkIf config.services.kubernetes-module.enable {
       # ============================================================================
       # DISABLE PODMAN DOCKER COMPATIBILITY (conflicts with Docker)
@@ -116,7 +114,7 @@
         # Using default kubernetes from unstable (1.35.0)
 
         # Master address
-        masterAddress = config.services.kubernetes-module.masterAddress;
+        inherit (config.services.kubernetes-module) masterAddress;
         # PKI (Certificates) - Auto-generate with easyCerts
         easyCerts = true;
         # APIServer configuration
@@ -147,7 +145,7 @@
             "kubernetes.default.svc.cluster.local"
           ];
           # Connect to local etcd (for multi-master HA, each node connects to its local etcd)
-          etcd.servers = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2379" ];
+          etcd.servers = lib.mkForce ["http://${config.services.kubernetes-module.etcdListenHost}:2379"];
           # Note: Pod Security Admission is enabled by default in Kubernetes 1.25+
           # No extra configuration needed - uses built-in 'restricted' profile
         };
@@ -161,7 +159,7 @@
         kubelet = {
           enable = true;
           hostname = config.networking.hostName;
-          clusterDns = [ "10.0.0.10" ]; # CoreDNS service IP
+          clusterDns = ["10.0.0.10"]; # CoreDNS service IP
           extraConfig = {
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
@@ -176,13 +174,12 @@
           # NVIDIA device plugin requires: accelerator=nvidia-gpu
           # AMD device plugin requires: gpu=amd
           # Build conditional labels based on GPU types present on node
-          extraOpts =
-            let
-              labels = lib.concatStringsSep "," (
-                (lib.optional config.hardware.nvidia.enabled "accelerator=nvidia-gpu")
-                ++ (lib.optional config.hardware.gpu-compute.rocm.enable "gpu=amd")
-              );
-            in
+          extraOpts = let
+            labels = lib.concatStringsSep "," (
+              (lib.optional config.hardware.nvidia.enabled "accelerator=nvidia-gpu")
+              ++ (lib.optional config.hardware.gpu-compute.rocm.enable "gpu=amd")
+            );
+          in
             lib.mkIf (labels != "") "--node-labels=${labels}";
         };
         proxy.enable = true;
@@ -203,28 +200,25 @@
         advertiseClientUrls = lib.mkForce [
           "http://${config.services.kubernetes-module.etcdListenHost}:2379"
         ];
-        listenPeerUrls = lib.mkForce [ "http://${config.services.kubernetes-module.etcdListenHost}:2380" ];
+        listenPeerUrls = lib.mkForce ["http://${config.services.kubernetes-module.etcdListenHost}:2380"];
         initialAdvertisePeerUrls = lib.mkForce [
           "http://${config.services.kubernetes-module.etcdListenHost}:2380"
         ];
-        initialCluster =
-          let
-            clusterMembers =
-              if useEtcdCluster then
-                config.services.kubernetes-module.etcdClusterMembers
-              else
-                [
-                  "${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380"
-                ];
-            # If bootstrapping, use only this node; otherwise use full cluster list
-            effectiveMembers =
-              if config.services.kubernetes-module.etcdBootstrapOnly then
-                [
-                  "${config.services.kubernetes-module.etcdName}=http://${config.services.kubernetes-module.etcdListenHost}:2380"
-                ]
-              else
-                clusterMembers;
-          in
+        initialCluster = let
+          clusterMembers =
+            if useEtcdCluster
+            then config.services.kubernetes-module.etcdClusterMembers
+            else [
+              "${config.services.kubernetes-module.masterAddress}=http://${config.services.kubernetes-module.masterAddress}:2380"
+            ];
+          # If bootstrapping, use only this node; otherwise use full cluster list
+          effectiveMembers =
+            if config.services.kubernetes-module.etcdBootstrapOnly
+            then [
+              "${config.services.kubernetes-module.etcdName}=http://${config.services.kubernetes-module.etcdListenHost}:2380"
+            ]
+            else clusterMembers;
+        in
           lib.mkForce effectiveMembers;
         initialClusterToken = "zephyr-etcd-cluster";
         initialClusterState = config.services.kubernetes-module.etcdInitialState;
@@ -322,19 +316,19 @@
             }
           ];
 
-          allowedUDPPorts = [ 8472 ]; # Flannel VXLAN
+          allowedUDPPorts = [8472]; # Flannel VXLAN
         })
 
         # Worker node firewall (applies to all nodes, but ports differ per role)
         {
-          allowedTCPPorts = lib.mkIf (!isMaster) [ 10250 ]; # Kubelet API only for workers
+          allowedTCPPorts = lib.mkIf (!isMaster) [10250]; # Kubelet API only for workers
           allowedTCPPortRanges = [
             {
               from = 30000;
               to = 32767;
             }
           ];
-          allowedUDPPorts = [ 8472 ]; # Flannel VXLAN
+          allowedUDPPorts = [8472]; # Flannel VXLAN
 
           # Fix Flannel firewall rules for pod CIDR migration
           # Flannel creates FLANNEL-FWD chain with old CIDR (10.1.0.0/16)
@@ -362,9 +356,9 @@
         # Setup NVIDIA containerd runtime configuration for GPU access
         nvidia-containerd-setup = lib.mkIf config.hardware.nvidia.enabled {
           description = "Setup NVIDIA containerd runtime configuration";
-          before = [ "containerd.service" ];
-          requiredBy = [ "containerd.service" ];
-          path = [ pkgs.util-linux pkgs.coreutils pkgs.nvidia-container-toolkit ];
+          before = ["containerd.service"];
+          requiredBy = ["containerd.service"];
+          path = [pkgs.util-linux pkgs.coreutils pkgs.nvidia-container-toolkit];
           serviceConfig.Type = "oneshot";
           script = ''
             # Create writable directory for containerd drop-in configs
@@ -387,9 +381,9 @@
         # This allows containerd to use Flannel CNI instead of Cilium
         cni-net-setup = {
           description = "Setup CNI network configuration bind mount";
-          before = [ "containerd.service" ];
-          requiredBy = [ "containerd.service" ];
-          path = [ pkgs.util-linux pkgs.coreutils ];
+          before = ["containerd.service"];
+          requiredBy = ["containerd.service"];
+          path = [pkgs.util-linux pkgs.coreutils];
           serviceConfig.Type = "oneshot";
           script = ''
             # Create a writable directory for CNI configs
@@ -409,8 +403,8 @@
         };
 
         containerd = {
-          after = lib.mkForce [ "network.target" ];
-          before = [ "kubelet.service" ];
+          after = lib.mkForce ["network.target"];
+          before = ["kubelet.service"];
         };
 
         kubelet = {
@@ -418,7 +412,7 @@
             "containerd.service"
             "network.target"
           ];
-          requires = lib.mkForce [ "containerd.service" ];
+          requires = lib.mkForce ["containerd.service"];
           serviceConfig = {
             ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
               echo "Waiting for containerd to be ready..."
@@ -446,7 +440,7 @@
             "kubelet.service"
             "network.target"
           ];
-          requires = lib.mkForce [ "kubelet.service" ];
+          requires = lib.mkForce ["kubelet.service"];
           serviceConfig = {
             ExecStartPre = pkgs.writeShellScript "wait-for-kubelet" ''
               echo "Waiting for kubelet to be ready..."
@@ -488,7 +482,7 @@
             "kube-apiserver.service"
             "network.target"
           ];
-          requires = lib.mkForce [ "kube-apiserver.service" ];
+          requires = lib.mkForce ["kube-apiserver.service"];
           # Don't override ExecStart - let upstream handle it
           serviceConfig = {
             # Scheduler is lightweight (~100MB typical)
@@ -503,7 +497,7 @@
             "kube-apiserver.service"
             "network.target"
           ];
-          requires = lib.mkForce [ "kube-apiserver.service" ];
+          requires = lib.mkForce ["kube-apiserver.service"];
           # Don't override ExecStart - let upstream handle it
           serviceConfig = {
             # Controller manager uses ~200-400MB

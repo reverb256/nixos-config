@@ -5,10 +5,7 @@
   lib,
   pkgs,
   ...
-}:
-let
-in
-{
+}: {
   options.environment.common = {
     wayland = {
       enable = lib.mkEnableOption "Common Wayland environment variables";

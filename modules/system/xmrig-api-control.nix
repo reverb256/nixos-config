@@ -1,11 +1,11 @@
 # XMRig HTTP API Control Module
 # Provides helper functions for pause/resume/thread control via HTTP API
-{ config, lib, pkgs, ... }:
-
-let
-  cfg = config.services.mining.xmrig;
-
-in {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   config = lib.mkIf config.services.compute-workload-monitor.enable {
     # Create a helper script for XMRig API control
     environment.systemPackages = [

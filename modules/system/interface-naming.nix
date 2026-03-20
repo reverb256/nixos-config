@@ -1,6 +1,6 @@
 # Consistent Network Interface Naming
 # Renames all primary ethernet interfaces to 'lan0' across cluster nodes
-{...}: {
+_: {
   # ============================================================================
   # SYSTEMD NETWORK LINKS - Persistent Interface Naming
   # ============================================================================

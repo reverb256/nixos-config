@@ -23,11 +23,9 @@
 #   };
 #
 # =============================================================================
-
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 with lib; let
@@ -60,7 +58,7 @@ with lib; let
 
   # Cluster state string for initial cluster
   initialCluster = concatStringsSep "," (
-    mapAttrsToList (name: node: "${node.name}=https://${node.ip}:2380") clusterNodes
+    mapAttrsToList (_name: node: "${node.name}=https://${node.ip}:2380") clusterNodes
   );
 in {
   options.services.etcd-cluster = {
@@ -92,8 +90,8 @@ in {
       enable = true;
 
       # Server configuration
-      name = thisNode.name;
-      dataDir = cfg.dataDir;
+      inherit (thisNode) name;
+      inherit (cfg) dataDir;
 
       # Listen addresses
       listenPeerUrls = ["https://${thisNode.ip}:2380"];
@@ -104,7 +102,7 @@ in {
       initialAdvertisePeerUrls = ["https://${thisNode.ip}:2380"];
 
       # Cluster configuration
-      initialCluster = initialCluster;
+      inherit initialCluster;
       initialClusterToken = "kubernetes-etcd-cluster";
       initialClusterState = "new";
 
@@ -124,7 +122,7 @@ in {
       snapshotCount = 10000;
       heartbeatInterval = 100;
       electionTimeout = 1000;
-      quotaBackendBytes = 2147483648;  # 2GB
+      quotaBackendBytes = 2147483648; # 2GB
 
       # Logging
       logLevel = "info";
@@ -136,8 +134,8 @@ in {
     # ========================================================================
     networking.firewall = {
       allowedTCPPorts = [
-        2379  # etcd client port
-        2380  # etcd peer port
+        2379 # etcd client port
+        2380 # etcd peer port
       ];
     };
 

@@ -19,20 +19,20 @@
     wget
     curl
     jq
-    jo        # JSON output from shell (companion to jq)
-    yq        # YAML processor (go-based)
+    jo # JSON output from shell (companion to jq)
+    yq # YAML processor (go-based)
     mosh
     nmap
     netcat
     socat
     tmux
-    xh        # Modern HTTP debugging tool (curl alternative)
-    hexdump   # Binary file inspection
-    xxd       # Hex dump from Vim
-    file      # File type detection (enhanced)
-    tree      # Directory tree viewer
-    bc        # Arbitrary precision calculator
-    units     # Unit conversion tool
+    xh # Modern HTTP debugging tool (curl alternative)
+    hexdump # Binary file inspection
+    xxd # Hex dump from Vim
+    file # File type detection (enhanced)
+    tree # Directory tree viewer
+    bc # Arbitrary precision calculator
+    units # Unit conversion tool
     # websocat - REMOVED
 
     # ============================================================================
@@ -60,8 +60,8 @@
     # FILE SYSTEM TOOLS
     # ============================================================================
     btrfs-progs
-    rclone  # For backup-to-garage S3 sync
-    awscli2  # For S3 backup automation
+    rclone # For backup-to-garage S3 sync
+    awscli2 # For S3 backup automation
 
     # ============================================================================
     # HARDWARE DETECTION
@@ -70,56 +70,56 @@
     pciutils
     usbutils
     lshw
-    dmidecode  # SMBIOS/BIOS hardware info
-    hwinfo    # Comprehensive hardware detection
-    smartmontools  # SMART disk monitoring (smartctl)
+    dmidecode # SMBIOS/BIOS hardware info
+    hwinfo # Comprehensive hardware detection
+    smartmontools # SMART disk monitoring (smartctl)
 
     # ============================================================================
     # DIAGNOSTIC AND DEBUGGING TOOLS
     # System tracing, profiling, and debugging utilities
     # ============================================================================
-    strace    # System call tracer
-    ltrace    # Library call tracer
+    strace # System call tracer
+    ltrace # Library call tracer
     perf-tools # Linux performance profiling tools
-    iotop     # I/O monitoring
-    perf      # Kernel performance analysis
+    iotop # I/O monitoring
+    perf # Kernel performance analysis
 
     # ============================================================================
     # NETWORK DIAGNOSTICS
     # Advanced network troubleshooting and monitoring
     # ============================================================================
-    ethtool   # Network card configuration and diagnostics
-    bmon      # Bandwidth monitor (console-based)
-    iftop     # Interactive bandwidth monitoring
-    tcpdump   # Packet capture and analysis
-    mtr       # Network diagnostic (ping + traceroute hybrid)
-    dnsutils  # DNS lookup utilities (dig, nslookup)
+    ethtool # Network card configuration and diagnostics
+    bmon # Bandwidth monitor (console-based)
+    iftop # Interactive bandwidth monitoring
+    tcpdump # Packet capture and analysis
+    mtr # Network diagnostic (ping + traceroute hybrid)
+    dnsutils # DNS lookup utilities (dig, nslookup)
 
     # ============================================================================
     # STORAGE AND FILE SYSTEM UTILITIES
     # Additional tools for storage management and data handling
     # ============================================================================
-    parted    # GPT partition management
-    gdisk     # GPT fdisk (for modern partitioning)
-    ncdu      # Disk usage analyzer (ncurses-based)
-    rsync     # Fast file synchronization
-    pv        # Pipe viewer for monitoring data throughput
-    progress  # Coreutils progress viewer
+    parted # GPT partition management
+    gdisk # GPT fdisk (for modern partitioning)
+    ncdu # Disk usage analyzer (ncurses-based)
+    rsync # Fast file synchronization
+    pv # Pipe viewer for monitoring data throughput
+    progress # Coreutils progress viewer
 
     # ============================================================================
     # ARCHIVE AND COMPRESSION
     # Additional formats beyond basic tar/gzip
     # ============================================================================
-    zip       # ZIP archive support
-    unzip     # ZIP extraction
-    p7zip     # 7z archive support
-    rar       # RAR archive support
+    zip # ZIP archive support
+    unzip # ZIP extraction
+    p7zip # 7z archive support
+    rar # RAR archive support
 
     # ============================================================================
     # SCREEN AND SESSION MANAGEMENT
     # Terminal multiplexer alternatives
     # ============================================================================
-    screen    # Alternative terminal multiplexer
+    screen # Alternative terminal multiplexer
 
     # ============================================================================
     # GAMING SUPPORT

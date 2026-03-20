@@ -1,6 +1,6 @@
 # Example XMRig Proxy Configuration
 # For Zephyr - Centralized CPU mining proxy for cluster
-{...}: {
+_: {
   services.xmrig-proxy = {
     enable = true;
 
