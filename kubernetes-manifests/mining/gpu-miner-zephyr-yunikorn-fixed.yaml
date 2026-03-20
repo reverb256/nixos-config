@@ -84,9 +84,10 @@ spec:
         operator: "Exists"
       containers:
       - name: lolminer
-        # ✅ FIXED: Semantic versioning instead of latest
+        # Note: Using imagePullPolicy: IfNotPresent to allow pulling if needed
+        # The lolminer binary from NixOS will be mounted in via hostPath
         image: lolminer:1.98a-nixos
-        imagePullPolicy: Never  # Use local image built by Nix
+        imagePullPolicy: IfNotPresent
         args:
           - "--algo=CR29"
           - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
@@ -135,24 +136,3 @@ spec:
       - name: nvidia
         hostPath:
           path: /run/current-system/sw/lib/nvidia
-      initContainers:
-      - name: set-gpu-power-limits
-        image: lolminer:1.98a-nixos
-        imagePullPolicy: Never
-        command:
-          - /bin/bash
-          - -c
-          - |
-            # Set per-GPU power limits using host's nvidia-smi
-            echo "Setting GPU power limits..."
-
-            # Use host's nvidia-smi via mount
-            /usr/lib/nvidia/bin/nvidia-smi -i 0 -pm 1 -pl 130  # RTX 3060 Ti
-            /usr/lib/nvidia/bin/nvidia-smi -i 1 -pm 1 -pl 250  # RTX 3090 (VRAM-safe)
-
-            echo "Power limits set successfully"
-        securityContext:
-          privileged: true
-        volumeMounts:
-        - name: nvidia
-          mountPath: /usr/lib/nvidia
