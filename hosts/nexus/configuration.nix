@@ -9,7 +9,8 @@
   pkgs,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -102,7 +103,7 @@
     kubernetes-module = {
       enable = true;
       # Worker node only (no master role)
-      roles = lib.mkForce ["node"];
+      roles = lib.mkForce [ "node" ];
       # Use zephyr's IP or VIP for master address
       masterAddress = lib.mkForce "10.1.1.100";
     };
@@ -198,8 +199,16 @@
   # FILESYSTEM COMPRESSION - Enable zstd:3 on all BTRFS filesystems
   # ============================================================================
   fileSystems = {
-    "/".options = lib.mkOptionDefault ["compress=zstd:3" "ssd" "discard=async"];
-    "/home".options = lib.mkOptionDefault ["compress=zstd:3" "ssd" "discard=async"];
+    "/".options = lib.mkOptionDefault [
+      "compress=zstd:3"
+      "ssd"
+      "discard=async"
+    ];
+    "/home".options = lib.mkOptionDefault [
+      "compress=zstd:3"
+      "ssd"
+      "discard=async"
+    ];
   };
 
   # ============================================================================
@@ -215,31 +224,66 @@
     "/data/home" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
-      options = ["subvol=home" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
+      options = [
+        "subvol=home"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
     };
 
     "/data/shared" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
-      options = ["subvol=shared" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
+      options = [
+        "subvol=shared"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
     };
 
     "/data/backups" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
-      options = ["subvol=backups" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
+      options = [
+        "subvol=backups"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
     };
 
     "/data/media" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
-      options = ["subvol=media" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
+      options = [
+        "subvol=media"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
     };
 
     "/var/lib/containers" = {
       device = "/dev/disk/by-uuid/08cbb21c-adb0-4e3c-928f-7b6d1fa2d236";
       fsType = "btrfs";
-      options = ["subvol=containers" "compress=zstd" "ssd" "discard=async" "nofail" "x-systemd.device-timeout=10s"];
+      options = [
+        "subvol=containers"
+        "compress=zstd"
+        "ssd"
+        "discard=async"
+        "nofail"
+        "x-systemd.device-timeout=10s"
+      ];
     };
   };
 
@@ -300,8 +344,8 @@
     spotify-spotx.enable = true;
 
     # Mining configuration - CPU uses xmrig-proxy on Zephyr
-    # Uses defaults from mining.nix for pool URLs and wallet format
-    # Note: profiles.role.mining enables services.mining automatically
+    # GPU mining DISABLED: 3060 Ti is used for desktop (VRAM exhausted by KWin/Xwayland)
+    # Only 136MB VRAM free - insufficient for CR29 mining DAG (~7GB required)
     mining = {
       # Dual XMRig setup (always-on + pause-able)
       # Total when idle: 12 threads (50%) - Total when gaming: 4 threads (17%)
@@ -330,34 +374,9 @@
         tls = false; # No TLS needed for local proxy
       };
 
-      # GPU mining configuration - centralized proxy approach
-      # Primary: Forge gpu-proxy (handles protocol translation)
-      # Fallback: Direct Kryptex connections
-      lolminer = {
-        pools = [
-          {
-            url = "stratum+tcp://127.0.0.1:3333"; # Local stratum proxy
-            wallet = "krxXVNVMM7.nexus-gpu";
-            password = "x";
-            tls = true;
-          }
-          {
-            url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (fallback)
-            wallet = "krxXVNVMM7.nexus-gpu";
-            password = "x";
-            tls = true; # TLS required for Kryptex
-          }
-        ];
-      };
-
-      # NVIDIA GPU mining (RTX 3060 Ti @ 130W)
-      lolminer.nvidia = {
-        enable = true;
-        autostart = true;
-        devices = "0";
-        powerLimit = 130; # 130W for optimal efficiency
-        apiPort = 4068;
-      };
+      # GPU mining DISABLED on nexus - desktop uses all VRAM
+      # See above comment for explanation
+      lolminer.nvidia.enable = false;
     };
 
     # GPU Proxy - DISABLED: Using centralized gpu-proxy-cpp on Forge (10.1.1.130:3334)
@@ -475,7 +494,16 @@
   # ============================================================================
   # USER GROUPS
   # ============================================================================
-  users.users.j_kro.extraGroups = ["plugdev" "audio" "input" "docker" "openrazer" "tailscale" "video" "render"];
+  users.users.j_kro.extraGroups = [
+    "plugdev"
+    "audio"
+    "input"
+    "docker"
+    "openrazer"
+    "tailscale"
+    "video"
+    "render"
+  ];
 
   # ============================================================================
   # ADDITIONAL PACKAGES

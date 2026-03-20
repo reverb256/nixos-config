@@ -1,5 +1,16 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(ps -p 3814589 -o pid,etime,stat)",
+      "Bash(just switch:*)",
+      "Bash(pkill -f \"xmrig|nicehash\")",
+      "Bash(curl -s http://127.0.0.1:8080/mcp/servers)",
+      "Bash(curl -s http://127.0.0.1:8080/mcp/tools)",
+      "Bash(systemctl restart:*)",
+      "Bash(systemctl status:*)",
+      "Bash(journalctl -u ai-inference-gateway --since \"2 minutes ago\")",
+      "Bash(systemctl show:*)"
+    ],
     "additionalDirectories": [
       "/data/@projects/infra/xnm1-upgrade-worktree/"
     ]

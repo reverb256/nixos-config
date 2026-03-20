@@ -1,5 +1,5 @@
 # Custom Package Overlay
-_: prev: {
+final: prev: {
   lolminer = prev.callPackage ./packages/lolminer.nix { };
   xmrig = prev.callPackage ./packages/xmrig.nix { };
   # LM Studio - both names point to the same custom package
@@ -21,6 +21,10 @@ _: prev: {
   llama-cpp = (prev.callPackage ./packages/llama-cpp-cuda.nix {
     inherit (prev) config;
   });
+
+  # llama-cpp-rocm: Separate ROCm-enabled package (doesn't replace base)
+  # Needed because nixpkgs llama-cpp-rocm uses .override which would inherit CUDA build
+  llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix { };
 
   # Python packages overlay
   python3 = prev.python3.override {

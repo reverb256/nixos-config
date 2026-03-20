@@ -6,118 +6,136 @@
   pkgs,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.services.mining.xmrigDual;
   hostname = config.networking.hostName;
   defaultWallet = "krxXVNVMM7.${hostname}";
 
   # XMRig wrapper script - reads API token and passes to xmrig
-  mkXmrigWrapper = name: port: tokenFile: threads: pkgs.writeShellScript "xmrig-wrapper-${name}" ''
-    PATH=/run/current-system/sw/bin:$PATH
-    TOKEN_FILE="${tokenFile}"
-    RUNTIME_CONFIG="/run/xmrig-${name}/config.json"
+  mkXmrigWrapper =
+    name: port: tokenFile: threads:
+    pkgs.writeShellScript "xmrig-wrapper-${name}" ''
+      PATH=/run/current-system/sw/bin:$PATH
+      TOKEN_FILE="${tokenFile}"
+      RUNTIME_CONFIG="/run/xmrig-${name}/config.json"
 
-    # Use runtime config with token if available, otherwise fallback to default config
-    CONFIG="''${RUNTIME_CONFIG:-/etc/xmrig-${name}/config.json}"
+      # Use runtime config with token if available, otherwise fallback to default config
+      CONFIG="''${RUNTIME_CONFIG:-/etc/xmrig-${name}/config.json}"
 
-    if [ -r "$CONFIG" ]; then
-      exec ${pkgs.xmrig}/bin/xmrig -c "$CONFIG" --randomx-1gb-pages --threads=${toString threads}
-    else
-      exec ${pkgs.xmrig}/bin/xmrig -c /etc/xmrig-${name}/config.json --randomx-1gb-pages --threads=${toString threads}
-    fi
-  '';
+      if [ -r "$CONFIG" ]; then
+        exec ${pkgs.xmrig}/bin/xmrig -c "$CONFIG" --randomx-1gb-pages --threads=${toString threads}
+      else
+        exec ${pkgs.xmrig}/bin/xmrig -c /etc/xmrig-${name}/config.json --randomx-1gb-pages --threads=${toString threads}
+      fi
+    '';
 
   # Generate XMRig config for a specific instance
-  mkXmrigConfig = name: port: pool: wallet: password: tls: threads: builtins.toJSON {
-    api = {
-      id = null;
-      worker-id = "${hostname}-${name}";
+  mkXmrigConfig =
+    name: port: pool: wallet: password: tls: threads:
+    builtins.toJSON {
+      api = {
+        id = null;
+        worker-id = "${hostname}-${name}";
+      };
+      http = {
+        enabled = true;
+        host = "127.0.0.1";
+        port = port;
+        restricted = false;
+      };
+      pools = [
+        # Primary pool
+        {
+          url = pool;
+          user = wallet;
+          pass = password;
+          tls = tls;
+          keepalive = true;
+          nicehash = false;
+        }
+        # Fallback pools (automatically added for redundancy)
+        {
+          url =
+            lib.replaceStrings [ "xtm-rx-us.kryptex.network:8038" ] [ "xtm-rx-eu.kryptex.network:8038" ]
+              pool;
+          user = wallet;
+          pass = password;
+          tls = tls;
+          keepalive = true;
+          nicehash = false;
+        }
+        {
+          url =
+            lib.replaceStrings [ "xtm-rx-us.kryptex.network:8038" ] [ "xtm-rx-asia.kryptex.network:8038" ]
+              pool;
+          user = wallet;
+          pass = password;
+          tls = tls;
+          keepalive = true;
+          nicehash = false;
+        }
+      ];
+      randomx = {
+        "1gb-pages" = true;
+        mode = "fast";
+      };
+      asm = true;
+      cpu = {
+        enabled = true;
+        "huge-pages" = true;
+        "huge-pages-jit" = false;
+        "hw-aes" = null;
+        priority = null;
+        "memory-pool" = false;
+        yield = true;
+        inherit threads;
+      };
+      logging = {
+        type = "stdout";
+        level = "0";
+      };
     };
-    http = {
-      enabled = true;
-      host = "127.0.0.1";
-      port = port;
-      restricted = false;
-    };
-    pools = [
-      # Primary pool
-      {
-        url = pool;
-        user = wallet;
-        pass = password;
-        tls = tls;
-        keepalive = true;
-        nicehash = false;
-      }
-      # Fallback pools (automatically added for redundancy)
-      {
-        url = lib.replaceStrings ["xtm-rx-us.kryptex.network:8038"] ["xtm-rx-eu.kryptex.network:8038"] pool;
-        user = wallet;
-        pass = password;
-        tls = tls;
-        keepalive = true;
-        nicehash = false;
-      }
-      {
-        url = lib.replaceStrings ["xtm-rx-us.kryptex.network:8038"] ["xtm-rx-asia.kryptex.network:8038"] pool;
-        user = wallet;
-        pass = password;
-        tls = tls;
-        keepalive = true;
-        nicehash = false;
-      }
-    ];
-    randomx = {
-      "1gb-pages" = true;
-      mode = "fast";
-    };
-    asm = true;
-    cpu = {
-      enabled = true;
-      "huge-pages" = true;
-      "huge-pages-jit" = false;
-      "hw-aes" = null;
-      priority = null;
-      "memory-pool" = false;
-      yield = true;
-      inherit threads;
-    };
-    logging = {
-      type = "stdout";
-      level = "0";
-    };
-  };
 
   # Helper to create ExecStartPre for token injection
-  mkExecStartPre = name: tokenFile: pkgs.writeShellScript "xmrig-config-prep-${name}" ''
-    TOKEN_FILE="${tokenFile}"
-    CONFIG_DIR=/run/xmrig-${name}
+  mkExecStartPre =
+    name: tokenFile:
+    pkgs.writeShellScript "xmrig-config-prep-${name}" ''
+      TOKEN_FILE="${tokenFile}"
+      CONFIG_DIR=/run/xmrig-${name}
 
-    mkdir -p "$CONFIG_DIR"
+      mkdir -p "$CONFIG_DIR"
 
-    if [ -r "$TOKEN_FILE" ]; then
-      TOKEN=$(cat "$TOKEN_FILE")
-      ${pkgs.jq}/bin/jq --arg token "$TOKEN" '.http."access-token" = $token' /etc/xmrig-${name}/config.json > "$CONFIG_DIR/config.json"
-    else
-      cp /etc/xmrig-${name}/config.json "$CONFIG_DIR/config.json"
-    fi
+      if [ -r "$TOKEN_FILE" ]; then
+        TOKEN=$(cat "$TOKEN_FILE")
+        ${pkgs.jq}/bin/jq --arg token "$TOKEN" '.http."access-token" = $token' /etc/xmrig-${name}/config.json > "$CONFIG_DIR/config.json"
+      else
+        cp /etc/xmrig-${name}/config.json "$CONFIG_DIR/config.json"
+      fi
 
-    chmod 640 "$CONFIG_DIR/config.json"
-  '';
+      chmod 640 "$CONFIG_DIR/config.json"
+    '';
 
   # Host-specific thread allocations
-  getAlwaysOnThreads = host: {
-    zephyr = 4;   # 12% of 32 cores
-    nexus = 4;    # 17% of 24 cores
-    sentry = 4;   # 25% of 16 cores
-  }.${host} or 4;
+  getAlwaysOnThreads =
+    host:
+    {
+      zephyr = 4; # 12% of 32 cores
+      nexus = 4; # 17% of 24 cores
+      sentry = 4; # 25% of 16 cores
+    }
+    .${host} or 4;
 
-  getFlexibleThreads = host: {
-    zephyr = 12;  # 38% of 32 cores (total 50% with always-on)
-    nexus = 8;    # 33% of 24 cores (total 50% with always-on)
-    sentry = 4;   # 25% of 16 cores (total 50% with always-on)
-  }.${host} or 8;
-in {
+  getFlexibleThreads =
+    host:
+    {
+      zephyr = 12; # 38% of 32 cores (total 50% with always-on)
+      nexus = 8; # 33% of 24 cores (total 50% with always-on)
+      sentry = 4; # 25% of 16 cores (total 50% with always-on)
+    }
+    .${host} or 8;
+in
+{
   options.services.mining.xmrigDual = {
     enable = mkEnableOption "Dual XMRig Services (always-on + pause-able)";
 
@@ -201,10 +219,14 @@ in {
     # Configuration files for both instances
     environment.etc = {
       "xmrig-always/config.json" = mkIf cfg.alwaysOn.enable {
-        text = mkXmrigConfig "always" cfg.alwaysOn.httpPort cfg.pool cfg.wallet cfg.password cfg.tls cfg.alwaysOn.threads;
+        text =
+          mkXmrigConfig "always" cfg.alwaysOn.httpPort cfg.pool cfg.wallet cfg.password cfg.tls
+            cfg.alwaysOn.threads;
       };
       "xmrig-flexible/config.json" = mkIf cfg.flexible.enable {
-        text = mkXmrigConfig "flexible" cfg.flexible.httpPort cfg.pool cfg.wallet cfg.password cfg.tls cfg.flexible.threads;
+        text =
+          mkXmrigConfig "flexible" cfg.flexible.httpPort cfg.pool cfg.wallet cfg.password cfg.tls
+            cfg.flexible.threads;
       };
     };
 
@@ -218,14 +240,16 @@ in {
     systemd.services = {
       xmrig-always = mkIf cfg.alwaysOn.enable {
         description = "XMRig CPU Mining - Always-on Instance";
-        wantedBy = mkIf cfg.alwaysOn.autostart ["multi-user.target"];
-        after = ["network.target"];
+        wantedBy = mkIf cfg.alwaysOn.autostart [ "multi-user.target" ];
+        after = [ "network.target" ];
         serviceConfig = {
           User = "mining";
           Group = "mining";
           Slice = "mining.slice";
           ExecStartPre = mkExecStartPre "always" cfg.alwaysOn.httpTokenFile;
-          ExecStart = mkXmrigWrapper "always" cfg.alwaysOn.httpPort cfg.alwaysOn.httpTokenFile cfg.alwaysOn.threads;
+          ExecStart =
+            mkXmrigWrapper "always" cfg.alwaysOn.httpPort cfg.alwaysOn.httpTokenFile
+              cfg.alwaysOn.threads;
           Restart = "always";
           NoNewPrivileges = false;
           PrivateTmp = true;
@@ -244,19 +268,25 @@ in {
           LimitMEMLOCK = "4G";
           CapabilityBoundingSet = "CAP_SYS_RAWIO";
           AmbientCapabilities = "CAP_SYS_RAWIO";
+          DeviceAllow = [
+            "/dev/cpu/*/msr"
+            "/dev/msr"
+          ];
         };
       };
 
       xmrig-flexible = mkIf cfg.flexible.enable {
         description = "XMRig CPU Mining - Flexible (pause-able) Instance";
-        wantedBy = mkIf cfg.flexible.autostart ["multi-user.target"];
-        after = ["network.target"];
+        wantedBy = mkIf cfg.flexible.autostart [ "multi-user.target" ];
+        after = [ "network.target" ];
         serviceConfig = {
           User = "mining";
           Group = "mining";
           Slice = "mining.slice";
           ExecStartPre = mkExecStartPre "flexible" cfg.flexible.httpTokenFile;
-          ExecStart = mkXmrigWrapper "flexible" cfg.flexible.httpPort cfg.flexible.httpTokenFile cfg.flexible.threads;
+          ExecStart =
+            mkXmrigWrapper "flexible" cfg.flexible.httpPort cfg.flexible.httpTokenFile
+              cfg.flexible.threads;
           Restart = "always";
           NoNewPrivileges = false;
           PrivateTmp = true;
@@ -275,14 +305,18 @@ in {
           LimitMEMLOCK = "4G";
           CapabilityBoundingSet = "CAP_SYS_RAWIO";
           AmbientCapabilities = "CAP_SYS_RAWIO";
+          DeviceAllow = [
+            "/dev/cpu/*/msr"
+            "/dev/msr"
+          ];
         };
       };
     };
 
     # Update mining target to include both instances
     systemd.targets.mining.wants = mkMerge [
-      (mkIf cfg.alwaysOn.enable ["xmrig-always.service"])
-      (mkIf cfg.flexible.enable ["xmrig-flexible.service"])
+      (mkIf cfg.alwaysOn.enable [ "xmrig-always.service" ])
+      (mkIf cfg.flexible.enable [ "xmrig-flexible.service" ])
     ];
   };
 }

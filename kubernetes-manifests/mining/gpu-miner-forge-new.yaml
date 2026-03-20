@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge
+  namespace: mining
+  labels:
+    app: gpu-miner
+    host: forge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-miner
+      host: forge
+  template:
+    metadata:
+      labels:
+        app: gpu-miner
+        host: forge
+    spec:
+      schedulerName: yunikorn
+      nodeName: forge
+      hostNetwork: true
+      priorityClassName: low-priority-mining
+      tolerations:
+      - key: scheduler.yunikorn.io/preemptible
+        operator: Exists
+      containers:
+      - name: lolminer-nvidia
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - "--algo=CR29"
+        - "--pool=xtm-c29-us.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-gpu"
+        - "--pass=x"
+        - "--tls=on"
+        - "--pool=xtm-c29-eu.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-gpu"
+        - "--pass=x"
+        - "--tls=on"
+        - "--devices=2,3"
+        - "--apiport=4068"
+        - "--mode=b"
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/run/opengl-driver/lib:/nix/store"
+        ports:
+        - containerPort: 4068
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: nvidia
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        - name: dev
+          mountPath: /dev
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: 4Gi
+            cpu: "2"
+            nvidia.com/gpu: "2"
+          limits:
+            memory: 8Gi
+            cpu: "4"
+            nvidia.com/gpu: "2"
+      - name: lolminer-amd
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - "--algo=CR29"
+        - "--pool=xtm-c29-us.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-gpu"
+        - "--pass=x"
+        - "--tls=on"
+        - "--pool=xtm-c29-eu.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-gpu"
+        - "--pass=x"
+        - "--tls=on"
+        - "--devices=0,1"
+        - "--apiport=4069"
+        - "--mode=b"
+        env:
+        - name: OCL_ICD_VENDORS
+          value: "/etc/OpenCL/vendors"
+        ports:
+        - containerPort: 4069
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: dev
+          mountPath: /dev
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: 4Gi
+            cpu: "2"
+          limits:
+            memory: 8Gi
+            cpu: "4"
+      volumes:
+      - name: nvidia
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: nix-store
+        hostPath:
+          path: /nix/store

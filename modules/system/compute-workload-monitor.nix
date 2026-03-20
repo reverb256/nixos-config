@@ -7,7 +7,8 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+{
   options.services.compute-workload-monitor = {
     enable = lib.mkEnableOption "Compute workload monitor for GPU scheduling";
 
@@ -28,8 +29,11 @@
     # Create the compute-workload-monitor service
     systemd.services.compute-workload-monitor = {
       description = "Compute Workload Monitor - GPU workload detection and profile management";
-      wantedBy = ["multi-user.target"];
-      after = ["network.target" "kubernetes.target"];
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "network.target"
+        "kubernetes.target"
+      ];
       path = with pkgs; [
         procps # pgrep
         systemd # systemctl
@@ -40,7 +44,16 @@
 
       serviceConfig = {
         Type = "simple";
-        Environment = "PATH=${lib.makeBinPath (with pkgs; [procps systemd kubernetes])}:/run/current-system/sw/bin";
+        Environment = "PATH=${
+          lib.makeBinPath (
+            with pkgs;
+            [
+              procps
+              systemd
+              kubernetes
+            ]
+          )
+        }:/run/current-system/sw/bin";
         ExecStart = "${pkgs.writeShellScriptBin "compute-workload-monitor" ''
           # Autonomous GPU Workload Monitor
           # Detects workload type and adjusts GPU profiles automatically
@@ -49,7 +62,7 @@
           set -euo pipefail
 
           LOG_FILE="${config.services.compute-workload-monitor.logFile}"
-          MINING_SERVICES=("lolminer-nvidia" "xmrig")
+          MINING_SERVICES=("lolminer-nvidia" "xmrig" "xmrig-flexible" "xmrig-always")
           BUILD_PROCESSES=("nixos-rebuild" "colmena" "nix-build" "nix-daemon" "nix-store" "gcc" "clang" "cargo build" "make" "cmake" "ninja")
 
           # Detect gaming using GameMode daemon (primary detection method)
@@ -755,15 +768,6 @@
                   return
               fi
 
-              # Check for active mining (HIGHEST PRIORITY except AI)
-              # This prevents gaming/builds/other workloads from overriding mining power limits
-              for service in "''${MINING_SERVICES[@]}"; do
-                  if systemctl is-active --quiet "$service"; then
-                      echo "mining"
-                      return
-                  fi
-              done
-
               # Note: Gaming detection now handled by GameMode in main loop
               # This get_workload_type() function focuses on GPU power profiles
 
@@ -773,13 +777,17 @@
                   return
               fi
 
-              # Check for VRAM pressure (prevent miner from starting)
-              if check_vram_pressure; then
-                  echo "vram-pressure"
+
+
+              # Check for build workloads using multiple detection methods (priority order)
+
+              # DIRECT PROCESS DETECTION: Check for nix-daemon build processes
+              # This catches builds even when PSI pressure is low (idle builds waiting for jobs)
+              if pgrep -f "nix-daemon" >/dev/null 2>&1; then
+                  echo "builds"
                   return
               fi
 
-              # Check for build workloads using multiple detection methods (priority order)
               # PSI-based detection (kernel-level, most reliable for distributed builds)
               # Memory/I/O pressure checked first (more critical than CPU)
               if check_psi_memory_pressure; then
@@ -791,6 +799,15 @@
                   echo "builds"
                   return
               fi
+
+              # Check for active mining (LOWEST PRIORITY - runs only when no other workload)
+              # Mining is paused during builds, gaming, AI, or Kubernetes workloads
+              for service in "''${MINING_SERVICES[@]}"; do
+                  if systemctl is-active --quiet "$service"; then
+                      echo "mining"
+                      return
+                  fi
+              done
 
               if check_psi_cpu_pressure; then
                   echo "builds"
@@ -901,7 +918,7 @@
           # ============================================================================
           # Uses the modular xmrig-api-control script for pause/resume/thread control
           # ============================================================================
-          
+
           pause_xmrig() {
               log "Pausing XMRig during build workload"
               # Stop both instances (XMRig API v2 /2/control endpoint not available, using systemctl stop)
@@ -928,7 +945,7 @@
                   log "XMRig [flexible] started"
               fi
           }
-          
+
           set_xmrig_threads() {
               local target_threads="''$1"
               log "Setting XMRig threads to ''$target_threads via HTTP API"
@@ -937,7 +954,7 @@
                   xmrig-api-control threads "''$target_threads" always
               fi
           }
-          
+
           # Get XMRig status for state tracking (check if service is running)
           xmrig_status() {
               if systemctl is-active --quiet xmrig-flexible || systemctl is-active --quiet xmrig-always; then
@@ -947,98 +964,13 @@
               fi
           }
 
-          # VRAM pressure detection to prevent desktop freezes
-          get_vram_threshold() {
-              local gpu_id="$1"
-              local gpu_name=$(get_gpu_name "$gpu_id")
-              local host=$(get_hostname)
 
-              # Per-GPU thresholds based on VRAM capacity and use case
-              case "$gpu_name" in
-                  *"3060"*|*"3050"*|*"4060"*)
-                      # Small GPUs (8GB): Allow mining when needed
-                      # Miner needs 7GB, so 90% threshold = 7.2GB allowed
-                      # RTX 4060 (8GB) included for Forge mining rig
-                      echo "90"
-                      ;;
-                  *"3090"*|*"3080"*)
-                      # Large GPUs (24GB): Protect VRAM for AI/gaming
-                      # 40% threshold = 9.6GB reserved for models
-                      case "$host" in
-                          forge)   echo "50" ;;  # Mining rig: more aggressive
-                          *)       echo "40" ;;
-                      esac
-                      ;;
-                      *"3070"*|*"3080"*)
-                      # Medium-large GPUs (20GB+)
-                      echo "45"
-                      ;;
-                      *)
-                      # Conservative default for unknown GPUs
-                      echo "40"
-                      ;;
-              esac
-          }
 
-          get_vram_usage_percent() {
-              local gpu_id="$1"
-              local vram_info=$(nvidia-smi -i "$gpu_id" --query-gpu=memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null)
-              if [ -z "$vram_info" ]; then
-                  echo "0"
-                  return 1
-              fi
 
-              local used=$(echo "$vram_info" | cut -d',' -f1 | tr -d ' ')
-              local total=$(echo "$vram_info" | cut -d',' -f2 | tr -d ' ')
 
-              if [ "$total" -eq 0 ]; then
-                  echo "0"
-                  return 1
-              fi
 
-              local usage_percent=$((used * 100 / total))
-              echo "$usage_percent"
-          }
 
-          check_vram_pressure() {
-              local gpus=$(get_gpu_list)
 
-              log "Checking VRAM pressure (per-GPU thresholds)..."
-
-              for gpu_id in $gpus; do
-                  local usage=$(get_vram_usage_percent "$gpu_id")
-                  local gpu_name=$(get_gpu_name "$gpu_id")
-                  local threshold
-                  threshold=$(get_vram_threshold "$gpu_id")
-
-                  log "  GPU $gpu_id ($gpu_name): ''${usage}% used (threshold: ''${threshold}%)"
-
-                  if [ "$usage" -gt "$threshold" ]; then
-                      log "  ⚠️  VRAM PRESSURE DETECTED on GPU $gpu_id: ''${usage}% > ''${threshold}%"
-                      log "  Preventing miner start to avoid desktop freeze"
-                      return 0  # Pressure detected (true)
-                  fi
-              done
-
-              log "  ✓ VRAM usage acceptable across all GPUs"
-              return 1  # No pressure (false)
-          }
-
-          get_max_vram_gpu() {
-              local gpus=$(get_gpu_list)
-              local max_usage=0
-              local max_gpu=0
-
-              for gpu_id in $gpus; do
-                  local usage=$(get_vram_usage_percent "$gpu_id")
-                  if [ "$usage" -gt "$max_usage" ]; then
-                      max_usage=$usage
-                      max_gpu=$gpu_id
-                  fi
-              done
-
-              echo "$max_gpu:$max_usage"
-          }
 
           # ============================================================================
           # KUBERNETES GPU PROFILE (Phase 1)
@@ -1577,9 +1509,9 @@
               fi
 
               # Gaming detection and pause/resume (per-host, all nodes)
-              local gaming_output=$(detect_gaming)
-              local gaming_detected=$?
-              local detection_method="$gaming_output"
+              gaming_output=$(detect_gaming)
+              gaming_detected=$?
+              detection_method="$gaming_output"
 
               # Manage lolminer pause/resume with hysteresis
               manage_lolminer_for_gaming "$gaming_detected" "$detection_method"
@@ -1595,7 +1527,7 @@
         Restart = "on-failure";
         RestartSec = "10s";
         # Allow access to nvidia-smi and systemd
-        AmbientCapabilities = ["CAP_NET_ADMIN"];
+        AmbientCapabilities = [ "CAP_NET_ADMIN" ];
       };
     };
 

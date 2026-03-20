@@ -265,8 +265,7 @@ void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
         // Include job in login response (Monero-style)
         // Note: For CR29, the blob is complete, no need to add extra_nonce2
         response = R"({"id": )" + std::to_string(req.id) +
-            R"(, "jsonrpc": "2.0", "result": {"id": )" + std::to_string(fd) +
-            R"(", "job": {"algo":"cuckaroo","blob":")" + current_job_.blob +
+            R"(, "jsonrpc": "2.0", "result": {"id": )" + std::to_string(fd) + R"(", "job": {"algo":"cuckaroo","blob":")" + current_job_.blob +
             R"(","job_id":")" + current_job_.job_id +
             R"(","target":")" + current_job_.target +
             R"(","height":)" + std::to_string(current_job_.height) +
@@ -274,8 +273,8 @@ void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
     } else {
         // No job yet, just acknowledge login
         response = R"({"id": )" + std::to_string(req.id) +
-            R"(, "jsonrpc": "2.0", "result": {"id": ")" + std::to_string(fd) +
-            R"(, "status": "OK"}}, "error": null})";
+            R"(, "jsonrpc": "2.0", "result": {"id": )" + std::to_string(fd) +
+            R"("", "status": "OK"}}, "error": null})";
     }
 
     fprintf(stderr, "[WorkerManager] Sending login response: %s\n", response.c_str());
