@@ -56,10 +56,10 @@ effectiveStdenv.mkDerivation rec {
   ];
 
   postInstall = ''
-    # Install binaries
-    install -Dm755 llama-server $out/bin/llama-server
-    install -Dm755 llama-cli $out/bin/llama-cli
-    install -Dm755 llama-perplexity $out/bin/llama-perplexity
+    # Install binaries (CMake puts them in bin/ subdirectory)
+    install -Dm755 bin/llama-server $out/bin/llama-server
+    install -Dm755 bin/llama-cli $out/bin/llama-cli
+    install -Dm755 bin/llama-perplexity $out/bin/llama-perplexity
 
     # Install all GGML libraries (including CUDA backend if built)
     find . -name "*.so*" -type f -exec install -Dm644 {} $out/lib/ \; || true
