@@ -119,11 +119,12 @@
 
     # Mining configuration - lolminer for NVIDIA and AMD GPUs
     mining.lolminer = {
-      # NVIDIA GPUs (2x RTX 4060) - devices 2,3 in lolminer's combined enumeration
+      # NVIDIA GPUs (2x RTX 4060) - MIGRATED TO KUBERNETES
+      # Bare-metal systemd service disabled in favor of K8s deployments
       # (AMD GPUs are 0,1, NVIDIA GPUs are 2,3 when both OpenCL and CUDA are available)
       nvidia = {
-        enable = true;
-        autostart = true;
+        enable = false;  # Disabled - migrated to Kubernetes (gpu-miner-forge-nvidia-0/1)
+        autostart = false;
         devices = "2,3";
         powerLimit = 90;
         apiPort = 4068;
