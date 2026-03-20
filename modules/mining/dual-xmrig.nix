@@ -6,13 +6,15 @@
   pkgs,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.services.mining.xmrigDual;
   hostname = config.networking.hostName;
   defaultWallet = "krxXVNVMM7.${hostname}";
 
   # XMRig wrapper script - reads API token and passes to xmrig
-  mkXmrigWrapper = name: _port: tokenFile: threads:
+  mkXmrigWrapper =
+    name: _port: tokenFile: threads:
     pkgs.writeShellScript "xmrig-wrapper-${name}" ''
       PATH=/run/current-system/sw/bin:$PATH
       TOKEN_FILE="${tokenFile}"
@@ -29,7 +31,8 @@ with lib; let
     '';
 
   # Generate XMRig config for a specific instance
-  mkXmrigConfig = name: port: pool: wallet: password: tls: threads:
+  mkXmrigConfig =
+    name: port: pool: wallet: password: tls: threads:
     builtins.toJSON {
       api = {
         id = null;
@@ -54,8 +57,8 @@ with lib; let
         # Fallback pools (automatically added for redundancy)
         {
           url =
-            lib.replaceStrings ["xtm-rx-us.kryptex.network:8038"] ["xtm-rx-eu.kryptex.network:8038"]
-            pool;
+            lib.replaceStrings [ "xtm-rx-us.kryptex.network:8038" ] [ "xtm-rx-eu.kryptex.network:8038" ]
+              pool;
           user = wallet;
           pass = password;
           inherit tls;
@@ -64,8 +67,8 @@ with lib; let
         }
         {
           url =
-            lib.replaceStrings ["xtm-rx-us.kryptex.network:8038"] ["xtm-rx-asia.kryptex.network:8038"]
-            pool;
+            lib.replaceStrings [ "xtm-rx-us.kryptex.network:8038" ] [ "xtm-rx-asia.kryptex.network:8038" ]
+              pool;
           user = wallet;
           pass = password;
           inherit tls;
@@ -95,7 +98,8 @@ with lib; let
     };
 
   # Helper to create ExecStartPre for token injection
-  mkExecStartPre = name: tokenFile:
+  mkExecStartPre =
+    name: tokenFile:
     pkgs.writeShellScript "xmrig-config-prep-${name}" ''
       TOKEN_FILE="${tokenFile}"
       CONFIG_DIR=/run/xmrig-${name}
@@ -113,26 +117,25 @@ with lib; let
     '';
 
   # Host-specific thread allocations
-  getAlwaysOnThreads = host:
+  getAlwaysOnThreads =
+    host:
     {
       zephyr = 4; # 12% of 32 cores
       nexus = 4; # 17% of 24 cores
       sentry = 4; # 25% of 16 cores
     }
-    .${
-      host
-    } or 4;
+    .${host} or 4;
 
-  getFlexibleThreads = host:
+  getFlexibleThreads =
+    host:
     {
       zephyr = 12; # 38% of 32 cores (total 50% with always-on)
       nexus = 8; # 33% of 24 cores (total 50% with always-on)
       sentry = 4; # 25% of 16 cores (total 50% with always-on)
     }
-    .${
-      host
-    } or 8;
-in {
+    .${host} or 8;
+in
+{
   options.services.mining.xmrigDual = {
     enable = mkEnableOption "Dual XMRig Services (always-on + pause-able)";
 
@@ -218,12 +221,12 @@ in {
       "xmrig-always/config.json" = mkIf cfg.alwaysOn.enable {
         text =
           mkXmrigConfig "always" cfg.alwaysOn.httpPort cfg.pool cfg.wallet cfg.password cfg.tls
-          cfg.alwaysOn.threads;
+            cfg.alwaysOn.threads;
       };
       "xmrig-flexible/config.json" = mkIf cfg.flexible.enable {
         text =
           mkXmrigConfig "flexible" cfg.flexible.httpPort cfg.pool cfg.wallet cfg.password cfg.tls
-          cfg.flexible.threads;
+            cfg.flexible.threads;
       };
     };
 
@@ -237,8 +240,8 @@ in {
     systemd.services = {
       xmrig-always = mkIf cfg.alwaysOn.enable {
         description = "XMRig CPU Mining - Always-on Instance";
-        wantedBy = mkIf cfg.alwaysOn.autostart ["multi-user.target"];
-        after = ["network.target"];
+        wantedBy = mkIf cfg.alwaysOn.autostart [ "multi-user.target" ];
+        after = [ "network.target" ];
         serviceConfig = {
           User = "mining";
           Group = "mining";
@@ -246,7 +249,7 @@ in {
           ExecStartPre = mkExecStartPre "always" cfg.alwaysOn.httpTokenFile;
           ExecStart =
             mkXmrigWrapper "always" cfg.alwaysOn.httpPort cfg.alwaysOn.httpTokenFile
-            cfg.alwaysOn.threads;
+              cfg.alwaysOn.threads;
           Restart = "always";
           NoNewPrivileges = false;
           PrivateTmp = true;
@@ -256,6 +259,8 @@ in {
           RestrictRealtime = true;
           ProtectSystem = "strict";
           ProtectHome = true;
+          ProtectKernelTunables = false;
+          ProtectControlGroups = true;
           ReadOnlyPaths = "/";
           ReadWritePaths = [
             "/var/lib/mining"
@@ -266,16 +271,17 @@ in {
           CapabilityBoundingSet = "CAP_SYS_RAWIO";
           AmbientCapabilities = "CAP_SYS_RAWIO";
           DeviceAllow = [
-            "/dev/cpu/*/msr"
-            "/dev/msr"
+            "char-202 rwm"
+            "/dev/cpu/*/msr rwm"
+            "/dev/msr rwm"
           ];
         };
       };
 
       xmrig-flexible = mkIf cfg.flexible.enable {
         description = "XMRig CPU Mining - Flexible (pause-able) Instance";
-        wantedBy = mkIf cfg.flexible.autostart ["multi-user.target"];
-        after = ["network.target"];
+        wantedBy = mkIf cfg.flexible.autostart [ "multi-user.target" ];
+        after = [ "network.target" ];
         serviceConfig = {
           User = "mining";
           Group = "mining";
@@ -283,7 +289,7 @@ in {
           ExecStartPre = mkExecStartPre "flexible" cfg.flexible.httpTokenFile;
           ExecStart =
             mkXmrigWrapper "flexible" cfg.flexible.httpPort cfg.flexible.httpTokenFile
-            cfg.flexible.threads;
+              cfg.flexible.threads;
           Restart = "always";
           NoNewPrivileges = false;
           PrivateTmp = true;
@@ -303,8 +309,9 @@ in {
           CapabilityBoundingSet = "CAP_SYS_RAWIO";
           AmbientCapabilities = "CAP_SYS_RAWIO";
           DeviceAllow = [
-            "/dev/cpu/*/msr"
-            "/dev/msr"
+            "char-202 rwm"
+            "/dev/cpu/*/msr rwm"
+            "/dev/msr rwm"
           ];
         };
       };
@@ -322,12 +329,12 @@ in {
     '';
 
     # Ensure msr kernel module is loaded
-    boot.kernelModules = ["msr"];
+    boot.kernelModules = [ "msr" ];
 
     # Update mining target to include both instances
     systemd.targets.mining.wants = mkMerge [
-      (mkIf cfg.alwaysOn.enable ["xmrig-always.service"])
-      (mkIf cfg.flexible.enable ["xmrig-flexible.service"])
+      (mkIf cfg.alwaysOn.enable [ "xmrig-always.service" ])
+      (mkIf cfg.flexible.enable [ "xmrig-flexible.service" ])
     ];
   };
 }
