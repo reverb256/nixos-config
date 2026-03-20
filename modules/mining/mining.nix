@@ -60,6 +60,39 @@ with lib; let
     echo "NVIDIA GPU power limits configured successfully"
   '';
 
+  # AMD GPU power limit script
+  amdGpuPowerLimitScript = pkgs.writeShellScript "amd-gpu-power-limit" ''
+    PATH=/run/current-system/sw/bin:$PATH
+    echo "Setting AMD GPU power limits..."
+
+    # Check if rocm-smi is available
+    if ! command -v rocm-smi &>/dev/null; then
+      echo "Warning: rocm-smi not found, skipping AMD GPU power limits"
+      exit 0
+    fi
+
+    ${
+      if cfg.lolminer.amd.powerLimit != null
+      then ''
+        # Set power limit for all AMD GPUs
+        echo "Setting AMD GPU power limit to ${toString cfg.lolminer.amd.powerLimit}W..."
+        # Detect GPU count and set limit for each
+        GPU_COUNT=$(rocm-smi --showid | grep -c "GPU\[")
+        if [ "$GPU_COUNT" -gt 0 ]; then
+          for i in $(seq 0 $((GPU_COUNT - 1))); do
+            echo "Setting GPU $i power limit to ${toString cfg.lolminer.amd.powerLimit}W..."
+            rocm-smi --setpoweroverdrive ${toString cfg.lolminer.amd.powerLimit} -d $i || true
+          done
+        fi
+      ''
+      else ''
+        # No power limit set
+        echo "No AMD GPU power limit configured"
+      ''
+    }
+    echo "AMD GPU power limits configured successfully"
+  '';
+
   # XMRig wrapper script - reads API token and passes to xmrig
   xmrigWrapperScript = pkgs.writeShellScript "xmrig-wrapper" ''
     PATH=/run/current-system/sw/bin:$PATH
@@ -357,6 +390,19 @@ in {
           };
         };
 
+        # AMD GPU power limit service (runs before lolminer)
+        amd-gpu-power-limit = mkIf cfg.lolminer.amd.enable {
+          description = "Set AMD GPU Power Limit for Mining";
+          wantedBy = ["multi-user.target"];
+          before = ["lolminer-amd.service"];
+          requiredBy = ["lolminer-amd.service"];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = amdGpuPowerLimitScript;
+            RemainAfterExit = true;
+          };
+        };
+
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
           wantedBy = mkIf cfg.lolminer.nvidia.autostart ["multi-user.target"];
@@ -440,7 +486,9 @@ in {
           wantedBy = mkIf cfg.lolminer.amd.autostart ["multi-user.target"];
           after = [
             "network.target"
+            "amd-gpu-power-limit.service"
           ];
+          requires = ["amd-gpu-power-limit.service"];
           serviceConfig =
             {
               User = cfg.user;
