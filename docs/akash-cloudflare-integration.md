@@ -30,24 +30,14 @@ This module provides 6 production-ready Cloudflare integration features for Akas
 
 ## Quick Start
 
-### 1. Generate Cloudflare API Token
+### 1. Verify Existing Cloudflare Token
 
-```bash
-# 1. Go to: https://dash.cloudflare.com/profile/api-tokens
-# 2. Click "Create Token"
-# 3. Use template "Edit zone DNS" or custom permissions
-# 4. Set permissions:
-#    - Zone - DNS - Edit
-#    - Zone - Zone - Read
-#    - Zone - Cache Purge - Purge
-# 5. Set zone resources to "Include" > "Specific zone" > reverb256.ca
-# 6. Set TTL to "Never expire"
-# 7. Copy token and encrypt with agenix:
+The Akash Cloudflare integration uses your existing `cloudflared-token` which already has all required permissions:
+- **Zone:Read** - Read zone information
+- **DNS:Edit** - Create/update/delete DNS records
+- **Zone:Cache:Purge** - Purge cache for deployments
 
-agenix -e secrets/cloudflare-api-token.age
-
-# 8. Paste token into the editor and save
-```
+**No new token needed!** The existing token at `/run/agenix/cloudflared-token` is used by default.
 
 ### 2. Enable Module on Zephyr
 
@@ -60,9 +50,8 @@ services.akash-cloudflare-integration = {
   # Global configuration
   domain = "reverb256.ca";
   zoneId = "abc123def456"; # Get from Cloudflare dashboard
-  tokenFile = "/run/agenix/cloudflare-api-token";
 
-  # Provider endpoints
+  # Provider endpoints (defaults shown)
   providerEndpoint = "http://10.1.1.120:30843";
   providerGrpcEndpoint = "10.1.1.120:30844";
   ingressDomain = "ingress.reverb256.ca";
@@ -85,15 +74,9 @@ services.akash-cloudflare-integration = {
   # Feature 6: Status Page (optional)
   statusPage.enable = true;
 };
-
-# Add agenix secret
-age.secrets.cloudflare-api-token = {
-  file = "${inputs.self}/secrets/cloudflare-api-token.age";
-  mode = "440";
-  owner = "root";
-  group = "root";
-};
 ```
+
+**Note:** The `tokenFile` option defaults to `/run/agenix/cloudflared-token` (your existing tunnel token). No additional agenix configuration needed!
 
 ### 3. Deploy
 
@@ -297,9 +280,11 @@ curl https://akash.reverb256.ca
 ## Security Considerations
 
 ### Token Storage
-- Stored via agenix at `/run/agenix/cloudflare-api-token`
+- Uses existing `cloudflared-token` at `/run/agenix/cloudflared-token`
+- Token already has required permissions (Dns:Edit, Zone:Read, Zone:Cache:Purge)
 - Only readable by root
 - Never touches disk unencrypted
+- Shared with cloudflared tunnel service (no additional secret management needed)
 
 ### Service Hardening
 All services use systemd security hardening:
@@ -327,11 +312,11 @@ systemctl status akash-cloudflare-dns-watcher
 journalctl -u akash-cloudflare-dns-watcher -n 100
 
 # Verify token
-cat /run/agenix/cloudflare-api-token
+cat /run/agenix/cloudflared-token
 
 # Test token manually
 curl -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \
-  -H "Authorization: Bearer $(cat /run/agenix/cloudflare-api-token)"
+  -H "Authorization: Bearer $(cat /run/agenix/cloudflared-token)"
 
 # Verify Kubernetes access
 kubectl get deployments -n akash-services -l "akash.network=true"

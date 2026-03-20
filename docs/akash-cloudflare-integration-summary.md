@@ -169,10 +169,12 @@ All services use systemd security profiles:
 - `ReadWritePaths` - Limited to specific directories only
 
 ### Token Storage
-- Stored via agenix at `/run/agenix/cloudflare-api-token`
+- Uses existing `cloudflared-token` at `/run/agenix/cloudflared-token`
+- Token already has required permissions (Dns:Edit, Zone:Read, Zone:Cache:Purge)
 - Only readable by root
 - Never touches disk unencrypted
-- Registered in agenix secrets registry
+- Shared with cloudflared tunnel service (no additional secret management needed)
+- Already registered in agenix secrets registry
 
 ### Integration Points
 **Kubernetes:**
@@ -192,22 +194,20 @@ All services use systemd security profiles:
 
 ## Next Steps
 
-### 1. Generate Cloudflare API Token
+### 1. Verify Existing Cloudflare Token
+
+The integration uses your existing `cloudflared-token` which already has all required permissions:
+- **Zone:Read** - Read zone information
+- **DNS:Edit** - Create/update/delete DNS records
+- **Zone:Cache:Purge** - Purge cache for deployments
+
+**No new token needed!** Verify the token has the required permissions:
 ```bash
-# 1. Go to: https://dash.cloudflare.com/profile/api-tokens
-# 2. Click "Create Token"
-# 3. Use template "Edit zone DNS" or custom permissions
-# 4. Set permissions:
-#    - Zone - DNS - Edit
-#    - Zone - Zone - Read
-#    - Zone - Cache Purge - Purge
-# 5. Set zone resources to "Include" > "Specific zone" > reverb256.ca
-# 6. Set TTL to "Never expire"
-# 7. Copy token and encrypt with agenix:
+# Check token permissions at Cloudflare dashboard
+# https://dash.cloudflare.com/profile/api-tokens
 
-agenix -e secrets/cloudflare-api-token.age
-
-# 8. Paste token into the editor and save
+# Verify token is accessible
+cat /run/agenix/cloudflared-token
 ```
 
 ### 2. Enable Module on Zephyr
@@ -220,7 +220,6 @@ services.akash-cloudflare-integration = {
   # Global configuration
   domain = "reverb256.ca";
   zoneId = "YOUR_ZONE_ID_HERE"; # Get from Cloudflare dashboard
-  tokenFile = "/run/agenix/cloudflare-api-token";
 
   # Provider endpoints (already configured)
   providerEndpoint = "http://10.1.1.120:30843";
