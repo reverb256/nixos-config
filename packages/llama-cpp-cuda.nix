@@ -53,6 +53,9 @@ effectiveStdenv.mkDerivation rec {
     # Much faster than building for all 7 architectures
     (cmakeFeature "CMAKE_CUDA_ARCHITECTURES" "86;89")
     (cmakeFeature "CMAKE_BUILD_TYPE" "Release")
+    # Prevent CMake from adding /build/ to RPATH
+    (cmakeBool "CMAKE_BUILD_RPATH_USE_ORIGIN" true)
+    (cmakeBool "CMAKE_INSTALL_RPATH_USE_LINK_PATH" false)
   ];
 
   postInstall = ''
@@ -66,6 +69,12 @@ effectiveStdenv.mkDerivation rec {
 
     # Create symlink for backward compatibility
     ln -sf $out/bin/llama-cli $out/bin/llama
+  '';
+
+  # Fix RPATH to remove /build/ references that Nix forbids
+  postFixup = ''
+    find $out/bin -type f -exec patchelf --shrink-rpath {} \; || true
+    find $out/lib -type f -name "*.so*" -exec patchelf --shrink-rpath {} \; || true
   '';
 
   meta = {
