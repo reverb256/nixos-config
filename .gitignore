@@ -30,3 +30,10 @@ ssh/
 
 # Git worktrees - isolated development workspaces
 .worktrees/
+# Emergency cleanup additions - 2026-03-19
+# Don't commit temporary analysis files
+tmp/
+# Don't commit git worktrees (they're temporary branches)
+.worktrees/
+# Don't commit upstream vendor documentation
+istio-1.29.1/
