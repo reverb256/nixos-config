@@ -89,6 +89,15 @@
       config.cudaSupport = true; # Enable CUDA in source packages (PyTorch, TensorFlow, etc.)
     };
 
+    # pkgsWithOverlay: nixpkgs with custom overlay applied
+    # Used for package outputs that need custom packages (lolminer, xmrig, etc.)
+    pkgsWithOverlay = import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+      config.cudaSupport = true;
+      overlays = [(import ./overlay.nix)];
+    };
+
     # ========================================================================
     # COMMON MODULES - Shared across all hosts (single source of truth)
     # ========================================================================
@@ -246,17 +255,17 @@
       };
     };
 
-    packages.x86_64-linux.lolminer-image = pkgs.dockerTools.buildImage {
+    packages.x86_64-linux.lolminer-image = pkgsWithOverlay.dockerTools.buildImage {
       name = "lolminer";
       tag = "1.98a-nixos";
 
-      copyToRoot = pkgs.buildEnv {
+      copyToRoot = pkgsWithOverlay.buildEnv {
         name = "lolminer-root";
         paths = [
-          pkgs.lolminer
-          pkgs.bash
-          pkgs.coreutils
-          pkgs.cacert
+          pkgsWithOverlay.lolminer
+          pkgsWithOverlay.bash
+          pkgsWithOverlay.coreutils
+          pkgsWithOverlay.cacert
         ];
         pathsToLink = ["/bin" "/etc" "/lib"];
       };
@@ -279,6 +288,15 @@
     };
 
     overlays.default = import ./overlay.nix;
+
+    # pkgsWithOverlay: nixpkgs with custom overlay applied
+    # Used for package outputs that need custom packages (lolminer, xmrig, etc.)
+    pkgsWithOverlay = import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+      config.cudaSupport = true;
+      overlays = [self.overlays.default];
+    };
 
     apps.x86_64-linux.colmena = {
       type = "app";
