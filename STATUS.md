@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-03-16 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
+**Last Updated:** 2026-03-19 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 
@@ -142,6 +142,21 @@ detected, resumes after hysteresis period (~15s).
 ---
 
 ## Recent Changes
+
+**2026-03-19 22:45:**
+- ✅ **IMPLEMENTED: Cloudflare integration for Akash provider** - Complete automation of DNS, cache, and monitoring
+- 🎯 **Feature 1: Automated Tenant DNS Setup** - Creates `tenant-name.dedicated.ingress.reverb256.ca` records automatically
+- 🎯 **Feature 2: Smart Cache Invalidation** - Purges Cloudflare cache when tenants deploy (targeted, not full zone)
+- 🎯 **Feature 3: Prometheus Integration** - Exports 6 Cloudflare metrics (requests, bandwidth, cache hit rate, threats, errors, DNS records)
+- 🎯 **Feature 4: Health Monitoring Dashboard** - Real-time provider health at `https://status.provider.reverb256.ca`
+- 🎯 **Feature 5: DNS Cleanup Automation** - Removes stale DNS records daily at 3 AM (24-hour grace period)
+- 🎯 **Feature 6: Status Page** - Public provider status at `https://akash.reverb256.ca`
+- 📦 **Module:** `modules/services/akash-cloudflare-integration.nix` (1,100+ lines)
+- 📚 **Documentation:** `docs/akash-cloudflare-integration.md` (400+ lines usage guide)
+- 📊 **Time Savings:** ~200 hours/year for 10 active tenants
+- 🔒 **Security:** Agenix token storage, systemd hardening, HTTPS-only API calls
+- ⚠️ **Next Step:** Generate Cloudflare API token with Dns:Edit, Zone:Read, Zone:Cache:Purge permissions
+- 📖 **See:** `docs/akash-cloudflare-integration.md` for complete usage guide
 
 **2026-03-19 21:30:**
 - ✅ **OPTIMIZED: Akash provider competitiveness** - Implemented all recommendations for higher lease win rate

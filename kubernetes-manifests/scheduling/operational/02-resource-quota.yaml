@@ -55,7 +55,6 @@ spec:
     pods: "20"
     persistentvolumeclaims: "10"
     services: "10"
-    deployments: "10"
 
     # Storage
     requests.ephemeral-storage: "100Gi"
@@ -77,8 +76,7 @@ spec:
       defaultRequest:
         cpu: "2"
         memory: "4Gi"
-      type: Container
-    - max:
+      max:
         nvidia.com/gpu: "2"
       type: Container
 ---
@@ -98,7 +96,6 @@ spec:
       defaultRequest:
         cpu: "500m"
         memory: "1Gi"
-      type: Container
-    - max:
+      max:
         nvidia.com/gpu: "1"
       type: Container
