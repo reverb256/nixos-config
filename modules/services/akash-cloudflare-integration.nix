@@ -27,8 +27,8 @@ in {
 
     tokenFile = mkOption {
       type = types.path;
-      default = "/run/agenix/cloudflare-api-token";
-      description = "Path to Cloudflare API token (Dns:Edit, Zone:Read, Zone:Cache:Purge)";
+      default = "/run/agenix/cloudflared-token";
+      description = "Path to Cloudflare API token (Dns:Edit, Zone:Read, Zone:Cache:Purge). Defaults to existing cloudflared-token which has all required permissions.";
     };
 
     providerEndpoint = mkOption {

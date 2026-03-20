@@ -244,14 +244,8 @@ in
           group = "root";
         };
 
-        # Cloudflare API token for Akash provider integration
-        cloudflare-api-token = {
-          file = "${inputs.self}/secrets/cloudflare-api-token.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
       })
+
 
       # Self-Hosted Service Secrets
       (lib.mkIf config.services.agenix-secrets-registry.selfHosting {
