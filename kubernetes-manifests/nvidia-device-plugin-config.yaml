@@ -17,7 +17,7 @@ data:
     flags:
       migStrategy: "none"
       failOnInitError: true
-      deviceDiscoveryStrategy: "cdi"  # Explicit CDI strategy (not "auto")
+      deviceDiscoveryStrategy: "cdi"  # CDI strategy (needs fixed /etc/cdi/nvidia.yaml)
       plugin:
         passDeviceSpecs: false
         deviceListStrategy: ["envvar"]
