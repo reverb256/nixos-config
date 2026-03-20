@@ -205,6 +205,7 @@
       # EXISTING OUTPUTS (maintain compatibility)
       # ========================================================================
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
+      packages.x86_64-linux.llama-cpp = pkgs.llama-cpp;
 
       # ========================================================================
       # CONTAINER IMAGES (for Kubernetes deployment)
