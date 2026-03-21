@@ -440,7 +440,7 @@
             "kubelet.service"
             "network.target"
           ];
-          requires = lib.mkForce ["kubelet.service"];
+          wants = lib.mkForce ["kubelet.service"];
           serviceConfig = {
             ExecStartPre = pkgs.writeShellScript "wait-for-kubelet" ''
               echo "Waiting for kubelet to be ready..."

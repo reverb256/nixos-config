@@ -39,6 +39,7 @@
         kubernetes # kubectl for Kubernetes GPU workload detection
         bc # for floating point arithmetic in nix-daemon CPU detection
         curl # for XMRig HTTP API control
+        util-linux # runuser for user command execution (GameMode detection)
       ];
 
       serviceConfig = {
@@ -49,6 +50,7 @@
               procps
               systemd
               kubernetes
+              util-linux # for runuser/sudo in GameMode detection
             ]
           )
         }:/run/current-system/sw/bin";
@@ -65,7 +67,7 @@
 
           # Detect gaming using GameMode daemon (primary detection method)
           # Returns: 1 if gaming active, 0 if not, 2 if unavailable (use GPU fallback)
-          # Uses: gamemoded -s (returns 1 if gaming, 0 if not)
+          # Uses: gamemoded -s (outputs "gamemode is active" or "gamemode is inactive")
           detect_gaming_gamemode() {
               # Check if gamemoded is available
               if ! command -v gamemoded &>/dev/null; then
@@ -73,23 +75,33 @@
                   return 2  # Special code for "not available"
               fi
 
-              # Check if GameMode daemon is running
-              if ! systemctl is-active --quiet gamemoded; then
-                  log "GameMode daemon not running - will use GPU fallback"
-                  return 2
+              # Query GameMode state as the user (GameMode runs in user session)
+              # Try common usernames; if none work, fall back to GPU detection
+              local gaming_output=""
+              local target_user=""
+
+              # Try to detect the logged-in user (the one with a running X session)
+              for user in j_kro root; do
+                  if [[ -d "/home/$user" ]] || [[ "$user" == "root" ]]; then
+                      gaming_output=$(runuser -u "$user" -- gamemoded -s 2>/dev/null) && break
+                  fi
+              done
+
+              # If runuser didn't work, try sudo -u
+              if [[ -z "$gaming_output" ]] || [[ "$gaming_output" != *"gamemode"* ]]; then
+                  gaming_output=$(sudo -u j_kro gamemoded -s 2>/dev/null)
               fi
 
-              # Query GameMode state
-              local gaming_state
-              gaming_state=$(gamemoded -s 2>/dev/null || echo "0")
-
-              # gamemoded -s returns 1 if gaming active, 0 if not
-              if [[ "$gaming_state" == "1" ]]; then
+              # Parse the output: "gamemode is active" or "gamemode is inactive"
+              if [[ "$gaming_output" == *"active"* ]]; then
                   log "GameMode: Gaming detected"
                   return 1  # Gaming active
-              else
+              elif [[ "$gaming_output" == *"inactive"* ]]; then
                   log "GameMode: No gaming detected"
                   return 0  # No gaming
+              else
+                  log "GameMode: Daemon not responding (output: '$gaming_output') - will use GPU fallback"
+                  return 2  # Unavailable
               fi
           }
 
@@ -282,6 +294,10 @@
                   # Update state
                   write_gaming_state 1 "$detection_method" 0 "$pause_count"
 
+                  # Update Kubernetes gaming state for cluster-wide coordination
+                  update_k8s_gaming_state 1 "$detection_method"
+                  scale_gaming_placeholder 1
+
               # State transition: gaming -> NOT gaming
               # Start hysteresis countdown
               elif [[ "$previous_gaming" == "1" ]] && [[ "$current_gaming" == "0" ]]; then
@@ -289,6 +305,9 @@
 
                   # Initialize countdown at 3
                   write_gaming_state 0 "$detection_method" 3 "$pause_count"
+
+                  # Update Kubernetes (keep placeholder running during hysteresis)
+                  update_k8s_gaming_state 0 "$detection_method"
 
               # State: Gaming stopped, in hysteresis countdown
               # Decrement counter, resume when reaches 0
@@ -305,6 +324,11 @@
                           systemctl start lolminer-nvidia
                           log "lolminer-nvidia started"
                       fi
+
+                      # Remove gaming placeholder after hysteresis
+                      scale_gaming_placeholder 0
+                      # Scale NVIDIA miners back up
+                      scale_nvidia_miners 1
                   fi
 
                   # Update state
@@ -314,7 +338,109 @@
               # Just update state file with current timestamp
               else
                   write_gaming_state "$current_gaming" "$detection_method" "$hysteresis_count" "$pause_count"
+
+                  # Sync K8s state if this is a gaming state
+                  if [[ "$current_gaming" == "1" ]]; then
+                      update_k8s_gaming_state 1 "$detection_method"
+                      scale_gaming_placeholder 1
+                  fi
               fi
+          }
+
+          # ============================================================================
+          # KUBERNETES GAMING INTEGRATION
+          # ============================================================================
+          # Update Kubernetes ConfigMap with gaming state for cluster-wide coordination
+          # This allows YuniKorn scheduler to preempt mining pods when gaming is detected
+          update_k8s_gaming_state() {
+              local gaming_active=$1  # 0 or 1
+              local detection_method=$2  # "gamemode" or "gpu_fallback"
+
+              # Check if kubectl is available
+              if ! command -v kubectl >/dev/null 2>&1; then
+                  log "K8s: kubectl not available - skipping ConfigMap update"
+                  return 1
+              fi
+
+              # Check if cluster is accessible
+              if ! kubectl get nodes >/dev/null 2>&1; then
+                  log "K8s: cluster not accessible - skipping ConfigMap update"
+                  return 1
+              fi
+
+              local state_text="IDLE"
+              local active_workload="none"
+              if [[ "$gaming_active" == "1" ]]; then
+                  state_text="ACTIVE"
+                  active_workload="gaming"
+              fi
+
+              # Update the gpu-scheduler-state ConfigMap
+              if kubectl patch configmap gpu-scheduler-state -n kube-system --type merge \
+                  -p "{\"data\":{\"gaming-state\":\"$state_text\",\"active-workload\":\"$active_workload\",\"detection-method\":\"$detection_method\",\"last-updated\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}}" >/dev/null 2>&1; then
+                  log "K8s: Updated gaming state to $state_text (method: $detection_method)"
+              else
+                  log "K8s: Failed to update gaming state ConfigMap"
+                  return 1
+              fi
+
+              return 0
+          }
+
+          # Scale gaming-placeholder deployment based on gaming state
+          # When gaming is active, scale up to claim GPU resources and preempt mining
+          scale_gaming_placeholder() {
+              local gaming_active=$1  # 0 or 1
+
+              # Check if kubectl is available
+              if ! command -v kubectl >/dev/null 2>&1; then
+                  return 1
+              fi
+
+              # Check if cluster is accessible
+              if ! kubectl get nodes >/dev/null 2>&1; then
+                  return 1
+              fi
+
+              local replicas=0
+              if [[ "$gaming_active" == "1" ]]; then
+                  replicas=1
+                  # Manually scale down NVIDIA mining pods to free GPUs
+                  # TODO: Remove this once YuniKorn preemption is working
+                  log "K8s: Manually scaling down NVIDIA miners for gaming"
+                  kubectl scale deployment gpu-miner-forge-nvidia-0 gpu-miner-forge-nvidia-1 -n mining --replicas=0 >/dev/null 2>&1
+              fi
+
+              # Scale the gaming-placeholder-volcano deployment in mining namespace
+              # (Uses Volcano scheduler for priority-based GPU preemption)
+              if kubectl scale deployment gaming-placeholder-volcano -n mining --replicas=$replicas >/dev/null 2>&1; then
+                  log "K8s: Scaled gaming-placeholder-volcano to $replicas replica(s)"
+              else
+                  log "K8s: Failed to scale gaming-placeholder-volcano"
+                  return 1
+              fi
+
+              return 0
+          }
+
+          # Scale NVIDIA mining pods back up when gaming ends
+          scale_nvidia_miners() {
+              local scale_up=$1  # 0 or 1
+
+              if ! command -v kubectl >/dev/null 2>&1; then
+                  return 1
+              fi
+
+              if ! kubectl get nodes >/dev/null 2>&1; then
+                  return 1
+              fi
+
+              if [[ "$scale_up" == "1" ]]; then
+                  log "K8s: Scaling NVIDIA miners back up"
+                  kubectl scale deployment gpu-miner-forge-nvidia-0 gpu-miner-forge-nvidia-1 -n mining --replicas=1 >/dev/null 2>&1
+              fi
+
+              return 0
           }
 
           log() {

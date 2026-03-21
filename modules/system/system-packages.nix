@@ -15,7 +15,7 @@
     eza
     bat
     fzf
-    neofetch
+    fastfetch
     wget
     curl
     jq
@@ -100,7 +100,7 @@
     # Additional tools for storage management and data handling
     # ============================================================================
     parted # GPT partition management
-    gdisk # GPT fdisk (for modern partitioning)
+    gptfdisk # GPT fdisk (for modern partitioning)
     ncdu # Disk usage analyzer (ncurses-based)
     rsync # Fast file synchronization
     pv # Pipe viewer for monitoring data throughput

@@ -49,7 +49,7 @@
                 idle_time=$((current_time - last_inference_time))
 
                 if [ "$idle_time" -gt "$IDLE_TIMEOUT" ]; then
-                  echo "⛏️  Inference idle for ${idle_time}s, resuming mining..."
+                  echo "⛏️  Inference idle for ''${idle_time}s, resuming mining..."
                   ${pkgs.kubectl}/bin/kubectl scale deployment "$MINING_DEPLOYMENT" --replicas=1 -n "$MINING_NAMESPACE"
                   mining_paused=false
                   echo "✅ Mining resumed"
