@@ -37,3 +37,4 @@ tmp/
 .worktrees/
 # Don't commit upstream vendor documentation
 istio-1.29.1/
+modules/services/secrets/kubernetes/encryption-config.yaml
