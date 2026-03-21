@@ -205,3 +205,124 @@ Built with:
 - ✅ Rolling updates enabled
 
 **The migration to Kubernetes-managed AI coding tools is COMPLETE!** 🎉
+
+## Unified Config System (2026-03-21 Update)
+
+### ✅ PVC-Based Centralized Storage
+
+**Problem Solved**: Previously, pods used different config directories depending on which node they ran on (zephyr vs nexus vs forge vs sentry), leading to inconsistent history and settings.
+
+**Solution**: Implemented PVC-based centralized storage with node affinity to zephyr.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Kubernetes Cluster                                              │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │ ai-coding Namespace                                        │ │
+│  │                                                            │ │
+│  │  ┌──────────────────────────────────────────────────────┐ │ │
+│  │  │ PVC: ai-coding-configs (10Gi, fast-local-ssd)      │ │ │
+│  │  │                                                       │ │ │
+│  │  │ ┌─────────────────┐  ┌─────────────────┐            │ │ │
+│  │  │ │ .claude/        │  │ .opencode/      │            │ │ │
+│  │  │ │ (2.2GB migrated)│  │ (6.3MB migrated)│            │ │ │
+│  │  │ │                 │  │                 │            │ │ │
+│  │  │ │ • history.jsonl │  │ • config.json   │            │ │ │
+│  │  │ │ • settings.json │  │ • node_modules/ │            │ │ │
+│  │  │ │ • projects/     │  │                 │            │ │ │
+│  │  │ │ • plans/        │  │                 │            │ │ │
+│  │  │ └─────────────────┘  └─────────────────┘            │ │ │
+│  │  └──────────────────────────────────────────────────────┘ │ │
+│  │                          ↑                                 │ │
+│  │                          │ Mounted                        │ │
+│  │  ┌──────────────────┐     │                              │ │
+│  │  │ claude-code-pod  │─────┘ (Read/Write)                 │ │
+│  │  │ (ZEPHYR ONLY)    │                                    │ │
+│  │  └──────────────────┘                                    │ │
+│  │                          ↑                                 │ │
+│  │                          │ Mounted                        │ │
+│  │  ┌──────────────────┐     │                              │ │
+│  │  │ opencode-pod    │─────┘ (Read/Write)                 │ │
+│  │  │ (ZEPHYR ONLY)    │                                    │ │
+│  │  └──────────────────┘                                    │ │
+│  │                                                            │ │
+│  │  nodeAffinity: kubernetes.io/hostname = zephyr           │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│  Storage: fast-local-ssd (ReadWriteOnce) on Zephyr              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Benefits
+
+1. **Unified History**: All pods see the same conversation history
+2. **Consistent Settings**: Changes to settings apply across all pods
+3. **Shared Projects**: Projects and plans are accessible from any pod
+4. **Node Affinity**: Pods locked to zephyr ensure PVC access
+
+### Trade-offs
+
+- **Single Node**: Pods can only run on zephyr (due to ReadWriteOnce storage)
+- **No Multi-Node**: Autoscaling limited to zephyr's resources
+- **Mitigation**: Zephyr has 31GB RAM and RTX 3090 - sufficient for AI coding workloads
+
+### API Restart Logger
+
+**Purpose**: Track all kube-apiserver restarts for debugging cluster issues
+
+**Location**: `/var/log/kube-apiserver-restarts.log`
+
+**Enabled**: Zephyr (control plane node)
+
+**Log Format**:
+```
+==========================================
+🔄 kube-apiserver RESTART DETECTED
+Time: 2026-03-21T13:30:43-05:00
+Previous PID: 1166915
+New PID: 1234567
+Node: zephyr
+Uptime: up 2 hours, 15 minutes
+==========================================
+```
+
+**Retention**: 52 weeks (1 year) with logrotate compression
+
+## Updated Architecture
+
+### Current Status (Post-Migration)
+
+| Component | Replicas | Node | Storage | Config Source |
+|-----------|----------|------|---------|---------------|
+| Claude Code | 1 | Zephyr (locked) | PVC (10Gi) | Unified from zephyr |
+| OpenCode | 1 | Zephyr (locked) | PVC (10Gi) | Unified from zephyr |
+
+### Access Methods
+
+```bash
+# Local versions (host-based, deprecated)
+claude          # 2.1.79 (NixOS system)
+opencode        # Host-based installation
+
+# Kubernetes versions (recommended)
+claude-k8s      # 2.1.77 (containerized, unified configs)
+opencode-k8s    # 1.2.27 (containerized, unified configs)
+```
+
+### Migration Details
+
+**Migration Job**: `migrate-ai-coding-configs-v2`
+- Source: Zephyr's `/home/j_kro` (hostPath)
+- Destination: PVC `ai-coding-configs`
+- Migrated: 2.2GB Claude configs, 6.3MB OpenCode configs
+- Date: 2026-03-21
+
+**Storage Class**: `fast-local-ssd`
+- Type: Local SSD on Zephyr
+- Access Mode: ReadWriteOnce (single node)
+- Capacity: 10Gi (expandable)
+- Performance: Fast SSD with I/O optimization
+
