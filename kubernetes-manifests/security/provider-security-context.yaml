@@ -1,0 +1,65 @@
+# Security Context for Akash Provider
+# Adds defense-in-depth security measures
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: akash-provider-akash-provider-fixed
+  namespace: akash-services
+spec:
+  template:
+    spec:
+      containers:
+      - name: akash-provider-fixed
+        securityContext:
+          # Run as non-root user for defense-in-depth
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          # File system group
+          fsGroup: 1000
+          # Drop all capabilities, add only what's needed
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE  # Required for binding to ports < 1024
+          # Seccomp profile for syscall filtering
+          seccompProfile:
+            type: RuntimeDefault
+          # Prevent privilege escalation
+          allowPrivilegeEscalation: false
+          # Read-only root filesystem (where possible)
+          readOnlyRootFilesystem: false
+          # Resource limits
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      # Init containers also need security context
+      initContainers:
+      - name: init
+        securityContext:
+          runAsNonRoot: false  # Init may need root for setup
+          runAsUser: 0
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - CHOWN
+            - DAC_OVERRIDE
+      # Pod-level security context
+      securityContext:
+        # Don't use host network
+        hostNetwork: false
+        # Don't use host IPC
+        hostIPC: false
+        # Don't use host PID
+        hostPID: false
+        # Share process namespace is OK
+        shareProcessNamespace: false
+        # FS group change policy
+        fsGroupChangePolicy: "OnRootMismatch"

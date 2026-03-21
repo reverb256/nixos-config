@@ -1,0 +1,11 @@
+# Gaming Priority Class - Highest priority for gaming workloads
+# When gaming is detected, placeholder pods with this priority will trigger
+# YuniKorn to preempt low-priority mining pods
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: gaming-high
+value: 1000
+globalDefault: false
+description: "Highest priority for gaming - preempts all mining workloads"
+preemptionPolicy: PreemptLowerPriority

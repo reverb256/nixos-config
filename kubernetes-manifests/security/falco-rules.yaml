@@ -1,0 +1,98 @@
+# Falco Security Rules for Akash Provider
+# Detects suspicious container and Kubernetes activity
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: falco
+---
+# Falco ConfigMap with custom rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falco-rules
+  namespace: falco
+data:
+  akash-security-rules.yaml: |
+    # Custom rules for Akash provider security
+    - rule: Detect shell in container
+      desc: Detect shell spawned in container (potential container escape)
+      condition: >
+        shell_spawned
+        and container.image startsWith "akash"
+        and not user.name = "root"
+        and not shell contains "entrypoint"
+      output: >
+        Shell spawned in container (user=%user.name container=%container.name shell=%proc.cmdline)
+        Priority: WARNING
+      tags: [container, shell, security]
+
+    - rule: Detect container breakout via hostPath mount
+      desc: Detect hostPath volume mount (potential container escape)
+      condition: >
+        mount
+        and mount.dst_info starts_with "/host"
+        and container.image startsWith "akash"
+      output: >
+        Host filesystem mounted in container (container=%container.name mount=%mount.dst_info)
+        Priority: CRITICAL
+      tags: [container, escape, hostPath]
+
+    - rule: Detect sensitive file access
+      desc: Detect access to sensitive files (credentials, keys)
+      condition: >
+        open_read
+        and fd.name in ("/etc/shadow", "/root/.ssh", "/var/run/secrets")
+        and container.image startsWith "akash"
+        and not proc.pname in ["kubelet", "dockerd"]
+      output: >
+        Sensitive file accessed (user=%user.name file=%fd.name container=%container.name)
+        Priority: WARNING
+      tags: [file, security, credentials]
+
+    - rule: Detect crypto mining malware
+      desc: Detect potential crypto mining in tenant containers
+      condition: >
+        spawned_process
+        and proc.cmdline in ["xmrig", "minerd", "cpuminer"]
+        and container.image startsWith "akash"
+        and not user.name = "nobody"
+      output: >
+        Crypto mining detected (container=%container.name process=%proc.cmdline user=%user.name)
+        Priority: CRITICAL
+      tags: [crypto, mining, malware]
+
+    - rule: Detect network scanning
+      desc: Detect network reconnaissance activity
+      condition: >
+        spawned_process
+        and proc.cmdline in ["nmap", "masscan", "netcat", "nc"]
+        and container.image startsWith "akash"
+      output: >
+        Network scanning detected (container=%container.name process=%proc.cmdline)
+        Priority: WARNING
+      tags: [network, scanning, reconnaissance]
+
+    - rule: Detect privilege escalation attempt
+      desc: Detect attempts to gain root privileges
+      condition: >
+        spawned_process
+        and proc.cmdline in ["sudo", "su", "chmod +s", "chown root"]
+        and container.image startsWith "akash"
+        and not user.name = "root"
+      output: >
+        Privilege escalation attempt (container=%container.name process=%proc.cmdline user=%user.name)
+        Priority: HIGH
+      tags: [privilege-escalation, security]
+
+    - rule: Detect unexpected outbound connections
+      desc: Detect connections to non-tenant services
+      condition: >
+        outbound_connect
+        and not fd.sip in ["10.0.0.0/8", "10.244.0.0/16"]
+        and container.image startsWith "akash"
+        and not fd.sip in ["8.8.8.8", "1.1.1.1"]
+      output: >
+        Unexpected outbound connection (container=%container.name dst=%fd.sip)
+        Priority: NOTICE
+      tags: [network, outbound]

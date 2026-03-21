@@ -1,0 +1,46 @@
+# Gaming Placeholder Deployment
+# This deployment creates placeholder pods that "reserve" GPU resources when gaming is active
+# The presence of these pods causes YuniKorn to preempt mining pods via priority preemption
+# Controlled by gpu-scheduler-state ConfigMap gaming-state field
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gaming-placeholder
+  namespace: mining
+  labels:
+    app: gaming-placeholder
+    scheduler: yunikorn
+spec:
+  replicas: 0  # Initially zero - scaled up when gaming detected
+  selector:
+    matchLabels:
+      app: gaming-placeholder
+  template:
+    metadata:
+      labels:
+        app: gaming-placeholder
+        scheduler: yunikorn
+        # Force into mining queue so preemption works across namespaces
+        yunikorn.yunikorn.io/queue-name: root.mining
+    spec:
+      schedulerName: yunikorn
+      priorityClassName: gaming-high
+      tolerations:
+      - key: "scheduler.yunikorn.io/preemptible"
+        operator: "Exists"
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause:3.9
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "100m"
+            nvidia.com/gpu: "2"  # Claim both GPUs to preempt all mining pods
+          limits:
+            memory: "100Mi"
+            cpu: "100m"
+            nvidia.com/gpu: "2"
+      nodeSelector:
+        kubernetes.io/hostname: forge  # Only on Forge (mining node)
+---
+# HorizontalPodAutoscaler not needed - we use explicit scaling based on gaming state

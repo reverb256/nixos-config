@@ -1,0 +1,91 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: claude-code-hpa
+  namespace: ai-inference
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: claude-code
+
+  minReplicas: 1
+  maxReplicas: 5  # Max 5 Claude instances
+
+  metrics:
+  # Scale based on active conversations
+  - type: Pods
+    pods:
+      metric:
+        name: claude_active_sessions
+      target:
+        type: AverageValue
+        averageValue: "3"  # Scale up when pods avg 3+ sessions
+
+  # Fallback: CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 1
+        periodSeconds: 30
+      selectPolicy: Max
+
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 min
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+      selectPolicy: Min
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: opencode-hpa
+  namespace: ai-inference
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: opencode
+
+  minReplicas: 1
+  maxReplicas: 3  # Max 3 OpenCode instances
+
+  metrics:
+  # CPU-based scaling (OpenCode is stateless)
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      selectPolicy: Max
+
+    scaleDown:
+      stabilizationWindowSeconds: 180  # 3 min
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+      selectPolicy: Min
