@@ -1,0 +1,172 @@
+{
+  "provider": {
+    "setup": {
+      "title": "Provider Setup",
+      "content": "Initial provider setup requires: 1) Install Helm chart with proper configuration, 2) Set provider attributes for GPU/CPU/memory, 3) Configure RPC endpoints, 4) Set bid pricing, 5) Verify blockchain connectivity. Common issues include missing secrets, incorrect RPC endpoints, and insufficient resources.",
+      "related": ["blockchain", "leases", "attributes"]
+    },
+    "deployment": {
+      "title": "Provider Deployment",
+      "content": "Provider is deployed via Helm chart in the akash-services namespace. The deployment includes provider pod, bid engine, and monitoring sidecars. Verify helm release status with 'helm list -n akash-services'. Common issues include pod crashes, image pull errors, and configuration mismatches.",
+      "related": ["troubleshooting", "helm"]
+    },
+    "attributes": {
+      "title": "Provider Attributes",
+      "content": "Provider attributes define what resources you offer: capabilities (gpu, storage, hypervisor), GPU models, features, and pricing. Configure via Helm values or provider.toml. Common issues include missing required attributes, incorrect GPU model names, and pricing too high or low.",
+      "related": ["gpu", "storage", "leases"]
+    }
+  },
+  "blockchain": {
+    "sync": {
+      "title": "Blockchain Sync",
+      "content": "Provider must sync with Akash blockchain to bid on leases. Sync status can be checked in provider logs. Common sync issues: RPC endpoint unreachable, slow network, behind on blocks. Solutions: Check RPC connectivity, wait for sync, verify network settings.",
+      "related": ["rpc", "provider"]
+    },
+    "rpc": {
+      "title": "RPC Endpoints",
+      "content": "RPC endpoints connect provider to Akash blockchain. Public endpoints: akash-rpc.publicnode.com, rpc.akashnet.net. Private endpoints recommended for production. Test with curl. Common issues: timeouts, connection refused, rate limiting.",
+      "related": ["sync", "network"]
+    }
+  },
+  "gpu": {
+    "detection": {
+      "title": "GPU Detection",
+      "content": "GPUs must be detected by Kubernetes and advertised in node allocatable resources. NVIDIA GPUs use nvidia.com/gpu, AMD GPUs use amd.com/gpu. Check with kubectl describe node. Common issues: missing drivers, incorrect device plugins, GPU not enabled in BIOS, unsupported GPU model.",
+      "related": ["driver-issues", "provider"]
+    },
+    "driver-issues": {
+      "title": "GPU Driver Problems",
+      "content": "GPU drivers must match GPU vendor and be properly installed. NVIDIA: Use nvidia-driver-535 or newer, verify with nvidia-smi. AMD: Use amdgpu-install, verify with rocminfo. Common issues: driver version mismatch, missing kernel modules, driver not loaded after reboot. Solutions: Reinstall drivers, check kernel compatibility, verify device plugin status.",
+      "related": ["detection", "troubleshooting"]
+    },
+    "nvidia": {
+      "title": "NVIDIA GPU Configuration",
+      "content": "NVIDIA GPUs require nvidia-device-plugin daemonset and proper driver installation. Verify with kubectl get pods -n kube-system. Common issues: device plugin not running, driver mismatch, MIG configuration errors. Solutions: Restart device plugin, reinstall driver, check MIG settings.",
+      "related": ["detection", "driver-issues"]
+    },
+    "amd": {
+      "title": "AMD GPU Configuration",
+      "content": "AMD GPUs require AMDGPU driver and k8s-device-plugin. Verify with rocminfo and kubectl get pods -n kube-system. Common issues: ROCm not installed, wrong OpenCL ICD, incompatible GPU model. Solutions: Install ROCm, configure OpenCL, verify GPU compatibility.",
+      "related": ["detection", "driver-issues"]
+    },
+    "allocation": {
+      "title": "GPU Allocation Issues",
+      "content": "GPUs must be allocatable by Kubernetes and not reserved. Check node allocatable with kubectl describe node. Common issues: all GPUs allocated, offline maintenance, wrong resource requests. Solutions: Scale down workloads, check GPU status, verify resource requests in manifests.",
+      "related": ["leases", "provider"]
+    }
+  },
+  "leases": {
+    "bidding": {
+      "title": "Lease Bidding",
+      "content": "Provider bids on leases through bid engine. Bidding must be active and provider must have blockchain sync. Check logs for bidding engine active. Common issues: bidding inactive, pricing too high, insufficient resources, blockchain out of sync. Solutions: Check bid pricing, verify resources, sync blockchain.",
+      "related": ["provider", "blockchain"]
+    },
+    "won": {
+      "title": "Won Leases Not Starting",
+      "content": "After winning a bid, lease should start automatically. If stuck, check: 1) Provider has sufficient resources, 2) Lease deployment created, 3) No scheduling constraints, 4) Network policies allow communication. Common issues: resource exhaustion, taints tolerations mismatch, image pull errors.",
+      "related": ["provider", "gpu", "network"]
+    },
+    "stuck": {
+      "title": "Stuck Lease Deployments",
+      "content": "Lease deployments may get stuck in Pending state. Check with kubectl get leases. Common causes: insufficient resources, node selectors not matching, image pull errors, PVC issues. Solutions: Check resource requests, verify node labels, check image availability, verify storage class.",
+      "related": ["gpu", "storage", "network"]
+    }
+  },
+  "network": {
+    "connectivity": {
+      "title": "Network Connectivity",
+      "content": "Provider requires bidirectional network access: outbound to blockchain RPC, inbound for tenant connections. Test with kubectl exec. Common issues: firewall rules, network policies, DNS resolution failures. Solutions: Check firewall rules, verify network policies, test DNS.",
+      "related": ["blockchain", "rpc"]
+    },
+    "port-forwarding": {
+      "title": "Port Forwarding Issues",
+      "content": "Tenant workloads require inbound connectivity on assigned ports. Provider must forward ports from host to pod. Check with kubectl get svc. Common issues: ports not exposed, wrong port mapping, firewall blocking. Solutions: Verify service configuration, check firewall rules, update port ranges.",
+      "related": ["leases", "provider"]
+    },
+    "dns": {
+      "title": "DNS Resolution",
+      "content": "Provider and tenant pods need working DNS. Test with kubectl exec nslookup. Common issues: CoreDNS not running, wrong DNS config, network policies blocking UDP/53. Solutions: Check CoreDNS pods, verify DNS config, update network policies.",
+      "related": ["connectivity"]
+    }
+  },
+  "storage": {
+    "pv": {
+      "title": "Persistent Volume Issues",
+      "content": "Leases may require persistent storage. Check PVs with kubectl get pv. Common issues: PV in Pending state, storage class not found, insufficient disk space. Solutions: Verify storage class, check disk space, create missing PVs.",
+      "related": ["leases"]
+    },
+    "pvc": {
+      "title": "Persistent Volume Claims",
+      "content": "Tenant PVCs must bind to PVs. Check with kubectl get pvc. Common issues: PVC pending, no matching PV, access mode mismatch. Solutions: Check storage class, verify access modes, create matching PV.",
+      "related": ["leases", "pv"]
+    }
+  },
+  "troubleshooting": {
+    "logs": {
+      "title": "Analyzing Provider Logs",
+      "content": "Provider logs contain diagnostic information. View with kubectl logs. Look for: error messages, restart indicators, sync status, bidding activity. Use kubectl logs --previous for crashed containers.",
+      "related": ["provider"]
+    },
+    "events": {
+      "title": "Kubernetes Events",
+      "content": "Events show pod lifecycle issues. View with kubectl get events. Common events: FailedScheduling, FailedMount, ImagePullBackOff, CrashLoopBackOff. Each event indicates a specific problem with suggested fixes.",
+      "related": ["provider", "leases"]
+    },
+    "debug": {
+      "title": "Debug Mode",
+      "content": "Enable debug logging in provider by setting LOG_LEVEL=debug in Helm values. Restart provider with helm upgrade. Debug logs show detailed bid engine activity, RPC calls, and lease lifecycle events.",
+      "related": ["logs", "provider"]
+    },
+    "resource-limits": {
+      "title": "Resource Limit Issues",
+      "content": "Provider pods need sufficient CPU and memory. Check limits with kubectl get pod. Common issues: OOMKilled, CPU throttling, eviction. Solutions: Increase limits, check node capacity, reduce other workloads.",
+      "related": ["provider"]
+    },
+    "restart-loop": {
+      "title": "Provider Restart Loop",
+      "content": "Provider restarting repeatedly indicates crashes. Check logs with kubectl logs --previous. Common causes: config errors, missing secrets, panic in application, OOM. Solutions: Fix configuration, add missing secrets, increase memory limit, check for application bugs.",
+      "related": ["logs", "resource-limits"]
+    },
+    "helm": {
+      "title": "Helm Deployment Issues",
+      "content": "Provider deployed via Helm may fail. Check with helm status. Common issues: Chart version incompatible, values validation failed, hook errors. Solutions: Check chart version, validate values with helm template, fix hook errors.",
+      "related": ["provider"]
+    }
+  },
+  "security": {
+    "secrets": {
+      "title": "Missing Secrets",
+      "content": "Provider requires secrets for wallet keys and RPC authentication. Check with kubectl get secrets. Common issues: Secret not created, wrong secret name, keys missing from secret. Solutions: Create secrets, verify secret names, add required keys.",
+      "related": ["provider"]
+    },
+    "permissions": {
+      "title": "RBAC Permissions",
+      "content": "Provider service account needs permissions to manage leases, pods, services. Check with kubectl get rolebinding. Common issues: Missing role bindings, insufficient permissions. Solutions: Create role bindings, update cluster roles.",
+      "related": ["provider"]
+    }
+  },
+  "monitoring": {
+    "metrics": {
+      "title": "Provider Metrics",
+      "content": "Provider exposes metrics for monitoring. Access via metrics service or Prometheus. Key metrics: bid success rate, lease win rate, resource utilization, error rates. Common issues: Metrics not exposed, wrong port, Prometheus not scraping. Solutions: Check metrics service, verify port config, update Prometheus scrape config.",
+      "related": ["provider"]
+    },
+    "alerts": {
+      "title": "Alerting",
+      "content": "Configure alerts for critical issues: provider down, bidding inactive, high error rate, resource exhaustion. Use Prometheus AlertManager or Kubernetes event-driven alerts. Common issues: Alerts not firing, wrong thresholds. Solutions: Verify alert rules, check thresholds, test alert delivery.",
+      "related": ["metrics"]
+    }
+  },
+  "optimization": {
+    "pricing": {
+      "title": "Bid Pricing Optimization",
+      "content": "Bid pricing affects lease win rate. Too high: no wins. Too low: revenue loss. Monitor bid history and adjust pricing. Consider: market rates, your costs, competitor pricing. Common issues: Pricing static, not market-aware. Solutions: Implement dynamic pricing, monitor market, adjust based on demand.",
+      "related": ["leases"]
+    },
+    "resources": {
+      "title": "Resource Utilization",
+      "content": "Optimize GPU/CPU/memory allocation for max revenue. Monitor utilization with kubectl top nodes. Common issues: Underutilized GPUs, overcommitment leading to contention. Solutions: Right-size workloads, implement oversubscription carefully, monitor utilization trends.",
+      "related": ["gpu", "leases"]
+    }
+  }
+}
