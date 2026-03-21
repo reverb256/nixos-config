@@ -1,5 +1,5 @@
 # GPU Miner Deployment for Nexus (RTX 3060 Ti)
-# Using direct pool connections with TLS (NO PROXY)
+# Using Volcano scheduler (migrated from YuniKorn)
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -21,10 +21,11 @@ spec:
         app: gpu-miner
         host: nexus
     spec:
-      schedulerName: yunikorn
+      schedulerName: volcano
       nodeName: nexus
+      serviceAccountName: gpu-miner-sa
       hostNetwork: true
-      priorityClassName: low-priority-mining
+      priorityClassName: preemptible-mining
       tolerations:
       - key: "scheduler.yunikorn.io/preemptible"
         operator: "Exists"
@@ -41,7 +42,7 @@ spec:
           - "--pool=xtm-c29-eu.kryptex.network:8040"
           - "--user=krxXVNVMM7.nexus-gpu"
           - "--pass=x"
-          "--tls=1"
+          - "--tls=1"
           - "--devices=0"
           - "--apiport=4068"
           - "--mode=b"

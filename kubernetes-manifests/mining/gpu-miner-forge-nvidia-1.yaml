@@ -28,8 +28,9 @@ spec:
     spec:
       schedulerName: yunikorn
       nodeName: forge
+      serviceAccountName: gpu-miner-sa
       hostNetwork: true
-      priorityClassName: low-priority-mining
+      priorityClassName: preemptible-mining
       tolerations:
       - key: "scheduler.yunikorn.io/preemptible"
         operator: "Exists"
@@ -48,13 +49,13 @@ spec:
         - "--pass=x"
         - "--tls=1"
         - "--devices=1"
-        - "--apiport=4069"
+        - "--apiport=4072"
         - "--mode=b"
         env:
         - name: LD_LIBRARY_PATH
           value: "/run/opengl-driver/lib:/nix/store"
         ports:
-        - containerPort: 4069
+        - containerPort: 4072
           name: api
           protocol: TCP
         securityContext:
