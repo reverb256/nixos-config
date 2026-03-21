@@ -68,23 +68,28 @@ sentry   Ready    monitoring                     15m     v1.35.0
 
 ### Systemd Services (Active)
 - **AI/ML:** ai-inference-monitor, qdrant
+- **Gaming:** gamemoded (user service on Zephyr for GameMode integration)
 - **Web:** n8n, caddy, home-assistant
 - **Monitoring:** prometheus, grafana, alertmanager, prometheus-node-exporter, prometheus-nvidia-gpu-exporter, promtail
 - **Kubernetes:** etcd, kube-apiserver, kube-scheduler, kube-controller-manager, kubelet, kube-proxy, containerd, docker
 - **Networking:** avahi, rpcbind, nfs-*
-- **Mining:** lolminer-nvidia
+- **Mining:** lolminer-nvidia (systemd), gpu-miner-forge-nvidia-0/1 (K8s)
 
 ### Kubernetes Pods (Namespaces)
 - **ingress-system:** caddy-ingress DS (2 pods on nexus, sentry)
 - **kube-system:** coredns, flannel, nvidia-device-plugin, amd-gpu-device-plugin
 - **kube-flannel:** flannel DS pods
+- **kube-system:** gpu-scheduler-state ConfigMap (gaming state coordination)
 - **local-path-storage:** local-path-provisioner
-- **mining:** xmrig-proxy
+- **mining:** gpu-miner-forge-nvidia-0/1 (K8s), gpu-miner-forge-amd-0/1 (K8s), gpu-miner-zephyr (K8s), xmrig-proxy
+- **mining:** gaming-placeholder (replicas=0, scaled up during gaming) ⚡ **NEW**
 - **akash-services:** akash-provider, operator-* services
 - **ai-inference:** n8n, postgres-n8n, qdrant, prometheus, grafana ✅ **RUNNING ON K8S**
 - **glitchtip:** postgres, redis, web, worker ✅ **MIGRATED (2026-03-19)**
 - **search:** searxng ✅ **MIGRATED (2026-03-19)**
 - **default:** home-assistant ✅ **MIGRATED**
+- **yunikorn:** yunikorn-scheduler, yunikorn-admission-controller, yunikorn-web
+- **volcano-system:** volcano-scheduler, volcano-admission, volcano-controllers (primary GPU scheduler)
 
 ---
 
@@ -92,52 +97,73 @@ sentry   Ready    monitoring                     15m     v1.35.0
 
 | Priority | Issue | Impact | Status |
 |----------|-------|--------|--------|
+| 🟢 LOW | ~~Dual-scheduler configuration causing API server crashes~~ | ~~YuniKorn + Volcano both managing GPU pods~~ | ✅ **RESOLVED (2026-03-21):** Migrated all GPU workloads to Volcano. Preemption now working. Full details: `kubernetes-manifests/scheduling/gaming/VOLCANO_MIGRATION_COMPLETE.md` |
+| 🟢 LOW | ~~YuniKorn priority preemption not working~~ | ~~Gaming placeholder pods fail to schedule~~ | ✅ **RESOLVED (2026-03-21):** Volcano preemption working. Gaming placeholder can successfully preempt mining pods. |
+| 🟢 LOW | ResourceQuota was blocking preemption | Fixed by removing GPU limits from quota | ✅ **RESOLVED (2026-03-21)**: New quota `mining-quota-yunikorn` only tracks CPU/memory |
 | 🟡 MEDIUM | No global deadzone solution for controllers | Deadzone must be configured per-game framework | ⚠️ **LIMITATION:** Kernel-level evdev deadzone broken (linuxconsole package removed from nixpkgs) |
 | 🟢 LOW | ~~Forge RTX 4060 GPU passthrough~~ | ~~NVIDIA workloads can't schedule on Forge~~ | ✅ **FIXED** - Both RTX 4060s visible in Kubernetes (nvidia.com/gpu: 2) |
 | 🟡 MEDIUM | Storage classes not fully tested | PVC creation may fail | Testing needed |
 | 🟢 LOW | ~~Forge nixos-share mount~~ | ~~Read-write mount~~ | ✅ FIXED - Now read-only |
 | 🟢 LOW | NFS hard mounts | System hangs if NFS down | ✅ FIXED - Soft mounts with 10s timeout |
 | 🟢 LOW | ~~GPU workload coordination needed~~ | Mining vs K8s GPU conflict | ✅ **SOLVED:** GPU Resource Marketplace deployed |
+| 🟡 LOW | AMD GPU mining GLIBC incompatibility | lolminer segfaults in K8s (GLIBC 2.42 vs 2.27) | ⚠️ **WORKAROUND:** AMD mining on host (systemd), NVIDIA mining in K8s |
 
 ---
 
 ## Recent Achievements
 
-### Gaming Detection & Automatic Mining Pause (2026-03-19)
+### Kubernetes-Native Gaming Detection (2026-03-21)
 
-**Status:** ✅ COMPLETE
+**Status:** ✅ COMPLETE (with workaround)
 
-Implemented per-host gaming detection using GameMode daemon with GPU
-pattern fallback. Each host independently pauses lolminer when gaming
-detected, resumes after hysteresis period (~15s).
+Implemented Kubernetes-native gaming detection using GameMode with automatic
+mining pod scaling. Replaces systemd-based per-host approach with
+cluster-coordinated GPU resource management.
 
-**Features:**
-- GameMode integration (authoritative detection)
-- GPU pattern fallback (catches unsupported games)
-- Hysteresis countdown (prevents rapid cycling)
-- Prometheus metrics (monitoring visibility)
-- Per-host decisions (no cluster coordination)
+**Architecture:**
+- **Detection:** GameMode daemon on Zephyr (D-Bus session service)
+- **State Management:** ConfigMap `gpu-scheduler-state` in kube-system
+- **Preemption Mechanism:** Priority-based pod scaling (gaming-high: 1000 vs mining-low: 100)
+- **Placeholder Pattern:** gaming-placeholder deployment claims GPUs when gaming active
 
-**Implementation:**
-- Tasks 1-8 completed (detection, state management, pause/resume, metrics)
-- All code reviews passed (spec compliance + code quality)
-- Grafana dashboard created
-- Systems Intelligence plasmoid updated
+**Components Deployed:**
+```
+kubectl get priorityclass gaming-high
+kubectl get deployment gaming-placeholder -n mining
+kubectl get configmap gpu-scheduler-state -n kube-system
+```
 
-**Testing:**
-- Validation: nix flake check passed
-- Reviews: All tasks approved
-- Deployment: Pending (next phase)
+**How It Works:**
+1. GameMode detects gaming on Zephyr
+2. compute-workload-monitor updates K8s ConfigMap with gaming state
+3. When gaming starts:
+   - Scale down NVIDIA mining deployments (gpu-miner-forge-nvidia-0/1)
+   - Scale up gaming-placeholder deployment (claims 2x GPUs)
+4. When gaming ends (after hysteresis):
+   - Scale down gaming-placeholder
+   - Scale up NVIDIA mining deployments
+
+**Known Limitation:**
+YuniKorn automatic priority preemption not working - pods fail with
+"Allocate failed due to requested number of devices unavailable" because
+kubelet device plugin doesn't coordinate with YuniKorn's internal allocation.
+Manual pod scaling provides working workaround.
+
+**Files:**
+- `/etc/nixos/kubernetes-manifests/scheduling/gaming/00-priority-class.yaml`
+- `/etc/nixos/kubernetes-manifests/scheduling/gaming/10-gaming-placeholder-deployment.yaml`
+- `/etc/nixos/kubernetes-manifests/scheduling/gaming/20-rbac.yaml`
+- `/etc/nixos/modules/system/compute-workload-monitor.nix` (K8s integration)
 
 **Monitoring:**
 - Grafana dashboard: Gaming Detection
 - Prometheus metric: `gaming_active{host="...",detection_method="..."}`
-- Plasmoid: Systems Intelligence shows gaming status
+- K8s ConfigMap: `gpu-scheduler-state` (gaming-state, active-workload, detection-method)
 
 **Impact:**
-- Gaming performance: No GPU contention
+- Gaming performance: No GPU contention (mining paused during gaming)
 - Mining revenue: ~15s lost per session (hysteresis delay)
-- User experience: Seamless, automatic
+- Cluster coordination: Gaming state visible cluster-wide via ConfigMap
 
 ---
 
