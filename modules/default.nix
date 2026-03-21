@@ -45,6 +45,7 @@
     ./system/xmrig-api-control.nix
     ./system/boot-emergency-diagnostics.nix
     ./system/mining-inference-coordinator.nix
+    ./system/kube-apiserver-logger.nix
 
     # Security
     ./security/pam-vaultwarden.nix

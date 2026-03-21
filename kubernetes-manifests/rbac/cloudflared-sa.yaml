@@ -1,0 +1,31 @@
+# Service Account and RBAC for cloudflared
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cloudflared-sa
+  namespace: akash-services
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cloudflared-role
+  namespace: akash-services
+rules:
+  # cloudflared needs minimal permissions - just to run
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cloudflared-rolebinding
+  namespace: akash-services
+subjects:
+  - kind: ServiceAccount
+    name: cloudflared-sa
+roleRef:
+  kind: Role
+  name: cloudflared-role
+  apiGroup: rbac.authorization.k8s.io

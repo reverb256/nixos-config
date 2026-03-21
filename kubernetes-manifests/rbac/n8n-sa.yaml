@@ -1,0 +1,31 @@
+# Service Account and RBAC for n8n
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: n8n-sa
+  namespace: ai-inference
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: n8n-role
+  namespace: ai-inference
+rules:
+  # n8n needs to store workflow configurations
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: n8n-rolebinding
+  namespace: ai-inference
+subjects:
+  - kind: ServiceAccount
+    name: n8n-sa
+roleRef:
+  kind: Role
+  name: n8n-role
+  apiGroup: rbac.authorization.k8s.io
