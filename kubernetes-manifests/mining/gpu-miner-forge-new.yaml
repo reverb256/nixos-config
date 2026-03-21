@@ -20,8 +20,9 @@ spec:
     spec:
       schedulerName: yunikorn
       nodeName: forge
+      serviceAccountName: gpu-miner-sa
       hostNetwork: true
-      priorityClassName: low-priority-mining
+      priorityClassName: mining-low
       tolerations:
       - key: scheduler.yunikorn.io/preemptible
         operator: Exists
@@ -44,7 +45,7 @@ spec:
         - "--mode=b"
         env:
         - name: LD_LIBRARY_PATH
-          value: "/run/opengl-driver/lib:/nix/store"
+          value: "/lib"
         ports:
         - containerPort: 4068
         securityContext:

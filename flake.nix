@@ -287,6 +287,137 @@
       };
     };
 
+    # NixOS-based lolMiner image with AMD OpenCL/ROCm support
+    # Uses steam-run for FHS compatibility and proper library resolution
+    packages.x86_64-linux.lolminer-amd-image = let
+      # Get glibc directly from nixpkgs (same version as host)
+      glibc = pkgs.glibc;
+      # Use the full lolMiner package (includes wrapper with LD_LIBRARY_PATH setup)
+      lolminerPkg = pkgsWithOverlay.lolminer;
+      # Custom root filesystem with all required libraries
+      # NO steam-run - lolMiner wrapper already handles LD_LIBRARY_PATH
+      rootFs = pkgsWithOverlay.runCommand "lolminer-amd-root" {} ''
+        mkdir -p $out/bin $out/etc $out/lib $out/lib64 $out/tmp $out/run/opengl-driver/lib $out/etc/OpenCL/vendors
+
+        # Copy lolMiner wrapper and binary
+        # The wrapper has hardcoded Nix paths, so we need to create our own
+        cp ${lolminerPkg}/bin/.lolMiner-wrapped $out/bin/.lolMiner-wrapped
+        chmod +x $out/bin/.lolMiner-wrapped
+
+        # Create wrapper that uses relative paths (works in container)
+        # Libraries are in /lib, not /run/opengl-driver/lib (that dir is empty)
+        echo '#! /bin/sh -e' > $out/bin/lolMiner
+        echo 'LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LD_LIBRARY_PATH:' >> $out/bin/lolMiner
+        echo 'LD_LIBRARY_PATH=/lib:$LD_LIBRARY_PATH' >> $out/bin/lolMiner
+        echo 'export LD_LIBRARY_PATH' >> $out/bin/lolMiner
+        echo 'exec /bin/.lolMiner-wrapped "$@"' >> $out/bin/lolMiner
+        chmod +x $out/bin/lolMiner
+
+        # Copy bash, coreutils binaries (symlinks ok for binaries)
+        for pkg in ${pkgsWithOverlay.bash} ${pkgsWithOverlay.coreutils}; do
+          if [ -d "$pkg/bin" ]; then
+            for bin in $pkg/bin/*; do
+              [ -e "$bin" ] && ln -sf "$bin" $out/bin/
+            done
+          fi
+          # Recursively copy entire lib directories to preserve symlink structure
+          if [ -d "$pkg/lib" ]; then
+            cp -rL "$pkg/lib"/* $out/lib/ 2>/dev/null || true
+          fi
+        done
+
+        # Copy certificates
+        mkdir -p $out/etc/ssl/certs
+        ln -sf ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt $out/etc/ssl/certs/
+
+        # Copy ROCm/OpenCL libraries - recursively copy entire directories
+        for pkg in ${pkgs.rocmPackages.clr} ${pkgs.rocmPackages.clr.icd} ${pkgs.mesa.opencl}; do
+          # Recursively copy lib directory (preserves all symlinks and their targets)
+          if [ -d "$pkg/lib" ]; then
+            cp -rL "$pkg/lib"/* $out/lib/ 2>/dev/null || true
+          fi
+          # Also copy to /run/opengl-driver/lib for lolMiner wrapper
+          if [ -d "$pkg/lib" ]; then
+            cp -rL "$pkg/lib"/* $out/run/opengl-driver/lib/ 2>/dev/null || true
+          fi
+          if [ -d "$pkg/etc" ]; then
+            cp -r $pkg/etc/* $out/etc/ 2>/dev/null || true
+          fi
+        done
+
+        # Remove rusticl ICD file that points to non-existent Nix store path
+        rm -f $out/etc/OpenCL/vendors/rusticl.icd
+
+        # Copy glibc libraries - recursively copy entire directory
+        cp -rL ${glibc}/lib/* $out/lib/ 2>/dev/null || true
+        # Also create in lib64 for the interpreter
+        mkdir -p $out/lib64
+        cp -rL ${glibc}/lib/* $out/lib64/ 2>/dev/null || true
+
+        # Create OpenCL ICD file pointing to the container library path
+        # The library will be at /lib/libamdocl64.so when container runs
+        # NOT at the build-time $out/lib path
+        # First remove the read-only ICD file copied from ROCm package (line 347)
+        rm -f $out/etc/OpenCL/vendors/amdocl64.icd
+        echo "/lib/libamdocl64.so" > $out/etc/OpenCL/vendors/amdocl64.icd
+
+        # Create lib64 directory and symlinks (not a symlink to lib)
+        # The binary needs /lib64/ld-linux-x86-64.so.2
+        # We already created it above, but we need to ensure it's not overwritten
+        # Note: lib64 is now a real directory, not a symlink to lib
+      '';
+    in
+      pkgsWithOverlay.dockerTools.buildImage {
+        name = "lolminer-amd";
+        tag = "1.98a-nixos";
+
+        copyToRoot = rootFs;
+
+        config = {
+          Entrypoint = ["/bin/lolMiner"];
+          Cmd = [];
+
+          ExposedPorts = {
+            "4069/tcp" = {}; # AMD API port
+          };
+
+          Env = [
+            "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+            "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
+            "LD_LIBRARY_PATH=/lib"
+            "GPU_MAX_HEAP_SIZE=100"
+            "GPU_MAX_ALLOC_PERCENT=100"
+          ];
+
+          Labels = {
+            "version" = "1.98a";
+            "description" = "lolMiner NixOS container with AMD OpenCL support";
+          };
+        };
+      };
+
+    # NixOS-based xmrig container image
+    # Uses host GLIBC for compatibility (avoids GLIBC_2.29 issue)
+    packages.x86_64-linux.xmrig-nixos-image = pkgs.dockerTools.buildLayeredImage {
+      name = "xmrig-nixos";
+      tag = "latest";
+
+      contents = [
+        pkgs.xmrig
+        pkgs.bash
+        pkgs.coreutils
+      ];
+
+      config = {
+        # Don't set Cmd - let Kubernetes provide command/args
+        Entrypoint = [ "${pkgs.xmrig}/bin/xmrig" ];
+        Env = [ "PATH=/bin" ];
+        Labels = {
+          "description" = "XMRig NixOS container with GLIBC compatibility";
+        };
+      };
+    };
+
     overlays.default = import ./overlay.nix;
 
     # pkgsWithOverlay: nixpkgs with custom overlay applied
