@@ -1,7 +1,6 @@
 # GPU Miner for Forge - AMD GPU 1 (RX 5700 XT)
-# Single pod per GPU for maximum scheduling flexibility
-# Uses nix-ld to provide NixOS glibc and AMD OpenCL libraries to the container
-# Uses lolMiner binary extracted from container image and stored on host
+# Uses NixOS-based container with same GLIBC as host - solves ABI incompatibility
+# Built-in AMD OpenCL/ROCm libraries - no external mounts needed
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,93 +30,54 @@ spec:
       schedulerName: yunikorn
       nodeName: forge
       hostNetwork: true
-      priorityClassName: low-priority-mining
+      serviceAccountName: gpu-miner-sa
+      priorityClassName: mining-low
       tolerations:
       - key: "scheduler.yunikorn.io/preemptible"
         operator: "Exists"
-      initContainers:
-      - name: setup-opencl
-        image: docker.io/swamp7/lolminer:latest
-        imagePullPolicy: IfNotPresent
-        command: ["/bin/sh", "-c"]
-        args:
-        - |
-          # Create OpenCL directory structure in shared volume
-          mkdir -p /opencl/vendors
-          # Create ICD file pointing to nix-ld libraries
-          echo "/run/current-system/sw/share/nix-ld/lib/libamdocl64.so.2" > /opencl/vendors/amdocl64.icd
-          echo "OpenCL setup complete"
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "100Mi"
-            nvidia.com/gpu: "0"
-            amd.com/gpu: "0"
-          limits:
-            cpu: "200m"
-            memory: "200Mi"
-            nvidia.com/gpu: "0"
-            amd.com/gpu: "0"
-        volumeMounts:
-        - name: opencl
-          mountPath: /opencl
       containers:
       - name: lolminer
-        image: docker.io/swamp7/lolminer:latest
-        imagePullPolicy: IfNotPresent
-        command: ["/bin/sh", "-c"]
+        image: docker.io/library/lolminer-amd:1.98a-nixos
+        imagePullPolicy: Never
+        command: ["/bin/lolMiner"]
         args:
-        - |
-          # Setup nix-ld environment for NixOS glibc and libraries
-          export NIX_LD_LIBRARY_PATH=/run/current-system/sw/share/nix-ld/lib
-          export OCL_ICD_VENDORS=/opencl/vendors
-          unset NVIDIA_DRIVER_CAPABILITIES NVIDIA_VISIBLE_DEVICES CUDA_VERSION
-
-          echo "=== Environment ==="
-          echo "NIX_LD_LIBRARY_PATH=$NIX_LD_LIBRARY_PATH"
-          echo "OCL_ICD_VENDORS=$OCL_ICD_VENDORS"
-          echo ""
-          echo "=== ICD File ==="
-          cat /opencl/vendors/amdocl64.icd
-          echo ""
-          echo "=== OpenCL Library ==="
-          ls -la /run/current-system/sw/share/nix-ld/lib/libamdocl64.so* 2>&1 | head -5
-          echo ""
-          echo "=== Device nodes ==="
-          ls -la /dev/kfd /dev/dri/card3 2>&1 | head -3
-          echo ""
-          echo "=== Starting lolMiner with NixOS OpenCL libraries ==="
-          # Use container's lolMiner with NixOS OpenCL libraries
-          cd /1.98a && ./lolMiner --algo=CR29 --pool=xtm-c29-us.kryptex.network:8040 --user=krxXVNVMM7.forge-a1 --pass=x --tls=1 --pool=xtm-c29-eu.kryptex.network:8040 --user=krxXVNVMM7.forge-a1 --pass=x --tls=1 --devices=1 --apiport=4071 --mode=b
-        env:
-        - name: NIX_LD_LIBRARY_PATH
-          value: "/run/current-system/sw/share/nix-ld/lib"
-        - name: OCL_ICD_VENDORS
-          value: "/opencl/vendors"
-        - name: NVIDIA_DRIVER_CAPABILITIES
-          value: ""
-        - name: NVIDIA_VISIBLE_DEVICES
-          value: ""
+        - "--algo=CR29"
+        - "--pool=xtm-c29-us.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-a1"
+        - "--pass=x"
+        - "--tls=1"
+        - "--pool=xtm-c29-eu.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-a1"
+        - "--pass=x"
+        - "--tls=1"
+        - "--devices=1"
+        - "--apiport=4071"
+        - "--mode=b"
         ports:
         - containerPort: 4071
           name: api
           protocol: TCP
+        livenessProbe:
+          exec:
+            command: ["/bin/sh", "-c", "pgrep -f lolMiner"]
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command: ["/bin/sh", "-c", "pgrep -f lolMiner"]
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
         securityContext:
           privileged: true
+          seccompProfile:
+            type: Unconfined
         volumeMounts:
         - name: dev
           mountPath: /dev
-        - name: nix-ld
-          mountPath: /run/current-system/sw/share/nix-ld
-          readOnly: true
-        - name: nix-store
-          mountPath: /nix/store
-          readOnly: true
-        - name: opencl
-          mountPath: /opencl
-        - name: lolminer-bin
-          mountPath: /tmp/mining
-          readOnly: true
+        - name: dri
+          mountPath: /dev/dri
         resources:
           requests:
             memory: "2Gi"
@@ -133,17 +93,6 @@ spec:
       - name: dev
         hostPath:
           path: /dev
-      - name: nix-ld
+      - name: dri
         hostPath:
-          path: /run/current-system/sw/share/nix-ld
-          type: Directory
-      - name: nix-store
-        hostPath:
-          path: /nix/store
-          type: Directory
-      - name: opencl
-        emptyDir: {}
-      - name: lolminer-bin
-        hostPath:
-          path: /tmp/mining
-          type: Directory
+          path: /dev/dri
