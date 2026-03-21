@@ -13,8 +13,6 @@
   # Forge-specific zswap tuning (Intel i5-9500 needs 20% pool, not 40%)
   kernel-hardening.zswap.maxPoolPercent = 20;
 
-  # Explicitly disable searxng (deployment issue with user removal)
-  services.searxng.enable = false;
 
   imports = [
     # Monitoring configuration
