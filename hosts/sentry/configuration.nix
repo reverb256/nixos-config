@@ -45,6 +45,12 @@
     unbound.listenAddress = "10.1.1.140"; # Listen on node IP for cluster DNS
   };
 
+  # Disable flake-lock-sync (nixos-shared mount not available)
+  services.flake-lock-sync.enable = lib.mkForce false;
+
+  # Directly disable the systemd timer (blocking rebuilds)
+  systemd.timers.flake-lock-sync.enable = false;
+
   # Populate /etc/hosts from central cluster configuration
   networking = {
     cluster-hosts = {
@@ -250,10 +256,11 @@
     # Uses xmrig-proxy on Zephyr for centralized hashrate aggregation
     # Note: profiles.role.mining enables services.mining automatically
     # Sentry: RX 5600 XT available for mining
+    # Re-enabled: No K8s migration completed
     mining = {
       xmrig = {
         enable = true;
-        autostart = true;
+        autostart = false;
         threads = 4;
         pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
         wallet = "sentry-cpu"; # Worker ID for proxy
@@ -335,8 +342,9 @@
   # HERMES AGENT - Multi-Host Orchestration
   # ============================================================================
   # Autonomous agent for cluster-wide task execution and coordination
+  # DISABLED: Health check blocking rebuilds (2026-03-21)
   services.hermes-agent = {
-    enable = true;
+    enable = false;
     user = "j_kro";
     sharedStorage = {
       enable = true;
@@ -471,21 +479,23 @@
   # ============================================================================
   # LLAMAFILE - LLM INFERENCE SERVICE (AMD RX 5600 XT - Vulkan)
   # ============================================================================
+  # TEMPORARILY DISABLED: llama-cpp-rocm build failing
+  # Re-enable after nixpkgs update or switch to CPU/Vulkan backend
   services.llamafile = {
-    enable = true;
-    modelPath = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-2B-GGUF/Qwen3.5-2B-IQ4_NL.gguf";
-    host = "0.0.0.0";
-    port = 8086;
-    gpu = "rocm";
-    gpuLayers = 999;
-    ctxSize = 16384;
-    threads = 8;
-    batchSize = 512;
-    ubatchSize = 512;
-    flashAttention = false;
-    enableThinking = false;
-    reasoningBudget = 0;
-    cacheTypeK = "bf16";
-    cacheTypeV = "bf16";
+    enable = false;
+    # modelPath = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-2B-GGUF/Qwen3.5-2B-IQ4_NL.gguf";
+    # host = "0.0.0.0";
+    # port = 8086;
+    # gpu = "rocm";
+    # gpuLayers = 999;
+    # ctxSize = 16384;
+    # threads = 8;
+    # batchSize = 512;
+    # ubatchSize = 512;
+    # flashAttention = false;
+    # enableThinking = false;
+    # reasoningBudget = 0;
+    # cacheTypeK = "bf16";
+    # cacheTypeV = "bf16";
   };
 }
