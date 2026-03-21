@@ -1,0 +1,30 @@
+{
+  "owner": "akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6",
+  "host_uri": "https://provider.provider.reverb256.ca:8443",
+  "attributes": [
+    {"key": "host", "value": "akash"},
+    {"key": "tier", "value": "community"},
+    {"key": "organization", "value": "Reverb256"},
+    {"key": "hardware-cpu-arch", "value": "x86_64"},
+    {"key": "capabilities/gpu/vendor/nvidia", "value": "true"},
+    {"key": "capabilities/gpu/vendor/nvidia/model/rtx3060ti", "value": "true"},
+    {"key": "capabilities/gpu/vendor/nvidia/model/rtx3090", "value": "true"},
+    {"key": "capabilities/gpu/vendor/nvidia/model/rtx4060", "value": "true"},
+    {"key": "capabilities/gpu/vendor/nvidia/memory/8gb", "value": "true"},
+    {"key": "capabilities/gpu/vendor/nvidia/memory/24gb", "value": "true"},
+    {"key": "hardware-gpu", "value": "rtx3060ti,rtx3090,rtx4060"},
+    {"key": "console/trials", "value": "true"},
+    {"key": "capabilities/storage/1/class", "value": "beta2"},
+    {"key": "capabilities/storage/1/persistent", "value": "true"},
+    {"key": "capabilities/storage/2/class", "value": "beta3"},
+    {"key": "capabilities/storage/2/persistent", "value": "true"},
+    {"key": "capabilities/storage/3/class", "value": "ram"},
+    {"key": "capabilities/storage/3/persistent", "value": "false"},
+    {"key": "country", "value": "Canada"},
+    {"key": "region", "value": "bc-west"}
+  ],
+  "info": {
+    "email": "admin@reverb256.ca",
+    "website": "reverb256.ca"
+  }
+}
