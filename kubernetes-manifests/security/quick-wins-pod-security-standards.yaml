@@ -1,0 +1,135 @@
+# Pod Security Standards - Quick Win Hardening
+# Adds PSS labels to namespaces that don't have them yet
+# Applied: 2026-03-21
+
+---
+# AI Coding Namespace - Baseline (development workloads)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-coding
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Akash CPU Test Namespace - Baseline (GPU testing)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: akash-cpu-test
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Akash Provider Namespace - Baseline (blockchain communication)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: akash-provider
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Custom Metrics Namespace - Baseline (monitoring)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: custom-metrics
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# GlitchTip Namespace - Baseline (error tracking)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: glitchtip
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Ingress NGINX Namespace - Privileged (justified - ingress controller needs host access)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+
+---
+# Istio System Namespace - Privileged (justified - service mesh control plane)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+
+---
+# Lease Namespace - Baseline (coordination)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lease
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Local Path Storage Namespace - Baseline (storage provisioner)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: local-path-storage
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Provider Status Namespace - Baseline (monitoring)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: provider-status
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Volcano Monitoring Namespace - Baseline (batch scheduling monitoring)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: volcano-monitoring
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Volcano System Namespace - Privileged (justified - batch scheduler needs host access)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: volcano-system
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
