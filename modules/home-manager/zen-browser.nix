@@ -151,18 +151,84 @@
         // If WebGL/Canvas corruption occurs (e.g., Facebook Messenger), comment this out again
         user_pref("widget.dmabuf.force-enabled", true);
 
-        // Privacy enhancements
-        user_pref("privacy.resistFingerprinting", true);
-        user_pref("network.http.referer.spoofSource", true);
-        user_pref("privacy.trackingprotection.enabled", true);
+        // Privacy enhancements - ENABLED for normal browsing
+        user_pref("privacy.resistFingerprinting", false);  // Disabled - breaks banking
+        user_pref("network.http.referer.spoofSource", false);  // Disabled - breaks banking
+        user_pref("privacy.trackingprotection.enabled", true);  // ENABLED - normal security
 
         // HTTPS-only mode - always use secure connections
         user_pref("dom.security.https_only_mode", true);
         user_pref("dom.security.https_only_mode_ever_enabled", true);
         user_pref("dom.security.https_only_mode_send_http_background_request", false);
 
-        // Enhanced cookie isolation - prevent cross-site tracking
-        user_pref("network.cookie.cookieBehavior", 5); // Block third-party + isolate first-party
+        // Cookie behavior - BALANCED for normal use
+        // 0 = Allow all cookies
+        // 1 = Block third-party cookies
+        // 4 = Block third-party trackers
+        // 5 = Isolate all cookies (Firefox default)
+        user_pref("network.cookie.cookieBehavior", 5);  // Isolate all cookies - SECURE DEFAULT
+
+        // Network partitioning - ENABLED for privacy
+        user_pref("privacy.partition.network_state", true);
+        user_pref("privacy.partition.serviceWorkers", true);
+
+        // Referer headers - PRIVACY-RESPECTING DEFAULTS
+        user_pref("network.http.sendRefererHeader", 2);  // Send full URL (needed for banking)
+        user_pref("network.http.referer.trimmingPolicy", 2);  // Trim to origin (privacy)
+        user_pref("network.http.referer.XOriginPolicy", 1);  // Send full to same origin (privacy)
+
+        // Popup blocking - ENABLED for normal browsing
+        user_pref("dom.disable_open_during_load", true);  // Block unwanted popups
+        user_pref("privacy.popups.showBrowserMessage", true);  // Show when blocked
+
+        // Cross-origin opener policy - ENABLED for security
+        user_pref("dom.security.skip_cross_origin_opener_policy", false);
+
+        // SameSite cookie protection - ENABLED for security
+        user_pref("network.cookie.sameSite.laxByDefault", true);
+        user_pref("network.cookie.sameSite.noneRequiresSecure", true);
+
+        // State partitioning - ENABLED for privacy
+        user_pref("privacy.partition.always_partition_third_party_non_cookie_storage", true);
+        user_pref("privacy.partition.network_state.ocsp", true);
+        user_pref("privacy.partition.dynamic_pnames", true);
+
+        // CSP (Content Security Policy) - ENABLED for security
+        user_pref("security.csp.enable", true);
+
+        // OCSP/CRL checks - ENABLED for security
+        user_pref("security.OCSP.enabled", 1);
+        user_pref("security.CRL.enable", true);
+
+        // Enhanced Tracking Protection - ENABLED for normal browsing
+        user_pref("privacy.trackingprotection.enabled", true);
+        user_pref("privacy.trackingprotection.pbmode.enabled", true);
+        user_pref("privacy.trackingprotection.cryptomining.enabled", true);
+        user_pref("privacy.trackingprotection.fingerprinting.enabled", true);
+        user_pref("privacy.trackingprotection.socialtracking.enabled", true);
+
+        // =====================================================================
+        // SITE-SPECIFIC EXCEPTIONS FOR BANKING (CRA/Interac/RBC only)
+        // =====================================================================
+
+        // User-Agent spoofing ONLY for banking domains (avoids Linux detection)
+        user_pref("general.useragent.override.interac.ca", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0");
+        user_pref("general.useragent.override.sign-in.service.canada.ca", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0");
+        user_pref("general.useragent.override.securekey.com", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0");
+        user_pref("general.useragent.override.cra-agrc.gc.ca", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0");
+        user_pref("general.useragent.override.myaccount.rcbank.com", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0");
+        user_pref("general.useragent.override.www.cra.gc.ca", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0");
+
+        // Site-specific popup permissions for banking domains
+        // These allow popups ONLY from CRA/Interac/RBC, not globally
+        user_pref("permissions.default.popup", 2);  // Block popups globally (secure default)
+
+        // Allow popups from specific banking domains (whitelist approach)
+        user_pref("capability.policy.popup.Window.open", "allAccess");
+        user_pref("capability.policy.popup.sites", "https://cra.gc.ca https://www.cra.gc.ca https://sign-in.service.canada.ca https://interac.ca https://securekey.com https://myaccount.rcbank.com");
+
+        // Allow cookies for banking SAML flow across domains
+        user_pref("network.cookie.sameSite.schemes", "http,https");  // Allow cross-site for banking
 
         // GPU acceleration for AI/ML web apps
         user_pref("gfx.webrender.compositor", true);
@@ -545,7 +611,7 @@
         };
         "SearXNG" = {
           id = "pin-sys-015";
-          url = "http://10.0.0.230:7777";
+          url = "http://zephyr.lan:30080";
           workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
           container = 2;
           position = 675;
@@ -765,7 +831,7 @@
             definedAliases = ["@mdn"];
           };
           searxng = {
-            urls = [{template = "http://10.0.0.230:7777/search?q={searchTerms}";}];
+            urls = [{template = "http://zephyr.lan:30080/search?q={searchTerms}";}];
             icon = "https://searxng.org/static/img/logo_small.svg";
             definedAliases = [
               "@sx"
