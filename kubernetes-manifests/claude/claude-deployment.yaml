@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-code
+  namespace: ai-inference
+  labels:
+    app: claude-code
+    version: v1
+spec:
+  replicas: 1  # Will be managed by HPA
+  selector:
+    matchLabels:
+      app: claude-code
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: claude-code
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Allow pods to run on any node (no GPU required)
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+
+      # Priority class - lower than production, higher than mining
+      priorityClassName: production-workload-critical
+
+      affinity:
+        # Distribute pods across nodes for high availability
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - claude-code
+              topologyKey: kubernetes.io/hostname
+
+      containers:
+      - name: claude-code
+        image: ghcr.io/anthropics/claude-code:latest  # Replace with actual image
+        imagePullPolicy: Always
+
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+
+        env:
+        - name: AI_INFERENCE_GATEWAY_URL
+          value: "http://10.1.1.110:8083"  # Your llama.cpp gateway
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: claude-secrets
+              key: database-url
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: claude-secrets
+              key: anthropic-api-key
+        - name: LOG_LEVEL
+          value: "info"
+        - name: MAX_CONVERSATIONS
+          value: "50"  # Max concurrent conversations per pod
+
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+
+        # Probes for health checking
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        # Graceful shutdown
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - |
+                # Gracefully shutdown existing conversations
+                # Allow 30 seconds for in-flight requests to complete
+                sleep 30
+
+      # Termination grace period
+      terminationGracePeriodSeconds: 60
+
+      # DNS config for faster service discovery
+      dnsPolicy: ClusterFirst

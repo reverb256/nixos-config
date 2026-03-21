@@ -1,0 +1,205 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: claude-metrics-exporter-config
+  namespace: ai-inference
+data:
+  config.yaml: |
+    server:
+      port: 9090
+      path: /metrics
+
+    database:
+      # Use existing postgres on nexus
+      host: postgres-n8n.ai-inference.svc.cluster.local
+      port: 5432
+      database: claude
+      user: claude
+      # Password from secret
+      sslmode: disable
+
+    metrics:
+      # Query active conversations from database
+      active_conversations:
+        query: |
+          SELECT COUNT(DISTINCT session_id)
+          FROM conversations
+          WHERE created_at > NOW() - INTERVAL '1 hour'
+          AND status = 'active'
+        interval: 10s  # Scrape every 10 seconds
+
+      # Additional metrics
+      total_conversations:
+        query: |
+          SELECT COUNT(*)
+          FROM conversations
+          WHERE created_at > NOW() - INTERVAL '24 hours'
+        interval: 30s
+
+      avg_response_time:
+        query: |
+          SELECT AVG(response_time_ms)
+          FROM conversation_metrics
+          WHERE timestamp > NOW() - INTERVAL '5 minutes'
+        interval: 15s
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-metrics-exporter
+  namespace: ai-inference
+  labels:
+    app: claude-metrics-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: claude-metrics-exporter
+  template:
+    metadata:
+      labels:
+        app: claude-metrics-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: exporter
+        image: python:3.11-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          cat <<'SCRIPT' > /app/exporter.py
+          #!/usr/bin/env python3
+          import os
+          import time
+          import psycopg2
+          from http.server import HTTPServer, BaseHTTPRequestHandler
+          from prometheus_client import Counter, Gauge, start_http_server
+
+          # Prometheus metrics
+          ACTIVE_CONVERSATIONS = Gauge('claude_active_conversations', 'Number of active conversations')
+          TOTAL_CONVERSATIONS = Gauge('claude_total_conversations_24h', 'Total conversations in last 24h')
+          AVG_RESPONSE_TIME = Gauge('claude_avg_response_time_ms', 'Average response time in ms')
+
+          def get_db_connection():
+              return psycopg2.connect(
+                  host=os.getenv('DB_HOST', 'postgres-n8n.ai-inference.svc.cluster.local'),
+                  port=int(os.getenv('DB_PORT', 5432)),
+                  database=os.getenv('DB_NAME', 'claude'),
+                  user=os.getenv('DB_USER', 'claude'),
+                  password=os.getenv('DB_PASSWORD'),
+                  connect_timeout=5
+              )
+
+          def update_metrics():
+              try:
+                  conn = get_db_connection()
+                  cur = conn.cursor()
+
+                  # Active conversations (last hour)
+                  cur.execute("""
+                      SELECT COUNT(DISTINCT session_id)
+                      FROM conversations
+                      WHERE created_at > NOW() - INTERVAL '1 hour'
+                      AND status = 'active'
+                  """)
+                  ACTIVE_CONVERSATIONS.set(cur.fetchone()[0] or 0)
+
+                  # Total conversations (24h)
+                  cur.execute("""
+                      SELECT COUNT(*)
+                      FROM conversations
+                      WHERE created_at > NOW() - INTERVAL '24 hours'
+                  """)
+                  TOTAL_CONVERSATIONS.set(cur.fetchone()[0] or 0)
+
+                  # Avg response time
+                  cur.execute("""
+                      SELECT AVG(response_time_ms)
+                      FROM conversation_metrics
+                      WHERE timestamp > NOW() - INTERVAL '5 minutes'
+                  """)
+                  result = cur.fetchone()[0]
+                  if result:
+                      AVG_RESPONSE_TIME.set(result)
+
+                  cur.close()
+                  conn.close()
+              except Exception as e:
+                  print(f"Error updating metrics: {e}")
+
+          class MetricsHandler(BaseHTTPRequestHandler):
+              def do_GET(self):
+                  if self.path == '/metrics':
+                      update_metrics()
+                      self.send_response(200)
+                      self.send_header('Content-Type', 'text/plain')
+                      self.end_headers()
+                      # Return Prometheus metrics
+                      from prometheus_client import REGISTRY
+                      from io import StringIO
+                      output = StringIO()
+                      for metric in REGISTRY.collect():
+                          for sample in metric.samples:
+                              self.wfile.write(f"{sample.name} {sample.value}\n".encode())
+                  else:
+                      self.send_response(404)
+                      self.end_headers()
+
+          if __name__ == '__main__':
+              print("Starting Claude Metrics Exporter on port 9090...")
+              server = HTTPServer(('', 9090), MetricsHandler)
+              server.serve_forever()
+          SCRIPT
+
+          chmod +x /app/exporter.py
+          pip install psycopg2-binary prometheus_client
+          python3 /app/exporter.py
+
+        env:
+        - name: DB_HOST
+          value: "postgres-n8n.ai-inference.svc.cluster.local"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "claude"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: claude-secrets
+              key: database-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: claude-secrets
+              key: database-password
+
+        ports:
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: 10
+          periodSeconds: 30
+
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: 5
+          periodSeconds: 10

@@ -1,0 +1,8 @@
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: preemptible-mining
+value: 100000000
+globalDefault: false
+description: "Preemptible GPU mining workloads (can be evicted by Akash provider, AI inference, and any higher priority workloads)"

@@ -1,0 +1,207 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opencode
+  namespace: ai-inference
+  labels:
+    app: opencode
+    component: ai-coding-tool
+spec:
+  replicas: 1  # Managed by HPA
+  selector:
+    matchLabels:
+      app: opencode
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: opencode
+        component: ai-coding-tool
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Run on any node
+      tolerations:
+      - operator: Exists
+
+      priorityClassName: production-workload-critical
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - opencode
+              topologyKey: kubernetes.io/hostname
+
+      volumes:
+      # Mount user's home directory
+      - name: home-dir
+        hostPath:
+          path: /home/j_kro
+          type: Directory
+
+      initContainers:
+      - name: setup-opencode
+        image: node:20-bullseye-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Install OpenCode if not present
+          if [ ! -d /home/j_kro/.opencode ]; then
+              echo "Installing OpenCode..."
+              cd /home/j_kro
+              npm install -g opencode
+          fi
+
+          # Ensure config exists
+          mkdir -p /home/j_kro/.opencode
+          if [ ! -f /home/j_kro/.opencode/config.json ]; then
+              echo "Config not found, creating default..."
+              # Will be populated by user
+          fi
+
+          chown -R 1000:100 /home/j_kro/.opencode
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/j_kro
+
+      containers:
+      - name: opencode
+        image: node:20-bullseye-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Install OpenCode globally
+          npm install -g opencode
+
+          # Set up environment
+          export HOME=/home/j_kro
+          export USER=j_kro
+
+          # Start OpenCode in server mode (if supported)
+          # or keep running for exec access
+          echo "OpenCode installed and ready"
+          sleep infinity  # Keep pod alive for exec access
+        env:
+        - name: HOME
+          value: /home/j_kro
+        - name: USER
+          value: j_kro
+        - name: PATH
+          value: /npm-global/bin:/usr/local/bin:/usr/bin:/bin
+
+        ports:
+        - name: http
+          containerPort: 8081
+          protocol: TCP
+        - name: metrics
+          containerPort: 9091
+          protocol: TCP
+
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/j_kro
+          readOnly: false
+
+        # OpenCode needs to stay running for exec access
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - which opencode || exit 1
+          initialDelaySeconds: 30
+          periodSeconds: 30
+
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -f /home/j_kro/.opencode/config.json
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+      # Metrics exporter for OpenCode
+      - name: metrics-exporter
+        image: python:3.11-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install prometheus_client psutil
+          cat <<'EOF' > /app/metrics.py
+          from prometheus_client import start_http_server, Gauge
+          import psutil
+          import time
+          import json
+
+          ACTIVE_SESSIONS = Gauge('opencode_active_sessions', 'Number of active OpenCode sessions')
+          CONFIG_LOADED = Gauge('opencode_config_loaded', 'Config file loaded (1=yes, 0=no)')
+          CPU_USAGE = Gauge('opencode_cpu_usage_percent', 'CPU usage percent')
+          MEMORY_USAGE = Gauge('opencode_memory_usage_bytes', 'Memory usage in bytes')
+
+          def check_config():
+              try:
+                  with open('/home/j_kro/.opencode/config.json', 'r') as f:
+                      json.load(f)
+                  return 1
+              except:
+                  return 0
+
+          if __name__ == '__main__':
+              start_http_server(9091)
+              while True:
+                  ACTIVE_SESSIONS.set(0)  # OpenCode is stateless
+                  CONFIG_LOADED.set(check_config())
+                  CPU_USAGE.set(psutil.cpu_percent(interval=1))
+                  MEMORY_USAGE.set(psutil.virtual_memory().used)
+                  time.sleep(10)
+          EOF
+
+          python3 /app/metrics.py
+
+        env:
+        - name: HOME
+          value: /home/j_kro
+
+        ports:
+        - name: metrics
+          containerPort: 9091
+
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/j_kro
+          readOnly: true
+
+      terminationGracePeriodSeconds: 60

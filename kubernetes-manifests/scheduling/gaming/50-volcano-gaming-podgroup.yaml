@@ -1,0 +1,87 @@
+# Volcano-based Gaming Workload with Preemption
+# Uses PodGroup API for gang scheduling and priority preemption
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: gaming-placeholder-group
+  namespace: mining
+  labels:
+    app: gaming-placeholder
+    workload-type: gaming
+spec:
+  # Minimum member to consider the PodGroup ready
+  minMember: 1
+  # Minimum resources required for this PodGroup
+  # This is what triggers preemption of lower priority workloads
+  minResources:
+    cpu: "500m"
+    memory: "256Mi"
+    nvidia.com/gpu: "2"    # Request 2 NVIDIA GPUs for gaming
+  # Priority class - this determines preemption order
+  priorityClassName: gaming-high
+  # Queue - use gaming queue which has higher weight
+  queue: gaming-queue
+---
+# Gaming Placeholder Deployment using Volcano scheduler
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gaming-placeholder-volcano
+  namespace: mining
+  labels:
+    app: gaming-placeholder
+    scheduler: volcano
+spec:
+  replicas: 0  # Initially zero, scaled up when gaming detected
+  selector:
+    matchLabels:
+      app: gaming-placeholder
+  template:
+    metadata:
+      labels:
+        app: gaming-placeholder
+        scheduler: volcano
+        # Associate with PodGroup
+        scheduling.volcano.sh/pod-group: gaming-placeholder-group
+    spec:
+      schedulerName: volcano  # Use Volcano scheduler
+      priorityClassName: gaming-high
+      # Restart policy for gaming pods
+      restartPolicy: Always
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause:3.9
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "100Mi"
+            nvidia.com/gpu: "2"  # Claim both GPUs to preempt mining
+          limits:
+            cpu: "100m"
+            memory: "100Mi"
+            nvidia.com/gpu: "2"
+      nodeSelector:
+        kubernetes.io/hostname: forge  # Only on Forge (mining node)
+---
+# Volcano Priority Class for Gaming (if not exists)
+# Note: This should already exist from the YuniKorn setup
+# apiVersion: scheduling.k8s.io/v1
+# kind: PriorityClass
+# metadata:
+#   name: gaming-high
+# value: 1000
+# globalDefault: false
+# description: "Highest priority for gaming - preempts all mining workloads"
+# preemptionPolicy: PreemptLowerPriority
+---
+# Compute Workload Monitor Integration
+# The compute-workload-monitor should scale this deployment instead of the YuniKorn one:
+#
+# When gaming detected:
+#   kubectl scale deployment gaming-placeholder-volcano -n mining --replicas=1
+#   kubectl scale deployment gpu-miner-forge-nvidia-0 gpu-miner-forge-nvidia-1 -n mining --replicas=0
+#
+# When gaming ends:
+#   kubectl scale deployment gaming-placeholder-volcano -n mining --replicas=0
+#   kubectl scale deployment gpu-miner-forge-nvidia-0 gpu-miner-forge-nvidia-1 -n mining --replicas=1

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: akash-services
+data:
+  config.yml: |
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+
+    ingress:
+      # Akash Provider (main hostname)
+      - hostname: provider.reverb256.ca
+        service: https://akash-provider-akash-provider-fixed.akash-services.svc.cluster.local:8443
+        originRequest:
+          noTLSVerify: true
+
+      # Akash Tenant Ingress (wildcard)
+      - hostname: "*.ingress.provider.reverb256.ca"
+        service: https://akash-provider-akash-provider-fixed.akash-services.svc.cluster.local:8443
+        originRequest:
+          noTLSVerify: true
+
+      # Provider Status Page (future)
+      - hostname: status.reverb256.ca
+        service: http://provider-status.akash-services.svc.cluster.local:80
+
+      # Future services (examples from domain strategy)
+      # - hostname: git.reverb256.ca
+      #   service: http://gitea.http.svc.cluster.local:3000
+      # - hostname: grafana.reverb256.ca
+      #   service: http://grafana.http.svc.cluster.local:3000
+
+      # Catch-all: return 404 for unknown hostnames
+      - service: http_status:404

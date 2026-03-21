@@ -1,0 +1,44 @@
+# Pod Security Exceptions for Akash Services
+# These pods require specific exceptions for baseline PodSecurity enforcement
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: akash-services
+  labels:
+    # Allow hostPath volumes for specific pods
+    pod-security.kubernetes.io/allow-host-path: "true"
+    pod-security.kubernetes.io/allow-privilege-escalation: "false"
+---
+# Exception for cloudflared (requires hostPath for Unix socket)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cloudflared-exception
+  namespace: akash-services
+  labels:
+    app: cloudflared
+    eks.amazonaws.com/compliance: relax
+spec:
+  containers:
+  - name: cloudflared
+    image: cloudflare/cloudflared:2026.3.0
+    command: ["/bin/sh", "-c", "sleep 3600"]
+    securityContext:
+      runAsUser: 0
+      readOnlyRootFilesystem: false
+  # This pod will be replaced by actual cloudflared deployment
+---
+# Update actual cloudflared deployment with annotations
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: akash-services
+spec:
+  template:
+    metadata:
+      annotations:
+        # Allow hostPath volume for cloudflared
+        pod-security.kubernetes.io/allow-host-path: "true"
+        pod-security.kubernetes.io/allow-privilege-escalation: "false"

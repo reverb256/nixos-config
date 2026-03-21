@@ -1,0 +1,47 @@
+# Volcano PodGroups for NVIDIA Mining Workloads
+# These allow Volcano to manage and preempt the mining pods
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: gpu-miner-forge-nvidia-0-group
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-id: "0"
+    gpu-type: nvidia
+spec:
+  minMember: 1
+  minResources:
+    cpu: "2"
+    memory: "4Gi"
+    nvidia.com/gpu: "1"
+  priorityClassName: mining-low
+  queue: mining-queue
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: gpu-miner-forge-nvidia-1-group
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-id: "1"
+    gpu-type: nvidia
+spec:
+  minMember: 1
+  minResources:
+    cpu: "2"
+    memory: "4Gi"
+    nvidia.com/gpu: "1"
+  priorityClassName: mining-low
+  queue: mining-queue
+---
+# Patch for the NVIDIA miner deployments to use Volcano
+# After applying these PodGroups, patch the deployments:
+# kubectl patch deployment gpu-miner-forge-nvidia-0 -n mining --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/schedulerName", "value":"volcano"}]'
+# kubectl patch deployment gpu-miner-forge-nvidia-1 -n mining --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/schedulerName", "value":"volcano"}]'
+# kubectl patch deployment gpu-miner-forge-nvidia-0 -n mining --type=strategic -p='{"spec":{"template":{"spec":{"$patch":"replace","podScheduler":"volcano"}}}}'
+# kubectl patch deployment gpu-miner-forge-nvidia-1 -n mining --type=strategic -p='{"spec":{"template":{"spec":{"$patch":"replace","podScheduler":"volcano"}}}}'
+# kubectl patch deployment gpu-miner-forge-nvidia-0 -n mining -p '{"spec":{"template":{"spec":{"schedulerName":"volcano"}}}}'
+# kubectl patch deployment gpu-miner-forge-nvidia-1 -n mining -p '{"spec":{"template":{"spec":{"schedulerName":"volcano"}}}}'

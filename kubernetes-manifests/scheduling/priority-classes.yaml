@@ -1,0 +1,56 @@
+---
+# Pod Priority Classes for NixOS Cluster
+# NOTE: system-cluster-critical and system-node-critical are built-in Kubernetes classes
+
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: production-workload-critical
+value: 900000000
+globalDefault: false
+description: "Business-critical production workloads (Akash provider, GPU mining, AI inference)"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: production-workload-high
+value: 800000000
+globalDefault: false
+description: "Important production workloads (databases, caching, web services)"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: production-workload-medium
+value: 700000000
+globalDefault: false
+description: "Standard production workloads (background workers, batch jobs)"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: development-workload
+value: 500000000
+globalDefault: false
+description: "Development and testing workloads"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: batch-workload
+value: 400000000
+globalDefault: false
+description: "Batch jobs and scheduled tasks (CronJobs)"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: best-effort-workload
+value: 200000000
+globalDefault: true
+description: "Best-effort workloads (can be preempted, low priority monitoring, demos)"
