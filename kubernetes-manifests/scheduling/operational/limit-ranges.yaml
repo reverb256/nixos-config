@@ -1,0 +1,53 @@
+# LimitRanges for all namespaces
+# Apply appropriate defaults based on workload type
+
+---
+# Search namespace (Searxng)
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: search-limits
+  namespace: search
+spec:
+  limits:
+  - default:
+      cpu: "1000m"
+      memory: "1Gi"
+    defaultRequest:
+      cpu: "200m"
+      memory: "256Mi"
+    type: Container
+
+---
+# AI Inference namespace
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ai-inference-limits
+  namespace: ai-inference
+spec:
+  limits:
+  - default:
+      cpu: "2000m"
+      memory: "2Gi"
+    defaultRequest:
+      cpu: "500m"
+      memory: "512Mi"
+    type: Container
+
+---
+# Glitchtip namespace
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: glitchtip-limits
+  namespace: glitchtip
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container

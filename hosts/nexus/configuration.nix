@@ -57,6 +57,9 @@
   # Directly disable the systemd timer (blocking rebuilds)
   systemd.timers.flake-lock-sync.enable = false;
 
+  # STATUS.md auto-update (hourly from kubectl)
+  services.status-auto-update.enable = true;
+
   # Populate /etc/hosts from central cluster configuration
   networking = {
     cluster-hosts = {

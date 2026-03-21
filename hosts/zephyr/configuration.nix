@@ -652,13 +652,6 @@
       enable = true;
       # Custom Caddyfile for complex configurations (Nextcloud)
       configFile = pkgs.writeText "Caddyfile" ''
-        # SearXNG privacy-friendly search (MIGRATED TO KUBERNETES 2026-03-19)
-        # External access via Kubernetes Ingress (not yet implemented)
-        # To enable external access, create Ingress resource in search namespace
-        # search.zephyr.tigris-ule.ts.net:9001 {
-        #   reverse_proxy searxng.search.svc.cluster.local:7777
-        # }
-
         # AI Inference Gateway (via Tailscale)
         ai.zephyr.tigris-ule.ts.net:9002 {
           reverse_proxy 127.0.0.1:8080
@@ -697,9 +690,8 @@
     redis.servers."".enable = true;
     # Note: redis-ai-gateway.service already provides Redis on port 6380
 
-    # SearXNG - Privacy-respecting metasearch engine for AI gateway
+    # SearXNG - Privacy-respecting metasearch engine
     # MIGRATED TO KUBERNETES (2026-03-19) - See kubernetes-manifests/searxng/
-    searxng.enable = false;
 
     # AI Inference Service - Gateway with ALL FEATURES enabled
     ai-inference = {
@@ -734,7 +726,7 @@
           # All knowledge sources enabled
           rag_enabled = true;
           searxng_enabled = true;
-          searxng_url = "http://10.1.1.110:30080"; # NodePort for LAN access (K8s SearXNG service)
+          searxng_url = "http://10.1.1.120:30080"; # NodePort for LAN access (K8s SearXNG on nexus)
           searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
@@ -875,24 +867,6 @@
       autoStart = false;
     };
 
-    # HOME ASSISTANT - Smart Home Automation Platform
-    # MIGRATED TO KUBERNETES (2026-03-18)
-    # Running in default namespace on cluster nodes
-    home-assistant = {
-      enable = false;
-      openFirewall = true;
-      config = {
-        homeassistant = {
-          name = "Zephyr";
-          latitude = "49.8951";
-          longitude = "-97.1384";
-          temperature_unit = "C";
-          time_zone = "America/Winnipeg";
-          unit_system = "metric";
-        };
-      };
-    };
-
     # MULTIMEDIA - GStreamer support for Qt/KDE applications
     multimedia.gstreamer.enable = true;
 
@@ -996,18 +970,6 @@
         retentionDays = 30;
       };
       grafana.enable = false; # RUNNING ON KUBERNETES (ai-inference namespace)
-    };
-
-    # GlitchTip error tracking (self-hosted Sentry alternative)
-    # MIGRATED TO KUBERNETES (2026-03-19) - See kubernetes-manifests/glitchtip/
-    glitchtip-selfhosted = {
-      enable = false; # MIGRATED TO KUBERNETES
-      host = "127.0.0.1";
-      port = 8000;
-      openFirewall = false;
-      database.passwordFile = "/run/agenix/glitchtip-db-password";
-      secretKeyFile = "/run/agenix/glitchtip-secret-key";
-      enableForGateway = true;
     };
 
     # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn

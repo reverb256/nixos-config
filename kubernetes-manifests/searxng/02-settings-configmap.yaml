@@ -1,0 +1,27 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-settings-production
+  namespace: search
+data:
+  settings.yml: |
+    server:
+      limiter: false
+      secret_key: "REDACTED_SEARXNG_SECRET_KEY"
+      methods: []
+      port: 8888
+      bind_address: "127.0.0.1"
+
+    search:
+      formats:
+        - html
+        - csv
+        - json
+        - rss
+      language: en
+
+    engines:
+      - name: google
+      - name: stackoverflow
+      - name: github

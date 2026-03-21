@@ -220,7 +220,7 @@
 - ✅ Monitoring deployed (Prometheus + Grafana - operational)
 - ⚠️ **NEW REQUIREMENT:** Compute scheduler coordination for GPU workloads
 
-**Phase 3 Status: ✅ COMPLETE (100%)**
+**Phase 3 Status: ✅ COMPLETE (95%)**
 
 **Completed:**
 - ✅ GlitchTip PostgreSQL migrated to Kubernetes StatefulSet (10Gi PVC, fast-local-ssd)
@@ -231,11 +231,11 @@
 - ✅ Data backup preserved before migration
 - ✅ GlitchTip accessible via kubectl port-forward
 
-**Outstanding Issues:**
+**Known Issues:**
 - ⏳ Need to configure ingress route for external GlitchTip access
 - ⏳ Need to test data persistence across pod restarts
 
-**Phase 4 Status: ✅ COMPLETE (100%)**
+**Phase 4 Status: ✅ COMPLETE (95%)**
 
 **Completed:**
 - ✅ Caddy Ingress deployed (DaemonSet on nexus, sentry)
@@ -245,9 +245,10 @@
 - ✅ GlitchTip web/worker/redis migrated (Phase 3)
 - ✅ Prometheus + Grafana running on Kubernetes (ai-inference namespace)
 
-**Outstanding Issues:**
+**Known Issues:**
 - ⏳ Configure ingress routes for external access
 - ⏳ Test service-to-service communication
+- ⚠️ SearXNG HTTP 403 errors from external search engines (botdetection configuration issues)
 
 **Completed:**
 - ✅ Kubernetes control plane deployed and operational
@@ -506,7 +507,7 @@
 - ✅ AI Gateway integrated with Kubernetes service
 - ✅ End-to-end testing complete (17/18 tests passed)
 
-**Phase 5 Status: ✅ COMPLETE (100%)** - Completed 2026-03-19
+**Phase 5 Status: ✅ COMPLETE (95%)** - Completed 2026-03-19
 
 **Achievements:**
 - ✅ llama.cpp deployed via external service integration
@@ -517,6 +518,10 @@
 - ✅ Model: Qwen3.5-2B-IQ4_NL.gguf with Flash Attention + bf16 KV cache
 - ⚠️ vLLM deployment pending (CUDA compatibility issue - llama.cpp used as alternative)
 - GPU monitoring deployed
+
+**Known Issues:**
+- ❌ Forge GPU registration failing (RTX 4060 Ada Lovelace support issue)
+- ⚠️ vLLM deployment pending (CUDA compatibility issue - llama.cpp used as alternative)
 
 ---
 

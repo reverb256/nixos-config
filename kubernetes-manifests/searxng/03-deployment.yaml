@@ -19,6 +19,9 @@ spec:
       labels:
         app: searxng
     spec:
+      # Schedule on nexus to avoid IP exhaustion on sentry
+      nodeSelector:
+        kubernetes.io/hostname: nexus
       # POD LEVEL SECURITY CONTEXT
       securityContext:
         runAsNonRoot: true
@@ -70,19 +73,6 @@ spec:
           timeoutSeconds: 3
           failureThreshold: 3
         # Volume mounts for read-only root filesystem
-        lifecycle:
-          postStart:
-            exec:
-              command:
-              - /bin/sh
-              - -c
-              - |
-                # Wait for settings.yml to be auto-generated
-                sleep 2
-                # Enable all formats (html, csv, json, rss)
-                sed -i 's/formats:/formats: #/' /etc/searxng/settings.yml
-                sed -i '/# remove format to deny/a\  formats:\n    - html\n    - csv\n    - json\n    - rss' /etc/searxng/settings.yml || \
-                sed -i 's/  - html$/  - html\n    - csv\n    - json\n    - rss/' /etc/searxng/settings.yml
         volumeMounts:
         - name: tmp
           mountPath: /tmp
@@ -107,11 +97,12 @@ metadata:
   labels:
     app: searxng
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
   - name: http
     port: 7777
     targetPort: 8080
     protocol: TCP
+    nodePort: 30080
   selector:
     app: searxng

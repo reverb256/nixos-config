@@ -1,0 +1,80 @@
+# Akash Services Network Policy
+# Allows intra-namespace communication for Akash provider and services
+# Akash provider needs to communicate with its operator pods
+
+---
+# Allow all traffic within akash-services namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-akash-services
+  namespace: akash-services
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: akash-services
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: akash-services
+
+---
+# Allow DNS for akash-services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: akash-services
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Allow Akash provider to communicate with blockchain nodes (external)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-provider-egress
+  namespace: akash-services
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: akash-provider
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector: {}  # Allow to all namespaces
+    ports:
+    - protocol: TCP
+      port: 26656  # Akash P2P port
+    - protocol: TCP
+      port: 26657  # Akash RPC port
+    - protocol: TCP
+      port: 1317  # Akash API port
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0  # Allow external blockchain communication
+    ports:
+    - protocol: TCP
+      port: 26656
+    - protocol: TCP
+      port: 26657
+    - protocol: TCP
+      port: 1317
