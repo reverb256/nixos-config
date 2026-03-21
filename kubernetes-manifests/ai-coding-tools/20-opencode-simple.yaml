@@ -1,0 +1,145 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opencode
+  namespace: ai-inference
+  labels:
+    app: opencode
+    component: ai-coding-tool
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opencode
+  template:
+    metadata:
+      labels:
+        app: opencode
+        component: ai-coding-tool
+    spec:
+      volumes:
+      - name: home-dir
+        hostPath:
+          path: /home/j_kro
+          type: Directory
+
+      - name: nix-profile
+        hostPath:
+          path: /home/j_kro/.nix-profile
+          type: Directory
+
+      containers:
+      - name: opencode-wrapper
+        image: busybox:1.36
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "OpenCode pod ready for exec access"
+          echo "Home: /home/j_kro"
+          echo "Nix profile: /home/j_kro/.nix-profile"
+          echo ""
+          echo "Use: kubectl exec -it $POD_NAME -- /home/j_kro/.nix-profile/bin/opencode"
+          echo ""
+          sleep infinity
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: HOME
+          value: /home/j_kro
+        - name: USER
+          value: j_kro
+        - name: PATH
+          value: /home/j_kro/.nix-profile/bin:/run/current-system/sw/bin:/usr/bin:/bin
+
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/j_kro
+        - name: nix-profile
+          mountPath: /home/j_kro/.nix-profile
+
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -f /home/j_kro/.opencode/config.json
+          initialDelaySeconds: 10
+          periodSeconds: 30
+
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -f /home/j_kro/.opencode/config.json
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+      # Metrics sidecar
+      - name: metrics
+        image: python:3.11-slim
+        command:
+        - /bin/sh
+        - -c
+        - |
+          pip install prometheus_client psutil -q
+          cat <<'EOF' > /app/metrics.py
+          from prometheus_client import start_http_server, Gauge
+          import psutil
+          import time
+
+          CONFIG_LOADED = Gauge('opencode_config_loaded', 'Config loaded (1=yes, 0=no)')
+          CPU_USAGE = Gauge('opencode_cpu_usage_percent', 'CPU usage percent')
+
+          def check_config():
+              try:
+                  import json
+                  with open('/home/j_kro/.opencode/config.json', 'r') as f:
+                      json.load(f)
+                  return 1
+              except:
+                  return 0
+
+          if __name__ == '__main__':
+              start_http_server(9091)
+              while True:
+                  CONFIG_LOADED.set(check_config())
+                  CPU_USAGE.set(psutil.cpu_percent(interval=1))
+                  time.sleep(10)
+          EOF
+
+          python3 /app/metrics.py
+
+        env:
+        - name: HOME
+          value: /home/j_kro
+
+        ports:
+        - name: metrics
+          containerPort: 9091
+
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/j_kro
+          readOnly: true
+
+      terminationGracePeriodSeconds: 30
