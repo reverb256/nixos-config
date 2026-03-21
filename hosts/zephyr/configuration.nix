@@ -444,6 +444,30 @@
       profile = "conservative"; # Lower PSI thresholds for earlier build/mining pause
     };
 
+    # ============================================================================
+    # REFACTOR: Modular Workload Monitoring (Phase 2 - Integration Testing)
+    # ============================================================================
+    # Running old + new modules simultaneously for validation
+    # Old module manages services, new modules provide monitoring only
+    # TODO: Remove compute-workload-monitor after Phase 3 cutover
+    gaming-detection = {
+      enable = true;
+      checkInterval = 10;
+    };
+
+    gpu-profile-manager = {
+      enable = true;
+      checkInterval = 10;
+    };
+
+    mining-coordinator = {
+      enable = true;
+      checkInterval = 10;
+      # Use conservative thresholds for memory-constrained system
+      psiCpuBuildThreshold = "5.0";
+      psiCpuIdleThreshold = "2.0";
+    };
+
     # NIX BINARY CACHE - Serve pre-built packages to cluster
     # Eliminates redundant builds across nodes, speeds up deployments
     binary-cache = {
@@ -926,9 +950,9 @@
       };
       # CPU mining - Dual XMRig setup (always-on + pause-able)
       # Total when idle: 16 threads (50%) - Total when gaming: 4 threads (12%)
-      # DISABLED: K8s version working instead
+      # Re-enabled: No K8s migration completed
       xmrigDual = {
-        enable = false;
+        enable = true;
         # Always-on instance - mines even during gaming
         alwaysOn = {
           enable = false;
@@ -939,7 +963,7 @@
         };
         # Flexible instance - pauses during gaming/builds
         flexible = {
-          enable = false;
+          enable = true;
           threads = 12; # 38% of 32 cores - extra capacity when idle
           httpPort = 8082;
           httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
