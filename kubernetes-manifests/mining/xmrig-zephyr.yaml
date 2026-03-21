@@ -1,0 +1,55 @@
+# XMRig CPU Miner Deployment for Zephyr (32 cores)
+# Using Volcano scheduler for consistency with GPU miners
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xmrig-zephyr
+  namespace: mining
+  labels:
+    app: xmrig
+    host: zephyr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xmrig
+      host: zephyr
+  template:
+    metadata:
+      labels:
+        app: xmrig
+        host: zephyr
+    spec:
+      schedulerName: volcano
+      nodeName: zephyr
+      serviceAccountName: gpu-miner-sa
+      hostNetwork: true
+      priorityClassName: preemptible-mining
+      containers:
+      - name: xmrig
+        image: xmrig-nixos:latest
+        imagePullPolicy: Never
+        args:
+          - "-o"
+          - "10.1.1.110:3333"
+          - "-u"
+          - "zephyr-cpu"
+          - "--tls=false"
+          - "--randomx-1gb-pages"
+          - "--threads=8"
+          - "--donate-level=1"
+        ports:
+        - containerPort: 8081
+          name: api
+          protocol: TCP
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "4"
+          limits:
+            memory: "3Gi"
+            cpu: "8"
+        env:
+        - name: XMRIG_NO_TLS
+          value: "1"
