@@ -142,6 +142,13 @@ in {
       description = "KV cache type for values (bf16 recommended for Qwen3.5 to fix garbled output)";
     };
 
+    # GPU-only mode - disable system RAM caching
+    cacheRam = mkOption {
+      type = types.int;
+      default = 0; # Disable prompt cache in RAM (force GPU-only)
+      description = "Prompt cache size in MB (0 = disable, use GPU only to save system RAM)";
+    };
+
     # Sampling parameters
     temperature = mkOption {
       type = types.float;
@@ -208,6 +215,7 @@ in {
             --reasoning-budget ${toString cfg.reasoningBudget} \
             --cache-type-k ${cfg.cacheTypeK} \
             --cache-type-v ${cfg.cacheTypeV} \
+            --cache-ram ${toString cfg.cacheRam} \
             --temp ${lib.strings.floatToString cfg.temperature} \
             --top-k ${toString cfg.topK} \
             --top-p ${lib.strings.floatToString cfg.topP} \
