@@ -37,6 +37,9 @@
     ./system/btrfs-compression.nix
     ./system/btrfs-tuning.nix
     ./system/compute-workload-monitor.nix
+    ./system/gaming-detection.nix
+    ./system/gpu-profile-manager.nix
+    ./system/mining-coordinator.nix
     ./system/oom-protection.nix
     ./system/compute-workload-monitor-profiles.nix
     ./system/xmrig-api-control.nix
