@@ -1,0 +1,36 @@
+# Glitchtip Error Tracking - Medium Priority PDBs
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: glitchtip-web-pdb
+  namespace: glitchtip
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: web
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: glitchtip-postgres-pdb
+  namespace: glitchtip
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: postgres
+---
+# Note: Worker PDB not created as worker is currently 0/1 (Failed)
+# Enable when worker is fixed:
+# apiVersion: policy/v1
+# kind: PodDisruptionBudget
+# metadata:
+#   name: glitchtip-worker-pdb
+#   namespace: glitchtip
+# spec:
+#   minAvailable: 1
+#   selector:
+#     matchLabels:
+#       app.kubernetes.io/component: worker

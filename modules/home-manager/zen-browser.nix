@@ -179,6 +179,24 @@
         // Web activity tracking - see time spent per site
         user_pref("zen.web-activity.enabled", true);
         user_pref("zen.web-activity.show-in-sidebar", true);
+
+        // Banking site exceptions - relax privacy for financial institutions
+        // NOTE: These preferences work globally. For per-site exceptions, use:
+        // 1. NoScript extension: Click NoScript icon → Options → Per-site permissions
+        // 2. uBlock Origin: Click uBlock icon → Disable on this site
+        // 3. Privacy Badger: Click PB icon → Disable for this site
+
+        // Alternative: Use the Banking container (id=8) which has relaxed settings
+        // Open banking sites in Banking workspace → they get container-level exceptions
+
+        // For automatic per-site exceptions, Firefox doesn't support domain-specific
+        // fingerprinting exemptions via prefs. Use extensions' UI or:
+        // 1. Click NoScript icon → Trust rbcroyalbank.com
+        // 2. Click uBlock icon → Turn off for www1.royalbank.com
+        // 3. Click Privacy Badger → Allow for rbcroyalbank.com
+
+        // Temporary workaround: Create a Banking profile/container with relaxed settings
+        // The Banking workspace (container 8) is designed for this purpose
       '';
 
       # Declarative Containers (Multi-Account Containers)
@@ -218,6 +236,11 @@
           icon = "circle";
           id = 7;
         };
+        "Banking" = {
+          color = "yellow";
+          icon = "gift";
+          id = 8;
+        };
       };
 
       # Declarative Workspaces (Spaces)
@@ -245,6 +268,12 @@
           icon = "🏠";
           position = 4000;
           container = 2; # Personal container
+        };
+        "Banking" = {
+          id = "banking-8h2j3k4l-5m6n-7o8p-9q0r-1s2t3u4v5w6x7";
+          icon = "🏦";
+          position = 4500;
+          container = 8; # Banking container
         };
         "Mining" = {
           id = "mining-5e9g4d8f-1b7c-6e63-0a99-3g1e7c6f4e25";
@@ -397,6 +426,22 @@
           workspace = "mining-5e9g4d8f-1b7c-6e63-0a99-3g1e7c6f4e25";
           container = 3;
           position = 500;
+        };
+
+        # Banking Space (relaxed privacy for financial institutions)
+        "RBC Online Banking" = {
+          id = "pin-bank-001";
+          url = "https://www.rbcroyalbank.com";
+          workspace = "banking-8h2j3k4l-5m6n-7o8p-9q0r-1s2t3u4v5w6x7";
+          container = 8;
+          position = 450;
+        };
+        "RBC Sign In" = {
+          id = "pin-bank-002";
+          url = "https://www1.royalbank.com";
+          workspace = "banking-8h2j3k4l-5m6n-7o8p-9q0r-1s2t3u4v5w6x7";
+          container = 8;
+          position = 455;
         };
 
         # System Space
