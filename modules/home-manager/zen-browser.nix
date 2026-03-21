@@ -783,56 +783,86 @@
     let
       spacesConfig = {
         "Dev" = {
-          id = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
+          uuid = "{dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01}";
           icon = "📦";
           position = 1000;
-          container = 1;
+          containerTabId = 1;
+          name = "Dev";
+          hasCollapsedPinnedTabs = false;
         };
         "AI" = {
-          id = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
+          uuid = "{ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02}";
           icon = "🤖";
           position = 2000;
-          container = 5;
+          containerTabId = 5;
+          name = "AI";
+          hasCollapsedPinnedTabs = false;
         };
         "Gaming" = {
-          id = "game-3c7e2b6d-9f5a-4b41-8f77-1e9c5a4d2c03";
+          uuid = "{game-3c7e2b6d-9f5a-4b41-8f77-1e9c5a4d2c03}";
           icon = "🎮";
           position = 3000;
-          container = 4;
+          containerTabId = 4;
+          name = "Gaming";
+          hasCollapsedPinnedTabs = false;
         };
         "Personal" = {
-          id = "personal-4d8f3c7e-0a6b-5d52-9f88-2f0d6b5e3d14";
+          uuid = "{personal-4d8f3c7e-0a6b-5d52-9f88-2f0d6b5e3d14}";
           icon = "🏠";
           position = 4000;
-          container = 2;
+          containerTabId = 2;
+          name = "Personal";
+          hasCollapsedPinnedTabs = false;
         };
         "Banking" = {
-          id = "banking-8h2j3k4l-5m6n-7o8p-9q0r-1s2t3u4v5w6x7";
+          uuid = "{banking-8h2j3k4l-5m6n-7o8p-9q0r-1s2t3u4v5w6x7}";
           icon = "🏦";
           position = 4500;
-          container = 8;
+          containerTabId = 8;
+          name = "Banking";
+          hasCollapsedPinnedTabs = false;
         };
         "Mining" = {
-          id = "mining-5e9g4d8f-1b7c-6e63-0a99-3g1e7c6f4e25";
+          uuid = "{mining-5e9g4d8f-1b7c-6e63-0a99-3g1e7c6f4e25}";
           icon = "⛏️";
           position = 5000;
-          container = 3;
+          containerTabId = 3;
+          name = "Mining";
+          hasCollapsedPinnedTabs = false;
         };
         "Clients" = {
-          id = "clients-7h1i2j3k-4l5m-6n7o-8p9q-0r1s2t3u4v5w6";
+          uuid = "{clients-7h1i2j3k-4l5m-6n7o-8p9q-0r1s2t3u4v5w6}";
           icon = "💼";
           position = 5500;
-          container = 7;
+          containerTabId = 7;
+          name = "Clients";
+          hasCollapsedPinnedTabs = false;
         };
         "System" = {
-          id = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
+          uuid = "{system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36}";
           icon = "⚙️";
           position = 6000;
-          container = 2;
+          containerTabId = 2;
+          name = "System";
+          hasCollapsedPinnedTabs = false;
         };
       };
+
+      # Default theme structure for all spaces
+      defaultTheme = {
+        gradientColors = [];
+        opacity = 0.5;
+        rotation = null;
+        texture = 0.0;
+        type = "gradient";
+      };
+
+      # Add theme to each space
+      spacesWithThemes = builtins.mapAttrs (name: space:
+        space // { theme = defaultTheme; }
+      ) spacesConfig;
     in
-      builtins.toJSON (builtins.attrValues spacesConfig);
+      builtins.toJSON (builtins.attrValues spacesWithThemes);
 
   # Note: Pins are too numerous to duplicate here. The zen-browser module
   # generates zen-declared-pins-default.json correctly but doesn't link it.
