@@ -125,6 +125,30 @@
     vulkan.enable = true; # Vulkan as fallback/universal backend
   };
 
+  # DDC/CI support for external monitor brightness control
+  # Note: ddcutil module not available, commented out
+  # hardware.video.ddcutil.enable = true;
+
+  # ============================================================================
+  # SYSTEMD - Service overrides
+  # ============================================================================
+  # GameMode daemon - Start at boot for compute-workload-monitor gaming detection
+  # The gaming module (programs.gamemode) configures GameMode but the daemon
+  # is D-Bus activated and doesn't start until a game requests it. This
+  # override ensures gamemoded runs at boot so the compute-workload-monitor
+  # can query gaming state via `gamemoded -s` for cluster-wide coordination.
+  #
+  # Note: GameMode is a D-Bus session service, so we use systemd.user.services
+  # to run it in the user session context, not as a system service.
+  systemd.user.services.gamemoded = {
+    wantedBy = ["default.target"];
+    serviceConfig = {
+      ExecStart = "${pkgs.gamemode}/bin/gamemoded -d";
+      Restart = "on-failure";
+      Type = "forking";
+    };
+  };
+
   # ============================================================================
   # SERVICES - All service configurations consolidated here
   # ============================================================================
@@ -430,8 +454,9 @@
 
     # GPU Resource Marketplace - Unified auction engine for GPU allocation
     # Coordinates between mining, Kubernetes, Akash, and gaming workloads
+    # DISABLED: Service broken, blocking rebuild (2026-03-21)
     compute-market = {
-      enable = true;
+      enable = false;
       auctionInterval = 30; # Run auction every 30 seconds
 
       # Bidders configuration
@@ -655,7 +680,6 @@
       backend = {
         url = "http://127.0.0.1:8083";
         type = "llama-cpp";
-        lmStudio.apiKeyFile = "/run/agenix/lm-studio-api-key";
         zai = {
           enable = true;
           apiKeyFile = "/run/agenix/zai-api-key";
@@ -701,7 +725,6 @@
         defaultModel = "qwen3.5-35b-a3b";
         fallbackChain = [
           "vllm"
-          "lm-studio"
           "zai"
           "pollinations"
         ];
@@ -808,15 +831,6 @@
       };
     };
 
-    # LM Studio Headless Service (llmster daemon)
-    lm-studio-headless = {
-      enable = true;
-      user = "j_kro";
-      port = 1234;
-      host = "127.0.0.1";
-      gpuDevice = 0;  # RTX 3060 Ti - GPU 1 (RTX 3090) reserved for mining
-    };
-
     # MCP Servers for AI tools
     mcp-servers = {
       enable = true;
@@ -870,6 +884,7 @@
 
     # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
     # Direct Kryptex connection (no gpu-proxy - was causing issues)
+    # DISABLED: K8s version working instead
     mining = {
       lolminer = {
         pool = "stratum+tcp://127.0.0.1:3333"; # Local stratum proxy
@@ -898,6 +913,7 @@
       # NVIDIA GPU mining with per-GPU power limits
       # Device 1: RTX 3090 @ 250W (VRAM-safe) - 3060 Ti disabled
       # perGpuPowerLimits: [220, 250] = [GPU0: 220W (max), GPU1: 250W]
+      # DISABLED: K8s version working instead
       lolminer.nvidia = {
         enable = false; # DISABLED: GPU0 (3060 Ti, 8GB) can't handle CR29 VRAM
         autostart = false;
@@ -910,23 +926,24 @@
       };
       # CPU mining - Dual XMRig setup (always-on + pause-able)
       # Total when idle: 16 threads (50%) - Total when gaming: 4 threads (12%)
+      # DISABLED: K8s version working instead
       xmrigDual = {
-        enable = true;
+        enable = false;
         # Always-on instance - mines even during gaming
         alwaysOn = {
-          enable = true;
+          enable = false;
           threads = 4; # 12% of 32 cores - unintrusive during gaming
           httpPort = 8081;
           httpTokenFile = "/run/agenix/xmrig-always-api-token";
-          autostart = true;
+          autostart = false;
         };
         # Flexible instance - pauses during gaming/builds
         flexible = {
-          enable = true;
+          enable = false;
           threads = 12; # 38% of 32 cores - extra capacity when idle
           httpPort = 8082;
           httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
-          autostart = true;
+          autostart = false;
         };
         # Common settings for both instances
         pool = "10.1.1.110:3333"; # Point to local proxy
@@ -1072,7 +1089,6 @@
     wavey-launcher.enable = true;
 
     # AI services
-    lm-studio.enable = true;
     stability-matrix.enable = true;
   };
 
@@ -1401,8 +1417,9 @@
   # ============================================================================
   # Autonomous agent for cluster-wide task execution and coordination
   # Uses MCP protocol for inter-service communication
+  # DISABLED: Health check blocking rebuilds (2026-03-21)
   services.hermes-agent = {
-    enable = true;
+    enable = false;
     user = "j_kro"; # Use existing user
     sharedStorage = {
       enable = true;

@@ -15,6 +15,7 @@
     ./network-constants.nix
 
     # System-level configuration
+    ./system/system-packages.nix
     ./system/nix-config.nix
     ./system/users.nix
     ./system/home-manager.nix
@@ -36,9 +37,11 @@
     ./system/btrfs-compression.nix
     ./system/btrfs-tuning.nix
     ./system/compute-workload-monitor.nix
+    ./system/oom-protection.nix
     ./system/compute-workload-monitor-profiles.nix
     ./system/xmrig-api-control.nix
     ./system/boot-emergency-diagnostics.nix
+    ./system/mining-inference-coordinator.nix
 
     # Security
     ./security/pam-vaultwarden.nix
