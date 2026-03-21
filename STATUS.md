@@ -3,6 +3,8 @@
 **Last Updated:** 2026-03-21 | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
+>
+> **Note:** STATUS.md is manually maintained. For real-time cluster state, use `kubectl get nodes` and `kubectl get pods --all-namespaces`.
 
 ---
 
@@ -58,9 +60,14 @@ sentry   Ready    monitoring                     15m     v1.35.0
 | **Phase 4: Stateless Services** | ✅ COMPLETE | 100% | **GlitchTip web/worker/redis, SearXNG migrated** (2026-03-19), Caddy Ingress, n8n, home-assistant |
 | **Phase 5: GPU Workloads** | ✅ COMPLETE | 100% | **llama.cpp deployed, Gateway integrated, tested** (2026-03-19) |
 | **Phase 6: Monitoring** | ✅ COMPLETE | 100% | Prometheus + Grafana running, **Caddy metrics configured** |
-| **Phase 7: Cleanup** | ✅ COMPLETE | 100% | **Removed obsolete manifests, finalized documentation** (2026-03-19) |
+| **Phase 7: Cleanup** | ✅ COMPLETE | 95% | **Removed obsolete manifests, finalized documentation** (2026-03-19) |
 
-**Overall Progress:** ✅ **100% COMPLETE** (All 7 phases finished)
+**Overall Progress:** ✅ **95% COMPLETE** (All 7 phases finished, known issues remain)
+
+**Known Issues:**
+- ⚠️ **SearXNG search:** HTTP 403 errors from external engines, MCP gateway unable to use web search (2026-03-21)
+- ⚠️ **Monitor brightness:** ASUS/Acer displays not controllable via Plasma slider (EDID limitation, hardware workaround required)
+- ⚠️ **Gaming detection:** Using Volcano scheduler instead of YuniKorn (migration completed, docs need update)
 
 ---
 
@@ -107,6 +114,7 @@ sentry   Ready    monitoring                     15m     v1.35.0
 | 🟢 LOW | NFS hard mounts | System hangs if NFS down | ✅ FIXED - Soft mounts with 10s timeout |
 | 🟢 LOW | ~~GPU workload coordination needed~~ | Mining vs K8s GPU conflict | ✅ **SOLVED:** GPU Resource Marketplace deployed |
 | 🟡 LOW | AMD GPU mining GLIBC incompatibility | lolminer segfaults in K8s (GLIBC 2.42 vs 2.27) | ⚠️ **WORKAROUND:** AMD mining on host (systemd), NVIDIA mining in K8s |
+| 🟢 LOW | ~~Sentry node pod deployment failures~~ | ~~"IP exhaustion" errors, pods stuck in ContainerCreating~~ | ✅ **RESOLVED (2026-03-21):** Flannel pod restart caused missing subnet.env. Recreated pod, all deployments working. Full analysis: `docs/sentry-instability-debug-2026-03-21.md` |
 
 ---
 

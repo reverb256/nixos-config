@@ -45,7 +45,7 @@
     ./system/xmrig-api-control.nix
     ./system/boot-emergency-diagnostics.nix
     ./system/mining-inference-coordinator.nix
-    ./system/kube-apiserver-logger.nix
+    ./system/status-auto-update.nix
 
     # Security
     ./security/pam-vaultwarden.nix
@@ -115,7 +115,6 @@
     ./services/cloudflared.nix # Cloudflare Tunnel for Akash provider ingress
     ./services/akash-cloudflare-integration.nix # DNS, cache, metrics for Akash
     ./services/unbound-cluster.nix
-    ./services/searxng.nix
     ./services/syncthing.nix
     ./services/garage.nix # S3-compatible distributed object storage
     ./services/backup-to-garage.nix # Automated backups to Garage S3

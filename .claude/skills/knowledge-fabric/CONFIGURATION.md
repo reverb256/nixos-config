@@ -7,7 +7,7 @@ The Knowledge Fabric uses several environment variables for configuration. These
 ```json
 {
   "env": {
-    "SEARXNG_URL": "http://10.1.1.110:30080",
+    "SEARXNG_URL": "http://10.1.1.120:30080",
     "SEARXNG_CACHE_TTL": "300",
     "GATEWAY_URL": "http://127.0.0.1:8080",
     "GATEWAY_TIMEOUT": "30.0"
@@ -19,7 +19,7 @@ The Knowledge Fabric uses several environment variables for configuration. These
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SEARXNG_URL` | http://10.1.1.110:30080 | SearXNG metasearch endpoint (NodePort for LAN access) |
+| `SEARXNG_URL` | http://10.1.1.120:30080 | SearXNG metasearch endpoint (NodePort for LAN access) |
 | `SEARXNG_CACHE_TTL` | 300 | Cache time-to-live in seconds |
 | `GATEWAY_URL` | http://127.0.0.1:8080 | AI Inference Gateway API endpoint |
 | `GATEWAY_TIMEOUT` | 30.0 | Gateway request timeout in seconds |
@@ -27,9 +27,9 @@ The Knowledge Fabric uses several environment variables for configuration. These
 ## Service Endpoints
 
 ### SearXNG Metasearch
-- **Public URL**: http://10.1.1.110:30080 (NodePort - LAN accessible)
+- **Public URL**: http://10.1.1.120:30080 (NodePort - LAN accessible)
 - **ClusterIP**: http://10.0.0.230:7777 (Kubernetes internal)
-- **Health Check**: `curl http://10.1.1.110:30080/`
+- **Health Check**: `curl http://10.1.1.120:30080/`
 
 ### Qdrant Vector Database
 - **HTTP API**: http://127.0.0.1:6333
@@ -81,7 +81,7 @@ The SearXNG MCP server provides 13 specialized search tools.
       "command": "python",
       "args": ["-m", "ai_inference_gateway.mcp_servers.searxng_server"],
       "env": {
-        "SEARXNG_URL": "http://10.1.1.110:30080",
+        "SEARXNG_URL": "http://10.1.1.120:30080",
         "SEARXNG_CACHE_TTL": "300"
       }
     }
@@ -97,8 +97,8 @@ The system has been updated to use NodePort URLs instead of Kubernetes internal 
 
 | Service | Old URL (K8s Internal) | New URL (NodePort) |
 |---------|----------------------|-------------------|
-| SearXNG | http://searxng.search.svc.cluster.local:7777 | http://10.1.1.110:30080 |
-| SearXNG | http://10.0.0.230:7777 | http://10.1.1.110:30080 |
+| SearXNG | http://searxng.search.svc.cluster.local:7777 | http://10.1.1.120:30080 |
+| SearXNG | http://10.0.0.230:7777 | http://10.1.1.120:30080 |
 
 **Why NodePort?**
 - ✅ Accessible from all cluster nodes
@@ -112,7 +112,7 @@ The system has been updated to use NodePort URLs instead of Kubernetes internal 
 
 ```bash
 # Test SearXNG (NodePort)
-curl -s "http://10.1.1.110:30080/search?q=test&format=json" | jq '.results | length'
+curl -s "http://10.1.1.120:30080/search?q=test&format=json" | jq '.results | length'
 
 # Test Qdrant
 curl -s http://127.0.0.1:6333/collections | jq '.result.collections | length'
@@ -141,7 +141,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"ping"}' | mcp-gateway-bridge
 
 ### SearXNG Connection Refused
 
-**Symptom**: `curl: (7) Failed to connect to 10.1.1.110 port 30080`
+**Symptom**: `curl: (7) Failed to connect to 10.1.1.120 port 30080`
 
 **Solutions**:
 1. Check SearXNG service: `systemctl status searx`
@@ -262,7 +262,7 @@ echo "Knowledge Fabric Health Check"
 echo "=============================="
 
 # Check SearXNG
-if curl -s http://10.1.1.110:30080/ > /dev/null; then
+if curl -s http://10.1.1.120:30080/ > /dev/null; then
   echo "✓ SearXNG: OPERATIONAL"
 else
   echo "✗ SearXNG: DOWN"
@@ -316,6 +316,6 @@ Access at: `http://127.0.0.1:8080/metrics`
 
 ---
 
-**Last Updated**: 2026-03-19
-**Version**: 1.0.0
-**Status**: ✅ All services operational and tested
+**Last Updated**: 2026-03-21
+**Version**: 1.1.0
+**Status**: ✅ All services operational and tested | SearXNG moved to nexus (10.1.1.120)

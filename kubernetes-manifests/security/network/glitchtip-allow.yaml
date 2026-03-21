@@ -1,0 +1,104 @@
+# Glitchtip Namespace Network Policy
+# Allows web UI access and internal service communication
+# Note: Glitchtip deployments are currently scaled to 0 (unused service)
+
+---
+# Default-deny for glitchtip namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: glitchtip
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+
+---
+# Allow web ingress to Glitchtip UI
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web-ingress
+  namespace: glitchtip
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: web
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector: {}  # Allow from any namespace
+    ports:
+    - protocol: TCP
+      port: 8000  # Glitchtip web port
+
+---
+# Allow DNS resolution
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: glitchtip
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Allow internal Glitchtip services to communicate
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-internal-communication
+  namespace: glitchtip
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: glitchtip
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: glitchtip
+    ports:
+    - protocol: TCP
+      port: 8000  # Web API
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+
+---
+# Allow worker to reach external services (for error tracking integrations)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-worker-egress
+  namespace: glitchtip
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: worker
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS for external integrations

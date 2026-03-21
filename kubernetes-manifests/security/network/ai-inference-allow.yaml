@@ -1,0 +1,77 @@
+# AI Inference Namespace Network Policy
+# Allows inference API access and GPU workload communication
+
+---
+# Default-deny for ai-inference namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: ai-inference
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+
+---
+# Allow ingress from anywhere (inference APIs need to be accessible)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-inference-ingress
+  namespace: ai-inference
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector: {}  # Allow from any namespace
+    ports:
+    - protocol: TCP
+      port: 8000  # Common inference API port
+    - protocol: TCP
+      port: 8080  # Alternative inference port
+
+---
+# Allow DNS resolution
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: ai-inference
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Allow AI models to download from external sources (HuggingFace, etc.)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-model-downloads
+  namespace: ai-inference
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS for model downloads
