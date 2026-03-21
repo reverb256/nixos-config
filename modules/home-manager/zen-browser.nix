@@ -776,4 +776,17 @@
       };
     };
   };
+
+  # Generate declarative spaces JSON for Zen Browser
+  # Workaround: The zen-browser module builds these but doesn't link them
+  xdg.configFile."zen/default/zen-declared-spaces-default.json".text =
+    builtins.toJSON (
+      builtins.attrValues profiles.default.spaces
+    );
+
+  # Generate declarative pins JSON for Zen Browser
+  xdg.configFile."zen/default/zen-declared-pins-default.json".text =
+    builtins.toJSON (
+      builtins.attrValues profiles.default.pins
+    );
 }
