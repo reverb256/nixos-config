@@ -1,0 +1,62 @@
+# Namespace Resource Quotas
+# Prevents resource starvation between namespaces
+---
+# AI/ML Workloads (high priority, GPU-intensive)
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: ai-inference-quota
+  namespace: ai-inference
+spec:
+  hard:
+    requests.cpu: "16"      # Zephyr (32 cores) - 50% for AI
+    requests.memory: "32Gi"   # Zephyr (31GB) - ~50%
+    requests.nvidia.com/gpu: "2"  # Zephyr has 2 GPUs, reserve both for AI
+---
+# Mining namespace (already has GPU quota, add general limits)
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mining-general-quota
+  namespace: mining
+spec:
+  hard:
+    requests.cpu: "20"      # Total across Forge(32) + Nexus(24) + Zephyr(32) = 88 cores
+    requests.memory: "32Gi"   # Total memory across all nodes
+    pods: "50"               # Limit pod count to prevent IP exhaustion
+---
+# Monitoring namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: monitoring-quota
+  namespace: monitoring
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    pods: "20"
+---
+# Search namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: search-quota
+  namespace: search
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+    pods: "10"
+---
+# Akash services
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: akash-services-quota
+  namespace: akash-services
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    pods: "30"

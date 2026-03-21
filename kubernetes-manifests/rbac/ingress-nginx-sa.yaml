@@ -1,0 +1,34 @@
+# Service Account and RBAC for ingress-nginx
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ingress-nginx-sa
+  namespace: ingress-nginx
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ingress-nginx-role
+  namespace: ingress-nginx
+rules:
+  # ingress-nginx needs to watch ingresses, endpoints, secrets
+  - apiGroups: ["", "extensions", "networking.k8s.io"]
+    resources: ["configmaps", "endpoints", "pods", "secrets", "ingresses", "ingressclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ingress-nginx-rolebinding
+  namespace: ingress-nginx
+subjects:
+  - kind: ServiceAccount
+    name: ingress-nginx-sa
+roleRef:
+  kind: Role
+  name: ingress-nginx-role
+  apiGroup: rbac.authorization.k8s.io

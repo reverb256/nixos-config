@@ -1,0 +1,28 @@
+# ResourceQuota for mining namespace
+# Prevents over-provisioning by limiting total GPU requests
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: gpu-quota
+  namespace: mining
+spec:
+  hard:
+    requests.nvidia.com/gpu: "4"  # Total: 1(Nexus) + 2(Forge) + 1(Zephyr) = 4
+    requests.amd.com/gpu: "2"     # Total: 2(Forge AMD GPUs)
+---
+# LimitRange to prevent excessive replicas
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: mining-pod-limit
+  namespace: mining
+spec:
+  limits:
+  - type: Pod
+    max:
+      cpu: "4"
+      memory: "8Gi"
+    min:
+      cpu: "100m"
+      memory: "128Mi"

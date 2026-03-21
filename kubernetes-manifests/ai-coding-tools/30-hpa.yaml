@@ -2,7 +2,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: claude-code-hpa
-  namespace: ai-inference
+  namespace: ai-coding
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -54,7 +54,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: opencode-hpa
-  namespace: ai-inference
+  namespace: ai-coding
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

@@ -1,0 +1,178 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-code
+  namespace: ai-coding
+  labels:
+    app: claude-code
+    component: ai-coding-tool
+spec:
+  replicas: 4  # One pod per node
+  selector:
+    matchLabels:
+      app: claude-code
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: claude-code
+        component: ai-coding-tool
+    spec:
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+
+      # Spread pods across different nodes (preferred one-per-node)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - claude-code
+              topologyKey: kubernetes.io/hostname
+
+      volumes:
+      # Mount user's home directory
+      - name: home-dir
+        hostPath:
+          path: /home/j_kro
+          type: Directory
+
+      containers:
+      - name: claude-code-wrapper
+        image: busybox:1.36
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 100
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Claude Code pod ready for exec access"
+          echo "Node: $(hostname)"
+          echo "Home: /home/j_kro"
+          echo "Nix store: /nix"
+          echo "System: /run/current-system"
+          echo ""
+          echo "Use: kubectl exec -it $POD_NAME -- /run/current-system/sw/bin/claude"
+          echo "Or:  claude-k8s"
+          echo ""
+          # Keep pod alive
+          sleep infinity
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: HOME
+          value: /home/j_kro
+        - name: USER
+          value: j_kro
+        - name: PATH
+          value: /run/current-system/sw/bin:/usr/bin:/bin
+
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/j_kro
+
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -d /home/j_kro
+          initialDelaySeconds: 10
+          periodSeconds: 30
+
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -d /home/j_kro
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+      # Metrics sidecar
+      - name: metrics
+        image: python:3.11-slim
+        command:
+        - /bin/sh
+        - -c
+        - |
+          mkdir -p /app
+          pip install prometheus_client psutil -q
+          cat <<'EOF' > /app/metrics.py
+          from prometheus_client import start_http_server, Gauge
+          import psutil
+          import time
+
+          ACTIVE_SESSIONS = Gauge('claude_active_sessions', 'Number of active Claude sessions')
+          HISTORY_SIZE = Gauge('claude_history_size_mb', 'History file size in MB')
+          CPU_USAGE = Gauge('claude_cpu_usage_percent', 'CPU usage percent')
+
+          def get_history_size():
+              try:
+                  size = 0
+                  with open('/home/j_kro/.claude/history.jsonl', 'rb') as f:
+                      f.seek(0, 2)
+                      size = f.tell()
+                  return size / (1024*1024)
+              except:
+                  return 0
+
+          if __name__ == '__main__':
+              start_http_server(9090)
+              while True:
+                  ACTIVE_SESSIONS.set(0)  # Placeholder - sessions tracked by wrapper
+                  HISTORY_SIZE.set(get_history_size())
+                  CPU_USAGE.set(psutil.cpu_percent(interval=1))
+                  time.sleep(10)
+          EOF
+
+          python3 /app/metrics.py
+
+        env:
+        - name: HOME
+          value: /home/j_kro
+
+        ports:
+        - name: metrics
+          containerPort: 9090
+
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/j_kro
+          readOnly: true
+
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always

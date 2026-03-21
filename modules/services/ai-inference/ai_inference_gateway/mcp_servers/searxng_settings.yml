@@ -375,8 +375,8 @@ botdetection:
   # Token limit (disabled for internal use)
   # token_limit: 0
 
-  # Enable link token verification
-  link_token: true
+  # Disable link token verification (was blocking MCP gateway requests)
+  link_token: false
 
 # ============================================================================
 # REDIS/VALKEY CONFIGURATION (Persistent caching)

@@ -1,0 +1,50 @@
+# Service Accounts and RBAC for Glitchtip
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: glitchtip-web-sa
+  namespace: glitchtip
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: glitchtip-worker-sa
+  namespace: glitchtip
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: glitchtip-role
+  namespace: glitchtip
+rules:
+  # Glitchtip needs database access via config/secrets
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: glitchtip-web-rolebinding
+  namespace: glitchtip
+subjects:
+  - kind: ServiceAccount
+    name: glitchtip-web-sa
+roleRef:
+  kind: Role
+  name: glitchtip-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: glitchtip-worker-rolebinding
+  namespace: glitchtip
+subjects:
+  - kind: ServiceAccount
+    name: glitchtip-worker-sa
+roleRef:
+  kind: Role
+  name: glitchtip-role
+  apiGroup: rbac.authorization.k8s.io

@@ -136,13 +136,12 @@
         apiPort = 4068;
       };
 
-      # AMD GPUs - Kubernetes deployment primary, systemd backup
-      # GPU[0]: 6.7GB/8GB used, GPU[1]: 6.4GB/8GB used - only ~2GB free each
-      # CR29 DAG requires ~7GB continuous memory which may cause fragmentation
-      # Systemd services run as backup while debugging Kubernetes seccomp issues
+      # AMD GPUs - FULLY MIGRATED TO KUBERNETES
+      # All mining now handled by K8s deployments (gpu-miner-forge-amd-0/1)
+      # Systemd services disabled to prevent GPU conflicts with K8s pods
       amd = {
-        enable = true;   # Enable systemd backup services
-        autostart = true;
+        enable = false;  # Disabled - K8s gpu-miner-forge-amd-0/1 active
+        autostart = false;
         devices = "0,1";
         powerLimit = 110;  # 110W for optimal efficiency (from 140W default)
         apiPort = 4069;

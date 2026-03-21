@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: opencode
-  namespace: ai-inference
+  namespace: ai-coding
   labels:
     app: opencode
     component: ai-coding-tool
@@ -17,6 +17,10 @@ spec:
         app: opencode
         component: ai-coding-tool
     spec:
+      # Run on Zephyr where the home directory actually exists
+      nodeSelector:
+        kubernetes.io/hostname: zephyr
+
       volumes:
       - name: home-dir
         hostPath:
@@ -93,6 +97,7 @@ spec:
         - /bin/sh
         - -c
         - |
+          mkdir -p /app
           pip install prometheus_client psutil -q
           cat <<'EOF' > /app/metrics.py
           from prometheus_client import start_http_server, Gauge

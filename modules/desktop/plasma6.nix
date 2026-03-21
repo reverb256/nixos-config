@@ -319,6 +319,47 @@ in {
         AnimationSpeed=3
       '';
 
+      # Powerdevil configuration - Manual brightness control, NO automatic adjustments
+      # This restores the brightness slider to the system tray while preventing HDMI TV issues
+      "xdg/powermanagementprofilesrc".text = ''
+        [AC]
+        # Disable auto-dimming based on activity (prevents HDMI TV from dimming when idle)
+        [AC][Display]
+        DimScreen=false
+        # Turn off screen after long inactivity (not auto-dim)
+        DisplayTurnOff=600
+
+        [Battery][Display]
+        DimScreen=false
+        DisplayTurnOff=300
+
+        # Brightness Control - Enable manual slider, disable automatic adjustments
+        [Battery][BrightnessControl]
+        brightnessEnable=true
+        # Use profile-specific brightness means auto-adjust based on activity - DISABLE THIS
+        useProfileSpecificDisplayBrightness=false
+
+        [AC][BrightnessControl]
+        brightnessEnable=true
+        useProfileSpecificDisplayBrightness=false
+
+        # Global power management settings
+        [General]
+        # Disable automatic brightness control based on ambient light
+        useAutoBrightness=false
+        # Don't suspend automatically (user choice)
+        autosuspendEnabled=false
+
+        # Display settings
+        [Display][BrightnessControl]
+        brightnessEnable=true
+        useProfileSpecificDisplayBrightness=false
+
+        # Profile independent settings
+        [Battery][Activities]
+        [AC][Activities]
+      '';
+
       # Window rules for specific applications
       "xdg/kwinrulesrc".text = ''
         [General]
