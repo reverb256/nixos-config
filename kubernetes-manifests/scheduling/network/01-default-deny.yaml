@@ -75,7 +75,7 @@ spec:
         - protocol: UDP
           port: 53
 ---
-# Allow mining pods to connect to stratum proxy (hostNetwork)
+# Allow mining pods to connect to stratum servers
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -91,17 +91,24 @@ spec:
   policyTypes:
     - Egress
   egress:
-    # Allow to stratum proxy service
+    # Allow to Kryptex stratum pools (specific endpoints)
+    - to:
+        - ipBlock:
+            cidr: 54.36.172.217/32  # xtm-c29-us.kryptex.network
+      ports:
+        - protocol: TCP
+          port: 8040
+    - to:
+        - ipBlock:
+            cidr: 51.159.26.202/32   # xtm-c29-eu.kryptex.network
+      ports:
+        - protocol: TCP
+          port: 8040
+    # Allow to internal stratum proxy (if running in cluster)
     - to:
         - namespaceSelector:
             matchLabels:
-              name: default  # Or your stratum proxy namespace
-      ports:
-        - protocol: TCP
-          port: 3333
-    # Allow to external stratum servers (if needed)
-    - to:
-        - namespaceSelector: {}
+              name: default
       ports:
         - protocol: TCP
           port: 3333
