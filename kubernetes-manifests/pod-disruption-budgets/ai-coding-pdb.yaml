@@ -1,0 +1,24 @@
+# AI Coding Tools - High Priority PDBs
+# Maintains availability for AI coding assistants
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: claude-code-pdb
+  namespace: ai-coding
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: claude-code
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: opencode-pdb
+  namespace: ai-coding
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: opencode

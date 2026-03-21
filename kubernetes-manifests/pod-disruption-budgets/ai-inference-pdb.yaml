@@ -1,0 +1,57 @@
+# AI Inference Stack - High Priority PDBs
+# Critical workloads for AI coding and inference
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: n8n-pdb
+  namespace: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: n8n
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres-n8n-pdb
+  namespace: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: postgres-n8n
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-pdb
+  namespace: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: redis
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: qdrant-pdb
+  namespace: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: qdrant
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: prometheus-pdb
+  namespace: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: prometheus

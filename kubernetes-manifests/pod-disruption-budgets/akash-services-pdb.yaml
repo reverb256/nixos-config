@@ -1,0 +1,58 @@
+# Akash Provider Services - High Priority PDBs
+# Ensures Akash provider remains operational during deployments
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cloudflared-pdb
+  namespace: akash-services
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: operator-hostname-pdb
+  namespace: akash-services
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: operator-hostname
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: operator-inventory-pdb
+  namespace: akash-services
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: operator-inventory
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: akash-provider-pdb
+  namespace: akash-services
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: akash-provider
+      # provider: akash-provider-fixed
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: akash-node-pdb
+  namespace: akash-services
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: akash-node

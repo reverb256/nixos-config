@@ -1,0 +1,31 @@
+# Pod Disruption Budgets - High Availability Configuration
+# Ensures critical services remain available during deployments and node maintenance
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: default
+
+resources:
+  # Core cluster services (highest priority)
+  - core-services-pdb.yaml
+
+  # AI inference stack (high priority)
+  - ai-inference-pdb.yaml
+
+  # AI coding tools (high priority)
+  - ai-coding-pdb.yaml
+
+  # Akash provider services (high priority)
+  - akash-services-pdb.yaml
+
+  # Mining workloads (medium priority - interruptible)
+  - mining-pdb.yaml
+
+  # Error tracking (medium priority)
+  - glitchtip-pdb.yaml
+
+# Common labels for all PDBs
+commonLabels:
+  managed-by: pdb-ha-policy
+  pod-disruption-budget: "true"
