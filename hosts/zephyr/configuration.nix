@@ -319,8 +319,8 @@
     };
   };
 
-  # Kubernetes API server restart logger
-  services.kube-apiserver-logger.enable = true;
+  # STATUS.md auto-update (hourly from kubectl)
+  services.status-auto-update.enable = true;
 
   # ============================================================================
   # HARDWARE PROFILES
