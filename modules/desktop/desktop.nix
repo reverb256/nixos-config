@@ -359,6 +359,9 @@ in {
       # Monitor setup scripts
       monitorSetupScript
       pkgs.libnotify
+
+      # DDC/CI brightness control for external monitors
+      pkgs.ddcutil
     ];
 
     etc = {
@@ -369,8 +372,8 @@ in {
         Timeout=0
       '';
 
-      # PowerDevil - Disable display power management (monitors turning off)
-      # Even with DPMSControl disabled, TurnOffDisplayWhenIdle can still turn off displays
+      # PowerDevil - Disable display power management, enable brightness control for all monitors
+      # Uses ddcutil for DDC/CI brightness control on external monitors
       "xdg/powerdevilrc".text = ''
         [AC][Display]
         DimDisplayIdleTimeoutSec=-1
@@ -390,6 +393,46 @@ in {
 
         [Daemon]
         Enabled=true
+      '';
+
+      # Power Management Profile - Manual brightness control for all monitors
+      "xdg/powermanagementprofilesrc".text = ''
+        [AC]
+        # Disable auto-dimming based on activity (prevents HDMI TV from dimming when idle)
+        [AC][Display]
+        DimScreen=false
+        # Turn off screen after long inactivity (not auto-dim)
+        DisplayTurnOff=600
+
+        [Battery][Display]
+        DimScreen=false
+        DisplayTurnOff=300
+
+        # Brightness Control - Enable manual slider, disable automatic adjustments
+        [Battery][BrightnessControl]
+        brightnessEnable=true
+        # Use profile-specific brightness means auto-adjust based on activity - DISABLE THIS
+        useProfileSpecificDisplayBrightness=false
+
+        [AC][BrightnessControl]
+        brightnessEnable=true
+        useProfileSpecificDisplayBrightness=false
+
+        # Global power management settings
+        [General]
+        # Disable automatic brightness control based on ambient light
+        useAutoBrightness=false
+        # Don't suspend automatically (user choice)
+        autosuspendEnabled=false
+
+        # Display settings
+        [Display][BrightnessControl]
+        brightnessEnable=true
+        useProfileSpecificDisplayBrightness=false
+
+        # Profile independent settings
+        [Battery][Activities]
+        [AC][Activities]
       '';
 
       "xdg/kwinrc".text = ''
