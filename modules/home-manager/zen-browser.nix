@@ -122,11 +122,11 @@
       name = "default";
       isDefault = true;
 
-      # Allow manual changes to declarative settings
-      # Setting to false prevents Zen from resetting your customizations
-      containersForce = false;
-      pinsForce = false;
-      spacesForce = false;
+      # Force declarative settings to override manual changes (idempotent)
+      # Setting to true ensures NixOS configuration is always applied
+      containersForce = true;
+      pinsForce = true;
+      spacesForce = true;
 
       # Custom about:config preferences
       extraConfig = ''
