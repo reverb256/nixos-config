@@ -10,8 +10,8 @@ _: {
     enable = false;
   };
 
-  # Ensure N8N has proper PATH access
-  systemd.services.n8n.serviceConfig.Environment = "PATH=/run/current-system/sw/bin";
+  # Ensure N8N has proper PATH access (only when enabled)
+  # systemd.services.n8n.serviceConfig.Environment = "PATH=/run/current-system/sw/bin";
 
   # ============================================================================
   # NOTES
