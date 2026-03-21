@@ -255,11 +255,11 @@
     # MINING (CPU only - 4 threads = 25% of 16 cores)
     # Uses xmrig-proxy on Zephyr for centralized hashrate aggregation
     # Note: profiles.role.mining enables services.mining automatically
-    # Sentry: RX 5600 XT available for mining
-    # Re-enabled: No K8s migration completed
+    # Sentry: CPU mining DISABLED - K8s deployment scaled to 0/0
+    # RX 5600 XT reserved for AI inference (llamafile ROCm)
     mining = {
       xmrig = {
-        enable = true;
+        enable = false;  # Disabled - K8s xmrig-sentry deployment scaled to 0/0
         autostart = false;
         threads = 4;
         pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr

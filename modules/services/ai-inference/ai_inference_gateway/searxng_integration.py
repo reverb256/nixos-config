@@ -50,9 +50,11 @@ class SearxngIntegration:
 
     def __init__(self, cache_ttl: int = 300, enable_metrics: bool = True):
         self.cache_ttl = cache_ttl
-        # Configure HTTP client with headers to bypass rate limiting
+        # Configure HTTP client with headers to bypass rate limiting and bot detection
         headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "X-Forwarded-For": "10.1.1.110",
+            "X-Real-IP": "10.1.1.110",
         }
         self.client = httpx.AsyncClient(timeout=30.0, headers=headers, follow_redirects=True)
 

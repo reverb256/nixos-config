@@ -418,6 +418,79 @@
       };
     };
 
+    # Claude Code container image for Kubernetes deployment
+    packages.x86_64-linux.claude-code-image = pkgs.dockerTools.buildImage {
+      name = "claude-code";
+      tag = "nixos";
+
+      copyToRoot = pkgs.buildEnv {
+        name = "claude-code-root";
+        paths = [
+          pkgs.claude-code
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.fish
+          pkgs.git
+          pkgs.gnugrep
+          pkgs.gnused
+        ];
+        pathsToLink = ["/bin" "/etc" "/lib"];
+      };
+
+      config = {
+        Cmd = ["${pkgs.bash}/bin/bash" "-c" "mkdir -p /home/j_kro/.claude && tail -f /dev/null"];
+        WorkingDir = "/home/j_kro";
+        Env = [
+          "HOME=/home/j_kro"
+          "USER=j_kro"
+          "PATH=/bin"
+          "CLAUDE_CONFIG_DIR=/home/j_kro/.claude"
+          "SHELL=/bin/fish"
+        ];
+        ExposedPorts = {
+          "8080/tcp" = {};
+        };
+        Labels = {
+          "org.opencontainers.image.title" = "Claude Code";
+          "org.opencontainers.image.description" = "Claude Code AI coding assistant";
+        };
+      };
+    };
+
+    # OpenCode container image for Kubernetes deployment
+    packages.x86_64-linux.opencode-image = pkgs.dockerTools.buildImage {
+      name = "opencode";
+      tag = "nixos";
+
+      copyToRoot = pkgs.buildEnv {
+        name = "opencode-root";
+        paths = [
+          pkgs.opencode
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.fish
+          pkgs.git
+        ];
+        pathsToLink = ["/bin" "/etc" "/lib" "/home/j_kro/.nix-profile"];
+      };
+
+      config = {
+        Cmd = ["${pkgs.bash}/bin/bash" "-c" "mkdir -p /home/j_kro/.opencode && tail -f /dev/null"];
+        WorkingDir = "/home/j_kro";
+        Env = [
+          "HOME=/home/j_kro"
+          "USER=j_kro"
+          "PATH=/home/j_kro/.nix-profile/bin:/bin"
+          "OPENCODE_CONFIG_DIR=/home/j_kro/.opencode"
+          "SHELL=/bin/fish"
+        ];
+        Labels = {
+          "org.opencontainers.image.title" = "OpenCode";
+          "org.opencontainers.image.description" = "OpenCode AI coding assistant";
+        };
+      };
+    };
+
     overlays.default = import ./overlay.nix;
 
     # pkgsWithOverlay: nixpkgs with custom overlay applied

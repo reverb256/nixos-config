@@ -1,0 +1,89 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate-ai-coding-configs-v2
+  namespace: ai-coding
+spec:
+  template:
+    spec:
+      # Lock to zephyr (where the source data is)
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - zephyr
+
+      containers:
+      - name: migration
+        image: docker.io/reverb256/claude-code:nixos
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "🔄 Starting migration..."
+          
+          # Source (zephyr's home directory)
+          SRC_HOST="/host-home"
+          # Destination (PVC)
+          DST_PVC="/pvc-home"
+          
+          echo "📁 Copying .claude directory..."
+          if [[ -d "$SRC_HOST/.claude" ]]; then
+            mkdir -p "$DST_PVC/.claude"
+            cp -r "$SRC_HOST/.claude/"* "$DST_PVC/.claude/" 2>/dev/null || true
+            echo "✅ Copied .claude"
+          else
+            echo "⚠️  No .claude directory found on host"
+          fi
+          
+          echo "📁 Copying .opencode directory..."
+          if [[ -d "$SRC_HOST/.opencode" ]]; then
+            mkdir -p "$DST_PVC/.opencode"
+            cp -r "$SRC_HOST/.opencode/"* "$DST_PVC/.opencode/" 2>/dev/null || true
+            echo "✅ Copied .opencode"
+          else
+            echo "⚠️  No .opencode directory found on host"
+          fi
+          
+          echo ""
+          echo "✅ Migration complete!"
+          echo ""
+          echo "📊 Summary:"
+          echo "Claude config: $(du -sh "$DST_PVC/.claude" 2>/dev/null | cut -f1 || echo '0')"
+          echo "OpenCode config: $(du -sh "$DST_PVC/.opencode" 2>/dev/null | cut -f1 || echo '0')"
+          
+          # List what was copied
+          echo ""
+          echo "📂 Claude files:"
+          ls -1 "$DST_PVC/.claude" 2>/dev/null | head -10 || echo "  (empty)"
+          echo ""
+          echo "📂 OpenCode files:"
+          ls -1 "$DST_PVC/.opencode" 2>/dev/null | head -10 || echo "  (empty)"
+          
+          # Keep container running for inspection
+          sleep 3600
+
+        volumeMounts:
+        - name: host-home
+          mountPath: /host-home
+          readOnly: true
+        - name: pvc-home
+          mountPath: /pvc-home
+
+      volumes:
+      - name: host-home
+        hostPath:
+          path: /home/j_kro
+          type: Directory
+      - name: pvc-home
+        persistentVolumeClaim:
+          claimName: ai-coding-configs
+
+      restartPolicy: Never
+  backoffLimit: 1

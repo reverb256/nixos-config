@@ -196,16 +196,14 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
-        # Resources (explicitly no GPU)
+        # Resources
         resources:
           requests:
             memory: "512Mi"
             cpu: "500m"
-            nvidia.com/gpu: "0"
           limits:
             memory: "2Gi"
             cpu: "1000m"
-            nvidia.com/gpu: "0"
         # Volume mounts for code search (read-only)
         volumeMounts:
         - name: nixos-config

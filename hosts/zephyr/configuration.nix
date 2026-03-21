@@ -319,6 +319,9 @@
     };
   };
 
+  # Kubernetes API server restart logger
+  services.kube-apiserver-logger.enable = true;
+
   # ============================================================================
   # HARDWARE PROFILES
   # ============================================================================
@@ -721,7 +724,7 @@
       };
       gateway = {
         enable = true;
-        host = "127.0.0.1";
+        host = "0.0.0.0";  # Listen on all interfaces for Kubernetes access
         port = 8080;
         workers = 4;
         middleware.redis.enable = true;
