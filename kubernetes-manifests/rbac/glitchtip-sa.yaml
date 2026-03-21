@@ -5,12 +5,14 @@ kind: ServiceAccount
 metadata:
   name: glitchtip-web-sa
   namespace: glitchtip
+automountServiceAccountToken: false
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: glitchtip-worker-sa
   namespace: glitchtip
+automountServiceAccountToken: false
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
