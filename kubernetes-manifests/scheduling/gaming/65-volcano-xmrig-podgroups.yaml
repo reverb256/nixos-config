@@ -1,0 +1,50 @@
+# Volcano PodGroups for XMRig CPU Mining Workloads
+# These allow Volcano to manage and preempt CPU mining pods
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: xmrig-zephyr-group
+  namespace: mining
+  labels:
+    app: xmrig
+    host: zephyr
+spec:
+  minMember: 1
+  minResources:
+    cpu: "4"
+    memory: "1Gi"
+  priorityClassName: mining-low
+  queue: mining-queue
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: xmrig-nexus-group
+  namespace: mining
+  labels:
+    app: xmrig
+    host: nexus
+spec:
+  minMember: 1
+  minResources:
+    cpu: "3"
+    memory: "1Gi"
+  priorityClassName: mining-low
+  queue: mining-queue
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: xmrig-sentry-group
+  namespace: mining
+  labels:
+    app: xmrig
+    host: sentry
+spec:
+  minMember: 1
+  minResources:
+    cpu: "1"
+    memory: "512Mi"
+  priorityClassName: mining-low
+  queue: mining-queue

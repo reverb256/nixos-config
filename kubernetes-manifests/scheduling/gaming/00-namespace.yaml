@@ -1,0 +1,40 @@
+# Gaming workload namespace for GPU preemption
+# This namespace is processed by YuniKorn (not bypassed) so preemption works
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-gaming
+  labels:
+    # Enable monitoring and network policies
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io.audit: restricted
+---
+# LimitRange to prevent resource exhaustion
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: gaming-limits
+  namespace: gpu-gaming
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+---
+# ResourceQuota to cap total gaming workload usage
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: gaming-quota
+  namespace: gpu-gaming
+spec:
+  hard:
+    requests.nvidia.com/gpu: "2"
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+    limits.cpu: "8"
+    limits.memory: "16Gi"

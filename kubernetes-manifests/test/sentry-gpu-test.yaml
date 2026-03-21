@@ -1,0 +1,45 @@
+# Test AMD GPU on Sentry via Kubernetes
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sentry-rocm-test
+  namespace: gpu-test
+spec:
+  nodeName: sentry
+  restartPolicy: Never
+  containers:
+  - name: rocm-test
+    image: rocm/dev-ubuntu-22.04:6.2
+    command: ["/bin/bash"]
+    args:
+      - "-c"
+      - |
+        echo "=== Sentry ROCm GPU Test ==="
+        echo "Checking ROCm installation..."
+        which rocminfo
+        echo ""
+        echo "Checking GPU devices..."
+        rocminfo | head -20
+        echo ""
+        rocm-smi --showproductname
+        echo ""
+        echo "=== Test Complete ==="
+    resources:
+      requests:
+        amd.com/gpu: "1"
+        memory: "4Gi"
+        cpu: "1000m"
+      limits:
+        amd.com/gpu: "1"
+        memory: "8Gi"
+        cpu: "2000m"
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: dev
+      mountPath: /dev
+  volumes:
+  - name: dev
+    hostPath:
+      path: /dev

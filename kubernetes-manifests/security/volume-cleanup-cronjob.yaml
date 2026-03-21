@@ -1,0 +1,136 @@
+# Automatic Volume Cleanup for Akash Tenant Data
+# Cleans up released PVCs after 7-day retention period
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: volume-cleanup
+  namespace: akash-services
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: volume-cleanup
+  namespace: akash-services
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "delete"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: volume-cleanup
+  namespace: akash-services
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: volume-cleanup
+subjects:
+- kind: ServiceAccount
+  name: volume-cleanup
+  namespace: akash-services
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: volume-cleanup
+  namespace: akash-services
+  labels:
+    app: volume-cleanup
+    purpose: security
+spec:
+  # Run daily at midnight
+  schedule: "0 0 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      template:
+        spec:
+          serviceAccountName: volume-cleanup
+          restartPolicy: OnFailure
+          containers:
+          - name: cleanup
+            image: bitnami/kubectl:latest
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              seccompProfile:
+                type: RuntimeDefault
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "=== Akash Volume Cleanup Job ==="
+              echo "Started: $(date)"
+
+              # Find all namespaces starting with "lease-"
+              echo "Scanning for tenant namespaces..."
+              kubectl get namespaces -o json | jq -r '.items[] | select(.metadata.name | startswith("lease-")) | .metadata.name' > /tmp/lease-namespaces.txt
+
+              # For each lease namespace, check for released PVCs
+              while IIFS= read -r namespace; do
+                echo "Checking namespace: $namespace"
+
+                # Get all PVCs in the namespace
+                kubectl get pvc -n "$namespace" -o json | jq -r '.items[] | select(.status.phase == "Released") | .metadata.name' > /tmp/released-pvcs.txt
+
+                if [ -s /tmp/released-pvcs.txt ]; then
+                  echo "Found $(wc -l < /tmp/released-pvcs.txt) released PVC(s) in $namespace"
+
+                  # Check if PVC is older than 7 days
+                  while IFS= read -r pvc; do
+                    # Get PVC deletion timestamp
+                    deletion_timestamp=$(kubectl get pvc -n "$namespace" "$pvc" -o jsonpath='{.metadata.deletionTimestamp}')
+
+                    if [ -n "$deletion_timestamp" ]; then
+                      # Calculate age in days
+                      age_seconds=$(($(date +%s) - $(date -d "$deletion_timestamp" +%s)))
+                      age_days=$((age_seconds / 86400))
+
+                      echo "PVC $pvc released $age_days days ago"
+
+                      # Delete if older than 7 days
+                      if [ $age_days -gt 7 ]; then
+                        echo "Deleting PVC: $namespace/$pvc (released $age_days days ago)"
+                        kubectl delete pvc -n "$namespace" "$pvc" --ignore-not-found=true
+                      fi
+                    fi
+                  done < /tmp/released-pvcs.txt
+                fi
+              done < /tmp/lease-namespaces.txt
+
+              # Also clean up empty lease namespaces (optional - disabled for now)
+              # Uncomment below to enable namespace cleanup
+              # while IFS= read -r namespace; do
+              #   pod_count=$(kubectl get pods -n "$namespace" --no-headers 2>/dev/null | wc -l)
+              #   if [ "$pod_count" -eq 0 ]; then
+              #     pvc_count=$(kubectl get pvc -n "$namespace" --no-headers 2>/dev/null | wc -l)
+              #     if [ "$pvc_count" -eq 0 ]; then
+              #       echo "Deleting empty namespace: $namespace"
+              #       kubectl delete namespace "$namespace" --ignore-not-found=true
+              #     fi
+              #   fi
+              # done < /tmp/lease-namespaces.txt
+
+              echo "=== Cleanup Complete ==="
+            imagePullPolicy: Always
+            resources:
+              requests:
+                cpu: "100m"
+                memory: "128Mi"
+              limits:
+                cpu: "500m"
+                memory: "256Mi"

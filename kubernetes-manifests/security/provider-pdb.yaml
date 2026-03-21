@@ -1,0 +1,19 @@
+# PodDisruptionBudget for Akash Provider
+# Ensures provider high availability during updates/maintenance
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: akash-provider-pdb
+  namespace: akash-services
+  labels:
+    app: akash-provider
+    policy: disruption-budget
+spec:
+  # Ensure at least 1 provider pod is always available
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: akash-provider
+  # Uncomment below for maxUnavailable instead
+  # maxUnavailable: 1
