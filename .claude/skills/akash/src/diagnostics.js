@@ -19,7 +19,7 @@
  * - Optimization opportunities
  */
 
-const { getPods, getPodLogs } = require('./utils/kubectl');
+const { getPods, getPodLogs, getNodes, kubectl } = require('./utils/kubectl');
 
 /**
  * Calculate uptime in hours from pod start time
@@ -350,7 +350,1091 @@ async function checkProviderHealth(namespace) {
   }
 }
 
+/**
+ * Check overall cluster health
+ * @param {Object} options - Options for the check
+ * @returns {Promise<Object>} Cluster health status
+ */
+async function checkClusterHealth(options = {}) {
+  const issues = [];
+
+  try {
+    // Get all nodes
+    const nodes = await getNodes();
+
+    // Check node status
+    const nodeStatus = {
+      total: nodes.length,
+      ready: 0,
+      notReady: 0,
+      unhealthy: []
+    };
+
+    for (const node of nodes) {
+      const nodeReady = node.status?.conditions?.find(
+        c => c.type === 'Ready'
+      )?.status === 'True';
+
+      if (nodeReady) {
+        nodeStatus.ready++;
+      } else {
+        nodeStatus.notReady++;
+        nodeStatus.unhealthy.push(node.metadata?.name);
+      }
+    }
+
+    // Get all pods across all namespaces
+    let pods = [];
+    try {
+      const podOutput = await kubectl(['get', 'pods', '--all-namespaces', '-o', 'json']);
+      const podData = JSON.parse(podOutput);
+      pods = podData.items || [];
+    } catch (error) {
+      issues.push(createIssue({
+        id: 'cluster-check-failed',
+        severity: 'critical',
+        category: 'cluster',
+        title: 'Cannot Retrieve Pod Information',
+        description: `Failed to get pods: ${error.message}`,
+        recommendation: 'Check kubectl connectivity and permissions.',
+        affectsRevenue: true,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Check kubectl setup',
+        risk: 'critical'
+      }));
+    }
+
+    // Check pod status
+    const podStatus = {
+      total: pods.length,
+      running: 0,
+      pending: 0,
+      failed: 0,
+      succeeded: 0,
+      crashLoopBackOff: 0
+    };
+
+    for (const pod of pods) {
+      const phase = pod.status?.phase;
+
+      if (phase === 'Running') {
+        // Check for CrashLoopBackOff
+        const containerStatuses = pod.status?.containerStatuses || [];
+        const hasCrashLoop = containerStatuses.some(cs =>
+          cs.state?.waiting?.reason === 'CrashLoopBackOff'
+        );
+
+        if (hasCrashLoop) {
+          podStatus.crashLoopBackOff++;
+        } else {
+          podStatus.running++;
+        }
+      } else if (phase === 'Pending') {
+        podStatus.pending++;
+      } else if (phase === 'Failed') {
+        podStatus.failed++;
+      } else if (phase === 'Succeeded') {
+        podStatus.succeeded++;
+      }
+    }
+
+    // Create issues for unhealthy nodes
+    if (nodeStatus.notReady > 0) {
+      issues.push(createIssue({
+        id: 'node-not-ready',
+        severity: 'high',
+        category: 'cluster',
+        title: `${nodeStatus.notReady} Node(s) Not Ready`,
+        description: `Nodes ${nodeStatus.unhealthy.join(', ')} are not in Ready state.`,
+        recommendation: 'Check node status with kubectl describe node. Look for resource exhaustion or hardware issues.',
+        affectsRevenue: true,
+        blocksNewLeases: true,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Investigate node health',
+        risk: 'high'
+      }));
+    }
+
+    // Create issues for failed pods
+    if (podStatus.failed > 0) {
+      issues.push(createIssue({
+        id: 'pods-failed',
+        severity: 'medium',
+        category: 'cluster',
+        title: `${podStatus.failed} Pod(s) in Failed State`,
+        description: 'Some pods have failed and may need attention.',
+        recommendation: 'Check pod logs and events to determine failure cause.',
+        affectsRevenue: true,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Check failed pod logs',
+        risk: 'medium'
+      }));
+    }
+
+    // Create issues for CrashLoopBackOff
+    if (podStatus.crashLoopBackOff > 0) {
+      issues.push(createIssue({
+        id: 'pods-crashloop',
+        severity: 'high',
+        category: 'cluster',
+        title: `${podStatus.crashLoopBackOff} Pod(s) in CrashLoopBackOff`,
+        description: 'Pods are repeatedly crashing. This indicates application errors or misconfiguration.',
+        recommendation: 'Check pod logs for crash details. Common causes include config errors, missing dependencies, or OOM kills.',
+        affectsRevenue: true,
+        blocksNewLeases: true,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Investigate crashloop pods',
+        risk: 'high'
+      }));
+    }
+
+    // Determine overall status
+    let status = 'healthy';
+    if (nodeStatus.notReady > 0 || podStatus.failed > 0 || podStatus.crashLoopBackOff > 0) {
+      status = 'degraded';
+    }
+    // Only critical if MORE than half of nodes are not ready (not equal to half)
+    if (nodeStatus.notReady > nodes.length / 2) {
+      status = 'critical';
+    }
+
+    return {
+      status,
+      nodes: nodeStatus,
+      pods: podStatus,
+      issues
+    };
+
+  } catch (error) {
+    return {
+      status: 'unknown',
+      nodes: { total: 0, ready: 0, notReady: 0, unhealthy: [] },
+      pods: { total: 0, running: 0, pending: 0, failed: 0, succeeded: 0, crashLoopBackOff: 0 },
+      issues: [createIssue({
+        id: 'cluster-check-failed',
+        severity: 'critical',
+        category: 'cluster',
+        title: 'Cluster Health Check Failed',
+        description: `Failed to check cluster health: ${error.message}`,
+        recommendation: 'Check kubectl connectivity and permissions.',
+        affectsRevenue: true,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Check kubectl setup',
+        risk: 'critical'
+      })]
+    };
+  }
+}
+
+/**
+ * Check hardware discovery across cluster
+ * @param {Object} options - Options for the check
+ * @returns {Promise<Object>} Hardware inventory
+ */
+async function checkHardwareDiscovery(options = {}) {
+  try {
+    const nodes = await getNodes();
+
+    let totalCPU = 0;
+    let totalMemory = 0;
+    let totalGPU = 0;
+    const gpuTypes = {};
+    const nodeDetails = [];
+
+    for (const node of nodes) {
+      const allocatable = node.status?.allocatable || {};
+      const capacity = node.status?.capacity || {};
+
+      // Parse CPU
+      const cpu = parseInt(allocatable.cpu || capacity.cpu || '0', 10);
+      totalCPU += cpu;
+
+      // Parse memory (convert to GiB)
+      const memoryStr = allocatable.memory || capacity.memory || '0';
+      const memoryMatch = memoryStr.match(/^(\d+(?:\.\d+)?)((?:Ki|Mi|Gi)?)$/);
+      let memoryGiB = 0;
+      if (memoryMatch) {
+        const value = parseFloat(memoryMatch[1]);
+        const unit = memoryMatch[2];
+        if (unit === 'Ki') {
+          memoryGiB = value / (1024 * 1024);
+        } else if (unit === 'Mi') {
+          memoryGiB = value / 1024;
+        } else if (unit === 'Gi') {
+          memoryGiB = value;
+        }
+      }
+      totalMemory += memoryGiB;
+
+      // Parse GPUs
+      const nvidiaGPU = parseInt(allocatable['nvidia.com/gpu'] || '0', 10);
+      const amdGPU = parseInt(allocatable['amd.com/gpu'] || '0', 10);
+
+      if (nvidiaGPU > 0) {
+        totalGPU += nvidiaGPU;
+        gpuTypes.nvidia = (gpuTypes.nvidia || 0) + nvidiaGPU;
+      }
+
+      if (amdGPU > 0) {
+        totalGPU += amdGPU;
+        gpuTypes.amd = (gpuTypes.amd || 0) + amdGPU;
+      }
+
+      nodeDetails.push({
+        name: node.metadata?.name,
+        cpu,
+        memory: Math.round(memoryGiB * 100) / 100,
+        nvidiaGPU,
+        amdGPU
+      });
+    }
+
+    return {
+      nodes: nodeDetails,
+      totalCPU,
+      totalMemory: Math.round(totalMemory * 100) / 100,
+      totalGPU,
+      gpuTypes
+    };
+
+  } catch (error) {
+    return {
+      nodes: [],
+      totalCPU: 0,
+      totalMemory: 0,
+      totalGPU: 0,
+      gpuTypes: {},
+      issues: [createIssue({
+        id: 'hardware-discovery-failed',
+        severity: 'critical',
+        category: 'cluster',
+        title: 'Hardware Discovery Failed',
+        description: `Failed to discover hardware: ${error.message}`,
+        recommendation: 'Check kubectl connectivity.',
+        affectsRevenue: false,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Check kubectl setup',
+        risk: 'high'
+      })]
+    };
+  }
+}
+
+/**
+ * Check GPU inventory and allocation
+ * @param {string} namespace - Namespace to check for GPU allocations
+ * @returns {Promise<Object>} GPU inventory status
+ */
+async function checkGPUInventory(namespace = 'akash-services') {
+  const issues = [];
+
+  try {
+    const nodes = await getNodes();
+
+    let totalGPUs = 0;
+    let allocatableGPUs = 0;
+    const gpuByNode = {};
+
+    // Count GPUs from nodes
+    for (const node of nodes) {
+      const allocatable = node.status?.allocatable || {};
+
+      const nvidiaGPU = parseInt(allocatable['nvidia.com/gpu'] || '0', 10);
+      const amdGPU = parseInt(allocatable['amd.com/gpu'] || '0', 10);
+
+      if (nvidiaGPU > 0 || amdGPU > 0) {
+        const nodeName = node.metadata?.name;
+        const nodeGPUs = nvidiaGPU + amdGPU;
+
+        totalGPUs += nodeGPUs;
+        allocatableGPUs += nodeGPUs;
+
+        gpuByNode[nodeName] = {
+          allocatable: nodeGPUs,
+          allocated: 0,
+          nvidia: nvidiaGPU,
+          amd: amdGPU
+        };
+      }
+    }
+
+    // Count allocated GPUs by checking pods
+    let allocatedGPUs = 0;
+
+    try {
+      const pods = await getPods(namespace);
+
+      for (const pod of pods) {
+        const nodeName = pod.spec?.nodeName;
+        const containers = pod.spec?.containers || [];
+
+        for (const container of containers) {
+          const resources = container.resources?.requests || {};
+
+          const nvidiaGPU = parseInt(resources['nvidia.com/gpu'] || '0', 10);
+          const amdGPU = parseInt(resources['amd.com/gpu'] || '0', 10);
+
+          allocatedGPUs += nvidiaGPU + amdGPU;
+
+          // Track by node
+          if (nodeName && gpuByNode[nodeName]) {
+            gpuByNode[nodeName].allocated += nvidiaGPU + amdGPU;
+          }
+        }
+      }
+
+    } catch (error) {
+      // If we can't get pods, we'll report 0 allocated
+    }
+
+    const availableGPUs = allocatableGPUs - allocatedGPUs;
+
+    // Check for overallocation
+    if (allocatedGPUs > allocatableGPUs) {
+      issues.push(createIssue({
+        id: 'gpu-overallocated',
+        severity: 'high',
+        category: 'resource',
+        title: 'GPUs Overallocated',
+        description: `Allocated ${allocatedGPUs} GPUs but only ${allocatableGPUs} available.`,
+        recommendation: 'Check running pods and reduce GPU allocations or remove excess pods.',
+        affectsRevenue: true,
+        blocksNewLeases: true,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Reduce GPU allocations',
+        risk: 'high'
+      }));
+    }
+
+    // Check if GPUs are nearly exhausted
+    const utilizationPercent = allocatableGPUs > 0 ? (allocatedGPUs / allocatableGPUs) * 100 : 0;
+    if (utilizationPercent > 90 && utilizationPercent <= 100) {
+      issues.push(createIssue({
+        id: 'gpu-near-exhaustion',
+        severity: 'medium',
+        category: 'resource',
+        title: 'GPUs Nearly Exhausted',
+        description: `${Math.round(utilizationPercent)}% of GPUs are allocated (${allocatedGPUs}/${allocatableGPUs}).`,
+        recommendation: 'Monitor closely. Consider adding more GPU nodes or reducing allocations.',
+        affectsRevenue: true,
+        blocksNewLeases: true,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Add GPU nodes or reduce allocations',
+        risk: 'medium'
+      }));
+    }
+
+    return {
+      gpus: {
+        total: totalGPUs,
+        allocatable: allocatableGPUs,
+        allocated: allocatedGPUs,
+        available: availableGPUs
+      },
+      byNode: gpuByNode,
+      issues
+    };
+
+  } catch (error) {
+    return {
+      gpus: { total: 0, allocatable: 0, allocated: 0, available: 0 },
+      byNode: {},
+      issues: [createIssue({
+        id: 'gpu-inventory-failed',
+        severity: 'critical',
+        category: 'resource',
+        title: 'GPU Inventory Check Failed',
+        description: `Failed to check GPU inventory: ${error.message}`,
+        recommendation: 'Check kubectl connectivity.',
+        affectsRevenue: false,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Check kubectl setup',
+        risk: 'high'
+      })]
+    };
+  }
+}
+
+/**
+ * Check storage status (PV/PVC)
+ * @returns {Promise<Object>} Storage status
+ */
+async function checkStorageStatus() {
+  const issues = [];
+
+  try {
+    // Get PersistentVolumes
+    let pvOutput = '';
+    let pvCount = 0;
+    let capacityUsed = '0Gi';
+    let totalCapacity = 0;
+
+    try {
+      pvOutput = await kubectl(['get', 'pv']);
+      const pvLines = pvOutput.trim().split('\n').slice(1); // Skip header
+      pvCount = pvLines.filter(line => line.trim().length > 0).length;
+
+      // Parse capacity from PV lines (simplified - just sum up capacities)
+      // Format: NAME  CAPACITY  ACCESS MODES  RECLAIM POLICY  STATUS  CLAIM  STORAGECLASS  REASON
+      for (const line of pvLines) {
+        if (line.trim().length > 0) {
+          const parts = line.trim().split(/\s+/);
+          if (parts.length >= 2) {
+            const capacity = parts[1]; // Second column is capacity
+            // Extract numeric value
+            const match = capacity.match(/^(\d+(?:\.\d+)?)((?:Ki|Mi|Gi)?)$/);
+            if (match) {
+              const value = parseFloat(match[1]);
+              const unit = match[2];
+              let valueInGiB = 0;
+              if (unit === 'Ki') {
+                valueInGiB = value / (1024 * 1024);
+              } else if (unit === 'Mi') {
+                valueInGiB = value / 1024;
+              } else if (unit === 'Gi') {
+                valueInGiB = value;
+              }
+              totalCapacity += valueInGiB;
+            }
+          }
+        }
+      }
+
+      if (totalCapacity > 0) {
+        capacityUsed = `${Math.round(totalCapacity)}Gi`;
+      }
+    } catch (error) {
+      issues.push(createIssue({
+        id: 'pv-query-failed',
+        severity: 'medium',
+        category: 'storage',
+        title: 'Cannot Query PersistentVolumes',
+        description: `Failed to get PVs: ${error.message}`,
+        recommendation: 'Check kubectl permissions.',
+        affectsRevenue: false,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: '',
+        risk: 'low'
+      }));
+    }
+
+    // Get PersistentVolumeClaims
+    let pvcCount = 0;
+    let pendingPVCs = 0;
+
+    try {
+      const pvcOutput = await kubectl(['get', 'pvc', '--all-namespaces']);
+      const pvcLines = pvcOutput.trim().split('\n').slice(1); // Skip header
+      pvcCount = pvcLines.filter(line => line.trim().length > 0).length;
+
+      // Count pending PVCs
+      pendingPVCs = pvcLines.filter(line => line.includes('Pending')).length;
+    } catch (error) {
+      issues.push(createIssue({
+        id: 'pvc-query-failed',
+        severity: 'medium',
+        category: 'storage',
+        title: 'Cannot Query PersistentVolumeClaims',
+        description: `Failed to get PVCs: ${error.message}`,
+        recommendation: 'Check kubectl permissions.',
+        affectsRevenue: false,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: '',
+        risk: 'low'
+      }));
+    }
+
+    // Create issue for pending PVCs
+    if (pendingPVCs > 0) {
+      issues.push(createIssue({
+        id: 'pvc-pending',
+        severity: 'medium',
+        category: 'storage',
+        title: `${pendingPVCs} PVC(s) in Pending State`,
+        description: 'Some PersistentVolumeClaims are not bound. This may indicate storage class issues or capacity problems.',
+        recommendation: 'Check PVC events and available storage capacity.',
+        affectsRevenue: true,
+        blocksNewLeases: true,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Investigate pending PVCs',
+        risk: 'medium'
+      }));
+    }
+
+    return {
+      pvCount,
+      pvcCount,
+      capacityUsed,
+      issues
+    };
+
+  } catch (error) {
+    return {
+      pvCount: 0,
+      pvcCount: 0,
+      capacityUsed: '0Gi',
+      issues: [createIssue({
+        id: 'storage-check-failed',
+        severity: 'high',
+        category: 'storage',
+        title: 'Storage Status Check Failed',
+        description: `Failed to check storage: ${error.message}`,
+        recommendation: 'Check kubectl connectivity.',
+        affectsRevenue: false,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Check kubectl setup',
+        risk: 'high'
+      })]
+    };
+  }
+}
+
+/**
+ * Check network connectivity and policies
+ * @param {string} namespace - Namespace to check
+ * @returns {Promise<Object>} Network status
+ */
+async function checkNetworkConnectivity(namespace = 'akash-services') {
+  const issues = [];
+
+  try {
+    // Check for network policies
+    let networkPolicyCount = 0;
+
+    try {
+      const npOutput = await kubectl(['get', 'networkpolicies', '-n', namespace]);
+      const npLines = npOutput.trim().split('\n').slice(1); // Skip header
+      networkPolicyCount = npLines.filter(line => line.trim().length > 0 && !line.includes('No resources found')).length;
+    } catch (error) {
+      // No network policies or error - we'll handle both
+      networkPolicyCount = 0;
+    }
+
+    // Check if network policies exist
+    if (networkPolicyCount === 0) {
+      issues.push(createIssue({
+        id: 'no-network-policies',
+        severity: 'medium',
+        category: 'network',
+        title: 'No Network Policies Defined',
+        description: `Namespace '${namespace}' has no network policies. All pod-to-pod communication is allowed.`,
+        recommendation: 'Consider implementing network policies to restrict traffic and improve security.',
+        affectsRevenue: false,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Implement network policies',
+        risk: 'medium'
+      }));
+    }
+
+    // Check DNS (CoreDNS) pods
+    let dnsReady = true; // Assume OK by default
+    try {
+      const dnsPods = await getPods('kube-system', 'k8s-app=kube-dns');
+      dnsReady = dnsPods.some(pod => pod.status?.phase === 'Running');
+    } catch (error) {
+      // Assume DNS is OK if we can't check (may not have access to kube-system)
+      dnsReady = true;
+    }
+
+    if (!dnsReady) {
+      issues.push(createIssue({
+        id: 'dns-not-ready',
+        severity: 'high',
+        category: 'network',
+        title: 'DNS Pods Not Running',
+        description: 'CoreDNS pods are not running. This will cause DNS resolution failures.',
+        recommendation: 'Check kube-system namespace for CoreDNS pod issues.',
+        affectsRevenue: true,
+        blocksNewLeases: true,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Investigate CoreDNS pods',
+        risk: 'high'
+      }));
+    }
+
+    return {
+      networkPolicies: {
+        count: networkPolicyCount,
+        exists: networkPolicyCount > 0
+      },
+      dnsReady,
+      connectivityTest: 'skipped', // Would require actual network test
+      issues
+    };
+
+  } catch (error) {
+    return {
+      networkPolicies: { count: 0, exists: false },
+      dnsReady: false,
+      connectivityTest: 'failed',
+      issues: [createIssue({
+        id: 'network-check-failed',
+        severity: 'high',
+        category: 'network',
+        title: 'Network Connectivity Check Failed',
+        description: `Failed to check network: ${error.message}`,
+        recommendation: 'Check kubectl connectivity.',
+        affectsRevenue: false,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Check kubectl setup',
+        risk: 'high'
+      })]
+    };
+  }
+}
+
+/**
+ * Check resource quotas and limits
+ * @param {string} namespace - Namespace to check
+ * @returns {Promise<Object>} Resource quota status
+ */
+async function checkResourceQuotas(namespace = 'akash-services') {
+  const issues = [];
+
+  try {
+    // Check for ResourceQuota
+    let resourceQuotaExists = false;
+    let limitsUsed = { cpu: 0, memory: 0 };
+
+    try {
+      const quotaOutput = await kubectl(['get', 'resourcequota', '-n', namespace]);
+
+      if (!quotaOutput.includes('No resources found')) {
+        resourceQuotaExists = true;
+
+        // Parse resource quota usage (simplified)
+        // Example output: requests.cpu: 2000m/4000m, requests.memory: 8Gi/16Gi
+        const cpuMatch = quotaOutput.match(/requests\.cpu:\s*(\d+)m\/(\d+)m/);
+        if (cpuMatch) {
+          limitsUsed.cpu = (parseInt(cpuMatch[1], 10) / parseInt(cpuMatch[2], 10)) * 100;
+        }
+
+        const memMatch = quotaOutput.match(/requests\.memory:\s*(\d+)Gi\/(\d+)Gi/);
+        if (memMatch) {
+          limitsUsed.memory = (parseInt(memMatch[1], 10) / parseInt(memMatch[2], 10)) * 100;
+        }
+      }
+    } catch (error) {
+      // No quota or error
+    }
+
+    // Check for LimitRange
+    let limitRangeExists = false;
+
+    try {
+      const lrOutput = await kubectl(['get', 'limitrange', '-n', namespace]);
+      limitRangeExists = !lrOutput.includes('No resources found');
+    } catch (error) {
+      // No limitrange or error
+    }
+
+    // Create issues
+    if (!resourceQuotaExists) {
+      issues.push(createIssue({
+        id: 'no-resource-quota',
+        severity: 'high',
+        category: 'resource',
+        title: 'No ResourceQuota Defined',
+        description: `Namespace '${namespace}' has no ResourceQuota. Pods can consume unlimited resources.`,
+        recommendation: 'Implement ResourceQuota to limit resource consumption and prevent noisy neighbor issues.',
+        affectsRevenue: true,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Implement ResourceQuota',
+        risk: 'high'
+      }));
+    }
+
+    if (!limitRangeExists) {
+      issues.push(createIssue({
+        id: 'no-limit-range',
+        severity: 'medium',
+        category: 'resource',
+        title: 'No LimitRange Defined',
+        description: `Namespace '${namespace}' has no LimitRange. Pods may not have default resource limits.`,
+        recommendation: 'Implement LimitRange to ensure all pods have resource limits.',
+        affectsRevenue: true,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Implement LimitRange',
+        risk: 'medium'
+      }));
+    }
+
+    // Check if quotas are nearing limits
+    if (resourceQuotaExists) {
+      const cpuThreshold = 90;
+      const memoryThreshold = 90;
+
+      if (limitsUsed.cpu > cpuThreshold) {
+        issues.push(createIssue({
+          id: 'quota-nearing-limit',
+          severity: 'medium',
+          category: 'resource',
+          title: 'CPU Quota Nearing Limit',
+          description: `${Math.round(limitsUsed.cpu)}% of CPU quota is used.`,
+          recommendation: 'Monitor closely. Consider increasing quota or reducing consumption.',
+          affectsRevenue: true,
+          blocksNewLeases: true,
+          hasFix: false,
+          autoFix: false,
+          fixAction: 'Increase quota or reduce usage',
+          risk: 'medium'
+        }));
+      }
+
+      if (limitsUsed.memory > memoryThreshold) {
+        issues.push(createIssue({
+          id: 'quota-nearing-limit',
+          severity: 'medium',
+          category: 'resource',
+          title: 'Memory Quota Nearing Limit',
+          description: `${Math.round(limitsUsed.memory)}% of memory quota is used.`,
+          recommendation: 'Monitor closely. Consider increasing quota or reducing consumption.',
+          affectsRevenue: true,
+          blocksNewLeases: true,
+          hasFix: false,
+          autoFix: false,
+          fixAction: 'Increase quota or reduce usage',
+          risk: 'medium'
+        }));
+      }
+    }
+
+    return {
+      quotas: {
+        resourceQuotaExists,
+        limitRangeExists
+      },
+      limitsUsed,
+      issues
+    };
+
+  } catch (error) {
+    return {
+      quotas: { resourceQuotaExists: false, limitRangeExists: false },
+      limitsUsed: { cpu: 0, memory: 0 },
+      issues: [createIssue({
+        id: 'quota-check-failed',
+        severity: 'high',
+        category: 'resource',
+        title: 'Resource Quota Check Failed',
+        description: `Failed to check resource quotas: ${error.message}`,
+        recommendation: 'Check kubectl connectivity.',
+        affectsRevenue: false,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Check kubectl setup',
+        risk: 'high'
+      })]
+    };
+  }
+}
+
+/**
+ * Run all diagnostic checks
+ * @param {string} namespace - Namespace to check
+ * @param {Object} options - Options for checks
+ * @returns {Promise<Object>} Complete diagnostic results
+ */
+async function runAllDiagnostics(namespace = 'akash-services', options = {}) {
+  const results = {
+    clusterHealth: null,
+    provider: null,
+    hardware: null,
+    gpu: null,
+    storage: null,
+    network: null,
+    quotas: null,
+    summary: null
+  };
+
+  const allIssues = [];
+
+  // Run all checks in parallel for speed
+  try {
+    const [
+      clusterHealth,
+      provider,
+      hardware,
+      gpu,
+      storage,
+      network,
+      quotas
+    ] = await Promise.allSettled([
+      checkClusterHealth(options),
+      checkProviderHealth(namespace),
+      checkHardwareDiscovery(options),
+      checkGPUInventory(namespace),
+      checkStorageStatus(),
+      checkNetworkConnectivity(namespace),
+      checkResourceQuotas(namespace)
+    ]);
+
+    // Collect results
+    if (clusterHealth.status === 'fulfilled') {
+      results.clusterHealth = clusterHealth.value;
+      allIssues.push(...(clusterHealth.value.issues || []));
+    } else {
+      results.clusterHealth = {
+        status: 'error',
+        issues: [createIssue({
+          id: 'cluster-health-error',
+          severity: 'critical',
+          category: 'diagnostic',
+          title: 'Cluster Health Check Error',
+          description: clusterHealth.reason?.message || 'Unknown error',
+          recommendation: 'Check kubectl setup',
+          affectsRevenue: true,
+          blocksNewLeases: false,
+          hasFix: false,
+          autoFix: false,
+          fixAction: '',
+          risk: 'critical'
+        })]
+      };
+    }
+
+    if (provider.status === 'fulfilled') {
+      results.provider = provider.value;
+      allIssues.push(...(provider.value.issues || []));
+    } else {
+      results.provider = {
+        status: 'unknown',
+        issues: [createIssue({
+          id: 'provider-health-error',
+          severity: 'critical',
+          category: 'diagnostic',
+          title: 'Provider Health Check Error',
+          description: provider.reason?.message || 'Unknown error',
+          recommendation: 'Check kubectl setup',
+          affectsRevenue: true,
+          blocksNewLeases: false,
+          hasFix: false,
+          autoFix: false,
+          fixAction: '',
+          risk: 'critical'
+        })]
+      };
+    }
+
+    if (hardware.status === 'fulfilled') {
+      results.hardware = hardware.value;
+      allIssues.push(...(hardware.value.issues || []));
+    } else {
+      results.hardware = {
+        nodes: [],
+        totalCPU: 0,
+        totalMemory: 0,
+        totalGPU: 0,
+        gpuTypes: {},
+        issues: [createIssue({
+          id: 'hardware-discovery-error',
+          severity: 'high',
+          category: 'diagnostic',
+          title: 'Hardware Discovery Error',
+          description: hardware.reason?.message || 'Unknown error',
+          recommendation: 'Check kubectl setup',
+          affectsRevenue: false,
+          blocksNewLeases: false,
+          hasFix: false,
+          autoFix: false,
+          fixAction: '',
+          risk: 'high'
+        })]
+      };
+    }
+
+    if (gpu.status === 'fulfilled') {
+      results.gpu = gpu.value;
+      allIssues.push(...(gpu.value.issues || []));
+    } else {
+      results.gpu = {
+        gpus: { total: 0, allocatable: 0, allocated: 0, available: 0 },
+        byNode: {},
+        issues: [createIssue({
+          id: 'gpu-inventory-error',
+          severity: 'high',
+          category: 'diagnostic',
+          title: 'GPU Inventory Error',
+          description: gpu.reason?.message || 'Unknown error',
+          recommendation: 'Check kubectl setup',
+          affectsRevenue: false,
+          blocksNewLeases: false,
+          hasFix: false,
+          autoFix: false,
+          fixAction: '',
+          risk: 'high'
+        })]
+      };
+    }
+
+    if (storage.status === 'fulfilled') {
+      results.storage = storage.value;
+      allIssues.push(...(storage.value.issues || []));
+    } else {
+      results.storage = {
+        pvCount: 0,
+        pvcCount: 0,
+        capacityUsed: '0Gi',
+        issues: [createIssue({
+          id: 'storage-status-error',
+          severity: 'high',
+          category: 'diagnostic',
+          title: 'Storage Status Error',
+          description: storage.reason?.message || 'Unknown error',
+          recommendation: 'Check kubectl setup',
+          affectsRevenue: false,
+          blocksNewLeases: false,
+          hasFix: false,
+          autoFix: false,
+          fixAction: '',
+          risk: 'high'
+        })]
+      };
+    }
+
+    if (network.status === 'fulfilled') {
+      results.network = network.value;
+      allIssues.push(...(network.value.issues || []));
+    } else {
+      results.network = {
+        networkPolicies: { count: 0, exists: false },
+        dnsReady: false,
+        connectivityTest: 'failed',
+        issues: [createIssue({
+          id: 'network-connectivity-error',
+          severity: 'high',
+          category: 'diagnostic',
+          title: 'Network Connectivity Error',
+          description: network.reason?.message || 'Unknown error',
+          recommendation: 'Check kubectl setup',
+          affectsRevenue: false,
+          blocksNewLeases: false,
+          hasFix: false,
+          autoFix: false,
+          fixAction: '',
+          risk: 'high'
+        })]
+      };
+    }
+
+    if (quotas.status === 'fulfilled') {
+      results.quotas = quotas.value;
+      allIssues.push(...(quotas.value.issues || []));
+    } else {
+      results.quotas = {
+        quotas: { resourceQuotaExists: false, limitRangeExists: false },
+        limitsUsed: { cpu: 0, memory: 0 },
+        issues: [createIssue({
+          id: 'resource-quota-error',
+          severity: 'high',
+          category: 'diagnostic',
+          title: 'Resource Quota Error',
+          description: quotas.reason?.message || 'Unknown error',
+          recommendation: 'Check kubectl setup',
+          affectsRevenue: false,
+          blocksNewLeases: false,
+          hasFix: false,
+          autoFix: false,
+          fixAction: '',
+          risk: 'high'
+        })]
+      };
+    }
+
+    // Generate summary
+    const criticalIssues = allIssues.filter(i => i.severity === 'critical').length;
+    const highIssues = allIssues.filter(i => i.severity === 'high').length;
+    const mediumIssues = allIssues.filter(i => i.severity === 'medium').length;
+    const lowIssues = allIssues.filter(i => i.severity === 'low').length;
+
+    let overallHealth = 'healthy';
+    if (criticalIssues > 0) {
+      overallHealth = 'critical';
+    } else if (highIssues > 0) {
+      overallHealth = 'degraded';
+    } else if (mediumIssues > 0) {
+      overallHealth = 'degraded';
+    } else if (lowIssues > 0 && lowIssues > 5) {
+      overallHealth = 'degraded';
+    }
+
+    results.summary = {
+      totalIssues: allIssues.length,
+      criticalIssues,
+      highIssues,
+      mediumIssues,
+      lowIssues,
+      overallHealth,
+      issues: allIssues
+    };
+
+  } catch (error) {
+    results.summary = {
+      totalIssues: 1,
+      criticalIssues: 1,
+      highIssues: 0,
+      mediumIssues: 0,
+      lowIssues: 0,
+      overallHealth: 'critical',
+      issues: [createIssue({
+        id: 'diagnostic-runner-error',
+        severity: 'critical',
+        category: 'diagnostic',
+        title: 'Diagnostic Runner Failed',
+        description: `Failed to run diagnostics: ${error.message}`,
+        recommendation: 'Check kubectl setup and permissions.',
+        affectsRevenue: true,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Check kubectl setup',
+        risk: 'critical'
+      })]
+    };
+  }
+
+  return results;
+}
+
 module.exports = {
   checkProviderHealth,
+  checkClusterHealth,
+  checkHardwareDiscovery,
+  checkGPUInventory,
+  checkStorageStatus,
+  checkNetworkConnectivity,
+  checkResourceQuotas,
+  runAllDiagnostics,
   calculateUptime
 };

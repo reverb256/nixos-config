@@ -125,7 +125,7 @@
           bindAddress = config.services.kubernetes-module.apiserverBindAddress;
           securePort = 6443;
           allowPrivileged = true;
-          extraOpts = "--api-audiences=api,https://kubernetes.default.svc,https://kubernetes.default.svc.cluster.local --endpoint-reconciler-type=none";
+          extraOpts = "--api-audiences=api,https://kubernetes.default.svc,https://kubernetes.default.svc.cluster.local --endpoint-reconciler-type=none --encryption-provider-config=/etc/kubernetes/encryption-config.yaml";
           # HA Certificates: Include VIP and all control plane node IPs in SANs
           extraSANs = [
             # VIP for HA failover
@@ -260,6 +260,9 @@
         # Sentry: HDD storage for archival, logs
         "d /storage/k8s-local 0777 root root -"
       ];
+
+      # Kubernetes secrets encryption configuration
+      environment.etc."kubernetes/encryption-config.yaml".source = ./secrets/kubernetes/encryption-config.yaml;
 
       # Store the Flannel CNI config
       # Use same format as working Zephyr control plane (cniVersion 0.3.1, name "cbr0")
