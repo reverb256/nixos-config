@@ -261,35 +261,6 @@
         "d /storage/k8s-local 0777 root root -"
       ];
 
-      # Kubernetes secrets encryption configuration
-      # Created during activation to avoid committing secrets to git
-      systemd.services.kubernetes-encryption-config = {
-        description = "Create Kubernetes encryption configuration";
-        wantedBy = [ "multi-user.target" ];
-        before = [ "kube-apiserver.service" ];
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = pkgs.writeShellScript "kubernetes-encryption-config" ''
-            mkdir -p /etc/kubernetes
-            cat > /etc/kubernetes/encryption-config.yaml <<'EOF'
-apiVersion: apiserver.config.k8s.io/v1
-kind: EncryptionConfiguration
-resources:
-  - resources:
-    - secrets
-    providers:
-    - aescbc:
-        keys:
-          - name: key1
-            secret: ulPv4K6Jr680WD+bfJCk4A4DAn7FSEdkTtVBQsijWwU=
-    - identity: {}  # fallback to identity for reading unencrypted secrets
-EOF
-            chmod 644 /etc/kubernetes/encryption-config.yaml
-          '';
-        };
-      };
-
-
       # Store the Flannel CNI config
       # Use same format as working Zephyr control plane (cniVersion 0.3.1, name "cbr0")
       # The minimal delegate config lets Flannel handle bridge setup automatically
@@ -533,6 +504,34 @@ EOF
             MemoryMax = "1G";
             MemoryHigh = "512M";
             OOMScoreAdjust = -500;
+          };
+        };
+
+        # Generate Kubernetes encryption configuration with ROTATED key
+        # SECURITY: Key is rotated due to previous key exposure in git history
+        kubernetes-encryption-config = {
+          description = "Create Kubernetes encryption configuration";
+          wantedBy = [ "multi-user.target" ];
+          before = [ "kube-apiserver.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = pkgs.writeShellScript "kubernetes-encryption-config" ''
+              mkdir -p /etc/kubernetes
+              cat > /etc/kubernetes/encryption-config.yaml <<'EOF'
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+    - secrets
+    providers:
+    - aescbc:
+        keys:
+          - name: key1
+            secret: ThYJ+8SNoXq6t+1hl+5osoApcBUi4odvzP852RHmvDs=
+    - identity: {}  # fallback to identity for reading unencrypted secrets
+EOF
+              chmod 644 /etc/kubernetes/encryption-config.yaml
+            '';
           };
         };
       }; # Close systemd.services
