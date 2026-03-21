@@ -24,7 +24,7 @@ spec:
       nodeName: zephyr  # Pin to Zephyr node
       serviceAccountName: gpu-miner-sa
       hostNetwork: true  # Use host network for stratum connection
-      priorityClassName: mining-low  # Preemptable by AI workloads
+      priorityClassName: preemptible-mining  # Preemptable by AI workloads
       tolerations:
       - key: node-role.kubernetes.io/control-plane
         operator: Exists

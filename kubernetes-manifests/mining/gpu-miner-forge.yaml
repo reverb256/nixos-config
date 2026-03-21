@@ -20,8 +20,9 @@ spec:
         host: forge
     spec:
       nodeName: forge  # Pin to Forge node
+      serviceAccountName: gpu-miner-sa
       hostNetwork: true  # Use host network for stratum connection
-      priorityClassName: low-priority-mining  # Preemptable by AI workloads
+      priorityClassName: preemptible-mining  # Preemptable by AI workloads
       containers:
       - name: lolminer-nvidia
         image: lolminer:1.98a-nixos

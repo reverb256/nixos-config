@@ -25,7 +25,7 @@ spec:
       nodeName: forge
       serviceAccountName: gpu-miner-sa
       hostNetwork: true
-      priorityClassName: mining-low
+      priorityClassName: preemptible-mining
       tolerations:
       - key: "scheduler.yunikorn.io/preemptible"
         operator: "Exists"
