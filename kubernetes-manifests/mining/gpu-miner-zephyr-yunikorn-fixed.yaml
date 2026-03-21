@@ -29,7 +29,7 @@ spec:
     memory: "8Gi"
     cpu: "2"
   # Priority class (low - preemptible by AI)
-  priorityClassName: low-priority-mining
+  priorityClassName: preemptible-mining
   # Queue for mining workloads
   queue: mining-queue
 ---
@@ -76,7 +76,7 @@ spec:
       # Graceful shutdown period
       terminationGracePeriodSeconds: 30
       # Low priority (preemptible by AI workloads)
-      priorityClassName: low-priority-mining
+      priorityClassName: preemptible-mining
       # Tolerations for control plane and preemption
       tolerations:
       - key: node-role.kubernetes.io/control-plane

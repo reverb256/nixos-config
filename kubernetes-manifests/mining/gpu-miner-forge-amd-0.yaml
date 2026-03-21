@@ -31,7 +31,7 @@ spec:
       nodeName: forge
       hostNetwork: true
       serviceAccountName: gpu-miner-sa
-      priorityClassName: mining-low
+      priorityClassName: preemptible-mining
       tolerations:
       - key: "scheduler.yunikorn.io/preemptible"
         operator: "Exists"
@@ -55,7 +55,7 @@ spec:
         - "--mode=b"
         env:
         - name: LD_LIBRARY_PATH
-          value: "/lib"
+          value: "/run/opengl-driver/lib:/nix/store"
         - name: OCL_ICD_VENDORS
           value: "/etc/OpenCL/vendors"
         ports:
@@ -83,6 +83,12 @@ spec:
           mountPath: /dev
         - name: dri
           mountPath: /dev/dri
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        - name: opengl-driver
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
         resources:
           requests:
             memory: "2Gi"
@@ -101,3 +107,9 @@ spec:
       - name: dri
         hostPath:
           path: /dev/dri
+      - name: nix-store
+        hostPath:
+          path: /nix/store
+      - name: opengl-driver
+        hostPath:
+          path: /run/opengl-driver/lib

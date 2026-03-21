@@ -10,14 +10,12 @@ metadata:
 spec:
   limits:
   - default:
-      cpu: "4"
-      memory: 8Gi
-    defaultRequest:
       cpu: "2"
       memory: 4Gi
+    defaultRequest:
+      cpu: "100m"
+      memory: 100Mi
     max:
       cpu: "8"
       memory: 16Gi
-      nvidia.com/gpu: "2"
-      amd.com/gpu: "2"
     type: Container
