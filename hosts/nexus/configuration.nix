@@ -51,6 +51,12 @@
     unbound.listenAddress = "10.1.1.120"; # Listen on node IP for cluster DNS
   };
 
+  # Disable flake-lock-sync (nixos-shared mount not available)
+  services.flake-lock-sync.enable = lib.mkForce false;
+
+  # Directly disable the systemd timer (blocking rebuilds)
+  systemd.timers.flake-lock-sync.enable = false;
+
   # Populate /etc/hosts from central cluster configuration
   networking = {
     cluster-hosts = {
@@ -345,18 +351,20 @@
     # Mining configuration - CPU uses xmrig-proxy on Zephyr
     # GPU mining DISABLED: 3060 Ti is used for desktop (VRAM exhausted by KWin/Xwayland)
     # Only 136MB VRAM free - insufficient for CR29 mining DAG (~7GB required)
+    # CPU mining DISABLED: K8s version working instead
     mining = {
       # Dual XMRig setup (always-on + pause-able)
       # Total when idle: 12 threads (50%) - Total when gaming: 4 threads (17%)
+      # DISABLED: Migrated to Kubernetes
       xmrigDual = {
-        enable = true;
+        enable = false;
         # Always-on instance - mines even during gaming
         alwaysOn = {
-          enable = true;
+          enable = false;
           threads = 4; # 17% of 24 cores
           httpPort = 8081;
           httpTokenFile = "/run/agenix/xmrig-always-api-token";
-          autostart = true;
+          autostart = false;
         };
         # Flexible instance - pauses during gaming/builds
         flexible = {
@@ -364,7 +372,7 @@
           threads = 8; # 33% of 24 cores
           httpPort = 8082;
           httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
-          autostart = true;
+          autostart = false;
         };
         # Common settings for both instances
         pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
@@ -460,8 +468,9 @@
   # HERMES AGENT - Multi-Host Orchestration
   # ============================================================================
   # Autonomous agent for cluster-wide task execution and coordination
+  # DISABLED: Health check blocking rebuilds (2026-03-21)
   services.hermes-agent = {
-    enable = true;
+    enable = false;
     user = "j_kro";
     sharedStorage = {
       enable = true;

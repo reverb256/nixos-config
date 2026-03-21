@@ -50,6 +50,12 @@
     unbound.listenAddress = "10.1.1.130"; # Listen on node IP for cluster DNS
   };
 
+  # Disable flake-lock-sync (nixos-shared mount not available)
+  services.flake-lock-sync.enable = lib.mkForce false;
+
+  # Directly disable the systemd timer (blocking rebuilds)
+  systemd.timers.flake-lock-sync.enable = false;
+
   # Populate /etc/hosts from central cluster configuration
   networking = {
     cluster-hosts = {
@@ -130,12 +136,13 @@
         apiPort = 4068;
       };
 
-      # AMD GPUs DISABLED: RX 5700 XTs have insufficient VRAM for CR29 mining
+      # AMD GPUs - Kubernetes deployment primary, systemd backup
       # GPU[0]: 6.7GB/8GB used, GPU[1]: 6.4GB/8GB used - only ~2GB free each
-      # CR29 DAG requires ~7GB continuous memory which causes fragmentation errors
+      # CR29 DAG requires ~7GB continuous memory which may cause fragmentation
+      # Systemd services run as backup while debugging Kubernetes seccomp issues
       amd = {
-        enable = false;
-        autostart = false;
+        enable = true;   # Enable systemd backup services
+        autostart = true;
         devices = "0,1";
         powerLimit = 110;  # 110W for optimal efficiency (from 140W default)
         apiPort = 4069;
