@@ -16,8 +16,8 @@
 
 | Host | CPU | Cores | Threads | RAM | Swap | GPUs | Role |
 |------|-----|-------|---------|-----|------|------|------|
-| **Zephyr** | Ryzen 9 5950X | 16 | 32 | 32 GB | 32 GB | 3x NVIDIA (3090, 2x 3080) | Control plane + Gaming |
-| **Nexus** | Ryzen 9 3900X | 12 | 24 | 48 GB | 16 GB | 2x AMD (6900XT, 6800) | Control plane + Storage |
+| **Zephyr** | Ryzen 9 5950X | 16 | 32 | 32 GB | 32 GB | 2x NVIDIA (3090, 3060 Ti) | Control plane + Gaming |
+| **Nexus** | Ryzen 9 3900X | 12 | 24 | 48 GB | 16 GB | 1x NVIDIA (3060 Ti) | Control plane + Storage |
 | **Sentry** | Ryzen 7 1700 | 8 | 16 | 32 GB | 8 GB | 1x AMD (5600 XT) | Control plane + Monitoring |
 | **Forge** | Core i5-9500 | 6 | 6 | 16 GB | 16 GB | 4x GPUs (2x NVIDIA 4060, 2x AMD 5700 XT) | Dedicated GPU Worker |
 
@@ -25,7 +25,7 @@
 - CPU: 78 logical cores
 - RAM: 128 GB (123 GB usable)
 - Swap: 72 GB (PROBLEM: should be disabled)
-- GPUs: 10 (6 NVIDIA + 4 AMD)
+- GPUs: 8 (5 NVIDIA + 3 AMD)
 
 ### Control Plane Architecture (User Decision)
 
@@ -242,7 +242,7 @@ Define 3-tier priority system:
 | **CoreDNS** | 2 | 3 | Zephyr, Nexus, Sentry | +300m | +300 Mi |
 | **Ingress** | 1 | 3 | Zephyr, Nexus, Sentry | +400m | +400 Mi |
 | **Yunikorn** | 1 | 3 | Zephyr, Nexus, Sentry | +1000m | +1000 Mi |
-| **GPU Miners** | 6 | 6 | Forge (6 pods) | 0 | 0 |
+| **GPU Miners** | 6 | 6 | Zephyr(1), Nexus(1), Forge(4) | 0 | 0 |
 
 **Total Critical**: +1700m CPU, +1700 Mi RAM
 
@@ -323,6 +323,7 @@ Define 3-tier priority system:
 | API instability from swap | Medium | High | Disable swap before HA upgrade |
 | Resource contention on masters | Low | Medium | Implement resource quotas, overprovisioning buffer |
 | Single worker failure | Low | High | Keep Forge as GPU-only, quick recovery procedures |
+| GPU workload conflicts | Low | Medium | Zephyr 3060Ti gaming-only, Sentry 5600XT AI-only |
 
 ---
 
