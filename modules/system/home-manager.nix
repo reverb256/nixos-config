@@ -30,8 +30,8 @@
       ];
 
       # Enable vesktop and caprine only on Zephyr
-      nixcord-config.enable = lib.mkForce (config.networking.hostName or "" == "zephyr");
-      caprine.enable = lib.mkForce (config.networking.hostName or "" == "zephyr");
+      nixcord-config.enable = lib.mkForce (config.hostName or "" == "zephyr");
+      caprine.enable = lib.mkForce (config.hostName or "" == "zephyr");
 
       home.stateVersion = "26.05";
 
