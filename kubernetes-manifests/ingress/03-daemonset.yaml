@@ -123,7 +123,7 @@ spec:
           protocol: UDP
         livenessProbe:
           httpGet:
-            path: /health
+            path: /config
             port: admin
             scheme: HTTP
           initialDelaySeconds: 10
@@ -133,7 +133,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /health
+            path: /config
             port: admin
             scheme: HTTP
           initialDelaySeconds: 5
