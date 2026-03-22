@@ -1,0 +1,140 @@
+# Prometheus Alerting Rules for Caddy Ingress
+# Deployed via Prometheus on Sentry (10.1.1.140:9090)
+
+groups:
+  - name: caddy_ingress_health
+    interval: 30s
+    rules:
+      # High HTTP error rate (5xx responses)
+      - alert: CaddyHighErrorRate
+        expr: |
+          (
+            sum(rate(caddy_http_requests_total{job="caddy-ingress",status=~"5.."}[5m])) /
+            sum(rate(caddy_http_requests_total{job="caddy-ingress"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          tier: ingress
+        annotations:
+          summary: "Caddy ingress high error rate"
+          description: "HTTP error rate is {{ $value | humanizePercentage }} (>5%) for the last 5 minutes"
+
+      # Low cache hit rate
+      - alert: CaddyLowCacheHitRate
+        expr: |
+          (
+            sum(rate(caddy_cache_hits_total{job="caddy-ingress"}[5m])) /
+            (sum(rate(caddy_cache_hits_total{job="caddy-ingress"}[5m])) + sum(rate(caddy_cache_misses_total{job="caddy-ingress"}[5m])))
+          ) < 0.3
+        for: 15m
+        labels:
+          severity: warning
+          tier: ingress
+        annotations:
+          summary: "Caddy cache hit rate below 30%"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (<30%) for the last 15 minutes"
+
+      # High request latency (P95)
+      - alert: CaddyHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(caddy_http_request_duration_seconds_bucket{job="caddy-ingress"}[5m])) by (le)
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          tier: ingress
+        annotations:
+          summary: "Caddy high request latency"
+          description: "P95 latency is {{ $value }}s (>1s) for the last 10 minutes"
+
+      # Ingress pods down
+      - alert: CaddyIngressPodsDown
+        expr: |
+          count(up{job="caddy-ingress"} == 0) > 0
+        for: 2m
+        labels:
+          severity: critical
+          tier: ingress
+        annotations:
+          summary: "Caddy ingress pods are down"
+          description: "{{ $value }} Caddy ingress pod(s) have been down for more than 2 minutes"
+
+      # All ingress pods down
+      - alert: CaddyIngressAllPodsDown
+        expr: |
+          count(up{job="caddy-ingress"} == 0) == count(up{job="caddy-ingress"})
+        for: 1m
+        labels:
+          severity: critical
+          tier: ingress
+        annotations:
+          summary: "All Caddy ingress pods are down"
+          description: "Complete ingress failure - all pods are unreachable"
+
+  - name: caddy_ingress_security
+    interval: 30s
+    rules:
+      # High rate limit blocking
+      - alert: CaddyHighRateLimitBlocking
+        expr: |
+          sum(rate(caddy_rate_limit_requests_blocked_total{job="caddy-ingress"}[5m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+          tier: ingress
+        annotations:
+          summary: "Caddy high rate limit blocking"
+          description: "Rate limit is blocking {{ $value }} req/s (>100/s) for the last 5 minutes"
+
+      # IP filter blocking
+      - alert: CaddyIPFilterBlocking
+        expr: |
+          sum(rate(caddy_ipfilter_requests_blocked_total{job="caddy-ingress"}[5m])) > 50
+        for: 10m
+        labels:
+          severity: info
+          tier: ingress
+        annotations:
+          summary: "Caddy IP filter active"
+          description: "IP filter is blocking {{ $value }} req/s for the last 10 minutes"
+
+  - name: caddy_ingress_performance
+    interval: 30s
+    rules:
+      # High bandwidth usage (compression metrics)
+      - alert: CaddyHighBandwidthUsage
+        expr: |
+          sum(rate(caddy_compress_zstd_bytes_in_total{job="caddy-ingress"}[5m])) > 1000000000
+        for: 15m
+        labels:
+          severity: info
+          tier: ingress
+        annotations:
+          summary: "Caddy high bandwidth usage"
+          description: "Ingress is processing >1GB/s (zstd compression) for the last 15 minutes"
+
+      # Certificate expiry warning
+      - alert: CaddyCertificateExpiringSoon
+        expr: |
+          (caddy_tls_cert_not_after{job="caddy-ingress"} - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          tier: ingress
+        annotations:
+          summary: "Caddy TLS certificate expiring soon"
+          description: "Certificate for {{ $labels.san }} expires in {{ $value | humanizeDuration }}"
+
+      # Certificate expired
+      - alert: CaddyCertificateExpired
+        expr: |
+          caddy_tls_cert_not_after{job="caddy-ingress"} < time()
+        for: 1m
+        labels:
+          severity: critical
+          tier: ingress
+        annotations:
+          summary: "Caddy TLS certificate expired"
+          description: "Certificate for {{ $labels.san }} has expired"
