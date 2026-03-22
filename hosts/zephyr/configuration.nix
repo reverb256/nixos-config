@@ -1106,7 +1106,6 @@
   services.agenix-secrets-registry = {
     enable = true;
     aiServices = true;
-    kubernetes = true; # etcd HA cluster secrets
     monitoring = false; # TODO: Re-enable after creating sentry-dsn.age
     storage = true; # Required for backup-to-garage service (S3 API key)
     mining = true;
