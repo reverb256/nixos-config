@@ -8,10 +8,13 @@ data:
     # SearXNG minimal configuration
     use_default_settings: true
     server:
-      limiter: true
+      limiter: false
       secret_key: "${SEARXNG_SECRET}"
       method: "GET"
       port: 8080
+
+    # Completely disable limiter and rate limiting
+    limiter: false
 
     search:
       formats:
@@ -19,6 +22,15 @@ data:
         - json
       language: en
       safe_search: 0
+
+    # Disable all access control for cluster use
+    ui:
+      static_use_hash: true
+      default_theme: simple
+
+    # Disable rate limiting completely
+    result_proxy:
+      enabled: false
 
     ui:
       static_use_hash: true
@@ -40,40 +52,8 @@ data:
       - name: bing
         paging: true
 
-    limiter:
-      redis:
-        url: "redis://redis.search.svc.cluster.local:6379/0"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: searxng-limiter
-  namespace: search
-data:
-  limiter.toml: |
-    [botdetection]
-    ipv4_prefix = 32
-    ipv6_prefix = 48
-
-    # Trust Kubernetes network
-    trusted_proxies = [
-      '127.0.0.0/8',
-      '::1',
-      '10.0.0.0/8',
-      '10.1.1.0/24',
-    ]
-
-    [botdetection.ip_limit]
-    filter_link_local = false
-    link_token = false
-
-    [botdetection.ip_lists]
-    block_ip = []
-    pass_ip = [
-      '10.0.0.0/8',
-      '10.1.1.0/24',
-    ]
-    pass_searxng_org = true
+    # Disable limiter completely for API access
+    limiter: false
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -115,13 +95,12 @@ spec:
               value: "7b22a3c8f9e4d1a6b5c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1"
             - name: BASE_URL
               value: "http://searxng.search.svc.cluster.local:8080"
+            - name: SEARXNG_LIMITER
+              value: "false"
           volumeMounts:
             - name: settings
               mountPath: /etc/searxng/settings.yml
               subPath: settings.yml
-            - name: limiter
-              mountPath: /etc/searxng/limiter.toml
-              subPath: limiter.toml
             - name: tmp
               mountPath: /tmp
             - name: cache
@@ -151,9 +130,6 @@ spec:
         - name: settings
           configMap:
             name: searxng-settings
-        - name: limiter
-          configMap:
-            name: searxng-limiter
         - name: tmp
           emptyDir: {}
         - name: cache

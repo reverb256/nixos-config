@@ -68,7 +68,7 @@ spec:
         scheduling.volcano.sh/pod-group: gpu-miner-zephyr-group
     spec:
       # Use YuniKorn scheduler
-      schedulerName: yunikorn
+      # schedulerName: yunikorn # DISABLED: Using default scheduler
       # ServiceAccount for least-privilege RBAC
       serviceAccountName: gpu-miner-sa
       # Pin to Zephyr node (RTX 3090 only - GPU 1)
@@ -83,8 +83,6 @@ spec:
         operator: Exists
         effect: NoSchedule
       # Allow this pod to be evicted for higher priority pods
-      - key: "scheduler.yunikorn.io/preemptible"
-        operator: "Exists"
       containers:
       - name: lolminer
         # Using existing Docker Hub image for lolminer

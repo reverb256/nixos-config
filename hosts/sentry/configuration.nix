@@ -111,7 +111,7 @@
       roles = ["master" "node"];
       # Use VIP for HA access
       masterAddress = lib.mkForce "10.1.1.100";
-      # Join existing etcd cluster
+      # Join existing 3-node etcd cluster
       etcdInitialState = "existing";
       etcdName = "sentry";
       etcdListenHost = "10.1.1.140";
@@ -281,9 +281,12 @@
         autostart = false;
         threads = 4;
         pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
-        wallet = "sentry-cpu"; # Worker ID for proxy
-        tls = false; # No TLS needed for local proxy
-        httpTokenFile = "/run/agenix/xmrig-api-token"; # For HTTP API control
+      };
+      xmrigDual = {
+        enable = true;  # Enable for 1GB hugepages kernel params
+        alwaysOn = {
+          enable = false;
+        };
       };
       # AMD GPU (RX 5600 XT) - DISABLED for AI inference
       # Sentry should only CPU mine, GPU reserved for llamafile (ROCm)
@@ -388,6 +391,12 @@
   # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
   boot.loader.timeout = lib.mkDefault 5;
 
+  # Kernel parameters for XMRig RandomX performance (dual-xmrig module)
+  boot.kernelParams = [
+    "hugepagesz=1G"
+    "hugepages=3"
+  ];
+
   # Environment configuration
   environment = {
     # ROCm SETUP (for AMD GPU monitoring)
@@ -415,6 +424,9 @@
       ];
     };
   in [
+    # Clean old etcd data directory before starting (NixOS-managed cleanup)
+    "R /var/lib/etcd - - - - -"
+    # ROCm symlinks
     "L+ /opt/rocm - - - - ${rocmEnv}"
     "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
   ];

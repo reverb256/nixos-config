@@ -36,24 +36,21 @@ spec:
       serviceAccountName: gpu-miner-sa
       automountServiceAccountToken: false
       hostNetwork: true
-      priorityClassName: preemptible-mining
+      priorityClassName: mining-low
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
-      initContainers:
-        - name: gpu-power-limit
-          image: nvidia/cuda:12.4.0-base-ubuntu22.04
-          command:
-            - /bin/sh
-            - -c
-            - |
-              nvidia-smi -i 1 -pl 320
-          securityContext:
-            privileged: true
-            capabilities:
-              add:
-                - SYS_ADMIN
+        - key: "workstation"
+          operator: "Equal"
+          value: "true"
+          effect: NoSchedule
+        - key: "interactive"
+          operator: "Equal"
+          value: "true"
+          effect: NoExecute
+      # REMOVED: gpu-power-limit init container (causing crashes)
+      # GPU power limits now configured at host level via systemd
       containers:
         - name: lolminer
           image: lolminer:1.98a-nixos

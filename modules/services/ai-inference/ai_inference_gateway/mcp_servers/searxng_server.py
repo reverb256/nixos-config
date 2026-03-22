@@ -55,8 +55,8 @@ SERVER_NAME = "mcp-searxng"
 SERVER_VERSION = "1.0.0"
 
 # SearXNG configuration
-# Default: Kubernetes ClusterIP (accessible from host)
-SEARXNG_URL = os.getenv("SEARXNG_URL", "http://10.0.0.230:7777")
+# Default: Kubernetes service DNS
+SEARXNG_URL = os.getenv("SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080")
 SEARXNG_CACHE_TTL = int(os.getenv("SEARXNG_CACHE_TTL", "300"))
 
 

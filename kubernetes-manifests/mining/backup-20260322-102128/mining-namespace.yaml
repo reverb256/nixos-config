@@ -1,0 +1,8 @@
+# Mining Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mining
+  labels:
+    name: mining
+    workload: crypto-mining

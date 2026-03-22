@@ -38,11 +38,23 @@ spec:
       serviceAccountName: gpu-miner-sa
       automountServiceAccountToken: false
       hostNetwork: true
-      priorityClassName: preemptible-mining
+      priorityClassName: mining-low
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: "workstation"
+          operator: "Equal"
+          value: "true"
+          effect: NoSchedule
+        - key: "interactive"
+          operator: "Equal"
+          value: "true"
+          effect: NoExecute
       terminationGracePeriodSeconds: 30
       containers:
       - name: xmrig
-        image: xmrig-nixos:6.22.0
+        image: docker.io/library/xmrig-nixos:latest
         imagePullPolicy: Never
         args:
           - "-o"
@@ -54,35 +66,12 @@ spec:
           - "--threads=8"
           - "--donate-level=1"
           - "--api-worker-id=zephyr-cpu"
+          - "--http-enabled"
+          - "--http-port=8081"
         ports:
         - containerPort: 8081
           name: api
           protocol: TCP
-        # ADDED: Health probes for crash detection
-        livenessProbe:
-          httpGet:
-            path: /1/summary
-            port: api
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /1/summary
-            port: api
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 3
-          failureThreshold: 3
-        startupProbe:
-          httpGet:
-            path: /1/summary
-            port: api
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 30
         resources:
           requests:
             memory: "1Gi"
@@ -102,3 +91,11 @@ spec:
             - ALL
             add:
             - IPC_LOCK  # Required for large pages
+        volumeMounts:
+        - name: hugepages
+          mountPath: /dev/hugepages
+      volumes:
+      - name: hugepages
+        hostPath:
+          path: /dev/hugepages
+          type: Directory
