@@ -4,6 +4,18 @@
       "/data/@projects/infra/xnm1-upgrade-worktree/"
     ]
   },
+  "enabledMcpjsonServers": [
+    "filesystem",
+    "git",
+    "fetch",
+    "context7",
+    "grep-app",
+    "chrome-devtools",
+    "playwright",
+    "nixos",
+    "gateway",
+    "searxng"
+  ],
   "hooks": {
     "PreToolUse": [
       {

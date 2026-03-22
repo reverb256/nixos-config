@@ -104,15 +104,29 @@
   # SERVICES - All service configurations
   # ============================================================================
   services = {
-    # KUBERNETES HA - Control Plane Configuration
-    # KUBERNETES - Worker Node Configuration
-    # Sentry is a worker/monitoring node (not a control plane node)
+    # KUBERNETES - HA Control Plane Configuration
+    # Sentry is a control plane node (3-node HA)
     kubernetes-module = {
       enable = true;
-      # Worker node only (no master role)
-      roles = lib.mkForce ["node"];
-      # Use zephyr's IP or VIP for master address
+      # Control plane + worker roles
+      roles = lib.mkForce ["master" "node"];
+      # Use VIP for master address
       masterAddress = lib.mkForce "10.1.1.100";
+      # etcd is managed by etcd-cluster module
+      etcdInitialState = "existing";
+      etcdName = "sentry";
+      etcdListenHost = "10.1.1.140";
+      etcdClusterMembers = [
+        "zephyr=http://10.1.1.110:2380"
+        "nexus=http://10.1.1.120:2380"
+        "sentry=http://10.1.1.140:2380"
+      ];
+    };
+
+    # etcd HA cluster - 3-node quorum
+    etcd-cluster = {
+      enable = true;
+      nodeName = "sentry";
     };
 
     # Keepalived VIP - priority 90 (lowest - backup master)

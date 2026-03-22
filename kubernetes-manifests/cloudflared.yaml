@@ -38,8 +38,10 @@ spec:
         args:
         - tunnel
         - --no-autoupdate
+        - --config
+        - /etc/cloudflared/config.yml
         - run
-        - --token=eyJhIjoiMzk3MmQyZDljZDBkYTQxNzhlYjAzNzU0YzA4NjJhZjEiLCJ0IjoiOGRiZmM0ODgtNWIzYS00YWM1LTk2MjQtMWQzMWUzNjgyZTRlIiwicyI6IkVibEIxRlV6dFdQZmYxdWN1RStyMzdkMFVXK0xzbjJEaStUUis3MzM4ZDlIalM5dzN5MU93N21YUzIwZ0lDREVPKzV5eUxLdklDWFBnWk9hRUd5MlFnPT0ifQ==
+        - --token=eyJhIjoiMzk3MmQyZDljZDBkYTQxNzhlYjAzNzU0YzA4NjJhZjEiLCJ0IjoiNDExNzZmZTYtOGMxNy00MzUzLWFkN2QtZjdjZGFkMzUzZWNkIiwicyI6IndkcDJuWHozZjdKMDJwN2lYcDNPUUNZdVM5NzZ5YXdQNEFkZGdJQmhkbUJDNlRISE9qTm4reEdGQTFQNExsaC9nMVlva3RXRHZGbHFFQXVLZlpSbURBPT0ifQ==
         env:
         - name: TUNNEL_METRICS
           value: 0.0.0.0:2000
@@ -79,9 +81,15 @@ spec:
         volumeMounts:
         - name: tmp
           mountPath: /tmp
+        - name: config
+          mountPath: /etc/cloudflared
+          readOnly: true
       volumes:
       - name: tmp
         emptyDir: {}
+      - name: config
+        configMap:
+          name: cloudflared-config
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30

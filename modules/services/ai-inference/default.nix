@@ -210,7 +210,7 @@ in {
     # SearXNG integration
     searxngUrl = mkOption {
       type = types.str;
-      default = "http://10.1.1.110:30080";
+      default = "http://10.0.0.102:8080";
       description = "SearXNG URL for knowledge fabric integration";
     };
 
