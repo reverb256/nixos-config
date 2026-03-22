@@ -73,6 +73,15 @@ spec:
             port: 6333
           initialDelaySeconds: 10
           periodSeconds: 5
+      tolerations:
+      - key: workstation
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      - key: interactive
+        operator: Equal
+        value: "true"
+        effect: NoExecute
   volumeClaimTemplates:
   - metadata:
       name: qdrant-storage
