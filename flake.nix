@@ -213,6 +213,7 @@
     # ========================================================================
     packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
     packages.x86_64-linux.llama-cpp = pkgs.llama-cpp;
+    packages.x86_64-linux.caddy-with-modules = pkgsWithOverlay.caddy-with-modules;
 
     # ========================================================================
     # CONTAINER IMAGES (for Kubernetes deployment)
