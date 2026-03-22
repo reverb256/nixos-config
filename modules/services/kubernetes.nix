@@ -125,7 +125,10 @@
           bindAddress = config.services.kubernetes-module.apiserverBindAddress;
           securePort = 6443;
           allowPrivileged = true;
-          extraOpts = "--api-audiences=api,https://kubernetes.default.svc,https://kubernetes.default.svc.cluster.local --endpoint-reconciler-type=none --encryption-provider-config=/etc/kubernetes/encryption-config.yaml";
+          # Client certificates for authenticating to kubelet (logs, exec, port-forward)
+          kubeletClientCertFile = "/var/lib/kubernetes/secrets/kube-apiserver-kubelet-client.pem";
+          kubeletClientKeyFile = "/var/lib/kubernetes/secrets/kube-apiserver-kubelet-client-key.pem";
+          extraOpts = "--api-audiences=api,https://kubernetes.default.svc,https://kubernetes.default.svc.cluster.local --endpoint-reconciler-type=none --encryption-provider-config=/etc/kubernetes/encryption-config.yaml --anonymous-auth=false";
           # HA Certificates: Include VIP and all control plane node IPs in SANs
           extraSANs = [
             # VIP for HA failover
@@ -160,13 +163,26 @@
           enable = true;
           hostname = config.networking.hostName;
           clusterDns = ["10.0.0.10"]; # CoreDNS service IP
+          # Client CA for verifying API server client certificates
+          clientCaFile = "/var/lib/kubernetes/secrets/ca.pem";
           extraConfig = {
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
-            # Enable metrics-server to scrape kubelet metrics (anonymous read-only access)
+            # Kubelet authentication - require X509 client certificates from API server
             authentication = {
               anonymous = {
-                enabled = true;
+                enabled = false; # Disable anonymous access
+              };
+              x509 = {
+                clientCAFile = "/var/lib/kubernetes/secrets/ca.pem";
+              };
+            };
+            # Kubelet authorization - delegate to API server via webhook
+            authorization = {
+              mode = "Webhook";
+              webhook = {
+                cacheAuthorizedTTL = "5m0s";
+                cacheUnauthorizedTTL = "30s";
               };
             };
           };
