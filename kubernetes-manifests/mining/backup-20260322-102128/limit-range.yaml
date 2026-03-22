@@ -1,0 +1,21 @@
+# Resource limits for mining namespace
+# Note: GPU resources are explicitly set per-pod, not via defaults
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: mining-limits
+  namespace: mining
+  labels:
+    app: gpu-scheduler
+spec:
+  limits:
+  - default:
+      cpu: "2"
+      memory: 4Gi
+    defaultRequest:
+      cpu: "100m"
+      memory: 100Mi
+    max:
+      cpu: "8"
+      memory: 16Gi
+    type: Container

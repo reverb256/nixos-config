@@ -2,7 +2,7 @@
 # MIGRATED: Now uses YuniKorn scheduler with priority-based preemption
 #
 # Changes from original:
-# - Added schedulerName: yunikorn
+# - Added # schedulerName: yunikorn # DISABLED: Using default scheduler
 # - Priority class maintained (low-priority-mining)
 # - PodGroup association for gang scheduling support
 # - Enhanced resource requests/limits for scheduler awareness
@@ -59,7 +59,7 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       # Use YuniKorn scheduler
-      schedulerName: yunikorn
+      # schedulerName: yunikorn # DISABLED: Using default scheduler
       # Pin to Zephyr node (RTX 3060 Ti + RTX 3090)
       nodeName: zephyr
       serviceAccountName: gpu-miner-sa
@@ -73,8 +73,6 @@ spec:
         operator: Exists
         effect: NoSchedule
       # Allow this pod to be evicted for higher priority pods
-      - key: "scheduler.yunikorn.io/preemptible"
-        operator: "Exists"
       containers:
       - name: lolminer
         image: lolminer:1.98a-nixos

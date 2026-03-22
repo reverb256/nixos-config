@@ -107,6 +107,19 @@ in {
         inherit (cfg.unbound) listenAddress;
       };
 
+      # Configure Unbound to listen on VIP for CoreDNS forwarding
+      unbound.settings.server.interface = [ "127.0.0.1" cfg.unbound.listenAddress "10.1.1.100" ];
+
+      # Allow Kubernetes pod network to query Unbound for external DNS
+      unbound.settings.server.access-control = [
+        "127.0.0.0/8 allow"
+        "10.1.1.0/24 allow"
+        "10.244.0.0/16 allow"
+        "100.64.0.0/10 allow"
+      ];
+
+
+
       # Tailscale VPN for secure remote access
       tailscale.enable = true;
 
@@ -137,6 +150,11 @@ in {
         53 # DNS (Unbound)
         41641 # Tailscale coordination server
       ];
+      # Allow Kubernetes pod network to reach Unbound DNS
+      extraCommands = ''
+        iptables -A nixos-fw -s 10.244.0.0/16 -p udp --dport 53 -j nixos-fw-accept
+        iptables -A nixos-fw -s 10.244.0.0/16 -p tcp --dport 53 -j nixos-fw-accept
+      '';
       # SECURITY: Kubernetes API accessible via Tailscale VPN only
       # This reduces exposure to local network and provides encrypted access
       interfaces."tailscale0".allowedTCPPorts = [6443];

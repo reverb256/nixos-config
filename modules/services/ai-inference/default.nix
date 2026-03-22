@@ -309,7 +309,7 @@ in {
           };
           searxng_url = mkOption {
             type = types.str;
-            default = "http://127.0.0.1:7777";
+            default = "http://searxng.search.svc.cluster.local:8080";
             description = "SearXNG URL";
           };
           searxng_max_results = mkOption {

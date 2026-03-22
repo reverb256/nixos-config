@@ -1,0 +1,115 @@
+# GPU Miner for Forge - AMD GPU 0 (RX 5700 XT)
+# Uses NixOS-based container with same GLIBC as host - solves ABI incompatibility
+# Built-in AMD OpenCL/ROCm libraries - no external mounts needed
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-amd-0
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-type: amd
+    gpu-id: "0"
+    host: forge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-miner-forge
+      gpu-type: amd
+      gpu-id: "0"
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge
+        gpu-type: amd
+        gpu-id: "0"
+        host: forge
+    spec:
+      schedulerName: yunikorn
+      nodeName: forge
+      hostNetwork: true
+      serviceAccountName: gpu-miner-sa
+      priorityClassName: preemptible-mining
+      tolerations:
+      - key: "scheduler.yunikorn.io/preemptible"
+        operator: "Exists"
+      containers:
+      - name: lolminer
+        image: docker.io/library/lolminer-amd:1.98a-nixos
+        imagePullPolicy: Never
+        command: ["/bin/lolMiner"]
+        args:
+        - "--algo=CR29"
+        - "--pool=xtm-c29-us.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-a0"
+        - "--pass=x"
+        - "--tls=1"
+        - "--pool=xtm-c29-eu.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-a0"
+        - "--pass=x"
+        - "--tls=1"
+        - "--devices=0"
+        - "--apiport=4070"
+        - "--mode=b"
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/run/opengl-driver/lib:/nix/store"
+        - name: OCL_ICD_VENDORS
+          value: "/etc/OpenCL/vendors"
+        ports:
+        - containerPort: 4070
+          name: api
+          protocol: TCP
+        livenessProbe:
+          exec:
+            command: ["/bin/sh", "-c", "pgrep -f lolMiner"]
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command: ["/bin/sh", "-c", "pgrep -f lolMiner"]
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          privileged: true
+          seccompProfile:
+            type: Unconfined
+        volumeMounts:
+        - name: dev
+          mountPath: /dev
+        - name: dri
+          mountPath: /dev/dri
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        - name: opengl-driver
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+            amd.com/gpu: "1"
+            nvidia.com/gpu: "0"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+            amd.com/gpu: "1"
+            nvidia.com/gpu: "0"
+      volumes:
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: dri
+        hostPath:
+          path: /dev/dri
+      - name: nix-store
+        hostPath:
+          path: /nix/store
+      - name: opengl-driver
+        hostPath:
+          path: /run/opengl-driver/lib

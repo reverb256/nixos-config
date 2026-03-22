@@ -1,0 +1,31 @@
+# Resource Quota for Mining Namespace
+# Only tracks GPU usage - RAM/CPU managed by node limits
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mining-quota
+  namespace: mining
+spec:
+  hard:
+    # Only limit GPU resources - let miners use available RAM/CPU on nodes
+    requests.nvidia.com/gpu: "5"
+    limits.nvidia.com/gpu: "5"
+    requests.amd.com/gpu: "2"
+    limits.amd.com/gpu: "2"
+---
+# LimitRange to set default resource requests for mining pods
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: mining-resource-limits
+  namespace: mining
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "1Gi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "512Mi"
+    type: Container
