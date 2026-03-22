@@ -20,6 +20,7 @@
  */
 
 const { getPods, getPodLogs, getNodes, kubectl } = require('./utils/kubectl');
+const knowledge = require('./knowledge');
 
 /**
  * Calculate uptime in hours from pod start time
@@ -1161,6 +1162,211 @@ async function checkResourceQuotas(namespace = 'akash-services') {
 }
 
 /**
+ * Check pricing optimization recommendations
+ * @param {string} namespace - Namespace to check
+ * @returns {Promise<Object>} Pricing optimization status
+ */
+async function checkPricingOptimization(namespace = 'akash-services') {
+  const issues = [];
+  const recommendations = [];
+
+  try {
+    // Get current GPU utilization
+    const gpuUtil = await getCurrentGPUUtilization(namespace);
+    const cpuUtil = await getCurrentCPUUtilization(namespace);
+    const memUtil = await getCurrentMemoryUtilization(namespace);
+
+    // Get pricing recommendation
+    const pricingRec = knowledge.suggestPriceAdjustment({
+      gpu: gpuUtil.utilization,
+      cpu: cpuUtil.utilization,
+      memory: memUtil.utilization
+    });
+
+    // Create issues based on recommendation
+    if (pricingRec.action === 'lower_prices' && pricingRec.priority !== 'low') {
+      issues.push(createIssue({
+        id: 'low-utilization-pricing',
+        severity: pricingRec.priority === 'high' ? 'high' : 'medium',
+        category: 'optimization',
+        title: 'Consider Lowering GPU Prices',
+        description: pricingRec.reason,
+        recommendation: `Lower prices by ${pricingRec.suggestedDiscount * 100}% to attract tenants and build lease history.`,
+        affectsRevenue: true,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Update pricing in modules/services/akash-provider.nix',
+        risk: 'medium'
+      }));
+    } else if (pricingRec.action === 'raise_prices') {
+      issues.push(createIssue({
+        id: 'high-utilization-pricing',
+        severity: pricingRec.priority === 'high' ? 'high' : 'medium',
+        category: 'optimization',
+        title: 'Consider Raising GPU Prices',
+        description: pricingRec.reason,
+        recommendation: `Increase prices by ${pricingRec.suggestedPremium * 100}% to maximize revenue during high demand.`,
+        affectsRevenue: true,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Update pricing in modules/services/akash-provider.nix',
+        risk: 'low'
+      }));
+    }
+
+    recommendations.push(pricingRec);
+
+    return {
+      pricing: pricingRec,
+      utilization: {
+        gpu: gpuUtil,
+        cpu: cpuUtil,
+        memory: memUtil
+      },
+      recommendations,
+      issues
+    };
+
+  } catch (error) {
+    return {
+      pricing: { action: 'unknown', reason: 'Could not determine pricing optimization' },
+      utilization: { gpu: 0, cpu: 0, memory: 0 },
+      recommendations: [],
+      issues: [createIssue({
+        id: 'pricing-check-failed',
+        severity: 'medium',
+        category: 'optimization',
+        title: 'Pricing Optimization Check Failed',
+        description: `Failed to check pricing optimization: ${error.message}`,
+        recommendation: 'Check provider metrics and utilization.',
+        affectsRevenue: true,
+        blocksNewLeases: false,
+        hasFix: false,
+        autoFix: false,
+        fixAction: 'Check provider pod logs',
+        risk: 'low'
+      })]
+    };
+  }
+}
+
+/**
+ * Get current GPU utilization
+ * @param {string} namespace - Namespace
+ * @returns {Promise<Object>} GPU utilization stats
+ */
+async function getCurrentGPUUtilization(namespace) {
+  try {
+    // Try to get GPU utilization from provider metrics
+    const nodes = await getNodes();
+
+    let totalGPUs = 0;
+    let usedGPUs = 0;
+
+    for (const node of nodes) {
+      const gpuAllocatable = parseInt(node.status.allocatable?.['nvidia.com/gpu'] || '0', 10);
+      const gpuCapacity = parseInt(node.status.capacity?.['nvidia.com/gpu'] || '0', 10);
+
+      totalGPUs += gpuCapacity;
+      usedGPUs += (gpuCapacity - gpuAllocatable);
+    }
+
+    return {
+      total: totalGPUs,
+      used: usedGPUs,
+      available: totalGPUs - usedGPUs,
+      utilization: totalGPUs > 0 ? usedGPUs / totalGPUs : 0
+    };
+  } catch (error) {
+    return { total: 0, used: 0, available: 0, utilization: 0 };
+  }
+}
+
+/**
+ * Get current CPU utilization
+ * @param {string} namespace - Namespace
+ * @returns {Promise<Object>} CPU utilization stats
+ */
+async function getCurrentCPUUtilization(namespace) {
+  try {
+    const nodes = await getNodes();
+
+    let totalCPU = 0;
+    let allocatableCPU = 0;
+
+    for (const node of nodes) {
+      const capacity = parseInt(node.status.capacity?.cpu || '0', 10);
+      const allocatable = parseInt(node.status.allocatable?.cpu || '0', 10);
+
+      totalCPU += capacity;
+      allocatableCPU += allocatable;
+    }
+
+    const usedCPU = totalCPU - allocatableCPU;
+
+    return {
+      total: totalCPU,
+      used: usedCPU,
+      available: allocatableCPU,
+      utilization: totalCPU > 0 ? usedCPU / totalCPU : 0
+    };
+  } catch (error) {
+    return { total: 0, used: 0, available: 0, utilization: 0 };
+  }
+}
+
+/**
+ * Get current memory utilization
+ * @param {string} namespace - Namespace
+ * @returns {Promise<Object>} Memory utilization stats
+ */
+async function getCurrentMemoryUtilization(namespace) {
+  try {
+    const nodes = await getNodes();
+
+    let totalMem = 0;
+    let allocatableMem = 0;
+
+    for (const node of nodes) {
+      const capacity = parseMemory(node.status.capacity?.memory || '0');
+      const allocatable = parseMemory(node.status.allocatable?.memory || '0');
+
+      totalMem += capacity;
+      allocatableMem += allocatable;
+    }
+
+    const usedMem = totalMem - allocatableMem;
+
+    return {
+      total: totalMem,
+      used: usedMem,
+      available: allocatableMem,
+      utilization: totalMem > 0 ? usedMem / totalMem : 0
+    };
+  } catch (error) {
+    return { total: 0, used: 0, available: 0, utilization: 0 };
+  }
+}
+
+/**
+ * Parse memory string (e.g., "16Gi", "16384Mi") to bytes
+ * @param {string} memStr - Memory string
+ * @returns {number} Memory in bytes
+ */
+function parseMemory(memStr) {
+  if (!memStr) return 0;
+
+  const units = { 'Ki': 1024, 'Mi': 1048576, 'Gi': 1073741824, 'Ti': 1099511627776 };
+  const match = memStr.match(/^(\d+)(Ki|Mi|Gi|Ti)$/);
+
+  if (!match) return parseInt(memStr, 10) || 0;
+
+  return parseInt(match[1], 10) * units[match[2]];
+}
+
+/**
  * Run all diagnostic checks
  * @param {string} namespace - Namespace to check
  * @param {Object} options - Options for checks
@@ -1175,6 +1381,7 @@ async function runAllDiagnostics(namespace = 'akash-services', options = {}) {
     storage: null,
     network: null,
     quotas: null,
+    pricing: null,
     summary: null
   };
 
@@ -1189,7 +1396,8 @@ async function runAllDiagnostics(namespace = 'akash-services', options = {}) {
       gpu,
       storage,
       network,
-      quotas
+      quotas,
+      pricing
     ] = await Promise.allSettled([
       checkClusterHealth(options),
       checkProviderHealth(namespace),
@@ -1197,7 +1405,8 @@ async function runAllDiagnostics(namespace = 'akash-services', options = {}) {
       checkGPUInventory(namespace),
       checkStorageStatus(),
       checkNetworkConnectivity(namespace),
-      checkResourceQuotas(namespace)
+      checkResourceQuotas(namespace),
+      checkPricingOptimization(namespace)
     ]);
 
     // Collect results
@@ -1368,6 +1577,31 @@ async function runAllDiagnostics(namespace = 'akash-services', options = {}) {
           autoFix: false,
           fixAction: '',
           risk: 'high'
+        })]
+      };
+    }
+
+    if (pricing.status === 'fulfilled') {
+      results.pricing = pricing.value;
+      allIssues.push(...(pricing.value.issues || []));
+    } else {
+      results.pricing = {
+        pricing: { action: 'unknown', reason: 'Check failed' },
+        utilization: { gpu: 0, cpu: 0, memory: 0 },
+        recommendations: [],
+        issues: [createIssue({
+          id: 'pricing-check-error',
+          severity: 'medium',
+          category: 'diagnostic',
+          title: 'Pricing Optimization Check Error',
+          description: pricing.reason?.message || 'Unknown error',
+          recommendation: 'Check provider metrics.',
+          affectsRevenue: true,
+          blocksNewLeases: false,
+          hasFix: false,
+          autoFix: false,
+          fixAction: 'Check provider pod logs',
+          risk: 'low'
         })]
       };
     }
