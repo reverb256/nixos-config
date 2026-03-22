@@ -12,7 +12,9 @@
     {"key": "capabilities/gpu/vendor/nvidia/model/rtx4060", "value": "true"},
     {"key": "capabilities/gpu/vendor/nvidia/memory/8gb", "value": "true"},
     {"key": "capabilities/gpu/vendor/nvidia/memory/24gb", "value": "true"},
-    {"key": "hardware-gpu", "value": "rtx3060ti,rtx3090,rtx4060"},
+    {"key": "hardware-gpu", "value": "rtx3060ti:2,rtx3090:1,rtx4060:2"},
+    {"key": "capabilities/gpu/count", "value": "5"},
+    {"key": "capabilities/gpu/vendor/nvidia/count", "value": "5"},
     {"key": "console/trials", "value": "true"},
     {"key": "capabilities/storage/1/class", "value": "beta2"},
     {"key": "capabilities/storage/1/persistent", "value": "true"},
@@ -21,7 +23,8 @@
     {"key": "capabilities/storage/3/class", "value": "ram"},
     {"key": "capabilities/storage/3/persistent", "value": "false"},
     {"key": "country", "value": "Canada"},
-    {"key": "region", "value": "bc-west"}
+    {"key": "region", "value": "us-west"},
+    {"key": "country", "value": "Canada"}
   ],
   "info": {
     "email": "admin@reverb256.ca",
