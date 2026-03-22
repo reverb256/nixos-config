@@ -107,12 +107,13 @@ in {
       # to allow proper bootstrapping control
 
       # Security - TLS certificates
-      peerCertFile = "${cfg.pkiPath}/etcd-peer.pem";
-      peerKeyFile = config.age.secrets."etcd-peer-key".path;
-      peerTrustedCaFile = "${cfg.pkiPath}/ca.pem";
-      certFile = "${cfg.pkiPath}/etcd-${cfg.nodeName}.pem";
-      keyFile = config.age.secrets."etcd-${cfg.nodeName}-key".path;
-      trustedCaFile = "${cfg.pkiPath}/ca.pem";
+      # Note: These are set by kubernetes-ha.nix module
+      # peerCertFile = "${cfg.pkiPath}/etcd-peer.pem";
+      # peerKeyFile = config.age.secrets."etcd-peer-key".path;
+      # peerTrustedCaFile = "${cfg.pkiPath}/ca.pem";
+      # certFile = "${cfg.pkiPath}/etcd-${cfg.nodeName}.pem";
+      # keyFile = config.age.secrets."etcd-${cfg.nodeName}-key".path;
+      # trustedCaFile = "${cfg.pkiPath}/ca.pem";
 
       # Client authentication (API server)
       clientCertAuth = true;
