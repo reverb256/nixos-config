@@ -1,3 +1,5 @@
+# STATUS: 🟡 ACTIVE IMPLEMENTATION PLAN - IN PROGRESS
+
 # Compute Workload Monitor Refactoring - Implementation Plan
 
 **Objective:** Replace 1665-line compute-workload-monitor.nix with 3 focused modules that use K8s-native Volcano scheduling instead of systemd/manual kubectl control.
