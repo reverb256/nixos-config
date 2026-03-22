@@ -18,7 +18,7 @@ spec:
         app: gpu-miner
         host: forge
     spec:
-      schedulerName: yunikorn
+      # schedulerName: yunikorn # DISABLED: Using default scheduler
       nodeName: forge
       serviceAccountName: gpu-miner-sa
       hostNetwork: true

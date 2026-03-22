@@ -36,14 +36,24 @@ spec:
       serviceAccountName: gpu-miner-sa
       automountServiceAccountToken: false
       hostNetwork: true
-      priorityClassName: preemptible-mining
+      priorityClassName: mining-low
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - nexus
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
       containers:
       - name: xmrig
-        image: xmrig-nixos:6.22.2
+        image: docker.io/library/xmrig-nixos:latest
         imagePullPolicy: Never
         args:
           - "-o"
@@ -60,22 +70,6 @@ spec:
         - containerPort: 8081
           name: api
           protocol: TCP
-        livenessProbe:
-          httpGet:
-            path: /1/summary
-            port: api
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 5
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /1/summary
-            port: api
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 3
-          failureThreshold: 3
         resources:
           requests:
             memory: "1Gi"

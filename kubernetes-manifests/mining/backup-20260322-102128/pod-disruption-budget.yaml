@@ -1,0 +1,14 @@
+# Pod Disruption Budget for XMRig Proxy
+# Ensures proxy stays available during node maintenance
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: xmrig-proxy-pdb
+  namespace: mining
+  labels:
+    app: xmrig-proxy
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: xmrig-proxy

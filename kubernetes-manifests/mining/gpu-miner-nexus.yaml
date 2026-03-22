@@ -25,7 +25,17 @@ spec:
       nodeName: nexus
       serviceAccountName: gpu-miner-sa
       hostNetwork: true
-      priorityClassName: preemptible-mining
+      priorityClassName: mining-low
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - nexus
       tolerations:
       - key: "scheduler.yunikorn.io/preemptible"
         operator: "Exists"
