@@ -113,7 +113,8 @@
       # Use VIP for master address
       masterAddress = lib.mkForce "10.1.1.100";
       # etcd is managed by etcd-cluster module
-      etcdInitialState = "existing";
+      # TEMPORARY: Set to "new" for cluster bootstrap, will change to "existing" after cluster formed
+      etcdInitialState = "new";
       etcdName = "sentry";
       etcdListenHost = "10.1.1.140";
       etcdClusterMembers = [
