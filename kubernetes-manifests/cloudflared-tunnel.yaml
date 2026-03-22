@@ -26,7 +26,7 @@ spec:
         - run
         env:
         - name: TUNNEL_ID
-          value: "e67aedf0-a025-4231-9ee4-3fa6887c2d21"
+          value: "3ae754bf-6be0-4eb8-82d9-7d9f543ef9b2"
         volumeMounts:
         - name: config
           mountPath: /etc/cloudflared
@@ -93,10 +93,10 @@ metadata:
     app: cloudflared-tunnel
 data:
   config.yml: |
-    tunnel: e67aedf0-a025-4231-9ee4-3fa6887c2d21
+    tunnel: 3ae754bf-6be0-4eb8-82d9-7d9f543ef9b2
     credentials-file: /run/agenix/credentials.json
 
-    metrics: 20241
+    metrics: 0.0.0.0:20241
 
     ingress:
       - hostname: provider.reverb256.ca
