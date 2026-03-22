@@ -1,8 +1,11 @@
 # Nixcord Configuration (Home Manager)
 # Declarative Discord/Vesktop configuration with Vencord plugins
-{pkgs, ...}: {
-  programs.nixcord = {
-    enable = true;
+{pkgs, config, lib, ...}: {
+  options.nixcord-config.enable = lib.mkEnableOption "Nixcord Vesktop configuration";
+
+  config = lib.mkIf config.nixcord-config.enable {
+    programs.nixcord = {
+      enable = true;
     discord.enable = false;
     vesktop.enable = true;
 
@@ -73,5 +76,6 @@
     Install = {
       WantedBy = ["graphical-session.target"];
     };
+  };
   };
 }

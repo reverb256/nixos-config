@@ -27,14 +27,22 @@ spec:
         gpu-id: "0"
         host: forge
     spec:
-      schedulerName: yunikorn
+      # schedulerName: yunikorn # DISABLED: Using default scheduler
       nodeName: forge
       hostNetwork: true
       serviceAccountName: gpu-miner-sa
-      priorityClassName: preemptible-mining
+      priorityClassName: mining-low
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - forge
       tolerations:
-      - key: "scheduler.yunikorn.io/preemptible"
-        operator: "Exists"
       containers:
       - name: lolminer
         image: docker.io/library/lolminer-amd:1.98a-nixos

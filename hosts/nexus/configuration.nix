@@ -105,6 +105,11 @@
   # ============================================================================
   # SERVICES - All service configurations
   # ============================================================================
+  systemd.tmpfiles.rules = [
+    # Clean old etcd data directory before starting (NixOS-managed cleanup)
+    "R /var/lib/etcd - - - - -"
+  ];
+
   services = {
     # KUBERNETES - HA Control Plane (Master + Worker)
     kubernetes-module = {
@@ -113,7 +118,7 @@
       roles = ["master" "node"];
       # Use VIP for HA access
       masterAddress = lib.mkForce "10.1.1.100";
-      # Join existing etcd cluster
+      # Join existing 3-node etcd cluster
       etcdInitialState = "existing";
       etcdName = "nexus";
       etcdListenHost = "10.1.1.120";
@@ -316,8 +321,14 @@
   # ============================================================================
   # Base bootloader settings provided by common-host-defaults.nix:
   # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
-  #
-  # No Nexus-specific boot configuration needed
+
+  # Kernel parameters for IOMMU, device passthrough, and XMRig RandomX performance
+  boot.kernelParams = [
+    "amd_iommu=on"  # Enable AMD IOMMU for device passthrough
+    "iommu=pt"       # IOMMU passthrough mode (better performance)
+    "hugepagesz=1G"  # For XMRig RandomX performance (dual-xmrig module)
+    "hugepages=3"
+  ];
 
   # ============================================================================
   # ROLE PROFILES

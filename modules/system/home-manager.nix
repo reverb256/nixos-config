@@ -1,6 +1,6 @@
 # Home Manager User Configuration
 # Shared Home Manager configuration for j_kro across all cluster nodes
-{inputs, ...}: {
+{inputs, lib, ...}: {
   home-manager = {
     # Use system package set (efficiency: single nixpkgs evaluation)
     # Overlays defined at system level affect both system and user packages
@@ -17,17 +17,21 @@
     # Pass inputs to user configs so flake inputs are accessible
     extraSpecialArgs = {inherit inputs;};
 
-    users.j_kro = {inputs, ...}: {
+    users.j_kro = {inputs, config, lib, ...}: {
       imports = [
         inputs.zen-browser.homeModules.twilight
         inputs.nixcord.homeModules.nixcord
         ../../modules/home-manager/fish.nix
         ../../modules/home-manager/starship.nix
         ../../modules/home-manager/wayland-tools.nix
+        ../../modules/home-manager/zen-browser.nix
         ../../modules/home-manager/nixcord-config.nix
         ../../modules/home-manager/caprine.nix
-        ../../modules/home-manager/zen-browser.nix
       ];
+
+      # Enable vesktop and caprine only on Zephyr
+      nixcord-config.enable = lib.mkForce (config.networking.hostName or "" == "zephyr");
+      caprine.enable = lib.mkForce (config.networking.hostName or "" == "zephyr");
 
       home.stateVersion = "26.05";
 

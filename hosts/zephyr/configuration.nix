@@ -41,7 +41,7 @@
     hostName = "zephyr";
     ipAddress = "10.1.1.110";
     wireless.enable = true; # WiFi interface: wlo1 (native: wlp40s0)
-    unbound.listenAddress = "10.1.1.110"; # Listen on node IP for cluster DNS
+    unbound.listenAddress = "10.1.1.110"; # Listen on node IP for cluster DNS (VIP: 10.1.1.100 handled separately)
   };
 
   networking = {
@@ -423,9 +423,13 @@
     # Zephyr-specific kernel params for gaming
     # (Note: hardware.profiles.amd.zen adds split_lock_detect, threadirqs, preempt)
     kernelParams = [
+      "amd_iommu=on"  # Enable AMD IOMMU for device passthrough
+      "iommu=pt"       # IOMMU passthrough mode (better performance)
       "processor.max_cstate=1"
       "intel_idle.max_cstate=1"
-      "iommu=pt"
+      "hugepagesz=1G"  # For XMRig RandomX performance (dual-xmrig module)
+      "hugepages=3"
+      "btrfs.commit_interval=300"  # From btrfs-tuning module
     ];
   };
 
@@ -736,7 +740,7 @@
           # All knowledge sources enabled
           rag_enabled = true;
           searxng_enabled = true;
-          searxng_url = "http://10.1.1.120:30080"; # NodePort for LAN access (K8s SearXNG on nexus)
+          searxng_url = "http://localhost:9999"; # Port-forward for testing (TODO: run gateway in K8s)
           searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
@@ -814,7 +818,7 @@
               "ai_inference_gateway.mcp_servers.searxng_server"
             ];
             environment = {
-              SEARXNG_URL = "http://10.1.1.110:30080";
+              SEARXNG_URL = "http://localhost:9999";  # Port-forward for testing
               SEARXNG_CACHE_TTL = "300";
             };
             enabled = true;
@@ -924,15 +928,12 @@
       # NVIDIA GPU mining with per-GPU power limits
       # Device 1: RTX 3090 @ 250W (VRAM-safe) - 3060 Ti disabled
       # perGpuPowerLimits: [220, 250] = [GPU0: 220W (max), GPU1: 250W]
-      # DISABLED: K8s version working instead
+      # ENABLED: Mine on RTX 3090 only - 3060 Ti reserved for AI/ML
       lolminer.nvidia = {
-        enable = false; # DISABLED: GPU0 (3060 Ti, 8GB) can't handle CR29 VRAM
-        autostart = false;
-        devices = "0,1";
-        perGpuPowerLimits = [
-          130 # GPU0: 3060 Ti @ 130W (reduced from 220W)
-          250 # GPU1: RTX 3090 @ 250W (VRAM-safe)
-        ];
+        enable = true; # Mine on RTX 3090 (GPU 1)
+        autostart = true;
+        devices = "1"; # Only mine on GPU 1 (RTX 3090)
+        perGpuPowerLimits = [250]; # GPU1: RTX 3090 @ 250W (GPU 0 disabled)
         apiPort = 4068;
       };
       # CPU mining - Dual XMRig setup (always-on + pause-able)
