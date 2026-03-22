@@ -154,34 +154,35 @@
   # SERVICES - All service configurations consolidated here
   # ============================================================================
   services = {
-    # KUBERNETES - HA Control Plane Configuration
-    # TEMPORARY: Single-node control plane for initial bootstrap
-    # Will expand to 3-node HA after verifying single-node works
+    # KUBERNETES - 3-Node HA Control Plane Configuration
     kubernetes-module = {
-      # Use local IP for single-node setup (will change to VIP when adding HA)
-      masterAddress = lib.mkForce "10.1.1.110";
-      # Single-node etcd for initial setup
+      # Use VIP for HA access
+      masterAddress = lib.mkForce "10.1.1.100";
+      # First node in etcd cluster (already bootstrapped)
       etcdInitialState = "new";
       etcdName = "zephyr";
       etcdListenHost = "10.1.1.110";
+      # All 3 etcd cluster members
       etcdClusterMembers = [
         "zephyr=http://10.1.1.110:2380"
+        "nexus=http://10.1.1.120:2380"
+        "sentry=http://10.1.1.140:2380"
       ];
     };
 
-    # TEMPORARY: Using kubernetes-module's built-in etcd for single-node setup
-    # Will enable etcd-cluster module when expanding to 3-node HA
+    # TEMPORARY: Using kubernetes-module's built-in etcd
+    # Will enable etcd-cluster module with TLS after verifying HA works
     # etcd-cluster = {
     #   enable = true;
     #   nodeName = "zephyr";
     # };
 
-    # TEMPORARY: Disable VIP until HA expansion
-    # keepalived-vip = {
-    #   enable = true;
-    #   vip = "10.1.1.100";
-    #   interface = "enp38s0";
-    #   priority = 110;
+    # Keepalived VIP for HA API server access
+    keepalived-vip = {
+      enable = true;
+      vip = "10.1.1.100";
+      interface = "enp38s0";
+      priority = 110;
     # };
 
     # AKASH PROVIDER - Decentralized GPU Compute Marketplace
