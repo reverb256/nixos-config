@@ -1,0 +1,138 @@
+# Network Policy for Mining Namespace
+# Default deny all, explicit allow only required traffic
+---
+# Default deny all ingress and egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: mining
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Allow xmrig-proxy to communicate with external pools and receive connections from miners
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: xmrig-proxy-policy
+  namespace: mining
+spec:
+  podSelector:
+    matchLabels:
+      app: xmrig-proxy
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Accept connections from miners (within cluster and host network)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: mining
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3333
+    # API access for monitoring
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8081
+  egress:
+    # DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # External pool connections (HTTPS/TLS)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8038
+        - protocol: TCP
+          port: 8040
+---
+# Allow CPU miners to connect to xmrig-proxy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: xmrig-miner-policy
+  namespace: mining
+spec:
+  podSelector:
+    matchLabels:
+      app: xmrig
+  policyTypes:
+    - Egress
+  egress:
+    # Connect to xmrig-proxy (same namespace)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: xmrig-proxy
+      ports:
+        - protocol: TCP
+          port: 3333
+    # DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Prometheus scraping
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
+---
+# Allow GPU miners to connect to xmrig-proxy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gpu-miner-policy
+  namespace: mining
+spec:
+  podSelector:
+    matchLabels:
+      app: gpu-miner
+  policyTypes:
+    - Egress
+  egress:
+    # Connect to xmrig-proxy (same namespace)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: xmrig-proxy
+      ports:
+        - protocol: TCP
+          port: 3333
+    # DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

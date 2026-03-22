@@ -5,7 +5,8 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+{
   options.services.akash-provider = {
     enable = lib.mkEnableOption "Akash Network provider - earn AKT/USDC by hosting compute workloads";
 
@@ -125,7 +126,7 @@
       };
 
       # Provider Helm Values (Generated from NixOS config)
-      "akash-provider/akash-provider-values.yaml".text = lib.generators.toYAML {} {
+      "akash-provider/akash-provider-values.yaml".text = lib.generators.toYAML { } {
         # Chain configuration
         chainid = "akashnet-2";
         node = "https://rpc.akashnet.net:443";
@@ -322,9 +323,9 @@
     systemd.services = {
       akash-node-labels = {
         description = "Label Kubernetes nodes with Akash GPU attributes";
-        wantedBy = ["multi-user.target"];
-        after = ["kubernetes.target"];
-        path = [pkgs.kubectl];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "kubernetes.target" ];
+        path = [ pkgs.kubectl ];
         script = ''
           # Wait for Kubernetes to be ready
           until kubectl get nodes > /dev/null 2>&1; do sleep 5; done
@@ -362,7 +363,10 @@
         # Explicitly stop and disable if previously enabled
         stopIfChanged = false;
         restartIfChanged = false;
-        path = [pkgs.kubernetes-helm pkgs.gnupg];
+        path = [
+          pkgs.kubernetes-helm
+          pkgs.gnupg
+        ];
         serviceConfig = {
           Type = "oneshot";
           # Prevent X11 connection attempts and GPG pinentry
@@ -396,9 +400,16 @@
 
       akash-wallet-secret = {
         description = "Create Akash provider wallet secret from agenix";
-        wantedBy = ["multi-user.target"];
-        after = ["kubernetes.target" "agenix-rekey.service"];
-        path = [pkgs.kubectl pkgs.coreutils pkgs.util-linux];
+        wantedBy = [ "multi-user.target" ];
+        after = [
+          "kubernetes.target"
+          "agenix-rekey.service"
+        ];
+        path = [
+          pkgs.kubectl
+          pkgs.coreutils
+          pkgs.util-linux
+        ];
         script = ''
           # Wait for namespace
           until kubectl get namespace akash-services > /dev/null 2>&1; do sleep 2; done
@@ -421,15 +432,16 @@
           fi
 
           # Create secret from decrypted key file
-          # Note: Helm chart expects key.txt (not key.pem)
+          # Note: Helm chart expects key.txt and mnemonic.txt (raw mnemonic for --recover)
           kubectl create secret generic akash-provider-keys \
             --namespace akash-services \
             --from-literal=key-pass.txt="" \
             --from-literal=key.txt="$(cat $KEY_FILE)" \
+            --from-literal=mnemonic.txt="$(cat $KEY_FILE)" \
             --dry-run=client -o yaml | \
             kubectl apply -f -
 
-          echo "Akash provider wallet secret created"
+          echo "Akash provider wallet secret created with mnemonic.txt"
         '';
       };
 
@@ -445,7 +457,7 @@
           "akash-node-labels.service"
           "akash-wallet-secret.service"
         ];
-        path = [pkgs.kubectl];
+        path = [ pkgs.kubectl ];
         serviceConfig = {
           Type = "oneshot";
           # Use correct kubeconfig and API server
