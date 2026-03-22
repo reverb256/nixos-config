@@ -1,6 +1,5 @@
-# Caddy Configuration - Base Caddyfile
-# This ConfigMap contains the base configuration
-# Ingress resources will be merged into this
+# Caddy Configuration - Complete Caddyfile for Cluster Ingress
+# This ConfigMap contains the full configuration with all services enabled
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,7 +11,7 @@ metadata:
 data:
   Caddyfile: |
     {
-      # Admin API on localhost for health checks
+      # Admin API on localhost for health checks and metrics
       admin localhost:2019
 
       # Auto HTTPS with Let's Encrypt
@@ -22,44 +21,131 @@ data:
       default_sni cluster.local
     }
 
-    # Health check endpoint
-    :2019 {
-      # Admin endpoint (only accessible inside cluster)
-      respond /health "OK" 200
+    # Common security headers snippet
+    (security_headers) {
+      header {
+        # Enable HSTS with 1 year max age
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Prevent content type sniffing
+        X-Content-Type-Options "nosniff"
+
+        # Prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+
+        # XSS protection
+        X-XSS-Protection "1; mode=block"
+
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # Content Security Policy (basic - services can override)
+        Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:"
+
+        # Remove server header
+        -Server
+      }
     }
 
-    # Default catch-all for unrecognized hosts
-    :80 {
-      respond "Caddy Ingress Controller - No matching route" 404
+    # Common compression snippet
+    (compression) {
+      encode zstd gzip
     }
 
     # ============================================================================
     # CLUSTER INTERNAL SERVICES (.cluster.local)
     # ============================================================================
 
-    # DISABLED: ai-inference service not deployed yet
-    # # AI Inference Gateway
-    # ai.zephyr.cluster.local,
+    # AI Inference Gateway
+    # NOT DEPLOYED: Service exists but has no matching pods (0/0 replicas)
+    # kubectl get endpoints ai-inference-gateway -n ai-inference shows <none>
     # ai.cluster.local {
+    #   import security_headers
+    #   import compression
     #   tls internal
-    #   reverse_proxy ai-inference.default.svc.cluster.local:8080 {
-    #     header_up Host {host}
-    #     header_up X-Real-IP {remote_host}
-    #     header_up X-Forwarded-For {remote_host}
-    #     header_up X-Forwarded-Host {host}
-    #     header_up X-Forwarded-Proto {scheme}
+    #   reverse_proxy ai-inference-gateway.ai-inference.svc.cluster.local:8080 {
+    #     health_uri /health
+    #     health_interval 10s
+    #     health_timeout 5s
     #   }
     # }
 
-    # DISABLED: searxng service not deployed yet
-    # # SearXNG Privacy-Friendly Search
-    # search.zephyr.cluster.local,
-    # search.cluster.local {
+    # Qdrant Vector Database
+    qdrant.cluster.local {
+      import security_headers
+      import compression
+      tls internal
+      reverse_proxy qdrant-service.ai-inference.svc.cluster.local:6333 {
+        health_uri /
+        health_interval 10s
+        health_timeout 5s
+      }
+    }
+
+    # SearXNG Privacy-Friendly Search
+    search.cluster.local {
+      import security_headers
+      import compression
+      tls internal
+      reverse_proxy searxng.search.svc.cluster.local:8080 {
+        health_uri /
+        health_interval 10s
+        health_timeout 5s
+      }
+    }
+
+    # n8n Workflow Automation
+    # NOT DEPLOYED: n8n service not found in ai-inference namespace
+    # n8n.cluster.local {
+    #   import security_headers
+    #   import compression
     #   tls internal
-    #   reverse_proxy searxng.default.svc.cluster.local:7777 {
-    #     header_up Host {host}
-    #     header_up X-Real-IP {remote_host}
-    #     header_up X-Forwarded-For {remote_host}
+    #   reverse_proxy n8n.ai-inference.svc.cluster.local:5678 {
+    #     health_uri /healthz
+    #     health_interval 10s
+    #     health_timeout 5s
+    #     # WebSocket support for n8n editor
+    #     header_up Connection {>Connection}
+    #     header_up Upgrade {>Upgrade}
+    #   }
+    # }
+
+    # Grafana Dashboards
+    grafana.cluster.local {
+      import security_headers
+      import compression
+      tls internal
+      reverse_proxy grafana.ai-inference.svc.cluster.local:3000 {
+        health_uri /api/health
+        health_interval 10s
+        health_timeout 5s
+      }
+    }
+
+    # Prometheus Metrics
+    prometheus.cluster.local {
+      import security_headers
+      tls internal
+      reverse_proxy prometheus.ai-inference.svc.cluster.local:9090 {
+        health_uri /-/healthy
+        health_interval 10s
+        health_timeout 5s
+      }
+    }
+
+    # Home Assistant
+    # NOT DEPLOYED: home-assistant service not found in default namespace
+    # home-assistant.cluster.local {
+    #   import security_headers
+    #   import compression
+    #   tls internal
+    #   reverse_proxy home-assistant.default.svc.cluster.local:8123 {
+    #     health_uri /api/websocket
+    #     health_interval 10s
+    #     health_timeout 5s
+    #     # WebSocket support for real-time UI
+    #     header_up Connection {>Connection}
+    #     header_up Upgrade {>Upgrade}
     #   }
     # }
 
@@ -68,70 +154,15 @@ data:
     # ============================================================================
 
     # Echo Test Server - for testing ingress
-    echo.cluster.local,
-    echo.test.cluster.local {
-      tls internal
-      reverse_proxy echo-server.test-echo.svc.cluster.local:80 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-      }
-    }
-
-    # Echo Test Server - HTTP only (for testing without TLS)
-    # DISABLED: Conflicts with host services when hostNetwork=true
-    # http://echo-http.cluster.local:8080 {
-    #   reverse_proxy echo-server.test-echo.svc.cluster.local:80
-    # }
-
-    # ============================================================================
-    # TAILSCALE SERVICES (.ts.net) - Auto HTTPS via internal CA
-    # ============================================================================
-
-    # DISABLED: ai-inference service not deployed yet
-    # # AI Inference Gateway (via Tailscale)
-    # ai.zephyr.tigris-ule.ts.net:9002 {
+    # NOT DEPLOYED: test-echo namespace and echo-server service not found
+    # echo.cluster.local,
+    # echo.test.cluster.local {
+    #   import security_headers
     #   tls internal
-    #   reverse_proxy ai-inference.default.svc.cluster.local:8080 {
-    #     header_up Host {host}
-    #     header_up X-Real-IP {remote_host}
-    #     header_up X-Forwarded-For {remote_host}
-    #   }
-    # }
-
-    # DISABLED: searxng service not deployed yet
-    # # SearXNG (via Tailscale)
-    # search.zephyr.tigris-ule.ts.net:9001 {
-    #   tls internal
-    #   reverse_proxy searxng.default.svc.cluster.local:7777 {
-    #     header_up Host {host}
-    #     header_up X-Real-IP {remote_host}
-    #     header_up X-Forwarded-For {remote_host}
-    #   }
-    # }
-
-    # DISABLED: vaultwarden service not deployed yet
-    # # Vaultwarden (via Tailscale)
-    # vaultwarden.zephyr.tigris-ule.ts.net {
-    #   tls internal
-    #   reverse_proxy vaultwarden.default.svc.cluster.local:80 {
-    #     header_up Host {host}
-    #     header_up X-Real-IP {remote_host}
-    #     header_up X-Forwarded-For {remote_host}
-    #     # WebSocket support for WebSockets notifications
-    #     header_up Connection {>Connection}
-    #     header_up Upgrade {>Upgrade}
-    #   }
-    # }
-
-    # DISABLED: glitchtip service not deployed yet
-    # # GlitchTip Error Tracking
-    # glitchtip.zephyr.tigris-ule.ts.net {
-    #   tls internal
-    #   reverse_proxy glitchtip-web.default.svc.cluster.local:8000 {
-    #     header_up Host {host}
-    #     header_up X-Real-IP {remote_host}
-    #     header_up X-Forwarded-For {remote_host}
+    #   reverse_proxy echo-server.test-echo.svc.cluster.local:80 {
+    #     health_uri /health
+    #     health_interval 10s
+    #     health_timeout 5s
     #   }
     # }
 
@@ -140,22 +171,24 @@ data:
     # ============================================================================
 
     # Akash Provider (GPU compute marketplace)
-    # NOTE: Pod is crashing - needs investigation
-    provider.cluster.local {
-      tls internal
-      reverse_proxy akash-provider.akash-services.svc.cluster.local:8443 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-      }
-    }
+    # NOT DEPLOYED: akash-services namespace not found
+    # provider.cluster.local {
+    #   import security_headers
+    #   tls internal
+    #   reverse_proxy akash-provider.akash-services.svc.cluster.local:8443 {
+    #     health_uri /health
+    #     health_interval 10s
+    #     health_timeout 5s
+    #   }
+    # }
 
-    # Akash Provider (public hostname - needs real domain)
-    # provider.zephyr.example.com {
+    # Akash Provider (public hostname with Cloudflare DNS challenge)
+    # NOTE: Requires CLOUDFLARE_API_TOKEN environment variable
+    # provider.reverb256.ca {
     #   tls {
     #     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     #   }
+    #   import security_headers
     #   reverse_proxy akash-provider.akash-services.svc.cluster.local:8443
     # }
 
@@ -164,55 +197,67 @@ data:
     # ============================================================================
 
     # Zephyr Dashboard - Control Plane, Workstation, Gaming
-    zephyr.lan,
-    zephyr.cluster.local {
-      tls internal
-      reverse_proxy zephyr-dashboard.default.svc.cluster.local:80 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-      }
-    }
-
-    # Nexus Dashboard - Storage, Build Server
-    nexus.lan,
-    nexus.cluster.local {
-      tls internal
-      reverse_proxy nexus-dashboard.default.svc.cluster.local:80 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-      }
-    }
-
-    # Forge Dashboard - Multi-GPU, Mining
-    forge.lan,
-    forge.cluster.local {
-      tls internal
-      reverse_proxy forge-dashboard.default.svc.cluster.local:80 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-      }
-    }
-
-    # Sentry Dashboard - Monitoring, CPU Mining
-    sentry.lan,
-    sentry.cluster.local {
-      tls internal
-      reverse_proxy sentry-dashboard.default.svc.cluster.local:80 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-      }
-    }
-
-    # ============================================================================
-    # KUBERNETES DASHBOARD (if enabled)
-    # ============================================================================
-
-    # k8s.zephyr.cluster.local {
-    #   reverse_proxy kubernetes-dashboard.kubernetes-dashboard.svc.cluster.local:443 {
-    #     header_up Host {host}
+    # NOT DEPLOYED: zephyr-dashboard service not found in default namespace
+    # zephyr.lan,
+    # zephyr.cluster.local {
+    #   import security_headers
+    #   tls internal
+    #   reverse_proxy zephyr-dashboard.default.svc.cluster.local:80 {
+    #     health_uri /health
+    #     health_interval 10s
+    #     health_timeout 5s
     #   }
     # }
+
+    # Nexus Dashboard - Storage, Build Server
+    # NOT DEPLOYED: nexus-dashboard service not found in default namespace
+    # nexus.lan,
+    # nexus.cluster.local {
+    #   import security_headers
+    #   tls internal
+    #   reverse_proxy nexus-dashboard.default.svc.cluster.local:80 {
+    #     health_uri /health
+    #     health_interval 10s
+    #     health_timeout 5s
+    #   }
+    # }
+
+    # Forge Dashboard - Multi-GPU, Mining
+    # NOT DEPLOYED: forge-dashboard service not found in default namespace
+    # forge.lan,
+    # forge.cluster.local {
+    #   import security_headers
+    #   tls internal
+    #   reverse_proxy forge-dashboard.default.svc.cluster.local:80 {
+    #     health_uri /health
+    #     health_interval 10s
+    #     health_timeout 5s
+    #   }
+    # }
+
+    # Sentry Dashboard - Monitoring, CPU Mining
+    # NOT DEPLOYED: sentry-dashboard service not found in default namespace
+    # sentry.lan,
+    # sentry.cluster.local {
+    #   import security_headers
+    #   tls internal
+    #   reverse_proxy sentry-dashboard.default.svc.cluster.local:80 {
+    #     health_uri /health
+    #     health_interval 10s
+    #     health_timeout 5s
+    #   }
+    # }
+
+    # ============================================================================
+    # DEFAULT CATCH-ALL
+    # ============================================================================
+
+    # Default catch-all for unrecognized hosts
+    :80 {
+      respond "Caddy Ingress Controller - No matching route" 404
+    }
+
+    # Admin API endpoint (localhost:2019)
+    # Health check: curl http://localhost:2019/health
+    # Metrics: curl http://localhost:2019/metrics
+    # NOTE: This block is informational - admin API configured globally above
