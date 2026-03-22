@@ -1,5 +1,4 @@
 # XMRig CPU Miner Deployment for Nexus (24 cores)
-# Using Volcano scheduler for consistency with GPU miners
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -9,28 +8,43 @@ metadata:
   labels:
     app: xmrig
     host: nexus
+    workload: crypto-mining
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: xmrig
       host: nexus
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     metadata:
       labels:
         app: xmrig
         host: nexus
+        workload: crypto-mining
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/1/summary"
     spec:
-      schedulerName: volcano
       nodeName: nexus
       serviceAccountName: gpu-miner-sa
+      automountServiceAccountToken: false
       hostNetwork: true
       priorityClassName: preemptible-mining
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
       - name: xmrig
-        image: xmrig-nixos:latest
+        image: xmrig-nixos:6.22.2
         imagePullPolicy: Never
-        imagePullPolicy: IfNotPresent
         args:
           - "-o"
           - "10.1.1.110:3333"
@@ -40,10 +54,28 @@ spec:
           - "--randomx-1gb-pages"
           - "--threads=6"
           - "--donate-level=1"
+          - "--http-enabled"
+          - "--http-port=8081"
         ports:
         - containerPort: 8081
           name: api
           protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /1/summary
+            port: api
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /1/summary
+            port: api
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
         resources:
           requests:
             memory: "1Gi"
@@ -54,3 +86,20 @@ spec:
         env:
         - name: XMRIG_NO_TLS
           value: "1"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+              - SYS_NICE  # For CPU affinity
+              - IPC_LOCK  # For large pages
+        volumeMounts:
+        - name: hugepages
+          mountPath: /dev/hugepages
+      volumes:
+      - name: hugepages
+        hostPath:
+          path: /dev/hugepages
+          type: Directory

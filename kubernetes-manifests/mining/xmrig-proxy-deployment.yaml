@@ -1,4 +1,5 @@
 # xmrig-proxy Deployment
+# Central stratum proxy for all mining workers
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -9,66 +10,96 @@ metadata:
     component: stratum-proxy
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: xmrig-proxy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 0
   template:
     metadata:
       labels:
         app: xmrig-proxy
         component: stratum-proxy
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
     spec:
-      nodeName: zephyr  # Run on control plane where miners expect it
-      hostNetwork: true  # Use host network for stratum connections
+      nodeName: zephyr
+      hostNetwork: true
+      serviceAccountName: gpu-miner-sa
+      automountServiceAccountToken: false
       tolerations:
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
-      - name: xmrig-proxy
-        image: xmrig-proxy:nixos-6.24.0
-        imagePullPolicy: Never  # Use local image built by Nix
-        args:
-          - "--config=/etc/xmrig-proxy/config.json"
-          - "--no-color"
-        ports:
-        - containerPort: 3333
-          name: stratum
-          protocol: TCP
-        - containerPort: 8081
-          name: api
-          protocol: TCP
-        # Health probes - stratum TCP check for readiness/liveness
-        livenessProbe:
-          tcpSocket:
-            port: stratum
-          initialDelaySeconds: 15
-          periodSeconds: 20
-          timeoutSeconds: 5
-          successThreshold: 1
-          failureThreshold: 3
-        readinessProbe:
-          tcpSocket:
-            port: stratum
-          initialDelaySeconds: 5
-          periodSeconds: 10
-          timeoutSeconds: 3
-          successThreshold: 1
-          failureThreshold: 3
-        volumeMounts:
-        - name: config
-          mountPath: /etc/xmrig-proxy
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "500m"
+        - name: xmrig-proxy
+          image: xmrig-proxy:nixos-6.24.0
+          imagePullPolicy: Never
+          args:
+            - "--config=/etc/xmrig-proxy/config.json"
+            - "--no-color"
+          ports:
+            - containerPort: 3333
+              name: stratum
+              protocol: TCP
+            - containerPort: 8081
+              name: api
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: stratum
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: stratum
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: config
+              mountPath: /etc/xmrig-proxy
+              readOnly: true
+            - name: secrets
+              mountPath: /etc/xmrig-proxy-secrets
+              readOnly: true
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
       volumes:
-      - name: config
-        configMap:
-          name: xmrig-proxy-config
+        - name: config
+          configMap:
+            name: xmrig-proxy-config
+        - name: secrets
+          secret:
+            secretName: xmrig-proxy-secret
+            items:
+              - key: api-token
+                path: api-token
+              - key: kryptex-password
+                path: pool-password
 ---
 apiVersion: v1
 kind: Service
@@ -81,13 +112,13 @@ spec:
   selector:
     app: xmrig-proxy
   ports:
-  - port: 3333
-    targetPort: 3333
-    name: stratum
-    protocol: TCP
-  - port: 8081
-    targetPort: 8081
-    name: api
-    protocol: TCP
+    - port: 3333
+      targetPort: 3333
+      name: stratum
+      protocol: TCP
+    - port: 8081
+      targetPort: 8081
+      name: api
+      protocol: TCP
   type: ClusterIP
-  clusterIP: None  # Headless service for direct pod access
+  clusterIP: None

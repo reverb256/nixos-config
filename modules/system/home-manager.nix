@@ -31,6 +31,12 @@
 
       home.stateVersion = "26.05";
 
+      # Force-overwrite all XDG config files to prevent backup conflicts
+      # This makes Home Manager idempotent across rebuilds
+      xdg.configFile = {
+        "mimeapps.list".force = true;
+      };
+
       # systemd user environment for secrets (available in all shells)
       systemd.user.sessionVariables = {
         HF_TOKEN = "/run/agenix/huggingface-token";
