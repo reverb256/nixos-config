@@ -1,0 +1,179 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-settings
+  namespace: search
+data:
+  settings.yml: |
+    # SearXNG minimal configuration
+    use_default_settings: true
+    server:
+      limiter: true
+      secret_key: "${SEARXNG_SECRET}"
+      method: "GET"
+      port: 8080
+
+    search:
+      formats:
+        - html
+        - json
+      language: en
+      safe_search: 0
+
+    ui:
+      static_use_hash: true
+      default_theme: simple
+
+    engines:
+      - name: google
+        paging: true
+
+      - name: stackoverflow
+        paging: true
+
+      - name: github
+        paging: true
+
+      - name: duckduckgo
+        paging: true
+
+      - name: bing
+        paging: true
+
+    limiter:
+      redis:
+        url: "redis://redis.search.svc.cluster.local:6379/0"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-limiter
+  namespace: search
+data:
+  limiter.toml: |
+    [botdetection]
+    ipv4_prefix = 32
+    ipv6_prefix = 48
+
+    # Trust Kubernetes network
+    trusted_proxies = [
+      '127.0.0.0/8',
+      '::1',
+      '10.0.0.0/8',
+      '10.1.1.0/24',
+    ]
+
+    [botdetection.ip_limit]
+    filter_link_local = false
+    link_token = false
+
+    [botdetection.ip_lists]
+    block_ip = []
+    pass_ip = [
+      '10.0.0.0/8',
+      '10.1.1.0/24',
+    ]
+    pass_searxng_org = true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app: searxng
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: searxng
+  template:
+    metadata:
+      labels:
+        app: searxng
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: searxng
+          image: searxng/searxng:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          env:
+            - name: SEARXNG_SECRET
+              value: "REDACTED-FAKE-HEX"
+            - name: BASE_URL
+              value: "http://searxng.search.svc.cluster.local:8080"
+          volumeMounts:
+            - name: settings
+              mountPath: /etc/searxng/settings.yml
+              subPath: settings.yml
+            - name: limiter
+              mountPath: /etc/searxng/limiter.toml
+              subPath: limiter.toml
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache/searxng
+            - name: run
+              mountPath: /run
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: settings
+          configMap:
+            name: searxng-settings
+        - name: limiter
+          configMap:
+            name: searxng-limiter
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app: searxng
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: searxng
