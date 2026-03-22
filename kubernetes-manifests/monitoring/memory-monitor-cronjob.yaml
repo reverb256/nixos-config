@@ -19,6 +19,13 @@ spec:
           containers:
           - name: memory-check
             image: busybox:1.36
+            resources:
+              requests:
+                cpu: "100m"
+                memory: "128Mi"
+              limits:
+                cpu: "200m"
+                memory: "256Mi"
             command:
             - /bin/sh
             - /scripts/check-memory.sh

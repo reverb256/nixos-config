@@ -134,12 +134,12 @@
         apiPort = 4068;
       };
 
-      # AMD GPUs - FULLY MIGRATED TO KUBERNETES
-      # All mining now handled by K8s deployments (gpu-miner-forge-amd-0/1)
-      # Systemd services disabled to prevent GPU conflicts with K8s pods
+      # AMD GPUs (RX 5700 XT) - USE SYSTEMD (GLIBC incompatibility with K8s)
+      # AMD mining runs via systemd due to GLIBC 2.42 vs 2.27 ABI mismatch
+      # K8s pods crash with segfault when loading NixOS AMD OpenCL libraries
       amd = {
-        enable = false;  # Disabled - K8s gpu-miner-forge-amd-0/1 active
-        autostart = false;
+        enable = true;   # AMD mining via systemd (K8s incompatible)
+        autostart = true;
         devices = "0,1";
         powerLimit = 110;  # 110W for optimal efficiency (from 140W default)
         apiPort = 4069;

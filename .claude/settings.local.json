@@ -9,7 +9,10 @@
       "Bash(systemctl restart:*)",
       "Bash(systemctl status:*)",
       "Bash(journalctl -u ai-inference-gateway --since \"2 minutes ago\")",
-      "Bash(systemctl show:*)"
+      "Bash(systemctl show:*)",
+      "Bash(kubectl get:*)",
+      "mcp__plugin_serena_serena__search_for_pattern",
+      "mcp__plugin_serena_serena__activate_project"
     ],
     "additionalDirectories": [
       "/data/@projects/infra/xnm1-upgrade-worktree/"

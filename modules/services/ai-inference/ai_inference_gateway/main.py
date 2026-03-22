@@ -2661,17 +2661,20 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         async def searxng_ping():
             """Check if SearXNG service is accessible."""
             import httpx
+            import os
+
+            searxng_url = os.getenv("SEARXNG_URL", "http://10.0.0.102:8080")
 
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     response = await client.get(
-                        "http://10.1.1.110:30080/search", params={"q": "test"}
+                        f"{searxng_url}/search", params={"q": "test"}
                     )
                     if response.status_code == 200:
                         return {
                             "status": "healthy",
                             "service": "SearXNG",
-                            "url": "http://10.1.1.110:30080",
+                            "url": searxng_url,
                         }
                     else:
                         return {

@@ -290,3 +290,47 @@ in {
     hosts.zephyr # Primary node running Akash Cloudflare integration
   ];
 }
+
+  # ========================================================================
+  # KUBERNETES HA ETCD CERTIFICATES
+  # ========================================================================
+
+  # CA certificate and key
+  "kubernetes-ca.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+    hosts.nexus
+    hosts.sentry
+  ];
+
+  # API server key (shared by all masters)
+  "apiserver-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+    hosts.nexus
+    hosts.sentry
+  ];
+
+  # etcd peer key (shared by all etcd members)
+  "etcd-peer-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+    hosts.nexus
+    hosts.sentry
+  ];
+
+  # Per-node etcd server keys
+  "etcd-zephyr-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+
+  "etcd-nexus-key.age".publicKeys = [
+    users.j_kro
+    hosts.nexus
+  ];
+
+  "etcd-sentry-key.age".publicKeys = [
+    users.j_kro
+    hosts.sentry
+  ];

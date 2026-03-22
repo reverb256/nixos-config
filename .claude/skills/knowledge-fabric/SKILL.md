@@ -62,15 +62,15 @@ ELSE:
   use: web_search, search_code
 ```
 
-### Step 3: Execute MCP Tools (USE SKILL TOOL TO CALL MCP TOOLS)
+### Step 3: Execute MCP Tools (CALL MCP TOOLS DIRECTLY)
 
-**IMPORTANT:** Use the **Skill tool** to invoke MCP tools, then wait for results.
+**IMPORTANT:** Call MCP tools DIRECTLY by their tool name (mcp__gateway__*), NOT via the Skill tool.
 
 **Example execution:**
 ```
-1. Invoke Skill tool with: "search_code" + user query
-2. Invoke Skill tool with: "search_github" + user query
-3. Invoke Skill tool with: "web_search" + user query
+1. Call mcp__gateway__search_code with query parameter
+2. Call mcp__gateway__search_github with query parameter
+3. Call mcp__gateway__web_search with query parameter
 4. Wait for ALL tools to complete
 5. Collect results from all tools
 ```
@@ -80,6 +80,7 @@ ELSE:
 - ❌ Call APIs directly
 - ❌ Use subprocess/bash to run curl
 - ❌ Call the gateway at http://127.0.0.1:8080
+- ❌ Wrap MCP tools in Skill() calls - they are NOT skills
 
 ### Step 4: Aggregate Results
 
@@ -153,22 +154,45 @@ requests.get("http://127.0.0.1:8080")
 **ONLY DO THESE:**
 
 ```python
-# ✅ Use MCP tools via Skill tool
-Skill(tool="search_code", args={"query": user_query})
-Skill(tool="search_github", args={"query": user_query})
-Skill(tool="web_search", args={"query": user_query})
+# ✅ Call MCP tools DIRECTLY (not via Skill tool)
+mcp__gateway__search_code(query=user_query, max_results=10)
+mcp__gateway__search_github(query=user_query, max_results=10)
+mcp__gateway__web_search(query=user_query, max_results=10)
 
 # ✅ Wait for results
 # ✅ Aggregate results
 # ✅ Present findings
 ```
 
+**Tool Names (Use Exactly These):**
+- `mcp__gateway__search_code`
+- `mcp__gateway__search_research`
+- `mcp__gateway__search_devops`
+- `mcp__gateway__search_data`
+- `mcp__gateway__search_github`
+- `mcp__gateway__search_nixos_options`
+- `mcp__gateway__search_mdn`
+- `mcp__gateway__search_stackoverflow`
+- `mcp__gateway__search_reddit`
+- `mcp__gateway__web_search`
+- `mcp__gateway__search_stats`
+- `mcp__gateway__clear_search_cache`
+- `mcp__gateway__ping_searxng`
+
 ## 🔍 Troubleshooting
 
 **If MCP tools don't work:**
-1. Check if MCP server is running: `mcp-gateway-bridge --help`
-2. Check settings.json has MCP servers configured
-3. Try individual tools first: `search_code` alone, then `web_search` alone
+1. Check settings.json has `enabledMcpjsonServers` list with all required servers
+2. Verify `.mcp.json` exists and has the MCP server configurations
+3. Check if MCP server is running: `mcp-gateway-bridge --help`
+4. Try individual tools first: `search_code` alone, then `web_search` alone
+5. For SearXNG: Verify K8s service is running (`kubectl get svc -n search searxng`)
+
+**Common Issues:**
+- **"Failed to communicate with local MCP server searxng"**:
+  - Check if `searxng` is in `enabledMcpjsonServers` list
+  - Verify `.mcp.json` has searxng configuration with K8s URL (http://10.0.0.102:8080)
+  - Ensure SearXNG pods are running: `kubectl get pods -n search`
 
 **If you get an error about APIs:**
 1. You're doing something WRONG
@@ -184,9 +208,9 @@ Skill(tool="web_search", args={"query": user_query})
 Step 1: Classify as CODE + NIXOS intent
 Step 2: Select tools: search_nixos_options, search_code, web_search
 Step 3: Execute tools:
-  - Skill("search_nixos_options", "flakes colmena configuration")
-  - Skill("search_code", "nixos flake colmena")
-  - Skill("web_search", "nixos flakes colmena tutorial")
+  - mcp__gateway__search_nixos_options(query="flakes colmena configuration")
+  - mcp__gateway__search_code(query="nixos flake colmena")
+  - mcp__gateway__web_search(query="nixos flakes colmena tutorial")
 Step 4: Aggregate results
 Step 5: Present findings with code examples and links
 ```
@@ -196,7 +220,7 @@ Step 5: Present findings with code examples and links
 ## 🎓 Key Points
 
 1. **MCP TOOLS ONLY** - Nothing else
-2. **NO HTTP REQUESTS** - Use Skill tool to call MCP
+2. **CALL MCP TOOLS DIRECTLY** - Use `mcp__gateway__*` tool names, NOT Skill tool
 3. **PARALLEL EXECUTION** - Call multiple tools simultaneously
 4. **FAST RESPONSES** - No waiting for LLMs or APIs
 5. **DIRECT RESULTS** - MCP tools return search results directly
@@ -215,7 +239,11 @@ Step 5: Present findings with code examples and links
 
 ---
 
-**Last Updated:** 2026-03-19
-**Version:** 2.0 (MCP-ONLY)
+**Last Updated:** 2026-03-22
+**Version:** 2.2 (FIXED: Call MCP tools directly, NOT via Skill tool)
 **Status:** ✅ Working when agents follow instructions correctly
-**Known Issues:** Agents may ignore instructions and call APIs - this is a agent execution problem, not a skill problem.
+**Known Issues:**
+- Agents may ignore instructions and call APIs - this is a agent execution problem, not a skill problem
+- MCP servers must be enabled in `enabledMcpjsonServers` list in settings.json
+- SearXNG uses K8s service (http://10.0.0.102:8080) - must be accessible
+- **CRITICAL**: MCP tools must be called DIRECTLY (e.g., `mcp__gateway__search_code`), NOT via Skill tool wrapper
