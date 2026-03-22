@@ -285,49 +285,6 @@ in {
           group = "glitchtip";
         };
       })
-
-      # Kubernetes Cluster Secrets (etcd HA cluster)
-      (lib.mkIf config.services.agenix-secrets-registry.kubernetes {
-        # etcd peer key (shared by all etcd members)
-        etcd-peer-key = {
-          file = "${inputs.self}/secrets/etcd-peer-key.age";
-          mode = "440";
-          owner = "etcd";
-          group = "etcd";
-        };
-
-        # etcd server key for Zephyr
-        etcd-zephyr-key = {
-          file = "${inputs.self}/secrets/etcd-zephyr-key.age";
-          mode = "440";
-          owner = "etcd";
-          group = "etcd";
-        };
-
-        # etcd server key for Nexus
-        etcd-nexus-key = {
-          file = "${inputs.self}/secrets/etcd-nexus-key.age";
-          mode = "440";
-          owner = "etcd";
-          group = "etcd";
-        };
-
-        # etcd server key for Sentry
-        etcd-sentry-key = {
-          file = "${inputs.self}/secrets/etcd-sentry-key.age";
-          mode = "440";
-          owner = "etcd";
-          group = "etcd";
-        };
-
-        # Kubernetes API server key
-        apiserver-key = {
-          file = "${inputs.self}/secrets/apiserver-key.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
-      })
     ];
   };
 }
