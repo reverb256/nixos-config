@@ -183,7 +183,7 @@
       vip = "10.1.1.100";
       interface = "enp38s0";
       priority = 110;
-    # };
+    };
 
     # AKASH PROVIDER - Decentralized GPU Compute Marketplace
     # Earn AKT/USDC by hosting AI/ML workloads on your GPUs

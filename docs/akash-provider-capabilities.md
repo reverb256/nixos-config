@@ -9,7 +9,7 @@
 
 ## 🖥️ Compute Resources
 
-### GPU Inventory (Total: 4 GPUs)
+### GPU Inventory (Total: 5 GPUs)
 
 | Node | GPU Model | Count | VRAM | Interface | Akash Label |
 |------|-----------|-------|------|-----------|-------------|
@@ -18,8 +18,8 @@
 | **nexus** | RTX 3060 Ti | 1 | 8GB | PCIe 3.0 | ✅ Labeled |
 | **forge** | RTX 4060 | 2 | 8GB each | PCIe 3.0 | ✅ Labeled |
 
-**Total GPU Memory:** 48GB
-**Total GPU Count:** 4 GPUs
+**Total GPU Memory:** 56GB (24GB + 3×8GB)
+**Total GPU Count:** 5 GPUs
 
 ### CPU Resources
 
@@ -62,6 +62,38 @@ All nodes support 3 storage classes for Akash deployments:
 
 ## 💰 Pricing (Bid Script)
 
+### Financial Requirements
+
+| Requirement | Amount | Status | Notes |
+|-------------|--------|--------|-------|
+| **Bid Deposit** | 500 AKT | ⚠️ **Verify on-chain** | 5 AKT × 100 max deployments |
+| **Max Concurrent Deployments** | 100 | ✅ Configured | Cluster capacity |
+| **Withdrawal Period** | 720 blocks | ✅ Active | ~72 minutes |
+| **Provider Address** | akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6 | ✅ Active | Mainnet |
+
+**Bid Deposit Verification:**
+```bash
+# Check current bid deposit on-chain
+kubectl exec -n akash-services deployment/akash-provider -- \
+  provider-services query provider akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6
+
+# Or using Akash CLI (if installed)
+provider-services query provider --node https://rpc.akashnet.net:443 \
+  akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6
+```
+
+**Bid Deposit Formula:**
+```
+Required Deposit = 5 AKT × (Max Concurrent Deployments)
+                  = 5 AKT × 100
+                  = 500 AKT (~$250 USD at $0.50/AKT)
+```
+
+**Why 5 AKT per deployment?**
+This ensures the provider has enough AKT locked to cover transaction fees for all active bids. Without sufficient deposit, new bids will fail even if resources are available.
+
+---
+
 ### GPU Pricing (uakt per block)
 
 | GPU Model | Price (uakt/block) | Approx USD/hr |
@@ -79,6 +111,37 @@ All nodes support 3 storage classes for Akash deployments:
 | Storage | 0.02 |
 
 **Minimum Bid:** 1 uakt/block (floor price)
+
+### Pricing Optimization Strategy
+
+**Current Utilization:** 0% (no active leases)
+
+**Dynamic Pricing Rules:**
+| Utilization | Action | Discount |
+|-------------|--------|----------|
+| < 30% | Lower prices | 25% discount |
+| 30-60% | Maintain prices | No change |
+| 60-90% | Raise prices | 25% premium |
+| > 90% | Maximize prices | 50% premium |
+
+**Current Pricing (Baseline):**
+| GPU Model | Price (uakt/block) | With 25% Discount | Approx USD/hr |
+|-----------|-------------------|-------------------|---------------|
+| RTX 3090 | 20,000 | 15,000 | $0.15 |
+| RTX 4060 | 18,000 | 13,500 | $0.135 |
+| RTX 3060 Ti | 15,000 | 11,250 | $0.1125 |
+
+**Recommendation:** Consider temporarily lowering prices to attract first tenants:
+```nix
+# In modules/services/akash-provider.nix
+pricing = {
+  rtx3090 = 15000;  # 20,000 → 15,000 uakt/block (25% discount)
+  rtx4060 = 13500;  # 18,000 → 13,500 uakt/block
+  rtx3060ti = 11250; # 15,000 → 11,250 uakt/block
+};
+```
+
+**Trade-off:** Lower prices = higher lease win rate = build reputation → raise prices later
 
 ---
 
@@ -226,8 +289,8 @@ topology.kubernetes.io/zone: "homelab"
 
 | Resource | Total | Available | Utilized |
 |----------|-------|-----------|----------|
-| GPUs | 4 | 4 | 0% |
-| GPU Memory | 48GB | 48GB | 0% |
+| GPUs | 5 | 5 | 0% |
+| GPU Memory | 56GB | 56GB | 0% |
 | CPU Cores | 78 | ~30 | ~38% |
 | Memory | 123GB | ~80 | ~35% |
 
@@ -266,9 +329,9 @@ Tenants can choose from 3 storage classes:
 
 Tenants can specifically request:
 - **vendor: nvidia**
-- **model: rtx3090** (24GB VRAM)
-- **model: rtx4060** (8GB VRAM)
-- **model: rtx3060ti** (8GB VRAM)
+- **model: rtx3090** (24GB VRAM) - 1 available
+- **model: rtx4060** (8GB VRAM) - 2 available (multi-GPU node)
+- **model: rtx3060ti** (8GB VRAM) - 2 available (distributed across Zephyr + Nexus)
 
 Example manifest:
 ```yaml

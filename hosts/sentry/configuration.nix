@@ -110,7 +110,7 @@
       # Control plane node (master + worker roles)
       roles = ["master" "node"];
       # Use VIP for HA access
-      masterAddress = "10.1.1.100";
+      masterAddress = lib.mkForce "10.1.1.100";
       # Join existing etcd cluster
       etcdInitialState = "existing";
       etcdName = "sentry";
@@ -136,6 +136,7 @@
       vip = "10.1.1.100";
       interface = "enp7s0";
       priority = 90;
+    };
 
     # Host Dashboard - Web interface for cluster host status
     host-dashboard = {

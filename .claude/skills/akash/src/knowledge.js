@@ -481,6 +481,89 @@ function resetBaseline() {
   baseline = null;
 }
 
+/**
+ * Suggest pricing adjustments based on utilization
+ * @param {Object} utilization - Current resource utilization
+ * @returns {Object} Pricing recommendation
+ */
+function suggestPriceAdjustment(utilization = {}) {
+  const {
+    gpu = 0,
+    cpu = 0,
+    memory = 0
+  } = utilization;
+
+  // Determine overall utilization (weighted toward GPU as most valuable)
+  const overallUtil = (gpu * 0.6) + (cpu * 0.25) + (memory * 0.15);
+
+  let recommendation = {
+    action: 'maintain',
+    reason: '',
+    suggestedDiscount: 0,
+    suggestedPremium: 0,
+    priority: 'low',
+    utilization: {
+      gpu,
+      cpu,
+      memory,
+      overall: Math.round(overallUtil * 100) / 100
+    }
+  };
+
+  // Low utilization: suggest lowering prices
+  if (overallUtil < 0.3) {
+    recommendation.action = 'lower_prices';
+    recommendation.reason = `Low utilization (${Math.round(overallUtil * 100)}% GPU, ${Math.round(cpu * 100)}% CPU). Consider 25% discount to attract tenants.`;
+    recommendation.suggestedDiscount = 0.25;
+    recommendation.priority = overallUtil < 0.1 ? 'high' : 'medium';
+  }
+  // High utilization: suggest raising prices
+  else if (overallUtil > 0.6) {
+    recommendation.action = 'raise_prices';
+    recommendation.reason = `High utilization (${Math.round(overallUtil * 100)}% GPU, ${Math.round(cpu * 100)}% CPU). Consider ${overallUtil > 0.9 ? '50' : '25'}% premium.`;
+    recommendation.suggestedPremium = overallUtil > 0.9 ? 0.50 : 0.25;
+    recommendation.priority = overallUtil > 0.9 ? 'high' : 'medium';
+  }
+  // Medium utilization: maintain current pricing
+  else {
+    recommendation.action = 'maintain';
+    recommendation.reason = `Utilization in healthy range (${Math.round(overallUtil * 100)}% GPU, ${Math.round(cpu * 100)}% CPU). Current pricing is appropriate.`;
+    recommendation.priority = 'low';
+  }
+
+  return recommendation;
+}
+
+/**
+ * Calculate optimal pricing based on current baseline
+ * @returns {Object} Pricing recommendations
+ */
+function calculateOptimalPricing() {
+  if (!baseline) {
+    return {
+      error: 'Baseline not established. Run diagnostics first.'
+    };
+  }
+
+  const { resources } = baseline;
+  if (!resources.allocatableGPU || resources.allocatableGPU === 0) {
+    return {
+      error: 'No GPU resources detected. Cannot calculate GPU pricing.'
+    };
+  }
+
+  // Estimate utilization (would need real-time data in production)
+  const gpuUtil = 0; // TODO: Fetch from metrics
+  const cpuUtil = resources.totalCPU ? 0.38 : 0; // From cluster status
+  const memUtil = resources.totalMemory ? 0.35 : 0;
+
+  return suggestPriceAdjustment({
+    gpu: gpuUtil,
+    cpu: cpuUtil,
+    memory: memUtil
+  });
+}
+
 module.exports = {
   establishBaseline,
   getBaseline,
@@ -491,5 +574,7 @@ module.exports = {
   searchDocumentation,
   clearHistory,
   getHistory,
-  resetBaseline
+  resetBaseline,
+  suggestPriceAdjustment,
+  calculateOptimalPricing
 };
