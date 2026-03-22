@@ -554,6 +554,7 @@
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
   services.agenix-secrets-registry = {
     enable = true;
+    kubernetes = true; # etcd HA cluster secrets
     mining = true; # XMRig API tokens
     storage = true; # Garage S3 cluster (Nexus is a storage node)
   };
