@@ -289,7 +289,20 @@ in {
     users.j_kro
     hosts.zephyr # Primary node running Akash Cloudflare integration
   ];
-}
+
+  # ========================================================================
+  # GITHUB CONTAINER REGISTRY TOKENS
+  # ========================================================================
+
+  # GitHub Container Registry (GHCR) token - For pushing Docker images
+  "github-ghcr-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/github-ghcr-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   # ========================================================================
   # KUBERNETES HA ETCD CERTIFICATES
@@ -358,3 +371,4 @@ in {
     users.j_kro
     hosts.sentry
   ];
+}
