@@ -1,0 +1,8 @@
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: caddy
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+spec:
+  controller: caddy-ingress-controller/caddy
