@@ -31,6 +31,12 @@
     },
     "gateway": {
       "command": "mcp-gateway-bridge"
+    },
+    "searxng": {
+      "command": "/etc/nixos/modules/services/ai-inference/bin/opencode-searxng-mcp",
+      "env": {
+        "SEARXNG_URL": "http://10.0.0.102:8080"
+      }
     }
   }
 }

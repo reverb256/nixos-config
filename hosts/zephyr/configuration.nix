@@ -64,6 +64,7 @@
         8888 # CFSSL CA API server (for worker node certificate generation)
         3900 # Garage S3 API
         3901 # Garage RPC
+        50000 # Nix binary cache server
       ];
       allowedUDPPorts = [
         9757 # WiVRn
@@ -153,18 +154,26 @@
   # SERVICES - All service configurations consolidated here
   # ============================================================================
   services = {
-    # KUBERNETES - Single Control Plane Configuration
-    # Zephyr is the sole control-plane node
+    # KUBERNETES - HA Control Plane Configuration
+    # 3-node etcd cluster for high availability
     kubernetes-module = {
       # Use VIP (10.1.1.100) for HA control plane access
       masterAddress = lib.mkForce "10.1.1.100";
-      # Single-node etcd cluster (zephyr only)
-      etcdInitialState = "new";
+      # etcd is managed by etcd-cluster module (not kubernetes-module)
+      etcdInitialState = "existing";
       etcdName = "zephyr";
       etcdListenHost = "10.1.1.110";
-      etcdBootstrapOnly = true;
-      # No cluster members needed for single-node setup
-      etcdClusterMembers = [];
+      etcdClusterMembers = [
+        "zephyr=http://10.1.1.110:2380"
+        "nexus=http://10.1.1.120:2380"
+        "sentry=http://10.1.1.140:2380"
+      ];
+    };
+
+    # etcd HA cluster - 3-node quorum
+    etcd-cluster = {
+      enable = true;
+      nodeName = "zephyr";
     };
 
     # Keepalived VIP - priority 110 (highest - preferred master)

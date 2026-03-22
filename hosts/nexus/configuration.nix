@@ -106,14 +106,29 @@
   # SERVICES - All service configurations
   # ============================================================================
   services = {
-    # KUBERNETES - Worker Node Configuration
-    # Nexus is a worker/storage node (not a control plane node)
+    # KUBERNETES - HA Control Plane Configuration
+    # Nexus is a control plane node (3-node HA)
     kubernetes-module = {
       enable = true;
-      # Worker node only (no master role)
-      roles = lib.mkForce ["node"];
-      # Use zephyr's IP or VIP for master address
+      # Control plane + worker roles
+      roles = lib.mkForce ["master" "node"];
+      # Use VIP for master address
       masterAddress = lib.mkForce "10.1.1.100";
+      # etcd is managed by etcd-cluster module
+      etcdInitialState = "existing";
+      etcdName = "nexus";
+      etcdListenHost = "10.1.1.120";
+      etcdClusterMembers = [
+        "zephyr=http://10.1.1.110:2380"
+        "nexus=http://10.1.1.120:2380"
+        "sentry=http://10.1.1.140:2380"
+      ];
+    };
+
+    # etcd HA cluster - 3-node quorum
+    etcd-cluster = {
+      enable = true;
+      nodeName = "nexus";
     };
 
     # Keepalived VIP - priority 100 (middle priority)

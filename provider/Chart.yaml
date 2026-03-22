@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: 0.10.7
+description: Installs an Akash provider (required)
+name: provider
+type: application
+version: 14.0.8

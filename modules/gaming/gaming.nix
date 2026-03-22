@@ -282,10 +282,10 @@ in {
           # IMPORTANT: RUN+ commands execute when controller is CONNECTED
           # This applies deadzone globally for all games, Proton, native, everything
           #
-          # DualSense USB (event joystick)
-          SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Wireless*Controller*Joystick*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:2500 1:2500 3:2000 4:2000"
-          # DualSense Bluetooth (event joystick)
-          SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Wireless*Controller*Touchpad*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:2500 1:2500 3:2000 4:2000"
+          # DualSense (USB & Bluetooth) - match joystick event device only
+          # CRITICAL: Must match KERNEL=="event*" AND exclude Touchpad/Motion devices
+          # The joystick device has name ending with "Controller" (not "Controller Touchpad" or "Controller Motion Sensors")
+          SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*DualSense*Wireless*Controller", ATTRS{name}!="*Touchpad*", ATTRS{name}!="*Motion*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:2500 1:2500 3:3277 4:3277"
         '';
       };
 

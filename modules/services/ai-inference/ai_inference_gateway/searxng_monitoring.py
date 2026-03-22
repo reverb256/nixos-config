@@ -236,7 +236,7 @@ class SearXNGHealthChecker:
     - Performance degradation
     """
 
-    def __init__(self, searxng_url: str = "http://10.1.1.110:30080"):
+    def __init__(self, searxng_url: str = "http://10.0.0.102:8080"):
         self.searxng_url = searxng_url
         self.health_status = {
             "searxng": "unknown",
@@ -421,7 +421,7 @@ def get_metrics(enable_prometheus: bool = True, metrics_port: int = 9090) -> Sea
     return _metrics_instance
 
 
-def get_health_checker(searxng_url: str = "http://10.1.1.110:30080") -> SearXNGHealthChecker:
+def get_health_checker(searxng_url: str = "http://10.0.0.102:8080") -> SearXNGHealthChecker:
     """Get or create global health checker instance."""
     global _health_checker
     if _health_checker is None:
