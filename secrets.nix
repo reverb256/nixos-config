@@ -310,9 +310,21 @@ in {
     hosts.nexus
     hosts.sentry
   ];
+  "secrets/apiserver-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+    hosts.nexus
+    hosts.sentry
+  ];
 
   # etcd peer key (shared by all etcd members)
   "etcd-peer-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+    hosts.nexus
+    hosts.sentry
+  ];
+  "secrets/etcd-peer-key.age".publicKeys = [
     users.j_kro
     hosts.zephyr
     hosts.nexus
@@ -324,13 +336,25 @@ in {
     users.j_kro
     hosts.zephyr
   ];
+  "secrets/etcd-zephyr-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
 
   "etcd-nexus-key.age".publicKeys = [
     users.j_kro
     hosts.nexus
   ];
+  "secrets/etcd-nexus-key.age".publicKeys = [
+    users.j_kro
+    hosts.nexus
+  ];
 
   "etcd-sentry-key.age".publicKeys = [
+    users.j_kro
+    hosts.sentry
+  ];
+  "secrets/etcd-sentry-key.age".publicKeys = [
     users.j_kro
     hosts.sentry
   ];
