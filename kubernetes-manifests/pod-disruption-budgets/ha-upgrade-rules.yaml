@@ -1,0 +1,290 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ha-upgrade-rules
+  namespace: monitoring
+  labels:
+    release: prometheus
+    app: ha-upgrade-monitoring
+spec:
+  groups:
+    - name: ha_upgrade_spof_tracking
+      interval: 30s
+      rules:
+        # Alert on SPOF count increase
+        - alert: HighSPOFCount
+          expr: |
+            count(
+              count by (uid) (
+                kube_pod_status_condition{status="True", condition="Ready"}
+              ) == 1
+            ) > 20
+          for: 5m
+          labels:
+            severity: warning
+            phase: "ha-upgrade"
+          annotations:
+            summary: "Too many single-replica deployments detected"
+            description: "SPOF count is {{ $value }}, target is 0 by end of upgrade"
+            runbook_url: "https://github.com/your-org/cluster-docs/blob/main/HA-UPGRADE.md"
+
+        # Track SPOF reduction progress
+        - record: ha_upgrade:spof_count
+          expr: |
+            count(
+              count by (uid) (
+                kube_pod_status_condition{status="True", condition="Ready"}
+              ) == 1
+            )
+
+    - name: ha_upgrade_service_health
+      interval: 30s
+      rules:
+        # Alert on service degradation
+        - alert: ServiceDegradation
+          expr: |
+            (
+              sum(rate(kube_pod_status_phase{phase="Running"}[5m]))
+              /
+              sum(kube_deployment_spec_replicas)
+            ) < 0.95
+          for: 5m
+          labels:
+            severity: critical
+            phase: "ha-upgrade"
+          annotations:
+            summary: "Service availability dropped below 95%"
+            description: "Current availability: {{ $value | humanizePercentage }}"
+            impact: "User-facing services may be unavailable"
+
+        # Track deployment availability
+        - record: ha_upgrade:deployment_availability
+          expr: |
+            sum(rate(kube_pod_status_phase{phase="Running"}[5m]))
+            /
+            sum(kube_deployment_spec_replicas)
+
+    - name: ha_upgrade_resource_monitoring
+      interval: 30s
+      rules:
+        # Alert on resource exhaustion
+        - alert: ResourceExhaustion
+          expr: |
+            sum(kube_pod_container_resource_requests{resource="cpu"})
+            /
+            sum(kube_node_status_capacity{resource="cpu"})
+            > 0.9
+          for: 5m
+          labels:
+            severity: warning
+            phase: "ha-upgrade"
+          annotations:
+            summary: "Cluster CPU utilization above 90%"
+            description: "Risk of resource exhaustion - {{ $value | humanizePercentage }} utilized"
+
+        # Alert on memory pressure
+        - alert: MemoryPressure
+          expr: |
+            sum(kube_pod_container_resource_requests{resource="memory"})
+            /
+            sum(kube_node_status_capacity{resource="memory"})
+            > 0.85
+          for: 5m
+          labels:
+            severity: warning
+            phase: "ha-upgrade"
+          annotations:
+            summary: "Cluster memory utilization above 85%"
+            description: "Risk of OOM - {{ $value | humanizePercentage }} utilized"
+
+        # Track CPU utilization percentage
+        - record: ha_upgrade:cluster_cpu_utilization
+          expr: |
+            sum(kube_pod_container_resource_requests{resource="cpu"})
+            /
+            sum(kube_node_status_capacity{resource="cpu"})
+
+        # Track memory utilization percentage
+        - record: ha_upgrade:cluster_memory_utilization
+          expr: |
+            sum(kube_pod_container_resource_requests{resource="memory"})
+            /
+            sum(kube_node_status_capacity{resource="memory"})
+
+    - name: ha_upgrade_pdb_monitoring
+      interval: 30s
+      rules:
+        # Alert on PDB violations
+        - alert: PDBViolation
+          expr: |
+            kube_poddisruptionbudget_status_disruptions_allowed
+            <
+            kube_poddisruptionbudget_spec_min_available
+          for: 2m
+          labels:
+            severity: warning
+            phase: "ha-upgrade"
+          annotations:
+            summary: "PodDisruptionBudget violation detected"
+            description: "PDB {{ $labels.namespace }}/{{ $labels.poddisruptionbudget }} has {{ $value }} disruptions allowed, but min available is {{ $labels.min_available }}"
+
+        # Track PDB health
+        - record: ha_upgrade:pdb_health_ratio
+          expr: |
+            kube_poddisruptionbudget_status_current_healthy
+            /
+            kube_poddisruptionbudget_spec_min_available
+
+    - name: ha_upgrade_pod_scheduling
+      interval: 30s
+      rules:
+        # Alert on pending pods
+        - alert: PendingPods
+          expr: |
+            sum(kube_pod_status_phase{phase="Pending"})
+            > 5
+          for: 5m
+          labels:
+            severity: warning
+            phase: "ha-upgrade"
+          annotations:
+            summary: "Too many pods in Pending state"
+            description: "{{ $value }} pods have been pending for >5 minutes"
+
+        # Alert on failed pods
+        - alert: FailedPods
+          expr: |
+            sum(kube_pod_status_phase{phase="Failed"})
+            > 2
+          for: 5m
+          labels:
+            severity: warning
+            phase: "ha-upgrade"
+          annotations:
+            summary: "Pods in Failed state detected"
+            description: "{{ $value }} pods have failed"
+
+        # Track pending pod count
+        - record: ha_upgrade:pending_pod_count
+          expr: |
+            sum(kube_pod_status_phase{phase="Pending"})
+
+        # Track failed pod count
+        - record: ha_upgrade:failed_pod_count
+          expr: |
+            sum(kube_pod_status_phase{phase="Failed"})
+
+    - name: ha_upgrade_progress_tracking
+      interval: 1m
+      rules:
+        # Track multi-replica deployment count
+        - record: ha_upgrade:multi_replica_deployment_count
+          expr: |
+            count(
+              count by (namespace, deployment) (
+                kube_pod_status_phase{phase="Running"}
+              ) >= 2
+            )
+
+        # Track PDB coverage
+        - record: ha_upgrade:pdb_coverage_percentage
+          expr: |
+            count(kube_poddisruptionbudget_spec_min_available)
+            /
+            count(kube_deployment_spec_replicas)
+            * 100
+
+        # Track anti-affinity coverage
+        - record: ha_upgrade:anti_affinity_coverage_percentage
+          expr: |
+            count(
+              kube_pod_spec_affinity_pod_anti_affinity_required_during_scheduling_ignored_during_execution
+            )
+            /
+            count(kube_deployment_spec_replicas)
+            * 100
+
+    - name: ha_upgrade_gpu_monitoring
+      interval: 30s
+      rules:
+        # Alert on GPU mining preemption
+        - alert: GPUMiningPreemptionSpike
+          expr: |
+            rate(kube_pod_status_terminated_reason{reason="Evicted", namespace="mining"}[1h])
+            > 0.1
+          for: 10m
+          labels:
+            severity: info
+            phase: "ha-upgrade"
+          annotations:
+            summary: "High mining preemption rate detected"
+            description: "Mining preemption rate > 0.1 evictions/min - {{ $value }} evictions/min"
+
+        # Track GPU utilization by priority
+        - record: ha_upgrade:gpu_utilization_by_priority
+          expr: |
+            sum by (priority_class) (
+              kube_pod_container_resource_requests{resource="nvidia.com/gpu"}
+            )
+
+        # Track AMD GPU utilization
+        - record: ha_upgrade:amd_gpu_utilization
+          expr: |
+            sum(
+              kube_pod_container_resource_requests{resource="amd.com/gpu"}
+            )
+
+    - name: ha_upgrade_etcd_health
+      interval: 30s
+      rules:
+        # Alert on etcd high latency
+        - alert: EtcdHighLatency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(etcd_request_duration_seconds_bucket[5m])) by (le)
+            ) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            phase: "ha-upgrade"
+          annotations:
+            summary: "etcd P99 latency above 500ms"
+            description: "Current P99 latency: {{ $value }}s"
+
+        # Alert on etcd leader changes
+        - alert: EtcdLeaderChanges
+          expr: |
+            increase(etcd_server_leader_changes_seen_total[1h])
+            > 0
+          labels:
+            severity: critical
+            phase: "ha-upgrade"
+          annotations:
+            summary: "etcd leader changes detected"
+            description: "{{ $value }} leader changes in last hour - cluster instability"
+
+    - name: ha_upgrade_upgrade_phase_tracking
+      interval: 1m
+      rules:
+        # Track current upgrade phase (manually set)
+        - record: ha_upgrade:current_phase
+          expr: |
+            vector(0)
+            * label_replace(
+              vector(0),
+              "phase", "0",
+              "", ".*"
+            )
+
+        # Track upgrade completion percentage
+        - record: ha_upgrade:completion_percentage
+          expr: |
+            (
+              count(
+                count by (namespace, deployment) (
+                  kube_pod_status_phase{phase="Running"}
+                ) >= 2
+              )
+              /
+              20
+            ) * 100

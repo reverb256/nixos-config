@@ -523,6 +523,16 @@
           };
         };
 
+        # CRITICAL: etcd OOM protection via systemd override
+        # etcd is the cluster state database - must never be OOM killed
+        etcd = lib.mkIf isMaster {
+          serviceConfig = {
+            OOMScoreAdjust = -1000;  # Maximum protection - never kill etcd
+            MemoryMax = "2G";
+            MemoryHigh = "1G";
+          };
+        };
+
         # Generate Kubernetes encryption configuration with ROTATED key
         # SECURITY: Key is rotated due to previous key exposure in git history
         kubernetes-encryption-config = {

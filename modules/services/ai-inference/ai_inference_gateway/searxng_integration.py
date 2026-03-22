@@ -230,12 +230,13 @@ class SearxngIntegration:
                 }
 
         # Select optimal engines based on learning
-        # For site: searches, use no engine filter to let SearXNG choose
+        # CRITICAL: Always specify engines to avoid blocked Google/DuckDuckGo
         is_site_search = "site:" in query.lower()
         if not is_site_search:
             engines = self._get_optimal_engines(category)
         else:
-            engines = []
+            # For site searches, use working engines that support site: queries
+            engines = ["bing", "brave", "github", "wikipedia"]
 
         # Build request parameters
         params = {
