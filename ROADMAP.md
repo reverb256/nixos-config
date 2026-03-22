@@ -1,6 +1,6 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
-**Status:** Phase 4 Complete, Phase 7 In Progress | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-03-19
+**Status:** Phase 4 Complete (100%), Phase 7 In Progress | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-03-22
 
 ## Executive Summary
 
@@ -235,18 +235,26 @@
 - ⏳ Need to configure ingress route for external GlitchTip access
 - ⏳ Need to test data persistence across pod restarts
 
-**Phase 4 Status: ✅ COMPLETE (95%)**
+**Phase 4 Status: ✅ COMPLETE (100%)**
 
 **Completed:**
-- ✅ Caddy Ingress deployed (DaemonSet on nexus, sentry)
+- ✅ Caddy Ingress deployed with custom modules (DaemonSet on 3 nodes: nexus, sentry, forge)
+- ✅ Custom Caddy build: v2.11.2 with security, rate-limit, cache, compression, ipfilter
+- ✅ All routes configured and operational (qdrant, search, grafana, prometheus)
+- ✅ TLS automation with internal CA for .cluster.local services
+- ✅ Prometheus metrics and alerting rules configured
 - ✅ n8n migrated to Kubernetes
 - ✅ home-assistant migrated to Kubernetes
 - ✅ SearXNG migrated to Kubernetes (2026-03-19)
 - ✅ GlitchTip web/worker/redis migrated (Phase 3)
 - ✅ Prometheus + Grafana running on Kubernetes (ai-inference namespace)
 
-**Known Issues:**
-- ⏳ Configure ingress routes for external access
+**Deployment Details (2026-03-22):**
+- Image: ghcr.io/reverb256/caddy-ingress:v2.8.0
+- Modules: cache v0.16.0, http.handlers.rate_limit v0.1.0, security v1.1.50
+- Health probes: Using /config endpoint on admin API (0.0.0.0:2019)
+- Metrics: Prometheus scraping from caddy-metrics service
+- Alerting: 9 rules configured (error rate, pod health, latency, certificates)
 - ⏳ Test service-to-service communication
 - ⚠️ SearXNG HTTP 403 errors from external search engines (botdetection configuration issues)
 
