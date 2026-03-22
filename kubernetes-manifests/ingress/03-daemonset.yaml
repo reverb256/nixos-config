@@ -59,8 +59,10 @@ spec:
         command: ["sh", "-c"]
         args:
           - |
-            # Create directories
-            mkdir -p /data /config /var/log/caddy
+            # Create directories and set ownership
+            mkdir -p /data /config /var/log/caddy /.local
+            chown -R 2019:2019 /.local
+            chmod -R 755 /.local
             echo "Directories created successfully"
         volumeMounts:
         - name: data
@@ -69,13 +71,15 @@ spec:
           mountPath: /config
         - name: logs
           mountPath: /var/log/caddy
+        - name: cert-storage
+          mountPath: /.local
 
       containers:
       - name: caddy
         image: ghcr.io/reverb256/caddy-ingress:v2.8.0
         imagePullPolicy: IfNotPresent
         args:
-          - caddy
+          - caddy-with-modules
           - run
           - --config
           - /config/Caddyfile
@@ -145,6 +149,8 @@ spec:
           mountPath: /data
         - name: logs
           mountPath: /var/log/caddy
+        - name: cert-storage
+          mountPath: /.local
         resources:
           requests:
             cpu: 100m
@@ -173,6 +179,8 @@ spec:
       - name: data
         emptyDir: {}
       - name: logs
+        emptyDir: {}
+      - name: cert-storage
         emptyDir: {}
 
       # Priority class for ingress (should start before apps)
