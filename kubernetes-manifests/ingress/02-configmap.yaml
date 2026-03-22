@@ -11,8 +11,8 @@ metadata:
 data:
   Caddyfile: |
     {
-      # Admin API on localhost for health checks and metrics
-      admin localhost:2019
+      # Admin API on all interfaces for Kubernetes health probes
+      admin 0.0.0.0:2019
 
       # Auto HTTPS with Let's Encrypt
       email admin@cluster.local
