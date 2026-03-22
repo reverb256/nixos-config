@@ -160,7 +160,8 @@
       # Use VIP (10.1.1.100) for HA control plane access
       masterAddress = lib.mkForce "10.1.1.100";
       # etcd is managed by etcd-cluster module (not kubernetes-module)
-      etcdInitialState = "existing";
+      # TEMPORARY: Set to "new" for cluster bootstrap, will change to "existing" after cluster formed
+      etcdInitialState = "new";
       etcdName = "zephyr";
       etcdListenHost = "10.1.1.110";
       etcdClusterMembers = [
