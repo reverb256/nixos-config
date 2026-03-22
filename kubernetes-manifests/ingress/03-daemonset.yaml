@@ -24,6 +24,8 @@ spec:
         # Reload Caddy on config change - use kubectl rollout restart to apply config updates
     spec:
       serviceAccountName: caddy-ingress
+      imagePullSecrets:
+      - name: ghcr-pull-secret
       # hostNetwork: true - REMOVED: Breaks DNS access to cluster services
       # Use hostPort instead to expose ports on host while keeping pod network
       # Run on Ready nodes only (skip Forge if it's NotReady)
@@ -53,7 +55,7 @@ spec:
       # Init container to set up directories
       initContainers:
       - name: setup-caddy
-        image: caddy:2.8-alpine
+        image: ghcr.io/reverb256/caddy-ingress:v2.8.0
         command: ["sh", "-c"]
         args:
           - |
@@ -70,7 +72,7 @@ spec:
 
       containers:
       - name: caddy
-        image: caddy:2.8-alpine
+        image: ghcr.io/reverb256/caddy-ingress:v2.8.0
         imagePullPolicy: IfNotPresent
         args:
           - caddy
