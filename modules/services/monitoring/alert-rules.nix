@@ -107,6 +107,48 @@
             annotations:
               summary: "Prometheus target missing"
               description: "Target {{ $labels.job }} on {{ $labels.instance }} is down"
+
+      - name: caddy_ingress_health
+        interval: 30s
+        rules:
+          # High HTTP error rate (5xx responses)
+          - alert: CaddyHighErrorRate
+            expr: |
+              (
+                sum(rate(caddy_http_requests_total{job="caddy-ingress",status=~"5.."}[5m])) /
+                sum(rate(caddy_http_requests_total{job="caddy-ingress"}[5m]))
+              ) > 0.05
+            for: 5m
+            labels:
+              severity: critical
+              tier: ingress
+            annotations:
+              summary: "Caddy ingress high error rate"
+              description: "HTTP error rate is {{ $value | humanizePercentage }} (>5%) for the last 5 minutes"
+
+          # Ingress pods down
+          - alert: CaddyIngressPodsDown
+            expr: |
+              count(up{job="caddy-ingress"} == 0) > 0
+            for: 2m
+            labels:
+              severity: critical
+              tier: ingress
+            annotations:
+              summary: "Caddy ingress pods are down"
+              description: "{{ $value }} Caddy ingress pod(s) have been down for more than 2 minutes"
+
+          # All ingress pods down
+          - alert: CaddyIngressAllPodsDown
+            expr: |
+              count(up{job="caddy-ingress"} == 0) == count(up{job="caddy-ingress"})
+            for: 1m
+            labels:
+              severity: critical
+              tier: ingress
+            annotations:
+              summary: "All Caddy ingress pods are down"
+              description: "Complete ingress failure - all pods are unreachable"
   '';
 
   # Create the rules file in the Nix store
