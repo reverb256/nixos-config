@@ -104,25 +104,38 @@
   # SERVICES - All service configurations
   # ============================================================================
   services = {
-    # TEMPORARY: Worker-only node until HA expansion
+    # KUBERNETES - HA Control Plane (Master + Worker)
     kubernetes-module = {
       enable = true;
-      # Worker-only for now (will promote to master during HA expansion)
-      roles = lib.mkForce ["node"];
-      masterAddress = "10.1.1.110"; # Points to Zephyr
+      # Control plane node (master + worker roles)
+      roles = ["master" "node"];
+      # Use VIP for HA access
+      masterAddress = "10.1.1.100";
+      # Join existing etcd cluster
+      etcdInitialState = "existing";
+      etcdName = "sentry";
+      etcdListenHost = "10.1.1.140";
+      # All 3 etcd cluster members
+      etcdClusterMembers = [
+        "zephyr=http://10.1.1.110:2380"
+        "nexus=http://10.1.1.120:2380"
+        "sentry=http://10.1.1.140:2380"
+      ];
     };
 
-    # TEMPORARY: Disable etcd and VIP until HA expansion
+    # TEMPORARY: Using kubernetes-module's built-in etcd
+    # Will enable etcd-cluster module with TLS after verifying HA works
     # etcd-cluster = {
     #   enable = true;
     #   nodeName = "sentry";
     # };
-    # keepalived-vip = {
-    #   enable = true;
-    #   vip = "10.1.1.100";
-    #   interface = "enp7s0";
-    #   priority = 90;
-    # };
+
+    # Keepalived VIP for HA API server access
+    keepalived-vip = {
+      enable = true;
+      vip = "10.1.1.100";
+      interface = "enp7s0";
+      priority = 90;
 
     # Host Dashboard - Web interface for cluster host status
     host-dashboard = {
