@@ -16,7 +16,7 @@
 | **Control Plane** | 🟢 OPERATIONAL | Zephyr: apiserver, etcd, scheduler, controller-manager |
 | **Worker Nodes** | 🟢 4/4 READY | Zephyr, Nexus, Sentry, Forge |
 | **Networking** | 🟢 OPERATIONAL | Flannel CNI (VXLAN), CoreDNS, Unbound cluster DNS |
-| **Ingress Controller** | 🟢 DEPLOYED | Caddy Ingress (DaemonSet on 2 nodes) |
+| **Ingress Controller** | 🟢 DEPLOYED | Caddy Ingress (DaemonSet on 3 nodes, custom modules: security, rate-limit, cache) |
 | **GPU Passthrough** | 🟢 PARTIAL | Zephyr: 2x NVIDIA (✓), Forge: 2x AMD + 2x NVIDIA (⚠️) |
 | **Monitoring** | 🟢 RUNNING | Prometheus, Grafana, AlertManager, node-exporters, Caddy metrics |
 | **Storage** | 🟢 OPERATIONAL | NFS shared storage, local-path provisioner |
@@ -197,6 +197,21 @@ Manual pod scaling provides working workaround.
 - ⚠️ **DOCUMENTED: AMD GPU mining GLIBC incompatibility** - See kubernetes-manifests/mining/AMD_MINING_ISSUES.md
 - ✅ **VERIFIED: NVIDIA mining working in Kubernetes** - 3 pods running successfully (gpu-miner-forge-nvidia-0/1, gpu-miner-nexus-0)
 - 📝 **RECOMMENDATION:** Keep AMD mining on host (systemd) due to GLIBC 2.42 vs 2.27 incompatibility
+
+**2026-03-22 14:50:**
+- ✅ **DEPLOYED: Custom Caddy Ingress with modules** - Full-scale ingress controller with security, rate-limiting, and caching
+- 🎯 **Custom Build:** NixOS-based Caddy v2.11.2 with 5 modules (security v1.1.50, rate-limit v0.1.0, cache v0.16.0, encode, ipfilter)
+- 🎯 **Registry:** Pushed to GitHub Container Registry (ghcr.io/reverb256/caddy-ingress:v2.8.0)
+- 🎯 **Deployment:** DaemonSet on 3 nodes (nexus, sentry, forge) - all pods healthy
+- 🎯 **Routes Configured:** qdrant.cluster.local, search.cluster.local, grafana.cluster.local, prometheus.cluster.local
+- 🎯 **TLS Automation:** Internal CA for .cluster.local services (certificate auto-renewal)
+- 🎯 **Health Probes:** Fixed to use /config endpoint (admin API accessible on 0.0.0.0:2019)
+- 🎯 **Metrics:** Prometheus scraping from caddy-metrics service (port 2019)
+- 🎯 **Alerting:** 9 Prometheus alert rules configured (error rate, pod health, latency)
+- 📦 **Packages:** pkgs/caddy-with-modules/, pkgs/caddy-ingress-image/
+- 📚 **Documentation:** docs/plans/2026-03-22-caddy-ingress-design.md
+- 📝 **Manifests:** kubernetes-manifests/ingress/ (01-rbac.yaml through 06-prometheus-servicemonitor.yaml)
+- ✅ **RESOLVED:** Health probe failures (admin API accessibility), permission denied on /.local (EmptyDir volume)
 
 **2026-03-19 22:45:**
 - ✅ **IMPLEMENTED: Cloudflare integration for Akash provider** - Complete automation of DNS, cache, and monitoring
