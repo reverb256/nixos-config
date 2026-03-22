@@ -162,11 +162,10 @@
       etcdInitialState = "new";
       etcdName = "zephyr";
       etcdListenHost = "10.1.1.110";
-      # All 3 etcd cluster members
+      # TEMPORARY: Single-node cluster for recovery (2026-03-22)
+      # Will expand to 3-node cluster after stabilizing
       etcdClusterMembers = [
         "zephyr=http://10.1.1.110:2380"
-        "nexus=http://10.1.1.120:2380"
-        "sentry=http://10.1.1.140:2380"
       ];
     };
 
