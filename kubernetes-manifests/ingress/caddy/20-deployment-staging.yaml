@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy-ingress-staging
+  namespace: caddy-ingress
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/environment: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: caddy-ingress
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/environment: staging
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: caddy-ingress
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/environment: staging
+    spec:
+      serviceAccountName: caddy-ingress-controller
+      containers:
+      - name: caddy-ingress
+        image: caddy/ingress:latest
+        imagePullPolicy: Always
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CADDY_INGRESS_WATCH_INGRESS_CLASS
+          value: "caddy"
+        - name: CADDY_INGRESS_EMAIL
+          value: "admin@reverb256.ca"
+        - name: CADDY_INGRESS_LETS_ENCRYPT
+          value: "true"
+        - name: CADDY_INGRESS_LETS_ENCRYPT_AGREE
+          value: "true"
+        - name: CADDY_INGRESS_LETS_ENCRYPT_STAGING
+          value: "true"  # CRITICAL - Use Let's Encrypt staging for testing
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        - name: https
+          containerPort: 443
+          protocol: TCP
+        - name: metrics
+          containerPort: 2019
+          protocol: TCP
