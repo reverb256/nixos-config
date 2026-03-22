@@ -42,7 +42,7 @@ spec:
       protocol: TCP
       targetPort: 53
   type: ClusterIP
-  clusterIP: 10.96.0.10
+  clusterIP: 10.0.0.10
 ---
 apiVersion: apps/v1
 kind: Deployment
