@@ -26,6 +26,11 @@ _final: prev: {
   # Needed because nixpkgs llama-cpp-rocm uses .override which would inherit CUDA build
   llama-cpp-rocm = prev.callPackage ./packages/llama-cpp-rocm.nix {};
 
+  # caddy-with-modules: Custom Caddy build with security, rate-limit, and cache modules
+  # Modules: security (HTTP security headers), rate-limit (request throttling), cache (response caching)
+  # Used for production-grade ingress controller with comprehensive security and performance
+  caddy-with-modules = prev.callPackage ./pkgs/caddy-with-modules {};
+
   # Python packages overlay
   python3 = prev.python3.override {
     packageOverrides = py-self: py-super: {
