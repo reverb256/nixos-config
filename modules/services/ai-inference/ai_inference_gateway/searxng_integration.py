@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import hashlib
+import os
 import time
 from collections import Counter, defaultdict
 from typing import Any, Dict, List, Optional
@@ -23,7 +24,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 # SearXNG configuration
-SEARXNG_URL = "http://10.0.0.230:7777"  # Kubernetes ClusterIP (accessible from host)
+SEARXNG_URL = os.getenv("SEARXNG_URL", "http://10.0.0.102:8080")  # Kubernetes ClusterIP (accessible from host)
 SEARCH_ENDPOINT = "/search"
 
 # Learning storage
@@ -79,7 +80,6 @@ class SearxngIntegration:
     def _load_learning_data(self):
         """Load learning data from disk."""
         try:
-            import os
             if os.path.exists(LEARNING_CACHE_PATH):
                 with open(LEARNING_CACHE_PATH, "r") as f:
                     data = json.load(f)
@@ -97,7 +97,6 @@ class SearxngIntegration:
     def _save_learning_data(self):
         """Save learning data to disk."""
         try:
-            import os
             os.makedirs(os.path.dirname(LEARNING_CACHE_PATH), exist_ok=True)
             data = {
                 "query_patterns": dict(self.query_patterns),
@@ -152,17 +151,17 @@ class SearxngIntegration:
 
     def _get_optimal_engines(self, category: str) -> List[str]:
         """Select optimal search engines based on category and learning."""
-        # Default engines by category
+        # Default engines by category (only engines enabled in SearXNG config)
         category_engines = {
-            "general": ["google", "bing", "duckduckgo"],
-            "images": ["google images", "bing images"],
-            "videos": ["youtube", "peerTube"],
-            "news": ["google news", "bing news"],
-            "science": ["google scholar", "semantic scholar"],
+            "general": ["brave", "bing", "wikipedia"],
+            "images": ["bing images"],
+            "videos": ["youtube"],
+            "news": ["bing"],
+            "science": ["wikipedia"],
             "it": ["stackoverflow", "github"],
-            "files": ["kickass", "btdb"],
-            "music": ["spotify", "soundcloud"],
-            "map": ["openstreetmap", "google maps"],
+            "files": ["marginalia"],
+            "music": [],
+            "map": ["openstreetmap"],
         }
 
         # Get base engines
@@ -471,11 +470,11 @@ class SearxngIntegration:
         Returns: List of engine names optimized for the domain
         """
         domain_engines = {
-            'code': ['github', 'gitlab', 'stackoverflow', 'stackexchange', 'debian'],
-            'research': ['google scholar', 'semantic scholar', 'arxiv', 'crossref', 'pubmed'],
-            'devops': ['docker hub', 'github', 'gitlab', 'stackoverflow', 'debian'],
-            'data': ['github', 'kaggle', 'arxiv', 'huggingface', 'gitlab'],
-            'general': ['google', 'bing', 'duckduckgo', 'brave', 'startpage'],
+            'code': ['github', 'gitlab', 'stackoverflow', 'stackexchange'],
+            'research': ['wikipedia', 'brave'],
+            'devops': ['github', 'gitlab', 'stackoverflow'],
+            'data': ['github', 'wikipedia'],
+            'general': ['brave', 'bing', 'wikipedia', 'stackoverflow'],
         }
 
         return domain_engines.get(domain, domain_engines['general'])
