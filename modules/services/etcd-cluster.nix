@@ -103,8 +103,8 @@ in {
 
       # Cluster configuration
       inherit initialCluster;
-      initialClusterToken = "kubernetes-etcd-cluster";
-      initialClusterState = "new";
+      # initialClusterToken and initialClusterState are set by kubernetes-module
+      # to allow proper bootstrapping control
 
       # Security - TLS certificates
       # Note: These are set by kubernetes-ha.nix module
@@ -132,13 +132,7 @@ in {
     # ========================================================================
     # SYSTEMD SERVICE OVERRIDES
     # ========================================================================
-    systemd.services.etcd = {
-      # Ensure etcd starts before Kubernetes API server
-      before = ["kube-apiserver.service"];
-
-      # Restart on failure
-      serviceConfig.Restart = "on-failure";
-      serviceConfig.RestartSec = "5s";
-    };
+    # Note: Default systemd service configuration from NixOS etcd module is used
+    # Custom restart policies can be added here if needed
   };
 }

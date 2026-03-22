@@ -1,5 +1,5 @@
 # GPU Miner Deployment for Zephyr (RTX 3060 Ti + RTX 3090)
-# Mining on RTX 3090 (GPU 1) only - AI on RTX 3060 Ti (GPU 0)
+# Mines on RTX 3090 (GPU 1) only - AI inference uses RTX 3060 Ti (GPU 0)
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -9,72 +9,116 @@ metadata:
   labels:
     app: gpu-miner
     host: zephyr
+    workload: crypto-mining
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: gpu-miner
       host: zephyr
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     metadata:
       labels:
         app: gpu-miner
         host: zephyr
+        workload: crypto-mining
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4068"
     spec:
-      nodeName: zephyr  # Pin to Zephyr node
+      nodeName: zephyr
       serviceAccountName: gpu-miner-sa
-      hostNetwork: true  # Use host network for stratum connection
-      priorityClassName: preemptible-mining  # Preemptable by AI workloads
+      automountServiceAccountToken: false
+      hostNetwork: true
+      priorityClassName: preemptible-mining
       tolerations:
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      initContainers:
+        - name: gpu-power-limit
+          image: nvidia/cuda:12.4.0-base-ubuntu22.04
+          command:
+            - /bin/sh
+            - -c
+            - |
+              nvidia-smi -i 1 -pl 320
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
       containers:
-      - name: lolminer
-        image: docker.io/swamp7/lolminer:latest
-        imagePullPolicy: IfNotPresent
-        args:
-          - "--algo=CR29"
-          - "--pool=stratum+tcp://10.1.1.110:3333"  # Connect to xmrig-proxy service
-          - "--user=zephyr-gpu"
-          - "--devices=1"  # RTX 3090 (GPU 1) only - AI on GPU 0
-          - "--apiport=4068"
-          - "--mode=b"
-          - "--tls=1"
-        env:
-        - name: LD_LIBRARY_PATH
-          value: "/run/opengl-driver/lib:/nix/store"
-        ports:
-        - containerPort: 4068
-          name: api
-          protocol: TCP
-        securityContext:
-          privileged: true  # Required for GPU access
-        volumeMounts:
-        - name: nvidia
-          mountPath: /run/opengl-driver/lib
-          readOnly: true
-        - name: dev
-          mountPath: /dev
-        - name: nix-store
-          mountPath: /nix/store
-          readOnly: true
-        resources:
-          requests:
-            memory: "4Gi"
-            cpu: "2"
-            nvidia.com/gpu: "1"
-          limits:
-            memory: "8Gi"
-            cpu: "4"
-            nvidia.com/gpu: "1"
+        - name: lolminer
+          image: lolminer:1.98a-nixos
+          imagePullPolicy: Never
+          args:
+            - "--algo=CR29"
+            - "--pool=stratum+tcp://10.1.1.110:3333"
+            - "--user=zephyr-gpu"
+            - "--devices=1"
+            - "--apiport=4068"
+            - "--mode=b"
+            - "--tls=1"
+          env:
+            - name: LD_LIBRARY_PATH
+              value: "/run/opengl-driver/lib:/nix/store"
+          ports:
+            - containerPort: 4068
+              name: api
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: api
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: api
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+          volumeMounts:
+            - name: nvidia
+              mountPath: /run/opengl-driver/lib
+              readOnly: true
+            - name: dev
+              mountPath: /dev
+            - name: nix-store
+              mountPath: /nix/store
+              readOnly: true
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "2"
+              nvidia.com/gpu: "1"
+            limits:
+              memory: "8Gi"
+              cpu: "4"
+              nvidia.com/gpu: "1"
       volumes:
-      - name: nvidia
-        hostPath:
-          path: /run/opengl-driver/lib
-      - name: dev
-        hostPath:
-          path: /dev
-      - name: nix-store
-        hostPath:
-          path: /nix/store
+        - name: nvidia
+          hostPath:
+            path: /run/opengl-driver/lib
+        - name: dev
+          hostPath:
+            path: /dev
+        - name: nix-store
+          hostPath:
+            path: /nix/store
