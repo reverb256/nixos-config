@@ -53,7 +53,7 @@ spec:
       # Init container to set up directories
       initContainers:
       - name: setup-caddy
-        image: ghcr.io/reverb256/caddy-ingress:v2.8.0
+        image: caddy:2.8-alpine
         command: ["sh", "-c"]
         args:
           - |
@@ -70,7 +70,7 @@ spec:
 
       containers:
       - name: caddy
-        image: ghcr.io/reverb256/caddy-ingress:v2.8.0
+        image: caddy:2.8-alpine
         imagePullPolicy: IfNotPresent
         args:
           - caddy
