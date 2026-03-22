@@ -3,15 +3,20 @@
 # Uses Nixpkgs instead of Flatpak for better Wayland integration
 # Auto-detects best backend (Wayland or XWayland)
 {
+  config,
+  lib,
   pkgs,
   ...
 }: {
-  # Install Caprine package
-  home.packages = with pkgs; [caprine];
+  options.caprine.enable = lib.mkEnableOption "Caprine Facebook Messenger";
 
-  # Autostart Caprine on login
-  # Global ELECTRON_OZONE_PLATFORM_HINT=auto handles backend selection
-  systemd.user.services.caprine-autostart = {
+  config = lib.mkIf config.caprine.enable {
+    # Install Caprine package
+    home.packages = with pkgs; [caprine];
+
+    # Autostart Caprine on login
+    # Global ELECTRON_OZONE_PLATFORM_HINT=auto handles backend selection
+    systemd.user.services.caprine-autostart = {
     Unit = {
       Description = "Caprine - Facebook Messenger autostart";
       After = [
@@ -29,5 +34,6 @@
     Install = {
       WantedBy = ["graphical-session.target"];
     };
+  };
   };
 }

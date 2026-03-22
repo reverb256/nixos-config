@@ -28,6 +28,14 @@ spec:
       tolerations:
       - key: "scheduler.yunikorn.io/preemptible"
         operator: "Exists"
+      - key: "workstation"
+        operator: "Equal"
+        value: "true"
+        effect: NoSchedule
+      - key: "interactive"
+        operator: "Equal"
+        value: "true"
+        effect: NoExecute
       containers:
       - name: pause
         image: registry.k8s.io/pause:3.9
@@ -41,6 +49,6 @@ spec:
             cpu: "100m"
             nvidia.com/gpu: "2"
       nodeSelector:
-        kubernetes.io/hostname: forge  # Only on Forge (mining node)
+        kubernetes.io/hostname: zephyr  # Gaming workstation (2x RTX GPUs)
 ---
 # HorizontalPodAutoscaler not needed - we use explicit scaling based on gaming state

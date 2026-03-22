@@ -21,14 +21,12 @@ spec:
         app: gpu-miner
         host: forge
     spec:
-      schedulerName: yunikorn
+      # schedulerName: yunikorn # DISABLED: Using default scheduler
       nodeName: forge
       serviceAccountName: gpu-miner-sa
       hostNetwork: true
       priorityClassName: preemptible-mining
       tolerations:
-      - key: "scheduler.yunikorn.io/preemptible"
-        operator: "Exists"
       containers:
       # NVIDIA GPU mining (RTX 4060s)
       - name: lolminer-nvidia

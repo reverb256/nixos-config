@@ -86,6 +86,18 @@
         # ============================================================================
         # nmi_watchdog=1 enables NMI watchdog for detecting hard CPU hangs
         "nmi_watchdog=1"
+
+        # C-STATE AND IOMMU (performance tuning for gaming/mining)
+        "processor.max_cstate=1"
+        "intel_idle.max_cstate=1"
+        "iommu=pt"
+
+        # 1GB HUGE PAGES for XMRig RandomX performance (dual-xmrig module)
+        "hugepagesz=1G"
+        "hugepages=3"
+
+        # BTRFS tuning for reduced memory usage (btrfs-tuning module)
+        "btrfs.commit_interval=300"
       ];
 
       # Conditional zswap parameters
@@ -104,7 +116,7 @@
       # Combine all parameters
       allParams = baseParams ++ zswapParams;
     in
-      lib.mkForce allParams;
+      allParams;
 
     # ============================================================================
     # KERNEL HUNG TASK DETECTION

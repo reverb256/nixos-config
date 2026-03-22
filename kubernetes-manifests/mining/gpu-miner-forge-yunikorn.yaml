@@ -2,7 +2,7 @@
 # MIGRATED: Now uses YuniKorn scheduler with priority-based preemption
 #
 # Changes from original:
-# - Added schedulerName: yunikorn
+# - Added # schedulerName: yunikorn # DISABLED: Using default scheduler
 # - Priority class maintained (low-priority-mining)
 # - PodGroup association for gang scheduling support
 # - Enhanced resource requests/limits for scheduler awareness
@@ -60,7 +60,7 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       # Use YuniKorn scheduler
-      schedulerName: yunikorn
+      # schedulerName: yunikorn # DISABLED: Using default scheduler
       # Pin to Forge node (2x RTX 4060 + 2x RX 5700 XT)
       nodeName: forge
       serviceAccountName: gpu-miner-sa
@@ -69,8 +69,6 @@ spec:
       # Low priority (preemptible by AI workloads)
       priorityClassName: preemptible-mining
       # Allow this pod to be evicted for higher priority pods
-      - key: "scheduler.yunikorn.io/preemptible"
-        operator: "Exists"
       containers:
       # NVIDIA GPU mining (RTX 4060s)
       - name: lolminer-nvidia

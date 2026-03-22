@@ -1,0 +1,42 @@
+# Priority Classes for Workload Scheduling
+# Ensures gaming/AI workloads get priority over mining/batch jobs
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: ai-inference-high
+value: 900
+globalDefault: false
+description: "AI inference workloads - high priority for interactive AI"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: workstation-services
+value: 800
+globalDefault: false
+description: "Workstation services (monitoring, logging) - medium priority"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: storage-heavy
+value: 700
+globalDefault: false
+description: "Storage-heavy workloads (nexus with 48GB RAM) - preferred on nexus"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: compute-heavy
+value: 600
+globalDefault: false
+description: "CPU-intensive workloads (sentry with 16 cores) - preferred on sentry"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: mining-low
+value: 100
+globalDefault: true
+description: "Mining workloads - lowest priority, preemptible"
