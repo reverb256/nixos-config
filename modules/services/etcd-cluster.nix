@@ -117,16 +117,6 @@ in {
 
       # Client authentication (API server)
       clientCertAuth = true;
-
-      # Performance tuning
-      snapshotCount = 10000;
-      heartbeatInterval = 100;
-      electionTimeout = 1000;
-      quotaBackendBytes = 2147483648; # 2GB
-
-      # Logging
-      logLevel = "info";
-      debug = false;
     };
 
     # ========================================================================
@@ -149,38 +139,6 @@ in {
       # Restart on failure
       serviceConfig.Restart = "on-failure";
       serviceConfig.RestartSec = "5s";
-
-      # Health check
-      postStart = ''
-        # Wait for etcd to be healthy
-        for i in {1..30}; do
-          if ETCDCTL_API=3 etcdctl \
-            --endpoints=https://${thisNode.ip}:2379 \
-            --cacert=${cfg.pkiPath}/ca.pem \
-            --cert=${cfg.pkiPath}/etcd-${cfg.nodeName}.pem \
-            --key=${config.age.secrets."etcd-${cfg.nodeName}-key".path} \
-            endpoint health; then
-            echo "etcd is healthy"
-            exit 0
-          fi
-          echo "Waiting for etcd to be healthy... ($i/30)"
-          sleep 1
-        done
-        echo "etcd health check failed"
-        exit 1
-      '';
-    };
-
-    # ========================================================================
-    # MONITORING - etcd metrics endpoint
-    # ========================================================================
-    services.prometheus.exporters.etcd = mkIf config.services.prometheus.enable {
-      enable = true;
-      etcdHost = thisNode.ip;
-      etcdPort = 2379;
-      caCert = "${cfg.pkiPath}/ca.pem";
-      clientCert = "${cfg.pkiPath}/etcd-${cfg.nodeName}.pem";
-      clientKey = config.age.secrets."etcd-${cfg.nodeName}-key".path;
     };
   };
 }

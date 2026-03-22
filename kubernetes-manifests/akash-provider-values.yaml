@@ -1,0 +1,93 @@
+# Akash Provider Helm Values - WORKING CONFIGURATION
+# This file contains all the fixes discovered during deployment
+# Last Updated: 2026-03-22 05:40 UTC
+
+clusterPublicHostname: provider.reverb256.ca
+domain: provider.reverb256.ca
+providerAddress: akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6
+from: provider-wallet
+
+# CRITICAL: Custom init script that imports mnemonic using --recover flag
+scripts:
+  init.sh: |
+    #!/bin/bash
+    set -x
+
+    AKASH_HOME="${AKASH_HOME:-/root/.akash}"
+    AKASH_KEYRING_BACKEND="${AKASH_KEYRING_BACKEND:-test}"
+    AKASH_FROM="${AKASH_FROM:-provider-wallet}"
+    EXPECTED_ADDRESS="akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6"
+
+    # Read mnemonic from mounted file
+    MNEMONIC="$(cat /boot-keys/mnemonic.txt)"
+
+    echo "=== Importing Key from Mnemonic ==="
+    echo "Expected address: $EXPECTED_ADDRESS"
+
+    # Check if key already exists
+    EXISTING_ADDRESS=$(provider-services --home="$AKASH_HOME" keys show "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" -a 2>/dev/null || "")
+
+    if [ "$EXISTING_ADDRESS" = "$EXPECTED_ADDRESS" ]; then
+        echo "✓ Key already exists with correct address!"
+    elif [ -n "$EXISTING_ADDRESS" ]; then
+        echo "Key exists but has wrong address: $EXISTING_ADDRESS"
+        echo "Deleting and re-importing..."
+        provider-services --home="$AKASH_HOME" keys delete "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" || true
+        echo "$MNEMONIC" | provider-services --home="$AKASH_HOME" keys add "$AKASH_FROM" \
+            --recover \
+            --keyring-backend="$AKASH_KEYRING_BACKEND" || exit 1
+    else
+        echo "Importing new key from mnemonic..."
+        echo "$MNEMONIC" | provider-services --home="$AKASH_HOME" keys add "$AKASH_FROM" \
+            --recover \
+            --keyring-backend="$AKASH_KEYRING_BACKEND" || exit 1
+    fi
+
+    # Verify the address
+    ACTUAL_ADDRESS=$(provider-services --home="$AKASH_HOME" keys show "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" -a)
+    echo "Actual: $ACTUAL_ADDRESS"
+    echo "Expected: $EXPECTED_ADDRESS"
+
+    if [ "$ACTUAL_ADDRESS" = "$EXPECTED_ADDRESS" ]; then
+        echo "✓ Key imported/verified successfully!"
+        /scripts/wait_for_rpc.sh
+        /scripts/create_provider.sh
+        /scripts/refresh_provider_cert.sh
+    else
+        echo "✗ Address mismatch!"
+        exit 1
+    fi
+
+# Environment variables for both init and main containers
+env:
+  - name: AKASH_FROM
+    value: "provider-wallet"
+  - name: AP_CERT_ISSUER_EMAIL
+    value: "admin@reverb256.ca"
+
+# Disable ingress (we use Cloudflare tunnel)
+ingress:
+  enabled: false
+
+# CRITICAL: Disable Let's Encrypt certificate issuer (we use Cloudflare tunnel)
+letsEncrypt:
+  enabled: false
+
+# Use ClusterIP (exposed via Cloudflare tunnel)
+service:
+  type: ClusterIP
+
+# Resource limits
+resources:
+  limits:
+    cpu: "2"
+    memory: 4Gi
+  requests:
+    cpu: "1"
+    memory: 2Gi
+
+# CRITICAL: These secrets MUST exist before deployment
+# Pre-install commands:
+# kubectl create secret generic akash-provider-keys \
+#   --from-literal=mnemonic.txt="zebra unknown capital train decide glue sphere acid actual focus lounge green ancient never visual either glimpse vault verb athlete tiger lamp catch jewel" \
+#   --from-literal=key-pass.txt="password12345678"

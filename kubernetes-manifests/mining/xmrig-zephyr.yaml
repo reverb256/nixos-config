@@ -1,5 +1,5 @@
 # XMRig CPU Miner Deployment for Zephyr (32 cores)
-# Using Volcano scheduler for consistency with GPU miners
+# FIXED: Removed Volcano scheduler, added health probes, pinned image version
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -9,26 +9,40 @@ metadata:
   labels:
     app: xmrig
     host: zephyr
+    workload: crypto-mining
 spec:
   replicas: 1
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: xmrig
       host: zephyr
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     metadata:
       labels:
         app: xmrig
         host: zephyr
+        workload: crypto-mining
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/1/summary"
     spec:
-      schedulerName: volcano
+      # REMOVED: schedulerName: volcano (causes failures per incident 2026-03-22)
       nodeName: zephyr
       serviceAccountName: gpu-miner-sa
+      automountServiceAccountToken: false
       hostNetwork: true
       priorityClassName: preemptible-mining
+      terminationGracePeriodSeconds: 30
       containers:
       - name: xmrig
-        image: xmrig-nixos:latest
+        image: xmrig-nixos:6.22.0
         imagePullPolicy: Never
         args:
           - "-o"
@@ -39,10 +53,36 @@ spec:
           - "--randomx-1gb-pages"
           - "--threads=8"
           - "--donate-level=1"
+          - "--api-worker-id=zephyr-cpu"
         ports:
         - containerPort: 8081
           name: api
           protocol: TCP
+        # ADDED: Health probes for crash detection
+        livenessProbe:
+          httpGet:
+            path: /1/summary
+            port: api
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /1/summary
+            port: api
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /1/summary
+            port: api
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
         resources:
           requests:
             memory: "1Gi"
@@ -53,3 +93,12 @@ spec:
         env:
         - name: XMRIG_NO_TLS
           value: "1"
+        securityContext:
+          runAsNonRoot: false  # xmrig needs root for 1GB pages
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - IPC_LOCK  # Required for large pages

@@ -1,0 +1,25 @@
+On branch feature/x86-64-v3-migration
+Your branch is up to date with 'origin/feature/x86-64-v3-migration'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	docs/kubernetes/akash-provider-alert-rules.md
+	docs/kubernetes/akash-provider-incident-2026-03-22.md
+	docs/kubernetes/akash-provider-psa-requirements.md
+	docs/kubernetes/akash-wallet-backup-procedure.md
+	docs/kubernetes/all-issues-addressed-summary-2026-03-22.md
+	docs/kubernetes/all-tasks-completed-summary-2026-03-22.md
+	docs/kubernetes/disaster-recovery-runbook.md
+	docs/kubernetes/pvc-backup-cronjob.yaml
+	docs/kubernetes/pvc-backup-implementation-guide.md
+	docs/kubernetes/rbac-audit-logging-configuration.md
+	docs/kubernetes/security-audit-2026-03-21.md
+	docs/kubernetes/system-verification-2026-03-21.md
+	kubernetes-manifests/pod-disruption-budgets/IMPLEMENTATION-PLAN.md
+	kubernetes-manifests/pod-disruption-budgets/baseline-logs/
+	kubernetes-manifests/search/
+	scripts/backup-pvc.sh
+	scripts/backup-pvc.sh.bak
+
+nothing added to commit but untracked files present (use "git add" to track)
+80432c2 feat(browser): improve banking compatibility and update cluster documentation
