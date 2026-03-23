@@ -16,6 +16,10 @@ data:
     # Completely disable limiter and rate limiting
     limiter: false
 
+    # Disable bot detection
+    bot_detection:
+      enabled: false
+
     search:
       formats:
         - html
@@ -32,12 +36,18 @@ data:
     result_proxy:
       enabled: false
 
-    ui:
-      static_use_hash: true
-      default_theme: simple
-
     engines:
-      - name: google
+      # Bot-friendly engines that don't return 403 errors
+      - name: duckduckgo
+        paging: true
+
+      - name: brave
+        paging: true
+
+      - name: startpage
+        paging: true
+
+      - name: wikipedia
         paging: true
 
       - name: stackoverflow
@@ -46,11 +56,11 @@ data:
       - name: github
         paging: true
 
-      - name: duckduckgo
-        paging: true
-
-      - name: bing
-        paging: true
+      # Disabled due to 403 errors
+      # - name: google
+      #   paging: true
+      # - name: bing
+      #   paging: true
 
     # Disable limiter completely for API access
     limiter: false
