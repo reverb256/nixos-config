@@ -268,6 +268,18 @@ in {
     hosts.zephyr
   ];
 
+  # Akash provider wallet mnemonic - For wallet recovery
+  "akash-mnemonic.age".publicKeys = [
+    users.j_kro
+    hosts.sentry # Provider runs on sentry
+    hosts.zephyr # For backup/management
+  ];
+  "secrets/akash-mnemonic.age".publicKeys = [
+    users.j_kro
+    hosts.sentry
+    hosts.zephyr
+  ];
+
   # ========================================================================
   # CLOUDFLARE TUNNEL SECRETS
   # ========================================================================
