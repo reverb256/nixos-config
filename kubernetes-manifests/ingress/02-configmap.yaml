@@ -91,6 +91,9 @@ data:
         health_uri /
         health_interval 10s
         health_timeout 5s
+        # Forward real client IP for bot detection
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Real-IP {remote_host}
       }
     }
 
