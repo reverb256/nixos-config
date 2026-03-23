@@ -27,9 +27,11 @@ class SearXNGKnowledgeSource:
     SearXNG knowledge source for web-based meta-search.
 
     Provides privacy-respecting search results from multiple engines
-    through the local SearXNG instance.
+    through the local SearXNG instance running in Kubernetes.
+
+    Note: Uses cluster DNS (searxng.search.svc.cluster.local:8080) for internal K8s communication.
     """
-    searxng_url: str = "http://10.1.1.110:30080"
+    searxng_url: str = "http://searxng.search.svc.cluster.local:8080"  # Kubernetes service (cluster DNS)
     max_results: int = 5
     timeout: float = 30.0
     name: str = "searxng"
@@ -139,10 +141,22 @@ class SearXNGKnowledgeSource:
 
 
 def create_searxng_source(
-    searxng_url: str = "http://10.1.1.110:30080",
+    searxng_url: str = "http://searxng.search.svc.cluster.local:8080",
     max_results: int = 5,
 ) -> SearXNGKnowledgeSource:
-    """Factory function to create SearXNG knowledge source."""
+    """
+    Factory function to create SearXNG knowledge source.
+
+    Args:
+        searxng_url: SearXNG service URL
+            - Inside K8s: http://searxng.search.svc.cluster.local:8080 (default)
+            - Via Caddy ingress: https://search.cluster.local
+            - Via NodePort: http://10.1.1.110:30080 (needs Host: search.cluster.local header)
+        max_results: Maximum number of results to return
+
+    Returns:
+        Configured SearXNGKnowledgeSource instance
+    """
     return SearXNGKnowledgeSource(
         searxng_url=searxng_url,
         max_results=max_results,
