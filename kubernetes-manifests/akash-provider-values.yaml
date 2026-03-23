@@ -259,6 +259,10 @@ scripts:
 
 # Extra environment variables for provider container
 extraEnvs:
+  # CRITICAL: Manually disable CertIssuer (letsEncrypt.enabled=false doesn't work)
+  # Helm chart bug: AP_CERT_ISSUER_ENABLED stays true regardless of letsEncrypt.enabled
+  - name: AP_CERT_ISSUER_ENABLED
+    value: "false"
   - name: CF_DNS_API_TOKEN
     valueFrom:
       secretKeyRef:
@@ -269,15 +273,17 @@ extraEnvs:
 ingress:
   enabled: false
 
-# CRITICAL: Enable Let's Encrypt with Cloudflare DNS-01 challenge
-# Required for Gateway REST server TLS certificates (port 8443)
+# CRITICAL: DISABLED Let's Encrypt to fix provider crash loop
+# Root cause: Gateway REST server requires Let's Encrypt cert, but ACME HTTP-01 fails
+# because port 80 not exposed to provider HTTP-01 listener (port 5002)
+# Provider will use its own mTLS certificate instead (from provider key pair)
 #
-# NOTE: Provider binary expects DNS provider name "cf" not "cloudflare"
-# The Helm chart ConfigMap template incorrectly uses "cloudflare"
-# Manual patch required: kubectl patch configmap akash-provider-letsencrypt \
-#   -n akash-services --type=json -p='[{"op":"replace","path":"/data/AP_CERT_ISSUER_DNS_PROVIDERS","value":"cf"}]'
+# NOTE: To re-enable after fixing HTTP-01 ingress routing:
+# 1. Expose port 80 via service and ingress
+# 2. Route provider.reverb256.ca:80 to provider HTTP-01 listener on port 5002
+# 3. Set letsEncrypt.enabled: true
 letsEncrypt:
-  enabled: true
+  enabled: false
   acme:
     email: "admin@reverb256.ca"
     caDirUrl: "https://acme-v02.api.letsencrypt.org/directory"
