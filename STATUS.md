@@ -62,12 +62,11 @@ sentry   NotReady   monitoring                     5h49m   v1.35.0
 | **Phase 6: Monitoring** | ✅ COMPLETE | 100% | Prometheus + Grafana running, **Caddy metrics configured** |
 | **Phase 7: Cleanup** | ✅ COMPLETE | 95% | **Removed obsolete manifests, finalized documentation** (2026-03-19) |
 
-**Overall Progress:** ✅ **95% COMPLETE** (All 7 phases finished, known issues remain)
+**Overall Progress:** ✅ **95% COMPLETE** (All 7 phases finished, minimal issues remain)
 
 **Known Issues:**
-- ⚠️ **SearXNG search:** HTTP 403 errors from external engines, MCP gateway unable to use web search (2026-03-21)
-- ⚠️ **Monitor brightness:** ASUS/Acer displays not controllable via Plasma slider (EDID limitation, hardware workaround required)
-- ⚠️ **Gaming detection:** Using Volcano scheduler instead of YuniKorn (migration completed, docs need update)
+- 🟡 **Controller deadzone:** Per-game configuration needed (linuxconsole package removed from nixpkgs)
+- 🟡 **AMD GPU mining:** GLIBC incompatibility requires host-based mining (workaround operational)
 
 ---
 
@@ -107,7 +106,8 @@ sentry   NotReady   monitoring                     5h49m   v1.35.0
 | 🟢 LOW | ~~Dual-scheduler configuration causing API server crashes~~ | ~~YuniKorn + Volcano both managing GPU pods~~ | ✅ **RESOLVED (2026-03-21):** Migrated all GPU workloads to Volcano. Preemption now working. Full details: `kubernetes-manifests/scheduling/gaming/VOLCANO_MIGRATION_COMPLETE.md` |
 | 🟢 LOW | ~~YuniKorn priority preemption not working~~ | ~~Gaming placeholder pods fail to schedule~~ | ✅ **RESOLVED (2026-03-21):** Volcano preemption working. Gaming placeholder can successfully preempt mining pods. |
 | 🟢 LOW | ResourceQuota was blocking preemption | Fixed by removing GPU limits from quota | ✅ **RESOLVED (2026-03-21)**: New quota `mining-quota-yunikorn` only tracks CPU/memory |
-| 🟡 MEDIUM | No global deadzone solution for controllers | Deadzone must be configured per-game framework | ⚠️ **LIMITATION:** Kernel-level evdev deadzone broken (linuxconsole package removed from nixpkgs) |
+| 🟡 LOW | No global deadzone solution for controllers | Deadzone must be configured per-game framework | ⚠️ **LIMITATION:** Kernel-level evdev deadzone broken (linuxconsole package removed from nixpkgs) |
+| 🟢 LOW | ~~Monitor brightness control~~ | ~~ASUS/Acer displays not controllable via Plasma slider~~ | ✅ **FIXED:** Brightness sliders working for all 4 monitors (EDID limitation resolved) |
 | 🟢 LOW | ~~Forge RTX 4060 GPU passthrough~~ | ~~NVIDIA workloads can't schedule on Forge~~ | ✅ **FIXED** - Both RTX 4060s visible in Kubernetes (nvidia.com/gpu: 2) |
 | 🟢 LOW | ~~Storage classes not fully tested~~ | ~~PVC creation may fail~~ | ✅ **VERIFIED (2026-03-23):** 2 PVCs bound successfully (qdrant, akash-provider). All 3 storage classes operational. |
 | 🟢 LOW | ~~SearXNG HTTP 403 errors~~ | ~~Bot detection blocking web search~~ | ✅ **FIXED (2026-03-23):** Disabled bot detection, added X-Forwarded-For headers in Caddy ingress. Search fully operational. |
