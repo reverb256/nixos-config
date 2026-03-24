@@ -97,6 +97,14 @@ in {
       max-silent-time = 3600;
       keep-build-log = true;
       log-lines = 2000;
+      auto-optimise-store = true;
+      extra-sandbox-paths = ["/var/cache/ccache"];
+    };
+
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 30d";
     };
   };
 
@@ -117,76 +125,6 @@ in {
     '';
   };
 
-  environment.etc = {
-    "ssh/ssh_config.d/50-build-machines.conf".text = ''
-      Host zephyr nexus sentry
-        User j_kro
-        IdentityFile /etc/nixos/ssh/id_ed25519
-        IdentitiesOnly yes
-        StrictHostKeyChecking accept-new
-        ConnectTimeout 30
-    '';
-
-    "nix/machines".text = let
-      # All hosts can be builders (except forge which is compute-only)
-      # IMPORTANT: Builds with "kexec" feature (kernel modules) fall back to local
-      # Remote machines don't support "kexec" → kernel builds stay local
-      allMachines = [
-        {
-          hostName = "zephyr";
-          system = "x86_64-linux";
-          sshUser = "j_kro";
-          sshKey = "/etc/nixos/ssh/id_ed25519";
-          maxJobs = 4;
-          speedFactor = 4;
-          # NOTE: "kexec" NOT included → kernel modules won't be sent to zephyr
-          supportedFeatures = ["big-parallel" "kvm"];
-          mandatoryFeatures = [];
-        }
-        {
-          hostName = "nexus";
-          system = "x86_64-linux";
-          sshUser = "j_kro";
-          sshKey = "/etc/nixos/ssh/id_ed25519";
-          maxJobs = 6;
-          speedFactor = 5;
-          # NOTE: "kexec" NOT included → kernel modules won't be sent to nexus
-          supportedFeatures = ["big-parallel" "kvm"];
-          mandatoryFeatures = [];
-        }
-        {
-          hostName = "sentry";
-          system = "x86_64-linux";
-          sshUser = "j_kro";
-          sshKey = "/etc/nixos/ssh/id_ed25519";
-          maxJobs = 4;
-          speedFactor = 3;
-          # NOTE: "kexec" NOT included → kernel modules won't be sent to sentry
-          supportedFeatures = ["big-parallel"];
-          mandatoryFeatures = [];
-        }
-      ];
-      # Exclude current host from machines list (builds locally via nix-daemon instead)
-      machines = builtins.filter (m: m.hostName != currentHost) allMachines;
-      formatMachine = m: ''
-        ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${
-          if m.sshKey != null
-          then m.sshKey
-          else "-"
-        } ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
-      '';
-    in
-      lib.concatMapStrings formatMachine machines;
-  };
-
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 30d";
-  };
-
-  nix.settings.auto-optimise-store = true;
-
   # ============================================================================
   # CCACHE - 20GB compiler cache for faster rebuilds
   # ============================================================================
@@ -194,18 +132,82 @@ in {
   # Size: 20GB (~500K-1M cached compiler objects)
   # Shared across: GCC, Clang, and any compiler supporting CCACHE_PATH
 
-  # Enable ccache in Nix sandbox (allows builds to access cache directory)
-  nix.settings.extra-sandbox-paths = ["/var/cache/ccache"];
+  environment = {
+    etc = {
+      "ssh/ssh_config.d/50-build-machines.conf".text = ''
+        Host zephyr nexus sentry
+          User j_kro
+          IdentityFile /etc/nixos/ssh/id_ed25519
+          IdentitiesOnly yes
+          StrictHostKeyChecking accept-new
+          ConnectTimeout 30
+      '';
 
-  # Set 20GB cache size and configure ccache behavior via environment
-  environment.variables = {
-    CCACHE_DIR = "/var/cache/ccache";
-    CCACHE_SIZE = "20G";
-    CCACHE_COMPRESS = "1";
-    CCACHE_COMPRESSLEVEL = "6";
-    CCACHE_MAXFILES = "1000000";
-    CCACHE_DIRLEVELS = "3";
-    CCACHE_LOGFILE = "/var/log/ccache.log";
+      "nix/machines".text = let
+        # All hosts can be builders (except forge which is compute-only)
+        # IMPORTANT: Builds with "kexec" feature (kernel modules) fall back to local
+        # Remote machines don't support "kexec" → kernel builds stay local
+        allMachines = [
+          {
+            hostName = "zephyr";
+            system = "x86_64-linux";
+            sshUser = "j_kro";
+            sshKey = "/etc/nixos/ssh/id_ed25519";
+            maxJobs = 4;
+            speedFactor = 4;
+            # NOTE: "kexec" NOT included → kernel modules won't be sent to zephyr
+            supportedFeatures = ["big-parallel" "kvm"];
+            mandatoryFeatures = [];
+          }
+          {
+            hostName = "nexus";
+            system = "x86_64-linux";
+            sshUser = "j_kro";
+            sshKey = "/etc/nixos/ssh/id_ed25519";
+            maxJobs = 6;
+            speedFactor = 5;
+            # NOTE: "kexec" NOT included → kernel modules won't be sent to nexus
+            supportedFeatures = ["big-parallel" "kvm"];
+            mandatoryFeatures = [];
+          }
+          {
+            hostName = "sentry";
+            system = "x86_64-linux";
+            sshUser = "j_kro";
+            sshKey = "/etc/nixos/ssh/id_ed25519";
+            maxJobs = 4;
+            speedFactor = 3;
+            # NOTE: "kexec" NOT included → kernel modules won't be sent to sentry
+            supportedFeatures = ["big-parallel"];
+            mandatoryFeatures = [];
+          }
+        ];
+        # Exclude current host from machines list (builds locally via nix-daemon instead)
+        machines = builtins.filter (m: m.hostName != currentHost) allMachines;
+        formatMachine = m: ''
+          ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${
+            if m.sshKey != null
+            then m.sshKey
+            else "-"
+          } ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
+        '';
+      in
+        lib.concatMapStrings formatMachine machines;
+    };
+
+    # Set 20GB cache size and configure ccache behavior via environment
+    variables = {
+      CCACHE_DIR = "/var/cache/ccache";
+      CCACHE_SIZE = "20G";
+      CCACHE_COMPRESS = "1";
+      CCACHE_COMPRESSLEVEL = "6";
+      CCACHE_MAXFILES = "1000000";
+      CCACHE_DIRLEVELS = "3";
+      CCACHE_LOGFILE = "/var/log/ccache.log";
+    };
+
+    # Ensure ccache is in PATH for all users
+    systemPackages = with pkgs; [ccache];
   };
 
   # Consolidated tmpfiles rules (SSH keys + ccache directories)
@@ -218,7 +220,4 @@ in {
     "d /var/cache/ccache 0755 root root -"
     "f /var/log/ccache.log 0644 root root -"
   ];
-
-  # Ensure ccache is in PATH for all users
-  environment.systemPackages = with pkgs; [ccache];
 }
