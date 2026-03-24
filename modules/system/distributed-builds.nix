@@ -97,7 +97,7 @@ in {
       keep-build-log = true;
       log-lines = 2000;
       auto-optimise-store = true;
-      extra-sandbox-paths = ["/var/cache/ccache"];
+      extra-sandbox-paths = ["/var/cache/ccache" "/home/j_kro/.steam"];
     };
 
     gc = {
