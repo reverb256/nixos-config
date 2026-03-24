@@ -125,10 +125,11 @@
 
 ### Networking
 
-**CNI:** Flannel (default with services.kubernetes.flannel)
+**CNI:** Calico (v3.28.0) - migrated from Flannel (2026-03-24)
 - Network: `10.244.0.0/16`
-- Backend: VXLAN (port 8472)
-- Simple, reliable, sufficient for homelab
+- Backend: IPIP (port 4), MTU 1480
+- Features: BGP routing, IPVS load balancing, WireGuard encryption
+- BGP peers: Zephyr, Nexus (Sentry/Forge degraded - link-local IPv6 only)
 
 **Service Discovery:**
 - Cluster DNS (CoreDNS)
@@ -188,8 +189,8 @@
      etcd.enable = true;
      scheduler.enable = true;
      controllerManager.enable = true;
-     # Networking
-     flannel.enable = true;
+     # Networking (Calico CNI)
+     flannel.enable = false;  # Disabled after Calico migration
      # Kubelet
      kubelet.enable = true;
    };
@@ -204,7 +205,7 @@
 
 4. ✅ **Completed:** Verify cluster health
    - ✅ `kubectl get nodes` - All 4 nodes Ready
-   - ✅ `kubectl get pods --all-namespaces` - CoreDNS, Flannel running
+   - ✅ `kubectl get pods --all-namespaces` - CoreDNS, Calico running
    - ✅ Test DNS resolution - Functional
 
 **Success Criteria:**
@@ -261,7 +262,7 @@
 **Completed:**
 - ✅ Kubernetes control plane deployed and operational
 - ✅ 4-node cluster formed (Zephyr, Forge, Nexus, Sentry)
-- ✅ Networking (Flannel CNI) functional
+- ✅ Networking (Calico CNI) functional - migrated from Flannel (2026-03-24)
 - ✅ CoreDNS operational
 - ✅ GPU passthrough working on Zephyr (2 GPUs)
 - ✅ Control plane robustness implemented (Phase 5 - prevents cascading failures)
@@ -724,7 +725,10 @@
 
 **Risk 8: Network complexity**
 - **Impact:** LOW
-- **Mitigation:** Flannel is simple and well-tested
+- **Mitigation:** Calico is well-tested with enterprise features
+  - BGP routing provides dynamic pod CIDR distribution
+  - IPVS load balancing improves performance (O(1) vs O(n))
+  - WireGuard encryption secures pod-to-pod traffic
 - Tailscale provides VPN backup
 - Service Gateway already handles ingress
 
