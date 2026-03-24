@@ -29,8 +29,7 @@ spec:
         prometheus.io/port: "8081"
     spec:
       nodeName: nexus
-      # Removed hostNetwork: true - using ClusterIP service instead
-      # This fixes asymmetric routing with Calico overlay network
+      hostNetwork: true
       serviceAccountName: gpu-miner-sa
       automountServiceAccountToken: false
       tolerations:
@@ -43,8 +42,8 @@ spec:
       #   fsGroup: 1000
       containers:
         - name: xmrig-proxy
-          image: xmrig/xmrig:alpine
-          imagePullPolicy: IfNotPresent
+          image: xmrig-proxy:nixos-6.24.0
+          imagePullPolicy: Never
           args:
             - "--config=/etc/xmrig-proxy/config.json"
             - "--no-color"
