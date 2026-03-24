@@ -4,7 +4,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gpu-miner-forge-nvidia-0
+  name: gpu-miner-forge-nvidia-1
   namespace: mining
   labels:
     app: gpu-miner-forge
@@ -19,6 +19,7 @@ spec:
       app: gpu-miner-forge
       gpu-type: nvidia
       gpu-id: "1"
+      host: forge
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -70,7 +71,7 @@ spec:
         - name: LD_LIBRARY_PATH
           value: "/run/opengl-driver/lib:/nix/store"
         ports:
-        - containerPort: 4068
+        - containerPort: 4069
           name: api
           protocol: TCP
         securityContext:
