@@ -2,6 +2,7 @@
 # Local DNS resolver for cluster with Tailscale integration
 {
   config,
+  pkgs,
   lib,
   ...
 }: let
@@ -244,5 +245,50 @@ in {
     # Firewall - allow DNS from local network
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [cfg.port];
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
+
+    # Health monitoring
+    systemd.services.unbound-health-check = {
+      description = "Monitor Unbound DNS resolution to Kubernetes";
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "unbound-health" ''
+          #!/bin/sh
+          echo "[unbound-health-check] Checking DNS resolution..."
+
+          # Test K8s service resolution (via forward-zone)
+          if ! ${pkgs.dnsutils}/bin/dig kubernetes.default.svc.cluster.local @127.0.0.1 | grep -q "NOERROR"; then
+            echo "[unbound-health-check] ❌ Kubernetes DNS resolution failed (kubernetes.default.svc.cluster.local)"
+            systemctl try-restart unbound
+            exit 1
+          fi
+
+          # Test local cluster host resolution
+          if ! ${pkgs.dnsutils}/bin/dig zephyr.cluster.local @127.0.0.1 | grep -q "NOERROR"; then
+            echo "[unbound-health-check] ❌ Local cluster host resolution failed (zephyr.cluster.local)"
+            systemctl try-restart unbound
+            exit 1
+          fi
+
+          # Test external DNS resolution
+          if ! ${pkgs.dnsutils}/bin/dig example.com @127.0.0.1 | grep -q "NOERROR"; then
+            echo "[unbound-health-check] ❌ External DNS resolution failed (example.com)"
+            systemctl try-restart unbound
+            exit 1
+          fi
+
+          echo "[unbound-health-check] ✅ DNS health check passed"
+        '';
+        User = "root";
+      };
+    };
+
+    systemd.timers.unbound-health-check = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "*:0/5";  # Every 5 minutes
+        Persistent = true;
+      };
+    };
   };
 }
