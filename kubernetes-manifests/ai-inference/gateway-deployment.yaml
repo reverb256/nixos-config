@@ -1,47 +1,87 @@
 ---
+# AI Inference Gateway - Kubernetes Deployment on Nexus
+# Complete migration from NixOS systemd service
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-inference-gateway
+  namespace: ai-inference
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ai-gateway-config
+  name: ai-inference-gateway-config
   namespace: ai-inference
 data:
-  # Core Configuration
-  AUTH_MODE: "none"
+  # Backend configuration
+  BACKEND_URL: "http://127.0.0.1:8083"
   BACKEND_TYPE: "llama-cpp"
-  BACKEND_URL: "http://llama-cpp-qwen.ai-inference.svc.cluster.local:8080"
-  DEFAULT_MODEL: "qwen3.5-4b"
+  BACKEND_FALLBACK_URLS: "https://api.z.ai/api/coding/paas/v4"
 
-  # RAG Configuration
+  # Gateway configuration
+  GATEWAY_HOST: "0.0.0.0"
+  PORT: "8080"
+  AUTH_MODE: "none"
+
+  # Routing
+  ROUTING_ENABLED: "true"
+  DEFAULT_MODEL: "qwen3.5-35b-a3b"
+
+  # Rate limiting
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_RPM: "120"
+  MAX_REQUEST_SIZE: "10485760"
+
+  # Security
+  SECURITY_PROXY_ENABLED: "false"
+
+  # MCP configuration
+  MCP_ENABLED: "true"
+
+  # RAG configuration
   RAG_ENABLED: "true"
-  RAG_TOP_K: "5"
+  QDRANT_URL: "http://qdrant.ai-inference.svc.cluster.local:6333"
+  EMBEDDING_MODEL: "sentence-transformers/all-MiniLM-L6-v2"
   CHUNK_SIZE: "512"
   CHUNK_OVERLAP: "50"
-  EMBEDDING_MODEL: "sentence-transformers/all-MiniLM-L6-v2"
+  RAG_TOP_K: "10"
+  HYBRID_SEARCH_ENABLED: "true"
+  VECTOR_WEIGHT: "0.7"
+  BM25_WEIGHT: "0.3"
+  AUTO_RAG_ENABLED: "true"
+  TOKEN_SCOPED_COLLECTIONS: "true"
 
-  # Qdrant (vector database)
-  QDRANT_URL: "http://qdrant:6333"
-
-  # Knowledge Fabric Middleware
+  # Knowledge Fabric
   MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: "true"
   MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: "60"
   MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: "true"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K: "5"
   MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: "true"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS: "5"
   MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED: "true"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS: "5"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: "http://searxng:7777"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: "http://searxng.search.svc.cluster.local:8080"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS: "10"
   MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED: "true"
-  MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS: "5"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS: "10"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS: "10"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS: '["/etc/nixos","/home/j_kro"]'
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K: "10"
 
-  # Auto-RAG
-  AUTO_RAG_ENABLED: "true"
-  HYBRID_SEARCH_ENABLED: "true"
-  BM25_WEIGHT: "0.300000"
+  # Cache
+  TRANSFORMERS_CACHE: "/var/cache/ai-inference"
+  HF_HOME: "/var/cache/ai-inference"
 
-  # MCP Configuration
-  MCP_ENABLED: "false"  # Disabled for K8s (local MCP servers won't work in pods)
+  # Monitoring
+  SENTRY_ENABLED: "false"
 
+  # System prompts
+  SYSTEM_PROMPTS_ENABLED: "true"
+  SYSTEM_PROMPTS_DEFAULT: "You are a helpful AI assistant with access to comprehensive knowledge sources."
+  SYSTEM_PROMPTS_REASONING: "You are an expert reasoning assistant. Think step-by-step and provide clear explanations backed by retrieved information."
+  SYSTEM_PROMPTS_ANALYSIS: "You are an expert analysis assistant. Provide thorough and structured analysis using multiple sources."
+  SYSTEM_PROMPTS_AGENTIC: "You are an autonomous agent capable of multi-step planning and execution. Use available tools to complete complex tasks."
+  SYSTEM_PROMPTS_FAST: "You are a fast and efficient assistant. Provide concise, direct answers."
+
+  PYTHONUNBUFFERED: "1"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,140 +90,288 @@ metadata:
   namespace: ai-inference
   labels:
     app: ai-inference-gateway
-    version: v2
+    version: "v2.0.0"
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: ai-inference-gateway
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
   template:
     metadata:
       labels:
         app: ai-inference-gateway
-        version: v2
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "9190"
-        prometheus.io/path: "/metrics"
+        version: "v2.0.0"
     spec:
-      priorityClassName: "high-priority"
+      serviceAccountName: ai-inference-gateway
+      nodeName: nexus  # Pin to Nexus node
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: gateway
-        image: ghcr.io/j-kro/ai-inference-gateway:latest
-        imagePullPolicy: IfNotPresent
+        image: ghcr.io/reverb256/ai-inference-gateway:latest
+        imagePullPolicy: Always
+        command:
+          - "uvicorn"
+          - "ai_inference_gateway.main:app"
+          - "--host"
+          - "0.0.0.0"
+          - "--port"
+          - "8080"
+          - "--workers"
+          - "4"
+          - "--log-level"
+          - "debug"
         env:
-        # Core Configuration
-        - name: AUTH_MODE
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: AUTH_MODE
-        - name: BACKEND_TYPE
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: BACKEND_TYPE
-        - name: BACKEND_URL
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: BACKEND_URL
-        - name: DEFAULT_MODEL
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: DEFAULT_MODEL
-        # RAG Configuration
-        - name: RAG_ENABLED
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: RAG_ENABLED
-        - name: RAG_TOP_K
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: RAG_TOP_K
-        - name: CHUNK_SIZE
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: CHUNK_SIZE
-        - name: CHUNK_OVERLAP
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: CHUNK_OVERLAP
-        - name: EMBEDDING_MODEL
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: EMBEDDING_MODEL
-        # Qdrant
-        - name: QDRANT_URL
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: QDRANT_URL
-        # Knowledge Fabric
-        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED
-        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K
-        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED
-        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED
-        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED
-        # Gateway Configuration
-        - name: GATEWAY_HOST
-          value: "0.0.0.0"
-        - name: PORT
-          value: "8080"
-        - name: PYTHONUNBUFFERED
-          value: "1"
-        # MCP (disabled in K8s)
-        - name: MCP_ENABLED
-          valueFrom:
-            configMapKeyRef:
-              name: ai-gateway-config
-              key: MCP_ENABLED
-        # Security
-        - name: MAX_REQUEST_SIZE
-          value: "10485760"
+          - name: PORT
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: PORT
+          - name: GATEWAY_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: GATEWAY_HOST
+          - name: AUTH_MODE
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: AUTH_MODE
+          - name: BACKEND_URL
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: BACKEND_URL
+          - name: BACKEND_TYPE
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: BACKEND_TYPE
+          - name: BACKEND_FALLBACK_URLS
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: BACKEND_FALLBACK_URLS
+          - name: ROUTING_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: ROUTING_ENABLED
+          - name: DEFAULT_MODEL
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: DEFAULT_MODEL
+          - name: RATE_LIMIT_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: RATE_LIMIT_ENABLED
+          - name: RATE_LIMIT_RPM
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: RATE_LIMIT_RPM
+          - name: MAX_REQUEST_SIZE
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MAX_REQUEST_SIZE
+          - name: SECURITY_PROXY_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: SECURITY_PROXY_ENABLED
+          - name: MCP_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MCP_ENABLED
+          - name: RAG_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: RAG_ENABLED
+          - name: QDRANT_URL
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: QDRANT_URL
+          - name: EMBEDDING_MODEL
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: EMBEDDING_MODEL
+          - name: CHUNK_SIZE
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: CHUNK_SIZE
+          - name: CHUNK_OVERLAP
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: CHUNK_OVERLAP
+          - name: RAG_TOP_K
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: RAG_TOP_K
+          - name: HYBRID_SEARCH_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: HYBRID_SEARCH_ENABLED
+          - name: VECTOR_WEIGHT
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: VECTOR_WEIGHT
+          - name: BM25_WEIGHT
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: BM25_WEIGHT
+          - name: AUTO_RAG_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: AUTO_RAG_ENABLED
+          - name: TOKEN_SCOPED_COLLECTIONS
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: TOKEN_SCOPED_COLLECTIONS
+          - name: TRANSFORMERS_CACHE
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: TRANSFORMERS_CACHE
+          - name: HF_HOME
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: HF_HOME
+          - name: SENTRY_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: SENTRY_ENABLED
+          - name: SYSTEM_PROMPTS_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: SYSTEM_PROMPTS_ENABLED
+          - name: SYSTEM_PROMPTS_DEFAULT
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: SYSTEM_PROMPTS_DEFAULT
+          - name: SYSTEM_PROMPTS_REASONING
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: SYSTEM_PROMPTS_REASONING
+          - name: SYSTEM_PROMPTS_ANALYSIS
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: SYSTEM_PROMPTS_ANALYSIS
+          - name: SYSTEM_PROMPTS_AGENTIC
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: SYSTEM_PROMPTS_AGENTIC
+          - name: SYSTEM_PROMPTS_FAST
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: SYSTEM_PROMPTS_FAST
+          - name: PYTHONUNBUFFERED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: PYTHONUNBUFFERED
+          # Knowledge Fabric environment variables
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS
+          - name: MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K
         ports:
         - name: http
           containerPort: 8080
           protocol: TCP
-        - name: metrics
-          containerPort: 9190
-          protocol: TCP
-        # Health Checks
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
         livenessProbe:
           httpGet:
             path: /health
-            port: http
+            port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -191,32 +379,28 @@ spec:
         readinessProbe:
           httpGet:
             path: /health
-            port: http
+            port: 8080
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
-        # Resources (explicitly no GPU)
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "500m"
-            nvidia.com/gpu: "0"
-          limits:
-            memory: "2Gi"
-            cpu: "1000m"
-            nvidia.com/gpu: "0"
-        # Volume mounts for code search (read-only)
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false  # Needs write access for cache
         volumeMounts:
-        - name: nixos-config
-          mountPath: /etc/nixos
-          readOnly: true
+        - name: cache
+          mountPath: /var/cache/ai-inference
+        - name: tmp
+          mountPath: /tmp
       volumes:
-      - name: nixos-config
-        hostPath:
-          path: /etc/nixos
-          type: Directory
-
+      - name: cache
+        emptyDir:
+          sizeLimit: "2Gi"
+      - name: tmp
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -225,19 +409,97 @@ metadata:
   namespace: ai-inference
   labels:
     app: ai-inference-gateway
-  annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "9190"
 spec:
-  type: ClusterIP
-  ports:
-  - name: http
-    port: 8080
-    targetPort: http
-    protocol: TCP
-  - name: metrics
-    port: 9190
-    targetPort: metrics
-    protocol: TCP
   selector:
     app: ai-inference-gateway
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+# DISABLED: NodePort service removed (2026-03-23) - Using Caddy ingress instead
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: ai-inference-gateway-nodeport
+#  namespace: ai-inference
+#  labels:
+#    app: ai-inference-gateway
+#spec:
+#  selector:
+#    app: ai-inference-gateway
+#  ports:
+#    - name: http
+#    protocol: TCP
+#    port: 8080
+#    targetPort: 8080
+#    nodePort: 30880
+#  type: NodePort
+---
+# NetworkPolicy to allow gateway ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: ai-inference
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-inference-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-system
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+# NetworkPolicy to allow gateway egress to dependencies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-egress
+  namespace: ai-inference
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-inference-gateway
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow access to search namespace (SearXNG)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: search
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow access to ai-inference namespace (Qdrant, llama.cpp backend)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+    - to:
+        - podSelector:
+            matchLabels:
+              app: llama-cpp
+      ports:
+        - protocol: TCP
+          port: 8083
