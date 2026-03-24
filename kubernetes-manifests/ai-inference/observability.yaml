@@ -95,6 +95,8 @@ spec:
       labels:
         app: prometheus
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nexus
       serviceAccountName: prometheus
       containers:
       - name: prometheus
@@ -156,11 +158,10 @@ metadata:
   labels:
     app: grafana
 spec:
-  type: NodePort
+  type: ClusterIP  # DISABLED: NodePort removed (2026-03-23) - Using Caddy ingress
   ports:
   - port: 3000
     targetPort: 3000
-    nodePort: 30300
     name: http
   selector:
     app: grafana
@@ -184,6 +185,8 @@ spec:
       labels:
         app: grafana
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nexus
       containers:
       - name: grafana
         image: grafana/grafana:11.1.0

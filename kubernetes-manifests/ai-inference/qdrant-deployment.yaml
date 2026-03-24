@@ -38,6 +38,8 @@ spec:
       labels:
         app: qdrant
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nexus
       containers:
       - name: qdrant
         image: qdrant/qdrant:v1.12.0
