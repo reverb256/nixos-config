@@ -93,7 +93,7 @@ in {
         default = {
           enable = true;
           roles = ["master" "node"];
-          masterAddress = "10.1.1.110";
+          masterAddress = "10.1.1.100"; # VIP for HA
         };
         description = "Kubernetes configuration";
       };
@@ -160,7 +160,7 @@ in {
         default = {
           enable = true;
           roles = ["node"];
-          masterAddress = "10.1.1.110";
+          masterAddress = "10.1.1.100"; # VIP for HA
         };
         description = "Kubernetes configuration";
       };
@@ -222,7 +222,7 @@ in {
         default = {
           enable = true;
           roles = ["node"];
-          masterAddress = "10.1.1.110";
+          masterAddress = "10.1.1.100"; # VIP for HA
         };
         description = "Kubernetes configuration";
       };
@@ -299,7 +299,7 @@ in {
         default = {
           enable = true;
           roles = ["node"];
-          masterAddress = "10.1.1.110";
+          masterAddress = "10.1.1.100"; # VIP for HA
         };
         description = "Kubernetes configuration";
       };
@@ -365,7 +365,7 @@ in {
         default = {
           enable = true;
           roles = ["master" "node"];
-          masterAddress = "10.1.1.110";
+          masterAddress = "10.1.1.100"; # VIP for HA
         };
         description = "Kubernetes configuration";
       };
@@ -387,7 +387,7 @@ in {
         default = {
           enable = true;
           roles = ["node"];
-          masterAddress = "10.1.1.110";
+          masterAddress = "10.1.1.100"; # VIP for HA
         };
         description = "Kubernetes configuration";
       };
