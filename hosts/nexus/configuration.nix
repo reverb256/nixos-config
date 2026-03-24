@@ -98,6 +98,12 @@
   profiles.node.nexus-gaming.enable = true;
 
   # ============================================================================
+  # MONITORING - Prometheus, Grafana, AlertManager
+  # ============================================================================
+  # Nexus hosts the cluster monitoring stack (46GB RAM capacity)
+  profiles.monitoring.enable = true;
+
+  # ============================================================================
   # GPU COMPUTE - CUDA + Vulkan support for AI inference
   # ============================================================================
   hardware.gpu-compute = {
