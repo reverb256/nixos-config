@@ -123,6 +123,12 @@
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.zephyr-workstation.enable = true;
 
+  # MONITORING DISABLED - Protect 31GB RAM for gaming/VR/AI workloads
+  # Monitoring stack moved to Nexus (46GB RAM) to prevent OOM on Zephyr
+  # Prometheus/Grafana running on Kubernetes (ai-inference namespace)
+  # AlertManager running on Nexus via monitoring profile
+  profiles.monitoring.enable = lib.mkForce false;
+
   # ============================================================================
   # SECURITY AUDIT REMEDIATION
   # ============================================================================
@@ -1054,24 +1060,6 @@
         password = "x";
         tls = false; # Disable TLS for local proxy connection
       };
-    };
-
-    # MONITORED - Full monitoring stack
-    # Note: Loki and Promtail moved to monitoring.nix (Loki now on Sentry)
-    # Prometheus and Grafana running on Kubernetes in ai-inference namespace
-    monitoring = {
-      # RUNNING ON KUBERNETES (ai-inference namespace) - See kubernetes-manifests/ai-inference/
-      prometheus = {
-        enable = false;
-        retentionDays = 30;
-        scrapeInterval = "15s";
-        enableAlertRules = true;
-      };
-      alertmanager = {
-        enable = true;
-        retentionDays = 30;
-      };
-      grafana.enable = false; # RUNNING ON KUBERNETES (ai-inference namespace)
     };
 
     # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn
