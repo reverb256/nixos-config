@@ -1,0 +1,82 @@
+# Test pod to verify nix-csi driver functionality
+# This pod mounts /nix/store via CSI ephemeral volume without privileged containers
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nix-csi-test
+  namespace: default
+  labels:
+    app: nix-csi-test
+    purpose: testing
+  annotations:
+    description: "Test pod for nix-csi driver - verifies read-only /nix/store mount"
+spec:
+  serviceAccountName: default
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  containers:
+  - name: test
+    image: alpine:3.19
+    command: ["/bin/sh", "-c"]
+    args:
+    - |
+      echo "=== nix-csi Driver Test ==="
+      echo "Testing /nix/store mount..."
+      ls -la /nix/store | head -20
+      echo ""
+      echo "Testing read-only access..."
+      if touch /nix/store/test 2>&1 | grep -q "Read-only"; then
+        echo "✅ Read-only mount verified"
+      else
+        echo "❌ Read-only mount FAILED"
+        exit 1
+      fi
+      echo ""
+      echo "Testing package access..."
+      if [ -d "/nix/store" ]; then
+        echo "✅ /nix/store accessible"
+        echo "Store entries: $(ls /nix/store | wc -l)"
+      else
+        echo "❌ /nix/store not accessible"
+        exit 1
+      fi
+      echo ""
+      echo "=== All tests passed ==="
+      echo "Sleeping for 1 hour to allow inspection..."
+      sleep 3600
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false  # Need writable /tmp for shell operations
+      capabilities:
+        drop:
+        - ALL
+    volumeMounts:
+    - name: nix-store
+      mountPath: /nix/store
+      readOnly: true
+    - name: tmp
+      mountPath: /tmp
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+  volumes:
+  - name: nix-store
+    csi:
+      driver: nix.csi.store
+      readOnly: true
+      volumeAttributes:
+        storePath: /nix/store
+  - name: tmp
+    emptyDir:
+      sizeLimit: 100Mi
+  restartPolicy: Never
+  # Schedule on nexus where nix-csi driver is confirmed running
+  nodeSelector:
+    kubernetes.io/hostname: nexus

@@ -1,0 +1,199 @@
+---
+# Calico Node DaemonSet - NixOS Configuration
+# Fixed IP autodetection for multi-node clusters
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: calico-node
+  namespace: kube-system
+  labels:
+    k8s-app: calico-node
+spec:
+  selector:
+    matchLabels:
+      k8s-app: calico-node
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        k8s-app: calico-node
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      hostNetwork: true
+      tolerations:
+        # Make sure calico-node gets scheduled on all nodes.
+        - effect: NoSchedule
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
+      serviceAccountName: calico-node
+      # Minimize downtime during a rolling update or by deleting a pod.
+      terminationGracePeriodSeconds: 60
+      priorityClassName: system-node-critical
+      initContainers:
+        # This container installs the Calico CNI binaries
+        # and CNI config into the host filesystem.
+        - name: install-cni
+          image: docker.io/calico/cni:v3.28.0
+          command: ["/opt/cni/bin/install"]
+          envFrom:
+            - configMapRef:
+                name: calico-config
+          volumeMounts:
+            - mountPath: /host/opt/cni/bin
+              name: cni-bin-dir
+            - mountPath: /host/etc/cni/net.d
+              name: cni-net-dir
+      containers:
+        # Runs calico-node container on each Kubernetes node.
+        - name: calico-node
+          image: docker.io/calico/node:v3.28.0
+          env:
+            # NIXOS-SPECIFIC: Use first-found IP autodetection
+            # This works across all nodes regardless of interface name
+            - name: IP_AUTODETECTION_METHOD
+              value: first-found
+            # NIXOS-SPECIFIC: Enable BGP backend for route distribution
+            - name: CALICO_NETWORKING_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  name: calico-config
+                  key: calico_backend
+                  optional: true
+            # NIXOS-SPECIFIC: Disable VXLAN, use IPIP for simplicity
+            - name: CALICO_IPV4POOL_IPIP
+              value: Always
+            - name: CALICO_IPV4POOL_VXLAN
+              value: Never
+            # NIXOS-SPECIFIC: Set MTU for IPIP (standard ethernet 1500 - 20 byte IPIP header)
+            - name: FELIX_IPINIPMTU
+              value: "1480"
+            # Enable IPIP mode
+            - name: CALICO_IPV4POOL_IPIP_MODE
+              value: "Always"
+            # Location of the CA certificate for Calico
+            - name: FELIX_LOGSEVERITYSCREEN
+              value: info
+            - name: CLUSTER_TYPE
+              value: k8s,bgp
+            # Auto-detect the BGP IP address
+            - name: IP
+              value: autodetect
+            # Enable IPIP
+            - name: CALICO_IPV4POOL_IPIP
+              value: Always
+            # Set the BGP peer mesh to enabled
+            - name: CALICO_IPV4POOL_IPIP
+              value: Always
+            # NIXOS-SPECIFIC: Use node annotation for IP if first-found fails
+            # Annotations are set in: modules/services/kubernetes.nix
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: FELIX_HEALTHENABLED
+              value: true
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              cpu: 250m
+          livenessProbe:
+            exec:
+              command:
+                - /bin/calico-node
+                - -felix-live
+            periodSeconds: 10
+            initialDelaySeconds: 10
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - /bin/calico-node
+                - -felix-ready
+            periodSeconds: 10
+          volumeMounts:
+            - mountPath: /lib/modules
+              name: lib-modules
+              readOnly: true
+            - mountPath: /run/xtables.lock
+              name: xtables-lock
+            - mountPath: /var/run/calico
+              name: var-run-calico
+            - mountPath: /var/lib/calico
+              name: var-lib-calico
+            - mountPath: /sys/fs
+              name: sys-fs
+              readOnly: true
+      volumes:
+        # Used to ensure proper permissions on CNI plugin and config files.
+        - name: cni-bin-dir
+          hostPath:
+            path: /opt/cni/bin
+        - name: cni-net-dir
+          hostPath:
+            path: /etc/cni/net.d
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+        - name: var-run-calico
+          hostPath:
+            path: /var/run/calico
+        - name: var-lib-calico
+          hostPath:
+            path: /var/lib/calico
+        - name: xtables-lock
+          hostPath:
+            path: /run/xtables.lock
+            type: FileOrCreate
+        - name: sys-fs
+          hostPath:
+            path: /sys/fs
+            type: DirectoryOrCreate
+---
+# Calico Node ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: calico-node
+  namespace: kube-system
+---
+# Calico Node RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: calico-node
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - nodes
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - networkpolicies
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: calico-node
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: calico-node
+subjects:
+  - kind: ServiceAccount
+    name: calico-node
+    namespace: kube-system

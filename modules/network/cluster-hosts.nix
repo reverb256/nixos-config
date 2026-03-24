@@ -21,14 +21,14 @@ in {
 
   config = mkIf cfg.enable {
     # Build extraHosts from cluster hosts configuration
+    # Uses lib.pipe for clear functional transformation pipeline
     networking.extraHosts = lib.mkIf cfg.populateLocal (
-      lib.concatStringsSep "\n" (
-        lib.mapAttrsToList
-        (
-          name: host: "${host.ip} ${name}"
-        )
-        config.networking.cluster.hosts
-      )
+      lib.pipe config.networking.cluster.hosts [
+        # Transform: {name = {ip = ...}} -> ["ip name"]
+        (lib.mapAttrsToList (name: host: "${host.ip} ${name}"))
+        # Join: ["10.0.0.1 zephyr", "10.0.0.2 nexus"] -> "10.0.0.1 zephyr\n10.0.0.2 nexus"
+        (lib.concatStringsSep "\n")
+      ]
     );
   };
 }

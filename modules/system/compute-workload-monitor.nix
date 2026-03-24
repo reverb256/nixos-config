@@ -25,6 +25,54 @@
   };
 
   config = lib.mkIf config.services.compute-workload-monitor.enable {
+    # ============================================================================
+    # ASSERTIONS
+    # ============================================================================
+    assertions = [
+      {
+        assertion = config.services.compute-workload-monitor.checkInterval >= 5
+                && config.services.compute-workload-monitor.checkInterval <= 300;
+        message = ''
+          Invalid compute workload monitor check interval: ${toString config.services.compute-workload-monitor.checkInterval}
+
+          Check interval must be between 5 and 300 seconds.
+          Recommended values:
+            - 5-10 seconds (responsive, for gaming detection)
+            - 30 seconds (balanced, default)
+            - 60+ seconds (resource-conscious, for servers)
+
+          Current value: ${toString config.services.compute-workload-monitor.checkInterval} seconds
+        '';
+      }
+      {
+        assertion = builtins.substring 0 1 config.services.compute-workload-monitor.logFile == "/";
+        message = ''
+          Compute workload monitor log file must be an absolute path.
+
+          Current value: ${config.services.compute-workload-monitor.logFile}
+
+          Example valid paths:
+            services.compute-workload-monitor.logFile = "/var/log/compute-workload-monitor.log";
+            services.compute-workload-monitor.logFile = "/var/log/gpu-workload-monitor.log";
+        '';
+      }
+      {
+        assertion = (config.services.kubernetes.enable or false) || (config.services.ai-inference.enable or false);
+        message = ''
+          Compute workload monitor requires either Kubernetes or AI Inference to be enabled.
+
+          The monitor needs to detect GPU workloads from:
+            - Kubernetes pods (services.kubernetes.enable = true)
+            - AI Inference Gateway (services.ai-inference.enable = true)
+
+          Enable at least one service, or disable compute-workload-monitor.
+
+          Current configuration:
+            services.kubernetes.enable = ${toString (config.services.kubernetes.enable or false)}
+            services.ai-inference.enable = ${toString (config.services.ai-inference.enable or false)}
+        '';
+      }
+    ];
     # Create the compute-workload-monitor service
     systemd.services.compute-workload-monitor = {
       description = "Compute Workload Monitor - GPU workload detection and profile management";
@@ -115,9 +163,9 @@
                   return 0
               fi
 
-              # Get current GPU utilization
+              # Get current GPU utilization (check ALL GPUs, use MAX for gaming detection)
               local current_util
-              current_util=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -1)
+              current_util=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | awk '{print $1}' | sort -rn | head -1)
 
               if [[ -z "$current_util" ]]; then
                   log "Failed to query GPU utilization - assume no gaming"
@@ -411,12 +459,12 @@
                   kubectl scale deployment gpu-miner-forge-nvidia-0 gpu-miner-forge-nvidia-1 -n mining --replicas=0 >/dev/null 2>&1
               fi
 
-              # Scale the gaming-placeholder-volcano deployment in mining namespace
-              # (Uses Volcano scheduler for priority-based GPU preemption)
-              if kubectl scale deployment gaming-placeholder-volcano -n mining --replicas=$replicas >/dev/null 2>&1; then
-                  log "K8s: Scaled gaming-placeholder-volcano to $replicas replica(s)"
+              # Scale the gaming-placeholder deployment in mining namespace
+              # (Uses default-scheduler for priority-based GPU preemption)
+              if kubectl scale deployment gaming-placeholder -n mining --replicas=$replicas >/dev/null 2>&1; then
+                  log "K8s: Scaled gaming-placeholder to $replicas replica(s)"
               else
-                  log "K8s: Failed to scale gaming-placeholder-volcano"
+                  log "K8s: Failed to scale gaming-placeholder"
                   return 1
               fi
 

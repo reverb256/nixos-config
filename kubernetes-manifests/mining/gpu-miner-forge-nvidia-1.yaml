@@ -1,10 +1,10 @@
-# GPU Miner for Forge - NVIDIA GPU 1 (RTX 4060)
+# GPU Miner for Forge - NVIDIA GPU 0 (RTX 4060)
 # Single pod per GPU for maximum scheduling flexibility
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gpu-miner-forge-nvidia-1
+  name: gpu-miner-forge-nvidia-0
   namespace: mining
   labels:
     app: gpu-miner-forge
@@ -13,11 +13,17 @@ metadata:
     host: forge
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: gpu-miner-forge
       gpu-type: nvidia
       gpu-id: "1"
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     metadata:
       labels:
@@ -25,8 +31,9 @@ spec:
         gpu-type: nvidia
         gpu-id: "1"
         host: forge
+        # PSA exemption for privileged GPU mining containers
+        pod-security.kubernetes.io/enforce: privileged
     spec:
-      # schedulerName: yunikorn # DISABLED: Using default scheduler
       nodeName: forge
       serviceAccountName: gpu-miner-sa
       hostNetwork: true
@@ -57,13 +64,13 @@ spec:
         - "--pass=x"
         - "--tls=1"
         - "--devices=1"
-        - "--apiport=4072"
+        - "--apiport=4069"
         - "--mode=b"
         env:
         - name: LD_LIBRARY_PATH
           value: "/run/opengl-driver/lib:/nix/store"
         ports:
-        - containerPort: 4072
+        - containerPort: 4068
           name: api
           protocol: TCP
         securityContext:

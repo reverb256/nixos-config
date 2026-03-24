@@ -60,15 +60,56 @@ just cluster-status                      # Host + K8s status combined
 - **IMPORTANT**: Use `lib.mkOptionDefault` in shared modules (NEVER direct assignment)
   - Direct assignment breaks SSH on all nodes
   - See @AGENTS.md Critical Safety Constraints for examples
+
+- **CRITICAL**: KUBERNETES POD EXPLOSION PREVENTION
+  - **NEVER apply nodeSelector without checking target node capacity FIRST**
+    ```bash
+    # BEFORE any nodeSelector change:
+    kubectl top nodes
+    kubectl describe node <target> | grep -A 5 "Allocated resources"
+    kubectl get pods -n <namespace> --no-headers | wc -l
+    ```
+  - **ALWAYS check replica set count before deployment changes**
+    ```bash
+    # IF > 20 replica sets exist, CLEAN UP FIRST
+    kubectl get replicasets -A --no-headers | wc -l
+    kubectl get replicasets -A -o json | jq -r '.items[] | select(.status.replicas==0) | "\(.metadata.namespace)/\(.metadata.name)"' | xargs -I {} kubectl delete replicetset {}
+    ```
+  - **NEVER scale deployments without checking current state**
+    ```bash
+    # Check BEFORE scaling:
+    kubectl get deploy -A -o jsonpath='{range .items[?(@.spec.replicas>3)]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{.spec.replicas}{"\n"}{end}'
+    ```
+  - **USE `--replicas=0` BEFORE deleting deployments**
+    ```bash
+    # CORRECT order:
+    kubectl scale deploy <name> --replicas=0
+    kubectl delete deploy <name>
+    ```
+  - **NEVER use `--all` flags with kubectl delete/scale**
+    - Can cascade out of control creating hundreds of pods
+    - Be SPECIFIC: `kubectl delete pods -n <namespace> -l <label>`
+  - **Node scheduling priority: NEXUS > FORGE > SENTRY > ZEPHYR**
+    - Zephyr has EXTREME RAM exhaustion at all times
+    - **ALWAYS** use nodeSelector to force non-critical workloads to Nexus
+    - Only infrastructure on Zephyr: calico-node, nix-node, nvidia-plugin, csi-node-driver
+  - **Set revisionHistoryLimit: 2** (not default 10) on ALL deployments
+    - Prevents accumulation of old replica sets
+  - **Set maxSurge: 0** in RollingUpdate (not default 1)
+    - Prevents creating extra pods during updates
+  - **See**: `kubernetes-manifests/PREVENT_POD_EXPLOSION.md` for complete rules
+
 - **CRITICAL**: NEVER background nixos-rebuild or similar long-running commands
   - Commands like `nixos-rebuild test`, `colmena apply` MUST show real-time output
   - User needs to see build progress, errors, and ETA
   - Backgrounding hides output and causes confusion
+
 - **CRITICAL**: NEVER use Volcano scheduler for general workloads
   - Volcano is for batch/HPC/AI jobs with explicit PodGroup configuration
   - Use `default-scheduler` for stateless services (Deployments, StatefulSets)
   - Volcano requires RBAC setup for PodGroups or all deployments fail
   - See: `docs/kubernetes/volcano-scheduler-incident-2026-03-22.md`
+
 - **CRITICAL**: Control plane restart order (if absolutely necessary)
   1. kube-apiserver (last to stop, first to start)
   2. kube-scheduler

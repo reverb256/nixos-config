@@ -1,5 +1,5 @@
 # XMRig CPU Miner Deployment for Zephyr (32 cores)
-# FIXED: Removed Volcano scheduler, added health probes, pinned image version
+# FIXED: Removed readOnlyRootFilesystem, added health probes, fixed YAML structure
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -12,7 +12,7 @@ metadata:
     workload: crypto-mining
 spec:
   replicas: 1
-  revisionHistoryLimit: 3
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: xmrig
@@ -33,11 +33,9 @@ spec:
         prometheus.io/port: "8081"
         prometheus.io/path: "/1/summary"
     spec:
-      # REMOVED: schedulerName: volcano (causes failures per incident 2026-03-22)
       nodeName: zephyr
       serviceAccountName: gpu-miner-sa
       automountServiceAccountToken: false
-      hostNetwork: true
       priorityClassName: mining-low
       tolerations:
         - key: node-role.kubernetes.io/control-plane
@@ -58,7 +56,7 @@ spec:
         imagePullPolicy: Never
         args:
           - "-o"
-          - "10.1.1.110:3333"
+          - "xmrig-proxy.mining.svc.cluster.local:3333"  # Using Kubernetes service DNS instead of host IP
           - "-u"
           - "zephyr-cpu"
           - "--tls=false"
@@ -67,6 +65,7 @@ spec:
           - "--donate-level=1"
           - "--api-worker-id=zephyr-cpu"
           - "--http-enabled"
+          - "--http-host=0.0.0.0"
           - "--http-port=8081"
         ports:
         - containerPort: 8081
@@ -82,20 +81,40 @@ spec:
         env:
         - name: XMRIG_NO_TLS
           value: "1"
+        livenessProbe:
+          httpGet:
+            path: /1/summary
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /1/summary
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         securityContext:
-          runAsNonRoot: false  # xmrig needs root for 1GB pages
+          runAsNonRoot: false
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
+          readOnlyRootFilesystem: false  # FIXED: xmrig needs write access
           capabilities:
             drop:
             - ALL
             add:
-            - IPC_LOCK  # Required for large pages
+            - IPC_LOCK
         volumeMounts:
         - name: hugepages
           mountPath: /dev/hugepages
+        - name: tmp
+          mountPath: /tmp
       volumes:
       - name: hugepages
         hostPath:
           path: /dev/hugepages
           type: Directory
+      - name: tmp
+        emptyDir: {}

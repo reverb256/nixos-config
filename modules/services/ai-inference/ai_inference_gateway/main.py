@@ -318,7 +318,7 @@ async def check_backend_health(
         url: Backend URL
         timeout: Request timeout in seconds
         api_key: Optional API key for authentication
-        backend_type: Type of backend (lm-studio, zai, etc.)
+        backend_type: Type of backend (llama-cpp, zai, pollinations, etc.)
 
     Returns:
         True if backend is healthy, False otherwise
@@ -401,15 +401,7 @@ def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
 
     # Only add backend authentication if client didn't provide one
     if "authorization" not in {k.lower() for k in headers.keys()}:
-        if config.backend_type == "lm-studio":
-            api_key = config.get_lm_studio_api_key()
-            # DEBUG: Log what we got
-            logger.info(
-                f"[DEBUG] LM Studio API key: repr={repr(api_key)}, len={len(api_key) if api_key else 0}, auth_mode={os.getenv('AUTH_MODE', 'not-set')}"
-            )
-            if api_key:
-                headers["Authorization"] = f"Bearer {api_key}"
-        elif config.backend_type == "zai":
+        if config.backend_type == "zai":
             api_key = config.get_zai_api_key()
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
@@ -488,11 +480,8 @@ async def lifespan(app: FastAPI):
         "Middleware pipeline initialized with %d middleware", state.pipeline.count
     )
 
-    # Initialize router with LM Studio API key for health checks
-    lm_studio_key = None
-    if state.config.backend_type == "lm-studio":
-        lm_studio_key = state.config.get_lm_studio_api_key()
-    state.router = create_default_router(lm_studio_api_key=lm_studio_key)
+    # Initialize router (no API key needed for llama-cpp)
+    state.router = create_default_router()
     logger.info("Router initialized with %d models", len(state.router.models))
 
     # Initialize MCP broker if enabled
@@ -878,8 +867,8 @@ def build_middleware_pipeline(
 def is_reasoning_model(model_id: str) -> bool:
     """Check if a model is a reasoning model that uses reasoning_content field.
 
-    These models have issues with LM Studio's /v1/messages endpoint,
-    so we need to use /v1/chat/completions and translate the response.
+    These models use OpenAI-compatible format (/v1/chat/completions)
+    and require response translation.
     """
     reasoning_indicators = [
         "claude-4.6-opus-reasoning-distilled",
@@ -1034,11 +1023,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         if cache_age > state.backend_health_cache["ttl"]:
             # Cache expired, check actual backend health
-            api_key = (
-                state.config.get_lm_studio_api_key()
-                if state.config.backend_type == "lm-studio"
-                else None
-            )
+            api_key = None  # llama-cpp doesn't require authentication
             is_healthy = await check_backend_health(
                 state.config.backend_url,
                 api_key=api_key,
@@ -1372,8 +1357,8 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Read request body
         body = await request.json()
 
-        # Transform response_format to LM Studio instructions
-        # (OpenAI JSON mode -> LM Studio system prompts)
+        # Transform response_format to backend instructions
+        # (OpenAI JSON mode -> system prompts)
         if "response_format" in body:
             body = await transform_request(body)
             logger.debug(
@@ -1628,14 +1613,13 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     @app.post("/v1/messages")
     async def messages(request: Request):
         """
-        Anthropic Messages API endpoint - proxies to LM Studio's native Anthropic API.
+        Anthropic Messages API endpoint - proxies to llama.cpp backend.
 
-        LM Studio provides native Anthropic compatibility at /v1/messages.
         This endpoint adds:
         - Model selection by Claude model ID (haiku, sonnet, opus variants)
         - Thinking effort levels (low/medium/high) that map to budget_tokens
-        - ZAI fallback when LM Studio unavailable
-        - Extended thinking support through LM Studio's native API
+        - ZAI fallback when llama.cpp unavailable
+        - Extended thinking support
 
         Model mapping (5 Claude options → 3 underlying local models):
         - claude-haiku-4 → qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled
@@ -1716,7 +1700,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Effort levels (low/medium/high) map to budget_tokens, NOT model selection
         thinking_budget = None
         thinking_intensity = None
-        thinking_type = None  # LM Studio expects: "enabled" | "disabled" | "adaptive"
+        thinking_type = None  # Backend expects: "enabled" | "disabled" | "adaptive"
 
         if "thinking" in body:
             thinking = body["thinking"]
@@ -1745,8 +1729,8 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 f"Thinking intensity '{thinking_intensity}' → budget_tokens={thinking_budget}"
             )
 
-        # Build/update thinking dict in body for LM Studio compatibility
-        # LM Studio expects: {"type": "enabled"|"disabled"|"adaptive", "budget_tokens": int}
+        # Build/update thinking dict in body for backend compatibility
+        # Format: {"type": "enabled"|"disabled"|"adaptive", "budget_tokens": int}
         if thinking_budget is not None or thinking_type:
             if "thinking" not in body or not isinstance(body["thinking"], dict):
                 body["thinking"] = {}
@@ -1820,229 +1804,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Build headers with authentication
         backend_headers = build_backend_headers(state.config, dict(request.headers))
 
-        # Determine if we should use OpenAI format (for reasoning models)
-        # Reasoning models have issues with /v1/messages but work with /v1/chat/completions
-        use_openai_format = is_reasoning_model(route_decision.model)
-
-        # Try LM Studio backend
-        if route_decision.backend == "lm-studio":
-            try:
-                if use_openai_format:
-                    # Use /v1/chat/completions (OpenAI format) for reasoning models
-                    # This properly returns reasoning_content which we'll translate to Anthropic format
-                    lm_studio_url = f"{state.config.backend_url}/v1/chat/completions"
-                    endpoint_type = "OpenAI-compatible (for reasoning model)"
-
-                    # Translate Anthropic request to OpenAI format
-                    openai_request = {
-                        "model": route_decision.model,
-                        "messages": body.get("messages", []),
-                        "max_tokens": body.get("max_tokens", 4096),
-                        "temperature": body.get("temperature", 1.0),
-                        "stream": stream,
-                    }
-
-                    # Add system prompt if present
-                    if system:
-                        openai_request["messages"] = [
-                            {"role": "system", "content": system}
-                        ] + openai_request["messages"]
-
-                    # Add tools if present
-                    if "tools" in body:
-                        openai_request["tools"] = body["tools"]
-                    if "tool_choice" in body:
-                        openai_request["tool_choice"] = body["tool_choice"]
-
-                    logger.info(
-                        f"Using OpenAI format for reasoning model {route_decision.model}"
-                    )
-
-                else:
-                    # Use /v1/messages (Anthropic format) for non-reasoning models
-                    lm_studio_url = f"{state.config.backend_url}/v1/messages"
-                    endpoint_type = "Anthropic-compatible"
-                    openai_request = None
-
-                async with httpx.AsyncClient(timeout=300.0) as client:
-                    response = await client.post(
-                        lm_studio_url,
-                        json=openai_request if openai_request else body,
-                        headers=backend_headers,
-                    )
-                    response.raise_for_status()
-
-                    if use_openai_format:
-                        # Translate OpenAI response to Anthropic format
-                        openai_response = response.json()
-                        response_data = translate_openai_to_anthropic(
-                            openai_response, model
-                        )
-                    else:
-                        response_data = response.json()
-
-                    # Add gateway metadata
-                    response_data["gateway_metadata"] = {
-                        "processing_time_ms": (time.time() - _request_start) * 1000,
-                        "router": {
-                            "model": route_decision.model,
-                            "backend": "lm-studio",
-                            "reason": f"LM Studio {endpoint_type}",
-                            "specialization": (
-                                route_decision.specialization.value
-                                if route_decision.specialization
-                                else None
-                            ),
-                        },
-                        "thinking": {
-                            "intensity": thinking_intensity,
-                            "budget_tokens": thinking_budget,
-                        },
-                    }
-
-                    # Record success metrics
-                    usage = response_data.get("usage", {})
-                    metrics_tracker.record_success(
-                        input_tokens=usage.get("input_tokens", 0),
-                        output_tokens=usage.get("output_tokens", 0),
-                        total_tokens=usage.get("total_tokens", 0),
-                        latency_ms=response_data.get("gateway_metadata", {}).get(
-                            "processing_time_ms", 0
-                        ),
-                    )
-
-                    state.router.track_request_end(request_id)
-
-                    # Notify circuit breaker of success
-                    if state.config.middleware.circuit_breaker.enabled:
-                        for middleware in state.pipeline.middleware:
-                            if isinstance(middleware, CircuitBreaker):
-                                await middleware.on_success()
-
-                    return JSONResponse(
-                        content=response_data, status_code=response.status_code
-                    )
-
-            except httpx.HTTPStatusError as e:
-                logger.error(
-                    f"LM Studio API error: {e.response.status_code} - {e.response.text}"
-                )
-
-                # Fall through to ZAI if enabled (check via backend_fallback_urls)
-                fallback_urls = state.config.get_backend_fallback_urls()
-                if fallback_urls:
-                    logger.info("Falling back to ZAI for Anthropic request")
-                    try:
-                        # Try ZAI fallback (uses OpenAI format)
-                        for fallback_url in fallback_urls:
-                            try:
-                                # Convert Anthropic request to OpenAI format for ZAI
-                                openai_request = {
-                                    "model": route_decision.model,
-                                    "messages": messages,
-                                    "max_tokens": max_tokens,
-                                    "stream": stream,
-                                }
-                                # Add system prompt if present
-                                if system:
-                                    openai_request["messages"] = [
-                                        {"role": "system", "content": system}
-                                    ] + openai_request["messages"]
-
-                                # Build headers for ZAI
-                                zai_headers = {
-                                    "Content-Type": "application/json",
-                                }
-                                zai_api_key = state.config.get_zai_api_key()
-                                if zai_api_key:
-                                    zai_headers["Authorization"] = (
-                                        f"Bearer {zai_api_key}"
-                                    )
-
-                                # ZAI uses /chat/completions (no /v1/ prefix)
-                                zai_endpoint = f"{fallback_url}/chat/completions"
-
-                                async with httpx.AsyncClient(timeout=300.0) as client:
-                                    if stream:
-                                        # Streaming response - would need translation
-                                        # For now, return error for streaming fallback
-                                        logger.warning(
-                                            "ZAI fallback for streaming Anthropic requests not yet implemented"
-                                        )
-                                        raise HTTPException(
-                                            status_code=501,
-                                            detail="Streaming fallback not yet supported",
-                                        )
-                                    else:
-                                        response = await client.post(
-                                            zai_endpoint,
-                                            json=openai_request,
-                                            headers=zai_headers,
-                                        )
-                                        response.raise_for_status()
-                                        openai_response = response.json()
-
-                                        # Translate OpenAI response to Anthropic format
-                                        response_data = translate_openai_to_anthropic(
-                                            openai_response, route_decision.model
-                                        )
-
-                                        # Add gateway metadata
-                                        response_data["gateway_metadata"] = {
-                                            "processing_time_ms": (
-                                                time.time() - _request_start
-                                            )
-                                            * 1000,
-                                            "router": {
-                                                "model": route_decision.model,
-                                                "backend": "zai-fallback",
-                                                "reason": "ZAI fallback after LM Studio failure",
-                                            },
-                                        }
-
-                                        # Record metrics
-                                        usage = response_data.get("usage", {})
-                                        metrics_tracker.record_success(
-                                            input_tokens=usage.get("input_tokens", 0),
-                                            output_tokens=usage.get("output_tokens", 0),
-                                            total_tokens=usage.get("total_tokens", 0),
-                                            latency_ms=response_data[
-                                                "gateway_metadata"
-                                            ].get("processing_time_ms", 0),
-                                        )
-
-                                        state.router.track_request_end(request_id)
-                                        gpu_scheduler.notify_ai_stopping()
-
-                                        return JSONResponse(content=response_data)
-
-                            except httpx.HTTPStatusError as zai_error:
-                                logger.warning(
-                                    f"ZAI fallback also failed: {zai_error.response.status_code}"
-                                )
-                                continue
-                            except Exception as zai_exc:
-                                logger.warning(f"ZAI fallback failed: {zai_exc}")
-                                continue
-
-                        # All fallbacks failed
-                        logger.error("All backends (LM Studio and ZAI) failed")
-
-                    except Exception as fallback_error:
-                        logger.error(f"Error during ZAI fallback: {fallback_error}")
-
-                # No fallback available or fallback failed - return original error
-                state.router.track_request_end(request_id)
-                gpu_scheduler.notify_ai_stopping()
-                raise HTTPException(
-                    status_code=e.response.status_code,
-                    detail=f"LM Studio error: {e.response.text}",
-                )
-            except Exception as e:
-                logger.error(f"Error calling LM Studio API: {e}")
-                state.router.track_request_end(request_id)
-                gpu_scheduler.notify_ai_stopping()
-                raise HTTPException(status_code=503, detail=f"Backend error: {str(e)}")
 
     # ============================================================================
     # MCP Broker Endpoints
@@ -3600,9 +3361,8 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid TTS request: {e}")
 
-            # TTS uses Pollinations by default (no LM Studio required)
-            # Use any backend URL or the default Pollinations URL
-            backend_url = state.config.lm_studio_url or POLLINATIONS_TTS_URL
+            # TTS uses Pollinations by default
+            backend_url = POLLINATIONS_TTS_URL
 
             try:
                 tts_handler = get_tts_handler(backend_url)
@@ -3695,7 +3455,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     return self._content
 
             audio_handler = get_audio_handler(
-                state.config.lm_studio_url or "https://api.openai.com"
+                "https://api.openai.com"
             )
 
             try:
@@ -3768,7 +3528,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 raise HTTPException(status_code=400, detail="Audio file is required")
 
             audio_handler = get_audio_handler(
-                state.config.lm_studio_url or "https://api.openai.com"
+                "https://api.openai.com"
             )
 
             try:
@@ -3880,7 +3640,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 )
 
             vision_handler = get_vision_handler(
-                state.config.lm_studio_url or "https://api.openai.com"
+                state.config.backend_url or "https://api.openai.com"
             )
 
             try:
@@ -4664,8 +4424,8 @@ async def try_backends_with_failover(
 
             # Add authentication for this backend
             if "authorization" not in {k.lower() for k in headers.keys()}:
-                if backend_api_type == "lm-studio":
-                    api_key = config.get_lm_studio_api_key()
+                if backend_api_type == "zai":
+                    api_key = config.get_zai_api_key()
                     if api_key:
                         headers["Authorization"] = f"Bearer {api_key}"
                 elif backend_api_type == "zai":

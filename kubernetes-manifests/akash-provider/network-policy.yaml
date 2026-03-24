@@ -1,0 +1,49 @@
+# Comprehensive network policy for Akash provider
+# Allows: DNS, HTTPS to external RPC nodes, and internal cluster communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-provider-egress
+  namespace: akash-services
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: akash-provider
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS resolution (CoreDNS)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow HTTPS to external RPC nodes (empty `to:` = ANY destination including external)
+  - ports:
+    - protocol: TCP
+      port: 443
+  # Allow HTTP fallback to external RPC nodes
+  - ports:
+    - protocol: TCP
+      port: 80
+  # Allow communication with Kubernetes API server
+  - to:
+    - ipBlock:
+        cidr: 10.1.1.0/24  # Cluster network range
+    ports:
+    - protocol: TCP
+      port: 6443
+  # Allow communication with cluster services
+  - to:
+    - namespaceSelector: {}  # All namespaces
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8081
+    - protocol: TCP
+      port: 8443
+    - protocol: TCP
+      port: 8444

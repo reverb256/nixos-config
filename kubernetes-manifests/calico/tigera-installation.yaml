@@ -1,0 +1,21 @@
+apiVersion: operator.tigera.io/v1
+kind: Installation
+metadata:
+  name: default
+spec:
+  # Empty string for generic Kubernetes (NixOS)
+  kubernetesProvider: ""
+  cni:
+    type: Calico
+  calicoNetwork:
+    # IPIP mode requires MTU 1480 (1500 - 20 byte IPIP header)
+    mtu: 1480
+    nodeAddressAutodetectionV4:
+      # Use canReach to bypass the interface naming mismatch (Zephyr vs Nexus vs Forge)
+      canReach: 8.8.8.8
+    # Explicitly set pod CIDR to match IPPool
+    ipPools:
+    - cidr: 10.244.0.0/16
+      encapsulation: IPIP
+      natOutgoing: Enabled
+      nodeSelector: all()

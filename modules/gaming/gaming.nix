@@ -52,6 +52,55 @@ in {
     # Base gaming configuration (always when gaming.enable = true)
     (mkIf cfg.enable {
       # ============================================================================
+      # ASSERTIONS
+      # ============================================================================
+      assertions = [
+        {
+          assertion = cfg.vr.enable -> cfg.vr.refreshRate >= 60 && cfg.vr.refreshRate <= 144;
+          message = ''
+            Invalid VR refresh rate: ${toString cfg.vr.refreshRate}
+
+            Refresh rate must be between 60 and 144 Hz.
+            Recommended values:
+              - 72 Hz (entry-level VR)
+              - 90 Hz (balanced performance/quality)
+              - 120 Hz (high-end VR)
+              - 144 Hz (enthusiast-grade VR)
+          '';
+        }
+        {
+          assertion = cfg.vr.enable -> (builtins.match "^[0-9]+x[0-9]+$" cfg.vr.resolution) != null;
+          message = ''
+            Invalid VR resolution format: "${cfg.vr.resolution}"
+
+            Resolution must be in format WIDTHxHEIGHT (per-eye).
+            Valid examples:
+              - "2160x2160" (default, Quest 2)
+              - "2880x2880" (Quest 3)
+              - "4096x4096" (high-end)
+
+            Current value: ${cfg.vr.resolution}
+          '';
+        }
+        {
+          assertion = cfg.vr.enable -> cfg.vr.encoder == "nvenc" -> (config.hardware.nvidia.enabled or false);
+          message = ''
+            VR encoder is set to "nvenc" but NVIDIA support is not enabled.
+
+            When using nvenc encoder, ensure:
+              hardware.nvidia.enable = true;
+
+            Or switch to CPU encoders:
+              services.gaming.vr.encoder = "x264";  # CPU-based
+              services.gaming.vr.encoder = "av1";    # CPU-based, newer
+
+            Current configuration:
+              vr.encoder = "${cfg.vr.encoder}"
+              hardware.nvidia.enable = ${toString (config.hardware.nvidia.enable or false)}
+          '';
+        }
+      ];
+      # ============================================================================
       # PROGRAMS - GameMode, Steam, Gamescope, nix-ld
       # ============================================================================
       programs = {
@@ -226,7 +275,7 @@ in {
         after = ["network.target"];
         serviceConfig = {
           Type = "simple";
-          ExecStart = "${pkgs.scx.full}/bin/scx_lavd --autopilot";
+          ExecStart = "${pkgs.scx.rustscheds}/bin/scx_lavd --autopilot";
           Restart = "on-failure";
           RestartSec = "5s";
           Nice = -20;
@@ -276,7 +325,7 @@ in {
           # Sets deadzone at kernel level using EVIOCSABS ioctl
           # This is the ONLY truly global deadzone solution for Linux
           #
-          # Deadzone values: 0-65535 (typical: 2000-5000 for ~3-7%)
+          # Deadzone values: 0-65535 (10000 = ~15%, 15000 = ~23%, 20000 = ~30%)
           # Axis codes: 0=ABS_X, 1=ABS_Y, 3=ABS_RX, 4=ABS_RY
           #
           # IMPORTANT: RUN+ commands execute when controller is CONNECTED
@@ -285,13 +334,17 @@ in {
           # DualSense (USB & Bluetooth) - match joystick event device only
           # CRITICAL: Must match KERNEL=="event*" AND exclude Touchpad/Motion devices
           # The joystick device has name ending with "Controller" (not "Controller Touchpad" or "Controller Motion Sensors")
-          SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*DualSense*Wireless*Controller", ATTRS{name}!="*Touchpad*", ATTRS{name}!="*Motion*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:2500 1:2500 3:3277 4:3277"
+          SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*DualSense*Wireless*Controller", ATTRS{name}!="*Touchpad*", ATTRS{name}!="*Motion*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:10000 1:10000 3:10000 4:10000"
         '';
       };
 
       # Create plugdev group for backwards compatibility
       # Note: TAG+="uaccess" (above) provides the same functionality via systemd-logind
       users.groups.plugdev = {};
+
+      # Load hid_sony kernel module for DualSense native support
+      # Provides: Haptic feedback, gyro, LED, touchpad, adaptive triggers
+      boot.kernelModules = [ "hid_sony" ];
 
       systemd.tmpfiles.rules = [
         "d /var/cache/nvidia-shader-cache 0755 root root - -"
@@ -317,6 +370,11 @@ in {
           SDL_JOYSTICK_AXIS_DEADZONE = "5";
           # SDL2 GameControllerDB path for proper DualSense mapping in Wine/Proton
           SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
+          # SDL2 HIDAPI for native DualSense support (haptics, gyro, LED, touchpad)
+          SDL_JOYSTICK_HIDAPI = "1";
+          SDL_JOYSTICK_HIDAPI_PS5 = "1";
+          SDL_JOYSTICK_HIDAPI_PS5_RUMBLE = "1";
+          SDL_JOYSTICK_HIDAPI_PS5_PLAYER_LED = "1";
         };
 
         # Common gaming packages
@@ -386,12 +444,19 @@ in {
           # SDL2 GameControllerDB for proper DualSense mapping in Wine/Proton games
           # Required for Genshin Impact, Honkai Star Rail, and other Hoyoverse games
           # Fixes: Xbox icons appearing, L2/R2 axis misreporting as right stick
+          # Includes: Linux evdev, Proton/Wine XInput variants, Steam Input
           "sdl2-dualsense-db".text = ''
-            # Sony DualSense Wireless Controller (USB & Bluetooth)
-            # GUID format: SDL2 controller mapping for proper button/axis detection
-            # Platform: Linux, Bus: USB (0x03) and Bluetooth (0x05)
+            # Sony DualSense Wireless Controller (Comprehensive Mapping)
+            # GUID formats: Linux evdev (USB/BT), Proton/Wine XInput, Steam Input
+            # Platform: Linux
+            #
+            # Linux evdev (USB & Bluetooth)
             0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,misc1:b1,paddle1:b11,paddle2:b12,paddle3:b13,paddle4:b14,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,Touchpad:b15,x:b2,y:b3,platform:Linux,
             0500000054c0ce60000000000000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,misc1:b1,paddle1:b11,paddle2:b12,paddle3:b13,paddle4:b14,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,Touchpad:b15,x:b2,y:b3,platform:Linux,
+            # Proton/Wine XInput GUID variants (different firmware/boot modes)
+            0300000054c00000921000000000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
+            0300000054c00000921000016000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
+            0300000054c00000921000000010000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
 
           '';
         };

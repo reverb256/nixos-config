@@ -151,6 +151,9 @@ spec:
           mountPath: /var/log/caddy
         - name: cert-storage
           mountPath: /.local
+        - name: cluster-ca
+          mountPath: /certs
+          readOnly: true
         resources:
           requests:
             cpu: 100m
@@ -182,6 +185,10 @@ spec:
         emptyDir: {}
       - name: cert-storage
         emptyDir: {}
+      - name: cluster-ca
+        secret:
+          secretName: cluster-ca
+          defaultMode: 0444
 
       # Priority class for ingress (should start before apps)
       priorityClassName: system-cluster-critical

@@ -32,8 +32,7 @@ in {
           "https://cache.nixos-cuda.org"
         ]
         else [
-          # Remote hosts: Use Zephyr's local cache first
-          "http://10.1.1.110:50000"
+          # Remote hosts: Use public caches (NOT zephyr's local cache - unreachable from remotes)
           "https://cache.nixos.org"
           "https://nix-community.cachix.org"
           "https://cache.garnix.io"

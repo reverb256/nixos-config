@@ -1,0 +1,53 @@
+---
+# Calico ConfigMap - NixOS Configuration
+# Enables BGP backend and sets proper MTU for IPIP
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: calico-config
+  namespace: kube-system
+data:
+  # NIXOS-SPECIFIC: Enable BGP backend for route distribution
+  calico_backend: bird
+
+  # Configure the Calico CNI plugin
+  cni_network_config: |-
+    {
+      "name": "k8s-pod-network",
+      "cniVersion": "0.3.1",
+      "plugins": [
+        {
+          "type": "calico",
+          "log_level": "info",
+          "log_file_path": "/var/log/calico/cni/cni.log",
+          "datastore_type": "kubernetes",
+          "nodename": "__KUBERNETES_NODE_NAME__",
+          "mtu": __CNI_MTU__,
+          "ipam": {
+              "type": "calico-ipam"
+          },
+          "policy": {
+              "type": "k8s"
+          },
+          "kubernetes": {
+              "kubeconfig": "__KUBECONFIG_FILEPATH__"
+          }
+        },
+        {
+          "type": "portmap",
+          "snat": true,
+          "capabilities": {"portMappings": true}
+        },
+        {
+          "type": "bandwidth",
+          "capabilities": {"bandwidth": true}
+        }
+      ]
+    }
+
+  # NIXOS-SPECIFIC: Set veth MTU to 1480 for IPIP mode
+  # Standard ethernet MTU (1500) minus IPIP header (20 bytes)
+  veth_mtu: "1480"
+
+  # The CNI network configuration to install on each node.
+  typha_service_name: none

@@ -11,17 +11,23 @@ metadata:
     host: nexus
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: gpu-miner
       host: nexus
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     metadata:
       labels:
         app: gpu-miner
         host: nexus
     spec:
-      schedulerName: volcano
+      schedulerName: default-scheduler  # FIXED: volcano not installed (2026-03-23)
       nodeName: nexus
       serviceAccountName: gpu-miner-sa
       hostNetwork: true

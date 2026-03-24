@@ -60,6 +60,9 @@
     "net.core.wmem_default" = 262144;  # 256KB
     "net.core.rmem_max" = 16777216;     # 16MB max (not 212992*128)
     "net.core.wmem_max" = 16777216;
+
+    # CALICO CNI REQUIREMENTS
+    "net.ipv4.conf.all.rp_filter" = 1;  # Reverse path filtering for BGP
   };
 
   networking = {

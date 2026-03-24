@@ -114,6 +114,91 @@ in {
 
   config = mkIf cfg.enable {
     # ============================================================================
+    # ASSERTIONS
+    # ============================================================================
+    assertions = [
+      {
+        assertion = cfg.database.passwordFile != null;
+        message = ''
+          GlitchTip requires a database password file to be configured.
+
+          Generate a secure password and store it with agenix:
+            echo "secure-password-here" | agenix -e secrets/glitchtip-db-password.age
+
+          Then configure:
+            services.glitchtip-selfhosted.database.passwordFile = "/run/agenix/glitchtip-db-password";
+
+          IMPORTANT: The password file must exist before starting GlitchTip.
+        '';
+      }
+      {
+        assertion = cfg.secretKeyFile != null;
+        message = ''
+          GlitchTip requires a Django secret key file to be configured.
+
+          Generate a secure secret key with agenix:
+            openssl rand -base64 50 | agenix -e secrets/glitchtip-secret-key.age
+
+          Then configure:
+            services.glitchtip-selfhosted.secretKeyFile = "/run/agenix/glitchtip-secret-key";
+
+          IMPORTANT: The secret key file must exist before starting GlitchTip.
+        '';
+      }
+      {
+        assertion = builtins.substring 0 1 cfg.host != "0.0.0.0";
+        message = ''
+          GlitchTip must not bind to 0.0.0.0 for security reasons.
+
+          Current configuration:
+            services.glitchtip-selfhosted.host = "${cfg.host}"
+
+          Valid options:
+            - "127.0.0.1" (localhost only - RECOMMENDED)
+            - Specific IP address (e.g., "10.1.1.110")
+            - Use reverse proxy (Caddy) for external access
+
+          For external access, configure Caddy ingress instead of binding to 0.0.0.0.
+        '';
+      }
+      {
+        assertion = cfg.database.port != cfg.port;
+        message = ''
+          GlitchTip web port conflicts with database port.
+
+          Current configuration:
+            services.glitchtip-selfhosted.port = ${toString cfg.port}
+            services.glitchtip-selfhosted.database.port = ${toString cfg.database.port}
+
+          All ports must be unique.
+        '';
+      }
+      {
+        assertion = cfg.database.port != cfg.redis.port;
+        message = ''
+          Database port conflicts with Redis port.
+
+          Current configuration:
+            services.glitchtip-selfhosted.database.port = ${toString cfg.database.port}
+            services.glitchtip-selfhosted.redis.port = ${toString cfg.redis.port}
+
+          All ports must be unique.
+        '';
+      }
+      {
+        assertion = cfg.port != cfg.redis.port;
+        message = ''
+          GlitchTip web port conflicts with Redis port.
+
+          Current configuration:
+            services.glitchtip-selfhosted.port = ${toString cfg.port}
+            services.glitchtip-selfhosted.redis.port = ${toString cfg.redis.port}
+
+          All ports must be unique.
+        '';
+      }
+    ];
+    # ============================================================================
     # PODMAN SETUP
     # ============================================================================
     virtualisation.podman = {
@@ -177,7 +262,7 @@ in {
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
-            ExecStart = "${pkgs.podman}/bin/podman pod create --replace --name glitchtip --publish ${cfg.host}:${toString cfg.port}:8000";
+            ExecStart = lib.getExe pkgs.podman + " pod create --replace --name glitchtip --publish ${cfg.host}:${toString cfg.port}:8000";
             ExecStop = "${pkgs.podman}/bin/podman pod rm -f glitchtip";
             Restart = "on-failure";
           };
@@ -190,15 +275,15 @@ in {
           wantedBy = ["multi-user.target"];
           partOf = ["glitchtip-pod.service"];
           serviceConfig = {
-            ExecStart = ''
-              ${pkgs.bash}/bin/sh -c 'DB_PASS=$(${pkgs.coreutils}/bin/cat ${cfg.database.passwordFile}) && \
-              ${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-postgres \
+            ExecStart = pkgs.writeShellScript "glitchtip-postgres" ''
+              DB_PASS=$(${lib.getExe pkgs.coreutils} cat ${cfg.database.passwordFile})
+              ${lib.getExe pkgs.podman} run --rm --replace --name glitchtip-postgres \
                 --pod glitchtip \
                 -e POSTGRES_DB=${cfg.database.name} \
                 -e POSTGRES_USER=${cfg.database.user} \
                 -e POSTGRES_PASSWORD=$${DB_PASS} \
                 -v ${stateDir}/postgres:/var/lib/postgresql/data:Z \
-                ${postgresImage}'
+                ${postgresImage}
             '';
             ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-postgres";
             Restart = "always";
@@ -213,7 +298,7 @@ in {
           wantedBy = ["multi-user.target"];
           partOf = ["glitchtip-pod.service"];
           serviceConfig = {
-            ExecStart = "${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-redis --pod glitchtip -v ${stateDir}/redis:/data:Z ${redisImage}";
+            ExecStart = lib.getExe pkgs.podman + " run --rm --replace --name glitchtip-redis --pod glitchtip -v ${stateDir}/redis:/data:Z ${redisImage}";
             ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-redis";
             Restart = "always";
             RestartSec = "10s";
@@ -230,7 +315,7 @@ in {
           wantedBy = ["multi-user.target"];
           partOf = ["glitchtip-pod.service"];
           serviceConfig = {
-            ExecStart = "${pkgs.bash}/bin/sh /etc/glitchtip/start-web.sh";
+            ExecStart = lib.getExe pkgs.bash + " /etc/glitchtip/start-web.sh";
             ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-web";
             Restart = "always";
             RestartSec = "10s";
@@ -267,7 +352,7 @@ in {
           wantedBy = ["multi-user.target"];
           partOf = ["glitchtip-pod.service"];
           serviceConfig = {
-            ExecStart = "${pkgs.podman}/bin/podman run --rm --replace --name glitchtip-worker --pod glitchtip -e SERVER_ROLE=worker ${glitchtipImage}";
+            ExecStart = lib.getExe pkgs.podman + " run --rm --replace --name glitchtip-worker --pod glitchtip -e SERVER_ROLE=worker ${glitchtipImage}";
             ExecStop = "${pkgs.podman}/bin/podman stop glitchtip-worker";
             Restart = "always";
             RestartSec = "10s";

@@ -1,0 +1,151 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spacebot
+  namespace: spacebot
+  labels:
+    app: spacebot
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: spacebot
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: spacebot
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "19898"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Run on Nexus (storage node) instead of Zephyr
+      nodeSelector:
+        kubernetes.io/hostname: "nexus"
+
+      # Use default scheduler (not volcano)
+      schedulerName: default-scheduler
+
+      priorityClassName: system-cluster-critical
+
+      securityContext:
+        runAsNonRoot: false
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+      - name: spacebot
+        image: ghcr.io/spacedriveapp/spacebot:latest
+        imagePullPolicy: Always
+        command:
+          - "spacebot"
+          - "start"
+          - "--config"
+          - "/data/config.toml"
+
+        ports:
+        - name: http
+          containerPort: 19898
+          protocol: TCP
+
+        env:
+        - name: SPACEBOT_DATA_DIR
+          value: "/data"
+
+        # AI Gateway integration
+        - name: OLLAMA_BASE_URL
+          value: "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080"
+
+        # Provider API keys (loaded from agenix secrets on host)
+        - name: ZAI_CODING_PLAN_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spacebot-secrets
+              key: zai-coding-plan-key
+              optional: true
+
+        - name: KILO_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: spacebot-secrets
+              key: kilo-api-key
+              optional: true
+
+        # Telegram bot token (loaded from agenix)
+        - name: TELEGRAM_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: spacebot-secrets
+              key: telegram-token
+
+        # Resource limits
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+
+        # Health probes
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 19898
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 19898
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        # Volume mounts
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: config
+          mountPath: /data/config.toml
+          subPath: config.toml
+        - name: agenix-secrets
+          mountPath: /run/agenix
+          readOnly: true
+
+      volumes:
+      # Persistent data storage
+      - name: data
+        persistentVolumeClaim:
+          claimName: spacebot-data
+
+      # Configuration from ConfigMap
+      - name: config
+        configMap:
+          name: spacebot-config
+
+      # Agenix secrets (mounted from host via hostPath)
+      - name: agenix-secrets
+        hostPath:
+          path: /run/agenix
+          type: DirectoryOrCreate
+
+      # Restart policy
+      restartPolicy: Always
+
+      # DNS policy for cluster service discovery
+      dnsPolicy: ClusterFirst
+
+      # Termination grace period
+      terminationGracePeriodSeconds: 30

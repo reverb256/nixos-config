@@ -79,15 +79,37 @@
   config = let
     isMaster = builtins.elem "master" config.services.kubernetes-module.roles;
     useEtcdCluster = config.services.kubernetes-module.etcdClusterMembers != [];
+
+    # ============================================================================
+    # CALICO CNI OFFICIAL BINARIES - Hybrid Declarative Fix
+    # ============================================================================
+    # NixOS calico-cni-plugin package is incomplete (missing calico-ipam binary)
+    # This derivation provides official Calico v3.28.0 CNI binaries from upstream
+    # Issue: https://github.com/projectcalico/calico/issues/XXXX
+    # Solution: Extract binaries from official release tarball
+    calico-official = pkgs.stdenv.mkDerivation rec {
+      pname = "calico-cni-official";
+      version = "3.28.0";
+
+      # Official Calico release bundle containing all CNI binaries
+      src = pkgs.fetchurl {
+        url = "https://github.com/projectcalico/calico/releases/download/v${version}/release-v${version}.tgz";
+        sha256 = "1ac9qh8f5am3akj37x9ypx51sj4hmz8ahzdblfpjyc40yxgr86qa";
+      };
+
+      # The binaries are in release-v3.28.0/bin/cni/amd64/
+      sourceRoot = "release-v${version}";
+
+      installPhase = ''
+        mkdir -p $out/bin
+        # Install Calico CNI binaries (amd64)
+        cp bin/cni/amd64/calico $out/bin/
+        cp bin/cni/amd64/calico-ipam $out/bin/
+        chmod +x $out/bin/*
+      '';
+    };
   in
     lib.mkIf config.services.kubernetes-module.enable {
-      # ============================================================================
-      # KERNEL NETWORKING FOR CALICO CNI
-      # ============================================================================
-      boot.kernel.sysctl = {
-        "net.ipv4.conf.all.rp_filter" = lib.mkOptionDefault 1;
-        "net.ipv4.ip_forward" = lib.mkOptionDefault 1;
-      };
       # ============================================================================
       # DISABLE PODMAN DOCKER COMPATIBILITY (conflicts with Docker)
       # CRI-O and Docker configuration
@@ -171,7 +193,9 @@
           hostname = config.networking.hostName;
           clusterDns = ["10.0.0.10"]; # CoreDNS service IP
           # CNI packages for Calico
-          cni.packages = with pkgs; [ cni-plugins calico-cni-plugin ];
+          # cni-plugins: Standard CNI plugins (bridge, vlan, etc.)
+          # calico-official: Official Calico CNI binaries with calico-ipam (fixes missing binary)
+          cni.packages = with pkgs; [ cni-plugins calico-official ];
           # Client CA for verifying API server client certificates
           clientCaFile = "/var/lib/kubernetes/secrets/ca.pem";
           extraConfig = {
@@ -262,12 +286,12 @@
         # Create writable CNI directories (both for kubelet and containerd)
         "d /var/lib/cni/net.d 0755 root root -"
         # ============================================================================
-        # CALICO CNI PLUGINS - Persistent symlinks to calico-cni-plugin package
+        # CALICO CNI PLUGINS - Persistent symlinks to official Calico binaries
         # ============================================================================
-        # Calico CNI plugin binaries from NixOS calico-cni-plugin package
+        # Calico CNI plugin binaries from calico-official package
         # These symlinks persist across NixOS activations (unlike systemd service)
-        "L+ /opt/cni/bin/calico - - - - ${pkgs.calico-cni-plugin}/bin/calico"
-        "L+ /opt/cni/bin/calico-ipam - - - - ${pkgs.calico-cni-plugin}/bin/calico"
+        "L+ /opt/cni/bin/calico - - - - ${calico-official}/bin/calico"
+        "L+ /opt/cni/bin/calico-ipam - - - - ${calico-official}/bin/calico-ipam"
         # ============================================================================
         # LOCAL PATH PROVISIONER - Kubernetes local storage
         # ============================================================================
@@ -307,6 +331,7 @@
             10251 # Kube-scheduler
             10252 # Kube-controller-manager
             179 # Calico BGP
+            5473 # Calico Typha
           ];
 
           allowedTCPPortRanges = [
@@ -324,7 +349,7 @@
 
         # Worker node firewall (applies to all nodes, but ports differ per role)
         {
-          allowedTCPPorts = lib.mkIf (!isMaster) [10250 179]; # Kubelet API + BGP for workers
+          allowedTCPPorts = lib.mkIf (!isMaster) [10250 179 5473]; # Kubelet API + BGP + Typha for workers
           allowedTCPPortRanges = [
             {
               from = 30000;
@@ -379,18 +404,17 @@
             # Ensure /opt/cni/bin exists
             mkdir -p /opt/cni/bin
 
-            # Create symlinks to Calico CNI binaries from calico-cni-plugin package
-            # Calico CNI plugin provides: calico, calico-ipam
-            calico_bin="${pkgs.calico-cni-plugin}/bin/calico"
-            calico_ipam_bin="${pkgs.calico-cni-plugin}/bin/calico"
+            # Create symlinks to Calico CNI binaries from calico-official package
+            # Calico CNI plugin provides: calico, calico-ipam (separate binaries in v3.28.0)
+            calico_bin="${calico-official}/bin/calico"
+            calico_ipam_bin="${calico-official}/bin/calico-ipam"
 
             # Create symlink for calico CNI plugin
             if [ ! -L /opt/cni/bin/calico ]; then
               ln -sf "$calico_bin" /opt/cni/bin/calico
             fi
 
-            # Create symlink for calico-ipam
-            # Note: calico-ipam is the same binary as calico, invoked with different name
+            # Create symlink for calico-ipam (separate binary in official release)
             if [ ! -L /opt/cni/bin/calico-ipam ]; then
               ln -sf "$calico_ipam_bin" /opt/cni/bin/calico-ipam
             fi

@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: akash-provider-script
+  namespace: akash-services
+data:
+  init.sh: |
+    #!/bin/bash
+    # Filename: init.sh
+
+    set -x
+
+    ##
+    # Import key
+    ##
+    cat "$AKASH_BOOT_KEYS/key-pass.txt" | { cat ; echo ; } | provider-services --home="$AKASH_HOME" keys import --keyring-backend="$AKASH_KEYRING_BACKEND"  "$AKASH_FROM" "$AKASH_BOOT_KEYS/key.txt"
+
+    ##
+    # Wait for RPC
+    ##
+    /scripts/wait_for_rpc.sh
+
+    ##
+    # Wait for Inventory Operator Hardware Discovery
+    # Prevents "context canceled" error caused by starting before discovery completes
+    ##
+    echo "=== Waiting for Inventory Operator Hardware Discovery ==="
+    echo "This prevents the 'context canceled' error caused by starting"
+    echo "before hardware discovery completes (see debug report 2026-03-23)"
+
+    # First, wait for hostname operator to be healthy
+    echo "Waiting for hostname operator health endpoint..."
+    for i in $(seq 1 30); do
+        if curl -sf http://operator-hostname.akash-services.svc.cluster.local:8080/health >/dev/null 2>&1; then
+            echo "✓ Hostname operator is healthy"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            echo "⚠ Warning: Hostname operator health check timeout after 60s"
+            echo "Continuing anyway..."
+        fi
+        sleep 2
+    done
+
+    # Wait additional time for hardware discovery to complete
+    echo "Waiting for hardware discovery to complete (30s)..."
+    sleep 30
+
+    # Verify hardware discovery by checking if we can reach inventory operator
+    echo "Verifying inventory operator is accessible..."
+    for i in $(seq 1 10); do
+        if nc -z operator-inventory.akash-services.svc.cluster.local 8081 2>/dev/null; then
+            echo "✓ Inventory operator is accessible on port 8081"
+            break
+        fi
+        if [ $i -eq 10 ]; then
+            echo "⚠ Warning: Could not reach inventory operator after 20s"
+            echo "Continuing anyway..."
+        fi
+        sleep 2
+    done
+
+    echo "✓ Hardware discovery wait complete, starting provider..."
+
+    ##
+    # Create/Update Provider
+    ##
+    /scripts/create_provider.sh
+
+    ##
+    # Create/Update Provider certs
+    ##
+    /scripts/refresh_provider_cert.sh

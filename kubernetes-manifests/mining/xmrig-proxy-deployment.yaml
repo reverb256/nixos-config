@@ -10,15 +10,15 @@ metadata:
     component: stratum-proxy
 spec:
   replicas: 1
-  revisionHistoryLimit: 3
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: xmrig-proxy
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     metadata:
       labels:
@@ -29,7 +29,8 @@ spec:
         prometheus.io/port: "8081"
     spec:
       nodeName: zephyr
-      hostNetwork: true
+      # Removed hostNetwork: true - using ClusterIP service instead
+      # This fixes asymmetric routing with Calico overlay network
       serviceAccountName: gpu-miner-sa
       automountServiceAccountToken: false
       tolerations:
@@ -84,7 +85,7 @@ spec:
               cpu: "500m"
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
+            # readOnlyRootFilesystem: true  # REMOVED: Proxy needs to write certificates
             capabilities:
               drop:
                 - ALL
@@ -100,25 +101,4 @@ spec:
                 path: api-token
               - key: kryptex-password
                 path: pool-password
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: xmrig-proxy
-  namespace: mining
-  labels:
-    app: xmrig-proxy
-spec:
-  selector:
-    app: xmrig-proxy
-  ports:
-    - port: 3333
-      targetPort: 3333
-      name: stratum
-      protocol: TCP
-    - port: 8081
-      targetPort: 8081
-      name: api
-      protocol: TCP
-  type: ClusterIP
-  clusterIP: None
+# Service definition moved to xmrig-proxy-service.yaml with proper ClusterIP

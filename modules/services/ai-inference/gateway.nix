@@ -126,6 +126,24 @@
   # Use modular gateway by default (set to false to use old monolithic version)
   gatewayPkg = modularGatewayPkg;
 
+  # Container image for Kubernetes deployment
+  gatewayContainerImage = pkgs.dockerTools.buildLayeredImage {
+    name = "ai-inference-gateway";
+    tag = "latest";
+    contents = [gatewayPython modularGatewayPkgBase];
+    config = {
+      Cmd = ["uvicorn" "ai_inference_gateway.main:app" "--host" "0.0.0.0" "--port" "8080" "--workers" "4"];
+      ExposedPorts = {
+        "8080/tcp" = {};
+      };
+      Env = [
+        "PYTHONPATH=/app"
+        "PATH=/usr/bin:/bin"
+      ];
+      WorkingDir = "/app";
+    };
+  };
+
   # Wrapper script for OpenCode SearXNG MCP server
   # Dynamically finds the gateway package to avoid hardcoded Nix store paths
   opencodeSearxngMcpWrapper = pkgs.writeShellApplication {
@@ -143,14 +161,16 @@ in {
 
     systemd.services.ai-inference-gateway = {
       description = "AI Inference API Gateway v2";
-      after = [
+      after = lib.mkOptionDefault [
         "network.target"
         "network-online.target"
         "searx.service"
         "redis.service" # Wait for Redis to start
+        "nvidia-disable-autoboost.service"
+        "nvidia-persistence-mode.service"
       ];
-      wants = ["network-online.target"];
-      requires = ["redis.service"]; # Depend on Redis
+      wants = lib.mkOptionDefault ["network-online.target"];
+      requires = lib.mkOptionDefault ["redis.service"]; # Depend on Redis
       wantedBy = ["multi-user.target"];
 
       environment = {
@@ -164,15 +184,6 @@ in {
         GATEWAY_HOST = cfg.gateway.host;
         PORT = toString cfg.gateway.port;
         AUTH_MODE = cfg.auth.mode;
-        LM_STUDIO_API_KEY =
-          if cfg.backend.lmStudio.apiKeyFile != null
-          then "" # Will be loaded from file by gateway
-          else cfg.backend.lmStudio.apiKey;
-        LM_STUDIO_API_KEY_FILE =
-          lib.optionalString (
-            cfg.backend.lmStudio.apiKeyFile != null
-          )
-          cfg.backend.lmStudio.apiKeyFile;
         # ZAI backend configuration
         ZAI_API_KEY =
           if cfg.backend.zai.apiKeyFile != null
@@ -286,7 +297,6 @@ in {
             "/run/gpu-scheduler"
             "/run/ai-inference" # Self-improvement memory
           ]
-          ++ lib.optional (cfg.backend.lmStudio.apiKeyFile != null) (dirOf cfg.backend.lmStudio.apiKeyFile)
           ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
           ++ lib.optional (cfg.backend.pollinations.apiKeyFile != null) (
             dirOf cfg.backend.pollinations.apiKeyFile
