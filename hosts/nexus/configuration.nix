@@ -28,7 +28,8 @@
     ../../modules/hardware/rgb-control.nix
 
     # Desktop environment modules
-    ../../modules/desktop/gamescope-tty.nix
+    # TEMPORARY: Disabled due to build failures blocking deployments
+    # ../../modules/desktop/gamescope-tty.nix
 
     # Nexus-specific modules
     ../../modules/security/aistor-secrets.nix
