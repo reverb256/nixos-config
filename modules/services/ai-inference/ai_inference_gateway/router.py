@@ -175,7 +175,7 @@ QWEN_MODEL_CONFIG = {
 
 # Optimal parameters for Qwen3.5 thinking vs non-thinking modes
 # Based on: https://unsloth.ai/docs/models/qwen3.5
-# Note: Only includes parameters supported by LM Studio's OpenAI-compatible API
+# Note: Only includes parameters supported by llama.cpp's OpenAI-compatible API
 QWEN_OPTIMAL_PARAMS = {
     "thinking": {
         # General purpose with thinking enabled
@@ -293,7 +293,7 @@ class ModelInfo:
     specializations: List[TaskSpecialization] = field(default_factory=list)
     cost_tier: int = 1
     estimated_tokens_per_second: float = 50.0
-    backend: str = "lm-studio"  # lm-studio or zai
+    backend: str = "llama-cpp"  # llama-cpp, zai, etc.
 
 
 @dataclass
@@ -363,7 +363,6 @@ class Router:
         self,
         models: List[ModelInfo],
         latency_tracker: Optional[LatencyTracker] = None,
-        lm_studio_api_key: Optional[str] = None,
     ):
         """
         Initialize router.
@@ -371,21 +370,19 @@ class Router:
         Args:
             models: List of available models
             latency_tracker: Optional latency tracker for performance-based routing
-            lm_studio_api_key: Optional API key for LM Studio health checks
         """
         self.models = {model.id: model for model in models}
         self.latency_tracker = latency_tracker or LatencyTracker()
         self.claude_model_mapping = self._build_claude_mapping()
-        self.lm_studio_api_key = lm_studio_api_key
         # Active request tracking for smart load balancing
         self.active_requests: Dict[str, Dict] = (
             {}
         )  # request_id -> {model, backend, stream, start_time}
-        self.max_concurrent_streams = 1  # LM Studio can handle 1 stream at a time
+        self.max_concurrent_streams = 1  # Backend can handle 1 stream at a time
 
         # Backend health cache
         self._backend_health: Dict[str, bool] = {
-            "lm-studio": True,
+            "llama-cpp": True,
             "zai": True,
         }
         self._backend_health_check_time: Dict[str, float] = {}
@@ -393,9 +390,6 @@ class Router:
 
     # Backend health check endpoints
     BACKEND_PORTS = {
-        
-        
-        "lm-studio": 1234,
         "llama-cpp": 8083,
         "llama-server": 8083,
     }
@@ -405,7 +399,7 @@ class Router:
         Get current load on a backend.
 
         Args:
-            backend: Backend name (lm-studio or zai)
+            backend: Backend name (llama-cpp, zai, etc.)
 
         Returns:
             Dict with load information
@@ -549,11 +543,11 @@ class Router:
         Check if a backend is healthy.
 
         Uses cached health status with TTL to avoid excessive health checks.
-        For lm-studio, we check if the backend is accepting connections.
+        For llama-cpp, we check if the backend is accepting connections.
         For zai, we assume it's healthy (cloud service).
 
         Args:
-            backend: Backend name (lm-studio or zai)
+            backend: Backend name (llama-cpp, zai, etc.)
             force_check: Force a new health check, bypassing cache
 
         Returns:
@@ -578,15 +572,13 @@ class Router:
         if not force_check and (now - last_check) < self._health_check_ttl:
             return self._backend_health.get(backend, True)
 
-        # Perform health check for lm-studio
+        # Perform health check for local backends
         try:
             import httpx
 
-            # Try to connect to LM Studio
+            # Try to connect to the backend
             # Use a short timeout to avoid blocking
-            headers = {}
-            if self.lm_studio_api_key:
-                headers["Authorization"] = f"Bearer {self.lm_studio_api_key}"
+            headers = {}  # llama-cpp doesn't require authentication
 
             async with httpx.AsyncClient(timeout=2.0) as client:
                 # Try the health endpoint or models endpoint
@@ -863,7 +855,7 @@ class Router:
             except Exception as e:
                 logger.warning(f"Category routing failed, falling back to default: {e}")
 
-        # Check if LM Studio is healthy before routing
+        # Check if llama.cpp is healthy before routing
         local_backend_healthy = await self.check_backend_health("llama-cpp")
 
         # If Local backend (llama-cpp) is down, route directly to ZAI
@@ -918,10 +910,10 @@ class Router:
                     backend="llama-cpp",
                 )
 
-        # Check if LM Studio is busy with streaming requests
+        # Check if llama.cpp is busy with streaming requests
         local_backend_load = await self.get_backend_load("llama-cpp")
 
-        # If LM Studio is at capacity (processing streams), route to ZAI
+        # If llama.cpp is at capacity (processing streams), route to ZAI
         if local_backend_load["at_capacity"] and local_backend_load["is_streaming"]:
             logger.info(
                 f"Local backend busy ({local_backend_load['active_requests']} active requests, "
@@ -940,7 +932,7 @@ class Router:
                         return RouteDecision(
                             model=mapped_model,
                             confidence=1.0,
-                            reason=f"LM Studio at capacity, using ZAI fallback for {requested_model}",
+                            reason=f"llama.cpp at capacity, using ZAI fallback for {requested_model}",
                             estimated_tokens=estimated_tokens,
                             backend="zai",
                             expected_latency_ms=model_info.estimated_tokens_per_second
@@ -957,7 +949,7 @@ class Router:
                 return RouteDecision(
                     model=best_zai.id,
                     confidence=0.9,
-                    reason="LM Studio at capacity (auto-failover to ZAI)",
+                    reason="llama.cpp at capacity (auto-failover to ZAI)",
                     estimated_tokens=estimated_tokens,
                     backend="zai",
                     specialization=specialization,
@@ -1130,15 +1122,11 @@ class Router:
         return sorted(candidates, key=lambda c: c.score, reverse=True)
 
 
-def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
-    """Create router with default model configuration.
-
-    Args:
-        lm_studio_api_key: Optional API key for LM Studio health checks
-    """
+def create_default_router() -> Router:
+    """Create router with default model configuration."""
     models = [
         # ========================================================================
-        # LM Studio models - Primary local backends
+        # Local llama.cpp models - Primary backends
         # ========================================================================
         # Qwen 3.5 35B A3B - Largest local model, best for complex tasks
         ModelInfo(
@@ -1360,4 +1348,4 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
         ),
     ]
 
-    return Router(models=models, lm_studio_api_key=lm_studio_api_key)
+    return Router(models=models)

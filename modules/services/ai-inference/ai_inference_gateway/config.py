@@ -465,8 +465,7 @@ class GatewayConfig(BaseSettings):
     - GATEWAY_HOST: Gateway listen host
     - GATEWAY_PORT: Gateway listen port
     - BACKEND_URL: Backend service URL
-    - BACKEND_TYPE: Backend type (lm-studio, vllm, llama-cpp, sglang, zai)
-    - LM_STUDIO_API_KEY: LM Studio API key (or LM_STUDIO_API_KEY_FILE)
+    - BACKEND_TYPE: Backend type (llama-cpp, vllm, sglang, zai, pollinations)
     - ZAI_API_KEY: ZAI API key (or ZAI_API_KEY_FILE)
     - LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     - STRUCTURED_LOGGING: Enable structured logging (true/false)
@@ -494,8 +493,8 @@ class GatewayConfig(BaseSettings):
         default="", description="Fallback backend URLs (comma-separated)"
     )
     backend_type: str = Field(
-        default="lm-studio",
-        pattern="^(lm-studio|vllm|llama-cpp|sglang|zai|pollinations)$",
+        default="llama-cpp",
+        pattern="^(llama-cpp|vllm|sglang|zai|pollinations)$",
         description="Primary backend type",
     )
 
@@ -508,13 +507,6 @@ class GatewayConfig(BaseSettings):
         ]
 
     # API Keys (marked as secrets - won't appear in logs or repr)
-    lm_studio_api_key: Optional[SecretStr] = Field(
-        default=None, repr=False, exclude=True, description="LM Studio API key"
-    )
-    lm_studio_api_key_file: Optional[str] = Field(
-        default=None, description="Path to file containing LM Studio API key"
-    )
-
     zai_api_key: Optional[SecretStr] = Field(
         default=None, repr=False, exclude=True, description="ZAI API key"
     )
@@ -559,30 +551,6 @@ class GatewayConfig(BaseSettings):
         if not v:
             raise ValueError("gateway_host cannot be empty")
         return v
-
-    def get_lm_studio_api_key(self) -> Optional[str]:
-        """
-        Get LM Studio API key value.
-
-        Priority:
-        1. Environment variable LM_STUDIO_API_KEY
-        2. File specified in LM_STUDIO_API_KEY_FILE
-        """
-        # Try secret field first (but not empty strings)
-        if self.lm_studio_api_key:
-            value = self.lm_studio_api_key.get_secret_value()
-            if value and value.strip():
-                return value
-
-        # Try file
-        if self.lm_studio_api_key_file:
-            try:
-                with open(self.lm_studio_api_key_file, "r") as f:
-                    return f.read().strip()
-            except Exception:
-                return None
-
-        return None
 
     def get_zai_api_key(self) -> Optional[str]:
         """

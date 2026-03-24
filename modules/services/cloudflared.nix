@@ -155,7 +155,7 @@
         after = ["network.target" "agenix-rekey.service"];
 
         serviceConfig = {
-          ExecStart = "${pkgs.cloudflared}/bin/cloudflared tunnel --config /etc/cloudflared/config.yml run";
+          ExecStart = lib.getExe pkgs.cloudflared + " tunnel --config /etc/cloudflared/config.yml run";
           Restart = "on-failure";
           RestartSec = "5s";
           # Run as root to read agenix-decrypted credentials

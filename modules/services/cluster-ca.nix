@@ -34,13 +34,13 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        WorkingDirectory = "/etc/ssl/cluster-ca";
         StateDirectory = "cluster-ca";
         StateDirectoryMode = "0755";
       };
       script = ''
         # Generate CA certificate if it doesn't exist
         if [ ! -f ${cfg.caCert} ]; then
+          mkdir -p /etc/ssl/cluster-ca
           ${pkgs.openssl}/bin/openssl req -x509 -newkey rsa:4096 \
             -keyout ${cfg.caKey} \
             -out ${cfg.caCert} \

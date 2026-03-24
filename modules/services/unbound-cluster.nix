@@ -88,7 +88,7 @@ in {
           # Security - prevent forwarding private network queries to upstream DNS
           # These domains will NEVER be forwarded to external resolvers
           private-domain = [
-            ''"cluster.local"''
+            # cluster.local forwarded to Kubernetes DNS (see forward-zone below)
             ''"10.in-addr.arpa"''
             ''"168.192.in-addr.arpa"''
             ''"16.172.in-addr.arpa"''
@@ -96,9 +96,9 @@ in {
           ];
 
           # Local zones - never forward these to upstream DNS
-          # Cluster hostname zone
+          # Note: cluster.local is NOT in local-zone - forwarded to Kubernetes DNS
           local-zone = [
-            ''"cluster.local" static''
+            # cluster.local handled by forward-zone to Kubernetes DNS (see forward-zone below)
             ''"lan" static'' # Local network .lan domain
             # Private network zones (RFC 1918) - prevent leaking local network queries
             ''"10.in-addr.arpa" static'' # 10.0.0.0/8 reverse DNS
@@ -136,7 +136,7 @@ in {
           # Local data records for cluster hosts
           local-data = [
             # Kubernetes API server
-            ''"kubernetes.default.svc.cluster.local. IN A 10.0.0.1"''
+            ''"kubernetes.default.svc.cluster.local. IN A 10.0.0.10"''
 
             # Cluster hosts (cluster.local domain)
             ''"zephyr.cluster.local. IN A 10.1.1.110"''
@@ -187,7 +187,7 @@ in {
             ''"dash.cluster.local. IN A 10.1.1.110"''
 
             # Utilities
-            ''"search.cluster.local. IN A 10.1.1.110"''
+            ''"search.cluster.local. IN A 10.1.1.100"''
             ''"chat.cluster.local. IN A 10.1.1.110"''
             ''"files.cluster.local. IN A 10.1.1.120"''
           ];
@@ -196,6 +196,22 @@ in {
         # Forward zone - mix of TLS and non-TLS upstreams
         # Unbound automatically uses TLS for @853 ports, plain DNS for others
         forward-zone = [
+          # ========================================================================
+          # KUBERNETES DNS FORWARDING - Cluster services
+          # ========================================================================
+          # Forward all Kubernetes service queries to Kubernetes DNS
+          # This enables resolution of: <service>.<namespace>.svc.cluster.local
+          {
+            name = "svc.cluster.local.";
+            forward-addr = ["10.0.0.10"]; # Kubernetes DNS service (kube-dns)
+            forward-tls-upstream = false;
+          }
+          # Forward all Kubernetes pod queries to Kubernetes DNS
+          {
+            name = "pod.cluster.local.";
+            forward-addr = ["10.0.0.10"]; # Kubernetes DNS service (kube-dns)
+            forward-tls-upstream = false;
+          }
           # Tailscale MagicDNS - forward all .ts.net queries to Tailscale DNS
           {
             name = "ts.net.";

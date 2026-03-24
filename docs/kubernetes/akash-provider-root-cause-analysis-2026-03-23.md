@@ -1,7 +1,7 @@
 # Akash Provider Crash Loop - Root Cause Analysis
 
 **Date:** 2026-03-23
-**Status:** ⚠️ **ROOT CAUSE IDENTIFIED** - Provider code bug
+**Status:** ✅ **FIX APPLIED** - DNS SRV malformed URL bug patched
 **Affected Version:** Akash Provider v0.11.0
 **Symptom:** "client is not running. Use .Start() method to start"
 
@@ -37,7 +37,25 @@ The Akash provider is crashing immediately after startup due to a **bug in how i
 [90m9:37PM[0m [31mERR[0m [1mnot yet ready[0m [36merror=[0m[31m[1m"Get \"http://operator-hostname.akash-services.svc.cluster.local.:8080/health\": context canceled"[0m [0m [36mcmp=[0mwaiter
 ```
 
-**Code Location:** Provider DNS service discovery code (not in `/tmp/provider` source tree)
+**Code Location:** `/tmp/provider/cluster/util/service_discovery_agent.go` line 250
+
+**Fix Applied:**
+```go
+// Strip trailing dot from DNS SRV target to avoid malformed URLs (e.g., "cluster.local.:8080")
+target := strings.TrimSuffix(choice.Target, ".")
+discoveredURL := fmt.Sprintf("%s://%v:%v", proto, target, choice.Port)
+```
+
+**Import Added:**
+```go
+import (
+	...
+	"net"
+	"strings"  // ← Added for TrimSuffix function
+	"time"
+	...
+)
+```
 
 ### Issue 2: Let's Encrypt CertIssuer Failure (SECONDARY)
 
@@ -74,8 +92,11 @@ akash-rpc.polkachu.com: forward host lookup failed: Host name lookup failure : R
 - **Disabled CertIssuer** - Removed ACME failure from equation, revealed actual DNS issue
 - Created `akash-provider-letsencrypt` ConfigMap to fix volume mount error
 
-### 🔄 Still In Progress:
-- Fixing malformed URL construction from DNS SRV records
+### ✅ Fix Complete:
+- **DNS SRV malformed URL bug patched** - Code modified to strip trailing dots before URL construction
+  - File: `/tmp/provider/cluster/util/service_discovery_agent.go`
+  - Line 251-252: Added trailing dot stripping logic
+  - Line 9: Added `"strings"` import for `TrimSuffix()` function
 
 ## Solution Options
 
@@ -136,13 +157,18 @@ Currently, provider is **non-operational** due to the DNS/health check bug. Temp
 
 ## Next Actions
 
-1. **IMMEDIATE:** Decide on solution approach (patch code, use IPs, or wait for upstream)
-2. **SHORT-TERM:** Implement chosen fix to get provider operational
-3. **LONG-TERM:** Report bug to Akash Network provider repository
-4. **DOCUMENTATION:** Update runbooks with troubleshooting steps for this issue
+1. **✅ COMPLETE:** Patch code to fix DNS SRV malformed URL bug
+2. **IMMEDIATE:** Rebuild provider binary with fix applied
+3. **SHORT-TERM:** Deploy fixed provider and test startup sequence
+4. **VERIFICATION:** Confirm health checks pass without "context canceled" errors
+5. **LONG-TERM:** Report bug to Akash Network provider repository with patch
+6. **DOCUMENTATION:** Update runbooks with troubleshooting steps for this issue
 
 ---
 
-**Last Updated:** 2026-03-23 21:40 UTC
+**Last Updated:** 2026-03-23 22:55 UTC
 **Investigated by:** Claude Code (Explanatory Mode)
-**Commit:** 9e51ec1 (fix(akash): Disable CertIssuer to resolve crash loop)
+**Fix Applied:** DNS SRV malformed URL bug patched in service_discovery_agent.go
+**Commits:**
+- 9e51ec1 (fix(akash): Disable CertIssuer to resolve crash loop)
+- (pending) fix(akash): Patch DNS SRV malformed URL bug in service discovery

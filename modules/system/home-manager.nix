@@ -1,10 +1,15 @@
 # Home Manager User Configuration
 # Shared Home Manager configuration for j_kro across all cluster nodes
 {
+  config,
   inputs,
   lib,
   ...
-}: {
+}:
+let
+  hostName = config.networking.hostName;
+in
+{
   home-manager = {
     # Use system package set (efficiency: single nixpkgs evaluation)
     # Overlays defined at system level affect both system and user packages
@@ -18,46 +23,40 @@
     # Files are backed up with .backup extension before being replaced by symlinks
     backupFileExtension = "backup";
 
-    # Pass inputs to user configs so flake inputs are accessible
-    extraSpecialArgs = {inherit inputs;};
+    users.j_kro =
+      { pkgs, ... }:
+      {
+        imports = [
+          inputs.zen-browser.homeModules.twilight
+          inputs.nixcord.homeModules.nixcord
+          ../../modules/home-manager/fish.nix
+          ../../modules/home-manager/starship.nix
+          ../../modules/home-manager/wayland-tools.nix
+          ../../modules/home-manager/zen-browser.nix
+          ../../modules/home-manager/nixcord-config.nix
+          ../../modules/home-manager/caprine.nix
+        ];
 
-    users.j_kro = {
-      inputs,
-      config,
-      lib,
-      pkgs,
-      ...
-    }: {
-      imports = [
-        inputs.zen-browser.homeModules.twilight
-        inputs.nixcord.homeModules.nixcord
-        ../../modules/home-manager/fish.nix
-        ../../modules/home-manager/starship.nix
-        ../../modules/home-manager/wayland-tools.nix
-        ../../modules/home-manager/zen-browser.nix
-        ../../modules/home-manager/nixcord-config.nix
-        ../../modules/home-manager/caprine.nix
-      ];
+        # Enable vesktop and caprine only on Zephyr
+        nixcord-config.enable = lib.mkForce (hostName == "zephyr");
+        caprine.enable = lib.mkForce (hostName == "zephyr");
 
-      # Enable vesktop and caprine only on Zephyr
-      nixcord-config.enable = lib.mkForce (config.networking.hostName or "" == "zephyr");
-      caprine.enable = lib.mkForce (config.networking.hostName or "" == "zephyr");
+        # NOTE: vesktop is provided by nixcord - no need to install explicitly
+        # Having both nixcord AND explicit vesktop causes build conflict:
+        # "two given paths contain a conflicting subpath: .../vesktop"
 
-      # Install vesktop package on Zephyr (required by nixcord)
-      home.packages = lib.mkIf (config.networking.hostName or "" == "zephyr") (with pkgs; [vesktop]);
+        home.stateVersion = "26.05";
 
-      home.stateVersion = "26.05";
+        # Force-overwrite all XDG config files to prevent backup conflicts
+        # This makes Home Manager idempotent across rebuilds
+        xdg.configFile = {
+          "mimeapps.list".force = true;
+        };
 
-      # Force-overwrite all XDG config files to prevent backup conflicts
-      # This makes Home Manager idempotent across rebuilds
-      xdg.configFile = {
-        "mimeapps.list".force = true;
+        # systemd user environment for secrets (available in all shells)
+        systemd.user.sessionVariables = {
+          HF_TOKEN = "/run/agenix/huggingface-token";
+        };
       };
-
-      # systemd user environment for secrets (available in all shells)
-      systemd.user.sessionVariables = {
-        HF_TOKEN = "/run/agenix/huggingface-token";
-      };
-    };
   };
 }

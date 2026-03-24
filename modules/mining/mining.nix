@@ -210,7 +210,7 @@ in {
         };
         devices = mkOption {
           type = types.str;
-          default = "1";
+          default = "0";  # GPU index 0 (first GPU)
         };
         powerLimit = mkOption {
           type = types.nullOr types.int;
@@ -261,6 +261,87 @@ in {
   };
 
   config = mkIf cfg.enable {
+    # ============================================================================
+    # ASSERTIONS
+    # ============================================================================
+    assertions = [
+      {
+        assertion = cfg.lolminer.nvidia.enable -> (cfg.lolminer.nvidia.devices != "" && cfg.lolminer.nvidia.devices != "0");
+        message = ''
+          NVIDIA mining is enabled but no GPU devices are configured.
+
+          Current configuration:
+            services.mining.lolminer.nvidia.devices = "${cfg.lolminer.nvidia.devices}"
+
+          Configure GPU devices:
+            services.mining.lolminer.nvidia.devices = "0";    # 1 GPU (GPU 0)
+            services.mining.lolminer.nvidia.devices = "0,1";  # 2 GPUs (GPU 0 and 1)
+
+          Or disable NVIDIA mining:
+            services.mining.lolminer.nvidia.enable = false;
+        '';
+      }
+      {
+        assertion = cfg.lolminer.amd.enable -> (cfg.lolminer.amd.devices != "");
+        message = ''
+          AMD mining is enabled but no GPU devices are configured.
+
+          Current configuration:
+            services.mining.lolminer.amd.devices = "${cfg.lolminer.amd.devices}"
+
+          Configure GPU devices:
+            services.mining.lolminer.amd.devices = "1";    # 1 GPU (GPU 1)
+
+          Or disable AMD mining:
+            services.mining.lolminer.amd.enable = false;
+        '';
+      }
+      {
+        assertion = cfg.xmrig.enable -> (cfg.xmrig.pool != "");
+        message = ''
+          XMRig is enabled but no mining pool is configured.
+
+          Configure a mining pool:
+            services.mining.xmrig.pool = "pool.example.com:port";
+
+          Or disable XMRig:
+            services.mining.xmrig.enable = false;
+        '';
+      }
+      {
+        assertion = cfg.xmrig.enable -> (cfg.xmrig.wallet != "");
+        message = ''
+          XMRig is enabled but no wallet address is configured.
+
+          Configure a wallet address:
+            services.mining.xmrig.wallet = "your-wallet-address";
+
+          Or disable XMRig:
+            services.mining.xmrig.enable = false;
+        '';
+      }
+      {
+        assertion = cfg.xmrig.threads > 0;
+        message = ''
+          Invalid XMRig thread count: ${toString cfg.xmrig.threads}
+
+          Thread count must be greater than 0.
+          Recommended: Set to number of CPU cores or use autodetection.
+        '';
+      }
+      {
+        assertion = !(cfg.lolminer.nvidia.enable && cfg.xmrig.enable && cfg.lolminer.nvidia.powerLimit != null && cfg.lolminer.nvidia.powerLimit < 50);
+        message = ''
+          NVIDIA GPU power limit is too low for combined mining.
+
+          Current configuration:
+            lolminer.nvidia.powerLimit = ${toString cfg.lolminer.nvidia.powerLimit}
+
+          When running both lolminer and xmrig on NVIDIA GPUs, power limit should be at least 50W to avoid performance issues.
+          Recommended: 80-120W for RTX 3060 Ti, 90-130W for RTX 3090
+        '';
+      }
+    ];
     # Create mining user and group
     users.users.${cfg.user} = {
       isSystemUser = true;

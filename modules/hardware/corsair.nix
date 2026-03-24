@@ -90,7 +90,7 @@ in {
       wantedBy = ["multi-user.target"];
       after = ["graphical-session.target"];
       serviceConfig = {
-        ExecStart = "${pkgs.openrgb}/bin/openrgb --server";
+        ExecStart = lib.getExe pkgs.openrgb + " --server";
         Restart = "on-failure";
         # Security hardening
         NoNewPrivileges = true;

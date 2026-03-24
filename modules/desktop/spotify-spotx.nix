@@ -135,7 +135,7 @@ in {
 
           apply_patch() {
             # Set up PATH with required tools (SpotX needs perl)
-            export PATH="/run/current-system/sw/bin:${pkgs.bash}/bin:${pkgs.perl}/bin:${pkgs.curl}/bin:$PATH"
+            export PATH="/run/current-system/sw/bin:${lib.makeBinPath [pkgs.bash pkgs.perl pkgs.curl]}:$PATH"
 
             log "Starting SpotX patching for Flatpak Spotify..."
 
@@ -319,7 +319,7 @@ in {
       set -euo pipefail
 
       # Set up PATH with required tools (SpotX needs perl)
-      export PATH="/run/current-system/sw/bin:${pkgs.bash}/bin:${pkgs.perl}/bin:${pkgs.curl}/bin:$PATH"
+      export PATH="/run/current-system/sw/bin:${lib.makeBinPath [pkgs.bash pkgs.perl pkgs.curl]}:$PATH"
 
       ${spotify-common.mkSpotifyLogging}
 

@@ -1,0 +1,988 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nix-csi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nix-csi
+  namespace: kube-system
+---
+apiVersion: v1
+data:
+  init-secrets: |
+    set -x
+    mkdir -p /tmp/{ssh-key,nix-key,ssh-auth}
+    if ! kubectl get secret ssh-key &>/dev/null || ! kubectl get configmap ssh-dynauth &>/dev/null; then
+      # Create ssh secret
+      ssh-keygen -t ed25519 -C "" -N "" -f /tmp/ssh-key/id_ed25519
+      kubectl delete --ignore-not-found secret ssh-key
+      kubectl create secret generic ssh-key --from-file=/tmp/ssh-key
+
+      # Create pubkey configmap
+      cp /tmp/ssh-key/id_ed25519.pub /tmp/ssh-auth/authorized_keys
+      echo "* $(cat /tmp/ssh-key/id_ed25519.pub)" > /tmp/ssh-auth/ssh_known_hosts
+      kubectl delete --ignore-not-found configmap ssh-dynauth
+      kubectl create configmap ssh-dynauth --from-file=/tmp/ssh-auth
+    fi
+
+    if ! kubectl get secret nix-key &>/dev/null; then
+      # create nix binary cache key
+      nix-store --generate-binary-cache-key \
+        nix-cache-1 \
+        /tmp/nix-key/nix_ed25519 \
+        /tmp/nix-key/nix_ed25519.pub
+      kubectl delete --ignore-not-found secret nix-key
+      kubectl create secret generic nix-key --from-file=/tmp/nix-key
+    fi
+kind: ConfigMap
+metadata:
+  name: init-scripts
+  namespace: kube-system
+---
+apiVersion: v1
+data:
+  dinix: /nix/store/6ksix5zsikz00b21vjaacj6hsxg2ddrn-source
+  easykubenix: /nix/store/x6iz8al2kdb56ckjdd6pjcn72b35dznj-source
+  flake-compatish: /nix/store/ssk63c5c1mihsbnsv803jsnp3f40ll1z-source
+  nixpkgs: /nix/store/0hxg06dwld1rqiyn16hg01vpk8hbqvc8-source
+  self: /tmp/nix-csi
+  treefmt-nix: /nix/store/nk13680f34w3q01a1q69c48my6fi7cxz-source
+kind: ConfigMap
+metadata:
+  name: inputs
+  namespace: kube-system
+---
+apiVersion: v1
+data:
+  logging.json: '{"formatters":{"standard":{"format":"%(levelname)s [%(name)s] %(message)s"}},"handlers":{"console":{"class":"logging.StreamHandler","formatter":"standard","stream":"ext://sys.stdout"}},"loggers":{"httpx":{"handlers":["console"],"level":"WARNING","propagate":false},"nix-csi":{"handlers":["console"],"level":"DEBUG","propagate":false}},"root":{"handlers":["console"],"level":"INFO"},"version":1}'
+  nix.conf: |+
+    # WARNING: this file is generated from the nix.* options in
+    # your NixOS configuration, typically
+    # /etc/nixos/configuration.nix.  Do not edit it!
+    allowed-users = *
+    builders-use-substitutes = true
+    experimental-features = nix-command flakes read-only-local-store
+    max-jobs = auto
+    narinfo-cache-negative-ttl = 0
+    narinfo-cache-positive-ttl = 0
+    sandbox = true
+    store = daemon
+    substituters = https://cache.nixos.org https://nix-csi.cachix.org
+    system-features = nixos-test benchmark big-parallel
+    trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=
+    trusted-users = root nix root
+    warn-dirty = false
+
+
+kind: ConfigMap
+metadata:
+  name: nix-builder
+  namespace: kube-system
+---
+apiVersion: v1
+data:
+  logging.json: '{"formatters":{"standard":{"format":"%(levelname)s [%(name)s] %(message)s"}},"handlers":{"console":{"class":"logging.StreamHandler","formatter":"standard","stream":"ext://sys.stdout"}},"loggers":{"httpx":{"handlers":["console"],"level":"WARNING","propagate":false},"nix-csi":{"handlers":["console"],"level":"DEBUG","propagate":false}},"root":{"handlers":["console"],"level":"INFO"},"version":1}'
+  nix.conf: |+
+    # WARNING: this file is generated from the nix.* options in
+    # your NixOS configuration, typically
+    # /etc/nixos/configuration.nix.  Do not edit it!
+    allowed-users = *
+    builders-use-substitutes = true
+    experimental-features = nix-command flakes read-only-local-store
+    max-jobs = 0
+    narinfo-cache-negative-ttl = 0
+    narinfo-cache-positive-ttl = 0
+    store = daemon
+    substituters = https://cache.nixos.org https://nix-csi.cachix.org
+    system-features = nixos-test benchmark big-parallel
+    trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=
+    trusted-users = root nix root
+    warn-dirty = false
+
+
+kind: ConfigMap
+metadata:
+  name: nix-cache
+  namespace: kube-system
+---
+apiVersion: v1
+data:
+  logging.json: '{"formatters":{"standard":{"format":"%(levelname)s [%(name)s] %(message)s"}},"handlers":{"console":{"class":"logging.StreamHandler","formatter":"standard","stream":"ext://sys.stdout"}},"loggers":{"httpx":{"handlers":["console"],"level":"WARNING","propagate":false},"nix-csi":{"handlers":["console"],"level":"DEBUG","propagate":false}},"root":{"handlers":["console"],"level":"INFO"},"version":1}'
+  nix.conf: |+
+    # WARNING: this file is generated from the nix.* options in
+    # your NixOS configuration, typically
+    # /etc/nixos/configuration.nix.  Do not edit it!
+    allowed-users = *
+    builders-use-substitutes = true
+    experimental-features = nix-command flakes read-only-local-store
+    keep-outputs = true
+    narinfo-cache-negative-ttl = 0
+    narinfo-cache-positive-ttl = 0
+    store = daemon
+    substituters = https://cache.nixos.org https://nix-csi.cachix.org
+    system-features = nixos-test benchmark big-parallel
+    trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-csi.cachix.org-1:i4w33gR4efO67jpz8U7g/MdvRQ6mQ3LEF9fB8tES60g=
+    trusted-users = root nix root
+    warn-dirty = false
+
+
+kind: ConfigMap
+metadata:
+  name: nix-node
+  namespace: kube-system
+---
+apiVersion: v1
+data:
+  authorized_keys: ""
+  ssh_config: |
+    GlobalKnownHostsFile /etc/ssh/ssh_known_hosts /etc/ssh-dynauth/ssh_known_hosts
+
+    Host nix-cache
+        User nix
+        IdentityFile /etc/ssh-key/id_ed25519
+        IdentitiesOnly yes
+        StrictHostKeyChecking yes
+
+    Host nix-builder
+        User nix
+        IdentityFile /etc/ssh-key/id_ed25519
+        IdentitiesOnly yes
+        StrictHostKeyChecking yes
+
+    Host *
+        User nix
+        IdentityFile /etc/ssh-key/id_ed25519
+        IdentitiesOnly yes
+        StrictHostKeyChecking yes
+  ssh_known_hosts: ""
+  sshd_config: |
+    Port 22
+    AddressFamily Any
+    HostKey /etc/ssh-key/id_ed25519
+    SyslogFacility DAEMON
+    SetEnv PATH=/nix/var/result/bin
+    PermitRootLogin no
+    PubkeyAuthentication yes
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    UsePAM no
+    AuthorizedKeysFile /dev/null
+    StrictModes no
+    Subsystem sftp internal-sftp
+
+    Match User nix
+        AuthorizedKeysFile /etc/ssh/authorized_keys /etc/ssh-dynauth/authorized_keys
+kind: ConfigMap
+metadata:
+  name: ssh-config
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nix-csi
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - create
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nix-csi
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nix-csi
+subjects:
+  - kind: ServiceAccount
+    name: nix-csi
+    namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nix-csi
+  namespace: kube-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+      - configmaps
+    verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nix-csi
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nix-csi
+subjects:
+  - kind: ServiceAccount
+    name: nix-csi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nix-builders
+  namespace: kube-system
+spec:
+  clusterIP: None
+  ports:
+    - name: ssh
+      port: 22
+  selector:
+    app.kubernetes.io/name: csi
+    app.kubernetes.io/part-of: nix-csi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nix-cache
+  namespace: kube-system
+spec:
+  ports:
+    - name: ssh
+      port: 22
+      targetPort: ssh
+  selector:
+    app.kubernetes.io/name: cache
+    app.kubernetes.io/part-of: nix-csi
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nix-cache-lb
+  namespace: kube-system
+spec:
+  ports:
+    - name: ssh
+      port: 2222
+      targetPort: ssh
+  selector:
+    app.kubernetes.io/name: cache
+    app.kubernetes.io/part-of: nix-csi
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nix-csi-builders
+  namespace: kube-system
+spec:
+  clusterIP: None
+  ports:
+    - name: ssh
+      port: 22
+  selector:
+    app.kubernetes.io/name: builder
+    app.kubernetes.io/part-of: nix-csi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nix-proxy
+  namespace: kube-system
+spec:
+  ports:
+    - name: ssh
+      port: 2223
+      targetPort: ssh
+  selector:
+    app.kubernetes.io/name: builder
+    app.kubernetes.io/part-of: nix-csi
+    nix.csi/proxy: "true"
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nix-node
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: csi
+      app.kubernetes.io/part-of: nix-csi
+  template:
+    metadata:
+      annotations:
+        configHash: f7eae2a9aab9647bca9b4cfb5f4bc3d8
+        kubectl.kubernetes.io/default-container: nix-node
+        nix-csi/discard: "true"
+      labels:
+        app.kubernetes.io/name: csi
+        app.kubernetes.io/part-of: nix-csi
+    spec:
+      containers:
+        - args:
+            - --v=5
+            - --csi-address=/csi/csi.sock
+            - --kubelet-registration-path=/var/lib/kubelet/plugins/nix.csi.store/csi.sock
+          env:
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.15.0
+          name: csi-node-driver-registrar
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          volumeMounts:
+            - mountPath: /csi
+              name: csi-socket
+            - mountPath: /var/lib/kubelet
+              name: kubelet
+            - mountPath: /registration
+              name: registration
+        - args:
+            - --csi-address=/csi/csi.sock
+          image: registry.k8s.io/sig-storage/livenessprobe:v2.17.0
+          name: livenessprobe
+          resources:
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          volumeMounts:
+            - mountPath: /csi
+              name: csi-socket
+            - mountPath: /registration
+              name: registration
+        - command:
+            - dinit
+            - --log-file
+            - /var/log/dinit.log
+            - --quiet
+            - csi
+          env:
+            - name: BUILDERS_ENABLED
+              value: "true"
+            - name: CACHE_ENABLED
+              value: "true"
+            - name: CSI_ENDPOINT
+              value: unix:///csi/csi.sock
+            - name: HOME
+              value: /nix/var/nix-csi/root
+            - name: KUBE_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: KUBE_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: KUBE_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: KUBE_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: NIX_BUILD_TIMEOUT
+              value: "300"
+            - name: RSYNC_CONCURRENCY
+              value: "1"
+            - name: USER
+              value: root
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          name: nix-node
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - mountPath: /csi
+              name: csi-socket
+            - mountPath: /var/lib/kubelet
+              mountPropagation: Bidirectional
+              name: kubelet
+            - mountPath: /etc/nix
+              name: nix-config
+            - mountPath: /nix
+              mountPropagation: Bidirectional
+              name: nix-store
+              subPath: nix
+            - mountPath: /registration
+              name: registration
+            - mountPath: /etc/ssh
+              name: ssh-config
+            - mountPath: /etc/ssh-dynauth
+              name: ssh-dynauth
+            - mountPath: /etc/ssh-key
+              name: ssh-key
+      initContainers:
+        - env:
+            - name: amd64
+              value: /nix/store/ly4js16z81xvvmgwbgwi00n10cdh0adk-nodeEnv
+          image: ghcr.io/lillecarl/nix-csi/lix:2.94.0
+          imagePullPolicy: Always
+          name: initcopy
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - mountPath: /etc/nix
+              name: nix-config
+            - mountPath: /nix-volume
+              name: nix-store
+            - mountPath: /etc/ssh
+              name: ssh-config
+            - mountPath: /etc/ssh-dynauth
+              name: ssh-dynauth
+            - mountPath: /etc/ssh-key
+              name: ssh-key
+      priorityClassName: system-node-critical
+      serviceAccountName: nix-csi
+      subdomain: nix-builders
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+      volumes:
+        - hostPath:
+            path: /var/lib/kubelet/plugins/nix.csi.store/
+            type: DirectoryOrCreate
+          name: csi-socket
+        - hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+          name: kubelet
+        - configMap:
+            name: nix-node
+          name: nix-config
+        - hostPath:
+            path: /var/lib/nix-csi
+            type: DirectoryOrCreate
+          name: nix-store
+        - hostPath:
+            path: /var/lib/kubelet/plugins_registry
+          name: registration
+        - configMap:
+            defaultMode: 292
+            name: ssh-config
+          name: ssh-config
+        - configMap:
+            defaultMode: 292
+            name: ssh-dynauth
+          name: ssh-dynauth
+        - name: ssh-key
+          secret:
+            defaultMode: 256
+            secretName: ssh-key
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: proxy
+      app.kubernetes.io/part-of: nix-csi
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: proxy
+        nix-csi/discard: "true"
+      labels:
+        app.kubernetes.io/name: proxy
+        app.kubernetes.io/part-of: nix-csi
+    spec:
+      containers:
+        - command:
+            - dinit
+            - --log-file
+            - /var/log/dinit.log
+            - --quiet
+            - proxy
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          imagePullPolicy: Always
+          name: proxy
+          volumeMounts:
+            - mountPath: /nix
+              name: nix-store
+              subPath: nix
+            - mountPath: /etc/ssh
+              name: ssh-config
+            - mountPath: /etc/ssh-dynauth
+              name: ssh-dynauth
+            - mountPath: /etc/ssh-key
+              name: ssh-key
+      volumes:
+        - csi:
+            driver: nix.csi.store
+            readOnly: true
+            volumeAttributes:
+              x86_64-linux: /nix/store/qz4vaclm451gcl5nh7dxnwi8bhf15vh9-proxyEnv
+          name: nix-store
+        - configMap:
+            defaultMode: 292
+            name: ssh-config
+          name: ssh-config
+        - configMap:
+            defaultMode: 292
+            name: ssh-dynauth
+          name: ssh-dynauth
+        - name: ssh-key
+          secret:
+            defaultMode: 256
+            secretName: ssh-key
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nix-cache
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cache
+      app.kubernetes.io/part-of: nix-csi
+  serviceName: nix-cache
+  template:
+    metadata:
+      annotations:
+        configHash: e75fe777d54ea6e7097e2591b0304ae4
+        kubectl.kubernetes.io/default-container: nix-cache
+        nix-csi/discard: "true"
+      labels:
+        app.kubernetes.io/name: cache
+        app.kubernetes.io/part-of: nix-csi
+    spec:
+      containers:
+        - command:
+            - dinit
+            - --log-file
+            - /var/log/dinit.log
+            - --quiet
+            - cache
+          env:
+            - name: BUILDERS_ENABLED
+              value: "true"
+            - name: CACHE_ENABLED
+              value: "true"
+            - name: GC_KEEP_SECONDS
+              value: "86400"
+            - name: HOME
+              value: /nix/var/nix-csi/root
+            - name: IS_CACHE
+              value: "true"
+            - name: KUBE_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          name: nix-cache
+          ports:
+            - containerPort: 22
+              name: ssh
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - mountPath: /etc/nix
+              name: nix-config
+            - mountPath: /etc/nix-key
+              name: nix-key
+            - mountPath: /nix
+              name: nix-store
+              subPath: nix
+            - mountPath: /etc/ssh
+              name: ssh-config
+            - mountPath: /etc/ssh-dynauth
+              name: ssh-dynauth
+            - mountPath: /etc/ssh-key
+              name: ssh-key
+      initContainers:
+        - command:
+            - initCopy
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          imagePullPolicy: Always
+          name: initcopy
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            capabilities:
+              add:
+                - SYS_CHROOT
+          volumeMounts:
+            - mountPath: /nix
+              name: init-store
+              subPath: nix
+            - mountPath: /etc/nix
+              name: nix-config
+            - mountPath: /nix-volume
+              name: nix-store
+            - mountPath: /etc/ssh
+              name: ssh-config
+            - mountPath: /etc/ssh-dynauth
+              name: ssh-dynauth
+            - mountPath: /etc/ssh-key
+              name: ssh-key
+      priorityClassName: system-cluster-critical
+      serviceAccountName: nix-csi
+      volumes:
+        - csi:
+            driver: nix.csi.store
+            readOnly: true
+            volumeAttributes:
+              x86_64-linux: /nix/store/vmvrahaqwzmzbl22p7m265gqn20qz8x5-cache-init-env
+          name: init-store
+        - configMap:
+            name: nix-cache
+          name: nix-config
+        - name: nix-key
+          secret:
+            secretName: nix-key
+        - configMap:
+            defaultMode: 292
+            name: ssh-config
+          name: ssh-config
+        - configMap:
+            defaultMode: 292
+            name: ssh-dynauth
+          name: ssh-dynauth
+        - name: ssh-key
+          secret:
+            defaultMode: 256
+            secretName: ssh-key
+  volumeClaimTemplates:
+    - metadata:
+        name: nix-store
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: null
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: commandpath-hello
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      containers:
+        - command:
+            - /nix/store/mi08jhbcjib1i1kgvbd0fxn2yrnzdv4a-hello-2.12.2/bin/hello
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          name: hello
+          volumeMounts:
+            - mountPath: /nix
+              name: nix-csi
+              subPath: nix
+      restartPolicy: Never
+      volumes:
+        - csi:
+            driver: nix.csi.store
+            readOnly: true
+          name: nix-csi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: env-ssl
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      containers:
+        - command:
+            - /nix/store/578zv211w3czja75zq2lvfxsan2rsvr6-printer/bin/printer
+          env:
+            - name: SSL_CERT_DIR
+              value: /nix/store/0fcmv6kr1qw5h2ahd95yjfcal427676j-nss-cacert-3.119.1/etc/ssl/certs
+            - name: SSL_CERT_FILE
+              value: /nix/store/0fcmv6kr1qw5h2ahd95yjfcal427676j-nss-cacert-3.119.1/etc/ssl/certs/ca-bundle.crt
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          name: hello
+          volumeMounts:
+            - mountPath: /etc
+              name: nix-csi
+              readOnly: true
+              subPath: nix/store/6rscl3lcy6p520j2wg0z6xbvy05gsnqp-testenv/etc
+            - mountPath: /nix
+              name: nix-csi
+              readOnly: true
+              subPath: nix
+      restartPolicy: Never
+      volumes:
+        - csi:
+            driver: nix.csi.store
+            readOnly: true
+          name: nix-csi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: expr-hello
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      containers:
+        - command:
+            - hello-unfree
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          name: hello
+          volumeMounts:
+            - mountPath: /nix
+              name: nix-csi
+              subPath: nix
+      restartPolicy: Never
+      volumes:
+        - csi:
+            driver: nix.csi.store
+            readOnly: true
+            volumeAttributes:
+              nixExpr: |
+                let
+                  nixpkgs = builtins.fetchTree {
+                    type = "github";
+                    owner = "nixos";
+                    repo = "nixpkgs";
+                    ref = "nixos-unstable";
+                  };
+                  pkgs = import nixpkgs { };
+                in
+                pkgs.hello-unfree # test that building works
+          name: nix-csi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: flake-hello
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      containers:
+        - command:
+            - hello
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          name: hello
+          volumeMounts:
+            - mountPath: /nix
+              name: nix-csi
+              subPath: nix
+      restartPolicy: Never
+      volumes:
+        - csi:
+            driver: nix.csi.store
+            volumeAttributes:
+              flakeRef: github:nixos/nixpkgs/nixos-unstable#hello
+          name: nix-csi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    kluctl.io/hook: pre-deploy
+    kluctl.io/hook-delete-policy: hook-succeeded
+    kluctl.io/hook-wait: "false"
+  name: init
+  namespace: kube-system
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: init
+        app.kubernetes.io/part-of: nix-csi
+    spec:
+      containers:
+        - command:
+            - init-secrets
+          image: ghcr.io/lillecarl/nix-csi/lix:2.94.0
+          imagePullPolicy: Always
+          name: init
+          volumeMounts:
+            - mountPath: /opt/bin
+              name: init-scripts
+            - mountPath: /etc/nix
+              name: nix-config
+      restartPolicy: OnFailure
+      serviceAccountName: nix-csi
+      volumes:
+        - configMap:
+            name: init-scripts
+          name: init-scripts
+        - configMap:
+            name: nix-builder
+          name: nix-config
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: invalid-expr-hello
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      containers:
+        - command:
+            - hello
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          name: hello
+          volumeMounts:
+            - mountPath: /nix
+              name: nix-csi
+              subPath: nix
+      restartPolicy: Never
+      volumes:
+        - csi:
+            driver: nix.csi.store
+            volumeAttributes:
+              nixExpr: |
+                let
+                  broken = this_identifier_does_not_exist;
+                in
+                broken
+          name: nix-csi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: invalid-flake-hello
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      containers:
+        - command:
+            - hello
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          name: hello
+          volumeMounts:
+            - mountPath: /nix
+              name: nix-csi
+              subPath: nix
+      restartPolicy: Never
+      volumes:
+        - csi:
+            driver: nix.csi.store
+            volumeAttributes:
+              flakeRef: github:nonexistent/nonexistent-repo/nonexistent-ref#nonexistent
+          name: nix-csi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: invalid-storepath-hello
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      containers:
+        - command:
+            - hello
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          name: hello
+          volumeMounts:
+            - mountPath: /nix
+              name: nix-csi
+              subPath: nix
+      restartPolicy: Never
+      volumes:
+        - csi:
+            driver: nix.csi.store
+            readOnly: true
+            volumeAttributes:
+              x86_64-linux: /nix/store/0000000000000000000000000000000-nonexistent
+          name: nix-csi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: path-hello
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      containers:
+        - command:
+            - hello
+          image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+          name: hello
+          volumeMounts:
+            - mountPath: /nix
+              name: nix-csi
+              subPath: nix
+      restartPolicy: Never
+      volumes:
+        - csi:
+            driver: nix.csi.store
+            readOnly: true
+            volumeAttributes:
+              x86_64-linux: /nix/store/mi08jhbcjib1i1kgvbd0fxn2yrnzdv4a-hello-2.12.2
+          name: nix-csi
+---
+apiVersion: storage.k8s.io/v1
+kind: CSIDriver
+metadata:
+  name: nix.csi.store
+spec:
+  attachRequired: false
+  fsGroupPolicy: File
+  podInfoOnMount: true
+  requiresRepublish: false
+  storageCapacity: false
+  volumeLifecycleModes:
+    - Ephemeral

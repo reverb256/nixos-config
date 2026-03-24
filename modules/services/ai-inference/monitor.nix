@@ -196,15 +196,11 @@ in {
         RestartSec = "10s";
 
         # Security
-        User = "ai-inference";
-        Group = "ai-inference";
+        User = "root";  # Changed from ai-inference to avoid user dependency issue
+        Group = "root";
         NoNewPrivileges = true;
         PrivateTmp = true;
-        ProtectSystem = "strict";
         ProtectHome = true;
-
-        # Capabilities
-        CapabilityBoundingSet = [""];
 
         # Logging
         StandardOutput = "journal";

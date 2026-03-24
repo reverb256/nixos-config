@@ -185,7 +185,7 @@ in {
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${pkgs.python3}/bin/python3 /etc/alert-webhook/receiver.py";
+        ExecStart = lib.getExe pkgs.python3 + " /etc/alert-webhook/receiver.py";
         Restart = "on-failure";
         RestartSec = "10s";
 

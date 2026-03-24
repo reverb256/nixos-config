@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: spacebot-data
+  namespace: spacebot
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-local-ssd
+  resources:
+    requests:
+      storage: 10Gi
