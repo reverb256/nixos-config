@@ -715,27 +715,62 @@
     caddy = {
       enable = true;
       # Custom Caddyfile for complex configurations (Nextcloud)
+      # NOTE: Global options manually included because configFile overrides globalConfig
       configFile = pkgs.writeText "Caddyfile" ''
+        {
+          admin 127.0.0.1:2019
+          default_sni cluster.local
+
+          (security_headers) {
+            header {
+              Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+              X-Content-Type-Options "nosniff"
+              X-Frame-Options "SAMEORIGIN"
+              X-XSS-Protection "1; mode=block"
+              Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:"
+              Referrer-Policy "strict-origin-when-cross-origin"
+              -Server
+            }
+          }
+
+          rate_limit {
+            zone dynamic_zones {
+              entry {
+                zone = "cluster_local"
+                key = "remote_ip"
+                events = 100
+                window = 1m
+              }
+            }
+          }
+
+          encode zstd gzip
+        }
+
         # AI Inference Gateway (via Tailscale)
         ai.zephyr.tigris-ule.ts.net:9002 {
+          import security_headers
           reverse_proxy 127.0.0.1:8080
         }
 
         # Host Dashboard (LAN access - no TLS)
         http://zephyr.lan {
+          import security_headers
           reverse_proxy 127.0.0.1:8090
         }
         http://dashboard.zephyr.lan {
+          import security_headers
           reverse_proxy 127.0.0.1:8090
         }
       '';
     };
 
-    # Enable shared Caddy features for systemd Caddy
-    caddy-common = {
-      enable = true;
-      adminListenAddress = "127.0.0.1";  # Localhost only for systemd
-    };
+    # NOTE: caddy-common NOT enabled because configFile overrides globalConfig
+    # Global options manually included in configFile above
+    # caddy-common = {
+    #   enable = true;
+    #   adminListenAddress = "127.0.0.1";  # Localhost only for systemd
+    # };
 
     # Spacebot AI agent (integrated with AI Gateway)
     spacebot = {
