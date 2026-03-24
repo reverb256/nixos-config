@@ -731,6 +731,12 @@
       '';
     };
 
+    # Enable shared Caddy features for systemd Caddy
+    caddy-common = {
+      enable = true;
+      adminListenAddress = "127.0.0.1";  # Localhost only for systemd
+    };
+
     # Spacebot AI agent (integrated with AI Gateway)
     spacebot = {
       enable = true;
@@ -1157,7 +1163,7 @@
   # See: modules/system/agenix-secrets-registry.nix
   services.agenix-secrets-registry = {
     enable = true;
-    aiServices = false; # TEMPORARY: lm-studio-api-key.age missing (2026-03-23)
+    aiServices = true; # For autoresearch skill optimization (ANTHROPIC_API_KEY)
     monitoring = false; # TODO: Re-enable after creating sentry-dsn.age
     storage = true; # Required for backup-to-garage service (S3 API key)
     mining = true;
