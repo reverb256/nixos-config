@@ -1,0 +1,112 @@
+---
+# AI Inference Gateway Service - Points to systemd service on Nexus
+# Interim solution until container image is built and deployed
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-inference-gateway
+  namespace: ai-inference
+  labels:
+    app: ai-inference-gateway
+    version: v2.0.0
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+
+---
+# Endpoints for the gateway service (systemd service on Nexus)
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: ai-inference-gateway
+  namespace: ai-inference
+  labels:
+    app: ai-inference-gateway
+subsets:
+  - addresses:
+      - ip: 10.1.1.120  # Nexus IP where systemd service runs
+    ports:
+      - name: http
+        port: 8080
+        protocol: TCP
+      - name: metrics
+        port: 9090
+        protocol: TCP
+
+---
+# NetworkPolicy to allow gateway to reach dependencies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-egress
+  namespace: ai-inference
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow SearXNG access (search namespace)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: search
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow Qdrant access (ai-inference namespace)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: qdrant
+      ports:
+        - protocol: TCP
+          port: 6333
+    # Allow llama.cpp access (ai-inference namespace)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: llama-cpp-qwen
+      ports:
+        - protocol: TCP
+          port: 8080
+
+---
+# NetworkPolicy to allow ingress to gateway from cluster
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: ai-inference
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-inference-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # Allow from all namespaces in cluster
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090
