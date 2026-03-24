@@ -12,32 +12,61 @@ in {
     distributedBuilds = lib.mkDefault true;
 
     settings = {
+      builders = lib.mkDefault "@/etc/nix/machines";
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
       trusted-users = lib.mkForce ["root" "*" "@wheel"];
 
-      # Binary cache priority: Zephyr cluster cache first, then external caches
-      substituters = lib.mkAfter [
-        "http://10.1.1.110:50000" # Zephyr's binary cache (cluster-internal)
-        "https://cache.nixos.org"
-        "https://nix-community.cachix.org"
-        "https://cache.garnix.io"
-        "https://reverb-os.cachix.org"
-        "https://ezkea.cachix.org"
-        "https://nix-gaming.cachix.org"
-        "https://cache.nixos-cuda.org"
-      ];
-      trusted-public-keys = lib.mkAfter [
-        # Zephyr binary cache (cluster-internal)
-        "zephyr-cache-1:rDatmGO1sjYLUYCPxA3OAdkb88LmJdJiCy1DFtwftWU="
-        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-        "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
-        "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
-        "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-        "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-        "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
-      ];
+      # Binary cache priority - Centralized for all hosts
+      # Local cache (Zephyr) has highest priority for cluster builds
+      substituters = lib.mkForce (
+        if currentHost == "zephyr"
+        then [
+          # Zephyr: No local cache (it serves the cache)
+          "https://cache.nixos.org"
+          "https://nix-community.cachix.org"
+          "https://cache.garnix.io"
+          "https://reverb-os.cachix.org"
+          "https://ezkea.cachix.org"
+          "https://nix-gaming.cachix.org"
+          "https://cache.nixos-cuda.org"
+        ]
+        else [
+          # Remote hosts: Use Zephyr's local cache first
+          "http://10.1.1.110:50000"
+          "https://cache.nixos.org"
+          "https://nix-community.cachix.org"
+          "https://cache.garnix.io"
+          "https://reverb-os.cachix.org"
+          "https://ezkea.cachix.org"
+          "https://nix-gaming.cachix.org"
+          "https://cache.nixos-cuda.org"
+        ]
+      );
+      trusted-public-keys = lib.mkForce (
+        if currentHost == "zephyr"
+        then [
+          # Zephyr: No local cache key (it serves the cache)
+          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+          "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+          "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
+          "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
+          "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
+          "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+        ]
+        else [
+          # Remote hosts: Trust Zephyr's local cache
+          # Key will be generated on first nix-serve start
+          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+          "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+          "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
+          "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
+          "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
+          "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+        ]
+      );
 
       cores = lib.mkForce (
         if currentHost == "zephyr"
@@ -53,13 +82,13 @@ in {
 
       max-jobs = lib.mkForce (
         if currentHost == "zephyr"
-        then 4
+        then 2 # Zephyr: Reduced from 4 to prevent OOM during large builds
         else if currentHost == "nexus"
         then 6
         else if currentHost == "sentry"
         then 4
         else if currentHost == "forge"
-        then 1
+        then 2 # Forge: Increased from 1 for kernel builds
         else 2
       );
 
@@ -90,7 +119,7 @@ in {
 
   environment.etc = {
     "ssh/ssh_config.d/50-build-machines.conf".text = ''
-      Host zephyr nexus forge sentry
+      Host zephyr nexus sentry
         User j_kro
         IdentityFile /etc/nixos/ssh/id_ed25519
         IdentitiesOnly yes
@@ -99,6 +128,9 @@ in {
     '';
 
     "nix/machines".text = let
+      # All hosts can be builders (except forge which is compute-only)
+      # IMPORTANT: Builds with "kexec" feature (kernel modules) fall back to local
+      # Remote machines don't support "kexec" → kernel builds stay local
       allMachines = [
         {
           hostName = "zephyr";
@@ -106,8 +138,9 @@ in {
           sshUser = "j_kro";
           sshKey = "/etc/nixos/ssh/id_ed25519";
           maxJobs = 4;
-          speedFactor = 8;
-          supportedFeatures = ["kvm" "big-parallel"];
+          speedFactor = 4;
+          # NOTE: "kexec" NOT included → kernel modules won't be sent to zephyr
+          supportedFeatures = ["big-parallel" "kvm"];
           mandatoryFeatures = [];
         }
         {
@@ -117,17 +150,8 @@ in {
           sshKey = "/etc/nixos/ssh/id_ed25519";
           maxJobs = 6;
           speedFactor = 5;
-          supportedFeatures = ["big-parallel"];
-          mandatoryFeatures = [];
-        }
-        {
-          hostName = "forge";
-          system = "x86_64-linux";
-          sshUser = "j_kro";
-          sshKey = "/etc/nixos/ssh/id_ed25519";
-          maxJobs = 1;
-          speedFactor = 2;
-          supportedFeatures = ["big-parallel"];
+          # NOTE: "kexec" NOT included → kernel modules won't be sent to nexus
+          supportedFeatures = ["big-parallel" "kvm"];
           mandatoryFeatures = [];
         }
         {
@@ -137,6 +161,7 @@ in {
           sshKey = "/etc/nixos/ssh/id_ed25519";
           maxJobs = 4;
           speedFactor = 3;
+          # NOTE: "kexec" NOT included → kernel modules won't be sent to sentry
           supportedFeatures = ["big-parallel"];
           mandatoryFeatures = [];
         }
