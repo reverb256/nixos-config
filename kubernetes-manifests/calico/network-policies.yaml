@@ -1,9 +1,9 @@
-# Calico Network Policies - Audit Mode
+# Calico Network Policies - Enforced
 #
-# These policies log network traffic without blocking it.
-# All traffic that would be denied is logged for analysis.
+# These policies enforce network traffic blocking.
+# All traffic that doesn't match Allow rules is denied.
 #
-# Purpose: Observe what would be denied before enforcing blocking.
+# Purpose: Enforce zero-trust network security for the cluster.
 #
 # CIDR Ranges:
 # - 10.1.1.0/24: Physical cluster network
@@ -20,11 +20,11 @@
 apiVersion: crd.projectcalico.org/v1
 kind: GlobalNetworkPolicy
 metadata:
-  name: default-deny-audit
+  name: default-deny-enforced
   annotations:
     description: |
-      Default-deny policy in AUDIT mode.
-      Logs all denied traffic without blocking.
+      Default-deny policy in ENFORCEMENT mode.
+      Blocks all traffic not explicitly allowed.
       Allows cluster-internal traffic and NodePorts.
 spec:
   # Apply to all namespaces
@@ -105,9 +105,9 @@ spec:
       - 53
     protocol: TCP
 
-  # LOG everything else (AUDIT MODE)
-  # Traffic that doesn't match any Allow rule above will be logged but not dropped
-  - action: Log
+  # DENY everything else (ENFORCEMENT MODE)
+  # Traffic that doesn't match any Allow rule above will be dropped
+  - action: Deny
     source:
       nets:
       - 0.0.0.0/0
@@ -172,9 +172,9 @@ spec:
       - 53
     protocol: TCP
 
-  # LOG everything else (AUDIT MODE)
-  # Traffic that doesn't match any Allow rule above will be logged but not dropped
-  - action: Log
+  # DENY everything else (ENFORCEMENT MODE)
+  # Traffic that doesn't match any Allow rule above will be dropped
+  - action: Deny
     destination:
       nets:
       - 0.0.0.0/0
