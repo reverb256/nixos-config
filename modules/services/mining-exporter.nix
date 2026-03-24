@@ -117,7 +117,7 @@ in {
             ${pkgs.gnused}/bin/sed 's/"/\\"/g; s/[^a-zA-Z0-9:_]/_/g'
           }
 
-          HOST_LABEL=\""$(echo "$HOSTNAME" | escape_label):${toString cfg.port}""
+          HOST_LABEL="'$(echo "$HOSTNAME" | escape_label):${toString cfg.port}'"
 
           # Temporary file for accumulating metrics
           METRICS_FILE="$METRICS_DIR/metrics.tmp"
