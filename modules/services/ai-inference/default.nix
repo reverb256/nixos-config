@@ -1,5 +1,5 @@
 # AI Inference Service - Main Module
-# Integrates with existing LM Studio installation
+# Backend integration for AI inference gateway
 {
   config,
   lib,
@@ -56,31 +56,14 @@ in {
 
       type = mkOption {
         type = types.enum [
-          "lm-studio"
           "vllm"
           "llama-cpp"
           "sglang"
           "zai"
           "pollinations"
         ];
-        default = "lm-studio";
+        default = "llama-cpp";
         description = "Backend inference engine type";
-      };
-
-      # LM Studio specific configuration
-      lmStudio = {
-        apiKey = mkOption {
-          type = types.str;
-          default = "";
-          description = "LM Studio API token (obtained from LM Studio settings)";
-        };
-
-        apiKeyFile = mkOption {
-          type = types.nullOr types.path;
-          default = null;
-          example = literalExpression "/run/agenix/lm-studio-api-key";
-          description = "Path to file containing LM Studio API token (takes precedence over apiKey)";
-        };
       };
 
       # ZAI-specific configuration
@@ -344,8 +327,8 @@ in {
         type = types.listOf types.str;
         default = [
           "vllm"
-          "lm-studio"
           "zai"
+          "pollinations"
         ];
         description = "Order of backend fallback on failure";
       };
@@ -819,43 +802,6 @@ in {
         description = "Sample rate for performance tracing (0.0 to 1.0)";
       };
     };
-
-    # LM Studio headless service (optional)
-    lm-studio-headless = mkOption {
-      type = types.nullOr (
-        types.submodule {
-          options = {
-            enable = mkOption {
-              type = types.bool;
-              default = false;
-              description = "Enable LM Studio headless service";
-            };
-            port = mkOption {
-              type = types.port;
-              default = 1234;
-              description = "Port for LM Studio API server";
-            };
-            host = mkOption {
-              type = types.str;
-              default = "127.0.0.1";
-              description = "Host address to bind to";
-            };
-            user = mkOption {
-              type = types.str;
-              default = "j_kro";
-              description = "User to run LM Studio as";
-            };
-            openFirewall = mkOption {
-              type = types.bool;
-              default = false;
-              description = "Open firewall for the configured port";
-            };
-          };
-        }
-      );
-      default = null;
-      description = "LM Studio headless service configuration (optional)";
-    };
   };
 
   # Import submodules at module level
@@ -869,6 +815,101 @@ in {
   ];
 
   config = mkIf cfg.enable {
+    # ============================================================================
+    # ASSERTIONS
+    # ============================================================================
+    assertions = [
+      {
+        assertion = cfg.backend.url != "";
+        message = ''
+          AI Inference Service requires a backend URL to be configured.
+
+          Current configuration:
+            services.ai-inference.backend.url = "${cfg.backend.url}"
+
+          Configure a backend URL in one of these ways:
+            services.ai-inference.backend.url = "http://127.0.0.1:1234";  # LM Studio
+            services.ai-inference.backend.url = "http://127.0.0.1:8080";  # Gateway
+        '';
+      }
+      {
+        assertion = cfg.backend.zai.enable -> (cfg.backend.zai.apiKey != "" || cfg.backend.zai.apiKeyFile != null);
+        message = ''
+          ZAI backend is enabled but no API key is configured.
+
+          When services.ai-inference.backend.zai.enable is true, you must configure:
+            services.ai-inference.backend.zai.apiKey = "your-api-key";
+            # OR
+            services.ai-inference.backend.zai.apiKeyFile = /run/agenix/zai-api-key;
+
+          Current configuration:
+            zai.enable = ${toString cfg.backend.zai.enable}
+            zai.apiKey = ${if cfg.backend.zai.apiKey != "" then "***" else "(not set)"}
+            zai.apiKeyFile = ${if cfg.backend.zai.apiKeyFile != null then toString cfg.backend.zai.apiKeyFile else "(not set)"}
+        '';
+      }
+      {
+        assertion = cfg.backend.type == "zai" -> (cfg.backend.zai.apiKey != "" || cfg.backend.zai.apiKeyFile != null);
+        message = ''
+          Backend type is "zai" but no ZAI API key is configured.
+
+          When using ZAI backend, configure an API key:
+            services.ai-inference.backend.zai.apiKey = "your-zai-api-key";
+            # OR
+            services.ai-inference.backend.zai.apiKeyFile = /run/agenix/zai-api-key;
+
+          Current configuration:
+            backend.type = "${cfg.backend.type}"
+            zai.apiKey = ${if cfg.backend.zai.apiKey != "" then "***" else "(not set)"}
+            zai.apiKeyFile = ${if cfg.backend.zai.apiKeyFile != null then toString cfg.backend.zai.apiKeyFile else "(not set)"}
+
+          Or change backend type to: vllm, llama-cpp, sglang, pollinations
+        '';
+      }
+      {
+        assertion = cfg.rag.enable -> cfg.rag.qdrant.enable;
+        message = ''
+          RAG is enabled but Qdrant vector database is not enabled.
+
+          When services.ai-inference.rag.enable is true, you must also enable Qdrant:
+            services.ai-inference.rag.qdrant.enable = true;
+
+          Current configuration:
+            rag.enable = ${toString cfg.rag.enable}
+            rag.qdrant.enable = ${toString cfg.rag.qdrant.enable}
+        '';
+      }
+      {
+        assertion = cfg.mcp.enable -> (builtins.length (lib.attrValues cfg.mcp.servers)) > 0;
+        message = ''
+          MCP broker is enabled but no MCP servers are configured.
+
+          Add MCP servers to:
+            services.ai-inference.mcp.servers.<name> = { ... };
+
+          Example:
+            services.ai-inference.mcp.servers.searxng = {
+              type = "local";
+              command = [ "${pkgs.python3}/bin/python3" "-m" "searxng_server" ];
+            };
+
+          Current configuration:
+            mcp.enable = ${toString cfg.mcp.enable}
+            mcp.servers (count) = ${toString (builtins.length (lib.attrValues cfg.mcp.servers))}
+        '';
+      }
+      {
+        assertion = cfg.security.maxRequestSize > 0;
+        message = ''
+          Invalid security.maxRequestSize: must be greater than 0.
+
+          Current value: ${toString cfg.security.maxRequestSize}
+
+          Recommended minimum: 1048576 (1MB)
+          Current default: 10485760 (10MB)
+        '';
+      }
+    ];
     # System packages
     environment.systemPackages = with pkgs; [
       config.services.ai-inference.package
@@ -906,18 +947,6 @@ in {
           ];
         }
       ];
-
-      # LM Studio headless service (optional)
-      lm-studio-headless = mkIf (cfg.lm-studio-headless != null && cfg.lm-studio-headless.enable) {
-        enable = true;
-        inherit
-          (cfg.lm-studio-headless)
-          port
-          host
-          user
-          openFirewall
-          ;
-      };
 
       # Redis for gateway middleware (caching, rate limiting, circuit breaker)
       # Using port 6380 to avoid conflict with fwupd-redis on 6379
