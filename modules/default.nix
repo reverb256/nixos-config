@@ -114,6 +114,7 @@
     ./services/podman-auto-update.nix
     ./services/glitchtip-selfhosted.nix
     ./services/caddy.nix
+    ./services/caddy-common.nix
     ./services/nextcloud.nix
     ./services/service-gateway.nix
     ./services/host-dashboard.nix
