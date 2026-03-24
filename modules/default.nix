@@ -109,7 +109,8 @@
     # ./services/qwen3-tts-preload.nix  # TEMP: Build failure (qwen-tts package)
     ./services/hermes-agent/default.nix
     ./services/nixos-share.nix
-    ./services/spacebot.nix
+    ./services/spacebot.nix  # Systemd/Podman deployment (current)
+    ./services/spacebot/default.nix  # Container module for Kubernetes (optional)
     ./services/podman-auto-update.nix
     ./services/glitchtip-selfhosted.nix
     ./services/caddy.nix
