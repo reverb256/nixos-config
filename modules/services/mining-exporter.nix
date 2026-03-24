@@ -40,7 +40,7 @@
 
     # Allow port reuse to avoid "Address already in use" on rapid restarts
     socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer("", PORT), MetricsHandler) as httpd:
+    with socketserver.TCPServer(("", PORT), MetricsHandler) as httpd:
         httpd.serve_forever()
   '';
 
