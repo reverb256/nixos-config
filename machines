@@ -7,8 +7,9 @@
 # All 4 cluster nodes are build servers (base x86_64, reverted from v3 on 2026-03-14)
 
 # Zephyr - K8s control plane + node (32 cores, 31GB RAM)
-# maxJobs=4 (~7.5GB per job, leaves 1GB headroom for system + AI)
-ssh-ng://j_kro@zephyr x86_64-linux - 4 8 kvm,big-parallel -
+# DISABLED as builder: maxJobs=0 (only 31GB RAM, OOMs building large packages like gamescope)
+# Previous: maxJobs=4 (~7.5GB per job, leaves 1GB headroom for system + AI)
+ssh-ng://j_kro@zephyr x86_64-linux - 0 1 kvm,big-parallel -
 
 # Nexus - K8s storage worker + NFS (24 cores, 46GB RAM)
 # maxJobs=2 (~7GB per job, leaves 4GB headroom for NFS)
