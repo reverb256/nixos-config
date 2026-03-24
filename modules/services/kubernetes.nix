@@ -119,6 +119,54 @@
         description = "External IP ranges to advertise via BGP (empty = all)";
       };
     };
+
+    # Calico IPVS configuration
+    calicoIpvs = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable IPVS (IP Virtual Server) for more efficient Kubernetes service load balancing";
+      };
+
+      autoHostRanges = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Automatically manage host address ranges for NAT";
+      };
+
+      strictArp = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable strict ARP mode for kube-proxy compatibility";
+      };
+    };
+
+    # Calico WireGuard configuration
+    calicoWireguard = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable WireGuard encryption for inter-node pod traffic";
+      };
+
+      listeningPort = lib.mkOption {
+        type = lib.types.port;
+        default = 51820;
+        description = "UDP port for WireGuard listening (default: 51820)";
+      };
+
+      routingRulePriority = lib.mkOption {
+        type = lib.types.int;
+        default = 100;
+        description = "WireGuard routing rule priority (higher = more preferred)";
+      };
+
+      interfaceName = lib.mkOption {
+        type = lib.types.str;
+        default = "wireguard.cali";
+        description = "WireGuard interface name";
+      };
+    };
   };
 
   config = let
@@ -155,7 +203,7 @@
     };
   in
     lib.mkIf config.services.kubernetes-module.enable {
-      # Assertions for BGP configuration validation
+      # Assertions for BGP and IPVS configuration validation
       assertions = [
         {
           assertion = config.services.kubernetes-module.calicoBgp.enable -> (config.services.kubernetes-module.calicoBgp.asNumber >= 64512 && config.services.kubernetes-module.calicoBgp.asNumber <= 65534);
@@ -165,6 +213,15 @@
           assertion = config.services.kubernetes-module.calicoBgp.enable -> builtins.match "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$" (builtins.head config.services.kubernetes-module.calicoBgp.serviceClusterIPs) != null;
           message = "BGP serviceClusterIPs must be valid CIDR notation (e.g., 10.96.0.0/12)";
         }
+      ];
+
+      # Load IPVS kernel modules if enabled
+      boot.kernelModules = lib.mkIf config.services.kubernetes-module.calicoIpvs.enable [
+        "ip_vs"           # IPVS core module
+        "ip_vs_rr"        # Round-robin scheduling
+        "ip_vs_wrr"       # Weighted round-robin scheduling
+        "ip_vs_sh"        # Source hashing scheduling
+        "nf_conntrack"    # Connection tracking (already loaded by default)
       ];
 
       # ============================================================================
@@ -289,7 +346,22 @@
             lib.mkIf (labels != "") "--node-labels=${labels}";
         };
         proxy.enable = true;
-        proxy.extraOpts = lib.mkForce "--cluster-cidr=10.244.0.0/16";  # Match Calico IPPool (override defaults)
+        # Configure kube-proxy mode: iptables (default) or ipvs (better performance)
+        proxy.extraOpts = lib.mkMerge [
+          # Default: iptables mode
+          (lib.mkIf (!config.services.kubernetes-module.calicoIpvs.enable) "--cluster-cidr=10.244.0.0/16")
+          # IPVS mode: O(1) lookup vs O(n) iptables, better for high-service-count clusters
+          (lib.mkIf config.services.kubernetes-module.calicoIpvs.enable (
+            lib.concatStringsSep " " [
+              "--cluster-cidr=10.244.0.0/16"
+              "--proxy-mode=ipvs"
+              "--ipvs-scheduler=rr"  # Round-robin scheduling
+              "--ipvs-min-sync-period=1s"
+              "--ipvs-sync-period=10s"
+              "--ipvs-strict-arp=true"  # Enable strict ARP for kube-proxy compatibility
+            ]
+          ))
+        ];
         # Calico runs as DaemonSet in Kubernetes, not as systemd service
       };
 
@@ -424,6 +496,13 @@
       # SYSTEMD SERVICE OVERRIDES - Control Plane Robustness
       # ============================================================================
       systemd.services = {
+        # Add IPVS tools to kube-proxy PATH
+        kube-proxy = lib.mkIf config.services.kubernetes-module.calicoIpvs.enable {
+          serviceConfig.Environment = lib.mkForce [
+            "PATH=${lib.makeBinPath (with pkgs; [iptables conntrack-tools coreutils findutils gnugrep gnused systemd ipset kmod])}"
+          ];
+        };
+
         # Setup NVIDIA containerd runtime configuration for GPU access
         nvidia-containerd-setup = lib.mkIf config.hardware.nvidia.enabled {
           description = "Setup NVIDIA containerd runtime configuration";
@@ -657,6 +736,10 @@ EOF
         kubernetes
         nvidia-container-toolkit
         cri-tools # crictl for CRI debugging
+      ] ++ lib.optionals config.services.kubernetes-module.calicoIpvs.enable [
+        ipvsadm    # IPVS administration tool
+        ipset      # IPset management for IPVS
+        kmod       # modprobe for kernel module management
       ];
 
       # kubectl aliases
