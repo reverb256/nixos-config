@@ -14,9 +14,6 @@ data:
       # Admin API on all interfaces for Kubernetes health probes
       admin 0.0.0.0:2019
 
-      # Auto HTTPS with Let's Encrypt
-      email admin@cluster.local
-
       # Default SNI for internal services
       default_sni cluster.local
     }
@@ -57,25 +54,23 @@ data:
     # ============================================================================
 
     # AI Inference Gateway
-    # NOT DEPLOYED: Service exists but has no matching pods (0/0 replicas)
-    # kubectl get endpoints ai-inference-gateway -n ai-inference shows <none>
-    # ai.cluster.local {
-    #   import security_headers
-    #   import compression
-    #   tls internal
-    #   reverse_proxy ai-inference-gateway.ai-inference.svc.cluster.local:8080 {
-    #     health_uri /health
-    #     health_interval 10s
-    #     health_timeout 5s
-    #   }
-    # }
+    ai.cluster.local {
+      import security_headers
+      import compression
+      tls internal
+      reverse_proxy ai-inference-gateway.ai-inference.svc.cluster.local:8080 {
+        health_uri /health
+        health_interval 10s
+        health_timeout 5s
+      }
+    }
 
     # Qdrant Vector Database
     qdrant.cluster.local {
       import security_headers
       import compression
       tls internal
-      reverse_proxy qdrant-service.ai-inference.svc.cluster.local:6333 {
+      reverse_proxy qdrant-external.ai-inference.svc.cluster.local:6333 {
         health_uri /
         health_interval 10s
         health_timeout 5s
@@ -185,15 +180,13 @@ data:
     #   }
     # }
 
-    # Akash Provider (public hostname with Cloudflare DNS challenge)
-    # NOTE: Requires CLOUDFLARE_API_TOKEN environment variable
-    # provider.reverb256.ca {
-    #   tls {
-    #     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-    #   }
-    #   import security_headers
-    #   reverse_proxy akash-provider.akash-services.svc.cluster.local:8443
-    # }
+    # Akash Provider (public hostname via Cloudflare Tunnel)
+    # NOTE: TLS terminated by Cloudflare Tunnel (tunnel provider.reverb256.ca)
+    # Caddy just needs to route HTTP traffic to the backend
+    http://provider.reverb256.ca {
+      import security_headers
+      reverse_proxy akash-provider.akash-services.svc.cluster.local:8443
+    }
 
     # ============================================================================
     # NODE DASHBOARDS (.lan) - Static dashboards for each cluster host

@@ -2,7 +2,7 @@
 OpenAI SDK client wrapper for AI Gateway.
 
 This module provides OpenAI client instances configured for different backends:
-- LM Studio (local OpenAI-compatible server)
+- llama.cpp (local OpenAI-compatible server)
 - ZAI (cloud OpenAI-compatible API)
 - Pollinations (free OpenAI-compatible API)
 
@@ -49,7 +49,7 @@ class OpenAIClientWrapper:
         Initialize OpenAI client wrapper.
 
         Args:
-            primary_url: Primary backend URL (e.g., LM Studio)
+            primary_url: Primary backend URL (e.g., llama.cpp)
             primary_api_key: API key for primary backend (optional for local)
             fallback_url: Fallback backend URL (e.g., ZAI)
             fallback_api_key: API key for fallback backend
@@ -57,7 +57,7 @@ class OpenAIClientWrapper:
             zai_models: List of ZAI models to try (in order)
         """
         self.primary_url = primary_url.rstrip("/")
-        # For local servers (LM Studio), use placeholder if no key provided
+        # For local servers (llama.cpp), use placeholder if no key provided
         # OpenAI SDK requires api_key to be set, but local servers don't validate it
         if primary_api_key and primary_api_key.strip():
             self.primary_api_key = primary_api_key
@@ -103,7 +103,7 @@ class OpenAIClientWrapper:
             messages: Chat messages
             model: Model name
             stream: Whether to stream response
-            backend: Backend to use ("lm-studio", "zai", or None for auto-detection)
+            backend: Backend to use ("llama-cpp", "zai", or None for auto-detection)
             **kwargs: Additional OpenAI parameters
 
         Returns:
@@ -116,9 +116,9 @@ class OpenAIClientWrapper:
         kwargs.pop("stream", None)
 
         # Filter out parameters not supported by OpenAI SDK
-        # These are used by LM Studio/Qwen models but not supported by OpenAI Python SDK
+        # These are used by llama.cpp/Qwen models but not supported by OpenAI Python SDK
         unsupported_params = [
-            "top_k",          # LM Studio sampling parameter
+            "top_k",          # llama.cpp sampling parameter
             "repeat_penalty", # Qwen-specific penalty
             "thinking",       # Qwen thinking mode flag
             "thinking_enabled", # Qwen thinking mode
@@ -143,8 +143,8 @@ class OpenAIClientWrapper:
             except Exception as e:
                 logger.error(f"ZAI backend failed: {str(e)}")
                 raise OpenAIBackendError(f"ZAI backend error: {str(e)}")
-        elif backend == "lm-studio":
-            logger.info(f"Using LM Studio backend directly for model: {model}")
+        elif backend == "llama-cpp":
+            logger.info(f"Using llama.cpp backend directly for model: {model}")
             try:
                 response = await self.primary_client.chat.completions.create(
                     messages=messages,
@@ -152,11 +152,11 @@ class OpenAIClientWrapper:
                     stream=stream,
                     **kwargs,
                 )
-                logger.info(f"LM Studio backend succeeded with model: {model}")
+                logger.info(f"llama.cpp backend succeeded with model: {model}")
                 return response
             except Exception as e:
-                logger.error(f"LM Studio backend failed: {str(e)}")
-                raise OpenAIBackendError(f"LM Studio backend error: {str(e)}")
+                logger.error(f"llama.cpp backend failed: {str(e)}")
+                raise OpenAIBackendError(f"llama.cpp backend error: {str(e)}")
         elif backend == "pollinations":
             logger.info(f"Using Pollinations backend directly for model: {model}")
             try:
@@ -365,12 +365,11 @@ def create_openai_client(config) -> OpenAIClientWrapper:
     """
     # Get primary backend credentials
     primary_api_key = None
-    if config.backend_type == "lm-studio":
-        primary_api_key = config.get_lm_studio_api_key()
-    elif config.backend_type == "zai":
+    if config.backend_type == "zai":
         primary_api_key = config.get_zai_api_key()
     elif config.backend_type == "pollinations":
         primary_api_key = config.get_pollinations_api_key()
+    # llama-cpp doesn't require authentication
 
     # Get fallback backend credentials
     fallback_url = None

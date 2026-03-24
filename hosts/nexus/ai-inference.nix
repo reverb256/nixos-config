@@ -1,10 +1,8 @@
 # AI Inference Service Configuration for Nexus
 # RTX 3060 Ti (8GB)
 # Storage and GPU compute node
-{...}: {
-  # Import the AI inference module
-  imports = [../../modules/services/ai-inference];
-
+# Note: ai-inference module is already imported via ../../modules/default.nix
+{ lib, ... }: {
   # Enable AI inference service
   services.ai-inference = {
     enable = true;
@@ -24,6 +22,9 @@
       host = "10.1.1.120"; # Listen on all interfaces for cluster access
       port = 8080;
       workers = 4;
+
+      # Enable Redis middleware for caching
+      middleware.redis.enable = true;
     };
 
     # Intelligent routing

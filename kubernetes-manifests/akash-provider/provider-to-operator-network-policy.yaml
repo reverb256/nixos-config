@@ -1,0 +1,26 @@
+# Allow Akash provider to connect to hostname and inventory operators
+# Required for provider health checks to operator services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-provider-to-operator-ingress
+  namespace: akash-services
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app.kubernetes.io/part-of
+      operator: In
+      values:
+      - provider
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: akash-provider
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8081

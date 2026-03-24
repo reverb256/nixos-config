@@ -65,8 +65,8 @@ class CacheConfig:
         exact_ttl_seconds: TTL for exact match cache (default: 3600s = 1 hour)
         semantic_ttl_seconds: TTL for semantic cache (default: 86400s = 24 hours)
         similarity_threshold: Minimum similarity score (0-1) for semantic hits (default: 0.85)
-        embedding_model: Model for embeddings (default: all-MiniLM-L6-v2 via LM Studio)
-        embedding_endpoint: LM Studio embedding endpoint (default: http://127.0.0.1:1234/v1/embeddings)
+        embedding_model: Model for embeddings (default: all-MiniLM-L6-v2)
+        embedding_endpoint: Embedding generation endpoint (default: http://127.0.0.1:1234/v1/embeddings)
         enable_exact_cache: Enable exact match caching
         enable_semantic_cache: Enable semantic caching
     """
@@ -431,9 +431,9 @@ class SemanticCache:
 
     async def _generate_embedding(self, messages: List[Dict[str, str]]) -> List[float]:
         """
-        Generate embedding for messages using LM Studio's embedding endpoint.
+        Generate embedding for messages using the embedding endpoint.
 
-        Uses the locally running LM Studio instance to generate embeddings,
+        Uses the local embedding service to generate embeddings,
         avoiding external API calls and keeping everything on-cluster.
 
         Args:
@@ -462,7 +462,7 @@ class SemanticCache:
             # Join messages for embedding
             text_to_embed = "\n".join(text_parts)
 
-            # Use LM Studio's embedding endpoint (configurable)
+            # Use the embedding endpoint (configurable)
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     self.config.embedding_endpoint,
@@ -480,16 +480,16 @@ class SemanticCache:
                         logger.debug(f"Generated embedding with {len(embedding)} dimensions")
                         return embedding
                     else:
-                        logger.warning("Empty embedding received from LM Studio")
+                        logger.warning("Empty embedding received from embedding service")
 
                 logger.warning(
-                    f"Failed to get embedding from LM Studio: {response.status_code}"
+                    f"Failed to get embedding from service: {response.status_code}"
                 )
 
         except ImportError:
             logger.warning("httpx not available - cannot generate embeddings")
         except Exception as e:
-            logger.warning(f"Error generating embedding with LM Studio: {e}")
+            logger.warning(f"Error generating embedding: {e}")
 
         # Fallback: Return zero vector (semantic cache won't work)
         # Note: This will cause semantic cache to always miss, but won't crash

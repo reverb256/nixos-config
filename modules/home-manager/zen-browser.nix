@@ -63,6 +63,13 @@
         ProviderURL = "https://security.cloudflare-dns.com/dns-query";
       };
 
+      # Install internal CA certificate for cluster services
+      Certificates = {
+        Install = [
+          "/home/j_kro/.local/share/certificates/cluster-ca.crt"
+        ];
+      };
+
       # Extension Management via Policies
       # - force_installed: Cannot be disabled by user (essential security)
       # - normal_installed: User can configure per-site exceptions

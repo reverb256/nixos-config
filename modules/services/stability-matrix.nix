@@ -74,7 +74,7 @@
     # Build environment for UV/pip on NixOS
     # Compiler symlinks are installed system-wide above
     # This means UV's isolated builds will find c++ in standard PATH
-    export PATH="${pkgs.gcc}/bin:${pkgs.cmake}/bin:${pkgs.pkg-config}/bin:${pkgs.gnumake}/bin:$PATH"
+    export PATH="${lib.makeBinPath [pkgs.gcc pkgs.cmake pkgs.pkg-config pkgs.gnumake]}:$PATH"
     export CC="gcc"
     export CXX="g++"
     export AR="ar"

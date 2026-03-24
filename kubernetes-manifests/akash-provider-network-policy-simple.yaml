@@ -1,0 +1,20 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-provider-external-https
+  namespace: akash-services
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: provider
+  policyTypes:
+  - Egress
+  egress:
+  # Allow all external HTTPS traffic
+  - ports:
+    - protocol: TCP
+      port: 443
+  - ports:
+    - protocol: TCP
+      port: 80

@@ -46,6 +46,23 @@
             "command": "if [[ \"$FILE_PATH\" == *.nix ]]; then nix flake check; fi"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$COMMAND\" == kubectl*delete*pods*--all* ]] || [[ \"$COMMAND\" == kubectl*delete*pods*-A* ]]; then echo 'ERROR: Forbidden bulk kubectl delete. Be specific: kubectl delete pods -n <namespace> -l <label>' >&2; exit 1; fi"
+          },
+          {
+            "type": "command",
+            "command": "if [[ \"$COMMAND\" == kubectl*scale*deploy*--all* ]] || [[ \"$COMMAND\" == kubectl*scale*--all-namespaces* ]]; then echo 'ERROR: Forbidden bulk kubectl scale. Be specific: kubectl scale deploy -n <namespace> <name> --replicas=1' >&2; exit 1; fi"
+          },
+          {
+            "type": "command",
+            "command": "if [[ \"$COMMAND\" == kubectl*delete*deployment* ]] && [[ \"$COMMAND\" != *--replicas=0* ]]; then echo 'WARNING: Always scale to 0 before deleting deployments: kubectl scale deploy <name> --replicas=0 && kubectl delete deploy <name>' >&2; fi"
+          }
+        ]
       }
     ]
   }

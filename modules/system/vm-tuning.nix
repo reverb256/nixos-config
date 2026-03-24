@@ -16,7 +16,7 @@
   # PSI-based: triggers when memory pressure is sustained
   services.earlyoom = {
     enable = true;
-    freeMemThreshold = 5; # Kill at 5% RAM free (~1.6GB)
+    freeMemThreshold = 12; # Kill at 12% RAM free (~3.8GB) - allows Genshin Impact (3.7GB) to launch
     freeSwapThreshold = 10; # Kill at 10% swap free (~3.2GB)
     enableNotifications = true; # Notify user before killing
   };
@@ -58,19 +58,28 @@
     "vm.swappiness" = lib.mkForce 40; # Earlier swap = smoother than thrashing
 
     # ========================================================================
+    # DIRTY MEMORY CAPS - Limit pending write cache
+    # ========================================================================
+    # Prevents dirty pages (pending disk writes) from consuming all RAM
+    # Default: dirty_ratio=20 (6.5GB), dirty_background_ratio=10 (3.2GB)
+    # Lower values = more frequent writeback, less memory pressure
+    "vm.dirty_ratio" = lib.mkForce 10; # Max 10% RAM before forced writeback (~3.2GB)
+    "vm.dirty_background_ratio" = lib.mkForce 5; # Start writeback at 5% RAM (~1.6GB)
+
+    # ========================================================================
     # VFS CACHE PRESSURE - Controls kernel cache reclaim priority
     # ========================================================================
     # Default 100 aggressively reclaims inode/dentry cache
     # Higher = reclaim cache more, lower = reclaim cache less
-    # 75 is better for desktop workloads with many file operations
-    "vm.vfs_cache_pressure" = lib.mkForce 75;
+    # 150 is more aggressive - frees slab cache faster under memory pressure
+    "vm.vfs_cache_pressure" = lib.mkForce 150;
 
     # ========================================================================
     # PAGE CACHE LIMITS - Prevent page cache from crowding anonymous memory
     # ========================================================================
     # Limit page cache to prevent it from consuming all memory
     # Helps keep working sets in RAM under memory pressure
-    "vm.page-cache-limit" = lib.mkDefault 0; # Disable (use default for now)
+    "vm.page-cache-limit" = lib.mkForce 1073741824; # 1GB cap (was: disabled)
 
     # ========================================================================
     # PAGE CLUSTER - Swap read-ahead performance

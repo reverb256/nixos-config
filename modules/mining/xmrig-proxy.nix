@@ -182,7 +182,9 @@ in {
           };
         }
         // lib.optionalAttrs (cfg.tokenFile != null) {
-          serviceConfig.ExecStart = lib.mkForce "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/xmrig-proxy --config /run/xmrig-proxy/config.json --no-color'";
+          serviceConfig.ExecStart = lib.mkForce (pkgs.writeShellScript "xmrig-proxy" ''
+            ${lib.getExe cfg.package} --config /run/xmrig-proxy/config.json --no-color
+          '');
         };
     };
   };

@@ -143,7 +143,93 @@
     };
   };
 
-  config = lib.mkIf config.services.compute-market.enable {
+  config = let
+    cfg = config.services.compute-market;
+  in
+    lib.mkIf cfg.enable {
+    # ============================================================================
+    # ASSERTIONS
+    # ============================================================================
+    assertions = [
+      {
+        assertion = cfg.auctionInterval > 0;
+        message = ''
+          GPU Marketplace requires a positive auction interval.
+
+          Current value: ${toString cfg.auctionInterval}
+
+          Recommended minimum: 30 (seconds)
+          Recommended maximum: 300 (5 minutes)
+        '';
+      }
+      {
+        assertion = cfg.bidders.mining.hourlyRevenue >= 0.0;
+        message = ''
+          Mining hourly revenue cannot be negative.
+
+          Current value: ${toString cfg.bidders.mining.hourlyRevenue}
+
+          This represents the baseline revenue per GPU per hour that mining generates.
+          Set to 0.0 if unknown, or calculate: monthly_revenue / 730 hours / num_gpus
+        '';
+      }
+      {
+        assertion = cfg.bidders.kubernetes.baseBid >= 0.0;
+        message = ''
+          Kubernetes base bid cannot be negative.
+
+          Current value: ${toString cfg.bidders.kubernetes.baseBid}
+
+          This represents the minimum hourly bid per GPU for Kubernetes workloads.
+          Typical range: $2.00-$5.00 per GPU per hour
+        '';
+      }
+      {
+        assertion = cfg.bidders.kubernetes.urgencyMultiplier >= 1.0;
+        message = ''
+          Kubernetes urgency multiplier must be at least 1.0.
+
+          Current value: ${toString cfg.bidders.kubernetes.urgencyMultiplier}
+
+          This multiplier is applied to the base bid for urgent jobs.
+          Range: 1.0 (no urgency) to 5.0 (high urgency)
+        '';
+      }
+      {
+        assertion = cfg.bidders.akash.profitMargin > 0.0 && cfg.bidders.akash.profitMargin <= 1.0;
+        message = ''
+          Akash profit margin must be between 0.0 and 1.0.
+
+          Current value: ${toString cfg.bidders.akash.profitMargin}
+
+          This represents the percentage of market price to bid.
+          Example: 0.90 = bid 90% of market rate (10% margin)
+        '';
+      }
+      {
+        assertion = lib.any (bidder: bidder.enable) (lib.attrValues cfg.bidders);
+        message = ''
+          GPU Marketplace requires at least one bidder to be enabled.
+
+          Currently enabled bidders: none
+
+          Enable at least one bidder:
+            services.compute-market.bidders.mining.enable = true;
+            services.compute-market.bidders.kubernetes.enable = true;
+            services.compute-market.bidders.akash.enable = true;
+            services.compute-market.bidders.gaming.enable = true;
+        '';
+      }
+      {
+        assertion = cfg.prometheus.port > 0 && cfg.prometheus.port < 65536;
+        message = ''
+          Invalid Prometheus metrics port: ${toString cfg.prometheus.port}
+
+          Port must be between 1 and 65535.
+          Default: 9200
+        '';
+      }
+    ];
     # ============================================================================
     # REQUIRED PACKAGES
     # ============================================================================

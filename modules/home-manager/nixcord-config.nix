@@ -69,7 +69,7 @@
       Environment = ["XDG_CURRENT_DESKTOP=KDE"];
       # Global ELECTRON_OZONE_PLATFORM_HINT=auto handles backend selection
       # --start-minimized: tray settings are in ~/.config/vesktop/settings.json (writable)
-      ExecStart = "${pkgs.vesktop}/bin/vesktop --start-minimized";
+      ExecStart = lib.getExe pkgs.vesktop + " --start-minimized";
       Restart = "on-failure";
       RestartSec = 5;
     };
