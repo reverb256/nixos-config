@@ -28,7 +28,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8081"
     spec:
-      nodeName: zephyr
+      nodeName: nexus
       # Removed hostNetwork: true - using ClusterIP service instead
       # This fixes asymmetric routing with Calico overlay network
       serviceAccountName: gpu-miner-sa
@@ -37,14 +37,14 @@ spec:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
+      # securityContext:
+      #   runAsNonRoot: true
+      #   runAsUser: 1000
+      #   fsGroup: 1000
       containers:
         - name: xmrig-proxy
-          image: xmrig-proxy:nixos-6.24.0
-          imagePullPolicy: Never
+          image: xmrig/xmrig:alpine
+          imagePullPolicy: IfNotPresent
           args:
             - "--config=/etc/xmrig-proxy/config.json"
             - "--no-color"
@@ -95,10 +95,10 @@ spec:
             name: xmrig-proxy-config
         - name: secrets
           secret:
-            secretName: xmrig-proxy-secret
+            secretName: xmrig-proxy-secrets
             items:
               - key: api-token
                 path: api-token
-              - key: kryptex-password
+              - key: pool-password
                 path: pool-password
 # Service definition moved to xmrig-proxy-service.yaml with proper ClusterIP
