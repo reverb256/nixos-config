@@ -74,6 +74,51 @@
       default = false;
       description = "If true, this node starts etcd with only itself in initial-cluster (for bootstrap)";
     };
+
+    # Calico BGP configuration
+    calicoBgp = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable Calico BGP for dynamic pod route advertisement between nodes";
+      };
+
+      asNumber = lib.mkOption {
+        type = lib.types.int;
+        default = 64512;
+        description = "BGP AS number (64512-65534 are private use range)";
+      };
+
+      nodeToNodeMeshEnabled = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable full mesh BGP peerings between all nodes";
+      };
+
+      logSeverityScreen = lib.mkOption {
+        type = lib.types.str;
+        default = "Info";
+        description = "Calico BGP log severity level (Debug, Info, Warning, Error)";
+      };
+
+      serviceClusterIPs = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = ["10.0.0.0/24"];
+        description = "ClusterIP CIDRs to advertise via BGP";
+      };
+
+      serviceLoadBalancerIPs = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [];
+        description = "LoadBalancer IP ranges to advertise via BGP (empty = all)";
+      };
+
+      serviceExternalIPs = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [];
+        description = "External IP ranges to advertise via BGP (empty = all)";
+      };
+    };
   };
 
   config = let
