@@ -1,0 +1,73 @@
+# Calico RBAC Fixes - Declarative Patch
+# Extends Tigera Operator's default RBAC to fix pod scheduling issues
+# Apply after every Calico reinstall or operator upgrade
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: calico-node-patch
+  labels:
+    rbac.calico.patch: "declarative-fix"
+rules:
+# IP pool management for pod IP allocation
+- apiGroups: ["crd.projectcalico.org"]
+  resources: ["ippools"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Block affinity for workload-to-node mapping
+- apiGroups: ["crd.projectcalico.org"]
+  resources: ["blockaffinities"]
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
+# IPAM blocks for IP address allocation
+- apiGroups: ["crd.projectcalico.org"]
+  resources: ["ipamblocks", "ipamhandles"]
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
+# Node status patching for network readiness
+- apiGroups: [""]
+  resources: ["nodes/status"]
+  verbs: ["patch"]
+# ConfigMap access for Felix configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: calico-node-patch-binding
+  labels:
+    rbac.calico.patch: "declarative-fix"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: calico-node-patch
+subjects:
+- kind: ServiceAccount
+  name: calico-node
+  namespace: calico-system
+---
+# Additional patch for calico-cni-plugin
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: calico-cni-plugin-patch
+  labels:
+    rbac.calico.patch: "declarative-fix"
+rules:
+- apiGroups: ["crd.projectcalico.org"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: calico-cni-plugin-patch-binding
+  labels:
+    rbac.calico.patch: "declarative-fix"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: calico-cni-plugin-patch
+subjects:
+- kind: ServiceAccount
+  name: calico-cni-plugin
+  namespace: calico-system
