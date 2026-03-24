@@ -51,6 +51,10 @@ spec:
           operator: "Equal"
           value: "true"
           effect: NoExecute
+        - key: "ram-constrained"
+          operator: "Equal"
+          value: "true"
+          effect: NoSchedule
       # REMOVED: gpu-power-limit init container (causing crashes)
       # GPU power limits now configured at host level via systemd
       containers:
@@ -59,12 +63,20 @@ spec:
           imagePullPolicy: Never
           args:
             - "--algo=CR29"
-            - "--pool=stratum+tcp://10.1.1.110:3333"
+            - "--pool=10.1.1.120:3333"
             - "--user=zephyr-gpu"
+            - "--pass=x"
+            - "--pool=xtm-c29-us.kryptex.network:8040"
+            - "--user=krxXVNVMM7.zephyr-gpu"
+            - "--pass=x"
+            - "--tls=1"
+            - "--pool=xtm-c29-eu.kryptex.network:8040"
+            - "--user=krxXVNVMM7.zephyr-gpu"
+            - "--pass=x"
+            - "--tls=1"
             - "--devices=1"
             - "--apiport=4068"
             - "--mode=b"
-            - "--tls=1"
           env:
             - name: LD_LIBRARY_PATH
               value: "/run/opengl-driver/lib:/nix/store"
