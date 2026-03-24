@@ -263,6 +263,11 @@ extraEnvs:
   # Helm chart bug: AP_CERT_ISSUER_ENABLED stays true regardless of letsEncrypt.enabled
   - name: AP_CERT_ISSUER_ENABLED
     value: "false"
+  # CRITICAL: Fix "client is not running" error by disabling withdrawal period
+  # Root cause: AKASH_WITHDRAWAL_PERIOD: 1h causes provider crash loop
+  # Solution: Set to empty string to disable periodic withdrawals
+  - name: AKASH_WITHDRAWAL_PERIOD
+    value: ""
   - name: CF_DNS_API_TOKEN
     valueFrom:
       secretKeyRef:
@@ -305,16 +310,18 @@ resources:
     cpu: "500m"
     memory: 512Mi
 
-# Tolerations for workstation nodes (zephyr)
-tolerations:
-  - key: interactive
-    operator: Equal
-    value: "true"
-    effect: NoExecute
-  - key: workstation
-    operator: Equal
-    value: "true"
-    effect: NoSchedule
+# CRITICAL: Removed workstation tolerations to prevent scheduling on zephyr
+# Zephyr has constant OOM exhaustion (31GB RAM for control plane + AI + gaming)
+# Provider MUST run on nexus (46GB RAM) to avoid resource conflicts
+# tolerations:
+#   - key: interactive
+#     operator: Equal
+#     value: "true"
+#     effect: NoExecute
+#   - key: workstation
+#     operator: Equal
+#     value: "true"
+#     effect: NoSchedule
 
 # Inventory operator configuration with tolerations for hardware-discovery pods
 inventory:
