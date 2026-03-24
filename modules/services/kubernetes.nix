@@ -103,7 +103,7 @@
 
       serviceClusterIPs = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = ["10.0.0.0/24"];
+        default = ["10.96.0.0/12"];
         description = "ClusterIP CIDRs to advertise via BGP";
       };
 
@@ -155,6 +155,18 @@
     };
   in
     lib.mkIf config.services.kubernetes-module.enable {
+      # Assertions for BGP configuration validation
+      assertions = [
+        {
+          assertion = config.services.kubernetes-module.calicoBgp.enable -> (config.services.kubernetes-module.calicoBgp.asNumber >= 64512 && config.services.kubernetes-module.calicoBgp.asNumber <= 65534);
+          message = "BGP AS number must be in private range 64512-65534 (got ${toString config.services.kubernetes-module.calicoBgp.asNumber})";
+        }
+        {
+          assertion = config.services.kubernetes-module.calicoBgp.enable -> builtins.match "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+$" (builtins.head config.services.kubernetes-module.calicoBgp.serviceClusterIPs) != null;
+          message = "BGP serviceClusterIPs must be valid CIDR notation (e.g., 10.96.0.0/12)";
+        }
+      ];
+
       # ============================================================================
       # DISABLE PODMAN DOCKER COMPATIBILITY (conflicts with Docker)
       # CRI-O and Docker configuration
