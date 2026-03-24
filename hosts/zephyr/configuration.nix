@@ -44,6 +44,24 @@
     unbound.listenAddress = "10.1.1.110"; # Listen on node IP for cluster DNS (VIP: 10.1.1.100 handled separately)
   };
 
+  # ============================================================================
+  # MEMORY OPTIMIZATION - Reduce kernel slab cache bloat
+  # ============================================================================
+  # Aggressive slab cache reclaim to reduce 3.1GB kernel memory footprint
+  boot.kernel.sysctl = {
+    # Aggressive vfs cache pressure (default: 100, higher = reclaim faster)
+    "vm.vfs_cache_pressure" = 1000;
+
+    # Reduce minimum free memory reservation (frees ~100MB)
+    "vm.min_free_kbytes" = 65536;  # 64MB minimum
+
+    # Network buffer reduction (frees unused socket buffers)
+    "net.core.rmem_default" = 262144;  # 256KB (default: 212992)
+    "net.core.wmem_default" = 262144;  # 256KB
+    "net.core.rmem_max" = 16777216;     # 16MB max (not 212992*128)
+    "net.core.wmem_max" = 16777216;
+  };
+
   networking = {
     cluster-hosts = {
       enable = true;
@@ -56,7 +74,6 @@
         18789 # Steam Remote Play
         18790 # Steam Remote Play (secondary)
         19898 # Moonlight/GameStream AND Spacebot Web UI
-        1234 # LM Studio API server
         3333 # XMRig stratum proxy (for GPU miners)
         8080 # AI Inference Gateway
         8083 # Llamafile standalone LLM service
@@ -213,6 +230,9 @@
       enable = true;
       tunnelId = "e67aedf0-a025-4231-9ee4-3fa6887c2d21";
 
+      # Change metrics port to avoid conflict (default 54162 was already in use)
+      metricsPort = 54163;
+
       # Enable QUIC protocol for 30-50% faster connections
       quicEnabled = true;
 
@@ -314,7 +334,8 @@
     };
 
     # Crash watchdog - detect and log system crashes
-    crash-watchdog.enable = true;
+    # TEMPORARILY DISABLED: Module being fixed (2026-03-23)
+    # crash-watchdog.enable = true;
 
     # Backup to Garage S3 - automated daily backups
     backup-to-garage = {
@@ -331,6 +352,9 @@
 
   # STATUS.md auto-update (hourly from kubectl)
   services.status-auto-update.enable = true;
+
+  # Internal CA for cluster services (trusted certificates)
+  services.cluster-ca.enable = true;
 
   # ============================================================================
   # HARDWARE PROFILES
@@ -420,6 +444,26 @@
       "nvidia_uvm" # Unified Memory (CRITICAL for multi-GPU!)
     ];
 
+    # Blacklist unused kernel modules to reduce memory footprint
+    # Each loaded module consumes memory - disable what we don't use
+    # NOTE: Bluetooth (btusb, bluetooth) and WiFi (iwlmvm, iwlwifi) ARE in use
+    blacklistedKernelModules = [
+      # Audio dummy modules (rarely used on desktop)
+      "snd_seq_dummy"
+      "snd_hrtimer"
+
+      # Filesystems not used (Zephyr uses ext4/btrfs only)
+      "ufs"
+      "hfs"
+      "hfsplus"
+      "reiserfs"
+
+      # Old networking protocols (not used)
+      "appletalk"
+      "ipx"
+      "decnet"
+    ];
+
     # Zephyr-specific kernel params for gaming
     # (Note: hardware.profiles.amd.zen adds split_lock_detect, threadirqs, preempt)
     kernelParams = [
@@ -432,6 +476,7 @@
       "btrfs.commit_interval=300"  # From btrfs-tuning module
     ];
   };
+
 
   # ============================================================================
   # ROLE PROFILES
@@ -487,6 +532,8 @@
 
     # NIX BINARY CACHE - Serve pre-built packages to cluster
     # Eliminates redundant builds across nodes, speeds up deployments
+    # ENABLED: Required for distributed builds (2026-03-24)
+    # Remote nodes need this cache available during builds
     binary-cache = {
       enable = true;
       port = 50000;
@@ -729,8 +776,8 @@
         };
       };
       gateway = {
-        enable = true;
-        host = "0.0.0.0";  # Listen on all interfaces for Kubernetes access
+        enable = false;  # MOVED TO NEXUS (2026-03-23) - See hosts/nexus/ai-inference.nix
+        # host = "0.0.0.0";  # Listen on all interfaces for Kubernetes access
         port = 8080;
         workers = 4;
         middleware.redis.enable = true;
@@ -740,7 +787,7 @@
           # All knowledge sources enabled
           rag_enabled = true;
           searxng_enabled = true;
-          searxng_url = "http://localhost:9999"; # Port-forward for testing (TODO: run gateway in K8s)
+          searxng_url = "http://10.1.1.120:30808"; # Nexus NodePort (host-accessible)
           searxng_max_results = 10;
           code_search_enabled = true;
           code_search_paths = [
@@ -818,7 +865,7 @@
               "ai_inference_gateway.mcp_servers.searxng_server"
             ];
             environment = {
-              SEARXNG_URL = "http://localhost:9999";  # Port-forward for testing
+              SEARXNG_URL = "http://searxng.search.svc.cluster.local:8080"; # Kubernetes service DNS
               SEARXNG_CACHE_TTL = "300";
             };
             enabled = true;
@@ -1107,7 +1154,7 @@
   # See: modules/system/agenix-secrets-registry.nix
   services.agenix-secrets-registry = {
     enable = true;
-    aiServices = true;
+    aiServices = false; # TEMPORARY: lm-studio-api-key.age missing (2026-03-23)
     monitoring = false; # TODO: Re-enable after creating sentry-dsn.age
     storage = true; # Required for backup-to-garage service (S3 API key)
     mining = true;
@@ -1154,8 +1201,7 @@
 
   # ============================================================================
   # AI INFERENCE SERVICE - Gateway with authentication and metrics
-  # Gateway routes to LM Studio backend with API token authentication
-  # Backend: LM Studio on port 1234
+  # Gateway routes to various backends (ZAI, vLLM, llama.cpp, etc.)
   # Gateway: OpenAI-compatible API on port 8080
   # ============================================================================
 
@@ -1378,37 +1424,10 @@
     GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1"; # Critical for heterogeneous GPU support
     GGML_CUDA_GPU_MEMORY_FRACTION = "0.9"; # Use 90% of GPU VRAM (leave headroom)
     LLAMA_GRAPH_POOL_SIZE = "0.2"; # CUDA Graphs pool (20% of VRAM)
-    # KV cache quantization (Q4_0) is configured per-model in LM Studio GUI
+    # KV cache quantization (Q4_0) is configured per-model in backend
   };
 
   # ============================================================================
-
-  # ============================================================================
-  # LLAMAFILE - STANDALONE LLM FALLBACK (Qwen3.5-Optimized)
-  # ============================================================================
-  # llama.cpp with Qwen3.5-optimized settings for low TTFT
-  # Uses Qwen3.5-2B base model (not reasoning-distilled) for compatibility
-  # Runs on port 8083 (8081/8082 used by xmrig, 8080 used by LM Studio)
-  # llama.cpp updated to b8419 (2026-03-19) for full Qwen3.5 support
-  services.llamafile = {
-    enable = true;
-    modelPath = "/home/j_kro/.lmstudio/models/unsloth/Qwen3.5-2B-GGUF/Qwen3.5-2B-IQ4_NL.gguf";
-    host = "0.0.0.0"; # Accept cluster connections
-    port = 8083;
-    gpu = "nvidia"; # Use CUDA backend (supports Flash Attention)
-    gpuLayers = 999; # Full offload
-    ctxSize = 16384; # 16K context (recommended for stability)
-    threads = 8;
-    batchSize = 512; # Standard batch size
-    ubatchSize = 512; # Standard micro-batch
-    # Enable Flash Attention with CUDA (fixes quantized cache issues)
-    flashAttention = true; # Flash Attention works with CUDA backend
-    parallelDecoding = 0; # Parallel decoding not supported in this version
-    enableThinking = false; # Thinking mode produces garbage output
-    reasoningBudget = 0; # Explicitly disable reasoning (override model template)
-    cacheTypeK = "bf16"; # Unsloth recommendation: fixes garbled output with Qwen3.5
-    cacheTypeV = "bf16"; # Unsloth recommendation: fixes garbled output with Qwen3.5
-  };
 
   # ============================================================================
 
@@ -1438,6 +1457,16 @@
   };
 
   # ============================================================================
+
+  # ============================================================================
+  # SWAP - 8GB swapfile to prevent OOM during builds (2026-03-23)
+  # ============================================================================
+  # Created with: truncate -s 0 /swapfile && chattr +C /swapfile && fallocate -l 8G /swapfile
+  # Btrfs-compatible swapfile (No_COW attribute set)
+  swapDevices = lib.mkForce [ {
+    device = "/swapfile";
+    size = 8192; # 8GB in MB
+  } ];
 
   # ============================================================================
   # SYSTEM STATE
