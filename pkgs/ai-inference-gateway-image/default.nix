@@ -2,8 +2,8 @@
   pkgs,
   system ? "x86_64-linux",
 }: let
-  # Gateway source code
-  gatewaySrc = /etc/nixos/modules/services/ai-inference/ai_inference_gateway;
+  # Gateway source code (relative to flake root)
+  gatewaySrc = ./../../modules/services/ai-inference/ai_inference_gateway;
 
   # Gateway source package
   gatewayPkgBase = pkgs.runCommand "ai-inference-gateway-pkg-base" {
