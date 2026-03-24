@@ -80,6 +80,8 @@ nfs-status:
 deploy target *args:
     #!/usr/bin/env bash
     set -e
+    # Cleanup stale locks before attempting deployment
+    /etc/nixos/scripts/cleanup-stale-locks.sh
     # Prevent concurrent colmena runs (lock timeout 5 seconds)
     exec {LOCK_FD}>/tmp/colmena-deploy.lock || exit 1
     flock -x -w 5 $LOCK_FD || { echo "⚠ Another deploy is already running"; exit 1; }

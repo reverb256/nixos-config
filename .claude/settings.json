@@ -35,6 +35,15 @@
             "command": "if [ \"$FILE_PATH\" = \"flake.lock\" ] || [[ \"$FILE_PATH\" == *flake.lock* ]]; then echo 'Error: flake.lock is auto-managed. Run \"nix flake update\" to update inputs.' >&2; exit 1; fi"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$COMMAND\" == *colmena*apply* ]] || [[ \"$COMMAND\" == *just*deploy* ]]; then /etc/nixos/scripts/cleanup-stale-locks.sh; fi"
+          }
+        ]
       }
     ],
     "PostToolUse": [
