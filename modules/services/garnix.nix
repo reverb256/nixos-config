@@ -22,9 +22,9 @@ in {
     nix.settings = {
       # Reduce TTL for presigned URLs that expire quickly
       narinfo-cache-positive-ttl = 3600;
-      # Add Garnix as a substituter
-      substituters = ["https://cache.garnix.io"];
-      trusted-public-keys = ["cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="];
+      # Add Garnix as a substituter (merged with distributed-builds.nix)
+      substituters = lib.mkOptionDefault ["https://cache.garnix.io"];
+      trusted-public-keys = lib.mkOptionDefault ["cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="];
     };
 
     # Create netrc file for Garnix authentication
