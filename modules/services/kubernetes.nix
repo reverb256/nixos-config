@@ -471,7 +471,8 @@
           ];
 
           allowedUDPPorts = lib.mkOptionDefault (
-            lib.optional config.services.kubernetes-module.calicoWireguard.enable config.services.kubernetes-module.calicoWireguard.listeningPort
+            [8472 4789] ++ lib.optional config.services.kubernetes-module.calicoWireguard.enable
+              config.services.kubernetes-module.calicoWireguard.listeningPort
           );
         })
 
@@ -485,7 +486,8 @@
             }
           ];
           allowedUDPPorts = lib.mkOptionDefault (
-            lib.optional config.services.kubernetes-module.calicoWireguard.enable config.services.kubernetes-module.calicoWireguard.listeningPort
+            [8472 4789] ++ lib.optional config.services.kubernetes-module.calicoWireguard.enable
+              config.services.kubernetes-module.calicoWireguard.listeningPort
           );
         } # Close worker config
       ]; # Close lib.mkMerge
