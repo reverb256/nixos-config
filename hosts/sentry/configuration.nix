@@ -114,8 +114,8 @@
       roles = ["master" "node"];
       # Use VIP for HA access
       masterAddress = lib.mkForce "10.1.1.100";
-      # TEMPORARY: Start as new etcd member to recover from corruption
-      etcdInitialState = "new";
+      # Join existing etcd cluster (recovery complete, reverted from temporary "new" state)
+      etcdInitialState = "existing";
       etcdName = "sentry";
       etcdListenHost = "10.1.1.140";
       # All 3 etcd cluster members
