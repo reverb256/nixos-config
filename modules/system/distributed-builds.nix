@@ -152,7 +152,7 @@ in {
             system = "x86_64-linux";
             sshUser = "j_kro";
             sshKey = "/etc/nixos/ssh/id_ed25519";
-            maxJobs = 4;
+            maxJobs = 0;  # DISABLED as builder (only 31GB RAM, OOMs building large packages like gamescope)
             speedFactor = 4;
             # NOTE: "kexec" NOT included → kernel modules won't be sent to zephyr
             supportedFeatures = ["big-parallel" "kvm"];
