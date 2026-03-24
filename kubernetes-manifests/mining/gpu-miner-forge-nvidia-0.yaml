@@ -19,6 +19,7 @@ spec:
       app: gpu-miner-forge
       gpu-type: nvidia
       gpu-id: "0"
+      host: forge
   strategy:
     type: RollingUpdate
     rollingUpdate:
