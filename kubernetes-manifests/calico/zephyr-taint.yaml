@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Node
+metadata:
+  name: zephyr
+  labels:
+    ram-constrained: "true"
+spec:
+  taints:
+  - key: workstation
+    value: "true"
+    effect: NoSchedule
+  - key: interactive
+    value: "true"
+    effect: NoExecute
+  - key: ram-constrained
+    value: "true"
+    effect: NoSchedule
