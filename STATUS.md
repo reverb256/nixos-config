@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-03-23 10:40 UTC | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
+**Last Updated:** 2026-03-24 21:50 UTC | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 >
@@ -15,7 +15,7 @@
 | **Kubernetes** | 🟢 RUNNING | v1.35.0, 4 nodes joined |
 | **Control Plane** | 🟢 OPERATIONAL | Zephyr: apiserver, etcd, scheduler, controller-manager |
 | **Worker Nodes** | 🟢 4/4 READY | Zephyr, Nexus, Forge, Sentry (etcd corruption recovered) |
-| **Networking** | 🟢 OPERATIONAL | Flannel CNI (VXLAN), CoreDNS, Unbound cluster DNS |
+| **Networking** | 🟢 OPERATIONAL | Calico CNI (IPIP, BGP, IPVS, WireGuard), CoreDNS, Unbound cluster DNS |
 | **Ingress Controller** | 🟢 OPERATIONAL | Caddy Ingress (3/3 nodes: nexus, forge, sentry) |
 | **GPU Passthrough** | 🟢 PARTIAL | Zephyr: 2x NVIDIA (✓), Forge: 2x AMD + 2x NVIDIA (⚠️) |
 | **Monitoring** | 🟢 RUNNING | Prometheus, Grafana, AlertManager, node-exporters, Caddy metrics |
@@ -67,6 +67,7 @@ sentry   NotReady   monitoring                     5h49m   v1.35.0
 **Known Issues:**
 - 🟡 **Controller deadzone:** Per-game configuration needed (linuxconsole package removed from nixpkgs)
 - 🟡 **AMD GPU mining:** GLIBC incompatibility requires host-based mining (workaround operational)
+- 🟡 **Calico BGP on Forge/Sentry:** BGP peering degraded (2/4 nodes READY). Forge and Sentry have link-local IPv6 only, which doesn't work with BGP multihop. Cluster functional (pods scheduling), see `docs/kubernetes/calico-bgp-fix-2026-03-23.md`
 
 ---
 
@@ -83,8 +84,8 @@ sentry   NotReady   monitoring                     5h49m   v1.35.0
 
 ### Kubernetes Pods (Namespaces)
 - **ingress-system:** caddy-ingress DS (2 pods on nexus, sentry)
-- **kube-system:** coredns, flannel, nvidia-device-plugin, amd-gpu-device-plugin
-- **kube-flannel:** flannel DS pods
+- **kube-system:** coredns, calico-node (4 pods), nvidia-device-plugin, amd-gpu-device-plugin
+- **calico-system:** calico-node DS (4 pods, 2/4 READY - see Known Issues)
 - **kube-system:** gpu-scheduler-state ConfigMap (gaming state coordination)
 - **local-path-storage:** local-path-provisioner
 - **mining:** gpu-miner-forge-nvidia-0/1 (K8s), gpu-miner-forge-amd-0/1 (K8s), gpu-miner-zephyr (K8s), xmrig-proxy

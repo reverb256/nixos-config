@@ -1,0 +1,8 @@
+# Disable IPv6 autodetection on Forge (node has no IPv6 interfaces)
+# This prevents calico-node CrashLoopBackOff when Felix tries to autodetect IPv6
+apiVersion: crd.projectcalico.org/v1
+kind: FelixConfiguration
+metadata:
+  name: default
+spec:
+  ipv6Support: false
