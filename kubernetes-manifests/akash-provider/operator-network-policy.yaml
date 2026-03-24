@@ -1,0 +1,33 @@
+# Allow Akash provider operators to access Kubernetes API server
+# Required for hostname and inventory operators to function
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-operator-egress
+  namespace: akash-services
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: provider
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS resolution (CoreDNS)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow communication with Kubernetes API server
+  - to:
+    - ipBlock:
+        cidr: 10.1.1.0/24  # Cluster network range
+    ports:
+    - protocol: TCP
+      port: 6443  # Kubernetes API server
+  # Allow HTTPS to kubernetes.default.svc (port 443)
+  - ports:
+    - protocol: TCP
+      port: 443

@@ -2,6 +2,7 @@
 # Reduces boilerplate for common option patterns
 {
   lib,
+  types,
   ...
 }: rec {
   /*

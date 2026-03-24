@@ -11,6 +11,12 @@
     ./common/environment-variables.nix
     ./common/firewall-ports.nix
 
+    # Helper libraries (DRY enforcement)
+    # TEMPORARILY DISABLED: Being fixed (2026-03-23)
+    # ./lib/systemd-helpers.nix
+    # ./lib/firewall-helpers.nix
+    # ./lib/option-helpers.nix
+
     # Network configuration
     ./network-constants.nix
 
@@ -115,6 +121,7 @@
     ./services/whisper-dictation.nix
     ./services/cloudflared.nix # Cloudflare Tunnel for Akash provider ingress
     ./services/akash-cloudflare-integration.nix # DNS, cache, metrics for Akash
+    ./services/cluster-ca.nix # Internal CA for cluster services
     ./services/unbound-cluster.nix
     ./services/syncthing.nix
     ./services/garage.nix # S3-compatible distributed object storage
@@ -123,7 +130,8 @@
     ./services/rclone.nix # Cloud storage sync (70+ providers)
     ./services/n8n.nix
     ./services/vaultwarden.nix
-    ./services/health-checks.nix
+    # TEMPORARILY DISABLED: Being fixed (2026-03-23)
+    # ./services/health-checks.nix
     ./services/self-healing-alerts.nix
 
     # Monitoring
@@ -131,7 +139,8 @@
     ./services/monitoring/node-exporter.nix
 
     # Crash detection and diagnostics
-    ./services/crash-watchdog.nix
+    # TEMPORARILY DISABLED: Being fixed (2026-03-23)
+    # ./services/crash-watchdog.nix
 
     # Exporters
     ./services/gpu-exporters.nix

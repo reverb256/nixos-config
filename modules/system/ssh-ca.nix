@@ -162,7 +162,9 @@ in {
         Type = "oneshot";
         User = "j_kro";
         RemainAfterExit = true;
-        ExecStart = "${pkgs.bash}/bin/bash -c 'ssh-sign-cert $HOME/.ssh/id_ed25519 j_kro ${config.services.ssh-ca.certificateValidity}'";
+        ExecStart = pkgs.writeShellScript "ssh-cert-refresh" ''
+          ssh-sign-cert $HOME/.ssh/id_ed25519 j_kro ${config.services.ssh-ca.certificateValidity}
+        '';
       };
     };
 

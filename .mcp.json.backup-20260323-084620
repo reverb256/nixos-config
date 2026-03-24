@@ -1,0 +1,47 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "mcp-filesystem",
+      "args": [
+        "/etc/nixos",
+        "/home/j_kro"
+      ]
+    },
+    "git": {
+      "command": "mcp-git"
+    },
+    "fetch": {
+      "command": "mcp-fetch"
+    },
+    "context7": {
+      "command": "mcp-context7"
+    },
+    "grep-app": {
+      "command": "mcp-grep-app"
+    },
+    "chrome-devtools": {
+      "command": "mcp-chrome-devtools"
+    },
+    "playwright": {
+      "command": "mcp-playwright",
+      "env": {
+        "CHROMIUM_PATH": "/etc/nixos/node_modules/playwright-core/.local-browsers/chrome/chrome-linux64/chrome"
+      }
+    },
+    "nixos": {
+      "command": "uvx",
+      "args": [
+        "mcp-nixos"
+      ]
+    },
+    "gateway": {
+      "command": "mcp-gateway-bridge"
+    },
+    "searxng": {
+      "command": "/etc/nixos/modules/services/ai-inference/bin/opencode-searxng-mcp",
+      "env": {
+        "SEARXNG_URL": "http://searxng.search.svc.cluster.local:8080"
+      }
+    }
+  }
+}

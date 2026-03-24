@@ -16,6 +16,9 @@
     # Hardware configuration (generated)
     ./hardware-configuration.nix
 
+    # AI Inference Service - MOVED from Zephyr
+    ./ai-inference.nix
+
     # All other modules (desktop, gaming, networking, services, etc.)
     ../../modules/default.nix
 
@@ -367,7 +370,7 @@
     compute-workload-monitor.enable = true;
 
     # Crash detection and logging
-    crash-watchdog.enable = true;
+    # services.crash-watchdog.enable = true; # Module not available yet
 
     # Kubernetes worker configuration provided by node-profiles.nexus-gaming
     # No need to duplicate here

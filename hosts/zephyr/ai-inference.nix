@@ -9,25 +9,12 @@
   services.ai-inference = {
     enable = true;
 
-    # Backend: LM Studio headless (runs via systemd)
-    backend = {
-      url = "http://127.0.0.1:1234"; # LM Studio default
-      type = "lm-studio";
-      lmStudio = {
-        apiKeyFile = "/run/agenix/lm-studio-api-key"; # Load token from agenix
-      };
-    };
-
-    # Enable LM Studio headless service
-    lm-studio-headless = {
-      enable = true;
-      port = 1234;
-      host = "127.0.0.1";
-    };
+    # Backend: Removed LM Studio (not used)
+    # To use: Configure zai, vllm, or llama.cpp backend instead
 
     # Gateway configuration
     gateway = {
-      enable = true;
+      enable = false; # DISABLED: Moved to Nexus due to memory constraints on Zephyr
       host = "127.0.0.1"; # Local only initially
       port = 8080;
       workers = 4;

@@ -129,5 +129,7 @@ in
       description = "Self-improving AI agent by Nous Research";
       homepage = "https://hermes-agent.nousresearch.com/";
       license = licenses.mit;
+      mainProgram = "hermes-acp";
+      platforms = lib.platforms.linux;
     };
   }

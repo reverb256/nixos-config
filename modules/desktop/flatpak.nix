@@ -104,7 +104,7 @@ in {
       wants = ["network-online.target" "spotx-patch.service"];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.flatpak}/bin/flatpak update --assumeyes";
+        ExecStart = lib.getExe pkgs.flatpak + " update --assumeyes";
         User = "root";
       };
       # Trigger SpotX patching after Flatpak updates

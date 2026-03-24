@@ -35,7 +35,7 @@ in {
         description = "OpenCode Gateway Health Monitor";
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "${pkgs.bash}/bin/bash ${./scripts/ensure-opencode-gateway.sh} repair";
+          ExecStart = lib.getExe pkgs.bash + " ${./scripts/ensure-opencode-gateway.sh} repair";
           User = "root";
           Group = "root";
         };

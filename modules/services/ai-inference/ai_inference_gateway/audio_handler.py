@@ -204,7 +204,7 @@ class Qwen3AudioHandler:
                     timestamp_granularities=timestamp_granularities
                 )
             else:
-                # Use cloud backend via LM Studio or API
+                # Use cloud backend via llama.cpp or API
                 return await self._transcribe_via_backend(
                     audio_data=audio_data,
                     audio_format=audio_format,
@@ -368,9 +368,9 @@ class Qwen3AudioHandler:
         temperature: float,
         response_format: str
     ) -> Dict[str, Any]:
-        """Transcribe using cloud backend (LM Studio or compatible API)."""
+        """Transcribe using cloud backend (llama.cpp or compatible API)."""
         # For now, we'll use a placeholder that indicates the feature needs local models
-        # In production, this could call LM Studio's audio endpoint or another STT API
+        # In production, this could call llama.cpp's audio endpoint or another STT API
         raise HTTPException(
             status_code=501,
             detail="Cloud STT not yet configured. Please enable local models with enable_local_models=True "

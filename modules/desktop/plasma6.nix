@@ -397,7 +397,7 @@ in {
         Description=Genshin Impact - Always on TV (HDMI-A-2)
         wmclass=.*GenshinImpact.*
         wmclassmatch=2
-        screen=3
+        screen=1
         screenrule=3
         fullscreen=true
         fullscreenrule=3

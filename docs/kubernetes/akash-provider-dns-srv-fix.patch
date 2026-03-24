@@ -1,0 +1,23 @@
+diff --git a/cluster/util/service_discovery_agent.go b/cluster/util/service_discovery_agent.go
+index 8bb83e8..8ff1dab 100644
+--- a/cluster/util/service_discovery_agent.go
++++ b/cluster/util/service_discovery_agent.go
+@@ -6,6 +6,7 @@ import (
+ 	"fmt"
+ 	"math/rand"
+ 	"net"
++	"strings"
+ 	"time"
+ 
+ 	"cosmossdk.io/log"
+@@ -247,7 +248,9 @@ func (sda *serviceDiscoveryAgent) discoverDNS() (clientFactory, error) {
+ 		if isHTTPS {
+ 			proto = "https"
+ 		}
+-		discoveredURL := fmt.Sprintf("%s://%v:%v", proto, choice.Target, choice.Port)
++		// Strip trailing dot from DNS SRV target to avoid malformed URLs (e.g., "cluster.local.:8080")
++		target := strings.TrimSuffix(choice.Target, ".")
++		discoveredURL := fmt.Sprintf("%s://%v:%v", proto, target, choice.Port)
+ 
+ 		return newHTTPWrapperServiceClient(isHTTPS, secure, discoveredURL)
+ 	}, nil

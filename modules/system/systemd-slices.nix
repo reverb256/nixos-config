@@ -35,6 +35,7 @@ _: {
       "gaming.slice" = {
         description = "Gaming applications slice";
         sliceConfig = {
+          OOMScoreAdjust = -1000; # Maximum protection from OOM killer
           MemoryHigh = "90%"; # High memory priority for games
           CPUQuota = "95%"; # High CPU priority for games
           CPUAccounting = "yes";

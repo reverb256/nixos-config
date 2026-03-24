@@ -2179,16 +2179,16 @@ in {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        ExecStart = pkgs.writeShellScript "grafana-dashboard-provision" ''
+          mkdir -p ${dashboardsDir}
+          cp ${pkgs.writeText "reverb-os-unified.json" unifiedDashboard} ${dashboardsDir}/reverb-os-unified.json
+          cp ${pkgs.writeText "ai-inference-gateway.json" aiInferenceDashboard} ${dashboardsDir}/ai-inference-gateway.json
+          cp ${../../compute-market/grafana-dashboard.json} ${dashboardsDir}/gpu-marketplace.json
+          chown grafana:grafana ${dashboardsDir}/reverb-os-unified.json ${dashboardsDir}/ai-inference-gateway.json ${dashboardsDir}/gpu-marketplace.json
+          chmod 644 ${dashboardsDir}/reverb-os-unified.json ${dashboardsDir}/ai-inference-gateway.json ${dashboardsDir}/gpu-marketplace.json
+        '';
       };
-      script = ''
-        mkdir -p ${dashboardsDir}
-        cp ${pkgs.writeText "reverb-os-unified.json" unifiedDashboard} ${dashboardsDir}/reverb-os-unified.json
-        cp ${pkgs.writeText "ai-inference-gateway.json" aiInferenceDashboard} ${dashboardsDir}/ai-inference-gateway.json
-        cp ${../../compute-market/grafana-dashboard.json} ${dashboardsDir}/gpu-marketplace.json
-        chown grafana:grafana ${dashboardsDir}/reverb-os-unified.json ${dashboardsDir}/ai-inference-gateway.json ${dashboardsDir}/gpu-marketplace.json
-        chmod 644 ${dashboardsDir}/reverb-os-unified.json ${dashboardsDir}/ai-inference-gateway.json ${dashboardsDir}/gpu-marketplace.json
-        chmod 644 ${dashboardsDir}/reverb-os-unified.json ${dashboardsDir}/ai-inference-gateway.json
-      '';
+    };
     };
 
     # Open firewall

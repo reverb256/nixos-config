@@ -25,7 +25,13 @@ in {
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.bash}/bin/bash -c 'if [ ! -f ${cfg.apiKeyFile} ]; then echo \"API key file not found: ${cfg.apiKeyFile}\"; exit 1; fi; echo \"API key file found\"'";
+        ExecStart = pkgs.writeShellScript "ai-inference-validate-keys" ''
+          if [ ! -f ${cfg.apiKeyFile} ]; then
+            echo "API key file not found: ${cfg.apiKeyFile}"
+            exit 1
+          fi
+          echo "API key file found"
+        '';
         User = "root";
       };
     };
