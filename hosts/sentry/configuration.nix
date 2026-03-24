@@ -88,6 +88,9 @@
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.sentry-monitoring.enable = true;
 
+  # Use llama-cpp backend instead of ZAI (sentry doesn't have ZAI API key)
+  services.ai-inference.backend.type = "llama-cpp";
+
   # ============================================================================
   # GPU COMPUTE - ROCm/Vulkan support for AI inference
   # ============================================================================
@@ -238,7 +241,7 @@
   # ============================================================================
   services = {
     # Crash detection and logging
-    crash-watchdog.enable = true;
+    # services.crash-watchdog.enable = true; # Module not available yet
 
     # Compute Workload Monitor - Pause mining during builds/gaming
     compute-workload-monitor.enable = true;

@@ -29,16 +29,6 @@ in {
     hosts.zephyr
   ];
 
-  # LM Studio API key - Local AI model API
-  "lm-studio-api-key.age".publicKeys = [
-    users.j_kro
-    hosts.zephyr
-  ];
-  "secrets/lm-studio-api-key.age".publicKeys = [
-    users.j_kro
-    hosts.zephyr
-  ];
-
   # ZAI API key - ZAI Coding Plan API
   "zai-api-key.age".publicKeys = [
     users.j_kro

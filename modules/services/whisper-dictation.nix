@@ -302,7 +302,7 @@ in {
       serviceConfig = {
         Type = "simple";
         User = "root";
-        ExecStart = "${pkgs.ydotool}/bin/ydotoold";
+        ExecStart = lib.getExe pkgs.ydotool;
         Restart = "on-failure";
         RestartSec = 5;
       };

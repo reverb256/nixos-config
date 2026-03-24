@@ -41,8 +41,10 @@ in {
 
         meta = with lib; {
           description = "Multi-pool stratum mining proxy with failover";
+          homepage = "https://github.com/siv2k/mining-proxy";
           license = licenses.gpl3;
           platforms = platforms.unix;
+          mainProgram = "mining-proxy";
         };
       };
       description = "Mining proxy package";

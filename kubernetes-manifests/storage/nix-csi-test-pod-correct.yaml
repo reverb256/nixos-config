@@ -1,0 +1,79 @@
+# Test pod for nix-csi driver using correct CSI ephemeral volume format
+# Based on: https://github.com/Lillecarl/nix-csi/blob/main/demo/pod.nix
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nix-csi-test
+  namespace: default
+  labels:
+    app: nix-csi-test
+    purpose: testing
+  annotations:
+    description: "Test pod for nix-csi driver - correct CSI ephemeral volume format"
+spec:
+  serviceAccountName: default
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  containers:
+  - name: test
+    # Use the official nix-csi scratch image which has proper PATH setup
+    image: ghcr.io/lillecarl/nix-csi/scratch:1.0.1
+    command: ["bash", "-c"]
+    args:
+    - |
+      echo "=== nix-csi Driver Test ==="
+      echo "Testing /nix mount..."
+      ls -la /nix | head -20
+      echo ""
+      echo "Testing Nix packages..."
+      which nix
+      nix --version
+      echo ""
+      echo "Testing package access..."
+      if [ -d "/nix/store" ]; then
+        echo "✅ /nix/store accessible"
+        echo "Store entries: $(ls /nix/store | wc -l)"
+      else
+        echo "❌ /nix/store not accessible"
+        exit 1
+      fi
+      echo ""
+      echo "Testing hello command..."
+      hello
+      echo ""
+      echo "=== All tests passed ==="
+      echo "Sleeping for 1 hour to allow inspection..."
+      sleep 3600
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      capabilities:
+        drop:
+        - ALL
+    volumeMounts:
+    - name: nix-volume
+      mountPath: /nix
+      # Must use subPath to mount the /nix subdirectory from the volume
+      subPath: nix
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
+  volumes:
+  - name: nix-volume
+    csi:
+      driver: nix.csi.store
+      readOnly: true
+      # Specify architecture-specific store path
+      volumeAttributes:
+        x86_64-linux: /nix/store
+  restartPolicy: Never
+  # Schedule on nexus where nix-csi driver is confirmed running
+  nodeSelector:
+    kubernetes.io/hostname: nexus

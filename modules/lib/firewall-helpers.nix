@@ -2,7 +2,7 @@
 # Simplifies common firewall rule patterns
 {
   lib,
-  pkgs,
+  config,
   ...
 }: rec {
   /*

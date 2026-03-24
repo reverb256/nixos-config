@@ -1,0 +1,16 @@
+# StorageClass for nix-csi driver
+# Provides read-only access to /nix/store via CSI ephemeral volumes
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nix-store
+  labels:
+    app: nix-csi-driver
+    storage-type: nix-store
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+    description: "Read-only Nix store access via nix-csi driver"
+provisioner: nix.csi.driver
+volumeBindingMode: Immediate
+reclaimPolicy: Retain

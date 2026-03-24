@@ -94,13 +94,13 @@ def extract_images_from_message(
     return images
 
 
-def convert_to_lmstudio_vision_format(
+def convert_to_backend_vision_format(
     messages: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """
-    Convert OpenAI multimodal messages to LM Studio format.
+    Convert OpenAI multimodal messages to backend format.
 
-    LM Studio expects:
+    Backend expects:
     {
       "role": "user",
       "content": [
@@ -113,9 +113,9 @@ def convert_to_lmstudio_vision_format(
         messages: OpenAI format messages
 
     Returns:
-        LM Studio format messages with preserved images
+        Backend format messages with preserved images
     """
-    lmstudio_messages = []
+    backend_messages = []
 
     for message in messages:
         role = message.get("role", "user")
@@ -123,17 +123,17 @@ def convert_to_lmstudio_vision_format(
 
         if isinstance(content, str):
             # Simple text message
-            lmstudio_messages.append({"role": role, "content": content})
+            backend_messages.append({"role": role, "content": content})
 
         elif isinstance(content, list):
             # Multimodal message - preserve structure
-            lmstudio_content = []
+            multimodal_content = []
 
             for block in content:
                 block_type = block.get("type")
 
                 if block_type == "text":
-                    lmstudio_content.append(
+                    multimodal_content.append(
                         {"type": "text", "text": block.get("text", "")}
                     )
 
@@ -143,13 +143,13 @@ def convert_to_lmstudio_vision_format(
                     if isinstance(url, dict):
                         url = url.get("url", "")
 
-                    lmstudio_content.append(
+                    multimodal_content.append(
                         {"type": "image", "image_url": {"url": url}}
                     )
 
-            lmstudio_messages.append({"role": role, "content": lmstudio_content})
+            backend_messages.append({"role": role, "content": multimodal_content})
 
-    return lmstudio_messages
+    return backend_messages
 
 
 def is_vision_capable_model(model_id: str) -> bool:
@@ -299,7 +299,7 @@ def get_vision_model_recommendation(task_description: str = "") -> str:
 __all__ = [
     "detect_vision_content",
     "extract_images_from_message",
-    "convert_to_lmstudio_vision_format",
+    "convert_to_backend_vision_format",
     "is_vision_capable_model",
     "recommend_vision_model",
     "validate_image_url",

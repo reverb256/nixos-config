@@ -2,7 +2,10 @@
   "mcpServers": {
     "filesystem": {
       "command": "mcp-filesystem",
-      "args": ["/etc/nixos", "/home/j_kro"]
+      "args": [
+        "/etc/nixos",
+        "/home/j_kro"
+      ]
     },
     "git": {
       "command": "mcp-git"
@@ -22,12 +25,14 @@
     "playwright": {
       "command": "mcp-playwright",
       "env": {
-        "CHROMIUM_PATH": "/etc/nixos/node_modules/playwright-core/.local-browsers/chromium-1208/chrome-linux64/chrome"
+        "CHROMIUM_PATH": "/etc/nixos/node_modules/playwright-core/.local-browsers/chrome/chrome-linux64/chrome"
       }
     },
     "nixos": {
       "command": "uvx",
-      "args": ["mcp-nixos"]
+      "args": [
+        "mcp-nixos"
+      ]
     },
     "gateway": {
       "command": "mcp-gateway-bridge"
@@ -35,7 +40,7 @@
     "searxng": {
       "command": "/etc/nixos/modules/services/ai-inference/bin/opencode-searxng-mcp",
       "env": {
-        "SEARXNG_URL": "http://10.0.0.247:8080"
+        "SEARXNG_URL": "http://10.1.1.120:30808"
       }
     }
   }

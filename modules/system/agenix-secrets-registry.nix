@@ -101,14 +101,6 @@ in {
           group = "users";
         };
 
-        # LM Studio API key - Local AI inference
-        lm-studio-api-key = {
-          file = "${inputs.self}/secrets/lm-studio-api-key.age";
-          mode = "440";
-          owner = "j_kro";
-          group = "users";
-        };
-
         # ZAI API key - Coding assistant API
         zai-api-key = {
           file = "${inputs.self}/secrets/zai-api-key.age";

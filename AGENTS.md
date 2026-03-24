@@ -63,6 +63,129 @@ networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 - **kebab-case** for files: `gpu-exporters.nix`
 - **Line length**: 80-100 chars
 
+### Lib Functions Best Practices
+
+**ExecStart Declarations**
+
+✅ **PREFERRED**: Use `lib.getExe` for single executables
+```nix
+serviceConfig.ExecStart = lib.getExe pkgs.lm_sensors + " -s";
+```
+
+❌ **AVOID**: Direct path construction
+```nix
+serviceConfig.ExecStart = "${pkgs.lm_sensors}/bin/sensors -s";
+```
+
+**Complex Multi-Line Scripts**
+
+✅ **PREFERRED**: Use `writeShellScript` for clarity
+```nix
+ExecStart = pkgs.writeShellScript "my-script" ''
+  # Multi-line shell logic
+  if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Config not found"
+    exit 1
+  fi
+  echo "Starting service..."
+'';
+```
+
+❌ **AVOID**: Inline bash -c with complex logic
+```nix
+ExecStart = "${pkgs.bash}/bin/bash -c 'if [ ! -f $CONFIG_FILE ]; then echo \"Config not found\"; exit 1; fi';
+```
+
+**PATH Construction**
+
+✅ **PREFERRED**: Use `lib.makeBinPath` for clean PATH construction
+```nix
+serviceConfig.Path = lib.makeBinPath [pkgs.bash pkgs.coreutils pkgs.curl];
+```
+
+❌ **AVOID**: Manual PATH string concatenation
+```nix
+export PATH="${pkgs.bash}/bin:${pkgs.coreutils}/bin:${pkgs.curl}/bin:$PATH"
+```
+
+**Systemd Helper Functions**
+
+✅ **PREFERRED**: Use helpers from `systemd-helpers.nix`
+```nix
+systemd.services.my-service = mkSimpleService {
+  description = "My service";
+  execStart = lib.getExe pkgs.my-package;
+  pathPackages = [pkgs.bash pkgs.coreutils];
+};
+```
+
+**Functional Data Transformation (lib.pipe)**
+
+✅ **PREFERRED**: Use `lib.pipe` for multi-stage transformations
+```nix
+# Clean pipeline: data flows top-to-bottom
+uid = lib.pipe dashboardTitle [
+  (builtins.replaceStrings ["🏠"] [""])  # Remove emoji
+  (builtins.replaceStrings [" " "/"] ["-" "-"])  # Normalize spaces/slashes
+  lib.strings.trim  # Clean whitespace
+  lib.toLower  # Lowercase for UID
+];
+```
+
+❌ **AVOID**: Nested function calls (hard to read)
+```nix
+uid = lib.toLower (lib.strings.trim (builtins.replaceStrings [" " "/"] ["-" "-"] (builtins.replaceStrings ["🏠"] [""] title)));
+```
+
+**Debug Output Infrastructure**
+
+✅ **PREFERRED**: Use ExecStartPre for sanitized configuration logging
+```nix
+serviceConfig.ExecStartPre = pkgs.writeShellScript "my-service-debug" ''
+  echo "[my-service] Configuration:" >&2
+  echo "[my-service]   Port: ${toString cfg.port}" >&2
+  echo "[my-service]   API Key: ${
+    if cfg.apiKey != null then "***REDACTED***" else "Not configured"
+  }" >&2
+'';
+```
+
+**Advanced Type System (types.either, types.oneOf)**
+
+✅ **PREFERRED**: Use `types.either` for flexible option types
+```nix
+# Accepts either port number (int) or service name (str)
+port = mkOption {
+  type = types.either types.int types.str;
+  default = 5432;
+  description = "Database port or service name (e.g., 5432 or \"postgresql\")";
+};
+
+# Accepts URL or Unix socket path using types.oneOf
+connection = mkOption {
+  type = types.oneOf [
+    (types.str // {description = "Database URL";})
+    (types.path // {description = "Unix socket path";})
+  ];
+  default = "postgresql:///db";
+  description = "Connection string or socket path";
+};
+```
+
+❌ **AVOID**: Manual type validation in assertions
+```nix
+# Don't do this - use types.either instead
+port = mkOption { type = types.int; };
+config = mkIf cfg.enable {
+  assertions = [
+    {
+      assertion = builtins.isString cfg.port || builtins.isInt cfg.port;
+      message = "Port must be string or int";
+    }
+  ];
+};
+```
+
 ### Module Template
 
 ```nix

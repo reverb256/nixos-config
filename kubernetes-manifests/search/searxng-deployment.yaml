@@ -156,6 +156,8 @@ metadata:
     app: searxng
 spec:
   type: ClusterIP
+  # FIXED ClusterIP - NEVER CHANGES - Required for MCP configuration
+  clusterIP: 10.0.0.100
   ports:
     - port: 8080
       targetPort: 8080

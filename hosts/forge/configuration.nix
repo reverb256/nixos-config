@@ -88,6 +88,9 @@
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.forge-mining.enable = true;
 
+  # Use llama-cpp backend instead of ZAI (forge doesn't have ZAI API key)
+  services.ai-inference.backend.type = "llama-cpp";
+
   # ============================================================================
   # GPU COMPUTE - CUDA + ROCm + Vulkan support for AI inference
   # ============================================================================
@@ -104,7 +107,7 @@
   # ============================================================================
   services = {
     # Crash detection and logging
-    crash-watchdog.enable = true;
+    # services.crash-watchdog.enable = true; # Module not available yet
 
     # Kubernetes worker configuration provided by node-profiles.forge-mining
     # No need to duplicate here

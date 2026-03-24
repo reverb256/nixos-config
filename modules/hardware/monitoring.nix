@@ -64,7 +64,7 @@ in {
             RemainAfterExit = true;
             # Only load modules, don't run sensors-detect automatically
             # (it can be slow and detects everything at boot)
-            ExecStart = "${pkgs.lm_sensors}/bin/sensors -s";
+            ExecStart = lib.getExe pkgs.lm_sensors + " -s";
             # Security hardening
             NoNewPrivileges = true;
             ProtectSystem = "strict";
@@ -82,7 +82,7 @@ in {
             Type = "oneshot";
             RemainAfterExit = true;
             # Run sensors-detect in auto-mode and load detected modules
-            ExecStart = "${pkgs.lm_sensors}/bin/sensors-detect --auto";
+            ExecStart = lib.getExe pkgs.lm_sensors + " --auto";
             # Security hardening
             NoNewPrivileges = true;
             ProtectSystem = "strict";
@@ -99,7 +99,7 @@ in {
           after = ["multi-user.target" "sensors.service"];
           wants = ["sensors.service"];
           serviceConfig = {
-            ExecStart = "${pkgs.python3}/bin/python3 /etc/nixos/scripts/simple-fancontrol.py";
+            ExecStart = lib.getExe pkgs.python3 + " /etc/nixos/scripts/simple-fancontrol.py";
             Restart = "always";
             RestartSec = "5s";
             # Custom fancontrol script handles PWM directly
