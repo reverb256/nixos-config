@@ -139,13 +139,7 @@ in {
 
               echo "# HELP mining_lolminer_hashrate_per_gpu Hashrate per GPU"
               echo "# TYPE mining_lolminer_hashrate_per_gpu gauge"
-              ${pkgs.jq}/bin/jq -r \
-                --arg hostname "$HOSTNAME" \
-                --arg gputype "$gpu_type" \
-                '.Algorithms[0].Worker_Performance as $perf | .Workers as $workers |
-                range(0; $workers | length) |
-                "mining_lolminer_hashrate_per_gpu{instance=\"" + $hostname + "\",gpu_type=\"" + $gputype + "\",gpu_id=\"" + ($workers[.].Index | tostring) + "\",gpu_name=\"" + ($workers[.].Name // "unknown") + "\"} " + ($perf[.] // "0" | tostring)' \
-                /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r --arg hostname "$HOSTNAME" --arg gputype "$gpu_type" '.Algorithms[0].Worker_Performance as $perf | .Workers as $workers | range(0; $workers | length) | "mining_lolminer_hashrate_per_gpu{instance=\"" + $hostname + "\",gpu_type=\"" + $gputype + "\",gpu_id=\"" + ($workers[.].Index | tostring) + "\",gpu_name=\"" + ($workers[.].Name // "unknown") + "\"} " + ($perf[.] // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
 
               echo "# HELP mining_lolminer_shares_accepted Total accepted shares"
               echo "# TYPE mining_lolminer_shares_accepted counter"
@@ -164,21 +158,11 @@ in {
 
               echo "# HELP mining_lolminer_power_watts Power consumption"
               echo "# TYPE mining_lolminer_power_watts gauge"
-              ${pkgs.jq}/bin/jq -r \
-                --arg hostname "$HOSTNAME" \
-                --arg gputype "$gpu_type" \
-                '.Workers[] |
-                "mining_lolminer_power_watts{instance=\"" + $hostname + "\",gpu_type=\"" + $gputype + "\",gpu_id=\"" + (.Index | tostring) + "\",gpu_name=\"" + (.Name // "unknown") + "\"} " + (.Power // "0" | tostring)' \
-                /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r --arg hostname "$HOSTNAME" --arg gputype "$gpu_type" '.Workers[] | "mining_lolminer_power_watts{instance=\"" + $hostname + "\",gpu_type=\"" + $gputype + "\",gpu_id=\"" + (.Index | tostring) + "\",gpu_name=\"" + (.Name // "unknown") + "\"} " + (.Power // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
 
               echo "# HELP mining_lolminer_temperature_celsius GPU temperature"
               echo "# TYPE mining_lolminer_temperature_celsius gauge"
-              ${pkgs.jq}/bin/jq -r \
-                --arg hostname "$HOSTNAME" \
-                --arg gputype "$gpu_type" \
-                '.Workers[] |
-                "mining_lolminer_temperature_celsius{instance=\"" + $hostname + "\",gpu_type=\"" + $gputype + "\",gpu_id=\"" + (.Index | toString) + "\",gpu_name=\"" + (.Name // "unknown") + "\"} " + (.Core_Temp // "0" | tostring)' \
-                /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r --arg hostname "$HOSTNAME" --arg gputype "$gpu_type" '.Workers[] | "mining_lolminer_temperature_celsius{instance=\"" + $hostname + "\",gpu_type=\"" + $gputype + "\",gpu_id=\"" + (.Index | toString) + "\",gpu_name=\"" + (.Name // "unknown") + "\"} " + (.Core_Temp // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
 
               echo ""
             } >> "$METRICS_FILE"
@@ -200,11 +184,7 @@ in {
 
               echo "# HELP mining_xmrig_hashrate_per_thread Hashrate per thread"
               echo "# TYPE mining_xmrig_hashrate_per_thread gauge"
-              ${pkgs.jq}/bin/jq -r \
-                --arg hostname "$HOSTNAME" \
-                '.hashrate.threads[] |
-                "mining_xmrig_hashrate_per_thread{instance=\"" + $hostname + "\",thread=\"" + (.index | tostring) + "\"} " + (.hashrate // 0 | tostring)' \
-                /tmp/xmrig.json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r --arg hostname "$HOSTNAME" '.hashrate.threads[] | "mining_xmrig_hashrate_per_thread{instance=\"" + $hostname + "\",thread=\"" + (.index | tostring) + "\"} " + (.hashrate // 0 | tostring)' /tmp/xmrig.json 2>/dev/null || true
 
               echo "# HELP mining_xmrig_shares_accepted Total accepted shares"
               echo "# TYPE mining_xmrig_shares_accepted counter"
