@@ -48,6 +48,7 @@
     ./system/mining-coordinator.nix
     ./system/oom-protection.nix
     ./system/compute-workload-monitor-profiles.nix
+    ./system/home-permissions-fix.nix
     ./system/xmrig-api-control.nix
     ./system/boot-emergency-diagnostics.nix
     ./system/mining-inference-coordinator.nix
