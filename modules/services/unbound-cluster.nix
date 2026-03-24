@@ -165,31 +165,38 @@ in {
 
             # Kubernetes services (direct access via short names)
             # These are fallbacks if ingress routing is not used
-
-            # AI/ML Services
-            ''"ai.cluster.local. IN A 10.1.1.120"''
-            ''"llm.cluster.local. IN A 10.1.1.120"''
-            ''"rag.cluster.local. IN A 10.1.1.120"''
-
-            # Home Lab Services
-            ''"home.cluster.local. IN A 10.1.1.110"''
-            ''"vault.cluster.local. IN A 10.1.1.110"''
-            ''"media.cluster.local. IN A 10.1.1.120"''
-
-            # Development Tools
-            ''"git.cluster.local. IN A 10.1.1.110"''
-            ''"ci.cluster.local. IN A 10.1.1.110"''
-            ''"nix.cluster.local. IN A 10.1.1.110"''
-
-            # Monitoring
-            ''"metrics.cluster.local. IN A 10.1.1.110"''
-            ''"logs.cluster.local. IN A 10.1.1.110"''
-            ''"dash.cluster.local. IN A 10.1.1.110"''
-
-            # Utilities
-            ''"search.cluster.local. IN A 10.1.1.100"''
-            ''"chat.cluster.local. IN A 10.1.1.110"''
-            ''"files.cluster.local. IN A 10.1.1.120"''
+            #
+            # ================================================================================
+            # REMOVED: Conflicting static A records (2026-03-24)
+            # ================================================================================
+            # These static A records conflict with the wildcard CNAME for *.cluster.local
+            # Wildcard CNAME is authoritative: *.cluster.local → caddy-ingress.ingress-system.svc.cluster.local
+            # Commented out (not deleted) for 1-week rollback window
+            #
+            # AI/ML Services (commented out - use wildcard CNAME)
+            # ''"ai.cluster.local. IN A 10.1.1.120"''
+            # ''"llm.cluster.local. IN A 10.1.1.120"''
+            # ''"rag.cluster.local. IN A 10.1.1.120"''
+            #
+            # # Home Lab Services (commented out - use wildcard CNAME)
+            # ''"home.cluster.local. IN A 10.1.1.110"''
+            # ''"vault.cluster.local. IN A 10.1.1.110"''
+            # ''"media.cluster.local. IN A 10.1.1.120"''
+            #
+            # # Development Tools (commented out - use wildcard CNAME)
+            # ''"git.cluster.local. IN A 10.1.1.110"''
+            # ''"ci.cluster.local. IN A 10.1.1.110"''
+            # ''"nix.cluster.local. IN A 10.1.1.110"''
+            #
+            # # Monitoring (commented out - use wildcard CNAME)
+            # ''"metrics.cluster.local. IN A 10.1.1.110"''
+            # ''"logs.cluster.local. IN A 10.1.1.110"''
+            # ''"dash.cluster.local. IN A 10.1.1.110"''
+            #
+            # # Utilities (commented out - use wildcard CNAME)
+            # ''"search.cluster.local. IN A 10.1.1.100"''
+            # ''"chat.cluster.local. IN A 10.1.1.110"''
+            # ''"files.cluster.local. IN A 10.1.1.120"''
           ];
         };
 
