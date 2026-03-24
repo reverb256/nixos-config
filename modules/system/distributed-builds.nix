@@ -13,6 +13,10 @@ in {
 
     settings = {
       builders = lib.mkDefault "@/etc/nix/machines";
+
+      # IMPORTANT: Never use zephyr as a remote builder (only 31GB RAM, OOMs on large packages)
+      max-jobs = lib.mkIf (currentHost == "zephyr") 0;
+
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
       trusted-users = lib.mkForce ["root" "*" "@wheel"];
