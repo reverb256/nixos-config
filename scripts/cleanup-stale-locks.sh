@@ -9,10 +9,42 @@ LOCK_DIR="/tmp"
 MAX_AGE_MINUTES=30
 HOSTS=("zephyr" "nexus" "forge" "sentry")
 
+echo "=== Deployment Pre-Flight Checks ===" >&2
+
+# Check home directory permissions on all hosts
+echo "Checking home directory permissions..." >&2
+for host in "${HOSTS[@]}"; do
+  home_perms=$(ssh "$host" "stat -c %a ~" 2>/dev/null || echo "000")
+  if [[ "$home_perms" != "755" ]]; then
+    echo "⚠️  WARNING: Home directory permissions incorrect on ${host} (${home_perms})" >&2
+    echo "   Fix: ssh ${host} 'chmod 755 ~'" >&2
+    echo "   This will cause Nix build failures if not fixed" >&2
+  else
+    echo "✓ Home permissions OK on ${host}" >&2
+  fi
+done
+
+echo "" >&2
 echo "=== Deployment Lock Check ===" >&2
 echo "Checking for active deployment locks..." >&2
 
 ACTIVE_LOCKS=0
+
+# Check for common Nix store permission issues
+echo "Checking for Nix store issues..." >&2
+if [[ -d "/nix/store" ]]; then
+  # Check for files with wrong permissions in Nix store
+  bad_perms=$(find /nix/store -name "*.pem" -type f \! -perm 644 2>/dev/null | head -3 || echo "")
+  if [[ -n "$bad_perms" ]]; then
+    echo "⚠️  WARNING: Found Nix store files with incorrect permissions:" >&2
+    echo "$bad_perms" >&2
+    echo "   This can cause hash mismatch errors during deployment" >&2
+    echo "   Fix: sudo chmod 644 <file-path> (but rebuilding is preferred)" >&2
+  fi
+  echo "✓ Nix store check complete" >&2
+else
+  echo "✓ Nix store not found (will be created during build)" >&2
+fi
 
 # Check colmena lock
 echo "Checking colmena lock..." >&2
@@ -102,3 +134,13 @@ find /tmp -name "nix-build-*" -type f -mtime +1 -delete 2>/dev/null || true
 
 echo "" >&2
 echo "✓ All checks passed - deployment can proceed" >&2
+
+# Display helpful hints if warnings were shown
+if grep -q "WARNING" <<< "$(cat /dev/stdin)" 2>/dev/null; then
+  echo "" >&2
+  echo "=== Quick Fixes ===" >&2
+  echo "Home permissions: ssh <host> 'chmod 755 ~'" >&2
+  echo "Nix store issues: DO NOT manually modify Nix store files" >&2
+  echo "                  Rebuild the path instead: nix-store --verify-path --repair" >&2
+  echo "" >&2
+fi
