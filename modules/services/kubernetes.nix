@@ -470,10 +470,9 @@
             }
           ];
 
-          allowedUDPPorts = [
-            8472 # Calico VXLAN
-            4789 # Calico BGP
-          ];
+          allowedUDPPorts = lib.mkOptionDefault (
+            lib.optional config.services.kubernetes-module.calicoWireguard.enable config.services.kubernetes-module.calicoWireguard.listeningPort
+          );
         })
 
         # Worker node firewall (applies to all nodes, but ports differ per role)
@@ -485,10 +484,9 @@
               to = 32767;
             }
           ];
-          allowedUDPPorts = [
-            8472 # Calico VXLAN
-            4789 # Calico BGP
-          ];
+          allowedUDPPorts = lib.mkOptionDefault (
+            lib.optional config.services.kubernetes-module.calicoWireguard.enable config.services.kubernetes-module.calicoWireguard.listeningPort
+          );
         } # Close worker config
       ]; # Close lib.mkMerge
 
