@@ -1,18 +1,13 @@
 # Mining Metrics Exporter for Prometheus
 # Exports lolminer and xmrig metrics for cluster monitoring
-#
-# Polls mining APIs and exposes metrics for:
-# - Hashrate (per GPU and total)
-# - Power consumption
-# - Temperature
-# - Shares (accepted/rejected)
-# - Uptime
 {
   config,
   lib,
   pkgs,
   ...
 }: let
+  inherit (lib) mkEnableOption mkOption mkIf types;
+
   cfg = config.services.mining-exporter;
 
   # Python HTTP server script for serving metrics with correct Content-Type
@@ -45,7 +40,7 @@
 
     # Allow port reuse to avoid "Address already in use" on rapid restarts
     socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), MetricsHandler) as httpd:
+    with socketserver.TCPServer("", PORT), MetricsHandler) as httpd:
         httpd.serve_forever()
   '';
 
@@ -85,36 +80,28 @@
   hostConfig = hosts.${currentHost} or null;
 in {
   options.services.mining-exporter = {
-    enable = lib.mkEnableOption "Mining metrics exporter for Prometheus";
+    enable = mkEnableOption "Mining metrics exporter for Prometheus";
 
-    port = lib.mkOption {
-      type = lib.types.port;
+    port = mkOption {
+      type = types.port;
       default = 9105;
       description = "Port for mining metrics exporter";
     };
 
-    scrapeInterval = lib.mkOption {
-      type = lib.types.str;
+    scrapeInterval = mkOption {
+      type = types.str;
       default = "15s";
       description = "How often to poll mining APIs";
     };
   };
 
-  config = lib.mkIf (cfg.enable && hostConfig != null) {
-    # Mining exporter systemd service
+  config = mkIf (cfg.enable && hostConfig != null) {
     systemd.services.prometheus-mining-exporter = {
       description = "Prometheus Mining Metrics Exporter";
+      after = ["network-online.target"];
       wantedBy = ["multi-user.target"];
-      after = [
-        "network.target"
-        "lolminer.service"
-        "xmrig.service"
-      ];
-
       serviceConfig = {
         Type = "simple";
-        DynamicUser = true;
-        RuntimeDirectory = "prometheus-mining-exporter";
         ExecStart = pkgs.writers.writeBash "mining-exporter" ''
           set -euo pipefail
 
@@ -130,7 +117,7 @@ in {
             ${pkgs.gnused}/bin/sed 's/"/\\"/g; s/[^a-zA-Z0-9:_]/_/g'
           }
 
-          HOST_LABEL="\"$(echo "$HOSTNAME" | escape_label):${toString cfg.port}\""
+          HOST_LABEL=\""$(echo "$HOSTNAME" | escape_label):${toString cfg.port}""
 
           # Temporary file for accumulating metrics
           METRICS_FILE="$METRICS_DIR/metrics.tmp"
@@ -152,7 +139,7 @@ in {
 
               echo "# HELP mining_lolminer_hashrate_per_gpu Hashrate per GPU"
               echo "# TYPE mining_lolminer_hashrate_per_gpu gauge"
-              ${pkgs.jq}/bin/jq -r '.Algorithms[0].Worker_Performance as $perf | .Workers as $workers | range(0; $workers | length) | "mining_lolminer_hashrate_per_gpu{instance=\\\""'"$HOSTNAME"'\\\"",gpu_type=\\\""'"$gpu_type"'\\\"",gpu_id=\\\"" + ($workers[.].Index | tostring) + "\\\",gpu_name=\\\"" + ($workers[.].Name // "unknown") + "\\\"} " + ($perf[.] // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r '.Algorithms[0].Worker_Performance as $perf | .Workers as $workers | range(0; $workers | length) | "mining_lolminer_hashrate_per_gpu{instance=\\\"\"$HOSTNAME\"\\\"\",gpu_type=\\\"\"$gpu_type\"\\\"\",gpu_id=\\\"\" + ($workers[.].Index | tostring) + \"\\\"\",gpu_name=\\\"\" + ($workers[.].Name // \"unknown\") + \"\\\"} \" + ($perf[.] // \"0\" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
 
               echo "# HELP mining_lolminer_shares_accepted Total accepted shares"
               echo "# TYPE mining_lolminer_shares_accepted counter"
@@ -171,11 +158,11 @@ in {
 
               echo "# HELP mining_lolminer_power_watts Power consumption"
               echo "# TYPE mining_lolminer_power_watts gauge"
-              ${pkgs.jq}/bin/jq -r '.Workers[] | "mining_lolminer_power_watts{instance=\\\""'"$HOSTNAME"'\\\"",gpu_type=\\\""'"$gpu_type"'\\\"",gpu_id=\\\"" + (.Index | tostring) + "\\\",gpu_name=\\\"" + (.Name // "unknown") + "\\\"} " + (.Power // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r '.Workers[] | "mining_lolminer_power_watts{instance=\\\"\"$HOSTNAME\"\\\"\",gpu_type=\\\"\"$gpu_type\"\\\"\",gpu_id=\\\"\" + (.Index | tostring) + \"\\\"\",gpu_name=\\\"\" + (.Name // \"unknown\") + \"\\\"} \" + (.Power // \"0\" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
 
               echo "# HELP mining_lolminer_temperature_celsius GPU temperature"
               echo "# TYPE mining_lolminer_temperature_celsius gauge"
-              ${pkgs.jq}/bin/jq -r '.Workers[] | "mining_lolminer_temperature_celsius{instance=\\\""'"$HOSTNAME"'\\\"",gpu_type=\\\""'"$gpu_type"'\\\"",gpu_id=\\\"" + (.Index | tostring) + "\\\",gpu_name=\\\"" + (.Name // "unknown") + "\\\"} " + (.Core_Temp // "0" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r '.Workers[] | "mining_lolminer_temperature_celsius{instance=\\\"\"$HOSTNAME\"\\\"\",gpu_type=\\\"\"$gpu_type\"\\\"\",gpu_id=\\\"\" + (.Index | tostring) + \"\\\"\",gpu_name=\\\"\" + (.Name // \"unknown\") + \"\\\"} \" + (.Core_Temp // \"0\" | tostring)' /tmp/lolminer_"$gpu_type".json 2>/dev/null || true
 
               echo ""
             } >> "$METRICS_FILE"
@@ -197,91 +184,48 @@ in {
 
               echo "# HELP mining_xmrig_hashrate_per_thread Hashrate per thread"
               echo "# TYPE mining_xmrig_hashrate_per_thread gauge"
-              ${pkgs.jq}/bin/jq -r '.hashrate.threads[] | "mining_xmrig_hashrate_per_thread{instance=\\\""'"$HOSTNAME"'\\\",thread_id=\\\"" + (.thread | tostring) + "\\\"} " + ([.[0]] | tostring)' /tmp/xmrig.json 2>/dev/null || true
+              ${pkgs.jq}/bin/jq -r '.hashrate.threads[] | "mining_xmrig_hashrate_per_thread{instance=\\\"\"$HOSTNAME\"\\\"\",thread=\\\"\" + (.index | tostring) + \"\\\"} \" + (.hashrate // 0 | tostring)' /tmp/xmrig.json 2>/dev/null || true
 
               echo "# HELP mining_xmrig_shares_accepted Total accepted shares"
               echo "# TYPE mining_xmrig_shares_accepted counter"
-              ACCEPTED=$(${pkgs.jq}/bin/jq -r '.results.shares_good // 0' /tmp/xmrig.json 2>/dev/null || echo "0")
+              ACCEPTED=$(${pkgs.jq}/bin/jq -r '.shares.accepted // 0' /tmp/xmrig.json 2>/dev/null || echo "0")
               echo "mining_xmrig_shares_accepted{instance=$HOST_LABEL} $ACCEPTED"
 
               echo "# HELP mining_xmrig_shares_rejected Total rejected shares"
               echo "# TYPE mining_xmrig_shares_rejected counter"
-              REJECTED=$(${pkgs.jq}/bin/jq -r '.results.shares_total // .results.shares_good // 0' /tmp/xmrig.json 2>/dev/null)
-              REJECTED=$((REJECTED - ACCEPTED))
+              REJECTED=$(${pkgs.jq}/bin/jq -r '.shares.rejected // 0' /tmp/xmrig.json 2>/dev/null || echo "0")
               echo "mining_xmrig_shares_rejected{instance=$HOST_LABEL} $REJECTED"
-
-              echo "# HELP mining_xmrig_uptime_seconds Uptime in seconds"
-              echo "# TYPE mining_xmrig_uptime_seconds gauge"
-              UPTIME=$(${pkgs.jq}/bin/jq -r '.worker.connection_time // 0' /tmp/xmrig.json 2>/dev/null || echo "0")
-              echo "mining_xmrig_uptime_seconds{instance=$HOST_LABEL} $UPTIME"
-
-              echo "# HELP mining_xmrig_threads Active mining threads"
-              echo "# TYPE mining_xmrig_threads gauge"
-              THREADS=$(${pkgs.jq}/bin/jq -r '.hashrate.threads | length' /tmp/xmrig.json 2>/dev/null || echo "0")
-              echo "mining_xmrig_threads{instance=$HOST_LABEL} $THREADS"
-
-              echo "# HELP mining_xmrig_cpu_percent CPU usage percentage"
-              echo "# TYPE mining_xmrig_cpu_percent gauge"
-              CPU=$(${pkgs.jq}/bin/jq -r '.resources.cpu_percent // 0' /tmp/xmrig.json 2>/dev/null || echo "0")
-              echo "mining_xmrig_cpu_percent{instance=$HOST_LABEL} $CPU"
 
               echo ""
             } >> "$METRICS_FILE"
           }
 
-          # Main scraping loop
-          echo "Starting mining exporter on port $PORT"
-          echo "Scraping mining APIs every $INTERVAL_SECONDS seconds"
+          # Main polling loop
+          # Conditionally fetch metrics based on what's configured for this host
+          ${lib.optionalString (hostConfig ? lolminerPort) ''
+            fetch_lolminer ${toString (hostConfig.lolminerPort or 4068)} "nvidia" &
+          ''}
+          ${lib.optionalString (hostConfig ? lolminerAmdPort) ''
+            fetch_lolminer ${toString (hostConfig.lolminerAmdPort or 4069)} "amd" &
+          ''}
+          ${lib.optionalString (hostConfig ? xmrigPort) ''
+            fetch_xmrig ${toString hostConfig.xmrigPort} &
+          ''}
+          wait
 
-          # Create final metrics file location
-          FINAL_METRICS="$METRICS_DIR/metrics"
+            # Expose metrics via HTTP server
+            ${pkgs.python3}/bin/python3 ${httpServerScript} ${toString cfg.port} "$METRICS_FILE"
 
-          # Update metrics function
-          update_metrics() {
-            # Start fresh metrics file
-            > "$METRICS_FILE"
-            echo "# Generated at $(${pkgs.coreutils}/bin/date -Iseconds)" >> "$METRICS_FILE"
-            echo "" >> "$METRICS_FILE"
-
-            # Fetch all metrics
-            ${lib.optionalString (
-            hostConfig.nvidia && hostConfig ? lolminerPort
-          ) "fetch_lolminer ${toString hostConfig.lolminerPort} nvidia"}
-            ${lib.optionalString (
-            hostConfig.amd && hostConfig ? lolminerAmdPort
-          ) "fetch_lolminer ${toString hostConfig.lolminerAmdPort} amd"}
-            ${lib.optionalString hostConfig.cpu "fetch_xmrig ${toString hostConfig.xmrigPort}"}
-
-            # Atomic move to final location
-            mv "$METRICS_FILE" "$FINAL_METRICS"
-          }
-
-          # Initial fetch
-          update_metrics
-
-          # Start HTTP server in background and continue scraping
-          # Use pre-written Python script with correct Content-Type header
-          ${pkgs.python3}/bin/python3 ${httpServerScript} "$PORT" "$FINAL_METRICS" &
-          SERVER_PID=$!
-
-          # Scrape loop
-          while true; do
+            # Sleep until next scrape
             sleep "$INTERVAL_SECONDS"
-            update_metrics
           done
-
-          # Cleanup
-          kill $SERVER_PID 2>/dev/null || true
         '';
-
-        Restart = "always";
-        RestartSec = "10s";
-        StandardOutput = "journal";
+        Path = [pkgs.curl pkgs.hostname pkgs.jq pkgs.gnused pkgs.coreutils];
+        # Security hardening
         StandardError = "journal";
-
-        # Security
         NoNewPrivileges = true;
         PrivateTmp = true;
+        RuntimeDirectory = "prometheus-mining-exporter";
         ProtectSystem = "strict";
         ProtectHome = true;
         ReadOnlyPaths = "/";
@@ -289,8 +233,7 @@ in {
       };
     };
 
-    # Open firewall port for Prometheus scraping
-    # Allow from both Tailscale VPN and local network
+    # Use firewall helper to open ports
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
   };
