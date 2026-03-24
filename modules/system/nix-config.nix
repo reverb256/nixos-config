@@ -50,7 +50,7 @@
       # Substituters and trusted keys are now configured in distributed-builds.nix
       # to avoid duplication and ensure proper merge order
 
-      trusted-public-keys = [
+      trusted-public-keys = lib.mkOptionDefault [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
@@ -58,11 +58,11 @@
         "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
       ];
 
-      trusted-users = ["root" "@wheel"];
+      trusted-users = lib.mkOptionDefault ["root" "@wheel"];
 
       # Allow unsigned paths for local cluster deployment
       # This enables colmena to deploy between hosts without requiring signature setup
-      require-sigs = false;
+      require-sigs = lib.mkForce false;
 
       # Accept substituters from all cluster hosts
       # (Host keys are added via dynamic discovery)
