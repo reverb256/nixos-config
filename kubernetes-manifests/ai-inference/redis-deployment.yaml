@@ -34,6 +34,8 @@ spec:
       labels:
         app: redis
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: nexus
       containers:
       - name: redis
         image: redis:7-alpine
