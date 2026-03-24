@@ -82,6 +82,13 @@
   in
     lib.mkIf config.services.kubernetes-module.enable {
       # ============================================================================
+      # KERNEL NETWORKING FOR CALICO CNI
+      # ============================================================================
+      boot.kernel.sysctl = {
+        "net.ipv4.conf.all.rp_filter" = lib.mkOptionDefault 1;
+        "net.ipv4.ip_forward" = lib.mkOptionDefault 1;
+      };
+      # ============================================================================
       # DISABLE PODMAN DOCKER COMPATIBILITY (conflicts with Docker)
       # CRI-O and Docker configuration
       # ============================================================================
@@ -155,7 +162,7 @@
         scheduler.enable = isMaster;
         controllerManager = {
           enable = isMaster;
-          # Migrated to 10.244.0.0/16 (Flannel default) to avoid overlap with host network (10.1.1.0/24)
+          # Match Calico IPPool (10.244.0.0/16)
           clusterCidr = lib.mkForce "10.244.0.0/16";
           extraOpts = "--allocate-node-cidrs=true";
         };
@@ -163,6 +170,8 @@
           enable = true;
           hostname = config.networking.hostName;
           clusterDns = ["10.0.0.10"]; # CoreDNS service IP
+          # CNI packages for Calico
+          cni.packages = with pkgs; [ cni-plugins calico-cni-plugin ];
           # Client CA for verifying API server client certificates
           clientCaFile = "/var/lib/kubernetes/secrets/ca.pem";
           extraConfig = {
@@ -199,9 +208,8 @@
             lib.mkIf (labels != "") "--node-labels=${labels}";
         };
         proxy.enable = true;
-        proxy.extraOpts = "--cluster-cidr=10.244.0.0/16";
-        # Flannel runs as DaemonSet in Kubernetes, not as systemd service
-        # flannel.enable = true;  # Disabled: causes systemd symlink conflict
+        proxy.extraOpts = lib.mkForce "--cluster-cidr=10.244.0.0/16";  # Match Calico IPPool (override defaults)
+        # Calico runs as DaemonSet in Kubernetes, not as systemd service
       };
 
       # ETCD (Required for Kubernetes control plane)
@@ -241,11 +249,10 @@
       };
 
       # ============================================================================
-      # CNI CONFIGURATION - Flannel in proper .conflist format
+      # CNI CONFIGURATION - Calico
       # ============================================================================
-      # Create writable CNI directory for Flannel config and CDI spec
-      # Also create /var/lib/flannel for persistent subnet.env file (not on tmpfs)
-      # Create symlink from /run/flannel to /var/lib/flannel for CNI plugin compatibility
+      # Create writable CNI directories for Calico
+      # Calico CNI plugin (installed via DaemonSet) manages /etc/cni/net.d
       # Create local-path-provisioner directories for Kubernetes storage
       systemd.tmpfiles.rules = [
         # Create etcd data directory with correct ownership (etcd user:group)
@@ -254,16 +261,13 @@
         "d /etc/containerd/conf.d 0755 root root -"
         # Create writable CNI directories (both for kubelet and containerd)
         "d /var/lib/cni/net.d 0755 root root -"
-        # Create a writable /etc/cni/net.d by bind mounting from /var/lib/cni/net.d
-        # This allows us to override the read-only /etc/static/cni/net.d
-        # The bind mount is created in the activation script below
-        # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)
-        "L+ /var/lib/cni/net.d/00-flannel.conflist - - - - /etc/cni/flannel.conflist"
-        # Containerd reads from /etc/cni/net.d (default CNI path) - will be bind mounted
-        "L+ /var/lib/cni/net.d/10-flannel.conflist - - - - /etc/cni/flannel.conflist"
-        # Removed CDI directory (containerd handles GPUs via nvidia-container-runtime)
-        "d /var/lib/flannel 0755 root root -"
-        "L+ /run/flannel - - - - /var/lib/flannel"
+        # ============================================================================
+        # CALICO CNI PLUGINS - Persistent symlinks to calico-cni-plugin package
+        # ============================================================================
+        # Calico CNI plugin binaries from NixOS calico-cni-plugin package
+        # These symlinks persist across NixOS activations (unlike systemd service)
+        "L+ /opt/cni/bin/calico - - - - ${pkgs.calico-cni-plugin}/bin/calico"
+        "L+ /opt/cni/bin/calico-ipam - - - - ${pkgs.calico-cni-plugin}/bin/calico"
         # ============================================================================
         # LOCAL PATH PROVISIONER - Kubernetes local storage
         # ============================================================================
@@ -277,31 +281,10 @@
         "d /storage/k8s-local 0777 root root -"
       ];
 
-      # Store the Flannel CNI config
-      # Use same format as working Zephyr control plane (cniVersion 0.3.1, name "cbr0")
-      # The minimal delegate config lets Flannel handle bridge setup automatically
-      environment.etc."cni/flannel.conflist".text = builtins.toJSON {
-        name = "cbr0";
-        cniVersion = "0.3.1";
-        plugins = [
-          {
-            type = "flannel";
-            delegate = {
-              hairpinMode = true;
-              isDefaultGateway = true;
-            };
-          }
-          {
-            type = "portmap";
-            capabilities = {
-              portMappings = true;
-            };
-          }
-        ];
-      };
-
-      # Note: containerd's CNI config is provided via tmpfiles symlink above
-      # (environment.etc."cni/net.d/..." doesn't work correctly for nested directories)
+      # Note: Calico CNI config is managed by Calico DaemonSet
+      # Calico writes to /etc/cni/net.d/10-calico.conflist dynamically
+      # Kubelet reads from /var/lib/cni/net.d (configured via cniConfDir)
+      # Calico's install-cni container copies config to both locations
 
       # Disable CRI-O's default CNI configs (no longer needed with containerd)
       # "cni/net.d/10-crio-bridge.conflist".enable = lib.mkForce false;
@@ -323,6 +306,7 @@
             10250 # Kubelet API
             10251 # Kube-scheduler
             10252 # Kube-controller-manager
+            179 # Calico BGP
           ];
 
           allowedTCPPortRanges = [
@@ -332,36 +316,25 @@
             }
           ];
 
-          allowedUDPPorts = [8472]; # Flannel VXLAN
+          allowedUDPPorts = [
+            8472 # Calico VXLAN
+            4789 # Calico BGP
+          ];
         })
 
         # Worker node firewall (applies to all nodes, but ports differ per role)
         {
-          allowedTCPPorts = lib.mkIf (!isMaster) [10250]; # Kubelet API only for workers
+          allowedTCPPorts = lib.mkIf (!isMaster) [10250 179]; # Kubelet API + BGP for workers
           allowedTCPPortRanges = [
             {
               from = 30000;
               to = 32767;
             }
           ];
-          allowedUDPPorts = [8472]; # Flannel VXLAN
-
-          # Fix Flannel firewall rules for pod CIDR migration
-          # Flannel creates FLANNEL-FWD chain with old CIDR (10.1.0.0/16)
-          # This script updates it to use new CIDR (10.244.0.0/16)
-          extraCommands = ''
-            # Update FLANNEL-FWD chain for new pod CIDR
-            if iptables -L FLANNEL-FWD -n &>/dev/null; then
-              # Delete old rules with 10.1.0.0/16 CIDR
-              iptables -D FLANNEL-FWD -s 10.1.0.0/16 -j ACCEPT 2>/dev/null || true
-              iptables -D FLANNEL-FWD -d 10.1.0.0/16 -j ACCEPT 2>/dev/null || true
-              # Add new rules with 10.244.0.0/16 CIDR
-              iptables -C FLANNEL-FWD -s 10.244.0.0/16 -j ACCEPT 2>/dev/null || \
-                iptables -I FLANNEL-FWD 1 -s 10.244.0.0/16 -j ACCEPT -m comment --comment "flanneld forward"
-              iptables -C FLANNEL-FWD -d 10.244.0.0/16 -j ACCEPT 2>/dev/null || \
-                iptables -I FLANNEL-FWD 2 -d 10.244.0.0/16 -j ACCEPT -m comment --comment "flanneld forward"
-            fi
-          '';
+          allowedUDPPorts = [
+            8472 # Calico VXLAN
+            4789 # Calico BGP
+          ];
         } # Close worker config
       ]; # Close lib.mkMerge
 
@@ -393,10 +366,45 @@
           '';
         };
 
-        # Create bind mount for /etc/cni/net.d to override read-only Nix store
-        # This allows containerd to use Flannel CNI instead of Cilium
+        # Setup Calico CNI plugin symlinks
+        # NixOS manages /opt/cni/bin as symlinks to cni-plugins package
+        # We add Calico CNI plugins by creating additional symlinks to the calico-cni-plugin package
+        calico-cni-setup = {
+          description = "Setup Calico CNI plugin symlinks";
+          before = ["containerd.service"];
+          requiredBy = ["containerd.service"];
+          path = [pkgs.util-linux pkgs.coreutils];
+          serviceConfig.Type = "oneshot";
+          script = ''
+            # Ensure /opt/cni/bin exists
+            mkdir -p /opt/cni/bin
+
+            # Create symlinks to Calico CNI binaries from calico-cni-plugin package
+            # Calico CNI plugin provides: calico, calico-ipam
+            calico_bin="${pkgs.calico-cni-plugin}/bin/calico"
+            calico_ipam_bin="${pkgs.calico-cni-plugin}/bin/calico"
+
+            # Create symlink for calico CNI plugin
+            if [ ! -L /opt/cni/bin/calico ]; then
+              ln -sf "$calico_bin" /opt/cni/bin/calico
+            fi
+
+            # Create symlink for calico-ipam
+            # Note: calico-ipam is the same binary as calico, invoked with different name
+            if [ ! -L /opt/cni/bin/calico-ipam ]; then
+              ln -sf "$calico_ipam_bin" /opt/cni/bin/calico-ipam
+            fi
+
+            echo "Calico CNI plugins installed at /opt/cni/bin/"
+            ls -la /opt/cni/bin/calico*
+          '';
+        };
+
+        # Setup CNI network configuration for Calico
+        # Calico DaemonSet's install-cni container writes to /etc/cni/net.d
+        # We need to ensure the directory exists and is writable
         cni-net-setup = {
-          description = "Setup CNI network configuration bind mount";
+          description = "Setup CNI network configuration for Calico";
           before = ["containerd.service"];
           requiredBy = ["containerd.service"];
           path = [pkgs.util-linux pkgs.coreutils];
@@ -405,16 +413,15 @@
             # Create a writable directory for CNI configs
             mkdir -p /var/lib/cni/net.d
 
-            # Copy flannel config if not exists
-            if [ ! -f /var/lib/cni/net.d/10-flannel.conflist ]; then
-              cp /etc/cni/flannel.conflist /var/lib/cni/net.d/10-flannel.conflist
-            fi
+            # Ensure /etc/cni/net.d exists and is writable
+            # Calico's install-cni container will write 10-calico.conflist here
+            mkdir -p /etc/cni/net.d
 
-            # Bind mount /etc/cni/net.d to the writable directory
-            # This allows containerd to use our configs instead of the read-only store
-            if ! mountpoint -q /etc/cni/net.d; then
-              mount --bind /var/lib/cni/net.d /etc/cni/net.d
-            fi
+            # Remove any old Flannel configs
+            rm -f /var/lib/cni/net.d/*-flannel.conflist
+            rm -f /etc/cni/net.d/*-flannel.conflist
+
+            echo "CNI directories ready for Calico configuration"
           '';
         };
 
