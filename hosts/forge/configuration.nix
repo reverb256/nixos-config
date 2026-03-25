@@ -48,6 +48,14 @@
     unbound.listenAddress = "10.1.1.130"; # Listen on node IP for cluster DNS
   };
 
+  # Enable ULA (Unique Local Address) IPv6 for Calico BGP mesh
+  networking.interfaces.enp0s31f6.ipv6.addresses = [
+    {
+      address = "fd00::130";
+      prefixLength = 64;
+    }
+  ];
+
   # Disable flake-lock-sync (nixos-shared mount not available)
   services.flake-lock-sync.enable = lib.mkForce false;
 
