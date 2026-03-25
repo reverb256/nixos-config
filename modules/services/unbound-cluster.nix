@@ -272,21 +272,21 @@ in {
           echo "[unbound-health-check] Checking DNS resolution..."
 
           # Test K8s service resolution (via forward-zone)
-          if ! ${pkgs.dnsutils}/bin/dig kubernetes.default.svc.cluster.local @127.0.0.1 | grep -q "NOERROR"; then
+          if ! ${pkgs.host}/bin/host -t A kubernetes.default.svc.cluster.local 127.0.0.1 | grep -q "has address"; then
             echo "[unbound-health-check] ❌ Kubernetes DNS resolution failed (kubernetes.default.svc.cluster.local)"
             systemctl try-restart unbound
             exit 1
           fi
 
           # Test local cluster host resolution
-          if ! ${pkgs.dnsutils}/bin/dig zephyr.cluster.local @127.0.0.1 | grep -q "NOERROR"; then
+          if ! ${pkgs.host}/bin/host -t A zephyr.cluster.local 127.0.0.1 | grep -q "has address"; then
             echo "[unbound-health-check] ❌ Local cluster host resolution failed (zephyr.cluster.local)"
             systemctl try-restart unbound
             exit 1
           fi
 
           # Test external DNS resolution
-          if ! ${pkgs.dnsutils}/bin/dig example.com @127.0.0.1 | grep -q "NOERROR"; then
+          if ! ${pkgs.host}/bin/host -t A example.com 127.0.0.1 | grep -q "has address"; then
             echo "[unbound-health-check] ❌ External DNS resolution failed (example.com)"
             systemctl try-restart unbound
             exit 1
