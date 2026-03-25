@@ -95,10 +95,10 @@ in
     # Skip tests and runtime dependency checks
     doCheck = false;
     doInstallCheck = false;
+    dontUsePythonRuntimeDepsCheck = true;
 
     # Disable Python hooks that check for optional dependencies
     pythonRemoveDepsCheckHook = true;
-    pythonRuntimeDepsCheckHook = false;
 
     # Override phases to skip dependency checks
     preInstallCheck = "";
