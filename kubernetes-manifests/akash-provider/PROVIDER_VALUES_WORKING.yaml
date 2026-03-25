@@ -1,0 +1,253 @@
+# Akash Provider Helm Values - WORKING CONFIGURATION (based on commit 740804b)
+# Chart: akash/provider 14.0.8 | App Version: 0.10.7 (STABLE)
+# Last Updated: 2026-03-25
+# Source: Working deployment from git commit 740804b
+
+# =============================================================================
+# PROVIDER IDENTITY
+# =============================================================================
+clusterPublicHostname: provider.reverb256.ca
+domain: provider.reverb256.ca
+providerAddress: akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6
+from: provider-wallet
+email: admin@reverb256.ca
+website: https://reverb256.ca
+
+# =============================================================================
+# CRITICAL IMAGE CONFIGURATION
+# =============================================================================
+# Use v0.10.7 (last stable before BME migration regression)
+image:
+  repository: ghcr.io/akash-network/provider
+  tag: 0.10.7
+  pullPolicy: IfNotPresent
+
+# =============================================================================
+# ENVIRONMENT VARIABLES (applied to BOTH init and provider containers)
+# =============================================================================
+# CRITICAL: Use 'env:' NOT 'extraEnvs:' for Helm chart compatibility
+env:
+  - name: AKASH_FROM
+    value: "provider-wallet"
+  - name: AP_CERT_ISSUER_EMAIL
+    value: "admin@reverb256.ca"
+
+# =============================================================================
+# BLOCKCHAIN CONNECTION
+# =============================================================================
+node: https://akash-rpc.polkachu.com:443
+chainID: akashnet-2
+
+# =============================================================================
+# INGRESS & SERVICE CONFIGURATION
+# =============================================================================
+# Disable ingress (using Cloudflare tunnel instead)
+ingress:
+  enabled: false
+
+# ClusterIP service (exposed via Cloudflare tunnel)
+service:
+  type: ClusterIP
+
+# =============================================================================
+# LET'S ENCRYPT (DISABLED)
+# =============================================================================
+# CRITICAL: Disabled - using Cloudflare tunnel instead
+letsEncrypt:
+  enabled: false
+
+# =============================================================================
+# RESOURCE LIMITS
+# =============================================================================
+# Higher limits to prevent OOM (working configuration from commit 740804b)
+resources:
+  limits:
+    cpu: "2"
+    memory: 4Gi
+  requests:
+    cpu: "1"
+    memory: 2Gi
+
+# =============================================================================
+# NODE SCHEDULING
+# =============================================================================
+# Prefer GPU nodes for provider placement
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      # Nodes with NVIDIA GPUs (nexus, zephyr, forge)
+      - matchExpressions:
+        - key: accelerator
+          operator: In
+          values:
+          - nvidia-gpu
+      # Fallback: nodes with AMD GPUs (sentry, forge)
+      - matchExpressions:
+        - key: accelerator
+          operator: In
+          values:
+          - amd-gpu
+
+# =============================================================================
+# CUSTOM INIT SCRIPT (working from commit 740804b)
+# =============================================================================
+scripts:
+  init.sh: |
+    #!/bin/bash
+    set -x
+
+    AKASH_HOME="${AKASH_HOME:-/root/.akash}"
+    AKASH_KEYRING_BACKEND="${AKASH_KEYRING_BACKEND:-test}"
+    AKASH_FROM="${AKASH_FROM:-provider-wallet}"
+    EXPECTED_ADDRESS="akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6"
+
+    # Read mnemonic from mounted file
+    MNEMONIC="$(cat /boot-keys/mnemonic.txt)"
+
+    echo "=== Importing Key from Mnemonic ==="
+    echo "Expected address: $EXPECTED_ADDRESS"
+
+    # Check if key already exists
+    EXISTING_ADDRESS=$(provider-services --home="$AKASH_HOME" keys show "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" -a 2>/dev/null || "")
+
+    if [ "$EXISTING_ADDRESS" = "$EXPECTED_ADDRESS" ]; then
+        echo "✓ Key already exists with correct address!"
+    elif [ -n "$EXISTING_ADDRESS" ]; then
+        echo "Key exists but has wrong address: $EXISTING_ADDRESS"
+        echo "Deleting and re-importing..."
+        provider-services --home="$AKASH_HOME" keys delete "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" || true
+        echo "$MNEMONIC" | provider-services --home="$AKASH_HOME" keys add "$AKASH_FROM" \
+            --recover \
+            --keyring-backend="$AKASH_KEYRING_BACKEND" || exit 1
+    else
+        echo "Importing new key from mnemonic..."
+        echo "$MNEMONIC" | provider-services --home="$AKASH_HOME" keys add "$AKASH_FROM" \
+            --recover \
+            --keyring-backend="$AKASH_KEYRING_BACKEND" || exit 1
+    fi
+
+    # Verify the address
+    ACTUAL_ADDRESS=$(provider-services --home="$AKASH_HOME" keys show "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" -a)
+    echo "Actual: $ACTUAL_ADDRESS"
+    echo "Expected: $EXPECTED_ADDRESS"
+
+    if [ "$ACTUAL_ADDRESS" = "$EXPECTED_ADDRESS" ]; then
+        echo "✓ Key imported/verified successfully!"
+        /scripts/wait_for_rpc.sh
+        /scripts/create_provider.sh
+        /scripts/refresh_provider_cert.sh
+    else
+        echo "✗ Address mismatch!"
+        exit 1
+    fi
+
+  wait_for_rpc.sh: |
+    #!/bin/bash
+    set -e
+
+    # fail fast should these packages be missing
+    type curl || exit 1
+    type jq || exit 1
+    type awk || exit 1
+    type bc || exit 1
+
+    ##
+    # Wait for RPC
+    ##
+    NODE=${AKASH_NODE:-https://akash-rpc.polkachu.com:443}
+
+    if [[ -z "$NODE" ]]; then
+        echo "AKASH_NODE is required"
+        exit 1
+    fi
+
+    # Wait for node to be ready
+    echo "Waiting for Akash RPC $NODE to be ready..."
+    while true; do
+        # Check if we can reach the node
+        if [[ "$NODE" =~ https:// ]]; then
+            CATCHING_UP=$(curl -s "$NODE/status" | jq -r '.result.sync_info.catching_up')
+        else
+            CATCHING_UP=$(curl -s "http://$NODE/status" | jq -r '.result.sync_info.catching_up')
+        fi
+
+        if [[ "$CATCHING_UP" == "false" ]]; then
+            # Check latest block time
+            if [[ "$NODE" =~ https:// ]]; then
+                DATE_AKASH=$(curl -s "$NODE/status" | jq -r '.result.sync_info.latest_block_time')
+            else
+                DATE_AKASH=$(curl -s "http://$NODE/status" | jq -r '.result.sync_info.latest_block_time')
+            fi
+
+            TS_AKASH=$(date +%s --date "$DATE_AKASH")
+            TS=$(date +%s)
+            DIFF=$((TS - TS_AKASH))
+
+            echo "Last block Akash RPC $NODE seen was $DIFF seconds ago"
+
+            if [[ $DIFF -gt 30 ]]; then
+                echo "Akash node not ready. Retrying"
+                sleep 15
+                continue
+            fi
+
+            echo "Last block Akash RPC $NODE seen was $DIFF seconds ago => OK"
+            break
+        fi
+
+        sleep 5
+    done
+
+    echo "Akash RPC $NODE is ready"
+
+  create_provider.sh: |
+    #!/bin/bash
+    set -x
+
+    AKASH_HOME="${AKASH_HOME:-/root/.akash}"
+    AKASH_KEYRING_BACKEND="${AKASH_KEYRING_BACKEND:-test}"
+    AKASH_FROM="${AKASH_FROM:-provider-wallet}"
+
+    # Get provider address
+    PROVIDER_ADDRESS=$(provider-services --home="$AKASH_HOME" keys show "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" -a)
+
+    if [[ -z "$PROVIDER_ADDRESS" ]]; then
+        echo "PROVIDER_ADDRESS variable empty. Something went wrong"
+        exit 1
+    fi
+
+    # Create provider (might already exist, that's OK)
+    export AKASH_HOME AKASH_KEYRING_BACKEND AKASH_FROM
+    provider-services provider create \
+      --from "$AKASH_FROM" \
+      --keyring-backend "$AKASH_KEYRING_BACKEND" \
+      --home "$AKASH_HOME" || {
+        echo "Provider creation failed (might already exist)"
+    }
+
+  refresh_provider_cert.sh: |
+    #!/bin/bash
+    set -x
+
+    AKASH_HOME="${AKASH_HOME:-/root/.akash}"
+    AKASH_KEYRING_BACKEND="${AKASH_KEYRING_BACKEND:-test}"
+    AKASH_FROM="${AKASH_FROM:-provider-wallet}"
+
+    # Get provider address
+    PROVIDER_ADDRESS=$(provider-services --home="$AKASH_HOME" keys show "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" -a)
+
+    if [[ -z "$PROVIDER_ADDRESS" ]]; then
+        echo "PROVIDER_ADDRESS variable empty. Something went wrong"
+        exit 1
+    fi
+
+    # Refresh certificate
+    export AKASH_HOME AKASH_KEYRING_BACKEND AKASH_FROM
+    provider-services provider cert-create \
+      --from "$AKASH_FROM" \
+      --keyring-backend "$AKASH_KEYRING_BACKEND" \
+      --home "$AKASH_HOME" || {
+        echo "Certificate refresh failed"
+        exit 1
+    }

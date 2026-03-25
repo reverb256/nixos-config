@@ -33,13 +33,13 @@ in {
 
     providerEndpoint = mkOption {
       type = types.str;
-      default = "http://10.1.1.120:30843";
-      description = "Akash provider HTTP endpoint (NodePort on Nexus)";
+      default = "https://10.1.1.120:32294";
+      description = "Akash provider HTTPS endpoint (NodePort on Nexus)";
     };
 
     providerGrpcEndpoint = mkOption {
       type = types.str;
-      default = "10.1.1.120:30844";
+      default = "10.1.1.120:31420";
       description = "Akash provider gRPC endpoint (NodePort on Nexus)";
     };
 
