@@ -116,6 +116,7 @@ sentry   NotReady   monitoring                     5h49m   v1.35.0
 | 🟢 LOW | NFS hard mounts | System hangs if NFS down | ✅ FIXED - Soft mounts with 10s timeout |
 | 🟢 LOW | ~~GPU workload coordination needed~~ | Mining vs K8s GPU conflict | ✅ **SOLVED:** GPU Resource Marketplace deployed |
 | 🟡 LOW | AMD GPU mining GLIBC incompatibility | lolminer segfaults in K8s (GLIBC 2.42 vs 2.27) | ⚠️ **WORKAROUND:** AMD mining on host (systemd), NVIDIA mining in K8s |
+| 🟡 MEDIUM | Calico BGP peering degraded (Forge, Sentry) | 2/4 nodes have link-local IPv6 only, BGP multihop doesn't work | ⚠️ **ACCEPTED:** FelixConfiguration.ipv6Support: false, cluster functional with IPv4-only BGP. Forge calico-node Error, Sentry Running (0/1). Details: `docs/kubernetes/cluster-issues-assessment-2026-03-24.md` |
 | 🟢 LOW | ~~Sentry node pod deployment failures~~ | ~~"IP exhaustion" errors, pods stuck in ContainerCreating~~ | ✅ **RESOLVED (2026-03-21):** Flannel pod restart caused missing subnet.env. Recreated pod, all deployments working. Full analysis: `docs/sentry-instability-debug-2026-03-21.md` |
 
 ---
