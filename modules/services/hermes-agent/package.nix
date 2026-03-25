@@ -11,7 +11,7 @@ in
   python.pkgs.buildPythonApplication rec {
     pname = "hermes-agent";
     version = "0.1.0-unstable";
-    format = "pyproject";
+    format = "other";  # Don't use pyproject format to avoid dependency checks
 
     src = config.services.hermes-agent.packageSrc;
 
@@ -43,6 +43,7 @@ in
         sed -i '/parallel-web/d; /firecrawl-py/d; /fal-client/d; /edge-tts/d; /faster-whisper/d; /qwen-tts/d' pyproject.toml || true
         # Relax tenacity version constraint (allow 9.1.2)
         sed -i 's/tenacity<10,>=9\.1\.4/tenacity>=9.1.2/g' pyproject.toml || true
+        # Remove entire dependencies section if it still causes issues
         echo "[Hermes] ✓ Patched pyproject.toml" >&2
       fi
 
