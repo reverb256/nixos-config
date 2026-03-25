@@ -56,6 +56,7 @@
 
     # Security
     ./security/pam-vaultwarden.nix
+    ./security/caddy-ca.nix
     ./kubernetes-security.nix
 
     # Desktop environment
