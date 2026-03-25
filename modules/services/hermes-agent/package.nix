@@ -40,42 +40,23 @@ in
       fi
       echo "[Hermes] ✓ Build preparation completed" >&2
 
-      # Patch pyproject.toml to remove unavailable dependencies
+      # Patch pyproject.toml to remove unavailable optional dependencies
       if [ -f pyproject.toml ]; then
-        echo "[Hermes] Patching pyproject.toml to remove unavailable dependencies..." >&2
-        # Remove packages that don't have source distributions on PyPI or aren't available
+        echo "[Hermes] Patching pyproject.toml to remove unavailable optional dependencies..." >&2
+        # Remove optional packages that don't have source distributions on PyPI
+        # These are in [all] extras but not available in Nixpkgs
         sed -i '/parallel-web/d; /firecrawl-py/d; /fal-client/d; /edge-tts/d; /faster-whisper/d; /qwen-tts/d' pyproject.toml || true
         # Relax tenacity version constraint (allow 9.1.2)
         sed -i 's/tenacity<10,>=9\.1\.4/tenacity>=9.1/g' pyproject.toml || true
         echo "[Hermes] ✓ Patched pyproject.toml" >&2
       fi
-
-      # Patch Python imports to be conditional (for unavailable packages)
-      echo "[Hermes] Patching Python imports for unavailable packages..." >&2
-
-      # Comment out imports for packages without source distributions
-      if [ -f tools/web_tools.py ]; then
-        sed -i 's/[[:space:]]*from firecrawl import Firecrawl/# from firecrawl import Firecrawl  # DISABLED: no source distribution available/' tools/web_tools.py || true
-      fi
-
-      if [ -f tools/image_generation_tool.py ]; then
-        sed -i 's/^import fal_client/# import fal_client  # DISABLED: no source distribution available/' tools/image_generation_tool.py || true
-      fi
-
-      if [ -f tools/terminal_tool.py ]; then
-        sed -i 's/^from minisweagent_path import/# from minisweagent_path import  # DISABLED: submodule not available/' tools/terminal_tool.py || true
-        sed -i 's/^ensure_minisweagent_on_path/# ensure_minisweagent_on_path  # DISABLED: submodule not available/' tools/terminal_tool.py || true
-      fi
-
-      echo "[Hermes] ✓ Patched Python imports" >&2
-      echo "[Hermes] ✓ Build preparation completed" >&2
     '';
 
     propagatedBuildInputs = with python.pkgs; [
+      # Core dependencies only (no optional extras like firecrawl, fal-client)
       openai
       anthropic
       python-dotenv
-      fire
       httpx
       rich
       tenacity
@@ -84,10 +65,16 @@ in
       jinja2
       pydantic
       prompt-toolkit
-      litellm
       typer
       platformdirs
       pyjwt # Note: using pyjwt instead of PyJWT[crypto]
+
+      # Removed optional dependencies not available in Nixpkgs:
+      # - fire (web_scraper, async_scanner)
+      # - fal-client (image generation)
+      # - edge-tts (TTS)
+      # - faster-whisper (transcription)
+      # - qwen-tts (TTS)
     ];
 
     nativeBuildInputs = with pkgs; [
