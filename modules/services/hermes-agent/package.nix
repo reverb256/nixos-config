@@ -111,12 +111,12 @@ in
     # Install CLI scripts and binaries
     postInstall = ''
       # Install the Python package first (so CLI tools can import it)
-      PYTHONPATH=$out/lib/${python.lib}/site-packages:$PYTHONPATH
+      PYTHONPATH=$out/lib/${python.sitePackages}:$PYTHONPATH
       export PYTHONPATH
-      mkdir -p $out/lib/${python.lib}/site-packages
+      mkdir -p $out/lib/${python.sitePackages}
 
       # Copy the entire hermes_agent source to site-packages
-      cp -r $src/* $out/lib/${python.lib}/site-packages/
+      cp -r $src/* $out/lib/${python.sitePackages}/
 
       # Install the main hermes CLI
       install -D -m755 $src/cli.py $out/bin/hermes
