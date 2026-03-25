@@ -11,7 +11,10 @@ in
   python.pkgs.buildPythonApplication rec {
     pname = "hermes-agent";
     version = "0.1.0-unstable";
-    format = "other";  # Don't use pyproject format to avoid dependency checks
+    format = "pyproject";
+
+    # Relax dependency checks to allow version mismatches
+    pythonRelaxDepsHook = true;
 
     src = config.services.hermes-agent.packageSrc;
 
