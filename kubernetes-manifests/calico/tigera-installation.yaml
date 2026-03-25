@@ -13,10 +13,9 @@ spec:
     nodeAddressAutodetectionV4:
       # Use canReach to bypass the interface naming mismatch (Zephyr vs Nexus vs Forge)
       canReach: 8.8.8.8
-    # Disable IPv6 autodetection - Forge and Sentry have no global IPv6 addresses
-    # Only link-local addresses available, which don't work with BGP multihop
-    # Explicit IPv6 addresses will be configured via node annotations if needed
-    # nodeAddressAutodetectionV6 removed to disable IPv6
+    # IPv6 autodetection enabled by Tigera operator defaults
+    # Forge and Sentry will have degraded BGP due to link-local IPv6 only
+    # FelixConfiguration.ipv6Support: false makes IPv6 optional cluster-wide
     # Explicitly set pod CIDR to match IPPool
     ipPools:
     - cidr: 10.244.0.0/16
