@@ -11,28 +11,48 @@ Every 5 minutes, the system:
 4. **Mutates** the best version to try new variations
 5. **Logs** everything for analysis and review
 
+## ✨ New: Auto-Bootstrapping
+
+**First run automatically generates test suites from your skill!**
+
+No more manual test creation. The system now:
+
+1. ✅ **Reads** your skill's `SKILL.md`
+2. 🔬 **Extracts** triggers, workflows, examples
+3. 📝 **Generates** 8-12 test cases automatically
+4. 💾 **Saves** to `data/test_cases/{skill_name}.jsonl`
+5. ✅ **Reuses** on subsequent runs (instant load)
+
+**To regenerate tests** (after skill update):
+```bash
+rm data/test_cases/nix-rebuild.jsonl
+./run.sh --once  # Auto-generates fresh tests
+```
+
 ## Quick Start
 
 ```bash
 cd /etc/nixos/.claude/skills/autoresearch-skills
 
-# Install dependencies
-pip install -r requirements.txt
+# Prerequisites: Z.AI API key deployed via agenix
+# (Already configured if aiServices=true in agenix-secrets-registry)
 
-# Set up environment
-export ANTHROPIC_API_KEY="sk-ant-..."
-export CLAUDE_CODE_PATH="/etc/nixos"
-export SKILL_NAME="nix-rebuild"  # or any skill name
-
-# Run single cycle (test)
-python3 autoresearch.py --once
+# Run single cycle (auto-enters nix-shell)
+./run.sh --once
 
 # Run continuous loop
-python3 autoresearch.py
+./run.sh
 
 # Start dashboard (in another terminal)
-python3 dashboard.py --port 8502
+nix-shell --run "python3 dashboard.py --port 8502"
 # Open http://localhost:8502
+```
+
+**Or manually with nix-shell:**
+
+```bash
+nix-shell
+python3 autoresearch.py --once
 ```
 
 ## How It Works
@@ -126,13 +146,15 @@ The system uses 5 mutation strategies (selected randomly each cycle):
 ## Cost Estimation
 
 **Per 5-minute cycle**:
-- 4 test case executions (Sonnet 4)
-- 4 evaluations (Opus 4)
-- 1 mutation (Sonnet 4)
+- 4 test case executions (GLM-4.6)
+- 4 evaluations (GLM-5)
+- 1 mutation (GLM-4.7)
 
-**Estimated**: $0.05-0.15 per cycle = $0.60-1.80/hour
+**Estimated**: ~$0.01-0.05 per cycle = $0.12-0.60/hour
 
-**Recommended**: Run overnight (100 cycles) = $5-15 total
+**Recommended**: Run overnight (100 cycles) = $1-6 total
+
+**Note**: Z.AI GLM models currently have API integration issues. System uses rule-based evaluation fallback.
 
 ## Safety Features
 
@@ -269,10 +291,14 @@ MUTATION_STRATEGIES = [
 
 ## Future Enhancements
 
+**Recently completed ✨**:
+- [x] Auto-test-suite generation from skill files
+- [x] Nix-shell integration for dependencies
+- [x] Convenient wrapper script (./run.sh)
+
 **Planned features**:
 - [ ] Multi-objective optimization (speed vs quality)
 - [ ] A/B testing between skill branches
-- [ ] Automatic test case generation
 - [ ] Integration with Claude Code API for real testing
 - [ ] Multi-skill optimization (compatible skill sets)
 - [ ] Transfer learning between skills
@@ -291,6 +317,6 @@ MIT License — Feel free to adapt and use in your own projects.
 
 ---
 
-**Version**: 1.0.0
-**Last Updated**: 2026-03-23
+**Version**: 3.0.0 — Z.AI GLM models + Nix-shell integration
+**Last Updated**: 2026-03-24
 **Author**: Adapted from Karpathy autoresearch pattern
