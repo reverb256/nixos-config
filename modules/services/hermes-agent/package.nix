@@ -44,12 +44,39 @@ in
       if [ -f pyproject.toml ]; then
         echo "[Hermes] Patching pyproject.toml to remove unavailable optional dependencies..." >&2
         # Remove optional packages that don't have source distributions on PyPI
-        # These are in [all] extras but not available in Nixpkgs
         sed -i '/parallel-web/d; /firecrawl-py/d; /fal-client/d; /edge-tts/d; /faster-whisper/d; /qwen-tts/d' pyproject.toml || true
         # Relax tenacity version constraint (allow 9.1.2)
         sed -i 's/tenacity<10,>=9\.1\.4/tenacity>=9.1/g' pyproject.toml || true
         echo "[Hermes] ✓ Patched pyproject.toml" >&2
       fi
+
+      # Patch Python source files to make optional imports conditional
+      echo "[Hermes] Patching Python source files for optional dependencies..." >&2
+
+      # Patch tools/web_tools.py - make firecrawl import conditional
+      if [ -f tools/web_tools.py ]; then
+        echo "[Hermes] Patching tools/web_tools.py to make firecrawl import optional..." >&2
+        # Find the line and wrap it with try/except
+        sed -i '/^from firecrawl import Firecrawl/i\      try:\n        from firecrawl import Firecrawl\n      except ImportError:\n          Firecrawl = None  # Optional dependency not available' tools/web_tools.py || true
+        echo "[Hermes] ✓ Patched firecrawl import" >&2
+      fi
+
+      # Patch tools/image_generation_tool.py - make fal_client import conditional
+      if [ -f tools/image_generation_tool.py ]; then
+        echo "[Hermes] Patching tools/image_generation_tool.py to make fal_client import optional..." >&2
+        sed -i '/^import fal_client/i\      try:\n        import fal_client\n      except ImportError:\n          fal_client = None  # Optional dependency not available' tools/image_generation_tool.py || true
+        echo "[Hermes] ✓ Patched fal_client import" >&2
+      fi
+
+      # Patch tools/terminal_tool.py - make minisweagent import conditional
+      if [f tools/terminal_tool.py ]; then
+        echo "[Hermes] Patching tools/terminal_tool.py to make minisweagent import optional..." >&2
+        sed -i '/^from minisweagent_path import/i\      try:\n        from minisweagent_path import' tools/terminal_tool.py || true
+        sed -i '/^ensure_minisweagent_on_path/i\      # ensure_minisweagent_on_path  # Disabled - submodule not available' tools/terminal_tool.py || true
+        echo "[Hermes] ✓ Patched minisweagent imports" >&2
+      fi
+
+      echo "[Hermes] ✓ Patched Python source files" >&2
     '';
 
     propagatedBuildInputs = with python.pkgs; [
