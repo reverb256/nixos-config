@@ -90,6 +90,13 @@ spec:
       ports:
         - protocol: TCP
           port: 3333
+    # Connect to xmrig-proxy hostNetwork pod (cluster host network)
+    - to:
+        - ipBlock:
+            cidr: 10.1.1.0/24
+      ports:
+        - protocol: TCP
+          port: 3333
     # DNS resolution
     - to:
         - namespaceSelector: {}
@@ -125,6 +132,13 @@ spec:
         - podSelector:
             matchLabels:
               app: xmrig-proxy
+      ports:
+        - protocol: TCP
+          port: 3333
+    # Connect to xmrig-proxy hostNetwork pod (cluster host network)
+    - to:
+        - ipBlock:
+            cidr: 10.1.1.0/24
       ports:
         - protocol: TCP
           port: 3333
