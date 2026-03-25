@@ -56,6 +56,12 @@
     }
   ];
 
+  # Explicitly enable IPv6 (required for Calico BGP multihop)
+  # Overrides system-wide IPv6 disable that breaks BGP peering
+  boot.kernel.sysctl."net.ipv6.conf.all.disable_ipv6" = 0;
+  boot.kernel.sysctl."net.ipv6.conf.default.disable_ipv6" = 0;
+  boot.kernel.sysctl."net.ipv6.conf.enp0s31f6.disable_ipv6" = 0;
+
   # Disable flake-lock-sync (nixos-shared mount not available)
   services.flake-lock-sync.enable = lib.mkForce false;
 
