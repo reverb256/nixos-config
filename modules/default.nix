@@ -104,6 +104,7 @@
     ./services/lm-studio.nix
     ./services/lm-studio-headless.nix
     ./services/llamafile.nix
+    # ./services/llama-server.nix  # TODO: Fix Nix source caching issue
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
     # ./services/qwen3-tts-preload.nix  # TEMP: Build failure (qwen-tts package)
