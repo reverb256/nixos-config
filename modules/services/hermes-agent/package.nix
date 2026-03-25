@@ -153,10 +153,7 @@ if os.path.exists(web_tools):
     with open(web_tools, 'r') as f:
         content = f.read()
     old_import = 'from firecrawl import Firecrawl'
-    new_import = '''try:
-        from firecrawl import Firecrawl
-    except ImportError:
-        Firecrawl = None  # Optional dependency not available'''
+    new_import = 'try:\\n        from firecrawl import Firecrawl\\n    except ImportError:\\n        Firecrawl = None  # Optional dependency not available'
     content = content.replace(old_import, new_import)
     with open(web_tools, 'w') as f:
         f.write(content)
@@ -168,10 +165,7 @@ if os.path.exists(img_gen):
     with open(img_gen, 'r') as f:
         content = f.read()
     old_import = 'import fal_client'
-    new_import = '''try:
-    import fal_client
-except ImportError:
-    fal_client = None  # Optional dependency not available'''
+    new_import = 'try:\\n    import fal_client\\nexcept ImportError:\\n    fal_client = None  # Optional dependency not available'
     content = content.replace(old_import, new_import)
     with open(img_gen, 'w') as f:
         f.write(content)
