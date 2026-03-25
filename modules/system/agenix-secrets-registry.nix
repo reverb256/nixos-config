@@ -133,6 +133,15 @@ in {
           group = "users";
         };
 
+        # Anthropic API key - For autoresearch skill optimization
+        # DISABLED: File does not exist, commented out to prevent build failure
+        # anthropic-api-key = {
+        #   file = "${inputs.self}/secrets/anthropic-api-key.age";
+        #   mode = "440";
+        #   owner = "j_kro";
+        #   group = "users";
+        # };
+
         # Spacebot Telegram token - AI agent integration
         spacebot-telegram-token = {
           file = "${inputs.self}/secrets/spacebot-telegram-token.age";
