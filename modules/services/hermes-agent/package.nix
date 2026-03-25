@@ -55,7 +55,7 @@ in
 
       # Comment out imports for packages without source distributions
       if [ -f tools/web_tools.py ]; then
-        sed -i 's/from firecrawl import Firecrawl/# from firecrawl import Firecrawl  # DISABLED: no source distribution available/' tools/web_tools.py || true
+        sed -i 's/[[:space:]]*from firecrawl import Firecrawl/# from firecrawl import Firecrawl  # DISABLED: no source distribution available/' tools/web_tools.py || true
       fi
 
       if [ -f tools/image_generation_tool.py ]; then
