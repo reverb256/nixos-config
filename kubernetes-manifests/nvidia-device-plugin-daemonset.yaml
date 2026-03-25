@@ -74,6 +74,12 @@ spec:
       - effect: NoSchedule
         key: nvidia.com/gpu
         operator: Exists
+      - key: interactive
+        operator: Exists
+      - key: workstation
+        operator: Exists
+      - key: ram-constrained
+        operator: Exists
       volumes:
       - hostPath:
           path: /var/lib/kubelet/device-plugins

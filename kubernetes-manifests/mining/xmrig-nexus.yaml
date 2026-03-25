@@ -56,7 +56,7 @@ spec:
         imagePullPolicy: Never
         args:
           - "-o"
-          - "xmrig-proxy.mining.svc.cluster.local:3333"  # Using Kubernetes service DNS instead of host IP
+          - "10.1.1.120:3333"  # Using direct proxy IP (hostNetwork pod on same node)
           - "-u"
           - "nexus-cpu"
           - "--randomx-1gb-pages"
