@@ -44,6 +44,24 @@
             "command": "if [[ \"$COMMAND\" == *colmena*apply* ]] || [[ \"$COMMAND\" == *just*deploy* ]]; then /etc/nixos/scripts/cleanup-stale-locks.sh; fi"
           }
         ]
+      },
+      {
+        "matcher": "WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\":\"WebSearch MCP is broken and returns empty results. Use mcp__web_reader__webReader or context-mode tools instead.\",\"continue\":false,\"stopReason\":\"WebSearch tool is broken - use alternative tools\"}' >&2; exit 1"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__fetch__fetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\":\"Web fetch MCP is broken. Use mcp__web_reader__webReader or context-mode tools instead.\",\"continue\":false,\"stopReason\":\"Web fetch tool is broken - use alternative tools\"}' >&2; exit 1"
+          }
+        ]
       }
     ],
     "PostToolUse": [
