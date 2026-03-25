@@ -202,14 +202,14 @@
               name = "provider";
               port = 8443;
               targetPort = 8443;
-              nodePort = 30843;
+              nodePort = 32294;
               protocol = "TCP";
             }
             {
               name = "grpc";
               port = 8444;
               targetPort = 8444;
-              nodePort = 30844;
+              nodePort = 31420;
               protocol = "TCP";
             }
             {

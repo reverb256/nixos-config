@@ -1,0 +1,254 @@
+# Akash Provider Helm Values - Context7-Aligned Configuration
+# Chart: akash/provider 14.0.8 | App Version: 0.10.7 (STABLE)
+# Last Updated: 2026-03-25
+# Source: https://github.com/akash-network/provider (official Context7 docs)
+
+# =============================================================================
+# PROVIDER IDENTITY
+# =============================================================================
+clusterPublicHostname: provider.reverb256.ca
+domain: provider.reverb256.ca
+providerAddress: akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6
+from: provider-wallet
+email: admin@reverb256.ca
+website: https://reverb256.ca
+
+# =============================================================================
+# CRITICAL IMAGE CONFIGURATION
+# =============================================================================
+# Use v0.10.7 (last stable before BME migration regression in v0.11.0)
+# Chart 14.0.8 = App v0.10.7
+image:
+  repository: ghcr.io/akash-network/provider
+  tag: 0.10.7
+  pullPolicy: IfNotPresent
+
+# =============================================================================
+# BLOCKCHAIN CONNECTION
+# =============================================================================
+# Using Polkachu public RPC (fast, synced, HTTPS)
+node: https://akash-rpc.polkachu.com:443
+chainID: akashnet-2
+
+# =============================================================================
+# CRITICAL ENVIRONMENT VARIABLES
+# =============================================================================
+extraEnvs:
+  # CRITICAL: Fix "client is not running" error (v0.11.0 withdrawal bug)
+  # Empty string disables periodic withdrawals entirely
+  - name: AKASH_WITHDRAWAL_PERIOD
+    value: ""
+
+  # CRITICAL: Manually disable CertIssuer (Helm chart bug: letsEncrypt.enabled
+  # doesn't properly set AP_CERT_ISSUER_ENABLED to false)
+  - name: AP_CERT_ISSUER_ENABLED
+    value: "false"
+
+  # Storage pricing scale (ephemeral=0.0001 uakt/GB, beta2=0.002 uakt/GB)
+  # Format: <base_ephemeral_scale>,<class>=<scale>,...
+  - name: AKASH_BID_PRICE_STORAGE_SCALE
+    value: "0.0001,beta2=0.002,default=0.002,beta3=0.002,ram=0.003"
+
+  # Cloudflare DNS API token (for Let's Encrypt DNS challenge when re-enabled)
+  - name: CF_DNS_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: cloudflare-dns-token
+        key: CF_DNS_API_TOKEN
+
+# =============================================================================
+# INGRESS & SERVICE CONFIGURATION
+# =============================================================================
+# Disable ingress (using Cloudflare tunnel instead)
+ingress:
+  enabled: false
+
+# ClusterIP service (exposed via Cloudflare tunnel)
+service:
+  type: ClusterIP
+  ports:
+    - name: api
+      port: 8443
+      targetPort: api
+    - name: grpc
+      port: 8444
+      targetPort: grpc
+
+# =============================================================================
+# LET'S ENCRYPT CONFIGURATION (DISABLED)
+# =============================================================================
+# CRITICAL: Disabled to fix provider crash loop
+# Root cause: Gateway REST server requires Let's Encrypt cert, but ACME HTTP-01
+# fails because port 80 not exposed to provider HTTP-01 listener (port 5002)
+# Provider uses its own mTLS certificate instead (from provider key pair)
+letsEncrypt:
+  enabled: false  # DISABLED
+  acme:
+    email: "admin@reverb256.ca"
+    caDirUrl: "https://acme-v02.api.letsencrypt.org/directory"
+  providers:
+    cloudflare:
+      enabled: true
+
+# =============================================================================
+# RESOURCE LIMITS
+# =============================================================================
+# Comply with akash-services namespace LimitRange (max 2Gi memory)
+# Reduced from default to fit within available memory on nexus (46GB RAM total)
+resources:
+  limits:
+    cpu: "2"
+    memory: 2Gi
+  requests:
+    cpu: "1"
+    memory: 1Gi
+
+# =============================================================================
+# NODE SCHEDULING
+# =============================================================================
+# CRITICAL: No workstation tolerations (prevent scheduling on zephyr)
+# Zephyr has constant OOM exhaustion (31GB RAM for control plane + AI + gaming)
+# Provider MUST run on nexus (46GB RAM) or forge/sentry
+tolerations: []
+
+# Node affinity: Prefer GPU nodes for provider placement
+# Nodes are labeled with: accelerator=nvidia-gpu or accelerator=amd-gpu
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      # Nodes with NVIDIA GPUs (nexus, zephyr, forge)
+      - matchExpressions:
+        - key: accelerator
+          operator: In
+          values:
+          - nvidia-gpu
+      # Fallback: nodes with AMD GPUs (sentry, forge)
+      - matchExpressions:
+        - key: accelerator
+          operator: In
+          values:
+          - amd-gpu
+
+# =============================================================================
+# INVENTORY OPERATOR CONFIGURATION
+# =============================================================================
+# Inventory operator discovers available cluster resources (CPU, RAM, GPU, storage)
+# Hardware discovery pods run on each node to detect GPU models and capabilities
+inventory:
+  # Tolerations for hardware-discovery pods (must run on all nodes including zephyr)
+  tolerations:
+  - key: interactive
+    operator: Equal
+    value: "true"
+    effect: NoExecute
+  - key: workstation
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
+
+  # Inventory configuration (CRD)
+  # See: https://github.com/akash-network/provider/blob/main/_docs/operators/inventory.md
+  config:
+    version: v1
+    cluster_storage:
+      - beta2    # NVMe SSD (fast-local-ssd on zephyr, forge)
+      - beta3    # HDD (slow-hdd on sentry)
+      - ram      # RAM disk (volatile, fast)
+    exclude:
+      nodes:
+        - ^zephyr.*  # Exclude zephyr from provider inventory (control plane node)
+      node_storage: []
+
+# =============================================================================
+# HOSTNAME OPERATOR CONFIGURATION
+# =============================================================================
+# Hostname operator manages DNS records for tenant deployments
+hostname:
+  # Use Cloudflare for DNS management
+  cloudflare:
+    enabled: true
+    # Cloudflare API token from secret
+    apiToken:
+      valueFrom:
+        secretKeyRef:
+          name: cloudflare-dns-token
+          key: CF_DNS_API_TOKEN
+
+# =============================================================================
+# CUSTOM SCRIPTS
+# =============================================================================
+# Custom initialization script with hardware discovery wait
+# Prevents "context canceled" error by waiting for inventory to complete
+scripts:
+  init.sh: |
+    #!/bin/bash
+    set -x
+
+    AKASH_HOME="${AKASH_HOME:-/root/.akash}"
+    AKASH_KEYRING_BACKEND="${AKASH_KEYRING_BACKEND:-test}"
+    AKASH_FROM="${AKASH_FROM:-provider-wallet}"
+    EXPECTED_ADDRESS="akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6"
+
+    # Read mnemonic from mounted file
+    MNEMONIC="$(cat /boot-keys/mnemonic.txt)"
+
+    echo "=== Importing Key from Mnemonic ==="
+    echo "Expected address: $EXPECTED_ADDRESS"
+
+    # Check if key already exists
+    EXISTING_ADDRESS=$(provider-services --home="$AKASH_HOME" keys show "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" -a 2>/dev/null || "")
+
+    if [ "$EXISTING_ADDRESS" = "$EXPECTED_ADDRESS" ]; then
+        echo "✓ Key already exists with correct address!"
+    elif [ -n "$EXISTING_ADDRESS" ]; then
+        echo "Key exists but has wrong address: $EXISTING_ADDRESS"
+        echo "Deleting and re-importing..."
+        provider-services --home="$AKASH_HOME" keys delete "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" || true
+        echo "$MNEMONIC" | provider-services --home="$AKASH_HOME" keys add "$AKASH_FROM" \
+            --recover \
+            --keyring-backend="$AKASH_KEYRING_BACKEND" || exit 1
+    else
+        echo "Importing new key from mnemonic..."
+        echo "$MNEMONIC" | provider-services --home="$AKASH_HOME" keys add "$AKASH_FROM" \
+            --recover \
+            --keyring-backend="$AKASH_KEYRING_BACKEND" || exit 1
+    fi
+
+    # Verify the address
+    ACTUAL_ADDRESS=$(provider-services --home="$AKASH_HOME" keys show "$AKASH_FROM" --keyring-backend="$AKASH_KEYRING_BACKEND" -a)
+    echo "Actual: $ACTUAL_ADDRESS"
+    echo "Expected: $EXPECTED_ADDRESS"
+
+    if [ "$ACTUAL_ADDRESS" = "$EXPECTED_ADDRESS" ]; then
+        echo "✓ Key imported/verified successfully!"
+        /scripts/wait_for_rpc.sh
+
+        # Wait for inventory operator to complete hardware discovery
+        echo "=== Waiting for Inventory Operator Hardware Discovery ==="
+        echo "Hardware discovery pods detect GPU resources on each node"
+
+        # Wait for inventory operator to be accessible (port 8081)
+        echo "Waiting for inventory operator to be accessible..."
+        for i in $(seq 1 30); do
+            if nc -z operator-inventory.akash-services.svc.cluster.local 8081 2>/dev/null; then
+                echo "✓ Inventory operator is accessible"
+                break
+            fi
+            if [ $i -eq 30 ]; then
+                echo "⚠ Warning: Could not reach inventory operator after 60s"
+                echo "Continuing anyway (provider may fail to bid)..."
+            fi
+            sleep 2
+        done
+
+        # Wait for hardware discovery pods to complete (they run for ~60s)
+        echo "Waiting for hardware discovery pods to complete..."
+        sleep 45
+
+        echo "✓ Hardware discovery wait complete, starting provider..."
+        echo "✓ Ready to start provider"
+    else
+        echo "✗ Address mismatch!"
+        exit 1
+    fi
