@@ -69,6 +69,16 @@ in {
     hosts.zephyr
   ];
 
+  # Anthropic API key - Claude API for autoresearch skill optimization
+  # "anthropic-api-key.age".publicKeys = [
+  #   users.j_kro
+  #   hosts.zephyr
+  # ];
+  # "secrets/anthropic-api-key.age".publicKeys = [
+  #   users.j_kro
+  #   hosts.zephyr
+  # ];
+
   # Spacebot Telegram token - AI agent Telegram integration
   "spacebot-telegram-token.age".publicKeys = [
     users.j_kro

@@ -43,13 +43,13 @@
     enable = true;
     hostName = "forge";
     ipAddress = "10.1.1.130";
-    interfaceName = "enp0s31f6"; # Native hardware interface name
+    interfaceName = lib.mkForce "eno1"; # Override profile - actual interface is eno1, not enp0s31f6
     wireless.enable = false; # Mining rig - no WiFi needed
     unbound.listenAddress = "10.1.1.130"; # Listen on node IP for cluster DNS
   };
 
   # Enable ULA (Unique Local Address) IPv6 for Calico BGP mesh
-  networking.interfaces.enp0s31f6.ipv6.addresses = [
+  networking.interfaces.eno1.ipv6.addresses = [
     {
       address = "fd00::130";
       prefixLength = 64;
@@ -60,7 +60,7 @@
   # Overrides system-wide IPv6 disable that breaks BGP peering
   boot.kernel.sysctl."net.ipv6.conf.all.disable_ipv6" = 0;
   boot.kernel.sysctl."net.ipv6.conf.default.disable_ipv6" = 0;
-  boot.kernel.sysctl."net.ipv6.conf.enp0s31f6.disable_ipv6" = 0;
+  boot.kernel.sysctl."net.ipv6.conf.eno1.disable_ipv6" = 0;
 
   # Disable flake-lock-sync (nixos-shared mount not available)
   services.flake-lock-sync.enable = lib.mkForce false;
@@ -281,9 +281,10 @@
   # ============================================================================
   # HERMES AGENT - Multi-Host Orchestration
   # ============================================================================
+  # TEMPORARILY DISABLED: Build failure blocking IPv6 deployment (2026-03-25)
   # Autonomous agent for cluster-wide task execution and coordination
   services.hermes-agent = {
-    enable = true;
+    enable = false;  # TEMP: Disabled due to hermes-agent build failure
     user = "j_kro";
     sharedStorage = {
       enable = true;

@@ -51,12 +51,6 @@ in {
         description = "Enable Prometheus node exporter (metrics collection)";
       };
     };
-
-    storagePath = lib.mkOption {
-      type = lib.types.str;
-      default = "/var/lib/prometheus";
-      description = "Path for Prometheus data storage";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -66,7 +60,6 @@ in {
       prometheus = lib.mkIf cfg.prometheus.enable {
         enable = true;
         retentionDays = cfg.prometheus.retentionDays;
-        storagePath = cfg.storagePath;
       };
 
       # Grafana configuration
