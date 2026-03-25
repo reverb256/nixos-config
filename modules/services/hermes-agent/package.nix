@@ -39,8 +39,10 @@ in
       # Patch pyproject.toml to remove unavailable dependencies
       if [ -f pyproject.toml ]; then
         echo "[Hermes] Patching pyproject.toml to remove unavailable dependencies..." >&2
-        # Remove packages that don't have source distributions on PyPI
-        sed -i '/parallel-web/d; /firecrawl-py/d; /fal-client/d' pyproject.toml || true
+        # Remove packages that don't have source distributions on PyPI or aren't available
+        sed -i '/parallel-web/d; /firecrawl-py/d; /fal-client/d; /edge-tts/d; /faster-whisper/d; /qwen-tts/d' pyproject.toml || true
+        # Relax tenacity version constraint (allow 9.1.2)
+        sed -i 's/tenacity<10,>=9\.1\.4/tenacity>=9.1.2/g' pyproject.toml || true
         echo "[Hermes] ✓ Patched pyproject.toml" >&2
       fi
 
