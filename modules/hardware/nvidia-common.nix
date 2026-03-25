@@ -59,6 +59,16 @@ in {
     '';
 
     # ============================================================================
+    # NVIDIA CONTAINER TOOLKIT (CDI for Kubernetes GPU passthrough)
+    # ============================================================================
+    # Enables CDI (Container Device Interface) specification generation for NixOS
+    # This is required for Kubernetes GPU passthrough to work with /nix/store paths
+    hardware.nvidia-container-toolkit = {
+      enable = true;
+      mount-nvidia-executables = true;
+    };
+
+    # ============================================================================
     # GPU OPTIMIZATIONS FOR AI INFERENCE
     # ============================================================================
     # Enable persistence mode and disable auto-boost for consistent performance
