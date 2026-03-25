@@ -96,10 +96,6 @@ in
       python.pkgs.setuptools
     ];
 
-    # Skip dependency checks
-    doCheck = false;
-    doInstallCheck = false;
-
     # Disable Python dependency validation
     pythonRelaxDeps = true;
     dontUsePythonRuntimeDepsCheck = true;
