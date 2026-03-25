@@ -11,10 +11,11 @@ in
   python.pkgs.buildPythonApplication rec {
     pname = "hermes-agent";
     version = "0.1.0-unstable";
-    format = "pyproject";
+    format = "flak";
 
-    # Relax dependency checks to allow version mismatches
-    pythonRelaxDepsHook = true;
+    # Disable dependency checks entirely
+    doCheck = false;
+    doInstallCheck = false;
 
     src = config.services.hermes-agent.packageSrc;
 
@@ -95,9 +96,12 @@ in
       python.pkgs.setuptools
     ];
 
-    # Skip tests and runtime dependency checks
+    # Skip dependency checks
     doCheck = false;
     doInstallCheck = false;
+
+    # Disable Python dependency validation
+    pythonRelaxDeps = true;
     dontUsePythonRuntimeDepsCheck = true;
 
     # Disable Python hooks that check for optional dependencies
@@ -110,6 +114,14 @@ in
 
     # Install CLI scripts and binaries
     postInstall = ''
+      # Install the Python package first (so CLI tools can import it)
+      PYTHONPATH=$out/lib/${python.lib}/site-packages:$PYTHONPATH
+      export PYTHONPATH
+      mkdir -p $out/lib/${python.lib}/site-packages
+
+      # Copy the entire hermes_agent source to site-packages
+      cp -r $src/* $out/lib/${python.lib}/site-packages/
+
       # Install the main hermes CLI
       install -D -m755 $src/cli.py $out/bin/hermes
       # Fix shebang to use the correct Python interpreter
