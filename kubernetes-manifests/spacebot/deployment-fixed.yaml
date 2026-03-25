@@ -42,10 +42,19 @@ spec:
         seccompProfile:
           type: RuntimeDefault
 
+      # Use Nix-built container image from local registry
+      # Build with: nix-build . -A spacebot-container-image
+      # Load with: docker load < result
+      # Or use directly from Nix store (if using podman on host)
       containers:
       - name: spacebot
+        # Option 1: Use pre-built image from registry
+        # image: localhost:5000/spacebot:latest
+        # Option 2: Use Nix store path directly (for podman)
+        # image: /nix/store/XXXX-spacebot-container-image.tar.gz
+        # Option 3: Use official image while testing
         image: ghcr.io/spacedriveapp/spacebot:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         command:
           - "spacebot"
           - "start"
