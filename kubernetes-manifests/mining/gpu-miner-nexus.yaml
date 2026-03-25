@@ -51,6 +51,9 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
           - "--algo=CR29"
+          - "--pool=xmrig-proxy.mining.svc.cluster.local:3333"
+          - "--user=nexus-gpu"
+          - "--pass=x"
           - "--pool=xtm-c29-us.kryptex.network:8040"
           - "--user=krxXVNVMM7.nexus-gpu"
           - "--pass=x"
