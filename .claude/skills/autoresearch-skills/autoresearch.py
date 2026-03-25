@@ -43,7 +43,7 @@ STATE_FILE = DATA_DIR / "state.json"
 
 # llama.cpp client (local GGUF models with CUDA acceleration)
 # Uses OpenAI-compatible API from llama-server
-LLAMA_SERVER_URL = os.getenv("LLAMA_SERVER_URL", "http://localhost:8080")
+LLAMA_SERVER_URL = os.getenv("LLAMA_SERVER_URL", "http://nexus:8080")
 LLAMA_API_KEY = os.getenv("LLAMA_API_KEY", "sk-notneeded")  # llama.cpp doesn't require auth
 
 client = OpenAI(

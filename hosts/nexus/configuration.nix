@@ -77,6 +77,7 @@
         10250 # Kubelet API
         3900 # Garage S3 API
         3901 # Garage RPC
+        8080 # llama-server for autoresearch LLM evaluation
       ];
       allowedTCPPortRanges = [
         {
@@ -558,6 +559,7 @@
   # ============================================================================
   environment.systemPackages = with pkgs; [
     opencode # AI coding agent (migrated from nix profile)
+    llama-cpp # CUDA-enabled llama.cpp for autoresearch LLM evaluation
   ];
 
   # ============================================================================
