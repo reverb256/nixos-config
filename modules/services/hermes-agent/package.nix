@@ -136,6 +136,79 @@ in
       # Copy the entire hermes_agent source to site-packages
       cp -r $src/* $out/${python.sitePackages}/
 
+      # Patch optional imports using Python (more reliable than sed)
+      echo "[Hermes] Patching optional dependencies with Python..." >&2
+      ${python}/bin/python <<EOF
+import os
+import re
+
+site_packages = "$out/${python.sitePackages}"
+
+# Patch tools/web_tools.py - wrap firecrawl import
+web_tools = os.path.join(site_packages, "tools/web_tools.py")
+if os.path.exists(web_tools):
+    with open(web_tools, 'r') as f:
+        content = f.read()
+
+    # Replace import with try/except wrapper
+    content = re.sub(
+        r'from firecrawl import Firecrawl',
+        '''try:
+        from firecrawl import Firecrawl
+    except ImportError:
+        Firecrawl = None  # Optional dependency not available''',
+        content
+    )
+
+    with open(web_tools, 'w') as f:
+        f.write(content)
+    print("[Hermes] ✓ Patched firecrawl import", file=__import__('sys').stderr)
+
+# Patch tools/image_generation_tool.py - wrap fal_client import
+img_gen = os.path.join(site_packages, "tools/image_generation_tool.py")
+if os.path.exists(img_gen):
+    with open(img_gen, 'r') as f:
+        content = f.read()
+
+    content = re.sub(
+        r'import fal_client',
+        '''try:
+    import fal_client
+except ImportError:
+    fal_client = None  # Optional dependency not available''',
+        content
+    )
+
+    with open(img_gen, 'w') as f:
+        f.write(content)
+    print("[Hermes] ✓ Patched fal_client import", file=__import__('sys').stderr)
+
+# Patch tools/terminal_tool.py - comment out minisweagent
+terminal = os.path.join(site_packages, "tools/terminal_tool.py")
+if os.path.exists(terminal):
+    with open(terminal, 'r') as f:
+        content = f.read()
+
+    # Comment out minisweagent imports
+    content = re.sub(
+        r'from minisweagent_path import',
+        '# from minisweagent_path import  # Disabled - submodule not available',
+        content
+    )
+    # Comment out ensure_minisweagent_on_path call
+    content = re.sub(
+        r'ensure_minisweagent_on_path\(\)',
+        '# ensure_minisweagent_on_path()  # Disabled - submodule not available',
+        content
+    )
+
+    with open(terminal, 'w') as f:
+        f.write(content)
+    print("[Hermes] ✓ Patched minisweagent imports", file=__import__('sys').stderr)
+
+print("[Hermes] ✓ All optional dependency patches applied", file=__import__('sys').stderr)
+EOF
+
       # Install the main hermes CLI
       install -D -m755 $src/cli.py $out/bin/hermes
       # Fix shebang to use the correct Python interpreter
