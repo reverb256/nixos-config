@@ -293,7 +293,7 @@
   # TEMPORARILY DISABLED: Build failure blocking IPv6 deployment (2026-03-25)
   # Autonomous agent for cluster-wide task execution and coordination
   services.hermes-agent = {
-    enable = false;  # DISABLED: Runtime dependency issues (tenacity version constraint)
+    enable = true;  # Re-enabled: Fixed Python module installation
     user = "j_kro";
     sharedStorage = {
       enable = true;
