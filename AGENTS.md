@@ -297,4 +297,4 @@ profiles.network.tailscale.enable = true;
 
 ---
 
-**Version**: 3.1 | **Updated**: 2026-03-18
+**Version**: 3.2 | **Last Updated:** 2026-03-25 | **Updated:** 2026-03-18

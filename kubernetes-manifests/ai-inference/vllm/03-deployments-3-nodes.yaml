@@ -1,0 +1,344 @@
+# vLLM Deployment with YuniKorn - 3 Replicas, 1 Per Node
+# One pod on Forge, one on Zephyr, one on Nexus
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-qwen-forge
+  namespace: ai-inference
+  labels:
+    app: vllm-qwen
+    node: forge
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: vllm-qwen
+      node: forge
+  template:
+    metadata:
+      labels:
+        app: vllm-qwen
+        node: forge
+      annotations:
+        yunikorn.apache.org/queue: "root.ai-inference"
+    spec:
+      schedulerName: yunikorn
+      priorityClassName: ai-inference-high
+      nodeName: forge  # Force to Forge
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:v0.6.3.post1
+        command:
+        - python3
+        - -m
+        - vllm.entrypoints.openai.api_server
+        args:
+        - --model=/models/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF
+        - --device=cuda
+        - --gpu-memory-utilization=0.9
+        - --max-model-len=16384
+        - --dtype=half
+        - --enable-chunked-prefill
+        - --max-num-seqs=8
+        - --disable-log-requests
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: LD_LIBRARY_PATH
+          value: "/run/current-system/sw/lib:/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+        - name: PATH
+          value: "/run/current-system/sw/bin:/usr/local/cuda/bin:$PATH"
+        - name: VLLM_WORKER_MULTIPROC_METHOD
+          value: "fork"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        ports:
+        - name: http
+          containerPort: 8000
+        resources:
+          requests:
+            cpu: "2"
+            memory: "2Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "4"
+            memory: "4Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+        - name: models
+          mountPath: /models
+          readOnly: true
+        - name: nixos-bin
+          mountPath: /run/current-system/sw/bin
+          readOnly: true
+        - name: nixos-lib
+          mountPath: /run/current-system/sw/lib
+          readOnly: true
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          failureThreshold: 30
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+      volumes:
+      - name: models
+        hostPath:
+          path: /home/j_kro/.lmstudio/models/Jackrong/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF
+          type: Directory
+      - name: nixos-bin
+        hostPath:
+          path: /run/current-system/sw/bin
+          type: Directory
+      - name: nixos-lib
+        hostPath:
+          path: /run/current-system/sw/lib
+          type: Directory
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-qwen-zephyr
+  namespace: ai-inference
+  labels:
+    app: vllm-qwen
+    node: zephyr
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: vllm-qwen
+      node: zephyr
+  template:
+    metadata:
+      labels:
+        app: vllm-qwen
+        node: zephyr
+      annotations:
+        yunikorn.apache.org/queue: "root.ai-inference"
+    spec:
+      schedulerName: yunikorn
+      priorityClassName: ai-inference-high
+      nodeName: zephyr  # Force to Zephyr
+      tolerations:
+      - key: interactive
+        operator: Exists
+        effect: NoExecute
+      - key: ram-constrained
+        operator: Exists
+        effect: NoSchedule
+      - key: workstation
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:v0.6.3.post1
+        command:
+        - python3
+        - -m
+        - vllm.entrypoints.openai.api_server
+        args:
+        - --model=/models/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF
+        - --device=cuda
+        - --gpu-memory-utilization=0.9
+        - --max-model-len=16384
+        - --dtype=half
+        - --enable-chunked-prefill
+        - --max-num-seqs=8
+        - --disable-log-requests
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: LD_LIBRARY_PATH
+          value: "/run/current-system/sw/lib:/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+        - name: PATH
+          value: "/run/current-system/sw/bin:/usr/local/cuda/bin:$PATH"
+        - name: VLLM_WORKER_MULTIPROC_METHOD
+          value: "fork"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        ports:
+        - name: http
+          containerPort: 8000
+        resources:
+          requests:
+            cpu: "2"
+            memory: "2Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "4"
+            memory: "4Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+        - name: models
+          mountPath: /models
+          readOnly: true
+        - name: nixos-bin
+          mountPath: /run/current-system/sw/bin
+          readOnly: true
+        - name: nixos-lib
+          mountPath: /run/current-system/sw/lib
+          readOnly: true
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          failureThreshold: 30
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+      volumes:
+      - name: models
+        hostPath:
+          path: /home/j_kro/.lmstudio/models/Jackrong/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF
+          type: Directory
+      - name: nixos-bin
+        hostPath:
+          path: /run/current-system/sw/bin
+          type: Directory
+      - name: nixos-lib
+        hostPath:
+          path: /run/current-system/sw/lib
+          type: Directory
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-qwen-nexus
+  namespace: ai-inference
+  labels:
+    app: vllm-qwen
+    node: nexus
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: vllm-qwen
+      node: nexus
+  template:
+    metadata:
+      labels:
+        app: vllm-qwen
+        node: nexus
+      annotations:
+        yunikorn.apache.org/queue: "root.ai-inference"
+    spec:
+      schedulerName: yunikorn
+      priorityClassName: ai-inference-high
+      nodeName: nexus  # Force to Nexus
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:v0.6.3.post1
+        command:
+        - python3
+        - -m
+        - vllm.entrypoints.openai.api_server
+        args:
+        - --model=/models/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF
+        - --device=cuda
+        - --gpu-memory-utilization=0.9
+        - --max-model-len=16384
+        - --dtype=half
+        - --enable-chunked-prefill
+        - --max-num-seqs=8
+        - --disable-log-requests
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: LD_LIBRARY_PATH
+          value: "/run/current-system/sw/lib:/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+        - name: PATH
+          value: "/run/current-system/sw/bin:/usr/local/cuda/bin:$PATH"
+        - name: VLLM_WORKER_MULTIPROC_METHOD
+          value: "fork"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        ports:
+        - name: http
+          containerPort: 8000
+        resources:
+          requests:
+            cpu: "2"
+            memory: "2Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "4"
+            memory: "4Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+        - name: models
+          mountPath: /models
+          readOnly: true
+        - name: nixos-bin
+          mountPath: /run/current-system/sw/bin
+          readOnly: true
+        - name: nixos-lib
+          mountPath: /run/current-system/sw/lib
+          readOnly: true
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          failureThreshold: 30
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+      volumes:
+      - name: models
+        hostPath:
+          path: /home/j_kro/.lmstudio/models/Jackrong/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF
+          type: Directory
+      - name: nixos-bin
+        hostPath:
+          path: /run/current-system/sw/bin
+          type: Directory
+      - name: nixos-lib
+        hostPath:
+          path: /run/current-system/sw/lib
+          type: Directory
