@@ -136,68 +136,26 @@ in
       # Copy the entire hermes_agent source to site-packages
       cp -r $src/* $out/${python.sitePackages}/
 
-      # Patch optional imports using Python (more reliable than sed)
-      echo "[Hermes] Patching optional dependencies with Python..." >&2
+      # Create stub modules for missing optional dependencies
+      echo "[Hermes] Creating stub modules for optional dependencies..." >&2
 
-      # Write Python patching script to temp file
-      cat > patch_imports.py <<'PYTHON_SCRIPT'
-import os
-import re
-import sys
+      # Create firecrawl stub
+      mkdir -p $out/${python.sitePackages}/firecrawl
+      cat > $out/${python.sitePackages}/firecrawl/__init__.py <<'EOF'
+# Stub module for firecrawl (optional dependency not available)
+class Firecrawl:
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError("Firecrawl is not installed - this is an optional dependency")
+EOF
 
-site_packages = os.environ['out'] + '/' + os.environ['python'].split('/')[-1] + '/site-packages'
+      # Create fal_client stub
+      cat > $out/${python.sitePackages}/fal_client.py <<'EOF'
+# Stub module for fal_client (optional dependency not available)
+def run(*args, **kwargs):
+    raise NotImplementedError("fal_client is not installed - this is an optional dependency")
+EOF
 
-# Patch tools/web_tools.py - wrap firecrawl import
-web_tools = os.path.join(site_packages, 'tools/web_tools.py')
-if os.path.exists(web_tools):
-    with open(web_tools, 'r') as f:
-        content = f.read()
-    old_import = 'from firecrawl import Firecrawl'
-    new_import = 'try:\\n        from firecrawl import Firecrawl\\n    except ImportError:\\n        Firecrawl = None  # Optional dependency not available'
-    content = content.replace(old_import, new_import)
-    with open(web_tools, 'w') as f:
-        f.write(content)
-    print('[Hermes] ✓ Patched firecrawl import', file=sys.stderr)
-
-# Patch tools/image_generation_tool.py - wrap fal_client import
-img_gen = os.path.join(site_packages, 'tools/image_generation_tool.py')
-if os.path.exists(img_gen):
-    with open(img_gen, 'r') as f:
-        content = f.read()
-    old_import = 'import fal_client'
-    new_import = 'try:\\n    import fal_client\\nexcept ImportError:\\n    fal_client = None  # Optional dependency not available'
-    content = content.replace(old_import, new_import)
-    with open(img_gen, 'w') as f:
-        f.write(content)
-    print('[Hermes] ✓ Patched fal_client import', file=sys.stderr)
-
-# Patch tools/terminal_tool.py - comment out minisweagent
-terminal = os.path.join(site_packages, 'tools/terminal_tool.py')
-if os.path.exists(terminal):
-    with open(terminal, 'r') as f:
-        content = f.read()
-    content = re.sub(
-        r'from minisweagent_path import',
-        '# from minisweagent_path import  # Disabled - submodule not available',
-        content
-    )
-    content = re.sub(
-        r'ensure_minisweagent_on_path\(\)',
-        '# ensure_minisweagent_on_path()  # Disabled - submodule not available',
-        content
-    )
-    with open(terminal, 'w') as f:
-        f.write(content)
-    print('[Hermes] ✓ Patched minisweagent imports', file=sys.stderr)
-
-print('[Hermes] ✓ All optional dependency patches applied', file=sys.stderr)
-PYTHON_SCRIPT
-
-      # Run the patching script
-      export out=$out
-      export python=${python}
-      ${python}/bin/python patch_imports.py
-      rm patch_imports.py
+      echo "[Hermes] ✓ Stub modules created" >&2
 
       # Install the main hermes CLI
       install -D -m755 $src/cli.py $out/bin/hermes
