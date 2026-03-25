@@ -312,6 +312,9 @@
           cni.packages = with pkgs; [ cni-plugins calico-official ];
           # Client CA for verifying API server client certificates
           clientCaFile = "/var/lib/kubernetes/secrets/ca.pem";
+          # PASS FLAGS TO KUBELET VIA EXTRAOPTS
+          # Critical: --enable-server flag enables device plugin registration gRPC server
+          # Without this, only PodResources API starts, not the plugin registration server
           extraConfig = {
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
@@ -352,7 +355,10 @@
               ++ (lib.optional config.hardware.gpu-compute.rocm.enable "gpu=amd")
             );
           in
-            lib.mkIf (labels != "") "--node-labels=${labels}";
+            lib.concatStringsSep " " (
+              ["--enable-server"]  # Always enable device plugin registration gRPC server
+              ++ (lib.optional (labels != "") "--node-labels=${labels}")
+            );
         };
         proxy.enable = true;
         # Configure kube-proxy mode: iptables (default) or ipvs (better performance)
@@ -620,6 +626,13 @@
               echo "ERROR: containerd not ready after 60 seconds"
               exit 1
             '';
+            # CRITICAL: Ensure device plugin registration server starts
+            # The NixOS kubernetes module's enableServer=true only enables PodResources API
+            # This override ensures the device plugin registration gRPC server also starts
+            # Without this, NVIDIA/AMD device plugins cannot register and GPU passthrough fails
+            Environment = [
+              "KUBELET_ENABLE_SERVER=true"
+            ];
             # Kubelet memory limits (applied to all nodes)
             MemoryMax = "2G";
             MemoryHigh = "1.5G";
