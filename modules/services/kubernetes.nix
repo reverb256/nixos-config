@@ -315,6 +315,15 @@
           extraConfig = {
             failSwapOn = false;
             containerRuntimeEndpoint = "unix:///run/containerd/containerd.sock";
+            # ============================================================================
+            # ENABLE KUBELET SERVER - Device plugin registration + Pod Resources API
+            # ============================================================================
+            # CRITICAL: This enables the kubelet's read-only gRPC servers:
+            # - Device plugin registration socket (/var/lib/kubernetes/device-plugins/kubelet.sock)
+            # - Pod Resources Lister socket (/var/lib/kubernetes/pod-resources/kubelet.sock)
+            # Without enableServer=true, device plugins CANNOT register and GPUs show capacity=0
+            enableServer = true;
+            readOnlyPort = 10255; # Read-only kubelet API port
             # Kubelet authentication - require X509 client certificates from API server
             authentication = {
               anonymous = {
