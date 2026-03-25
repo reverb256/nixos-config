@@ -22,8 +22,8 @@ image:
   tag: 0.11.0
   pullPolicy: IfNotPresent
 
-# CRITICAL: Set withdrawal period (v0.11.0 may require this to be set)
-withdrawalperiod: "24h"
+# CRITICAL: Empty withdrawal period disables periodic withdrawals (fixes withdrawal goroutine crash)
+withdrawalperiod: ""
 
 # CRITICAL FIX: Correct hostname structure (was causing hostname-operator health check failure)
 # Working config used provider.reverb256.ca, NOT provider.provider.reverb256.ca
