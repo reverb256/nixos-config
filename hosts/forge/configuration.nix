@@ -293,7 +293,7 @@
   # TEMPORARILY DISABLED: Build failure blocking IPv6 deployment (2026-03-25)
   # Autonomous agent for cluster-wide task execution and coordination
   services.hermes-agent = {
-    enable = false;  # TEMP: Disabled due to hermes-agent build failure
+    enable = true;  # Re-enabled after fixing TTS dependency issue
     user = "j_kro";
     sharedStorage = {
       enable = true;
