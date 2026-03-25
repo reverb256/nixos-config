@@ -16,21 +16,6 @@ data:
 
       # Default SNI for internal services
       default_sni cluster.local
-
-      # Rate limiting configuration (100 req/min per IP)
-      rate_limit {
-        zone dynamic_zones {
-          entry {
-            zone = "cluster_local"
-            key = "remote_ip"
-            events = 100
-            window = 1m
-          }
-        }
-      }
-
-      # Global compression (zstd preferred, gzip fallback)
-      encode zstd gzip
     }
 
     # Common security headers snippet
@@ -87,12 +72,29 @@ data:
       }
     }
 
-    # SearXNG Privacy-Friendly Search
+    # SearXNG Privacy-Friendly Search (cluster internal)
     search.cluster.local {
       import security_headers
       # Compression applied globally via encode zstd gzip
       tls internal
       reverse_proxy searxng.search.svc.cluster.local:8080 {
+        health_uri /
+        health_interval 10s
+        health_timeout 5s
+        # Forward real client IP for bot detection
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Real-IP {remote_host}
+      }
+    }
+
+    # SearXNG Privacy-Friendly Search (LAN-wide access via search.reverb256.ca)
+    # HTTPS with internal cluster CA certificate
+    # DNS: search.reverb256.ca → 10.1.1.120, 10.1.1.130, 10.1.1.140 (Unbound)
+    # Backend: Use ClusterIP directly to avoid DNS resolution issues
+    search.reverb256.ca {
+      import security_headers
+      tls internal
+      reverse_proxy 10.0.0.100:8080 {
         health_uri /
         health_interval 10s
         health_timeout 5s

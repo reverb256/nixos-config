@@ -63,10 +63,10 @@
         ProviderURL = "https://security.cloudflare-dns.com/dns-query";
       };
 
-      # Install internal CA certificate for cluster services
+      # Install Caddy Local Authority certificate for cluster services
       Certificates = {
         Install = [
-          "/home/j_kro/.local/share/certificates/cluster-ca.crt"
+          "/home/j_kro/.local/share/certificates/caddy-local-ca.crt"
         ];
       };
 
@@ -618,7 +618,7 @@
         };
         "SearXNG" = {
           id = "pin-sys-015";
-          url = "https://search.cluster.local";
+          url = "https://search.reverb256.ca/search";
           workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
           container = 2;
           position = 675;
@@ -838,7 +838,7 @@
             definedAliases = ["@mdn"];
           };
           searxng = {
-            urls = [{template = "https://search.cluster.local/search?q={searchTerms}";}];
+            urls = [{template = "https://search.reverb256.ca/search?q={searchTerms}";}];
             icon = "https://searxng.org/static/img/logo_small.svg";
             definedAliases = [
               "@sx"

@@ -1,0 +1,56 @@
+# Generic CDI Plugin DaemonSet for NixOS GPU Passthrough
+# Reads CDI specifications from nvidia-container-toolkit and registers GPUs with Kubernetes
+# This is the NixOS-compatible replacement for nvidia-device-plugin
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: generic-cdi-plugin-daemonset
+  namespace: generic-cdi-plugin
+  labels:
+    name: generic-cdi-plugin
+    app.kubernetes.io/component: generic-cdi-plugin
+    app.kubernetes.io/name: generic-cdi-plugin
+spec:
+  selector:
+    matchLabels:
+      name: generic-cdi-plugin
+  template:
+    metadata:
+      labels:
+        name: generic-cdi-plugin
+        app.kubernetes.io/component: generic-cdi-plugin
+        app.kubernetes.io/name: generic-cdi-plugin
+    spec:
+      # Only run on nodes with NVIDIA GPUs and CDI enabled
+      nodeSelector:
+        nixos-nvidia-cdi: "enabled"
+
+      # Tolerate NoSchedule taints (workstation nodes)
+      tolerations:
+      - key: workstation
+        operator: Exists
+        effect: NoSchedule
+
+      containers:
+      - name: generic-cdi-plugin
+        image: ghcr.io/olfillasodikno/generic-cdi-plugin:main
+        imagePullPolicy: Always
+        command:
+          - /generic-cdi-plugin
+          - /var/run/cdi/nvidia-container-toolkit.json
+        securityContext:
+          privileged: true
+        tty: true
+        volumeMounts:
+        - name: kubelet
+          mountPath: /var/lib/kubelet
+        - name: nvidia-container-toolkit
+          mountPath: /var/run/cdi/nvidia-container-toolkit.json
+      volumes:
+      - name: kubelet
+        hostPath:
+          path: /var/lib/kubernetes
+      - name: nvidia-container-toolkit
+        hostPath:
+          path: /var/run/cdi/nvidia-container-toolkit.json

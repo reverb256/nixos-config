@@ -27,6 +27,10 @@
     # plus zephyr-specific modules (nvidia-common, gstreamer, spotify, cluster networking)
     ../../modules/default.nix
 
+    # NVIDIA GPU Wayland support (host-dependent)
+    ../../modules/hardware/nvidia-common.nix
+    ../../modules/hardware/nvidia-wayland.nix
+
     # RGB control for peripherals and components
     ../../modules/hardware/rgb-control.nix
   ];
@@ -142,6 +146,9 @@
 
   # Kubernetes security tools for runtime monitoring
   security.kubernetes.enable = true;
+
+  # Trust Caddy Ingress local CA certificate
+  security.caddyCa.enable = true;
 
   # ============================================================================
   # GPU COMPUTE - CUDA + Vulkan support for AI inference
@@ -1529,14 +1536,10 @@
   # };
 
   # ============================================================================
-  # SWAP - 8GB swapfile to prevent OOM during builds (2026-03-23)
+  # SWAP - Using 32GB partition on nvme0n1p1 (configured in hardware-configuration.nix)
   # ============================================================================
-  # Created with: truncate -s 0 /swapfile && chattr +C /swapfile && fallocate -l 8G /swapfile
-  # Btrfs-compatible swapfile (No_COW attribute set)
-  swapDevices = lib.mkForce [ {
-    device = "/swapfile";
-    size = 8192; # 8GB in MB
-  } ];
+  # Previous 8GB swapfile removed to use partition instead (2026-03-25)
+  # Partition UUID: b733be92-f327-4613-9530-a5380ed77216
 
   # ============================================================================
   # SYSTEM STATE
@@ -1554,6 +1557,19 @@
   # ============================================================================
   # Automated daily backups to Garage S3 cluster (runs at 2 AM)
   # Configured in services block above
+
+  # ============================================================================
+  # NVIDIA CDI GENERATOR FIX
+  # ============================================================================
+  # Fix for nvidia-container-toolkit-cdi-generator service failure
+  # The generator outputs JSON to stdout but needs to be captured to file
+  # This override redirects stdout to /var/run/cdi/nvidia-container-toolkit.json
+  systemd.services.nvidia-container-toolkit-cdi-generator = {
+    serviceConfig.ExecStart = [
+      ""
+      "/nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
+    ];
+  };
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
 

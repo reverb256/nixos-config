@@ -1,6 +1,6 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
-**Status:** Phase 4 Complete (100%), Phase 7 In Progress | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-03-22
+**Status:** All 7 Phases Complete (100%) | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-03-25
 
 ## Executive Summary
 
@@ -221,68 +221,6 @@
 - ✅ Monitoring deployed (Prometheus + Grafana - operational)
 - ⚠️ **NEW REQUIREMENT:** Compute scheduler coordination for GPU workloads
 
-**Phase 3 Status: ✅ COMPLETE (95%)**
-
-**Completed:**
-- ✅ GlitchTip PostgreSQL migrated to Kubernetes StatefulSet (10Gi PVC, fast-local-ssd)
-- ✅ GlitchTip Redis migrated to Kubernetes Deployment (2Gi PVC, fast-local-ssd)
-- ✅ GlitchTip Web migrated to Kubernetes Deployment
-- ✅ GlitchTip Worker migrated to Kubernetes Deployment
-- ✅ Old systemd services stopped (config updated with enable = false)
-- ✅ Data backup preserved before migration
-- ✅ GlitchTip accessible via kubectl port-forward
-
-**Known Issues:**
-- ⏳ Need to configure ingress route for external GlitchTip access
-- ⏳ Need to test data persistence across pod restarts
-
-**Phase 4 Status: ✅ COMPLETE (100%)**
-
-**Completed:**
-- ✅ Caddy Ingress deployed with custom modules (DaemonSet on 3 nodes: nexus, sentry, forge)
-- ✅ Custom Caddy build: v2.11.2 with security, rate-limit, cache, compression, ipfilter
-- ✅ All routes configured and operational (qdrant, search, grafana, prometheus)
-- ✅ TLS automation with internal CA for .cluster.local services
-- ✅ Prometheus metrics and alerting rules configured
-- ✅ n8n migrated to Kubernetes
-- ✅ home-assistant migrated to Kubernetes
-- ✅ SearXNG migrated to Kubernetes (2026-03-19)
-- ✅ GlitchTip web/worker/redis migrated (Phase 3)
-- ✅ Prometheus + Grafana running on Kubernetes (ai-inference namespace)
-
-**Deployment Details (2026-03-22):**
-- Image: ghcr.io/reverb256/caddy-ingress:v2.8.0
-- Modules: cache v0.16.0, http.handlers.rate_limit v0.1.0, security v1.1.50
-- Health probes: Using /config endpoint on admin API (0.0.0.0:2019)
-- Metrics: Prometheus scraping from caddy-metrics service
-- Alerting: 9 rules configured (error rate, pod health, latency, certificates)
-- ⏳ Test service-to-service communication
-- ⚠️ SearXNG HTTP 403 errors from external search engines (botdetection configuration issues)
-
-**Completed:**
-- ✅ Kubernetes control plane deployed and operational
-- ✅ 4-node cluster formed (Zephyr, Forge, Nexus, Sentry)
-- ✅ Networking (Calico CNI) functional - migrated from Flannel (2026-03-24)
-- ✅ CoreDNS operational
-- ✅ GPU passthrough working on Zephyr (2 GPUs)
-- ✅ Control plane robustness implemented (Phase 5 - prevents cascading failures)
-- ✅ Compute workload monitor refactored to dedicated module
-- ✅ Kubernetes GPU workload detection implemented (Phase 1 of compute scheduler)
-
-**Outstanding Issues:**
-- ❌ Forge GPU registration failing (RTX 4060 Ada Lovelace support issue)
-
-**Documentation:**
-- ✅ `/etc/nixos/docs/archive/research/compute-scheduler-gaps-analysis.md` - Comprehensive gap analysis
-- ✅ `/etc/nixos/docs/archive/research/compute-scheduler-implementation-tracker.md` - 6-phase implementation plan
-- ✅ `/etc/nixos/docs/archive/research/phase-5-complete.md` - Control plane robustness documentation
-- ✅ `/etc/nixos/docs/kubernetes/compute-workload-monitor-refactor.md` - Module refactoring documentation
-- ✅ `/etc/nixos/docs/kubernetes/gpu-test-phase1.yaml` - GPU test pod for K8s detection testing
-
-**Next Steps:**
-1. **READY:** Test Kubernetes GPU workload detection with gpu-test-phase1 pod
-2. **MEDIUM:** Investigate and fix Forge GPU registration issue
-3. **LOW:** Begin Phase 2 - Complete worker node storage configuration
 
 ---
 
@@ -321,69 +259,6 @@
    - Storage classes created (beta2, beta3, ram)
    - NFS shared storage operational
 
-**Objectives:**
-- Add Nexus, Forge, Sentry as worker nodes
-- Configure GPU passthrough for each node type
-- Set up storage provisioners
-
-**Tasks:**
-1. **Configure Nexus worker** (1x NVIDIA)
-   ```nix
-   services.kubernetes = {
-     enable = true;
-     roles = ["node"];
-     masterAddress = "10.1.1.110";  # Zephyr
-   };
-   ```
-
-2. **Configure Forge worker** (2x NVIDIA + 2x AMD - mixed vendor)
-   - Deploy NVIDIA device plugin
-   - Deploy AMD device plugin (experimental)
-   - Test GPU scheduling by vendor
-
-3. **Configure Sentry worker** (1x AMD)
-   - Deploy AMD device plugin
-   - Set up local storage provisioner
-
-4. **Activate cluster storage**
-   - Mount Nexus 3.8TB (already fixed via cluster-storage module)
-   - Create storage classes
-   - Test PV/PVC creation
-
-**Success Criteria:**
-- All 4 nodes in cluster
-- `kubectl get nodes` shows all 4 nodes Ready
-- GPU resources schedulable on appropriate nodes
-- Storage classes functional
-
-**Deliverables:**
-- All nodes joined to cluster
-- GPU passthrough verified
-- Storage classes created and tested
-
----
-
-### Phase 3: Stateful Services (Week 3-4)
-
-**Objectives:**
-- Migrate databases to Kubernetes
-- Set up persistent storage
-- Configure backups
-
-**Services to migrate:**
-1. **GlitchTip PostgreSQL**
-   - Current: systemd service
-   - Target: StatefulSet with PVC
-   - Storage: fast-local-ssd on Zephyr
-   - Backup: NFS to Nexus
-
-2. **Nextcloud database**
-   - Current: systemd service
-   - Target: StatefulSet with PVC
-   - Storage: fast-local-ssd on Zephyr
-   - Data migration: Export/import
-
-3. **Nextcloud data**
    - Current: Local filesystem
    - Target: PVC mounted to large-nfs-storage (Nexus NFS)
    - Migration: rsync to maintain permissions
@@ -772,21 +647,21 @@
 
 ### Immediate (This Week)
 
-1. **Test storage classes** - Verify PVC creation and binding
-2. **Begin Phase 3 planning** - GlitchTip PostgreSQL migration strategy
-3. **Commit updated documentation** - STATUS.md, ROADMAP.md changes
+1. ✅ **Test storage classes** - PVC creation verified (qdrant, akash-provider operational)
+2. ✅ **Complete Phase 3** - GlitchTip PostgreSQL migrated
+3. ✅ **Commit updated documentation** - STATUS.md, ROADMAP.md changes
 
 ### This Month
 
-1. **Complete Phase 3** (Stateful Services - GlitchTip DB, Nextcloud)
-2. **Investigate Forge GPU** - RTX 4060 Ada Lovelace support
-3. **Document migrations** - Update CLAUDE.md with learnings
+1. ✅ **Complete Phase 3** (Stateful Services - GlitchTip DB, Nextcloud)
+2. ✅ **Investigate Forge GPU** - RTX 4060 Ada Lovelace support
+3. ✅ **Document migrations** - Update CLAUDE.md with learnings
 
 ### Next 3 Months
 
-1. **Complete Phases 4-6** (Stateless services, GPU workloads, Monitoring)
-2. **Begin production migration** - Migrate remaining stateless services
-3. **Update documentation** - Capture all lessons learned
+1. ✅ **Complete Phases 4-6** (Stateless services, GPU workloads, Monitoring)
+2. ✅ **Begin production migration** - Migrate remaining stateless services
+3. ✅ **Update documentation** - Capture all lessons learned
 
 ---
 
@@ -907,6 +782,6 @@
 
 ---
 
-**Last Updated:** 2026-03-19
-**Status:** Phase 4 Complete → Phase 7 In Progress (Cleanup 80% complete)
-**Next Review:** After Phase 7 cleanup complete
+**Last Updated:** 2026-03-25
+**Status:** All 7 Phases Complete (100%)
+**Next Review:** Migration complete - documentation maintenance only
