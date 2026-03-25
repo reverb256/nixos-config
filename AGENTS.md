@@ -52,6 +52,53 @@ networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 | Lists (ports, packages) | Booleans |
 | Attrs that merge (systemd.services) | Strings (hostName) |
 
+### Workload Scheduling (ZEPHYR OOM PREVENTION)
+
+**⚠️ CRITICAL: ZEPHYR HAS CONSTANT OOM EXHAUSTION (31GB RAM running control plane + AI + gaming)**
+
+**Default ALL non-infrastructure, non-mining workloads to NEXUS (46GB RAM)**
+
+**Valid scheduling targets:**
+
+| Node | RAM | Purpose |
+|------|-----|---------|
+| **Nexus** | 46GB | ✅ DEFAULT for ALL workloads except: |
+| | | - Infrastructure (control plane, Calico, storage, monitoring) |
+| | | - Mining (must be on nodes with GPUs: forge, nexus, zephyr) |
+| **Zephyr** | 31GB | ⚠️ ONLY infrastructure + mining: |
+| | | - Control plane: kube-apiserver, etcd, kube-scheduler, kube-controller-manager |
+| | | - CNI: Calico components (calico-node, tigera-operator) |
+| | | - Mining: gpu-miner-zephyr, xmrig-zephyr (RTX 3090 GPU 1) |
+| | | - ❌ NO OTHER WORKLOADS |
+
+**Enforce nexus scheduling in Kubernetes manifests:**
+
+```yaml
+# Option 1: nodeName (simple, direct)
+spec:
+  template:
+    spec:
+      nodeName: nexus  # Force scheduling to nexus
+
+# Option 2: nodeAffinity (flexible, preferred)
+spec:
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - nexus
+
+# ❌ NEVER use nodeSelector without checking target node capacity FIRST
+# ALWAYS run: kubectl top nodes && kubectl describe node <target>
+```
+
 ### Stop Immediately If
 - SSH breaks on any node
 - Multiple nodes affected
