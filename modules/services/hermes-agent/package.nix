@@ -56,23 +56,25 @@ in
       # Patch tools/web_tools.py - make firecrawl import conditional
       if [ -f tools/web_tools.py ]; then
         echo "[Hermes] Patching tools/web_tools.py to make firecrawl import optional..." >&2
-        # Find the line and wrap it with try/except
-        sed -i '/^from firecrawl import Firecrawl/i\      try:\n        from firecrawl import Firecrawl\n      except ImportError:\n          Firecrawl = None  # Optional dependency not available' tools/web_tools.py || true
+        # Find the line and wrap it with try/except (no ^ anchor - import has leading whitespace)
+        sed -i 's/from firecrawl import Firecrawl/try:\n        from firecrawl import Firecrawl\n    except ImportError:\n        Firecrawl = None  # Optional dependency not available/' tools/web_tools.py || true
         echo "[Hermes] ✓ Patched firecrawl import" >&2
       fi
 
       # Patch tools/image_generation_tool.py - make fal_client import conditional
       if [ -f tools/image_generation_tool.py ]; then
         echo "[Hermes] Patching tools/image_generation_tool.py to make fal_client import optional..." >&2
-        sed -i '/^import fal_client/i\      try:\n        import fal_client\n      except ImportError:\n          fal_client = None  # Optional dependency not available' tools/image_generation_tool.py || true
+        sed -i 's/import fal_client/try:\n    import fal_client\nexcept ImportError:\n    fal_client = None  # Optional dependency not available/' tools/image_generation_tool.py || true
         echo "[Hermes] ✓ Patched fal_client import" >&2
       fi
 
       # Patch tools/terminal_tool.py - make minisweagent import conditional
-      if [f tools/terminal_tool.py ]; then
+      if [ -f tools/terminal_tool.py ]; then
         echo "[Hermes] Patching tools/terminal_tool.py to make minisweagent import optional..." >&2
-        sed -i '/^from minisweagent_path import/i\      try:\n        from minisweagent_path import' tools/terminal_tool.py || true
-        sed -i '/^ensure_minisweagent_on_path/i\      # ensure_minisweagent_on_path  # Disabled - submodule not available' tools/terminal_tool.py || true
+        # Comment out minisweagent import line
+        sed -i 's/from minisweagent_path import/# from minisweagent_path import # Disabled - submodule not available/' tools/terminal_tool.py || true
+        # Comment out ensure_minisweagent_on_path call
+        sed -i 's/ensure_minisweagent_on_path()/# ensure_minisweagent_on_path()  # Disabled - submodule not available/' tools/terminal_tool.py || true
         echo "[Hermes] ✓ Patched minisweagent imports" >&2
       fi
 
