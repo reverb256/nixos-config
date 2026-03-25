@@ -612,20 +612,20 @@
           ];
           requires = lib.mkForce ["containerd.service"];
           serviceConfig = {
-            ExecStartPre = pkgs.writeShellScript "wait-for-containerd" ''
-              echo "Waiting for containerd to be ready..."
-              timeout=60
-              while [ $timeout -gt 0 ]; do
-                if ${pkgs.containerd}/bin/ctr version >/dev/null 2>&1; then
-                  echo "containerd is ready"
-                  exit 0
-                fi
-                sleep 1
-                ((timeout--))
-              done
-              echo "ERROR: containerd not ready after 60 seconds"
-              exit 1
-            '';
+            ExecStartPre = lib.mkMerge [
+              (config.services.kubernetes-module.kubelet.serviceConfig.ExecStartPre or [{}])
+              [
+                (pkgs.writeShellScript "ensure-device-plugins-dir" ''
+                  # Ensure device plugins directory exists before kubelet starts
+                  # NixOS uses /var/lib/kubernetes as root-dir, so plugins go in device-plugins subdirectory
+                  mkdir -p /var/lib/kubernetes/device-plugins
+                  chmod 755 /var/lib/kubernetes/device-plugins
+                  # Ensure kubernetes user owns this directory (required for plugin socket creation)
+                  chown kubernetes:kubernetes /var/lib/kubernetes/device-plugins || true
+                  echo "Device plugins directory ready: /var/lib/kubernetes/device-plugins"
+                '')
+              ]
+            ];
             # CRITICAL: Ensure device plugin registration server starts
             # The NixOS kubernetes module's enableServer=true only enables PodResources API
             # This override ensures the device plugin registration gRPC server also starts
