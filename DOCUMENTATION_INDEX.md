@@ -1,6 +1,6 @@
 # NixOS Cluster Documentation Index
 
-**Last Updated:** 2026-03-19 | **Cluster Version:** Phase 2 Complete, HA Control Plane (K8s v1.35.0) | **Agent Files:** Template-based v1.0
+**Last Updated:** 2026-03-25 | **Cluster Version:** Phase 2 Complete, HA Control Plane (K8s v1.35.0) | **Agent Files:** Template-based v1.0
 
 Complete index of all documentation for the NixOS cluster, including the ongoing Kubernetes migration.
 
@@ -314,5 +314,5 @@ kubectl logs <pod> -n <namespace>
 ---
 
 **Document Owner:** j_kro
-**Version:** 3.0 | **Updated:** 2026-03-22
+**Version:** 3.1 | **Updated:** 2026-03-25
 **Changes:** Reduced from 1157 to 375 lines (-68%), removed duplicates, compressed verbose sections, summarized changelog

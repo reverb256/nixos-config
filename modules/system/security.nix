@@ -197,12 +197,15 @@
   # ============================================================================
 
   # Automatic security updates (daily, with channel checks)
-  system.autoUpgrade = {
-    enable = true;
-    allowReboot = false; # Don't auto-reboot, notify instead
-    dates = "daily"; # Check for updates daily
-    operation = "switch"; # Apply updates by switching to new generation
-  };
+  # DISABLED: Built-in system.autoUpgrade doesn't support flakes properly
+  # It runs 'nixos-rebuild switch' without --flake flag, causing failures
+  # Use services.nixos-auto-update instead (modules/services/auto-update.nix)
+  # system.autoUpgrade = {
+  #   enable = true;
+  #   allowReboot = false; # Don't auto-reboot, notify instead
+  #   dates = "daily"; # Check for updates daily
+  #   operation = "switch"; # Apply updates by switching to new generation
+  # };
 
   # Rebuild notification when updates available
   systemd.services.nixos-upgrade-unit = {

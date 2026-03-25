@@ -22,7 +22,9 @@
       "mcp__plugin_context-mode_context-mode__ctx_execute",
       "Bash(kubectl logs:*)",
       "Bash(kubectl describe:*)",
-      "Bash(sudo sed:*)"
+      "Bash(sudo sed:*)",
+      "Bash(lsattr /etc/nixos/.mcp.json)",
+      "Bash(mount)"
     ],
     "additionalDirectories": [
       "/data/@projects/infra/xnm1-upgrade-worktree/"

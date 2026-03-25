@@ -82,11 +82,6 @@ in
       typer
       platformdirs
       pyjwt # Note: using pyjwt instead of PyJWT[crypto]
-
-      # Advanced features - available via overlay
-      qwen-tts # Official Qwen3-TTS for text-to-speech
-      faster-whisper # Faster Whisper transcription with CTranslate2
-      edge-tts # Microsoft Edge's online text-to-speech service
     ];
 
     nativeBuildInputs = with pkgs; [

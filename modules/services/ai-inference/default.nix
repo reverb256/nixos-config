@@ -576,7 +576,7 @@ in {
               "ai_inference_gateway.mcp_servers.searxng_server"
             ];
             environment = {
-              SEARXNG_URL = "http://127.0.0.1:7777";
+              SEARXNG_URL = "https://search.reverb256.ca";
               SEARXNG_CACHE_TTL = "300";
             };
           };
