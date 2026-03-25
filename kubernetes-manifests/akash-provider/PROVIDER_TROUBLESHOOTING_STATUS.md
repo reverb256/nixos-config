@@ -113,33 +113,75 @@ The actual working provider configuration is from commit b7c239c.
 
 ---
 
-## Latest Updates (2026-03-25 15:52 UTC)
+## Latest Updates (2026-03-25 16:20 UTC)
 
-### ❌ DNS Service Discovery Trailing Dot Issue (IDENTIFIED - ROOT CAUSE)
-**Issue:** Provider cluster service terminates with "context canceled" after gRPC starts
-**Root Cause:** DNS service discovery returns FQDN with trailing dot: `operator-hostname.akash-services.svc.cluster.local.`
-**Impact:** HTTP URL construction fails - malformed URL: `http://operator-hostname.akash-services.svc.cluster.local.:8080/health`
-**Evidence:**
+### ✅ DNS Trailing Dot Bug - ROOT CAUSE IDENTIFIED IN PROVIDER CODE
+**Bug Location:** `cluster/util/service_discovery_agent.go:167-169`
+**Issue:** DNS SRV lookup returns FQDN with trailing dot; code doesn't strip it before HTTP URL construction
+**Malformed URL:** `http://operator-hostname.akash-services.svc.cluster.local.:8080/health`
+
+**✅ WORKAROUND APPLIED:** Static endpoint configuration
+- **Flag:** `--hostname-operator-endpoint=10.244.169.20:8080`
+- **Method:** Updated ConfigMap `akash-provider-script` with custom run.sh
+- **Result:** ✅ DNS discovery bypassed, health check succeeds (status=200)
+- **Logs show:**
+  ```
+  DBG using manually configured endpoint host=10.244.169.20 port=8080 service=hostname-operator
+  INF check result operator=hostname status=200
+  INF all waitables ready
+  INF grpc listening on "0.0.0.0:8444"
+  ```
+
+### ❌ NEW BLOCKER: Balance checker immediate shutdown after gRPC starts
+**Current State:** Provider starts successfully but crashes immediately after gRPC server starts
+**Error:** "client is not running. Use .Start() method to start"
+**Timing:** Occurs after:
+1. ✅ Certificate validation passes
+2. ✅ All migrations checked
+3. ✅ Hostname operator health check succeeds (200 OK)
+4. ✅ Inventory operator connects
+5. ✅ gRPC server starts on port 8444
+6. ❌ Balance checker receives "context canceled" shutdown request
+7. ❌ Provider exits with "client is not running" error
+
+**Log Sequence:**
 ```
-[7:51AM] INF dns discovery success addrs=[{"Target":"operator-hostname.akash-services.svc.cluster.local.","Port":8080,...}]
-[7:51AM] ERR cluster service terminated with error err="context canceled"
+[8:30AM] INF grpc listening on "0.0.0.0:8444"
+[8:30AM] DBG received shutdown request cmp=balance-checker err="context canceled" module=provider-service
+[8:30AM] DBG shutdown complete cmp=balance-checker module=provider-service
 Error: client is not running. Use .Start() method to start
 ```
-**Analysis:**
-- Trailing dot is valid for DNS (FQDN standard) but breaks HTTP URL construction
-- Inventory operator works fine: `operator-inventory.akash-services.svc.cluster.local:8081` (no trailing dot)
-- Provider constructs inventory URL correctly but hostname operator URL incorrectly
-**Fixes Attempted:**
-- ✅ Fixed hostname in ConfigMap (provider.reverb256.ca)
-- ✅ Restarted hostname operator pod (API connectivity now working)
-- ✅ Restarted provider pod multiple times
-- ❌ Issue persists - DNS discovery consistently returns trailing dot
-**Status:** ❌ BLOCKED - Requires provider code fix or Helm chart customization
-**Next Steps:**
-- Investigate Helm chart templates for DNS discovery configuration
-- Check if appProtocol: http on hostname operator service helps
-- Consider patching provider binary to strip trailing dots from DNS results
-- Test with different Akash provider versions to see if this is a known bug
+
+**Root Cause Analysis:**
+- **PRIMARY ISSUE:** Balance checker (`balance_checker.go:133`) calls `bc.session.Client().Node().SyncInfo(ctx)` immediately after startup
+- **SECONDARY ISSUE:** The main provider context is being canceled almost immediately after gRPC starts
+- **TRIGGER:** One of the core services (cluster, bidengine, or manifest) is terminating immediately, causing the provider context to cancel
+- **TIMING:** Balance checker hasn't even performed its first blockchain sync check when context is canceled
+
+**Investigation Status:**
+- ✅ DNS trailing dot bug confirmed and worked around
+- ✅ Static endpoint workaround applied and verified (hostname operator health check returns 200)
+- ❌ New issue: Provider context canceled immediately after startup
+- 🔍 Hypothesis: One of the core services (cluster/bidengine/manifest) might be terminating when there are no active leases
+- 🔍 Next: Need to identify which service is calling Done() immediately and why
+
+**Files Modified:**
+1. `/etc/nixos/kubernetes-manifests/akash-provider/PROVIDER_VALUES_v0.11.0.yaml`
+2. `ConfigMap/akash-provider-script` - Updated run.sh with `--hostname-operator-endpoint` flag
+
+**Helm Revision:** 53 (2 revisions with static endpoint workaround)
+
+**Root Cause Analysis:**
+- **PRIMARY BUG:** DNS trailing dot in `cluster/util/service_discovery_agent.go:167-169`
+  - Provider uses `choice.Target` directly without stripping trailing dot
+  - Creates malformed HTTP URL with dot before port number
+  - **Fix:** Add `target := strings.TrimSuffix(choice.Target, ".")` before URL construction
+
+- **SECONDARY BUG:** Provider context canceled immediately after startup
+  - All services ready but main provider context is canceled within milliseconds of gRPC start
+  - Balance checker receives "context canceled" before first blockchain sync check
+  - **Hypothesis:** One of core services (cluster/bidengine/manifest) terminates when provider has no active leases
+  - **Requires:** Investigation of service lifecycle and whether provider needs active deployments to run
 
 ## Previous Updates (2026-03-25 03:49 UTC)
 
