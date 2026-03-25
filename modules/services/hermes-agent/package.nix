@@ -97,7 +97,8 @@ in
     ];
 
     # Disable Python dependency validation
-    pythonRelaxDeps = true;
+    # Note: pythonRelaxDeps removed - expects dist/ dir which doesn't exist
+    # We manually patch pyproject.toml in postPatch phase instead
     dontUsePythonRuntimeDepsCheck = true;
 
     # Disable Python hooks that check for optional dependencies
