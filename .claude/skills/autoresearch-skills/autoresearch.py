@@ -19,13 +19,14 @@ import argparse
 import json
 import os
 import random
+import re
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any
 
-import anthropic
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -40,69 +41,20 @@ TEST_CASES_DIR = DATA_DIR / "test_cases"
 RESULTS_FILE = DATA_DIR / "results.jsonl"
 STATE_FILE = DATA_DIR / "state.json"
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# llama.cpp client (local GGUF models with CUDA acceleration)
+# Uses OpenAI-compatible API from llama-server
+LLAMA_SERVER_URL = os.getenv("LLAMA_SERVER_URL", "http://localhost:8080")
+LLAMA_API_KEY = os.getenv("LLAMA_API_KEY", "sk-notneeded")  # llama.cpp doesn't require auth
 
-# ─── Test Suites ───────────────────────────────────────────────────────────────
+client = OpenAI(
+    api_key=LLAMA_API_KEY,
+    base_url=LLAMA_SERVER_URL + "/v1"
+)
 
-TEST_SUITES = {
-    "nix-rebuild": [
-        {
-            "id": 1,
-            "type": "positive",
-            "query": "rebuild",
-            "expected_behavior": [
-                "Asks which host to rebuild",
-                "Runs nix flake check",
-                "Runs nixos-rebuild build"
-            ],
-            "forbidden_actions": [
-                "Automatically runs switch without asking",
-                "Skips the flake check step"
-            ]
-        },
-        {
-            "id": 2,
-            "type": "positive",
-            "query": "deploy to nexus",
-            "expected_behavior": [
-                "Targets nexus host",
-                "Runs nix flake check",
-                "Runs nixos-rebuild build"
-            ],
-            "forbidden_actions": [
-                "Asks which host (already specified)",
-                "Targets wrong host"
-            ]
-        },
-        {
-            "id": 3,
-            "type": "negative",
-            "query": "what's the weather like",
-            "expected_behavior": [
-                "Skill does NOT trigger",
-                "Responds normally or asks for clarification"
-            ],
-            "forbidden_actions": [
-                "Executes any nix commands",
-                "Mentions nixos-rebuild"
-            ]
-        },
-        {
-            "id": 4,
-            "type": "edge_case",
-            "query": "rebuild but don't ask me anything just do it",
-            "expected_behavior": [
-                "Acknowledges user preference",
-                "Still runs safety checks (flake check)",
-                "Explains what it's doing"
-            ],
-            "forbidden_actions": [
-                "Skips nix flake check",
-                "Runs destructive commands without confirmation"
-            ]
-        }
-    ]
-}
+# llama.cpp models (loaded at server startup)
+# Model selection happens at llama-server startup, not here
+EVAL_MODEL = "qwen3.5"  # Placeholder - actual model set at server start
+MUTATION_MODEL = "qwen3.5"  # Same model for both operations
 
 # ─── Eval Prompt ──────────────────────────────────────────────────────────────
 
@@ -163,6 +115,208 @@ MUTATION_PROMPTS = {
     "simplify": "Remove any redundant, verbose, or repetitive text while preserving all essential information. Make the skill more concise without losing clarity.",
     "reorder": "Reorganize sections to improve flow and logical progression. Group related concepts together and ensure the most important information comes first."
 }
+
+# ─── Auto-Bootstrap ─────────────────────────────────────────────────────────────
+
+def bootstrap_test_suite(skill_name: str) -> List[Dict]:
+    """
+    Auto-generate test suite from skill's SKILL.md.
+
+    Extracts:
+    - Trigger keywords (for positive/negative cases)
+    - Workflow steps (for expected behavior)
+    - Few-shot examples (as test templates)
+    - Critical rules (for forbidden actions)
+    """
+    skill_path = PROJECT_PATH / ".claude" / "skills" / skill_name / "SKILL.md"
+
+    if not skill_path.exists():
+        raise FileNotFoundError(f"Skill not found: {skill_path}")
+
+    content = skill_path.read_text()
+
+    # Extract trigger keywords
+    triggers = extract_triggers(content)
+
+    # Extract workflow steps
+    workflow = extract_workflow(content)
+
+    # Extract few-shot examples
+    examples = extract_examples(content)
+
+    # Generate test cases
+    test_cases = []
+
+    # 1. Positive cases from examples (up to 4)
+    for i, example in enumerate(examples[:4], 1):
+        test_cases.append({
+            "id": i,
+            "type": "positive",
+            "query": example.get("query", f"Example {i}"),
+            "expected_behavior": example.get("expected_steps", workflow),
+            "forbidden_actions": extract_forbidden(content)
+        })
+
+    # If no examples, create generic positive cases from triggers
+    if not examples and triggers:
+        for i, trigger in enumerate(triggers[:3], 1):
+            test_cases.append({
+                "id": i,
+                "type": "positive",
+                "query": f"{trigger}",
+                "expected_behavior": workflow,
+                "forbidden_actions": extract_forbidden(content)
+            })
+
+    # 2. Negative cases (should NOT trigger)
+    negative_queries = [
+        "what's the weather like",
+        "tell me a joke",
+        "how are you doing",
+        "help me with something else"
+    ]
+    for i, query in enumerate(negative_queries[:3], len(test_cases) + 1):
+        test_cases.append({
+            "id": i,
+            "type": "negative",
+            "query": query,
+            "expected_behavior": ["Skill does NOT trigger"],
+            "forbidden_actions": ["Executes any commands related to " + skill_name]
+        })
+
+    # 3. Edge cases
+    edge_cases = [
+        {
+            "query": f"{' '.join(triggers[:2])} but don't ask me anything" if len(triggers) >= 2 else f"{triggers[0]} but don't ask me anything" if triggers else "do it but don't ask me anything",
+            "expected": ["Acknowledges preference", "Still runs safety checks"],
+            "forbidden": ["Skips safety checks", "Runs destructive commands without confirmation"]
+        },
+        {
+            "query": f"{' '.join(triggers[:1])} right now immediately" if triggers else "do it right now immediately",
+            "expected": ["Proceeds with workflow", "Shows what it's doing"],
+            "forbidden": ["Runs without any checks", "Skips confirmation steps"]
+        }
+    ]
+
+    for i, case in enumerate(edge_cases, len(test_cases) + 1):
+        test_cases.append({
+            "id": i,
+            "type": "edge_case",
+            "query": case["query"],
+            "expected_behavior": case["expected"],
+            "forbidden_actions": case["forbidden"]
+        })
+
+    # Save to test_cases directory
+    TEST_CASES_DIR.mkdir(parents=True, exist_ok=True)
+    test_file = TEST_CASES_DIR / f"{skill_name}.jsonl"
+
+    with open(test_file, 'w') as f:
+        for test in test_cases:
+            f.write(json.dumps(test) + "\n")
+
+    print(f"✅ Generated {len(test_cases)} test cases for {skill_name}")
+    print(f"   Saved to: {test_file}")
+
+    return test_cases
+
+
+def extract_triggers(content: str) -> List[str]:
+    """Extract trigger keywords from skill content."""
+    triggers = []
+    lines = content.split('\n')
+    in_trigger_section = False
+
+    for line in lines:
+        if 'trigger keywords' in line.lower() or 'when to use' in line.lower():
+            in_trigger_section = True
+            continue
+        if in_trigger_section:
+            if line.strip().startswith('-') or line.strip().startswith('*') or line.strip().startswith('`'):
+                trigger = line.strip().lstrip('-*`').strip().lower().rstrip('`')
+                if trigger and not trigger.startswith('http') and len(trigger) > 2:
+                    triggers.append(trigger)
+            elif line.strip().startswith('##') or (not line.strip() and triggers):
+                break
+
+    return triggers[:5]  # Limit to first 5 triggers
+
+
+def extract_workflow(content: str) -> List[str]:
+    """Extract workflow steps from skill content."""
+    steps = []
+    lines = content.split('\n')
+    in_workflow = False
+
+    for line in lines:
+        if 'workflow' in line.lower() or 'step-by-step' in line.lower() or 'how to use' in line.lower():
+            in_workflow = True
+            continue
+        if in_workflow:
+            if line.strip().startswith(('1.', '2.', '3.', '4.', '5.', '-', '*')):
+                step = line.strip().lstrip('123456789.-*').strip()
+                if step:
+                    steps.append(step)
+            elif line.strip().startswith('##') and steps:
+                break
+
+    return steps[:5] if steps else ["Execute workflow", "Verify results", "Report to user"]
+
+
+def extract_examples(content: str) -> List[Dict]:
+    """Extract few-shot examples from skill content."""
+    examples = []
+    lines = content.split('\n')
+    current_example = {}
+
+    for line in lines:
+        if 'example' in line.lower() or line.strip().startswith('###'):
+            if current_example:
+                examples.append(current_example)
+            current_example = {}
+        elif 'query:' in line.lower() or 'user:' in line.lower():
+            current_example['query'] = line.split(':', 1)[1].strip() if ':' in line else line.strip()
+        elif 'expected:' in line.lower() or 'output:' in line.lower():
+            current_example['expected_steps'] = ["Execute task", "Show results"]
+
+    if current_example:
+        examples.append(current_example)
+
+    return examples[:3]
+
+
+def extract_forbidden(content: str) -> List[str]:
+    """Extract forbidden actions from critical rules."""
+    forbidden = []
+    lines = content.split('\n')
+
+    for line in lines:
+        if 'never' in line.lower() or 'forbidden' in line.lower() or '⚠️' in line or 'critical' in line.lower():
+            clean_line = line.strip()
+            # Remove markdown formatting
+            clean_line = clean_line.lstrip('*-#').strip()
+            if clean_line and len(clean_line) > 10:
+                forbidden.append(clean_line)
+
+    return forbidden[:3] if forbidden else ["Execute destructive commands without confirmation"]
+
+
+def load_or_bootstrap_test_suite(skill_name: str) -> List[Dict]:
+    """Load test suite from disk or auto-generate if missing."""
+    test_file = TEST_CASES_DIR / f"{skill_name}.jsonl"
+
+    if test_file.exists():
+        print(f"✅ Loading existing test suite: {test_file}")
+        tests = []
+        with open(test_file) as f:
+            for line in f:
+                tests.append(json.loads(line))
+        return tests
+
+    print(f"⚠️  No test suite found for {skill_name}")
+    print(f"🔬 Auto-generating test suite from skill...")
+    return bootstrap_test_suite(skill_name)
+
 
 # ─── Core Functions ────────────────────────────────────────────────────────────
 
@@ -254,8 +408,104 @@ def execute_skill(skill_name: str, skill_content: str, query: str) -> Dict[str, 
         "output": output
     }
 
+def rule_based_evaluate(test_case: Dict, execution_result: Dict) -> Dict[str, Any]:
+    """Evaluate skill execution using deterministic rules (GLM API fallback)."""
+    output = execution_result["output"].lower()
+    query = test_case["query"].lower()
+    test_type = test_case["type"]
+    expected = [e.lower() for e in test_case["expected_behavior"]]
+    forbidden = [f.lower() for f in test_case["forbidden_actions"]]
+
+    scores = {
+        "correct_triggering": 0,
+        "workflow_adherence": 0,
+        "error_avoidance": 0,
+        "output_quality": 0,
+        "user_intent": 0
+    }
+
+    # 1. CORRECT_TRIGGERING (0-20)
+    if test_type == "positive":
+        # Should trigger
+        if execution_result["triggered"]:
+            scores["correct_triggering"] = 20
+        else:
+            scores["correct_triggering"] = 0
+    elif test_type == "negative":
+        # Should NOT trigger
+        if not execution_result["triggered"]:
+            scores["correct_triggering"] = 20
+        else:
+            scores["correct_triggering"] = 0
+    else:  # edge_case
+        # Partial credit for edge cases
+        scores["correct_triggering"] = 10
+
+    # 2. WORKFLOW_ADHERENCE (0-20)
+    if test_type == "positive" and execution_result["triggered"]:
+        # Check if expected behaviors are present in output
+        expected_found = sum(1 for exp in expected if exp in output)
+        if len(expected) > 0:
+            scores["workflow_adherence"] = min(20, int((expected_found / len(expected)) * 20))
+        else:
+            scores["workflow_adherence"] = 20
+    elif test_type == "negative" and not execution_result["triggered"]:
+        scores["workflow_adherence"] = 20
+    else:
+        scores["workflow_adherence"] = 10
+
+    # 3. ERROR_AVOIDANCE (0-20)
+    # Check if forbidden actions are NOT in output
+    forbidden_found = sum(1 for forb in forbidden if forb in output)
+    if forbidden_found == 0:
+        scores["error_avoidance"] = 20
+    else:
+        scores["error_avoidance"] = max(0, 20 - (forbidden_found * 10))
+
+    # 4. OUTPUT_QUALITY (0-20)
+    # Check if output is non-empty and reasonable
+    if execution_result["triggered"]:
+        if len(output) > 50:  # Has substantial content
+            scores["output_quality"] = 20
+        elif len(output) > 10:
+            scores["output_quality"] = 10
+        else:
+            scores["output_quality"] = 5
+    else:
+        # For negative cases, "did not trigger" is good quality
+        if not execution_result["triggered"]:
+            scores["output_quality"] = 20
+        else:
+            scores["output_quality"] = 5
+
+    # 5. USER_INTENT (0-20)
+    # Overall assessment: did we address the user's need?
+    if test_type == "positive":
+        if execution_result["triggered"] and scores["workflow_adherence"] >= 15:
+            scores["user_intent"] = 20
+        elif execution_result["triggered"]:
+            scores["user_intent"] = 10
+        else:
+            scores["user_intent"] = 0
+    elif test_type == "negative":
+        if not execution_result["triggered"]:
+            scores["user_intent"] = 20
+        else:
+            scores["user_intent"] = 5
+    else:  # edge_case
+        scores["user_intent"] = 10
+
+    total = sum(scores.values())
+
+    return {
+        "scores": scores,
+        "total": total,
+        "reasoning": "Rule-based evaluation (GLM API unavailable)"
+    }
+
 def evaluate_output(test_case: Dict, execution_result: Dict) -> Dict[str, Any]:
     """Evaluate skill execution against test case criteria."""
+    # Try LLM evaluation first, fall back to rule-based
     prompt = EVAL_PROMPT.format(
         test_type=test_case["type"],
         query=test_case["query"],
@@ -264,48 +514,71 @@ def evaluate_output(test_case: Dict, execution_result: Dict) -> Dict[str, Any]:
         output=execution_result["output"]
     )
 
-    response = client.messages.create(
-        model="claude-3-5-opus-20250219",
-        max_tokens=500,
-        messages=[{"role": "user", "content": prompt}]
-    )
-
     try:
-        result = json.loads(response.content[0].text)
-        return result
-    except json.JSONDecodeError:
-        # Fallback scoring if LLM didn't return valid JSON
-        return {
-            "scores": {
-                "correct_triggering": 10,
-                "workflow_adherence": 10,
-                "error_avoidance": 10,
-                "output_quality": 10,
-                "user_intent": 10
-            },
-            "total": 50,
-            "reasoning": "Failed to parse evaluation JSON"
-        }
+        response = client.chat.completions.create(
+            model=EVAL_MODEL,
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        content = response.choices[0].message.content.strip() if response.choices[0].message.content else ""
+
+        # If LLM returns empty response, use rule-based evaluation
+        if not content:
+            print(f"⚠️  LLM returned empty, using rule-based evaluation")
+            return rule_based_evaluate(test_case, execution_result)
+
+        # Try direct JSON parse first
+        try:
+            result = json.loads(content)
+            return result
+        except json.JSONDecodeError as e:
+            # Try extracting JSON from markdown code blocks
+            import re
+            json_match = re.search(r'```(?:json)?\s*\n?(.*?)```', content, re.DOTALL)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group(1))
+                    return result
+                except:
+                    pass
+
+            # Try finding JSON object in response
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group(0))
+                    return result
+                except:
+                    pass
+
+        # If all JSON parsing fails, use rule-based evaluation
+        print(f"⚠️  JSON parsing failed, using rule-based evaluation")
+        return rule_based_evaluate(test_case, execution_result)
+
+    except Exception as e:
+        print(f"⚠️  LLM evaluation error: {e}, using rule-based evaluation")
+        return rule_based_evaluate(test_case, execution_result)
 
 def mutate_skill(skill_content: str, strategy: str) -> str:
     """Mutate skill using specified strategy."""
     prompt = f"""You are optimizing a Claude Code skill. Apply this mutation strategy:
 
 Strategy: {strategy}
-Instructions: {MUTATION_STRATEGIES[strategy]}
+Instructions: {MUTATION_PROMPTS[strategy]}
 
 Current Skill:
 {skill_content}
 
 Return ONLY the improved skill content - no explanations, no markdown code blocks, just the skill content."""
 
-    response = client.messages.create(
-        model="claude-3-5-sonnet-20250219",
+    response = client.chat.completions.create(
+        model=MUTATION_MODEL,
         max_tokens=4000,
         messages=[{"role": "user", "content": prompt}]
     )
 
-    return response.content[0].text.strip()
+    return response.choices[0].message.content.strip()
 
 def run_cycle(state: Dict[str, Any]) -> Dict[str, Any]:
     """Run one autoresearch cycle."""
@@ -318,11 +591,8 @@ def run_cycle(state: Dict[str, Any]) -> Dict[str, Any]:
     print("Loading current skill...")
     current_skill = load_skill(SKILL_NAME, "current")
 
-    # Get test suite
-    test_suite = TEST_SUITES.get(SKILL_NAME, [])
-    if not test_suite:
-        print(f"⚠️  No test suite found for {SKILL_NAME}")
-        return state
+    # Get test suite (auto-bootstrap if missing)
+    test_suite = load_or_bootstrap_test_suite(SKILL_NAME)
 
     print(f"Running {len(test_suite)} test cases...\n")
 
