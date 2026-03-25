@@ -138,27 +138,26 @@ in
 
       # Patch optional imports using Python (more reliable than sed)
       echo "[Hermes] Patching optional dependencies with Python..." >&2
-      ${python}/bin/python -c "
+
+      # Write Python patching script to temp file
+      cat > patch_imports.py <<'PYTHON_SCRIPT'
 import os
 import re
 import sys
 
-site_packages = '$out/${python.sitePackages}'
+site_packages = os.environ['out'] + '/' + os.environ['python'].split('/')[-1] + '/site-packages'
 
 # Patch tools/web_tools.py - wrap firecrawl import
 web_tools = os.path.join(site_packages, 'tools/web_tools.py')
 if os.path.exists(web_tools):
     with open(web_tools, 'r') as f:
         content = f.read()
-
-    # Replace import with try/except wrapper
     old_import = 'from firecrawl import Firecrawl'
     new_import = '''try:
         from firecrawl import Firecrawl
     except ImportError:
         Firecrawl = None  # Optional dependency not available'''
     content = content.replace(old_import, new_import)
-
     with open(web_tools, 'w') as f:
         f.write(content)
     print('[Hermes] ✓ Patched firecrawl import', file=sys.stderr)
@@ -168,14 +167,12 @@ img_gen = os.path.join(site_packages, 'tools/image_generation_tool.py')
 if os.path.exists(img_gen):
     with open(img_gen, 'r') as f:
         content = f.read()
-
     old_import = 'import fal_client'
     new_import = '''try:
     import fal_client
 except ImportError:
     fal_client = None  # Optional dependency not available'''
     content = content.replace(old_import, new_import)
-
     with open(img_gen, 'w') as f:
         f.write(content)
     print('[Hermes] ✓ Patched fal_client import', file=sys.stderr)
@@ -185,26 +182,29 @@ terminal = os.path.join(site_packages, 'tools/terminal_tool.py')
 if os.path.exists(terminal):
     with open(terminal, 'r') as f:
         content = f.read()
-
-    # Comment out minisweagent imports
     content = re.sub(
         r'from minisweagent_path import',
         '# from minisweagent_path import  # Disabled - submodule not available',
         content
     )
-    # Comment out ensure_minisweagent_on_path call
     content = re.sub(
         r'ensure_minisweagent_on_path\(\)',
         '# ensure_minisweagent_on_path()  # Disabled - submodule not available',
         content
     )
-
     with open(terminal, 'w') as f:
         f.write(content)
     print('[Hermes] ✓ Patched minisweagent imports', file=sys.stderr)
 
 print('[Hermes] ✓ All optional dependency patches applied', file=sys.stderr)
-"
+PYTHON_SCRIPT
+
+      # Run the patching script
+      export out=$out
+      export python=${python}
+      ${python}/bin/python patch_imports.py
+      rm patch_imports.py
+    ''
 
       # Install the main hermes CLI
       install -D -m755 $src/cli.py $out/bin/hermes
