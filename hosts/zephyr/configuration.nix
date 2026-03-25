@@ -194,6 +194,14 @@
         "nexus=http://10.1.1.120:2380"
         "sentry=http://10.1.1.140:2380"
       ];
+
+      # Enable IPVS for better service load balancing performance
+      # O(1) lookup vs O(n) iptables for high-service-count clusters
+      calicoIpvs = {
+        enable = true;
+        autoHostRanges = true;
+        strictArp = true;
+      };
     };
 
     # TEMPORARY: Using kubernetes-module's built-in etcd
@@ -246,17 +254,17 @@
       quicEnabled = true;
 
       ingressRules = [
-        # Provider bid engine (NodePort 30843) - RESTRICTED ACCESS
+        # Provider bid engine (NodePort 32294) - RESTRICTED ACCESS
         {
           hostname = "provider.reverb256.ca";
-          service = "https://10.1.1.120:30843";
+          service = "https://10.1.1.120:32294";
           # Zero Trust: Only provider owner can access bid engine
           accessPolicy = "j_kroeker@reverb256.ca";
         }
-        # Provider gRPC (for lease management, NodePort 30844) - RESTRICTED ACCESS
+        # Provider gRPC (for lease management, NodePort 31420) - RESTRICTED ACCESS
         {
           hostname = "grpc.provider.reverb256.ca";
-          service = "https://10.1.1.120:30844";
+          service = "https://10.1.1.120:31420";
           # Zero Trust: Only provider owner can access gRPC
           accessPolicy = "j_kroeker@reverb256.ca";
         }
@@ -296,8 +304,8 @@
       zoneId = "9062487114ef5404de8de6689cb54895";
 
       # Provider endpoints (already configured above)
-      providerEndpoint = "http://10.1.1.120:30843";
-      providerGrpcEndpoint = "10.1.1.120:30844";
+      providerEndpoint = "https://10.1.1.120:32294";
+      providerGrpcEndpoint = "10.1.1.120:31420";
       ingressDomain = "ingress.reverb256.ca";
 
       # Feature 1: Automated Tenant DNS Setup (⭐⭐⭐ HIGH PRIORITY)
@@ -995,18 +1003,18 @@
     };
 
     # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
-    # Direct Kryptex connection (no gpu-proxy - was causing issues)
+    # Using centralized xmrig-proxy on nexus (10.1.1.120:3333)
     # DISABLED: K8s version working instead
     mining = {
       lolminer = {
-        pool = "stratum+tcp://127.0.0.1:3333"; # Local stratum proxy
+        pool = "stratum+tcp://10.1.1.120:3333"; # Centralized proxy on nexus
         wallet = "krxXVNVMM7.zephyr-gpu";
         pools = [
           {
-            url = "stratum+tcp://127.0.0.1:3333"; # Local stratum proxy
+            url = "stratum+tcp://10.1.1.120:3333"; # Centralized proxy on nexus
             wallet = "krxXVNVMM7.zephyr-gpu";
             password = "x";
-            tls = true;
+            tls = false; # No TLS needed for local proxy
           }
           {
             url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (fallback)
@@ -1027,8 +1035,8 @@
       # perGpuPowerLimits: [220, 250] = [GPU0: 220W (max), GPU1: 250W]
       # ENABLED: Mine on RTX 3090 only - 3060 Ti reserved for AI/ML
       lolminer.nvidia = {
-        enable = true; # Mine on RTX 3090 (GPU 1)
-        autostart = true;
+        enable = false; # MIGRATED: Now running in Kubernetes (gpu-miner-zephyr)
+        autostart = false;
         devices = "1"; # Only mine on GPU 1 (RTX 3090)
         perGpuPowerLimits = [250]; # GPU1: RTX 3090 @ 250W (GPU 0 disabled)
         apiPort = 4068;
@@ -1489,6 +1497,36 @@
   };
 
   # ============================================================================
+
+  # LLAMA-SERVER - Local LLM inference for autoresearch
+  # ============================================================================
+  # TEMPORARILY DISABLED: Nix evaluation issue (2026-03-25)
+  # CUDA-accelerated GGUF model server for skill optimization
+  # Uses Qwen3.5-0.8B model for fast LLM-based evaluation
+  # TODO: Fix circular dependency in llama-server module
+  # systemd.services.llama-server = {
+  #   description = "llama.cpp LLM inference server for autoresearch";
+  #   after = ["network.target"];
+  #   wantedBy = ["multi-user.target"];
+  #   serviceConfig = {
+  #     ExecStart = "/etc/nixos/.claude/skills/autoresearch-skills/llama-server-wrapper.sh";
+  #     Restart = "on-failure";
+  #     RestartSec = 10;
+  #     NoNewPrivileges = true;
+  #     PrivateTmp = true;
+  #     ProtectSystem = "strict";
+  #     ProtectHome = true;
+  #     ReadWritePaths = ["/tmp"];
+  #     LimitNOFILE = 65536;
+  #     StandardOutput = "journal";
+  #     StandardError = "journal";
+  #     SyslogIdentifier = "llama-server";
+  #   };
+  #   environment = {
+  #     CUDA_VISIBLE_DEVICES = "0";
+  #     PATH = lib.makeBinPath [pkgs.llama-cpp pkgs.bash];
+  #   };
+  # };
 
   # ============================================================================
   # SWAP - 8GB swapfile to prevent OOM during builds (2026-03-23)
