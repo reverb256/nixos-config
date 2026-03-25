@@ -70,6 +70,38 @@ just cluster-status                      # Host + K8s status combined
     kubectl get pods -n <namespace> --no-headers | wc -l
     ```
   - **ALWAYS check replica set count before deployment changes**
+
+- **CRITICAL: WORKLOAD SCHEDULING - ZEPHYR OOM PREVENTION**
+  - **ZEPHYR HAS CONSTANT OUM EXHAUSTION (31GB RAM, control plane + AI + gaming)**
+  - **DEFAULT ALL NON-INFRASTRUCTURE, NON-MINING WORKLOADS TO NEXUS (46GB RAM)**
+  - **Valid scheduling targets:**
+    - **Nexus** (46GB RAM): Default for ALL workloads except:
+      - Infrastructure (control plane, Calico, storage, monitoring)
+      - Mining (must be on nodes with GPUs: forge, nexus, zephyr)
+    - **Zephyr** (31GB RAM): ONLY infrastructure + mining
+      - Control plane: kube-apiserver, etcd, kube-scheduler, kube-controller-manager
+      - CNI: Calico components
+      - Mining: gpu-miner-zephyr, xmrig-zephyr (RTX 3090 GPU)
+      - NO OTHER WORKLOADS
+    - **Forge** (15GB RAM): GPU mining only (2x NVIDIA + 2x AMD)
+    - **Sentry** (31GB RAM): Monitoring, logging
+  - **NEVER schedule stateless services, AI workloads, or applications to zephyr**
+  - **Use nodeSelector or nodeAffinity to enforce nexus scheduling:**
+    ```yaml
+    spec:
+      template:
+        spec:
+          nodeName: nexus  # Force scheduling to nexus
+          # OR use affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                  - nexus
+    ```
     ```bash
     # IF > 20 replica sets exist, CLEAN UP FIRST
     kubectl get replicasets -A --no-headers | wc -l
