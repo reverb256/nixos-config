@@ -98,10 +98,12 @@ in
 
     # Disable Python hooks that check for optional dependencies
     pythonRemoveDepsCheckHook = true;
+    pythonRuntimeDepsCheckHook = false;
 
     # Override phases to skip dependency checks
     preInstallCheck = "";
     postInstallCheck = "";
+    pythonRuntimeDepsCheck = "";
 
     # Install CLI scripts and binaries
     postInstall = ''
