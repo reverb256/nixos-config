@@ -276,6 +276,15 @@
     };
 
     # Hermes Agent is now configured at top-level as services.hermes-agent
+
+    # NIXOS AUTO-UPDATE - Flake-aware automatic updates
+    # Replaces built-in system.autoUpgrade which doesn't support flakes properly
+    nixos-auto-update = {
+      enable = true;
+      interval = "daily";  # Check for updates daily at 00:00
+      updateFlakeInputs = ["nixpkgs"];  # Auto-update nixpkgs input
+      extraFlags = ["--upgrade"];  # Run with --upgrade flag
+    };
   };
 
   # ============================================================================
@@ -319,7 +328,7 @@
     # Hardware monitoring (lm-sensors for CPU/motherboard temps)
     monitoring = {
       enable = true;
-      autoDetect = true; # Auto-detect sensor chips
+      autoDetect = false; # Disabled: sensors-detect has bug with --auto flag
       fanControl = false; # BIOS fan control for now
     };
 
@@ -404,6 +413,7 @@
     services = {
       amd-gpu-power-mgmt = {
         description = "AMD GPU Power Limit (140W for RX 5700 XT)";
+        enable = false; # Disabled: power limit adjustment failing with Invalid argument
         wantedBy = ["multi-user.target"];
         after = ["basic.target"];
         serviceConfig = {
@@ -847,6 +857,12 @@
   # Tailscale routing automatically configured via network-constants
 
   # ============================================================================
+  # SECURITY
+  # ============================================================================
+  # Trust Caddy Ingress local CA certificate
+  security.caddyCa.enable = true;
+
+  # ============================================================================
   # AGENIX SECRETS
   # ============================================================================
   # No Agenix secrets currently configured for Forge.
@@ -857,4 +873,17 @@
   # This module expects /etc/nixos/.age/key.txt which doesn't exist on Forge
   # Without this, the activation script fails during boot and triggers kernel panic
   services.agenix-fixes.enable = false;
+
+  # ============================================================================
+  # NVIDIA CDI GENERATOR FIX
+  # ============================================================================
+  # Fix for nvidia-container-toolkit-cdi-generator service failure
+  # The generator outputs JSON to stdout but needs to be captured to file
+  # This override redirects stdout to /var/run/cdi/nvidia-container-toolkit.json
+  systemd.services.nvidia-container-toolkit-cdi-generator = {
+    serviceConfig.ExecStart = [
+      ""
+      "/nix/store/d1i12f1i7ycj8zj9pq3nxw2skyms5dl7-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
+    ];
+  };
 }
