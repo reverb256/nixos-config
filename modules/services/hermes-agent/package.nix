@@ -11,7 +11,7 @@ in
   python.pkgs.buildPythonApplication rec {
     pname = "hermes-agent";
     version = "0.1.0-unstable";
-    format = "flak";
+    format = "other";  # No standard Python build system
 
     # Disable dependency checks entirely
     doCheck = false;
