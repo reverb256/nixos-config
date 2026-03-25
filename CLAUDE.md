@@ -1,5 +1,30 @@
 # NixOS Cluster - Claude Code Context
 
+## ⚠️ CRITICAL: THIS IS NIXOS
+
+**This is NOT a typical Linux distribution.** This is **NixOS** - a purely declarative Linux distribution where the entire operating system configuration is defined in `/etc/nixos/` and rebuilt via `nixos-rebuild switch`.
+
+### 🔴 MANDATORY: NixOS Configuration Rules
+
+**✅ CORRECT (Declarative):**
+- Edit `/etc/nixos/configuration.nix` or `/etc/nixos/modules/*.nix`
+- Run `nixos-rebuild switch` to apply changes
+- All system state defined in Nix expressions (reproducible, rollback-capable)
+
+**❌ FORBIDDEN (Imperative):**
+- **NEVER** install packages with `nix-env -iA package` (breaks declarative model)
+- **NEVER** modify `/etc/nix` directly (it's the Nix store - immutable, managed by Nix)
+- **NEVER** use `systemctl start/enable` for persistent services (use NixOS config instead)
+- **NEVER** edit files in `/etc` outside of NixOS management (won't survive rebuilds)
+
+**Consequences of Breaking These Rules:**
+- System becomes unreproducible (declarative + imperative = chaos)
+- Rollbacks break (imperative changes can't be rolled back)
+- Configuration drift (hard to maintain, impossible to debug)
+- Deployments fail (NixOS expects all state in configuration)
+
+---
+
 ## WHAT
 NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) for AI inference, GPU computing, storage, and monitoring.
 
@@ -8,6 +33,196 @@ NixOS flake-based 4-host Linux cluster (Zephyr, Nexus, Forge, Sentry) for AI inf
 **Current Branch**: `feature/x86-64-v3-migration` (main: `main`)
 
 ---
+
+## ⚠️ CRITICAL SAFETY RULES
+
+### NixOS Declarative Model (MANDATORY)
+
+**ALL system changes MUST go through NixOS configuration:**
+
+| Action | ✅ CORRECT (NixOS) | ❌ WRONG (Imperative) |
+|--------|-------------------|---------------------|
+| Install packages | Edit `environment.systemPackages` in config.nix | `nix-env -iA package` |
+| Enable services | Edit `services.<name>.enable = true` in config.nix | `systemctl enable <service>` |
+| Start services | `nixos-rebuild switch` (starts enabled services) | `systemctl start <service>` |
+| Create users | Edit `users.users.<name>` in config.nix | `useradd <name>` |
+| Configure system | Edit `/etc/nixos/modules/*.nix` | Edit `/etc/<files>` directly |
+| Apply changes | `nixos-rebuild switch` or `just deploy` | Direct system modifications |
+
+**Why This Matters:**
+- **Reproducibility:** Same config → same system every time
+- **Rollback:** Every rebuild creates a new generation (can boot into any previous one)
+- **Documentation:** Config is self-documenting (all state in one place)
+- **Safety:** `nixos-rebuild test` applies changes temporarily (can revert on reboot)
+
+### Emergency Overrides (RARE)
+
+**Only use these if NixOS config is broken and you need SSH access:**
+```bash
+# TEMPORARY service start (won't survive reboot)
+systemctl start sshd
+
+# ONE-OFF commands (no persistent state)
+systemctl daemon-reload
+systemctl restart kube-apiserver  # Restart control plane (temporary)
+```
+
+**After emergency fix:** IMMEDIATELY update NixOS config to match running state.
+
+### NixOS Store (/nix vs /etc/nixos)
+
+**CRITICAL DISTINCTION:**
+
+| Path | Purpose | Mutable? | Managed By |
+|------|---------|----------|-----------|
+| `/etc/nixos/` | **NixOS configuration** (source code) | ✅ Yes | You (edit files) |
+| `/nix` or `/etc/nix` | **Nix store** (built packages) | ❌ No | Nix (immutable) |
+| `/etc/nixos/` | **Your system config** | ✅ Yes | Declarative |
+| `/nix/var/nix/profiles/system-*` | **System generations** | ❌ No | NixOS (read-only) |
+
+**Key Points:**
+- `/etc/nixos/` = Source code (like `/usr/src/linux`)
+- `/nix` = Binary store (like `/usr/bin` but immutable)
+- **NEVER** edit `/nix` directly (it's rebuilt from `/etc/nixos/`)
+- **ALWAYS** edit `/etc/nixos/` then run `nixos-rebuild switch`
+
+**Example:**
+```bash
+# ✅ CORRECT: Edit source, rebuild system
+vim /etc/nixos/modules/services/my-service.nix
+nixos-rebuild switch  # Builds new generation, activates it
+
+# ❌ WRONG: Try to edit Nix store
+vim /nix/store/...-my-service-.../bin/my-service  # Can't save (read-only filesystem)
+```
+
+### NixOS Generations and Rollback
+
+**Every `nixos-rebuild switch` creates a new generation:**
+
+```bash
+# View all generations
+nixos-rebuild list-generations
+
+# Sample output:
+# Generation 150 (Mar 25 10:00) → Current
+# Generation 149 (Mar 24 15:30) → Previous
+# Generation 148 (Mar 23 09:00) → Older
+
+# Rollback to previous generation
+nixos-rebuild rollback
+
+# Rollback to specific generation
+nixos-rebuild switch --profile /nix/var/nix/profiles/system-150-link
+
+# Delete old generations (cleanup)
+nix-collect-garbage -d
+```
+
+**Boot Menu:**
+- GRUB2 shows all generations (can boot into any previous one)
+- Useful for disaster recovery (if config breaks system)
+
+---
+
+## NixOS-Specific Conventions
+
+### Declarative System Configuration
+
+**ALL system state must be defined in NixOS modules:**
+
+```nix
+# ✅ CORRECT: Define service in NixOS module
+{ config, pkgs, ... }: {
+  services.my-service = {
+    enable = true;
+    settings.port = 8080;
+  };
+  systemd.services.my-service = {
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig.ExecStart = "${pkgs.my-package}/bin/my-service";
+  };
+}
+```
+
+**Then rebuild the system:**
+```bash
+nixos-rebuild switch  # Builds new generation, activates it, updates boot menu
+```
+
+**❌ WRONG: Imperative service management**
+```bash
+# DO NOT DO THIS - Changes won't survive reboot
+systemctl start my-service
+systemctl enable my-service
+# ❌ Breaks declarative model, can't be rolled back
+```
+
+### Package Management
+
+**✅ CORRECT: Declare packages in configuration**
+```nix
+# hosts/zephyr/configuration.nix
+{ config, pkgs, ... }: {
+  environment.systemPackages = with pkgs; [
+    vim
+    git
+    htop
+  ];
+}
+```
+
+**❌ WRONG: Imperative package installation**
+```bash
+# DO NOT DO THIS - Breaks reproducibility
+nix-env -iA nixos.vim
+nix-channel --update && nix-env -iA nixos.git
+# ❌ Package only installed for current user, not declarative
+```
+
+### Configuration Files
+
+**✅ CORRECT: Generate config files in NixOS**
+```nix
+{ config, pkgs, ... }: {
+  environment.etc."my-service/config.yaml".text = ''
+    port: 8080
+    debug: false
+  '';
+}
+```
+
+**❌ WRONG: Manually edit config files**
+```bash
+# DO NOT DO THIS - Changes will be overwritten on next rebuild
+vim /etc/my-service/config.yaml
+# ❌ File regenerated from NixOS config on every rebuild
+```
+
+### User Management
+
+**✅ CORRECT: Define users in NixOS**
+```nix
+{ config, pkgs, ... }: {
+  users.users.myuser = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "docker" ];
+  };
+}
+```
+
+**❌ WRONG: Imperative user creation**
+```bash
+# DO NOT DO THIS - User won't survive rebuild
+useradd myuser
+# ❌ Users are managed declaratively in NixOS
+```
+
+---
+
+## CONVENTIONS
+
+### mkOptionDefault (MANDATORY for extensible options)
 
 ## COMMANDS
 ```bash
@@ -31,17 +246,20 @@ just cluster-status                      # Host + K8s status combined
 ---
 
 ## PROJECT STRUCTURE
+
+**⚠️ CRITICAL:** All system configuration MUST be in `/etc/nixos/`. The entire OS is rebuilt from these files.
+
 ```
 /etc/nixos/
-├── flake.nix              # Main flake with host definitions
-├── colmena.nix            # Multi-host deployment (NFS-based architecture)
+├── flake.nix              # Main flake (defines packages, devshells, NixOS configs)
+├── colmena.nix            # Multi-host deployment (NFS-based, no git push needed)
 ├── justfile               # CI/CD commands (no sync needed - NFS mount)
 ├── hosts/                 # Per-host configs (zephyr, nexus, forge, sentry)
-│   └── <hostname>/configuration.nix
+│   └── <hostname>/configuration.nix  # NixOS config for each host
 ├── modules/               # Reusable modules (auto-imported via default.nix)
 │   ├── profiles/          # Hardware, role, network profiles
-│   ├── system/            # System-level modules
-│   ├── services/          # Background services
+│   ├── system/            # System-level modules (systemd, networking, etc.)
+│   ├── services/          # Background services (K8s, monitoring, etc.)
 │   └── compute-market/    # GPU resource marketplace
 ├── kubernetes-manifests/  # K8s manifests for migrated services
 ├── docs/                  # Comprehensive documentation
@@ -50,7 +268,114 @@ just cluster-status                      # Host + K8s status combined
 └── .claude/               # Claude-specific files (agents, skills, settings)
 ```
 
+**🔴 FORBIDDEN PATHS (Never Edit):**
+- `/etc/nix` - Nix store (immutable, managed by Nix, contains all packages)
+- `/nix` - Alternative Nix store path (same as above)
+- Any imperative package installation locations
+
+**✅ CORRECT WORKFLOW:**
+1. Edit `/etc/nixos/modules/` or `/etc/nixos/hosts/<hostname>/configuration.nix`
+2. Test: `nixos-rebuild test` (applies to current host, can rollback)
+3. Commit: `git add` && `git commit`
+4. Deploy: `just deploy` (applies to all hosts via Colmena)
+```
+
 **Architecture**: All remote hosts mount `/run/nixos-shared` (NFS from Zephyr) - no config sync needed
+
+---
+
+## NixOS-SPECIFIC CONVENTIONS
+
+### Declarative System Configuration
+
+**ALL system state must be defined in NixOS modules:**
+
+```nix
+# ✅ CORRECT: Define service in NixOS module
+{ config, pkgs, ... }: {
+  services.my-service = {
+    enable = true;
+    settings.port = 8080;
+  };
+  systemd.services.my-service = {
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig.ExecStart = "${pkgs.my-package}/bin/my-service";
+  };
+}
+```
+
+**Then rebuild the system:**
+```bash
+nixos-rebuild switch  # Builds new generation, activates it, updates boot menu
+```
+
+**❌ WRONG: Imperative service management**
+```bash
+# DO NOT DO THIS - Changes won't survive reboot
+systemctl start my-service
+systemctl enable my-service
+# ❌ Breaks declarative model, can't be rolled back
+```
+
+### Package Management
+
+**✅ CORRECT: Declare packages in configuration**
+```nix
+# hosts/zephyr/configuration.nix
+{ config, pkgs, ... }: {
+  environment.systemPackages = with pkgs; [
+    vim
+    git
+    htop
+  ];
+}
+```
+
+**❌ WRONG: Imperative package installation**
+```bash
+# DO NOT DO THIS - Breaks reproducibility
+nix-env -iA nixos.vim
+nix-channel --update && nix-env -iA nixos.git
+# ❌ Package only installed for current user, not declarative
+```
+
+### Configuration Files
+
+**✅ CORRECT: Generate config files in NixOS**
+```nix
+{ config, pkgs, ... }: {
+  environment.etc."my-service/config.yaml".text = ''
+    port: 8080
+    debug: false
+  '';
+}
+```
+
+**❌ WRONG: Manually edit config files**
+```bash
+# DO NOT DO THIS - Changes will be overwritten on next rebuild
+vim /etc/my-service/config.yaml
+# ❌ File regenerated from NixOS config on every rebuild
+```
+
+### User Management
+
+**✅ CORRECT: Define users in NixOS**
+```nix
+{ config, pkgs, ... }: {
+  users.users.myuser = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "docker" ];
+  };
+}
+```
+
+**❌ WRONG: Imperative user creation**
+```bash
+# DO NOT DO THIS - User won't survive rebuild
+useradd myuser
+# ❌ Users are managed declaratively in NixOS
+```
 
 ---
 
@@ -172,7 +497,7 @@ just cluster-status                      # Host + K8s status combined
 - Fast validation (<5 seconds)
 - Prevents broken deployments
 
-### Testing Checklist
+### Testing Checklist (NixOS-Specific)
 | File Changed | Test On |
 |--------------|---------|
 | `modules/networking/*` | zephyr AND nexus |
