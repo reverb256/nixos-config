@@ -53,10 +53,11 @@ in
     '';
 
     propagatedBuildInputs = with python.pkgs; [
-      # Core dependencies only (no optional extras like firecrawl, fal-client)
+      # Core dependencies only
       openai
       anthropic
       python-dotenv
+      fire # web_scraper, async_scanner (CORE dependency, not optional)
       httpx
       rich
       tenacity
@@ -70,11 +71,11 @@ in
       pyjwt # Note: using pyjwt instead of PyJWT[crypto]
 
       # Removed optional dependencies not available in Nixpkgs:
-      # - fire (web_scraper, async_scanner)
       # - fal-client (image generation)
       # - edge-tts (TTS)
       # - faster-whisper (transcription)
       # - qwen-tts (TTS)
+      # - firecrawl-py (web scraping, in [all] extras)
     ];
 
     nativeBuildInputs = with pkgs; [
