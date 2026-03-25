@@ -204,7 +204,6 @@ PYTHON_SCRIPT
       export python=${python}
       ${python}/bin/python patch_imports.py
       rm patch_imports.py
-    ''
 
       # Install the main hermes CLI
       install -D -m755 $src/cli.py $out/bin/hermes
