@@ -12,8 +12,12 @@ data:
     # Completely disable limiter and rate limiting
     limiter: false
 
-    # Disable bot detection
+    # Completely disable bot detection
     bot_detection:
+      enabled: false
+
+    # Additional bot detection modules to disable
+    limiter:
       enabled: false
 
     search:
