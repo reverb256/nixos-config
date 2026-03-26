@@ -154,21 +154,15 @@ in {
     };
 
     # Systemd service for Hermes Agent
+    # Note: Gateway runs in Kubernetes, accessed via K8s service DNS
     systemd.services.hermes-agent = {
       description = "Hermes Agent - Self-improving AI Agent";
-      after = lib.mkMerge [
-        [
-          "network-online.target"
-          "multi-user.target"
-        ]
-        (lib.mkIf cfg.aiGateway.enable ["ai-inference-gateway.service"])
+      after = [
+        "network-online.target"
+        "multi-user.target"
       ];
-      wants =
-        [
-          "network-online.target"
-        ]
-        ++ lib.optionals cfg.aiGateway.enable ["ai-inference-gateway.service"];
-      requires = lib.optionals cfg.aiGateway.enable ["ai-inference-gateway.service"];
+      wants = ["network-online.target"];
+      # Gateway dependency removed - now in Kubernetes
       wantedBy = ["multi-user.target"];
 
       environment = {

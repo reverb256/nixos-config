@@ -8,7 +8,7 @@
     isNormalUser = true;
     description = "Jeremy Kroeker";
     shell = pkgs.fish;
-    extraGroups = ["networkmanager" "wheel" "render" "video" "libinput" "ai-inference" "plugdev" "openrazer" "gamemode"];
+    extraGroups = ["networkmanager" "wheel" "render" "video" "libinput" "ai-inference" "plugdev" "openrazer" "gamemode" "i2c"];
     packages = with pkgs; [
       kdePackages.kate
       kdePackages.yakuake # Drop-down terminal emulator
@@ -41,4 +41,5 @@
   # Create groups for device and service access
   users.groups.plugdev = {};
   users.groups.gamemode = {};
+  users.groups.i2c = {};
 }

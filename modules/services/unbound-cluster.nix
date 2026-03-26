@@ -167,10 +167,12 @@ in {
             # ================================================================================
             # Services accessible via Caddy Ingress on ingress nodes
 
-            # AI/ML Services (via VIP for load balancing)
-            ''"ai.cluster.local. IN A 10.1.1.100"''
-            ''"llm.cluster.local. IN A 10.1.1.100"''
-            ''"rag.cluster.local. IN A 10.1.1.100"''
+            # AI/ML Services (via Caddy Ingress nodes)
+            # Caddy runs on nexus/forge/sentry via hostPort 80/443
+            # Using nexus (10.1.1.120) as primary - most stable node
+            ''"ai.cluster.local. IN A 10.1.1.120"''
+            ''"llm.cluster.local. IN A 10.1.1.120"''
+            ''"rag.cluster.local. IN A 10.1.1.120"''
 
             # Home Lab Services
             ''"home.cluster.local. IN A 10.1.1.110"''
@@ -187,8 +189,8 @@ in {
             ''"logs.cluster.local. IN A 10.1.1.110"''
             ''"dash.cluster.local. IN A 10.1.1.110"''
 
-            # Utilities (via VIP for load balancing)
-            ''"search.cluster.local. IN A 10.1.1.100"''
+            # Utilities (via Caddy Ingress on nexus)
+            ''"search.cluster.local. IN A 10.1.1.120"''
             ''"chat.cluster.local. IN A 10.1.1.110"''
             ''"files.cluster.local. IN A 10.1.1.100"''
           ];
