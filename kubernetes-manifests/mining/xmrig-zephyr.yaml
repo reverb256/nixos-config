@@ -110,11 +110,15 @@ spec:
             - ALL
             add:
             - IPC_LOCK
+            - SYS_RAWIO  # Required for MSR access to CPU registers
         volumeMounts:
         - name: hugepages
           mountPath: /dev/hugepages
         - name: tmp
           mountPath: /tmp
+        - name: msr
+          mountPath: /dev/cpu
+          readOnly: true
       volumes:
       - name: hugepages
         hostPath:
@@ -122,3 +126,8 @@ spec:
           type: Directory
       - name: tmp
         emptyDir: {}
+      # MSR devices for CPU optimizations (10-30% hashrate improvement)
+      - name: msr
+        hostPath:
+          path: /dev/cpu
+          type: Directory
