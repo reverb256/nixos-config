@@ -883,66 +883,64 @@ class MCPBroker:
                 # Try to find the gateway package in the system closure
                 print(f"[DEBUG] Spawning MCP server {server.name}, command: {server.command}")
                 try:
+                    import sys
+                    import os
                     import subprocess
-                    result = subprocess.run(
-                        ["nix-store", "-q", "--requisites", "/run/current-system"],
-                        capture_output=True,
-                        text=True,
-                    )
-                    if result.returncode == 0:
-                        gateway_pkg = None
-                        gateway_python = None
-                        import re
-                        line_count = 0
-                        for line in result.stdout.splitlines():
-                            line_count += 1
-                            # Check if this is the gateway package
-                            if "ai-inference-gateway-modular-pkg-v" in line and "base" not in line and "python" not in line:
-                                gateway_pkg = line
-                                print(f"[DEBUG] [MCP {server.name}] Found gateway_pkg at line {line_count}: {line}")
-                            elif re.search(r'python3-.*?\d+\.?\d*-env', line):
-                                # Check if this Python has mcp (gateway Python)
-                                # Only set if not already found (prefer first Python with mcp)
-                                if gateway_python is None:
-                                    try:
-                                        mcp_check = subprocess.run(
-                                            ["test", "-d", f"{line}/lib/python3.13/site-packages/mcp"],
-                                            capture_output=True,
-                                        )
-                                        if mcp_check.returncode == 0:
-                                            gateway_python = line
-                                            print(f"[DEBUG] [MCP {server.name}] Found gateway_python at line {line_count}: {line}")
-                                    except Exception:
-                                        pass
-                                # Don't break - continue to find gateway_pkg
 
-                        print(f"[DEBUG] [MCP {server.name}] Processed {line_count} lines, gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
-                        logger.info(f"[MCP {server.name}] Processed {line_count} lines, gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
+                    # Method 1: Try to find gateway package via Python import system (works in containers)
+                    gateway_pkg = None
+                    gateway_python = None
 
-                        # Build PYTHONPATH with both paths
-                        pythonpath_parts = []
-                        if gateway_pkg:
-                            pythonpath_parts.append(gateway_pkg)
-                        if gateway_python:
-                            pythonpath_parts.append(f"{gateway_python}/lib/python3.13/site-packages")
+                    try:
+                        import ai_inference_gateway
+                        gateway_pkg_path = os.path.dirname(ai_inference_gateway.__file__)
+                        # Get the parent directory (should be the site-packages root)
+                        gateway_pkg = os.path.dirname(gateway_pkg_path)
+                        print(f"[DEBUG] [MCP {server.name}] Found gateway_pkg via import: {gateway_pkg}")
+                    except ImportError:
+                        print(f"[DEBUG] [MCP {server.name}] Could not import ai_inference_gateway")
 
-                        # Build the modified command with gateway Python
-                        modified_command = list(server.command)
-                        if gateway_python and modified_command[0] == "python3":
-                            # Use the gateway Python interpreter which has all the dependencies
-                            modified_command[0] = f"{gateway_python}/bin/python3"
-                            print(f"[DEBUG] [MCP {server.name}] Using gateway Python: {modified_command[0]}")
+                    # Method 2: Find Python interpreter with mcp installed
+                    # Use sys.executable (current Python) or search for mcp in site-packages
+                    try:
+                        import mcp
+                        # Current Python has mcp, use it
+                        gateway_python = os.path.dirname(sys.executable)
+                        print(f"[DEBUG] [MCP {server.name}] Found gateway_python via sys.executable: {gateway_python}")
+                    except ImportError:
+                        # Try to find mcp in current Python's site-packages
+                        mcp_path = os.path.join(sys.prefix, "lib", f"python{sys.version_info.major}.{sys.version_info.minor}", "site-packages", "mcp")
+                        if os.path.exists(mcp_path):
+                            gateway_python = sys.prefix
+                            print(f"[DEBUG] [MCP {server.name}] Found gateway_python via sys.prefix: {gateway_python}")
 
-                        if pythonpath_parts:
-                            existing_pythonpath = env.get("PYTHONPATH", "")
-                            if existing_pythonpath:
-                                pythonpath_parts.append(existing_pythonpath)
-                            env["PYTHONPATH"] = ":".join(pythonpath_parts)
-                            logger.info(f"[MCP {server.name}] Set PYTHONPATH: {env['PYTHONPATH'][:300]}...")
-                            print(f"[DEBUG] PYTHONPATH for {server.name}: {env['PYTHONPATH'][:300]}...")
-                        else:
-                            logger.warning(f"[MCP {server.name}] No gateway paths found, PYTHONPATH not set")
-                            print(f"[DEBUG] No gateway paths found for {server.name}")
+                    print(f"[DEBUG] [MCP {server.name}] Final: gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
+                    logger.info(f"[MCP {server.name}] gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
+
+                    # Build PYTHONPATH with both paths
+                    pythonpath_parts = []
+                    if gateway_pkg:
+                        pythonpath_parts.append(gateway_pkg)
+                    if gateway_python:
+                        pythonpath_parts.append(f"{gateway_python}/lib/python3.13/site-packages")
+
+                    # Build the modified command with gateway Python
+                    modified_command = list(server.command)
+                    if gateway_python and modified_command[0] == "python3":
+                        # Use the gateway Python interpreter which has all the dependencies
+                        modified_command[0] = f"{gateway_python}/bin/python3"
+                        print(f"[DEBUG] [MCP {server.name}] Using gateway Python: {modified_command[0]}")
+
+                    if pythonpath_parts:
+                        existing_pythonpath = env.get("PYTHONPATH", "")
+                        if existing_pythonpath:
+                            pythonpath_parts.append(existing_pythonpath)
+                        env["PYTHONPATH"] = ":".join(pythonpath_parts)
+                        logger.info(f"[MCP {server.name}] Set PYTHONPATH: {env['PYTHONPATH'][:300]}...")
+                        print(f"[DEBUG] PYTHONPATH for {server.name}: {env['PYTHONPATH'][:300]}...")
+                    else:
+                        logger.warning(f"[MCP {server.name}] No gateway paths found, PYTHONPATH not set")
+                        print(f"[DEBUG] No gateway paths found for {server.name}")
                 except Exception as e:
                     logger.warning(f"Failed to add PYTHONPATH for {server.name}: {e}")
 

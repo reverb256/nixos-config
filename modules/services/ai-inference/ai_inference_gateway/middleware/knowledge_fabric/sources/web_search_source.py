@@ -34,6 +34,7 @@ class WebSearchKnowledgeSource:
     description: str = "Web search via MCP web_search_prime"
     priority: SourcePriority = SourcePriority.MEDIUM
     capabilities: SourceCapability = SourceCapability.REALTIME | SourceCapability.FACTUAL
+    enabled: bool = True
 
     async def retrieve(self, query: str, **kwargs) -> KnowledgeResult:
         """

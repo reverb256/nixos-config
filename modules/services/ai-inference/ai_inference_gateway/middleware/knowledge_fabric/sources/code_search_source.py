@@ -37,6 +37,7 @@ class CodeSearchKnowledgeSource:
         SourceCapability.CODE |
         SourceCapability.PROCEDURAL
     )
+    enabled: bool = True
 
     async def retrieve(self, query: str, **kwargs) -> KnowledgeResult:
         """

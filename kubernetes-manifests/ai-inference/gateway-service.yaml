@@ -1,7 +1,5 @@
 ---
-# AI Inference Gateway Service - Points to systemd service on Nexus
-# Interim solution until container image is built and deployed
-
+# AI Inference Gateway Service (Kubernetes Deployment)
 apiVersion: v1
 kind: Service
 metadata:
@@ -11,37 +9,21 @@ metadata:
     app: ai-inference-gateway
     version: v2.0.0
 spec:
-  type: ClusterIP
+  type: NodePort
   sessionAffinity: None
   ports:
     - name: http
       port: 8080
       targetPort: 8080
       protocol: TCP
+      nodePort: 30880  # Expose on all nodes at port 30880
     - name: metrics
       port: 9090
       targetPort: 9090
       protocol: TCP
-
----
-# Endpoints for the gateway service (systemd service on Nexus)
-apiVersion: v1
-kind: Endpoints
-metadata:
-  name: ai-inference-gateway
-  namespace: ai-inference
-  labels:
+      nodePort: 30990  # Expose metrics on all nodes at port 30990
+  selector:
     app: ai-inference-gateway
-subsets:
-  - addresses:
-      - ip: 10.1.1.120  # Nexus IP where systemd service runs
-    ports:
-      - name: http
-        port: 8080
-        protocol: TCP
-      - name: metrics
-        port: 9090
-        protocol: TCP
 
 ---
 # NetworkPolicy to allow gateway to reach dependencies
@@ -51,7 +33,9 @@ metadata:
   name: allow-gateway-egress
   namespace: ai-inference
 spec:
-  podSelector: {}
+  podSelector:
+    matchLabels:
+      app: ai-inference-gateway
   policyTypes:
     - Egress
   egress:

@@ -37,6 +37,7 @@ class RAGKnowledgeSource:
     capabilities: SourceCapability = (
         SourceCapability.FACTUAL | SourceCapability.CONTEXTUAL | SourceCapability.PROCEDURAL
     )
+    enabled: bool = True
 
     def __post_init__(self):
         """Validate configuration after initialization."""
