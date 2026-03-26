@@ -210,11 +210,9 @@ in {
       description = "Emergency AI diagnostics (Qwen 3.5)";
 
       # Run early, before most services
+      # Gateway moved to Kubernetes, removed from before list
       after = ["basic.target"];
-      before = [
-        "multi-user.target"
-        "ai-inference-gateway.service"
-      ];
+      before = ["multi-user.target"];
       wantedBy = ["emergency.target"]; # Only run in emergency
 
       # Only run if there was a boot failure
