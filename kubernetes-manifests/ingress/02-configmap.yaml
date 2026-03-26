@@ -49,14 +49,24 @@ data:
     # ============================================================================
 
     # AI Inference Gateway
-    ai.cluster.local {
-      import security_headers
-      # Compression applied globally via encode zstd gzip
-      tls internal
-      reverse_proxy ai-inference-gateway.ai-inference.svc.cluster.local:8080 {
+    # HTTP route for internal cluster access (MCP gateway bridge)
+    # IMPORTANT: Disable auto TLS - we handle HTTP/HTTPS explicitly
+    http://ai.cluster.local {
+      tls off
+      reverse_proxy 10.0.0.192:8080 {
         health_uri /health
         health_interval 10s
-        health_timeout 5s
+        health_timeout 10s
+      }
+    }
+    # HTTPS route with TLS
+    https://ai.cluster.local {
+      import security_headers
+      tls internal
+      reverse_proxy 10.0.0.192:8080 {
+        health_uri /health
+        health_interval 10s
+        health_timeout 10s
       }
     }
 
@@ -66,6 +76,10 @@ data:
       # Compression applied globally via encode zstd gzip
       tls internal
       reverse_proxy qdrant-external.ai-inference.svc.cluster.local:6333 {
+        # Use CoreDNS for DNS resolution (fixes timeout issues)
+        transport http {
+          resolvers 10.0.0.10
+        }
         health_uri /
         health_interval 10s
         health_timeout 5s
@@ -78,6 +92,10 @@ data:
       # Compression applied globally via encode zstd gzip
       tls internal
       reverse_proxy searxng.search.svc.cluster.local:8080 {
+        # Use CoreDNS for DNS resolution (fixes timeout issues)
+        transport http {
+          resolvers 10.0.0.10
+        }
         health_uri /
         health_interval 10s
         health_timeout 5s
@@ -126,6 +144,10 @@ data:
       # Compression applied globally via encode zstd gzip
       tls internal
       reverse_proxy grafana.ai-inference.svc.cluster.local:3000 {
+        # Use CoreDNS for DNS resolution (fixes timeout issues)
+        transport http {
+          resolvers 10.0.0.10
+        }
         health_uri /api/health
         health_interval 10s
         health_timeout 5s
@@ -138,6 +160,10 @@ data:
       # Compression applied globally via encode zstd gzip
       tls internal
       reverse_proxy prometheus.ai-inference.svc.cluster.local:9090 {
+        # Use CoreDNS for DNS resolution (fixes timeout issues)
+        transport http {
+          resolvers 10.0.0.10
+        }
         health_uri /-/healthy
         health_interval 10s
         health_timeout 5s
