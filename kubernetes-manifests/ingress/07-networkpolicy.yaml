@@ -37,6 +37,15 @@ spec:
     - namespaceSelector:
         matchLabels:
           name: ingress-system
+  # Allow HTTP/HTTPS from cluster hosts (for MCP gateway bridge, etc.)
+  - ports:
+    - port: http
+      protocol: TCP
+    - port: https
+      protocol: TCP
+    from:
+    - ipBlock:
+        cidr: 10.1.1.0/24  # Cluster network
 
 ---
 # Allow Caddy to reach backend services
@@ -63,7 +72,7 @@ spec:
       protocol: UDP
     - port: 53
       protocol: TCP
-  # Allow reaching any service (for backend proxying)
+  # Allow reaching services in same namespace
   - to:
     - podSelector: {}
     ports:
@@ -72,6 +81,20 @@ spec:
     - port: 8000
       protocol: TCP
     - port: 7777
+      protocol: TCP
+    - port: 80
+      protocol: TCP
+    - port: 443
+      protocol: TCP
+  # Allow reaching ai-inference namespace services
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: ai-inference
+    ports:
+    - port: 8080
+      protocol: TCP
+    - port: 6333
       protocol: TCP
     - port: 80
       protocol: TCP
