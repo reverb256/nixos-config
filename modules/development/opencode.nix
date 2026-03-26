@@ -297,10 +297,12 @@ in {
     ];
 
     # Systemd service for one-time model update
+    # Note: Gateway runs in Kubernetes, not as systemd service
+    # This service may need to be updated to wait for the K8s gateway instead
     systemd.services.opencode-model-update = {
       description = "OpenCode Model Synchronization Service";
-      after = ["network.target" "ai-inference-gateway.service"];
-      wants = optional cfg.autoSync.onGatewayStart "ai-inference-gateway.service";
+      after = ["network.target"]; # Gateway moved to K8s
+      wants = optional cfg.autoSync.onGatewayStart "network-online.target";
 
       serviceConfig = {
         Type = "oneshot";

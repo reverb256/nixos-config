@@ -612,26 +612,17 @@
           ];
           requires = lib.mkForce ["containerd.service"];
           serviceConfig = {
-            ExecStartPre = lib.mkMerge [
-              (config.services.kubernetes-module.kubelet.serviceConfig.ExecStartPre or [{}])
-              [
-                (pkgs.writeShellScript "ensure-device-plugins-dir" ''
-                  # Ensure device plugins directory exists before kubelet starts
-                  # NixOS uses /var/lib/kubernetes as root-dir, so plugins go in device-plugins subdirectory
-                  mkdir -p /var/lib/kubernetes/device-plugins
-                  chmod 755 /var/lib/kubernetes/device-plugins
-                  # Ensure kubernetes user owns this directory (required for plugin socket creation)
-                  chown kubernetes:kubernetes /var/lib/kubernetes/device-plugins || true
-                  echo "Device plugins directory ready: /var/lib/kubernetes/device-plugins"
-                '')
-              ]
-            ];
-            # CRITICAL: Ensure device plugin registration server starts
-            # The NixOS kubernetes module's enableServer=true only enables PodResources API
-            # This override ensures the device plugin registration gRPC server also starts
-            # Without this, NVIDIA/AMD device plugins cannot register and GPU passthrough fails
-            Environment = [
-              "KUBELET_ENABLE_SERVER=true"
+            # Pre-start script to ensure device plugins directory exists
+            ExecStartPre = [
+              (pkgs.writeShellScript "ensure-device-plugins-dir" ''
+                # Ensure device plugins directory exists before kubelet starts
+                # NixOS uses /var/lib/kubernetes as root-dir, so plugins go in device-plugins subdirectory
+                mkdir -p /var/lib/kubernetes/device-plugins
+                chmod 755 /var/lib/kubernetes/device-plugins
+                # Ensure kubernetes user owns this directory (required for plugin socket creation)
+                chown kubernetes:kubernetes /var/lib/kubernetes/device-plugins || true
+                echo "Device plugins directory ready: /var/lib/kubernetes/device-plugins"
+              '')
             ];
             # Kubelet memory limits (applied to all nodes)
             MemoryMax = "2G";
