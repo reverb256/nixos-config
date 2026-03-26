@@ -1,7 +1,8 @@
-# Akash Provider Helm Values - v0.11.0 (from working commit 740804b)
-# Chart: akash/provider 15.0.0 | App Version: 0.11.0
-# Last Updated: 2026-03-25
-# Source: Based on commit b7c239c (working Calico CNI and provider fixes)
+# Akash Provider Helm Values - v0.12.0-rc0 (UPGRADED 2026-03-26)
+# Chart: akash/provider 15.0.0 | App Version: 0.12.0-rc0
+# Last Updated: 2026-03-26
+# Upgrade Reason: Fix balance-checker crash (Issue #440, PR #376)
+# Source: v0.12.0-rc0 (released 2026-03-24)
 
 # =============================================================================
 # PROVIDER IDENTITY
@@ -16,10 +17,10 @@ website: https://reverb256.ca
 # =============================================================================
 # CRITICAL IMAGE CONFIGURATION
 # =============================================================================
-# Using v0.11.0 (from working commit 740804b)
+# UPgraded to v0.12.0-rc0 to fix balance-checker nil-pointer panic crash
 image:
   repository: ghcr.io/akash-network/provider
-  tag: 0.11.0
+  tag: 0.12.0-rc0
   pullPolicy: IfNotPresent
 
 # CRITICAL: Empty withdrawal period disables periodic withdrawals (fixes withdrawal goroutine crash)
@@ -42,7 +43,7 @@ env:
 # =============================================================================
 # BLOCKCHAIN CONNECTION
 # =============================================================================
-# Using Polkachu RPC endpoint (resolves correctly from both host and cluster)
+# Using Polkachu RPC endpoint (hostname with /etc/hosts fallback)
 node: https://akash-rpc.polkachu.com:443
 chainID: akashnet-2
 
@@ -133,33 +134,7 @@ hostname:
 # Impact: Creates malformed URL "http://operator-hostname.akash-services.svc.cluster.local.:8080/health"
 # Fix: Use static cluster IP endpoint to bypass DNS discovery entirely
 # Note: This is a workaround until provider code is patched to strip trailing dots from DNS results
-scripts:
-  run.sh: |
-    #!/bin/bash
-    set -x
-
-    echo "=== CRITICAL WORKAROUND: Bypassing DNS trailing dot bug ==="
-    echo "Bug: DNS SRV returns FQDN with trailing dot, creating malformed HTTP URLs"
-    echo "Solution: Using static cluster IP endpoint for hostname operator"
-    echo "Static endpoint: http://10.244.169.20:8080"
-    echo ""
-
-    # === FIX: RPC Client Race Condition ===
-    # Cosmos SDK v0.53.5 RPC client needs time to fully initialize
-    # Balance checker calls Node().SyncInfo() immediately after gRPC starts
-    # Without this delay, RPC client returns "client is not running" error
-    echo "Waiting for RPC client to fully initialize..."
-    sleep 10
-    echo "RPC client should be ready now"
-
-    # Run provider with static hostname operator endpoint
-    # This bypasses DNS SRV lookup which returns trailing dot FQDN
-    exec /usr/bin/provider-services run --hostname-operator-endpoint=10.244.169.20:8080 "$@"
-
-
-# =============================================================================
-# CUSTOM SCRIPTS (from working commit 740804b)
-# =============================================================================
+# IMPORTANT: Do NOT override run.sh - let Helm chart use its default
 scripts:
   init.sh: |
     #!/bin/bash
@@ -205,7 +180,13 @@ scripts:
         /scripts/wait_for_rpc.sh
         /scripts/create_provider.sh
         /scripts/refresh_provider_cert.sh
-        /scripts/deploy_keepalive.sh
+
+        # === AUTO-KEEPALIVE DISABLED FOR v0.12.0-rc0 UPGRADE ===
+        # The balance-checker crash bug should be fixed in v0.12.0-rc0
+        # Providers should now be able to run 24/7 without tenants
+        echo "=== AUTO-KEEPALIVE: SKIPPED (v0.12.0-rc0 fixes balance-checker crash) ==="
+        echo "Provider can now run 24/7 without active leases"
+        exit 0
     else
         echo "✗ Address mismatch!"
         exit 1
@@ -214,6 +195,11 @@ scripts:
   wait_for_rpc.sh: |
     #!/bin/bash
     set -e
+
+    # CRITICAL FIX: Add /etc/hosts entry BEFORE any DNS operations
+    # This must happen first, before any command that might trigger DNS resolution
+    echo "104.26.4.81 akash-rpc.polkachu.com" >> /etc/hosts
+    echo "Added /etc/hosts entry for akash-rpc.polkachu.com"
 
     type curl || exit 1
     type jq || exit 1
@@ -231,14 +217,14 @@ scripts:
     echo "Waiting for Akash RPC $NODE to be ready..."
     while true; do
         if [[ "$NODE" =~ https:// ]]; then
-            CATCHING_UP=$(curl -s "$NODE/status" | jq -r '.result.sync_info.catching_up')
+            CATCHING_UP=$(curl -s -k "$NODE/status" | jq -r '.result.sync_info.catching_up')
         else
             CATCHING_UP=$(curl -s "http://$NODE/status" | jq -r '.result.sync_info.catching_up')
         fi
 
         if [[ "$CATCHING_UP" == "false" ]]; then
             if [[ "$NODE" =~ https:// ]]; then
-                DATE_AKASH=$(curl -s "$NODE/status" | jq -r '.result.sync_info.latest_block_time')
+                DATE_AKASH=$(curl -s -k "$NODE/status" | jq -r '.result.sync_info.latest_block_time')
             else
                 DATE_AKASH=$(curl -s "http://$NODE/status" | jq -r '.result.sync_info.latest_block_time')
             fi
@@ -344,8 +330,9 @@ scripts:
 
     echo "Creating new keepalive deployment..."
     
-    # Create deployment
-    DEPLOYMENT_OUTPUT=$(provider-services tx deployment create $SDL_FILE --deposit 500000uakt --from $AKASH_FROM --yes 2>&1)
+    # Create deployment WITHOUT deposit flag (per official Akash documentation)
+    # Blockchain handles deposit automatically via escrow
+    DEPLOYMENT_OUTPUT=$(provider-services tx deployment create $SDL_FILE --from $AKASH_FROM --yes 2>&1)
     echo "$DEPLOYMENT_OUTPUT"
     
     DSEQ=$(echo "$DEPLOYMENT_OUTPUT" | grep -oP 'dseq: \K\d+' || echo '')

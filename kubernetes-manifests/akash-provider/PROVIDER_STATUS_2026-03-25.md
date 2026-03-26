@@ -38,22 +38,29 @@ The Akash Provider infrastructure is **fully configured and operational**, with 
 
 ## Current Blocker 🚧
 
-### Insufficient Wallet Balance
+### Deposit Transaction Validation Error
 
 **Error Message:**
 ```
 Error: rpc error: code = Unknown desc = rpc error: code = Unknown desc =
-failed to execute message; message index: 0: deposit invalid: insufficient balance
+failed to execute message; message index: 0: Deposit invalid
 [cosmos/cosmos-sdk@v0.53.5/baseapp/baseapp.go:1052]
 ```
 
-**Root Cause:**
-The provider wallet (`akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6`) does not have sufficient AKT balance to pay the deployment deposit.
+**Wallet Balance:** ✅ **30,218,505 uakt (30.2 AKT)** - SUFFICIENT for deployment
 
 **Requirements:**
 - **Minimum Deposit**: 500,000 uakt (0.5 AKT)
+- **Current Balance**: 30,218,505 uakt (30.2 AKT)
+- **Status**: Wallet has 60x required amount
 - **Deposit Purpose**: Collateral for deployment creation
 - **Refundable**: Deposit is returned when deployment closes
+
+**Investigation Needed:**
+The error is NOT "insufficient balance" - this is a deposit validation error. Possible causes:
+1. Deposit amount format incorrect (should be 0.5akt not 500000uakt?)
+2. SDL pricing denomination mismatch
+3. Blockchain transaction validation rules
 
 **Impact:**
 - Provider cannot create self-deployment for keepalive
