@@ -16,14 +16,12 @@
       };
     };
 
-    # Gateway configuration - ENABLED on Nexus
+    # Gateway configuration - Runs in Kubernetes, NOT as systemd service
     gateway = {
-      enable = true; # ENABLED: Moved from Zephyr
-      host = "10.1.1.120"; # Listen on all interfaces for cluster access
+      enable = false; # DISABLED: Migrated to Kubernetes (see kubernetes-manifests/ai-inference/)
+      host = "10.1.1.120";
       port = 8080;
       workers = 4;
-
-      # Enable Redis middleware for caching
       middleware.redis.enable = true;
     };
 
