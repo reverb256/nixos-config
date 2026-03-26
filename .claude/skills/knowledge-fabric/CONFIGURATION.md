@@ -9,7 +9,7 @@ The Knowledge Fabric uses several environment variables for configuration. These
   "env": {
     "SEARXNG_URL": "http://10.1.1.120:30080",
     "SEARXNG_CACHE_TTL": "300",
-    "GATEWAY_URL": "http://127.0.0.1:8080",
+    "GATEWAY_URL": "http://ai.cluster.local",
     "GATEWAY_TIMEOUT": "30.0"
   }
 }
@@ -21,7 +21,7 @@ The Knowledge Fabric uses several environment variables for configuration. These
 |----------|---------|---------|
 | `SEARXNG_URL` | http://10.1.1.120:30080 | SearXNG metasearch endpoint (NodePort for LAN access) |
 | `SEARXNG_CACHE_TTL` | 300 | Cache time-to-live in seconds |
-| `GATEWAY_URL` | http://127.0.0.1:8080 | AI Inference Gateway API endpoint |
+| `GATEWAY_URL` | http://ai.cluster.local | AI Inference Gateway API endpoint (via Caddy Ingress) |
 | `GATEWAY_TIMEOUT` | 30.0 | Gateway request timeout in seconds |
 
 ## Service Endpoints
@@ -42,9 +42,10 @@ The Knowledge Fabric uses several environment variables for configuration. These
 - **Health**: `redis-cli -p 6380 PING`
 
 ### AI Inference Gateway
-- **API**: http://127.0.0.1:8080
-- **Health**: `curl http://127.0.0.1:8080/health`
-- **Chat Completions**: POST http://127.0.0.1:8080/v1/chat/completions
+- **API**: http://ai.cluster.local (via Caddy Ingress)
+- **Health**: `curl http://ai.cluster.local/health`
+- **Chat Completions**: POST http://ai.cluster.local/v1/chat/completions
+- **MCP Tools**: GET http://ai.cluster.local/mcp/tools
 
 ## MCP Server Configuration
 
@@ -65,7 +66,7 @@ The MCP gateway bridge (`mcp-gateway-bridge`) forwards stdio MCP requests to the
 
 **Environment Variables**:
 ```bash
-export GATEWAY_URL="http://127.0.0.1:8080"
+export GATEWAY_URL="http://ai.cluster.local"
 export GATEWAY_TIMEOUT="30.0"
 ```
 
@@ -121,7 +122,7 @@ curl -s http://127.0.0.1:6333/collections | jq '.result.collections | length'
 redis-cli -p 6380 PING
 
 # Test Gateway
-curl -s http://127.0.0.1:8080/health | jq '.status'
+curl -s http://ai.cluster.local/health | jq '.status'
 
 # Test MCP Bridge
 echo '{"jsonrpc":"2.0","id":1,"method":"ping"}' | mcp-gateway-bridge
@@ -316,6 +317,6 @@ Access at: `http://127.0.0.1:8080/metrics`
 
 ---
 
-**Last Updated**: 2026-03-21
-**Version**: 1.1.0
-**Status**: ✅ All services operational and tested | SearXNG moved to nexus (10.1.1.120)
+**Last Updated**: 2026-03-26
+**Version**: 2.0.0
+**Status**: ✅ MCP Gateway Bridge infrastructure operational (all 7 layers) | ❌ No tools configured in gateway

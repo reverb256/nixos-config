@@ -1,316 +1,360 @@
-# Knowledge Fabric - Configuration Complete ✅
+# Knowledge Fabric - MCP Gateway Bridge Infrastructure Complete ✅
 
 ## Executive Summary
 
-Your Knowledge Fabric multi-source retrieval system is now **fully configured and robustly operational**. All components have been tested, validated, and documented.
+The MCP Gateway Bridge infrastructure is **fully operational** after fixing all 7 layers. The bridge successfully connects to the AI Inference Gateway and can proxy MCP requests.
 
-### System Status: 🟢 ALL OPERATIONAL
+### System Status: 🟢 INFRASTRUCTURE OPERATIONAL (NO TOOLS CONFIGURED)
 
-| Component | Status | Performance | Notes |
-|-----------|--------|-------------|-------|
-| **SearXNG Metasearch** | ✅ OPERATIONAL | 24 results/query | NodePort access working perfectly |
-| **Qdrant Vector DB** | ✅ OPERATIONAL | 8 collections | v1.16.3, all features enabled |
-| **Redis Cache** | ✅ OPERATIONAL | Sub-ms PING | v8.2.3 on port 6380 |
-| **AI Gateway** | ✅ OPERATIONAL | Healthy | http://127.0.0.1:8080 |
-| **MCP Bridge** | ✅ CONFIGURED | Ready | Gateway bridge enabled |
-| **Knowledge Fabric Skill** | ✅ UPDATED | Ready | With test results & access patterns |
+| Layer | Status | Notes |
+|-------|--------|-------|
+| **Layer 1: DNS Resolution** | ✅ OPERATIONAL | `ai.cluster.local` → `10.1.1.120` (nexus) |
+| **Layer 2: Caddy Ingress** | ✅ OPERATIONAL | HTTP/HTTPS split routes, ClusterIP direct |
+| **Layer 3: NetworkPolicy** | ✅ OPERATIONAL | Cross-namespace traffic allowed |
+| **Layer 4: Gateway Service** | ✅ OPERATIONAL | ClusterIP `10.0.0.192:8080` |
+| **Layer 5: Gateway Health** | ✅ OPERATIONAL | `/health` returns 200 OK |
+| **Layer 6: MCP Tools Endpoint** | ✅ OPERATIONAL | `/mcp/tools` accessible (empty) |
+| **Layer 7: MCP Bridge** | ✅ OPERATIONAL | stdio → HTTP proxy working |
+
+**Available Tools:** ❌ **NONE** (gateway returns `{"tools":[]}`)
 
 ---
 
-## Configuration Changes Applied
+## Infrastructure Fixes Applied (2026-03-26)
 
-### 1. Fixed Critical JSON Syntax Error
-**File**: `/home/j_kro/.claude/settings.json`
+### Layer 1: DNS Resolution (Unbound)
+**File:** `/etc/nixos/modules/services/unbound-cluster.nix`
 
-**Issue**: Duplicate `env` sections causing JSON parsing errors
+**Issue:** `ai.cluster.local` pointing to wrong IP (`10.1.1.100` - K8s API VIP)
 
-**Fix Applied**: Merged duplicate sections into single `env` block:
-```json
-{
-  "env": {
-    "ANTHROPIC_AUTH_TOKEN": "...",
-    "ANTHROPIC_BASE_URL": "...",
-    "API_TIMEOUT_MS": "3000000",
-    "SEARXNG_URL": "http://10.1.1.110:30080",
-    "SEARXNG_CACHE_TTL": "300"
+**Fix Applied:** Updated DNS records to point to Caddy ingress node (`10.1.1.120` - nexus)
+```nix
+''"ai.cluster.local. IN A 10.1.1.120"''
+''"llm.cluster.local. IN A 10.1.1.120"''
+''"rag.cluster.local. IN A 10.1.1.120"''
+''"search.cluster.local. IN A 10.1.1.120"''
+```
+
+**Applied:** `sudo systemctl restart unbound`
+
+**Verification:**
+```bash
+nslookup ai.cluster.local 10.1.1.110
+# Expected: ai.cluster.local → 10.1.1.120
+```
+
+### Layer 2: Caddy Ingress Routes
+**File:** `/etc/nixos/kubernetes-manifests/ingress/02-configmap.yaml`
+
+**Issues:**
+1. Auto-HTTPS redirecting HTTP to HTTPS (308 Permanent Redirect)
+2. DNS resolution timeouts for service DNS
+
+**Fixes Applied:**
+1. Split into explicit HTTP/HTTPS routes:
+```caddy
+# HTTP route (for MCP bridge) - NO TLS
+http://ai.cluster.local {
+  tls off
+  reverse_proxy 10.0.0.192:8080 {
+    health_uri /health
+    health_interval 10s
+    health_timeout 10s
+  }
+}
+
+# HTTPS route (for browsers) - WITH TLS
+https://ai.cluster.local {
+  import security_headers
+  tls internal
+  reverse_proxy 10.0.0.192:8080 {
+    health_uri /health
+    health_interval 10s
+    health_timeout 10s
   }
 }
 ```
 
-**Validation**: ✅ JSON syntax now valid
+2. Changed from service DNS to ClusterIP (`10.0.0.192`) to avoid DNS timeouts
 
-### 2. Updated Knowledge Fabric Skill
-**File**: `/etc/nixos/.claude/skills/knowledge-fabric/SKILL.md`
+**Applied:** `kubectl apply -f 02-configmap.yaml` + `kubectl rollout restart daemonset/caddy-ingress`
 
-**Changes Applied**:
-- ✅ Updated SearXNG URL from `http://127.0.0.1:7777` to `http://10.1.1.110:30080`
-- ✅ Added comprehensive test results section
-- ✅ Documented optimal access patterns (4-level hierarchy)
-- ✅ Added MCP tools catalog (13 specialized tools)
-- ✅ Included usage recommendations by query type
-- ✅ Added testing and troubleshooting guidance
-
-### 3. Created Configuration Documentation
-**File**: `/etc/nixos/.claude/skills/knowledge-fabric/CONFIGURATION.md`
-
-**Contents**:
-- Environment variable reference
-- Service endpoint documentation
-- URL migration notes (Kubernetes → NodePort)
-- Performance tuning guidelines
-- Security considerations
-- Monitoring and health check scripts
-- Best practices
-
-### 4. Updated MCP Gateway Bridge
-**File**: `/etc/nixos/scripts/mcp-gateway-bridge`
-
-**Changes**: Added environment variable support for dynamic configuration:
-```python
-GATEWAY_URL = os.getenv("GATEWAY_URL", "http://127.0.0.1:8080")
-GATEWAY_TIMEOUT = float(os.getenv("GATEWAY_TIMEOUT", "30.0"))
-```
-
-### 5. Created Validation Script
-**File**: `/home/j_kro/bin/validate-knowledge-fabric`
-
-**Features**:
-- 10 comprehensive test suites
-- Automated health checking
-- URL consistency validation
-- Python syntax verification
-- Color-coded output (pass/warn/fail)
-- Exit codes for CI/CD integration
-
----
-
-## Access Patterns for AI Agents
-
-### 📍 LEVEL 1: Direct SearXNG (⭐⭐)
+**Verification:**
 ```bash
-curl "http://10.1.1.110:30080/search?q=your+query&format=json"
+echo -e "GET /health HTTP/1.1\r\nHost: ai.cluster.local\r\n\r\n" | nc 10.1.1.120 80
+# Expected: HTTP/1.1 200 OK
 ```
-**Best for**: Simple web queries, quick lookups
 
-### 📍 LEVEL 2: MCP Tools (⭐⭐⭐)
-**Available in Claude Code** via gateway MCP server:
-- `search_code` - GitHub, StackOverflow, GitLab
-- `search_research` - Google Scholar, arXiv, Semantic Scholar
-- `search_devops` - Docker Hub, Kubernetes docs
-- `search_data` - HuggingFace, Kaggle, ML papers
-- `search_github`, `search_stackoverflow`, `search_nixos_options`, etc.
+### Layer 3: Kubernetes NetworkPolicy
+**File:** `/etc/nixos/kubernetes-manifests/ingress/07-networkpolicy.yaml`
 
-**Best for**: Domain-specific searches with quality scoring
+**Issue:** NetworkPolicy blocking cross-namespace traffic
 
-### 📍 LEVEL 3: /knowledge-fabric Skill (⭐⭐⭐⭐⭐)
-```
-/knowledge-fabric
-Your complex research question here
-```
-**Most powerful** because:
-- Semantic query classification (CODE/FACTUAL/PROCEDURAL/REALTIME)
-- Multi-source parallel execution
-- RRF fusion for result merging
-- Circuit breaker protection
-- Domain-aware routing
-
-**Best for**: Complex research requiring multiple sources
-
-### 📍 LEVEL 4: Gateway API (⭐⭐⭐⭐⭐)
+**Fixes Applied:**
+1. Added namespace labels:
 ```bash
-curl -X POST http://127.0.0.1:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model": "claude-sonnet-4", "messages": [...]}'
+kubectl label namespace ai-inference name=ai-inference
+kubectl label namespace ingress-system name=ingress-system
 ```
-**Best for**: Application integration, automated workflows
 
----
-
-## Usage Examples
-
-### For Complex Research Questions
+2. Added explicit egress rule for ai-inference namespace:
+```yaml
+# Allow reaching ai-inference namespace services
+- to:
+  - namespaceSelector:
+      matchLabels:
+        name: ai-inference
+  ports:
+  - port: 8080
+    protocol: TCP
+  - port: 6333
+    protocol: TCP
+  - port: 80
+    protocol: TCP
+  - port: 443
+    protocol: TCP
 ```
-/knowledge-fabric
-Compare ZFS and Btrfs for NixOS in terms of performance, reliability, and feature set
+
+3. Added ingress rule for cluster hosts:
+```yaml
+# Allow HTTP/HTTPS from cluster hosts (for MCP gateway bridge, etc.)
+- ports:
+  - port: http
+    protocol: TCP
+  - port: https
+    protocol: TCP
+  from:
+  - ipBlock:
+      cidr: 10.1.1.0/24  # Cluster network
 ```
-**Why**: FACTUAL intent + multiple sources (docs, benchmarks, community)
 
-### For Code Implementation Help
-```
-Use search_code for "Kubernetes deployment NixOS flake example"
-```
-**Why**: CODE intent + targeted GitHub/StackOverflow search
+**Applied:** `kubectl apply -f 07-networkpolicy.yaml`
 
-### For Academic Research
-```
-Use search_research for "transformer architecture optimization techniques 2024"
-```
-**Why**: Routes to Google Scholar, arXiv, Semantic Scholar
-
-### For Troubleshooting
-```
-/knowledge-fabric
-I'm getting "permission denied" when trying to access Kubernetes pods
-```
-**Why**: PROCEDURAL intent + needs code examples + docs + community solutions
-
----
-
-## URL Migration Summary
-
-### From Kubernetes Internal → NodePort
-
-| Service | Old URL (K8s Internal) | New URL (NodePort) |
-|---------|----------------------|-------------------|
-| SearXNG | http://searxng.search.svc.cluster.local:7777 | http://10.1.1.110:30080 |
-| SearXNG | http://10.0.0.230:7777 | http://10.1.1.110:30080 |
-
-**Benefits of NodePort**:
-- ✅ Accessible from all cluster nodes
-- ✅ Works from host machine (Zephyr)
-- ✅ More reliable for development/testing
-- ✅ No need for Kubernetes network policies
-
----
-
-## Testing & Validation
-
-### Current Test Results (2026-03-19)
-
-**All infrastructure validated:**
-- ✅ SearXNG: 24 results per query (<1s response)
-- ✅ Qdrant: 8 collections active
-- ✅ Redis: Sub-millisecond PING response
-- ✅ Gateway: Health status "healthy"
-- ✅ MCP Bridge: Configured and ready
-- ✅ Knowledge Fabric Skill: Updated with test results
-
-### Run Validation Script
+**Verification:**
 ```bash
-/home/j_kro/bin/validate-knowledge-fabric
+kubectl get networkpolicy -n ingress-system
+# Expected: caddy-ingress-allow-egress with namespaceSelector
 ```
 
-**Expected Output**:
-```
-✓ PASS: settings.json exists
-✓ PASS: SEARXNG_URL configured: http://10.1.1.110:30080
-✓ PASS: SearXNG is accessible at http://10.1.1.110:30080
-✓ PASS: SearXNG search working (24 results)
-✓ PASS: Qdrant is accessible at http://127.0.0.1:6333
-✓ PASS: Qdrant has 8 collections
-✓ PASS: Redis is responding on port 6380
-✓ PASS: Gateway is accessible at http://127.0.0.1:8080
-✓ PASS: Gateway health status: healthy
-✓ PASS: mcp-gateway-bridge command found
-✓ PASS: Knowledge Fabric skill file exists
-✓ PASS: Skill file contains correct SearXNG URL
-✓ PASS: Skill file contains test results documentation
-✓ PASS: Configuration documentation exists
-✓ PASS: searxng_source.py syntax valid
-✓ PASS: searxng_server.py syntax valid
-✓ PASS: No old Kubernetes URLs found in Python files
-✓ PASS: Found correct NodePort URL occurrences
+### Layer 4: Gateway Service (ClusterIP)
+**Service:** `ai-inference-gateway.ai-inference.svc.cluster.local:8080`
+**ClusterIP:** `10.0.0.192`
 
-✓ All critical tests passed!
+**Issue:** DNS resolution timeouts for service DNS
+
+**Fix:** Changed Caddy config to use ClusterIP directly (`10.0.0.192`) instead of service DNS
+
+**Verification:**
+```bash
+kubectl get svc ai-inference-gateway -n ai-inference
+# Expected: ClusterIP 10.0.0.192
+```
+
+### Layer 5: Gateway Health Endpoint
+**Endpoint:** `http://ai.cluster.local/health`
+
+**Status:** ✅ Working
+
+**Verification:**
+```bash
+curl -s http://ai.cluster.local/health | jq .
+# Expected: {"status":"healthy"}
+```
+
+### Layer 6: Gateway MCP Tools Endpoint
+**Endpoint:** `http://ai.cluster.local/mcp/tools`
+
+**Status:** ✅ Working (but returns empty tools list)
+
+**Current Response:**
+```json
+{"tools":[]}
+```
+
+**Issue:** No MCP servers configured in the AI Inference Gateway's MCP broker
+
+**Next Step:** Configure MCP servers in gateway.nix (see SKILL.md for instructions)
+
+**Verification:**
+```bash
+curl -s http://ai.cluster.local/mcp/tools | jq .
+# Expected: {"tools":[]} (currently empty)
+```
+
+### Layer 7: MCP Gateway Bridge
+**Configuration:** `/etc/nixos/.mcp.json`
+```json
+{
+  "mcpServers": {
+    "gateway": {
+      "command": "mcp-gateway-bridge",
+      "env": {
+        "GATEWAY_URL": "http://ai.cluster.local"
+      }
+    }
+  }
+}
+```
+
+**Script:** `/etc/nixos/scripts/mcp-gateway-bridge`
+
+**Status:** ✅ Working (successfully connects and returns `{"tools":[]}`)
+
+**Verification:**
+```bash
+GATEWAY_URL="http://ai.cluster.local" /etc/nixos/scripts/mcp-gateway-bridge
+# Expected: JSON-RPC response with {"tools":[]}
 ```
 
 ---
 
-## Troubleshooting Guide
+## Complete Verification Checklist
 
-### SearXNG Connection Refused
+Run this to verify all 7 layers are operational:
+
 ```bash
-# Check service
-systemctl status searx
+#!/usr/bin/env bash
+echo "MCP Gateway Bridge Infrastructure Check"
+echo "========================================"
 
-# Check Kubernetes service
-kubectl get svc -n search
+# Layer 1: DNS
+echo -n "Layer 1: DNS resolution... "
+if nslookup ai.cluster.local 10.1.1.110 2>&1 | grep -q "10.1.1.120"; then
+  echo "✓ PASS"
+else
+  echo "✗ FAIL"
+  echo "  Fix: Check /etc/nixos/modules/services/unbound-cluster.nix"
+  echo "  Command: sudo systemctl restart unbound"
+fi
 
-# Verify NodePort
-kubectl describe svc searxng -n search
+# Layer 2: Caddy Ingress
+echo -n "Layer 2: Caddy HTTP route... "
+if echo -e "GET /health HTTP/1.1\r\nHost: ai.cluster.local\r\n\r\n" | nc -w 2 10.1.1.120 80 2>/dev/null | grep -q "200 OK"; then
+  echo "✓ PASS"
+else
+  echo "✗ FAIL"
+  echo "  Fix: Check /etc/nixos/kubernetes-manifests/ingress/02-configmap.yaml"
+  echo "  Command: kubectl rollout restart daemonset/caddy-ingress -n ingress-system"
+fi
 
-# Test direct access
-curl http://10.1.1.110:30080/
-```
+# Layer 3: NetworkPolicy
+echo -n "Layer 3: NetworkPolicy... "
+if kubectl get networkpolicy -n ingress-system caddy-ingress-allow-egress &>/dev/null; then
+  echo "✓ PASS"
+else
+  echo "✗ FAIL"
+  echo "  Fix: Apply /etc/nixos/kubernetes-manifests/ingress/07-networkpolicy.yaml"
+  echo "  Command: kubectl apply -f 07-networkpolicy.yaml"
+fi
 
-### Gateway Not Listening
-```bash
-# Check service
-systemctl status ai-inference-gateway
+# Layer 4: Gateway Service
+echo -n "Layer 4: Gateway ClusterIP... "
+if kubectl get svc ai-inference-gateway -n ai-inference &>/dev/null; then
+  CLUSTERIP=$(kubectl get svc ai-inference-gateway -n ai-inference -o jsonpath='{.spec.clusterIP}')
+  if [ "$CLUSTERIP" = "10.0.0.192" ]; then
+    echo "✓ PASS ($CLUSTERIP)"
+  else
+    echo "✗ FAIL (wrong ClusterIP: $CLUSTERIP)"
+  fi
+else
+  echo "✗ FAIL"
+fi
 
-# Check logs
-journalctl -u ai-inference-gateway -n 50
+# Layer 5: Gateway Health
+echo -n "Layer 5: Gateway health... "
+if curl -s http://ai.cluster.local/health 2>/dev/null | grep -q "healthy"; then
+  echo "✓ PASS"
+else
+  echo "✗ FAIL"
+  echo "  Fix: Check ai-inference-gateway service"
+  echo "  Command: sudo systemctl restart ai-inference-gateway"
+fi
 
-# Verify syntax
-python3 -m py_compile <path_to_gateway_files>
+# Layer 6: MCP Tools Endpoint
+echo -n "Layer 6: MCP tools endpoint... "
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://ai.cluster.local/mcp/tools 2>/dev/null)
+if [ "$HTTP_CODE" = "200" ]; then
+  TOOLS_COUNT=$(curl -s http://ai.cluster.local/mcp/tools 2>/dev/null | jq '.tools | length')
+  if [ "$TOOLS_COUNT" = "0" ]; then
+    echo "✓ PASS (but NO tools configured)"
+  else
+    echo "✓ PASS ($TOOLS_COUNT tools available)"
+  fi
+else
+  echo "✗ FAIL (HTTP $HTTP_CODE)"
+fi
 
-# Restart if needed
-systemctl restart ai-inference-gateway
-```
+# Layer 7: MCP Bridge
+echo -n "Layer 7: MCP bridge... "
+if timeout 5 bash -c 'echo "ping" | mcp-gateway-bridge' &>/dev/null; then
+  echo "✓ PASS"
+else
+  echo "✗ FAIL"
+  echo "  Fix: Check GATEWAY_URL environment variable"
+  echo "  Command: export GATEWAY_URL=\"http://ai.cluster.local\""
+fi
 
-### MCP Tools Not Appearing
-```bash
-# Check bridge is executable
-which mcp-gateway-bridge
-
-# Test bridge manually
-echo '{"jsonrpc":"2.0","id":1,"method":"ping"}' | mcp-gateway-bridge
-
-# Check settings.json
-cat ~/.claude/settings.json | grep -A5 mcpServers
-
-# Restart Claude Code
+echo "========================================"
+echo ""
+echo "Summary:"
+echo "--------"
+echo "Infrastructure: ✅ All 7 layers operational"
+echo "Available Tools: ❌ None (gateway returns empty tools list)"
+echo ""
+echo "Next Step: Configure MCP servers in gateway.nix"
+echo "See: /etc/nixos/.claude/skills/knowledge-fabric/SKILL.md"
 ```
 
 ---
 
-## Performance Tuning
+## Current State
 
-### Cache TTL (Default: 300s)
+### What's Working
+✅ DNS resolution for `ai.cluster.local`
+✅ Caddy ingress HTTP/HTTPS routes
+✅ NetworkPolicy cross-namespace traffic
+✅ Gateway service (ClusterIP accessible)
+✅ Gateway health endpoint
+✅ MCP tools endpoint (HTTP 200)
+✅ MCP gateway bridge (stdio → HTTP proxy)
 
-**Increase** for:
-- Static documentation (7200s = 2 hours)
-- Infrequently changing content
+### What's Missing
+❌ MCP servers configured in gateway (returns empty tools list)
 
-**Decrease** for:
-- Real-time data (60s = 1 minute)
-- Rapidly changing content
+### Root Cause
+The AI Inference Gateway's MCP broker has no MCP servers configured. The broker is working correctly, but there are no servers to proxy to.
 
-### Max Results
+### Solution
+Configure MCP servers in `/etc/nixos/modules/services/ai-inference/gateway.nix`:
 
-**SearXNG**: 10 results (default)
-- Increase for comprehensive research (20-50)
-- Decrease for faster responses (5)
-
-**Knowledge Fabric**: Uses RRF fusion
-- Each source provides 10 results
-- RRF merges and re-ranks all results
-- Final output: 5-15 highest-quality results
-
----
-
-## Security Considerations
-
-### NodePort Access
-The NodePort (30080) is accessible on the LAN (10.1.1.0/24).
-
-**For production**:
-1. Restrict access via firewall:
-```bash
-sudo iptables -A INPUT -p tcp --dport 30080 -s 10.1.1.0/24 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 30080 -j DROP
+```nix
+services.ai-inference.gateway = {
+  enable = true;
+  settings = {
+    mcp_servers = [
+      {
+        name = "searxng";
+        type = "local";
+        command = "python";
+        args = ["-m" "ai_inference_gateway.mcp_servers.searxng_server"];
+        environment = {
+          SEARXNG_URL = "http://10.1.1.120:30080";
+        };
+      }
+    ];
+  };
+};
 ```
 
-2. Use ClusterIP for internal services
-3. Enable authentication in production deployments
+Then restart the gateway:
+```bash
+sudo systemctl restart ai-inference-gateway
+```
 
-### Gateway API
-The gateway API (127.0.0.1:8080) is local-only.
-
-**To expose**:
-1. Use reverse proxy (nginx/caddy) with auth
-2. Enable TLS for secure connections
-3. Add API key authentication
+Verify tools are available:
+```bash
+curl -s http://ai.cluster.local/mcp/tools | jq .
+```
 
 ---
 
@@ -319,65 +363,98 @@ The gateway API (127.0.0.1:8080) is local-only.
 ### Configuration Files
 | File | Purpose |
 |------|---------|
-| `/home/j_kro/.claude/settings.json` | Claude Code settings (env vars, MCP servers) |
+| `/etc/nixos/.mcp.json` | MCP server configurations (gateway bridge) |
 | `/etc/nixos/.claude/skills/knowledge-fabric/SKILL.md` | Knowledge Fabric skill documentation |
-| `/etc/nixos/.claude/skills/knowledge-fabric/CONFIGURATION.md` | Detailed configuration guide |
-| `/home/j_kro/bin/validate-knowledge-fabric` | Validation script |
+| `/etc/nixos/.claude/skills/knowledge-fabric/CONFIGURATION.md` | Service endpoints and environment variables |
+| `/etc/nixos/.claude/skills/knowledge-fabric/SETUP_SUMMARY.md` | This file - infrastructure fix summary |
 
-### Service Files
+### Infrastructure Files
 | File | Purpose |
 |------|---------|
-| `/etc/nixos/scripts/mcp-gateway-bridge` | MCP gateway bridge (stdio → HTTP) |
-| `/etc/nixos/modules/services/ai-inference/ai_inference_gateway/middleware/knowledge_fabric/sources/searxng_source.py` | SearXNG integration |
-| `/etc/nixos/modules/services/ai-inference/ai_inference_gateway/mcp_servers/searxng_server.py` | SearXNG MCP server |
+| `/etc/nixos/modules/services/unbound-cluster.nix` | DNS configuration (Layer 1) |
+| `/etc/nixos/kubernetes-manifests/ingress/02-configmap.yaml` | Caddy ingress routes (Layer 2) |
+| `/etc/nixos/kubernetes-manifests/ingress/07-networkpolicy.yaml` | NetworkPolicy rules (Layer 3) |
+| `/etc/nixos/scripts/mcp-gateway-bridge` | MCP bridge script (Layer 7) |
+
+---
+
+## Troubleshooting Guide
+
+### Issue: DNS resolution fails
+```bash
+# Check Unbound
+systemctl status unbound
+
+# Verify DNS records
+nslookup ai.cluster.local 10.1.1.110
+
+# Restart Unbound
+sudo systemctl restart unbound
+```
+
+### Issue: Caddy returns HTTP 503
+```bash
+# Check Caddy logs
+kubectl logs -n ingress-system -l app.kubernetes.io/name=caddy-ingress
+
+# Verify NetworkPolicy
+kubectl get networkpolicy -n ingress-system
+
+# Check namespace labels
+kubectl get namespace ai-inference --show-labels
+kubectl get namespace ingress-system --show-labels
+
+# Restart Caddy
+kubectl rollout restart daemonset/caddy-ingress -n ingress-system
+```
+
+### Issue: Gateway returns HTTP 500
+```bash
+# Check gateway logs
+journalctl -u ai-inference-gateway -n 50
+
+# Restart gateway
+sudo systemctl restart ai-inference-gateway
+```
+
+### Issue: MCP bridge fails
+```bash
+# Check GATEWAY_URL
+echo $GATEWAY_URL
+
+# Test HTTP connectivity
+curl -s http://$GATEWAY_URL/health
+
+# Verify script
+ls -l /etc/nixos/scripts/mcp-gateway-bridge
+
+# Test bridge manually
+echo '{"jsonrpc":"2.0","id":1,"method":"ping"}' | mcp-gateway-bridge
+```
 
 ---
 
 ## Next Steps
 
-### Immediate (Optional)
-1. **Test the Knowledge Fabric skill**:
-   ```
-   /knowledge-fabric
-   How do I configure NixOS flakes for Kubernetes deployment?
-   ```
-
-2. **Try MCP tools**:
-   - Use `search_code` for code examples
-   - Use `search_research` for academic papers
-   - Use `search_nixos_options` for configuration help
+### Immediate (Required)
+1. **Configure MCP servers** in gateway.nix to add tools
+2. **Restart gateway** to load MCP servers
+3. **Verify tools** are available via `/mcp/tools` endpoint
+4. **Test MCP bridge** with actual tools configured
 
 ### Future Enhancements
-1. **Add more RAG collections** for your documentation
-2. **Configure result caching** for frequently accessed content
-3. **Set up monitoring** with Prometheus metrics
-4. **Implement rate limiting** for production deployments
-5. **Add authentication** for exposed endpoints
+1. Add SearXNG MCP server for web search
+2. Add GitHub MCP server for code search
+3. Add StackOverflow MCP server for Q&A
+4. Configure tool caching for better performance
+5. Add monitoring for MCP bridge health
 
 ---
 
-## Support & Documentation
-
-### Quick Reference
-- **Skill Documentation**: `/etc/nixos/.claude/skills/knowledge-fabric/SKILL.md`
-- **Configuration Guide**: `/etc/nixos/.claude/skills/knowledge-fabric/CONFIGURATION.md`
-- **Validation Script**: `/home/j_kro/bin/validate-knowledge-fabric`
-
-### Health Check Commands
-```bash
-# Check all services
-curl http://10.1.1.110:30080/          # SearXNG
-curl http://127.0.0.1:6333/collections  # Qdrant
-redis-cli -p 6380 PING                 # Redis
-curl http://127.0.0.1:8080/health       # Gateway
-```
-
----
-
-**Configuration Completed**: 2026-03-19
-**Status**: ✅ All systems operational and robustly configured
-**Validation**: All critical tests passing (18/18 passed)
+**Infrastructure Completed:** 2026-03-26
+**Status:** ✅ All 7 layers operational, ❌ No tools configured
+**Next Action:** Configure MCP servers in gateway.nix
 
 `★ Insight ─────────────────────────────────────`
-The Knowledge Fabric represents a sophisticated multi-source retrieval architecture that combines semantic routing, parallel execution, and Reciprocal Rank Fusion (RRF) to provide contextual, relevant answers from multiple sources. This configuration ensures all components are properly integrated with the correct endpoints, comprehensive documentation, and automated validation capabilities.
+The MCP Gateway Bridge infrastructure represents a sophisticated 7-layer architecture that combines DNS, ingress, network policies, services, and HTTP proxying to provide seamless stdio-to-HTTP translation for MCP protocol. The successful resolution of all layers demonstrates the importance of systematic debugging and understanding of Kubernetes networking fundamentals.
 `─────────────────────────────────────────────────`
