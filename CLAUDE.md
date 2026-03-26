@@ -480,6 +480,55 @@ useradd myuser
 - kebab-case for files and modules
 - Line length 80-100 chars (soft limit 120)
 
+### Kubernetes Naming Conventions (MANDATORY)
+
+**✅ CORRECT: Use DNS names for service discovery**
+```yaml
+# Kubernetes internal services
+service-name.namespace.svc.cluster.local  # Full FQDN
+service-name.namespace.svc.cluster        # Short form
+service-name                               # Same namespace only
+
+# External services (via Ingress or ExternalName)
+search.reverb256.ca                        # Caddy Ingress
+ai-inference-gateway.ai-inference.svc.cluster.local
+```
+
+**❌ WRONG: Hardcoded IP addresses**
+```yaml
+# DO NOT DO THIS - Breaks when IPs change
+http://10.0.0.192:8080                      # ClusterIP (not accessible from host)
+http://10.1.1.100:30880                      # VIP (should use DNS instead)
+```
+
+**Why This Matters:**
+- **Maintainability:** IPs change on redeployment, DNS names are stable
+- **Portability:** Configs work across environments (dev/staging/prod)
+- **Self-Documenting:** DNS names describe the service (e.g., `ai-inference-gateway`)
+- **Service Discovery:** Kubernetes DNS automatically tracks service endpoints
+- **HA Support:** DNS can resolve to multiple endpoints (VIP, round-robin)
+
+**Examples:**
+```nix
+# ✅ CORRECT: Use service DNS in NixOS configs
+services.my-service = {
+  settings.apiUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
+};
+
+# ❌ WRONG: Hardcoded ClusterIP
+services.my-service = {
+  settings.apiUrl = "http://10.0.0.192:8080";  # Breaks on service restart
+};
+```
+
+**Kubernetes DNS Patterns:**
+| Pattern | Resolves To | Example |
+|---------|-------------|---------|
+| `<service>` | Same namespace | `ai-inference-gateway` |
+| `<service>.<namespace>` | Cross-namespace | `ai-inference-gateway.ai-inference` |
+| `<service>.<namespace>.svc.cluster.local` | Fully qualified | `ai-inference-gateway.ai-inference.svc.cluster.local` |
+| `<pod-ip>.<namespace>.pod.cluster.local` | Direct pod access | `10-244-98-6.ai-inference.pod.cluster.local` |
+
 ---
 
 ## WORKFLOW
