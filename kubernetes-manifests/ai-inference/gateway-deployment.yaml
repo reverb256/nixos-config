@@ -14,10 +14,10 @@ metadata:
   name: ai-inference-gateway-config
   namespace: ai-inference
 data:
-  # Backend configuration
-  BACKEND_URL: "http://127.0.0.1:8083"
-  BACKEND_TYPE: "llama-cpp"
-  BACKEND_FALLBACK_URLS: "https://api.z.ai/api/coding/paas/v4"
+  # Backend configuration (using ZAI for testing without local llama.cpp)
+  BACKEND_URL: "https://api.z.ai/api/coding/paas/v4"
+  BACKEND_TYPE: "zai"
+  BACKEND_FALLBACK_URLS: ""
 
   # Gateway configuration
   GATEWAY_HOST: "0.0.0.0"
@@ -38,9 +38,20 @@ data:
 
   # MCP configuration
   MCP_ENABLED: "true"
+  MCP_SERVERS: '{
+    "searxng": {
+      "command": ["python", "-m", "ai_inference_gateway.mcp_servers.searxng_server"],
+      "environment": {
+        "SEARXNG_URL": "http://searxng.search.svc.cluster.local:8080",
+        "SEARXNG_CACHE_TTL": "300"
+      },
+      "enabled": true,
+      "type": "local"
+    }
+  }'
 
   # RAG configuration
-  RAG_ENABLED: "true"
+  RAG_ENABLED: "false"
   QDRANT_URL: "http://qdrant.ai-inference.svc.cluster.local:6333"
   EMBEDDING_MODEL: "sentence-transformers/all-MiniLM-L6-v2"
   CHUNK_SIZE: "512"
@@ -112,8 +123,8 @@ spec:
           type: RuntimeDefault
       containers:
       - name: gateway
-        image: ghcr.io/reverb256/ai-inference-gateway:latest
-        imagePullPolicy: Always
+        image: ai-inference-gateway:local
+        imagePullPolicy: Never  # Use local Nix-built image
         command:
           - "uvicorn"
           - "ai_inference_gateway.main:app"
@@ -151,6 +162,12 @@ spec:
               configMapKeyRef:
                 name: ai-inference-gateway-config
                 key: BACKEND_TYPE
+          - name: ZAI_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: ai-inference-gateway-secrets
+                key: zai-api-key
+                optional: true
           - name: BACKEND_FALLBACK_URLS
             valueFrom:
               configMapKeyRef:
@@ -191,6 +208,11 @@ spec:
               configMapKeyRef:
                 name: ai-inference-gateway-config
                 key: MCP_ENABLED
+          - name: MCP_SERVERS
+            valueFrom:
+              configMapKeyRef:
+                name: ai-inference-gateway-config
+                key: MCP_SERVERS
           - name: RAG_ENABLED
             valueFrom:
               configMapKeyRef:
@@ -296,6 +318,13 @@ spec:
               configMapKeyRef:
                 name: ai-inference-gateway-config
                 key: PYTHONUNBUFFERED
+          # Required for PyTorch cache directory
+          - name: HOME
+            value: /tmp
+          - name: USER
+            value: ai-gateway
+          - name: TORCHINDUCTOR_CACHE_DIR
+            value: /tmp/torch-cache
           # Knowledge Fabric environment variables
           - name: MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED
             valueFrom:
@@ -372,18 +401,18 @@ spec:
           httpGet:
             path: /health
             port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 10
         readinessProbe:
           httpGet:
             path: /health
             port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 10
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -395,11 +424,15 @@ spec:
           mountPath: /var/cache/ai-inference
         - name: tmp
           mountPath: /tmp
+        - name: run-ai-inference
+          mountPath: /run/ai-inference
       volumes:
       - name: cache
         emptyDir:
           sizeLimit: "2Gi"
       - name: tmp
+        emptyDir: {}
+      - name: run-ai-inference
         emptyDir: {}
 ---
 apiVersion: v1
