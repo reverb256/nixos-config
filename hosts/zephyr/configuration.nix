@@ -22,6 +22,9 @@
     # Akash Provider - Earn AKT/USDC from GPU compute
     ../../modules/services/akash-provider.nix
 
+    # FIX: Systemd user unit reload timeout (nixos-rebuild switch hang)
+    ../../modules/system/systemd-user-timeout.nix
+
     # All other modules auto-imported via ../../modules/default.nix
     # This includes: system, desktop, shell, gaming, development, services,
     # plus zephyr-specific modules (nvidia-common, gstreamer, spotify, cluster networking)
@@ -160,8 +163,13 @@
   };
 
   # DDC/CI support for external monitor brightness control
-  # Note: ddcutil module not available, commented out
-  # hardware.video.ddcutil.enable = true;
+  # Note: hardware.video.ddcutil module doesn't exist in NixOS
+  # Using ddcutil package + udev rules instead (added to systemPackages)
+  services.udev.extraRules = ''
+    # Give i2c group access to DDC/CI monitors
+    # Allows non-root users to control monitor brightness via ddcutil
+    KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"
+  '';
 
   # ============================================================================
   # SYSTEMD - Service overrides
@@ -377,6 +385,9 @@
   # STATUS.md auto-update (hourly from kubectl)
   services.status-auto-update.enable = true;
 
+  # FIX: Systemd user unit reload timeout (prevents nixos-rebuild switch hang)
+  services.systemd-user-timeout.enable = true;
+
   # Internal CA for cluster services (trusted certificates)
   services.cluster-ca.enable = true;
 
@@ -553,6 +564,9 @@
       psiCpuBuildThreshold = "5.0";
       psiCpuIdleThreshold = "2.0";
     };
+
+    # AI CODING AGENT - OpenCode with Kubernetes gateway
+    opencode.enable = true;
 
     # NIX BINARY CACHE - Serve pre-built packages to cluster
     # Eliminates redundant builds across nodes, speeds up deployments
@@ -1335,6 +1349,7 @@
     '')
 
     # Hardware monitoring & fan control helpers
+    ddcutil # DDC/CI monitor brightness control
     (pkgs.writeShellScriptBin "fan-set" ''
       #!${pkgs.bash}/bin/bash
       # Set fan speed (0-255) for a specific fan
@@ -1567,7 +1582,7 @@
   systemd.services.nvidia-container-toolkit-cdi-generator = {
     serviceConfig.ExecStart = [
       ""
-      "/nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
+      "/nix/store/d1i12f1i7ycj8zj9pq3nxw2skyms5dl7-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
     ];
   };
 }
