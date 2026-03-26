@@ -35,12 +35,15 @@
       ]
     },
     "gateway": {
-      "command": "mcp-gateway-bridge"
+      "command": "mcp-gateway-bridge",
+      "env": {
+        "GATEWAY_URL": "http://ai.cluster.local"
+      }
     },
     "searxng": {
-      "command": "/etc/nixos/modules/services/ai-inference/bin/opencode-searxng-mcp",
+      "command": "/etc/nixos/modules/services/ai-inference/bin/searxng-mcp-wrapper",
       "env": {
-        "SEARXNG_URL": "http://10.1.1.120:30808"
+        "SEARXNG_URL": "https://search.reverb256.ca"
       }
     }
   }
