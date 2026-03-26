@@ -130,15 +130,15 @@
   gatewayContainerImage = pkgs.dockerTools.buildLayeredImage {
     name = "ai-inference-gateway";
     tag = "latest";
-    contents = [gatewayPython modularGatewayPkgBase];
+    contents = [gatewayPython modularGatewayPkgBase pkgs.bash pkgs.coreutils];
     config = {
-      Cmd = ["uvicorn" "ai_inference_gateway.main:app" "--host" "0.0.0.0" "--port" "8080" "--workers" "4"];
+      Cmd = ["${gatewayPython}/bin/python" "-m" "uvicorn" "ai_inference_gateway.main:app" "--host" "0.0.0.0" "--port" "8080" "--workers" "4"];
       ExposedPorts = {
         "8080/tcp" = {};
       };
       Env = [
-        "PYTHONPATH=/app"
-        "PATH=/usr/bin:/bin"
+        "PYTHONPATH=/app:${gatewayPython}/lib/python3.13/site-packages"
+        "PATH=${gatewayPython}/bin:/usr/bin:/bin"
       ];
       WorkingDir = "/app";
     };
@@ -159,179 +159,9 @@ in {
     # Install the OpenCode MCP wrapper script to system path
     environment.systemPackages = [opencodeSearxngMcpWrapper];
 
-    systemd.services.ai-inference-gateway = {
-      description = "AI Inference API Gateway v2";
-      after = lib.mkOptionDefault [
-        "network.target"
-        "network-online.target"
-        "searx.service"
-        "redis.service" # Wait for Redis to start
-        "nvidia-disable-autoboost.service"
-        "nvidia-persistence-mode.service"
-      ];
-      wants = lib.mkOptionDefault ["network-online.target"];
-      requires = lib.mkOptionDefault ["redis.service"]; # Depend on Redis
-      wantedBy = ["multi-user.target"];
-
-      environment = {
-        PATH = lib.mkForce "/run/current-system/sw/bin:/run/current-system/sw/sbin:${config.system.path}";
-        npm_config_cache = "/var/cache/ai-inference/npm";
-        BACKEND_URL = cfg.backend.url;
-        BACKEND_TYPE = cfg.backend.type;
-        BACKEND_FALLBACK_URLS = lib.strings.concatMapStringsSep "," (url: url) (
-          lib.optional cfg.backend.zai.enable cfg.backend.zai.baseUrl
-        );
-        GATEWAY_HOST = cfg.gateway.host;
-        PORT = toString cfg.gateway.port;
-        AUTH_MODE = cfg.auth.mode;
-        # ZAI backend configuration
-        ZAI_API_KEY =
-          if cfg.backend.zai.apiKeyFile != null
-          then "" # Will be loaded from file by gateway
-          else cfg.backend.zai.apiKey;
-        ZAI_API_KEY_FILE =
-          lib.optionalString (
-            cfg.backend.zai.apiKeyFile != null
-          )
-          cfg.backend.zai.apiKeyFile;
-        ZAI_BASE_URL = cfg.backend.zai.baseUrl;
-        ZAI_MODELS = lib.generators.toJSON {} cfg.backend.zai.models;
-        # Pollinations backend configuration
-        POLLINATIONS_API_KEY =
-          if cfg.backend.pollinations.apiKeyFile != null
-          then "" # Will be loaded from file by gateway
-          else cfg.backend.pollinations.apiKey;
-        POLLINATIONS_API_KEY_FILE =
-          lib.optionalString (
-            cfg.backend.pollinations.apiKeyFile != null
-          )
-          cfg.backend.pollinations.apiKeyFile;
-        POLLINATIONS_BASE_URL = cfg.backend.pollinations.baseUrl;
-        POLLINATIONS_MODELS = lib.generators.toJSON {} cfg.backend.pollinations.models;
-        # Redis configuration - using port 6380 to avoid conflict with fwupd-redis on 6379
-        REDIS_URL = "redis://localhost:6380";
-        PYTHONUNBUFFERED = "1";
-        ROUTING_ENABLED = lib.boolToString cfg.routing.enable;
-        DEFAULT_MODEL = cfg.routing.defaultModel;
-        RATE_LIMIT_ENABLED = lib.boolToString cfg.rateLimit.enable;
-        RATE_LIMIT_RPM = toString cfg.rateLimit.requestsPerMinute;
-        MAX_REQUEST_SIZE = toString cfg.security.maxRequestSize;
-        SECURITY_PROXY_ENABLED = lib.boolToString cfg.security.enableProxy;
-        MCP_ENABLED = lib.boolToString cfg.mcp.enable;
-        MCP_SERVERS = builtins.toJSON cfg.mcp.servers;
-        # RAG configuration
-        RAG_ENABLED = lib.boolToString cfg.rag.enable;
-        QDRANT_URL = cfg.rag.qdrantUrl;
-        EMBEDDING_MODEL = cfg.rag.embeddingModel;
-        CHUNK_SIZE = toString cfg.rag.chunkSize;
-        CHUNK_OVERLAP = toString cfg.rag.chunkOverlap;
-        RAG_TOP_K = toString cfg.rag.topK;
-        HYBRID_SEARCH_ENABLED = lib.boolToString cfg.rag.hybridSearch.enable;
-        VECTOR_WEIGHT = builtins.toString cfg.rag.hybridSearch.vectorWeight;
-        BM25_WEIGHT = builtins.toString cfg.rag.hybridSearch.bm25Weight;
-        AUTO_RAG_ENABLED = lib.boolToString cfg.rag.autoRag.enable;
-        TOKEN_SCOPED_COLLECTIONS = lib.boolToString cfg.rag.tokenScopedCollections;
-        # Reranker configuration
-        RERANKER_ENABLED = lib.boolToString cfg.rag.reranker.enable;
-        RERANKER_MODEL = cfg.rag.reranker.model;
-        # Cache directories for sentence-transformers
-        TRANSFORMERS_CACHE = "/var/cache/ai-inference";
-        HF_HOME = "/var/cache/ai-inference";
-        # Sentry error tracking
-        SENTRY_ENABLED = lib.boolToString cfg.sentry.enable;
-        SENTRY_DSN =
-          if cfg.sentry.dsnFile != null
-          then "" # Will be loaded from file by gateway
-          else cfg.sentry.dsn or "";
-        SENTRY_DSN_FILE = lib.optionalString (cfg.sentry.dsnFile != null) cfg.sentry.dsnFile;
-        SENTRY_ENVIRONMENT = cfg.sentry.environment;
-        SENTRY_TRACES_SAMPLE_RATE = builtins.toString cfg.sentry.tracesSampleRate;
-        # SearXNG search integration
-        SEARXNG_ENABLED = "true";
-        SEARXNG_CACHE_TTL = "300"; # 5 minutes
-        # Context7 API key for documentation search
-        CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
-        # Semantic cache configuration (Redis + Qdrant)
-        SEMANTIC_CACHE_ENABLED = lib.boolToString cfg.gateway.middleware.redis.enable;
-        # System Prompts configuration
-        SYSTEM_PROMPTS_ENABLED = lib.boolToString cfg.systemPrompts.enable;
-        SYSTEM_PROMPTS_DEFAULT = cfg.systemPrompts.default;
-        SYSTEM_PROMPTS_CODING = cfg.systemPrompts.coding;
-        SYSTEM_PROMPTS_REASONING = cfg.systemPrompts.reasoning;
-        SYSTEM_PROMPTS_ANALYSIS = cfg.systemPrompts.analysis;
-        SYSTEM_PROMPTS_AGENTIC = cfg.systemPrompts.agentic;
-        SYSTEM_PROMPTS_FAST = cfg.systemPrompts.fast;
-        SYSTEM_PROMPTS_CUSTOM = builtins.toJSON cfg.systemPrompts.custom;
-        # Knowledge Fabric middleware configuration (Pydantic nested: middleware.knowledge_fabric.*)
-        MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED = lib.boolToString cfg.gateway.middleware.knowledgeFabric.enable;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K = toString cfg.gateway.middleware.knowledgeFabric.rrf_k;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED = lib.boolToString cfg.gateway.middleware.knowledgeFabric.rag_enabled;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED = lib.boolToString cfg.gateway.middleware.knowledgeFabric.code_search_enabled;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED = lib.boolToString cfg.gateway.middleware.knowledgeFabric.searxng_enabled;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED = lib.boolToString cfg.gateway.middleware.knowledgeFabric.web_search_enabled;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS = builtins.toJSON cfg.gateway.middleware.knowledgeFabric.code_search_paths;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K = toString cfg.gateway.middleware.knowledgeFabric.rag_top_k;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL = cfg.gateway.middleware.knowledgeFabric.searxng_url;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS = toString cfg.gateway.middleware.knowledgeFabric.searxng_max_results;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS = toString cfg.gateway.middleware.knowledgeFabric.code_max_results;
-        MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS = toString cfg.gateway.middleware.knowledgeFabric.web_max_results;
-      };
-
-      serviceConfig = {
-        RuntimeDirectory = "ai-inference"; # Creates /run/ai-inference
-        ExecStart = "${gatewayPython}/bin/uvicorn ai_inference_gateway.main:app --host ${cfg.gateway.host} --port ${toString cfg.gateway.port} --workers ${toString cfg.gateway.workers} --log-level debug --app-dir ${gatewayPkg}";
-        ExecReload = "/bin/kill -HUP $MAINPID";
-        Restart = "on-failure";
-        RestartSec = "10s";
-        User = "ai-inference";
-        Group = "ai-inference";
-        # NoNewPrivileges removed to allow nix-rebuild MCP tools to use sudo
-        # NoNewPrivileges = true;
-        PrivateTmp = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadWritePaths =
-          [
-            "/tmp"
-            "/var/cache/ai-inference"
-            "/run/gpu-scheduler"
-            "/run/ai-inference" # Self-improvement memory
-          ]
-          ++ lib.optional (cfg.backend.zai.apiKeyFile != null) (dirOf cfg.backend.zai.apiKeyFile)
-          ++ lib.optional (cfg.backend.pollinations.apiKeyFile != null) (
-            dirOf cfg.backend.pollinations.apiKeyFile
-          )
-          ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/zai-api-key")
-          ++ lib.optional cfg.mcp.enable (dirOf "/run/agenix/context7-api-key")
-          ++ lib.optional (
-            lib.hasAttr "sentry" cfg && lib.hasAttr "dsnFile" cfg.sentry && cfg.sentry.dsnFile != null
-          ) (dirOf cfg.sentry.dsnFile);
-        # Memory limits with OOM protection
-        MemoryMax = "2G";
-        MemoryHigh = "1.5G"; # Start soft limiting at 1.5GB
-        OOMScoreAdjust = -400; # Protect from OOM killer (negative = protected)
-        CPUWeight = 100;
-        IOWeight = 100;
-        StandardOutput = "journal";
-        StandardError = "journal";
-        SyslogIdentifier = "ai-gateway";
-      };
-    };
-
-    users.users.ai-inference = {
-      isSystemUser = true;
-      group = "ai-inference";
-      description = "AI Inference Gateway";
-      extraGroups = ["users"]; # Allow access to /etc/nixos git repo for nix-rebuild MCP tools
-    };
-    users.groups.ai-inference = {};
-
-    # Create cache directory and GPU scheduler communication directory
-    systemd.tmpfiles.rules = [
-      "d /var/cache/ai-inference 0755 ai-inference ai-inference - -"
-      "d /run/gpu-scheduler 0755 ai-inference ai-inference - -"
-    ];
+    # Gateway runs in Kubernetes, not as systemd service
+    # See: kubernetes-manifests/ai-inference/gateway-deployment.yaml
   };
 }
-# force rebuild 3 1773547684
+# force rebuild 4 1773547685
 
