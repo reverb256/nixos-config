@@ -343,9 +343,9 @@
         metricsDir = "/var/lib/prometheus/node-exporter/textfile-collector";
       };
 
-      # Feature 4: Health Monitoring Dashboard (⭐⭐ NICE TO HAVE)
+      # Feature 4: Health Monitoring Dashboard (DISABLED - Akash runs in K8s)
       healthDashboard = {
-        enable = true;
+        enable = false;
         updateInterval = 30; # 30 seconds
         outputDir = "/var/www/akash-health";
       };
@@ -357,9 +357,9 @@
         cleanupTime = "03:00:00"; # 3 AM daily
       };
 
-      # Feature 6: Status Page (⭐ OPTIONAL)
+      # Feature 6: Status Page (DISABLED - Akash runs in K8s)
       statusPage = {
-        enable = true;
+        enable = false;
         updateInterval = 300; # 5 minutes
         outputDir = "/var/www/akash-status";
       };
