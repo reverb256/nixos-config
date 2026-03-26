@@ -618,7 +618,7 @@
         };
         "SearXNG" = {
           id = "pin-sys-015";
-          url = "https://search.reverb256.ca/search";
+          url = "http://search.cluster.local/search";
           workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
           container = 2;
           position = 675;
@@ -838,7 +838,7 @@
             definedAliases = ["@mdn"];
           };
           searxng = {
-            urls = [{template = "https://search.reverb256.ca/search?q={searchTerms}";}];
+            urls = [{template = "http://search.cluster.local/search?q={searchTerms}";}];
             icon = "https://searxng.org/static/img/logo_small.svg";
             definedAliases = [
               "@sx"
