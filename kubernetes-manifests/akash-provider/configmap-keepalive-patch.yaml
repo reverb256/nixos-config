@@ -1,0 +1,47 @@
+# Strategic merge patch to add keepalive deployment to ConfigMap
+# Usage: kubectl patch configmap akash-provider-script -n akash-services --type=strategic --patch-file=configmap-keepalive-patch.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: akash-provider-script
+  namespace: akash-services
+data:
+  # Add keepalive deployment SDL
+  keepalive-deployment.yaml: |
+    version: "2.0"
+
+    services:
+      keepalive:
+        image: nginx:1.25.3
+        expose:
+          - port: 80
+            as: 80
+            to:
+              - global: true
+
+    profiles:
+      compute:
+        keepalive:
+          resources:
+            cpu:
+              units: 0.1
+            memory:
+              size: 128Mi
+            storage:
+              size: 128Mi
+              attributes:
+                persistent: false
+
+      placement:
+        provider:
+          pricing:
+            keepalive:
+              denom: uakt
+              amount: 1000
+
+    deployment:
+      keepalive:
+        provider:
+          profile: keepalive
+          count: 1
