@@ -7,7 +7,7 @@
 set -euo pipefail
 
 GATEWAY_URL="http://127.0.0.1:8080"
-SEARXNG_URL="http://127.0.0.1:7777"
+SEARXNG_URL="https://search.reverb256.ca"
 
 echo "=== SearXNG Default Search Setup ==="
 echo ""
