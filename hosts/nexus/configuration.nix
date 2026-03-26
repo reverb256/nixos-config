@@ -213,7 +213,7 @@
 
     # Hardware monitoring extras (not covered by profile)
     monitoring = {
-      autoDetect = true; # Auto-detect sensor chips
+      autoDetect = false; # Disabled: sensors-detect has bug with --auto flag
       fanControl = false; # BIOS fan control for now
     };
 
@@ -600,5 +600,18 @@
     mode = "440";
     owner = "mining";
     group = "mining";
+  };
+
+  # ============================================================================
+  # NVIDIA CDI GENERATOR FIX
+  # ============================================================================
+  # Fix for nvidia-container-toolkit-cdi-generator service failure
+  # The generator outputs JSON to stdout but needs to be captured to file
+  # This override redirects stdout to /var/run/cdi/nvidia-container-toolkit.json
+  systemd.services.nvidia-container-toolkit-cdi-generator = {
+    serviceConfig.ExecStart = [
+      ""
+      "/nix/store/d1i12f1i7ycj8zj9pq3nxw2skyms5dl7-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
+    ];
   };
 }
