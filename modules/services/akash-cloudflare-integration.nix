@@ -5,10 +5,17 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.akash-cloudflare-integration;
-  inherit (lib) mkEnableOption mkOption types mkIf;
-in {
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    types
+    mkIf
+    ;
+in
+{
   options.services.akash-cloudflare-integration = {
     enable = mkEnableOption "Cloudflare integration for Akash Provider (all features)";
 
@@ -165,10 +172,20 @@ in {
     # ============================================================================
     systemd.services.akash-cloudflare-dns-watcher = mkIf cfg.dnsWatcher.enable {
       description = "Watch Akash deployments for automated DNS setup";
-      wantedBy = ["multi-user.target"];
-      after = ["kubernetes.target" "agenix-rekey.service"];
-      wants = ["network-online.target"];
-      path = with pkgs; [curl jq kubectl coreutils gnugrep gnused];
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "kubernetes.target"
+        "agenix-rekey.service"
+      ];
+      wants = [ "network-online.target" ];
+      path = with pkgs; [
+        curl
+        jq
+        kubectl
+        coreutils
+        gnugrep
+        gnused
+      ];
 
       serviceConfig = {
         Type = "simple";
@@ -183,7 +200,11 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = ["/var/lib/akash-cloudflare" "/var/log" "/etc/kubernetes"];
+        ReadWritePaths = [
+          "/var/lib/akash-cloudflare"
+          "/var/log"
+          "/etc/kubernetes"
+        ];
 
         Environment = "KUBECONFIG=/etc/kubernetes/cluster-admin.kubeconfig";
 
@@ -245,7 +266,7 @@ in {
             fi
 
             # Fallback: Get first worker node IP
-            kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null || echo "10.1.1.120"
+            kubectl get nodes --request-timeout=10 -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null || echo "10.1.1.120"
           }
 
           # Helper: Create DNS record
@@ -316,7 +337,7 @@ in {
 
           while true; do
             # Get all Akash deployments
-            deployments=$(kubectl get deployments -n akash-services -l "akash.network=true" -o json 2>/dev/null || echo "null")
+            deployments=$(kubectl get deployments --request-timeout=10 -n akash-services -l "akash.network=true" -o json 2>/dev/null || echo "null")
 
             if [ "$deployments" != "null" ]; then
               deployment_count=$(echo "$deployments" | jq '.items | length')
@@ -351,10 +372,10 @@ in {
                   echo "$deployment_uid" >> "$PROCESSED_FILE"
 
                   ${lib.optionalString cfg.cachePurge.enable ''
-            # Trigger cache purge
-            log "Triggering cache purge for $tenant_name"
-            systemctl start akash-cloudflare-cache-purge@"$tenant_name"
-          ''}
+                    # Trigger cache purge
+                    log "Triggering cache purge for $tenant_name"
+                    systemctl start akash-cloudflare-cache-purge@"$tenant_name"
+                  ''}
                 fi
               done
             fi
@@ -373,7 +394,11 @@ in {
       serviceConfig = {
         Type = "oneshot";
         User = "root";
-        path = with pkgs; [curl jq coreutils];
+        path = with pkgs; [
+          curl
+          jq
+          coreutils
+        ];
 
         # Security hardening
         NoNewPrivileges = true;
@@ -449,9 +474,17 @@ in {
     # ============================================================================
     systemd.services.akash-cloudflare-metrics = mkIf cfg.metricsExporter.enable {
       description = "Export Cloudflare metrics to Prometheus";
-      wantedBy = ["multi-user.target"];
-      after = ["network.target" "agenix-rekey.service"];
-      path = with pkgs; [curl jq coreutils gnused];
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "network.target"
+        "agenix-rekey.service"
+      ];
+      path = with pkgs; [
+        curl
+        jq
+        coreutils
+        gnused
+      ];
 
       serviceConfig = {
         Type = "oneshot";
@@ -462,7 +495,7 @@ in {
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
-        ReadWritePaths = [cfg.metricsExporter.metricsDir];
+        ReadWritePaths = [ cfg.metricsExporter.metricsDir ];
 
         ExecStart = pkgs.writeShellScript "cloudflare-metrics-exporter" ''
           #!/bin/sh
@@ -562,7 +595,7 @@ in {
 
     systemd.timers.akash-cloudflare-metrics = mkIf cfg.metricsExporter.enable {
       description = "Cloudflare metrics exporter timer";
-      wantedBy = ["timers.target"];
+      wantedBy = [ "timers.target" ];
       timerConfig = {
         OnBootSec = "30s";
         OnUnitActiveSec = "${toString cfg.metricsExporter.scrapeInterval}s";
@@ -574,21 +607,28 @@ in {
     # ============================================================================
     systemd.services.akash-health-dashboard = mkIf cfg.healthDashboard.enable {
       description = "Generate Akash provider health dashboard";
-      wantedBy = ["multi-user.target"];
-      after = ["kubernetes.target"];
-      path = with pkgs; [curl jq kubectl coreutils];
+      wantedBy = [ "multi-user.target" ];
+      after = [ "kubernetes.target" ];
+      restartIfChanged = false;  # Don't restart during nixos-rebuild switch (prevents reload hang)
+      path = with pkgs; [
+        curl
+        jq
+        kubectl
+        coreutils
+      ];
 
       serviceConfig = {
         Type = "oneshot";
         User = "nginx";
         Group = "nginx";
-
         # Security hardening
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [cfg.healthDashboard.outputDir];
+        ReadWritePaths = [ cfg.healthDashboard.outputDir ];
+        # Prevent blocking during nixos-rebuild switch
+        TimeoutSec = "30";
 
         ExecStart = pkgs.writeShellScript "akash-health-dashboard" ''
           #!/bin/sh
@@ -603,13 +643,13 @@ in {
           # Ensure output directory exists
           mkdir -p "$OUTPUT_DIR"
 
-          # Fetch provider status
-          provider_status=$(curl -s "$PROVIDER_ENDPOINT" 2>/dev/null || echo '{"status":"error"}')
+          # Fetch provider status (with timeout)
+          provider_status=$(timeout 5 curl -s "$PROVIDER_ENDPOINT" 2>/dev/null || echo '{"status":"error"}')
 
-          # Get cluster stats
-          deployment_count=$(kubectl get deployments -n akash-services -l "akash.network=true" --no-headers 2>/dev/null | wc -l || echo "0")
-          pod_count=$(kubectl get pods -n akash-services --no-headers 2>/dev/null | wc -l || echo "0")
-          node_count=$(kubectl get nodes --no-headers 2>/dev/null | wc -l || echo "0")
+          # Get cluster stats (with reduced timeout to prevent blocking)
+          deployment_count=$(timeout 5 kubectl get deployments --request-timeout=3 -n akash-services -l "akash.network=true" --no-headers 2>/dev/null | wc -l || echo "0")
+          pod_count=$(timeout 5 kubectl get pods --request-timeout=3 -n akash-services --no-headers 2>/dev/null | wc -l || echo "0")
+          node_count=$(timeout 5 kubectl get nodes --request-timeout=3 --no-headers 2>/dev/null | wc -l || echo "0")
 
           # Extract provider info
           provider_status_text=$(echo "$provider_status" | jq -r '.status // "Unknown"')
@@ -756,7 +796,7 @@ in {
 
     systemd.timers.akash-health-dashboard = mkIf cfg.healthDashboard.enable {
       description = "Akash health dashboard timer";
-      wantedBy = ["timers.target"];
+      wantedBy = [ "timers.target" ];
       timerConfig = {
         OnBootSec = "10s";
         OnUnitActiveSec = "${toString cfg.healthDashboard.updateInterval}s";
@@ -768,7 +808,7 @@ in {
       isSystemUser = true;
       group = "nginx";
     };
-    users.groups.nginx = mkIf cfg.healthDashboard.enable {};
+    users.groups.nginx = mkIf cfg.healthDashboard.enable { };
 
     # ============================================================================
     # TMPFILES RULES (merged for all features)
@@ -786,7 +826,14 @@ in {
     # ============================================================================
     systemd.services.akash-cloudflare-dns-cleanup = mkIf cfg.dnsCleanup.enable {
       description = "Periodic cleanup of stale DNS records";
-      path = with pkgs; [curl jq kubectl coreutils gnugrep gnused];
+      path = with pkgs; [
+        curl
+        jq
+        kubectl
+        coreutils
+        gnugrep
+        gnused
+      ];
 
       serviceConfig = {
         Type = "oneshot";
@@ -797,7 +844,7 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = ["/var/lib/akash-cloudflare"];
+        ReadWritePaths = [ "/var/lib/akash-cloudflare" ];
 
         ExecStart = pkgs.writeShellScript "akash-dns-cleanup" ''
           #!/bin/sh
@@ -847,7 +894,7 @@ in {
             -H "Content-Type: application/json")
 
           # Get active leases from provider
-          active_leases=$(kubectl get deployments -n akash-services -l "akash.network=true" -o jsonpath='{.items[*].metadata.uid}' 2>/dev/null || echo "")
+          active_leases=$(kubectl get deployments --request-timeout=10 -n akash-services -l "akash.network=true" -o jsonpath='{.items[*].metadata.uid}' 2>/dev/null || echo "")
 
           # Process each DNS record
           echo "$dns_records" | jq -c '.result[]' | while read -r record; do
@@ -857,7 +904,7 @@ in {
             tenant_name=$(echo "$record_name" | sed "s/\\.$DNS_PREFIX\\.$INGRESS_DOMAIN//" | sed "s/\\.$DOMAIN//")
 
             # Check if tenant has an active deployment
-            deployment_uid=$(kubectl get deployments -n akash-services -l "akash.network=true" -o json | jq -r ".items[] | select(.metadata.name | contains(\"$tenant_name\")).metadata.uid" || echo "")
+            deployment_uid=$(kubectl get deployments --request-timeout=10 -n akash-services -l "akash.network=true" -o json | jq -r ".items[] | select(.metadata.name | contains(\"$tenant_name\")).metadata.uid" || echo "")
 
             if [ -z "$deployment_uid" ]; then
               # No active deployment, check grace period
@@ -884,7 +931,7 @@ in {
 
     systemd.timers.akash-cloudflare-dns-cleanup = mkIf cfg.dnsCleanup.enable {
       description = "Akash DNS cleanup timer";
-      wantedBy = ["timers.target"];
+      wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = cfg.dnsCleanup.cleanupTime;
         Persistent = true;
@@ -896,8 +943,14 @@ in {
     # ============================================================================
     systemd.services.akash-status-page = mkIf cfg.statusPage.enable {
       description = "Generate public Akash provider status page";
-      wantedBy = ["multi-user.target"];
-      path = with pkgs; [curl jq kubectl coreutils];
+      wantedBy = [ "multi-user.target" ];
+      restartIfChanged = false;  # Don't restart during nixos-rebuild switch (prevents reload hang)
+      path = with pkgs; [
+        curl
+        jq
+        kubectl
+        coreutils
+      ];
 
       serviceConfig = {
         Type = "oneshot";
@@ -909,7 +962,7 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [cfg.statusPage.outputDir];
+        ReadWritePaths = [ cfg.statusPage.outputDir ];
 
         ExecStart = pkgs.writeShellScript "akash-status-page" ''
           #!/bin/sh
@@ -924,12 +977,12 @@ in {
           # Ensure output directory exists
           mkdir -p "$OUTPUT_DIR"
 
-          # Fetch provider status
-          provider_status=$(curl -s "$PROVIDER_ENDPOINT" 2>/dev/null || echo '{"status":"error"}')
+          # Fetch provider status (with timeout)
+          provider_status=$(timeout 5 curl -s "$PROVIDER_ENDPOINT" 2>/dev/null || echo '{"status":"error"}')
 
-          # Get cluster resources
-          node_count=$(kubectl get nodes --no-headers 2>/dev/null | wc -l || echo "0")
-          gpu_count=$(kubectl get nodes -o jsonpath='{.items[*].status.capacity.nvidia\.com/gpu}' 2>/dev/null | tr ' ' '\n' | grep -v '^$' | wc -l || echo "0")
+          # Get cluster resources (with reduced timeout to prevent blocking)
+          node_count=$(timeout 5 kubectl get nodes --request-timeout=3 --no-headers 2>/dev/null | wc -l || echo "0")
+          gpu_count=$(timeout 5 kubectl get nodes --request-timeout=3 -o jsonpath='{.items[*].status.capacity.nvidia\.com/gpu}' 2>/dev/null | tr ' ' '\n' | grep -v '^$' | wc -l || echo "0")
 
           # Extract provider info
           provider_address=$(echo "$provider_status" | jq -r '.provider_address // "Unknown"')
@@ -1105,12 +1158,15 @@ in {
 
           echo "[$(date -Iseconds)] Status page generated"
         '';
+
+        # Prevent blocking during nixos-rebuild switch
+        TimeoutSec = "30";
       };
     };
 
     systemd.timers.akash-status-page = mkIf cfg.statusPage.enable {
       description = "Akash status page timer";
-      wantedBy = ["timers.target"];
+      wantedBy = [ "timers.target" ];
       timerConfig = {
         OnBootSec = "10s";
         OnUnitActiveSec = "${toString cfg.statusPage.updateInterval}s";
