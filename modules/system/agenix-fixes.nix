@@ -195,7 +195,7 @@ in {
         "glitchtip-postgres.service"
         "glitchtip-web.service"
         "glitchtip-redis.service"
-        "ai-inference-gateway.service"
+        # Gateway runs in Kubernetes, not as systemd service
         "garage.service"
       ];
       environment.PATH = lib.mkForce (lib.makeBinPath (
