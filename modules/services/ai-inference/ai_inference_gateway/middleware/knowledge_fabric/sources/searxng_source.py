@@ -58,6 +58,7 @@ class SearXNGKnowledgeSource:
         SourceCapability.FACTUAL |
         SourceCapability.COMPARATIVE
     )
+    enabled: bool = True
     # Enhanced features
     enable_domain_routing: bool = True
     enable_quality_scoring: bool = True
@@ -335,6 +336,7 @@ class SearxngSimilarityKnowledgeSource:
         SourceCapability.FACTUAL |
         SourceCapability.CONTEXTUAL
     )
+    enabled: bool = True
     collection: str = "searxng-results"
     # Injected dependencies
     _rag_indexer: Optional[Any] = field(default=None, repr=False)
@@ -460,6 +462,7 @@ class SearxngClusteringKnowledgeSource:
         SourceCapability.CONTEXTUAL |
         SourceCapability.COMPARATIVE
     )
+    enabled: bool = True
     # Injected dependencies
     _clusterer: Optional[Any] = field(default=None, repr=False)
     _searxng_client: Optional[Any] = field(default=None, repr=False)
