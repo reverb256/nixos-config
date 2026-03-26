@@ -229,7 +229,7 @@ class KnowledgeFabricMiddleware(Middleware):
             # Skip for very short queries (likely greetings)
             if len(query.strip()) < 10:
                 logger.debug(f"Query too short for knowledge retrieval: {query[:50]}")
-                self.metrics.record_query_skipped()
+                self.metrics.record_query_skipped(reason="query_too_short")
                 return True, None
 
             logger.info(f"Processing knowledge query: {query[:100]}")
