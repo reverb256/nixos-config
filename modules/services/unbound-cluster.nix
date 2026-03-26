@@ -2,7 +2,6 @@
 # Local DNS resolver for cluster with Tailscale integration
 {
   config,
-  pkgs,
   lib,
   ...
 }: let
@@ -96,6 +95,14 @@ in {
             # Note: tigris-ule.ts.net handled by forward-zone to Tailscale DNS
           ];
 
+          # Disable DNSSEC validation for cluster zones
+          # .local is reserved for mDNS, causes DNSSEC validation failures
+          domain-insecure = [
+            "cluster.local."
+            "svc.cluster.local."
+            "pod.cluster.local."
+          ];
+
           # Local zones - never forward these to upstream DNS
           # Note: cluster.local is NOT in local-zone - forwarded to Kubernetes DNS
           local-zone = [
@@ -156,57 +163,34 @@ in {
             ''"sentry.lan. IN A 10.1.1.140"''
 
             # ================================================================================
-            # REVERB256.CA - Custom domain for cluster services (LAN-wide access)
+            # FRIENDLY SERVICE NAMES - Direct to Caddy Ingress IPs
             # ================================================================================
-            # Points to Caddy ingress nodes for HTTPS with cluster CA certificate
-            # Multiple A records for basic load distribution and redundancy
-            ''"search.reverb256.ca. IN A 10.1.1.120"''
-            ''"search.reverb256.ca. IN A 10.1.1.130"''
-            ''"search.reverb256.ca. IN A 10.1.1.140"''
+            # Services accessible via Caddy Ingress on ingress nodes
 
-            # ================================================================================
-            # FRIENDLY SERVICE NAMES - Wildcard for *.cluster.local → Caddy Ingress
-            # ================================================================================
-            # All *.cluster.local queries will fall through to Caddy ingress
-            # Caddy then routes to the appropriate backend service
+            # AI/ML Services (via VIP for load balancing)
+            ''"ai.cluster.local. IN A 10.1.1.100"''
+            ''"llm.cluster.local. IN A 10.1.1.100"''
+            ''"rag.cluster.local. IN A 10.1.1.100"''
 
-            # Kubernetes Caddy Ingress (primary ingress for cluster.local)
-            ''"*.cluster.local. IN CNAME caddy-ingress.ingress-system.svc.cluster.local."''
+            # Home Lab Services
+            ''"home.cluster.local. IN A 10.1.1.110"''
+            ''"vault.cluster.local. IN A 10.1.1.110"''
+            ''"media.cluster.local. IN A 10.1.1.100"''
 
-            # Kubernetes services (direct access via short names)
-            # These are fallbacks if ingress routing is not used
-            #
-            # ================================================================================
-            # REMOVED: Conflicting static A records (2026-03-24)
-            # ================================================================================
-            # These static A records conflict with the wildcard CNAME for *.cluster.local
-            # Wildcard CNAME is authoritative: *.cluster.local → caddy-ingress.ingress-system.svc.cluster.local
-            # Commented out (not deleted) for 1-week rollback window
-            #
-            # AI/ML Services (commented out - use wildcard CNAME)
-            # ''"ai.cluster.local. IN A 10.1.1.120"''
-            # ''"llm.cluster.local. IN A 10.1.1.120"''
-            # ''"rag.cluster.local. IN A 10.1.1.120"''
-            #
-            # # Home Lab Services (commented out - use wildcard CNAME)
-            # ''"home.cluster.local. IN A 10.1.1.110"''
-            # ''"vault.cluster.local. IN A 10.1.1.110"''
-            # ''"media.cluster.local. IN A 10.1.1.120"''
-            #
-            # # Development Tools (commented out - use wildcard CNAME)
-            # ''"git.cluster.local. IN A 10.1.1.110"''
-            # ''"ci.cluster.local. IN A 10.1.1.110"''
-            # ''"nix.cluster.local. IN A 10.1.1.110"''
-            #
-            # # Monitoring (commented out - use wildcard CNAME)
-            # ''"metrics.cluster.local. IN A 10.1.1.110"''
-            # ''"logs.cluster.local. IN A 10.1.1.110"''
-            # ''"dash.cluster.local. IN A 10.1.1.110"''
-            #
-            # # Utilities (commented out - use wildcard CNAME)
-            # ''"search.cluster.local. IN A 10.1.1.100"''
-            # ''"chat.cluster.local. IN A 10.1.1.110"''
-            # ''"files.cluster.local. IN A 10.1.1.120"''
+            # Development Tools
+            ''"git.cluster.local. IN A 10.1.1.110"''
+            ''"ci.cluster.local. IN A 10.1.1.110"''
+            ''"nix.cluster.local. IN A 10.1.1.110"''
+
+            # Monitoring
+            ''"metrics.cluster.local. IN A 10.1.1.110"''
+            ''"logs.cluster.local. IN A 10.1.1.110"''
+            ''"dash.cluster.local. IN A 10.1.1.110"''
+
+            # Utilities (via VIP for load balancing)
+            ''"search.cluster.local. IN A 10.1.1.100"''
+            ''"chat.cluster.local. IN A 10.1.1.110"''
+            ''"files.cluster.local. IN A 10.1.1.100"''
           ];
         };
 
@@ -245,7 +229,7 @@ in {
           {
             name = ".";
             forward-addr = cfg.upstream ++ cfg.upstreamTls;
-            forward-tls-upstream = false;
+            forward-tls-upstream = true;
           }
         ];
       };
@@ -254,56 +238,5 @@ in {
     # Firewall - allow DNS from local network
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [cfg.port];
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
-
-    # Explicitly allow DNS from LAN (10.1.1.0/24) - workaround for mkOptionDefault issue
-    networking.firewall.extraCommands = ''
-      iptables -A nixos-fw -s 10.1.1.0/24 -p udp --dport ${toString cfg.port} -j nixos-fw-accept
-      iptables -A nixos-fw -s 10.1.1.0/24 -p tcp --dport ${toString cfg.port} -j nixos-fw-accept
-    '';
-
-    # Health monitoring
-    systemd.services.unbound-health-check = {
-      description = "Monitor Unbound DNS resolution to Kubernetes";
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = pkgs.writeShellScript "unbound-health" ''
-          #!/bin/sh
-          echo "[unbound-health-check] Checking DNS resolution..."
-
-          # Test K8s service resolution (via forward-zone)
-          if ! ${pkgs.host}/bin/host -t A kubernetes.default.svc.cluster.local 127.0.0.1 | grep -q "has address"; then
-            echo "[unbound-health-check] ❌ Kubernetes DNS resolution failed (kubernetes.default.svc.cluster.local)"
-            systemctl try-restart unbound
-            exit 1
-          fi
-
-          # Test local cluster host resolution
-          if ! ${pkgs.host}/bin/host -t A zephyr.cluster.local 127.0.0.1 | grep -q "has address"; then
-            echo "[unbound-health-check] ❌ Local cluster host resolution failed (zephyr.cluster.local)"
-            systemctl try-restart unbound
-            exit 1
-          fi
-
-          # Test external DNS resolution
-          if ! ${pkgs.host}/bin/host -t A example.com 127.0.0.1 | grep -q "has address"; then
-            echo "[unbound-health-check] ❌ External DNS resolution failed (example.com)"
-            systemctl try-restart unbound
-            exit 1
-          fi
-
-          echo "[unbound-health-check] ✅ DNS health check passed"
-        '';
-        User = "root";
-      };
-    };
-
-    systemd.timers.unbound-health-check = {
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = "*:0/5";  # Every 5 minutes
-        Persistent = true;
-      };
-    };
   };
 }
