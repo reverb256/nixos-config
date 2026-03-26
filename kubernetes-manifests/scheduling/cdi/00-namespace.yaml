@@ -1,9 +1,0 @@
-# Generic CDI Plugin Namespace
-# Required for NixOS GPU passthrough via CDI (Container Device Interface)
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: generic-cdi-plugin
-  labels:
-    name: generic-cdi-plugin
