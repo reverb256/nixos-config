@@ -2,7 +2,10 @@
   "mcpServers": {
     "filesystem": {
       "command": "mcp-filesystem",
-      "args": ["/etc/nixos", "/home/j_kro"]
+      "args": [
+        "/etc/nixos",
+        "/home/j_kro"
+      ]
     },
     "git": {
       "command": "mcp-git"
@@ -20,11 +23,28 @@
       "command": "mcp-chrome-devtools"
     },
     "playwright": {
-      "command": "mcp-playwright"
+      "command": "mcp-playwright",
+      "env": {
+        "CHROMIUM_PATH": "/etc/nixos/node_modules/playwright-core/.local-browsers/chrome/chrome-linux64/chrome"
+      }
     },
     "nixos": {
       "command": "uvx",
-      "args": ["mcp-nixos"]
+      "args": [
+        "mcp-nixos"
+      ]
+    },
+    "gateway": {
+      "command": "mcp-gateway-bridge",
+      "env": {
+        "GATEWAY_URL": "http://ai.cluster.local"
+      }
+    },
+    "searxng": {
+      "command": "/etc/nixos/modules/services/ai-inference/bin/searxng-mcp-wrapper",
+      "env": {
+        "SEARXNG_URL": "https://search.reverb256.ca"
+      }
     }
   }
 }
