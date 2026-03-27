@@ -37,49 +37,11 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # Configure NetworkManager via global configuration
+    # Configure NetworkManager DNS
     networking.networkmanager = {
-      # Use structured settings instead of extraConfig
-      settings = {
-        global-dns = {
-          searches = "none";
-        };
-        connection = {
-          # Set default metrics for connection types
-          ethernet = {
-            metric = cfg.ethernetMetric;
-          };
-          wifi = {
-            metric = cfg.wifiMetric;
-          };
-        };
-      };
-
       # Ensure DNS doesn't get overridden by DHCP
       dns = "default";
     };
 
-    # Create NetworkManager dispatcher script to ensure DNS is set correctly
-    environment.etc."NetworkManager/dispatcher.d/10-dns-servers".text = ''
-      #!/bin/sh
-      # Set DNS servers to local unbound
-      interface=$1
-      status=$2
-
-      case "$status" in
-        up|dhcp4-change|dhcp6-change)
-          # Set DNS via nmcli (more reliable than resolvconf)
-          for server in ${lib.concatStringsSep " " cfg.dnsServers}; do
-            nmcli connection modify "$interface" ipv4.dns "$server" 2>/dev/null || true
-            nmcli connection modify "$interface" ipv6.dns "$server" 2>/dev/null || true
-          done
-          ;;
-      esac
-    '';
-
-    # Make dispatcher script executable
-    systemd.tmpfiles.rules = [
-      "Z /etc/NetworkManager/dispatcher.d/10-dns-servers - - - -"
-    ];
   };
 }
