@@ -62,16 +62,16 @@ in {
           }
           ''}
 
-          rate_limit {
-            zone dynamic_zones {
-              entry {
-                zone = "cluster_local"
-                key = "remote_ip"
-                events = ${toString cfg.rateLimit}
-                window = 1m
-              }
-            }
-          }
+#          rate_limit {
+#            zone dynamic_zones {
+#              entry {
+#                zone = "cluster_local"
+#                key = "remote_ip"
+#                events = ${toString cfg.rateLimit}
+#                window = 1m
+#              }
+#            }
+#          }
 
           encode zstd gzip
         }
