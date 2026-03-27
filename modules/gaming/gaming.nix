@@ -322,6 +322,7 @@ in {
           # ============================================================================
           # Kernel-Level Deadzone for DualSense (GLOBAL - affects ALL games)
           # ============================================================================
+          # TEMPORARILY DISABLED: Build failing (2026-03-27)
           # Sets deadzone at kernel level using EVIOCSABS ioctl
           # This is the ONLY truly global deadzone solution for Linux
           #
@@ -335,7 +336,7 @@ in {
           # DualSense (USB & Bluetooth) - match joystick event device only
           # CRITICAL: Must match KERNEL=="event*" AND exclude Touchpad/Motion devices
           # The joystick device has name ending with "Controller" (not "Controller Touchpad" or "Controller Motion Sensors")
-          SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*DualSense*Wireless*Controller", ATTRS{name}!="*Touchpad*", ATTRS{name}!="*Motion*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:20 1:20 3:20 4:20"
+          #SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*DualSense*Wireless*Controller", ATTRS{name}!="*Touchpad*", ATTRS{name}!="*Motion*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:20 1:20 3:20 4:20"
         '';
       };
 
@@ -390,8 +391,9 @@ in {
           goverlay
           gamemode
           scx.full
+          # TEMPORARILY DISABLED: Build failing (2026-03-27)
           # Kernel-level deadzone tool for controllers (GLOBAL solution)
-          set-evdev-deadzone
+          # set-evdev-deadzone
           (pkgs.writeShellScriptBin "launch-game" ''
             #!/usr/bin/env bash
             # launch-game - Wrapper to run games in gaming.slice with GameMode

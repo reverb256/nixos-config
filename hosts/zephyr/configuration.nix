@@ -777,16 +777,16 @@
           admin 127.0.0.1:2019
           default_sni cluster.local
 
-          rate_limit {
-            zone dynamic_zones {
-              entry {
-                zone = "cluster_local"
-                key = "remote_ip"
-                events = 100
-                window = 1m
-              }
-            }
-          }
+#          rate_limit {
+#            zone dynamic_zones {
+#              entry {
+#                zone = "cluster_local"
+#                key = "remote_ip"
+#                events = 100
+#                window = 1m
+#              }
+#            }
+#          }
 
           encode zstd gzip
         }
