@@ -1,0 +1,24 @@
+# Allow SearXNG pods to reach AI Inference Gateway
+# This allows search namespace pods to connect to gateway on port 8080
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-search-to-gateway
+  namespace: ai-inference
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-inference-gateway
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: search
+      podSelector:
+        matchLabels:
+          app: searxng
+    ports:
+    - protocol: TCP
+      port: 8080

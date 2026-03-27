@@ -104,6 +104,7 @@ zephyr   Ready     <none>   2d20h   v1.35.2
 
 | Priority | Issue | Impact | Status |
 |----------|-------|--------|--------|
+| 🔴 CRITICAL | Calico pod networking broken | ALL pods cannot reach services or external internet | ⚠️ **INVESTIGATING (2026-03-27):** Root cause identified: Empty `cali-to-hep-forward` iptables chain on ALL nodes blocking pod-to-host communication. Cleaned up old Flannel routes, added service CIDR rules, but core Calico dataplane issue remains. Docs: `docs/kubernetes/CALICO_NETWORKING_FAILURE.md` |
 | 🟡 LOW | No global deadzone solution for controllers | Deadzone must be configured per-game framework | ⚠️ **LIMITATION:** Kernel-level evdev deadzone broken (linuxconsole package removed from nixpkgs) |
 | 🟡 LOW | AMD GPU mining GLIBC incompatibility | lolminer segfaults in K8s (GLIBC 2.42 vs 2.27) | ⚠️ **WORKAROUND:** AMD mining on host (systemd), NVIDIA mining in K8s |
 | 🟡 MEDIUM | Calico BGP peering degraded (Forge, Sentry) | 2/4 nodes have link-local IPv6 only, BGP multihop doesn't work | ⚠️ **ACCEPTED:** FelixConfiguration.ipv6Support: false, cluster functional with IPv4-only BGP. Forge calico-node Error, Sentry Running (0/1). Details: `docs/kubernetes/cluster-issues-assessment-2026-03-24.md` |

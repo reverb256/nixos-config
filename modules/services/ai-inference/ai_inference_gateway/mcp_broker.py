@@ -1233,8 +1233,8 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
 
     # Check if MCP broker is enabled via config
     mcp_enabled = False
-    if hasattr(config, "mcp") and hasattr(config.mcp, "enabled"):
-        mcp_enabled = config.mcp.enabled
+    if hasattr(config, "middleware") and hasattr(config.middleware, "mcp") and hasattr(config.middleware.mcp, "enabled"):
+        mcp_enabled = config.middleware.mcp.enabled
 
     # Also check environment variable for Nix-based configuration
     if os.getenv("MCP_ENABLED"):
@@ -1344,9 +1344,9 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse MCP_SERVERS environment variable: {e}")
             return None
-    elif hasattr(config, "mcp") and hasattr(config.mcp, "servers"):
+    elif hasattr(config, "middleware") and hasattr(config.middleware, "mcp") and hasattr(config.middleware.mcp, "servers"):
         # Fallback to config object (Python-based configuration)
-        for server_config in config.mcp.servers:
+        for server_config in config.middleware.mcp.servers:
             server_type = (
                 MCPServerType.LOCAL
                 if server_config.type == "local"

@@ -19,6 +19,16 @@ in {
   # AI SERVICE API KEYS
   # ========================================================================
 
+  # LM Studio API key - Local LLM backend authentication
+  "lm-studio-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/lm-studio-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+
   # Hugging Face token - Used by AI inference services
   "huggingface-token.age".publicKeys = [
     users.j_kro
