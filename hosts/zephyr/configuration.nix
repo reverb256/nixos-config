@@ -759,23 +759,23 @@
       # Custom Caddyfile for complex configurations (Nextcloud)
       # NOTE: Global options manually included because configFile overrides globalConfig
       configFile = pkgs.writeText "Caddyfile" ''
-        # Named snippet for security headers (must be OUTSIDE global options)
-        (security_headers) {
-          header {
-            Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-            X-Content-Type-Options "nosniff"
-            X-Frame-Options "SAMEORIGIN"
-            X-XSS-Protection "1; mode=block"
-            Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:"
-            Referrer-Policy "strict-origin-when-cross-origin"
-            -Server
-          }
-        }
-
         # Global options
         {
           admin 127.0.0.1:2019
           default_sni cluster.local
+
+          # Named snippet for security headers
+          (security_headers) {
+            header {
+              Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+              X-Content-Type-Options "nosniff"
+              X-Frame-Options "SAMEORIGIN"
+              X-XSS-Protection "1; mode=block"
+              Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:"
+              Referrer-Policy "strict-origin-when-cross-origin"
+              -Server
+            }
+          }
 
 #          rate_limit {
 #            zone dynamic_zones {
