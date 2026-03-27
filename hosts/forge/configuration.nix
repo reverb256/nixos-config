@@ -571,6 +571,7 @@
   # NETWORKING
   # ============================================================================
   networking.wireless.enable = lib.mkForce false;
+  networking.useNetworkd = false; # Disable systemd-networkd (conflicts with NetworkManager)
   services.avahi = lib.mkForce {
     enable = false;
     nssmdns4 = false;
@@ -579,7 +580,6 @@
 
   networking.networkmanager = {
     enable = true;
-    useNetworkd = false; # Disable systemd-networkd (conflicts with NetworkManager)
     unmanaged = [];
     ensureProfiles.profiles."Wired connection 1" = {
       connection = {
