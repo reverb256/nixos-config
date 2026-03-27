@@ -889,4 +889,9 @@
       "/nix/store/d1i12f1i7ycj8zj9pq3nxw2skyms5dl7-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
     ];
   };
+
+  # ============================================================================
+  # UNBOUND DNS WITH DNS-OVER-TLS (Cluster-wide configuration)
+  # ============================================================================
+  services.unbound-common.enable = true;
 }
