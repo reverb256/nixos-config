@@ -572,6 +572,9 @@
   # ============================================================================
   networking.wireless.enable = lib.mkForce false;
   networking.useNetworkd = false; # Disable systemd-networkd (conflicts with NetworkManager)
+
+  # Disable systemd-networkd wait-online service (adds 120s timeout when using NetworkManager)
+  systemd.network.wait-online.enable = false;
   services.avahi = lib.mkForce {
     enable = false;
     nssmdns4 = false;
