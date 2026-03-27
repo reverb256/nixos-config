@@ -48,14 +48,20 @@
   hardware.corsair.autoStartRgb = false; # Don't auto-start (conflicts with liquidctl)
 
   networking.networkmanager.enable = true;
+  networking.useNetworkd = false; # Disable systemd-networkd (conflicts with NetworkManager)
 
   # DNS - Use local unbound resolver for cluster hostnames
   services.unbound-cluster = {
     enable = true;
   };
 
-  # Configure NetworkManager to use local unbound via connection settings
-  networking.networkmanager.dns = "none";
+  # Configure NetworkManager DNS and interface priorities
+  networking.networkmanager-dns = {
+    enable = true;
+    dnsServers = [ "127.0.0.1" ];  # Use local unbound
+    ethernetMetric = 50;   # Primary connection
+    wifiMetric = 100;      # Fallback connection
+  };
 
   # Cluster hosts - populate /etc/hosts from cluster configuration
   networking.cluster-hosts = {

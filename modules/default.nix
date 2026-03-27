@@ -80,6 +80,8 @@
 
     # Network modules
     ./network/cluster-hosts.nix
+    ./network/wifi.nix
+    ./network/networkmanager-dns.nix
     ./services/unbound-cluster.nix
   ];
 }
