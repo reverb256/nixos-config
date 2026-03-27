@@ -45,7 +45,16 @@ in {
 
       set -euo pipefail
 
-      FLAKE_PATH=/etc/nixos
+      # Auto-detect flake path (NFS mount vs local)
+      if [ -d /run/nixos-shared ] && [ -f /run/nixos-shared/flake.nix ]; then
+        FLAKE_PATH=/run/nixos-shared
+      elif [ -f /etc/nixos/flake.nix ]; then
+        FLAKE_PATH=/etc/nixos
+      else
+        echo "ERROR: Cannot find flake.nix in /etc/nixos or /run/nixos-shared"
+        exit 1
+      fi
+
       LOG_FILE=/var/log/nixos-auto-update.log
 
       # Set up PATH to include Nix - critical for systemd services
