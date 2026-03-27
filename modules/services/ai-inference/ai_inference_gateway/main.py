@@ -474,24 +474,42 @@ async def lifespan(app: FastAPI):
         logger.warning("Redis unavailable, using in-memory fallback")
 
     # Build middleware pipeline
+    print("[LIFESPAN DEBUG] About to build middleware pipeline...", file=sys.stderr, flush=True)
     state.pipeline = build_middleware_pipeline(state.config, state.redis_client)
+    print(f"[LIFESPAN DEBUG] Middleware pipeline built: {state.pipeline.count} middleware", file=sys.stderr, flush=True)
 
     logger.info(
         "Middleware pipeline initialized with %d middleware", state.pipeline.count
     )
 
     # Initialize router (no API key needed for llama-cpp)
-    state.router = create_default_router()
-    logger.info("Router initialized with %d models", len(state.router.models))
+    print("[LIFESPAN DEBUG] About to initialize router...", file=sys.stderr, flush=True)
+    try:
+        state.router = create_default_router()
+        print(f"[LIFESPAN DEBUG] Router initialized: {len(state.router.models)} models", file=sys.stderr, flush=True)
+        logger.info("Router initialized with %d models", len(state.router.models))
+    except Exception as e:
+        print(f"[LIFESPAN DEBUG] Router initialization failed: {e}", file=sys.stderr, flush=True)
+        logger.warning(f"Router initialization failed: {e}")
+        state.router = None
 
     # Initialize MCP broker if enabled
+    print("[LIFESPAN DEBUG] About to initialize MCP broker...", file=sys.stderr, flush=True)
     state.mcp_broker = None
+    print(f"[LIFESPAN DEBUG] Checking MCP_ENABLED: config.middleware.mcp.enabled={state.config.middleware.mcp.enabled}", file=sys.stderr, flush=True)
     try:
+        print("[LIFESPAN DEBUG] About to call create_mcp_broker_from_config...", file=sys.stderr, flush=True)
         state.mcp_broker = await create_mcp_broker_from_config(state.config)
+        print(f"[LIFESPAN DEBUG] MCP broker created: {state.mcp_broker}", file=sys.stderr, flush=True)
         if state.mcp_broker:
+            print("[LIFESPAN DEBUG] MCP broker initialized successfully!", file=sys.stderr, flush=True)
             logger.info("MCP broker initialized")
+        else:
+            print("[LIFESPAN DEBUG] MCP broker creation returned None", file=sys.stderr, flush=True)
+            logger.warning("MCP broker creation returned None")
     except Exception as e:
-        logger.warning(f"MCP broker initialization failed: {e}")
+        print(f"[LIFESPAN DEBUG] MCP broker initialization failed: {e}", file=sys.stderr, flush=True)
+        logger.error(f"MCP broker initialization failed: {e}", exc_info=True)
 
     # Initialize RAG if enabled
     state.rag_search = None
@@ -994,9 +1012,11 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     print("[DEBUG] create_app: FastAPI app created", file=sys.stderr, flush=True)
 
     # Store gateway state in app
-    print("[DEBUG] create_app: Storing gateway state...", file=sys.stderr, flush=True)
+    print("[DEBUG] create_app: BEFORE storing gateway state...", file=sys.stderr, flush=True)
     app.state.gateway = gateway_state
     print("[DEBUG] create_app: Gateway state stored", file=sys.stderr, flush=True)
+    print("[DEBUG] create_app: AFTER storing gateway state - TEST MESSAGE", file=sys.stderr, flush=True)
+    print("[DEBUG] create_app: About to add endpoints...", file=sys.stderr, flush=True)
 
     print("[DEBUG] create_app: Adding health endpoint...", file=sys.stderr, flush=True)
 

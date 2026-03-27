@@ -19,7 +19,7 @@ spec:
       - name: cloudflared
         image: cloudflare/cloudflared:2024.8.2
         command: ["cloudflared"]
-        args: ["tunnel", "--protocol", "http2", "--config", "/etc/cloudflared/config.yml", "run"]
+        args: ["tunnel", "--config", "/etc/cloudflared/config.yml", "--metrics", "0.0.0.0:54163", "run"]
         env:
         - name: TUNNEL_CREDENTIAL_FILE
           value: "/etc/cloudflared/credentials.json"
@@ -34,18 +34,19 @@ spec:
           limits:
             cpu: 500m
             memory: 256Mi
-        livenessProbe:
-          httpGet:
-            path: /metrics
-            port: 20241
-          initialDelaySeconds: 10
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /metrics
-            port: 20241
-          initialDelaySeconds: 5
-          periodSeconds: 5
+        # TODO: Fix metrics endpoint - health probes disabled temporarily
+        # livenessProbe:
+        #   httpGet:
+        #     path: /metrics
+        #     port: 54163
+        #   initialDelaySeconds: 10
+        #   periodSeconds: 10
+        # readinessProbe:
+        #   httpGet:
+        #     path: /metrics
+        #     port: 54163
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 5
       volumes:
       - name: config
         projected:
@@ -55,6 +56,8 @@ spec:
               items:
               - key: credentials.json
                 path: credentials.json
+          - configMap:
+              name: cloudflared-config
       restartPolicy: Always
 ---
 apiVersion: v1
