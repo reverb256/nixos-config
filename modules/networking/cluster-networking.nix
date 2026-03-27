@@ -235,9 +235,10 @@ in {
       enable = true;
       # Base ports - K8s API (6443) restricted to Tailscale only (see below)
       allowedTCPPorts = lib.mkOptionDefault [
-        53 # DNS (Unbound)
-        22 # SSH
+        53    # DNS (Unbound)
+        22    # SSH
         10250 # Kubelet API (required for kubectl exec/logs, Calico health checks)
+        6443  # Kubernetes API server (CRITICAL: Must be accessible via LAN for cluster communication)
       ];
       allowedUDPPorts = lib.mkOptionDefault [
         53 # DNS (Unbound)
@@ -251,9 +252,6 @@ in {
       # SECURITY: Kubernetes API accessible via Tailscale VPN only
       # This reduces exposure to local network and provides encrypted access
       interfaces."tailscale0".allowedTCPPorts = [6443];
-
-      # Kubernetes API server port (must be accessible via LAN for cluster communication)
-      networking.firewall.allowedTCPPorts = lib.mkOptionDefault [6443];
     };
   };
 }
