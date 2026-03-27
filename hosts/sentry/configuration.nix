@@ -40,10 +40,13 @@
     enable = true;
     hostName = "sentry";
     ipAddress = "10.1.1.140";
-    interfaceName = "enp7s0"; # Native hardware interface name
-    wireless.enable = false; # Monitoring node - no WiFi needed
-    unbound.listenAddress = "10.1.1.140"; # Listen on node IP for cluster DNS
+    interfaceName = "enp7s0";
+    wireless.enable = false;
+    unbound.listenAddress = "10.1.1.140";
   };
+
+  # FIX: Disable interface renaming - use actual interface names
+  systemd.network.links = lib.mkForce {};
 
   # Disable flake-lock-sync (nixos-shared mount not available)
   services.flake-lock-sync.enable = lib.mkForce false;
