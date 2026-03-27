@@ -29,7 +29,7 @@ in {
           "https://reverb-os.cachix.org"
           "https://ezkea.cachix.org"
           "https://nix-gaming.cachix.org"
-          "https://cache.nixos-cuda.org"
+          # "https://cache.nixos-cuda.org" # Disabled - timeout issues
         ]
         else [
           # Remote hosts: Use public caches (NOT zephyr's local cache - unreachable from remotes)
@@ -39,7 +39,7 @@ in {
           "https://reverb-os.cachix.org"
           "https://ezkea.cachix.org"
           "https://nix-gaming.cachix.org"
-          "https://cache.nixos-cuda.org"
+          # "https://cache.nixos-cuda.org" # Disabled - timeout issues
         ]
       );
       trusted-public-keys = lib.mkForce (
@@ -52,7 +52,7 @@ in {
           "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
           "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
           "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-          "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+          # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M=" # Disabled - timeout issues
         ]
         else [
           # Remote hosts: Trust Zephyr's local cache
@@ -63,7 +63,7 @@ in {
           "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
           "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
           "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-          "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+          # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M=" # Disabled - timeout issues
         ]
       );
 
