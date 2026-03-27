@@ -104,6 +104,10 @@
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.nexus-gaming.enable = true;
 
+  # Enable workstation role for full Plasma desktop environment
+  # This matches Zephyr's desktop setup (enables services.gaming)
+  profiles.role.workstation = true;
+
   # ============================================================================
   # MONITORING - Prometheus, Grafana, AlertManager
   # ============================================================================
@@ -620,4 +624,9 @@
       "/nix/store/d1i12f1i7ycj8zj9pq3nxw2skyms5dl7-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
     ];
   };
+
+  # ============================================================================
+  # UNBOUND DNS WITH DNS-OVER-TLS (Cluster-wide configuration)
+  # ============================================================================
+  services.unbound-common.enable = true;
 }

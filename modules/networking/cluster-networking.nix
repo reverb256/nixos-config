@@ -188,23 +188,9 @@ in {
     # SERVICES - DNS, VPN, and Service Discovery
     # ============================================================================
     services = {
-      unbound-cluster = {
-        inherit (cfg.unbound) enable;
-        inherit (cfg.unbound) listenAddress;
-      };
-
-      # Configure Unbound to listen on localhost and VIP for CoreDNS forwarding
-      unbound.settings.server.interface = [ "127.0.0.1" "::1" cfg.unbound.listenAddress "10.1.1.100" ];
-
-      # Allow Kubernetes pod network to query Unbound for external DNS
-      unbound.settings.server.access-control = [
-        "127.0.0.0/8 allow"
-        "10.1.1.0/24 allow"
-        "10.244.0.0/16 allow"
-        "100.64.0.0/10 allow"
-      ];
-
-
+      # NOTE: Unbound configuration moved to hosts/zephyr/configuration.nix (2026-03-27)
+      # DNS-over-TLS to Cloudflare, Google, Quad9 configured per-host
+      # Kubernetes DNS forwarding handled in host config
 
       # Tailscale VPN for secure remote access
       tailscale.enable = true;
