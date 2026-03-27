@@ -91,6 +91,21 @@
         # Allow loopback interface - insert at rule #1 (pushes ICMP to #2)
         # Check if rule exists before adding to avoid duplicates
         iptables -C INPUT -i lo -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -i lo -j ACCEPT || true
+
+        # CRITICAL: Allow DNS traffic (prevent Calico/K8s from blocking DNS)
+        # Allow outbound DNS queries
+        iptables -C OUTPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || iptables -I OUTPUT 1 -p udp --dport 53 -j ACCEPT || true
+        iptables -C OUTPUT -p udp --dport 853 -j ACCEPT 2>/dev/null || iptables -I OUTPUT 2 -p udp --dport 853 -j ACCEPT || true
+
+        # Allow DNS responses
+        iptables -C INPUT -p udp --sport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 3 -p udp --sport 53 -j ACCEPT || true
+        iptables -C INPUT -p udp --sport 853 -j ACCEPT 2>/dev/null || iptables -I INPUT 4 -p udp --sport 853 -j ACCEPT || true
+        iptables -C INPUT -p tcp --sport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 5 -p tcp --sport 53 -j ACCEPT || true
+        iptables -C INPUT -p tcp --sport 853 -j ACCEPT 2>/dev/null || iptables -I INPUT 6 -p tcp --sport 853 -j ACCEPT || true
+
+        # Allow DNS through Calico chains (if Calico is active)
+        iptables -C cali-INPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || iptables -I cali-INPUT 1 -p udp --dport 53 -j ACCEPT 2>/dev/null || true
+        iptables -C cali-INPUT -p udp --sport 53 -j ACCEPT 2>/dev/null || iptables -I cali-INPUT 2 -p udp --sport 53 -j ACCEPT 2>/dev/null || true
       '';
     };
   };
@@ -188,18 +203,18 @@
               "52.85.12.65"
             ];
           }
-          # General DNS forwarding with DoT
+          # General DNS forwarding (DoT DISABLED for emergency fix)
           {
             name = ".";
             forward-addr = [
-              "9.9.9.9@853#dns.quad9.net" # Quad9 Primary (DoT) - PRIORITIZED
-              "9.9.9.10@853#dns.quad9.net" # Quad9 Secondary (DoT)
-              "8.8.8.8@853#dns.google" # Google DNS Primary (DoT)
-              "8.8.4.4@853#dns.google" # Google DNS Secondary (DoT)
-              "1.1.1.1@853#cloudflare-dns.com" # Cloudflare Primary (DoT)
-              "1.0.0.1@853#cloudflare-dns.com" # Cloudflare Secondary (DoT)
+              "9.9.9.9" # Quad9 Primary
+              "9.9.9.10" # Quad9 Secondary
+              "8.8.8.8" # Google DNS Primary
+              "8.8.4.4" # Google DNS Secondary
+              "1.1.1.1" # Cloudflare Primary
+              "1.0.0.1" # Cloudflare Secondary
             ];
-            forward-tls-upstream = true;
+            forward-tls-upstream = false;
           }
         ];
       };
