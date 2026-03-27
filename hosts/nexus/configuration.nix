@@ -50,10 +50,16 @@
     enable = true;
     hostName = "nexus";
     ipAddress = "10.1.1.120";
-    interfaceName = "enp7s0"; # Native hardware interface name
-    wireless.enable = true; # Enable WiFi for versatility (interface: wlo1, native: wlp4s0)
-    unbound.listenAddress = "10.1.1.120"; # Listen on node IP for cluster DNS
+    interfaceName = "enp7s0";
+    wireless = {
+      enable = true;
+      ipAddress = "10.1.1.125"; # Static IP for WiFi backup
+    };
+    unbound.listenAddress = "10.1.1.120";
   };
+
+  # FIX: Disable interface renaming - use actual interface names
+  systemd.network.links = lib.mkForce {};
 
   # Disable flake-lock-sync (nixos-shared mount not available)
   services.flake-lock-sync.enable = lib.mkForce false;

@@ -20,7 +20,7 @@ in {
     ipAddress = mkOption {
       type = types.str;
       example = "10.1.1.110";
-      description = "Static IPv4 address for this node";
+      description = "Static IPv4 address for wired interface";
     };
 
     interfaceName = mkOption {
@@ -35,6 +35,36 @@ in {
         type = types.bool;
         default = false;
         description = "Enable wireless networking";
+      };
+
+      ipAddress = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "10.1.1.115";
+        description = "Static IPv4 address for WiFi interface (null = DHCP)";
+      };
+    };
+
+    # USB Ethernet adapter support (MAC-based matching)
+    usbEthernet = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable static IP for USB Ethernet adapters";
+      };
+
+      macAddresses = mkOption {
+        type = types.listOf types.str;
+        default = [];
+        example = ["00:11:22:33:44:55"];
+        description = "MAC addresses of USB Ethernet adapters to configure with static IP";
+      };
+
+      ipAddress = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "10.1.1.110";
+        description = "Static IP for USB Ethernet adapters (same as main IP by default)";
       };
     };
 
@@ -68,10 +98,10 @@ in {
       # Disable IPv6 - not used in cluster, reduces attack surface
       enableIPv6 = false;
 
-      # Use systemd-networkd for wired (primary connection)
+      # Use systemd-networkd for all interfaces
       useNetworkd = true;
 
-      # Static IP for wired interface (managed by systemd-networkd)
+      # Static IP for wired interface
       interfaces.${cfg.interfaceName}.ipv4.addresses = [
         {
           address = cfg.ipAddress;
@@ -79,23 +109,67 @@ in {
         }
       ];
 
+      # Static IP for WiFi interface (if configured)
+      interfaces."wlo1" = lib.mkIf (cfg.wireless.enable && cfg.wireless.ipAddress != null) {
+        ipv4.addresses = [
+          {
+            address = cfg.wireless.ipAddress;
+            prefixLength = 24;
+          }
+        ];
+      };
+
       # Default route via gateway
       defaultGateway = {
         address = "10.1.1.1";
         interface = cfg.interfaceName;
       };
 
-      # NetworkManager for WiFi backup only (not wired)
-      networkmanager = {
-        inherit (cfg.wireless) enable;
-        dns = "none"; # Use Unbound, not NetworkManager's DNS
-        wifi.backend = "wpa_supplicant"; # Use wpa_supplicant for WiFi
-        # Note: No ensureProfiles for wired - systemd-networkd handles that
-        # WiFi profiles are managed interactively via nmcli/nmtui
+      # NetworkManager disabled - use systemd-networkd for everything
+      networkmanager.enable = false;
+
+      # Disable wpa_supplicant
+      wireless.enable = false;
+    };
+
+    # ============================================================================
+    # SYSTEMD-NETWORKD CONFIGURATION
+    # ============================================================================
+    systemd.network.networks = {
+      # WiFi interface with static IP (low priority = high metric)
+      "10-wifi" = lib.mkIf (cfg.wireless.enable && cfg.wireless.ipAddress != null) {
+        matchConfig.Name = "wlo1";
+        networkConfig = {
+          DHCP = "no";
+          DNS = ["127.0.0.1" "::1"];
+        };
+        address = [
+          "${cfg.wireless.ipAddress}/24"
+        ];
+        routes = [
+          { Gateway = "10.1.1.1"; Metric = 600; }
+        ];
       };
 
-      # Enable wpa_supplicant for WiFi (only when NetworkManager is enabled)
-      wireless.enable = cfg.wireless.enable;
+      # USB Ethernet adapters (driver-based matching for plug/unplug support)
+      # Matches any USB ethernet adapter using Type=ether + Driver pattern
+      "20-usb-ethernet" = lib.mkIf cfg.usbEthernet.enable {
+        matchConfig = {
+          Kind = "ether";
+          # Use Path property for USB devices (alternative to Driver matching)
+          # USB devices have ID_PATH containing "usb"
+        };
+        networkConfig = {
+          DHCP = "no";
+          DNS = ["127.0.0.1" "::1"];
+        };
+        address = [
+          "${if cfg.usbEthernet.ipAddress != null then cfg.usbEthernet.ipAddress else cfg.ipAddress}/24"
+        ];
+        routes = [
+          { Gateway = "10.1.1.1"; Metric = 200; }
+        ];
+      };
     };
 
     # ============================================================================
