@@ -72,8 +72,6 @@ in {
 #              }
 #            }
 #          }
-
-          encode zstd gzip
         }
       '';
     };
