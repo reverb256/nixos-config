@@ -59,8 +59,6 @@ in
         "0.0.0.0"
         "--port"
         "8080"
-        "--workers"
-        "4"
       ];
       ExposedPorts = {
         "8080/tcp" = {};

@@ -325,7 +325,8 @@ in {
           # Sets deadzone at kernel level using EVIOCSABS ioctl
           # This is the ONLY truly global deadzone solution for Linux
           #
-          # Deadzone values: 0-65535 (10000 = ~15%, 15000 = ~23%, 20000 = ~30%)
+          # Deadzone values: Calculated based on axis range (DualSense: 0-255)
+          # For 0-255 range: 20 = ~8%, 25 = ~10%, 38 = ~15%
           # Axis codes: 0=ABS_X, 1=ABS_Y, 3=ABS_RX, 4=ABS_RY
           #
           # IMPORTANT: RUN+ commands execute when controller is CONNECTED
@@ -334,7 +335,7 @@ in {
           # DualSense (USB & Bluetooth) - match joystick event device only
           # CRITICAL: Must match KERNEL=="event*" AND exclude Touchpad/Motion devices
           # The joystick device has name ending with "Controller" (not "Controller Touchpad" or "Controller Motion Sensors")
-          SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*DualSense*Wireless*Controller", ATTRS{name}!="*Touchpad*", ATTRS{name}!="*Motion*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:10000 1:10000 3:10000 4:10000"
+          SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*DualSense*Wireless*Controller", ATTRS{name}!="*Touchpad*", ATTRS{name}!="*Motion*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:20 1:20 3:20 4:20"
         '';
       };
 
@@ -366,15 +367,20 @@ in {
           MANGOHUD_CONFIG = "fps,frametime,cpu_stats,gpu_stats,vram,ram,cpu_temp,gpu_temp,core_load,background_alpha=0.5,position=top-left,toggle_hud=Shift_R+F12";
           # Auto-reload GameMode config when launching games
           GAMEMODE_AUTO_RELOAD_CONFIG = "1";
-          # SDL2 joystick deadzone (0-100, default 15) - 5% for all joysticks
-          SDL_JOYSTICK_AXIS_DEADZONE = "5";
+          # SDL2 joystick deadzone (0-100, default 15) - 30% to fix drift
+          # Massive value because SDL2 HIDAPI bypasses kernel deadzone
+          SDL_JOYSTICK_AXIS_DEADZONE = "30";
           # SDL2 GameControllerDB path for proper DualSense mapping in Wine/Proton
           SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
-          # SDL2 HIDAPI for native DualSense support (haptics, gyro, LED, touchpad)
-          SDL_JOYSTICK_HIDAPI = "1";
-          SDL_JOYSTICK_HIDAPI_PS5 = "1";
-          SDL_JOYSTICK_HIDAPI_PS5_RUMBLE = "1";
-          SDL_JOYSTICK_HIDAPI_PS5_PLAYER_LED = "1";
+          # SDL2 HIDAPI DISABLED for DualSense to use kernel deadzone
+          # HIDAPI uses raw hidraw access (bypasses kernel deadzone)
+          # SDL_JOYSTICK_HIDAPI = "1";
+          # SDL_JOYSTICK_HIDAPI_PS5 = "1";
+          # SDL_JOYSTICK_HIDAPI_PS5_RUMBLE = "1";
+          # SDL_JOYSTICK_HIDAPI_PS5_PLAYER_LED = "1";
+          #
+          # Trade-off: Lose haptics/gyro/LED, gain working deadzone
+          # Most games don't use these features anyway
         };
 
         # Common gaming packages

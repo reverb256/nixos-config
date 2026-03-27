@@ -1,0 +1,34 @@
+# Egress NetworkPolicy for SearXNG pods
+# Allows SearXNG to reach external search engines (Google, Bing, Brave, Wikipedia, GitHub, etc.)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-searxng-egress
+  namespace: search
+spec:
+  podSelector:
+    matchLabels:
+      app: searxng
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS queries to CoreDNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          k8s-app: kube-dns
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow all outbound traffic (for search engines)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443

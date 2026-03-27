@@ -93,6 +93,14 @@ in {
     age.secrets = lib.mkMerge [
       # AI Services - Zephyr primary
       (lib.mkIf config.services.agenix-secrets-registry.aiServices {
+        # LM Studio API key - Local LLM backend
+        lm-studio-api-key = {
+          file = "${inputs.self}/secrets/lm-studio-api-key.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
+
         # Hugging Face token - AI model downloads
         huggingface-token = {
           file = "${inputs.self}/secrets/huggingface-token.age";
