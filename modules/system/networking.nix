@@ -191,32 +191,9 @@
           }
         ];
 
-        # Forward all other queries to upstream DNS with TLS
-        forward-zone = [
-          # ASUS-specific forward zone for BIOS downloads
-          {
-            name = "asus-cdn";
-            forward-addr = [
-              "52.85.12.13"
-              "52.85.12.97"
-              "52.85.12.88"
-              "52.85.12.65"
-            ];
-          }
-          # General DNS forwarding (DoT DISABLED for emergency fix)
-          {
-            name = ".";
-            forward-addr = [
-              "9.9.9.9" # Quad9 Primary
-              "9.9.9.10" # Quad9 Secondary
-              "8.8.8.8" # Google DNS Primary
-              "8.8.4.4" # Google DNS Secondary
-              "1.1.1.1" # Cloudflare Primary
-              "1.0.0.1" # Cloudflare Secondary
-            ];
-            forward-tls-upstream = false;
-          }
-        ];
+        # NOTE: Forward-zone configuration moved to hosts/zephyr/configuration.nix (2026-03-27)
+        # DNS-over-TLS to Cloudflare, Google, Quad9 configured per-host
+        # This prevents duplicate forward-zone declarations that break Unbound
       };
     };
 

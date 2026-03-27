@@ -540,4 +540,9 @@
     # cacheTypeK = "bf16";
     # cacheTypeV = "bf16";
   };
+
+  # ============================================================================
+  # UNBOUND DNS WITH DNS-OVER-TLS (Cluster-wide configuration)
+  # ============================================================================
+  services.unbound-common.enable = true;
 }
