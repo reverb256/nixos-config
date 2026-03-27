@@ -763,7 +763,6 @@
         {
           admin 127.0.0.1:2019
           default_sni cluster.local
-          encode zstd gzip
         }
 
         # AI Inference Gateway (via Tailscale)
@@ -775,6 +774,7 @@
             Referrer-Policy "strict-origin-when-cross-origin"
             -Server
           }
+          encode zstd gzip
           reverse_proxy 127.0.0.1:8080
         }
 
@@ -785,6 +785,7 @@
             X-Frame-Options "SAMEORIGIN"
             -Server
           }
+          encode zstd gzip
           reverse_proxy 127.0.0.1:8090
         }
         http://dashboard.zephyr.lan {
@@ -793,6 +794,7 @@
             X-Frame-Options "SAMEORIGIN"
             -Server
           }
+          encode zstd gzip
           reverse_proxy 127.0.0.1:8090
         }
       '';
@@ -1583,6 +1585,15 @@
       "/nix/store/d1i12f1i7ycj8zj9pq3nxw2skyms5dl7-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
     ];
   };
+
+  # ============================================================================
+  # UNBOUND DNS WITH DNS-OVER-TLS
+  # ============================================================================
+  # Local recursive DNS resolver with DNS-over-TLS to Cloudflare, Google, Quad9
+  # Accessible on localhost for local applications and cluster network
+  # Survives NixOS rebuilds without restart (restartIfChanged = false)
+  services.unbound-common.enable = true;
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
+
 
