@@ -18,11 +18,23 @@ in
 
         echo "[Hermes Health Check] Starting..."
 
-        # 1. Check Hermes agent service is running
-        if systemctl is-active --quiet hermes-agent.service; then
+        # 1. Check Hermes agent service
+        # Service can be: active (running), inactive (completed/failed), or not-found
+        HERMES_STATUS=$(systemctl is-active hermes-agent.service 2>/dev/null || echo "not-found")
+        HERMES_ENABLED=$(systemctl is-enabled hermes-agent.service 2>/dev/null || echo "disabled")
+
+        if [ "$HERMES_STATUS" = "active" ]; then
           echo "[Hermes Health Check] ✓ Hermes Agent service is running"
+        elif [ "$HERMES_STATUS" = "inactive" ] && [ "$HERMES_ENABLED" = "enabled" ]; then
+          # Service is enabled but not active - check if it ran successfully
+          if systemctl show hermes-agent.service -p ExecMainStatus --value | grep -q "0"; then
+            echo "[Hermes Health Check] ✓ Hermes Agent service completed successfully (oneshot)"
+          else
+            echo "[Hermes Health Check] ✗ Hermes Agent service failed"
+            exit 1
+          fi
         else
-          echo "[Hermes Health Check] ✗ Hermes Agent service is not running"
+          echo "[Hermes Health Check] ✗ Hermes Agent service is not running (status: $HERMES_STATUS, enabled: $HERMES_ENABLED)"
           exit 1
         fi
 
