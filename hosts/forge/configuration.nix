@@ -43,10 +43,13 @@
     enable = true;
     hostName = "forge";
     ipAddress = "10.1.1.130";
-    interfaceName = lib.mkForce "eno1"; # Override profile - actual interface is eno1, not enp0s31f6
-    wireless.enable = false; # Mining rig - no WiFi needed
-    unbound.listenAddress = "10.1.1.130"; # Listen on node IP for cluster DNS
+    interfaceName = lib.mkForce "eno1";
+    wireless.enable = false;
+    unbound.listenAddress = "10.1.1.130";
   };
+
+  # FIX: Disable interface renaming - use actual interface names
+  systemd.network.links = lib.mkForce {};
 
   # Enable ULA (Unique Local Address) IPv6 for Calico BGP mesh
   networking.interfaces.eno1.ipv6.addresses = [
