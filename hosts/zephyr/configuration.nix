@@ -47,9 +47,16 @@
     enable = true;
     hostName = "zephyr";
     ipAddress = "10.1.1.110";
-    wireless.enable = true; # WiFi interface: wlo1 (native: wlp40s0)
-    unbound.listenAddress = "10.1.1.110"; # Listen on node IP for cluster DNS (VIP: 10.1.1.100 handled separately)
+    wireless = {
+      enable = true;
+      ipAddress = "10.1.1.115"; # Static IP for WiFi backup
+    };
+    usbEthernet.enable = true; # Support USB ethernet adapters
+    unbound.listenAddress = "10.1.1.110";
   };
+
+  # FIX: Disable interface renaming - use actual interface names
+  systemd.network.links = lib.mkForce {};
 
   # ============================================================================
   # MEMORY OPTIMIZATION - Reduce kernel slab cache bloat
@@ -182,13 +189,11 @@
   #
   # Note: GameMode is a D-Bus session service, so we use systemd.user.services
   # to run it in the user session context, not as a system service.
+  #
+  # FIX: Don't override ExecStart or Type - let gaming module handle those.
+  # Only add wantedBy to start at boot. This prevents duplicate ExecStart lines.
   systemd.user.services.gamemoded = {
     wantedBy = ["default.target"];
-    serviceConfig = {
-      ExecStart = "${pkgs.gamemode}/bin/gamemoded -d";
-      Restart = "on-failure";
-      Type = "forking";
-    };
   };
 
   # ============================================================================
@@ -258,15 +263,17 @@
     };
 
     # Cloudflare Tunnel - Akash provider ingress with Zero Trust
+    # MIGRATED: Service moved to Kubernetes (cloudflared-deployment.yaml)
     cloudflared-tunnel = {
-      enable = true;
+      enable = false;
       tunnelId = "e67aedf0-a025-4231-9ee4-3fa6887c2d21";
 
       # Change metrics port to avoid conflict (default 54162 was already in use)
       metricsPort = 54163;
 
-      # Enable QUIC protocol for 30-50% faster connections
-      quicEnabled = true;
+      # Disable QUIC due to IPv6 control stream failures
+      # TODO: Re-enable after IPv6 routing issues are resolved
+      quicEnabled = false;
 
       ingressRules = [
         # Provider bid engine (NodePort 32294) - RESTRICTED ACCESS
@@ -1056,8 +1063,8 @@
       # perGpuPowerLimits: [220, 250] = [GPU0: 220W (max), GPU1: 250W]
       # ENABLED: Mine on RTX 3090 only - 3060 Ti reserved for AI/ML
       lolminer.nvidia = {
-        enable = false; # MIGRATED: Now running in Kubernetes (gpu-miner-zephyr)
-        autostart = false;
+        enable = true; # RE-ENABLED: Kubernetes CNI broken, using systemd until fixed
+        autostart = true;
         devices = "1"; # Only mine on GPU 1 (RTX 3090)
         perGpuPowerLimits = [250]; # GPU1: RTX 3090 @ 250W (GPU 0 disabled)
         apiPort = 4068;
