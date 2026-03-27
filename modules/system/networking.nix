@@ -76,6 +76,19 @@
         60005
       ]; # Mosh (UDP range start)
       # Additional ports can be added per-host in hosts/*/default.nix
+
+      # CRITICAL: Insert ICMP and loopback rules BEFORE Calico/Kubernetes chains
+      # Calico inserts its chains at the top, blocking ICMP by default
+      # These extraCommands run AFTER NixOS builds the firewall, ensuring our rules are on top
+      extraCommands = ''
+        # Allow ICMP echo requests (ping) - insert at rule #1
+        # Use || true to fail gracefully if rules already exist
+        iptables -C INPUT -p icmp --icmp-type echo-request -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -p icmp --icmp-type echo-request -j ACCEPT || true
+
+        # Allow loopback interface - insert at rule #1 (pushes ICMP to #2)
+        # Check if rule exists before adding to avoid duplicates
+        iptables -C INPUT -i lo -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -i lo -j ACCEPT || true
+      '';
     };
   };
 
@@ -124,6 +137,7 @@
     # Only enable when unbound-cluster is NOT enabled (to avoid duplicate forward-zone)
     unbound = lib.mkIf (!config.services.unbound-cluster.enable or false) {
       enable = true;
+
       settings = {
         server = {
           interface = [
@@ -223,6 +237,17 @@
   };
   # Don't require systemd-networkd-wait-online for network-online.target
   systemd.targets.network-online.wantedBy = lib.mkForce ["network-online.target"];
+
+  # ============================================================================
+  # DNS SELF-HEALING
+  # Configure Unbound with automatic restart on failure
+  # ============================================================================
+  systemd.services.unbound = lib.mkIf config.services.unbound.enable {
+    serviceConfig = {
+      Restart = lib.mkForce "always";  # Override upstream "on-failure"
+      RestartSec = lib.mkForce "5s";
+    };
+  };
 
   # ============================================================================
   # FAIL2BAN CONFIGURATION

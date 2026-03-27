@@ -520,30 +520,37 @@ async def main():
                 )]
 
             elif name == "ping_searxng":
-                import httpx
-
                 try:
-                    async with httpx.AsyncClient(timeout=5.0) as client:
-                        response = await client.get(f"{SEARXNG_URL}/")
-                        if response.status_code == 200:
-                            return [TextContent(
-                                type="text",
-                                text=json.dumps({
-                                    "status": "healthy",
-                                    "service": "SearXNG",
-                                    "url": SEARXNG_URL,
-                                    "cache_ttl": SEARXNG_CACHE_TTL
-                                }, indent=2)
-                            )]
-                        else:
-                            return [TextContent(
-                                type="text",
-                                text=f"SearXNG unhealthy: HTTP {response.status_code}"
-                            )]
+                    # Use the SearxngIntegration instance to test connectivity
+                    result = await searxng.search(
+                        query="test",
+                        max_results=1,
+                        use_cache=False
+                    )
+
+                    if result.get("results") is not None:
+                        return [TextContent(
+                            type="text",
+                            text=json.dumps({
+                                "status": "healthy",
+                                "service": "SearXNG",
+                                "url": SEARXNG_URL,
+                                "cache_ttl": SEARXNG_CACHE_TTL,
+                                "test_query": "test"
+                            }, indent=2)
+                        )]
+                    else:
+                        return [TextContent(
+                            type="text",
+                            text=f"SearXNG returned unexpected response: {result}"
+                        )]
                 except Exception as e:
+                    import traceback
+                    logger.error(f"[ping_searxng] Exception: {type(e).__name__}: {e}")
+                    logger.error(f"[ping_searxng] Traceback:\n{traceback.format_exc()}")
                     return [TextContent(
                         type="text",
-                        text=f"SearXNG unreachable: {str(e)}"
+                        text=f"SearXNG unreachable: {type(e).__name__}: {str(e)}"
                     )]
 
             else:

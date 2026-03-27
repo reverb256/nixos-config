@@ -194,6 +194,8 @@ class MCPConfig(BaseModel):
     servers: List[MCPServerConfig] = Field(
         default_factory=list, description="Configured MCP servers"
     )
+    # Exclude servers from env var parsing - we handle it manually in the validator
+    model_config = SettingsConfigDict(extra="ignore")
 
 
 class SystemPromptsConfig(BaseModel):
@@ -440,6 +442,57 @@ class MiddlewareConfig(BaseSettings):
         self.knowledge_fabric.web_max_results = (
             int(web_max_results) if web_max_results else 5
         )
+
+        return self
+
+    # Override mcp using model_validator to parse env vars
+    @model_validator(mode="after")
+    def override_mcp_from_env(self):
+        """Parse MCP env vars"""
+        import os
+        import json
+
+        # Read MCP_ENABLED env var
+        mcp_enabled = os.environ.get("MCP_ENABLED", "").lower()
+
+        # Override mcp.enabled field
+        if mcp_enabled:
+            self.mcp.enabled = mcp_enabled == "true"
+
+        # Read MCP_SERVERS env var (JSON string)
+        mcp_servers_json = os.environ.get("MCP_SERVERS", "[]")
+        if mcp_servers_json and mcp_servers_json != "[]":
+            try:
+                servers_data = json.loads(mcp_servers_json)
+                # Convert dict to MCPServerConfig objects
+                # The dict key is the server name, value contains the config
+                servers = []
+                for server_name, server_config in servers_data.items():
+                    if not server_config.get("enabled", True):
+                        continue
+
+                    # Extract fields explicitly to avoid unexpected kwargs
+                    server_type = server_config.get("type", "local")
+                    command = server_config.get("command")
+                    url = server_config.get("url")
+                    headers = server_config.get("headers", {})
+                    environment = server_config.get("environment", {})
+
+                    # Create MCPServerConfig with explicit fields
+                    server = MCPServerConfig(
+                        name=server_name,
+                        type=server_type,
+                        command=command,
+                        url=url,
+                        headers=headers,
+                        environment=environment,
+                    )
+                    servers.append(server)
+
+                self.mcp.servers = servers
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to parse MCP_SERVERS JSON: {e}")
 
         return self
 
