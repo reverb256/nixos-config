@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   inherit (lib) mkEnableOption mkOption types mkIf;
@@ -98,77 +99,88 @@ in {
       # Disable IPv6 - not used in cluster, reduces attack surface
       enableIPv6 = false;
 
-      # Use systemd-networkd for all interfaces
-      useNetworkd = true;
+      # Use NetworkManager for all interfaces (not systemd-networkd)
+      useNetworkd = false;
+      networkmanager.enable = true;
 
-      # Static IP for wired interface
-      interfaces.${cfg.interfaceName}.ipv4.addresses = [
-        {
-          address = cfg.ipAddress;
-          prefixLength = 24;
-        }
-      ];
-
-      # Static IP for WiFi interface (if configured)
-      interfaces."wlo1" = lib.mkIf (cfg.wireless.enable && cfg.wireless.ipAddress != null) {
-        ipv4.addresses = [
-          {
-            address = cfg.wireless.ipAddress;
-            prefixLength = 24;
-          }
-        ];
-      };
-
-      # Default route via gateway
-      defaultGateway = {
-        address = "10.1.1.1";
-        interface = cfg.interfaceName;
-      };
-
-      # NetworkManager disabled - use systemd-networkd for everything
-      networkmanager.enable = false;
-
-      # Disable wpa_supplicant
-      wireless.enable = false;
+      # Don't use static interface configuration - let NetworkManager handle it
+      # via connection profiles in /etc/NetworkManager/system-connections/
     };
 
     # ============================================================================
-    # SYSTEMD-NETWORKD CONFIGURATION
+    # NETWORKMANAGER CONNECTION PROFILES
     # ============================================================================
-    systemd.network.networks = {
-      # WiFi interface with static IP (low priority = high metric)
-      "10-wifi" = lib.mkIf (cfg.wireless.enable && cfg.wireless.ipAddress != null) {
-        matchConfig.Name = "wlo1";
-        networkConfig = {
-          DHCP = "no";
-          DNS = ["127.0.0.1" "::1"];
-        };
-        address = [
-          "${cfg.wireless.ipAddress}/24"
-        ];
-        routes = [
-          { Gateway = "10.1.1.1"; Metric = 600; }
-        ];
-      };
+    # NetworkManager will manage all connections with static IPs
+    environment.etc."NetworkManager/system-connections".source = pkgs.runCommand "nm-connections" { } ''
+        # Create directory structure for NetworkManager connections
+        mkdir -p $out
+        cd $out
 
-      # USB Ethernet adapters (driver-based matching for plug/unplug support)
-      # Matches any USB ethernet adapter using Type=ether + Driver pattern
-      "20-usb-ethernet" = lib.mkIf cfg.usbEthernet.enable {
-        matchConfig = {
-          Kind = "ether";
-          # Use Path property for USB devices (alternative to Driver matching)
-          # USB devices have ID_PATH containing "usb"
+        # Wired Ethernet connection (primary, low metric = high priority)
+        cat > wired.nmconnection <<EOF
+        [connection]
+        id=wired
+        type=ethernet
+        interface-name=${cfg.interfaceName}
+        autoconnect=true
+
+        [ipv4]
+        method=manual
+        address1=${cfg.ipAddress}/24,10.1.1.1
+        route-metric=50
+
+        [ipv6]
+        method=disabled
+        EOF
+      '' + lib.optionalString (cfg.wireless.enable) ''
+        # WiFi connection (if enabled, higher metric = lower priority)
+        cat > wifi.nmconnection <<EOF
+        [connection]
+        id=wifi
+        type=wifi
+        interface-name=wlo1
+        autoconnect=true
+
+        [wifi]
+        ssid=Tigris-Guest
+        mode=infrastructure
+
+        [ipv4]
+        ${if cfg.wireless.ipAddress != null then "method=manual\naddress1=${cfg.wireless.ipAddress}/24,10.1.1.1" else "method=dhcp"}
+        route-metric=100
+
+        [ipv6]
+        method=disabled
+        EOF
+      '' + lib.optionalString cfg.usbEthernet.enable ''
+        # USB Ethernet connections (if enabled, very low priority)
+        cat > usb-ethernet.nmconnection <<EOF
+        [connection]
+        id=usb-ethernet
+        type=ethernet
+        autoconnect=true
+
+        [ipv4]
+        method=manual
+        address1=${if cfg.usbEthernet.ipAddress != null then cfg.usbEthernet.ipAddress else cfg.ipAddress}/24,10.1.1.1
+        route-metric=200
+
+        [ipv6]
+        method=disabled
+        EOF
+      '';
+
+    # ============================================================================
+    # SYSTEMD-NETWORKD CONFIGURATION (DISABLED - using NetworkManager instead)
+    # ============================================================================
+    # systemd.network.networks = { ... };  # Removed - using NetworkManager
+    systemd.network.links = {
+      # Disable interface renaming - keep kernel names (enp*, wlp*, enx*)
+      "10-keep-names" = {
+        matchConfig = { OriginalName = "*"; };
+        linkConfig = {
+          NamePolicy = "keep";
         };
-        networkConfig = {
-          DHCP = "no";
-          DNS = ["127.0.0.1" "::1"];
-        };
-        address = [
-          "${if cfg.usbEthernet.ipAddress != null then cfg.usbEthernet.ipAddress else cfg.ipAddress}/24"
-        ];
-        routes = [
-          { Gateway = "10.1.1.1"; Metric = 200; }
-        ];
       };
     };
 
@@ -181,8 +193,8 @@ in {
         inherit (cfg.unbound) listenAddress;
       };
 
-      # Configure Unbound to listen on VIP for CoreDNS forwarding
-      unbound.settings.server.interface = [ "127.0.0.1" cfg.unbound.listenAddress "10.1.1.100" ];
+      # Configure Unbound to listen on localhost and VIP for CoreDNS forwarding
+      unbound.settings.server.interface = [ "127.0.0.1" "::1" cfg.unbound.listenAddress "10.1.1.100" ];
 
       # Allow Kubernetes pod network to query Unbound for external DNS
       unbound.settings.server.access-control = [
@@ -208,6 +220,12 @@ in {
         };
       };
     };
+
+    # ============================================================================
+    # NETWORKMANAGER DNS CONFIGURATION
+    # ============================================================================
+    networking.networkmanager.dns = "default";  # Don't override with DHCP
+    # DNS servers will be configured via NetworkManager connection profiles
 
     # ============================================================================
     # FIREWALL (Base cluster defaults)
