@@ -763,47 +763,36 @@
         {
           admin 127.0.0.1:2019
           default_sni cluster.local
-
-          # Named snippet for security headers
-          (security_headers) {
-            header {
-              Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-              X-Content-Type-Options "nosniff"
-              X-Frame-Options "SAMEORIGIN"
-              X-XSS-Protection "1; mode=block"
-              Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:"
-              Referrer-Policy "strict-origin-when-cross-origin"
-              -Server
-            }
-          }
-
-#          rate_limit {
-#            zone dynamic_zones {
-#              entry {
-#                zone = "cluster_local"
-#                key = "remote_ip"
-#                events = 100
-#                window = 1m
-#              }
-#            }
-#          }
-
           encode zstd gzip
         }
 
         # AI Inference Gateway (via Tailscale)
         ai.zephyr.tigris-ule.ts.net:9002 {
-          security_headers
+          header {
+            Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "SAMEORIGIN"
+            Referrer-Policy "strict-origin-when-cross-origin"
+            -Server
+          }
           reverse_proxy 127.0.0.1:8080
         }
 
         # Host Dashboard (LAN access - no TLS)
         http://zephyr.lan {
-          security_headers
+          header {
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "SAMEORIGIN"
+            -Server
+          }
           reverse_proxy 127.0.0.1:8090
         }
         http://dashboard.zephyr.lan {
-          security_headers
+          header {
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "SAMEORIGIN"
+            -Server
+          }
           reverse_proxy 127.0.0.1:8090
         }
       '';
