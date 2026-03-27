@@ -18,14 +18,6 @@ in {
       enable = true;
       settings = {
         server = {
-          # Listen on localhost and cluster network (per-host IP)
-          interface = [ "127.0.0.1" "::1" cfg.ipAddress ];
-          access-control = [
-            "127.0.0.0/8 allow"
-            "10.1.1.0/24 allow"  # Cluster network
-            "10.244.0.0/16 allow"  # Kubernetes pod network
-          ];
-
           # Performance tuning
           num-threads = 4;
           msg-cache-size = "128m";

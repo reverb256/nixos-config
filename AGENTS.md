@@ -1,5 +1,7 @@
 # NixOS Cluster - Agent Guidelines
 
+**Generated:** 2026-03-27 | **Commit:** d1a10fb | **Branch:** feature/x86-64-v3-migration
+
 ## Quick Start
 
 ```bash
@@ -297,4 +299,4 @@ profiles.network.tailscale.enable = true;
 
 ---
 
-**Version**: 3.2 | **Last Updated:** 2026-03-25 | **Updated:** 2026-03-18
+**Version**: 3.3 | **Last Updated:** 2026-03-27
