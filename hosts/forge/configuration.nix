@@ -579,6 +579,7 @@
 
   networking.networkmanager = {
     enable = true;
+    useNetworkd = false; # Disable systemd-networkd (conflicts with NetworkManager)
     unmanaged = [];
     ensureProfiles.profiles."Wired connection 1" = {
       connection = {
