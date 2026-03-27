@@ -39,16 +39,21 @@ in {
   config = mkIf cfg.enable {
     # Configure NetworkManager via global configuration
     networking.networkmanager = {
-      # Set default DNS servers for all connections
-      extraConfig = ''
-        [global-dns]
-        searches=none
-        ${lib.concatMapStringsSep "\n" (server: "servers=${server}") cfg.dnsServers}
-
-        [connection]
-        ethernet.metric=${toString cfg.ethernetMetric}
-        wifi.metric=${toString cfg.wifiMetric}
-      '';
+      # Use structured settings instead of extraConfig
+      settings = {
+        global-dns = {
+          searches = "none";
+        };
+        connection = {
+          # Set default metrics for connection types
+          ethernet = {
+            metric = cfg.ethernetMetric;
+          };
+          wifi = {
+            metric = cfg.wifiMetric;
+          };
+        };
+      };
 
       # Ensure DNS doesn't get overridden by DHCP
       dns = "default";
