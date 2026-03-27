@@ -319,9 +319,14 @@ in {
           "/home/${cfg.user}/.config/opencode"
           "/root/.config/opencode"
         ];
-        # Allow reading the update script and agenix secrets
+        # Allow reading the update script and agenix secrets (if they exist)
         ReadOnlyPaths = [
           "/etc/nixos/scripts"
+          "/run/agenix"  # Optional: only exists on nodes with agenix secrets
+        ];
+
+        # Make /run/agenix optional (don't fail if missing)
+        BindPaths = lib.mkIf (config.age ? secrets) [
           "/run/agenix"
         ];
 
