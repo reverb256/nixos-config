@@ -67,7 +67,10 @@
     firewall = {
       enable = true;
       # Base allowed ports - all hosts get these
-      allowedTCPPorts = lib.mkOptionDefault [22]; # SSH (essential for cluster management)
+      allowedTCPPorts = lib.mkOptionDefault [
+        22    # SSH (essential for cluster management)
+        6443  # Kubernetes API server (critical for cluster communication)
+      ];
       allowedUDPPorts = lib.mkOptionDefault [
         60001
         60002
