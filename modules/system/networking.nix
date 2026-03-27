@@ -93,19 +93,25 @@
         iptables -C INPUT -i lo -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -i lo -j ACCEPT || true
 
         # CRITICAL: Allow DNS traffic (prevent Calico/K8s from blocking DNS)
+        # Allow DNS queries TO Unbound (destination port 53)
+        iptables -C INPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 3 -p udp --dport 53 -j ACCEPT || true
+        iptables -C INPUT -p tcp --dport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 4 -p tcp --dport 53 -j ACCEPT || true
+
         # Allow outbound DNS queries
         iptables -C OUTPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || iptables -I OUTPUT 1 -p udp --dport 53 -j ACCEPT || true
         iptables -C OUTPUT -p udp --dport 853 -j ACCEPT 2>/dev/null || iptables -I OUTPUT 2 -p udp --dport 853 -j ACCEPT || true
 
         # Allow DNS responses
-        iptables -C INPUT -p udp --sport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 3 -p udp --sport 53 -j ACCEPT || true
-        iptables -C INPUT -p udp --sport 853 -j ACCEPT 2>/dev/null || iptables -I INPUT 4 -p udp --sport 853 -j ACCEPT || true
-        iptables -C INPUT -p tcp --sport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 5 -p tcp --sport 53 -j ACCEPT || true
-        iptables -C INPUT -p tcp --sport 853 -j ACCEPT 2>/dev/null || iptables -I INPUT 6 -p tcp --sport 853 -j ACCEPT || true
+        iptables -C INPUT -p udp --sport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 5 -p udp --sport 53 -j ACCEPT || true
+        iptables -C INPUT -p udp --sport 853 -j ACCEPT 2>/dev/null || iptables -I INPUT 6 -p udp --sport 853 -j ACCEPT || true
+        iptables -C INPUT -p tcp --sport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 7 -p tcp --sport 53 -j ACCEPT || true
+        iptables -C INPUT -p tcp --sport 853 -j ACCEPT 2>/dev/null || iptables -I INPUT 8 -p tcp --sport 853 -j ACCEPT || true
 
         # Allow DNS through Calico chains (if Calico is active)
         iptables -C cali-INPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || iptables -I cali-INPUT 1 -p udp --dport 53 -j ACCEPT 2>/dev/null || true
         iptables -C cali-INPUT -p udp --sport 53 -j ACCEPT 2>/dev/null || iptables -I cali-INPUT 2 -p udp --sport 53 -j ACCEPT 2>/dev/null || true
+        iptables -C cali-INPUT -p tcp --dport 53 -j ACCEPT 2>/dev/null || iptables -I cali-INPUT 3 -p tcp --dport 53 -j ACCEPT 2>/dev/null || true
+        iptables -C cali-INPUT -p tcp --sport 53 -j ACCEPT 2>/dev/null || iptables -I cali-INPUT 4 -p tcp --sport 53 -j ACCEPT 2>/dev/null || true
       '';
     };
   };
@@ -153,49 +159,42 @@
 
     # Unbound DNS resolver with TLS
     # Only enable when unbound-cluster is NOT enabled (to avoid duplicate forward-zone)
-    unbound = lib.mkIf (!config.services.unbound-cluster.enable or false) {
-      enable = true;
-
-      settings = {
-        server = {
-          interface = [
-            "127.0.0.1"
-            "::1"
-          ];
-          port = 53;
-          access-control = [
-            "127.0.0.0/8 allow"
-            "::1/128 allow"
-            "10.1.1.0/24 allow" # Local network access
-          ];
-          do-tcp = true;
-          do-udp = true;
-          prefetch = true;
-          cache-min-ttl = 300; # 5 minutes minimum
-          cache-max-ttl = 86400; # 24 hours maximum
-
-          # Security and performance settings
-          harden-glue = true;
-          harden-dnssec-stripped = true;
-          use-caps-for-id = false;
-          edns-buffer-size = 1232;
-          hide-identity = true;
-          hide-version = true;
-        };
-
-        # Stub zone for Tailscale Magic DNS
-        stub-zone = [
-          {
-            name = "tigris-ule.ts.net";
-            stub-addr = "100.100.100.100"; # Tailscale DNS server
-          }
-        ];
-
-        # NOTE: Forward-zone configuration moved to hosts/zephyr/configuration.nix (2026-03-27)
-        # DNS-over-TLS to Cloudflare, Google, Quad9 configured per-host
-        # This prevents duplicate forward-zone declarations that break Unbound
-      };
-    };
+    # DISABLED: Using unbound-common.nix instead (2026-03-27)
+    # This was causing duplicate ExecStart directives in systemd unit
+    # unbound = lib.mkIf (!config.services.unbound-cluster.enable or false) {
+    #   enable = true;
+    #   settings = {
+    #     server = {
+    #       interface = [
+    #         "127.0.0.1"
+    #         "::1"
+    #       ];
+    #       port = 53;
+    #       access-control = [
+    #         "127.0.0.0/8 allow"
+    #         "::1/128 allow"
+    #         "10.1.1.0/24 allow" # Local network access
+    #       ];
+    #       do-tcp = true;
+    #       do-udp = true;
+    #       prefetch = true;
+    #       cache-min-ttl = 300; # 5 minutes minimum
+    #       cache-max-ttl = 86400; # 24 hours maximum
+    #       harden-glue = true;
+    #       harden-dnssec-stripped = true;
+    #       use-caps-for-id = false;
+    #       edns-buffer-size = 1232;
+    #       hide-identity = true;
+    #       hide-version = true;
+    #     };
+    #     stub-zone = [
+    #       {
+    #         name = "tigris-ule.ts.net";
+    #         stub-addr = "100.100.100.100";
+    #       }
+    #     ];
+    #   };
+    # };
 
     # SYSTEMD-TIMESYNGD - Modern NTP Client
     timesyncd = {
@@ -237,12 +236,14 @@
   # DNS SELF-HEALING
   # Configure Unbound with automatic restart on failure
   # ============================================================================
-  systemd.services.unbound = lib.mkIf config.services.unbound.enable {
-    serviceConfig = {
-      Restart = lib.mkForce "always";  # Override upstream "on-failure"
-      RestartSec = lib.mkForce "5s";
-    };
-  };
+  # DISABLED: Using unbound-common.nix instead (2026-03-27)
+  # This was causing duplicate systemd unit configuration
+  # systemd.services.unbound = lib.mkIf config.services.unbound.enable {
+  #   serviceConfig = {
+  #     Restart = lib.mkOptionDefault "always";  # Override upstream "on-failure"
+  #     RestartSec = lib.mkOptionDefault "5s";
+  #   };
+  # };
 
   # ============================================================================
   # FAIL2BAN CONFIGURATION
