@@ -326,7 +326,8 @@
             # - Pod Resources Lister socket (/var/lib/kubernetes/pod-resources/kubelet.sock)
             # Without enableServer=true, device plugins CANNOT register and GPUs show capacity=0
             enableServer = true;
-            readOnlyPort = 10255; # Read-only kubelet API port
+            port = 10250; # Streaming API port for logs, exec, port-forward
+            readOnlyPort = 10255; # Read-only kubelet API port (metrics, health)
             # Kubelet authentication - require X509 client certificates from API server
             authentication = {
               anonymous = {
