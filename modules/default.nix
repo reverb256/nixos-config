@@ -26,7 +26,7 @@
     ./system/users.nix
     ./system/home-manager.nix
     ./system/networking.nix
-    ./system/dns-watchdog.nix
+    # ./system/dns-watchdog.nix  # DISABLED: Causing rebuild failures (2026-03-27)
     # ./system/interface-naming.nix  # DISABLED: Using native enp*s* naming (2026-03-12)
     ./system/ssh.nix
     ./system/ssh-ca.nix
@@ -129,7 +129,8 @@
     ./services/cloudflared.nix # Cloudflare Tunnel for Akash provider ingress
     ./services/akash-cloudflare-integration.nix # DNS, cache, metrics for Akash
     ./services/cluster-ca.nix # Internal CA for cluster services
-    ./services/unbound-cluster.nix
+    ./services/unbound-common.nix # Unified Unbound DNS-over-TLS for all hosts
+    # ./services/unbound-cluster.nix  # DISABLED: Using unbound-common instead (2026-03-27)
     ./services/syncthing.nix
     ./services/garage.nix # S3-compatible distributed object storage
     ./services/backup-to-garage.nix # Automated backups to Garage S3
