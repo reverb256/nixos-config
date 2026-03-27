@@ -6,8 +6,10 @@
     text = ''
       #!/usr/bin/env bash
       set -euo pipefail
-      LOGFILE="/tmp/plasma-monitor-setup.log"
-      NOTIFY_LOG="/tmp/monitor-events.log"
+      STATE_DIR="''${XDG_STATE_HOME:-$HOME/.local/state}/plasma-monitor-setup"
+      mkdir -p "$STATE_DIR"
+      LOGFILE="$STATE_DIR/plasma-monitor-setup.log"
+      NOTIFY_LOG="$STATE_DIR/monitor-events.log"
 
       log() {
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOGFILE"
@@ -19,7 +21,7 @@
       CONNECTED=$(kscreen-doctor -o 2>/dev/null || true)
       [ -z "$CONNECTED" ] && { log "No outputs detected"; exit 0; }
 
-      PREVIOUS_FILE=/tmp/monitors-previous
+      PREVIOUS_FILE="$STATE_DIR/monitors-previous"
       PREVIOUS_CONNECTED=""
       [ -f "$PREVIOUS_FILE" ] && PREVIOUS_CONNECTED=$(cat "$PREVIOUS_FILE")
 
@@ -93,8 +95,10 @@
       #!/usr/bin/env bash
       set -euo pipefail
 
-      LOGFILE="/tmp/tv-monitor-daemon.log"
-      TV_STATE_FILE="/tmp/tv-state"
+      STATE_DIR="''${XDG_STATE_HOME:-$HOME/.local/state}/tv-monitor-daemon"
+      mkdir -p "$STATE_DIR"
+      LOGFILE="$STATE_DIR/tv-monitor-daemon.log"
+      TV_STATE_FILE="$STATE_DIR/tv-state"
       HDMI_OUTPUT="HDMI-A-2"
 
       log() {
@@ -571,11 +575,16 @@ in {
       description = "Configure monitors at boot";
       wantedBy = ["display-manager.service"];
       before = ["display-manager.service" "sddm.service"];
+      after = ["local-fs.target" "tmp.mount"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = bootMonitorScript;
         RemainAfterExit = true;
         TimeoutStartSec = 10;
+        User = "root";
+        Group = "root";
+        StandardOutput = "journal";
+        StandardError = "journal";
       };
     };
 

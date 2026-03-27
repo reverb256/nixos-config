@@ -131,6 +131,9 @@
         # QUIC protocol for faster connections (30-50% improvement)
         ${lib.optionalString cfg.quicEnabled "quic: true"}
 
+        # Force IPv4 only (IPv6 routing issues breaking control stream)
+        no-remote-ipv6: true
+
         # Origin request configuration for connection pooling
         originRequest:
           connectTimeout: ${cfg.originRequest.connectTimeout}
@@ -152,7 +155,8 @@
       systemd.services.cloudflared-tunnel = {
         description = "Cloudflare Tunnel - secure ingress";
         wantedBy = ["multi-user.target"];
-        after = ["network.target" "agenix-rekey.service"];
+        requires = ["network-online.target"];
+        after = ["network-online.target" "agenix-rekey.service"];
 
         serviceConfig = {
           ExecStart = lib.getExe pkgs.cloudflared + " tunnel --config /etc/cloudflared/config.yml run";

@@ -74,8 +74,11 @@ class SearxngIntegration:
         self._load_learning_data()
 
         # Initialize monitoring
-        self.metrics = get_metrics(enable_prometheus=enable_metrics) if MONITORING_AVAILABLE else None
-        self.health_checker = get_health_checker(searxng_url=SEARXNG_URL) if MONITORING_AVAILABLE else None
+        # TEMPORARILY DISABLED: Monitoring imports causing timeout
+        # self.metrics = get_metrics(enable_prometheus=enable_metrics) if MONITORING_AVAILABLE else None
+        # self.health_checker = get_health_checker(searxng_url=SEARXNG_URL) if MONITORING_AVAILABLE else None
+        self.metrics = None
+        self.health_checker = None
 
     def _load_learning_data(self):
         """Load learning data from disk."""
