@@ -37,8 +37,8 @@ in {
 
     listenAddress = mkOption {
       type = types.str;
-      default = "10.1.1.110";
-      description = "Address to listen on";
+      default = "127.0.0.1";
+      description = "Address to listen on (use 127.0.0.1 for local DNS resolver)";
     };
 
     port = mkOption {
@@ -56,10 +56,10 @@ in {
       enable = true;
       settings = {
         server = {
-          # Listen on local IP (not just localhost)
+          # Listen on localhost only (NetworkManager will configure resolv.conf)
           interface = [
             "127.0.0.1"
-            cfg.listenAddress
+            "::1"
           ];
           inherit (cfg) port;
 
