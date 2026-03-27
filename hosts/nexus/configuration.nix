@@ -118,6 +118,7 @@
   # NETWORKING
   # ============================================================================
   networking = {
+    useNetworkd = false; # Disable systemd-networkd (conflicts with NetworkManager)
     networkmanager = {
       enable = true;
       ensureProfiles.profiles."Wired connection 1" = {
