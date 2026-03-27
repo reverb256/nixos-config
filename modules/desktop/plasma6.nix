@@ -360,6 +360,63 @@ in {
         [AC][Activities]
       '';
 
+      # Powerdevil runtime configuration - Enable brightness control for ALL displays
+      # This ensures DP-6 (which lacks DDC/CI support) appears in brightness slider
+      "xdg/powerdevilrc".text = ''
+        [AC][Display]
+        DimDisplayIdleTimeoutSec=-1
+        DimDisplayWhenIdle=false
+        DimScreen=false
+        TurnOffDisplayIdleTimeoutSec=600
+        TurnOffDisplayWhenIdle=false
+
+        [AC][SuspendAndShutdown]
+        AutoSuspendAction=0
+
+        [ActivityFinder]
+        DontDetectDontDetect=true
+
+        [Battery][Display]
+        DimDisplayIdleTimeoutSec=0
+        DimScreen=false
+        TurnOffDisplayIdleTimeoutSec=300
+        TurnOffDisplayWhenIdle=false
+
+        [BrightnessControl]
+        # Don't use ddcutil exclusively - show brightness controls for ALL displays
+        UseDDCUtil=false
+
+        # Explicit brightness control for each display
+        # DP-5 (Primary 1920x1080) - DDC/CI supported
+        [DP-5][BrightnessControl]
+        brightnessEnable=true
+        brightnessValue=100
+
+        # DP-4 (Top 1920x1080) - DDC/CI supported
+        [DP-4][BrightnessControl]
+        brightnessEnable=true
+        brightnessValue=100
+
+        # DP-6 (Bottom 1600x900) - NO DDC/CI support, show slider anyway
+        [DP-6][BrightnessControl]
+        brightnessEnable=true
+        brightnessValue=100
+
+        # HDMI-A-2 (TV 4K HDR) - DDC/CI supported
+        [HDMI-A-2][BrightnessControl]
+        brightnessEnable=true
+        brightnessValue=100
+
+        [DPMSControl]
+        enable=false
+
+        [Daemon]
+        Enabled=true
+
+        [General]
+        useAutoBrightness=false
+      '';
+
       # Window rules for specific applications
       "xdg/kwinrulesrc".text = ''
         [General]
