@@ -145,6 +145,9 @@
     };
   };
 
+  # Disable systemd-networkd wait-online service (adds 120s timeout when using NetworkManager)
+  systemd.network.wait-online.enable = false;
+
   # ============================================================================
   # KERNEL - Zen for better desktop responsiveness
   # ============================================================================

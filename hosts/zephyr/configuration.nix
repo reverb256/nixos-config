@@ -50,6 +50,9 @@
   networking.networkmanager.enable = true;
   networking.useNetworkd = false; # Disable systemd-networkd (conflicts with NetworkManager)
 
+  # Disable systemd-networkd wait-online service (adds 120s timeout when using NetworkManager)
+  systemd.network.wait-online.enable = false;
+
   # DNS - Use local unbound resolver for cluster hostnames
   services.unbound-cluster = {
     enable = true;

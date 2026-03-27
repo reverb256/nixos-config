@@ -179,6 +179,9 @@
     };
   };
 
+  # Disable systemd-networkd wait-online service (adds 120s timeout when using NetworkManager)
+  systemd.network.wait-online.enable = false;
+
   # ============================================================================
   # TAILSCALE
   # ============================================================================
