@@ -43,7 +43,7 @@
     "searxng": {
       "command": "/etc/nixos/modules/services/ai-inference/bin/searxng-mcp-wrapper",
       "env": {
-        "SEARXNG_URL": "https://search.reverb256.ca"
+        "SEARXNG_URL": "http://searxng.search.svc.cluster.local:8080"
       }
     }
   }

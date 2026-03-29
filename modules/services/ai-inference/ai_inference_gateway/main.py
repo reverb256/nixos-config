@@ -464,7 +464,7 @@ async def lifespan(app: FastAPI):
             logger.info("Sentry enabled but no DSN configured")
 
     # Initialize Redis client
-    redis_url = "redis://localhost:6379"
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
     state.redis_client = RedisClient(redis_url=redis_url)
     redis_connected = await state.redis_client.connect()
 
@@ -516,8 +516,6 @@ async def lifespan(app: FastAPI):
     state.rag_config = None
 
     # Check if RAG is enabled via environment variable
-    import os
-
     rag_enabled = os.getenv("RAG_ENABLED", "false").lower() == "true"
 
     if RAG_AVAILABLE and rag_enabled:
@@ -2444,7 +2442,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             import httpx
             import os
 
-            searxng_url = os.getenv("SEARXNG_URL", "http://10.0.0.102:8080")
+            searxng_url = os.getenv("SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080")
 
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
