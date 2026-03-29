@@ -27,7 +27,7 @@
     };
     Service = {
       Type = "simple";
-      ExecStart = lib.getExe pkgs.caprine;
+      ExecStart = lib.getExe' pkgs.caprine "caprine";
       Restart = "on-failure";
       RestartSec = 5;
     };
