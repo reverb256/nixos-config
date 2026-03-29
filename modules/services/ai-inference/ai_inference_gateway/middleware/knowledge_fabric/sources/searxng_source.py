@@ -298,7 +298,7 @@ class SearXNGKnowledgeSource:
 
 
 def create_searxng_source(
-    searxng_url: str = "http://10.0.0.102:8080",  # Kubernetes ClusterIP
+    searxng_url: str = "http://searxng.search.svc.cluster.local:8080",  # Kubernetes ClusterIP
     max_results: int = 5,
     enable_domain_routing: bool = True,
     enable_quality_scoring: bool = True,
@@ -591,7 +591,7 @@ class SearxngClusteringKnowledgeSource:
 
 
 def create_similarity_source(
-    searxng_url: str = "http://10.0.0.102:8080",  # Kubernetes ClusterIP
+    searxng_url: str = "http://searxng.search.svc.cluster.local:8080",  # Kubernetes ClusterIP
     max_results: int = 5,
     similarity_threshold: float = 0.75,
 ) -> SearxngSimilarityKnowledgeSource:
@@ -604,7 +604,7 @@ def create_similarity_source(
 
 
 def create_clustering_source(
-    searxng_url: str = "http://10.0.0.102:8080",  # Kubernetes ClusterIP
+    searxng_url: str = "http://searxng.search.svc.cluster.local:8080",  # Kubernetes ClusterIP
     max_results: int = 15,
     max_clusters: int = 5,
 ) -> SearxngClusteringKnowledgeSource:

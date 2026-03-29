@@ -17,7 +17,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
 # Configuration
-SEARXNG_URL = "http://127.0.0.1:7777"
+SEARXNG_URL = os.getenv("SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080")
 SEARCH_ENDPOINT = "/search"
 
 # Initialize MCP server
