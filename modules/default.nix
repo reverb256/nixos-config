@@ -66,6 +66,7 @@
     ./desktop/flatpak.nix
     ./desktop/hyprland.nix
     ./desktop/systems-intelligence-plasmoid.nix
+    ./desktop/niri.nix
 
     # Shell configuration
     # Fish system-level (PATH, packages): ./shell/fish.nix
