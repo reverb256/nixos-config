@@ -29,12 +29,15 @@ in
         imports = [
           inputs.zen-browser.homeModules.twilight
           inputs.nixcord.homeModules.nixcord
+          # NOTE: niri home-manager module is auto-propagated by nixosModules.niri
+          # Do NOT add inputs.niri.homeModules.niri here (double-declaration error)
           ../../modules/home-manager/fish.nix
           ../../modules/home-manager/starship.nix
           ../../modules/home-manager/wayland-tools.nix
           ../../modules/home-manager/zen-browser.nix
           ../../modules/home-manager/nixcord-config.nix
           ../../modules/home-manager/caprine.nix
+          ../../modules/home-manager/niri-config.nix
         ];
 
         # Enable vesktop and caprine only on Zephyr
