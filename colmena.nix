@@ -23,12 +23,13 @@
     inputs.aagl.nixosModules.default
     inputs.nur.modules.nixos.default
     inputs.agenix.nixosModules.default
+    inputs.niri.nixosModules.niri
 
     # Internal modules (auto-imports all subdirectories)
     ./modules/default.nix
 
     # Overlays configuration - applies overlays.default to all hosts
-    {nixpkgs.overlays = [self.overlays.default];}
+    {nixpkgs.overlays = [inputs.niri.overlays.niri self.overlays.default];}
 
     # Agenix identity paths - use Syncthing-synced location
     # Priority: /etc/nixos/.age/key.txt (synced) > /etc/age/key.txt (system) > /home/j_kro/.age/key.txt (local)
