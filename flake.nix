@@ -28,13 +28,11 @@
       url = "github:ryoppippi/claude-code-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # nixpkgs-xr - Disabled due to deprecated options in systems module
-    # Only used for proton-ge-rtsp-bin and oscavmgr (VR packages)
-    # Re-enable when nixpkgs-xr updates their systems dependency
-    # nixpkgs-xr = {
-    #   url = "github:nix-community/nixpkgs-xr";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
+    # nixpkgs-xr - Bleeding-edge XR/VR packages (WiVRn, Monado, libsurvive, xrizer, etc.)
+    # Provides binary cache at nix-community.cachix.org
+    nixpkgs-xr = {
+      url = "github:nix-community/nixpkgs-xr";
+    };
     scopebuddy = {
       url = "github:OpenGamingCollective/ScopeBuddy";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -60,6 +58,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Niri - Scrollable-tiling Wayland compositor
+    # Provides: programs.niri NixOS module, niri-unstable overlay, home-manager module
+    niri = {
+      url = "github:sodiboo/niri-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Hermes Agent - Multi-node deployment agent
     hermes-agent = {
       url = "github:NousResearch/hermes-agent/main";
@@ -78,6 +83,7 @@
     claude-native,
     agenix,
     colmena,
+    nixpkgs-xr,
     ...
   }: let
     # System configuration
@@ -86,7 +92,7 @@
     pkgs = import nixpkgs {
       inherit system;
       config.allowUnfree = true;
-      config.cudaSupport = true; # Enable CUDA in source packages (PyTorch, TensorFlow, etc.)
+      config.cudaSupport = true;
     };
 
     # pkgsWithOverlay: nixpkgs with custom overlay applied
@@ -108,6 +114,15 @@
       nur.modules.nixos.default
       agenix.nixosModules.default
 
+      # nixpkgs-xr - Bleeding-edge XR/VR packages with binary cache
+      # Provides: wivrn, monado, libsurvive, xrizer, opencomposite, etc.
+      # Adds nix-community.cachix.org binary cache automatically
+      inputs.nixpkgs-xr.nixosModules.nixpkgs-xr
+
+      # Niri - Scrollable-tiling Wayland compositor
+      # Provides: programs.niri NixOS module (enable, settings, package)
+      inputs.niri.nixosModules.niri
+
       # Internal modules (auto-imports all subdirectories)
       ./modules/default.nix
 
@@ -116,17 +131,15 @@
       # ========================================================================
       # Custom package overlays applied to ALL hosts
       #
+      # Order matters: nixpkgs-xr overlay (above) provides base VR packages,
+      # then our custom overlay adds lighthouse support to WiVRn, etc.
+      #
       # Scope: System + Home Manager (due to useGlobalPkgs = true)
       # Location: ./overlay.nix defines custom packages (lolminer, xmrig, etc.)
       #
-      # Why here? Single definition point prevents duplication and ensures
-      # all hosts have access to custom packages. When useGlobalPkgs=true,
-      # Home Manager uses the same pkgs instance as the system, so this
-      # overlay affects both system packages and user packages.
-      #
       # See: modules/system/home-manager.nix for useGlobalPkgs setting
       # ========================================================================
-      {nixpkgs.overlays = [self.overlays.default];}
+      {nixpkgs.overlays = [inputs.niri.overlays.niri self.overlays.default];}
 
       # ========================================================================
       # AGENIX IDENTITY PATHS - Cluster-wide secret decryption
@@ -154,7 +167,7 @@
       extraModules ? [],
     }:
       nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
+        # system is auto-detected from stdenv.hostPlatform
         specialArgs = {
           inherit inputs;
           inherit (inputs) hermes-agent;
