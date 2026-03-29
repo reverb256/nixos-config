@@ -245,17 +245,17 @@ in {
       "Mod+9".action = focus-workspace 9;
       "Mod+0".action = focus-workspace 10;
 
-      # Move window to workspace (no action helper, use raw format)
-      "Mod+Shift+1".action.move-column-to-workspace = 1;
-      "Mod+Shift+2".action.move-column-to-workspace = 2;
-      "Mod+Shift+3".action.move-column-to-workspace = 3;
-      "Mod+Shift+4".action.move-column-to-workspace = 4;
-      "Mod+Shift+5".action.move-column-to-workspace = 5;
-      "Mod+Shift+6".action.move-column-to-workspace = 6;
-      "Mod+Shift+7".action.move-column-to-workspace = 7;
-      "Mod+Shift+8".action.move-column-to-workspace = 8;
-      "Mod+Shift+9".action.move-column-to-workspace = 9;
-      "Mod+Shift+0".action.move-column-to-workspace = 10;
+      # Move window to workspace (attrset syntax required for workspace references)
+      "Mod+Shift+1".action.move-window-to-workspace = 1;
+      "Mod+Shift+2".action.move-window-to-workspace = 2;
+      "Mod+Shift+3".action.move-window-to-workspace = 3;
+      "Mod+Shift+4".action.move-window-to-workspace = 4;
+      "Mod+Shift+5".action.move-window-to-workspace = 5;
+      "Mod+Shift+6".action.move-window-to-workspace = 6;
+      "Mod+Shift+7".action.move-window-to-workspace = 7;
+      "Mod+Shift+8".action.move-window-to-workspace = 8;
+      "Mod+Shift+9".action.move-window-to-workspace = 9;
+      "Mod+Shift+0".action.move-window-to-workspace = 10;
 
       # Workspace navigation
       "Mod+Page_Down".action = focus-workspace-down;
@@ -326,7 +326,7 @@ in {
       "Mod+Escape".action = spawn "${pkgs.swaylock}/bin/swaylock";
 
       # Power menu (via fuzzel)
-      "Mod+Shift+P".action = spawn "sh" "-c" "${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt='Power:' <<< 'Lock\\nLogout\\nSuspend\\nReboot\\nShutdown' | ${pkgs.findutils}/bin/xargs -I{} sh -c 'case {} in Lock) ${pkgs.swaylock}/bin/swaylock;; Logout) niri msg action quit;; Suspend) systemctl suspend;; Reboot) systemctl reboot;; Shutdown) systemctl poweroff;; esac'";
+      "Mod+Shift+P".action = spawn "sh" "-c" "echo -e 'Lock\\nLogout\\nSuspend\\nReboot\\nShutdown' | ${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt='Power:' | ${pkgs.findutils}/bin/xargs -I{} sh -c 'case {} in Lock) ${pkgs.swaylock}/bin/swaylock;; Logout) niri msg action quit;; Suspend) systemctl suspend;; Reboot) systemctl reboot;; Shutdown) systemctl poweroff;; esac'";
 
       # Suspend
       "Mod+Ctrl+Escape".action = spawn "systemctl" "suspend";
@@ -334,9 +334,9 @@ in {
       # --------------------------------------------------------------------------
       # NIRI ACTIONS
       # --------------------------------------------------------------------------
-      "Mod+Shift+D".action.toggle-debug-tint = [];
-      "Mod+Shift+C".action.reload-config = [];
-      "Mod+Slash".action.show-hotkey-overlay = [];
+      "Mod+Shift+D".action = spawn "niri" "msg" "action" "toggle-debug-tint";
+      "Mod+Shift+C".action = spawn "niri" "msg" "action" "reload-config";
+      "Mod+Slash".action = show-hotkey-overlay;
     };
 
     # ==========================================================================
@@ -354,7 +354,7 @@ in {
           {app-id = "file-roller";}
           {title = "File Transfer*";}
           {title = "Copy*";}
-          {title = "Passwords*";}
+          {title = "Passwords.*";}
           {app-id = "pinentry-";}
         ];
         open-floating = true;
@@ -427,8 +427,8 @@ in {
           {app-id = "bitwarden";}
           {app-id = "keepassxc";}
           {app-id = "1password";}
-          {title = "*Password*";}
-          {title = "*Secret*";}
+          {title = ".*Password.*";}
+          {title = ".*Secret.*";}
         ];
         block-out-from = "screen-capture";
       }
