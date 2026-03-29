@@ -305,6 +305,9 @@ in {
       # Monitor setup script
       monitorSetupScript
       pkgs.libnotify
+
+      # DDC/CI brightness control for external monitors
+      pkgs.ddcutil
     ];
 
     etc = {
@@ -365,7 +368,7 @@ in {
       '';
 
       # Powerdevil runtime configuration - Enable brightness control for ALL displays
-      # This ensures DP-6 (which lacks DDC/CI support) appears in brightness slider
+      # DP-6 (Acer X203H) DOES support DDC/CI (i2c-10) - intermittent detection is a PowerDevil bug
       "xdg/powerdevilrc".text = ''
         [AC][Display]
         DimDisplayIdleTimeoutSec=-1
@@ -387,26 +390,27 @@ in {
         TurnOffDisplayWhenIdle=false
 
         [BrightnessControl]
-        # Don't use ddcutil exclusively - show brightness controls for ALL displays
+        # CRITICAL: UseDDCUtil=false shows ALL displays (including non-DDC/CI)
+        # UseDDCUtil=true only shows DDC/CI-capable displays (hides Samsung TV)
         UseDDCUtil=false
 
-        # Explicit brightness control for each display
-        # DP-5 (Primary 1920x1080) - DDC/CI supported
+        # Explicit brightness control for each display - ALL ENABLED
+        # DP-5 (Primary 1920x1080 ZOWIE) - DDC/CI supported ✓
         [DP-5][BrightnessControl]
         brightnessEnable=true
         brightnessValue=100
 
-        # DP-4 (Top 1920x1080) - DDC/CI supported
+        # DP-4 (Top 1920x1080 ASUS) - DDC/CI supported ✓
         [DP-4][BrightnessControl]
         brightnessEnable=true
         brightnessValue=100
 
-        # DP-6 (Bottom 1600x900) - NO DDC/CI support, show slider anyway
+        # DP-6 (Bottom 1600x900 Acer X203H) - DDC/CI supported ✓ (i2c-10)
         [DP-6][BrightnessControl]
         brightnessEnable=true
         brightnessValue=100
 
-        # HDMI-A-2 (TV 4K HDR) - DDC/CI supported
+        # HDMI-A-2 (TV 4K HDR Samsung) - NO DDC/CI but MUST show in slider
         [HDMI-A-2][BrightnessControl]
         brightnessEnable=true
         brightnessValue=100
@@ -488,6 +492,26 @@ in {
         Type=Application
         Name=TV Monitor Daemon
         Exec=${tvMonitorDaemon}/bin/tv-monitor-daemon
+        X-KDE-autostart-phase=3
+        NoDisplay=true
+      '';
+
+      # Force brightness control detection for all monitors
+      # Fixes Acer (DP-6) intermittently disappearing from slider
+      "xdg/autostart/force-brightness-detection.desktop".text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=Force Brightness Detection
+        Exec=${pkgs.writeShellScript "force-brightness-detection" ''
+          # Wait for Plasma to fully start
+          sleep 5
+          # Touch powerdevilrc to force PowerDevil to re-read config and re-detect displays
+          touch ~/.config/powerdevilrc 2>/dev/null || true
+          # Trigger brightness control refresh via DBus
+          ${pkgs.dbus}/bin/dbus-send --session --dest=org.kde.Solid.PowerDevil \
+            --type=method_call /org/kde/Solid/PowerDevil \
+            org.kde.Solid.PowerDevil.refreshStatus 2>/dev/null || true
+        ''}
         X-KDE-autostart-phase=3
         NoDisplay=true
       '';
