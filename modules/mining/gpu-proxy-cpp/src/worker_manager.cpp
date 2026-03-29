@@ -263,18 +263,18 @@ void WorkerManager::handle_login(Connection* conn, const StratumRequest& req) {
     std::string response;
     if (has_job_) {
         // Include job in login response (Monero-style)
-        // Note: For CR29, the blob is complete, no need to add extra_nonce2
         response = R"({"id": )" + std::to_string(req.id) +
-            R"(, "jsonrpc": "2.0", "result": {"id": )" + std::to_string(fd) + R"(", "job": {"algo":"cuckaroo","blob":")" + current_job_.blob +
+            R"(, "jsonrpc": "2.0", "result": {"id": ")" + std::to_string(fd) +
+            R"(", "job": {"algo":"cuckaroo","blob":")" + current_job_.blob +
             R"(","job_id":")" + current_job_.job_id +
             R"(","target":")" + current_job_.target +
             R"(","height":)" + std::to_string(current_job_.height) +
-            R"(, "status": "OK"}}, "error": null})";
+            R"(}, "status": "OK"}, "error": null})";
     } else {
         // No job yet, just acknowledge login
         response = R"({"id": )" + std::to_string(req.id) +
-            R"(, "jsonrpc": "2.0", "result": {"id": )" + std::to_string(fd) +
-            R"("", "status": "OK"}}, "error": null})";
+            R"(, "jsonrpc": "2.0", "result": {"id": ")" + std::to_string(fd) +
+            R"(", "status": "OK"}, "error": null})";
     }
 
     fprintf(stderr, "[WorkerManager] Sending login response: %s\n", response.c_str());
@@ -367,8 +367,8 @@ void WorkerManager::send_job(const Job& job) {
         // Monero Stratum job notification format
         // Format: {"jsonrpc":"2.0","method":"job","params":{"algo":"cuckaroo","blob":"...","job_id":"...","target":"...","height":...}}
         std::string notify = R"({"jsonrpc":"2.0", "method": "job", "params": {"algo": "cuckaroo", "blob": ")" +
-            job.blob + R"(", "job_id": )" + job.job_id + R"(, "target": )" + job.target +
-            R"(, "height": )" + std::to_string(job.height) + R"(}})";
+            job.blob + R"(", "job_id": ")" + job.job_id + R"(", "target": ")" + job.target +
+            R"(", "height": )" + std::to_string(job.height) + R"(}})";
 
         info.conn->send_line(notify);
     }
