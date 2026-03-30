@@ -3,38 +3,50 @@
   config,
   lib,
   ...
-}: let
+}:
+let
   cfg = config.hardware.profiles;
-in {
+in
+{
   config = lib.mkMerge [
     (lib.mkIf cfg.amd.enable {
       boot = {
-        kernelParams =
-          ["amd_iommu=on" "iommu=pt"]
-          ++ lib.optionals cfg.amd.zen [
-            "split_lock_detect=off"
-            "threadirqs"
-            "preempt=full"
-          ];
+        kernelParams = [
+          "amd_iommu=on"
+          "iommu=pt"
+        ]
+        ++ lib.optionals cfg.amd.zen [
+          "split_lock_detect=off"
+          "threadirqs"
+          "preempt=full"
+        ];
       };
       hardware.cpu.amd.updateMicrocode = lib.mkDefault true;
     })
 
     (lib.mkIf cfg.intel.enable {
-      boot.kernelParams = ["intel_iommu=on" "iommu=pt"];
+      boot.kernelParams = [
+        "intel_iommu=on"
+        "iommu=pt"
+      ];
       hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
     })
 
     (lib.mkIf cfg.nvidia.enable {
       hardware.nvidia-common.enable = true;
       hardware.nvidia.wayland.enable = true;
-      boot.kernelModules = ["nvidia" "nvidia_uvm" "nvidia_drm" "nvidia_modeset"];
+      boot.kernelModules = [
+        "nvidia"
+        "nvidia_uvm"
+        "nvidia_drm"
+        "nvidia_modeset"
+      ];
     })
 
     (lib.mkIf cfg.amdgpu.enable {
       boot = {
-        kernelModules = ["amdgpu"];
-        initrd.kernelModules = ["amdgpu"];
+        kernelModules = [ "amdgpu" ];
+        initrd.kernelModules = [ "amdgpu" ];
       };
       # Note: hardware.amdgpu.wayland option removed in newer nixpkgs
       # Using direct amdgpu module configuration instead
@@ -59,13 +71,7 @@ in {
     (lib.mkIf cfg.corsair.enable {
       hardware.corsair = {
         enable = true;
-        aio.enable = true;
-        rgb.enable = true;
       };
-    })
-
-    (lib.mkIf cfg.monitoring.enable {
-      hardware.monitoring.enable = true;
     })
   ];
 }
