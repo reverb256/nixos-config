@@ -1,6 +1,7 @@
 # Default module imports for all submodules
 # Modules are organized into logical subdirectories for better maintainability
-{...}: {
+{ ... }:
+{
   imports = [
     # ============================================================================
     # SHARED DEFAULTS
@@ -60,6 +61,14 @@
     ./security/caddy-ca.nix
     ./kubernetes-security.nix
 
+    # Hardware modules
+    ./hardware/corsair.nix
+    ./hardware/gpu-compute.nix
+    ./hardware/monitoring.nix
+    ./hardware/nvidia-common.nix
+    ./hardware/nvidia-wayland.nix
+    ./hardware/amdgpu-wayland.nix
+
     # Desktop environment
     ./desktop/desktop.nix
     ./desktop/wayland-common.nix
@@ -110,11 +119,10 @@
     # ./services/llama-server.nix  # TODO: Fix Nix source caching issue
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
-    # ./services/qwen3-tts-preload.nix  # TEMP: Build failure (qwen-tts package)
     ./services/hermes-agent/default.nix
     ./services/nixos-share.nix
-    ./services/spacebot.nix  # Systemd/Podman deployment (current)
-    ./services/spacebot/default.nix  # Container module for Kubernetes (optional)
+    ./services/spacebot.nix # Systemd/Podman deployment (current)
+    ./services/spacebot/default.nix # Container module for Kubernetes (optional)
     ./services/podman-auto-update.nix
     ./services/glitchtip-selfhosted.nix
     ./services/caddy.nix
@@ -146,42 +154,33 @@
     # Monitoring
     ./services/monitoring/default.nix
     ./services/monitoring/node-exporter.nix
-
     # Crash detection and diagnostics
     # TEMPORARILY DISABLED: Being fixed (2026-03-23)
     # ./services/crash-watchdog.nix
-
     # Exporters
     ./services/gpu-exporters.nix
     ./services/mining-exporter.nix
-
-    # Hardware modules
-    ./hardware/nvidia-common.nix
-    ./hardware/monitoring.nix
-    ./hardware/corsair.nix
-    ./hardware/gpu-compute.nix
-
     # Multimedia modules
     ./multimedia/gstreamer.nix
-
     # Desktop modules (Spotify customization)
     ./desktop/spotify-spotx.nix
-
     # Distributed builds
     ./system/distributed-builds.nix
-
     # Flake lock sync (auto-enabled on remote hosts only)
     ./system/flake-lock-sync.nix
-
     # Fallback cache for remote hosts (graceful NFS failure)
     ./system/nixos-fallback-cache.nix
-
     # Profile system
     ./profiles/default.nix
     ./profiles/node-profiles.nix
+    # Hardware modules
+    ./hardware/corsair.nix
+    ./hardware/gpu-compute.nix
 
     # Network modules
     ./network/cluster-hosts.nix
     ./networking/cluster-networking.nix
+    # Claude Code Router
+    ./services/claude-code-router.nix
   ];
 }
