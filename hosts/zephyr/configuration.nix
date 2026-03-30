@@ -5,7 +5,8 @@
   lib,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
     # ========================================================================
     # BASE MODULES
@@ -56,7 +57,7 @@
   };
 
   # FIX: Disable interface renaming - use actual interface names
-  systemd.network.links = lib.mkForce {};
+  systemd.network.links = lib.mkForce { };
 
   # ============================================================================
   # MEMORY OPTIMIZATION - Reduce kernel slab cache bloat
@@ -67,16 +68,16 @@
     "vm.vfs_cache_pressure" = 1000;
 
     # Reduce minimum free memory reservation (frees ~100MB)
-    "vm.min_free_kbytes" = 65536;  # 64MB minimum
+    "vm.min_free_kbytes" = 65536; # 64MB minimum
 
     # Network buffer reduction (frees unused socket buffers)
-    "net.core.rmem_default" = 262144;  # 256KB (default: 212992)
-    "net.core.wmem_default" = 262144;  # 256KB
-    "net.core.rmem_max" = 16777216;     # 16MB max (not 212992*128)
+    "net.core.rmem_default" = 262144; # 256KB (default: 212992)
+    "net.core.wmem_default" = 262144; # 256KB
+    "net.core.rmem_max" = 16777216; # 16MB max (not 212992*128)
     "net.core.wmem_max" = 16777216;
 
     # CALICO CNI REQUIREMENTS
-    "net.ipv4.conf.all.rp_filter" = 1;  # Reverse path filtering for BGP
+    "net.ipv4.conf.all.rp_filter" = 1; # Reverse path filtering for BGP
   };
 
   networking = {
@@ -193,7 +194,7 @@
   # FIX: Don't override ExecStart or Type - let gaming module handle those.
   # Only add wantedBy to start at boot. This prevents duplicate ExecStart lines.
   systemd.user.services.gamemoded = {
-    wantedBy = ["default.target"];
+    wantedBy = [ "default.target" ];
   };
 
   # ============================================================================
@@ -509,16 +510,15 @@
     # Zephyr-specific kernel params for gaming
     # (Note: hardware.profiles.amd.zen adds split_lock_detect, threadirqs, preempt)
     kernelParams = [
-      "amd_iommu=on"  # Enable AMD IOMMU for device passthrough
-      "iommu=pt"       # IOMMU passthrough mode (better performance)
+      "amd_iommu=on" # Enable AMD IOMMU for device passthrough
+      "iommu=pt" # IOMMU passthrough mode (better performance)
       "processor.max_cstate=1"
       "intel_idle.max_cstate=1"
-      "hugepagesz=1G"  # For XMRig RandomX performance (dual-xmrig module)
+      "hugepagesz=1G" # For XMRig RandomX performance (dual-xmrig module)
       "hugepages=3"
-      "btrfs.commit_interval=300"  # From btrfs-tuning module
+      "btrfs.commit_interval=300" # From btrfs-tuning module
     ];
   };
-
 
   # ============================================================================
   # ROLE PROFILES
@@ -855,7 +855,7 @@
         };
       };
       gateway = {
-        enable = false;  # MOVED TO NEXUS (2026-03-23) - See hosts/nexus/ai-inference.nix
+        enable = false; # MOVED TO NEXUS (2026-03-23) - See hosts/nexus/ai-inference.nix
         # host = "0.0.0.0";  # Listen on all interfaces for Kubernetes access
         port = 8080;
         workers = 4;
@@ -913,7 +913,7 @@
           nix-rebuild = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
@@ -923,16 +923,16 @@
           add-service = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
             ];
-            environment = {};
+            environment = { };
             enabled = true;
           };
           context7 = {
             type = "local";
             # Use absolute path for reliable subprocess spawning
-            command = ["/run/current-system/sw/bin/mcp-context7"];
+            command = [ "/run/current-system/sw/bin/mcp-context7" ];
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
@@ -1059,7 +1059,7 @@
         enable = true; # RE-ENABLED: Kubernetes CNI broken, using systemd until fixed
         autostart = true;
         devices = "1"; # Only mine on GPU 1 (RTX 3090)
-        perGpuPowerLimits = [250]; # GPU1: RTX 3090 @ 250W (GPU 0 disabled)
+        perGpuPowerLimits = [ 250 ]; # GPU1: RTX 3090 @ 250W (GPU 0 disabled)
         apiPort = 4068;
       };
       # CPU mining - Dual XMRig setup (always-on + pause-able)
@@ -1225,7 +1225,7 @@
 
   # Override specific secret permissions (registry defaults can be overridden)
   age = {
-    identityPaths = ["/home/j_kro/.age/key.txt"];
+    identityPaths = [ "/home/j_kro/.age/key.txt" ];
     secrets.xmrig-api-token = lib.mkForce {
       file = "${inputs.self}/secrets/xmrig-api-token.age";
       mode = "440";
@@ -1593,7 +1593,22 @@
   # Accessible on localhost for local applications and cluster network
   # Survives NixOS rebuilds without restart (restartIfChanged = false)
   services.unbound-common.enable = true;
+
+  # ============================================================================
+  # CLAUDE CODE ROUTER - Route Claude Code to Z.AI GLM models
+  # ============================================================================
+  # Proxy service that transforms Claude Code requests to OpenAI-compatible format
+  # Runs on localhost:3456 by default
+  services.claude-code-router = {
+    enable = true;
+    port = 3456;
+    openFirewall = false; # Localhost only
+
+    zai = {
+      apiKey = builtins.readFile ../../secrets/zai-api-key.age;
+      defaultModel = "glm-4.7";
+      thinkModel = "glm-4.7";
+    };
+  };
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
-
-
