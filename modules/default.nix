@@ -73,6 +73,7 @@
     ./desktop/desktop.nix
     ./desktop/wayland-common.nix
     ./desktop/flatpak.nix
+    ./desktop/plasma6.nix
     ./desktop/hyprland.nix
     ./desktop/systems-intelligence-plasmoid.nix
     ./desktop/niri.nix
