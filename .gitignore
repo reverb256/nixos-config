@@ -38,3 +38,9 @@ tmp/
 # Don't commit upstream vendor documentation
 istio-1.29.1/
 modules/services/secrets/kubernetes/encryption-config.yaml
+
+# Security cleanup - 2026-03-30
+# Don't commit junk files containing leaked API keys
+cat
+echo
+Updated API key file
