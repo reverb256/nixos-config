@@ -121,11 +121,20 @@ in {
         models = mkOption {
           type = types.attrs;
           default = {
+            "glm-5.1" = {
+              name = "GLM-5.1 (200K)";
+            };
             "glm-5" = {
               name = "GLM-5 (200K)";
             };
+            "glm-5-turbo" = {
+              name = "GLM-5 Turbo (200K, Agentic)";
+            };
             "glm-4.7" = {
               name = "GLM-4.7 (200K)";
+            };
+            "glm-4.7-flash" = {
+              name = "GLM-4.7 Flash (128K, Vision)";
             };
             "glm-4.6" = {
               name = "GLM-4.6 (256K)";

@@ -20,40 +20,6 @@ let
     mkIf
     ;
 
-  # Generate router config JSON
-  routerConfig = {
-    LOG = true;
-    LOG_LEVEL = "info";
-    API_TIMEOUT_MS = 600000;
-    NON_INTERACTIVE_MODE = false;
-    Providers = [
-      {
-        name = "zai";
-        api_base_url = "https://api.z.ai/api/coding/paas/v4/chat/completions";
-        api_key = cfg.zai.apiKey;
-        models = [
-          "glm-4.5"
-          "glm-4.5-air"
-          "glm-4.6"
-          "glm-4.7"
-          "glm-5"
-          "glm-5.1"
-        ];
-        transformer = {
-          use = [ "deepseek" ];
-        };
-      }
-    ];
-    Router = {
-      default = "zai,${cfg.zai.defaultModel}";
-      think = "zai,${cfg.zai.thinkModel}";
-      longContext = "zai,glm-4.7";
-      longContextThreshold = 60000;
-    };
-  };
-
-  configFile = pkgs.writeText "claude-code-router-config.json" (builtins.toJSON routerConfig);
-
   # CLI wrapper script
   ccrScript = pkgs.writeShellScriptBin "ccr" ''
     #!${pkgs.bash}/bin/bash
@@ -160,22 +126,22 @@ in
     };
 
     zai = {
-      apiKey = mkOption {
-        type = types.str;
+      apiKeyFile = mkOption {
+        type = types.path;
         default = "";
-        description = "Z.AI API key for GLM models";
+        description = "Path to file containing Z.AI API key (agenix runtime path)";
       };
 
       defaultModel = mkOption {
         type = types.str;
         default = "glm-5";
-        description = "Default model for Z.AI (e.g., glm-4.5, glm-5, glm-5.1)";
+        description = "Default model for Z.AI";
       };
 
       thinkModel = mkOption {
         type = types.str;
         default = "glm-5.1";
-        description = "Model to use for thinking tasks (e.g., glm-5.1)";
+        description = "Model to use for thinking tasks";
       };
     };
   };
@@ -195,14 +161,44 @@ in
       "d ${cfg.stateDir} 0755 root root -"
     ];
 
-    # Setup service - copy config to state dir on boot
+    # Setup service - generates config.json at runtime with API key from secret file
     systemd.services.claude-code-router-setup = {
       description = "Setup Claude Code Router config";
       wantedBy = [ "multi-user.target" ];
       before = [ "claude-code-router.service" ];
+      path = [
+        pkgs.jq
+        pkgs.coreutils
+      ];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.coreutils}/bin/install -m 0644 ${configFile} ${cfg.stateDir}/config.json";
+        ExecStart = pkgs.writeShellScript "ccr-setup" ''
+          API_KEY=$(cat ${cfg.zai.apiKeyFile})
+          ${pkgs.jq}/bin/jq -n \
+            --arg api_key "$API_KEY" \
+            --arg api_url "https://api.z.ai/api/coding/paas/v4/chat/completions" \
+            --arg default_model "${cfg.zai.defaultModel}" \
+            --arg think_model "${cfg.zai.thinkModel}" \
+            '{
+              LOG: true,
+              LOG_LEVEL: "info",
+              API_TIMEOUT_MS: 600000,
+              NON_INTERACTIVE_MODE: false,
+              Providers: [{
+                name: "zai",
+                api_base_url: $api_url,
+                api_key: $api_key,
+                models: ["glm-4.5","glm-4.5-air","glm-4.6","glm-4.7","glm-4.7-flash","glm-5","glm-5-turbo","glm-5.1"],
+                transformer: { use: ["deepseek"] }
+              }],
+              Router: {
+                default: "zai," + $default_model,
+                think: "zai," + $think_model,
+                longContext: "zai,glm-4.7",
+                longContextThreshold: 60000
+              }
+            }' > ${cfg.stateDir}/config.json
+        '';
         RemainAfterExit = true;
       };
     };

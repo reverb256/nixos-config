@@ -32,10 +32,18 @@
     TZ=America/Winnipeg
   '';
 
-  # Allow passwordless sudo for j_kro
+  # Allow passwordless sudo for j_kro for specific commands only
+  # This reduces attack surface compared to full NOPASSWD: ALL
   security.sudo = {
     enable = true;
-    extraConfig = "j_kro ALL=(ALL) NOPASSWD: ALL";
+    extraConfig = ''
+      # Passwordless sudo for deployment commands only
+      j_kro ALL=(ALL) NOPASSWD: /run/current-system/sw/bin/nixos-rebuild
+      j_kro ALL=(ALL) NOPASSWD: /run/current-system/sw/bin/just
+      j_kro ALL=(ALL) NOPASSWD: /run/current-system/sw/bin/colmena
+      # Require password for other sudo operations
+      j_kro ALL=(ALL) ALL
+    '';
   };
 
   # Create groups for device and service access

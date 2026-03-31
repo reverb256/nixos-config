@@ -1,5 +1,7 @@
 # Pod Disruption Budget for XMRig Proxy
-# Ensures proxy stays available during node maintenance
+# Uses maxUnavailable instead of minAvailable to avoid deadlock with
+# hostNetwork: true deployments (single replica can't bind host port
+# while old pod still holds it during rollout).
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -8,7 +10,7 @@ metadata:
   labels:
     app: xmrig-proxy
 spec:
-  minAvailable: 1
+  maxUnavailable: 1
   selector:
     matchLabels:
       app: xmrig-proxy
