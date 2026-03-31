@@ -184,6 +184,9 @@
     # Give i2c group access to DDC/CI monitors
     # Allows non-root users to control monitor brightness via ddcutil
     KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"
+
+    # Allow users to control laptop display brightness
+    SUBSYSTEM=="backlight", KERNEL=="intel_backlight", MODE="0666", RUN+="${pkgs.coreutils}/bin/chown j_kro:j_kro %k/brightness"
   '';
 
   # ============================================================================
@@ -494,7 +497,11 @@
       "nvidia_uvm" # Unified Memory (CRITICAL for multi-GPU!)
     ];
 
-    # Blacklist unused kernel modules to reduce memory footprint
+    extraModprobeConfig = ''
+      options nvidia NVreg_EnableBacklightHandler=1
+    '';
+
+  # Blacklist unused kernel modules to reduce memory footprint
     # Each loaded module consumes memory - disable what we don't use
     # NOTE: Bluetooth (btusb, bluetooth) and WiFi (iwlmvm, iwlwifi) ARE in use
     blacklistedKernelModules = [
@@ -524,6 +531,7 @@
       "hugepagesz=1G" # For XMRig RandomX performance (dual-xmrig module)
       "hugepages=3"
       "btrfs.commit_interval=300" # From btrfs-tuning module
+      "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1" # Enable laptop brightness control
     ];
   };
 
