@@ -45,24 +45,14 @@
     unbound.listenAddress = "10.1.1.140";
   };
 
-  # FIX: Disable interface renaming - use actual interface names
-  systemd.network.links = lib.mkForce {};
-
   # Disable flake-lock-sync (nixos-shared mount not available)
   services.flake-lock-sync.enable = lib.mkForce false;
 
   # Directly disable the systemd timer (blocking rebuilds)
   systemd.timers.flake-lock-sync.enable = false;
 
-  # STATUS.md auto-update (hourly from kubectl)
-  services.status-auto-update.enable = true;
-
   # Populate /etc/hosts from central cluster configuration
   networking = {
-    cluster-hosts = {
-      enable = true;
-      populateLocal = true;
-    };
     # Kubernetes worker firewall rules
     firewall = {
       allowedTCPPorts = lib.mkOptionDefault [
@@ -451,7 +441,6 @@
   };
 
   programs = {
-    nix-ld.enable = true;
     nix-ld.libraries = with pkgs; [
       # AMD/ROCm libraries
       rocmPackages.clr
@@ -499,9 +488,6 @@
   # ============================================================================
   # SECURITY
   # ============================================================================
-  # Trust Caddy Ingress local CA certificate
-  security.caddyCa.enable = true;
-
   # ============================================================================
   # AGENIX SECRETS
   # ============================================================================
@@ -544,5 +530,4 @@
   # ============================================================================
   # UNBOUND DNS WITH DNS-OVER-TLS (Cluster-wide configuration)
   # ============================================================================
-  services.unbound-common.enable = true;
 }
