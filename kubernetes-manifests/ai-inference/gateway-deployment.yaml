@@ -14,10 +14,10 @@ metadata:
   name: ai-inference-gateway-config
   namespace: ai-inference
 data:
-  # Backend configuration (using ZAI for testing without local llama.cpp)
+  # Backend configuration (primary: ZAI OpenAI-compatible, fallback: ZAI Anthropic)
   BACKEND_URL: "https://api.z.ai/api/coding/paas/v4"
   BACKEND_TYPE: "zai"
-  BACKEND_FALLBACK_URLS: ""
+  BACKEND_FALLBACK_URLS: "https://api.z.ai/api/anthropic"
 
   # Gateway configuration
   GATEWAY_HOST: "0.0.0.0"

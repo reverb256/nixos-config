@@ -1,6 +1,38 @@
-# Pod Security Exceptions for Akash Services
+# Pod Security Exceptions for GPU Workloads
 # These pods require specific exceptions for baseline PodSecurity enforcement
+# GPU access requires hostPath volumes, host namespaces, and elevated privileges
 
+---
+# Mining Namespace - GPU workloads require privileged access
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mining
+  labels:
+    # GPU mining requires hostPath for GPU devices and host namespaces
+    pod-security.kubernetes.io/allow-host-path: "true"
+    pod-security.kubernetes.io/allow-host-ipc: "true"
+    pod-security.kubernetes.io/allow-host-network: "true"
+    pod-security.kubernetes.io/allow-host-pid: "false"
+    pod-security.kubernetes.io/allow-privilege-escalation: "true"
+    pod-security.kubernetes.io/allow-privileged: "true"
+
+---
+# AI Inference Namespace - GPU workloads require elevated access
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-inference
+  labels:
+    # GPU inference requires hostPath for GPU devices and host namespaces
+    pod-security.kubernetes.io/allow-host-path: "true"
+    pod-security.kubernetes.io/allow-host-ipc: "true"
+    pod-security.kubernetes.io/allow-host-network: "false"
+    pod-security.kubernetes.io/allow-host-pid: "false"
+    pod-security.kubernetes.io/allow-privilege-escalation: "false"
+
+---
+# Akash Services Namespace
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -9,36 +41,3 @@ metadata:
     # Allow hostPath volumes for specific pods
     pod-security.kubernetes.io/allow-host-path: "true"
     pod-security.kubernetes.io/allow-privilege-escalation: "false"
----
-# Exception for cloudflared (requires hostPath for Unix socket)
-apiVersion: v1
-kind: Pod
-metadata:
-  name: cloudflared-exception
-  namespace: akash-services
-  labels:
-    app: cloudflared
-    eks.amazonaws.com/compliance: relax
-spec:
-  containers:
-  - name: cloudflared
-    image: cloudflare/cloudflared:2026.3.0
-    command: ["/bin/sh", "-c", "sleep 3600"]
-    securityContext:
-      runAsUser: 0
-      readOnlyRootFilesystem: false
-  # This pod will be replaced by actual cloudflared deployment
----
-# Update actual cloudflared deployment with annotations
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cloudflared
-  namespace: akash-services
-spec:
-  template:
-    metadata:
-      annotations:
-        # Allow hostPath volume for cloudflared
-        pod-security.kubernetes.io/allow-host-path: "true"
-        pod-security.kubernetes.io/allow-privilege-escalation: "false"
