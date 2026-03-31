@@ -7,36 +7,32 @@ Environment variables, external dependencies, and setup notes.
 
 ---
 
-## Z.AI API
+## NixOS Flake
 
-All AI tools use the same Z.AI API key managed via agenix:
-- Encrypted: `/etc/nixos/secrets/zai-api-key.age`
-- Runtime: `/run/agenix/zai-api-key` (decrypted on Zephyr only)
-- API base URLs:
-  - Anthropic-compatible: `https://api.z.ai/api/anthropic`
-  - Coding plan (OpenAI-compatible): `https://api.z.ai/api/coding/paas/v4`
-  - MCP endpoints: `https://api.z.ai/api/mcp/{service}/mcp`
+- System: x86_64-linux
+- Flake inputs: nixpkgs (unstable), home-manager, colmena, agenix, niri, nixpkgs-xr, and others
+- All hosts built from same flake with different configuration modules
+- Deployment via Colmena (NFS-based, no git push needed)
 
-## Python Environment
+## Secrets
 
-- Python 3.13
-- Gateway test shell: `nix-shell /etc/nixos/modules/services/ai-inference/ai_inference_gateway/shell.nix`
-- Test runner: pytest with asyncio support
+- **Agenix** encrypts secrets in `/etc/nixos/secrets/*.age`
+- Decrypted at runtime to `/run/agenix/*`
+- ZAI API key: `/run/agenix/zai-api-key`
+- All tools reference these paths or env vars derived from them
 
-## Tool Config Locations
+## K8s Access
 
-| Tool | Config Location | Managed By |
-|------|----------------|------------|
-| Droid/Factory | `~/.factory/settings.json`, `~/.factory/mcp.json` | Factory platform |
-| OpenCode | `~/.config/opencode/opencode.json` | NixOS (env.etc) or manual |
-| Crush | `~/.config/crush/crush.json` | NixOS (env.etc) or manual |
-| Claude Code | `~/.claude/settings.json`, `~/.config/claude/mcp.json` | Claude Code |
-| AI Gateway | K8s deployment env vars | NixOS module |
+- kubectl configured via /etc/kubernetes/admin.conf
+- Accessible from Zephyr (control plane node)
+- All 4 nodes: zephyr, nexus, forge, sentry
 
-## NixOS Rebuild Commands
+## Commands
 
 ```bash
-just check     # Validate flake (fast, no build)
-just switch    # Apply to local host (Zephyr)
-just deploy    # Deploy to all hosts via Colmena
+just check     # Validate flake (fast)
+just build     # Build for local host
+just switch    # Apply to local host
+just deploy    # Deploy to all hosts
+just status    # Git + cluster status
 ```
