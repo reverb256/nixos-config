@@ -197,7 +197,7 @@ class TestLoadBalancerMiddleware:
         assert context["load_balancer_backend"].name == "backend1"
         assert "load_balancer_start_time" in context
 
-    def test_process_request_no_backends(self):
+    async def test_process_request_no_backends(self):
         """Test request processing when no backends available."""
         config = LoadBalancerConfig(enabled=True)
         backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
@@ -216,7 +216,7 @@ class TestLoadBalancerMiddleware:
         assert isinstance(error, HTTPException)
         assert error.status_code == 503
 
-    def test_process_response_success(self):
+    async def test_process_response_success(self):
         """Test successful response processing."""
         config = LoadBalancerConfig(enabled=True)
         backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
@@ -240,7 +240,7 @@ class TestLoadBalancerMiddleware:
         assert backend.current_connections == 0  # Released
         assert backend.total_requests == 1
 
-    def test_process_response_error_status(self):
+    async def test_process_response_error_status(self):
         """Test response processing with error status."""
         config = LoadBalancerConfig(enabled=True)
         backends = [BackendInstance(name="backend1", url="http://localhost:8001")]
@@ -312,7 +312,7 @@ class TestLoadBalancerMiddleware:
             # Should have been called at least once
             assert mock_check.call_count >= 1
 
-    def test_disabled_middleware_passthrough(self):
+    async def test_disabled_middleware_passthrough(self):
         """Test that disabled middleware allows requests through."""
         config = LoadBalancerConfig(enabled=False)
         backends = [BackendInstance(name="backend1", url="http://localhost:8001")]

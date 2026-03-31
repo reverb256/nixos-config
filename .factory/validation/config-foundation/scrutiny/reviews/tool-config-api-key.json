@@ -1,0 +1,72 @@
+{
+  "featureId": "tool-config-api-key",
+  "reviewedAt": "2026-03-31T05:10:00.000Z",
+  "commitId": "none",
+  "transcriptSkeletonReviewed": true,
+  "diffReviewed": true,
+  "status": "pass",
+  "codeReview": {
+    "summary": "The feature implements a comprehensive NixOS module (ai-coding-tools.nix) that manages API key distribution for 4 AI coding tools (Droid/Factory, Claude Code, Crush, OpenCode). The module reads keys from agenix secrets at runtime, generates tool configs via systemd oneshot service, and provides shell integration for env vars. No plaintext keys exist in any git-tracked file under /etc/nixos/. The claude-code-router module was also updated to use apiKeyFile instead of inline apiKey. Three tools (settings.json, claude/settings.json, opencode.json) use env var references; two tools (Droid mcp.json, crush.json) receive runtime-resolved keys via the systemd generator. Changes are uncommitted (commitId: none) but the module is git-tracked and passes nix flake check.",
+    "issues": [
+      {
+        "file": "modules/development/ai-coding-tools.nix",
+        "line": 540,
+        "severity": "non_blocking",
+        "description": "ProtectHome = 'read-write' is not a valid systemd value. Journal shows: 'Failed to parse ProtectHome=read-write, ignoring: Invalid argument'. Valid values are 'yes', 'no', 'read-only', 'tmpfs'. This doesn't break functionality (systemd ignores it), but means the home directory protection is not configured as intended. Should be ProtectHome = 'no' to allow writing to user home dirs."
+      },
+      {
+        "file": "modules/development/ai-coding-tools.nix",
+        "line": 550,
+        "severity": "non_blocking",
+        "description": "The ExecStart script uses 'set -euo pipefail' but then chains secret reads with 'cat ... 2>/dev/null || echo \"\"'. With -u (nounset), referencing undefined variables would fail. While ZAI_API_KEY and CONTEXT7_API_KEY are explicitly set from the cat commands, the overall pattern of swallowing errors silently (2>/dev/null) combined with -e (exit on error) could lead to subtle failures if secrets are missing. The secret availability wait loop helps but doesn't hard-fail on missing secrets - just warns after 30 seconds."
+      },
+      {
+        "file": "modules/development/ai-coding-tools.nix",
+        "line": 464,
+        "severity": "non_blocking",
+        "description": "Droid mcp.json and Crush crush.json receive runtime-resolved plaintext API keys from the systemd generator. This is by design (these tools can't read env vars at runtime), but it means the generated files on disk contain the actual API key. This is acceptable since the files are in ~/ (not /etc/nixos/), have restrictive permissions (600 for mcp.json, 644 for crush.json), and are not git-tracked. However, crush.json at 644 is world-readable - should be 600."
+      },
+      {
+        "file": "modules/development/ai-coding-tools.nix",
+        "line": 305,
+        "severity": "non_blocking",
+        "description": "Claude Code mcp.json generation uses escaped shell variable '${ZAI_API_KEY}' inside a jq expression. This means the generated Claude mcp.json contains the literal string '${ZAI_API_KEY}' (not resolved), expecting Claude Code to expand it. This is correct for Claude Code's env var handling but differs from how the Droid config works (resolved at generation time). The inconsistency in approach between tools is necessary due to different tool capabilities but could confuse future maintainers."
+      },
+      {
+        "file": "modules/development/ai-coding-tools.nix",
+        "line": 448,
+        "severity": "non_blocking",
+        "description": "tmpfiles rule creates 'd /home/${cfg.user}/.factory/mcp.json 0600 ...' - this creates a DIRECTORY called 'mcp.json', not a file. The mcp.json is actually a file. This rule should be removed or corrected. However, it doesn't cause a functional issue because the generator script overwrites it with the actual file."
+      }
+    ]
+  },
+  "sharedStateObservations": [
+    {
+      "area": "conventions",
+      "observation": "The project uses two patterns for API key management in NixOS: (1) Config generators that resolve secrets at runtime via systemd oneshot services, and (2) Shell env var injection via fish/bash interactiveShellInit. The ai-coding-tools module uses both patterns. AGENTS.md doesn't document this dual approach. Future workers should know: tools that support env var references (Droid settings.json, Claude Code, OpenCode) should use env vars; tools that don't (Droid mcp.json, Crush) need config generation with resolved secrets.",
+      "evidence": "modules/development/ai-coding-tools.nix - mkDroidMcpJson resolves keys via jq; mkClaudeMcpJson uses escaped '${ZAI_API_KEY}'; fish/bash interactiveShellInit exports env vars"
+    },
+    {
+      "area": "services",
+      "observation": "The ai-coding-tools-config systemd service is not documented in .factory/services.yaml. It should be added since it manages critical tool configurations that other services depend on (Claude Code Router needs ZAI_API_KEY, tools need MCP configs).",
+      "evidence": "systemd status shows: ai-coding-tools-config.service - active (exited) since Mon 2026-03-30 23:55. Not present in .factory/services.yaml"
+    },
+    {
+      "area": "knowledge",
+      "observation": "The systemd 'ProtectHome=read-write' is not a valid value (journal logs parse failure). Valid values are 'yes', 'no', 'read-only', 'tmpfs'. This should be documented as a common gotcha for NixOS workers writing systemd services that need home directory write access. The correct approach is ProtectHome = 'no' with ReadWritePaths for specific subdirectories.",
+      "evidence": "journalctl: 'Failed to parse ProtectHome=read-write, ignoring: Invalid argument'. modules/development/ai-coding-tools.nix line 540."
+    },
+    {
+      "area": "conventions",
+      "observation": "The architecture.md in .factory/library/ correctly documents the secrets architecture but should be updated to include the ai-coding-tools module as the canonical source of truth for all tool MCP configs. Currently it just says 'All tools should reference this path or env vars derived from it' but doesn't mention the module.",
+      "evidence": ".factory/library/architecture.md 'Secrets Architecture' section mentions /run/agenix/* paths but not the ai-coding-tools module"
+    },
+    {
+      "area": "skills",
+      "observation": "The worker followed the nixos-config-worker skill procedure correctly. The skill guided creating a NixOS module with proper options, systemd service, and shell integration. No deviations noted. Handoff skillFeedback.followedProcedure = true.",
+      "evidence": "Handoff JSON: skillFeedback.followedProcedure = true, deviations = [], suggestedChanges = []"
+    }
+  ],
+  "addressesFailureFrom": null,
+  "summary": "PASS with non-blocking issues. The feature successfully removes all plaintext API keys from git-tracked files under /etc/nixos/ (VAL-SEC-001 ✓) and all tool configs now reference either env vars or agenix paths (VAL-SEC-004 ✓). The implementation is solid: a well-structured NixOS module with proper options, a systemd oneshot generator, shell env integration, and CLI helpers. Key non-blocking issues: (1) ProtectHome='read-write' is invalid systemd syntax (should be 'no'), (2) crush.json has 644 permissions (should be 600 for API key security), (3) tmpfiles rule creates a directory named 'mcp.json' instead of the parent directory, (4) changes are uncommitted. The dual approach (env vars for tools that support them, resolved configs for those that don't) is architecturally sound."
+}
