@@ -32,14 +32,12 @@ spec:
       hostNetwork: true
       serviceAccountName: gpu-miner-sa
       automountServiceAccountToken: false
+      priorityClassName: system-cluster-critical
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
-      # securityContext:
-      #   runAsNonRoot: true
-      #   runAsUser: 1000
-      #   fsGroup: 1000
+
       containers:
         - name: xmrig-proxy
           image: xmrig-proxy:nixos-6.24.0

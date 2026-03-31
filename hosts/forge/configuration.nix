@@ -13,6 +13,34 @@
   # Forge-specific zswap tuning (Intel i5-9500 needs 20% pool, not 40%)
   kernel-hardening.zswap.maxPoolPercent = 20;
 
+  # ============================================================================
+  # FORGE MEMORY TUNING - 15GB RAM with mining + desktop + K8s
+  # ============================================================================
+  # Forge runs at 85% memory utilization — needs protection
+
+  # ZRAM compressed swap - reduces SSD wear, faster than disk swap
+  # 25% of 15GB ≈ 4GB compressed swap (zstd gives ~2-3x compression)
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+    memoryPercent = 25;
+    priority = 999; # Prefer zram over disk swap
+  };
+
+  # Early OOM prevention — kill processes before system freezes
+  services.earlyoom = {
+    enable = true;
+    freeMemThreshold = 10; # Kill at 10% RAM free (~1.5GB)
+    freeSwapThreshold = 10;
+    enableNotifications = true;
+  };
+
+  # VM tuning for memory-constrained mining node
+  boot.kernel.sysctl = {
+    "vm.swappiness" = 60; # Moderate swapping with zram available
+    "vm.vfs_cache_pressure" = 150; # Faster slab reclaim under pressure
+    "vm.min_free_kbytes" = 524288; # 512MB reserved for 15GB system
+  };
 
   imports = [
     # Monitoring configuration
@@ -147,7 +175,7 @@
       # Bare-metal systemd service disabled in favor of K8s deployments
       # (AMD GPUs are 0,1, NVIDIA GPUs are 2,3 when both OpenCL and CUDA are available)
       nvidia = {
-        enable = false;  # Disabled - migrated to Kubernetes (gpu-miner-forge-nvidia-0/1)
+        enable = false; # Disabled - migrated to Kubernetes (gpu-miner-forge-nvidia-0/1)
         autostart = false;
         devices = "2,3";
         powerLimit = 90;
@@ -158,10 +186,10 @@
       # AMD mining runs via systemd due to GLIBC 2.42 vs 2.27 ABI mismatch
       # K8s pods crash with segfault when loading NixOS AMD OpenCL libraries
       amd = {
-        enable = true;   # AMD mining via systemd (K8s incompatible)
+        enable = true; # AMD mining via systemd (K8s incompatible)
         autostart = true;
         devices = "0,1";
-        powerLimit = 110;  # 110W for optimal efficiency (from 140W default)
+        powerLimit = 110; # 110W for optimal efficiency (from 140W default)
         apiPort = 4069;
       };
 
@@ -284,9 +312,9 @@
     # Replaces built-in system.autoUpgrade which doesn't support flakes properly
     nixos-auto-update = {
       enable = true;
-      interval = "daily";  # Check for updates daily at 00:00
-      updateFlakeInputs = ["nixpkgs"];  # Auto-update nixpkgs input
-      extraFlags = ["--upgrade"];  # Run with --upgrade flag
+      interval = "daily"; # Check for updates daily at 00:00
+      updateFlakeInputs = ["nixpkgs"]; # Auto-update nixpkgs input
+      extraFlags = ["--upgrade"]; # Run with --upgrade flag
     };
   };
 
@@ -296,7 +324,7 @@
   # TEMPORARILY DISABLED: Build failure blocking IPv6 deployment (2026-03-25)
   # Autonomous agent for cluster-wide task execution and coordination
   services.hermes-agent = {
-    enable = true;  # Re-enabled: Core dependencies only (no optional extras)
+    enable = true; # Re-enabled: Core dependencies only (no optional extras)
     user = "j_kro";
     sharedStorage = {
       enable = true;
