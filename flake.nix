@@ -476,6 +476,8 @@
 
     packages.x86_64-linux.ai-inference-gateway-image = pkgs.callPackage ./pkgs/ai-inference-gateway-image {};
 
+    packages.x86_64-linux.kb-mcp-image = pkgs.callPackage ./pkgs/kb-mcp-image {};
+
     # OpenCode container image for Kubernetes deployment
     packages.x86_64-linux.opencode-image = pkgs.dockerTools.buildImage {
       name = "opencode";

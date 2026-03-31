@@ -1,0 +1,22 @@
+commands:
+  check: nix flake check
+  test: nix-shell modules/services/ai-inference/ai_inference_gateway/shell.nix --run "pytest modules/services/ai-inference/ai_inference_gateway/tests/ -v"
+  build: nixos-rebuild build
+  switch: just switch
+  deploy: just deploy
+  lint: nix flake check
+
+services:
+  ai-gateway:
+    start: echo "Gateway runs in K8s - do not restart"
+    stop: echo "Gateway runs in K8s - do not stop"
+    healthcheck: curl -sf http://127.0.0.1:8080/health
+    port: 8080
+    depends_on: []
+
+  claude-code-router:
+    start: echo "Managed by NixOS systemd - do not restart"
+    stop: echo "Managed by NixOS systemd - do not stop"
+    healthcheck: curl -sf http://localhost:3456/health
+    port: 3456
+    depends_on: []
