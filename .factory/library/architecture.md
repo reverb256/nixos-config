@@ -1,63 +1,59 @@
 # Architecture
 
-How the AI tool ecosystem works on this NixOS cluster.
+How the NixOS cluster is organized — components, relationships, and data flows.
 
-## Components
+## What belongs here
+System architecture at a high level. Not implementation details.
+
+---
+
+## Cluster Overview
+
+4-host NixOS cluster managed via flakes + Colmena deployment.
+
+| Host | IP | Role | GPUs |
+|------|-----|------|------|
+| Zephyr | 10.1.1.110 | Control plane, AI workstation, gaming | 2x NVIDIA (RTX 3090, 3060 Ti) |
+| Nexus | 10.1.1.120 | Storage, GPU compute | 1x NVIDIA (RTX 3060 Ti) |
+| Forge | 10.1.1.130 | Multi-GPU mining, AI | 2x NVIDIA (RTX 4060) + 2x AMD (RX 5700 XT) |
+| Sentry | 10.1.1.140 | Monitoring, logging | 1x AMD (RX 5600 XT) |
+
+## Configuration Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    User Tools (5)                            │
-│  Droid/Factory │ OpenCode │ Crush │ Claude Code │ (any)     │
-└───────┬────────────┬────────┬──────────┬──────────┬────────┘
-        │            │        │          │          │
-        ▼            ▼        ▼          │          ▼
-   ┌─────────┐  ┌────────┐  ┌──────┐   │    ┌──────────┐
-   │ Z.AI    │  │ Local  │  │Z.AI  │   │    │ Z.AI     │
-   │ API     │  │Gateway │  │API   │   │    │ API      │
-   └─────────┘  └────┬───┘  └──────┘   │    └──────────┘
-                     │                   │
-                     ▼                   ▼
-              ┌──────────────┐   ┌──────────────┐
-              │ K8s Gateway  │   │ Claude Code  │
-              │ (FastAPI)    │   │ Router       │
-              │ Port 8080    │   │ Port 3456    │
-              └──────┬───────┘   └──────────────┘
-                     │
-          ┌──────────┼──────────┐
-          ▼          ▼          ▼
-    ┌──────────┐ ┌────────┐ ┌───────┐
-    │llama.cpp │ │ Z.AI   │ │ Qdrant│
-    │(Local)   │ │(Cloud) │ │(RAG)  │
-    └──────────┘ └────────┘ └───────┘
+/etc/nixos/
+├── flake.nix              # Defines hosts, commonModules
+├── colmena.nix            # Multi-host deployment (separate commonModules — MUST stay in sync)
+├── modules/
+│   ├── default.nix        # Imports all shared modules
+│   ├── common-host-defaults.nix  # Shared defaults for all hosts (mkDefault)
+│   ├── profiles/          # Hardware/role/network profiles
+│   ├── system/            # Core system modules (SSH, users, etc.)
+│   ├── services/          # Background services (K8s, monitoring, etc.)
+│   ├── hardware/          # GPU, monitoring, RGB control
+│   └── ...
+├── hosts/<hostname>/      # Per-host overrides (import shared modules + add host-specific config)
+└── kubernetes-manifests/  # K8s YAML files (not Nix-managed, applied via kubectl)
 ```
 
-## Data Flows
+## Key Relationships
 
-1. **Droid/Factory** -> Z.AI API directly (Anthropic-compatible endpoint) OR through gateway
-2. **OpenCode** -> Local gateway (primary) -> llama.cpp (local) -> Z.AI (fallback)
-3. **Crush** -> Z.AI API directly
-4. **Claude Code** -> Claude Code Router (systemd) -> Z.AI API
-5. **Any tool with MCP** -> MCP servers (zai-mcp-server, web-search-prime, web-reader, zread, searxng)
+- `flake.nix` and `colmena.nix` both define `commonModules` independently — they MUST stay in sync
+- `modules/default.nix` imports all shared modules — hosts don't import individual modules
+- `common-host-defaults.nix` provides mkDefault values that hosts can override
+- Host configs (`hosts/<name>/configuration.nix`) override shared defaults with host-specific values
+- NFS architecture: Zephyr is source of truth, remote hosts mount `/run/nixos-shared`
 
-## Three-Tier Model Strategy
+## Deployment Flow
 
-| Tier | Local Model | Cloud Fallback | Claude Mapping |
-|------|------------|---------------|----------------|
-| Orchestrator | qwen3.5-35b-a3b | glm-5 | Opus |
-| Worker | qwen3.5-9b-opus-distilled | glm-4.7 | Sonnet |
-| Validator | qwen3.5-4b | glm-4.5-air | Haiku |
-
-## Secrets Architecture
-
-- **Agenix** encrypts secrets in `/etc/nixos/secrets/*.age`
-- Decrypted at runtime to `/run/agenix/*`
-- ZAI API key: `/run/agenix/zai-api-key` (decrypted on Zephyr)
-- All tools should reference this path or env vars derived from it
+1. Edit configs on Zephyr (source of truth)
+2. `nix flake check` validates syntax
+3. `nixos-rebuild build` builds local config
+4. `colmena build` builds remote configs (via NFS mount)
+5. `just deploy` activates on all hosts
 
 ## Key Invariants
 
-- No plaintext API keys in git-tracked files
-- All NixOS changes must pass `nix flake check`
-- Gateway runs in K8s (not systemd)
-- Claude Code Router runs as systemd on Zephyr
-- Tools that need the API key read from `/run/agenix/zai-api-key` or env vars
+- `lib.mkDefault` / `lib.mkOptionDefault` for shared defaults (NEVER direct assignment)
+- No plaintext secrets in git (agenix for NixOS, K8s Secrets for manifests)
+- All K8s workloads default to Nexus (Zephyr has OOM risk)
