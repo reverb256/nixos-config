@@ -109,16 +109,14 @@
   # ---------------------------------------------------------------------------
 
   # Factory Droid: ~/.factory/mcp.json
+  # Droid supports ${VAR} interpolation in mcp.json, so we use env var references
+  # instead of resolving the key at generation time. This keeps the key out of the
+  # generated file and allows Droid to read it from the environment at runtime.
   mkDroidMcpJson = pkgs.writeShellScript "generate-droid-mcp" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
 
-    ZAI_API_KEY=$(cat ${cfg.zaiApiKeyFile} 2>/dev/null || echo "")
-    CONTEXT7_API_KEY=$(cat ${cfg.context7ApiKeyFile} 2>/dev/null || echo "")
-
     ${pkgs.jq}/bin/jq -n \
-      --arg zai_key "$ZAI_API_KEY" \
-      --arg ctx7_key "$CONTEXT7_API_KEY" \
       '{
         "mcpServers": {
           "zai-mcp-server": {
@@ -127,26 +125,26 @@
             "args": ["-y", "@z_ai/mcp-server"],
             "env": {
               "Z_AI_MODE": "ZAI",
-              "Z_AI_API_KEY": $zai_key
+              "Z_AI_API_KEY": "$ZAI_API_KEY"
             },
             "disabled": false
           },
           "web-search-prime": {
             "type": "http",
             "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-            "headers": { "Authorization": ("Bearer " + $zai_key) },
+            "headers": { "Authorization": ("Bearer $ZAI_API_KEY") },
             "disabled": false
           },
           "web-reader": {
             "type": "http",
             "url": "https://api.z.ai/api/mcp/web_reader/mcp",
-            "headers": { "Authorization": ("Bearer " + $zai_key) },
+            "headers": { "Authorization": ("Bearer $ZAI_API_KEY") },
             "disabled": false
           },
           "zread": {
             "type": "http",
             "url": "https://api.z.ai/api/mcp/zread/mcp",
-            "headers": { "Authorization": ("Bearer " + $zai_key) },
+            "headers": { "Authorization": ("Bearer $ZAI_API_KEY") },
             "disabled": false
           },
           "filesystem": {
@@ -168,7 +166,7 @@
           },
           "context7": {
             "command": "mcp-context7",
-            "env": { "CONTEXT7_API_KEY": $ctx7_key },
+            "env": { "CONTEXT7_API_KEY": "$CONTEXT7_API_KEY" },
             "disabled": false
           },
           "chrome-devtools": {
@@ -185,7 +183,7 @@
 
     chown ${cfg.user}:users "/home/${cfg.user}/.factory/mcp.json"
     chmod 600 "/home/${cfg.user}/.factory/mcp.json"
-    echo "[ai-coding-tools] Droid MCP config generated"
+    echo "[ai-coding-tools] Droid MCP config generated with env var references"
   '';
 
   # Claude Code: ~/.config/claude/mcp.json
