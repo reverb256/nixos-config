@@ -1,5 +1,5 @@
 # KDE Plasma 6 Desktop Environment
-{pkgs, ...}: let
+{ lib, pkgs, ...}: let
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";
     runtimeInputs = with pkgs; [kdePackages.kscreen libnotify];
