@@ -1,8 +1,10 @@
 # Disable IPv6 autodetection on Forge (node has no IPv6 interfaces)
 # This prevents calico-node CrashLoopBackOff when Felix tries to autodetect IPv6
+# Health port changed from 9099 to 9097 to avoid conflict with alert-webhook on sentry
 apiVersion: crd.projectcalico.org/v1
 kind: FelixConfiguration
 metadata:
   name: default
 spec:
   ipv6Support: false
+  healthPort: 9097
