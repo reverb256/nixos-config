@@ -1,22 +1,16 @@
 commands:
-  check: nix flake check
-  test: nix-shell modules/services/ai-inference/ai_inference_gateway/shell.nix --run "pytest modules/services/ai-inference/ai_inference_gateway/tests/ -v"
+  check: nix flake check --no-build
   build: nixos-rebuild build
+  build-remote: colmena apply --build-on-target --no-submit
+  test: echo "No unit tests for NixOS configs - use 'check' and 'build'"
+  lint: nix flake check --no-build
   switch: just switch
   deploy: just deploy
-  lint: nix flake check
 
 services:
-  ai-gateway:
-    start: echo "Gateway runs in K8s - do not restart"
-    stop: echo "Gateway runs in K8s - do not stop"
-    healthcheck: curl -sf http://127.0.0.1:8080/health
-    port: 8080
-    depends_on: []
-
-  claude-code-router:
-    start: echo "Managed by NixOS systemd - do not restart"
-    stop: echo "Managed by NixOS systemd - do not stop"
-    healthcheck: curl -sf http://localhost:3456/health
-    port: 3456
+  kubernetes:
+    start: echo "K8s managed by NixOS - do not restart"
+    stop: echo "K8s managed by NixOS - do not stop"
+    healthcheck: kubectl get nodes --no-headers 2>&1 | grep -c Ready
+    port: 6443
     depends_on: []
