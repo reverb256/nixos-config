@@ -4,34 +4,35 @@ Testing surface discovery, resource cost classification, and tool requirements f
 
 ## Validation Surface
 
-This mission has **three testing surfaces**:
+This mission has **two testing surfaces**:
 
-### Surface 1: Filesystem / CLI (primary)
-- **Tool**: bash (curl, rg, test, git)
-- **What**: Verify config files, code changes, secrets, git state
-- **No browser needed** - all verification is CLI-based
+### Surface 1: CLI / Filesystem (primary)
+- **Tool**: bash (nix eval, nix flake check, nixos-rebuild build, git, test, kubectl get)
+- **What**: Verify config equivalence, file existence, git state, K8s resource inventory
+- **No browser needed** — all verification is CLI-based
 
-### Surface 2: API Endpoints (secondary)
-- **Tool**: curl
-- **What**: Gateway health, model list, Claude Code Router health
-- **Endpoints**:
-  - `http://127.0.0.1:8080/health` (AI Gateway)
-  - `http://127.0.0.1:8080/v1/models` (Model list)
-  - `http://localhost:3456/health` (Claude Code Router)
-
-### Surface 3: Gateway Tests (automated)
-- **Tool**: pytest via nix-shell
-- **Command**: `nix-shell /etc/nixos/modules/services/ai-inference/ai_inference_gateway/shell.nix --run "pytest tests/ -v"`
-- **21 test files, Python 3.13, no K8s needed**
+### Surface 2: K8s Cluster State (secondary)
+- **Tool**: kubectl
+- **What**: Verify no active resources were affected by manifest cleanup
+- **Commands**: kubectl get nodes, deployments, daemonsets, services, configmaps, namespaces
 
 ## Validation Concurrency
 
-- **Max concurrent validators**: 5
-- **Memory per validator**: ~100MB (lightweight - mostly file reads and curl)
-- **Machine resources**: 32 cores, 31GB RAM (but ~22GB used - memory pressure on Zephyr)
-- **Available headroom**: ~8GB * 0.7 = 5.6GB for validators
+- **Max concurrent validators**: 3 (memory constrained — Zephyr has 31GB RAM at 84% usage)
+- **Memory per validator**: ~200MB (nix eval + kubectl queries)
+- **Available headroom**: ~5GB * 0.7 = 3.5GB for validators
+- **CPU impact**: nix builds are CPU-heavy; limit concurrent builds to 1
 
 ## Required Skills
 
 - No agent-browser or tuistory needed
-- Standard bash/curl for all validation
+- Standard bash/nix/kubectl for all validation
+- nixos-config-worker and k8s-manifest-worker are the worker types
+
+## Pre-Validation Requirements
+
+Before user testing validation can run:
+1. `nix flake check` must pass
+2. `nixos-rebuild build` must succeed for all 4 hosts
+3. kubectl must be accessible from Zephyr
+4. Baseline snapshots of key settings must be captured
