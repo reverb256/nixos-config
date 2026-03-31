@@ -8,7 +8,10 @@
   # Monitor Setup Script - Auto-configures displays based on what's connected
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";
-    runtimeInputs = with pkgs; [kdePackages.kscreen libnotify];
+    runtimeInputs = with pkgs; [
+      kdePackages.kscreen
+      libnotify
+    ];
     text = ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -83,124 +86,6 @@
 
       echo "$CONNECTED" > "$PREVIOUS_FILE"
       log "=== Completed ==="
-    '';
-  };
-
-  bootMonitorScript = pkgs.writeShellScript "boot-monitor-setup" ''
-    sleep 2
-    ${monitorSetupScript}/bin/plasma-monitor-setup
-  '';
-
-  # TV Monitor Daemon for automatic TV power management
-  tvMonitorDaemon = pkgs.writeShellApplication {
-    name = "tv-monitor-daemon";
-    runtimeInputs = with pkgs; [kdePackages.kscreen libnotify wireplumber];
-    text = ''
-      #!/usr/bin/env bash
-      set -euo pipefail
-
-      LOGFILE="/tmp/tv-monitor-daemon.log"
-      TV_STATE_FILE="/tmp/tv-state"
-      HDMI_OUTPUT="HDMI-A-2"
-
-      log() {
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOGFILE"
-      }
-
-      notify() {
-          notify-send "TV Monitor" "$1" -i video-display 2>/dev/null || true
-      }
-
-      # Get current TV connection state
-      is_tv_connected() {
-          kscreen-doctor -o 2>/dev/null | grep -q "$HDMI_OUTPUT.*connected"
-      }
-
-      # Get current TV enabled state
-      is_tv_enabled() {
-          kscreen-doctor -o 2>/dev/null | grep -A 3 "$HDMI_OUTPUT" | grep -q "enabled"
-      }
-
-      # Check if TV is actually ON (not just connected)
-      is_tv_powered_on() {
-          is_tv_connected && is_tv_enabled
-      }
-
-      # Disable TV output and switch audio away
-      disable_tv() {
-          log "TV DISABLING: Disabling $HDMI_OUTPUT and switching audio"
-          notify "TV turned off - Disabling display and audio"
-
-          kscreen-doctor "output.$HDMI_OUTPUT.disable" 2>/dev/null || true
-
-          # Move default audio away from HDMI if it was default
-          if wpctl status 2>/dev/null | grep -q "Default Sink:.*hdmi"; then
-              local fallback_sink
-              fallback_sink=$(wpctl status short 2>/dev/null | grep -v "hdmi" | grep -v "DualSense" | head -1 | awk '{print $1}')
-              if [ -n "$fallback_sink" ]; then
-                  log "Switching audio from HDMI to: $fallback_sink"
-                  wpctl set-default "$fallback_sink" 2>/dev/null || true
-              fi
-          fi
-
-          echo "disabled" > "$TV_STATE_FILE"
-          log "TV disabled successfully"
-      }
-
-      # Enable and configure TV output
-      enable_tv() {
-          log "TV ENABLING: Enabling and configuring $HDMI_OUTPUT"
-          notify "TV turned on - Enabling display with HDR"
-
-          kscreen-doctor \
-              "output.$HDMI_OUTPUT.enable" \
-              "output.$HDMI_OUTPUT.mode.1" \
-              "output.$HDMI_OUTPUT.position.3520,1080" \
-              "output.$HDMI_OUTPUT.scale.1.5" \
-              "output.$HDMI_OUTPUT.priority.4" \
-              "output.$HDMI_OUTPUT.hdr.enable" \
-              "output.$HDMI_OUTPUT.sdr-brightness.900" \
-              2>/dev/null || log "WARNING: TV configuration failed"
-
-          echo "enabled" > "$TV_STATE_FILE"
-          log "TV enabled successfully"
-      }
-
-      # Main monitoring loop
-      log "=== TV Monitor Daemon starting ==="
-
-      PREVIOUS_STATE="unknown"
-      [ -f "$TV_STATE_FILE" ] && PREVIOUS_STATE=$(cat "$TV_STATE_FILE")
-
-      log "Starting TV state monitoring loop..."
-      log "Current TV state: $PREVIOUS_STATE"
-
-      CHECK_INTERVAL=5
-
-      while true; do
-          if is_tv_powered_on; then
-              CURRENT_STATE="on"
-          else
-              CURRENT_STATE="off"
-          fi
-
-          if [ "$PREVIOUS_STATE" = "on" ] && [ "$CURRENT_STATE" = "off" ]; then
-              disable_tv
-              PREVIOUS_STATE="off"
-          elif [ "$PREVIOUS_STATE" = "off" ] && [ "$CURRENT_STATE" = "on" ]; then
-              enable_tv
-              PREVIOUS_STATE="on"
-          elif [ "$PREVIOUS_STATE" = "unknown" ]; then
-              if [ "$CURRENT_STATE" = "on" ]; then
-                  log "TV detected as ON at startup"
-              else
-                  log "TV detected as OFF at startup"
-              fi
-              PREVIOUS_STATE="$CURRENT_STATE"
-          fi
-
-          sleep "$CHECK_INTERVAL"
-      done
     '';
   };
 in {
@@ -465,127 +350,15 @@ in {
         Enabled=false
       '';
 
-      "xdg/autostart/plasma-monitor-setup.desktop".text = ''
-        [Desktop Entry]
-        Type=Application
-        Name=Monitor Setup
-        Exec=${monitorSetupScript}/bin/plasma-monitor-setup
-        X-KDE-autostart-phase=2
-        NoDisplay=true
-      '';
-
-      "xdg/autostart/tv-monitor-daemon.desktop".text = ''
-        [Desktop Entry]
-        Type=Application
-        Name=TV Monitor Daemon
-        Exec=${tvMonitorDaemon}/bin/tv-monitor-daemon
-        X-KDE-autostart-phase=3
-        NoDisplay=true
-      '';
+      # autostart entries defined in plasma6.nix (plasma-monitor-setup.desktop,
+      # tv-monitor-daemon.desktop) — removed duplicates to avoid conflicts
     };
   };
 
   # ============================================================================
   # SYSTEMD SERVICES
   # ============================================================================
-  systemd = {
-    # GPU Readiness Service - Ensures GPU devices are ready before display manager starts
-    services.gpu-ready = {
-      description = "Wait for GPU devices to be ready";
-      after = ["systemd-modules-load.service"];
-      wantedBy = ["display-manager.service"];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = pkgs.writeShellScript "gpu-ready" ''
-          # Wait for GPU DRM devices to be ready (NVIDIA/CUDA or AMD/ROCm)
-
-          log() {
-            echo "[gpu-ready] $1" >&2
-          }
-
-          check_drm_devices() {
-            for dev in /dev/dri/card*; do
-              if [ -e "$dev" ]; then
-                return 0
-              fi
-            done
-            return 1
-          }
-
-          has_nvidia() {
-            [ -d /proc/driver/nvidia ] && [ -e /dev/nvidiactl ]
-          }
-
-          has_amd() {
-            [ -d /sys/class/drm ] && grep -q "0x1002" /sys/class/drm/card*/device/vendor 2>/dev/null
-          }
-
-          DETECTED_GPUS=""
-          has_nvidia && DETECTED_GPUS="$DETECTED_GPUS NVIDIA(CUDA)"
-          has_amd && DETECTED_GPUS="$DETECTED_GPUS AMD(ROCm)"
-
-          if [ -n "$DETECTED_GPUS" ]; then
-            log "Detected GPUs:$DETECTED_GPUS"
-          else
-            log "No GPUs detected, waiting for DRM devices..."
-          fi
-
-          # Wait up to 10 seconds for DRM devices
-          for i in $(seq 1 50); do
-            if check_drm_devices; then
-              log "DRM devices ready at /dev/dri/"
-              exit 0
-            fi
-            sleep 0.2
-          done
-
-          log "WARNING: Timeout waiting for DRM devices, proceeding anyway"
-          exit 0
-        '';
-      };
-    };
-
-    services.boot-monitor-setup = {
-      description = "Configure monitors at boot";
-      wantedBy = ["display-manager.service"];
-      before = ["display-manager.service" "sddm.service"];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = bootMonitorScript;
-        RemainAfterExit = true;
-        TimeoutStartSec = 10;
-      };
-    };
-
-    user.services = {
-      plasma-monitor-setup = {
-        description = "Apply monitor configuration";
-        wantedBy = ["graphical-session.target"];
-        after = ["plasma-plasmashell.service" "graphical-session.target"];
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${monitorSetupScript}/bin/plasma-monitor-setup";
-          Restart = "on-failure";
-          RestartSec = 2;
-        };
-      };
-
-      # Disable KScreen backend launcher
-      "kscreen_backend_launcher".enable = false;
-
-      # TV Monitor Daemon - Auto manage TV power state
-      tv-monitor-daemon = {
-        description = "Monitor TV power state and auto-disable/enable";
-        wantedBy = ["graphical-session.target"];
-        after = ["plasma-plasmashellell.service" "graphical-session.target"];
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${tvMonitorDaemon}/bin/tv-monitor-daemon";
-          Restart = "always";
-          RestartSec = 5;
-        };
-      };
-    };
-  };
+  # All systemd user services (gpu-ready, boot-monitor-setup, plasma-monitor-setup,
+  # tv-monitor-daemon) defined in plasma6.nix — removed duplicates here
+  systemd.user.services."kscreen_backend_launcher".enable = false;
 }
