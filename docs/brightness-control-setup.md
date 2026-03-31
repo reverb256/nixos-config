@@ -1,16 +1,39 @@
 # Monitor Brightness Control Status
 
-## Current Status (2026-03-21)
+## ✅ RESOLVED (2026-03-31)
+
+All 4 displays now show in Plasma brightness slider reliably.
 
 ### ✅ Working in Plasma Slider
 - **ZOWIE (DP-5)**: Shows in brightness slider, works perfectly
 - **Samsung TV (HDMI-A-2)**: Shows in brightness slider, works perfectly
+- **ASUS (DP-4)**: ✅ **NOW WORKING** - Shows in brightness slider
+- **Acer (DP-6)**: ✅ **NOW WORKING** - Shows in brightness slider
 
-### ❌ Not in Plasma Slider (but work via ddcutil)
-- **ASUS (DP-4)**: Works via ddcutil, but not in Plasma slider
-- **Acer (DP-6)**: Works via ddcutil, but not in Plasma slider
+## The Fix
 
-## Root Cause
+**Root Cause**: Conflicting systemd service definitions between `desktop.nix` and `plasma6.nix` prevented the brightness fix from loading.
+
+**Solution**: Set `UseDDCUtil=false` in PowerDevil configuration (via `plasma6.nix`). This tells PowerDevil to show **ALL displays** in the brightness slider, not just those that properly report DDC/CI support via EDID.
+
+**Implementation**:
+```nix
+# modules/desktop/plasma6.nix
+[BrightnessControl]
+UseDDCUtil=false  # Show ALL displays, not just DDC/CI-capable
+
+[DP-5][BrightnessControl]
+brightnessEnable=true
+brightnessValue=100
+
+# ... DP-4, DP-6, HDMI-A-2 also configured
+```
+
+**Commit**: `4a84746` - "fix(plasma6): resolve brightness control for all 4 monitors"
+
+## Historical Context
+
+### Previous Issue (2026-03-21)
 
 **Hardware/Firmware Limitation**: ASUS and Acer monitors don't properly advertise brightness control capability via their EDID (Extended Display Identification Data), even though they **DO support** DDC/CI brightness control.
 
@@ -26,27 +49,15 @@ DP-6 (Acer):   Brightness control: unsupported, DDC/CI: allowed
 HDMI-A-2 (TV): Brightness control: supported,   DDC/CI: N/A
 ```
 
-## Solutions
+## Solutions (Historical - No Longer Needed)
 
-### 1. ✅ Keyboard Shortcuts (Recommended)
+The following workarounds were used before the fix. All monitors now work via Plasma brightness slider.
 
-I've created keyboard shortcuts for ASUS and Acer:
+### 1. ✅ Keyboard Shortcuts (No Longer Needed)
 
-**ASUS Monitor:**
-- `Ctrl+Alt+Shift+PageUp` - Brightness up
-- `Ctrl+Alt+Shift+PageDown` - Brightness down
+Previously created keyboard shortcuts for ASUS and Acer - **now obsolete** since all monitors work in the Plasma slider.
 
-**Acer Monitor:**
-- `Ctrl+Alt+Home` - Brightness up
-- `Ctrl+Alt+End` - Brightness down
-
-**To bind these shortcuts:**
-1. Open System Settings → Shortcuts
-2. Click "Custom Shortcuts"
-3. Find "ASUS Brightness Up/Down" and "Acer Brightness Up/Down"
-4. Click the "Configure" button to bind your preferred keys
-
-### 2. ✅ Direct ddcutil Commands
+### 2. ✅ Direct ddcutil Commands (Still Available)
 
 You can control brightness from terminal:
 
@@ -137,10 +148,17 @@ systemctl --user restart plasma-monitor-setup
 
 ## Summary
 
-**Root Cause:** ASUS and Acer monitors don't properly advertise brightness control capability via EDID, so KDE won't show them in the brightness slider - even though they support DDC/CI brightness control via ddcutil.
+**Status:** ✅ **RESOLVED** - All 4 displays controllable via Plasma brightness slider
 
-**User Requirement:** All 4 displays should be controllable via the Plasma brightness slider. This is NOT currently possible due to hardware/EDID limitations.
+**Root Cause:** Conflicting systemd services between `desktop.nix` and `plasma6.nix` prevented the `UseDDCUtil=false` configuration from being applied.
 
-**Current Workaround:** While keyboard shortcuts and ddcutil commands work, they don't meet the user's requirement of slider-based control for all displays.
+**Solution:** Removed duplicate services (gpu-ready, plasma-monitor-setup, tv-monitor-daemon) from `desktop.nix`. The `plasma6.nix` module now provides:
+- `UseDDCUtil=false` - Shows ALL displays in brightness slider
+- Explicit brightness configuration for all 4 displays
+- No module conflicts
 
-**Technical Note:** The monitoring modules (gaming-detection, gpu-profile-manager, mining-coordinator) did NOT cause this issue. They only manage NVIDIA GPUs via `nvidia-smi` and don't touch display configuration.
+**Configuration:** Declarative NixOS module at `/etc/nixos/modules/desktop/plasma6.nix`
+
+**Persistence:** Fix will survive reboots and rebuilds - applied automatically via NixOS configuration.
+
+**Historical Note:** ASUS and Acer monitors don't properly advertise brightness control via EDID, but `UseDDCUtil=false` bypasses this limitation by showing all displays regardless of EDID reporting.

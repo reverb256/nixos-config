@@ -7,6 +7,39 @@
 
 ## Recent Achievements
 
+### Plasma Brightness Control Fix (2026-03-31)
+
+**Status:** ✅ COMPLETE
+
+Resolved intermittent disappearance of Acer monitors (DP-5, DP-6) from Plasma
+brightness slider. All 4 displays now reliably show in brightness control.
+
+**Root Cause:**
+- Conflicting systemd service definitions between `desktop.nix` and `plasma6.nix`
+- Services: `gpu-ready`, `plasma-monitor-setup`, `tv-monitor-daemon`
+- Module conflicts prevented `UseDDCUtil=false` from being applied
+
+**Solution:**
+- Removed duplicate services from `desktop.nix` (237 lines removed)
+- Kept `plasma6.nix` as single source of truth for brightness control
+- Set `UseDDCUtil=false` in PowerDevil configuration
+
+**Result:**
+- All 4 displays (HDMI-A-2, DP-4, DP-5, DP-6) show in brightness slider
+- Configuration survives reboots and rebuilds
+- Declarative NixOS module at `/etc/nixos/modules/desktop/plasma6.nix`
+
+**Files Modified:**
+- `modules/default.nix` - Added plasma6.nix import
+- `modules/desktop/desktop.nix` - Removed duplicate services
+- `modules/desktop/plasma6.nix` - Fixed lib import
+
+**Commit:** `4a84746` - "fix(plasma6): resolve brightness control for all 4 monitors"
+
+**Documentation:** `docs/brightness-control-setup.md`
+
+---
+
 ### Kubernetes-Native Gaming Detection (2026-03-21)
 
 **Status:** ✅ COMPLETE (with workaround)
