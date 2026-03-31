@@ -9,7 +9,8 @@
   lib,
   pkgs,
   ...
-}: {
+}:
+{
   # Forge-specific zswap tuning (Intel i5-9500 needs 20% pool, not 40%)
   kernel-hardening.zswap.maxPoolPercent = 20;
 
@@ -35,11 +36,12 @@
     enableNotifications = true;
   };
 
-  # VM tuning for memory-constrained mining node
+  # VM tuning for memory-constrained mining node (15GB RAM)
+  # Uses mkForce to override vm-tuning.nix defaults which target 32GB systems
   boot.kernel.sysctl = {
-    "vm.swappiness" = 60; # Moderate swapping with zram available
-    "vm.vfs_cache_pressure" = 150; # Faster slab reclaim under pressure
-    "vm.min_free_kbytes" = 524288; # 512MB reserved for 15GB system
+    "vm.swappiness" = lib.mkForce 60; # Higher than 32GB default — zram handles it well
+    "vm.vfs_cache_pressure" = lib.mkForce 150; # Faster slab reclaim under pressure
+    "vm.min_free_kbytes" = lib.mkForce 524288; # 512MB reserved for 15GB system
   };
 
   imports = [
@@ -76,9 +78,6 @@
     unbound.listenAddress = "10.1.1.130";
   };
 
-  # FIX: Disable interface renaming - use actual interface names
-  systemd.network.links = lib.mkForce {};
-
   # Enable ULA (Unique Local Address) IPv6 for Calico BGP mesh
   networking.interfaces.eno1.ipv6.addresses = [
     {
@@ -101,11 +100,6 @@
 
   # Populate /etc/hosts from central cluster configuration
   networking = {
-    cluster-hosts = {
-      enable = true;
-      populateLocal = true;
-    };
-
     # Forge-specific firewall rules (in addition to cluster defaults)
     firewall = {
       allowedTCPPorts = lib.mkOptionDefault [
@@ -313,8 +307,8 @@
     nixos-auto-update = {
       enable = true;
       interval = "daily"; # Check for updates daily at 00:00
-      updateFlakeInputs = ["nixpkgs"]; # Auto-update nixpkgs input
-      extraFlags = ["--upgrade"]; # Run with --upgrade flag
+      updateFlakeInputs = [ "nixpkgs" ]; # Auto-update nixpkgs input
+      extraFlags = [ "--upgrade" ]; # Run with --upgrade flag
     };
   };
 
@@ -419,7 +413,7 @@
     # GPU DRIVERS (Hybrid AMD + NVIDIA)
     # Note: NVIDIA modules loaded via nvidia-wayland.nix
     # Note: AMDGPU loaded via hardware.profiles.amdgpu.wayland (initrd too)
-    kernelModules = ["tun"]; # amdgpu added by profile, not duplicated here
+    kernelModules = [ "tun" ]; # amdgpu added by profile, not duplicated here
   };
 
   # ============================================================================
@@ -445,8 +439,8 @@
       amd-gpu-power-mgmt = {
         description = "AMD GPU Power Limit (140W for RX 5700 XT)";
         enable = false; # Disabled: power limit adjustment failing with Invalid argument
-        wantedBy = ["multi-user.target"];
-        after = ["basic.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "basic.target" ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -481,8 +475,8 @@
 
       nvidia-compute-mode = {
         description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
-        wantedBy = ["multi-user.target"];
-        after = ["basic.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "basic.target" ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -521,7 +515,7 @@
       amd-gpu-fan-curve = {
         description = "AMD GPU Dynamic Fan Curve Control";
         # FIXED: awk escaping bug resolved by using bc instead of awk
-        wantedBy = ["multi-user.target"];
+        wantedBy = [ "multi-user.target" ];
         after = [
           "network.target"
           "amd-gpu-power-mgmt.service"
@@ -713,8 +707,8 @@
       # AMD GPU HEALTH CHECKS
       "amd-gpu-check" = {
         description = "AMD GPU Detection and Health Check";
-        wantedBy = ["multi-user.target"];
-        after = ["basic.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "basic.target" ];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo 2>/dev/null || echo \"AMD GPU detection failed\"'";
@@ -759,8 +753,8 @@
 
       "amd-gpu-info" = {
         description = "AMD GPU Information Service";
-        wantedBy = ["multi-user.target"];
-        after = ["basic.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "basic.target" ];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${pkgs.bash}/bin/bash -c 'PATH=/run/current-system/sw/bin:$PATH /run/wrappers/bin/sudo rocminfo > /tmp/amd-gpu-info.log 2>&1 || true'";
@@ -769,24 +763,26 @@
       };
     };
 
-    tmpfiles.rules = let
-      rocmEnv = pkgs.symlinkJoin {
-        name = "rocm-combined";
-        paths = with pkgs.rocmPackages; [
-          clr
-          clr.icd
-          rocblas
-          hipblas
-          rpp
-        ];
-      };
-    in [
-      "c /dev/net/tun 666 root root - - - -"
-      "L+ /opt/rocm - - - - ${rocmEnv}"
-      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-      # lolMiner workaround for OpenCL ICD path bug
-      "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
-    ];
+    tmpfiles.rules =
+      let
+        rocmEnv = pkgs.symlinkJoin {
+          name = "rocm-combined";
+          paths = with pkgs.rocmPackages; [
+            clr
+            clr.icd
+            rocblas
+            hipblas
+            rpp
+          ];
+        };
+      in
+      [
+        "c /dev/net/tun 666 root root - - - -"
+        "L+ /opt/rocm - - - - ${rocmEnv}"
+        "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+        # lolMiner workaround for OpenCL ICD path bug
+        "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
+      ];
 
     slices.mining = {
       description = "Mining Services Slice";
@@ -818,7 +814,8 @@
     };
 
     # OpenCL ICD setup for AMD GPUs (lolminer needs this to detect AMD GPUs)
-    etc."OpenCL/vendors/amdocl64.icd".source = "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
+    etc."OpenCL/vendors/amdocl64.icd".source =
+      "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
 
     systemPackages = with pkgs; [
       rocmPackages.rocm-smi
@@ -831,7 +828,6 @@
   # NIX-LD (For mining software compatibility)
   # ============================================================================
   programs = {
-    nix-ld.enable = true;
     nix-ld.libraries = with pkgs; [
       # AMD/ROCm libraries
       rocmPackages.clr
@@ -890,9 +886,6 @@
   # ============================================================================
   # SECURITY
   # ============================================================================
-  # Trust Caddy Ingress local CA certificate
-  security.caddyCa.enable = true;
-
   # ============================================================================
   # AGENIX SECRETS
   # ============================================================================
@@ -921,5 +914,4 @@
   # ============================================================================
   # UNBOUND DNS WITH DNS-OVER-TLS (Cluster-wide configuration)
   # ============================================================================
-  services.unbound-common.enable = true;
 }
