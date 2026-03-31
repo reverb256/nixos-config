@@ -12,8 +12,10 @@ _: {
         OOMScoreAdjust = -1000;
         # Ensure user session stays alive even under memory pressure
         MemoryPressureWatch = "skip";
-        # Limit memory to prevent system-wide exhaustion (increased from 24G due to Discover crashes)
-        MemoryLimit = "32G";
+        # Soft throttle at 28G, hard kill at 30G — leaves 1-3G for kernel/critical services
+        # Previous 32G limit matched total RAM with zero headroom (31GB system)
+        MemoryHigh = "28G";
+        MemoryMax = "30G";
       };
       # CRITICAL: Prevent user session restart during nixos-rebuild
       # Restarting this service kills ALL user processes across ALL TTYs

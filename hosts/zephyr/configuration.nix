@@ -1,12 +1,12 @@
 # Zephyr Host Configuration
 # RTX 3090, Quest Pro, 4K HDR TV
 {
+  config,
   pkgs,
   lib,
   inputs,
   ...
-}:
-{
+}: {
   imports = [
     # ========================================================================
     # BASE MODULES
@@ -57,23 +57,30 @@
   };
 
   # FIX: Disable interface renaming - use actual interface names
-  systemd.network.links = lib.mkForce { };
+  systemd.network.links = lib.mkForce {};
 
   # ============================================================================
-  # MEMORY OPTIMIZATION - Reduce kernel slab cache bloat
+  # MEMORY OPTIMIZATION - zram compressed swap + kernel tuning
   # ============================================================================
-  # Aggressive slab cache reclaim to reduce 3.1GB kernel memory footprint
+  # VM sysctls (vfs_cache_pressure, swappiness, overcommit) handled by
+  # vm-tuning.nix with mkForce — only host-specific overrides here.
+  # Previous vfs_cache_pressure=1000 caused excessive page cache eviction,
+  # forcing more SSD swap. vm-tuning.nix sets 150 (mkForce).
+
+  # ZRAM compressed swap — reduces SSD wear, faster than disk swap
+  # 25% of 31GB ≈ 8GB compressed swap (zstd compression ~2-3x ratio)
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+    memoryPercent = 25;
+    priority = 999; # Prefer zram over disk swap
+  };
+
   boot.kernel.sysctl = {
-    # Aggressive vfs cache pressure (default: 100, higher = reclaim faster)
-    "vm.vfs_cache_pressure" = 1000;
-
-    # Reduce minimum free memory reservation (frees ~100MB)
-    "vm.min_free_kbytes" = 65536; # 64MB minimum
-
-    # Network buffer reduction (frees unused socket buffers)
+    # Network buffer tuning (frees unused socket buffers)
     "net.core.rmem_default" = 262144; # 256KB (default: 212992)
     "net.core.wmem_default" = 262144; # 256KB
-    "net.core.rmem_max" = 16777216; # 16MB max (not 212992*128)
+    "net.core.rmem_max" = 16777216; # 16MB max
     "net.core.wmem_max" = 16777216;
 
     # CALICO CNI REQUIREMENTS
@@ -194,7 +201,7 @@
   # FIX: Don't override ExecStart or Type - let gaming module handle those.
   # Only add wantedBy to start at boot. This prevents duplicate ExecStart lines.
   systemd.user.services.gamemoded = {
-    wantedBy = [ "default.target" ];
+    wantedBy = ["default.target"];
   };
 
   # ============================================================================
@@ -913,7 +920,7 @@
           nix-rebuild = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
@@ -923,16 +930,16 @@
           add-service = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
             ];
-            environment = { };
+            environment = {};
             enabled = true;
           };
           context7 = {
             type = "local";
             # Use absolute path for reliable subprocess spawning
-            command = [ "/run/current-system/sw/bin/mcp-context7" ];
+            command = ["/run/current-system/sw/bin/mcp-context7"];
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
@@ -997,6 +1004,13 @@
       servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
     };
 
+    # AI Coding Tools - Harmonized MCP configs (Droid, Claude, Crush, OpenCode)
+    ai-coding-tools = {
+      enable = true;
+      zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+      context7ApiKeyFile = "/run/agenix/context7-api-key";
+    };
+
     # WEB TESTING - Playwright/Puppeteer system dependencies
     web-testing.enable = true;
 
@@ -1059,7 +1073,7 @@
         enable = true; # RE-ENABLED: Kubernetes CNI broken, using systemd until fixed
         autostart = true;
         devices = "1"; # Only mine on GPU 1 (RTX 3090)
-        perGpuPowerLimits = [ 250 ]; # GPU1: RTX 3090 @ 250W (GPU 0 disabled)
+        perGpuPowerLimits = [250]; # GPU1: RTX 3090 @ 250W (GPU 0 disabled)
         apiPort = 4068;
       };
       # CPU mining - Dual XMRig setup (always-on + pause-able)
@@ -1225,7 +1239,7 @@
 
   # Override specific secret permissions (registry defaults can be overridden)
   age = {
-    identityPaths = [ "/home/j_kro/.age/key.txt" ];
+    identityPaths = ["/home/j_kro/.age/key.txt"];
     secrets.xmrig-api-token = lib.mkForce {
       file = "${inputs.self}/secrets/xmrig-api-token.age";
       mode = "440";
@@ -1597,18 +1611,16 @@
   # ============================================================================
   # CLAUDE CODE ROUTER - Route Claude Code to Z.AI GLM models
   # ============================================================================
-  # Proxy service that transforms Claude Code requests to OpenAI-compatible format
-  # Runs on localhost:3456 by default
   services.claude-code-router = {
     enable = true;
     port = 3456;
     openFirewall = false; # Localhost only
-
     zai = {
-      apiKey = builtins.readFile ../../secrets/zai-api-key.age;
+      apiKeyFile = config.age.secrets.zai-api-key.path;
       defaultModel = "glm-4.7";
       thinkModel = "glm-4.7";
     };
   };
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
+

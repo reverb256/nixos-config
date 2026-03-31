@@ -36,30 +36,19 @@ spec:
       serviceAccountName: gpu-miner-sa
       automountServiceAccountToken: false
       priorityClassName: mining-low
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            preference:
-              matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                - sentry
+      hostNetwork: true
+      hostIPC: true
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
+        runAsNonRoot: false
       containers:
       - name: xmrig
         image: docker.io/library/xmrig-nixos:latest
         imagePullPolicy: Never
         args:
           - "-o"
-          - "xmrig-proxy.mining.svc.cluster.local:3333"  # Using Kubernetes service DNS instead of host IP
+          - "xmrig-proxy.mining.svc.cluster.local:3333"
           - "-u"
           - "sentry-cpu"
-          - "--tls=false"
           - "--randomx-1gb-pages"
           - "--threads=4"
           - "--donate-level=1"
@@ -97,32 +86,37 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 3
         securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false  # FIXED: xmrig needs write access
+          allowPrivilegeEscalation: true
+          readOnlyRootFilesystem: false
           capabilities:
             drop:
-              - ALL
+            - ALL
             add:
-              - SYS_NICE
-              - IPC_LOCK
-              - SYS_RAWIO  # Required for MSR access to CPU registers
+            - SYS_NICE
+            - IPC_LOCK
+            - SYS_RAWIO
         volumeMounts:
+        - name: dev-cpu
+          mountPath: /dev/cpu
         - name: hugepages
           mountPath: /dev/hugepages
+        - name: sys-module
+          mountPath: /sys/module
+          readOnly: true
         - name: tmp
           mountPath: /tmp
-        - name: msr
-          mountPath: /dev/cpu
-          readOnly: true
       volumes:
       - name: hugepages
         hostPath:
           path: /dev/hugepages
           type: Directory
-      - name: tmp
-        emptyDir: {}
-      # MSR devices for CPU optimizations (10-30% hashrate improvement)
-      - name: msr
+      - name: dev-cpu
         hostPath:
           path: /dev/cpu
           type: Directory
+      - name: sys-module
+        hostPath:
+          path: /sys/module
+          type: Directory
+      - name: tmp
+        emptyDir: {}

@@ -19,6 +19,8 @@ spec:
       labels:
         app: searxng
     spec:
+      # Disable service account token automount (no Kubernetes API access needed)
+      automountServiceAccountToken: false
       # Schedule on nexus to avoid IP exhaustion on sentry
       nodeSelector:
         kubernetes.io/hostname: nexus
