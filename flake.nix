@@ -107,57 +107,11 @@
     # ========================================================================
     # COMMON MODULES - Shared across all hosts (single source of truth)
     # ========================================================================
-    commonModules = [
-      # External modules
-      home-manager.nixosModules.home-manager
-      aagl.nixosModules.default
-      nur.modules.nixos.default
-      agenix.nixosModules.default
+    # Import from shared file to ensure flake.nix and colmena.nix stay in sync
+    commonModules = import ./common-modules-list.nix {
+      inherit inputs self;
+    };
 
-      # nixpkgs-xr - Bleeding-edge XR/VR packages with binary cache
-      # Provides: wivrn, monado, libsurvive, xrizer, opencomposite, etc.
-      # Adds nix-community.cachix.org binary cache automatically
-      inputs.nixpkgs-xr.nixosModules.nixpkgs-xr
-
-      # Niri - Scrollable-tiling Wayland compositor
-      # Provides: programs.niri NixOS module (enable, settings, package)
-      inputs.niri.nixosModules.niri
-
-      # Internal modules (auto-imports all subdirectories)
-      ./modules/default.nix
-
-      # ========================================================================
-      # OVERLAYS CONFIGURATION
-      # ========================================================================
-      # Custom package overlays applied to ALL hosts
-      #
-      # Order matters: nixpkgs-xr overlay (above) provides base VR packages,
-      # then our custom overlay adds lighthouse support to WiVRn, etc.
-      #
-      # Scope: System + Home Manager (due to useGlobalPkgs = true)
-      # Location: ./overlay.nix defines custom packages (lolminer, xmrig, etc.)
-      #
-      # See: modules/system/home-manager.nix for useGlobalPkgs setting
-      # ========================================================================
-      {nixpkgs.overlays = [inputs.niri.overlays.niri self.overlays.default];}
-
-      # ========================================================================
-      # AGENIX IDENTITY PATHS - Cluster-wide secret decryption
-      # ========================================================================
-      # Priority: Syncthing-synced > System > Home directory
-      #
-      # /etc/nixos/.age/key.txt - Synced via Syncthing across all hosts
-      # /etc/age/key.txt - System location (fallback, populated by activation script)
-      # /home/j_kro/.age/key.txt - Original location (Zephyr only)
-      # ========================================================================
-      {
-        age.identityPaths = [
-          "/etc/nixos/.age/key.txt"
-          "/etc/age/key.txt"
-          "/home/j_kro/.age/key.txt"
-        ];
-      }
-    ];
 
     # ========================================================================
     # HELPER FUNCTION - Create NixOS system (eliminates duplication)
