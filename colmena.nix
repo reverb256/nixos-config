@@ -17,30 +17,10 @@
   # ========================================================================
   # COMMON MODULES - Shared across all hosts (matches flake.nix)
   # ========================================================================
-  commonModules = [
-    # External modules
-    inputs.home-manager.nixosModules.home-manager
-    inputs.aagl.nixosModules.default
-    inputs.nur.modules.nixos.default
-    inputs.agenix.nixosModules.default
-    inputs.niri.nixosModules.niri
-
-    # Internal modules (auto-imports all subdirectories)
-    ./modules/default.nix
-
-    # Overlays configuration - applies overlays.default to all hosts
-    {nixpkgs.overlays = [inputs.niri.overlays.niri self.overlays.default];}
-
-    # Agenix identity paths - use Syncthing-synced location
-    # Priority: /etc/nixos/.age/key.txt (synced) > /etc/age/key.txt (system) > /home/j_kro/.age/key.txt (local)
-    {
-      age.identityPaths = [
-        "/etc/nixos/.age/key.txt"
-        "/etc/age/key.txt"
-        "/home/j_kro/.age/key.txt"
-      ];
-    }
-  ];
+  # Import from shared file to ensure flake.nix and colmena.nix stay in sync
+  commonModules = import ./common-modules-list.nix {
+    inherit inputs self;
+  };
 
   # ========================================================================
   # HELPER FUNCTION - Add deployment metadata to host config
