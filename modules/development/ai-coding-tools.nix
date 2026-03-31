@@ -193,9 +193,11 @@
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
 
+    ZAI_API_KEY=$(cat ${cfg.zaiApiKeyFile} 2>/dev/null || echo "")
     CONTEXT7_API_KEY=$(cat ${cfg.context7ApiKeyFile} 2>/dev/null || echo "")
 
     ${pkgs.jq}/bin/jq -n \
+      --arg zai_key "$ZAI_API_KEY" \
       --arg ctx7_key "$CONTEXT7_API_KEY" \
       '{
         "mcpServers": {
@@ -204,8 +206,23 @@
             "args": ["-y", "@z_ai/mcp-server"],
             "env": {
               "Z_AI_MODE": "ZAI",
-              "Z_AI_API_KEY": "''${ZAI_API_KEY}"
+              "Z_AI_API_KEY": $zai_key
             }
+          },
+          "web-search-prime": {
+            "type": "http",
+            "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+            "headers": { "Authorization": ("Bearer " + $zai_key) }
+          },
+          "web-reader": {
+            "type": "http",
+            "url": "https://api.z.ai/api/mcp/web_reader/mcp",
+            "headers": { "Authorization": ("Bearer " + $zai_key) }
+          },
+          "zread": {
+            "type": "http",
+            "url": "https://api.z.ai/api/mcp/zread/mcp",
+            "headers": { "Authorization": ("Bearer " + $zai_key) }
           },
           "filesystem": {
             "command": "mcp-filesystem",
@@ -317,7 +334,7 @@
       }' > "/home/${cfg.user}/.config/crush/crush.json"
 
     chown ${cfg.user}:users "/home/${cfg.user}/.config/crush/crush.json"
-    chmod 644 "/home/${cfg.user}/.config/crush/crush.json"
+    chmod 600 "/home/${cfg.user}/.config/crush/crush.json"
     echo "[ai-coding-tools] Crush config generated"
   '';
 
@@ -537,7 +554,7 @@ in {
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
-        ProtectHome = "read-write";
+        ProtectHome = "no";
         ReadWritePaths = [
           "/home/${cfg.user}/.factory"
           "/home/${cfg.user}/.config/claude"
