@@ -89,6 +89,7 @@
     ./development/programming-languages.nix
     ./development/opencode.nix
     ./development/web-testing.nix
+    ./development/ai-coding-tools.nix
 
     # Gaming
     ./gaming/gaming.nix

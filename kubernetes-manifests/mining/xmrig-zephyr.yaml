@@ -7,7 +7,7 @@ metadata:
   name: xmrig-zephyr
   namespace: mining
   labels:
-    app: xmrig
+    app: xmrig-zephyr
     host: zephyr
     workload: crypto-mining
 spec:
@@ -15,7 +15,7 @@ spec:
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: xmrig
+      app: xmrig-zephyr
       host: zephyr
   strategy:
     type: RollingUpdate
@@ -25,7 +25,7 @@ spec:
   template:
     metadata:
       labels:
-        app: xmrig
+        app: xmrig-zephyr
         host: zephyr
         workload: crypto-mining
       annotations:
@@ -37,6 +37,8 @@ spec:
       serviceAccountName: gpu-miner-sa
       automountServiceAccountToken: false
       priorityClassName: mining-low
+      hostNetwork: true
+      hostIPC: true
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
@@ -112,13 +114,15 @@ spec:
             - IPC_LOCK
             - SYS_RAWIO  # Required for MSR access to CPU registers
         volumeMounts:
-        - name: hugepages
-          mountPath: /dev/hugepages
-        - name: tmp
-          mountPath: /tmp
         - name: msr
           mountPath: /dev/cpu
+        - name: hugepages
+          mountPath: /dev/hugepages
+        - name: sys-module
+          mountPath: /sys/module
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
       volumes:
       - name: hugepages
         hostPath:
@@ -130,4 +134,8 @@ spec:
       - name: msr
         hostPath:
           path: /dev/cpu
+          type: Directory
+      - name: sys-module
+        hostPath:
+          path: /sys/module
           type: Directory
