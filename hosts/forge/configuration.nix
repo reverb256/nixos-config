@@ -31,7 +31,7 @@
   # Early OOM prevention — kill processes before system freezes
   services.earlyoom = {
     enable = true;
-    freeMemThreshold = 10; # Kill at 10% RAM free (~1.5GB)
+    # freeMemThreshold handled in modules/system/vm-tuning.nix
     freeSwapThreshold = 10;
     enableNotifications = true;
   };
@@ -39,8 +39,8 @@
   # VM tuning for memory-constrained mining node (15GB RAM)
   # Uses mkForce to override vm-tuning.nix defaults which target 32GB systems
   boot.kernel.sysctl = {
-    "vm.swappiness" = lib.mkForce 60; # Higher than 32GB default — zram handles it well
-    "vm.vfs_cache_pressure" = lib.mkForce 150; # Faster slab reclaim under pressure
+    # vm.swappiness handled in modules/system/vm-tuning.nix
+    # vm.vfs_cache_pressure handled in modules/system/vm-tuning.nix
     "vm.min_free_kbytes" = lib.mkForce 524288; # 512MB reserved for 15GB system
   };
 
@@ -788,9 +788,9 @@
       description = "Mining Services Slice";
       sliceConfig = {
         CPUAccounting = true;
-        # CPU quota managed dynamically by compute-workload-monitor when enabled
+        # CPU quota managed dynamically by gpu-profile-manager when enabled
         # Without it, mining can use all available CPU (limited by process-level settings)
-        # CPUQuota = "95%";  # Uncomment to limit CPU to 95% (conflicts with compute-workload-monitor)
+        # CPUQuota = "95%";  # Uncomment to limit CPU to 95% (conflicts with gpu-profile-manager)
         MemoryAccounting = true;
         MemoryHigh = "8G";
         MemoryMax = "12G";

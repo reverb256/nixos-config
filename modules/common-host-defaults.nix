@@ -130,14 +130,14 @@
     #   ];
     rclone-sync.enable = lib.mkDefault false;
 
-    # COMPUTE WORKLOAD MONITOR
-    # Autonomous GPU workload detection and profile management
-    # Detects build workloads via PSI (Pressure Stall Information) and pauses mining
-    # Uses hysteresis to prevent thrashing between states
-    compute-workload-monitor = lib.mkDefault {
-      enable = true;
-      checkInterval = 10; # Check every 10 seconds
-    };
+    # MODULAR WORKLOAD MONITORING (replaces old compute-workload-monitor monolith)
+    # Gaming detection: monitors GameMode daemon and GPU patterns
+    # Mining coordinator: PSI-based build detection + K8s Volcano gaming preemption
+    # GPU profile manager: applies nvidia-smi profiles based on workload
+    # Individual hosts enable these as needed (see hosts/*/configuration.nix)
+    gaming-detection.enable = lib.mkDefault false;
+    gpu-profile-manager.enable = lib.mkDefault false;
+    mining-coordinator.enable = lib.mkDefault false;
   };
 
   # ============================================================================
