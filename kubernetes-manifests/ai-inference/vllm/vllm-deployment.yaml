@@ -33,6 +33,7 @@ spec:
         component: llm-inference
         backend: vllm
     spec:
+      runtimeClassName: nvidia
       schedulerName: default-scheduler
       priorityClassName: ai-inference-high
       nodeSelector:
@@ -43,6 +44,7 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
         - --model=/models/Qwen3.5-0.8B.Q8_0.gguf
+        - --device=cuda
         - --gpu-memory-utilization=0.85
         - --max-model-len=8192
         - --dtype=half
@@ -67,7 +69,7 @@ spec:
             nvidia.com/gpu: "1"
           limits:
             cpu: "4"
-            memory: "6Gi"
+            memory: "4Gi"
             nvidia.com/gpu: "1"
         startupProbe:
           httpGet:
