@@ -17,8 +17,8 @@
     literalExpression
     ;
 
-  # GlitchTip Docker image
-  glitchtipImage = "glitchtip/glitchtip:latest";
+  # GlitchTip Docker image (pinned versions for supply chain security)
+  glitchtipImage = "glitchtip/glitchtip:6";
   postgresImage = "postgres:16-alpine";
   redisImage = "redis:7-alpine";
 

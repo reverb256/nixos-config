@@ -289,6 +289,39 @@ profiles.role = { workstation = true; gaming = true; };
 profiles.network.tailscale.enable = true;
 ```
 
+## Supply Chain Security
+
+All package managers enforce a 7-day cooling period. Container images are pinned to specific versions.
+
+### Package Manager Cooldowns
+
+| Tool | Config | Setting |
+|------|--------|---------|
+| npm | `~/.npmrc` | `min-release-age=7` |
+| bun | `~/.bunfig.toml` | `minimumReleaseAge = "7d"` |
+| uv | `~/.config/uv/uv.toml` | `exclude-newer = "7 days"` |
+| pnpm | Uses `~/.npmrc` | Same as npm |
+
+**Module**: `services.supply-chain-cooldowns` — enable on each host
+
+### Container Images
+
+- **NEVER use `:latest` tags** in NixOS modules or K8s manifests
+- Pin to specific versions: `docker.io/vaultwarden/server:1.35.4`, not `:latest`
+- Image policy rejects unknown registries (see `modules/services/podman.nix`)
+- K8s admission policy blocks `:latest` (see `kubernetes-manifests/security/deny-latest-tag.yaml`)
+- Trivy scans all images weekly (see `services.container-scanning`)
+
+### Flake Updates
+
+- Auto-update validates input age > 7 days before updating nixpkgs
+- Never run `nix flake update` without reviewing the diff first
+
+### CI/CD
+
+- All GitHub Actions pinned to commit SHAs (not version tags)
+- Prevents tag-hijacking supply chain attacks
+
 ## Reference
 
 | Document | Purpose |
@@ -299,4 +332,4 @@ profiles.network.tailscale.enable = true;
 
 ---
 
-**Version**: 3.3 | **Last Updated:** 2026-03-27
+**Version**: 3.4 | **Last Updated:** 2026-04-01
