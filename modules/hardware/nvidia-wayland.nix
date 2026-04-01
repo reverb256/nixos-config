@@ -100,7 +100,6 @@ in {
       # SDL_VIDEODRIVER = "wayland";  # REMOVED: Causes Steam Vulkan init failure
       # SDL auto-detects best backend; Steam client needs XWayland fallback
       WINEPREFIX = "$HOME/.wine";
-      DXVK_HUD = "1"; # Enable to debug VRChat performance if needed (remove later)
     };
 
     # ============================================================================
@@ -178,7 +177,7 @@ in {
           if [ -d /proc/driver/nvidia ]; then
             # Create control device if it doesn't exist
             if [ ! -e /dev/nvidiactl ]; then
-              mknod -m 666 /dev/nvidiactl c 195 255 2>/dev/null || true
+              mknod -m 660 /dev/nvidiactl c 195 255 2>/dev/null || true
             fi
 
             # Create GPU devices
@@ -187,7 +186,7 @@ in {
                 if [ -d "$gpu" ]; then
                   minor=$(grep -oP 'Minor:\s*\K[0-9]+' "$gpu/information" 2>/dev/null || true)
                   if [ -n "$minor" ] && [ ! -e "/dev/nvidia$minor" ]; then
-                    mknod -m 666 "/dev/nvidia$minor" c 195 "$minor" 2>/dev/null || true
+                    mknod -m 660 "/dev/nvidia$minor" c 195 "$minor" 2>/dev/null || true
                   fi
                 fi
                 done
