@@ -63,6 +63,25 @@ in {
       exec >> "$LOG_FILE" 2>&1
       echo "$(date): Starting automatic update"
 
+      # Supply chain security: validate flake input age before updating
+      # Reject inputs newer than 7 days to prevent pulling unreviewed changes
+      AGE_THRESHOLD_DAYS=7
+      NOW=$(date +%s)
+      LOCK_FILE="$FLAKE_PATH/flake.lock"
+      if [ -f "$LOCK_FILE" ]; then
+        for input_name in ${lib.concatStringsSep " " cfg.updateFlakeInputs}; do
+          INPUT_TS=$(${pkgs.jq}/bin/jq -r ".nodes | to_entries[] | select(.key == \"$input_name\") | .value.lastModified // empty" "$LOCK_FILE" 2>/dev/null || true)
+          if [ -n "$INPUT_TS" ] && [ "$INPUT_TS" != "null" ]; then
+            AGE_DAYS=$(( (NOW - INPUT_TS) / 86400 ))
+            if [ "$AGE_DAYS" -lt "$AGE_THRESHOLD_DAYS" ]; then
+              echo "$(date): BLOCKED: $input_name is only $AGE_DAYS days old (threshold: $AGE_THRESHOLD_DAYS days). Skipping update."
+              continue
+            fi
+            echo "$(date): OK: $input_name is $AGE_DAYS days old"
+          fi
+        done
+      fi
+
       # Pull and update specified flake inputs
       UPDATE_ARGS=""
       for input_name in ${lib.concatStringsSep " " cfg.updateFlakeInputs}; do

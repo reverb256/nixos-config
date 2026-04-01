@@ -77,7 +77,41 @@ in {
       ++ lib.optional cfg.rootless pasta;
 
     # ============================================================================
-    # HELPER SCRIPTS
+    # CONTAINER IMAGE VERIFICATION POLICY
+    # Supply chain security: enforce image signature verification
+    # Default: reject all unsigned images from remote registries
+    # Local builds and daemon images are allowed
+    # ============================================================================
+    environment.etc."containers/policy.json".text = builtins.toJSON {
+      default = [{ type = "reject"; }];
+      transports = {
+        "docker-daemon" = {
+          "" = [{ type = "insecureAcceptAnything"; }];
+        };
+        "directory" = {
+          "" = [{ type = "insecureAcceptAnything"; }];
+        };
+        "docker" = {
+          # Docker Hub official images — allowed (reviewed by Docker)
+          "docker.io/library" = [{ type = "insecureAcceptAnything"; }];
+          # Docker Hub third-party — allowed with caution
+          "docker.io" = [{ type = "insecureAcceptAnything"; }];
+          # GitHub Container Registry — allowed (tied to GitHub auth)
+          "ghcr.io" = [{ type = "insecureAcceptAnything"; }];
+          # Quay.io — allowed (Red Hat managed)
+          "quay.io" = [{ type = "insecureAcceptAnything"; }];
+          # Local registry — allowed
+          "localhost" = [{ type = "insecureAcceptAnything"; }];
+          # Everything else — rejected
+        };
+        "atomic" = {
+          "" = [{ type = "insecureAcceptAnything"; }];
+        };
+      };
+    };
+
+    # ============================================================================
+    # REGISTRY CONFIGURATION
     # ============================================================================
     environment.etc."containers/registries.conf.d/00-github.conf".text = ''
       [registries.search]

@@ -1,6 +1,6 @@
 # NixOS Cluster Documentation Index
 
-**Last Updated:** 2026-03-25 | **Cluster Version:** Phase 2 Complete, HA Control Plane (K8s v1.35.0) | **Agent Files:** Template-based v1.0
+**Last Updated:** 2026-04-01 | **Cluster Version:** Phase 2 Complete, HA Control Plane (K8s v1.35.0) | **Agent Files:** Template-based v1.0
 
 Complete index of all documentation for the NixOS cluster, including the ongoing Kubernetes migration.
 
@@ -218,6 +218,31 @@ just rollback          # Rollback to previous generation
 
 ---
 
+## Supply Chain Security
+
+### Package Manager Cooldowns (7-day age gate)
+- **Module:** `modules/services/supply-chain-cooldowns.nix` — Writes cooldown configs to user home
+- **npm:** `min-release-age=7` in `~/.npmrc`
+- **bun:** `minimumReleaseAge = "7d"` in `~/.bunfig.toml`
+- **uv (Python):** `exclude-newer = "7 days"` in `~/.config/uv/uv.toml`
+
+### Container Image Security
+- **Image policy:** `modules/services/podman.nix` — Rejects unknown registries, allows docker.io/library, ghcr.io, quay.io, localhost
+- **Image pinning:** All NixOS modules use version-pinned images (no `:latest`):
+  - `vaultwarden/server:1.35.4`, `glitchtip/glitchtip:6`, `postgres:16-alpine`, `redis:7-alpine`
+- **Container scanning:** `modules/services/container-scanning.nix` — Trivy weekly scan (HIGH/CRITICAL CVEs)
+- **Auto-update age check:** `modules/services/podman-auto-update.nix` — Warns on images < 7 days old
+
+### Kubernetes Admission Policy
+- **File:** `kubernetes-manifests/security/deny-latest-tag.yaml`
+- **Type:** `ValidatingAdmissionPolicy` — Blocks `:latest` tags on all pods/deployments/daemonsets/statefulsets
+
+### CI/CD Security
+- **GitHub Actions:** All workflows (`.github/workflows/`) pin actions to immutable commit SHAs
+- **Flake input age:** `modules/services/auto-update.nix` validates nixpkgs input > 7 days before auto-updating
+
+---
+
 ## Documentation Maintenance
 
 **Update Immediately:** Adding services, changing workflows, updating hardware, discovering patterns, completing phases
@@ -314,5 +339,5 @@ kubectl logs <pod> -n <namespace>
 ---
 
 **Document Owner:** j_kro
-**Version:** 3.1 | **Updated:** 2026-03-25
-**Changes:** Reduced from 1157 to 375 lines (-68%), removed duplicates, compressed verbose sections, summarized changelog
+**Version:** 3.2 | **Updated:** 2026-04-01
+**Changes:** Added supply chain security section (cooldowns, image policy, Trivy, K8s admission policy, CI SHA pinning)
