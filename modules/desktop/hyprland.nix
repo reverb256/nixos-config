@@ -1,5 +1,5 @@
 # Hyprland Module
-# Wayland compositor with full ecosystem (from XNM1)
+# Wayland compositor with Noctalia shell ecosystem
 # Can be used alongside Plasma 6 - choose in display manager
 {pkgs, ...}: {
   # ============================================================================
@@ -10,30 +10,27 @@
     withUWSM = true; # uwsd-based session management
   };
 
-  # Enable common Wayland environment variables
-  #  config.environment.common.wayland.enable = true;
-
   # ============================================================================
   # HYPRLAND ECOSYSTEM
   # ============================================================================
   programs.hyprlock.enable = true; # Screen lock
 
   environment.systemPackages = with pkgs; [
-    # Python scripting for Hyprland
-    pyprland
+    # Desktop shell (bar, notifications, launcher, dock, wallpapers)
+    noctalia-shell
 
     # Core Hyprland tools
     hyprpicker # Color picker
     hyprcursor # Custom cursor support
     hyprlock # Screen locker
-    hyprpaper # Wallpaper utility
     hyprsunset # Blue light filter
     hyprpolkitagent # Polkit agent for Hyprland
 
     # Wayland utilities
-    waybar # Status bar
-    rofi # Application launcher (Wayland support merged)
     wayvnc # VNC server for Wayland
+
+    # Cursor theme
+    adwaita-icon-theme
   ];
 
   # ============================================================================
