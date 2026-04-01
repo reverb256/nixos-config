@@ -32,8 +32,8 @@ in {
     # Container configuration
     image = mkOption {
       type = types.str;
-      default = "ghcr.io/spacedriveapp/spacebot:latest";
-      description = "Container image to use";
+      default = "ghcr.io/spacedriveapp/spacebot:latest"; # TODO: pin to specific version when available
+      description = "Container image to use (pin to specific version for supply chain security)";
     };
 
     dataDir = mkOption {

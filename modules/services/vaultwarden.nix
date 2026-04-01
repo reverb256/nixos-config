@@ -85,7 +85,7 @@ in {
             -e WEBSOCKET_ADDRESS=0.0.0.0 \
             -e LOG_LEVEL=info \
             --replace \
-            docker.io/vaultwarden/server:latest
+            docker.io/vaultwarden/server:1.35.4
         '';
 
         ExecStop = "${pkgs.podman}/bin/podman stop --ignore vaultwarden";

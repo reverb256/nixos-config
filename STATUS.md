@@ -1,6 +1,6 @@
 # NixOS Cluster - Real-Time Status
 
-**Last Updated:** 2026-03-31 12:45 UTC | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
+**Last Updated:** 2026-04-01 14:00 UTC | **Auto-Generated:** Manual | **Refresh:** `just cluster-status`
 
 > **Quick Check:** Run `just cluster-status` to see current cluster state. This command works from any cluster host and proxies to zephyr for Kubernetes queries when needed.
 >
@@ -21,6 +21,10 @@
 | **Monitoring** | 🟢 RUNNING | Prometheus, Grafana, AlertManager, node-exporters, Caddy metrics |
 | **Storage** | 🟢 OPERATIONAL | NFS shared storage, local-path provisioner |
 | **GPU Marketplace** | 🟢 DEPLOYED | Auction engine coordinating mining/K8s/Akash/gaming |
+| **Supply Chain Security** | 🟢 ACTIVE | 7-day cooldowns (npm/bun/uv), image pinning, deny-latest policy |
+| **Container Scanning** | 🟢 ACTIVE | Trivy weekly vulnerability scan (HIGH/CRITICAL CVEs) |
+| **Image Policy** | 🟢 ENFORCED | Reject unsigned images, allow specific registries only |
+| **Supply Chain Security** | 🟢 ACTIVE | 7-day cooldowns (npm/bun/uv), + image pinning + Trivy scanning + K8s deny-latest |
 
 ---
 
