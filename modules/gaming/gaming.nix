@@ -586,9 +586,9 @@ in {
       # ============================================================================
       # Automatically detects workload type (gaming/AI/K8s/mining/idle)
       # and switches GPU profiles accordingly
-      # Pauses mining when gaming, AI, or Kubernetes GPU workloads are detected
-      # Refactored to dedicated module: modules/system/compute-workload-monitor.nix
-      services.compute-workload-monitor.enable = true;
+      # Refactored to modular services: gaming-detection + gpu-profile-manager + mining-coordinator
+      services.gaming-detection.enable = true;
+      services.gpu-profile-manager.enable = true;
 
       # ============================================================================
       # GAMEMODE INTEGRATION

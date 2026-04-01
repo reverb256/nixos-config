@@ -192,10 +192,10 @@
   # ============================================================================
   # SYSTEMD - Service overrides
   # ============================================================================
-  # GameMode daemon - Start at boot for compute-workload-monitor gaming detection
+  # GameMode daemon - Start at boot for gaming-detection service
   # The gaming module (programs.gamemode) configures GameMode but the daemon
   # is D-Bus activated and doesn't start until a game requests it. This
-  # override ensures gamemoded runs at boot so the compute-workload-monitor
+  # override ensures gamemoded runs at boot so the gaming-detection service
   # can query gaming state via `gamemoded -s` for cluster-wide coordination.
   #
   # Note: GameMode is a D-Bus session service, so we use systemd.user.services
@@ -556,19 +556,13 @@
   #
   # Zephyr-specific service additions:
   services = {
-    # Compute Workload Monitor - Use conservative profile for memory-constrained system
-    # Zephyr has 31GB RAM and runs AI workloads - earlier intervention needed
-    compute-workload-monitor = {
-      enable = true;
-      profile = "conservative"; # Lower PSI thresholds for earlier build/mining pause
-    };
-
     # ============================================================================
-    # REFACTOR: Modular Workload Monitoring (Phase 2 - Integration Testing)
+    # Modular Workload Monitoring
     # ============================================================================
-    # Running old + new modules simultaneously for validation
-    # Old module manages services, new modules provide monitoring only
-    # TODO: Remove compute-workload-monitor after Phase 3 cutover
+    # Replaced old compute-workload-monitor monolith with:
+    # - gaming-detection: Pure sensor (GameMode + GPU fallback)
+    # - gpu-profile-manager: GPU power profile actuator (nvidia-smi)
+    # - mining-coordinator: PSI build detection + K8s Volcano preemption
     gaming-detection = {
       enable = true;
       checkInterval = 10;
