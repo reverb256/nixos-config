@@ -1,6 +1,6 @@
 ---
 name: k8s-manifest-worker
-description: Worker for Kubernetes manifest cleanup (dead file deletion, consolidation, restructuring, secret migration)
+description: Worker for Kubernetes manifest changes (deployments, services, network policies, HPA, RBAC, cleanup)
 ---
 
 # K8s Manifest Worker
@@ -9,82 +9,81 @@ NOTE: Startup and cleanup are handled by `mission-worker-base`. This skill defin
 
 ## When to Use This Skill
 
-Features that involve cleaning up Kubernetes manifest files: deleting dead/superseded manifests, consolidating scattered resources, restructuring directories, and migrating plaintext secrets to agenix.
+Features that involve creating, modifying, or deleting Kubernetes manifest files (YAML) and applying them to the cluster. Also covers RBAC fixes, network policy changes, HPA creation, and cleanup of stale resources.
 
 ## Required Skills
 
-None (all tools are standard bash/file editing)
+None (all tools are standard bash/kubectl)
 
 ## Work Procedure
 
-1. **Read the feature description carefully** - understand exactly which files to delete, move, or modify
-2. **BEFORE any deletion, verify the resource is not active**:
+1. **Read the feature description carefully** - understand exactly what K8s resources need changing
+2. **Investigate current state BEFORE making changes**:
    ```bash
-   # Check if a deployment/resource exists in the cluster
-   kubectl get <resource-type> <name> -n <namespace> 2>&1
-   
-   # Check if any pod is running with the resource
-   kubectl get pods -A | grep <keyword>
+   # Check current deployment/pod/service status
+   kubectl get deploy,pods,svc,hpa,limitrange,networkpolicy -n ai-inference
+   kubectl get pods -n ingress-system -o wide
+   kubectl get events -n ai-inference --sort-by='.lastTimestamp' | tail -20
    ```
-3. **For file deletions**: Use `git rm` to remove files (preserves history)
-4. **For directory consolidation**:
-   - Create target directory if needed
-   - `git mv` files to new location
-   - Verify no other manifests reference the old path (K8s manifests don't import each other, but scripts might)
-5. **For secret migration**:
-   - Extract the secret value from the manifest
-   - Create an agenix secret file in `/etc/nixos/secrets/`
-   - Update the K8s manifest to reference a proper K8s Secret (not inline)
-   - Ensure the NixOS config includes the agenix secret
-6. **After all changes, verify cluster state**:
+3. **Read existing manifest files** - understand the current structure before editing
+4. **Make changes following cluster conventions**:
+   - Use DNS names (not hardcoded IPs) in all manifests
+   - Set `maxSurge: 0` and `revisionHistoryLimit: 2` on all deployments
+   - Use `nodeSelector` for node pinning (not `nodeName` where possible)
+   - Use `default-scheduler` (NOT yunikorn/volcano)
+   - For GPU workloads: MUST include `runtimeClassName: nvidia` in pod spec
+   - For GPU workloads: MUST include `--device=cuda` in container args for vLLM
+   - Set resource requests AND limits on all containers
+   - Use `imagePullPolicy: IfNotPresent` or `Never` for local images
+5. **Apply changes**:
    ```bash
-   # No resources should be missing compared to before
-   kubectl get deployments -A
-   kubectl get daemonsets -A
-   kubectl get services -A
-   kubectl get configmaps -A
+   kubectl apply -f <manifest-file>
    ```
-7. **Commit**: Stage only changed files, commit with descriptive message
+6. **Verify the change worked**:
+   ```bash
+   # Wait for rollout
+   kubectl rollout status deploy/<name> -n ai-inference --timeout=300s
+   # Check pod status
+   kubectl get pods -n ai-inference -o wide
+   # Check logs for errors
+   kubectl logs -n ai-inference -l app=<label> --tail=50
+   ```
+7. **Run health checks** as specified in the feature's verificationSteps
+8. **Commit**: Stage only changed files, commit with descriptive message
 
-### Safety Rules
+### Critical Safety Rules
 
-- **NEVER** delete a manifest for an actively deployed resource without confirming it's safe
-- **NEVER** delete files in `kubernetes-manifests/` that are referenced by running deployments
-- **ALWAYS** run `kubectl get` before deleting to confirm resource status
-- **ALWAYS** use `git rm` (not `rm`) so history is preserved
-- If uncertain whether a manifest is active, VERIFY first — do not guess
-- For scripts (`.sh` files), check if they're referenced anywhere: `rg -l <script-name> /etc/nixos/`
+- **NEVER** schedule workloads to Zephyr (RAM constrained - infrastructure only)
+- **NEVER** use `--all` flags with kubectl delete/scale
+- **NEVER** scale deployments without checking current state first
+- **ALWAYS** check `kubectl top nodes` before adding workloads
+- **ALWAYS** verify the change didn't break existing services
+- For Forge GPU workloads: miners must be scaled to 0 BEFORE deploying (requires user approval)
+- The vLLM image has its own Python/CUDA - do NOT mount NixOS bin/lib paths
+- The `runtimeClassName: nvidia` is REQUIRED for GPU passthrough
 
-### Verification Pattern
+### Key Cluster Facts
 
-Before deleting a file, verify it's safe:
-```bash
-# 1. Is the K8s resource active?
-kubectl get <kind> <name> -n <namespace>
-
-# 2. Is the file referenced elsewhere?
-rg -l '<filename>' /etc/nixos/kubernetes-manifests/
-
-# 3. Is it referenced in any NixOS config?
-rg -l '<filename>' /etc/nixos/modules/ /etc/nixos/hosts/
-
-# 4. Is it referenced in any docs?
-rg -l '<filename>' /etc/nixos/docs/
-```
+- Caddy namespace: `ingress-system` (NOT `caddy-ingress`)
+- Caddy is a DaemonSet with label `app=caddy-ingress`
+- Forge miners: TWO deployments `gpu-miner-forge-nvidia-0` and `gpu-miner-forge-nvidia-1`
+- LimitRange name: `default-limits` in ai-inference namespace
+- AI inference gateway uses `hostNetwork: true` on Zephyr, port 8081
+- Priority class `ai-inference-high` (value 900) already exists in cluster
 
 ## Example Handoff
 
 ```json
 {
-  "salientSummary": "Deleted 28 dead K8s manifest files: Istio manifests (2), MLflow (1), Volcano scheduler (3), YuniKorn (4), GitOps skeleton (3 dirs), test pods (8), superseded deployment variants (7). Verified no active K8s resources were affected. All deletions are git-tracked for recovery.",
-  "whatWasImplemented": "Removed istio-zephyr.yaml, ai-inference/istio-mesh.yaml, mlflow/, scheduling/volcano/, scheduling/yunikorn/, gitops/ directory, mining/test*.yaml (4 files), mining/debug-container.yaml, test/ directory (2 files), gpu/gpu-*-test.yaml (4 files), superseded cloudflared variants (cloudflared.yaml, cloudflared-working.yaml, cloudflared-config.yaml), AI gateway variants (gateway-deployment-simple, -yunikorn, -yunikorn-fixed, -refactored, -diagnostic), n8n/deployment.yaml, home-assistant/deployment.yaml.",
+  "salientSummary": "Fixed vLLM deployment by adding runtimeClassName: nvidia and --device=cuda flag. Reduced memory limit to 4Gi to comply with LimitRange. Applied updated manifest and verified pod reaches Running state with CUDA GPU initialization in logs.",
+  "whatWasImplemented": "Added runtimeClassName: nvidia to vLLM pod spec. Added --device=cuda to container args. Set memory limit to 4Gi. Removed command override (image has correct entrypoint). Set maxSurge: 0, revisionHistoryLimit: 2. Verified pod starts on Nexus with GPU allocation.",
   "whatWasLeftUndone": "",
   "verification": {
     "commandsRun": [
-      { "command": "kubectl get deployments -A --no-headers | wc -l", "exitCode": 0, "observation": "Same count as before (15 deployments)" },
-      { "command": "kubectl get pods -A --no-headers | grep -v Running | grep -v Completed", "exitCode": 0, "observation": "No unexpected pod states" },
-      { "command": "rg -l 'istio' /etc/nixos/kubernetes-manifests/", "exitCode": 1, "observation": "No remaining istio references" },
-      { "command": "rg -l 'volcano' /etc/nixos/kubernetes-manifests/", "exitCode": 1, "observation": "No remaining volcano references" }
+      { "command": "kubectl apply -f kubernetes-manifests/ai-inference/vllm/vllm-deployment.yaml", "exitCode": 0, "observation": "Deployment updated" },
+      { "command": "kubectl get pods -n ai-inference -l app=vllm-qwen -o wide", "exitCode": 0, "observation": "Pod Running on nexus" },
+      { "command": "kubectl logs -n ai-inference -l app=vllm-qwen --tail=20 | grep -i cuda", "exitCode": 0, "observation": "CUDA GPU detected, model loading" },
+      { "command": "kubectl exec -n ai-inference deploy/ai-inference-gateway -- curl -s http://vllm-qwen.ai-inference.svc.cluster.local:8000/health", "exitCode": 0, "observation": "HTTP 200" }
     ],
     "interactiveChecks": []
   },
@@ -95,7 +94,8 @@ rg -l '<filename>' /etc/nixos/docs/
 
 ## When to Return to Orchestrator
 
-- A manifest marked for deletion corresponds to an actively deployed resource
-- A manifest is referenced by another manifest or NixOS config that wasn't in the feature scope
-- Secret migration requires decisions about K8s Secret vs agenix approach
-- Directory restructuring would break K8s apply paths referenced in NixOS config
+- `kubectl apply` fails and the fix requires changes outside the feature scope
+- Feature requires a NixOS config change (escalate to nixos-config-worker)
+- A manifest references a resource/service that doesn't exist and needs to be created first
+- GPU passthrough doesn't work despite runtimeClassName: nvidia (may be NixOS config issue)
+- Network policy fix requires changes in multiple namespaces not covered by the feature
