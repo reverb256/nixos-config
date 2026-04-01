@@ -107,6 +107,7 @@
 
     # GPU Workload Modules (shared library + focused services)
     ./gpu-workload/shared.nix
+    ./gpu-workload/gaming-detection.nix
 
     # GPU Resource Marketplace
     ./compute-market/default.nix
