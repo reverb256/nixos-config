@@ -264,7 +264,7 @@
               fi
           }
 
-          # Write gaming state to file
+          # Write gaming state to file (with flock-based locking)
           write_gaming_state() {
               local gaming_active=$1  # 0 or 1
               local detection_method=$2  # "gamemode" or "gpu_fallback" or "none"
@@ -272,12 +272,17 @@
               local pause_count=$4  # total number of pauses
 
               mkdir -p "$GAMING_STATE_DIR"
-              {
-                  echo "GAMING_ACTIVE=$gaming_active"
-                  echo "DETECTION_METHOD=$detection_method"
-                  echo "HYSTERESIS_COUNT=$hysteresis_count"
-                  echo "PAUSE_COUNT=$pause_count"
-              } > "$GAMING_STATE_FILE"
+              local lock_file="$GAMING_STATE_DIR/gaming_state.lock"
+
+              (
+                  flock -x 200
+                  {
+                      echo "GAMING_ACTIVE=$gaming_active"
+                      echo "DETECTION_METHOD=$detection_method"
+                      echo "HYSTERESIS_COUNT=$hysteresis_count"
+                      echo "PAUSE_COUNT=$pause_count"
+                  } > "$GAMING_STATE_FILE"
+              ) 200>"$lock_file"
           }
 
           # Export gaming state to Prometheus via node_exporter textfile collector
@@ -1180,6 +1185,13 @@
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6800
                           echo "  3090: 1800 MHz GPU (liquid-cooled), 6800 MHz mem, 280W limit"
                           ;;
+                      *"4060"*)
+                          # 4060 (Ada): Balanced for K8s
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 90
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1900
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6200
+                          echo "  4060 (Ada): 1900 MHz GPU, 6200 MHz mem, 90W limit"
+                          ;;
                       *)
                           # Default: Balanced
                           nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
@@ -1242,6 +1254,13 @@
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7500
                           echo "  3090: 2050 MHz GPU (liquid-cooled), 7500 MHz mem, 350W limit (PRIMARY GAMING GPU)"
                           ;;
+                      *"4060"*)
+                          # 4060 (Ada): Gaming profile
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 110
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2100
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6800
+                          echo "  4060 (Ada): 2100 MHz GPU, 6800 MHz mem, 110W limit"
+                          ;;
                       *)
                           # Default: Max performance
                           nvidia_safe nvidia-smi -i "$gpu_id" -pl 250
@@ -1301,6 +1320,13 @@
                           nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1900
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7000
                           echo "  3090: 1900 MHz GPU (liquid-cooled), 7000 MHz mem, 300W limit"
+                          ;;
+                      *"4060"*)
+                          # 4060 (Ada): Balanced for AI
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 90
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2000
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6400
+                          echo "  4060 (Ada): 2000 MHz GPU, 6400 MHz mem, 90W limit"
                           ;;
                       *)
                           # Default: Balanced
@@ -1423,10 +1449,17 @@
                           nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6500
                           echo "  3090: 1750 MHz GPU (liquid-cooled), 6500 MHz mem (250W limit (mining-optimized)"
                           ;;
+                      *"4060"*)
+                          # 4060 (Ada): Mining efficiency
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 80
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1800
+                          nvidia_safe nvidia-smi -i "$gpu_id" -lmc 5400
+                          echo "  4060 (Ada): 1800 MHz GPU, 5400 MHz mem, 80W limit (mining-optimized)"
+                          ;;
                       *)
                           # Default: Don't override power limits, let mining module manage
                           nvidia_safe nvidia-smi -i "$gpu_id" -rgc
-                          nvidia-safe nvidia-smi -i "$gpu_id" -rmc
+                          nvidia_safe nvidia-smi -i "$gpu_id" -rmc
                           echo "  $gpu_name: Default efficiency profile (power limit from mining module)"
                           ;;
                   esac
@@ -1506,6 +1539,9 @@
                       *"3090"*)
                           nvidia_safe nvidia-smi -i "$gpu_id" -pl 350
                           ;;
+                      *"4060"*)
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 115
+                          ;;
                       *)
                           # Try to get max power limit
                           local max_power=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits 2>/dev/null | tr -d '.' || echo "300")
@@ -1570,6 +1606,9 @@
                       *"3090"*)
                           nvidia_safe nvidia-smi -i "$gpu_id" -pl 250
                           ;;
+                      *"4060"*)
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl 95
+                          ;;
                       *)
                           nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
                           ;;
@@ -1611,26 +1650,36 @@
               esac
           }
 
-          # Store original power limits for restoration
+          # Store original power limits for restoration (with flock-based locking)
           store_original_power_limits() {
               local gpus=$(get_gpu_list)
-              for gpu_id in $gpus; do
-                  local current_limit=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits 2>/dev/null | tr -d '[:space:]')
-                  echo "$current_limit" > /run/compute-workload-monitor/gpu"$gpu_id"_original_power
-                  log "Stored original power limit for GPU $gpu_id: $current_limit W"
-              done
+              local lock_file="/run/compute-workload-monitor/gpu_state.lock"
+
+              (
+                  flock -x 200
+                  for gpu_id in $gpus; do
+                      local current_limit=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits 2>/dev/null | tr -d '[:space:]')
+                      echo "$current_limit" > /run/compute-workload-monitor/gpu"$gpu_id"_original_power
+                      log "Stored original power limit for GPU $gpu_id: $current_limit W"
+                  done
+              ) 200>"$lock_file"
           }
 
           restore_original_power_limits() {
               local gpus=$(get_gpu_list)
-              for gpu_id in $gpus; do
-                  local stored_file="/run/compute-workload-monitor/gpu"$gpu_id"_original_power"
-                  if [ -f "$stored_file" ]; then
-                      local original_limit=$(cat "$stored_file")
-                      log "Restoring GPU $gpu_id power limit to $original_limit W"
-                      nvidia_safe nvidia-smi -i "$gpu_id" -pl "$original_limit"
-                  fi
-              done
+              local lock_file="/run/compute-workload-monitor/gpu_state.lock"
+
+              (
+                  flock -x 200
+                  for gpu_id in $gpus; do
+                      local stored_file="/run/compute-workload-monitor/gpu"$gpu_id"_original_power"
+                      if [ -f "$stored_file" ]; then
+                          local original_limit=$(cat "$stored_file")
+                          log "Restoring GPU $gpu_id power limit to $original_limit W"
+                          nvidia_safe nvidia-smi -i "$gpu_id" -pl "$original_limit"
+                      fi
+                  done
+              ) 200>"$lock_file"
           }
 
           # State tracking
