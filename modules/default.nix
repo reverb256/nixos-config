@@ -105,6 +105,9 @@
     # Note: Python gpu-proxy removed - replaced by gpu-proxy-cpp (centralized on Forge)
     ./mining/gpu-proxy-cpp.nix
 
+    # GPU Workload Modules (shared library + focused services)
+    ./gpu-workload/shared.nix
+
     # GPU Resource Marketplace
     ./compute-market/default.nix
 
