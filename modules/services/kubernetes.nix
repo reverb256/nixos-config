@@ -537,8 +537,10 @@
             ${pkgs.nvidia-container-toolkit}/bin/nvidia-ctk runtime configure \
               --runtime=containerd \
               --config=/etc/containerd/config.toml \
+              --config-source=file \
               --drop-in-config=/etc/containerd/conf.d/99-nvidia.toml \
               --nvidia-runtime-name=nvidia \
+              --nvidia-runtime-path=${pkgs.nvidia-container-toolkit}/bin/nvidia-container-runtime \
               --enable-cdi || echo "NVIDIA runtime configure failed, continuing..."
           '';
         };
