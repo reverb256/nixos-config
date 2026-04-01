@@ -59,7 +59,7 @@
     # Monitoring: integrate with existing Prometheus
     monitoring = {
       enable = true;
-      port = 9090;
+      port = 9190;
     };
   };
 
