@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# Mission init script - idempotent setup for GPU workload consolidation
-# No services to start (NixOS config editing mission)
+# Mission init script - idempotent, fast
 set -euo pipefail
 
-cd /etc/nixos
+REPO_ROOT="/etc/nixos"
 
-# Ensure new module directory exists
-mkdir -p modules/gpu-workload
+echo "[init] Checking repo state..."
+cd "$REPO_ROOT" && git status --short | head -5
 
-# Ensure .factory directories exist
-mkdir -p .factory/skills
-mkdir -p .factory/library
+echo "[init] Checking Kubernetes access..."
+kubectl get nodes --no-headers 2>&1 | head -5 || echo "[init] WARNING: kubectl not available"
 
-echo "Init complete: modules/gpu-workload/ ready"
+echo "[init] Checking AI inference namespace..."
+kubectl get deploy,pods -n ai-inference --no-headers 2>&1 | head -10 || echo "[init] WARNING: ai-inference namespace not accessible"
+
+echo "[init] Init complete"
