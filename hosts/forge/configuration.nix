@@ -187,28 +187,21 @@
         apiPort = 4069;
       };
 
-      # Primary: gpu-proxy (localhost:3334) with direct Kryptex failover
-      # Proxy handles Monero Stratum protocol translation and TLS to Kryptex
-      pool = "127.0.0.1:3334";
+      # Direct connection to Kryptex (gpu-proxy-cpp was broken - no jobs forwarded)
+      pool = "xtm-c29-us.kryptex.network:8040";
       wallet = "krxXVNVMM7.forge-gpu";
       pools = [
         {
-          url = "127.0.0.1:3334"; # gpu-proxy on localhost (handles upstream TLS + Monero Stratum)
+          url = "xtm-c29-us.kryptex.network:8040"; # Kryptex US (primary)
           wallet = "krxXVNVMM7.forge-gpu";
           password = "x";
-          tls = false; # Proxy handles TLS, miner uses plain TCP
+          tls = true;
         }
         {
-          url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (failover)
+          url = "xtm-c29-eu.kryptex.network:8040"; # Kryptex EU (failover)
           wallet = "krxXVNVMM7.forge-gpu";
           password = "x";
-          tls = true; # TLS required for direct Kryptex connection
-        }
-        {
-          url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (failover)
-          wallet = "krxXVNVMM7.forge-gpu";
-          password = "x";
-          tls = true; # TLS required for direct Kryptex connection
+          tls = true;
         }
       ];
     };
