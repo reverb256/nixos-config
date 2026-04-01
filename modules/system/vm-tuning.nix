@@ -39,9 +39,10 @@
     # Kernel needs free pages for atomic allocations. If too low, system
     # deadlocks trying to reclaim memory while needing memory to reclaim.
     #
-    # Formula: max(128MB, 3% of RAM) for desktop systems
+    # Default: max(128MB, 3% of RAM) for desktop systems
     # For 32GB: 3% = 983MB, round to 1GB for safety margin
-    "vm.min_free_kbytes" = lib.mkForce 1048576; # 1GB reserved (~3% of 32GB)
+    # Per-host overrides: forge sets 512MB (15GB RAM), others inherit this default
+    "vm.min_free_kbytes" = lib.mkDefault 1048576; # 1GB reserved (~3% of 32GB)
 
     # ========================================================================
     # SWAPPINESS - Balance cache vs swap with Zswap enabled

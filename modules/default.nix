@@ -44,12 +44,11 @@
     ./system/security-hardening.nix
     ./system/btrfs-compression.nix
     ./system/btrfs-tuning.nix
-    ./system/compute-workload-monitor.nix
+    # Modular workload monitoring (replaced old compute-workload-monitor monolith)
     ./system/gaming-detection.nix
     ./system/gpu-profile-manager.nix
     ./system/mining-coordinator.nix
     ./system/oom-protection.nix
-    ./system/compute-workload-monitor-profiles.nix
     ./system/home-permissions-fix.nix
     ./system/xmrig-api-control.nix
     ./system/boot-emergency-diagnostics.nix
@@ -108,6 +107,7 @@
     # GPU Workload Modules (shared library + focused services)
     ./gpu-workload/shared.nix
     ./gpu-workload/gaming-detection.nix
+    ./gpu-workload/gpu-profiles.nix
 
     # GPU Resource Marketplace
     ./compute-market/default.nix
