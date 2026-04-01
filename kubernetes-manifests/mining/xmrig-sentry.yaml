@@ -38,6 +38,7 @@ spec:
       priorityClassName: mining-low
       hostNetwork: true
       hostIPC: true
+      dnsPolicy: ClusterFirstWithHostNet
       securityContext:
         runAsNonRoot: false
       containers:

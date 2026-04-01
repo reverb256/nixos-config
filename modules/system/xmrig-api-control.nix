@@ -6,7 +6,7 @@
   pkgs,
   ...
 }: {
-  config = lib.mkIf config.services.compute-workload-monitor.enable {
+  config = lib.mkIf (config.services.mining-coordinator.enable or false) {
     # Create a helper script for XMRig API control
     environment.systemPackages = [
       (pkgs.writeShellScriptBin "xmrig-api-control" ''
