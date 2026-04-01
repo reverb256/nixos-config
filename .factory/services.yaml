@@ -1,16 +1,8 @@
 commands:
-  check: nix flake check --no-build
-  build: nixos-rebuild build
-  build-remote: colmena apply --build-on-target --no-submit
-  test: echo "No unit tests for NixOS configs - use 'check' and 'build'"
-  lint: nix flake check --no-build
-  switch: just switch
-  deploy: just deploy
+  check: nix flake check
+  test: nix flake check
+  build: nix build .#nixosConfigurations.zephyr.config.system.build.toplevel
+  install: echo "N/A - use just deploy"
+  lint: echo "N/A - nix flake check validates options"
 
-services:
-  kubernetes:
-    start: echo "K8s managed by NixOS - do not restart"
-    stop: echo "K8s managed by NixOS - do not stop"
-    healthcheck: kubectl get nodes --no-headers 2>&1 | grep -c Ready
-    port: 6443
-    depends_on: []
+services: {}
