@@ -534,10 +534,14 @@
             # This creates /etc/containerd/conf.d/99-nvidia.toml with:
             # - nvidia runtime definition
             # - CDI enabled for GPU device passing
+            #
+            # NOTE: --config-source=partial is required for containerd v2
+            # (--config-source=file generates CRI v1 format which is incompatible)
+            # See: https://github.com/NVIDIA/nvidia-container-toolkit/issues/1222
             ${pkgs.nvidia-container-toolkit}/bin/nvidia-ctk runtime configure \
               --runtime=containerd \
               --config=/etc/containerd/config.toml \
-              --config-source=file \
+              --config-source=partial \
               --drop-in-config=/etc/containerd/conf.d/99-nvidia.toml \
               --nvidia-runtime-name=nvidia \
               --nvidia-runtime-path=${pkgs.nvidia-container-toolkit}/bin/nvidia-container-runtime \
