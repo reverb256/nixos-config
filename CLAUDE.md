@@ -759,6 +759,38 @@ kubectl apply -f kubernetes-manifests/ai-inference/
 
 ---
 
+## SUPPLY CHAIN SECURITY
+
+All software on this cluster has supply chain protections enforcing a 7-day cooling period on newly published packages and images.
+
+### Package Manager Cooldowns (7-day age gate)
+
+| Ecosystem | Config | Module |
+|-----------|--------|--------|
+| **npm** | `~/.npmrc` → `min-release-age=7` | `services.supply-chain-cooldowns` |
+| **pnpm** | Same `~/.npmrc` (respects npm config) | `services.supply-chain-cooldowns` |
+| **bun** | `~/.bunfig.toml` → `minimumReleaseAge = "7d"` | `services.supply-chain-cooldowns` |
+| **uv (Python)** | `~/.config/uv/uv.toml` → `exclude-newer = "7 days"` | `services.supply-chain-cooldowns` |
+
+**Module**: `modules/services/supply-chain-cooldowns.nix` — enable with `services.supply-chain-cooldowns.enable = true`
+
+### Container Image Security
+
+- **Image policy** (`/etc/containers/policy.json`): Rejects unsigned images by default; allows docker.io/library, ghcr.io, quay.io, localhost
+- **No `:latest` tags**: All NixOS-managed container images pinned to specific versions (vaultwarden `1.35.4`, glitchtip `:6`, postgres `:16-alpine`, redis `:7-alpine`)
+- **Trivy scanning**: Weekly vulnerability scan of all pulled images (`services.container-scanning.enable = true`)
+- **K8s admission policy**: `kubernetes-manifests/security/deny-latest-tag.yaml` blocks `:latest` tags cluster-wide
+
+### Flake Input Age Validation
+
+`modules/services/auto-update.nix` validates that nixpkgs inputs are older than 7 days before auto-updating, preventing unreviewed changes from reaching the cluster.
+
+### GitHub Actions Pinned to Commit SHAs
+
+All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs instead of mutable version tags (prevents tag-hijacking attacks like the Trivy incident).
+
+---
+
 ## CLUSTER CONTEXT
 
 ### Hosts
@@ -808,10 +840,12 @@ kubectl apply -f kubernetes-manifests/ai-inference/
 
 ---
 
-**Version**: 5.1 | **Updated**: 2026-03-22
+**Version**: 5.2 | **Updated**: 2026-04-01
 **Changes**:
-- Added critical safety rules for Volcano scheduler (use default-scheduler for general workloads)
-- Added control plane restart order (etcd is last resort)
-- Added comprehensive Kubernetes troubleshooting section
-- Added incident documentation reference for Volcano scheduler outage
-- Documented zombie pod prevention and GPU resource management best practices
+- Added supply chain security section (7-day cooldowns, image policy, Trivy, K8s admission policy, SHA pinning)
+- Container image policy: reject unsigned, allow specific registries
+- Pinned all container images to specific versions (no `:latest`)
+- Added `supply-chain-cooldowns` module for npm/bun/uv age gating
+- Activated Trivy container scanning with weekly timer
+- Added K8s `deny-latest-tag` ValidatingAdmissionPolicy
+- Pinned all GitHub Actions to immutable commit SHAs

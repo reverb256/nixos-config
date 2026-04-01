@@ -188,5 +188,7 @@
     ./networking/cluster-networking.nix
     # Claude Code Router
     ./services/claude-code-router.nix
+    # Supply chain security (7-day cooldown on npm/bun/uv packages)
+    ./services/supply-chain-cooldowns.nix
   ];
 }
