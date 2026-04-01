@@ -2,21 +2,25 @@
 
 ## Validation Surface
 
-This mission has no browser or API surface. All validation is via:
-- `nix flake check` (NixOS config syntax validation, catches option errors)
-- `bash -n` (shell script syntax validation)
-- `grep` (structural assertions on file content)
+**Surface**: Kubernetes API and HTTP service endpoints
+**Tools**: kubectl, curl, ssh
+**No browser testing** - this is infrastructure-level work
 
-No user-facing application to test. No agent-browser needed.
+### Testing Approach
+- kubectl commands for pod/deployment/service status
+- curl from within cluster (kubectl exec into gateway pod) for endpoint tests
+- ssh for node-level verification (nvidia-smi, file checks)
+- No automated test suite exists - all validation is manual commands
 
 ## Validation Concurrency
 
-N/A - no concurrent validators needed. Single `nix flake check` validates all 4 hosts.
+**Max concurrent validators**: 5
+**Rationale**: Each validation is a lightweight kubectl/curl command. No heavy resource consumption per validator. The cluster is already running and accessible.
 
-## Resource Cost
+## Resource Cost Classification
 
-`nix flake check` is lightweight:
-- Runs locally on Zephyr (31GB RAM, 32 cores)
-- Takes <5 seconds
-- No network required (uses local nix store)
-- No services started
+| Surface | Memory per validator | CPU per validator | Notes |
+|---------|---------------------|-------------------|-------|
+| kubectl commands | ~50MB | Negligible | CLI tool only |
+| curl from gateway pod | ~10MB | Negligible | Uses existing pod |
+| ssh to nodes | ~20MB | Negligible | SSH session |

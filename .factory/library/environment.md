@@ -1,38 +1,33 @@
 # Environment
 
-Environment variables, external dependencies, and setup notes.
+## Cluster Access
+- kubectl context configured on Zephyr (current host)
+- All nodes accessible via SSH (zephyr, nexus, forge, sentry)
+- NFS shared storage at /run/nixos-shared (Zephyr exports)
 
-**What belongs here:** Required env vars, external API keys/services, dependency quirks.
-**What does NOT belong here:** Service ports/commands (use `.factory/services.yaml`).
+## Key Paths
+- Manifests: /etc/nixos/kubernetes-manifests/
+- AI inference manifests: /etc/nixos/kubernetes-manifests/ai-inference/
+- vLLM manifests: /etc/nixos/kubernetes-manifests/ai-inference/vllm/
+- Gateway source: /etc/nixos/modules/services/ai-inference/ai_inference_gateway/
+- NixOS modules: /etc/nixos/modules/
+- Secrets: /etc/nixos/secrets/ (agenix encrypted)
 
----
+## Model Files
+- Nexus: /home/j_kro/.lmstudio/models/Jackrong/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF/Qwen3.5-0.8B.Q8_0.gguf
+- Zephyr: Same path (exists)
+- Forge: NOT present (needs copy)
 
-## NixOS Flake
+## Container Images
+- vLLM: vllm/vllm-openai:v0.6.3.post1 (available on Nexus and Zephyr)
+- Gateway: docker.io/library/ai-inference-gateway:local (Nix-built, on Zephyr)
+- kb-mcp: localhost/kb-mcp:latest (on Nexus)
 
-- System: x86_64-linux
-- Flake inputs: nixpkgs (unstable), home-manager, colmena, agenix, niri, nixpkgs-xr, and others
-- All hosts built from same flake with different configuration modules
-- Deployment via Colmena (NFS-based, no git push needed)
+## Environment Variables
+- None required for manifest changes
+- NixOS manages all system-level configuration
 
-## Secrets
-
-- **Agenix** encrypts secrets in `/etc/nixos/secrets/*.age`
-- Decrypted at runtime to `/run/agenix/*`
-- ZAI API key: `/run/agenix/zai-api-key`
-- All tools reference these paths or env vars derived from them
-
-## K8s Access
-
-- kubectl configured via /etc/kubernetes/admin.conf
-- Accessible from Zephyr (control plane node)
-- All 4 nodes: zephyr, nexus, forge, sentry
-
-## Commands
-
-```bash
-just check     # Validate flake (fast)
-just build     # Build for local host
-just switch    # Apply to local host
-just deploy    # Deploy to all hosts
-just status    # Git + cluster status
-```
+## What belongs here
+Env vars, external dependencies, model file locations, container image details.
+## What does NOT belong here
+Service ports/commands (use .factory/services.yaml), architecture (use architecture.md).
