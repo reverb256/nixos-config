@@ -1,6 +1,8 @@
 # vLLM Qwen Inference - Single deployment targeting Nexus (RTX 3060 Ti, 8GB)
 # Priority: ai-inference-high (900) preempts mining-low (100) if needed
-# Image: vllm/vllm-openai:v0.6.3.post1 (includes python3 + CUDA runtime)
+# Image: vllm/vllm-openai:v0.18.0 (Qwen3.5 GGUF support, CUDA 12+)
+# Note: Qwen3.5-0.8B is the 8B param text-only model (non-MoE), not an 8B MoE)
+# Requires --trust-remote-code for custom Qwen3.5 architecture
 #
 # To take over from mining on Forge:
 #   kubectl scale deploy gpu-miner-forge-nvidia-0 gpu-miner-forge-nvidia-1 -n mining --replicas=0
@@ -40,7 +42,7 @@ spec:
         kubernetes.io/hostname: nexus
       containers:
       - name: vllm
-        image: vllm/vllm-openai:v0.6.3.post1
+        image: vllm/vllm-openai:v0.18.0
         imagePullPolicy: IfNotPresent
         args:
         - --model=/models/Qwen3.5-0.8B.Q8_0.gguf
@@ -51,6 +53,7 @@ spec:
         - --enable-chunked-prefill
         - --max-num-seqs=8
         - --disable-log-requests
+        - --trust-remote-code
         env:
         - name: CUDA_VISIBLE_DEVICES
           value: "0"
