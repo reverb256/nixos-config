@@ -29,7 +29,7 @@ spec:
         workload: crypto-mining
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8081"
+        prometheus.io/port: "8082"
         prometheus.io/path: "/1/summary"
     spec:
       nodeName: nexus
@@ -38,6 +38,7 @@ spec:
       priorityClassName: mining-low
       hostNetwork: true
       hostIPC: true
+      dnsPolicy: ClusterFirstWithHostNet
       securityContext:
         runAsNonRoot: false
       containers:
@@ -54,9 +55,9 @@ spec:
           - "--donate-level=1"
           - "--http-enabled"
           - "--http-host=0.0.0.0"
-          - "--http-port=8081"
+          - "--http-port=8082"
         ports:
-        - containerPort: 8081
+        - containerPort: 8082
           name: api
           protocol: TCP
         resources:
@@ -72,7 +73,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /1/summary
-            port: 8081
+            port: 8082
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 5
@@ -80,7 +81,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /1/summary
-            port: 8081
+            port: 8082
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 5

@@ -385,7 +385,10 @@
 
   services = {
     # Compute workload monitor - pauses mining during builds
-    compute-workload-monitor.enable = true;
+    # Modular workload monitoring (replaces old compute-workload-monitor monolith)
+    gaming-detection.enable = true;
+    gpu-profile-manager.enable = true;
+    mining-coordinator.enable = true;
 
     # Crash detection and logging
     # services.crash-watchdog.enable = true; # Module not available yet

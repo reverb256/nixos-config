@@ -11,8 +11,8 @@
   ...
 }: let
   inherit (lib) mkDefault;
-  # Modifier key preference (Mod = Super/Windows key)
-  mod = "Mod";
+  # Helper: noctalia IPC commands
+  noctalia = cmd: ["noctalia-shell" "ipc" "call"] ++ (lib.splitString " " cmd);
 in {
   programs.niri.settings = {
     # ==========================================================================
@@ -21,12 +21,8 @@ in {
     spawn-at-startup = [
       # Polkit authentication agent (systemd also handles this)
       {command = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";}
-      # Notification daemon
-      {command = "${pkgs.mako}/bin/mako";}
-      # Status bar
-      {command = "${pkgs.waybar}/bin/waybar";}
-      # Wallpaper
-      {command = "${pkgs.swww}/bin/swww img ~/.config/wallpaper.png";}
+      # Noctalia desktop shell (replaces waybar, mako, fuzzel, swww)
+      {command = "noctalia-shell";}
       # Clipboard manager (requires wl-clipboard)
       {command = "wl-paste --type text --watch ${pkgs.cliphist}/bin/cliphist store";}
       {command = "wl-paste --type image --watch ${pkgs.cliphist}/bin/cliphist store";}
@@ -188,8 +184,8 @@ in {
       # SPAWN APPLICATIONS
       # --------------------------------------------------------------------------
       "${mod}+Return" = {spawn = ["${pkgs.kdePackages.konsole}/bin/konsole"];};
-      "${mod}+D" = {spawn = ["${pkgs.fuzzel}/bin/fuzzel"];};
-      "${mod}+Space" = {spawn = ["${pkgs.fuzzel}/bin/fuzzel"];};
+      "${mod}+D" = {spawn = noctalia "launcher toggle";};
+      "${mod}+Space" = {spawn = noctalia "launcher toggle";};
       "${mod}+E" = {spawn = ["${pkgs.dolphin}/bin/dolphin"];};
       "${mod}+B" = {spawn = ["${pkgs.firefox}/bin/firefox"];};
       "${mod}+Print" = {spawn = ["${pkgs.grim}/bin/grim" "-g" "$(${pkgs.slurp}/bin/slurp)" "- | ${pkgs.wl-clipboard}/bin/wl-copy"];};
@@ -202,25 +198,17 @@ in {
       # Close focused window
       "${mod}+Q" = {close-window = [];};
 
-      # Focus windows (Vim-style)
+      # Focus windows (arrow keys)
       "${mod}+Left" = {focus-column-left = [];};
       "${mod}+Right" = {focus-column-right = [];};
       "${mod}+Up" = {focus-window-up = [];};
       "${mod}+Down" = {focus-window-down = [];};
-      "${mod}+H" = {focus-column-left = [];};
-      "${mod}+L" = {focus-column-right = [];};
-      "${mod}+K" = {focus-window-up = [];};
-      "${mod}+J" = {focus-window-down = [];};
 
-      # Move windows (Vim-style)
+      # Move windows (arrow keys)
       "${mod}+Shift+Left" = {move-column-left = [];};
       "${mod}+Shift+Right" = {move-column-right = [];};
       "${mod}+Shift+Up" = {move-window-up = [];};
       "${mod}+Shift+Down" = {move-window-down = [];};
-      "${mod}+Shift+H" = {move-column-left = [];};
-      "${mod}+Shift+L" = {move-column-right = [];};
-      "${mod}+Shift+K" = {move-window-up = [];};
-      "${mod}+Shift+J" = {move-window-down = [];};
 
       # Column width adjustment
       "${mod}+Comma" = {consume-window-into-column = [];};
@@ -284,20 +272,12 @@ in {
       "${mod}+Ctrl+Right" = {focus-monitor-right = [];};
       "${mod}+Ctrl+Up" = {focus-monitor-up = [];};
       "${mod}+Ctrl+Down" = {focus-monitor-down = [];};
-      "${mod}+Ctrl+H" = {focus-monitor-left = [];};
-      "${mod}+Ctrl+L" = {focus-monitor-right = [];};
-      "${mod}+Ctrl+K" = {focus-monitor-up = [];};
-      "${mod}+Ctrl+J" = {focus-monitor-down = [];};
 
       # Move window to monitor
       "${mod}+Ctrl+Shift+Left" = {move-column-to-monitor-left = [];};
       "${mod}+Ctrl+Shift+Right" = {move-column-to-monitor-right = [];};
       "${mod}+Ctrl+Shift+Up" = {move-column-to-monitor-up = [];};
       "${mod}+Ctrl+Shift+Down" = {move-column-to-monitor-down = [];};
-      "${mod}+Ctrl+Shift+H" = {move-column-to-monitor-left = [];};
-      "${mod}+Ctrl+Shift+L" = {move-column-to-monitor-right = [];};
-      "${mod}+Ctrl+Shift+K" = {move-column-to-monitor-up = [];};
-      "${mod}+Ctrl+Shift+J" = {move-column-to-monitor-down = [];};
 
       # --------------------------------------------------------------------------
       # WINDOW STATE
@@ -323,21 +303,21 @@ in {
       # --------------------------------------------------------------------------
       # CLIPBOARD
       # --------------------------------------------------------------------------
-      "${mod}+Shift+V" = {spawn = ["${pkgs.cliphist}/bin/cliphist" "list" "|" "${pkgs.fuzzel}/bin/fuzzel" "--dmenu" "|" "${pkgs.cliphist}/bin/cliphist" "decode" "|" "${pkgs.wl-clipboard}/bin/wl-copy"];};
+      "${mod}+Shift+V" = {spawn = noctalia "launcher toggle";};
 
       # --------------------------------------------------------------------------
       # MEDIA CONTROLS
       # --------------------------------------------------------------------------
-      "XF86AudioRaiseVolume" = {spawn = ["${pkgs.pamixer}/bin/pamixer" "-i" "5"];};
-      "XF86AudioLowerVolume" = {spawn = ["${pkgs.pamixer}/bin/pamixer" "-d" "5"];};
-      "XF86AudioMute" = {spawn = ["${pkgs.pamixer}/bin/pamixer" "--toggle-mute"];};
-      "XF86AudioMicMute" = {spawn = ["${pkgs.pamixer}/bin/pamixer" "--default-source" "--toggle-mute"];};
-      "XF86MonBrightnessUp" = {spawn = ["${pkgs.brightnessctl}/bin/brightnessctl" "set" "+5%"];};
-      "XF86MonBrightnessDown" = {spawn = ["${pkgs.brightnessctl}/bin/brightnessctl" "set" "5%-"];};
-      "XF86AudioPlay" = {spawn = ["${pkgs.playerctl}/bin/playerctl" "play-pause"];};
-      "XF86AudioNext" = {spawn = ["${pkgs.playerctl}/bin/playerctl" "next"];};
-      "XF86AudioPrev" = {spawn = ["${pkgs.playerctl}/bin/playerctl" "previous"];};
-      "XF86AudioStop" = {spawn = ["${pkgs.playerctl}/bin/playerctl" "stop"];};
+      "XF86AudioRaiseVolume" = {spawn = noctalia "volume increase";};
+      "XF86AudioLowerVolume" = {spawn = noctalia "volume decrease";};
+      "XF86AudioMute" = {spawn = noctalia "volume muteOutput";};
+      "XF86AudioMicMute" = {spawn = noctalia "volume muteInput";};
+      "XF86MonBrightnessUp" = {spawn = noctalia "brightness increase";};
+      "XF86MonBrightnessDown" = {spawn = noctalia "brightness decrease";};
+      "XF86AudioPlay" = {spawn = noctalia "media playPause";};
+      "XF86AudioNext" = {spawn = noctalia "media next";};
+      "XF86AudioPrev" = {spawn = noctalia "media previous";};
+      "XF86AudioStop" = {spawn = noctalia "media stop";};
 
       # --------------------------------------------------------------------------
       # SYSTEM ACTIONS
@@ -348,8 +328,8 @@ in {
       # Lock screen
       "${mod}+Escape" = {spawn = ["${pkgs.swaylock}/bin/swaylock"];};
 
-      # Power menu (via fuzzel)
-      "${mod}+Shift+P" = {spawn = ["sh" "-c" "${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt='Power:' <<< 'Lock\nLogout\nSuspend\nReboot\nShutdown' | ${pkgs.findutils}/bin/xargs -I{} sh -c 'case {} in Lock) ${pkgs.swaylock}/bin/swaylock;; Logout) niri msg action quit;; Suspend) systemctl suspend;; Reboot) systemctl reboot;; Shutdown) systemctl poweroff;; esac'"];};
+      # Power menu (noctalia session menu)
+      "${mod}+Shift+P" = {spawn = noctalia "sessionMenu toggle";};
 
       # Suspend
       "${mod}+Ctrl+Escape" = {spawn = ["systemctl" "suspend"];};
@@ -473,25 +453,19 @@ in {
     # ==========================================================================
     # Configure behavior of layer-shell surfaces (notifications, panels, etc.)
     layer-rules = [
-      # Waybar - always visible
+      # Noctalia shell (bar, notifications, launcher, dock)
       {
-        matches = [{namespace = "waybar";}];
+        matches = [{namespace = "noctalia";}];
         place-within-backdrop = false;
       }
 
-      # Mako notifications
+      # Quickshell (noctalia-qs underlying engine)
       {
-        matches = [{namespace = "mako";}];
+        matches = [{namespace = "quickshell";}];
         place-within-backdrop = false;
       }
 
-      # Fuzzel launcher
-      {
-        matches = [{namespace = "fuzzel";}];
-        place-within-backdrop = false;
-      }
-
-      # GTK layer shell apps
+      # GTK layer shell apps (polkit dialogs, etc.)
       {
         matches = [{namespace = "gtk-layer-shell";}];
         place-within-backdrop = false;

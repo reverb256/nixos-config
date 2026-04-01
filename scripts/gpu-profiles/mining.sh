@@ -28,24 +28,29 @@ for gpu_id in $GPUS; do
 
     echo "Configuring GPU $gpu_id ($gpu_name)..."
 
-    # Adaptive mode for power efficiency
-    nvidia-settings -a [gpu:${gpu_id}]/GPUPowerMizerMode=0 2>/dev/null || true
-
-    # Set efficient settings based on GPU model
+    # Set efficient settings based on GPU model (using nvidia-smi only)
     case "$gpu_name" in
         *"3060"*)
             # 3060 Ti: Sweet spot for efficiency
             set_power_limit "$gpu_id" 100
-            nvidia-settings -a [gpu:${gpu_id}]/GPUGraphicsClockOffset[3]=50 2>/dev/null || true
-            nvidia-settings -a [gpu:${gpu_id}]/GPUMemoryClockOffset[3]=500 2>/dev/null || true
+            set_clock_offset "$gpu_id" graphics 50
+            set_clock_offset "$gpu_id" memory 500
             echo "  3060 Ti: 50 MHz GPU offset, 500 MHz mem offset, 100W limit"
             ;;
         *"3090"*)
             # 3090: Sweet spot for efficiency
             set_power_limit "$gpu_id" 250
-            nvidia-settings -a [gpu:${gpu_id}]/GPUGraphicsClockOffset[3]=0 2>/dev/null || true
-            nvidia-settings -a [gpu:${gpu_id}]/GPUMemoryClockOffset[3]=400 2>/dev/null || true
+            set_clock_offset "$gpu_id" graphics 0
+            set_clock_offset "$gpu_id" memory 400
             echo "  3090: 0 MHz GPU offset, 400 MHz mem offset, 250W limit"
+            ;;
+        *"4060"*)
+            # 4060 (Ada): 80W limit (70% of 115W TDP)
+            # Ada architecture efficiency sweet spot
+            set_power_limit "$gpu_id" 80
+            set_clock_offset "$gpu_id" graphics 0
+            set_clock_offset "$gpu_id" memory 300
+            echo "  4060 (Ada): 0 MHz GPU offset, 300 MHz mem offset, 80W limit"
             ;;
         *)
             # Default: 75% power for efficiency

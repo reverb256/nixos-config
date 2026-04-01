@@ -237,7 +237,10 @@
     # services.crash-watchdog.enable = true; # Module not available yet
 
     # Compute Workload Monitor - Pause mining during builds/gaming
-    compute-workload-monitor.enable = true;
+    # Modular workload monitoring (replaces old compute-workload-monitor monolith)
+    gaming-detection.enable = true;
+    gpu-profile-manager.enable = true;
+    mining-coordinator.enable = true;
 
     # Nginx - Serve Akash provider dashboards
     nginx = {
