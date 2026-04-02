@@ -51,9 +51,6 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
           - "--algo=CR29"
-          - "--pool=xmrig-proxy.mining.svc.cluster.local:3333"
-          - "--user=nexus-gpu"
-          - "--pass=x"
           - "--pool=xtm-c29-us.kryptex.network:8040"
           - "--user=krxXVNVMM7.nexus-gpu"
           - "--pass=x"
@@ -63,8 +60,9 @@ spec:
           - "--pass=x"
           - "--tls=1"
           - "--devices=0"
+          - "--cclk=1800"
+          - "--moff=1000"
           - "--apiport=4068"
-          - "--mode=b"
         env:
         - name: LD_LIBRARY_PATH
           value: "/run/opengl-driver/lib:/nix/store"

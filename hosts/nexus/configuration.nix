@@ -9,7 +9,8 @@
   pkgs,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -59,7 +60,7 @@
   };
 
   # FIX: Disable interface renaming - use actual interface names
-  systemd.network.links = lib.mkForce {};
+  systemd.network.links = lib.mkForce { };
 
   # Disable flake-lock-sync (nixos-shared mount not available)
   services.flake-lock-sync.enable = lib.mkForce false;
@@ -136,7 +137,10 @@
     kubernetes-module = {
       enable = true;
       # Control plane node (master + worker roles)
-      roles = ["master" "node"];
+      roles = [
+        "master"
+        "node"
+      ];
       # Use VIP for HA access
       masterAddress = lib.mkForce "10.1.1.100";
       # Join existing 3-node etcd cluster
@@ -345,9 +349,9 @@
 
   # Kernel parameters for IOMMU, device passthrough, and XMRig RandomX performance
   boot.kernelParams = [
-    "amd_iommu=on"  # Enable AMD IOMMU for device passthrough
-    "iommu=pt"       # IOMMU passthrough mode (better performance)
-    "hugepagesz=1G"  # For XMRig RandomX performance (dual-xmrig module)
+    "amd_iommu=on" # Enable AMD IOMMU for device passthrough
+    "iommu=pt" # IOMMU passthrough mode (better performance)
+    "hugepagesz=1G" # For XMRig RandomX performance (dual-xmrig module)
     "hugepages=3"
   ];
 
@@ -435,9 +439,12 @@
         tls = false; # No TLS needed for local proxy
       };
 
-      # GPU mining DISABLED on nexus - desktop uses all VRAM
-      # See above comment for explanation
-      lolminer.nvidia.enable = false;
+      # GPU mining DISABLED on nexus - runs via Kubernetes (gpu-miner-nexus)
+      # Power limit set here for boot persistence; K8s pod connects to pool
+      lolminer.nvidia = {
+        enable = false; # Mining runs in K8s, not systemd
+        powerLimit = 120; # RTX 3060 Ti @ 120W (persists via nvidia-gpu-power-limit service)
+      };
     };
 
     # GPU Proxy - DISABLED: Using centralized gpu-proxy-cpp on Forge (10.1.1.130:3334)
@@ -522,19 +529,18 @@
   # HERMES AGENT - Multi-Host Orchestration
   # ============================================================================
   # Autonomous agent for cluster-wide task execution and coordination
-  # DISABLED: Health check blocking rebuilds (2026-03-21)
   services.hermes-agent = {
-    enable = false;
+    enable = true;
     user = "j_kro";
     sharedStorage = {
       enable = true;
       mountPoint = "/home/j_kro/.hermes";
-      nfsServer = "10.1.1.120"; # Nexus itself
+      nfsServer = "10.1.1.120"; # Local NFS
       nfsPath = "/mnt/garage/hermes";
     };
     aiGateway = {
       enable = true;
-      url = "http://10.1.1.110:8080/v1"; # Zephyr AI Gateway
+      url = "http://10.1.1.110:8081/v1"; # Zephyr AI Gateway (K8s hostNetwork port 8081)
     };
     terminal = {
       enable = true;

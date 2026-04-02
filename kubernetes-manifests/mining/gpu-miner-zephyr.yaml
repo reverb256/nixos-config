@@ -59,14 +59,10 @@ spec:
       # GPU power limits now configured at host level via systemd
       containers:
         - name: lolminer
-          image: lolminer:1.98a-nixos
-          imagePullPolicy: Never
+          image: docker.io/swamp7/lolminer:latest
+          imagePullPolicy: IfNotPresent
           args:
             - "--algo=CR29"
-            - "--pool=10.1.1.120:3333"
-            - "--user=krxXVNVMM7.zephyr-gpu"
-            - "--pass=x"
-            - "--tls=0"
             - "--pool=xtm-c29-us.kryptex.network:8040"
             - "--user=krxXVNVMM7.zephyr-gpu"
             - "--pass=x"
@@ -77,7 +73,6 @@ spec:
             - "--tls=1"
             - "--devices=1"
             - "--apiport=4068"
-            - "--mode=b"
           env:
             - name: LD_LIBRARY_PATH
               value: "/run/opengl-driver/lib:/nix/store"
