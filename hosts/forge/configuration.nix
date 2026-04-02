@@ -167,12 +167,14 @@
     mining.lolminer = {
       # NVIDIA GPUs (2x RTX 4060) - MIGRATED TO KUBERNETES
       # Bare-metal systemd service disabled in favor of K8s deployments
+      # Power limit persists via nvidia-gpu-power-limit systemd service at boot
       # (AMD GPUs are 0,1, NVIDIA GPUs are 2,3 when both OpenCL and CUDA are available)
       nvidia = {
         enable = false; # Disabled - migrated to Kubernetes (gpu-miner-forge-nvidia-0/1)
         autostart = false;
         devices = "2,3";
-        powerLimit = 90;
+        powerLimit = 90; # Both RTX 4060s @ 90W (applied at boot via power-limit service)
+        memoryClockLock = 8501; # CRITICAL: Without this, lolMiner fails to drive memory clocks up on RTX 4060, resulting in ~0.2 g/s instead of ~4 g/s
         apiPort = 4068;
       };
 
@@ -308,7 +310,6 @@
   # ============================================================================
   # HERMES AGENT - Multi-Host Orchestration
   # ============================================================================
-  # TEMPORARILY DISABLED: Build failure blocking IPv6 deployment (2026-03-25)
   # Autonomous agent for cluster-wide task execution and coordination
   services.hermes-agent = {
     enable = true; # Re-enabled: Core dependencies only (no optional extras)
@@ -321,7 +322,7 @@
     };
     aiGateway = {
       enable = true;
-      url = "http://10.1.1.110:8080/v1"; # Zephyr AI Gateway
+      url = "http://10.1.1.110:8081/v1"; # Zephyr AI Gateway (K8s hostNetwork, port 8081)
     };
     terminal = {
       enable = true;
