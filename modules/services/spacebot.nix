@@ -1,6 +1,6 @@
 # Spacebot AI Agent - Podman Deployment
 # Multi-agent AI system for teams with Discord, Slack, Telegram integration
-# Integrates with existing AI Gateway at http://127.0.0.1:8080
+# Integrates with existing AI Gateway (port 8081 on Zephyr, K8s hostNetwork)
 {
   config,
   lib,
