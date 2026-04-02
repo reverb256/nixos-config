@@ -49,13 +49,12 @@ spec:
         - "--pass=x"
         - "--tls=1"
         - "--devices=1"
-        - "--apiport=4069"
-        - "--mode=b"
+        - "--apiport=4070"
         env:
         - name: LD_LIBRARY_PATH
           value: "/run/opengl-driver/lib:/nix/store"
         ports:
-        - containerPort: 4069
+        - containerPort: 4070
           name: api
           protocol: TCP
         securityContext:
