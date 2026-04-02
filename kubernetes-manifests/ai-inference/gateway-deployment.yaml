@@ -104,9 +104,15 @@ metadata:
     version: "v2.0.0"
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: ai-inference-gateway
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     metadata:
       labels:
@@ -114,16 +120,21 @@ spec:
         version: "v2.0.0"
     spec:
       serviceAccountName: ai-inference-gateway
-      nodeName: nexus  # Pin to Nexus node
+      # hostNetwork + zephyr: port 8080 on zephyr is occupied by systemd gateway
+      # so we use port 8081. Image only exists on zephyr (built locally).
+      nodeName: zephyr
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+        - effect: NoSchedule
+          key: node.kubernetes.io/network-unavailable
+          operator: Exists
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
-        seccompProfile:
-          type: RuntimeDefault
+        runAsUser: 0
+        runAsGroup: 0
       containers:
       - name: gateway
-        image: ai-inference-gateway:1774572561
+        image: ai-inference-gateway:local
         imagePullPolicy: Never  # Use local Nix-built image
         command:
           - "uvicorn"
@@ -131,7 +142,7 @@ spec:
           - "--host"
           - "0.0.0.0"
           - "--port"
-          - "8080"
+          - "8081"
           - "--log-level"
           - "debug"
         env:
@@ -386,7 +397,7 @@ spec:
                 key: MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K
         ports:
         - name: http
-          containerPort: 8080
+          containerPort: 8081
           protocol: TCP
         resources:
           requests:
@@ -398,7 +409,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8080
+            port: 8081
           initialDelaySeconds: 60
           periodSeconds: 15
           timeoutSeconds: 10
@@ -406,7 +417,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /health
-            port: 8080
+            port: 8081
           initialDelaySeconds: 60
           periodSeconds: 10
           timeoutSeconds: 15
@@ -447,7 +458,7 @@ spec:
     - name: http
       protocol: TCP
       port: 8080
-      targetPort: 8080
+      targetPort: 8081  # Pod listens on 8081 (hostNetwork, 8080 occupied on zephyr)
   type: ClusterIP
 ---
 # DISABLED: NodePort service removed (2026-03-23) - Using Caddy ingress instead
