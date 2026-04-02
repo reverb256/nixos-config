@@ -1,8 +1,12 @@
 # KDE Plasma 6 Desktop Environment
-{ lib, pkgs, ...}: let
+{ lib, pkgs, ... }:
+let
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";
-    runtimeInputs = with pkgs; [kdePackages.kscreen libnotify];
+    runtimeInputs = with pkgs; [
+      kdePackages.kscreen
+      libnotify
+    ];
     text = ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -90,7 +94,11 @@
   # TV Monitor Daemon for automatic TV power management
   tvMonitorDaemon = pkgs.writeShellApplication {
     name = "tv-monitor-daemon";
-    runtimeInputs = with pkgs; [kdePackages.kscreen libnotify wireplumber];
+    runtimeInputs = with pkgs; [
+      kdePackages.kscreen
+      libnotify
+      wireplumber
+    ];
     text = ''
       #!/usr/bin/env bash
       set -euo pipefail
@@ -227,9 +235,10 @@
     find ''${XDG_CACHE_HOME:-$HOME/.cache} -name "qmlcache" -type d -exec rm -rf {} + 2>/dev/null || true
     rm -rf ~/.cache/kwin* ~/.cache/plasma* ~/.cache/ksycoca* 2>/dev/null || true
   '';
-in {
+in
+{
   # Add KDE xdg-desktop-portal when Plasma is enabled
-  xdg.portal.extraPortals = with pkgs; [pkgs.kdePackages.xdg-desktop-portal-kde];
+  xdg.portal.extraPortals = with pkgs; [ pkgs.kdePackages.xdg-desktop-portal-kde ];
 
   services = {
     xserver = {
@@ -258,6 +267,7 @@ in {
       # NOTE: QT_USE_RHI_GLES2 removed - can cause rendering issues with some Qt apps
       QT_QPA_GL_VERSION = "2";
       KWIN_DRM_DEVICE = "/dev/dri/card0";
+      KWIN_DRM_DEVICES = "/dev/dri/card0,/dev/dri/card1";
       KWIN_DRM_PRIMARY = "1";
     };
 
@@ -524,8 +534,8 @@ in {
     # Supports both NVIDIA (CUDA) and AMD (ROCm) GPUs
     services.gpu-ready = {
       description = "Wait for GPU devices to be ready";
-      after = ["systemd-modules-load.service"];
-      wantedBy = ["display-manager.service"];
+      after = [ "systemd-modules-load.service" ];
+      wantedBy = [ "display-manager.service" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -586,8 +596,8 @@ in {
 
     services.clear-kde-cache-after-rebuild = {
       description = "Clear KDE/QML cache after nixos-rebuild";
-      wantedBy = ["multi-user.target"];
-      after = ["nixos-rebuild.service"];
+      wantedBy = [ "multi-user.target" ];
+      after = [ "nixos-rebuild.service" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = clearKdeCacheScript;
@@ -597,9 +607,15 @@ in {
 
     services.boot-monitor-setup = {
       description = "Configure monitors at boot";
-      wantedBy = ["display-manager.service"];
-      before = ["display-manager.service" "sddm.service"];
-      after = ["local-fs.target" "tmp.mount"];
+      wantedBy = [ "display-manager.service" ];
+      before = [
+        "display-manager.service"
+        "sddm.service"
+      ];
+      after = [
+        "local-fs.target"
+        "tmp.mount"
+      ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = bootMonitorScript;
@@ -615,8 +631,11 @@ in {
     user.services = {
       plasma-monitor-setup = {
         description = "Apply monitor configuration";
-        wantedBy = ["graphical-session.target"];
-        after = ["plasma-plasmashell.service" "graphical-session.target"];
+        wantedBy = [ "graphical-session.target" ];
+        after = [
+          "plasma-plasmashell.service"
+          "graphical-session.target"
+        ];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${monitorSetupScript}/bin/plasma-monitor-setup";
@@ -631,8 +650,11 @@ in {
       # TV Monitor Daemon - Auto manage TV power state
       tv-monitor-daemon = {
         description = "Monitor TV power state and auto-disable/enable";
-        wantedBy = ["graphical-session.target"];
-        after = ["plasma-plasmashellell.service" "graphical-session.target"];
+        wantedBy = [ "graphical-session.target" ];
+        after = [
+          "plasma-plasmashellell.service"
+          "graphical-session.target"
+        ];
         serviceConfig = {
           Type = "simple";
           ExecStart = "${tvMonitorDaemon}/bin/tv-monitor-daemon";
