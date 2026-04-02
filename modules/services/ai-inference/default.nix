@@ -6,10 +6,10 @@
   pkgs,
   inputs,
   ...
-}: let
+}:
+let
   cfg = config.services.ai-inference;
-  inherit
-    (lib)
+  inherit (lib)
     mkEnableOption
     mkOption
     mkIf
@@ -33,7 +33,8 @@
     ps.rank-bm25
     ps.numpy
   ]);
-in {
+in
+{
   options.services.ai-inference = {
     enable = mkEnableOption "AI Inference Service (integrates with LM Studio)";
 
@@ -291,7 +292,7 @@ in {
           };
           code_search_paths = mkOption {
             type = types.listOf types.str;
-            default = ["/etc/nixos"];
+            default = [ "/etc/nixos" ];
             description = "Paths to search for code";
           };
           rag_top_k = mkOption {
@@ -414,7 +415,7 @@ in {
       tailscale = {
         aclTags = mkOption {
           type = types.listOf types.str;
-          default = [];
+          default = [ ];
           example = [
             "tag:ai-inference"
             "tag:trusted"
@@ -503,7 +504,7 @@ in {
 
       custom = mkOption {
         type = types.attrsOf types.str;
-        default = {};
+        default = { };
         example = literalExpression ''
           {
             nixos = "You are a NixOS configuration expert. Always use lib.mkOptionDefault for shared modules.";
@@ -521,7 +522,8 @@ in {
       servers = mkOption {
         type = types.attrsOf (
           types.submodule (
-            {config, ...}: {
+            { config, ... }:
+            {
               options = {
                 type = mkOption {
                   type = types.enum [
@@ -534,10 +536,7 @@ in {
 
                 url = mkOption {
                   type = types.nullOr types.str;
-                  default =
-                    if config.type == "remote"
-                    then null
-                    else null;
+                  default = if config.type == "remote" then null else null;
                   description = "MCP server URL (required for remote type)";
                 };
 
@@ -550,7 +549,7 @@ in {
 
                 environment = mkOption {
                   type = types.attrsOf types.str;
-                  default = {};
+                  default = { };
                   example = {
                     NIX_HOST = "zephyr";
                   };
@@ -559,7 +558,7 @@ in {
 
                 headers = mkOption {
                   type = types.attrsOf types.str;
-                  default = {};
+                  default = { };
                   example = {
                     Authorization = "Bearer token";
                   };
@@ -842,7 +841,8 @@ in {
         '';
       }
       {
-        assertion = cfg.backend.zai.enable -> (cfg.backend.zai.apiKey != "" || cfg.backend.zai.apiKeyFile != null);
+        assertion =
+          cfg.backend.zai.enable -> (cfg.backend.zai.apiKey != "" || cfg.backend.zai.apiKeyFile != null);
         message = ''
           ZAI backend is enabled but no API key is configured.
 
@@ -854,11 +854,14 @@ in {
           Current configuration:
             zai.enable = ${toString cfg.backend.zai.enable}
             zai.apiKey = ${if cfg.backend.zai.apiKey != "" then "***" else "(not set)"}
-            zai.apiKeyFile = ${if cfg.backend.zai.apiKeyFile != null then toString cfg.backend.zai.apiKeyFile else "(not set)"}
+            zai.apiKeyFile = ${
+              if cfg.backend.zai.apiKeyFile != null then toString cfg.backend.zai.apiKeyFile else "(not set)"
+            }
         '';
       }
       {
-        assertion = cfg.backend.type == "zai" -> (cfg.backend.zai.apiKey != "" || cfg.backend.zai.apiKeyFile != null);
+        assertion =
+          cfg.backend.type == "zai" -> (cfg.backend.zai.apiKey != "" || cfg.backend.zai.apiKeyFile != null);
         message = ''
           Backend type is "zai" but no ZAI API key is configured.
 
@@ -870,7 +873,9 @@ in {
           Current configuration:
             backend.type = "${cfg.backend.type}"
             zai.apiKey = ${if cfg.backend.zai.apiKey != "" then "***" else "(not set)"}
-            zai.apiKeyFile = ${if cfg.backend.zai.apiKeyFile != null then toString cfg.backend.zai.apiKeyFile else "(not set)"}
+            zai.apiKeyFile = ${
+              if cfg.backend.zai.apiKeyFile != null then toString cfg.backend.zai.apiKeyFile else "(not set)"
+            }
 
           Or change backend type to: vllm, llama-cpp, sglang, pollinations
         '';
@@ -929,27 +934,26 @@ in {
         echo "=== AI Inference Service Status ==="
         echo "Backend: ${cfg.backend.type}"
         echo "Backend URL: ${cfg.backend.url}"
-        echo "Gateway: ${cfg.gateway.host}:${toString cfg.gateway.port}"
         echo ""
         echo "=== Backend Models ==="
         ${pkgs.curl}/bin/curl -s ${cfg.backend.url}/v1/models | ${pkgs.jq}/bin/jq -r '.data[].id' || echo "Backend unavailable"
         echo ""
-        echo "=== Gateway Health ==="
-        ${pkgs.curl}/bin/curl -s http://${cfg.gateway.host}:${toString cfg.gateway.port}/health || echo "Gateway unavailable"
+        echo "=== K8s Gateway Health ==="
+        ${pkgs.curl}/bin/curl -s http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/health || echo "K8s gateway unavailable"
       '')
     ];
 
     # Services configuration
     services = {
-      # Prometheus scrape configuration
+      # Prometheus scrape configuration — targets the K8s service
       prometheus.scrapeConfigs = mkIf cfg.monitoring.enable [
         {
-          job_name = "ai-inference-${config.networking.hostName}";
+          job_name = "ai-inference-gateway";
           static_configs = [
             {
-              targets = ["${cfg.gateway.host}:${toString cfg.monitoring.port}"];
+              targets = [ "ai-inference-gateway.ai-inference.svc.cluster.local:${toString cfg.monitoring.port}" ];
               labels = {
-                instance = config.networking.hostName;
+                instance = "ai-inference-gateway";
                 backend = cfg.backend.type;
               };
             }
@@ -959,6 +963,7 @@ in {
 
       # Redis for gateway middleware (caching, rate limiting, circuit breaker)
       # Using port 6380 to avoid conflict with fwupd-redis on 6379
+      # Note: This is used by the K8s gateway pod via host network or direct connection
       redis.servers.ai-gateway = {
         inherit (cfg.gateway.middleware.redis) enable;
         bind = "127.0.0.1";
@@ -966,12 +971,12 @@ in {
       };
     };
 
-    # Open firewall for gateway and metrics
+    # Firewall ports — gateway runs in K8s, no host port needed
+    # Only open Qdrant port if RAG is enabled with non-localhost bind
     networking.firewall.allowedTCPPorts = lib.mkOptionDefault (
-      [
-        cfg.gateway.port
-      ]
-      ++ (lib.optional cfg.monitoring.enable cfg.monitoring.port)
+      lib.optional (
+        cfg.rag.enable && cfg.rag.qdrant.enable && cfg.rag.qdrant.host != "127.0.0.1"
+      ) cfg.rag.qdrant.port
     );
   };
 }
