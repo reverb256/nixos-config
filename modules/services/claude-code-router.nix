@@ -223,6 +223,9 @@ in
       path = [
         pkgs.nodejs_22
         pkgs.coreutils
+        pkgs.bash
+        pkgs.gnugrep
+        pkgs.which
       ];
 
       serviceConfig = {
@@ -244,11 +247,11 @@ in
         StandardError = "journal";
         SyslogIdentifier = "claude-code-router";
 
-        # Security hardening
+        # Security hardening (relaxed for npx which needs sh, npm cache)
         NoNewPrivileges = true;
-        PrivateTmp = true;
+        PrivateTmp = false;
         ProtectSystem = "strict";
-        ReadWritePaths = [ cfg.stateDir ];
+        ReadWritePaths = [ cfg.stateDir "/root/.npm" "/tmp" ];
 
         ExecStart = "${pkgs.nodejs_22}/bin/npx @musistudio/claude-code-router start --port ${toString cfg.port} --config ${cfg.stateDir}/config.json";
       };
