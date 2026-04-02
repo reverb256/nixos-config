@@ -130,7 +130,7 @@
   gatewayContainerImage = pkgs.dockerTools.buildLayeredImage {
     name = "ai-inference-gateway";
     tag = "latest";
-    contents = [gatewayPython modularGatewayPkgBase pkgs.bash pkgs.coreutils];
+    contents = [gatewayPython modularGatewayPkgBase pkgs.bash pkgs.coreutils pkgs.cacert];
     config = {
       Cmd = ["${gatewayPython}/bin/python" "-m" "uvicorn" "ai_inference_gateway.main:app" "--host" "0.0.0.0" "--port" "8080" "--workers" "4"];
       ExposedPorts = {
