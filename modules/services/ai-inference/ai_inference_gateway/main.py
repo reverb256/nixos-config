@@ -474,41 +474,28 @@ async def lifespan(app: FastAPI):
         logger.warning("Redis unavailable, using in-memory fallback")
 
     # Build middleware pipeline
-    print("[LIFESPAN DEBUG] About to build middleware pipeline...", file=sys.stderr, flush=True)
     state.pipeline = build_middleware_pipeline(state.config, state.redis_client)
-    print(f"[LIFESPAN DEBUG] Middleware pipeline built: {state.pipeline.count} middleware", file=sys.stderr, flush=True)
-
     logger.info(
         "Middleware pipeline initialized with %d middleware", state.pipeline.count
     )
 
     # Initialize router (no API key needed for llama-cpp)
-    print("[LIFESPAN DEBUG] About to initialize router...", file=sys.stderr, flush=True)
     try:
         state.router = create_default_router()
-        print(f"[LIFESPAN DEBUG] Router initialized: {len(state.router.models)} models", file=sys.stderr, flush=True)
         logger.info("Router initialized with %d models", len(state.router.models))
     except Exception as e:
-        print(f"[LIFESPAN DEBUG] Router initialization failed: {e}", file=sys.stderr, flush=True)
         logger.warning(f"Router initialization failed: {e}")
         state.router = None
 
     # Initialize MCP broker if enabled
-    print("[LIFESPAN DEBUG] About to initialize MCP broker...", file=sys.stderr, flush=True)
     state.mcp_broker = None
-    print(f"[LIFESPAN DEBUG] Checking MCP_ENABLED: config.middleware.mcp.enabled={state.config.middleware.mcp.enabled}", file=sys.stderr, flush=True)
     try:
-        print("[LIFESPAN DEBUG] About to call create_mcp_broker_from_config...", file=sys.stderr, flush=True)
         state.mcp_broker = await create_mcp_broker_from_config(state.config)
-        print(f"[LIFESPAN DEBUG] MCP broker created: {state.mcp_broker}", file=sys.stderr, flush=True)
         if state.mcp_broker:
-            print("[LIFESPAN DEBUG] MCP broker initialized successfully!", file=sys.stderr, flush=True)
             logger.info("MCP broker initialized")
         else:
-            print("[LIFESPAN DEBUG] MCP broker creation returned None", file=sys.stderr, flush=True)
             logger.warning("MCP broker creation returned None")
     except Exception as e:
-        print(f"[LIFESPAN DEBUG] MCP broker initialization failed: {e}", file=sys.stderr, flush=True)
         logger.error(f"MCP broker initialization failed: {e}", exc_info=True)
 
     # Initialize RAG if enabled
@@ -783,13 +770,6 @@ def build_middleware_pipeline(
     import os
 
     env_enabled = os.environ.get("MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED", "NOT_SET")
-    print(
-        f"[DEBUG] knowledge_fabric config: enabled={config.middleware.knowledge_fabric.enabled}, "
-        f"rrf_k={config.middleware.knowledge_fabric.rrf_k}, env={env_enabled}",
-        file=sys.stderr,
-        flush=True,
-    )
-
     # Add observability middleware (should always be first)
     if config.middleware.observability.enabled:
         pipeline.add(ObservabilityMiddleware(config.middleware.observability))
@@ -813,13 +793,7 @@ def build_middleware_pipeline(
         logger.info("Added RAGInjectorMiddleware (automatic knowledge injection)")
 
     # Add Knowledge Fabric middleware (unified multi-source retrieval)
-    print(
-        f"[DEBUG] About to check knowledge_fabric.enabled: {config.middleware.knowledge_fabric.enabled}",
-        file=sys.stderr,
-        flush=True,
-    )
     if config.middleware.knowledge_fabric.enabled:
-        print(f"[DEBUG] Adding KnowledgeFabricMiddleware!", file=sys.stderr, flush=True)
         from ai_inference_gateway.middleware.knowledge_fabric import (
             create_knowledge_fabric,
         )
@@ -966,57 +940,23 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     Returns:
         Configured FastAPI application
     """
-    import sys
-
-    print("[DEBUG] create_app: Starting...", file=sys.stderr, flush=True)
-
     if config is None:
-        print(
-            "[DEBUG] create_app: Loading config from environment...",
-            file=sys.stderr,
-            flush=True,
-        )
         config = GatewayConfig()
-        print(
-            f"[DEBUG] create_app: Config loaded, backend_url={config.backend_url}",
-            file=sys.stderr,
-            flush=True,
-        )
-
     # Initialize gateway state with OpenAI client wrapper
-    print(
-        "[DEBUG] create_app: Creating OpenAI client wrapper...",
-        file=sys.stderr,
-        flush=True,
-    )
     openai_client = create_openai_client(config)
-    print("[DEBUG] create_app: OpenAI client created", file=sys.stderr, flush=True)
-
-    print("[DEBUG] create_app: Creating GatewayState...", file=sys.stderr, flush=True)
     gateway_state = GatewayState(
         config=config,
         openai_client=openai_client,
     )
-    print("[DEBUG] create_app: GatewayState created", file=sys.stderr, flush=True)
-
     # Create FastAPI app
-    print("[DEBUG] create_app: Creating FastAPI app...", file=sys.stderr, flush=True)
     app = FastAPI(
         title="AI Inference Gateway",
         description="Advanced gateway for AI inference backends with middleware",
         version=GATEWAY_VERSION,
         lifespan=lifespan,
     )
-    print("[DEBUG] create_app: FastAPI app created", file=sys.stderr, flush=True)
-
     # Store gateway state in app
-    print("[DEBUG] create_app: BEFORE storing gateway state...", file=sys.stderr, flush=True)
     app.state.gateway = gateway_state
-    print("[DEBUG] create_app: Gateway state stored", file=sys.stderr, flush=True)
-    print("[DEBUG] create_app: AFTER storing gateway state - TEST MESSAGE", file=sys.stderr, flush=True)
-    print("[DEBUG] create_app: About to add endpoints...", file=sys.stderr, flush=True)
-
-    print("[DEBUG] create_app: Adding health endpoint...", file=sys.stderr, flush=True)
 
     # Add health endpoint
     @app.get("/health")
@@ -1129,8 +1069,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 health_response["rag_ingestion"] = {"healthy": False, "error": str(e)}
 
         return health_response
-
-    print("[DEBUG] create_app: Health endpoint added", file=sys.stderr, flush=True)
 
     # Add models endpoint
     @app.get("/v1/models")
@@ -1287,8 +1225,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 status_code=500, detail=f"Error fetching models: {str(e)}"
             )
 
-    print("[DEBUG] create_app: Models endpoint added", file=sys.stderr, flush=True)
-
     # Add system prompts endpoint
     @app.get("/system-prompts")
     async def get_system_prompts(request: Request):
@@ -1349,12 +1285,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         return JSONResponse(content={"status": "updated"})
 
     # Add chat completions endpoint
-    print(
-        "[DEBUG] create_app: Adding chat completions endpoint...",
-        file=sys.stderr,
-        flush=True,
-    )
-
     @app.post("/v1/chat/completions")
     async def chat_completions(request: Request):
         """
@@ -1622,12 +1552,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 # Signal GPU scheduler that AI workload is stopping
                 gpu_scheduler.notify_ai_stopping()
 
-    print(
-        "[DEBUG] create_app: Adding /v1/messages endpoint...",
-        file=sys.stderr,
-        flush=True,
-    )
-
     @app.post("/v1/messages")
     async def messages(request: Request):
         """
@@ -1822,13 +1746,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Build headers with authentication
         backend_headers = build_backend_headers(state.config, dict(request.headers))
 
-
     # ============================================================================
     # MCP Broker Endpoints
     # ============================================================================
-
-    print("[DEBUG] create_app: Adding MCP endpoints...", file=sys.stderr, flush=True)
-
     @app.get("/mcp/servers")
     async def list_mcp_servers():
         """List all configured MCP servers."""
@@ -2016,12 +1936,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         state.semantic_cache.reset_metrics()
 
         return {"message": "Cache metrics reset"}
-
-    print(
-        "[DEBUG] create_app: Adding RAG ingestion endpoint...",
-        file=sys.stderr,
-        flush=True,
-    )
 
     @app.post("/rag/ingest")
     async def ingest_rag_url(request: Request):
@@ -2442,7 +2356,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             import httpx
             import os
 
-            searxng_url = os.getenv("SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080")
+            searxng_url = os.getenv(
+                "SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080"
+            )
 
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
@@ -3341,9 +3257,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         return {"embedding": embedding}
 
-    print(
-        "[DEBUG] create_app: Adding TTS API endpoints...", file=sys.stderr, flush=True
-    )
     # TTS (Text-to-Speech) API endpoints
     if TTS_AVAILABLE:
 
@@ -3421,9 +3334,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     status_code=500, detail=f"Speech generation failed: {str(e)}"
                 )
 
-    print(
-        "[DEBUG] create_app: Adding STT API endpoints...", file=sys.stderr, flush=True
-    )
     # STT (Speech-to-Text) API endpoints
     if AUDIO_AVAILABLE:
 
@@ -3472,9 +3382,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 async def read(self):
                     return self._content
 
-            audio_handler = get_audio_handler(
-                "https://api.openai.com"
-            )
+            audio_handler = get_audio_handler("https://api.openai.com")
 
             try:
                 # Read audio file
@@ -3545,9 +3453,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             if not file_field:
                 raise HTTPException(status_code=400, detail="Audio file is required")
 
-            audio_handler = get_audio_handler(
-                "https://api.openai.com"
-            )
+            audio_handler = get_audio_handler("https://api.openai.com")
 
             try:
                 # Read audio file
@@ -3613,11 +3519,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             millis = int((seconds % 1) * 1000)
             return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
-    print(
-        "[DEBUG] create_app: Adding Vision API endpoints...",
-        file=sys.stderr,
-        flush=True,
-    )
     # Vision API endpoints (Qwen3-VL image understanding)
     if VISION_AVAILABLE:
 
@@ -3726,9 +3627,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                     status_code=500, detail=f"Vision analysis failed: {str(e)}"
                 )
 
-    print(
-        "[DEBUG] create_app: Adding files API endpoints...", file=sys.stderr, flush=True
-    )
     # Files API endpoints (Garage S3 storage)
     if FILES_AVAILABLE:
 
@@ -3941,7 +3839,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 detail="Files API not available. Ensure files module is installed.",
             )
 
-    print("[DEBUG] create_app: Adding metrics endpoint...", file=sys.stderr, flush=True)
     # Add metrics endpoint for Prometheus
     if PROMETHEUS_AVAILABLE:
 
@@ -3960,11 +3857,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 detail="Prometheus metrics not available. Install prometheus-client package.",
             )
 
-    print(
-        "[DEBUG] create_app: Adding self-improvement endpoints...",
-        file=sys.stderr,
-        flush=True,
-    )
     # Add self-improvement system endpoints
     if SELF_IMPROVEMENT_AVAILABLE:
         try:
@@ -3982,8 +3874,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
             logger.warning(f"Failed to initialize self-improvement system: {e}")
             logger.warning(f"Traceback: {traceback.format_exc()}")
-
-    print("[DEBUG] create_app: About to return app", file=sys.stderr, flush=True)
     return app
 
 
@@ -5070,7 +4960,7 @@ try:
     if app is None:
         raise RuntimeError("Failed to create FastAPI app - check logs for errors")
 except Exception as e:
-    print(f"ERROR: Failed to create app: {e}")
+    logger.error(f"Failed to create app: {e}")
     import traceback
 
     traceback.print_exc()
