@@ -6,7 +6,8 @@
   lib,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
     # ========================================================================
     # BASE MODULES
@@ -57,7 +58,7 @@
   };
 
   # FIX: Disable interface renaming - use actual interface names
-  systemd.network.links = lib.mkForce {};
+  systemd.network.links = lib.mkForce { };
 
   # ============================================================================
   # MEMORY OPTIMIZATION - zram compressed swap + kernel tuning
@@ -204,7 +205,7 @@
   # FIX: Don't override ExecStart or Type - let gaming module handle those.
   # Only add wantedBy to start at boot. This prevents duplicate ExecStart lines.
   systemd.user.services.gamemoded = {
-    wantedBy = ["default.target"];
+    wantedBy = [ "default.target" ];
   };
 
   # ============================================================================
@@ -501,7 +502,7 @@
       options nvidia NVreg_EnableBacklightHandler=1
     '';
 
-  # Blacklist unused kernel modules to reduce memory footprint
+    # Blacklist unused kernel modules to reduce memory footprint
     # Each loaded module consumes memory - disable what we don't use
     # NOTE: Bluetooth (btusb, bluetooth) and WiFi (iwlmvm, iwlwifi) ARE in use
     blacklistedKernelModules = [
@@ -820,7 +821,7 @@
     spacebot = {
       enable = true;
       useGateway = true;
-      gatewayUrl = "http://127.0.0.1:8080";
+      gatewayUrl = "http://127.0.0.1:8081"; # K8s gateway (hostNetwork, port 8081)
       host = "127.0.0.1";
       port = 19898;
       memory = "4G";
@@ -922,7 +923,7 @@
           nix-rebuild = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
               "/etc/nixos/skills/nix-rebuild-mcp/server.py"
             ];
             environment.NIX_HOST = "zephyr";
@@ -932,16 +933,16 @@
           add-service = {
             type = "local";
             command = [
-              "${(pkgs.python3.withPackages (ps: [ps.mcp])).interpreter}"
+              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
               "/etc/nixos/skills/add-service-mcp/server.py"
             ];
-            environment = {};
+            environment = { };
             enabled = true;
           };
           context7 = {
             type = "local";
             # Use absolute path for reliable subprocess spawning
-            command = ["/run/current-system/sw/bin/mcp-context7"];
+            command = [ "/run/current-system/sw/bin/mcp-context7" ];
             environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
             enabled = true;
           };
@@ -1067,15 +1068,17 @@
           }
         ];
       };
-      # NVIDIA GPU mining with per-GPU power limits
-      # Device 1: RTX 3090 @ 250W (VRAM-safe) - 3060 Ti disabled
-      # perGpuPowerLimits: [220, 250] = [GPU0: 220W (max), GPU1: 250W]
-      # ENABLED: Mine on RTX 3090 only - 3060 Ti reserved for AI/ML
+      # NVIDIA GPU mining - MIGRATED TO KUBERNETES
+      # Systemd service disabled in favor of K8s deployment (gpu-miner-zephyr)
+      # Power limits persist via nvidia-gpu-power-limit systemd service at boot
       lolminer.nvidia = {
-        enable = true; # RE-ENABLED: Kubernetes CNI broken, using systemd until fixed
-        autostart = true;
+        enable = false; # Disabled - migrated to Kubernetes (gpu-miner-zephyr)
+        autostart = false;
         devices = "1"; # Only mine on GPU 1 (RTX 3090)
-        perGpuPowerLimits = [250]; # GPU1: RTX 3090 @ 250W (GPU 0 disabled)
+        perGpuPowerLimits = [
+          0
+          250
+        ]; # GPU0: RTX 3060 Ti no limit (AI/ML), GPU1: RTX 3090 @ 250W
         apiPort = 4068;
       };
       # CPU mining - Dual XMRig setup (always-on + pause-able)
@@ -1241,7 +1244,7 @@
 
   # Override specific secret permissions (registry defaults can be overridden)
   age = {
-    identityPaths = ["/home/j_kro/.age/key.txt"];
+    identityPaths = [ "/home/j_kro/.age/key.txt" ];
     secrets.xmrig-api-token = lib.mkForce {
       file = "${inputs.self}/secrets/xmrig-api-token.age";
       mode = "440";
@@ -1514,19 +1517,18 @@
   # ============================================================================
   # Autonomous agent for cluster-wide task execution and coordination
   # Uses MCP protocol for inter-service communication
-  # DISABLED: Health check blocking rebuilds (2026-03-21)
   services.hermes-agent = {
-    enable = false;
-    user = "j_kro"; # Use existing user
+    enable = true;
+    user = "j_kro";
     sharedStorage = {
       enable = true;
       mountPoint = "/home/j_kro/.hermes";
       nfsServer = "10.1.1.120"; # Nexus
-      nfsPath = "/data/home"; # Fixed: matches actual NFS export on nexus
+      nfsPath = "/data/home";
     };
     aiGateway = {
       enable = true;
-      url = "http://127.0.0.1:8080/v1";
+      url = "http://127.0.0.1:8081/v1"; # K8s gateway on Zephyr (hostNetwork port 8081)
     };
     terminal = {
       enable = true;
@@ -1625,4 +1627,3 @@
   };
 }
 # Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC
-

@@ -50,7 +50,6 @@ spec:
         - "--tls=1"
         - "--devices=0"
         - "--apiport=4068"
-        - "--mode=b"
         env:
         - name: LD_LIBRARY_PATH
           value: "/run/opengl-driver/lib:/nix/store"
