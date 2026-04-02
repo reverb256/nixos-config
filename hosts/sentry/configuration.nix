@@ -362,9 +362,8 @@
   # HERMES AGENT - Multi-Host Orchestration
   # ============================================================================
   # Autonomous agent for cluster-wide task execution and coordination
-  # DISABLED: Health check blocking rebuilds (2026-03-21)
   services.hermes-agent = {
-    enable = false;
+    enable = true;
     user = "j_kro";
     sharedStorage = {
       enable = true;
@@ -374,7 +373,7 @@
     };
     aiGateway = {
       enable = true;
-      url = "http://10.1.1.110:8080/v1"; # Zephyr AI Gateway
+      url = "http://10.1.1.110:8081/v1"; # Zephyr AI Gateway (K8s hostNetwork port 8081)
     };
     terminal = {
       enable = true;

@@ -1,5 +1,6 @@
-# Comprehensive network policy for Akash provider
+# Network policy for Akash provider namespace
 # Allows: DNS, HTTPS to external RPC nodes, and internal cluster communication
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -8,36 +9,85 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: akash-provider
+      app.kubernetes.io/name: provider
   policyTypes:
   - Egress
   egress:
-  # Allow DNS resolution (CoreDNS)
+  # Allow DNS resolution (both CoreDNS selectors)
   - to:
     - namespaceSelector:
         matchLabels:
-          k8s-app: kube-dns
+          kubernetes.io/metadata.name: kube-system
     ports:
     - protocol: UDP
       port: 53
-  # Allow HTTPS to external RPC nodes (empty `to:` = ANY destination including external)
+    - protocol: TCP
+      port: 53
+  # Allow HTTPS to external RPC nodes
   - ports:
     - protocol: TCP
       port: 443
-  # Allow HTTP fallback to external RPC nodes
+  # Allow HTTP fallback
   - ports:
     - protocol: TCP
       port: 80
-  # Allow communication with Kubernetes API server
+  # Allow Kubernetes API server
   - to:
     - ipBlock:
-        cidr: 10.1.1.0/24  # Cluster network range
+        cidr: 10.0.0.0/16
     ports:
     - protocol: TCP
       port: 6443
-  # Allow communication with cluster services
+  # Allow communication with cluster services (inventory, hostname operators)
   - to:
-    - namespaceSelector: {}  # All namespaces
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8081
+    - protocol: TCP
+      port: 8443
+    - protocol: TCP
+      port: 8444
+---
+# Allow inventory and hostname operator pods to reach external services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-operator-egress
+  namespace: akash-services
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: provider
+  policyTypes:
+  - Egress
+  egress:
+  # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # HTTPS
+  - ports:
+    - protocol: TCP
+      port: 443
+  # Kubernetes API
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/16
+    ports:
+    - protocol: TCP
+      port: 6443
+  # Internal service mesh
+  - to:
+    - namespaceSelector: {}
     ports:
     - protocol: TCP
       port: 8080
