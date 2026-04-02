@@ -162,10 +162,9 @@ data:
     spec:
       containers:
       - name: helper-pod
-        image: ubuntu:latest
+        image: busybox:1.37.0
         imagePullPolicy: IfNotPresent
-        command: ["/bin/bash", "-c"]
-        args: ["apt-get update -qq && apt-get install -y tar && sleep 1000000"]
+        command: ["/bin/sh", "-c", "sleep 1000000"]
   setup: |
     #!/bin/sh
     while getopts "m:s:p:" opt
@@ -223,6 +222,9 @@ allowedTopologies:
       - key: kubernetes.io/hostname
         values:
           - zephyr
+          - nexus
+          - forge
+          - sentry
 
 ---
 apiVersion: storage.k8s.io/v1
