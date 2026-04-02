@@ -1,64 +1,58 @@
 # AI Inference Service Configuration for Zephyr
 # RTX 3090 (24GB) + RTX 3060 Ti (8GB)
-# Primary node for large context models
+# Gateway runs in K8s on Zephyr (hostNetwork, port 8081) with ZAI backend
 {...}: {
-  # Import the AI inference module
-  imports = [../../modules/services/ai-inference];
-
-  # Enable AI inference service
   services.ai-inference = {
     enable = true;
 
-    # Backend: Removed LM Studio (not used)
-    # To use: Configure zai, vllm, or llama.cpp backend instead
+    # Backend: ZAI cloud API (local inference removed)
+    backend = {
+      type = "zai";
+      zai = {
+        enable = true;
+        apiKeyFile = "/run/agenix/zai-api-key";
+      };
+    };
 
-    # Gateway configuration
+    # Gateway runs in K8s (hostNetwork, port 8081), not systemd
     gateway = {
-      enable = false; # DISABLED: Moved to Nexus due to memory constraints on Zephyr
-      host = "127.0.0.1"; # Local only initially
-      port = 8080;
+      enable = false;
+      host = "127.0.0.1";
+      port = 8081;
       workers = 4;
     };
 
-    # Intelligent routing
+    # Routing: ZAI models by context/complexity
     routing = {
       enable = true;
-      defaultModel = "qwen3.5-4b";
+      defaultModel = "glm-4.7";
       rules = [
         {
           minTokens = 0;
           maxTokens = 4096;
-          model = "qwen3.5-2b";
+          model = "glm-4.5-air";
           priority = 10;
         }
         {
           minTokens = 4097;
-          maxTokens = 32768;
-          model = "qwen3.5-4b";
+          maxTokens = 131072;
+          model = "glm-4.7";
           priority = 20;
         }
         {
-          minTokens = 32769;
+          minTokens = 131073;
           maxTokens = 999999;
-          model = "qwen3.5-35b-a3b@q4_k_m";
+          model = "glm-4.6";
           priority = 30;
         }
       ];
     };
 
-    # Authentication: start with none (local), switch to tailscale for network access
-    auth = {
-      mode = "none"; # Change to "tailscale" for network access
-      # For Tailscale, the gateway will need to be updated to listen on Tailscale IP
-    };
+    auth.mode = "none";
 
-    # Monitoring: integrate with existing Prometheus
     monitoring = {
       enable = true;
-      port = 9090;
+      port = 9190;
     };
   };
-
-  # Optional: Open port for local network access
-  # networking.firewall.allowedTCPPorts = [ 8080 ];
 }

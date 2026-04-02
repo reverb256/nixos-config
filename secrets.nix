@@ -39,14 +39,20 @@ in {
     hosts.zephyr
   ];
 
-  # ZAI API key - ZAI Coding Plan API
+  # ZAI API key - ZAI Coding Plan API (needed on all hosts for Hermes + ai-inference)
   "zai-api-key.age".publicKeys = [
     users.j_kro
     hosts.zephyr
+    hosts.nexus
+    hosts.forge
+    hosts.sentry
   ];
   "secrets/zai-api-key.age".publicKeys = [
     users.j_kro
     hosts.zephyr
+    hosts.nexus
+    hosts.forge
+    hosts.sentry
   ];
 
   # Pollinations API key - Free AI service (text, image, TTS)
