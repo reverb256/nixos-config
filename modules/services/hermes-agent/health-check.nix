@@ -21,12 +21,10 @@ lib.mkIf cfg.enable {
       set -e
       echo "[Hermes Health Check] Starting..."
 
-      # Use systemd-run to check status as root (avoids permission issues)
-      # This is more reliable than is-active for non-root users
-      HERMES_ACTIVATED=$(systemd-run --pipe -t -p MainPID --value \
-        systemctl show hermes-agent.service -p ActiveState --value 2>/dev/null || echo "unknown")
-      HERMES_SUBSTATE=$(systemd-run --pipe -t -p MainPID --value \
-        systemctl show hermes-agent.service -p SubState --value 2>/dev/null || echo "unknown")
+      # Check hermes-agent service status directly
+      # Using systemctl show to get detailed state info
+      HERMES_ACTIVATED=$(systemctl show hermes-agent.service -p ActiveState --value 2>/dev/null || echo "unknown")
+      HERMES_SUBSTATE=$(systemctl show hermes-agent.service -p SubState --value 2>/dev/null || echo "unknown")
 
       # Debug output
       echo "[Hermes Health Check] Service state: ActiveState=$HERMES_ACTIVATED, SubState=$HERMES_SUBSTATE"
@@ -37,8 +35,7 @@ lib.mkIf cfg.enable {
       elif [ "$HERMES_ACTIVATED" = "active" ]; then
         # Active but not running - could be starting or deactivating
         sleep 2
-        HERMES_SUBSTATE=$(systemd-run --pipe -t -p MainPID --value \
-          systemctl show hermes-agent.service -p SubState --value 2>/dev/null || echo "unknown")
+        HERMES_SUBSTATE=$(systemctl show hermes-agent.service -p SubState --value 2>/dev/null || echo "unknown")
         if [ "$HERMES_SUBSTATE" = "running" ]; then
           echo "[Hermes Health Check] ✓ Hermes Agent service is running"
         else
