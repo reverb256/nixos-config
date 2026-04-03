@@ -14,11 +14,9 @@
   # Forge-specific zswap tuning (Intel i5-9500 needs 20% pool, not 40%)
   kernel-hardening.zswap.maxPoolPercent = 20;
 
-  # ============================================================================
   # FORGE MEMORY TUNING - 15GB RAM with mining + desktop + K8s
-  # ============================================================================
-  # Forge runs at 85% memory utilization — needs protection
 
+  # Forge runs at 85% memory utilization — needs protection
   # ZRAM compressed swap - reduces SSD wear, faster than disk swap
   # 25% of 15GB ≈ 4GB compressed swap (zstd gives ~2-3x compression)
   zramSwap = {
@@ -27,7 +25,6 @@
     memoryPercent = 25;
     priority = 999; # Prefer zram over disk swap
   };
-
   # Early OOM prevention — kill processes before system freezes
   services.earlyoom = {
     enable = true;
@@ -35,7 +32,6 @@
     freeSwapThreshold = 10;
     enableNotifications = true;
   };
-
   # VM tuning for memory-constrained mining node (15GB RAM)
   # Uses mkForce to override vm-tuning.nix defaults which target 32GB systems
   boot.kernel.sysctl = {
@@ -43,16 +39,13 @@
     # vm.vfs_cache_pressure handled in modules/system/vm-tuning.nix
     "vm.min_free_kbytes" = lib.mkForce 524288; # 512MB reserved for 15GB system
   };
-
   imports = [
     # Monitoring configuration
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
-
     # All other modules (desktop, networking, services, etc.)
     ../../modules/default.nix
-
     # GPU support (wayland-specific, host-dependent)
     ../../modules/hardware/nvidia-common.nix
     ../../modules/hardware/nvidia-wayland.nix
@@ -60,14 +53,12 @@
     ../../modules/hardware/rgb-control.nix
     ../../modules/system/security.nix
     ../../modules/services/podman-support.nix
-
     # Kubernetes worker node (opt-in)
     ../../modules/services/kubernetes.nix
   ];
 
-  # ============================================================================
   # NETWORKING CONFIGURATION
-  # ============================================================================
+
   # Centralized cluster networking (search domains, DNS, firewall basics)
   clusterNetworking = {
     enable = true;
@@ -77,7 +68,6 @@
     wireless.enable = false;
     unbound.listenAddress = "10.1.1.130";
   };
-
   # Enable ULA (Unique Local Address) IPv6 for Calico BGP mesh
   networking.interfaces.eno1.ipv6.addresses = [
     {
@@ -85,19 +75,14 @@
       prefixLength = 64;
     }
   ];
-
   # Explicitly enable IPv6 (required for Calico BGP multihop)
   # Overrides system-wide IPv6 disable that breaks BGP peering
   boot.kernel.sysctl."net.ipv6.conf.all.disable_ipv6" = 0;
   boot.kernel.sysctl."net.ipv6.conf.default.disable_ipv6" = 0;
   boot.kernel.sysctl."net.ipv6.conf.eno1.disable_ipv6" = 0;
-
   # Disable flake-lock-sync (nixos-shared mount not available)
-  services.flake-lock-sync.enable = lib.mkForce false;
-
-  # Directly disable the systemd timer (blocking rebuilds)
+  # Module auto-detects, but explicitly disable to prevent rebuild issues
   systemd.timers.flake-lock-sync.enable = false;
-
   # Populate /etc/hosts from central cluster configuration
   networking = {
     # Forge-specific firewall rules (in addition to cluster defaults)
@@ -120,19 +105,16 @@
     };
   };
 
-  # ============================================================================
   # NODE PROFILE - Platform-level defaults
-  # ============================================================================
+
   # This profile bundles role profiles, Kubernetes config, hardware profiles,
   # and networking configuration. Eliminates ~100 lines of duplication.
   profiles.node.forge-mining.enable = true;
-
   # Use llama-cpp backend instead of ZAI (forge doesn't have ZAI API key)
   services.ai-inference.backend.type = "llama-cpp";
 
-  # ============================================================================
   # GPU COMPUTE - CUDA + ROCm + Vulkan support for AI inference
-  # ============================================================================
+
   # Forge has BOTH AMD (5700XT) and NVIDIA GPUs (RTX 4060)
   hardware.gpu-compute = {
     enable = true;
@@ -141,28 +123,22 @@
     vulkan.enable = true; # Universal backend (all GPUs)
   };
 
-  # ============================================================================
   # SERVICES CONFIGURATION
-  # ============================================================================
+
   services = {
     # Crash detection and logging
     # services.crash-watchdog.enable = true; # Module not available yet
-
     # Kubernetes worker configuration provided by node-profiles.forge-mining
     # No need to duplicate here
-
     # Spotify with SpotX patch (ad-free, premium features)
     spotify-spotx.enable = true;
-
     # OpenCode - AI coding assistant configuration
     opencode.enable = true;
-
     # Mount /etc/nixos from zephyr (single-source-of-truth)
     nixos-share = {
       enable = true;
       client.enable = true;
     };
-
     # Mining configuration - lolminer for NVIDIA and AMD GPUs
     mining.lolminer = {
       # NVIDIA GPUs (2x RTX 4060) - MIGRATED TO KUBERNETES
@@ -177,7 +153,6 @@
         memoryClockLock = 8501; # CRITICAL: Without this, lolMiner fails to drive memory clocks up on RTX 4060, resulting in ~0.2 g/s instead of ~4 g/s
         apiPort = 4068;
       };
-
       # AMD GPUs (RX 5700 XT) - USE SYSTEMD (GLIBC incompatibility with K8s)
       # AMD mining runs via systemd due to GLIBC 2.42 vs 2.27 ABI mismatch
       # K8s pods crash with segfault when loading NixOS AMD OpenCL libraries
@@ -188,7 +163,6 @@
         powerLimit = 110; # 110W for optimal efficiency (from 140W default)
         apiPort = 4069;
       };
-
       # Direct connection to Kryptex (gpu-proxy-cpp was broken - no jobs forwarded)
       pool = "xtm-c29-us.kryptex.network:8040";
       wallet = "krxXVNVMM7.forge-gpu";
@@ -207,7 +181,6 @@
         }
       ];
     };
-
     # C++ GPU Stratum Proxy with Monero Stratum protocol support
     # Translates between Monero Stratum (lolMiner/CR29) and Monero Stratum (Kryptex)
     gpu-proxy-cpp = {
@@ -248,7 +221,6 @@
         }
       ];
     };
-
     # NFS Client - Mount shared storage from nexus
     nfs-client = {
       enable = true;
@@ -256,13 +228,11 @@
       mountHome = true;
       mountMedia = true;
     };
-
     # Syncthing P2P file sync for /etc/nixos config sync
     syncthing-cluster = {
       enable = true;
       deviceId = "FORGE-PLACEHOLDER";
     };
-
     # Host Dashboard - Web interface for cluster host status
     host-dashboard = {
       enable = true;
@@ -294,9 +264,7 @@
         }
       ];
     };
-
     # Hermes Agent is now configured at top-level as services.hermes-agent
-
     # NIXOS AUTO-UPDATE - Flake-aware automatic updates
     # Replaces built-in system.autoUpgrade which doesn't support flakes properly
     nixos-auto-update = {
@@ -307,9 +275,8 @@
     };
   };
 
-  # ============================================================================
   # HERMES AGENT - Multi-Host Orchestration
-  # ============================================================================
+
   # Autonomous agent for cluster-wide task execution and coordination
   services.hermes-agent = {
     enable = true; # Re-enabled: Core dependencies only (no optional extras)
@@ -330,9 +297,8 @@
     };
   };
 
-  # ============================================================================
   # HARDWARE PROFILES
-  # ============================================================================
+
   # Base profiles provided by node-profiles.forge-mining:
   # - intel, nvidia.enable (multiGpu), amdgpu.enable, amdgpu.wayland, monitoring.enable
   #
@@ -340,17 +306,14 @@
   hardware = {
     # NVIDIA GPU support (base driver)
     nvidia-common.enable = true;
-
     # BTRFS compression and deduplication
     btrfs-compression.enable = true;
-
     # Hardware monitoring (lm-sensors for CPU/motherboard temps)
     monitoring = {
       enable = true;
       autoDetect = false; # Disabled: sensors-detect has bug with --auto flag
       fanControl = false; # BIOS fan control for now
     };
-
     # RGB control for ASRock RX 5700 XT and motherboard
     rgb-control = {
       enable = true;
@@ -368,24 +331,21 @@
     };
   };
 
-  # ============================================================================
   # ROLE PROFILES
-  # ============================================================================
+
   # Base role profiles provided by node-profiles.forge-mining:
   # - mining, aiInference
   # Kubernetes and networking also handled by node profile
   #
   # No additional role profiles needed - all handled by node profile
 
-  # ============================================================================
   # NETWORK PROFILES
-  # ============================================================================
+
   # Base Tailscale configuration provided by node-profiles.forge-mining
   # No additional network profile configuration needed
 
-  # ============================================================================
   # BOOT CONFIGURATION
-  # ============================================================================
+
   # Base bootloader settings provided by common-host-defaults.nix:
   # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
   #
@@ -403,31 +363,28 @@
       # No overrides needed - using hardened defaults from kernel-hardening.nix
       # Previously had loglevel=4 and reduced lsm stack which weakened security
     ];
-
     # GPU DRIVERS (Hybrid AMD + NVIDIA)
     # Note: NVIDIA modules loaded via nvidia-wayland.nix
     # Note: AMDGPU loaded via hardware.profiles.amdgpu.wayland (initrd too)
     kernelModules = [ "tun" ]; # amdgpu added by profile, not duplicated here
   };
 
-  # ============================================================================
   # MINING CONFIGURATION (Forge: 6 cores, 2x RTX 4060 + 2x RX 5700 XT)
-  # ============================================================================
+
   # Note: profiles.role.mining enables services.mining automatically
   # Mining configuration moved to services block above
 
-  # ============================================================================
   # AMD GPU POWER MANAGEMENT
   # RX 5700 XT power limit set to 140W for stability and thermal management
   # Uses direct sysfs interface (more reliable than rocm-smi)
-  # ============================================================================
+
   # Set RTX 4060s to EXCLUSIVE_PROCESS mode for compute/mining only
   # Prevents graphics/display usage, reduces interference with mining
   # Smooth fan curve for RX 5700 XT to prevent spiking
   # - Temperature-based targeting with hysteresis
   # - Dead zones to prevent rapid oscillation
   # - Gradual ramp changes
-  # ============================================================================
+
   systemd = {
     services = {
       amd-gpu-power-mgmt = {
@@ -441,16 +398,12 @@
           ExecStart = pkgs.writeShellScript "amd-power-limit" ''
             #!/usr/bin/env bash
             set -euo pipefail
-
             POWER_LIMIT_MICROWATTS=140000000  # 140W in microwatts
-
             log() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
             }
-
             # Wait for GPUs to be ready
             sleep 5
-
             # Set power limit for all AMD GPUs via sysfs
             for card in /sys/class/drm/card*/device/hwmon/hwmon*/power1_cap; do
               if [[ -w "$card" ]]; then
@@ -461,12 +414,10 @@
                 log "AMD GPU $card_name: Power limit set to ''${watts}W"
               fi
             done
-
             log "AMD GPU power management configured"
           '';
         };
       };
-
       nvidia-compute-mode = {
         description = "NVIDIA GPU Compute-Only Mode (EXCLUSIVE_PROCESS)";
         wantedBy = [ "multi-user.target" ];
@@ -477,11 +428,9 @@
           ExecStart = pkgs.writeShellScript "nvidia-compute-mode" ''
             #!/usr/bin/env bash
             set -euo pipefail
-
             log() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
             }
-
             # Wait for NVIDIA driver to be ready
             for i in {1..30}; do
               if /run/current-system/sw/bin/nvidia-smi &>/dev/null; then
@@ -491,21 +440,17 @@
               log "Waiting for NVIDIA driver... ($i/30)"
               sleep 2
             done
-
             # Set compute mode for all NVIDIA GPUs
             # EXCLUSIVE_PROCESS (3): Only one compute process can use each GPU
             /run/current-system/sw/bin/nvidia-smi -c 3
-
             # Verify the setting
             /run/current-system/sw/bin/nvidia-smi --query-gpu=name,compute_mode --format=csv,noheader | while IFS=, read -r name mode; do
               log "NVIDIA GPU ''${name// /}: Compute mode = ''${mode// /}"
             done
-
             log "NVIDIA GPUs set to compute-only mode"
           '';
         };
       };
-
       amd-gpu-fan-curve = {
         description = "AMD GPU Dynamic Fan Curve Control";
         # FIXED: awk escaping bug resolved by using bc instead of awk
@@ -521,9 +466,7 @@
           ExecStart = pkgs.writeShellScript "amd-fan-curve" ''
             #!/run/current-system/sw/bin/bash
             set -euo pipefail
-
             PATH=/run/current-system/sw/bin:$PATH
-
             # Fan curve configuration (RX 5700 XT optimized)
             # Format: "TEMP:TARGET_FAN_SPEED"
             # Temp in Celsius, fan speed as percentage (0-100)
@@ -537,30 +480,24 @@
               "70:80"   # 70°C -> 80% (at driver threshold - will likely override)
               "75:80"   # 75°C -> 80%
             )
-
             # Hysteresis configuration (prevents rapid oscillation)
             # Only change fan speed if temperature changes by this many degrees
             HYSTERESIS=3
-
             # Minimum time between fan adjustments (seconds)
             # Prevents rapid successive changes
             MIN_ADJUST_INTERVAL=5
-
             # State tracking per GPU
             declare -A LAST_TEMP
             declare -A LAST_FAN
             declare -A LAST_ADJUST_TIME
-
             log() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
             }
-
             # GPU to hwmon mapping (bypass rocm-smi which gets overridden by driver)
             # Note: hwmon numbering can differ from card numbering
             declare -A GPU_HWMON
             GPU_HWMON[0]="/sys/class/drm/card0/device/hwmon/hwmon1"
             GPU_HWMON[1]="/sys/class/drm/card1/device/hwmon/hwmon0"
-
             get_temp() {
               local gpu=$1
               local hwmon="''${GPU_HWMON[$gpu]}"
@@ -569,30 +506,24 @@
               # Use bc for floating point division (more reliable than awk escaping)
               echo "scale=1; $temp_milli / 1000" | bc
             }
-
             get_target_fan() {
               local temp=$1
               local target_fan=30
-
               for entry in "''${FAN_CURVE[@]}"; do
                 local curve_temp="''${entry%%:*}"
                 local curve_fan="''${entry##*:}"
-
                 if (( $(awk "BEGIN {print ($temp >= $curve_temp)}") )); then
                   target_fan=$curve_fan
                 fi
               done
-
               echo "$target_fan"
             }
-
             set_fan() {
               local fan_pct=$1
               local gpu=$2
               local hwmon="''${GPU_HWMON[$gpu]}"
               # Convert percentage to 0-255 range
               local fan_value=$((fan_pct * 255 / 100))
-
               # Set manual mode and fan speed via sysfs (direct hardware control)
               if echo "1" > "$hwmon/pwm1_enable" 2>/dev/null && echo "$fan_value" > "$hwmon/pwm1" 2>/dev/null; then
                 log "GPU$gpu: Set pwm to $fan_value ($fan_pct%)"
@@ -600,29 +531,23 @@
                 log "GPU$gpu: Failed to set pwm!"
               fi
             }
-
             calculate_fan() {
               local temp=$1
               local last_temp=$2
               local last_fan=$3
-
               local target_fan=$(get_target_fan "$temp")
-
               # Apply hysteresis - only change if temp moved significantly
               local temp_diff=$(awk "BEGIN {print $temp - $last_temp}")
               local abs_diff=$(awk "BEGIN {if ($temp_diff < 0) print (0 - $temp_diff); else print $temp_diff}")
-
               if (( $(awk "BEGIN {print ($abs_diff < $HYSTERESIS)}") )); then
                 # Within hysteresis zone - keep last fan speed
                 echo "$last_fan"
                 return
               fi
-
               # Calculate smoothed fan change (gradual ramp)
               # Higher max_change when temps are high to prevent driver override
               local fan_diff=$((target_fan - last_fan))
               local max_change=25  # Max 25% change per adjustment (increased for thermal safety)
-
               if (( fan_diff > 0 )); then
                 # Ramping up
                 if (( fan_diff > max_change )); then
@@ -640,10 +565,8 @@
                 fi
               fi
             }
-
             log "Starting temperature-based fan control for RX 5700 XT (devices 0,1)"
             log "Fan curve with hysteresis: ''${HYSTERESIS}°C dead zone, ''${MIN_ADJUST_INTERVAL}s min interval"
-
             # Initialize with current temps
             for gpu in 0 1; do
               temp=$(get_temp $gpu)
@@ -655,26 +578,19 @@
                 set_fan "''${LAST_FAN[$gpu]}" $gpu
               fi
             done
-
             sleep 3
-
             # Main control loop
             while true; do
               current_time=$(date +%s)
-
               for gpu in 0 1; do
                 temp=$(get_temp $gpu)
-
                 if [[ -z "$temp" ]]; then
                   continue
                 fi
-
                 # Check if enough time has passed since last adjustment
                 time_since_last=$((current_time - LAST_ADJUST_TIME[$gpu]))
-
                 if (( time_since_last >= MIN_ADJUST_INTERVAL )); then
                   new_fan=$(calculate_fan "$temp" "''${LAST_TEMP[$gpu]}" "''${LAST_FAN[$gpu]}")
-
                   # Update fan speed if changed significantly (>= 5%)
                   fan_change=$((new_fan - LAST_FAN[$gpu]))
                   if (( fan_change >= 5 || fan_change <= -5 )); then
@@ -686,18 +602,15 @@
                     # Update temp tracker even if we don't change fan target
                     LAST_TEMP[$gpu]=$temp
                   fi
-
                   # ALWAYS write PWM to fight driver overrides (every 5s min)
                   set_fan "''${LAST_FAN[$gpu]}" $gpu
                 fi
               done
-
               sleep 2
             done
           '';
         };
       };
-
       # AMD GPU HEALTH CHECKS
       "amd-gpu-check" = {
         description = "AMD GPU Detection and Health Check";
@@ -709,7 +622,6 @@
           RemainAfterExit = true;
         };
       };
-
       # AMD GPU MAX FAN SPEED (Simple oneshot - sets 100% at boot)
       # DISABLED: Fan curve service now works and provides better thermal management
       # This can be re-enabled if fan curve has issues
@@ -726,14 +638,11 @@
           ExecStart = pkgs.writeShellScript "amd-max-fan" ''
             #!/usr/bin/env bash
             set -euo pipefail
-
             log() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
             }
-
             # Wait for GPUs to be ready
             sleep 5
-
             # Set both GPUs to 100% fan speed using rocm-smi
             # This is the reliable method that doesn't require sysfs PWM manipulation
             if /run/wrappers/bin/sudo /run/current-system/sw/bin/rocm-smi --setfan 100%; then
@@ -744,7 +653,6 @@
           '';
         };
       };
-
       "amd-gpu-info" = {
         description = "AMD GPU Information Service";
         wantedBy = [ "multi-user.target" ];
@@ -756,7 +664,6 @@
         };
       };
     };
-
     tmpfiles.rules =
       let
         rocmEnv = pkgs.symlinkJoin {
@@ -777,7 +684,6 @@
         # lolMiner workaround for OpenCL ICD path bug
         "L /etc/OpenCL/vendorsamdocl64.icd - - - - /etc/OpenCL/vendors/amdocl64.icd"
       ];
-
     slices.mining = {
       description = "Mining Services Slice";
       sliceConfig = {
@@ -797,20 +703,17 @@
     };
   };
 
-  # ============================================================================
   # ROCm SETUP
-  # ============================================================================
+
   # Note: hardware.profiles.amdgpu.wayland sets ROC_ENABLE_PRE_VEGA=1 automatically
   environment = {
     variables = {
       LD_LIBRARY_PATH = lib.mkForce "${pkgs.rocmPackages.clr}/lib:${pkgs.rocmPackages.clr.icd}/lib:${pkgs.mesa.opencl}/lib";
       OCL_ICD_VENDORS = "/etc/OpenCL/vendors";
     };
-
     # OpenCL ICD setup for AMD GPUs (lolminer needs this to detect AMD GPUs)
     etc."OpenCL/vendors/amdocl64.icd".source =
       "${pkgs.rocmPackages.clr.icd}/etc/OpenCL/vendors/amdocl64.icd";
-
     systemPackages = with pkgs; [
       rocmPackages.rocm-smi
       clinfo # For debugging OpenCL
@@ -818,9 +721,8 @@
     ];
   };
 
-  # ============================================================================
   # NIX-LD (For mining software compatibility)
-  # ============================================================================
+
   programs = {
     nix-ld.libraries = with pkgs; [
       # AMD/ROCm libraries
@@ -835,19 +737,16 @@
       rocmPackages.rocfft
       rocmPackages.rocrand
       rocmPackages.rocthrust
-
       # OpenCL
       ocl-icd
       opencl-headers
       clinfo
-
       # NVIDIA libraries
       libGL
       libGLU
       libglvnd
       vulkan-loader
       nvidia-vaapi-driver
-
       # System libraries
       zlib
       libpng
@@ -867,45 +766,25 @@
       curl
       openssl
     ];
-
     # Git configuration now provided by common-host-defaults.nix
     # with automatic hostname interpolation (j_kro@forge)
   };
 
-  # ============================================================================
   # TAILSCALE - Now managed by modules/system/tailscale.nix
-  # ============================================================================
+
   # Tailscale routing automatically configured via network-constants
 
-  # ============================================================================
   # SECURITY
-  # ============================================================================
-  # ============================================================================
+
   # AGENIX SECRETS
-  # ============================================================================
+
   # No Agenix secrets currently configured for Forge.
-  # Enable via services.agenix-secrets-registry when needed (e.g., for Akash provider).
   # See modules/system/agenix-secrets-registry.nix for available categories.
-
   # CRITICAL: Disable agenix-fixes module - it causes boot loops on hosts without age keys
-  # This module expects /etc/nixos/.age/key.txt which doesn't exist on Forge
-  # Without this, the activation script fails during boot and triggers kernel panic
-  services.agenix-fixes.enable = false;
 
-  # ============================================================================
-  # NVIDIA CDI GENERATOR FIX
-  # ============================================================================
-  # Fix for nvidia-container-toolkit-cdi-generator service failure
-  # The generator outputs JSON to stdout but needs to be captured to file
-  # This override redirects stdout to /var/run/cdi/nvidia-container-toolkit.json
-  systemd.services.nvidia-container-toolkit-cdi-generator = {
-    serviceConfig.ExecStart = [
-      ""
-      "/nix/store/d1i12f1i7ycj8zj9pq3nxw2skyms5dl7-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
-    ];
+  # Force SDDM to use X11 instead of Wayland - Wayland has DRM issues on this multi-GPU system
+  services.xserver = {
+    displayManager.sddm.wayland.enable = lib.mkForce false;
+    displayManager.sddm.settings.General.DisplayServer = lib.mkForce "x11";
   };
-
-  # ============================================================================
-  # UNBOUND DNS WITH DNS-OVER-TLS (Cluster-wide configuration)
-  # ============================================================================
 }
