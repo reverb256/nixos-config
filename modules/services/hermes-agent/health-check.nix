@@ -18,36 +18,43 @@ lib.mkIf cfg.enable {
       systemd
     ];
     script = ''
-      #!/usr/bin/env bash
       set -e
-
       echo "[Hermes Health Check] Starting..."
 
-      # 1. Check Hermes agent service
-      # Service can be: active (running), inactive (completed/failed), or not-found
-      HERMES_STATUS=$(systemctl is-active hermes-agent.service 2>/dev/null || echo "not-found")
-      HERMES_ENABLED=$(systemctl is-enabled hermes-agent.service 2>/dev/null || echo "disabled")
+      # Use systemd-run to check status as root (avoids permission issues)
+      # This is more reliable than is-active for non-root users
+      HERMES_ACTIVATED=$(systemd-run --pipe -t -p MainPID --value \
+        systemctl show hermes-agent.service -p ActiveState --value 2>/dev/null || echo "unknown")
+      HERMES_SUBSTATE=$(systemd-run --pipe -t -p MainPID --value \
+        systemctl show hermes-agent.service -p SubState --value 2>/dev/null || echo "unknown")
 
-      if [ "$HERMES_STATUS" = "active" ]; then
+      # Debug output
+      echo "[Hermes Health Check] Service state: ActiveState=$HERMES_ACTIVATED, SubState=$HERMES_SUBSTATE"
+
+      # Check if service is actually running (not just enabled)
+      if [ "$HERMES_SUBSTATE" = "running" ]; then
         echo "[Hermes Health Check] ✓ Hermes Agent service is running"
-      elif [ "$HERMES_STATUS" = "inactive" ] && [ "$HERMES_ENABLED" = "enabled" ]; then
-        # Service is enabled but not active - check if it ran successfully
-        if systemctl show hermes-agent.service -p ExecMainStatus --value | grep -q "0"; then
-          echo "[Hermes Health Check] ✓ Hermes Agent service completed successfully (oneshot)"
+      elif [ "$HERMES_ACTIVATED" = "active" ]; then
+        # Active but not running - could be starting or deactivating
+        sleep 2
+        HERMES_SUBSTATE=$(systemd-run --pipe -t -p MainPID --value \
+          systemctl show hermes-agent.service -p SubState --value 2>/dev/null || echo "unknown")
+        if [ "$HERMES_SUBSTATE" = "running" ]; then
+          echo "[Hermes Health Check] ✓ Hermes Agent service is running"
         else
-          echo "[Hermes Health Check] ✗ Hermes Agent service failed"
+          echo "[Hermes Health Check] ⚠ Hermes Agent is activating (SubState: $HERMES_SUBSTATE)"
           exit 1
         fi
       else
-        echo "[Hermes Health Check] ✗ Hermes Agent service is not running (status: $HERMES_STATUS, enabled: $HERMES_ENABLED)"
+        echo "[Hermes Health Check] ✗ Hermes Agent service is not running (ActiveState: $HERMES_ACTIVATED)"
         exit 1
       fi
 
       # 2. Check AI Gateway is reachable (only if enabled)
-      if ${lib.boolToString cfg.aiGateway.enable}; then
-        GATEWAY_URL="${cfg.aiGateway.url}"
+      if ''${lib.boolToString cfg.aiGateway.enable}; then
+        GATEWAY_URL="''${cfg.aiGateway.url}"
         # Try to reach the gateway (health check uses root endpoint)
-        if ${pkgs.curl}/bin/curl -sSf --max-time 5 "$GATEWAY_URL/health" >/dev/null 2>&1; then
+        if ''${pkgs.curl}/bin/curl -sSf --max-time 5 "$GATEWAY_URL/health" >/dev/null 2>&1; then
           echo "[Hermes Health Check] ✓ AI Gateway reachable ($GATEWAY_URL)"
         else
           echo "[Hermes Health Check] ⚠️  AI Gateway not reachable ($GATEWAY_URL)"
@@ -56,9 +63,9 @@ lib.mkIf cfg.enable {
       fi
 
       # 3. Check shared storage
-      if ${lib.boolToString cfg.sharedStorage.enable}; then
-        MOUNT_POINT="${cfg.sharedStorage.mountPoint}"
-        if ${pkgs.util-linux}/bin/mountpoint -q "$MOUNT_POINT"; then
+      if ''${lib.boolToString cfg.sharedStorage.enable}; then
+        MOUNT_POINT="''${cfg.sharedStorage.mountPoint}"
+        if ''${pkgs.util-linux}/bin/mountpoint -q "$MOUNT_POINT"; then
           echo "[Hermes Health Check] ✓ Shared storage mounted ($MOUNT_POINT)"
         else
           echo "[Hermes Health Check] ⚠️  Shared storage not mounted ($MOUNT_POINT)"
@@ -67,11 +74,11 @@ lib.mkIf cfg.enable {
       fi
 
       # 4. Check custom skills directory exists
-      if [[ -d "${cfg.customSkills}" ]]; then
-        SKILL_COUNT=$(${pkgs.findutils}/bin/find "${cfg.customSkills}" -name "SKILL.md" 2>/dev/null | wc -l)
+      if [[ -d "''${cfg.customSkills}" ]]; then
+        SKILL_COUNT=$(''${pkgs.findutils}/bin/find "''${cfg.customSkills}" -name "SKILL.md" 2>/dev/null | wc -l)
         echo "[Hermes Health Check] ✓ Custom skills directory found ($SKILL_COUNT skills)"
       else
-        echo "[Hermes Health Check] ⚠️  Custom skills directory not found (${cfg.customSkills})"
+        echo "[Hermes Health Check] ⚠️  Custom skills directory not found (''${cfg.customSkills})"
       fi
 
       echo "[Hermes Health Check] ✓ All checks passed"
@@ -83,7 +90,6 @@ lib.mkIf cfg.enable {
       Group = cfg.group;
     };
   };
-
   systemd.timers.hermes-health-check = {
     wantedBy = [ "multi-user.target" ];
     timerConfig = {
