@@ -51,10 +51,10 @@ lib.mkIf cfg.enable {
       fi
 
       # 2. Check AI Gateway is reachable (only if enabled)
-      if ''${lib.boolToString cfg.aiGateway.enable}; then
-        GATEWAY_URL="''${cfg.aiGateway.url}"
+      if ${lib.boolToString cfg.aiGateway.enable}; then
+        GATEWAY_URL="${cfg.aiGateway.url}"
         # Try to reach the gateway (health check uses root endpoint)
-        if ''${pkgs.curl}/bin/curl -sSf --max-time 5 "$GATEWAY_URL/health" >/dev/null 2>&1; then
+        if ${pkgs.curl}/bin/curl -sSf --max-time 5 "$GATEWAY_URL/health" >/dev/null 2>&1; then
           echo "[Hermes Health Check] ✓ AI Gateway reachable ($GATEWAY_URL)"
         else
           echo "[Hermes Health Check] ⚠️  AI Gateway not reachable ($GATEWAY_URL)"
@@ -63,9 +63,9 @@ lib.mkIf cfg.enable {
       fi
 
       # 3. Check shared storage
-      if ''${lib.boolToString cfg.sharedStorage.enable}; then
-        MOUNT_POINT="''${cfg.sharedStorage.mountPoint}"
-        if ''${pkgs.util-linux}/bin/mountpoint -q "$MOUNT_POINT"; then
+      if ${lib.boolToString cfg.sharedStorage.enable}; then
+        MOUNT_POINT="${cfg.sharedStorage.mountPoint}"
+        if ${pkgs.util-linux}/bin/mountpoint -q "$MOUNT_POINT"; then
           echo "[Hermes Health Check] ✓ Shared storage mounted ($MOUNT_POINT)"
         else
           echo "[Hermes Health Check] ⚠️  Shared storage not mounted ($MOUNT_POINT)"
@@ -74,11 +74,11 @@ lib.mkIf cfg.enable {
       fi
 
       # 4. Check custom skills directory exists
-      if [[ -d "''${cfg.customSkills}" ]]; then
-        SKILL_COUNT=$(''${pkgs.findutils}/bin/find "''${cfg.customSkills}" -name "SKILL.md" 2>/dev/null | wc -l)
+      if [[ -d "${cfg.customSkills}" ]]; then
+        SKILL_COUNT=${pkgs.findutils}/bin/find "${cfg.customSkills}" -name "SKILL.md" 2>/dev/null | wc -l
         echo "[Hermes Health Check] ✓ Custom skills directory found ($SKILL_COUNT skills)"
       else
-        echo "[Hermes Health Check] ⚠️  Custom skills directory not found (''${cfg.customSkills})"
+        echo "[Hermes Health Check] ⚠️  Custom skills directory not found (${cfg.customSkills})"
       fi
 
       echo "[Hermes Health Check] ✓ All checks passed"
