@@ -9,7 +9,6 @@
 with lib; let
   cfg = config.services.gaming;
   vrCfg = cfg.vr;
-
   # Kernel-level deadzone tool for controllers
   set-evdev-deadzone = pkgs.stdenv.mkDerivation {
     pname = "set-evdev-deadzone";
@@ -27,7 +26,6 @@ with lib; let
 in {
   options.services.gaming = {
     enable = mkEnableOption "Gaming support (Steam, GameMode, Gamescope)";
-
     vr = {
       enable = mkEnableOption "VR support (WiVRn, SteamVR, OpenXR)";
       encoder = mkOption {
@@ -47,19 +45,17 @@ in {
       };
     };
   };
-
   config = mkMerge [
     # Base gaming configuration (always when gaming.enable = true)
     (mkIf cfg.enable {
-      # ============================================================================
+      
       # ASSERTIONS
-      # ============================================================================
+      
       assertions = [
         {
           assertion = cfg.vr.enable -> cfg.vr.refreshRate >= 60 && cfg.vr.refreshRate <= 144;
           message = ''
             Invalid VR refresh rate: ${toString cfg.vr.refreshRate}
-
             Refresh rate must be between 60 and 144 Hz.
             Recommended values:
               - 72 Hz (entry-level VR)
@@ -72,13 +68,11 @@ in {
           assertion = cfg.vr.enable -> (builtins.match "^[0-9]+x[0-9]+$" cfg.vr.resolution) != null;
           message = ''
             Invalid VR resolution format: "${cfg.vr.resolution}"
-
             Resolution must be in format WIDTHxHEIGHT (per-eye).
             Valid examples:
               - "2160x2160" (default, Quest 2)
               - "2880x2880" (Quest 3)
               - "4096x4096" (high-end)
-
             Current value: ${cfg.vr.resolution}
           '';
         }
@@ -86,23 +80,20 @@ in {
           assertion = cfg.vr.enable -> cfg.vr.encoder == "nvenc" -> (config.hardware.nvidia.enabled or false);
           message = ''
             VR encoder is set to "nvenc" but NVIDIA support is not enabled.
-
             When using nvenc encoder, ensure:
               hardware.nvidia.enable = true;
-
             Or switch to CPU encoders:
               services.gaming.vr.encoder = "x264";  # CPU-based
               services.gaming.vr.encoder = "av1";    # CPU-based, newer
-
             Current configuration:
               vr.encoder = "${cfg.vr.encoder}"
               hardware.nvidia.enable = ${toString (config.hardware.nvidia.enable or false)}
           '';
         }
       ];
-      # ============================================================================
+      
       # PROGRAMS - GameMode, Steam, Gamescope, nix-ld
-      # ============================================================================
+      
       programs = {
         # GameMode - CPU/GPU Optimizations
         gamemode = {
@@ -128,28 +119,33 @@ in {
             custom = {
               start = "${pkgs.writeShellScript "gamemode-start" ''
                 ${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'
-
-                # Pause flexible XMRig instance during gaming
-                if systemctl is-active --quiet xmrig-flexible 2>/dev/null; then
-                  echo "[$(date '+%Y-%m-%d %H:%M:%S')] GameMode: Pausing xmrig-flexible" >> /var/log/gamemode-mining.log
-                  systemctl stop xmrig-flexible
-                  ${pkgs.libnotify}/bin/notify-send 'Mining paused' 'Flexible XMRig instance paused during gaming'
+                KUBECTL="${pkgs.k3s}/bin/kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml"
+                # Scale down K8s GPU miner on the 3090 to free GPU for gaming
+                if $KUBECTL get deploy gpu-miner-zephyr -n mining >/dev/null 2>&1; then
+                  CURRENT_REPLICAS=$($KUBECTL get deploy gpu-miner-zephyr -n mining -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "0")
+                  if [ "$CURRENT_REPLICAS" != "0" ]; then
+                    echo "[$(date '+%Y-%m-%d %H:%M:%S')] GameMode: Scaling down gpu-miner-zephyr ($CURRENT_REPLICAS -> 0)" >> /var/log/gamemode-mining.log
+                    $KUBECTL scale deploy gpu-miner-zephyr -n mining --replicas=0
+                    ${pkgs.libnotify}/bin/notify-send 'GPU mining paused' 'RTX 3090 GPU miner scaled down for gaming'
+                  fi
                 fi
               ''}";
               end = "${pkgs.writeShellScript "gamemode-end" ''
                 ${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'
-
-                # Resume flexible XMRig instance after gaming
-                if ! systemctl is-active --quiet xmrig-flexible 2>/dev/null; then
-                  echo "[$(date '+%Y-%m-%d %H:%M:%S')] GameMode: Resuming xmrig-flexible" >> /var/log/gamemode-mining.log
-                  systemctl start xmrig-flexible
-                  ${pkgs.libnotify}/bin/notify-send 'Mining resumed' 'Flexible XMRig instance resumed'
+                KUBECTL="${pkgs.k3s}/bin/kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml"
+                # Scale K8s GPU miner back up after gaming
+                if $KUBECTL get deploy gpu-miner-zephyr -n mining >/dev/null 2>&1; then
+                  CURRENT_REPLICAS=$($KUBECTL get deploy gpu-miner-zephyr -n mining -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "0")
+                  if [ "$CURRENT_REPLICAS" = "0" ]; then
+                    echo "[$(date '+%Y-%m-%d %H:%M:%S')] GameMode: Scaling up gpu-miner-zephyr (0 -> 1)" >> /var/log/gamemode-mining.log
+                    $KUBECTL scale deploy gpu-miner-zephyr -n mining --replicas=1
+                    ${pkgs.libnotify}/bin/notify-send 'GPU mining resumed' 'RTX 3090 GPU miner scaled back up'
+                  fi
                 fi
               ''}";
             };
           };
         };
-
         # Steam - Game launcher and Proton manager
         steam = {
           enable = true;
@@ -189,24 +185,19 @@ in {
             extraProfile = ''
               # LVRA recommendation for VRChat timezone display
               unset TZ
-
               cd $HOME
-
               # OpenXR/VR support - critical for WiVRn
               export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
               export PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/wivrn/comp_ipc
-
               # Steam container paths
               export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
               export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
               export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
-
               # OpenVR -> OpenXR translation via xrizer
               export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
             '';
           };
         };
-
         # Gamescope - Frame generation/upscaling
         gamescope = {
           enable = true;
@@ -230,7 +221,6 @@ in {
             "--expose-wayland"
           ];
         };
-
         # nix-ld for running non-NixOS binaries
         nix-ld = {
           enable = true;
@@ -261,12 +251,10 @@ in {
           ];
         };
       };
-
       hardware.steam-hardware.enable = true;
-
-      # ============================================================================
+      
       # SYSTEMD - SCX scheduler
-      # ============================================================================
+      
       # scx_lavd provides better gaming performance than CFS for mixed workloads
       # It prioritizes latency-sensitive tasks (games) over background work
       systemd.services.scx-lavd = {
@@ -283,10 +271,9 @@ in {
           IOSchedulingPriority = 7;
         };
       };
-
-      # ============================================================================
+      
       # SERVICES - PipeWire, udev rules
-      # ============================================================================
+      
       services = {
         # PipeWire low-latency configuration
         pipewire.extraConfig = lib.mkForce {
@@ -297,7 +284,6 @@ in {
           pipewire-pulse."99-lowlatency"."pulse.min.quantum" = "64/48000";
           client."99-lowlatency"."stream.properties"."node.latency" = "64/48000";
         };
-
         # Disable DualSense/DualShock touchpad to prevent drift in games
         udev.extraRules = ''
           # Disable DualSense (PS5) touchpad
@@ -310,7 +296,6 @@ in {
           SUBSYSTEM=="input", ATTRS{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
           # Strategy 4: Match by capability signature (ultimate fallback)
           SUBSYSTEM=="input", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", ATTRS{capabilities/abs}=="260800000000003", ENV{LIBINPUT_IGNORE_DEVICE}="1"
-
           # DualSense (PS5) hidraw access for Wine/Proton controller support
           KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", MODE="0660", TAG+="uaccess"
           # DualSense (PS5) over Bluetooth
@@ -318,10 +303,9 @@ in {
           # DualShock 4 (PS4) hidraw access
           KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="05c4", MODE="0660", TAG+="uaccess"
           KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", MODE="0660", TAG+="uaccess"
-
-          # ============================================================================
+          
           # Kernel-Level Deadzone for DualSense (GLOBAL - affects ALL games)
-          # ============================================================================
+          
           # TEMPORARILY DISABLED: Build failing (2026-03-27)
           # Sets deadzone at kernel level using EVIOCSABS ioctl
           # This is the ONLY truly global deadzone solution for Linux
@@ -339,24 +323,20 @@ in {
           #SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*DualSense*Wireless*Controller", ATTRS{name}!="*Touchpad*", ATTRS{name}!="*Motion*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:20 1:20 3:20 4:20"
         '';
       };
-
       # Create plugdev group for backwards compatibility
       # Note: TAG+="uaccess" (above) provides the same functionality via systemd-logind
       users.groups.plugdev = {};
-
       # Load hid_sony kernel module for DualSense native support
       # Provides: Haptic feedback, gyro, LED, touchpad, adaptive triggers
-      boot.kernelModules = [ "hid_sony" ];
-
+      boot.kernelModules = ["hid_sony"];
       systemd.tmpfiles.rules = [
         "d /var/cache/nvidia-shader-cache 0755 root root - -"
         # ldconfig is in glibc.bin output, not glibc.out
         "L /sbin/ldconfig - - - - ${lib.getBin pkgs.glibc}/sbin/ldconfig"
       ];
-
-      # ============================================================================
+      
       # ENVIRONMENT - Session variables, packages, DualSense config
-      # ============================================================================
+      
       environment = {
         # Common session variables (gaming + MangoHud defaults)
         sessionVariables = {
@@ -383,7 +363,6 @@ in {
           # Trade-off: Lose haptics/gyro/LED, gain working deadzone
           # Most games don't use these features anyway
         };
-
         # Common gaming packages
         systemPackages = with pkgs; [
           gamescope
@@ -410,9 +389,7 @@ in {
             #   [game/executable-name]
             #   governor=performance
             #   gpu_optimisations=1
-
             set -euo pipefail
-
             # Validate arguments
             if [ $# -eq 0 ]; then
               echo "Usage: launch-game [command] [args...]" >&2
@@ -427,13 +404,11 @@ in {
               echo "Per-game config: ~/.config/gamemode.ini" >&2
               exit 1
             fi
-
             # Check if gaming.slice exists
             if ! systemctl show gaming.slice >/dev/null 2>&1; then
               echo "Warning: gaming.slice not found, running without cgroup isolation" >&2
               exec "$@"
             fi
-
             # Launch the game in gaming.slice with GameMode
             exec systemd-run --user \
               --slice=gaming.slice \
@@ -447,7 +422,6 @@ in {
               -- "$@"
           '')
         ];
-
         etc = {
           # SDL2 GameControllerDB for proper DualSense mapping in Wine/Proton games
           # Required for Genshin Impact, Honkai Star Rail, and other Hoyoverse games
@@ -465,23 +439,20 @@ in {
             0300000054c00000921000000000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
             0300000054c00000921000016000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
             0300000054c00000921000000010000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
-
           '';
         };
       };
-
-      # ============================================================================
+      
       # MANGOHUD - Performance overlay
-      # ============================================================================
+      
       # Note: Configuration is handled via MANGOHUD_CONFIG env var (set in sessionVariables)
       # or ~/.config/MangoHud/MangoHud.conf (can be managed via GOverlay)
     })
-
     # VR configuration (only when vr.enable = true)
     (mkIf vrCfg.enable {
-      # ============================================================================
+      
       # SERVICES - Avahi for WiVRn discovery, WiVRn streaming
-      # ============================================================================
+      
       services = {
         # Avahi - Required for WiVRn server discovery
         avahi = {
@@ -489,7 +460,6 @@ in {
           nssmdns4 = true;
           openFirewall = true;
         };
-
         # WiVRn - Wireless VR Streaming for Quest Headsets
         wivrn = {
           enable = true;
@@ -497,22 +467,18 @@ in {
           defaultRuntime = true;
           autoStart = true;
         };
-
         # VR device udev rules
         udev.extraRules = ''
           # Oculus Rift
           SUBSYSTEM=="usb", ATTR{idVendor}=="2833", ATTR{idProduct}=="0181", MODE="0666", TAG+="uaccess"
-
           # Valve Index / Vive
           SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", TAG+="uaccess"
           SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", TAG+="uaccess"
           SUBSYSTEM=="hidraw", ATTRS{idVendor}=="28de", ATTRS{idProduct}=="2102", MODE="0666", TAG+="uaccess"
-
           # HTC Vive
           SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", ATTR{idProduct}=="2c87", MODE="0666", TAG+="uaccess"
         '';
       };
-
       # VR firewall ports
       networking.firewall = {
         allowedTCPPorts = [9757];
@@ -524,7 +490,6 @@ in {
           27031
         ];
       };
-
       # VR kernel modules
       boot.kernelModules = [
         "usbhid"
@@ -533,7 +498,6 @@ in {
         "hid-sensor-hub"
         "uinput"
       ];
-
       # VR graphics packages
       hardware.graphics.extraPackages = with pkgs; [
         freetype
@@ -543,16 +507,14 @@ in {
         libtiff
       ];
       # NOTE: extraPackages32 removed - breaks Wayland on multi-NVIDIA
-
-      # ============================================================================
+      
       # ENVIRONMENT - VR session variables and packages
-      # ============================================================================
+      
       environment = {
         # VR-specific session variables
         sessionVariables = {
           OPENVR_API_PATH = "${pkgs.xrizer}/lib/xrizer";
         };
-
         # VR-specific packages
         systemPackages = with pkgs; ([
             wivrn
@@ -580,25 +542,22 @@ in {
             '')
           ]);
       };
-
-      # ============================================================================
+      
       # COMPUTE WORKLOAD MONITOR MODULE
-      # ============================================================================
+      
       # Automatically detects workload type (gaming/AI/K8s/mining/idle)
       # and switches GPU profiles accordingly
       # Refactored to modular services: gaming-detection + gpu-profile-manager + mining-coordinator
       services.gaming-detection.enable = true;
       services.gpu-profile-manager.enable = true;
-
-      # ============================================================================
+      
       # GAMEMODE INTEGRATION
-      # ============================================================================
+      
       # GameMode provides automatic detection when games start/stop
       # and runs our custom scripts to switch GPU profiles
-
-      # ============================================================================
+      
       # GPU PROFILE COMMANDS
-      # ============================================================================
+      
       # Convenient aliases for manual profile switching
       # NOTE: gpu-profile command merged with VR packages above to avoid duplicate assignment
     })
