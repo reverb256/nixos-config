@@ -30,16 +30,17 @@
   lib,
   inputs,
   ...
-}: let
+}:
+let
   inherit (lib) mkOption types mkIf;
-in {
+in
+{
   options.services.agenix-secrets-registry = {
     enable = mkOption {
       type = types.bool;
       default = true;
       description = "Enable centralized agenix secrets registry";
     };
-
     # Per-host secret selections
     # Each host can enable only the secrets it needs
     aiServices = mkOption {
@@ -47,37 +48,31 @@ in {
       default = false;
       description = "Enable AI service API keys (HuggingFace, LM Studio, ZAI, etc.)";
     };
-
     monitoring = mkOption {
       type = types.bool;
       default = false;
       description = "Enable monitoring secrets (Grafana, Sentry)";
     };
-
     storage = mkOption {
       type = types.bool;
       default = false;
       description = "Enable storage secrets (Garage S3, RPC)";
     };
-
     mining = mkOption {
       type = types.bool;
       default = false;
       description = "Enable mining control secrets (XMRig API tokens)";
     };
-
     cloud = mkOption {
       type = types.bool;
       default = false;
-      description = "Enable cloud service secrets (Tailscale, Cloudflare, Akash)";
+      description = "Enable cloud service secrets (Tailscale, Cloudflare)";
     };
-
     selfHosting = mkOption {
       type = types.bool;
       default = false;
       description = "Enable self-hosted service secrets (Nextcloud, Vaultwarden, GlitchTip)";
     };
-
     # Kubernetes-specific secrets
     kubernetes = mkOption {
       type = types.bool;
@@ -85,22 +80,20 @@ in {
       description = "Enable Kubernetes cluster secrets";
     };
   };
-
   config = mkIf config.services.agenix-secrets-registry.enable {
-    # ========================================================================
+
     # AI SERVICE API KEYS
-    # ========================================================================
+
     age.secrets = lib.mkMerge [
       # AI Services - Zephyr primary
       (lib.mkIf config.services.agenix-secrets-registry.aiServices {
         # LM Studio API key - Local LLM backend
-#        lm-studio-api-key = {
-#          file = "${inputs.self}/secrets/lm-studio-api-key.age";
-#          mode = "440";
-#          owner = "j_kro";
-#          group = "users";
-#        };
-
+        #        lm-studio-api-key = {
+        #          file = "${inputs.self}/secrets/lm-studio-api-key.age";
+        #          mode = "440";
+        #          owner = "j_kro";
+        #          group = "users";
+        #        };
         # Hugging Face token - AI model downloads
         huggingface-token = {
           file = "${inputs.self}/secrets/huggingface-token.age";
@@ -108,7 +101,6 @@ in {
           owner = "j_kro";
           group = "users";
         };
-
         # ZAI API key - Coding assistant API
         zai-api-key = {
           file = "${inputs.self}/secrets/zai-api-key.age";
@@ -116,7 +108,6 @@ in {
           owner = "j_kro";
           group = "users";
         };
-
         # Pollinations API key - Free AI services
         pollinations-api-key = {
           file = "${inputs.self}/secrets/pollinations-api-key.age";
@@ -124,7 +115,6 @@ in {
           owner = "j_kro";
           group = "users";
         };
-
         # Kilo API key - Additional AI service
         kilo-api-key = {
           file = "${inputs.self}/secrets/kilo-api-key.age";
@@ -132,7 +122,13 @@ in {
           owner = "j_kro";
           group = "users";
         };
-
+        # NVIDIA NIM API key - Free LLM endpoints (100+ models via build.nvidia.com)
+        nvidia-api-key = {
+          file = "${inputs.self}/secrets/nvidia-api-key.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
         # Context7 API key - Documentation search
         context7-api-key = {
           file = "${inputs.self}/secrets/context7-api-key.age";
@@ -140,7 +136,14 @@ in {
           owner = "j_kro";
           group = "users";
         };
-
+        # OpenRouter API key - Multi-provider LLM routing (Hermes, Open WebUI)
+        # DISABLED: secrets/openrouter-api-key.age does not exist
+        # openrouter-api-key = {
+        #   file = "${inputs.self}/secrets/openrouter-api-key.age";
+        #   mode = "440";
+        #   owner = "j_kro";
+        #   group = "users";
+        # };
         # Anthropic API key - For autoresearch skill optimization
         # DISABLED: File does not exist, commented out to prevent build failure
         # anthropic-api-key = {
@@ -149,7 +152,6 @@ in {
         #   owner = "j_kro";
         #   group = "users";
         # };
-
         # Spacebot Telegram token - AI agent integration
         spacebot-telegram-token = {
           file = "${inputs.self}/secrets/spacebot-telegram-token.age";
@@ -158,7 +160,6 @@ in {
           group = "users";
         };
       })
-
       # Monitoring Secrets
       (lib.mkIf config.services.agenix-secrets-registry.monitoring {
         # Grafana admin password
@@ -168,16 +169,15 @@ in {
           owner = "grafana";
           group = "grafana";
         };
-
         # Sentry DSN for error tracking
-        sentry-dsn = {
-          file = "${inputs.self}/secrets/sentry-dsn.age";
-          mode = "440";
-          owner = "j_kro";
-          group = "users";
-        };
+        # DISABLED: secrets/sentry-dsn.age does not exist
+        # sentry-dsn = {
+        #   file = "${inputs.self}/secrets/sentry-dsn.age";
+        #   mode = "440";
+        #   owner = "j_kro";
+        #   group = "users";
+        # };
       })
-
       # Storage Secrets (Garage S3 cluster)
       (lib.mkIf config.services.agenix-secrets-registry.storage {
         # Garage RPC secret - Cluster authentication
@@ -188,7 +188,6 @@ in {
           owner = "garage";
           group = "garage";
         };
-
         # Garage S3 admin secret key - available on all hosts that need S3 access
         garage-s3-secret-key = {
           file = "${inputs.self}/secrets/garage-s3-secret-key.age";
@@ -197,7 +196,6 @@ in {
           group = "wheel";
         };
       })
-
       # Mining Control Secrets
       (lib.mkIf config.services.agenix-secrets-registry.mining {
         # XMRig primary API token (pause-able instance)
@@ -207,7 +205,6 @@ in {
           owner = "root";
           group = "root";
         };
-
         # XMRig always-on instance API token
         xmrig-always-api-token = {
           file = "${inputs.self}/secrets/xmrig-always-api-token.age";
@@ -215,7 +212,6 @@ in {
           owner = "root";
           group = "root";
         };
-
         # XMRig flexible instance API token
         xmrig-flexible-api-token = {
           file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
@@ -224,7 +220,6 @@ in {
           group = "root";
         };
       })
-
       # Cloud Service Secrets
       (lib.mkIf config.services.agenix-secrets-registry.cloud {
         # Tailscale API key
@@ -234,7 +229,6 @@ in {
           owner = "root";
           group = "root";
         };
-
         # Cloudflare Tunnel token
         cloudflared-token = {
           file = "${inputs.self}/secrets/cloudflared-token.age";
@@ -242,24 +236,14 @@ in {
           owner = "root";
           group = "root";
         };
-
-        # Cloudflare API token - DNS and cache operations for Akash provider
+        # Cloudflare API token - DNS and cache operations
         cloudflare-api-token = {
           file = "${inputs.self}/secrets/cloudflare-api-token.age";
           mode = "440";
           owner = "root";
           group = "root";
         };
-
-        # Akash provider wallet key
-        akash-provider-key = {
-          file = "${inputs.self}/secrets/akash-provider-key.age";
-          mode = "440";
-          owner = "root";
-          group = "root";
-        };
       })
-
       # Self-Hosted Service Secrets
       (lib.mkIf config.services.agenix-secrets-registry.selfHosting {
         # Nextcloud admin password
@@ -269,7 +253,6 @@ in {
           owner = "nextcloud";
           group = "nextcloud";
         };
-
         # Vaultwarden admin token
         vaultwarden-admin-token = {
           file = "${inputs.self}/secrets/vaultwarden-admin-token.age";
@@ -277,7 +260,6 @@ in {
           owner = "vaultwarden";
           group = "vaultwarden";
         };
-
         # GlitchTip database password
         glitchtip-db-password = {
           file = "${inputs.self}/secrets/glitchtip-db-password.age";
@@ -285,13 +267,23 @@ in {
           owner = "glitchtip";
           group = "glitchtip";
         };
-
         # GlitchTip Django secret key
         glitchtip-secret-key = {
           file = "${inputs.self}/secrets/glitchtip-secret-key.age";
           mode = "440";
           owner = "glitchtip";
           group = "glitchtip";
+        };
+      })
+      # Kubernetes/k3s Secrets
+      (lib.mkIf config.services.agenix-secrets-registry.kubernetes {
+        # k3s cluster token - used for server/agent authentication
+        # NOTE: Bootstrap secret only, not consumed by any running module
+        k3s-cluster-token = {
+          file = "${inputs.self}/secrets/k3s-cluster-token.age";
+          mode = "440";
+          owner = "root";
+          group = "root";
         };
       })
     ];
