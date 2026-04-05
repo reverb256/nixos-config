@@ -6,33 +6,31 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.hardware.nvidia.wayland;
-in {
+in
+{
   options.hardware.nvidia.wayland = {
     enable = lib.mkEnableOption "NVIDIA Wayland optimizations for Plasma 6";
-
     enable32Bit = lib.mkOption {
       type = lib.types.bool;
       default = true;
       example = false;
       description = "Enable 32-bit graphics support for Steam and games";
     };
-
     openModules = lib.mkOption {
       type = lib.types.bool;
       default = true;
       example = false;
       description = "Use open-source NVIDIA kernel modules (recommended for Wayland since driver 560+)";
     };
-
     powerManagement = lib.mkOption {
       type = lib.types.bool;
       default = true;
       example = false;
       description = "Enable NVIDIA power management";
     };
-
     sddmWayland = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -40,11 +38,10 @@ in {
       description = "Enable SDDM Wayland support";
     };
   };
-
   config = lib.mkIf cfg.enable {
-    # ============================================================================
+
     # NVIDIA DRIVER CONFIGURATION
-    # ============================================================================
+
     # NOTE: hardware.nvidia base configuration (including package) is in nvidia-common.nix
     # This module only adds/overrides Wayland-specific settings
     hardware.nvidia = {
@@ -57,84 +54,70 @@ in {
       gsp.enable = cfg.openModules;
     };
 
-    # ============================================================================
     # DISPLAY MANAGER (SDDM with Wayland)
-    # ============================================================================
+
     services.displayManager.sddm.wayland.enable = lib.mkDefault cfg.sddmWayland;
 
-    # ============================================================================
     # ENVIRONMENT VARIABLES (Critical for NVIDIA + Wayland)
-    # ============================================================================
+
     # Use common environment variables module for Wayland
     #    environment.common.wayland.enable = true;
-
     # NVIDIA-specific environment variables
     environment.sessionVariables = {
       # CRITICAL: Force NVIDIA Vulkan ICD (fixes DXVK initialization failures)
       # Without this, Vulkan loader can't find the NVIDIA driver
       VK_ICD_FILENAMES = "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
-
       # Ensure GLX uses NVIDIA vendor library
       __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-
       # Force GBM to use NVIDIA DRM backend (fixes DMA-BUF/EGL buffer import issues)
       GBM_BACKEND = "nvidia-drm";
-
       # VA-API driver for hardware video acceleration
       LIBVA_DRIVER_NAME = "nvidia";
-
       # Disable G-SYNC to prevent buffer issues
       __GL_GSYNC_ALLOWED = "0";
-
       # Disable VRR for stability (can re-enable later)
       __GL_VRR_ALLOWED = "0";
-
       # Additional variables for NVIDIA EGL and NVENC
       NVD_BACKEND = "direct";
-      __NV_PRIME_RENDER_OFFLOAD = "1";
-
+      # NOTE: __NV_PRIME_RENDER_OFFLOAD removed - not needed for dual dGPU desktop
+      # PRIME offload is for laptops with iGPU+dGPU hybrid. This system has
+      # two discrete GPUs (RTX 3060 Ti + RTX 3090) and NO iGPU.
+      # Setting this=1 caused software rendering fallback across all games.
       # Disable sync to vblank for stability
       __GL_SYNC_TO_VBLANK = "0";
-
       # VRChat/SteamVR specific variables
       # SDL_VIDEODRIVER = "wayland";  # REMOVED: Causes Steam Vulkan init failure
       # SDL auto-detects best backend; Steam client needs XWayland fallback
       WINEPREFIX = "$HOME/.wine";
     };
 
-    # ============================================================================
     # ADDITIONAL WAYLAND PACKAGES
-    # ============================================================================
+
     environment.systemPackages = with pkgs; [
       # Wayland utilities
       wayland-utils
-
       # Display management
       kanshi
-
       # Gaming detection daemon
       gamemode
     ];
 
-    # ============================================================================
-    # VULKAN ICD SYMLINK - Create symlink in /etc/vulkan/icd.d for standard loader
-    # NixOS uses /run/opengl-driver which isn't in default search paths
-    # ============================================================================
-    systemd.tmpfiles.rules = [
-      "L+ /etc/vulkan/icd.d/nvidia_icd.json - - - /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
-      "L+ /etc/vulkan/icd.d/nvidia_icd.x86_64.json - - - /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json"
-      "d /etc/vulkan/icd.d 0755 root root -"
-    ];
+    # VULKAN ICD SYMLINK - Use environment.etc for reliable symlink creation
+    # systemd.tmpfiles.rules was failing with "Invalid age" errors on L+ type
+    environment.etc = {
+      "vulkan/icd.d/nvidia_icd.json".source =
+        "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+      "vulkan/icd.d/nvidia_icd.x86_64.json".source =
+        "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
+    };
 
-    # ============================================================================
     # KERNEL PARAMETERS (for better Wayland stability)
-    # ============================================================================
+
     boot = {
       kernelParams = [
         # Enable NVIDIA DRM modeset (required for Wayland)
         "nvidia-drm.modeset=1"
       ];
-
       # EARLY NVIDIA LOADING - Fix race condition with simple-framebuffer
       # Load NVIDIA modules in initramfs before simple-framebuffer claims displays
       initrd = {
@@ -143,7 +126,6 @@ in {
           "nvidia_modeset"
           "nvidia_drm"
         ];
-
         # Also ensure modules are available in initramfs
         availableKernelModules = [
           "nvidia"
@@ -153,15 +135,17 @@ in {
       };
     };
 
-    # ============================================================================
     # NVIDIA DEVICE NODE CREATION - Ensure device nodes exist after driver load
     # Fixes udev race condition where device nodes aren't created during early boot
-    # ============================================================================
+
     systemd.services.nvidia-device-nodes = {
       description = "Create NVIDIA device nodes";
-      after = ["systemd-modules-load.service" "systemd-udev-trigger.service"];
-      wants = ["systemd-modules-load.service"];
-      wantedBy = ["multi-user.target"];
+      after = [
+        "systemd-modules-load.service"
+        "systemd-udev-trigger.service"
+      ];
+      wants = [ "systemd-modules-load.service" ];
+      wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -171,7 +155,7 @@ in {
         ProtectHome = true;
         PrivateTmp = true;
         RestrictRealtime = true;
-        RestrictAddressFamilies = ["AF_UNIX"];
+        RestrictAddressFamilies = [ "AF_UNIX" ];
         ExecStart = pkgs.writeShellScript "nvidia-device-nodes" ''
           # Wait for NVIDIA driver to be fully loaded
           if [ -d /proc/driver/nvidia ]; then
@@ -179,7 +163,6 @@ in {
             if [ ! -e /dev/nvidiactl ]; then
               mknod -m 660 /dev/nvidiactl c 195 255 2>/dev/null || true
             fi
-
             # Create GPU devices
             if [ -d /proc/driver/nvidia/gpus ]; then
               for gpu in /proc/driver/nvidia/gpus/*; do
