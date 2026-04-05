@@ -1,5 +1,8 @@
-# XMRig CPU Miner Deployment for Zephyr (32 cores)
-# FIXED: Removed readOnlyRootFilesystem, added health probes, fixed YAML structure
+# XMRig CPU Miner Deployment for Zephyr (Ryzen 9 5950X, 16C/32T)
+# - privileged for MSR register access (10-30% hashrate improvement)
+# - 2MB hugepages for RandomX dataset (1GB pages unavailable in containers)
+# - 8 threads, reserves headroom for gaming/interactive workloads
+# - GameMode scales gpu-miner-zephyr 0↔1 (RTX 3090 released for gaming)
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -18,10 +21,7 @@ spec:
       app: xmrig-zephyr
       host: zephyr
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   template:
     metadata:
       labels:
@@ -39,6 +39,7 @@ spec:
       priorityClassName: mining-low
       hostNetwork: true
       hostIPC: true
+      hostPID: true
       dnsPolicy: ClusterFirstWithHostNet
       tolerations:
         - key: node-role.kubernetes.io/control-plane
@@ -61,19 +62,19 @@ spec:
       - name: xmrig
         image: docker.io/library/xmrig-nixos:latest
         imagePullPolicy: Never
-        args:
-          - "-o"
-          - "xmrig-proxy.mining.svc.cluster.local:3333"  # Using Kubernetes service DNS instead of host IP
-          - "-u"
-          - "zephyr-cpu"
-          - "--tls=false"
-          - "--randomx-1gb-pages"
-          - "--threads=8"
-          - "--donate-level=1"
-          - "--api-worker-id=zephyr-cpu"
-          - "--http-enabled"
-          - "--http-host=0.0.0.0"
-          - "--http-port=8082"
+        command:
+          - "/bin/sh"
+          - "-c"
+          - |
+            exec /bin/xmrig \
+              -o 10.1.1.120:3333 \
+              -u zephyr-cpu \
+              --threads=8 \
+              --donate-level=1 \
+              --api-worker-id=zephyr-cpu \
+              --http-enabled \
+              --http-host=0.0.0.0 \
+              --http-port=8082
         ports:
         - containerPort: 8082
           name: api
@@ -83,11 +84,25 @@ spec:
             memory: "1Gi"
             cpu: "4"
           limits:
-            memory: "3Gi"
+            memory: "4Gi"
             cpu: "8"
         env:
         - name: XMRIG_NO_TLS
           value: "1"
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: msr
+          mountPath: /dev/cpu
+          mountPropagation: HostToContainer
+        - name: hugepages
+          mountPath: /dev/hugepages
+          mountPropagation: HostToContainer
+        - name: sys-module-msr
+          mountPath: /sys/module/msr
+          mountPropagation: HostToContainer
+        - name: tmp
+          mountPath: /tmp
         livenessProbe:
           httpGet:
             path: /1/summary
@@ -104,39 +119,18 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        securityContext:
-          runAsNonRoot: false
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false  # FIXED: xmrig needs write access
-          capabilities:
-            drop:
-            - ALL
-            add:
-            - IPC_LOCK
-            - SYS_RAWIO  # Required for MSR access to CPU registers
-        volumeMounts:
-        - name: msr
-          mountPath: /dev/cpu
-        - name: hugepages
-          mountPath: /dev/hugepages
-        - name: sys-module
-          mountPath: /sys/module
-          readOnly: true
-        - name: tmp
-          mountPath: /tmp
       volumes:
-      - name: hugepages
-        hostPath:
-          path: /dev/hugepages
-          type: Directory
-      - name: tmp
-        emptyDir: {}
-      # MSR devices for CPU optimizations (10-30% hashrate improvement)
       - name: msr
         hostPath:
           path: /dev/cpu
           type: Directory
-      - name: sys-module
+      - name: hugepages
         hostPath:
-          path: /sys/module
+          path: /dev/hugepages
           type: Directory
+      - name: sys-module-msr
+        hostPath:
+          path: /sys/module/msr
+          type: Directory
+      - name: tmp
+        emptyDir: {}

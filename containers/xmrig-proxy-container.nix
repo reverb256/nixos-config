@@ -7,7 +7,6 @@
 pkgs.dockerTools.buildImage {
   name = "xmrig-proxy";
   tag = "nixos-latest";
-
   # Copy the xmrig-proxy binary that works on bare metal
   copyToRoot = pkgs.buildEnv {
     name = "xmrig-proxy-root";
@@ -19,7 +18,6 @@ pkgs.dockerTools.buildImage {
     ];
     pathsToLink = ["/bin" "/etc" "/lib"];
   };
-
   # Set up the configuration
   config = {
     Cmd = [
@@ -27,12 +25,10 @@ pkgs.dockerTools.buildImage {
       "--config=/etc/xmrig-proxy/config.json"
       "--no-color"
     ];
-
     ExposedPorts = {
       "3333/tcp" = {}; # Stratum port
       "8081/tcp" = {}; # API port
     };
-
     Env = [
       "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
       "PATH=/bin"
