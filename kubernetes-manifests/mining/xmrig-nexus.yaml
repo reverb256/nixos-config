@@ -1,4 +1,6 @@
 # XMRig CPU Miner Deployment for Nexus (24 cores)
+# - privileged for MSR register access
+# - 6 threads (conservative — nexus runs control-plane + GPU mining)
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -6,7 +8,7 @@ metadata:
   name: xmrig-nexus
   namespace: mining
   labels:
-    app: xmrig
+    app: xmrig-nexus
     host: nexus
     workload: crypto-mining
 spec:
@@ -14,17 +16,14 @@ spec:
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: xmrig
+      app: xmrig-nexus
       host: nexus
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   template:
     metadata:
       labels:
-        app: xmrig
+        app: xmrig-nexus
         host: nexus
         workload: crypto-mining
       annotations:
@@ -39,18 +38,20 @@ spec:
       hostNetwork: true
       hostIPC: true
       dnsPolicy: ClusterFirstWithHostNet
-      securityContext:
-        runAsNonRoot: false
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
       containers:
       - name: xmrig
         image: docker.io/library/xmrig-nixos:latest
         imagePullPolicy: Never
         args:
           - "-o"
-          - "xmrig-proxy.mining.svc.cluster.local:3333"
+          - "10.1.1.120:3333"
           - "-u"
           - "nexus-cpu"
-          - "--randomx-1gb-pages"
+          - "--tls=false"
           - "--threads=6"
           - "--donate-level=1"
           - "--http-enabled"
@@ -70,6 +71,20 @@ spec:
         env:
         - name: XMRIG_NO_TLS
           value: "1"
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: msr
+          mountPath: /dev/cpu
+          mountPropagation: HostToContainer
+        - name: hugepages
+          mountPath: /dev/hugepages
+          mountPropagation: HostToContainer
+        - name: sys-module-msr
+          mountPath: /sys/module/msr
+          mountPropagation: HostToContainer
+        - name: tmp
+          mountPath: /tmp
         livenessProbe:
           httpGet:
             path: /1/summary
@@ -86,38 +101,18 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        securityContext:
-          allowPrivilegeEscalation: true
-          readOnlyRootFilesystem: false
-          capabilities:
-            drop:
-            - ALL
-            add:
-            - SYS_NICE
-            - IPC_LOCK
-            - SYS_RAWIO
-        volumeMounts:
-        - name: dev-cpu
-          mountPath: /dev/cpu
-        - name: hugepages
-          mountPath: /dev/hugepages
-        - name: sys-module
-          mountPath: /sys/module
-          readOnly: true
-        - name: tmp
-          mountPath: /tmp
       volumes:
+      - name: msr
+        hostPath:
+          path: /dev/cpu
+          type: Directory
       - name: hugepages
         hostPath:
           path: /dev/hugepages
           type: Directory
-      - name: dev-cpu
+      - name: sys-module-msr
         hostPath:
-          path: /dev/cpu
-          type: Directory
-      - name: sys-module
-        hostPath:
-          path: /sys/module
+          path: /sys/module/msr
           type: Directory
       - name: tmp
         emptyDir: {}

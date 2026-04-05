@@ -1,5 +1,7 @@
-# GPU Miner Deployment for Zephyr (RTX 3060 Ti + RTX 3090)
-# Mines on RTX 3090 (GPU 1) only - AI inference uses RTX 3060 Ti (GPU 0)
+# GPU Miner Deployment for Zephyr (RTX 3090 GPU 1)
+# - Mines on RTX 3090 only (GPU 1) — RTX 3060 Ti (GPU 0) reserved for AI/gaming
+# - Power limit 250W (mining profile sweet spot for 3090)
+# - GameMode scales replicas 0↔1 via gaming.nix gamemode hooks
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -18,17 +20,13 @@ spec:
       app: gpu-miner-zephyr
       host: zephyr
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   template:
     metadata:
       labels:
         app: gpu-miner-zephyr
         host: zephyr
         workload: crypto-mining
-        # PSA exemption for privileged GPU mining containers
         pod-security.kubernetes.io/enforce: privileged
       annotations:
         prometheus.io/scrape: "true"
@@ -55,8 +53,6 @@ spec:
           operator: "Equal"
           value: "true"
           effect: NoSchedule
-      # REMOVED: gpu-power-limit init container (causing crashes)
-      # GPU power limits now configured at host level via systemd
       containers:
         - name: lolminer
           image: docker.io/swamp7/lolminer:latest
@@ -72,6 +68,7 @@ spec:
             - "--pass=x"
             - "--tls=1"
             - "--devices=1"
+            - "--pl=250"
             - "--apiport=4068"
           env:
             - name: LD_LIBRARY_PATH

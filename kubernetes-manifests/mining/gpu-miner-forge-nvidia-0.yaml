@@ -39,19 +39,20 @@ spec:
         image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         args:
-        - "--algo=CR29"
-        - "--pool=xtm-c29-us.kryptex.network:8040"
-        - "--user=krxXVNVMM7.forge-n0"
-        - "--pass=x"
-        - "--tls=1"
-        - "--pool=xtm-c29-eu.kryptex.network:8040"
-        - "--user=krxXVNVMM7.forge-n0"
-        - "--pass=x"
-        - "--tls=1"
-        - "--devices=0"
-        - "--cclk=2200"
-        - "--moff=1000"
-        - "--apiport=4068"
+          - "--algo=CR29"
+          - "--pool=xtm-c29-us.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-n0"
+          - "--pass=x"
+          - "--tls=1"
+          - "--pool=xtm-c29-eu.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-n0"
+          - "--pass=x"
+          - "--tls=1"
+          - "--devices=0"
+          - "--cclk=2350"
+          - "--moff=1100"
+          - "--pl=90"
+          - "--apiport=4068"
         env:
         - name: LD_LIBRARY_PATH
           value: "/run/opengl-driver/lib:/nix/store"

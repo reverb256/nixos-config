@@ -1,5 +1,6 @@
 # GPU Miner Deployment for Nexus (RTX 3060 Ti)
-# Using Volcano scheduler (migrated from YuniKorn)
+# - Power limit 120W (efficient for 3060 Ti compute)
+# - Clock limits: core 1605 MHz, mem offset +1500
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -7,46 +8,36 @@ metadata:
   name: gpu-miner-nexus
   namespace: mining
   labels:
-    app: gpu-miner
+    app: gpu-miner-nexus
     host: nexus
+    workload: crypto-mining
 spec:
   replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: gpu-miner
+      app: gpu-miner-nexus
       host: nexus
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   template:
     metadata:
       labels:
-        app: gpu-miner
+        app: gpu-miner-nexus
         host: nexus
+        workload: crypto-mining
     spec:
-      schedulerName: default-scheduler  # FIXED: volcano not installed (2026-03-23)
       nodeName: nexus
       serviceAccountName: gpu-miner-sa
+      automountServiceAccountToken: false
       hostNetwork: true
       priorityClassName: mining-low
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            preference:
-              matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                - nexus
       tolerations:
-      - key: "scheduler.yunikorn.io/preemptible"
-        operator: "Exists"
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
       containers:
-      - name: lolminer-nvidia
+      - name: lolminer
         image: docker.io/swamp7/lolminer:latest
         imagePullPolicy: IfNotPresent
         args:
@@ -62,7 +53,7 @@ spec:
           - "--devices=0"
           - "--cclk=1605"
           - "--moff=1500"
-          - "--apiport=4068"
+          - "--pl=120"
           - "--apiport=4068"
         env:
         - name: LD_LIBRARY_PATH
