@@ -92,10 +92,10 @@ spec:
             name: xmrig-proxy-config
         - name: secrets
           secret:
-            secretName: xmrig-proxy-secrets
+            secretName: xmrig-proxy-secret
             items:
               - key: api-token
                 path: api-token
-              - key: pool-password
+              - key: kryptex-password
                 path: pool-password
 # Service definition moved to xmrig-proxy-service.yaml with proper ClusterIP

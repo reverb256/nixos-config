@@ -9,7 +9,6 @@ let
   cfg = config.services.mining;
   hostname = config.networking.hostName;
   defaultWallet = "krxXVNVMM7.${hostname}";
-
   # Helper for lolMiner security hardening
   lolminerHardening = {
     NoNewPrivileges = true;
@@ -28,7 +27,6 @@ let
     CapabilityBoundingSet = "CAP_SYS_NICE";
     AmbientCapabilities = "CAP_SYS_NICE";
   };
-
   # NVIDIA GPU power limit script
   nvidiaGpuPowerLimitScript = pkgs.writeShellScript "nvidia-gpu-power-limit" ''
     PATH=/run/current-system/sw/bin:$PATH
@@ -85,18 +83,15 @@ let
     }
     echo "NVIDIA GPU power limits configured successfully"
   '';
-
   # AMD GPU power limit script
   amdGpuPowerLimitScript = pkgs.writeShellScript "amd-gpu-power-limit" ''
     PATH=/run/current-system/sw/bin:$PATH
     echo "Setting AMD GPU power limits..."
-
     # Check if rocm-smi is available
     if ! command -v rocm-smi &>/dev/null; then
       echo "Warning: rocm-smi not found, skipping AMD GPU power limits"
       exit 0
     fi
-
     ${
       if cfg.lolminer.amd.powerLimit != null then
         ''
@@ -119,16 +114,13 @@ let
     }
     echo "AMD GPU power limits configured successfully"
   '';
-
   # XMRig wrapper script - reads API token and passes to xmrig
   xmrigWrapperScript = pkgs.writeShellScript "xmrig-wrapper" ''
     PATH=/run/current-system/sw/bin:$PATH
     TOKEN_FILE="${cfg.xmrig.httpTokenFile}"
     RUNTIME_CONFIG="/run/xmrig/config.json"
-
     # Use runtime config with token if available, otherwise fallback to default config
     CONFIG="''${RUNTIME_CONFIG:-/etc/xmrig/config.json}"
-
     if [ -r "$CONFIG" ]; then
       exec ${pkgs.xmrig}/bin/xmrig -c "$CONFIG" --randomx-1gb-pages --threads=${toString cfg.xmrig.threads}
     else
@@ -144,10 +136,8 @@ in
       default = "mining";
       description = "User to run mining services as";
     };
-
     lolminer = {
       enable = mkEnableOption "lolMiner Service";
-
       # Multi-pool failover configuration
       pools = mkOption {
         type = types.listOf (
@@ -177,7 +167,6 @@ in
         default = [ ];
         description = "List of pools for failover (priority order). If empty, uses single pool config.";
       };
-
       # Single pool configuration (backward compatibility, used if pools list is empty)
       algorithm = mkOption {
         type = types.str;
@@ -234,7 +223,6 @@ in
           default = 4068;
         };
       };
-
       amd = {
         enable = mkEnableOption "AMD GPU Mining";
         autostart = mkOption {
@@ -257,7 +245,6 @@ in
         };
       };
     };
-
     xmrig = {
       enable = mkEnableOption "XMRig Service";
       autostart = mkOption {
@@ -293,11 +280,10 @@ in
       };
     };
   };
-
   config = mkIf cfg.enable {
-    # ============================================================================
+
     # ASSERTIONS
-    # ============================================================================
+
     assertions = [
       {
         assertion =
@@ -305,14 +291,11 @@ in
           -> (cfg.lolminer.nvidia.devices != "" && cfg.lolminer.nvidia.devices != "0");
         message = ''
           NVIDIA mining is enabled but no GPU devices are configured.
-
           Current configuration:
             services.mining.lolminer.nvidia.devices = "${cfg.lolminer.nvidia.devices}"
-
           Configure GPU devices:
             services.mining.lolminer.nvidia.devices = "0";    # 1 GPU (GPU 0)
             services.mining.lolminer.nvidia.devices = "0,1";  # 2 GPUs (GPU 0 and 1)
-
           Or disable NVIDIA mining:
             services.mining.lolminer.nvidia.enable = false;
         '';
@@ -321,13 +304,10 @@ in
         assertion = cfg.lolminer.amd.enable -> (cfg.lolminer.amd.devices != "");
         message = ''
           AMD mining is enabled but no GPU devices are configured.
-
           Current configuration:
             services.mining.lolminer.amd.devices = "${cfg.lolminer.amd.devices}"
-
           Configure GPU devices:
             services.mining.lolminer.amd.devices = "1";    # 1 GPU (GPU 1)
-
           Or disable AMD mining:
             services.mining.lolminer.amd.enable = false;
         '';
@@ -336,10 +316,8 @@ in
         assertion = cfg.xmrig.enable -> (cfg.xmrig.pool != "");
         message = ''
           XMRig is enabled but no mining pool is configured.
-
           Configure a mining pool:
             services.mining.xmrig.pool = "pool.example.com:port";
-
           Or disable XMRig:
             services.mining.xmrig.enable = false;
         '';
@@ -348,10 +326,8 @@ in
         assertion = cfg.xmrig.enable -> (cfg.xmrig.wallet != "");
         message = ''
           XMRig is enabled but no wallet address is configured.
-
           Configure a wallet address:
             services.mining.xmrig.wallet = "your-wallet-address";
-
           Or disable XMRig:
             services.mining.xmrig.enable = false;
         '';
@@ -360,7 +336,6 @@ in
         assertion = cfg.xmrig.threads > 0;
         message = ''
           Invalid XMRig thread count: ${toString cfg.xmrig.threads}
-
           Thread count must be greater than 0.
           Recommended: Set to number of CPU cores or use autodetection.
         '';
@@ -375,10 +350,8 @@ in
           );
         message = ''
           NVIDIA GPU power limit is too low for combined mining.
-
           Current configuration:
             lolminer.nvidia.powerLimit = ${toString cfg.lolminer.nvidia.powerLimit}
-
           When running both lolminer and xmrig on NVIDIA GPUs, power limit should be at least 50W to avoid performance issues.
           Recommended: 80-120W for RTX 3060 Ti, 90-130W for RTX 3090
         '';
@@ -394,7 +367,6 @@ in
       ]; # For AMD GPU access via /dev/dri/
     };
     users.groups.mining = { };
-
     # 2MB huge pages for general use and GPU miners
     # Load MSR module for CPU mining performance (required by xmrig for CPU MSR access)
     # 1GB huge pages for RandomX mining (must be set at boot, RandomX dataset is ~2GB)
@@ -403,26 +375,30 @@ in
         "vm.nr_hugepages" = 1280;
       };
       kernelModules = [ "msr" ];
-      kernelParams = mkIf cfg.xmrig.enable [
+      kernelParams = [
         "hugepagesz=1G"
         "hugepages=3"
+        "msr.allow_writes=on"
       ];
     };
-
     # Set permissions on MSR devices for mining user
     # Allows xmrig to access CPU MSRs for performance optimization
     services.udev.extraRules = ''
-      KERNEL=="msr", MODE="0660", GROUP="mining"
+      KERNEL=="msr", MODE="0666"
     '';
-
     environment.systemPackages = [ pkgs.lolminer ];
-
+    # Mount 1GB hugetlbfs for RandomX dataset (xmrig --randomx-1gb-pages)
+    fileSystems."/dev/hugepages-1gb" = {
+      device = "none";
+      fsType = "hugetlbfs";
+      options = [ "pagesize=1G" ];
+    };
     systemd.tmpfiles.rules = [
+      "L+ /dev/cpu/msr - - - - /dev/cpu/0/msr"
       "d /var/lib/mining 0750 ${cfg.user} mining - -"
       "d /var/log/mining 0750 ${cfg.user} mining - -"
       "d /run/xmrig 0750 ${cfg.user} mining - -"
     ];
-
     environment.etc."xmrig/config.json" = mkIf cfg.xmrig.enable {
       text = builtins.toJSON {
         api = {
@@ -487,7 +463,6 @@ in
         };
       };
     };
-
     systemd = {
       targets.mining = {
         description = "All mining services";
@@ -498,7 +473,6 @@ in
           ++ [ "network-online.target" ]; # Fix ordering warning
         after = [ "network-online.target" ];
       };
-
       services = {
         # NVIDIA GPU power limit service (runs at boot, independent of lolminer)
         # This ensures power limits persist even when mining runs via Kubernetes
@@ -518,7 +492,6 @@ in
                 RemainAfterExit = true;
               };
             };
-
         # AMD GPU power limit service (runs before lolminer)
         amd-gpu-power-limit = mkIf cfg.lolminer.amd.enable {
           description = "Set AMD GPU Power Limit for Mining";
@@ -531,7 +504,6 @@ in
             RemainAfterExit = true;
           };
         };
-
         lolminer-nvidia = mkIf cfg.lolminer.nvidia.enable {
           description = "lolMiner NVIDIA Mining Service";
           wantedBy = mkIf cfg.lolminer.nvidia.autostart [ "multi-user.target" ];
@@ -544,7 +516,6 @@ in
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-
             # Build pool arguments for failover support
             # If pools list is provided, use multi-pool mode; otherwise use single pool config
             ExecStart =
@@ -558,7 +529,6 @@ in
                     --pass ${p.password} \
                     --tls ${if p.tls then "on" else "off"} \
                   '') pools;
-
                 # Use pools list if provided, otherwise add GPU proxy + Kryptex fallback pools
                 poolsToUse =
                   if cfg.lolminer.pools != [ ] then
@@ -607,7 +577,6 @@ in
           }
           // lolminerHardening;
         };
-
         lolminer-amd = mkIf cfg.lolminer.amd.enable {
           description = "lolMiner AMD Mining Service";
           wantedBy = mkIf cfg.lolminer.amd.autostart [ "multi-user.target" ];
@@ -620,7 +589,6 @@ in
             User = cfg.user;
             Group = "mining";
             Slice = "mining.slice";
-
             # Build pool arguments for failover support (same as NVIDIA)
             ExecStart =
               let
@@ -632,7 +600,6 @@ in
                     --pass ${p.password} \
                     --tls ${if p.tls then "on" else "off"} \
                   '') pools;
-
                 poolsToUse =
                   if cfg.lolminer.pools != [ ] then
                     cfg.lolminer.pools
@@ -678,7 +645,6 @@ in
           }
           // lolminerHardening;
         };
-
         xmrig = mkIf cfg.xmrig.enable {
           description = "XMRig CPU Mining Service";
           wantedBy = mkIf cfg.xmrig.autostart [ "multi-user.target" ];
@@ -691,9 +657,7 @@ in
             ExecStartPre = pkgs.writeShellScript "xmrig-config-prep-v5" ''
               TOKEN_FILE="${cfg.xmrig.httpTokenFile}"
               CONFIG_DIR=/run/xmrig
-
               mkdir -p "$CONFIG_DIR"
-
               if [ -r "$TOKEN_FILE" ]; then
                 TOKEN=$(cat "$TOKEN_FILE")
                 # Inject token into config - double quotes allow shell expansion
@@ -702,7 +666,6 @@ in
                 # Fallback without token
                 cp /etc/xmrig/config.json "$CONFIG_DIR/config.json"
               fi
-
               # Ensure config is writable so ExecStartPre can update it on next restart
               chmod 640 "$CONFIG_DIR/config.json"
             '';
@@ -738,7 +701,6 @@ in
         };
       };
     };
-
     networking.firewall.interfaces.lo.allowedTCPPorts = [
       cfg.lolminer.nvidia.apiPort
       cfg.lolminer.amd.apiPort
