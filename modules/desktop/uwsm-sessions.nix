@@ -61,46 +61,61 @@ in
     services.displayManager.defaultSession = lib.mkForce "plasma";
 
     # ── PER-VT AUTO-LOGIN ─────────────────────────────────────────────
-    systemd.services = lib.listToAttrs (
-      map (s: {
-        name = "getty@${s.tty}";
-        value = {
-          # Don't use asDropin — dropins merge with the base unit, keeping
-          # the original ExecStart alongside ours (systemd rejects multiple
-          # ExecStart= for non-oneshot types). A full replacement overrides it.
-          serviceConfig = {
-            ExecStart = "${pkgs.util-linux}/bin/agetty --autologin ${user} --noclear ${s.tty} linux";
-            Restart = "no";
-            Type = "idle";
-          };
-        };
-      }) sessions
-    );
+    # Use NixOS's built-in getty autologin for all VTs. The per-compositor
+    # selection is handled by the bash-profile.d hook below.
+    services.getty = {
+      autologinUser = user;
+      autologinOnce = false;
+      extraArgs = [ "--noclear" ];
+    };
 
     # ── UWSM AUTO-START PER VT ────────────────────────────────────────
-    environment.etc."bash-profile.d/uwsm-sessions".text =
+    # Primary session (tty1 Plasma) uses UWSM for proper systemd integration.
+    # Secondary compositors run directly without --session to avoid messing
+    # up the global systemd user environment (graphical-session.target
+    # is already owned by the primary Plasma session).
+    #
+    # Uses programs.fish.loginShellInit because the user's default shell
+    # is fish, which doesn't source /etc/profile or /etc/profile.local.
+    programs.fish.loginShellInit =
       lib.concatStringsSep "\n" (
         map (s: ''
-          if [[ $(tty) == "/dev/${s.tty}" ]]; then
-            export UWSM_DESKTOP_NAME="${s.name}"
-            exec uwsm start ${s.desktop}
-          fi
+          if test (tty) = "/dev/${s.tty}"
+            set -x XDG_RUNTIME_DIR /run/user/(id -u)
+            set -x DBUS_SESSION_BUS_ADDRESS unix:path=$XDG_RUNTIME_DIR/bus
+            ${
+              if s.name == "plasma" then
+                ''
+                  set -x UWSM_DESKTOP_NAME "${s.name}"
+                  exec uwsm start ${s.desktop}
+                ''
+              else if s.name == "niri" then
+                ''
+                  exec niri
+                ''
+              else
+                ''
+                  exec Hyprland
+                ''
+            }
+          end
         '') sessions
       )
       + ''
 
         # If somehow we land here without a matching TTY, start Plasma as default
-        if ! uwsm check is-active 2>/dev/null; then
+        if not uwsm check is-active 2>/dev/null
+          set -x XDG_RUNTIME_DIR /run/user/(id -u)
+          set -x DBUS_SESSION_BUS_ADDRESS unix:path=$XDG_RUNTIME_DIR/bus
           exec uwsm start default
-        fi
+        end
       '';
 
     # ── VT SWITCH ALIASES ─────────────────────────────────────────────
-    environment.etc."bashrc.d/uwsm-aliases".text = ''
-      # VT switch aliases
-      alias plasma='chvt 1'
-      alias niri='chvt 2'
-      alias hyprland='chvt 3'
-    '';
+    programs.fish.shellAliases = {
+      plasma = "chvt 1";
+      niri = "chvt 2";
+      hyprland = "chvt 3";
+    };
   };
 }
