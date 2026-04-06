@@ -1,6 +1,7 @@
 # Nexus Monitoring Configuration
 # Storage/GPU node
-{...}: {
+{ ... }:
+{
   imports = [
     ../../modules/services/monitoring/default.nix
   ];
@@ -29,6 +30,16 @@
     monitoring.promtail = {
       enable = true;
       lokiUrl = "http://10.1.1.140:3100/loki/api/v1/push";
+    };
+
+    # XMRig CPU miner metrics -> node-exporter textfile collector
+    xmrig-metrics = {
+      enable = true;
+      targets = [
+        "127.0.0.1:8082"
+        "127.0.0.1:8083"
+      ];
+      interval = 30;
     };
   };
 }
