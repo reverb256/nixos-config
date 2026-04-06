@@ -1,21 +1,18 @@
 # Calico Network Policies - Enforced
 #
-# These policies enforce network traffic blocking.
+# Zero-trust network security for the cluster.
 # All traffic that doesn't match Allow rules is denied.
 #
-# Purpose: Enforce zero-trust network security for the cluster.
-#
 # CIDR Ranges:
-# - 10.1.1.0/24: Physical cluster network
-# - 10.244.0.0/16: Kubernetes pod network (Calico IP pool)
-# - 10.0.0.0/24: Kubernetes service network
-# - 100.64.0.0/10: Tailscale VPN network
+# - 10.1.1.0/24:   Physical cluster network
+# - 10.244.0.0/16:  Kubernetes pod network (Calico IP pool)
+# - 10.0.0.0/12:    Kubernetes service network
+# - 100.64.0.0/10:  Tailscale VPN network
 #
 # NodePorts:
 # - 30080: Caddy Ingress HTTP
 # - 30443: Caddy Ingress HTTPS
-# - 6443: Kubernetes API Server
-
+# - 6443:  Kubernetes API Server
 ---
 apiVersion: crd.projectcalico.org/v1
 kind: GlobalNetworkPolicy
@@ -27,72 +24,73 @@ metadata:
       Blocks all traffic not explicitly allowed.
       Allows cluster-internal traffic and NodePorts.
 spec:
-  # Apply to all namespaces
   namespaceSelector: all()
-
-  # Order: Higher number = lower priority (applied last)
-  # This is a fallback policy, so low priority
   order: 1000
-
-  # Apply to forwarded traffic (not just pod traffic)
   applyOnForward: true
-
-  # Apply before DNAT (affects NodePorts correctly)
   preDNAT: true
-
-  # Types: Ingress (incoming) and Egress (outgoing)
   types:
   - Ingress
   - Egress
 
-  # Ingress rules: Allow cluster-internal traffic
   ingress:
-  # Allow traffic from cluster network (10.1.1.0/24)
+  # Allow traffic from cluster network
   - action: Allow
     source:
       nets:
       - 10.1.1.0/24
 
-  # Allow traffic from pod network (10.244.0.0/16)
+  # Allow traffic from pod network
   - action: Allow
     source:
       nets:
       - 10.244.0.0/16
 
-  # Allow traffic from service network (10.0.0.0/24)
+  # Allow traffic from service network
   - action: Allow
     source:
       nets:
-      - 10.0.0.0/24
+      - 10.0.0.0/12
 
-  # Allow traffic from Tailscale VPN (100.64.0.0/10)
+  # Allow traffic from Tailscale VPN
   - action: Allow
     source:
       nets:
       - 100.64.0.0/10
 
-  # Allow NodePort traffic (Caddy Ingress HTTP)
+  # Allow NodePort traffic (Caddy Ingress)
   - action: Allow
     destination:
       ports:
       - 30080
     protocol: TCP
 
-  # Allow NodePort traffic (Caddy Ingress HTTPS)
+  # Allow hostPort traffic (Caddy direct binding)
+  - action: Allow
+    destination:
+      ports:
+      - 80
+    protocol: TCP
+
   - action: Allow
     destination:
       ports:
       - 30443
     protocol: TCP
 
-  # Allow NodePort traffic (Kubernetes API Server)
+  - action: Allow
+    destination:
+      ports:
+      - 443
+    protocol: TCP
+
+  # Allow Kubernetes API Server
   - action: Allow
     destination:
       ports:
       - 6443
     protocol: TCP
 
-  # Allow DNS (UDP/TCP 53) - Critical for cluster operation
+  # Allow DNS (critical for cluster operation)
   - action: Allow
     destination:
       ports:
@@ -105,61 +103,70 @@ spec:
       - 53
     protocol: TCP
 
-  # DENY everything else (ENFORCEMENT MODE)
-  # Traffic that doesn't match any Allow rule above will be dropped
+  # DENY everything else
   - action: Deny
     source:
       nets:
       - 0.0.0.0/0
 
-  # Egress rules: Allow cluster-internal traffic
   egress:
-  # Allow traffic to cluster network (10.1.1.0/24)
+  # Allow traffic to cluster network
   - action: Allow
     destination:
       nets:
       - 10.1.1.0/24
 
-  # Allow traffic to pod network (10.244.0.0/16)
+  # Allow traffic to pod network
   - action: Allow
     destination:
       nets:
       - 10.244.0.0/16
 
-  # Allow traffic to service network (10.0.0.0/24)
+  # Allow traffic to service network
   - action: Allow
     destination:
       nets:
-      - 10.0.0.0/24
+      - 10.0.0.0/12
 
-  # Allow traffic to Tailscale VPN (100.64.0.0/10)
+  # Allow traffic to Tailscale VPN
   - action: Allow
     destination:
       nets:
       - 100.64.0.0/10
 
-  # Allow NodePort traffic (Caddy Ingress HTTP)
+  # Allow NodePort traffic (Caddy Ingress)
   - action: Allow
     destination:
       ports:
       - 30080
     protocol: TCP
 
-  # Allow NodePort traffic (Caddy Ingress HTTPS)
+  - action: Allow
+    destination:
+      ports:
+      - 80
+    protocol: TCP
+
   - action: Allow
     destination:
       ports:
       - 30443
     protocol: TCP
 
-  # Allow NodePort traffic (Kubernetes API Server)
+  - action: Allow
+    destination:
+      ports:
+      - 443
+    protocol: TCP
+
+  # Allow Kubernetes API Server
   - action: Allow
     destination:
       ports:
       - 6443
     protocol: TCP
 
-  # Allow DNS (UDP/TCP 53) - Critical for cluster operation
+  # Allow DNS (critical for cluster operation)
   - action: Allow
     destination:
       ports:
@@ -172,8 +179,7 @@ spec:
       - 53
     protocol: TCP
 
-  # DENY everything else (ENFORCEMENT MODE)
-  # Traffic that doesn't match any Allow rule above will be dropped
+  # DENY everything else
   - action: Deny
     destination:
       nets:

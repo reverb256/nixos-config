@@ -1,6 +1,5 @@
 # K3s Cluster Module
 # Replaces: kubernetes.nix (729 lines), kubernetes-ha.nix (270 lines), etcd-cluster.nix (120 lines)
-# Net change: ~1200 lines deleted, ~180 lines new
 #
 # K3s bundles into a single binary:
 #   kube-apiserver, kubelet, kube-scheduler, kube-controller-manager,
@@ -13,9 +12,12 @@
 #   Sentry: server + embedded etcd (joins existing cluster)
 #   Forge:  agent (worker only)
 #
-# CNI: Calico (BGP) - disable k3s default Flannel
-# Ingress: Caddy DaemonSet (unchanged from vanilla K8s)
+# CNI: Flannel (default) or Calico (via calico.enable)
+# Ingress: Caddy DaemonSet (unchanged)
 # HA: Keepalived VIP (unchanged)
+#
+# IMPORTANT: All servers must share identical values for --cluster-cidr,
+# --service-cidr, --disable list, and --disable-network-policy.
 {
   config,
   lib,
@@ -32,10 +34,43 @@ let
     mkMerge
     mkDefault
     ;
+
   inherit (lib) mkOptionDefault;
 
   isServer = cfg.role == "server";
-  useCalico = cfg.calico.enable;
+
+  # Shared CIDR ranges — MUST be identical across all servers
+  clusterCIDR = "10.244.0.0/16";
+  serviceCIDR = "10.0.0.0/12";
+  clusterDNS = "10.43.0.10";
+
+  # TLS SANs — all server IPs and hostnames
+  tlsSans = [
+    "10.1.1.100" # VIP
+    "10.1.1.110" # Zephyr
+    "10.1.1.120" # Nexus
+    "10.1.1.130" # Forge
+    "10.1.1.140" # Sentry
+    "zephyr"
+    "nexus"
+    "forge"
+    "sentry"
+    "kubernetes"
+    "kubernetes.default"
+    "kubernetes.default.svc"
+    "kubernetes.default.svc.cluster.local"
+    "cluster.local"
+    "localhost"
+    "127.0.0.1"
+  ];
+
+  # Components to disable on all servers (identical list required)
+  disabledComponents = [
+    "traefik" # We use Caddy ingress DaemonSet
+    "servicelb" # We use Caddy with hostPort
+    "metrics-server" # We deploy our own
+  ];
+
 in
 {
   options.services.k3s-cluster = {
@@ -89,8 +124,8 @@ in
     calico = {
       enable = mkOption {
         type = types.bool;
-        default = true;
-        description = "Use Calico CNI instead of k3s default Flannel";
+        default = false;
+        description = "Use Calico CNI instead of k3s default Flannel. Adds --flannel-backend=none and --disable-network-policy.";
       };
     };
 
@@ -114,55 +149,41 @@ in
       clusterInit = if isServer then cfg.clusterInit else false;
 
       # Server address for agents and joining servers
+      # Ignored if etcd data exists on disk (k3s always rejoins existing cluster)
       serverAddr = if (!isServer || !cfg.clusterInit) then cfg.serverAddr else "";
 
-      # Token file for cluster join - only set when joining existing cluster
+      # Token file for cluster join — only set when joining existing cluster
       # When clusterInit=true, K3s generates its own token
       tokenFile = if cfg.clusterInit then null else cfg.tokenFile;
 
       # Node IP advertisement
       nodeIP = if cfg.nodeIP != "" then cfg.nodeIP else null;
 
-      # Disable k3s bundled components we don't need (server role only)
-      # NOTE: Keeping flannel enabled initially - will switch to Calico once cluster is stable
-      disable = lib.optionals (isServer) [
-        "traefik" # We use Caddy ingress DaemonSet
-        "servicelb" # We use Caddy with hostPort
-        "metrics-server" # We deploy our own
-        # "flannel" # Disabled - keeping enabled to bootstrap cluster
-      ];
+      # Disable k3s bundled components (server role only)
+      # When calico.enable = true, also disable flannel and k3s network-policy
+      # (Calico provides its own network policy engine)
+      disable =
+        lib.optionals isServer disabledComponents
+        ++ lib.optionals (isServer && cfg.calico.enable) [
+          "flannel"
+          "network-policy"
+        ];
 
-      # Extra flags - server role only
-      # NOTE: Keeping flannel enabled initially to bootstrap cluster
-      # Calico can be deployed once nodes are Ready
+      # Extra flags — server role only
       extraFlags =
-        lib.optionals isServer [
-          "--cluster-cidr=10.244.0.0/16"
-          "--service-cidr=10.0.0.0/12"
-          "--write-kubeconfig-mode=644"
-          # NOTE: Removed --endpoint-reconciler-type=none to allow proper kubernetes endpoints
-          # reconciliation for HA API server access
-          "--tls-san=10.1.1.100"
-          "--tls-san=10.1.1.110"
-          "--tls-san=10.1.1.120"
-          "--tls-san=10.1.1.140"
-          "--tls-san=zephyr"
-          "--tls-san=nexus"
-          "--tls-san=sentry"
-          "--tls-san=kubernetes"
-          "--tls-san=kubernetes.default"
-          "--tls-san=kubernetes.default.svc"
-          "--tls-san=kubernetes.default.svc.cluster.local"
-          "--tls-san=cluster.local"
-          "--tls-san=localhost"
-          "--tls-san=127.0.0.1"
-        ]
-        # Node labels for GPU scheduling (use --node-label singular)
+        lib.optionals isServer (
+          [
+            "--cluster-cidr=${clusterCIDR}"
+            "--service-cidr=${serviceCIDR}"
+            "--cluster-dns=${clusterDNS}"
+            "--write-kubeconfig-mode=644"
+          ]
+          ++ map (san: "--tls-san=${san}") tlsSans
+          ++ lib.optional cfg.calico.enable "--flannel-backend=none"
+        )
+        # Node labels for GPU scheduling
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
-        ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd"
-      # Graceful shutdown - removed as it causes K3s 1.34 to fail
-      # ++ [ "--kubelet-arg=--graceful-node-shutdown=true" ]
-      ;
+        ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd";
 
       # NVIDIA containerd runtime configuration
       containerdConfigTemplate = mkIf cfg.nvidia.enable ''
@@ -191,7 +212,7 @@ in
             2379 # Embedded etcd client
             2380 # Embedded etcd peer
           ]
-          ++ lib.optionals useCalico [
+          ++ lib.optionals cfg.calico.enable [
             179 # Calico BGP
             5473 # Calico Typha
           ]
@@ -202,10 +223,14 @@ in
             to = 32767;
           } # NodePort range
         ];
-        allowedUDPPorts = mkOptionDefault [
-          8472
-          4789
-        ]; # VXLAN / Calico
+        allowedUDPPorts = mkOptionDefault (
+          lib.optionals (!cfg.calico.enable) [
+            8472
+          ]
+          ++ [
+            4789
+          ]
+        ); # Flannel VXLAN or Calico VXLAN
       }
     ];
 
@@ -242,10 +267,6 @@ in
     systemd.tmpfiles.rules = [
       "d /root/.kube 0700 root root -"
       "L /root/.kube/config - - - - /etc/rancher/k3s/k3s.yaml"
-      # CNI config symlink - K3s writes to /var/lib/rancher/k3s/agent/etc/cni/net.d/
-      # but kubelet expects it in /etc/cni/net.d/
-      "d /etc/cni/net.d 0755 root root -"
-      "L+ /etc/cni/net.d/10-flannel.conflist - - - - /var/lib/rancher/k3s/agent/etc/cni/net.d/10-flannel.conflist"
     ];
 
     # Ensure k3s containerd state directories exist

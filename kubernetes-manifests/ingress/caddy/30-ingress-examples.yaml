@@ -1,0 +1,71 @@
+# Example Ingress resources for Caddy Ingress Controller
+#
+# The Caddy controller watches Ingress resources with
+#   annotation: kubernetes.io/ingress.class: caddy
+#
+# Routes are automatically generated from Ingress specs.
+# TLS certificates are obtained automatically via ACME
+# (email configured in caddy-ingress-controller-configmap).
+#
+# For internal-only services, use tls.internal cluster CA
+# via the caddy-ca module on the NixOS host.
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openwebui
+  namespace: ai-inference
+  annotations:
+    kubernetes.io/ingress.class: caddy
+spec:
+  rules:
+  - host: openwebui.cluster.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: open-webui
+            port:
+              number: 8080
+  - host: openwebui.lan
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: open-webui
+            port:
+              number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: searxng
+  namespace: search
+  annotations:
+    kubernetes.io/ingress.class: caddy
+spec:
+  rules:
+  - host: search.cluster.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: searxng
+            port:
+              number: 8080
+  - host: search.lan
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: searxng
+            port:
+              number: 8080
