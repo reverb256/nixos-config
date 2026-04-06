@@ -67,14 +67,9 @@ in
         value = {
           overrideStrategy = "asDropin";
           serviceConfig = {
-            ExecStart = lib.mkForce [
-              "/run/current-system/sw/bin/agetty"
-              "--autologin"
-              user
-              "--noclear"
-              s.tty
-              "linux"
-            ];
+            ExecStart = lib.mkForce (
+              "/run/current-system/sw/bin/agetty" + " --autologin ${user}" + " --noclear ${s.tty} linux"
+            );
             Restart = "no";
             Type = "idle";
           };
