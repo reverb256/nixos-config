@@ -36,6 +36,7 @@
     ./system/agenix-secrets-registry.nix
     ./system/cluster-storage.nix
     ./system/security-hardening.nix
+    ./system/cluster-firewall.nix
     ./system/btrfs-compression.nix
     ./system/btrfs-tuning.nix
     # Modular workload monitoring (replaced old compute-workload-monitor monolith)
@@ -65,6 +66,7 @@
     # Desktop environment
     ./desktop/desktop.nix
     ./desktop/wayland-common.nix
+    ./desktop/wayland-compositor-common.nix
     ./desktop/flatpak.nix
     ./desktop/plasma6.nix
     ./desktop/hyprland.nix
@@ -172,5 +174,7 @@
     ./services/claude-code-router.nix
     # Supply chain security (7-day cooldown on npm/bun/uv packages)
     ./services/supply-chain-cooldowns.nix
+    # Container image security scanning
+    ./services/container-scanning.nix
   ];
 }
