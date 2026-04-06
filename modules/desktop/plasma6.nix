@@ -232,10 +232,6 @@ in
       QT_AUTO_SCREEN_SCALE_FACTOR = "1";
       # NOTE: QT_USE_RHI_GLES2 removed - can cause rendering issues with some Qt apps
       QT_QPA_GL_VERSION = "2";
-      # FIX: KWin failing to open DRM devices at boot - specify exact devices
-      # System has card1 (RTX 3060 Ti) and card2 (RTX 3090), card0 was removed
-      KWIN_DRM_DEVICES = "/dev/dri/card1:/dev/dri/card2";
-      KWIN_DRM_PRIMARY = "1";
     };
     systemPackages = with pkgs.kdePackages; [
       # Core Plasma Desktop
