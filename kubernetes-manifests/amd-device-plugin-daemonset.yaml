@@ -17,7 +17,7 @@ spec:
       hostPID: true
       containers:
       - name: amd-gpu-device-plugin-ctr
-        image: rocm/k8s-device-plugin:latest
+        image: rocm/k8s-device-plugin@sha256:339c6608f29122e08d48d2db61572ed9918abd1124d76de93703a14b5d5fd676
         imagePullPolicy: IfNotPresent
         env:
         - name: AMDGPU_VISIBLE_DEVICES
@@ -53,7 +53,7 @@ spec:
           name: dri
       dnsPolicy: ClusterFirst
       nodeSelector:
-        gpu: amd
+        kubernetes.io/hostname: forge
       priorityClassName: system-node-critical
       restartPolicy: Always
       schedulerName: default-scheduler
