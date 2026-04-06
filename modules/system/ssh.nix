@@ -1,6 +1,7 @@
 # Common SSH Configuration
 # Uses network-constants.nix for host IPs
-{pkgs, ...}: let
+{ pkgs, ... }:
+let
   # Hardcoded cluster IPs to prevent infinite recursion
   hosts = {
     zephyr = {
@@ -23,7 +24,8 @@
 
   # j_kro's SSH public key for round-trip cluster access
   j_kroPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEvekxGk1YR/eF8llVmNk3C59BtgB+9DNvxLy2WjPEyb j_kro@zephyr";
-in {
+in
+{
   services.openssh = {
     enable = true;
     settings = {
@@ -61,8 +63,14 @@ in {
       # Security and Performance Settings
       UseDns = false;
       LogLevel = "VERBOSE";
-      AllowUsers = ["j_kro" "nixbuild"];
-      AllowGroups = ["wheel" "nixbuild"];
+      AllowUsers = [
+        "j_kro"
+        "nixbuild"
+      ];
+      AllowGroups = [
+        "wheel"
+        "nixbuild"
+      ];
       ClientAliveInterval = 300;
       ClientAliveCountMax = 0;
       MaxAuthTries = 3;
@@ -81,25 +89,41 @@ in {
   # Uses network constants instead of hardcoded IPs
   programs.ssh.knownHosts = {
     zephyr = {
-      hostNames = ["zephyr" hosts.zephyr.ip hosts.zephyr.tailscale];
+      hostNames = [
+        "zephyr"
+        hosts.zephyr.ip
+        hosts.zephyr.tailscale
+      ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA0/pTXa/H7mvy3+YPJq9U2mFKO4+YrLSOYd8sPU44+q";
     };
     nexus = {
-      hostNames = ["nexus" hosts.nexus.ip hosts.nexus.tailscale];
+      hostNames = [
+        "nexus"
+        hosts.nexus.ip
+        hosts.nexus.tailscale
+      ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEldBvJIZYJKHw8pt0/Bx3xhJK4rSrhno0NyHgTtWAaV";
     };
     forge = {
-      hostNames = ["forge" hosts.forge.ip hosts.forge.tailscale];
+      hostNames = [
+        "forge"
+        hosts.forge.ip
+        hosts.forge.tailscale
+      ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINhHtW56M3KuMH/qCwamdGKQe22NuemFQaYV7LhJXdUz";
     };
     sentry = {
-      hostNames = ["sentry" hosts.sentry.ip hosts.sentry.tailscale];
+      hostNames = [
+        "sentry"
+        hosts.sentry.ip
+        hosts.sentry.tailscale
+      ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK7IznKNG8BJVrPv1dnJBrbFhcmzTKaYSAzVdrXV7Fn";
     };
   };
 
   # Round-trip SSH: Add j_kro's public key to authorized_keys on all nodes
-  users.users.j_kro.openssh.authorizedKeys.keys = [j_kroPublicKey];
+  users.users.j_kro.openssh.authorizedKeys.keys = [ j_kroPublicKey ];
 
   # SSH client configuration for cluster access
   # Uses network constants for IPs
@@ -167,4 +191,21 @@ in {
   systemd.tmpfiles.rules = [
     "d /home/j_kro/.ssh/sockets 0700 j_kro users -"
   ];
+
+  # ============================================================================
+  # SSH Firewall — Restrict to cluster subnet + Tailscale only
+  # ============================================================================
+  # SSH must NOT listen on 0.0.0.0 (internet-facing). Only allow from:
+  #   1. Tailscale VPN interface (100.x.x.x)
+  #   2. Cluster LAN subnet (10.1.1.0/24)
+  #
+  # IMPORTANT: Do NOT add 22 to allowedTCPPorts — it must be interface-scoped
+  networking.firewall.interfaces = {
+    tailscale0.allowedTCPPorts = [ 22 ];
+  };
+  # Allow SSH from cluster subnet (nftables syntax)
+  networking.firewall.extraInputRules = ''
+    ip saddr 10.1.1.0/24 tcp dport 22 accept
+    iifname "lo" tcp dport 22 accept
+  '';
 }

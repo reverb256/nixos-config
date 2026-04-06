@@ -17,8 +17,7 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
-    # Kubernetes module (for control plane)
-    ../../modules/services/kubernetes.nix
+    # Kubernetes control plane
     ../../modules/services/k3s-cluster.nix
     # Keepalived VIP for Kubernetes HA
     ../../modules/services/keepalived-vip.nix
@@ -119,13 +118,14 @@
         9759 # WiVRn
         27031 # Steam UDP
         27036 # Steam UDP
-        5353 # mDNS
         9947 # WiVRn
         53317 # LocalSend (multicast discovery)
         8472 # VXLAN (Flannel/Calico)
         4789 # VXLAN (Calico)
       ];
       interfaces = {
+        # mDNS restricted to LAN interface only (not 0.0.0.0)
+        "enp38s0".allowedUDPPorts = [5353 111 2049 20048];
         "tailscale0".allowedTCPPorts = [
           18789
           18790
@@ -136,11 +136,6 @@
           2049
           20048
         ]; # rpcbind, nfs, mountd
-        "enp38s0".allowedUDPPorts = [
-          111
-          2049
-          20048
-        ];
       };
     };
   };
@@ -218,7 +213,7 @@
   # SERVICES - All service configurations consolidated here
   # ============================================================================
   services = {
-    # KUBERNETES - k3s control plane (joins nexus/sentry cluster)
+    # KUBERNETES - k3s control plane (joins existing cluster)
     k3s-cluster = {
       enable = true;
       role = "server";
@@ -228,9 +223,6 @@
       nodeIP = "10.1.1.110";
       nvidia.enable = true;
     };
-
-    # Disable old kubernetes-module (replaced by k3s-cluster)
-    kubernetes-module.enable = lib.mkForce false;
 
     # Keepalived VIP for HA API server access
     keepalived-vip = {
