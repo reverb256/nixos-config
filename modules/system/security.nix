@@ -4,7 +4,8 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+{
   # Install security packages
   environment.systemPackages = with pkgs; [
     # Security tools
@@ -216,7 +217,7 @@
         ${pkgs.libnotify}/bin/notify-send "NixOS Updates Available" "Run 'sudo nixos-rebuild switch' to update" -i software-update-available
       fi
     '';
-    wantedBy = ["multi-user.target"];
+    wantedBy = [ "multi-user.target" ];
     # Don't fail if notify-send isn't available (headless systems)
     serviceConfig.Type = "oneshot";
   };
