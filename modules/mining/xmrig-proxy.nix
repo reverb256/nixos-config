@@ -6,9 +6,11 @@
   pkgs,
   lib,
   ...
-}: let
+}:
+let
   cfg = config.services.xmrig-proxy;
-in {
+in
+{
   options.services.xmrig-proxy = {
     enable = lib.mkEnableOption "XMRig Stratum proxy for CPU mining";
 
@@ -74,20 +76,23 @@ in {
       description = "XMRig proxy service user";
     };
 
-    users.groups.${cfg.group} = {};
+    users.groups.${cfg.group} = { };
 
     # Write config file (with token placeholder if using tokenFile)
     environment.etc."xmrig-proxy/config.json".text =
-      if cfg.tokenFile == null
-      then cfg.config
-      else builtins.replaceStrings ["\"token\""] ["TOKEN_FROM_FILE"] cfg.config;
+      if cfg.tokenFile == null then
+        cfg.config
+      else
+        builtins.replaceStrings [ "\"token\"" ] [ "TOKEN_FROM_FILE" ] cfg.config;
 
     # Firewall - open stratum port (listenPort) and API port for Prometheus scraping
+    # SECURITY: Ports restricted to cluster subnet only (not 0.0.0.0)
+    # cluster-firewall.nix handles the subnet restriction for port 3333/3334
     networking.firewall = lib.mkIf cfg.openFirewall {
-      allowedTCPPorts = lib.mkOptionDefault [cfg.apiPort];
-      allowedUDPPorts = [cfg.listenPort];
+      allowedTCPPorts = lib.mkOptionDefault [ cfg.apiPort ];
+      allowedUDPPorts = [ cfg.listenPort ];
       # Also allow API access via Tailscale for Prometheus scraping from sentry
-      interfaces."tailscale0".allowedTCPPorts = [cfg.apiPort];
+      interfaces."tailscale0".allowedTCPPorts = [ cfg.apiPort ];
     };
 
     # Note: API port (cfg.apiPort, default 8081) is opened for Prometheus scraping
@@ -103,8 +108,12 @@ in {
       # Systemd service
       services.xmrig-proxy = {
         description = "XMRig Stratum Proxy for CPU Mining";
-        wantedBy = ["multi-user.target"];
-        after = ["network.target" "agenix-rekey.service" "systemd-tmpfiles-setup.service"];
+        wantedBy = [ "multi-user.target" ];
+        after = [
+          "network.target"
+          "agenix-rekey.service"
+          "systemd-tmpfiles-setup.service"
+        ];
 
         serviceConfig = {
           Type = "simple";
@@ -123,7 +132,10 @@ in {
           PrivateTmp = lib.mkIf (cfg.tokenFile == null) true;
           ProtectSystem = "strict";
           ProtectHome = true;
-          ReadWritePaths = [cfg.dataDir "/run/xmrig-proxy"];
+          ReadWritePaths = [
+            cfg.dataDir
+            "/run/xmrig-proxy"
+          ];
 
           # Runtime directory (ensures /run/xmrig-proxy exists before mount namespace)
           RuntimeDirectory = "xmrig-proxy";
@@ -142,8 +154,8 @@ in {
       services.xmrig-proxy-preStart =
         lib.mkIf (cfg.tokenFile != null) {
           description = "Inject API token into xmrig-proxy config";
-          wantedBy = ["xmrig-proxy.service"];
-          before = ["xmrig-proxy.service"];
+          wantedBy = [ "xmrig-proxy.service" ];
+          before = [ "xmrig-proxy.service" ];
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
@@ -182,9 +194,11 @@ in {
           };
         }
         // lib.optionalAttrs (cfg.tokenFile != null) {
-          serviceConfig.ExecStart = lib.mkForce (pkgs.writeShellScript "xmrig-proxy" ''
-            ${lib.getExe cfg.package} --config /run/xmrig-proxy/config.json --no-color
-          '');
+          serviceConfig.ExecStart = lib.mkForce (
+            pkgs.writeShellScript "xmrig-proxy" ''
+              ${lib.getExe cfg.package} --config /run/xmrig-proxy/config.json --no-color
+            ''
+          );
         };
     };
   };
