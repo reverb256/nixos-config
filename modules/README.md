@@ -363,12 +363,19 @@ users.groups.<service-name> = { };
 
 ### Desktop (`desktop/`)
 
-GUI applications and desktop environment components.
+GUI applications, desktop environment, and Wayland compositor modules.
+Uses UWSM for multi-compositor session management (Plasma tty1, Niri tty2,
+Hyprland tty3).
 
 | Module | Namespace | Description |
 |--------|-----------|-------------|
+| `desktop.nix` | `xdg.portal` | Portal routing per-desktop (KDE→kde, Niri→gnome+gtk) |
 | `plasma6.nix` | `services.desktop.plasma6` | KDE Plasma 6 desktop |
-| `wayland-common.nix` | - | Wayland compositor settings |
+| `niri.nix` | `programs.niri` | Scrollable-tiling Wayland compositor |
+| `hyprland.nix` | `programs.hyprland` | Dynamic tiling Wayland compositor |
+| `uwsm-sessions.nix` | `programs.uwsm` | UWSM Wayland session registrations |
+| `wayland-compositor-common.nix` | - | Shared packages (noctalia-shell, cliphist, wf-recorder) |
+| `wayland-common.nix` | - | Wayland base settings |
 | `flatpak.nix` | `services.flatpak-kde` | Flatpak support |
 | `spotify-spotx.nix` | `services.spotify-spotx` | Spotify ad removal |
 | `spotify-spicetify.nix` | `services.spotify-spicetify` | Spotify theming |
