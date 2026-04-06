@@ -1,25 +1,30 @@
+# Caddy Ingress Controller — Service (NodePort)
+# Maps NodePort 30080→80 (HTTP) and 30443→443 (HTTPS)
+# externalTrafficPolicy: Local preserves client source IP
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: caddy-ingress-staging
-  namespace: caddy-ingress
+  name: caddy-ingress-controller
+  namespace: ingress-system
   labels:
-    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/name: caddy-ingress-controller
     app.kubernetes.io/component: controller
-    app.kubernetes.io/environment: staging
 spec:
-  type: LoadBalancer
+  type: NodePort
   externalTrafficPolicy: Local
+  internalTrafficPolicy: Cluster
   selector:
-    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/name: caddy-ingress-controller
     app.kubernetes.io/component: controller
-    app.kubernetes.io/environment: staging
   ports:
   - name: http
     port: 80
-    targetPort: 80
+    targetPort: http
+    nodePort: 30080
     protocol: TCP
   - name: https
     port: 443
-    targetPort: 443
+    targetPort: https
+    nodePort: 30443
     protocol: TCP

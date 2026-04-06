@@ -1,0 +1,47 @@
+---
+# Calico IPPool - NixOS Configuration
+# IPIP mode enabled, VXLAN disabled
+apiVersion: crd.projectcalico.org/v1
+kind: IPPool
+metadata:
+  name: default-ipv4-ippool
+spec:
+  # NIXOS-SPECIFIC: Use cluster pod CIDR
+  cidr: 10.244.0.0/16
+
+  # NIXOS-SPECIFIC: Enable IPIP mode for pod-to-pod communication
+  ipipMode: Always
+  vxlanMode: Never
+
+  # NAT outgoing traffic for internet access
+  natOutgoing: true
+
+  # Disable encapsulation for same-node traffic
+  # This improves performance for local pod communication
+  disableBGPExport: false
+---
+# BGP Configuration - NixOS Cluster
+# Enables node-to-node mesh for route distribution
+apiVersion: crd.projectcalico.org/v1
+kind: BGPConfiguration
+metadata:
+  name: default
+spec:
+  logSeverityScreen: Info
+  nodeToNodeMeshEnabled: true
+  asNumber: 63400
+---
+# Calico KubeControllers Configuration
+apiVersion: crd.projectcalico.org/v1
+kind: KubeControllersConfiguration
+metadata:
+  name: default
+  namespace: kube-system
+spec:
+  logLevel: Info
+  controllers:
+    node:
+      hostEndpoint:
+        autoHostEndpoints: false
+    policy:
+      syncRateLimit: 1

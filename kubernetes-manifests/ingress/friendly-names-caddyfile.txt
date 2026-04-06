@@ -110,8 +110,8 @@ docker.cluster.local {
 
 # GPU/Compute
 gpu.cluster.local {
-  # Akash provider or similar
-  reverse_proxy akash-provider.akash-services.svc.cluster.local:8443
+  # GPU compute provider
+  reverse_proxy gpu-compute.default.svc.cluster.local:8443
 }
 
 # ================================================================================

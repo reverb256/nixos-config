@@ -1,0 +1,16 @@
+# Caddy Ingress Controller — Prometheus ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: caddy-ingress-controller
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress-controller
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: caddy-ingress-controller
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s

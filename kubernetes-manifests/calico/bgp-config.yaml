@@ -1,43 +1,24 @@
 # Calico BGP Configuration
 # Enables BGP for dynamic pod route advertisement between nodes
 #
-# VERIFICATION (2026-03-24):
-# - BGP routes advertised on Zephyr: 10.244.0.0 via 10.1.1.140 dev tunl0 proto bird
-# - BGP routes advertised on Nexus: 10.244.0.0 via 10.1.1.140 dev tunl0 proto bird
-# - Calico pods running: calico-node (zephyr, nexus), calico-kube-controllers
-# - BGP sessions established via node-to-node mesh (automatic)
+# NOTE: With VXLAN encapsulation, BGP is used for route advertisement
+# but data plane traffic flows through VXLAN tunnels.
 #
-# NOTE: Calico v3.28.0 does NOT support `advertise: true` field in serviceClusterIPs/serviceExternalIPs
-# Empty array [] means "advertise all" (equivalent to 0.0.0.0/0 with advertise: true)
-# ClusterIP CIDR 10.96.0.0/12 matches Kubernetes service CIDR
+# Service CIDR 10.0.0.0/12 matches k3s --service-cidr flag.
 apiVersion: crd.projectcalico.org/v1
 kind: BGPConfiguration
 metadata:
   name: default
 spec:
-  # Log severity level for screen output
   logSeverityScreen: Info
-
-  # Enable full mesh of BGP peerings between all nodes
-  # Each node peers with every other node automatically
   nodeToNodeMeshEnabled: true
-
-  # AS number for BGP (64512 is in the private use range 64512-65534)
-  # Using private AS avoids conflicts with public BGP networks
   asNumber: 64512
 
   # Advertise service ClusterIPs to BGP peers
-  # Enables direct routing to cluster services from external networks
-  # CIDR 10.96.0.0/12 matches Kubernetes service CIDR
+  # Must match k3s --service-cidr
   serviceClusterIPs:
-  - cidr: 10.96.0.0/12
+  - cidr: 10.0.0.0/12
 
-  # Advertise service ExternalIPs to BGP peers
-  # Allows external access to services via BGP-routed IPs
-  # Empty list means all ExternalIPs are advertised
+  # Advertise all ExternalIPs and LoadBalancerIPs
   serviceExternalIPs: []
-
-  # Advertise service LoadBalancer IPs to BGP peers
-  # Required for MetalLB or other LoadBalancer implementations
-  # Empty list means all LoadBalancerIPs are advertised
   serviceLoadBalancerIPs: []

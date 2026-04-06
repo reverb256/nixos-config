@@ -4,9 +4,11 @@
   config,
   lib,
   ...
-}: let
+}:
+let
   cfg = config.services.nfs.server;
-in {
+in
+{
   config = lib.mkIf cfg.enable {
     # Create Hermes storage directory
     systemd.tmpfiles.rules = [
@@ -43,20 +45,11 @@ in {
       };
     };
 
-    # Firewall for NFS - use extraCommands to directly add iptables rules
-    # This is needed because lib.mkOptionDefault doesn't properly merge
-    # when multiple modules set firewall.allowedTCPPorts
-    networking.firewall.extraCommands = ''
-      # NFS server ports - allow from entire cluster network
-      iptables -I nixos-fw -s 10.1.1.0/24 -p tcp --dport 111 -j ACCEPT
-      iptables -I nixos-fw -s 10.1.1.0/24 -p tcp --dport 2049 -j ACCEPT
-      iptables -I nixos-fw -s 10.1.1.0/24 -p tcp --dport 20048 -j ACCEPT
-      iptables -I nixos-fw -s 10.1.1.0/24 -p udp --dport 111 -j ACCEPT
-      iptables -I nixos-fw -s 10.1.1.0/24 -p udp --dport 2049 -j ACCEPT
-      iptables -I nixos-fw -s 10.1.1.0/24 -p udp --dport 20048 -j ACCEPT
+    # Firewall for NFS - allow from cluster network (nftables syntax)
+    # Note: cluster-firewall.nix also covers these ports from cluster LAN
+    networking.firewall.extraInputRules = ''
+      ip saddr 10.1.1.0/24 tcp dport { 111, 2049, 20048 } accept
+      ip saddr 10.1.1.0/24 udp dport { 111, 2049, 20048 } accept
     '';
-
-    # Fixed rpc.mountd port for firewall (this may need adjustment)
-    # Note: rpc.mountd port configuration is handled via --port in newer nfs-utils
   };
 }

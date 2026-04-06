@@ -27,7 +27,8 @@
   lib,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.services.haproxy-kubernetes;
 
   # HAProxy configuration template
@@ -35,7 +36,10 @@ with lib; let
     defaults = {
       log = "global";
       mode = "tcp";
-      option = ["tcplog" "dontlognull"];
+      option = [
+        "tcplog"
+        "dontlognull"
+      ];
       retries = 3;
       timeout = {
         connect = "10s";
@@ -74,14 +78,17 @@ with lib; let
     "frontend kubernetes-api" = {
       bind = "${cfg.vip}:6443";
       mode = "tcp";
-      option = ["tcplog"];
+      option = [ "tcplog" ];
       defaultBackend = "kubernetes-api-backend";
     };
 
     # Kubernetes API backend
     "backend kubernetes-api-backend" = {
       mode = "tcp";
-      option = ["tcp-check" "tcplog"];
+      option = [
+        "tcp-check"
+        "tcplog"
+      ];
       balance = "roundrobin";
       timeout = {
         connect = "5s";
@@ -103,7 +110,8 @@ with lib; let
     };
   };
   # Generate backend servers from master nodes
-in {
+in
+{
   options.services.haproxy-kubernetes = {
     enable = mkEnableOption "HAProxy load balancer for Kubernetes API";
 
@@ -125,18 +133,20 @@ in {
     };
 
     masterNodes = mkOption {
-      type = types.listOf (types.submodule {
-        options = {
-          name = mkOption {
-            type = types.str;
-            description = "Node name";
+      type = types.listOf (
+        types.submodule {
+          options = {
+            name = mkOption {
+              type = types.str;
+              description = "Node name";
+            };
+            ip = mkOption {
+              type = types.str;
+              description = "Node IP address";
+            };
           };
-          ip = mkOption {
-            type = types.str;
-            description = "Node IP address";
-          };
-        };
-      });
+        }
+      );
       default = [
         {
           name = "zephyr";
@@ -172,52 +182,50 @@ in {
       haproxy = {
         enable = true;
 
-        config = let
-          # Convert Nix config to HAProxy format
-          mkSection = name: settings:
-            concatStringsSep "\n" (
-              ["${name}"]
-              ++ (mapAttrsToList (
+        config =
+          let
+            # Convert Nix config to HAProxy format
+            mkSection =
+              name: settings:
+              concatStringsSep "\n" (
+                [ "${name}" ]
+                ++ (mapAttrsToList (
                   k: v:
-                    if isList v
-                    then "    ${concatStringsSep " " v}"
-                    else if isAttrs v
-                    then
-                      concatStringsSep "\n" (
-                        mapAttrsToList (k2: v2: "    ${k2} ${v2}") v
-                      )
-                    else "    ${k} ${v}"
-                )
-                settings)
-            );
+                  if isList v then
+                    "    ${concatStringsSep " " v}"
+                  else if isAttrs v then
+                    concatStringsSep "\n" (mapAttrsToList (k2: v2: "    ${k2} ${v2}") v)
+                  else
+                    "    ${k} ${v}"
+                ) settings)
+              );
 
-          backendSection = let
-            baseSettings = haproxyConfig."backend kubernetes-api-backend";
-            serverLines = map (node: "    server ${node.name} ${node.ip}:6443 check check-ssl verify none inter 2s fall 3 rise 2") cfg.masterNodes;
+            backendSection =
+              let
+                baseSettings = haproxyConfig."backend kubernetes-api-backend";
+                serverLines = map (
+                  node: "    server ${node.name} ${node.ip}:6443 check check-ssl verify none inter 2s fall 3 rise 2"
+                ) cfg.masterNodes;
+              in
+              concatStringsSep "\n" (
+                [ "backend kubernetes-api-backend" ]
+                ++ (mapAttrsToList (k: v: if isList v then "    ${concatStringsSep " " v}" else "    ${k} ${v}") (
+                  filterAttrs (k: _v: k != "server") baseSettings
+                ))
+                ++ serverLines
+              );
           in
-            concatStringsSep "\n" (
-              ["backend kubernetes-api-backend"]
-              ++ (
-                mapAttrsToList (
-                  k: v:
-                    if isList v
-                    then "    ${concatStringsSep " " v}"
-                    else "    ${k} ${v}"
-                ) (filterAttrs (k: _v: k != "server") baseSettings)
-              )
-              ++ serverLines
-            );
-        in ''
-          ${concatStringsSep "\n\n" [
-            (mkSection "global" haproxyConfig.global)
-            (mkSection "defaults" haproxyConfig.defaults)
-            (mkSection "stats stats" haproxyConfig."stats stats")
-            (mkSection "frontend kubernetes-api" haproxyConfig."frontend kubernetes-api")
-            backendSection
-            (mkSection "frontend health" haproxyConfig."frontend health")
-            (mkSection "backend health-backend" haproxyConfig."backend health-backend")
-          ]}
-        '';
+          ''
+            ${concatStringsSep "\n\n" [
+              (mkSection "global" haproxyConfig.global)
+              (mkSection "defaults" haproxyConfig.defaults)
+              (mkSection "stats stats" haproxyConfig."stats stats")
+              (mkSection "frontend kubernetes-api" haproxyConfig."frontend kubernetes-api")
+              backendSection
+              (mkSection "frontend health" haproxyConfig."frontend health")
+              (mkSection "backend health-backend" haproxyConfig."backend health-backend")
+            ]}
+          '';
       };
 
       # ========================================================================
@@ -228,14 +236,11 @@ in {
 
         vrrpInstances = {
           kubernetes-vip = {
-            state =
-              if cfg.priority >= 110
-              then "MASTER"
-              else "BACKUP";
+            state = if cfg.priority >= 110 then "MASTER" else "BACKUP";
             inherit (cfg) interface;
             virtualRouterId = 51;
             inherit (cfg) priority;
-            trackInterface = [cfg.interface];
+            trackInterface = [ cfg.interface ];
 
             virtualIps = [
               {
@@ -278,11 +283,11 @@ in {
         8080 # Health check endpoint
       ];
       # VRRP for keepalived
-      allowedUDPPorts = [112];
-      # Allow VRRP multicast
-      extraCommands = ''
-        iptables -A INPUT -p vrrp -j ACCEPT
-        iptables -A INPUT -d 224.0.0.0/24 -j ACCEPT
+      allowedUDPPorts = [ 112 ];
+      # Allow VRRP multicast (nftables syntax)
+      extraInputRules = ''
+        ip protocol vrrp accept
+        ip daddr 224.0.0.0/24 accept
       '';
     };
 
