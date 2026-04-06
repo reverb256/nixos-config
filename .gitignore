@@ -44,3 +44,4 @@ modules/services/secrets/kubernetes/encryption-config.yaml
 cat
 echo
 Updated API key file
+.pi/secrets.yaml
