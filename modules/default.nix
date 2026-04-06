@@ -105,7 +105,6 @@
     ./compute-market/default.nix
 
     # Services
-    ./services/etcd-cluster.nix
     ./services/mcp-servers.nix
     ./services/nfs-server.nix
     ./services/nfs-client.nix

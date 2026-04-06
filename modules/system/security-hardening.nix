@@ -5,10 +5,17 @@
   lib,
   pkgs,
   ...
-}: let
-  inherit (lib) mkEnableOption mkIf mkOption types;
+}:
+let
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    mkOption
+    types
+    ;
   cfg = config.security.clusterAudit;
-in {
+in
+{
   options.security.clusterAudit = {
     enable = mkEnableOption "Security audit remediation and hardening";
 
@@ -41,10 +48,12 @@ in {
       enable = true;
 
       # Trust Tailscale interface - allows all traffic within VPN mesh
-      trustedInterfaces = ["tailscale0"];
+      trustedInterfaces = [ "tailscale0" ];
 
       # Allow SSH from Tailscale network only
-      allowedTCPPorts = [22];
+      # NOTE: SSH port 22 is interface-scoped in ssh.nix (tailscale0 + cluster subnet)
+      # Do NOT add 22 here — it would expose SSH to all interfaces (0.0.0.0)
+      allowedTCPPorts = [ ];
     };
 
     # ========================================================================
@@ -88,8 +97,14 @@ in {
           LogLevel = "VERBOSE";
 
           # Access restrictions (enforced via Tailscale ACLs)
-          AllowUsers = ["j_kro" "nixbuild"];
-          AllowGroups = ["wheel" "nixbuild"];
+          AllowUsers = [
+            "j_kro"
+            "nixbuild"
+          ];
+          AllowGroups = [
+            "wheel"
+            "nixbuild"
+          ];
         };
 
         # Extra options for Tailscale SSH compatibility
@@ -166,8 +181,10 @@ in {
       "net.ipv4.tcp_syncookies" = 1;
 
       # IP spoofing protection
-      "net.ipv4.conf.all.rp_filter" = 1;
-      "net.ipv4.conf.default.rp_filter" = 1;
+      # NOTE: kernel-hardening.nix overrides this to 2 (loose mode)
+      # for VIP/BGP compatibility. This default is for non-VIP hosts.
+      "net.ipv4.conf.all.rp_filter" = lib.mkDefault 1;
+      "net.ipv4.conf.default.rp_filter" = lib.mkDefault 1;
 
       # Ignore ICMP broadcasts (reduce smurf attacks)
       "net.ipv4.icmp_echo_ignore_broadcasts" = 1;

@@ -4,7 +4,8 @@
   lib,
   config,
   ...
-}: {
+}:
+{
   options = {
     kernel-hardening = {
       zswap.enable = lib.mkOption {
@@ -40,82 +41,84 @@
     # ============================================================================
     # Build the kernel params list first, then apply mkForce
     # This ensures mkForce is applied to the final list, not intermediate lists
-    boot.kernelParams = let
-      # Base parameters (always included)
-      baseParams = [
-        # Quiet boot with minimal output
-        "quiet"
-        "splash"
-        "loglevel=3"
-        "rd.udev.log_priority=3"
-        "systemd.show_status=auto"
+    boot.kernelParams =
+      let
+        # Base parameters (always included)
+        baseParams = [
+          # Quiet boot with minimal output
+          "quiet"
+          "splash"
+          "loglevel=3"
+          "rd.udev.log_priority=3"
+          "systemd.show_status=auto"
 
-        # Console improvements
-        "fbcon=nodefer"
-        "vt.global_cursor_default=0"
+          # Console improvements
+          "fbcon=nodefer"
+          "vt.global_cursor_default=0"
 
-        # Security: Disable kernel module loading after boot
-        # WARNING: This prevents loading new modules until reboot
-        # Comment out if you need to load modules dynamically (e.g., USB devices, virtualization)
-        # "kernel.modules_disabled=1"
+          # Security: Disable kernel module loading after boot
+          # WARNING: This prevents loading new modules until reboot
+          # Comment out if you need to load modules dynamically (e.g., USB devices, virtualization)
+          # "kernel.modules_disabled=1"
 
-        # Linux Security Modules stack
-        "lsm=landlock,lockdown,yama,integrity,apparmor,bpf"
+          # Linux Security Modules stack
+          "lsm=landlock,lockdown,yama,integrity,apparmor,bpf"
 
-        # Disable USB autosuspend (can cause issues with some devices)
-        "usbcore.autosuspend=-1"
+          # Disable USB autosuspend (can cause issues with some devices)
+          "usbcore.autosuspend=-1"
 
-        # Video4Linux support
-        "video4linux"
+          # Video4Linux support
+          "video4linux"
 
-        # ACPI revision override for better hardware compatibility
-        "acpi_rev_override=5"
+          # ACPI revision override for better hardware compatibility
+          "acpi_rev_override=5"
 
-        # ============================================================================
-        # CRASH RECOVERY - Auto-reboot on hard lock to capture crash dump
-        # ============================================================================
-        # panic=10: Reboot after 10 seconds on kernel panic
-        # panic_on_oops=1: Treat oops as panic (hard hang without logs)
-        # softlockup_panic=1: Panic on soft lockup (process stuck in kernel)
-        "panic=10"
-        "panic_on_oops=1"
-        "softlockup_panic=1"
+          # ============================================================================
+          # CRASH RECOVERY - Auto-reboot on hard lock to capture crash dump
+          # ============================================================================
+          # panic=10: Reboot after 10 seconds on kernel panic
+          # panic_on_oops=1: Treat oops as panic (hard hang without logs)
+          # softlockup_panic=1: Panic on soft lockup (process stuck in kernel)
+          "panic=10"
+          "panic_on_oops=1"
+          "softlockup_panic=1"
 
-        # ============================================================================
-        # NMI WATCHDOG - Detect hard hangs
-        # ============================================================================
-        # nmi_watchdog=1 enables NMI watchdog for detecting hard CPU hangs
-        "nmi_watchdog=1"
+          # ============================================================================
+          # NMI WATCHDOG - Detect hard hangs
+          # ============================================================================
+          # nmi_watchdog=1 enables NMI watchdog for detecting hard CPU hangs
+          "nmi_watchdog=1"
 
-        # C-STATE AND IOMMU (performance tuning for gaming/mining)
-        "processor.max_cstate=1"
-        "intel_idle.max_cstate=1"
-        "iommu=pt"
+          # C-STATE AND IOMMU (performance tuning for gaming/mining)
+          "processor.max_cstate=1"
+          "intel_idle.max_cstate=1"
+          "iommu=pt"
 
-        # 1GB HUGE PAGES for XMRig RandomX performance (dual-xmrig module)
-        "hugepagesz=1G"
-        "hugepages=3"
+          # 1GB HUGE PAGES for XMRig RandomX performance (dual-xmrig module)
+          "hugepagesz=1G"
+          "hugepages=3"
 
-        # BTRFS tuning for reduced memory usage (btrfs-tuning module)
-        "btrfs.commit_interval=300"
-      ];
-
-      # Conditional zswap parameters
-      zswapParams =
-        if config.kernel-hardening.zswap.enable
-        then [
-          "zswap.enabled=1"
-          "zswap.compressor=zstd"
-          "zswap.max_pool_percent=${builtins.toString config.kernel-hardening.zswap.maxPoolPercent}"
-          "zswap.zpool=z3fold"
-        ]
-        else [
-          "zswap.enabled=0"
+          # BTRFS tuning for reduced memory usage (btrfs-tuning module)
+          "btrfs.commit_interval=300"
         ];
 
-      # Combine all parameters
-      allParams = baseParams ++ zswapParams;
-    in
+        # Conditional zswap parameters
+        zswapParams =
+          if config.kernel-hardening.zswap.enable then
+            [
+              "zswap.enabled=1"
+              "zswap.compressor=zstd"
+              "zswap.max_pool_percent=${builtins.toString config.kernel-hardening.zswap.maxPoolPercent}"
+              "zswap.zpool=z3fold"
+            ]
+          else
+            [
+              "zswap.enabled=0"
+            ];
+
+        # Combine all parameters
+        allParams = baseParams ++ zswapParams;
+      in
       allParams;
 
     # ============================================================================
@@ -128,9 +131,10 @@
       "kernel.softlockup_panic" = 1; # Panic on soft lockup (via boot param)
       "kernel.nmi_watchdog" = 1; # NMI watchdog enabled
 
-      # Reverse path filtering - loose mode for VIP compatibility
+      # Reverse path filtering - loose mode for VIP/BGP compatibility
       # Strict mode (1) drops packets arriving on unexpected interfaces
-      # This breaks VIP traffic where return path differs from source path
+      # This breaks VIP traffic and BGP routes where return path differs
+      # Loose mode (2) validates source IP exists on ANY interface
       # Use mkForce to override security-hardening.nix strict mode
       "net.ipv4.conf.all.rp_filter" = lib.mkForce 2; # Loose mode
       "net.ipv4.conf.default.rp_filter" = lib.mkForce 2;
