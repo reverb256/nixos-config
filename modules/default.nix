@@ -13,10 +13,6 @@
     ./common/firewall-ports.nix
 
     # Helper libraries (DRY enforcement)
-    # TEMPORARILY DISABLED: Being fixed (2026-03-23)
-    # ./lib/systemd-helpers.nix
-    # ./lib/firewall-helpers.nix
-    # ./lib/option-helpers.nix
 
     # Network configuration
     ./network-constants.nix
@@ -27,8 +23,6 @@
     ./system/users.nix
     ./system/home-manager.nix
     ./system/networking.nix
-    # ./system/dns-watchdog.nix  # DISABLED: Causing rebuild failures (2026-03-27)
-    # ./system/interface-naming.nix  # DISABLED: Using native enp*s* naming (2026-03-12)
     ./system/ssh.nix
     ./system/ssh-ca.nix
     ./system/mosh.nix
@@ -74,6 +68,7 @@
     ./desktop/flatpak.nix
     ./desktop/plasma6.nix
     ./desktop/hyprland.nix
+    ./desktop/uwsm-sessions.nix
     ./desktop/systems-intelligence-plasmoid.nix
     ./desktop/niri.nix
 
@@ -104,11 +99,6 @@
     # Note: Python gpu-proxy removed - replaced by gpu-proxy-cpp (centralized on Forge)
     ./mining/gpu-proxy-cpp.nix
 
-    # GPU Workload Modules - removed (duplicates of system/ modules above)
-    # gaming-detection -> ./system/gaming-detection.nix
-    # gpu-profiles -> ./system/gpu-profile-manager.nix
-    # shared library -> inline in each system/ module
-
     # GPU Resource Marketplace
     ./compute-market/default.nix
 
@@ -122,10 +112,8 @@
     ./services/lm-studio.nix
     ./services/lm-studio-headless.nix
     ./services/llamafile.nix
-    # ./services/llama-server.nix  # TODO: Fix Nix source caching issue
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
-    ./services/hermes-agent/default.nix
     ./services/nixos-share.nix
     ./services/spacebot.nix # Systemd/Podman deployment (current)
     ./services/spacebot/default.nix # Container module for Kubernetes (optional)
@@ -141,11 +129,9 @@
     ./services/garnix.nix
     ./services/auto-update.nix
     ./services/whisper-dictation.nix
-    ./services/cloudflared.nix # Cloudflare Tunnel for Akash provider ingress
-    ./services/akash-cloudflare-integration.nix # DNS, cache, metrics for Akash
+    ./services/cloudflared.nix
     ./services/cluster-ca.nix # Internal CA for cluster services
     ./services/unbound-common.nix # Unified Unbound DNS-over-TLS for all hosts
-    # ./services/unbound-cluster.nix  # DISABLED: Using unbound-common instead (2026-03-27)
     ./services/syncthing.nix
     ./services/garage.nix # S3-compatible distributed object storage
     ./services/backup-to-garage.nix # Automated backups to Garage S3
@@ -153,16 +139,12 @@
     ./services/rclone.nix # Cloud storage sync (70+ providers)
     ./services/n8n.nix
     ./services/vaultwarden.nix
-    # TEMPORARILY DISABLED: Being fixed (2026-03-23)
-    # ./services/health-checks.nix
     ./services/self-healing-alerts.nix
 
     # Monitoring
     ./services/monitoring/default.nix
     ./services/monitoring/node-exporter.nix
     # Crash detection and diagnostics
-    # TEMPORARILY DISABLED: Being fixed (2026-03-23)
-    # ./services/crash-watchdog.nix
     # Exporters
     ./services/gpu-exporters.nix
     ./services/mining-exporter.nix
