@@ -153,14 +153,14 @@
         memoryClockLock = 8501; # CRITICAL: Without this, lolMiner fails to drive memory clocks up on RTX 4060, resulting in ~0.2 g/s instead of ~4 g/s
         apiPort = 4068;
       };
-      # AMD GPUs (RX 5700 XT) - USE SYSTEMD (GLIBC incompatibility with K8s)
-      # AMD mining runs via systemd due to GLIBC 2.42 vs 2.27 ABI mismatch
-      # K8s pods crash with segfault when loading NixOS AMD OpenCL libraries
+      # AMD GPUs (RX 5700 XT) - NOW MANAGED BY K3S
+      # Migrated from systemd to k3s pods (gpu-miner-forge-amd-0/1)
+      # using ubuntu:24.04 base + Nix store lolMiner binary for OpenCL support
       amd = {
-        enable = true; # AMD mining via systemd (K8s incompatible)
-        autostart = true;
+        enable = false; # Disabled - AMD mining now via k3s pods
+        autostart = false;
         devices = "0,1";
-        powerLimit = 110; # 110W for optimal efficiency (from 140W default)
+        powerLimit = 110;
         apiPort = 4069;
       };
       # Direct connection to Kryptex (gpu-proxy-cpp was broken - no jobs forwarded)
@@ -264,7 +264,7 @@
         }
       ];
     };
-    # Hermes Agent is now configured at top-level as services.hermes-agent
+    # Hermes Agent module removed (2026-04-06)
     # NIXOS AUTO-UPDATE - Flake-aware automatic updates
     # Replaces built-in system.autoUpgrade which doesn't support flakes properly
     nixos-auto-update = {
@@ -272,28 +272,6 @@
       interval = "daily"; # Check for updates daily at 00:00
       updateFlakeInputs = [ "nixpkgs" ]; # Auto-update nixpkgs input
       extraFlags = [ "--upgrade" ]; # Run with --upgrade flag
-    };
-  };
-
-  # HERMES AGENT - Multi-Host Orchestration
-
-  # Autonomous agent for cluster-wide task execution and coordination
-  services.hermes-agent = {
-    enable = true; # Re-enabled: Core dependencies only (no optional extras)
-    user = "j_kro";
-    sharedStorage = {
-      enable = true;
-      mountPoint = "/home/j_kro/.hermes";
-      nfsServer = "10.1.1.120"; # Nexus NFS server
-      nfsPath = "/mnt/garage/hermes";
-    };
-    aiGateway = {
-      enable = true;
-      url = "http://10.1.1.110:8081/v1"; # Zephyr AI Gateway (K8s hostNetwork, port 8081)
-    };
-    terminal = {
-      enable = true;
-      requireApproval = false;
     };
   };
 
