@@ -52,12 +52,12 @@ spec:
           - "--cclk=2350"
           - "--moff=1100"
           - "--pl=90"
-          - "--apiport=4070"
+          - "--apiport=4069"
         env:
         - name: LD_LIBRARY_PATH
           value: "/run/opengl-driver/lib:/nix/store"
         ports:
-        - containerPort: 4070
+        - containerPort: 4069
           name: api
           protocol: TCP
         securityContext:

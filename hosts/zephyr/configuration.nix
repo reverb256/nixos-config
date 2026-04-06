@@ -19,11 +19,9 @@
     ./hardware-configuration.nix
     # Kubernetes module (for control plane)
     ../../modules/services/kubernetes.nix
+    ../../modules/services/k3s-cluster.nix
     # Keepalived VIP for Kubernetes HA
     ../../modules/services/keepalived-vip.nix
-    # Akash Provider - Earn AKT/USDC from GPU compute
-    ../../modules/services/akash-provider.nix
-
     # FIX: Systemd user unit reload timeout (nixos-rebuild switch hang)
     ../../modules/system/systemd-user-timeout.nix
 
@@ -108,6 +106,12 @@
         3900 # Garage S3 API
         3901 # Garage RPC
         50000 # Nix binary cache server
+        6443 # k3s API server
+        2379 # etcd client
+        2380 # etcd peer
+        10250 # Kubelet API
+        179 # Calico BGP
+        5473 # Calico Typha
       ];
       allowedUDPPorts = [
         9757 # WiVRn
@@ -118,6 +122,8 @@
         5353 # mDNS
         9947 # WiVRn
         53317 # LocalSend (multicast discovery)
+        8472 # VXLAN (Flannel/Calico)
+        4789 # VXLAN (Calico)
       ];
       interfaces = {
         "tailscale0".allowedTCPPorts = [
@@ -212,36 +218,19 @@
   # SERVICES - All service configurations consolidated here
   # ============================================================================
   services = {
-    # KUBERNETES - 3-Node HA Control Plane Configuration
-    kubernetes-module = {
-      # Use VIP for HA access
-      masterAddress = lib.mkForce "10.1.1.100";
-      # First node in etcd cluster (already bootstrapped)
-      etcdInitialState = "new";
-      etcdName = "zephyr";
-      etcdListenHost = "10.1.1.110";
-      # All 3 etcd cluster members
-      etcdClusterMembers = [
-        "zephyr=http://10.1.1.110:2380"
-        "nexus=http://10.1.1.120:2380"
-        "sentry=http://10.1.1.140:2380"
-      ];
-
-      # Enable IPVS for better service load balancing performance
-      # O(1) lookup vs O(n) iptables for high-service-count clusters
-      calicoIpvs = {
-        enable = true;
-        autoHostRanges = true;
-        strictArp = true;
-      };
+    # KUBERNETES - k3s control plane (joins nexus/sentry cluster)
+    k3s-cluster = {
+      enable = true;
+      role = "server";
+      nodeName = "zephyr";
+      serverAddr = "https://10.1.1.120:6443";
+      tokenFile = "/run/agenix/k3s-cluster-token";
+      nodeIP = "10.1.1.110";
+      nvidia.enable = true;
     };
 
-    # TEMPORARY: Using kubernetes-module's built-in etcd
-    # Will enable etcd-cluster module with TLS after verifying HA works
-    # etcd-cluster = {
-    #   enable = true;
-    #   nodeName = "zephyr";
-    # };
+    # Disable old kubernetes-module (replaced by k3s-cluster)
+    kubernetes-module.enable = lib.mkForce false;
 
     # Keepalived VIP for HA API server access
     keepalived-vip = {
@@ -249,139 +238,6 @@
       vip = "10.1.1.100";
       interface = "enp38s0";
       priority = 110;
-    };
-
-    # AKASH PROVIDER - Decentralized GPU Compute Marketplace
-    # Earn AKT/USDC by hosting AI/ML workloads on your GPUs
-    akash-provider = {
-      enable = true; # Wallet created with agenix, ready to deploy
-      # Provider address: cluster-provider (created 2026-03-14)
-      # Provider address: updated 2026-03-18 with new mnemonic-based key
-      # Mnemonic: zebra unknown capital train decide glue sphere acid actual focus lounge green ancient never visual either glimpse vault verb athlete tiger lamp catch jewel
-      providerAddress = "akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6";
-      # Domain for provider ingress (using Quick Tunnel for testing)
-      # WARNING: Quick Tunnel URLs change on restart - use own domain for production
-      domain = "provider.reverb256.ca";
-      clusterPublicHostname = "provider.reverb256.ca";
-
-      # GPU pricing (uakt per block) - adjust based on market demand
-      pricing = {
-        rtx3090 = 20000; # ~$8.70/month per GPU at 50% util
-        rtx4060 = 18000; # ~$7.80/month per GPU at 50% util
-        rtx3060ti = 15000; # ~$6.50/month per GPU at 50% util
-        # rx5700xt = 8000; # AMD GPU not supported by akash-provider module
-        # rx5600xt = 7000; # AMD GPU not supported by akash-provider module
-      };
-    };
-
-    # Cloudflare Tunnel - Akash provider ingress with Zero Trust
-    # MIGRATED: Service moved to Kubernetes (cloudflared-deployment.yaml)
-    cloudflared-tunnel = {
-      enable = false;
-      tunnelId = "e67aedf0-a025-4231-9ee4-3fa6887c2d21";
-
-      # Change metrics port to avoid conflict (default 54162 was already in use)
-      metricsPort = 54163;
-
-      # Disable QUIC due to IPv6 control stream failures
-      # TODO: Re-enable after IPv6 routing issues are resolved
-      quicEnabled = false;
-
-      ingressRules = [
-        # Provider bid engine (NodePort 32294) - RESTRICTED ACCESS
-        {
-          hostname = "provider.reverb256.ca";
-          service = "https://10.1.1.120:32294";
-          # Zero Trust: Only provider owner can access bid engine
-          accessPolicy = "j_kroeker@reverb256.ca";
-        }
-        # Provider gRPC (for lease management, NodePort 31420) - RESTRICTED ACCESS
-        {
-          hostname = "grpc.provider.reverb256.ca";
-          service = "https://10.1.1.120:31420";
-          # Zero Trust: Only provider owner can access gRPC
-          accessPolicy = "j_kroeker@reverb256.ca";
-        }
-        # Tenant ingress (wildcard for deployments, NodePort 30080) - PUBLIC
-        {
-          hostname = "*.ingress.reverb256.ca";
-          service = "http://10.1.1.120:30080";
-          # No access policy = Public (tenant deployments)
-        }
-        # Fallback for bare ingress domain - PUBLIC
-        {
-          hostname = "ingress.reverb256.ca";
-          service = "http://10.1.1.120:30080";
-          # No access policy = Public (tenant deployments)
-        }
-        # Akash Provider Health Dashboard - PUBLIC
-        {
-          hostname = "status.provider.reverb256.ca";
-          service = "http://10.1.1.140:8080";
-          # Served by nginx on Sentry (monitoring host)
-        }
-        # Akash Provider Status Page - PUBLIC
-        {
-          hostname = "akash.reverb256.ca";
-          service = "http://10.1.1.140:8080";
-          # Served by nginx on Sentry (monitoring host)
-        }
-      ];
-    };
-
-    # Akash Cloudflare Integration - DNS, cache, metrics automation
-    akash-cloudflare-integration = {
-      enable = true;
-
-      # Domain configuration
-      domain = "reverb256.ca";
-      zoneId = "9062487114ef5404de8de6689cb54895";
-
-      # Provider endpoints (already configured above)
-      providerEndpoint = "https://10.1.1.120:32294";
-      providerGrpcEndpoint = "10.1.1.120:31420";
-      ingressDomain = "ingress.reverb256.ca";
-
-      # Feature 1: Automated Tenant DNS Setup (⭐⭐⭐ HIGH PRIORITY)
-      dnsWatcher = {
-        enable = true;
-        pollInterval = 30; # Check every 30 seconds
-        dnsRecordPrefix = "dedicated"; # Creates *.dedicated.ingress.reverb256.ca
-      };
-
-      # Feature 2: Smart Cache Invalidation (⭐⭐ HIGH PRIORITY)
-      cachePurge = {
-        enable = true;
-        purgeDelay = 5; # Wait 5 seconds after DNS creation
-      };
-
-      # Feature 3: Prometheus Integration (⭐⭐ HIGH PRIORITY)
-      metricsExporter = {
-        enable = true;
-        scrapeInterval = 300; # 5 minutes
-        metricsDir = "/var/lib/prometheus/node-exporter/textfile-collector";
-      };
-
-      # Feature 4: Health Monitoring Dashboard (DISABLED - Akash runs in K8s)
-      healthDashboard = {
-        enable = false;
-        updateInterval = 30; # 30 seconds
-        outputDir = "/var/www/akash-health";
-      };
-
-      # Feature 5: DNS Cleanup Automation (⭐ MEDIUM PRIORITY)
-      dnsCleanup = {
-        enable = true;
-        gracePeriod = 86400; # 24 hours in seconds
-        cleanupTime = "03:00:00"; # 3 AM daily
-      };
-
-      # Feature 6: Status Page (DISABLED - Akash runs in K8s)
-      statusPage = {
-        enable = false;
-        updateInterval = 300; # 5 minutes
-        outputDir = "/var/www/akash-status";
-      };
     };
 
     # Crash watchdog - detect and log system crashes
@@ -411,6 +267,12 @@
   services.cluster-ca.enable = true;
 
   # ============================================================================
+  # DESKTOP - UWSM multi-compositor sessions
+  # tty1: Plasma (Wayland), tty2: Niri, tty3: Hyprland
+  desktop.uwsm-sessions.enable = true;
+  programs.niri.enable = true;
+  programs.hyprland.enable = true;
+
   # HARDWARE PROFILES
   # ============================================================================
   # Base profiles provided by node-profiles.zephyr-workstation:
@@ -620,13 +482,6 @@
           baseBid = 2.50; # $2.50/hr base bid for K8s workloads
           urgencyMultiplier = 2.0; # 2x multiplier for urgent jobs
           namespace = "default";
-        };
-
-        # Akash bidder configuration
-        akash = {
-          enable = true;
-          profitMargin = 0.90; # Bid 90% of market rate (10% buffer)
-          namespace = "akash-services";
         };
 
         # Gaming override (always wins)
@@ -1239,36 +1094,13 @@
     storage = true; # Required for backup-to-garage service (S3 API key)
     mining = true;
     cloud = true;
+    kubernetes = true; # k3s cluster token
     selfHosting = false; # These services run on other hosts
   };
 
   # Override specific secret permissions (registry defaults can be overridden)
   age = {
     identityPaths = [ "/home/j_kro/.age/key.txt" ];
-    secrets.xmrig-api-token = lib.mkForce {
-      file = "${inputs.self}/secrets/xmrig-api-token.age";
-      mode = "440";
-      owner = "mining";
-      group = "mining";
-    };
-    secrets.xmrig-always-api-token = lib.mkForce {
-      file = "${inputs.self}/secrets/xmrig-always-api-token.age";
-      mode = "440";
-      owner = "mining";
-      group = "mining";
-    };
-    secrets.xmrig-flexible-api-token = lib.mkForce {
-      file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
-      mode = "440";
-      owner = "mining";
-      group = "mining";
-    };
-    secrets.akash-provider-key = lib.mkForce {
-      file = "${inputs.self}/secrets/akash-provider-key.age";
-      mode = "400";
-      owner = "root";
-      group = "root";
-    };
     secrets.cloudflared-token = lib.mkForce {
       file = "${inputs.self}/secrets/cloudflared-token.age";
       mode = "400";
@@ -1513,60 +1345,11 @@
   # ============================================================================
 
   # ============================================================================
-  # HERMES AGENT - Multi-Host Orchestration
-  # ============================================================================
-  # Autonomous agent for cluster-wide task execution and coordination
-  # Uses MCP protocol for inter-service communication
-  services.hermes-agent = {
-    enable = true;
-    user = "j_kro";
-    sharedStorage = {
-      enable = true;
-      mountPoint = "/home/j_kro/.hermes";
-      nfsServer = "10.1.1.120"; # Nexus
-      nfsPath = "/data/home";
-    };
-    aiGateway = {
-      enable = true;
-      url = "http://127.0.0.1:8081/v1"; # K8s gateway on Zephyr (hostNetwork port 8081)
-    };
-    terminal = {
-      enable = true;
-      requireApproval = false;
-    };
-  };
 
   # ============================================================================
 
   # LLAMA-SERVER - Local LLM inference for autoresearch
   # ============================================================================
-  # TEMPORARILY DISABLED: Nix evaluation issue (2026-03-25)
-  # CUDA-accelerated GGUF model server for skill optimization
-  # Uses Qwen3.5-0.8B model for fast LLM-based evaluation
-  # TODO: Fix circular dependency in llama-server module
-  # systemd.services.llama-server = {
-  #   description = "llama.cpp LLM inference server for autoresearch";
-  #   after = ["network.target"];
-  #   wantedBy = ["multi-user.target"];
-  #   serviceConfig = {
-  #     ExecStart = "/etc/nixos/.claude/skills/autoresearch-skills/llama-server-wrapper.sh";
-  #     Restart = "on-failure";
-  #     RestartSec = 10;
-  #     NoNewPrivileges = true;
-  #     PrivateTmp = true;
-  #     ProtectSystem = "strict";
-  #     ProtectHome = true;
-  #     ReadWritePaths = ["/tmp"];
-  #     LimitNOFILE = 65536;
-  #     StandardOutput = "journal";
-  #     StandardError = "journal";
-  #     SyslogIdentifier = "llama-server";
-  #   };
-  #   environment = {
-  #     CUDA_VISIBLE_DEVICES = "0";
-  #     PATH = lib.makeBinPath [pkgs.llama-cpp pkgs.bash];
-  #   };
-  # };
 
   # ============================================================================
   # SWAP - Using 32GB partition on nvme0n1p1 (configured in hardware-configuration.nix)
@@ -1594,16 +1377,6 @@
   # ============================================================================
   # NVIDIA CDI GENERATOR FIX
   # ============================================================================
-  # Fix for nvidia-container-toolkit-cdi-generator service failure
-  # The generator outputs JSON to stdout but needs to be captured to file
-  # This override redirects stdout to /var/run/cdi/nvidia-container-toolkit.json
-  systemd.services.nvidia-container-toolkit-cdi-generator = {
-    serviceConfig.ExecStart = [
-      ""
-      "/nix/store/d1i12f1i7ycj8zj9pq3nxw2skyms5dl7-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
-    ];
-  };
-
   # ============================================================================
   # UNBOUND DNS WITH DNS-OVER-TLS
   # ============================================================================
