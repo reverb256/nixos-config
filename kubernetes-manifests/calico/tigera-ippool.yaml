@@ -5,7 +5,7 @@ metadata:
 spec:
   blockSize: 26
   cidr: 10.244.0.0/16
-  ipipMode: Always
-  vxlanMode: Never
+  ipipMode: Never
+  vxlanMode: Always
   natOutgoing: Enabled
   nodeSelector: all()

@@ -12,11 +12,19 @@
   config,
   lib,
   ...
-}: let
-  inherit (lib) mkEnableOption mkOption types mkIf mkMerge;
+}:
+let
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    types
+    mkIf
+    mkMerge
+    ;
 
   # Helper function to create profile config
-  mkProfileConfig = _profileName: profileCfg:
+  mkProfileConfig =
+    _profileName: profileCfg:
     mkIf profileCfg.enable (
       let
         # Extract networking config - handle both nested and direct formats
@@ -25,15 +33,14 @@
             ipAddress = profileCfg.ipAddress or null;
             interfaceName = profileCfg.interfaceName or null;
             unboundListenAddress = profileCfg.unboundListenAddress or null;
-            wireless = profileCfg.wireless or {enable = false;};
+            wireless = profileCfg.wireless or { enable = false; };
           };
         # Ensure wireless has a default value
-        networkingCfg =
-          networkingCfgBase
-          // {
-            wireless = networkingCfgBase.wireless or {enable = false;};
-          };
-      in {
+        networkingCfg = networkingCfgBase // {
+          wireless = networkingCfgBase.wireless or { enable = false; };
+        };
+      in
+      {
         # Apply networking configuration (only if ipAddress is set)
         clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
           enable = true;
@@ -46,10 +53,9 @@
           };
         };
 
-        # Apply Kubernetes configuration
-        services.kubernetes-module = mkIf (profileCfg ? kubernetes && profileCfg.kubernetes.enable) {
-          inherit (profileCfg.kubernetes) enable roles masterAddress;
-        };
+        # Kubernetes is configured per-host via services.k3s-cluster
+        # Node profiles no longer set kubernetes-module (replaced by k3s-cluster)
+        # GPU, hardware, and firewall settings are still applied below
 
         # Apply hardware profiles
         hardware.profiles = {
@@ -70,14 +76,15 @@
 
           # Apply extra firewall rules
           firewall = {
-            allowedTCPPorts = profileCfg.firewallExtraTCPPorts or [];
-            allowedTCPPortRanges = profileCfg.firewallExtraTCPPortRanges or [];
-            allowedUDPPorts = profileCfg.firewallExtraUDPPorts or [];
+            allowedTCPPorts = profileCfg.firewallExtraTCPPorts or [ ];
+            allowedTCPPortRanges = profileCfg.firewallExtraTCPPortRanges or [ ];
+            allowedUDPPorts = profileCfg.firewallExtraUDPPorts or [ ];
           };
         };
       }
     );
-in {
+in
+{
   options.profiles.node = {
     # ============================================================================
     # NODE-SPECIFIC PROFILES
@@ -86,17 +93,6 @@ in {
 
     zephyr-workstation = {
       enable = mkEnableOption "Zephyr workstation profile (control plane + gaming + VR + mining + AI)";
-
-      # Node-specific settings
-      kubernetes = mkOption {
-        type = types.attrs;
-        default = {
-          enable = true;
-          roles = ["master" "node"];
-          masterAddress = "10.1.1.100"; # VIP for HA
-        };
-        description = "Kubernetes configuration";
-      };
 
       # Hardware-specific
       nvidia = mkOption {
@@ -155,16 +151,6 @@ in {
     nexus-gaming = {
       enable = mkEnableOption "Nexus gaming profile (gaming + VR + mining + AI)";
 
-      kubernetes = mkOption {
-        type = types.attrs;
-        default = {
-          enable = true;
-          roles = ["node"];
-          masterAddress = "10.1.1.100"; # VIP for HA
-        };
-        description = "Kubernetes configuration";
-      };
-
       nvidia = mkOption {
         type = types.attrs;
         default = {
@@ -187,17 +173,19 @@ in {
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [10250];
+        default = [ 10250 ];
         description = "Extra TCP ports";
       };
 
       firewallExtraTCPPortRanges = mkOption {
-        type = types.listOf (types.submodule {
-          options = {
-            from = mkOption {type = types.port;};
-            to = mkOption {type = types.port;};
-          };
-        });
+        type = types.listOf (
+          types.submodule {
+            options = {
+              from = mkOption { type = types.port; };
+              to = mkOption { type = types.port; };
+            };
+          }
+        );
         default = [
           {
             from = 30000;
@@ -209,23 +197,13 @@ in {
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [8472];
+        default = [ 8472 ];
         description = "Extra UDP ports";
       };
     };
 
     forge-mining = {
       enable = mkEnableOption "Forge mining profile (GPU/CPU mining + AI inference)";
-
-      kubernetes = mkOption {
-        type = types.attrs;
-        default = {
-          enable = true;
-          roles = ["node"];
-          masterAddress = "10.1.1.100"; # VIP for HA
-        };
-        description = "Kubernetes configuration";
-      };
 
       nvidia = mkOption {
         type = types.attrs;
@@ -264,17 +242,19 @@ in {
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [10250];
+        default = [ 10250 ];
         description = "Extra TCP ports";
       };
 
       firewallExtraTCPPortRanges = mkOption {
-        type = types.listOf (types.submodule {
-          options = {
-            from = mkOption {type = types.port;};
-            to = mkOption {type = types.port;};
-          };
-        });
+        type = types.listOf (
+          types.submodule {
+            options = {
+              from = mkOption { type = types.port; };
+              to = mkOption { type = types.port; };
+            };
+          }
+        );
         default = [
           {
             from = 30000;
@@ -286,23 +266,13 @@ in {
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [8472];
+        default = [ 8472 ];
         description = "Extra UDP ports";
       };
     };
 
     sentry-monitoring = {
       enable = mkEnableOption "Sentry monitoring profile (CPU mining + AI inference)";
-
-      kubernetes = mkOption {
-        type = types.attrs;
-        default = {
-          enable = true;
-          roles = ["node"];
-          masterAddress = "10.1.1.100"; # VIP for HA
-        };
-        description = "Kubernetes configuration";
-      };
 
       amdgpu = mkOption {
         type = types.attrs;
@@ -326,17 +296,19 @@ in {
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [10250];
+        default = [ 10250 ];
         description = "Extra TCP ports";
       };
 
       firewallExtraTCPPortRanges = mkOption {
-        type = types.listOf (types.submodule {
-          options = {
-            from = mkOption {type = types.port;};
-            to = mkOption {type = types.port;};
-          };
-        });
+        type = types.listOf (
+          types.submodule {
+            options = {
+              from = mkOption { type = types.port; };
+              to = mkOption { type = types.port; };
+            };
+          }
+        );
         default = [
           {
             from = 30000;
@@ -348,7 +320,7 @@ in {
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [8472];
+        default = [ 8472 ];
         description = "Extra UDP ports";
       };
     };
@@ -357,18 +329,10 @@ in {
     # GENERIC PROFILES (for custom nodes)
     # ============================================================================
 
+    # Legacy generic profiles kept for backwards compatibility
+    # Kubernetes is now configured per-host via services.k3s-cluster
     kubernetes-control-plane = {
-      enable = mkEnableOption "Kubernetes control plane node";
-
-      kubernetes = mkOption {
-        type = types.attrs;
-        default = {
-          enable = true;
-          roles = ["master" "node"];
-          masterAddress = "10.1.1.100"; # VIP for HA
-        };
-        description = "Kubernetes configuration";
-      };
+      enable = mkEnableOption "Kubernetes control plane node (legacy — use k3s-cluster instead)";
 
       networking = mkOption {
         type = types.attrs;
@@ -380,17 +344,7 @@ in {
     };
 
     kubernetes-worker = {
-      enable = mkEnableOption "Kubernetes worker node";
-
-      kubernetes = mkOption {
-        type = types.attrs;
-        default = {
-          enable = true;
-          roles = ["node"];
-          masterAddress = "10.1.1.100"; # VIP for HA
-        };
-        description = "Kubernetes configuration";
-      };
+      enable = mkEnableOption "Kubernetes worker node (legacy — use k3s-cluster instead)";
 
       networking = mkOption {
         type = types.attrs;
@@ -402,17 +356,19 @@ in {
 
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
-        default = [10250];
+        default = [ 10250 ];
         description = "Extra TCP ports";
       };
 
       firewallExtraTCPPortRanges = mkOption {
-        type = types.listOf (types.submodule {
-          options = {
-            from = mkOption {type = types.port;};
-            to = mkOption {type = types.port;};
-          };
-        });
+        type = types.listOf (
+          types.submodule {
+            options = {
+              from = mkOption { type = types.port; };
+              to = mkOption { type = types.port; };
+            };
+          }
+        );
         default = [
           {
             from = 30000;
@@ -424,7 +380,7 @@ in {
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [8472];
+        default = [ 8472 ];
         description = "Extra UDP ports";
       };
     };

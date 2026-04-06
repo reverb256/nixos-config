@@ -1,0 +1,25 @@
+# Caddy Ingress Controller — ConfigMap
+# Source: caddyserver/ingress chart v1.3.0
+#
+# email:         Enables automatic HTTPS via ACME (Let's Encrypt)
+# metrics:       Exposes Prometheus metrics on :9765
+# debug:         Verbose logging for troubleshooting
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-ingress-controller-configmap
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress-controller
+    app.kubernetes.io/component: controller
+data:
+  email: "admin@cluster.local"
+  metrics: "true"
+  debug: "false"
+  onDemandTLS: "false"
+  proxyProtocol: "false"
+  experimentalSmartSort: "false"
+  acmeCA: ""
+  acmeEABKeyId: ""
+  acmeEABMacKey: ""

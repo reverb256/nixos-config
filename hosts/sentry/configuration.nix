@@ -10,7 +10,8 @@
   pkgs,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
     # Monitoring configuration
     ./monitoring.nix
@@ -27,8 +28,9 @@
     # Podman support
     ../../modules/services/podman-support.nix
 
-    # Kubernetes HA modules
-    ../../modules/services/kubernetes.nix
+    # Kubernetes
+    ../../modules/services/k3s-cluster.nix
+    # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
   ];
 
@@ -68,9 +70,11 @@
           to = 32767;
         }
       ];
-      allowedUDPPorts = lib.mkOptionDefault [8472]; # Flannel VXLAN (merges with cluster defaults)
+      allowedUDPPorts = lib.mkOptionDefault [
+        8472 # VXLAN (Flannel or Calico)
+      ];
       # Open Loki port on main interface for cluster access (module only opens on tailscale0)
-      interfaces."enp7s0".allowedTCPPorts = [3100];
+      interfaces."enp7s0".allowedTCPPorts = [ 3100 ];
     };
   };
 
@@ -100,31 +104,15 @@
   # SERVICES - All service configurations
   # ============================================================================
   services = {
-    # KUBERNETES - HA Control Plane (Master + Worker)
-    kubernetes-module = {
+    # KUBERNETES - k3s control plane (joins existing cluster)
+    k3s-cluster = {
       enable = true;
-      # Control plane node (master + worker roles)
-      roles = ["master" "node"];
-      # Use VIP for HA access
-      masterAddress = lib.mkForce "10.1.1.100";
-      # Join existing etcd cluster (recovery complete, reverted from temporary "new" state)
-      etcdInitialState = "existing";
-      etcdName = "sentry";
-      etcdListenHost = "10.1.1.140";
-      # All 3 etcd cluster members
-      etcdClusterMembers = [
-        "zephyr=http://10.1.1.110:2380"
-        "nexus=http://10.1.1.120:2380"
-        "sentry=http://10.1.1.140:2380"
-      ];
+      role = "server";
+      nodeName = "sentry";
+      serverAddr = "https://10.1.1.110:6443";
+      tokenFile = "/run/agenix/k3s-cluster-token";
+      nodeIP = "10.1.1.140";
     };
-
-    # TEMPORARY: Using kubernetes-module's built-in etcd
-    # Will enable etcd-cluster module with TLS after verifying HA works
-    # etcd-cluster = {
-    #   enable = true;
-    #   nodeName = "sentry";
-    # };
 
     # Keepalived VIP for HA API server access
     keepalived-vip = {
@@ -242,7 +230,7 @@
     gpu-profile-manager.enable = true;
     mining-coordinator.enable = true;
 
-    # Nginx - Serve Akash provider dashboards
+    # Nginx - Lightweight static file server
     nginx = {
       enable = true;
       recommendedProxySettings = true;
@@ -250,24 +238,14 @@
 
       virtualHosts."_" = {
         default = true;
-        locations."=/akash-health/" = {
-          alias = "/var/www/akash-health/";
-          extraConfig = ''
-            autoindex off;
-          '';
-        };
-        locations."=/akash-status/" = {
-          alias = "/var/www/akash-status/";
-          extraConfig = ''
-            autoindex off;
-          '';
-        };
-        # Root redirects to status page
-        locations."= /".return = "301 /akash-status/";
+        locations."= /".return = "200 'OK'";
+        locations."= /".extraConfig = ''
+          add_header Content-Type text/plain;
+        '';
       };
     };
 
-    xserver.videoDrivers = ["amdgpu"];
+    xserver.videoDrivers = [ "amdgpu" ];
 
     # MINING (CPU only - 4 threads = 25% of 16 cores)
     # Uses xmrig-proxy on Zephyr for centralized hashrate aggregation
@@ -276,13 +254,13 @@
     # RX 5600 XT reserved for AI inference (llamafile ROCm)
     mining = {
       xmrig = {
-        enable = false;  # Disabled - K8s xmrig-sentry deployment scaled to 0/0
+        enable = false; # Disabled - K8s xmrig-sentry deployment scaled to 0/0
         autostart = false;
         threads = 4;
         pool = "10.1.1.110:3333"; # xmrig-proxy on Zephyr
       };
       xmrigDual = {
-        enable = true;  # Enable for 1GB hugepages kernel params
+        enable = true; # Enable for 1GB hugepages kernel params
         alwaysOn = {
           enable = false;
         };
@@ -355,30 +333,7 @@
     # Note: /storage/garage directory still exists for local use
     garage-cluster.enable = false;
 
-    # Hermes Agent is now configured at top-level as services.hermes-agent
-  };
-
-  # ============================================================================
-  # HERMES AGENT - Multi-Host Orchestration
-  # ============================================================================
-  # Autonomous agent for cluster-wide task execution and coordination
-  services.hermes-agent = {
-    enable = true;
-    user = "j_kro";
-    sharedStorage = {
-      enable = true;
-      mountPoint = "/home/j_kro/.hermes";
-      nfsServer = "10.1.1.120"; # Nexus NFS server
-      nfsPath = "/mnt/garage/hermes";
-    };
-    aiGateway = {
-      enable = true;
-      url = "http://10.1.1.110:8081/v1"; # Zephyr AI Gateway (K8s hostNetwork port 8081)
-    };
-    terminal = {
-      enable = true;
-      requireApproval = false;
-    };
+    # Hermes Agent module removed (2026-04-06)
   };
 
   # ============================================================================
@@ -410,24 +365,26 @@
     ];
   };
 
-  systemd.tmpfiles.rules = let
-    rocmEnv = pkgs.symlinkJoin {
-      name = "rocm-combined";
-      paths = with pkgs.rocmPackages; [
-        clr
-        clr.icd
-        rocblas
-        hipblas
-        rpp
-      ];
-    };
-  in [
-    # Clean old etcd data directory before starting (NixOS-managed cleanup)
-    "R /var/lib/etcd - - - - -"
-    # ROCm symlinks
-    "L+ /opt/rocm - - - - ${rocmEnv}"
-    "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
-  ];
+  systemd.tmpfiles.rules =
+    let
+      rocmEnv = pkgs.symlinkJoin {
+        name = "rocm-combined";
+        paths = with pkgs.rocmPackages; [
+          clr
+          clr.icd
+          rocblas
+          hipblas
+          rpp
+        ];
+      };
+    in
+    [
+      # Clean old etcd data directory before starting (NixOS-managed cleanup)
+      "R /var/lib/etcd - - - - -"
+      # ROCm symlinks
+      "L+ /opt/rocm - - - - ${rocmEnv}"
+      "L+ /opt/rocm/hip - - - - ${pkgs.rocmPackages.clr}"
+    ];
 
   # ============================================================================
   # SECONDARY STORAGE (sda - 1TB SSD)
@@ -500,12 +457,6 @@
   };
 
   # Override specific secret permissions for mining service
-  age.secrets.xmrig-api-token = lib.mkForce {
-    file = "${inputs.self}/secrets/xmrig-api-token.age";
-    mode = "440";
-    owner = "mining";
-    group = "mining";
-  };
   # ============================================================================
   # LLAMAFILE - LLM INFERENCE SERVICE (AMD RX 5600 XT - Vulkan)
   # ============================================================================

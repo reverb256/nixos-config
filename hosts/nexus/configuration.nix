@@ -36,8 +36,9 @@
     ../../modules/security/aistor-secrets.nix
     ../../modules/services/podman-support.nix
 
-    # Kubernetes HA modules
-    ../../modules/services/kubernetes.nix
+    # Kubernetes
+    ../../modules/services/k3s-cluster.nix
+    # Keepalived VIP for HA API server access
     ../../modules/services/keepalived-vip.nix
 
     # Nix binary cache DISABLED
@@ -93,7 +94,7 @@
         }
       ];
       allowedUDPPorts = lib.mkOptionDefault [
-        8472 # Flannel VXLAN
+        8472 # VXLAN (Flannel or Calico)
       ];
     };
   };
@@ -128,39 +129,21 @@
   # SERVICES - All service configurations
   # ============================================================================
   systemd.tmpfiles.rules = [
-    # Clean old etcd data directory before starting (NixOS-managed cleanup)
+    # Clean old etcd data directory (standalone etcd removed — k3s uses embedded)
     "R /var/lib/etcd - - - - -"
   ];
 
   services = {
-    # KUBERNETES - HA Control Plane (Master + Worker)
-    kubernetes-module = {
+    # KUBERNETES - k3s control plane (joins existing cluster)
+    k3s-cluster = {
       enable = true;
-      # Control plane node (master + worker roles)
-      roles = [
-        "master"
-        "node"
-      ];
-      # Use VIP for HA access
-      masterAddress = lib.mkForce "10.1.1.100";
-      # Join existing 3-node etcd cluster
-      etcdInitialState = "existing";
-      etcdName = "nexus";
-      etcdListenHost = "10.1.1.120";
-      # All 3 etcd cluster members
-      etcdClusterMembers = [
-        "zephyr=http://10.1.1.110:2380"
-        "nexus=http://10.1.1.120:2380"
-        "sentry=http://10.1.1.140:2380"
-      ];
+      role = "server";
+      nodeName = "nexus";
+      serverAddr = "https://10.1.1.110:6443";
+      tokenFile = "/run/agenix/k3s-cluster-token";
+      nodeIP = "10.1.1.120";
+      nvidia.enable = true;
     };
-
-    # TEMPORARY: Using kubernetes-module's built-in etcd
-    # Will enable etcd-cluster module with TLS after verifying HA works
-    # etcd-cluster = {
-    #   enable = true;
-    #   nodeName = "nexus";
-    # };
 
     # Keepalived VIP for HA API server access
     keepalived-vip = {
@@ -522,35 +505,8 @@
       rpcSecret = "b048d5cc40c1ccbdc9232c3830fbf0a47257c1f68b1debfadab4e6d93c38165a";
     };
 
-    # Hermes Agent is now configured at top-level as services.hermes-agent
+    # Hermes Agent module removed (2026-04-06) - missing flake input made it undeletable
   };
-
-  # ============================================================================
-  # HERMES AGENT - Multi-Host Orchestration
-  # ============================================================================
-  # Autonomous agent for cluster-wide task execution and coordination
-  services.hermes-agent = {
-    enable = true;
-    user = "j_kro";
-    sharedStorage = {
-      enable = true;
-      mountPoint = "/home/j_kro/.hermes";
-      nfsServer = "10.1.1.120"; # Local NFS
-      nfsPath = "/mnt/garage/hermes";
-    };
-    aiGateway = {
-      enable = true;
-      url = "http://10.1.1.110:8081/v1"; # Zephyr AI Gateway (K8s hostNetwork port 8081)
-    };
-    terminal = {
-      enable = true;
-      requireApproval = false;
-    };
-  };
-
-  # ============================================================================
-  # TAILSCALE (No route advertising - zephyr handles that)
-  # ============================================================================
   # Host-specific override: Nexus does not advertise routes (zephyr handles that)
   # This overrides the base Tailscale configuration from node profile
   systemd.services.tailscaled.environment = {
@@ -608,32 +564,9 @@
   };
 
   # Override specific secret permissions for mining service
-  age.secrets.xmrig-always-api-token = lib.mkForce {
-    file = "${inputs.self}/secrets/xmrig-always-api-token.age";
-    mode = "440";
-    owner = "mining";
-    group = "mining";
-  };
-  age.secrets.xmrig-flexible-api-token = lib.mkForce {
-    file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
-    mode = "440";
-    owner = "mining";
-    group = "mining";
-  };
 
   # ============================================================================
   # NVIDIA CDI GENERATOR FIX
-  # ============================================================================
-  # Fix for nvidia-container-toolkit-cdi-generator service failure
-  # The generator outputs JSON to stdout but needs to be captured to file
-  # This override redirects stdout to /var/run/cdi/nvidia-container-toolkit.json
-  systemd.services.nvidia-container-toolkit-cdi-generator = {
-    serviceConfig.ExecStart = [
-      ""
-      "/nix/store/d1i12f1i7ycj8zj9pq3nxw2skyms5dl7-nvidia-cdi-generator/bin/nvidia-cdi-generator > /var/run/cdi/nvidia-container-toolkit.json"
-    ];
-  };
-
   # ============================================================================
   # UNBOUND DNS WITH DNS-OVER-TLS (Cluster-wide configuration)
   # ============================================================================
