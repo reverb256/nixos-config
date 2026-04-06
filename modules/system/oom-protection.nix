@@ -1,6 +1,11 @@
 # Critical Service OOM Protection
 # Protects essential services from being killed during memory pressure
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 {
   # Protect container runtime (already protected, but ensure it)
   systemd.services.containerd.serviceConfig.OOMPolicy = lib.mkForce "continue";
@@ -9,7 +14,10 @@
   systemd.services.docker.serviceConfig.OOMPolicy = lib.mkForce "continue";
 
   # CRITICAL: Protect kubelet (Kubernetes will stop without this!)
-  systemd.services.kubelet.serviceConfig.OOMPolicy = lib.mkForce "continue";
+  # k3s manages kubelet internally — use mkIf to avoid creating an orphaned unit
+  systemd.services.kubelet = lib.mkIf config.services.kubernetes.kubelet.enable {
+    serviceConfig.OOMPolicy = lib.mkForce "continue";
+  };
 
   # CRITICAL: Protect sshd (lose access without this!)
   systemd.services.sshd.serviceConfig.OOMPolicy = lib.mkForce "continue";
