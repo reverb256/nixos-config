@@ -1,46 +1,53 @@
 # Hyprland Module
 # Wayland compositor with Noctalia shell ecosystem
 # Can be used alongside Plasma 6 - choose in display manager
-{pkgs, ...}: {
-  # ============================================================================
-  # HYPRLAND WAYLAND COMPOSITOR
-  # ============================================================================
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
+let
+  cfg = config.programs.hyprland.enable;
+in
+{
   programs.hyprland = {
-    enable = true;
-    withUWSM = true; # uwsd-based session management
+    enable = lib.mkDefault false;
+    # UWSM provides: session management, auto-restart on crash, proper env setup
+    # This is the ONLY session we want — disable the raw hyprland.desktop
+    withUWSM = true;
   };
 
-  # ============================================================================
-  # HYPRLAND ECOSYSTEM
-  # ============================================================================
-  programs.hyprlock.enable = true; # Screen lock
+  # Only install ecosystem packages when Hyprland is enabled
+  config = lib.mkIf cfg {
+    programs.hyprlock.enable = true;
 
-  environment.systemPackages = with pkgs; [
-    # Desktop shell (bar, notifications, launcher, dock, wallpapers)
-    noctalia-shell
+    environment.systemPackages = with pkgs; [
+      # Desktop shell (bar, notifications, launcher, dock, wallpapers)
+      noctalia-shell
 
-    # Core Hyprland tools
-    hyprpicker # Color picker
-    hyprcursor # Custom cursor support
-    hyprlock # Screen locker
-    hyprsunset # Blue light filter
-    hyprpolkitagent # Polkit agent for Hyprland
+      # Core Hyprland tools
+      hyprpicker # Color picker
+      hyprcursor # Custom cursor support
+      hyprlock # Screen locker
+      hyprsunset # Blue light filter
+      hyprpolkitagent # Polkit agent for Hyprland
 
-    # Wayland utilities
-    wayvnc # VNC server for Wayland
+      # Wayland utilities
+      wayvnc # VNC server for Wayland
 
-    # Cursor theme
-    adwaita-icon-theme
-  ];
+      # Cursor theme
+      adwaita-icon-theme
+    ];
 
-  # ============================================================================
-  # NOTES
-  # ============================================================================
-  # To use Hyprland instead of Plasma, select the "Hyprland" session in SDDM.
-  #
-  # Your Plasma 6 setup remains available - just choose:
-  #   - "Plasma" session for KDE Plasma 6 Wayland
-  #   - "Hyprland" session for Hyprland Wayland
-  #
-  # Both use the same Wayland optimizations from nvidia-wayland.nix or amdgpu-wayland.nix
+    # Remove the raw hyprland.desktop — UWSM session is the only one we want
+    environment.pathsToLink = lib.mkForce [ "/share/wayland-sessions" ];
+  };
+
+  # NOTES:
+  # SDDM sessions after this module:
+  #   - Plasma (Wayland) — plasma.desktop
+  #   - Hyprland (UWSM) — hyprland-uwsm.desktop
+  #   - Niri — niri (from niri.nix)
+  # X11 Plasma (plasmax11.desktop) is disabled in desktop.nix
 }
