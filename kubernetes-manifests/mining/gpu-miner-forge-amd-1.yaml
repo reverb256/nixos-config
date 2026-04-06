@@ -1,6 +1,6 @@
 # GPU Miner for Forge - AMD GPU 1 (RX 5700 XT)
-# Uses NixOS-based container with same GLIBC as host - solves ABI incompatibility
-# Built-in AMD OpenCL/ROCm libraries - no external mounts needed
+# Uses Ubuntu 24.04 (glibc 2.39) + host NixOS mounts for OpenCL/ROCm libraries
+# See AMD_OPENCL_DEBUG_REPORT.md for the full debugging story
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -14,11 +14,14 @@ metadata:
     host: forge
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: gpu-miner-forge
       gpu-type: amd
       gpu-id: "1"
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
@@ -27,27 +30,15 @@ spec:
         gpu-id: "1"
         host: forge
     spec:
-      # schedulerName: yunikorn # DISABLED: Using default scheduler
       nodeName: forge
       hostNetwork: true
       serviceAccountName: gpu-miner-sa
       priorityClassName: mining-low
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            preference:
-              matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                - forge
-      tolerations:
       containers:
       - name: lolminer
-        image: docker.io/library/lolminer-amd:1.98a-nixos
-        imagePullPolicy: Never
-        command: ["/bin/lolMiner"]
+        image: docker.io/library/ubuntu:24.04
+        command:
+        - /nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/lolMiner
         args:
         - "--algo=CR29"
         - "--pool=xtm-c29-us.kryptex.network:8040"
@@ -60,7 +51,13 @@ spec:
         - "--tls=1"
         - "--devices=1"
         - "--apiport=4071"
-        - "--mode=b"
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/run/opengl-driver/lib"
+        # CRITICAL: trailing slash required! lolMiner has a path concatenation bug
+        # Without trailing slash: /etc/OpenCL/vendors + amdocl64.icd = /etc/OpenCL/vendorsamdocl64.icd (ENOENT)
+        - name: OCL_ICD_VENDORS
+          value: "/etc/OpenCL/vendors/"
         ports:
         - containerPort: 4071
           name: api
@@ -79,28 +76,44 @@ spec:
           timeoutSeconds: 5
         securityContext:
           privileged: true
-          seccompProfile:
-            type: Unconfined
         volumeMounts:
-        - name: dev
-          mountPath: /dev
         - name: dri
           mountPath: /dev/dri
+        - name: kfd
+          mountPath: /dev/kfd
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        - name: opengl-driver
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        # CRITICAL: Mount ICD from nix store, NOT from host's /etc/OpenCL/vendors/
+        # Host path contains dangling symlinks through /etc/static (NixOS-specific)
+        - name: opencl-icd
+          mountPath: /etc/OpenCL/vendors
+          readOnly: true
+        # No memory limits - lolMiner is statically linked (~250MB RSS)
+        # but /nix/store mount causes cgroup page accounting to OOM
         resources:
           requests:
-            memory: "2Gi"
+            memory: "512Mi"
             cpu: "500m"
-            amd.com/gpu: "1"
-            nvidia.com/gpu: "0"
           limits:
-            memory: "4Gi"
             cpu: "2"
-            amd.com/gpu: "1"
-            nvidia.com/gpu: "0"
       volumes:
-      - name: dev
-        hostPath:
-          path: /dev
       - name: dri
         hostPath:
           path: /dev/dri
+      - name: kfd
+        hostPath:
+          path: /dev/kfd
+      - name: nix-store
+        hostPath:
+          path: /nix/store
+      - name: opengl-driver
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: opencl-icd
+        hostPath:
+          path: /nix/store/6yvx83sa6iwhr6xnjjlfjg56jnki5mdn-clr-7.2.0-icd/etc/OpenCL/vendors
+          type: Directory
