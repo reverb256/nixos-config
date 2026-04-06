@@ -90,6 +90,20 @@ in
     users.j_kro
     hosts.zephyr
   ];
+  # Gemini API key - Google AI for onetool ground search
+  "gemini-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  # Exa API key - Web search engine for pi (1,000 searches/month free)
+  "exa-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+  "secrets/exa-api-key.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
   # Anthropic API key - Claude API for autoresearch skill optimization
   # "anthropic-api-key.age".publicKeys = [
   #   users.j_kro

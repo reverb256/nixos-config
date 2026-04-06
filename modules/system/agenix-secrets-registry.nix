@@ -136,6 +136,13 @@ in
           owner = "j_kro";
           group = "users";
         };
+        # Gemini API key - Google AI for onetool ground search
+        gemini-api-key = {
+          file = "${inputs.self}/secrets/gemini-api-key.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
         # OpenRouter API key - Multi-provider LLM routing (Hermes, Open WebUI)
         # DISABLED: secrets/openrouter-api-key.age does not exist
         # openrouter-api-key = {
@@ -202,22 +209,22 @@ in
         xmrig-api-token = {
           file = "${inputs.self}/secrets/xmrig-api-token.age";
           mode = "440";
-          owner = "root";
-          group = "root";
+          owner = "mining";
+          group = "mining";
         };
         # XMRig always-on instance API token
         xmrig-always-api-token = {
           file = "${inputs.self}/secrets/xmrig-always-api-token.age";
           mode = "440";
-          owner = "root";
-          group = "root";
+          owner = "mining";
+          group = "mining";
         };
         # XMRig flexible instance API token
         xmrig-flexible-api-token = {
           file = "${inputs.self}/secrets/xmrig-flexible-api-token.age";
           mode = "440";
-          owner = "root";
-          group = "root";
+          owner = "mining";
+          group = "mining";
         };
       })
       # Cloud Service Secrets
