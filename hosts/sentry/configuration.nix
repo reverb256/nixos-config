@@ -454,8 +454,8 @@
   services.agenix-secrets-registry = {
     enable = true;
     mining = true; # XMRig API token
+    kubernetes = true; # k3s cluster token
   };
-
   # Override specific secret permissions for mining service
   # ============================================================================
   # LLAMAFILE - LLM INFERENCE SERVICE (AMD RX 5600 XT - Vulkan)
