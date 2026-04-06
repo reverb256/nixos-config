@@ -122,7 +122,7 @@
     ./services/glitchtip-selfhosted.nix
     ./services/caddy.nix
     ./services/caddy-common.nix
-    ./services/caddy-ingress-common.nix
+    # caddy-ingress-common.nix removed — was dead code (comments only)
     ./services/nextcloud.nix
     ./services/service-gateway.nix
     ./services/host-dashboard.nix

@@ -5,10 +5,17 @@
   lib,
   pkgs,
   ...
-}: let
-  inherit (lib) mkEnableOption mkOption types mkIf;
+}:
+let
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    types
+    mkIf
+    ;
   cfg = config.clusterNetworking;
-in {
+in
+{
   options.clusterNetworking = {
     enable = mkEnableOption "Cluster networking configuration";
 
@@ -56,8 +63,8 @@ in {
 
       macAddresses = mkOption {
         type = types.listOf types.str;
-        default = [];
-        example = ["00:11:22:33:44:55"];
+        default = [ ];
+        example = [ "00:11:22:33:44:55" ];
         description = "MAC addresses of USB Ethernet adapters to configure with static IP";
       };
 
@@ -94,7 +101,11 @@ in {
       inherit (cfg) hostName;
 
       # DNS search domains for cluster
-      search = ["lan" "cluster.local" "tigris-ule.ts.net"];
+      search = [
+        "lan"
+        "cluster.local"
+        "tigris-ule.ts.net"
+      ];
 
       # Disable IPv6 - not used in cluster, reduces attack surface
       enableIPv6 = false;
@@ -107,68 +118,10 @@ in {
       # via connection profiles in /etc/NetworkManager/system-connections/
     };
 
-    # ============================================================================
-    # NETWORKMANAGER CONNECTION PROFILES
-    # ============================================================================
-    # NetworkManager will manage all connections with static IPs
-    environment.etc."NetworkManager/system-connections".source = pkgs.runCommand "nm-connections" { } ''
-        # Create directory structure for NetworkManager connections
-        mkdir -p $out
-        cd $out
-
-        # Wired Ethernet connection (primary, low metric = high priority)
-        cat > wired.nmconnection <<EOF
-        [connection]
-        id=wired
-        type=ethernet
-        interface-name=${cfg.interfaceName}
-        autoconnect=true
-
-        [ipv4]
-        method=manual
-        address1=${cfg.ipAddress}/24,10.1.1.1
-        route-metric=50
-
-        [ipv6]
-        method=disabled
-        EOF
-      '' + lib.optionalString (cfg.wireless.enable) ''
-        # WiFi connection (if enabled, higher metric = lower priority)
-        cat > wifi.nmconnection <<EOF
-        [connection]
-        id=wifi
-        type=wifi
-        interface-name=wlo1
-        autoconnect=true
-
-        [wifi]
-        ssid=Tigris-Guest
-        mode=infrastructure
-
-        [ipv4]
-        ${if cfg.wireless.ipAddress != null then "method=manual\naddress1=${cfg.wireless.ipAddress}/24,10.1.1.1" else "method=dhcp"}
-        route-metric=100
-
-        [ipv6]
-        method=disabled
-        EOF
-      '' + lib.optionalString cfg.usbEthernet.enable ''
-        # USB Ethernet connections (if enabled, very low priority)
-        cat > usb-ethernet.nmconnection <<EOF
-        [connection]
-        id=usb-ethernet
-        type=ethernet
-        autoconnect=true
-
-        [ipv4]
-        method=manual
-        address1=${if cfg.usbEthernet.ipAddress != null then cfg.usbEthernet.ipAddress else cfg.ipAddress}/24,10.1.1.1
-        route-metric=200
-
-        [ipv6]
-        method=disabled
-        EOF
-      '';
+    # NOTE: NetworkManager connection profiles managed directly by NM
+    # (via nmcli or /etc/NetworkManager/system-connections/*.nmconnection files)
+    # Do NOT use environment.etc."system-connections" — it creates a symlink that
+    # conflicts with user-created .nmconnection files and breaks on every switch.
 
     # ============================================================================
     # SYSTEMD-NETWORKD CONFIGURATION (DISABLED - using NetworkManager instead)
@@ -177,7 +130,9 @@ in {
     systemd.network.links = {
       # Disable interface renaming - keep kernel names (enp*, wlp*, enx*)
       "10-keep-names" = {
-        matchConfig = { OriginalName = "*"; };
+        matchConfig = {
+          OriginalName = "*";
+        };
         linkConfig = {
           NamePolicy = "keep";
         };
@@ -210,7 +165,7 @@ in {
     # ============================================================================
     # NETWORKMANAGER DNS CONFIGURATION
     # ============================================================================
-    networking.networkmanager.dns = "default";  # Don't override with DHCP
+    networking.networkmanager.dns = "default"; # Don't override with DHCP
     # DNS servers will be configured via NetworkManager connection profiles
 
     # ============================================================================
@@ -221,23 +176,23 @@ in {
       enable = true;
       # Base ports - K8s API (6443) restricted to Tailscale only (see below)
       allowedTCPPorts = lib.mkOptionDefault [
-        53    # DNS (Unbound)
-        22    # SSH
+        53 # DNS (Unbound)
+        22 # SSH
         10250 # Kubelet API (required for kubectl exec/logs, Calico health checks)
-        6443  # Kubernetes API server (CRITICAL: Must be accessible via LAN for cluster communication)
+        6443 # Kubernetes API server (CRITICAL: Must be accessible via LAN for cluster communication)
       ];
       allowedUDPPorts = lib.mkOptionDefault [
         53 # DNS (Unbound)
         41641 # Tailscale coordination server
       ];
-      # Allow Kubernetes pod network to reach Unbound DNS
-      extraCommands = ''
-        iptables -A nixos-fw -s 10.244.0.0/16 -p udp --dport 53 -j nixos-fw-accept
-        iptables -A nixos-fw -s 10.244.0.0/16 -p tcp --dport 53 -j nixos-fw-accept
+      # Allow Kubernetes pod network to reach Unbound DNS (nftables syntax)
+      extraInputRules = ''
+        ip saddr 10.244.0.0/16 udp dport 53 accept
+        ip saddr 10.244.0.0/16 tcp dport 53 accept
       '';
       # SECURITY: Kubernetes API accessible via Tailscale VPN only
-      # This reduces exposure to local network and provides encrypted access
-      interfaces."tailscale0".allowedTCPPorts = [6443];
+      # Note: cluster-firewall.nix also allows 6443 from cluster LAN
+      interfaces."tailscale0".allowedTCPPorts = [ 6443 ];
     };
   };
 }
