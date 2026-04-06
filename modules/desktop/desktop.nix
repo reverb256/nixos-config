@@ -4,7 +4,8 @@
   pkgs,
   lib,
   ...
-}: let
+}:
+let
   # Monitor Setup Script - Auto-configures displays based on what's connected
   monitorSetupScript = pkgs.writeShellApplication {
     name = "plasma-monitor-setup";
@@ -88,7 +89,8 @@
       log "=== Completed ==="
     '';
   };
-in {
+in
+{
   # ============================================================================
   # SERVICES - Plasma 6, PipeWire, Bluetooth, Display
   # ============================================================================
@@ -151,8 +153,12 @@ in {
     blueman.enable = true;
   };
 
-  # Add KDE xdg-desktop-portal when Plasma is enabled
-  xdg.portal.extraPortals = with pkgs; [pkgs.kdePackages.xdg-desktop-portal-kde];
+  # KDE portal — scoped to Plasma via xdg.portal.config.kde
+  # Only active when XDG_CURRENT_DESKTOP=KDE (Plasma session)
+  xdg.portal = {
+    extraPortals = with pkgs; [ pkgs.kdePackages.xdg-desktop-portal-kde ];
+    config.kde.default = [ "kde" ];
+  };
 
   # ============================================================================
   # HARDWARE - Bluetooth
@@ -204,7 +210,7 @@ in {
       # Qt6 Multimedia: Force PipeWire backend and fix library resolution
       # Fixes "qt.multimedia.symbolsresolver: Couldn't load pipewire-0.3 library"
       QT_MEDIA_BACKEND = "pipewire";
-      LD_LIBRARY_PATH = lib.mkBefore ["/run/current-system/sw/lib/pipewire-0.3"];
+      LD_LIBRARY_PATH = lib.mkBefore [ "/run/current-system/sw/lib/pipewire-0.3" ];
 
       # Qt/Wayland settings (nvidia-wayland.nix may override QT_QPA_PLATFORM)
       QT_QPA_PLATFORM = lib.mkOptionDefault "wayland;xcb";
@@ -212,8 +218,9 @@ in {
       QT_QPA_GL_VERSION = "2";
 
       # KWin DRM settings for multi-GPU systems
-      KWIN_DRM_DEVICE = "/dev/dri/card0";
-      KWIN_DRM_PRIMARY = "1";
+      # NOTE: Do NOT set KWIN_DRM_DEVICE (singular) — it overrides KWIN_DRM_DEVICES
+      # and card0 doesn't exist on this system (cards start at card1).
+      # plasma6.nix handles KWIN_DRM_DEVICES correctly.
     };
 
     systemPackages = with pkgs.kdePackages; [
