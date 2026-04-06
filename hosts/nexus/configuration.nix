@@ -561,6 +561,7 @@
     enable = true;
     mining = true; # XMRig API tokens
     storage = true; # Garage S3 cluster (Nexus is a storage node)
+    kubernetes = true; # k3s cluster token
   };
 
   # Override specific secret permissions for mining service
