@@ -4,7 +4,8 @@
   pkgs,
   config,
   ...
-}: {
+}:
+{
   # ============================================================================
   # NETWORKING - NetworkManager, DHCP, hosts, DNS, firewall
   # ============================================================================
@@ -18,10 +19,10 @@
 
     # CLUSTER HOSTS ENTRIES (Shared across all nodes)
     hosts = {
-      "10.1.1.110" = ["zephyr"];
-      "10.1.1.120" = ["nexus"];
-      "10.1.1.130" = ["forge"];
-      "10.1.1.140" = ["sentry"];
+      "10.1.1.110" = [ "zephyr" ];
+      "10.1.1.120" = [ "nexus" ];
+      "10.1.1.130" = [ "forge" ];
+      "10.1.1.140" = [ "sentry" ];
     };
 
     # ANALYTICS & TELEMETRY BLOCKLIST
@@ -68,8 +69,8 @@
       enable = true;
       # Base allowed ports - all hosts get these
       allowedTCPPorts = lib.mkOptionDefault [
-        22    # SSH (essential for cluster management)
-        6443  # Kubernetes API server (critical for cluster communication)
+        22 # SSH (essential for cluster management)
+        6443 # Kubernetes API server (critical for cluster communication)
       ];
       allowedUDPPorts = lib.mkOptionDefault [
         60001
@@ -79,40 +80,8 @@
         60005
       ]; # Mosh (UDP range start)
       # Additional ports can be added per-host in hosts/*/default.nix
-
-      # CRITICAL: Insert ICMP and loopback rules BEFORE Calico/Kubernetes chains
-      # Calico inserts its chains at the top, blocking ICMP by default
-      # These extraCommands run AFTER NixOS builds the firewall, ensuring our rules are on top
-      extraCommands = ''
-        # Allow ICMP echo requests (ping) - insert at rule #1
-        # Use || true to fail gracefully if rules already exist
-        iptables -C INPUT -p icmp --icmp-type echo-request -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -p icmp --icmp-type echo-request -j ACCEPT || true
-
-        # Allow loopback interface - insert at rule #1 (pushes ICMP to #2)
-        # Check if rule exists before adding to avoid duplicates
-        iptables -C INPUT -i lo -j ACCEPT 2>/dev/null || iptables -I INPUT 1 -i lo -j ACCEPT || true
-
-        # CRITICAL: Allow DNS traffic (prevent Calico/K8s from blocking DNS)
-        # Allow DNS queries TO Unbound (destination port 53)
-        iptables -C INPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 3 -p udp --dport 53 -j ACCEPT || true
-        iptables -C INPUT -p tcp --dport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 4 -p tcp --dport 53 -j ACCEPT || true
-
-        # Allow outbound DNS queries
-        iptables -C OUTPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || iptables -I OUTPUT 1 -p udp --dport 53 -j ACCEPT || true
-        iptables -C OUTPUT -p udp --dport 853 -j ACCEPT 2>/dev/null || iptables -I OUTPUT 2 -p udp --dport 853 -j ACCEPT || true
-
-        # Allow DNS responses
-        iptables -C INPUT -p udp --sport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 5 -p udp --sport 53 -j ACCEPT || true
-        iptables -C INPUT -p udp --sport 853 -j ACCEPT 2>/dev/null || iptables -I INPUT 6 -p udp --sport 853 -j ACCEPT || true
-        iptables -C INPUT -p tcp --sport 53 -j ACCEPT 2>/dev/null || iptables -I INPUT 7 -p tcp --sport 53 -j ACCEPT || true
-        iptables -C INPUT -p tcp --sport 853 -j ACCEPT 2>/dev/null || iptables -I INPUT 8 -p tcp --sport 853 -j ACCEPT || true
-
-        # Allow DNS through Calico chains (if Calico is active)
-        iptables -C cali-INPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || iptables -I cali-INPUT 1 -p udp --dport 53 -j ACCEPT 2>/dev/null || true
-        iptables -C cali-INPUT -p udp --sport 53 -j ACCEPT 2>/dev/null || iptables -I cali-INPUT 2 -p udp --sport 53 -j ACCEPT 2>/dev/null || true
-        iptables -C cali-INPUT -p tcp --dport 53 -j ACCEPT 2>/dev/null || iptables -I cali-INPUT 3 -p tcp --dport 53 -j ACCEPT 2>/dev/null || true
-        iptables -C cali-INPUT -p tcp --sport 53 -j ACCEPT 2>/dev/null || iptables -I cali-INPUT 4 -p tcp --sport 53 -j ACCEPT 2>/dev/null || true
-      '';
+      # Note: ICMP (ping), loopback, and DNS are handled by the nftables
+      # firewall backend automatically. No extraCommands needed.
     };
   };
 
@@ -230,7 +199,7 @@
     };
   };
   # Don't require systemd-networkd-wait-online for network-online.target
-  systemd.targets.network-online.wantedBy = lib.mkForce ["network-online.target"];
+  systemd.targets.network-online.wantedBy = lib.mkForce [ "network-online.target" ];
 
   # ============================================================================
   # DNS SELF-HEALING

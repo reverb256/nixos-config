@@ -53,8 +53,8 @@
     ../../modules/hardware/rgb-control.nix
     ../../modules/system/security.nix
     ../../modules/services/podman-support.nix
-    # Kubernetes worker node (opt-in)
-    ../../modules/services/kubernetes.nix
+    # Kubernetes worker node
+    ../../modules/services/k3s-cluster.nix
   ];
 
   # NETWORKING CONFIGURATION
@@ -100,7 +100,7 @@
         }
       ];
       allowedUDPPorts = lib.mkOptionDefault [
-        8472 # Flannel VXLAN
+        8472 # VXLAN (Flannel or Calico)
       ];
     };
   };
@@ -128,8 +128,18 @@
   services = {
     # Crash detection and logging
     # services.crash-watchdog.enable = true; # Module not available yet
-    # Kubernetes worker configuration provided by node-profiles.forge-mining
-    # No need to duplicate here
+
+    # KUBERNETES - k3s agent (worker only)
+    k3s-cluster = {
+      enable = true;
+      role = "agent";
+      nodeName = "forge";
+      serverAddr = "https://10.1.1.110:6443";
+      tokenFile = "/run/agenix/k3s-cluster-token";
+      nodeIP = "10.1.1.130";
+      nvidia.enable = true;
+    };
+
     # Spotify with SpotX patch (ad-free, premium features)
     spotify-spotx.enable = true;
     # OpenCode - AI coding assistant configuration

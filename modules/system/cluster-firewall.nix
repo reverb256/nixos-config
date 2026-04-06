@@ -2,9 +2,9 @@
 # Restricts sensitive services to cluster LAN (10.1.1.0/24) + Tailscale only
 # Prevents accidental exposure to WAN interfaces
 #
-# Uses iptables-compat syntax (extraCommands/extraStopCommands).
-# Another agent is migrating to native nftables — this module will be
-# updated as part of that migration.
+# Uses NixOS nftables firewall backend (networking.nftables.enable = true).
+# Rules use extraInputRules with native nftables syntax.
+# extraCommands/extraStopCommands are INCOMPATIBLE with nftables backend.
 {
   config,
   lib,
@@ -15,41 +15,39 @@ let
   clusterSubnet = "10.1.1.0/24";
 in
 {
+  # Enable nftables as the firewall backend.
+  # This causes networking.firewall.backend to auto-select "nftables".
+  networking.nftables.enable = true;
+
   # ============================================================================
-  # CLUSTER SUBNET FIREWALL RULES (iptables-compat syntax)
+  # CLUSTER SUBNET FIREWALL RULES (nftables syntax)
   # ============================================================================
   # These rules restrict sensitive services to the cluster LAN and Tailscale.
-  # Appended to the nixos-fw chain after default NixOS firewall rules.
-  # NOTE: These will be migrated to native nftables rules as part of the
-  # nftables migration.
-  networking.firewall.extraCommands = ''
+  # Appended to the input-allow chain after default NixOS firewall rules.
+  networking.firewall.extraInputRules = mkAfter ''
     # --- K8s API Server (6443) ---
-    iptables -A nixos-fw -s ${clusterSubnet} -p tcp --dport 6443 -j ACCEPT
-    iptables -A nixos-fw -i tailscale0 -p tcp --dport 6443 -j ACCEPT
+    ip saddr { ${clusterSubnet} } tcp dport 6443 accept
+    iifname "tailscale0" tcp dport 6443 accept
 
     # --- Kubelet API (10250) ---
-    iptables -A nixos-fw -s ${clusterSubnet} -p tcp --dport 10250 -j ACCEPT
-    iptables -A nixos-fw -i tailscale0 -p tcp --dport 10250 -j ACCEPT
+    ip saddr { ${clusterSubnet} } tcp dport 10250 accept
+    iifname "tailscale0" tcp dport 10250 accept
 
     # --- etcd (2379, 2380) ---
-    iptables -A nixos-fw -s ${clusterSubnet} -p tcp -m multiport --dports 2379,2380 -j ACCEPT
+    ip saddr { ${clusterSubnet} } tcp dport { 2379, 2380 } accept
 
     # --- NFS services ---
-    iptables -A nixos-fw -s ${clusterSubnet} -p tcp -m multiport --dports 2049,111,20048 -j ACCEPT
-    iptables -A nixos-fw -s ${clusterSubnet} -p udp -m multiport --dports 2049,111,20048 -j ACCEPT
+    ip saddr { ${clusterSubnet} } tcp dport { 2049, 111, 20048 } accept
+    ip saddr { ${clusterSubnet} } udp dport { 2049, 111, 20048 } accept
 
     # --- CNI VXLAN ---
-    iptables -A nixos-fw -s ${clusterSubnet} -p udp -m multiport --dports 8472,4789 -j ACCEPT
+    ip saddr { ${clusterSubnet} } udp dport { 8472, 4789 } accept
 
     # --- Calico BGP + Typha ---
-    iptables -A nixos-fw -s ${clusterSubnet} -p tcp -m multiport --dports 179,5473 -j ACCEPT
+    ip saddr { ${clusterSubnet} } tcp dport { 179, 5473 } accept
 
     # --- Mining ports ---
-    iptables -A nixos-fw -s ${clusterSubnet} -p tcp -m multiport --dports 3333,3334 -j ACCEPT
-    iptables -A nixos-fw -s ${clusterSubnet} -p udp --dport 3333 -j ACCEPT
-  '';
-
-  networking.firewall.extraStopCommands = ''
-    iptables -F nixos-fw-submodule-cluster 2>/dev/null || true
+    ip saddr { ${clusterSubnet} } tcp dport { 3333, 3334 } accept
+    ip saddr { ${clusterSubnet} } udp dport 3333 accept
   '';
 }

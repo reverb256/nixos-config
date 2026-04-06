@@ -8,9 +8,11 @@
   config,
   lib,
   ...
-}: let
+}:
+let
   cfg = config.services.nixos-share;
-in {
+in
+{
   options.services.nixos-share = {
     enable = lib.mkEnableOption "NixOS configuration sharing";
 
@@ -18,7 +20,11 @@ in {
       enable = lib.mkEnableOption "NFS server for sharing /etc/nixos";
       allowedHosts = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = ["10.1.1.120" "10.1.1.130" "10.1.1.140"]; # nexus, forge, sentry (local network)
+        default = [
+          "10.1.1.120"
+          "10.1.1.130"
+          "10.1.1.140"
+        ]; # nexus, forge, sentry (local network)
         description = "IP addresses allowed to mount the NFS share";
       };
     };
@@ -43,23 +49,21 @@ in {
     # Server exports /etc/nixos (source of truth)
     services.nfs.server = lib.mkIf cfg.server.enable {
       enable = true;
-      exports =
-        lib.concatMapStringsSep "\n" (host: ''
-          /etc/nixos ${host}(ro,no_subtree_check,no_root_squash,async,nohide,insecure)
-        '')
-        cfg.server.allowedHosts;
+      exports = lib.concatMapStringsSep "\n" (host: ''
+        /etc/nixos ${host}(ro,no_subtree_check,no_root_squash,async,nohide,insecure)
+      '') cfg.server.allowedHosts;
     };
 
     # Firewall rules to allow NFS traffic from allowed hosts
     networking.firewall = lib.mkIf cfg.server.enable {
-      allowedTCPPorts = lib.mkOptionDefault [111 2049 20048];
-      extraCommands =
-        lib.concatMapStringsSep "\n" (host: ''
-          iptables -I nixos-fw -p tcp -s ${host} --dport 111 -j ACCEPT
-          iptables -I nixos-fw -p tcp -s ${host} --dport 2049 -j ACCEPT
-          iptables -I nixos-fw -p tcp -s ${host} --dport 20048 -j ACCEPT
-        '')
-        cfg.server.allowedHosts;
+      allowedTCPPorts = lib.mkOptionDefault [
+        111
+        2049
+        20048
+      ];
+      extraInputRules = lib.concatMapStringsSep "\n" (host: ''
+        ip saddr ${host} tcp dport { 111, 2049, 20048 } accept
+      '') cfg.server.allowedHosts;
     };
 
     # NFS Client configuration (for remote hosts)
@@ -75,7 +79,17 @@ in {
         # - nofail: Don't fail boot if mount unavailable
         # - bg: Background mount if foreground fails
         # - x-systemd.mount-timeout=10s: Systemd gives up after 10s
-        options = ["ro" "noatime" "soft" "timeo=50" "retrans=2" "_netdev" "nofail" "bg" "x-systemd.mount-timeout=10s"];
+        options = [
+          "ro"
+          "noatime"
+          "soft"
+          "timeo=50"
+          "retrans=2"
+          "_netdev"
+          "nofail"
+          "bg"
+          "x-systemd.mount-timeout=10s"
+        ];
       };
     };
 
