@@ -65,11 +65,11 @@ in
       map (s: {
         name = "getty@${s.tty}";
         value = {
-          overrideStrategy = "asDropin";
+          # Don't use asDropin — dropins merge with the base unit, keeping
+          # the original ExecStart alongside ours (systemd rejects multiple
+          # ExecStart= for non-oneshot types). A full replacement overrides it.
           serviceConfig = {
-            ExecStart = lib.mkForce (
-              "/run/current-system/sw/bin/agetty" + " --autologin ${user}" + " --noclear ${s.tty} linux"
-            );
+            ExecStart = "${pkgs.util-linux}/bin/agetty --autologin ${user} --noclear ${s.tty} linux";
             Restart = "no";
             Type = "idle";
           };
