@@ -79,16 +79,11 @@ in
       __GL_VRR_ALLOWED = "0";
       # Additional variables for NVIDIA EGL and NVENC
       NVD_BACKEND = "direct";
-      # NOTE: __NV_PRIME_RENDER_OFFLOAD removed - not needed for dual dGPU desktop
-      # PRIME offload is for laptops with iGPU+dGPU hybrid. This system has
-      # two discrete GPUs (RTX 3060 Ti + RTX 3090) and NO iGPU.
-      # Setting this=1 caused software rendering fallback across all games.
       # Disable sync to vblank for stability
       __GL_SYNC_TO_VBLANK = "0";
       # VRChat/SteamVR specific variables
       # SDL_VIDEODRIVER = "wayland";  # REMOVED: Causes Steam Vulkan init failure
       # SDL auto-detects best backend; Steam client needs XWayland fallback
-      WINEPREFIX = "$HOME/.wine";
     };
 
     # ADDITIONAL WAYLAND PACKAGES
@@ -117,6 +112,12 @@ in
       kernelParams = [
         # Enable NVIDIA DRM modeset (required for Wayland)
         "nvidia-drm.modeset=1"
+        # Enable NVIDIA framebuffer device (prevents NVKMS import failures
+        # and GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT on multi-GPU)
+        "nvidia-drm.fbdev=1"
+        # Disable NVIDIA dynamic power management on multi-GPU desktop
+        # Prevents NVKMS memory import errors when secondary GPU sleeps
+        "nvidia.NVreg_DynamicPowerManagement=0x00"
       ];
       # EARLY NVIDIA LOADING - Fix race condition with simple-framebuffer
       # Load NVIDIA modules in initramfs before simple-framebuffer claims displays

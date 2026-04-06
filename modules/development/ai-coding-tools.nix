@@ -904,7 +904,8 @@ in
     # Ensure required directories exist
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user}/.factory 0700 ${cfg.user} users -"
-      "d /home/${cfg.user}/.factory/mcp.json 0600 ${cfg.user} users -"
+      # Note: .factory/mcp.json is created as a FILE by the activation script,
+      # NOT as a directory. Do NOT add a 'd' tmpfiles rule for it.
       "d /home/${cfg.user}/.config/claude 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.config/crush 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.config/crush/commands 0755 ${cfg.user} users -"
@@ -949,49 +950,49 @@ in
           "/home/${cfg.user}/.pi"
         ];
         ExecStart = pkgs.writeShellScript "ai-coding-tools-generate" ''
-          set -euo pipefail
-          # Wait for secrets to be available
-          for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile}; do
-            for i in {1..30}; do
-              if [ -f "$secret" ] && [ -s "$secret" ]; then
-                break
-              fi
-              if [ "$i" -eq 30 ]; then
-                echo "[ai-coding-tools] WARNING: Secret not available: $secret"
-              fi
-              sleep 1
-            done
-          done
-          export ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
-    ZAI_API_KEY="$(cat $ZAI_KEY_PATH 2>/dev/null || echo)"
-          export CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
-    CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH 2>/dev/null || echo)"
-          export NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
-    NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
-          echo "[ai-coding-tools] Generating harmonized MCP configs..."
-          ${optionalString cfg.tools.droid.enable ''
-            echo "[ai-coding-tools] Generating Droid settings..."
-            ${mkDroidSettings}
-            echo "[ai-coding-tools] Generating Droid MCP config..."
-            ${mkDroidMcpJson}
-          ''}
-          ${optionalString cfg.tools.claude.enable ''
-            echo "[ai-coding-tools] Generating Claude Code config..."
-            ${mkClaudeMcpJson}
-          ''}
-          ${optionalString cfg.tools.crush.enable ''
-            echo "[ai-coding-tools] Generating Crush config..."
-            ${mkCrushConfig}
-          ''}
-          ${optionalString cfg.tools.opencode.enable ''
-            echo "[ai-coding-tools] Generating OpenCode config..."
-            ${mkOpencodeConfig}
-          ''}
-          ${optionalString cfg.tools.pi.enable ''
-            echo "[ai-coding-tools] Generating Pi config..."
-            ${mkPiConfig}
-          ''}
-          echo "[ai-coding-tools] All configs generated successfully"
+                set -euo pipefail
+                # Wait for secrets to be available
+                for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile}; do
+                  for i in {1..30}; do
+                    if [ -f "$secret" ] && [ -s "$secret" ]; then
+                      break
+                    fi
+                    if [ "$i" -eq 30 ]; then
+                      echo "[ai-coding-tools] WARNING: Secret not available: $secret"
+                    fi
+                    sleep 1
+                  done
+                done
+                export ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
+          ZAI_API_KEY="$(cat $ZAI_KEY_PATH 2>/dev/null || echo)"
+                export CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
+          CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH 2>/dev/null || echo)"
+                export NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
+          NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
+                echo "[ai-coding-tools] Generating harmonized MCP configs..."
+                ${optionalString cfg.tools.droid.enable ''
+                  echo "[ai-coding-tools] Generating Droid settings..."
+                  ${mkDroidSettings}
+                  echo "[ai-coding-tools] Generating Droid MCP config..."
+                  ${mkDroidMcpJson}
+                ''}
+                ${optionalString cfg.tools.claude.enable ''
+                  echo "[ai-coding-tools] Generating Claude Code config..."
+                  ${mkClaudeMcpJson}
+                ''}
+                ${optionalString cfg.tools.crush.enable ''
+                  echo "[ai-coding-tools] Generating Crush config..."
+                  ${mkCrushConfig}
+                ''}
+                ${optionalString cfg.tools.opencode.enable ''
+                  echo "[ai-coding-tools] Generating OpenCode config..."
+                  ${mkOpencodeConfig}
+                ''}
+                ${optionalString cfg.tools.pi.enable ''
+                  echo "[ai-coding-tools] Generating Pi config..."
+                  ${mkPiConfig}
+                ''}
+                echo "[ai-coding-tools] All configs generated successfully"
         '';
       };
     };
