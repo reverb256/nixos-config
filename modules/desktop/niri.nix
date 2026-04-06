@@ -1,10 +1,10 @@
 # Niri Module - Companion configuration for sodiboo/niri-flake
 # The flake provides programs.niri.enable, programs.niri.settings, etc.
-# This module adds: portal backend, Noctalia shell, NVIDIA support, systemd services
+# This module adds: portal backend, NVIDIA support, systemd services
 #
 # Usage: programs.niri.enable = true; (from niri-flake)
-#        This module activates automatically when programs.niri is enabled.
-# Coexists with Plasma 6 - choose "Niri" or "Plasma" in SDDM.
+#        This module activates automatically when programs.niri does.
+# Shared packages (noctalia-shell, cliphist, etc.) live in wayland-compositor-common.nix
 {
   config,
   lib,
@@ -29,16 +29,16 @@ in
       description = "Additional packages to install alongside niri";
     };
   };
+
   config = mkMerge [
-    # Enable niri on all hosts by default (can be overridden per-host)
-    # WARNING: This only makes niri AVAILABLE in SDDM - it should NOT apply
-    #          environment variables or services unless niri is actually selected!
+    # Default: niri available but not active
     { programs.niri.enable = lib.mkOptionDefault false; }
-    # Companion config only when niri is ACTUALLY ENABLED by the user
+
+    # Companion config only when niri is ACTUALLY ENABLED
     (mkIf niriEnabled (
       lib.mkMerge [
 
-        # BINARY CACHES - Avoid building niri and noctalia from source
+        # ── BINARY CACHES ──────────────────────────────────────────────
 
         {
           nix.settings = {
@@ -53,12 +53,15 @@ in
           };
         }
 
-        # XDG DESKTOP PORTAL - Per-compositor backend isolation
+        # ── XDG DESKTOP PORTAL ─────────────────────────────────────────
+        # Route portal requests to correct backend when Niri is running.
+        # xdg.portal.config.<desktop> only applies when XDG_CURRENT_DESKTOP
+        # matches, so this doesn't interfere with Plasma or Hyprland sessions.
 
         {
           xdg.portal = {
             enable = mkDefault true;
-            # Niri-specific portal routing
+            # Niri-specific portal routing (only active in Niri session)
             config.niri = {
               default = [
                 "gnome"
@@ -69,40 +72,34 @@ in
               "org.freedesktop.impl.portal.Notification" = "gtk";
               "org.freedesktop.impl.portal.Secret" = "gnome-keyring";
             };
+            # gnome portal provides ScreenCast/Screenshot/RemoteDesktop
+            # for wlroots compositors without their own portal.
+            # Scoped via config.niri above — only used in niri sessions.
             extraPortals = mkDefault [ pkgs.xdg-desktop-portal-gnome ];
           };
-          services.gnome.gnome-keyring.enable = mkDefault true;
-          services.gnome.gcr-ssh-agent.enable = mkDefault false;
         }
 
-        # COMPANION TOOLS - Noctalia shell + utilities
-
-        # Noctalia-shell replaces: waybar (bar), mako (notifications), fuzzel (launcher)
-        # It also handles: wallpapers, dock, session menu, media controls, volume OSD
+        # ── NIRI-ONLY PACKAGES ─────────────────────────────────────────
+        # Shared packages (noctalia-shell, cliphist, wf-recorder,
+        # adwaita-icon-theme) moved to wayland-compositor-common.nix
 
         {
           environment.systemPackages = [
-            # Desktop shell (bar, notifications, launcher, dock, wallpapers)
-            pkgs.noctalia-shell
             # Screen locker
             pkgs.swaylock
             # Idle management (auto-lock, screen off)
             pkgs.swayidle
-            # Polkit authentication agent
+            # Polkit authentication agent (niri-specific, not hyprpolkitagent)
             pkgs.polkit_gnome
-            # Screen recording
-            pkgs.wf-recorder
-            # Clipboard manager (noctalia clipboard integration)
-            pkgs.cliphist
             # X11 app support (niri uses xwayland-satellite, not xwayland)
             pkgs.xwayland-satellite
-            # Cursor theme (matches xcursor-theme "Adwaita" in niri settings)
-            pkgs.adwaita-icon-theme
           ]
           ++ config.desktop.niri.extraPackages;
         }
 
-        # ENVIRONMENT - Wayland/Qt compat (session-scoped, no Plasma conflict)
+        # ── ENVIRONMENT ────────────────────────────────────────────────
+        # Global vars: safe defaults identical across all compositors
+        # Niri-specific vars: scoped via UWSM env file (no leaks to Plasma/Hyprland)
 
         {
           environment.sessionVariables = {
@@ -111,34 +108,44 @@ in
             MOZ_ENABLE_WAYLAND = mkDefault "1";
             QT_QPA_PLATFORM = mkDefault "wayland;xcb";
             QT_AUTO_SCREEN_SCALE_FACTOR = mkDefault "1";
-            QT_WAYLAND_DISABLE_WINDOWDECORATION = mkDefault "1";
           };
         }
 
-        # NVIDIA - Multi-GPU support (Zephyr: 2x NVIDIA)
+        # ── NVIDIA + NIRI-SCOPED ENV (UWSM) ───────────────────────────
+        # DesktopNames=niri → uwsm sources /etc/uwsm/env-niri
+        # MUST NOT leak to Plasma (KWin handles its own GPU routing)
 
-        (lib.mkIf (config.hardware.nvidia.enable or false) {
-          environment.sessionVariables = {
-            VK_ICD_FILENAMES = mkDefault "/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.x86_64.json";
-            GBM_BACKEND = mkDefault "nvidia-drm";
-            LIBVA_DRIVER_NAME = mkDefault "nvidia";
-            __GLX_VENDOR_LIBRARY_NAME = mkDefault "nvidia";
-            WLR_NO_HARDWARE_CURSORS = mkDefault "1";
-            NVD_BACKEND = mkDefault "direct";
+        {
+          environment.etc."uwsm/env-niri" = {
+            text = ''
+              # Niri-specific: disable client-side decorations (Niri draws its own)
+              export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+            '';
           };
-        })
+        }
 
-        # SYSTEMD USER SERVICES - Auto-started in niri session
+        # ── SYSTEMD USER SERVICES ──────────────────────────────────────
+        # Pattern from UWSM example-units/waybar.service:
+        #   - WantedBy=graphical-session.target (standard session target)
+        #   - ExecCondition filters by XDG_CURRENT_DESKTOP to scope per-compositor
+        #   - After=graphical-session.target for proper ordering
+        # This avoids hardcoding systemd unit template names like
+        #   wayland-session@niri.desktop.target
+        # which change if the desktop entry ID changes.
 
         {
           systemd.user.services = {
             polkit-gnome-authentication-agent-1 = {
-              description = "Polkit Authentication Agent";
-              wantedBy = [ "niri.service" ];
+              description = "Polkit Authentication Agent (Niri)";
+              wantedBy = [ "graphical-session.target" ];
+              after = [ "graphical-session.target" ];
               serviceConfig = {
                 Type = "simple";
+                # Only start when XDG_CURRENT_DESKTOP contains "niri"
+                ExecCondition = "${pkgs.systemd}/lib/systemd/systemd-xdg-autostart-condition niri ''";
                 ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
                 Restart = "on-failure";
+                Slice = "session-graphical.slice";
               };
             };
           };

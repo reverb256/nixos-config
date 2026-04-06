@@ -8,6 +8,12 @@
 #
 # All managed by UWSM for consistent session handling.
 # Switch between sessions with Ctrl+Alt+F1/F2/F3.
+#
+# Per-compositor env files managed by:
+#   niri.nix     → /etc/uwsm/env-niri (Qt window decorations)
+#   hyprland.nix → /etc/uwsm/env-hyprland (reserved, currently empty)
+#   NVIDIA vars  → set globally by nvidia-wayland.nix (all sessions)
+#   Plasma       → uses KWin's built-in GPU routing (no env file needed)
 {
   lib,
   config,
@@ -28,7 +34,7 @@ let
     {
       tty = "tty2";
       name = "niri";
-      desktop = "niri";
+      desktop = "niri.desktop";
     }
     {
       tty = "tty3";
@@ -43,7 +49,7 @@ in
   };
 
   config = lib.mkIf cfg {
-    # Disable SDDM — UWSM handles session launch directly
+    # ── DISABLE SDDM ──────────────────────────────────────────────────
     services.xserver.displayManager.sddm.enable = lib.mkForce false;
 
     # Ensure only Wayland sessions are generated (no X11)
@@ -52,13 +58,9 @@ in
     services.xserver.windowManager.session = lib.mkForce [ ];
 
     # Suppress Plasma X11 session — Wayland only
-    services.xserver.displayManager.sessionPackages = lib.mkForce [ ];
+    services.displayManager.defaultSession = lib.mkForce "plasma";
 
-    # Remove raw hyprland.desktop — only keep hyprland-uwsm.desktop
-    # (withUWSM = true generates both; we suppress the raw one)
-    environment.etc."uwsm/env-hyprland".text = lib.mkAfter "";
-
-    # Per-VT auto-login via getty
+    # ── PER-VT AUTO-LOGIN ─────────────────────────────────────────────
     systemd.services = lib.listToAttrs (
       map (s: {
         name = "getty@${s.tty}";
@@ -80,7 +82,7 @@ in
       }) sessions
     );
 
-    # UWSM auto-start per VT via bash profile
+    # ── UWSM AUTO-START PER VT ────────────────────────────────────────
     environment.etc."bash-profile.d/uwsm-sessions".text =
       lib.concatStringsSep "\n" (
         map (s: ''
@@ -98,7 +100,7 @@ in
         fi
       '';
 
-    # Helper aliases for switching VTs
+    # ── VT SWITCH ALIASES ─────────────────────────────────────────────
     environment.etc."bashrc.d/uwsm-aliases".text = ''
       # VT switch aliases
       alias plasma='chvt 1'
