@@ -76,7 +76,6 @@ docs/kubernetes/
 
 **Moved Files:**
 - **archived/** (10): Completed phase summaries, daily status reports
-- **incidents/** (3): Akash, IP exhaustion, Volcano incidents
 - **runbooks/** (1): Disaster recovery procedures
 
 **Result:** Logical organization with clear separation of concerns

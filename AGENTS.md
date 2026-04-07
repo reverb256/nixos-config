@@ -1,6 +1,6 @@
 # NixOS Cluster - Agent Guidelines
 
-**Generated:** 2026-03-27 | **Commit:** d1a10fb | **Branch:** feature/x86-64-v3-migration
+**Generated:** 2026-04-05 | **Commit:** 04c30a80 | **Branch:** feature/x86-64-v3-migration
 
 ## Quick Start
 
@@ -31,10 +31,12 @@ just rollback           # Rollback local host
 ├── colmena.nix            # Multi-host deployment
 ├── hosts/<hostname>/      # Host configs (never edit hardware-configuration.nix)
 ├── modules/               # Reusable modules (default.nix imports all)
-│   ├── profiles/          # Hardware/role/network profiles
-│   ├── system/            # Core system modules
-│   └── services/          # Background services
-└── secrets/               # Agenix encrypted secrets
+│   ├── hardware/           # GPU, AMD, NVIDIA, monitoring, RGB
+│   ├── networking/         # Cluster networking
+│   ├── profiles/           # Hardware/role/network profiles
+│   ├── system/             # Core system modules (~40 files)
+│   └── services/           # Background services (~45 imported, 60+ on disk)
+└── secrets/               # Agenix encrypted secrets (32 .age files)
 ```
 
 ## ⚠️ Critical Safety Rules
@@ -70,7 +72,7 @@ networking.firewall.allowedTCPPorts = lib.mkOptionDefault [22 53 6443];
 | **Zephyr** | 31GB | ⚠️ ONLY infrastructure + mining: |
 | | | - Control plane: kube-apiserver, etcd, kube-scheduler, kube-controller-manager |
 | | | - CNI: Calico components (calico-node, tigera-operator) |
-| | | - Mining: gpu-miner-zephyr, xmrig-zephyr (RTX 3090 GPU 1) |
+| | | - Mining: xmrig (CPU, via K8s — gpu-miner-zephyr disabled) |
 | | | - ❌ NO OTHER WORKLOADS |
 
 **Enforce nexus scheduling in Kubernetes manifests:**
@@ -157,15 +159,20 @@ serviceConfig.Path = lib.makeBinPath [pkgs.bash pkgs.coreutils pkgs.curl];
 export PATH="${pkgs.bash}/bin:${pkgs.coreutils}/bin:${pkgs.curl}/bin:$PATH"
 ```
 
-**Systemd Helper Functions**
+**Systemd Helpers**
 
-✅ **PREFERRED**: Use helpers from `systemd-helpers.nix`
+✅ **PREFERRED**: Use `writeShellScript` for complex multi-line scripts
 ```nix
-systemd.services.my-service = mkSimpleService {
-  description = "My service";
-  execStart = lib.getExe pkgs.my-package;
-  pathPackages = [pkgs.bash pkgs.coreutils];
-};
+ExecStart = pkgs.writeShellScript "my-script" ''
+  if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Config not found"; exit 1; fi
+  echo "Starting service...";
+'';
+```
+
+❌ **AVOID**: Inline `bash -c` with complex logic
+```nix
+ExecStart = "${pkgs.bash}/bin/bash -c 'if [ ! -f $CONFIG_FILE ]; then exit 1; fi';
 ```
 
 **Functional Data Transformation (lib.pipe)**
@@ -283,9 +290,15 @@ in {
 
 ## Profile System
 
+Profiles are composable — enable them per-host:
 ```nix
-hardware.profiles = { amd.zen = true; nvidia.enable = true; };
-profiles.role = { workstation = true; gaming = true; };
+# Hardware profiles
+hardware.profiles = { nvidia.enable = true; amdgpu.wayland = true; };
+
+# Role profiles
+profiles.role = { mining = true; k3s-agent = true; };
+
+# Network profiles
 profiles.network.tailscale.enable = true;
 ```
 
@@ -310,7 +323,7 @@ All package managers enforce a 7-day cooling period. Container images are pinned
 - Pin to specific versions: `docker.io/vaultwarden/server:1.35.4`, not `:latest`
 - Image policy rejects unknown registries (see `modules/services/podman.nix`)
 - K8s admission policy blocks `:latest` (see `kubernetes-manifests/security/deny-latest-tag.yaml`)
-- Trivy scans all images weekly (see `services.container-scanning`)
+- `container-scanning.nix` module exists but is **not currently imported** in `default.nix`
 
 ### Flake Updates
 
@@ -326,10 +339,10 @@ All package managers enforce a 7-day cooling period. Container images are pinned
 
 | Document | Purpose |
 |----------|---------|
-| `AGENT_INCIDENT_REPORT.md` | Post-mortems of past incidents |
 | `ROADMAP.md` | Kubernetes migration plan |
 | `modules/README.md` | Module development guide |
+| `modules/services/AGENTS.md` | Services context for agents |
 
 ---
 
-**Version**: 3.4 | **Last Updated:** 2026-04-01
+**Version**: 3.5 | **Last Updated:** 2026-04-05

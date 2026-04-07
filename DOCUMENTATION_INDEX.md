@@ -59,8 +59,6 @@ Complete index of all documentation for the NixOS cluster, including the ongoing
 
 ### Services & Hardware
 - **MINING_TROUBLESHOOTING.md** - lolMiner GPU mining issues
-- **akash-cloudflare-integration.md** - 6 automation features (DNS, cache, metrics, health, cleanup, status)
-- **akash-cloudflare-integration-summary.md** - Implementation summary
 - **CUDA_TROUBLESHOOTING.md** - CUDA setup, multi-GPU, troubleshooting
 - **storage-configuration.md** - Storage drive inventory & mount status
   - **Note:** For K8s storage, see `docs/kubernetes/storage/storage-architecture.md`
@@ -148,9 +146,13 @@ Complete index of all documentation for the NixOS cluster, including the ongoing
 - **backup-to-garage.sh** - Backup script with rotation
 
 ### Ingress
+- **caddy-ingress-architecture.md** - Caddy Ingress Architecture (VIP, TLS, DNS, services)
+  - **Edge Proxy:** Zephyr Caddy (systemd, VIP 10.1.1.100)
+  - **Backend:** K8s Caddy DaemonSet (nexus/forge/sentry, NodePort 30080/30443)
+  - **Services:** openwebui, llama, mining (*.cluster.local + *.lan)
+  - **Features:** TLS internal, round-robin LB, keepalived VIP failover
 - **caddy-ingress.md** - Caddy Ingress Controller (DaemonSet, Prometheus metrics)
   - **Manifests:** `kubernetes-manifests/ingress/`
-  - **Features:** Auto HTTPS, HTTP/3, NodePort 30080/30443
 
 ### Quick Reference
 - **Status:** Phase 1 Complete, Phase 2 In Progress
@@ -322,7 +324,7 @@ kubectl logs <pod> -n <namespace>
 
 ## Recent Changes (Summary)
 
-**2026-03-19:** Cloudflare integration for Akash (6 automation features, ~200 hrs/year savings)
+**2026-03-19:** Cloudflare integration automation (6 features, ~200 hrs/year savings)
 
 **2026-03-16:** Documentation audit & cleanup, archived incorrect storage/HA docs, created DECISION_LOG.md
 

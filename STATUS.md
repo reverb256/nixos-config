@@ -20,7 +20,7 @@
 | **GPU Passthrough** | 🟢 PARTIAL | Zephyr: 2x NVIDIA (✓), Forge: 2x AMD + 2x NVIDIA (⚠️) |
 | **Monitoring** | 🟢 RUNNING | Prometheus, Grafana, AlertManager, node-exporters, Caddy metrics |
 | **Storage** | 🟢 OPERATIONAL | NFS shared storage, local-path provisioner |
-| **GPU Marketplace** | 🟢 DEPLOYED | Auction engine coordinating mining/K8s/Akash/gaming |
+| **GPU Marketplace** | 🟢 DEPLOYED | Auction engine coordinating mining/K8s/gaming |
 | **Supply Chain Security** | 🟢 ACTIVE | 7-day cooldowns (npm/bun/uv), image pinning, deny-latest policy |
 | **Container Scanning** | 🟢 ACTIVE | Trivy weekly vulnerability scan (HIGH/CRITICAL CVEs) |
 | **Image Policy** | 🟢 ENFORCED | Reject unsigned images, allow specific registries only |
@@ -94,7 +94,7 @@ zephyr   Ready     <none>   2d20h   v1.35.2
 - **local-path-storage:** local-path-provisioner
 - **mining:** gpu-miner-forge-nvidia-0/1 (K8s), gpu-miner-forge-amd-0/1 (K8s), gpu-miner-zephyr (K8s), xmrig-proxy
 - **mining:** gaming-placeholder (replicas=0, scaled up during gaming) ⚡ **NEW**
-- **akash-services:** akash-provider, operator-* services
+- **default:** default, operator-* services
 - **ai-inference:** n8n, postgres-n8n, qdrant, prometheus, grafana ✅ **RUNNING ON K8S**
 - **glitchtip:** postgres, redis, web, worker ✅ **MIGRATED (2026-03-19)**
 - **search:** searxng ✅ **MIGRATED (2026-03-19)**
