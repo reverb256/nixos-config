@@ -5,9 +5,11 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.hardware.nvidia-common;
-in {
+in
+{
   options.hardware.nvidia-common.enable = lib.mkEnableOption "NVIDIA GPU support";
 
   config = lib.mkIf cfg.enable {
@@ -25,7 +27,7 @@ in {
     };
 
     # Load nvidia driver for Xorg and Wayland
-    services.xserver.videoDrivers = ["nvidia"];
+    services.xserver.videoDrivers = [ "nvidia" ];
 
     hardware.nvidia = {
       # Modesetting is required for Wayland
@@ -95,5 +97,10 @@ in {
     #
     # This prevents GPU from auto-scaling power based on input activity,
     # which fixes HDMI TV brightness fluctuations when typing/moving mouse.
+
+    # NOTE: NixOS nvidia-container-toolkit module handles CDI generation.
+    # The default ExecStart (nvidia-cdi-generator) works correctly.
+    # Do NOT add a custom ExecStart override — it appends instead of replacing,
+    # causing the service to run twice and fail on the second ExecStart.
   };
 }
