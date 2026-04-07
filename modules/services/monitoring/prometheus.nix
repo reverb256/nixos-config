@@ -187,14 +187,13 @@ in
         }
 
         # Caddy Ingress Controller metrics (Kubernetes)
-        # Scrapes Caddy admin API on nodes running ingress pods
+        # Scrapes controller metrics endpoint (port 9765)
         {
           job_name = "caddy-ingress";
           static_configs = [
             {
               targets = [
-                "nexus:${toString ports.caddy-admin}"
-                "sentry:${toString ports.caddy-admin}"
+                "caddy-ingress-controller-metrics.ingress-system.svc.cluster.local:9765"
               ];
               labels = {
                 role = "ingress";
