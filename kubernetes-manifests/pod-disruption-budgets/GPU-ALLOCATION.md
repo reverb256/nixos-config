@@ -2,18 +2,18 @@
 
 ## Cluster GPU Inventory
 
-| Node | GPUs | Models | Akash? | Mining Priority | Higher Priority Workloads |
+| Node | GPUs | Models | Mining Priority | Higher Priority Workloads |
 |------|------|--------|--------|-----------------|--------------------------|
-| **Zephyr** | 2 | RTX 3090, RTX 3060 Ti (8GB) | ✅ Yes | Preemptible | **Gaming (3090)**, Akash (both), AI inference |
-| **Nexus** | 1 | RTX 3060 Ti (8GB) | ✅ Yes | Preemptible | Akash (highest priority), storage |
-| **Sentry** | 1 | RX 5600 XT (AMD) | ❌ No | Preemptible | AI inference (llamafile), monitoring |
-| **Forge** | 4 | 2x RTX 4060, 2x RX 5700 XT | 2x NVIDIA | Preemptible | Akash (NVIDIA only), GPU compute |
+| **Zephyr** | 2 | RTX 3090, RTX 3060 Ti (8GB) | Preemptible | **Gaming (3090)**, AI inference |
+| **Nexus** | 1 | RTX 3060 Ti (8GB) | Preemptible | AI workloads, storage |
+| **Sentry** | 1 | RX 5600 XT (AMD) | Preemptible | AI inference (llamafile), monitoring |
+| **Forge** | 4 | 2x RTX 4060, 2x RX 5700 XT | Preemptible | GPU compute (NVIDIA), AI |
 
 **Total GPUs**: 8 (5 NVIDIA + 3 AMD)
-**Akash GPUs**: 5 NVIDIA (3090, 3060Ti-zephyr, 3060Ti-nexus, 4060-forge-0, 4060-forge-1)
-**AMD GPUs**: 3 (not available for Akash - 5700 XT x2, 5600 XT)
+**Mining GPUs**: 5 NVIDIA (3090, 3060Ti-zephyr, 3060Ti-nexus, 4060-forge-0, 4060-forge-1)
+**AMD GPUs**: 3 (5700 XT x2, 5600 XT)
 **Mining Strategy**: **ALL GPUs preemptible** - mine when idle, yield to higher priority workloads
-**Priority Hierarchy**: Gaming (3090) > Akash (5 NVIDIA) > AI Inference (5600 XT) > Mining
+**Priority Hierarchy**: Gaming (3090) > AI Inference > Mining
 
 ## Preemption Hierarchy
 
@@ -21,7 +21,7 @@
 
 | Priority | Workload | Preemption Action | Examples |
 |----------|----------|-------------------|----------|
-| **P0 - Critical** | Akash GPU jobs | Evict all miners immediately | Container inference, training |
+| **P0 - Critical** | GPU jobs | Evict all miners immediately | Container inference, training |
 | **P1 - User** | Gaming | Evict miners on gaming GPU | Zephyr 3060 Ti (compute-workload-monitor) |
 | **P2 - Production** | AI inference | Evict miners if needed | llamafile on Sentry |
 | **P3 - Background** | Mining | Always preemptible | lolminer on all GPUs |
@@ -39,13 +39,13 @@ Forge: 4060 #1 mining, 4060 #2 mining, 5700 XT #1 mining (AMD), 5700 XT #2 minin
 Total: 8/8 GPUs mining (5 NVIDIA + 3 AMD)
 ```
 
-### Akash Job Arrives (P0 - Critical)
+### GPU Job Arrives (P0 - Critical)
 ```yaml
-# Akash deployment requests 2x NVIDIA GPUs (AMD not supported)
+# Deployment requests 2x NVIDIA GPUs
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: akash-gpu-job
+  name: gpu-job
 spec:
   template:
     spec:
@@ -57,33 +57,33 @@ spec:
           requests:
             nvidia.com/gpu: 2
 ```
-**Action**: Yunikorn scheduler preempts 2 NVIDIA mining pods, Akash claims GPUs
+**Action**: Yunikorn scheduler preempts 2 NVIDIA mining pods
 ```
-Zephyr: 3090 AKASH JOB, 3060 Ti mining
-Nexus: 3060 Ti AKASH JOB
-Sentry: 5600 XT mining (AMD - not available for Akash)
+Zephyr: 3090 GPU JOB, 3060 Ti mining
+Nexus: 3060 Ti GPU JOB
+Sentry: 5600 XT mining (AMD)
 Forge: 4060 #1 mining, 4060 #2 mining, 5700 XT #1 mining (AMD), 5700 XT #2 mining (AMD)
-Total: 6/8 GPUs mining, 2/5 NVIDIA GPUs Akash
+Total: 6/8 GPUs mining, 2/5 NVIDIA GPUs in use
 ```
 
 ### Gaming Starts on Zephyr (P1 - User)
-**Action**: compute-workload-monitor detects gaming, preempts Zephyr 3090 miner/akash
+**Action**: compute-workload-monitor detects gaming, preempts Zephyr 3090 miner
 ```
 Zephyr: 3090 GAMING, 3060 Ti mining
-Nexus: 3060 Ti AKASH JOB
+Nexus: 3060 Ti GPU JOB
 Sentry: 5600 XT mining (AMD)
 Forge: 4060 #1 mining, 4060 #2 mining, 5700 XT #1 mining (AMD), 5700 XT #2 mining (AMD)
-Total: 6/8 GPUs mining, 1/8 GPU gaming, 1/5 NVIDIA GPUs Akash
+Total: 6/8 GPUs mining, 1/8 GPU gaming, 1/5 NVIDIA GPUs in use
 ```
 
 ### AI Inference Starts on Sentry (P2 - Production)
 **Action**: llamafile startup preempts Sentry 5600 XT AMD miner
 ```
 Zephyr: 3090 GAMING, 3060 Ti mining
-Nexus: 3060 Ti AKASH JOB
+Nexus: 3060 Ti GPU JOB
 Sentry: 5600 XT AI INFERENCE (AMD ROCm/Vulkan)
 Forge: 4060 #1 mining, 4060 #2 mining, 5700 XT #1 mining (AMD), 5700 XT #2 mining (AMD)
-Total: 5/8 GPUs mining (2 NVIDIA + 3 AMD), 1/8 GPU gaming, 1/5 NVIDIA GPU Akash, 1/3 AMD GPU AI
+Total: 5/8 GPUs mining (2 NVIDIA + 3 AMD), 1/8 GPU gaming, 1/5 NVIDIA GPU AI, 1/3 AMD GPU AI
 ```
 
 ### AI Workload on Forge AMD GPUs (P2 - Production)
@@ -106,7 +106,7 @@ metadata:
   name: critical-production
 value: 1000000
 globalDefault: false
-description: "Akash GPU jobs, revenue-generating workloads"
+description: "GPU jobs, revenue-generating workloads"
 
 # user-interactive (Priority 750000)
 apiVersion: scheduling.k8s.io/v1
@@ -180,21 +180,21 @@ spec:
           value: "krxXVNVMM7.zephyr-3090"
 ```
 
-### Akash GPU Job Example
+### GPU Job Example
 
 ```yaml
-# akash-gpu-job.yaml
+# gpu-job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: akash-inference-job
-  namespace: akash-cpu-test
+  name: gpu-inference-job
+  namespace: default
 spec:
   backoffLimit: 3
   template:
     metadata:
       labels:
-        app: akash-gpu
+        app: gpu-job
     spec:
       priorityClassName: critical-production  # HIGHEST PRIORITY
       schedulerName: yunikorn
@@ -216,29 +216,29 @@ spec:
 
 ## Preemption Flow
 
-### Akash Job Preempts Mining
+### GPU Job Preempts Mining
 
-1. **Akash client submits GPU job**
+1. **GPU job submitted**
    ```yaml
-   apiVersion: akash.network/v1
-   kind: Provider
+   # GPU job submission
+
    metadata:
-     name: akash-provider
+
    spec:
-     gpuResources:
+
        - nvidia.com/gpu: 2
    ```
 
 2. **Yunikorn scheduler evaluates request**
    - Checks available GPU capacity
    - Finds 8 GPUs running mining pods (priority 10000)
-   - Akash job priority = 1000000 (higher)
+   - GPU job priority = 1000000 (higher)
 
 3. **Preemption decision**
    ```
    Available GPUs: 0
    Mining pods: 8 (priority 10000)
-   Akash request: 2 GPUs (priority 1000000)
+   Request: 2 GPUs (priority 1000000)
    Decision: Preempt 2 mining pods
    ```
 
@@ -249,9 +249,9 @@ spec:
    kubectl delete pod gpu-miner-forge-nvidia-1 -n mining
    ```
 
-5. **Akash job scheduled**
+5. **GPU job scheduled**
    ```
-   Akash job claims Forge 4060 #1 and 4060 #2
+   Job claims Forge 4060 #1 and 4060 #2
    Mining pods automatically rescheduled on available GPUs
    ```
 
@@ -312,12 +312,12 @@ spec:
 ```
 
 ```yaml
-# akash-namespace-quota.yaml
+# namespace-quota.yaml
 apiVersion: v1
 kind: ResourceQuota
 metadata:
-  name: akash-gpu-quota
-  namespace: akash-cpu-test
+  name: gpu-quota
+  namespace: default
 spec:
   hard:
     requests.nvidia.com/gpu: "8"    # Can preempt all mining
@@ -339,7 +339,7 @@ spec:
 # Preemption monitoring dashboard
 - Preemption rate (mining pods evicted/hour)
 - GPU utilization by priority level
-- Akash job queue depth
+- GPU job queue depth
 - Mining revenue impact (lost hashrate)
 - Gaming session detection
 ```
@@ -351,7 +351,7 @@ spec:
 - alert: HighPreemptionRate
   expr: rate(kube_pod_status_terminated_reason{reason="Evicted"}[1h]) > 10
   annotations:
-    summary: "High mining preemption rate - check Akash job volume"
+    summary: "High mining preemption rate - check GPU job volume"
 
 - alert: MiningRevenueDrop
   expr: mining_hashrate < expected_hashrate * 0.5
@@ -381,14 +381,14 @@ kubectl apply -f yunikorn-config.yaml
 
 ### Phase 4: Test Preemption (Week 2)
 ```bash
-# Submit test Akash job
-kubectl apply -f test-akash-job.yaml
+# Submit test GPU job
+kubectl apply -f test-gpu-job.yaml
 
 # Verify mining pods evicted
 kubectl get pods -n mining -w
 
-# Verify Akash job scheduled
-kubectl get pods -n akash-cpu-test
+# Verify job scheduled
+kubectl get pods -n default
 ```
 
 ### Phase 5: Deploy Gaming Detection (Week 3)
@@ -401,7 +401,7 @@ just switch  # Applies to local host
 
 ### Economic Benefits
 1. **Maximize GPU utilization**: Mine 24/7 when GPUs idle
-2. **Never block revenue**: Akash jobs always have priority
+2. **Never block revenue**: GPU jobs always have priority
 3. **Dynamic optimization**: Automatically adapt to workload changes
 4. **Reduce idle time**: Zero GPU idle time unless all higher priority workloads active
 
@@ -409,7 +409,7 @@ just switch  # Applies to local host
 1. **Simplified planning**: No dedicated mining GPUs to manage
 2. **Automatic scaling**: Mining auto-scales based on demand
 3. **Graceful degradation**: Mining pauses, no service disruption
-4. **Transparent to users**: Gaming/Akash performance unaffected
+4. **Transparent to users**: Gaming/workload performance unaffected
 
 ### Technical Benefits
 1. **Priority-based scheduling**: Clear hierarchy of workloads
@@ -420,7 +420,7 @@ just switch  # Applies to local host
 ## Constraints and Policies
 
 ### Hard Constraints
-- **Akash jobs ALWAYS preempt mining** (P0 vs P3)
+- **High-priority jobs ALWAYS preempt mining** (P0 vs P3)
 - **Gaming ALWAYS preempts mining on Zephyr 3060 Ti** (user experience)
 - **AI inference preempts mining on Sentry** (production service)
 - **Mining never preempts anything** (lowest priority)
@@ -429,23 +429,23 @@ just switch  # Applies to local host
 - Prefer preempting Forge miners first (4 GPUs, dedicated worker)
 - Then preempt Zephyr/Nexus miners (gaming/AI priority nodes)
 - Keep Sentry miner running last (only 1 GPU, monitoring priority)
-- Minimize preemption frequency (batch Akash jobs when possible)
+- Minimize preemption frequency (batch GPU jobs when possible)
 
 ## Future Enhancements
 
 ### GPU Sharing (TimeSlicing)
 - Allow multiple low-priority workloads per GPU
-- Mining + Akash dev jobs on same GPU
+- Mining + dev jobs on same GPU
 - Requires GPU partitioning (MPS for NVIDIA, MIG for newer GPUs)
 
 ### Predictive Scheduling
-- ML model predicts gaming/Akash usage patterns
+- ML model predicts gaming/GPU usage patterns
 - Preempt mining proactively before high-priority jobs arrive
 - Reduce preemption latency
 
 ### Dynamic Voltage/Frequency Scaling
 - Underclock GPUs during mining (reduce power, improve efficiency)
-- Overclock GPUs during Akash jobs (maximize performance)
+- Overclock GPUs during workloads (maximize performance)
 - Automatic tuning based on workload type
 
 ---

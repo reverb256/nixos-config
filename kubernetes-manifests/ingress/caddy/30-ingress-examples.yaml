@@ -1,71 +1,110 @@
-# Example Ingress resources for Caddy Ingress Controller
+# Caddy Ingress Controller — Example Ingress Resources
 #
-# The Caddy controller watches Ingress resources with
-#   annotation: kubernetes.io/ingress.class: caddy
+# Internal cluster services accessible via .lan domains.
+# Caddy auto-provisions self-signed TLS certs for internal domains.
+# For Tailscale domains (.ts.net), Caddy obtains certs via Tailscale DERP.
 #
-# Routes are automatically generated from Ingress specs.
-# TLS certificates are obtained automatically via ACME
-# (email configured in caddy-ingress-controller-configmap).
-#
-# For internal-only services, use tls.internal cluster CA
-# via the caddy-ca module on the NixOS host.
+# Test with: curl -k https://openwebui.lan:30443
+
 ---
+# Open WebUI — AI chat interface
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: openwebui
   namespace: ai-inference
+  labels:
+    app.kubernetes.io/name: openwebui
   annotations:
-    kubernetes.io/ingress.class: caddy
+    caddy.k8s.io/tls-internal: "true"
 spec:
+  ingressClassName: caddy
   rules:
-  - host: openwebui.cluster.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: open-webui
-            port:
-              number: 8080
-  - host: openwebui.lan
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: open-webui
-            port:
-              number: 8080
+    - host: openwebui.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: open-webui
+                port:
+                  number: 8080
+    - host: openwebui.cluster.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: open-webui
+                port:
+                  number: 8080
 ---
+# SearXNG — Privacy search engine
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: searxng
   namespace: search
+  labels:
+    app.kubernetes.io/name: searxng
   annotations:
-    kubernetes.io/ingress.class: caddy
+    caddy.k8s.io/tls-internal: "true"
 spec:
+  ingressClassName: caddy
   rules:
-  - host: search.cluster.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: searxng
-            port:
-              number: 8080
-  - host: search.lan
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: searxng
-            port:
-              number: 8080
+    - host: search.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: searxng
+                port:
+                  number: 8080
+    - host: search.cluster.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: searxng
+                port:
+                  number: 8080
+---
+# llama-server — AI inference API
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: llama-server
+  namespace: ai-inference
+  labels:
+    app.kubernetes.io/name: llama-server
+  annotations:
+    caddy.k8s.io/tls-internal: "true"
+spec:
+  ingressClassName: caddy
+  rules:
+    - host: ai.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: llama-server
+                port:
+                  number: 8080
+    - host: ai.cluster.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: llama-server
+                port:
+                  number: 8080

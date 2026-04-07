@@ -1,0 +1,17 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: mining-low
+value: -10
+preemptionPolicy: PreemptLowerPriority
+globalDefault: false
+description: "Low priority for crypto mining workloads - preempted by AI inference and other higher-priority workloads"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: preemptible-mining
+value: -20
+preemptionPolicy: PreemptLowerPriority
+globalDefault: false
+description: "Preemptible priority for mining - evicted by any higher priority workload"

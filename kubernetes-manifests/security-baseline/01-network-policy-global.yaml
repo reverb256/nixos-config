@@ -16,20 +16,6 @@ spec:
   - Ingress
   - Egress
 ---
-# Default deny all traffic in akash-services namespace
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-all
-  namespace: akash-services
-  labels:
-    policy: default-deny
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-  - Egress
----
 # Default deny all traffic in default namespace
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -50,28 +36,6 @@ kind: NetworkPolicy
 metadata:
   name: allow-dns
   namespace: search
-  labels:
-    policy: allow-dns
-spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          name: kube-system
-    ports:
-    - protocol: UDP
-      port: 53
-    - protocol: TCP
-      port: 53
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-dns
-  namespace: akash-services
   labels:
     policy: allow-dns
 spec:
@@ -133,25 +97,4 @@ spec:
     ports:
     - protocol: TCP
       port: 7777
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-monitoring
-  namespace: akash-services
-  labels:
-    policy: allow-monitoring
-spec:
-  podSelector:
-    matchLabels:
-      prometheus.io/scrape: "true"
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: monitoring
-    ports:
-    - protocol: TCP
-      port: 20241
+

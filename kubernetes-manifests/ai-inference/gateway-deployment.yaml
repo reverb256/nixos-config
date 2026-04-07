@@ -20,10 +20,10 @@ metadata:
   name: ai-inference-gateway-config
   namespace: ai-inference
 data:
-  # Backend configuration (primary: ZAI OpenAI-compatible, fallback: ZAI Anthropic)
-  BACKEND_URL: "https://api.z.ai/api/coding/paas/v4"
-  BACKEND_TYPE: "zai"
-  BACKEND_FALLBACK_URLS: "https://api.z.ai/api/anthropic"
+  # Backend configuration (primary: local llama.cpp, fallback: ZAI)
+  BACKEND_URL: "http://zephyr.lan:8081"
+  BACKEND_TYPE: "llama-cpp"
+  BACKEND_FALLBACK_URLS: "https://api.z.ai/api/coding/paas/v4"
 
   # Gateway configuration
   GATEWAY_HOST: "0.0.0.0"
@@ -69,8 +69,8 @@ data:
   AUTO_RAG_ENABLED: "true"
   TOKEN_SCOPED_COLLECTIONS: "true"
 
-  # Knowledge Fabric
-  MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: "true"
+  # Knowledge Fabric (disabled for non-RAG requests to reduce TTFT)
+  MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: "false"
   MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: "60"
   MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: "true"
   MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: "true"
@@ -99,19 +99,6 @@ data:
   SYSTEM_PROMPTS_FAST: "You are a fast and efficient assistant. Provide concise, direct answers."
 
   PYTHONUNBUFFERED: "1"
----
-# Persistent cache for HuggingFace models and transformers
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ai-inference-gateway-cache
-  namespace: ai-inference
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -456,8 +443,8 @@ spec:
           mountPath: /run/ai-inference
       volumes:
       - name: cache
-        persistentVolumeClaim:
-          claimName: ai-inference-gateway-cache
+        emptyDir:
+          sizeLimit: "2Gi"
       - name: home
         emptyDir:
           sizeLimit: "100Mi"

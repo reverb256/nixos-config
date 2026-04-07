@@ -31,13 +31,4 @@ metadata:
     pod-security.kubernetes.io/allow-host-pid: "false"
     pod-security.kubernetes.io/allow-privilege-escalation: "false"
 
----
-# Akash Services Namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: akash-services
-  labels:
-    # Allow hostPath volumes for specific pods
-    pod-security.kubernetes.io/allow-host-path: "true"
-    pod-security.kubernetes.io/allow-privilege-escalation: "false"
+

@@ -52,7 +52,6 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: cloudflared-hpa
-  namespace: akash-services
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

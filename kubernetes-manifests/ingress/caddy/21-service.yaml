@@ -28,3 +28,23 @@ spec:
     targetPort: https
     nodePort: 30443
     protocol: TCP
+---
+# Metrics service for Prometheus scraping (port 9765)
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-ingress-controller-metrics
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress-controller
+    app.kubernetes.io/component: controller
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: caddy-ingress-controller
+    app.kubernetes.io/component: controller
+  ports:
+  - name: metrics
+    port: 9765
+    targetPort: metrics
+    protocol: TCP

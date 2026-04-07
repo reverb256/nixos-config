@@ -206,10 +206,6 @@ kubectl scale deployment -n ai-inference n8n --replicas=1
 kubectl scale deployment -n ai-inference prometheus --replicas=1
 kubectl scale deployment -n ai-inference redis --replicas=1
 
-# Scale Akash services back to 1 replica
-kubectl scale deployment -n akash-services operator-hostname --replicas=1
-kubectl scale deployment -n akash-services cloudflared --replicas=1
-
 # Scale monitoring back to 1 replica
 kubectl scale deployment -n monitoring prometheus --replicas=1
 kubectl scale deployment -n monitoring grafana --replicas=1

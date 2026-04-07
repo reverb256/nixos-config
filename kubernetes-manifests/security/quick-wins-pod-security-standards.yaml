@@ -14,28 +14,6 @@ metadata:
     pod-security.kubernetes.io/warn: restricted
 
 ---
-# Akash CPU Test Namespace - Baseline (GPU testing)
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: akash-cpu-test
-  labels:
-    pod-security.kubernetes.io/enforce: baseline
-    pod-security.kubernetes.io/audit: restricted
-    pod-security.kubernetes.io/warn: restricted
-
----
-# Akash Provider Namespace - Baseline (blockchain communication)
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: akash-provider
-  labels:
-    pod-security.kubernetes.io/enforce: baseline
-    pod-security.kubernetes.io/audit: restricted
-    pod-security.kubernetes.io/warn: restricted
-
----
 # Custom Metrics Namespace - Baseline (monitoring)
 apiVersion: v1
 kind: Namespace
