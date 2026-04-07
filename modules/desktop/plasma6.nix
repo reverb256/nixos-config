@@ -2,6 +2,7 @@
 {
   lib,
   pkgs,
+  config,
   ...
 }:
 let
@@ -218,11 +219,19 @@ in
     displayManager = {
       sddm.enable = true;
       sddm.settings.General.DisplayServer = "wayland";
+      sddm.settings.Wayland.SessionDir = toString (pkgs.runCommandLocal "wayland-sessions-filtered" { } ''
+          mkdir -p $out
+          for f in ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions/*.desktop; do
+            bn=$(basename "$f")
+            if [ "$bn" != "hyprland.desktop" ]; then
+              ln -s "$f" "$out/$bn"
+            fi
+          done
+        '');
       # autoLogin is configured in common-host-defaults.nix to avoid duplication
       autoLogin.enable = lib.mkDefault true;
       autoLogin.user = lib.mkDefault "j_kro";
     };
-    desktopManager.plasma6.enable = true;
   };
   environment = {
     sessionVariables = {
