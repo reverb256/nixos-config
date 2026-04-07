@@ -51,7 +51,7 @@ Someone executed the cleanup plan from March 19!
 
 ### Medium Priority
 1. **Archive investigation files** - Move to \`docs/incidents/2026-03-21/\`
-2. **Consolidate status docs** - Multiple Akash status docs, keep one current
+2. **Consolidate status docs** - Multiple status docs, keep one current
 3. **Remove "100% COMPLETE"** - Replace with "COMPLETE with known issues:"
 
 ### Low Priority

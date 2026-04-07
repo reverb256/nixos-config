@@ -11,7 +11,6 @@
     concatLists
     mapAttrsToList
     ;
-
   inherit
     (lib)
     id
@@ -22,11 +21,9 @@
     nameValuePair
     removeSuffix
     ;
-
   # Helper to check if path is a directory with default.nix
   hasDefaultNix = path:
     pathExists "${path}/default.nix";
-
   # Helper to check if file is a Nix file (but not flake.nix or default.nix)
   isNixFile = name: v:
     v
@@ -52,11 +49,9 @@ in rec {
       else nameValuePair "" null)
     (n: v: v != null && !(hasPrefix "_" n))
     (readDir dir);
-
   # Map modules to a list of values
   mapModules' = dir: fn:
     attrValues (mapModules dir fn);
-
   # Recursively map modules, preserving directory structure
   # mapModulesRec ./modules → { desktop = { apps = { ... }; }; ... }
   mapModulesRec = dir: fn:
@@ -71,7 +66,6 @@ in rec {
       else nameValuePair "" null)
     (n: v: v != null && !(hasPrefix "_" n))
     (readDir dir);
-
   # Recursively map modules to flat list
   mapModulesRec' = dir: fn: let
     dirs =
@@ -88,7 +82,6 @@ in rec {
     paths = files ++ concatLists (map (d: mapModulesRec' d id) dirs);
   in
     map fn paths;
-
   # Map host configurations from a directory
   # Each host directory should contain a configuration.nix
   mapHosts = dir:

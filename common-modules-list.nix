@@ -1,5 +1,5 @@
 # Common Modules List
-# 
+#
 # This file defines the shared module list for both flake.nix and colmena.nix.
 # This ensures they always stay in sync and prevents divergence.
 #
@@ -7,43 +7,38 @@
 #   In flake.nix:   commonModules = import ./modules/common-modules-list.nix { inherit inputs self; };
 #   In colmena.nix: commonModules = import ./modules/common-modules-list.nix { inherit inputs self; };
 #
-{ inputs, self }: [
-  # ========================================================================
+{
+  inputs,
+  self,
+}:
+[
+
   # EXTERNAL MODULES
-  # ========================================================================
 
   # Home Manager - User configuration management
   inputs.home-manager.nixosModules.home-manager
-
   # AAGL - Anime Game Launcher (provides anime-game-launcher packages)
   inputs.aagl.nixosModules.default
-
   # NUR - Nix User Repository (community packages)
   inputs.nur.modules.nixos.default
-
   # Agenix - Secret encryption/decryption for NixOS
   inputs.agenix.nixosModules.default
-
   # nixpkgs-xr - Bleeding-edge XR/VR packages with binary cache
   # Provides: wivrn, monado, libsurvive, xrizer, opencomposite, etc.
   # Adds nix-community.cachix.org binary cache automatically
   inputs.nixpkgs-xr.nixosModules.nixpkgs-xr
-
   # Niri - Scrollable-tiling Wayland compositor
   # Provides: programs.niri NixOS module (enable, settings, package)
   inputs.niri.nixosModules.niri
 
-  # ========================================================================
   # INTERNAL MODULES
-  # ========================================================================
 
   # Auto-imports all subdirectories (profiles, system, services, etc.)
   # Path relative to the flake root (where flake.nix and colmena.nix are)
   ./modules/default.nix
 
-  # ========================================================================
   # OVERLAYS CONFIGURATION
-  # ========================================================================
+
   # Custom package overlays applied to ALL hosts
   #
   # Order matters: nixpkgs-xr overlay (above) provides base VR packages,
@@ -56,13 +51,13 @@
   {
     nixpkgs.overlays = [
       inputs.niri.overlays.niri
+      inputs.llm-agents.overlays.default
       self.overlays.default
     ];
   }
 
-  # ========================================================================
   # AGENIX IDENTITY PATHS - Cluster-wide secret decryption
-  # ========================================================================
+
   # Priority: Syncthing-synced > System > Home directory
   #
   # /etc/nixos/.age/key.txt - Synced via Syncthing across all hosts

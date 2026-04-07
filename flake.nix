@@ -1,6 +1,5 @@
 {
   description = "NixOS configuration with Garage and Syncthing storage";
-
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     home-manager = {
@@ -51,29 +50,23 @@
       url = "github:ryantm/agenix/0.15.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
     # Colmena - Multi-host deployment
     colmena = {
       url = "github:zhaofengli/colmena";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
     # Niri - Scrollable-tiling Wayland compositor
     # Provides: programs.niri NixOS module, niri-unstable overlay, home-manager module
     niri = {
       url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    # Hermes Agent - Multi-node deployment agent
-    hermes-agent = {
-      url = "github:NousResearch/hermes-agent/main";
-      flake = false;
-      # Fetch submodules for minisweagent, tinker-atropos, etc.
-      # Using git input type to enable submodules
+    # llm-agents.nix - Nix packages for AI coding agents (Droid, etc.)
+    llm-agents = {
+      url = "github:numtide/llm-agents.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
-
   outputs =
     inputs@{
       self,
@@ -90,13 +83,11 @@
     let
       # System configuration
       system = "x86_64-linux";
-
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
         config.cudaSupport = true;
       };
-
       # pkgsWithOverlay: nixpkgs with custom overlay applied
       # Used for package outputs that need custom packages (lolminer, xmrig, etc.)
       pkgsWithOverlay = import nixpkgs {
@@ -106,17 +97,15 @@
         overlays = [ (import ./overlay.nix) ];
       };
 
-      # ========================================================================
       # COMMON MODULES - Shared across all hosts (single source of truth)
-      # ========================================================================
+
       # Import from shared file to ensure flake.nix and colmena.nix stay in sync
       commonModules = import ./common-modules-list.nix {
         inherit inputs self;
       };
 
-      # ========================================================================
       # HELPER FUNCTION - Create NixOS system (eliminates duplication)
-      # ========================================================================
+
       mkNixosSystem =
         {
           hostName,
@@ -126,7 +115,6 @@
           # system is auto-detected from stdenv.hostPlatform
           specialArgs = {
             inherit inputs;
-            inherit (inputs) hermes-agent;
           };
           modules =
             commonModules
@@ -136,9 +124,8 @@
             ++ extraModules;
         };
 
-      # ========================================================================
       # HOST DEFINITIONS - Single source of truth
-      # ========================================================================
+
       hosts = {
         zephyr = {
           hostName = "zephyr";
@@ -155,30 +142,27 @@
       };
     in
     {
-      # ========================================================================
+
       # OUTPUT 1: nixosConfigurations (for local nixos-rebuild)
-      # ========================================================================
+
       nixosConfigurations = builtins.mapAttrs (
         _name: value: mkNixosSystem { inherit (value) hostName; }
       ) hosts;
 
-      # ========================================================================
       # OUTPUT 2: colmena (raw hive configuration)
-      # ========================================================================
+
       colmena = import ./colmena.nix {
         inherit inputs self;
         inherit hosts;
       };
 
-      # ========================================================================
       # OUTPUT 3: colmenaHive (for multi-host deployment)
       # Wraps the raw hive configuration with makeHive for proper schema
-      # ========================================================================
+
       colmenaHive = colmena.lib.makeHive self.outputs.colmena;
 
-      # ========================================================================
       # EXISTING OUTPUTS (maintain compatibility)
-      # ========================================================================
+
       packages.x86_64-linux.claude = claude-native.packages.x86_64-linux.claude;
       packages.x86_64-linux.llama-cpp = pkgs.llama-cpp;
       packages.x86_64-linux.caddy-with-modules = pkgsWithOverlay.caddy-with-modules;
@@ -186,13 +170,11 @@
         inherit (pkgsWithOverlay) caddy-with-modules;
       };
 
-      # ========================================================================
       # CONTAINER IMAGES (for Kubernetes deployment)
-      # ========================================================================
+
       packages.x86_64-linux.xmrig-proxy-image = pkgs.dockerTools.buildImage {
         name = "xmrig-proxy";
         tag = "nixos-6.24.0";
-
         copyToRoot = pkgs.buildEnv {
           name = "xmrig-proxy-root";
           paths = [
@@ -207,30 +189,25 @@
             "/lib"
           ];
         };
-
         config = {
           Entrypoint = [ "/bin/xmrig-proxy" ];
           Cmd = [
             "--config=/etc/xmrig-proxy/config.json"
             "--no-color"
           ];
-
           ExposedPorts = {
             "3333/tcp" = { }; # Stratum port
             "8081/tcp" = { }; # API port
           };
-
           Env = [
             "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
             "PATH=/bin"
           ];
         };
       };
-
       packages.x86_64-linux.lolminer-image = pkgsWithOverlay.dockerTools.buildImage {
         name = "lolminer";
         tag = "1.98a-nixos";
-
         copyToRoot = pkgsWithOverlay.buildEnv {
           name = "lolminer-root";
           paths = [
@@ -245,15 +222,12 @@
             "/lib"
           ];
         };
-
         config = {
           Entrypoint = [ "/bin/lolMiner" ];
           Cmd = [ ];
-
           ExposedPorts = {
             "4068/tcp" = { }; # API port
           };
-
           Env = [
             "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
             "PATH=/bin"
@@ -262,7 +236,6 @@
           ];
         };
       };
-
       # NixOS-based lolMiner image with AMD OpenCL/ROCm support
       # Uses steam-run for FHS compatibility and proper library resolution
       packages.x86_64-linux.lolminer-amd-image =
@@ -275,12 +248,10 @@
           # NO steam-run - lolMiner wrapper already handles LD_LIBRARY_PATH
           rootFs = pkgsWithOverlay.runCommand "lolminer-amd-root" { } ''
             mkdir -p $out/bin $out/etc $out/lib $out/lib64 $out/tmp $out/run/opengl-driver/lib $out/etc/OpenCL/vendors
-
             # Copy lolMiner wrapper and binary
             # The wrapper has hardcoded Nix paths, so we need to create our own
             cp ${lolminerPkg}/bin/.lolMiner-wrapped $out/bin/.lolMiner-wrapped
             chmod +x $out/bin/.lolMiner-wrapped
-
             # Create wrapper that uses relative paths (works in container)
             # Libraries are in /lib, not /run/opengl-driver/lib (that dir is empty)
             echo '#! /bin/sh -e' > $out/bin/lolMiner
@@ -289,7 +260,6 @@
             echo 'export LD_LIBRARY_PATH' >> $out/bin/lolMiner
             echo 'exec /bin/.lolMiner-wrapped "$@"' >> $out/bin/lolMiner
             chmod +x $out/bin/lolMiner
-
             # Copy bash, coreutils binaries (symlinks ok for binaries)
             for pkg in ${pkgsWithOverlay.bash} ${pkgsWithOverlay.coreutils}; do
               if [ -d "$pkg/bin" ]; then
@@ -302,11 +272,9 @@
                 cp -rL "$pkg/lib"/* $out/lib/ 2>/dev/null || true
               fi
             done
-
             # Copy certificates
             mkdir -p $out/etc/ssl/certs
             ln -sf ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt $out/etc/ssl/certs/
-
             # Copy ROCm/OpenCL libraries - recursively copy entire directories
             for pkg in ${pkgs.rocmPackages.clr} ${pkgs.rocmPackages.clr.icd} ${pkgs.mesa.opencl}; do
               # Recursively copy lib directory (preserves all symlinks and their targets)
@@ -321,23 +289,19 @@
                 cp -r $pkg/etc/* $out/etc/ 2>/dev/null || true
               fi
             done
-
             # Remove rusticl ICD file that points to non-existent Nix store path
             rm -f $out/etc/OpenCL/vendors/rusticl.icd
-
             # Copy glibc libraries - recursively copy entire directory
             cp -rL ${glibc}/lib/* $out/lib/ 2>/dev/null || true
             # Also create in lib64 for the interpreter
             mkdir -p $out/lib64
             cp -rL ${glibc}/lib/* $out/lib64/ 2>/dev/null || true
-
             # Create OpenCL ICD file pointing to the container library path
             # The library will be at /lib/libamdocl64.so when container runs
             # NOT at the build-time $out/lib path
             # First remove the read-only ICD file copied from ROCm package (line 347)
             rm -f $out/etc/OpenCL/vendors/amdocl64.icd
             echo "/lib/libamdocl64.so" > $out/etc/OpenCL/vendors/amdocl64.icd
-
             # Create lib64 directory and symlinks (not a symlink to lib)
             # The binary needs /lib64/ld-linux-x86-64.so.2
             # We already created it above, but we need to ensure it's not overwritten
@@ -347,17 +311,13 @@
         pkgsWithOverlay.dockerTools.buildImage {
           name = "lolminer-amd";
           tag = "1.98a-nixos";
-
           copyToRoot = rootFs;
-
           config = {
             Entrypoint = [ "/bin/lolMiner" ];
             Cmd = [ ];
-
             ExposedPorts = {
               "4069/tcp" = { }; # AMD API port
             };
-
             Env = [
               "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
               "OCL_ICD_VENDORS=/etc/OpenCL/vendors"
@@ -365,26 +325,22 @@
               "GPU_MAX_HEAP_SIZE=100"
               "GPU_MAX_ALLOC_PERCENT=100"
             ];
-
             Labels = {
               "version" = "1.98a";
               "description" = "lolMiner NixOS container with AMD OpenCL support";
             };
           };
         };
-
       # NixOS-based xmrig container image
       # Uses host GLIBC for compatibility (avoids GLIBC_2.29 issue)
       packages.x86_64-linux.xmrig-nixos-image = pkgs.dockerTools.buildLayeredImage {
         name = "xmrig-nixos";
         tag = "latest";
-
         contents = [
           pkgs.xmrig
           pkgs.bash
           pkgs.coreutils
         ];
-
         config = {
           # Don't set Cmd - let Kubernetes provide command/args
           Entrypoint = [ "${pkgs.xmrig}/bin/xmrig" ];
@@ -394,12 +350,16 @@
           };
         };
       };
-
+      # Alpine-based XMRig — static binary, ~20MB vs ~81MB for xmrig-nixos
+      packages.x86_64-linux.xmrig-alpine-image = pkgs.callPackage ./pkgs/xmrig-alpine-image { };
+      # Alpine-based XMRig Proxy — static binary relay
+      packages.x86_64-linux.xmrig-proxy-alpine-image =
+        pkgs.callPackage ./pkgs/xmrig-proxy-alpine-image
+          { };
       # Claude Code container image for Kubernetes deployment
       packages.x86_64-linux.claude-code-image = pkgs.dockerTools.buildImage {
         name = "claude-code";
         tag = "nixos";
-
         copyToRoot = pkgs.buildEnv {
           name = "claude-code-root";
           paths = [
@@ -417,7 +377,6 @@
             "/lib"
           ];
         };
-
         config = {
           Cmd = [
             "${pkgs.bash}/bin/bash"
@@ -441,17 +400,14 @@
           };
         };
       };
-
       packages.x86_64-linux.ai-inference-gateway-image =
         pkgs.callPackage ./pkgs/ai-inference-gateway-image
           { };
-
       # Requires impure paths - build manually: nix build .#kb-mcp-image --impure
       # packages.x86_64-linux.kb-mcp-image = pkgs.callPackage ./pkgs/kb-mcp-image { };
       packages.x86_64-linux.opencode-image = pkgs.dockerTools.buildImage {
         name = "opencode";
         tag = "nixos";
-
         copyToRoot = pkgs.buildEnv {
           name = "opencode-root";
           paths = [
@@ -468,7 +424,6 @@
             "/home/j_kro/.nix-profile"
           ];
         };
-
         config = {
           Cmd = [
             "${pkgs.bash}/bin/bash"
@@ -489,9 +444,7 @@
           };
         };
       };
-
       overlays.default = import ./overlay.nix;
-
       # pkgsWithOverlay: nixpkgs with custom overlay applied
       # Used for package outputs that need custom packages (lolminer, xmrig, etc.)
       pkgsWithOverlay = import nixpkgs {
@@ -500,7 +453,6 @@
         config.cudaSupport = true;
         overlays = [ self.overlays.default ];
       };
-
       apps.x86_64-linux.colmena = {
         type = "app";
         program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";

@@ -164,7 +164,7 @@ kubectl get deployments -n mining | grep gaming
 **Problem:** Date-stamped filenames create version confusion. Which "2026-03-21" status is correct?
 
 **Fix Required:** Stop date-stamping filenames. Use:
-- `akash-provider-status.md` (always current)
+- `default-status.md` (always current)
 - Git history for past versions
 - `docs/incidents/2026-03-21-*.md` for time-sensitive reports
 
@@ -174,7 +174,7 @@ kubectl get deployments -n mining | grep gaming
 
 **Examples:**
 - `debugging-complete-2026-03-21.md`
-- `akash-provider-audit-issue.md`
+- `default-audit-issue.md`
 - `ai-inference-gateway-container-issue.md`
 
 **Problem:** These are incident reports, not documentation. Should be archived.
@@ -262,7 +262,7 @@ This is MASSIVE progress. Someone executed the cleanup plan.
    ```
 
 2. **Consolidate status docs**
-   - Keep ONE `akash-provider-status.md`
+   - Keep ONE `default-status.md`
    - Delete all date-stamped variants
    - Use git history for past versions
 
