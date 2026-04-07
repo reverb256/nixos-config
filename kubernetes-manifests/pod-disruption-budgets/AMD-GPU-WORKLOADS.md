@@ -649,7 +649,7 @@ Mining revenue: Only lost when AI jobs actually running
 - ✅ Preemptible architecture: AI > Mining
 - ✅ Mining continues when AMD GPUs idle
 
-**This strategy maximizes GPU utilization** across all 8 GPUs (5 NVIDIA + 3 AMD) for both revenue generation (mining/Akash) and AI workloads.
+**This strategy maximizes GPU utilization** across all 8 GPUs (5 NVIDIA + 3 AMD) for both revenue generation (mining) and AI workloads.
 
 ---
 

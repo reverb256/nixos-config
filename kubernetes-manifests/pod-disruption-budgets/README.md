@@ -15,7 +15,6 @@ Pod Disruption Budgets (PDBs) ensure critical services maintain minimum availabi
 **CRITICAL (minAvailable: 1)**
 - DNS, Ingress, Monitoring
 - AI inference services (n8n, databases)
-- Akash provider services
 
 **HIGH (minAvailable: 1)**
 - AI coding tools
@@ -31,7 +30,6 @@ pod-disruption-budgets/
 ├── core-services-pdb.yaml       # DNS, Ingress, Device Plugins
 ├── ai-inference-pdb.yaml        # n8n, Redis, Postgres, Qdrant
 ├── ai-coding-pdb.yaml           # Claude Code, OpenCode
-├── akash-services-pdb.yaml      # Akash Provider, Operators
 ├── mining-pdb.yaml              # GPU/CPU Mining (maxUnavailable)
 ├── glitchtip-pdb.yaml           # Error Tracking
 ├── kustomization.yaml           # Kustomize config

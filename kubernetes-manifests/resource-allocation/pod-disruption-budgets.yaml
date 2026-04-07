@@ -38,15 +38,4 @@ spec:
   selector:
     matchLabels:
       app: flannel
----
-# Cloudflared tunnel PDB
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: cloudflared-tunnel
-  namespace: akash-services
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app: cloudflared-tunnel
+

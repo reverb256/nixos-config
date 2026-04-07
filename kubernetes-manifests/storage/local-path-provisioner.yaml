@@ -83,10 +83,13 @@ spec:
           - start
           - --config
           - /etc/config/config.json
-        # Health probes - storage provisioner is critical
+        # Health probes - v0.0.26 has no metrics port, use exec probe
         livenessProbe:
-          tcpSocket:
-            port: 9387  # Default local-path-provisioner metrics port
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep -x local-path-provisioner || exit 1"
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 5

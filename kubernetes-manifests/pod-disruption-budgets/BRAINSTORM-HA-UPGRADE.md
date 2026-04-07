@@ -7,7 +7,7 @@ Upgrade cluster from **3/10 (Basic Availability)** to **9/10 (Production-Grade H
 - **4 nodes** (zephyr, nexus, forge, sentry)
 - **Single availability zone** (homelab)
 - **Limited resources** (78 cores, 123GB RAM, 7 GPUs)
-- **Production workloads** (mining, AI inference, Akash provider)
+- **Production workloads** (mining, AI inference)
 - **Zero-downtime requirement** (must maintain availability during upgrade)
 
 ---
@@ -27,7 +27,7 @@ Best for: Critical services (DNS, ingress, databases)
 #### Option B: Tiered Replication
 **Approach**:
 - Critical (3 replicas): coredns, ingress, databases
-- High (2 replicas): AI inference, Akash
+- High (2 replicas): AI inference
 - Low (1 replica): Mining, development
 ```
 Pros: Resource efficient, prioritizes correctly
@@ -142,7 +142,7 @@ Best for: Production with variable load
 ```
 
 **RECOMMENDATION**: **Option A + C**
-- Namespace quotas for AI inference, mining, akash
+- Namespace quotas for AI inference, mining
 - LimitRanges for default resource allocation
 - PriorityClasses for tiered workloads
 - 20% overprovisioning buffer
@@ -320,7 +320,7 @@ Result: Better distribution across nodes
 **Solution**: Multi-tier PriorityClasses
 ```
 critical-production: Mining revenue-generating
-high-priority: AI inference, Akash
+high-priority: AI inference
 low-priority: Development, testing
 ```
 
@@ -424,7 +424,7 @@ Failover: DNS or load balancer switch
 
 | Service Tier | Replicas | RTO | RPO | Example |
 |--------------|----------|-----|-----|---------|
-| Critical (Revenue) | 3 | 1m | 0m | Mining, Akash provider |
+| Critical (Revenue) | 3 | 1m | 0m | Mining, AI workloads |
 | High (User-facing) | 2-3 | 5m | 15m | AI coding, n8n |
 | Medium (Internal) | 2 | 15m | 1h | Monitoring, logging |
 | Low (Batch) | 1 | 1h | 24h | Development, testing |
@@ -443,7 +443,7 @@ Failover: DNS or load balancer switch
 
 | Component | Strategy | Rationale |
 |-----------|----------|-----------|
-| Quotas | Per namespace (ai-inference, mining, akash) | Fair allocation |
+| Quotas | Per namespace (ai-inference, mining) | Fair allocation |
 | Limits | Default requests/limits (LimitRange) | Auto-protection |
 | Priority | 3 tiers (critical/high/low) | Graceful degradation |
 

@@ -16,7 +16,7 @@
 **Key Achievements**:
 - ✅ Resource analysis completed: 78 cores, 123 GB RAM, 8 GPUs sufficient
 - ✅ Architecture defined: 3-master control plane (Zephyr, Nexus, Sentry) + 1 GPU worker (Forge)
-- ✅ Preemptible mining strategy: All GPUs available for Akash/AI, mining as fallback
+- ✅ Preemptible mining strategy: All GPUs available for AI, mining as fallback
 - ✅ AMD GPU utilization: 3 AMD GPUs expand AI capacity by 60%
 
 **Implementation Approach**: Phased rollout with validation gates at each phase
@@ -255,7 +255,7 @@ metadata:
   name: critical-production
 value: 1000000
 globalDefault: false
-description: "Akash GPU jobs, etcd, API server - highest priority"
+description: "GPU jobs, etcd, API server - highest priority"
 ---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
@@ -627,15 +627,15 @@ kubectl delete pdb -l managed-by=pdb-ha-policy
 
 ## Phase 3: High-Priority Services HA (Week 3-4)
 
-**Focus**: Scale AI inference, Akash, monitoring to 2 replicas
+**Focus**: Scale AI inference, monitoring to 2 replicas
 **Risk**: Medium (more services, but proven pattern from Phase 2)
 **Rollback**: Scale down to 1 replica
 
 ### Objectives
 1. Scale AI inference services to 2 replicas (n8n, Redis, Postgres, Qdrant)
-2. Scale Akash provider services to 2 replicas
-3. Scale monitoring stack to 2 replicas
-4. Add preferred anti-affinity (2-replica services)
+2. Scale monitoring services to 2 replicas
+2. Scale monitoring stack to 2 replicas
+3. Add preferred anti-affinity (2-replica services)
 5. Add PDBs to all high-priority services
 
 ### Tasks
@@ -678,10 +678,10 @@ kubectl scale deployment redis -n ai-inference --replicas=2
 kubectl scale deployment qdrant -n ai-inference --replicas=2
 ```
 
-#### 3.2 Scale Akash Services
+
 ```bash
-kubectl scale deployment akash-provider -n akash-services --replicas=2
-kubectl scale deployment akash-operator -n akash-services --replicas=2
+
+
 ```
 
 **Add PDBs for AI inference**:
@@ -689,9 +689,9 @@ kubectl scale deployment akash-operator -n akash-services --replicas=2
 kubectl apply -f kubernetes-manifests/pod-disruption-budgets/ai-inference-pdb.yaml
 ```
 
-**Add PDBs for Akash**:
+
 ```bash
-kubectl apply -f kubernetes-manifests/pod-disruption-budgets/akash-services-pdb.yaml
+
 ```
 
 #### 3.3 Scale Monitoring Stack
@@ -707,7 +707,7 @@ kubectl apply -f kubernetes-manifests/pod-disruption-budgets/monitoring-pdb.yaml
 
 ### Phase 3 Exit Criteria
 - ✅ AI inference: All services 2 replicas
-- ✅ Akash: All services 2 replicas
+
 - ✅ Monitoring: 2 replicas
 - ✅ PDBs protecting all high-priority services
 - ✅ Preferred anti-affinity on 2-replica services
@@ -718,8 +718,7 @@ kubectl apply -f kubernetes-manifests/pod-disruption-budgets/monitoring-pdb.yaml
 # Scale AI inference back to 1 replica
 kubectl scale deployment -n ai-inference --all --replicas=1
 
-# Scale Akash back to 1 replica
-kubectl scale deployment -n akash-services --all --replicas=1
+
 
 # Scale monitoring back to 1 replica
 kubectl scale deployment -n monitoring --all --replicas=1
@@ -735,7 +734,7 @@ kubectl scale deployment -n monitoring --all --replicas=1
 
 ### Objectives
 1. Update all mining pods with `priorityClassName: background-mining`
-2. Update Akash pods with `priorityClassName: critical-production`
+2. Update high-priority pods with .priorityClassName: critical-production
 3. Update AI inference pods with `priorityClassName: production-services`
 4. Test preemption behavior
 
@@ -752,14 +751,13 @@ for deploy in $(kubectl get deploy -n mining -o jsonpath='{.items[*].metadata.na
 done
 ```
 
-#### 4.2 Update Akash Deployments
+
 ```bash
-# Update Akash provider
-kubectl set deployment akash-provider -n akash-services \
+# 
+kubectl set deployment default -n default \
   --overrides='{"spec":{"template":{"spec":{"priorityClassName":"critical-production"}}}}'
 
-# Update Akash operator
-kubectl set deployment akash-operator -n akash-services \
+# 
   --overrides='{"spec":{"template":{"spec":{"priorityClassName":"critical-production"}}}}'
 ```
 
@@ -778,15 +776,15 @@ done
 
 #### 4.4 Test Preemption
 
-**Test 1: Akash job preempts mining**
+**Test 1: High-priority job preempts mining**
 ```bash
-# Submit test Akash GPU job
+# Submit test GPU job
 cat << EOF | kubectl apply -f -
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: test-preemption
-  namespace: akash-cpu-test
+  namespace: default
 spec:
   template:
     spec:
@@ -804,11 +802,11 @@ EOF
 # Watch preemption happen
 kubectl get pods -n mining -w
 
-# Verify Akash job scheduled
-kubectl get pods -n akash-cpu-test
+# Verify GPU job scheduled
+
 
 # Clean up
-kubectl delete job test-preemption -n akash-cpu-test
+
 ```
 
 **Test 2: Gaming preempts mining (Zephyr)**
@@ -831,9 +829,9 @@ kubectl scale deployment gpu-miner-zephyr-3090 -n mining --replicas=1
 
 ### Phase 4 Exit Criteria
 - ✅ All mining pods have `background-mining` priority
-- ✅ All Akash pods have `critical-production` priority
+
 - ✅ All AI inference pods have `production-services` priority
-- ✅ Preemption test successful (Akash job preempts mining)
+- ✅ Preemption test successful (high-priority job preempts mining)
 - ✅ Gaming preemption test successful
 - ✅ Mining resumes when higher priority workloads complete
 
@@ -903,14 +901,14 @@ spec:
 EOF
 ```
 
-**Akash namespace**:
+
 ```bash
 kubectl apply -f - << EOF
 apiVersion: v1
 kind: ResourceQuota
 metadata:
-  name: akash-quota
-  namespace: akash-services
+  
+  
 spec:
   hard:
     requests.cpu: "4"
@@ -1289,7 +1287,7 @@ cat > /etc/nixos/kubernetes-manifests/pod-disruption-budgets/POST-UPGRADE.md << 
 - CoreDNS: 3 replicas (1 per master)
 - Ingress: 3 replicas
 - AI inference: 2-3 replicas
-- Akash: 2 replicas
+
 - Monitoring: 2 replicas
 
 ### Pod Anti-Affinity: 80% (from 0%)
@@ -1332,7 +1330,7 @@ cat > /etc/nixos/kubernetes-manifests/operations/runbook-node-maintenance.md << 
 ### Pre-Maintenance Checks
 1. Verify cluster health: `kubectl get nodes`
 2. Check PDB status: `kubectl get pdb -A`
-3. Verify no critical jobs running: `kubectl get pods -A | grep -E "akash|training"`
+3. Verify no critical jobs running: `kubectl get pods -A | grep -E "training"`
 
 ### Drain Procedure
 ```bash
@@ -1472,7 +1470,7 @@ kubectl scale deployment -n kube-system coredns --replicas=2
 kubectl scale deployment -n ingress-nginx ingress-nginx-controller --replicas=1
 kubectl scale deployment -n yunikorn --all --replicas=1
 kubectl scale deployment -n ai-inference --all --replicas=1
-kubectl scale deployment -n akash-services --all --replicas=1
+
 kubectl scale deployment -n monitoring --all --replicas=1
 
 # 2. Delete all PDBs
@@ -1509,7 +1507,7 @@ kubectl get nodes
 | 0 | Preparation | Baseline, monitoring, rollback | Baseline documented |
 | 1 | Foundation | Resources, health, priorities | Swap disabled, PriorityClasses created |
 | 2 | Critical Services | CoreDNS, Ingress, Yunikorn HA | 3-replica critical services |
-| 3 | High-Priority | AI, Akash, Monitoring HA | 2-replica high-priority services |
+| 3 | High-Priority | AI, Monitoring HA | 2-replica high-priority services |
 | 4 | Preemption | PriorityClass-based scheduling | Preemptible mining implemented |
 | 5 | Quotas | Resource quotas, LimitRanges | Quotas enforced |
 | 6 | AMD GPUs | AI workloads on AMD | AMD GPU utilization |

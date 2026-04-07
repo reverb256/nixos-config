@@ -30,7 +30,7 @@
 **Deployments with 1 replica**: 26
 - ai-coding: claude-code, opencode (2)
 - ai-inference: n8n, prometheus, redis, qdrant (4)
-- akash-services: cloudflared, operator-hostname, operator-inventory (3)
+- 
 - ingress-nginx: ingress-nginx-controller (1)
 - istio-system: istiod (1)
 - kube-system: coredns, metrics-server, local-path-provisioner (3)
@@ -41,7 +41,7 @@
 
 **StatefulSets with 1 replica**: 5
 - ai-inference: postgres-n8n (1)
-- akash-services: akash-node-1, akash-provider (2)
+
 - glitchtip: postgres (1)
 - mining: (none in baseline)
 
@@ -119,7 +119,7 @@
 |-----------|------|-------------|------------|
 | ai-coding | 2 | 2 | 100% |
 | ai-inference | 8 | 8 | 100% |
-| akash-services | 5 | 4 | 125% (some overlap) |
+
 | glitchtip | 3 | 2 | 150% (overlap) |
 | ingress-nginx | 1 | 1 | 100% |
 | kube-system | 4 | 3 | 133% (overlap) |
@@ -141,15 +141,14 @@
 
 ## GPU Inventory
 
-| Node | GPUs | Models | VRAM | Akash? | Mining? | AI? |
+| Node | GPUs | Models | VRAM | Mining? | AI? |
 |------|------|--------|------|--------|---------|-----|
-| **zephyr** | 2 | RTX 3090, RTX 3060 Ti | 24GB + 8GB | ✅ Both | ✅ 3090 only | ✅ Both |
-| **nexus** | 1 | RTX 3060 Ti | 8GB | ✅ Yes | ✅ Yes | ✅ Yes |
-| **forge** | 4 | 2x RTX 4060, 2x RX 5700 XT | 2x 8GB + 2x 8GB | 2x NVIDIA | ✅ 2 NVIDIA only | ✅ All 4 |
-| **sentry** | 1 | RX 5600 XT | 6GB | ❌ No | ❌ No | ✅ Yes |
+| **zephyr** | 2 | RTX 3090, RTX 3060 Ti | 24GB + 8GB | ✅ 3090 only | ✅ Both |
+| **nexus** | 1 | RTX 3060 Ti | 8GB | ✅ Yes | ✅ Yes |
+| **forge** | 4 | 2x RTX 4060, 2x RX 5700 XT | 2x 8GB + 2x 8GB | ✅ 2 NVIDIA only | ✅ All 4 |
+| **sentry** | 1 | RX 5600 XT | 6GB | ❌ No | ✅ Yes |
 
 **Total GPUs**: 8 (5 NVIDIA + 3 AMD)
-**Akash GPUs**: 5 NVIDIA only (AMD incompatible)
 **Mining GPUs**: 4 NVIDIA (Forge 4060s, Nexus 3060 Ti, Zephyr 3090)
 **AI GPUs**: 8 total (5 NVIDIA + 3 AMD)
 
@@ -243,7 +242,7 @@
    - **Action**: Verify AMD miner deployment status during Phase 0
 
 2. **Some Services in CrashLoopBackOff**
-   - **operator-inventory** (akash-services): 73 restarts
+   - Various services showing restart counts
    - **Action**: Investigate and fix before HA upgrade
 
 ### Low Issues

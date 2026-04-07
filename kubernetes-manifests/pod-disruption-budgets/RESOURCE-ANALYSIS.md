@@ -72,7 +72,7 @@
 |-----------|-------------|----------|------------------|----------|
 | **mining** | 8 | 6 | GPU/CPU mining | Critical |
 | **ai-inference** | 6 | 3 | n8n, databases | High |
-| **akash-services** | 3 | 3 | Akash provider | High |
+| **monitoring** | 2 | 2 | Prometheus, Grafana | High |
 | **monitoring** | 2 | 2 | Prometheus, Grafana | High |
 | **kube-system** | 2 | 2 | DNS, ingress | Critical |
 | **ai-coding** | 2 | 2 | Claude Code, OpenCode | Medium |
@@ -92,7 +92,7 @@
 | monitoring | ~1000m | ~2000 Mi | Prometheus, Grafana |
 | ai-inference | ~3000m | ~6000 Mi | n8n, Redis, Postgres, Qdrant |
 | mining | ~12000m | ~8000 Mi | 6 GPU miners + CPU miners |
-| akash-services | ~2000m | ~4000 Mi | Provider, operators |
+| monitoring | ~500m | ~1000 Mi | Prometheus, Grafana |
 | ai-coding | ~2000m | ~4000 Mi | Claude Code, OpenCode |
 | yunikorn | ~500m | ~1000 Mi | Scheduler + admission |
 | volcano-system | ~1500m | ~2000 Mi | Batch scheduler |
@@ -111,7 +111,7 @@
 | Service Tier | Replicas | Count | Services | CPU Requirement | RAM Requirement |
 |--------------|----------|-------|----------|-----------------|-----------------|
 | **Critical** | 3 | 6 | Mining (6), CoreDNS, Ingress, Yunikorn | +12,000m | +6,000 Mi |
-| **High** | 2 | 12 | AI inference (6), Akash (3), Monitoring (2), AI coding (2) | +4,000m | +4,000 Mi |
+| **High** | 2 | 12 | AI inference (6), Monitoring (2), AI coding (2) | +4,000m | +4,000 Mi |
 | **Medium** | 2 | 6 | StatefulSets (3), Search (2), Volcano (3) | +2,000m | +2,000 Mi |
 | **Low** | 1 | - | Glitchtip, Istio, development | 0 | 0 |
 
@@ -199,7 +199,7 @@ Define quotas per namespace (prevent noisy neighbor):
 |-----------|-----------|--------------|-----------|
 | **mining** | 15000m | 10000 Mi | Critical, GPU-intensive |
 | **ai-inference** | 6000m | 8000 Mi | High priority, CPU-bound |
-| **akash-services** | 4000m | 6000 Mi | High priority, revenue-generating |
+| **monitoring** | 2000m | 4000 Mi | High priority, cluster health |
 | **monitoring** | 2000m | 4000 Mi | High priority, cluster health |
 | **ai-coding** | 3000m | 6000 Mi | Medium priority, development |
 | **kube-system** | 4000m | 4000 Mi | Critical, cluster operations |
@@ -213,7 +213,7 @@ Define 3-tier priority system:
 
 | PriorityClass | Value | Use Cases | Preemption |
 |---------------|-------|-----------|------------|
-| **critical-production** | 1000000 | Mining revenue, Akash provider, etcd, API server | Never preempted |
+| **critical-production** | 1000000 | Mining revenue, etcd, API server | Never preempted |
 | **high-priority** | 500000 | AI inference, monitoring, core services | Preempts low-priority |
 | **low-priority** | 50000 | Development, testing, batch jobs | First to be preempted |
 
@@ -254,7 +254,7 @@ Define 3-tier priority system:
 | **PostgreSQL** | 1 | 2 | Zephyr, Nexus | +500m | +1000 Mi |
 | **Redis** | 1 | 2 | Nexus, Sentry | +200m | +200 Mi |
 | **Qdrant** | 1 | 2 | Zephyr, Sentry | +500m | +1000 Mi |
-| **Akash Provider** | 1 | 2 | Nexus, Sentry | +1000m | +1000 Mi |
+| **Prometheus** | 1 | 2 | Sentry, Zephyr | +500m | +500 Mi |
 | **Prometheus** | 1 | 2 | Sentry, Zephyr | +500m | +500 Mi |
 | **Grafana** | 1 | 2 | Sentry, Nexus | +200m | +200 Mi |
 | **Claude Code** | 1 | 2 | Zephyr, Nexus | +1000m | +1000 Mi |
@@ -369,7 +369,7 @@ Define 3-tier priority system:
 
 **Phase 3: High Priority Services (Week 3-4)**
 - Scale AI inference to 2 replicas
-- Scale Akash to 2 replicas
+- Scale monitoring to 2 replicas
 - Scale monitoring to 2 replicas
 - Add preferred anti-affinity
 
