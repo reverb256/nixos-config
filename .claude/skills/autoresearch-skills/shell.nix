@@ -1,5 +1,4 @@
-{ pkgs ? import <nixpkgs> {} }:
-
+{pkgs ? import <nixpkgs> {}}:
 pkgs.mkShell {
   buildInputs = with pkgs; [
     python3
@@ -9,7 +8,6 @@ pkgs.mkShell {
     python3Packages.plotly
     python3Packages.python-dotenv
   ];
-
   shellHook = ''
     echo "🔬 Autoresearch Environment Loaded"
     echo ""

@@ -16,8 +16,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
 spec:
   # TODO: Update ingressClassName based on your ingress controller
-  # Options: akash-ingress-class, nginx, traefik, etc.
-  # ingressClassName: akash-ingress-class
+  # Options: nginx, traefik, etc.
 
   rules:
   # TODO: Replace with your actual hostname

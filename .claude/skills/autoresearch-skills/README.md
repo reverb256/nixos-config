@@ -171,7 +171,6 @@ Begin with a skill that has:
 - Well-defined workflow
 - Easy-to-test behavior
 
-Good candidates: `nix-rebuild`, `akash`, `knowledge-fabric`
 
 ### 2. Write Good Test Suites
 - 3-5 positive cases (common scenarios)
