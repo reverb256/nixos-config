@@ -44,7 +44,12 @@ in
     # MUST NOT leak to Plasma (KWin handles its own GPU routing)
 
     environment.etc."uwsm/env-hyprland" = lib.mkIf cfg {
-      text = "";
+      text = ''
+        # Restrict wlroots to the 3090 (card2) which has all monitors.
+        # Prevents DRM master conflicts with card1 (3060 Ti, no displays)
+        # when VT switching between compositors.
+        WLR_DRM_DEVICES=/dev/dri/card2
+      '';
     };
 
     # ── SYSTEMD USER SERVICES ──────────────────────────────────────────
