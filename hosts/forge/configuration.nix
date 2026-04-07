@@ -139,8 +139,6 @@
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.130";
-      nvidia.enable = true;
-      nvidia.enable = true;
     };
 
     # Spotify with SpotX patch (ad-free, premium features)
