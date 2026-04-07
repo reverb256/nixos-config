@@ -29,7 +29,6 @@ phase1_audits() {
         "docs/audit/system-audit-report-2026-03-21-1715.md"
         "docs/audit/system-audit-report-2026-03-21-0912.md"
         "docs/audit/comprehensive-audit-2026-03-21.md"
-        "docs/audit/akash-status-check-2026-03-21-1112.md"
         "docs/DOCUMENTATION_AUDIT_2026-03-21.md"
         "docs/DOCUMENTATION_AUDIT_SUMMARY.md"
     )
@@ -53,7 +52,7 @@ phase2_incidents() {
     # Keep only major incidents, delete daily status files
     local daily_files=(
         docs/incidents/2026-03-21/status-check-*.md
-        docs/incidents/2026-03-21/akash-provider-status*.md
+        docs/incidents/2026-03-21/default-status*.md
         docs/incidents/2026-03-21/audit-status-*.md
         docs/incidents/2026-03-21/final-status-report-*.md
         docs/incidents/2026-03-21/comprehensive-status-report-*.md
@@ -79,7 +78,6 @@ phase3_plans() {
 
     local plans=(
         "docs/plans/2026-03-20-k8s-mining-migration-design.md"
-        "docs/plans/2026-03-21-akash-assistant-skill-design.md"
         "docs/plans/2026-03-22-caddy-ingress-design.md"
         "docs/plans/2026-03-22-caddy-ingress-migration.md"
         "docs/plans/2026-03-22-caddy-ingress-implementation.md"

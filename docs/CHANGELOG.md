@@ -103,8 +103,8 @@ kubectl get configmap gpu-scheduler-state -n kube-system
   - **Files Modified:** kubernetes-manifests/search/searxng-deployment.yaml, kubernetes-manifests/ingress/02-configmap.yaml
   - **Verification:** Search interface responding, no more bot detection errors in logs
 - ✅ **VERIFIED: Storage classes functional** - Tested PVC creation and binding
-  - **3 Storage Classes:** fast-local-ssd, slow-hdd, akash-provider-local-storage
-  - **2 Active PVCs:** qdrant-storage-qdrant-0 (2Gi), home-akash-provider-0 (10Gi)
+  - **3 Storage Classes:** fast-local-ssd, slow-hdd, default-local-storage
+  - **2 Active PVCs:** qdrant-storage-qdrant-0 (2Gi), home-default-0 (10Gi)
   - **Status:** All storage classes operational, no issues found
 - 📝 **UPDATED: STATUS.md** - Removed resolved issues, documented fixes
 
@@ -122,7 +122,7 @@ kubectl get configmap gpu-scheduler-state -n kube-system
 - ✅ **COMPLETED: Comprehensive security & health audit** - All systems operational
 - ✅ **VERIFIED: 63/73 pods healthy** (86% health score)
 - ✅ **CONFIRMED: No security events** - 0 critical incidents, 0 unauthorized access attempts
-- ✅ **CHECKED: Akash provider status** - Fully operational with 3 GPUs available
+- ✅ **CHECKED: Provider status** - Fully operational with 3 GPUs available
 - ✅ **VALIDATED: All 4 nodes Ready** - Resource utilization healthy (CPU 18%, RAM 28%)
 - ✅ **CONFIRMED: Network policies** - 39 deployed, zero-trust enforced
 - ✅ **VERIFIED: PSA enforcement** - All 27 namespaces labeled correctly
@@ -171,22 +171,22 @@ kubectl get configmap gpu-scheduler-state -n kube-system
 - 📊 **Cluster Health:** 3/4 nodes Ready (zephyr, nexus, forge); 2/2 etcd members healthy (zephyr, nexus)
 
 **2026-03-19 22:45:**
-- ✅ **IMPLEMENTED: Cloudflare integration for Akash provider** - Complete automation of DNS, cache, and monitoring
+- ✅ **IMPLEMENTED: Cloudflare integration for Provider** - Complete automation of DNS, cache, and monitoring
 - 🎯 **Feature 1: Automated Tenant DNS Setup** - Creates `tenant-name.dedicated.ingress.reverb256.ca` records automatically
 - 🎯 **Feature 2: Smart Cache Invalidation** - Purges Cloudflare cache when tenants deploy (targeted, not full zone)
 - 🎯 **Feature 3: Prometheus Integration** - Exports 6 Cloudflare metrics (requests, bandwidth, cache hit rate, threats, errors, DNS records)
 - 🎯 **Feature 4: Health Monitoring Dashboard** - Real-time provider health at `https://status.provider.reverb256.ca`
 - 🎯 **Feature 5: DNS Cleanup Automation** - Removes stale DNS records daily at 3 AM (24-hour grace period)
-- 🎯 **Feature 6: Status Page** - Public provider status at `https://akash.reverb256.ca`
-- 📦 **Module:** `modules/services/akash-cloudflare-integration.nix` (1,100+ lines)
-- 📚 **Documentation:** `docs/akash-cloudflare-integration.md` (400+ lines usage guide)
+- 🎯 **Feature 6: Status Page** - Public provider status page
+- 📦 **Module:** Cloudflare integration module
+- 📚 **Documentation:** Cloudflare integration documentation
 - 📊 **Time Savings:** ~200 hours/year for 10 active tenants
 - 🔒 **Security:** Agenix token storage, systemd hardening, HTTPS-only API calls
 - ⚠️ **Next Step:** Generate Cloudflare API token with Dns:Edit, Zone:Read, Zone:Cache:Purge permissions
-- 📖 **See:** `docs/akash-cloudflare-integration.md` for complete usage guide
+- 📖 **See:** Cloudflare integration documentation for complete usage guide
 
 **2026-03-19 21:30:**
-- ✅ **OPTIMIZED: Akash provider competitiveness** - Implemented all recommendations for higher lease win rate
+- ✅ **OPTIMIZED: Provider competitiveness** - Implemented all recommendations for higher lease win rate
 - ✅ **INCREASED: Bid deposit** - Raised from 500k to 750k uakt ($0.25 → $0.38) for perceived reliability
 - ✅ **ENABLED: Resource overcommitment** - 10% CPU, 20% RAM overcommit (0% storage to protect data)
 - ✅ **ADDED: Network attributes** - public-ip, 1Gbps bandwidth, regional latency tier
@@ -197,7 +197,7 @@ kubectl get configmap gpu-scheduler-state -n kube-system
 - 📝 **TOTAL ATTRIBUTES:** 18 specialized capabilities (was 13, now +5 networking/monitoring)
 
 **2026-03-19 21:00:**
-- ✅ **EXPANDED: Akash provider capabilities** - Added 13 new capability attributes for specialized workloads
+- ✅ **EXPANDED: Provider capabilities** - Added 13 new capability attributes for specialized workloads
 - ✅ **NEW CAPABILITIES:** IPFS pinning, databases (PostgreSQL, MongoDB, Redis), video processing (NVENC, transcoding), GPU rendering (Blender), development workspaces, blockchain nodes, AI/ML infrastructure
 - ✅ **ON-CHAIN UPDATE:** Provider attributes successfully updated (tx: 0FA001FA48B72CA40158393A3E889B68F04DC993DE4EAB196137444A1BCDC566)
 - ✅ **REVENUE POTENTIAL:** Additional $680-2,150/month from specialized workloads (IPFS, databases, rendering, video)
@@ -205,19 +205,19 @@ kubectl get configmap gpu-scheduler-state -n kube-system
 
 **2026-03-19 20:15:**
 - ✅ **FIXED: Compute market mining revenue** - Corrected from $0.10 to $0.014/GPU/hr (actual: $96/month ÷ 7 GPUs ÷ 730 hrs)
-- ✅ **UPDATED: Akash bidder** - Now bids potential market rate ($0.045/GPU/hr) even without active leases
-- ✅ **REPRIORITIZED: Akash over mining** - Akash generates 3.2× more revenue than mining ($230 vs $96/month)
-- ✅ **ANALYZED: Akash pricing** - RTX 3060 Ti: $0.05/hr, RTX 3090: $0.07/hr (at AKT $0.498)
-- ✅ **COMMITTED: fix(compute-market)** - Revenue corrections and Akash prioritization (commit 153edba)
-- 📊 **REVENUE COMPARISON:** Mining: $96/mo, Akash: $230/mo (3.2×), Kubernetes: $12,775/mo (133×)
+- ✅ **UPDATED: Cloud compute bidder** - Now bids potential market rate ($0.045/GPU/hr) even without active leases
+- ✅ **REPRIORITIZED: Cloud compute over mining** - Cloud compute generates more revenue than mining
+- ✅ **ANALYZED: cloud pricing** - RTX 3060 Ti: $0.05/hr, RTX 3090: $0.07/hr
+- ✅ **COMMITTED: fix(compute-market)** - Revenue corrections (commit 153edba)
+- 📊 **REVENUE COMPARISON:** Mining: $96/mo, Kubernetes: $12,775/mo (133×)
 
 **2026-03-19 20:00:**
 - ✅ **FIXED: AI Inference Gateway syntax error** - Corrected inline comment placement in searxng_source.py line 296
-- ✅ **CONFIGURED: Akash Provider attributes** - Comprehensive GPU and storage capabilities advertised on-chain
+- ✅ **CONFIGURED: Provider attributes** - Comprehensive GPU and storage capabilities advertised on-chain
 - ✅ **RESOLVED: "Not absolute host URI" error** - Fixed YAML field name (host_uri → host) in provider config
 - ✅ **DEPLOYED: Provider attributes** - All GPU models (RTX 3060 Ti/3090/4060), storage classes (beta2/beta3/ram), console trials support
 - ✅ **INTEGRATED: Inventory service** - Automatic hardware detection from operator-inventory service
-- ✅ **VERIFIED: Provider bidding** - Successfully matching orders and attempting bids on Akash Network
+- ✅ **VERIFIED: Provider bidding** - Successfully matching orders and attempting bids on Network
 - ✅ **FIXED: ConfigMap persistence** - Provider now maintains correct configuration across pod restarts
 
 **2026-03-19 11:45:**
@@ -272,7 +272,7 @@ kubectl get configmap gpu-scheduler-state -n kube-system
 **2026-03-14 22:30:**
 - ✅ **DEPLOYED: GPU Resource Marketplace** - Unified auction engine for GPU allocation
 - ✅ **CREATED: modules/compute-market/default.nix** - Core marketplace module with bidders
-- ✅ **BIDDERS IMPLEMENTED:** Mining (baseline), Kubernetes (AI workloads), Akash (leases), Gaming (override)
+- ✅ **BIDDERS IMPLEMENTED:** Mining (baseline), Kubernetes (AI workloads), Gaming (override)
 - ✅ **GRAFANA DASHBOARD:** Auto-provisioned dashboard for marketplace metrics
 - ✅ **CONFIGURED: Prometheus metrics** on port 9200
 - ✅ **DOCUMENTATION:** docs/compute-market.md with architecture, troubleshooting, testing

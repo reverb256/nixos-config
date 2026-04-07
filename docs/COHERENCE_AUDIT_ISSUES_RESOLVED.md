@@ -45,7 +45,7 @@ Created comprehensive 450-line documentation: `docs/kubernetes/storage-class-map
 | local-path | rancher.io/local-path | All | Varies | General purpose |
 | fast-local-ssd | rancher.io/local-path | Zephyr | 922GB NVMe | Databases, AI models |
 | large-nfs-storage | kubernetes.io/no-provisioner | Nexus (NFS) | 3.6TB | Media, backups |
-| akash-provider-local-storage | rancher.io/local-path | Nexus | 100GB | Akash provider |
+| default-local-storage | rancher.io/local-path | Nexus | 100GB | Provider |
 
 **Status:** ✅ **RESOLVED** - Complete reference documentation created
 

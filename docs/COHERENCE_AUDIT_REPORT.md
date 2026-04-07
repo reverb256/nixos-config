@@ -177,7 +177,7 @@ provisioner: nix.csi.driver
 - `fast-local-ssd` → Zephyr NVMe (922GB)
 - `local-path` → Rancher local-path provisioner
 - `large-nfs-storage` → Nexus NFS (3.6TB)
-- `akash-provider-local-storage` → Nexus local storage
+- `default-local-storage` → Nexus local storage
 
 **Status:** ⚠️ **DOCUMENTATION GAP** - Storage classes defined but not explicitly mapped to provisioners in audit
 
@@ -267,7 +267,7 @@ ssh zephyr "sudo systemctl restart kube-apiserver"  # Auto-recovers etcd depende
 - **NixOS modules:** 187
 - **Kubernetes manifests:** 338
 - **Network CIDRs:** 3 (10.244.0.0/16, 10.1.1.0/24, 10.96.0.0/12)
-- **Storage classes:** 4 (fast-local-ssd, local-path, large-nfs-storage, akash-provider-local-storage)
+- **Storage classes:** 4 (fast-local-ssd, local-path, large-nfs-storage, default-local-storage)
 - **Port conflicts:** 0
 - **Replica explosions:** 0
 - **GPU scheduling violations:** 0

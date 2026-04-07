@@ -8,7 +8,7 @@
 ## Summary
 
 Successfully resolved Cloudflare tunnel configuration issues by:
-1. Creating a new tunnel (`akash-provider-k8s-v3`) with valid credentials
+1. Creating a new tunnel (`default-k8s-v3`) with valid credentials
 2. Fixing etcd service startup (empty peer key issue)
 3. Deploying tunnel to Kubernetes with proper configuration
 4. Verifying 4 active tunnel connections
@@ -23,7 +23,7 @@ Successfully resolved Cloudflare tunnel configuration issues by:
 **Solution:** Created new tunnel via Cloudflare API with fresh credentials
 
 **New Tunnel Details:**
-- Name: `akash-provider-k8s-v3`
+- Name: `default-k8s-v3`
 - ID: `3ae754bf-6be0-4eb8-82d9-7d9f543ef9b2`
 - Status: Healthy with 4 active connections
 - Protocol: QUIC (30-50% faster than HTTP/2)
@@ -63,14 +63,14 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: cloudflared-tunnel-credentials
-  namespace: akash-services
+  namespace: default
 type: Opaque
 stringData:
   credentials.json: |
     {
       "AccountTag": "3972d2d9cd0da4178eb03754c0862af1",
       "TunnelID": "3ae754bf-6be0-4eb8-82d9-7d9f543ef9b2",
-      "TunnelName": "akash-provider-k8s-v3",
+      "TunnelName": "default-k8s-v3",
       "TunnelSecret": "qjwiYf6srLCETEV9e9zfXUmQtE9MPDN7vMoufUWqsqU="
     }
 ```
@@ -93,7 +93,7 @@ stringData:
 
 ### Kubernetes Deployment ✅ OPERATIONAL
 ```bash
-kubectl get pods -n akash-services -l app=cloudflared-tunnel
+kubectl get pods -n default -l app=cloudflared-tunnel
 # NAME                                  READY   STATUS    RESTARTS   AGE
 # cloudflared-tunnel-67445f8c8f-6wbx2   1/1     Running   0          15s
 ```
@@ -124,10 +124,9 @@ systemctl status etcd.service
 
 1. **Update Cloudflare DNS Records**
    - Add CNAME records for new tunnel to Cloudflare dashboard:
-     - `provider.reverb256.ca` → `akash-provider-k8s-v3.v4.cfd.io`
-     - `*.ingress.reverb256.ca` → `akash-provider-k8s-v3.v4.cfd.io`
-     - `status.provider.reverb256.ca` → `akash-provider-k8s-v3.v4.cfd.io`
-     - `akash.reverb256.ca` → `akash-provider-k8s-v3.v4.v4.cfd.io`
+     - `provider.reverb256.ca` → `default-k8s-v3.v4.cfd.io`
+     - `*.ingress.reverb256.ca` → `default-k8s-v3.v4.cfd.io`
+     - `status.provider.reverb256.ca` → `default-k8s-v3.v4.cfd.io`
 
 2. **Update Systemd Cloudflared Configuration**
    - Edit `/etc/nixos/hosts/zephyr/configuration.nix` line 213
@@ -138,7 +137,7 @@ systemctl status etcd.service
 ### LOW PRIORITY
 
 3. **Clean Up Old Tunnels**
-   - Delete old tunnel `akash-provider-k8s-v2` (ID: `41176fe6-8c17-4353-ad7d-f7cdad353ecd`) via Cloudflare dashboard
+   - Delete old tunnel `default-k8s-v2` (ID: `41176fe6-8c17-4353-ad7d-f7cdad353ecd`) via Cloudflare dashboard
    - Or keep as backup
 
 4. **Fix Agenix Secret Deployment**
@@ -153,8 +152,8 @@ After completing next steps, verify with:
 
 ```bash
 # Check Kubernetes cloudflared
-kubectl get pods -n akash-services -l app=cloudflared-tunnel
-kubectl logs -n akash-services -l app=cloudflared-tunnel --tail=20
+kubectl get pods -n default -l app=cloudflared-tunnel
+kubectl logs -n default -l app=cloudflared-tunnel --tail=20
 
 # Check systemd cloudflared
 systemctl status cloudflared-tunnel.service
@@ -181,7 +180,7 @@ curl -s -X GET "https://api.cloudflare.com/client/v4/accounts/3972d2d9cd0da4178e
 
 ### If Pods CrashLoopBackOff
 ```bash
-kubectl logs <pod-name> -n akash-services
+kubectl logs <pod-name> -n default
 # Check for YAML syntax errors in config
 # Common issue: metrics port needs bind address (0.0.0.0:20241)
 ```
@@ -199,8 +198,8 @@ sudo systemctl restart etcd
 ### If Tunnel Shows "Inactive"
 ```bash
 # Verify tunnel ID matches credentials
-kubectl get secret cloudflared-tunnel-credentials -n akash-services -o jsonpath='{.data.credentials\.json}' | base64 -d | jq '.TunnelID'
-kubectl get configmap cloudflared-config -n akash-services -o jsonpath='{.data.config\.yml}' | grep tunnel
+kubectl get secret cloudflared-tunnel-credentials -n default -o jsonpath='{.data.credentials\.json}' | base64 -d | jq '.TunnelID'
+kubectl get configmap cloudflared-config -n default -o jsonpath='{.data.config\.yml}' | grep tunnel
 # Both should return: 3ae754bf-6be0-4eb8-82d9-7d9f543ef9b2
 ```
 
@@ -215,7 +214,7 @@ kubectl get configmap cloudflared-config -n akash-services -o jsonpath='{.data.c
 curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/3972d2d9cd0da4178eb03754c0862af1/cfd_tunnel" \
   -H "Authorization: Bearer cfut_iotByCUQLpSaYNMwiS1IdIvYtjJTTGexDrPKCLev854ddfb5" \
   -H "Content-Type: application/json" \
-  --data '{"name":"akash-provider-k8s-v3","tunnel_secret":"'"$(openssl rand -base64 32)"'"}'
+  --data '{"name":"default-k8s-v3","tunnel_secret":"'"$(openssl rand -base64 32)"'"}'
 ```
 
 **List Tunnels:**
@@ -229,7 +228,7 @@ curl -s -X GET "https://api.cloudflare.com/client/v4/accounts/3972d2d9cd0da4178e
 {
   "AccountTag": "3972d2d9cd0da4178eb03754c0862af1",
   "TunnelID": "3ae754bf-6be0-4eb8-82d9-7d9f543ef9b2",
-  "TunnelName": "akash-provider-k8s-v3",
+  "TunnelName": "default-k8s-v3",
   "TunnelSecret": "qjwiYf6srLCETEV9e9zfXUmQtE9MPDN7vMoufUWqsqU="
 }
 ```
@@ -237,14 +236,13 @@ curl -s -X GET "https://api.cloudflare.com/client/v4/accounts/3972d2d9cd0da4178e
 ### DNS CNAME Target
 For each hostname, create CNAME record pointing to:
 ```
-akash-provider-k8s-v3.v4.cfd.io
+default-k8s-v3.v4.cfd.io
 ```
 
 ---
 
 **Documentation:** See also:
 - `/etc/nixos/docs/cloudflare/cloudflare-tunnel-fix-status.md` (original investigation)
-- `/etc/nixos/docs/akash-cloudflare-integration.md` (Akash automation features)
 - Cloudflare Tunnel documentation: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/
 
 **Status:** ✅ Kubernetes deployment operational, systemd update pending

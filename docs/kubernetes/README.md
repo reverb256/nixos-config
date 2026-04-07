@@ -26,7 +26,7 @@ docs/kubernetes/
 - Historical status reports
 
 ### Incidents
-- `akash-provider-incident-2026-03-22.md`
+- `default-incident-2026-03-22.md`
 - `ip-exhaustion-incident-2-2026-03-21.md`
 - `volcano-scheduler-incident-2026-03-22.md`
 
