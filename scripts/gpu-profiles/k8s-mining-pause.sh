@@ -3,18 +3,18 @@
 # Pauses mining pods when GameMode activates (gaming starts)
 # Resumes mining pods when GameMode deactivates (gaming ends)
 
-set -euo pipefail
+set -uo pipefail
 
 MINING_DEPLOYMENT="gpu-miner-zephyr"
 MINING_NAMESPACE="mining"
 MINING_SERVICES=("lolminer-nvidia" "xmrig" "xmrig-flexible" "xmrig-proxy")
-LOG_FILE="$HOME/.local/log/k8s-mining-pause.log"
+LOG_FILE="/var/log/gamemode-mining.log"
 
 # Ensure log directory exists
-mkdir -p "$(dirname "$LOG_FILE")"
+mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE" 2>/dev/null
 }
 
 pause_mining() {
@@ -22,100 +22,53 @@ pause_mining() {
 
     # Stop host-based mining services
     for svc in "${MINING_SERVICES[@]}"; do
-        if systemctl is-active --quiet "$svc"; then
+        if systemctl is-active --quiet "$svc" 2>/dev/null; then
             log "Stopping host service: $svc"
-            if systemctl stop "$svc" >/dev/null 2>&1; then
-                log "✓ Stopped $svc"
-            else
-                log "✗ Failed to stop $svc"
-            fi
+            systemctl stop "$svc" 2>/dev/null && log "✓ Stopped $svc" || log "✗ Failed to stop $svc"
         else
             log "  $svc: not running (skipping)"
         fi
     done
 
-    # Scale K8s deployment to 0
+    # Scale K8s deployment to 0 (skip if kubectl unavailable)
+    if ! command -v kubectl &>/dev/null; then
+        log "kubectl not available, skipping K8s scale down"
+        return 0
+    fi
+
     if kubectl scale deployment "$MINING_DEPLOYMENT" -n "$MINING_NAMESPACE" --replicas=0 >/dev/null 2>&1; then
         log "✓ Scaled $MINING_DEPLOYMENT to 0 replicas"
-
-        # Wait for pods to terminate
-        local timeout=30
-        local elapsed=0
-        while [ $elapsed -lt $timeout ]; do
-            local pod_count=$(kubectl get pods -n "$MINING_NAMESPACE" -l app=gpu-miner,host=zephyr --no-headers 2>/dev/null | wc -l)
-            if [ "$pod_count" -eq 0 ]; then
-                log "✓ All mining pods terminated"
-                return 0
-            fi
-            sleep 2
-            elapsed=$((elapsed + 2))
-        done
-
-        log "⚠ Warning: Pods still running after ${timeout}s timeout"
-        return 1
     else
-        log "✗ Failed to scale deployment"
-        return 1
+        log "K8s scale down failed (cluster may be unavailable, this is OK on zephyr)"
     fi
+    return 0
 }
 
 resume_mining() {
     log "GameMode END: Resuming all mining workloads"
 
-    # Scale K8s deployment back to 1
-    if kubectl scale deployment "$MINING_DEPLOYMENT" -n "$MINING_NAMESPACE" --replicas=1 >/dev/null 2>&1; then
+    # Scale K8s deployment back to 1 (skip if kubectl unavailable)
+    if ! command -v kubectl &>/dev/null; then
+        log "kubectl not available, skipping K8s scale up"
+    elif kubectl scale deployment "$MINING_DEPLOYMENT" -n "$MINING_NAMESPACE" --replicas=1 >/dev/null 2>&1; then
         log "✓ Scaled $MINING_DEPLOYMENT to 1 replica"
-
-        # Start host-based mining services
-        for svc in "${MINING_SERVICES[@]}"; do
-            if systemctl is-enabled --quiet "$svc" 2>/dev/null; then
-                log "Starting host service: $svc"
-                if systemctl start "$svc" >/dev/null 2>&1; then
-                    log "✓ Started $svc"
-                else
-                    log "✗ Failed to start $svc"
-                fi
-            else
-                log "  $svc: not enabled (skipping)"
-            fi
-        done
-        log "✓ Scaled $MINING_DEPLOYMENT to 1 replica"
-
-        # Wait for pod to be ready
-        local timeout=60
-        local elapsed=0
-        while [ $elapsed -lt $timeout ]; do
-            local ready=$(kubectl get pods -n "$MINING_NAMESPACE" -l app=gpu-miner,host=zephyr --no-headers 2>/dev/null | awk '{print $2}' | cut -d'/' -f1)
-            if [ "$ready" = "1" ]; then
-                log "✓ Mining pod is ready and running"
-                return 0
-            fi
-            sleep 2
-            elapsed=$((elapsed + 2))
-        done
-
-        log "⚠ Warning: Pod not ready after ${timeout}s timeout"
-        return 1
     else
-        log "✗ Failed to scale deployment"
-        return 1
+        log "K8s scale up failed (cluster may be unavailable, this is OK on zephyr)"
     fi
+
+    # Start host-based mining services
+    for svc in "${MINING_SERVICES[@]}"; do
+        if systemctl is-enabled --quiet "$svc" 2>/dev/null; then
+            log "Starting host service: $svc"
+            systemctl start "$svc" 2>/dev/null && log "✓ Started $svc" || log "✗ Failed to start $svc"
+        fi
+    done
+    return 0
 }
 
-# Main: Check action from GameMode
 ACTION="${1:-}"
-
 case "$ACTION" in
-    start)
-        pause_mining
-        ;;
-    end)
-        resume_mining
-        ;;
-    *)
-        echo "Usage: $0 {start|end}"
-        echo "  start  - Pause mining (called by GameMode when game starts)"
-        echo "  end    - Resume mining (called by GameMode when game ends)"
-        exit 1
-        ;;
+    start) pause_mining ;;
+    end) resume_mining ;;
+    *) echo "Usage: $0 {start|end}"; exit 1 ;;
 esac

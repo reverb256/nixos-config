@@ -153,11 +153,10 @@ calculate_earnings() {
     echo ""
 }
 
-# Display breakeven analysis for Akash bidding
+# Display breakeven analysis for bidding
 breakeven_analysis() {
     local daily_usd="$1"
 
-    echo -e "${BLUE}=== Akash Bidding Breakeven ===${NC}"
     echo "To match mining revenue, your minimum bid should be:"
     echo ""
 
@@ -171,14 +170,11 @@ breakeven_analysis() {
 
     # Current pricing
     echo ""
-    echo -e "${YELLOW}Current Akash Pricing:${NC}"
     echo "  CPU:     0.004 uakt/mCPU/s ≈ \$0.00006/hour per 1000mCPU"
     echo "  Memory:  0.0016 uakt/MB/s ≈ \$0.00002/hour per GB"
     echo "  Storage: 0.00016 uakt/MB/s ≈ negligible"
     echo ""
     echo -e "${BLUE}Recommendation:${NC}"
-    local akash_hourly=$(echo "scale=4; 0.00006 * 78 + 0.00002 * 111" | bc)
-    echo "  Current Akash pricing earns: ~\$${akash_hourly}/hour"
     echo "  Mining earns: ~\$(echo "scale=4; $daily_usd / 24" | bc)/hour"
     echo ""
 }
