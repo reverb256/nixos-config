@@ -34,7 +34,7 @@
 **Solution:** Deleted the quota from inappropriate namespaces:
 ```bash
 kubectl delete resourcequota zephyr-memory-protection -n mining
-kubectl delete resourcequota zephyr-memory-protection -n akash-services
+kubectl delete resourcequota zephyr-memory-protection -n default
 kubectl delete resourcequota zephyr-memory-protection -n glitchtip
 kubectl delete resourcequota zephyr-memory-protection -n ingress-nginx
 ```

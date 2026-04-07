@@ -6,8 +6,9 @@ kind: PriorityClass
 metadata:
   name: ai-inference-high
 value: 900
+preemptionPolicy: PreemptLowerPriority
 globalDefault: false
-description: "AI inference workloads - high priority for interactive AI"
+description: "AI inference workloads - high priority, preempts mining"
 ---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
@@ -32,11 +33,4 @@ metadata:
 value: 600
 globalDefault: false
 description: "CPU-intensive workloads (sentry with 16 cores) - preferred on sentry"
----
-apiVersion: scheduling.k8s.io/v1
-kind: PriorityClass
-metadata:
-  name: mining-low
-value: 100
-globalDefault: true
-description: "Mining workloads - lowest priority, preemptible"
+

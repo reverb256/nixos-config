@@ -27,7 +27,6 @@ Autonomous, intelligent resource allocation system for the 4-node Kubernetes clu
 | default | 100m | 128Mi | 4 | 8Gi |
 | kube-system | 50m | 64Mi | 1 | 1Gi |
 | ingress-system | 100m | 128Mi | 2 | 1Gi |
-| akash-services | 50m | 64Mi | 2 | 2Gi |
 | envoy-gateway-system | 100m | 256Mi | 2 | 1Gi |
 
 ### ResourceQuotas (Namespace Caps)
@@ -36,7 +35,6 @@ Autonomous, intelligent resource allocation system for the 4-node Kubernetes clu
 | default | 8 | 8Gi | 16 | 16Gi |
 | kube-system | 4 | 4Gi | 8 | 8Gi |
 | ingress-system | 2 | 2Gi | 4 | 4Gi |
-| akash-services | 4 | 4Gi | 8 | 8Gi |
 | envoy-gateway-system | 2 | 2Gi | 4 | 4Gi |
 
 ### HorizontalPodAutoscalers
@@ -44,13 +42,11 @@ Autonomous, intelligent resource allocation system for the 4-node Kubernetes clu
 |----------|-----|-----|---------------|
 | caddy-ingress | 2 | 10 | CPU >70%, Mem >80% |
 | cloudflared-tunnel | 1 | 5 | CPU >60%, Mem >75% |
-| echo-server | 2 | 10 | CPU >50%, Mem >70% |
 
 ### PodDisruptionBudgets
 - CoreDNS: minAvailable: 1
 - Caddy Ingress: minAvailable: 1
 - Kube-Flannel: maxUnavailable: 1
-- Cloudflared Tunnel: minAvailable: 1
 
 ## Node Labels for Intelligent Scheduling
 

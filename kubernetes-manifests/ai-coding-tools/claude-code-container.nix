@@ -11,29 +11,23 @@
   claudeWrapper = pkgs.writeShellScriptBin "claude-code-entry" ''
     #!${pkgs.bash}/bin/bash
     set -e
-
     export HOME=/home/j_kro
     export USER=j_kro
     export CLAUDE_CONFIG_DIR=/home/j_kro/.claude
     export CLAUDE_HISTORY_FILE=/home/j_kro/.claude/history.jsonl
-
     # Ensure config directory exists
     mkdir -p /home/j_kro/.claude/{backups,debug,file-history,paste-cache,plans,plugins,projects}
-
     echo "Claude Code container starting..."
     echo "Config: $CLAUDE_CONFIG_DIR"
     echo "Version: ${pkgs.claude-code.version}"
-
     # Keep container running for interactive exec sessions
     # Users will: kubectl exec -it <pod> -- claude
     exec tail -f /dev/null
   '';
-
 in
   pkgs.dockerTools.buildImage {
     name = "claude-code";
     tag = "nixos";
-
     # Include Claude Code and dependencies
     contents = [
       pkgs.bash
@@ -45,7 +39,6 @@ in
       pkgs.gnused
       claudeWrapper
     ];
-
     # Set up the container environment
     config = {
       Cmd = ["${claudeWrapper}/bin/claude-code-entry"];

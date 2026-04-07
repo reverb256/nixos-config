@@ -5,4 +5,4 @@ metadata:
   name: preemptible-mining
 value: 100000000
 globalDefault: false
-description: "Preemptible GPU mining workloads (can be evicted by Akash provider, AI inference, and any higher priority workloads)"
+description: "Preemptible GPU mining workloads (can be evicted by AI inference and any higher priority workloads)"

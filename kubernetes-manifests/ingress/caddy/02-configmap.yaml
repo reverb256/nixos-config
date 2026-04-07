@@ -1,9 +1,9 @@
 # Caddy Ingress Controller — ConfigMap
 # Source: caddyserver/ingress chart v1.3.0
 #
-# email:         Enables automatic HTTPS via ACME (Let's Encrypt)
-# metrics:       Exposes Prometheus metrics on :9765
-# debug:         Verbose logging for troubleshooting
+# All services use .lan or Tailscale DNS — no public ACME needed.
+# Caddy auto-generates self-signed certs for internal domains.
+# Prometheus metrics exposed on :9765 for static scrape in prometheus.nix.
 ---
 apiVersion: v1
 kind: ConfigMap

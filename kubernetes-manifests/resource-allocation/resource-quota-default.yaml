@@ -40,19 +40,6 @@ spec:
     limits.cpu: "4"
     limits.memory: "4Gi"
 ---
-# ResourceQuota for Akash services
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: akash-resources
-  namespace: akash-services
-spec:
-  hard:
-    requests.cpu: "4"
-    requests.memory: "4Gi"
-    limits.cpu: "8"
-    limits.memory: "8Gi"
----
 # ResourceQuota for envoy-gateway
 apiVersion: v1
 kind: ResourceQuota
