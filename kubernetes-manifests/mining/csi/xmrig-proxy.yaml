@@ -27,7 +27,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
       - name: xmrig-proxy
-        image: gcr.io/distroless/static-debian12:latest
+        image: gcr.io/distroless/static-debian12@sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838
         command: ["/nix/store/s0kwgsv9fvrq8vs73smgdrdmqbzpa7nx-xmrig-proxy-6.24.0/bin/xmrig-proxy"]
         args:
         - "-b"
