@@ -16,9 +16,6 @@ resources:
   # AI coding tools (high priority)
   - ai-coding-pdb.yaml
 
-  # Akash provider services (high priority)
-  - akash-services-pdb.yaml
-
   # Mining workloads (medium priority - interruptible)
   - mining-pdb.yaml
 

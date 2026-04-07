@@ -18,7 +18,6 @@
 
 ### Secondary Issues
 1. **Missing ConfigMap**: `ai-inference/kube-root-ca.crt` not found (blocking pod startup)
-2. **Akash Provider**: Init error, 4 restarts
 
 ---
 
@@ -126,32 +125,12 @@ ssh zephyr 'sudo journalctl -u kube-apiserver --since "1 hour ago" | grep -i "ku
 
 ---
 
-### Phase 4: Fix Akash Provider
-
-#### Investigation
-```bash
-# Check pod status and logs
-kubectl get pods -n akash-services akash-provider-0
-kubectl logs -n akash-services akash-provider-0 -c init-container
-
-# Describe pod to see init container errors
-kubectl describe pod -n akash-services akash-provider-0
-```
-
-#### Common Causes
-1. Missing GPU resources (should fix after Phase 1)
-2. Missing secrets/configmaps
-3. Network policy blocking access
-
----
-
 ## Execution Order
 
 **CRITICAL**: Execute in this order:
 1. ✅ **Phase 1**: Fix device plugin (unblocks all GPU workloads)
 2. ✅ **Phase 2**: Verify GPU scheduling (confirms fix works)
 3. ⏸️ **Phase 3**: Fix ConfigMap (may auto-resolve after Phase 1)
-4. ⏸️ **Phase 4**: Fix akash-provider (may auto-resolve after Phase 1)
 
 ---
 
@@ -175,7 +154,6 @@ ssh nexus 'sudo systemctl restart kubelet'
 - [ ] Node capacity shows `nvidia.com/gpu: 2` (zephyr) and `nvidia.com/gpu: 1` (nexus)
 - [ ] All vllm-qwen pods transition to `Running` state
 - [ ] No `OutOfnvidia.com/gpu` pods in cluster
-- [ ] Akash provider pod starts successfully
 - [ ] kube-root-ca.crt ConfigMap exists
 
 ---
@@ -184,9 +162,8 @@ ssh nexus 'sudo systemctl restart kubelet'
 - **Phase 1**: 5 minutes (apply DaemonSet, verify)
 - **Phase 2**: 10 minutes (wait for pod scheduling)
 - **Phase 3**: 10 minutes (investigation, may auto-resolve)
-- **Phase 4**: 10 minutes (investigation, may auto-resolve)
 
-**Total**: ~35 minutes if all goes smoothly
+**Total**: ~25 minutes if all goes smoothly
 
 ---
 

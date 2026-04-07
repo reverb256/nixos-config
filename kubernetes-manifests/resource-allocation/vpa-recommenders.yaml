@@ -73,26 +73,4 @@ spec:
         maxAllowed:
           cpu: "2"
           memory: "2Gi"
----
-# VPA for cloudflared tunnel
-apiVersion: autoscaling.k8s.io/v1
-kind: VerticalPodAutoscaler
-metadata:
-  name: cloudflared-vpa
-  namespace: akash-services
-spec:
-  targetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: cloudflared-tunnel
-  updatePolicy:
-    updateMode: "Auto"
-  resourcePolicy:
-    containerPolicies:
-      - containerName: "*"
-        minAllowed:
-          cpu: "50m"
-          memory: "64Mi"
-        maxAllowed:
-          cpu: "500m"
-          memory: "256Mi"
+
