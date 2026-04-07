@@ -111,6 +111,7 @@
         10250 # Kubelet API
         179 # Calico BGP
         5473 # Calico Typha
+        9100 # Prometheus node-exporter
       ];
       allowedUDPPorts = [
         9757 # WiVRn
