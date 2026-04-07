@@ -5,10 +5,10 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.nextcloud-module;
-  inherit
-    (lib)
+  inherit (lib)
     mkEnableOption
     mkOption
     types
@@ -16,7 +16,8 @@
     mkMerge
     mkDefault
     ;
-in {
+in
+{
   options.services.nextcloud-module = {
     enable = mkEnableOption "Nextcloud - Self-hosted collaboration platform";
 
@@ -207,7 +208,7 @@ in {
       # PostgreSQL database
       postgresql = mkIf cfg.database.create {
         enable = true;
-        ensureDatabases = [cfg.database.name];
+        ensureDatabases = [ cfg.database.name ];
         ensureUsers = [
           {
             name = cfg.database.user;
@@ -349,7 +350,10 @@ in {
 
     # Firewall
     networking.firewall = mkIf cfg.https {
-      allowedTCPPorts = [80 443];
+      allowedTCPPorts = lib.mkOptionDefault [
+        80
+        443
+      ];
     };
 
     # Synapse integration directories and systemd hardening
@@ -368,7 +372,11 @@ in {
           ProtectSystem = "strict";
           ProtectHome = true;
           RestrictRealtime = true;
-          RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+          RestrictAddressFamilies = [
+            "AF_UNIX"
+            "AF_INET"
+            "AF_INET6"
+          ];
         };
 
         "php-fpm-nextcloud".serviceConfig = {
@@ -377,7 +385,11 @@ in {
           ProtectSystem = "strict";
           ProtectHome = true;
           RestrictRealtime = true;
-          RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+          RestrictAddressFamilies = [
+            "AF_UNIX"
+            "AF_INET"
+            "AF_INET6"
+          ];
         };
       };
     };
