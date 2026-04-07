@@ -215,14 +215,17 @@
   # ============================================================================
   services = {
     # KUBERNETES - k3s control plane (joins existing cluster)
+    # Bootstrap node: nexus (clusterInit=true, oldest etcd data)
+    # All servers join via VIP for HA: https://10.1.1.100:6443
     k3s-cluster = {
       enable = true;
       role = "server";
       nodeName = "zephyr";
-      serverAddr = "https://10.1.1.120:6443";
+      serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.110";
       nvidia.enable = true;
+      calico.enable = true;
     };
 
     # Keepalived VIP for HA API server access
@@ -260,11 +263,16 @@
   services.cluster-ca.enable = true;
 
   # ============================================================================
-  # DESKTOP - UWSM multi-compositor sessions
-  # tty1: Plasma (Wayland), tty2: Niri, tty3: Hyprland
+  # DESKTOP - Wayland compositors (select via SDDM session picker)
   desktop.uwsm-sessions.enable = true;
   programs.niri.enable = true;
   programs.hyprland.enable = true;
+
+  # Autologin into Plasma on boot. To switch compositor, logout
+  # and pick from SDDM's session picker.
+  services.displayManager.autoLogin.enable = true;
+  services.displayManager.autoLogin.user = "j_kro";
+  services.displayManager.defaultSession = "plasma";
 
   # HARDWARE PROFILES
   # ============================================================================
@@ -1142,7 +1150,10 @@
   # See: modules/mining/mining.nix -> nvidia-gpu-power-limit.service
 
   # Mining plasmoid for KDE Plasma
-  #programs.mining-plasmoid.enable = true;  # TODO: Requires plasmoids/mining-monitor
+  programs.mining-plasmoid.enable = true;
+  programs.mining-plasmoid.prometheusUrl = "http://127.0.0.1:9090";
+  programs.mining-plasmoid.refreshInterval = 10000;
+  programs.mining-plasmoid.clusterNodes = "zephyr,nexus,forge,sentry";
 
   # Systems Intelligence Plasmoid - Cluster monitoring widget
   programs.systems-intelligence-plasmoid.enable = true;
