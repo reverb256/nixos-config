@@ -53,7 +53,7 @@ in
       # Allow SSH from Tailscale network only
       # NOTE: SSH port 22 is interface-scoped in ssh.nix (tailscale0 + cluster subnet)
       # Do NOT add 22 here — it would expose SSH to all interfaces (0.0.0.0)
-      allowedTCPPorts = [ ];
+      allowedTCPPorts = lib.mkOptionDefault [ ];
     };
 
     # ========================================================================
@@ -145,7 +145,7 @@ in
       # Bind node exporters to localhost
       prometheus.exporters.node = {
         enable = true;
-        listenAddress = lib.mkForce "127.0.0.1";
+        listenAddress = lib.mkDefault "127.0.0.1";
       };
     };
 
