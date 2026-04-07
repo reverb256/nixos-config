@@ -28,19 +28,6 @@ spec:
       app: searxng
 
 ---
-# Akash Provider PDB
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: akash-provider-pdb
-  namespace: akash-services
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: provider
-
----
 # Caddy Ingress PDB
 apiVersion: policy/v1
 kind: PodDisruptionBudget

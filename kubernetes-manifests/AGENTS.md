@@ -14,7 +14,6 @@ kubernetes-manifests/
 ├── monitoring/          # Prometheus/Grafana (16 files)
 ├── calico/              # CNI configs (17 files)
 ├── ingress/             # Ingress controllers (16 files)
-├── akash-provider/      # Akash network (24 files)
 ├── spacebot/            # Discord bot (14 files)
 ├── pod-disruption-budgets/  # PDBs (18 files)
 └── archive/             # Deprecated manifests
@@ -29,7 +28,6 @@ kubernetes-manifests/
 | Set up monitoring | `monitoring/` |
 | Configure CNI | `calico/` |
 | Add ingress rule | `ingress/` |
-| Akash provider setup | `akash-provider/` |
 
 ## Anti-Patterns (THIS DIRECTORY)
 

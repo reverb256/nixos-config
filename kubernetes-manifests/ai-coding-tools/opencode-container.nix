@@ -11,27 +11,21 @@
   opencodeWrapper = pkgs.writeShellScriptBin "opencode-entry" ''
     #!${pkgs.bash}/bin/bash
     set -e
-
     export HOME=/home/j_kro
     export USER=j_kro
     export OPENCODE_CONFIG_DIR=/home/j_kro/.opencode
-
     # Ensure config directory exists
     mkdir -p /home/j_kro/.opencode
-
     echo "OpenCode container starting..."
     echo "Config: $OPENCODE_CONFIG_DIR"
-
     # Keep container running for interactive exec sessions
     # Users will: kubectl exec -it <pod> -- opencode
     exec tail -f /dev/null
   '';
-
 in
   pkgs.dockerTools.buildImage {
     name = "opencode";
     tag = "nixos";
-
     # Include OpenCode and dependencies
     contents = [
       pkgs.bash
@@ -43,7 +37,6 @@ in
       pkgs.gnused
       opencodeWrapper
     ];
-
     # Set up the container environment
     config = {
       Cmd = ["${opencodeWrapper}/bin/opencode-entry"];

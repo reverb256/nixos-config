@@ -24,10 +24,10 @@ This cluster implements **zero-trust networking** using Kubernetes NetworkPolici
 
 ---
 
-### 2. Akash Services (`akash-services`)
+### 2. Services (`default`)
 **Policy Type**: Baseline (GPU access, blockchain communication)
 **Policies**:
-- `allow-akash-services`: Intra-namespace communication
+- `allow-default`: Intra-namespace communication
 - `allow-provider-egress`: Provider → blockchain nodes (ports 26656, 26657, 1317)
 - `allow-dns`: DNS resolution
 - `allow-cloudflared-egress`: Cloudflare tunnel access
@@ -35,7 +35,7 @@ This cluster implements **zero-trust networking** using Kubernetes NetworkPolici
 
 **Communication Flows**:
 ```
-akash-provider → External Blockchain (TCP/26656, 26657, 1317)
+default → External Blockchain (TCP/26656, 26657, 1317)
 cloudflared → Cloudflare Edge (HTTPS/443)
 monitoring → All pods (scraping)
 ```
@@ -135,8 +135,8 @@ kubectl port-forward -n search svc/searxng 7777:7777 &
 curl -I http://localhost:7777/
 # Expected: HTTP/1.1 200 OK
 
-# Verify Akash provider connectivity
-kubectl logs -n akash-services akash-provider-0 --tail=50 | grep -i error
+# Verify Provider connectivity
+kubectl logs -n default default-0 --tail=50 | grep -i error
 # Expected: No errors
 
 # Check all policies are applied
@@ -146,7 +146,7 @@ kubectl get networkpolicies --all-namespaces
 
 ### Manual Verification Checklist
 - [ ] Searxng web interface accessible
-- [ ] Akash provider bidding on leases
+- [ ] Provider bidding on leases
 - [ ] Cloudflare tunnel operational
 - [ ] Monitoring scraping all pods
 - [ ] No unexpected connectivity failures
@@ -157,14 +157,14 @@ kubectl get networkpolicies --all-namespaces
 ## Policy Exceptions & Justifications
 
 ### External API Access (Justified)
-1. **Akash Provider → Blockchain**: Required for lease bidding
+1. **Provider → Blockchain**: Required for lease bidding
 2. **Searxng → Search Engines**: Required for search functionality
 3. **AI Inference → Model Repos**: Required for model downloads
 4. **Glitchtip Worker → Integrations**: Required for error tracking (when enabled)
 
 ### Inter-Namespace Communication (Justified)
 1. **Monitoring → All Namespaces**: Required for metrics scraping
-2. **Akash Services Internal**: Provider ↔ operators
+2. **Services Internal**: Provider ↔ operators
 3. **Search Internal**: Searxng ↔ Redis
 
 ---

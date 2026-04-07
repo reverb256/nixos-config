@@ -1,4 +1,4 @@
-# Falco Security Rules for Akash Provider
+# Falco Security Rules
 # Detects suspicious container and Kubernetes activity
 
 apiVersion: v1
@@ -13,13 +13,12 @@ metadata:
   name: falco-rules
   namespace: falco
 data:
-  akash-security-rules.yaml: |
-    # Custom rules for Akash provider security
+  security-rules.yaml: |
+    # Custom rules for cluster security
     - rule: Detect shell in container
       desc: Detect shell spawned in container (potential container escape)
       condition: >
         shell_spawned
-        and container.image startsWith "akash"
         and not user.name = "root"
         and not shell contains "entrypoint"
       output: >
@@ -32,7 +31,6 @@ data:
       condition: >
         mount
         and mount.dst_info starts_with "/host"
-        and container.image startsWith "akash"
       output: >
         Host filesystem mounted in container (container=%container.name mount=%mount.dst_info)
         Priority: CRITICAL
@@ -43,7 +41,6 @@ data:
       condition: >
         open_read
         and fd.name in ("/etc/shadow", "/root/.ssh", "/var/run/secrets")
-        and container.image startsWith "akash"
         and not proc.pname in ["kubelet", "dockerd"]
       output: >
         Sensitive file accessed (user=%user.name file=%fd.name container=%container.name)
@@ -51,11 +48,10 @@ data:
       tags: [file, security, credentials]
 
     - rule: Detect crypto mining malware
-      desc: Detect potential crypto mining in tenant containers
+      desc: Detect potential crypto mining in containers
       condition: >
         spawned_process
         and proc.cmdline in ["xmrig", "minerd", "cpuminer"]
-        and container.image startsWith "akash"
         and not user.name = "nobody"
       output: >
         Crypto mining detected (container=%container.name process=%proc.cmdline user=%user.name)
@@ -67,7 +63,6 @@ data:
       condition: >
         spawned_process
         and proc.cmdline in ["nmap", "masscan", "netcat", "nc"]
-        and container.image startsWith "akash"
       output: >
         Network scanning detected (container=%container.name process=%proc.cmdline)
         Priority: WARNING
@@ -78,7 +73,6 @@ data:
       condition: >
         spawned_process
         and proc.cmdline in ["sudo", "su", "chmod +s", "chown root"]
-        and container.image startsWith "akash"
         and not user.name = "root"
       output: >
         Privilege escalation attempt (container=%container.name process=%proc.cmdline user=%user.name)
@@ -86,11 +80,10 @@ data:
       tags: [privilege-escalation, security]
 
     - rule: Detect unexpected outbound connections
-      desc: Detect connections to non-tenant services
+      desc: Detect connections to unexpected external services
       condition: >
         outbound_connect
         and not fd.sip in ["10.0.0.0/8", "10.244.0.0/16"]
-        and container.image startsWith "akash"
         and not fd.sip in ["8.8.8.8", "1.1.1.1"]
       output: >
         Unexpected outbound connection (container=%container.name dst=%fd.sip)

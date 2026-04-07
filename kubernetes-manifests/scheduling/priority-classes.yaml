@@ -8,7 +8,7 @@ metadata:
   name: production-workload-critical
 value: 900000000
 globalDefault: false
-description: "Business-critical production workloads (Akash provider, GPU mining, AI inference)"
+description: "Business-critical production workloads (GPU mining, AI inference)"
 
 ---
 apiVersion: scheduling.k8s.io/v1

@@ -28,7 +28,7 @@ CRITICAL SPOFs (Cluster Failure if Lost):
 ├── ai-inference/n8n (1 replica) → workflow automation down
 ├── ai-inference/redis (1 replica) → caching lost
 ├── ai-inference/prometheus (1 replica) → metrics lost
-└── akash-services/operator-* (3 single replicas) → provider degradation
+└── Various operator services → workload degradation
 
 ACCEPTABLE SPOFs (Workload Interruption):
 ├── ai-coding/claude-code (1 replica) → AI assistant down
@@ -93,7 +93,7 @@ spec:
 **Coverage:**
 - ✅ Critical services: DNS, Ingress, Monitoring
 - ✅ AI inference: n8n, databases
-- ✅ Akash provider services
+- ✅ Mining workloads
 - ✅ Mining workloads
 
 ### True HA State ✅
@@ -319,7 +319,7 @@ metadata:
   name: critical-production
 value: 1000000
 globalDefault: false
-description: "Critical production workloads (AI inference, Akash provider)"
+description: "Critical production workloads (AI inference)"
 ---
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
@@ -362,8 +362,8 @@ description: "Low priority workloads (batch jobs, testing)"
 ```
 ai-inference/postgres-n8n (1 replica)
 ai-inference/qdrant (1 replica)
-akash-services/akash-node-1 (1 replica)
-akash-services/akash-provider (1 replica)
+
+
 glitchtip/postgres (1 replica)
 ```
 

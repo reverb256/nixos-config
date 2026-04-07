@@ -48,15 +48,4 @@ spec:
     requests.cpu: "4"
     requests.memory: "8Gi"
     pods: "10"
----
-# Akash services
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: akash-services-quota
-  namespace: akash-services
-spec:
-  hard:
-    requests.cpu: "8"
-    requests.memory: "16Gi"
-    pods: "30"
+
