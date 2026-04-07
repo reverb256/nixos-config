@@ -173,8 +173,8 @@ in {
 
     # Firewall
     networking.firewall = lib.mkIf cfg.openFirewall {
-      allowedTCPPorts = [cfg.listenPort];
-      allowedUDPPorts = [cfg.listenPort];
+      allowedTCPPorts = lib.mkOptionDefault [cfg.listenPort];
+      allowedUDPPorts = lib.mkOptionDefault [cfg.listenPort];
     };
 
     # Systemd service

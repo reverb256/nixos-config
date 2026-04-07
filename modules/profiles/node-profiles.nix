@@ -76,9 +76,9 @@ let
 
           # Apply extra firewall rules
           firewall = {
-            allowedTCPPorts = profileCfg.firewallExtraTCPPorts or [ ];
-            allowedTCPPortRanges = profileCfg.firewallExtraTCPPortRanges or [ ];
-            allowedUDPPorts = profileCfg.firewallExtraUDPPorts or [ ];
+            allowedTCPPorts = lib.mkOptionDefault (profileCfg.firewallExtraTCPPorts or [ ]);
+            allowedTCPPortRanges = lib.mkOptionDefault (profileCfg.firewallExtraTCPPortRanges or [ ]);
+            allowedUDPPorts = lib.mkOptionDefault (profileCfg.firewallExtraUDPPorts or [ ]);
           };
         };
       }
