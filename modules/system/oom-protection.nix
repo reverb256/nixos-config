@@ -6,16 +6,12 @@
   pkgs,
   ...
 }:
+let
+  cfg = config.services.k3s-cluster.enable or false;
+in
 {
-  # Protect container runtime (already protected, but ensure it)
-  systemd.services.containerd.serviceConfig.OOMPolicy = lib.mkForce "continue";
-
-  # Protect Docker daemon
-  systemd.services.docker.serviceConfig.OOMPolicy = lib.mkForce "continue";
-
-  # CRITICAL: Protect kubelet (Kubernetes will stop without this!)
-  # k3s manages kubelet internally — use mkIf to avoid creating an orphaned unit
-  systemd.services.kubelet = lib.mkIf config.services.kubernetes.kubelet.enable {
+  # Protect container runtime (k3s bundles containerd)
+  systemd.services.k3s = lib.mkIf cfg {
     serviceConfig.OOMPolicy = lib.mkForce "continue";
   };
 

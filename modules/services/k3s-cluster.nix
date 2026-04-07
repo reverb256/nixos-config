@@ -42,7 +42,7 @@ let
   # Shared CIDR ranges — MUST be identical across all servers
   clusterCIDR = "10.244.0.0/16";
   serviceCIDR = "10.0.0.0/12";
-  clusterDNS = "10.43.0.10";
+  clusterDNS = "10.0.0.10";
 
   # TLS SANs — all server IPs and hostnames
   tlsSans = [
