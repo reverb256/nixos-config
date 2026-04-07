@@ -197,7 +197,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 8472 ];
+        default = [ ];
         description = "Extra UDP ports";
       };
     };
@@ -266,7 +266,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 8472 ];
+        default = [ ];
         description = "Extra UDP ports";
       };
     };
@@ -320,7 +320,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 8472 ];
+        default = [ ];
         description = "Extra UDP ports";
       };
     };
@@ -380,7 +380,7 @@ in
 
       firewallExtraUDPPorts = mkOption {
         type = types.listOf types.port;
-        default = [ 8472 ];
+        default = [ ];
         description = "Extra UDP ports";
       };
     };
