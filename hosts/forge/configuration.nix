@@ -130,11 +130,12 @@
     # services.crash-watchdog.enable = true; # Module not available yet
 
     # KUBERNETES - k3s agent (worker only)
+    # Joins cluster via VIP for HA
     k3s-cluster = {
       enable = true;
       role = "agent";
       nodeName = "forge";
-      serverAddr = "https://10.1.1.110:6443";
+      serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.130";
       nvidia.enable = true;

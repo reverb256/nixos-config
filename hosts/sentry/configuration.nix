@@ -106,13 +106,15 @@
   # ============================================================================
   services = {
     # KUBERNETES - k3s control plane (joins existing cluster)
+    # Joins nexus (bootstrap) via VIP for HA
     k3s-cluster = {
       enable = true;
       role = "server";
       nodeName = "sentry";
-      serverAddr = "https://10.1.1.110:6443";
+      serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.140";
+      calico.enable = true;
     };
 
     # Keepalived VIP for HA API server access
