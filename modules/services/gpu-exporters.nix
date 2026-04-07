@@ -8,10 +8,17 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.gpu-exporters;
-  inherit (lib) mkEnableOption mkOption types mkIf;
-in {
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    types
+    mkIf
+    ;
+in
+{
   options.services.gpu-exporters = {
     enable = mkEnableOption "GPU metrics exporters for Prometheus";
 
@@ -62,7 +69,7 @@ in {
       isSystemUser = true;
       group = "nvidia-gpu-exporter";
     };
-    users.groups.nvidia-gpu-exporter = mkIf cfg.nvidia.enable {};
+    users.groups.nvidia-gpu-exporter = mkIf cfg.nvidia.enable { };
 
     # ============================================================================
     # SYSTEMD SERVICES CONFIGURATION
@@ -72,8 +79,8 @@ in {
       # duplicate nvidia-smi-command flag issues when multiple NVIDIA packages exist
       services.prometheus-nvidia-gpu-exporter = mkIf cfg.nvidia.enable {
         description = "Prometheus NVIDIA GPU Metrics Exporter";
-        wantedBy = ["multi-user.target"];
-        after = ["network.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "network.target" ];
 
         serviceConfig = {
           Type = "simple";
@@ -81,7 +88,9 @@ in {
           Group = "nvidia-gpu-exporter";
           DynamicUser = true;
           # Listen on all interfaces for Prometheus scraping from cluster (protected by firewall)
-          ExecStart = lib.getExe pkgs.prometheus-nvidia-gpu-exporter + " --web.listen-address 0.0.0.0:${toString cfg.nvidia.port} --nvidia-smi-command ${lib.getExe config.hardware.nvidia.package.bin}";
+          ExecStart =
+            lib.getExe pkgs.prometheus-nvidia-gpu-exporter
+            + " --web.listen-address 0.0.0.0:${toString cfg.nvidia.port} --nvidia-smi-command ${lib.getExe config.hardware.nvidia.package.bin}";
 
           Restart = "always";
           RestartSec = "10s";
@@ -124,8 +133,8 @@ in {
       # Use textfile collector with a script that polls rocm-smi
       services.prometheus-amdgpu-exporter = mkIf cfg.amd.enable {
         description = "Prometheus AMD GPU Metrics Exporter";
-        wantedBy = ["multi-user.target"];
-        after = ["network.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "network.target" ];
 
         serviceConfig = {
           Type = "simple";
@@ -137,7 +146,10 @@ in {
             "PATH=/run/current-system/sw/bin:/run/wrappers/bin"
           ];
           # Add supplementary groups for GPU access
-          SupplementaryGroups = ["video" "render"];
+          SupplementaryGroups = [
+            "video"
+            "render"
+          ];
           # Allow access to GPU devices
           PrivateDevices = false;
           ExecStart = pkgs.writers.writeBash "amdgpu-exporter" ''
@@ -284,6 +296,8 @@ in {
       lib.optional cfg.nvidia.enable cfg.nvidia.port;
 
     # Also open on main LAN interface for local prometheus scraping
-    networking.firewall.allowedTCPPorts = lib.optional cfg.nvidia.enable cfg.nvidia.port;
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault (
+      lib.optional cfg.nvidia.enable cfg.nvidia.port
+    );
   };
 }
