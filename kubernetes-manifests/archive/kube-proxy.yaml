@@ -15,11 +15,17 @@ rules:
   - endpoints
   - services
   - services/status
-  verbs: ["list", "watch"]
-- apiGroups: [""]
-  resources:
   - nodes
-  verbs: ["list", "watch"]
+  - namespaces
+  verbs: ["list", "watch", "get"]
+- apiGroups: ["discovery.k8s.io"]
+  resources:
+  - endpointslices
+  verbs: ["list", "watch", "get"]
+- apiGroups: ["events.k8s.io"]
+  resources:
+  - events
+  verbs: ["create", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -40,14 +46,14 @@ metadata:
   name: kube-proxy
   namespace: kube-system
 data:
-  config.conf: |-
+  config.conf: |
     apiVersion: kubeproxy.config.k8s.io/v1alpha1
     bindAddress: 0.0.0.0
     clientConnection:
       acceptContentTypes: ""
       burst: 10
       contentType: application/vnd.kubernetes.protobuf
-      kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
+      kubeconfig: ""
       qps: 5
     clusterCIDR: "10.244.0.0/16"
     configSyncPeriod: 15m0s
@@ -104,13 +110,11 @@ spec:
                 - linux
       containers:
       - command:
-        - /bin/sh
-        - -c
-        - |
-          exec /proxy \
-            --config=/var/lib/kube-proxy/config.conf \
-            --hostname-override=$(NODE_NAME) \
-            --v=2
+        - kube-proxy
+        - --config=/var/lib/kube-proxy/config.conf
+        - --kubeconfig=/var/lib/kube-proxy/kubeconfig.conf
+        - --hostname-override=$(NODE_NAME)
+        - --v=2
         env:
         - name: NODE_NAME
           valueFrom:
@@ -132,7 +136,7 @@ spec:
         - mountPath: /run/xtables.lock
           name: xtables-lock
         - mountPath: /var/lib/kube-proxy
-          name: kube-proxy
+          name: kube-proxy-config
         - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
           name: kube-api-access
           readOnly: true
@@ -155,7 +159,7 @@ spec:
         name: xtables-lock
       - configMap:
           name: kube-proxy
-        name: kube-proxy
+        name: kube-proxy-config
       - name: kube-api-access
         projected:
           defaultMode: 420
@@ -178,7 +182,7 @@ spec:
       - hostPath:
           path: /var/lib/kube-proxy
           type: DirectoryOrCreate
-        name: kube-proxy
+        name: kube-proxy-data
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1
