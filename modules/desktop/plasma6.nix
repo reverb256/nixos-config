@@ -584,6 +584,14 @@ in
           "plasma-plasmashell.service"
           "graphical-session.target"
         ];
+        # Only run when Plasma is the active VT (tty1).
+        # When the user switches to niri (tty2) or hyprland (tty3),
+        # KWin loses DRM master and kscreen-doctor calls fail with
+        # "Atomic modeset test failed: Permission denied".
+        serviceConfig.ExecCondition = pkgs.writeShellScript "plasma-vt-check" ''
+          ACTIVE_TTY=$(cat /sys/class/tty/tty0/active 2>/dev/null || echo tty0)
+          [ "$ACTIVE_TTY" = "tty1" ]
+        '';
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${monitorSetupScript}/bin/plasma-monitor-setup";
@@ -594,13 +602,20 @@ in
       # Disable KScreen backend launcher
       "kscreen_backend_launcher".enable = false;
       # TV Monitor Daemon - Auto manage TV power state
+      # Only active when Plasma is on tty1 — prevents kscreen-doctor spam
+      # that causes "Atomic modeset test failed: Permission denied" when
+      # KWin doesn't hold DRM master (user switched to another VT).
       tv-monitor-daemon = {
         description = "Monitor TV power state and auto-disable/enable";
         wantedBy = [ "graphical-session.target" ];
         after = [
-          "plasma-plasmashellell.service"
+          "plasma-plasmashell.service"
           "graphical-session.target"
         ];
+        serviceConfig.ExecCondition = pkgs.writeShellScript "tv-monitor-vt-check" ''
+          ACTIVE_TTY=$(cat /sys/class/tty/tty0/active 2>/dev/null || echo tty0)
+          [ "$ACTIVE_TTY" = "tty1" ]
+        '';
         serviceConfig = {
           Type = "simple";
           ExecStart = "${tvMonitorDaemon}/bin/tv-monitor-daemon";

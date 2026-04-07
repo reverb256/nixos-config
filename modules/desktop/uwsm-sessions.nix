@@ -50,7 +50,9 @@ in
 
   config = lib.mkIf cfg {
     # ── DISABLE SDDM ──────────────────────────────────────────────────
+    # Disable via both old and new NixOS API paths to ensure SDDM is off
     services.xserver.displayManager.sddm.enable = lib.mkForce false;
+    services.displayManager.sddm.enable = lib.mkForce false;
 
     # Ensure only Wayland sessions are generated (no X11)
     services.xserver.enable = lib.mkDefault true;
@@ -70,10 +72,14 @@ in
     };
 
     # ── UWSM AUTO-START PER VT ────────────────────────────────────────
-    # Primary session (tty1 Plasma) uses UWSM for proper systemd integration.
-    # Secondary compositors run directly without --session to avoid messing
-    # up the global systemd user environment (graphical-session.target
-    # is already owned by the primary Plasma session).
+    # All compositors use UWSM for proper session handling:
+    #   - Environment setup (WAYLAND_DISPLAY, XDG_CURRENT_DESKTOP, etc.)
+    #   - Proper VT switch integration (DRM master handoff)
+    #   - systemd user session awareness
+    #
+    # The secondary compositors share the same systemd user instance as
+    # Plasma (graphical-session.target is already active). UWSM detects
+    # this and does NOT re-activate it, avoiding conflicts.
     #
     # Uses programs.fish.loginShellInit because the user's default shell
     # is fish, which doesn't source /etc/profile or /etc/profile.local.
@@ -83,21 +89,8 @@ in
           if test (tty) = "/dev/${s.tty}"
             set -x XDG_RUNTIME_DIR /run/user/(id -u)
             set -x DBUS_SESSION_BUS_ADDRESS unix:path=$XDG_RUNTIME_DIR/bus
-            ${
-              if s.name == "plasma" then
-                ''
-                  set -x UWSM_DESKTOP_NAME "${s.name}"
-                  exec uwsm start ${s.desktop}
-                ''
-              else if s.name == "niri" then
-                ''
-                  exec niri
-                ''
-              else
-                ''
-                  exec Hyprland
-                ''
-            }
+            set -x UWSM_DESKTOP_NAME "${s.name}"
+            exec uwsm start ${s.desktop}
           end
         '') sessions
       )
