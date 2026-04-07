@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app: searxng
+  annotations:
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - searxng.zephyr.lan
+    - zephyr.lan
+    secretName: searxng-tls
+  rules:
+  - host: searxng.zephyr.lan
+    http:
+      paths:
+      - backend:
+          service:
+            name: searxng
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix

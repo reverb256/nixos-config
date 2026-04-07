@@ -1,0 +1,8 @@
+{
+    admin off
+}
+
+# Reverse proxy to Kubernetes service
+owui.{$HOME_DOMAIN} {
+    reverse_proxy 10.0.0.217:8080
+}
