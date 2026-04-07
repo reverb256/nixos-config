@@ -1,11 +1,9 @@
 {
   description = "TP-Link Easy Smart Switch management tool (smrt)";
-
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
-
   outputs = {
     self,
     nixpkgs,
@@ -20,20 +18,16 @@
           pname = "smrt";
           version = "1.0.0";
           format = "setuptools";
-
           src = pkgs.fetchFromGitHub {
             owner = "pklaus";
             repo = "smrt";
             rev = "master";
             sha256 = "sha256-FV7U4f6phrGWZeQiS9BdJOH5o1NhEgqDvoWmY74hDMw=";
           };
-
           propagatedBuildInputs = with python.pkgs; [
             netifaces
           ];
-
           doCheck = false;
-
           meta = with pkgs.lib; {
             description = "Python package to control TP-Link Easy Smart switches";
             homepage = "https://github.com/pklaus/smrt";
@@ -42,7 +36,6 @@
             platforms = platforms.linux ++ platforms.darwin;
           };
         };
-
         devShells.default = pkgs.mkShell {
           buildInputs = [
             (python.withPackages (
@@ -53,7 +46,6 @@
             ))
           ];
         };
-
         apps.default = flake-utils.lib.mkApp {
           drv = self.packages.${system}.default;
         };

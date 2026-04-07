@@ -10,7 +10,7 @@ let
   # Static binary — no glibc needed, runs on Alpine musl
   xmrigSrc = pkgs.fetchurl {
     url = "https://github.com/kryptex-miners-org/kryptex-miners/releases/download/xmrig-6-25-0/xmrig-${version}-linux-static-x64.tar.gz";
-    hash = "sha256-1cw7ivgyr72gsgig5hxj9is73aj7vpj4sz2hmkfc7pbham4m7dh6";
+    hash = "sha256-BrZTSVVw3cPcrFB8TeTdR6pxdEyyw/Li00+c7N+Oh7M=";
   };
 in
 pkgs.dockerTools.buildLayeredImage {
@@ -28,7 +28,7 @@ pkgs.dockerTools.buildLayeredImage {
     chmod +x usr/local/bin/xmrig
   '';
   config = {
-    Cmd = [ "usr/local/bin/xmrig" ];
+    Entrypoint = [ "/usr/local/bin/xmrig" ];
     WorkingDir = "/";
     Env = [
       "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt"
