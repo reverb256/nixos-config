@@ -1,5 +1,5 @@
 #!/bin/bash
-# Simple PVC backup script for Akash provider wallet
+# Simple PVC backup script
 
 set -e
 
@@ -10,11 +10,10 @@ RETENTION_DAYS=30
 # Create backup directory
 sudo mkdir -p "$BACKUP_DIR"
 
-echo "=== Backing up Akash Provider PVC ==="
+echo "=== Backing up Provider PVC ==="
 
 # PVC details
-NAMESPACE="akash-services"
-PVC_NAME="home-akash-provider-akash-provider-fixed-0"
+PVC_NAME="home-default-default-fixed-0"
 
 # Get the PV details
 PV_NAME=$(kubectl get pvc "$PVC_NAME" -n "$NAMESPACE" -o jsonpath='{.spec.volumeName}')

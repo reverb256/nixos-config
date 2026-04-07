@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# Cloudflare Optimizations for Akash Provider
+# Cloudflare Optimizations
 # ============================================
 # This script applies Cloudflare optimizations to improve reliability,
-# performance, and security for the Akash Network provider.
+# performance, and security.
 #
 # Usage:
 #   export CLOUDFLARE_API_TOKEN="your_token_here"
@@ -296,13 +296,13 @@ apply_optimizations() {
   echo "  - Rate limiting rules"
   echo "  - Security headers"
   echo ""
-  echo "See: docs/cloudflare-optimizations-for-akash.md"
+  echo "See: docs/cloudflare-optimizations.md"
 }
 
 # Main function
 main() {
   echo "======================================================================"
-  echo "  Cloudflare Optimizations for Akash Provider"
+  echo "  Cloudflare Optimizations"
   echo "  Domain: $DOMAIN"
   echo "  Zone ID: $ZONE_ID"
   echo "======================================================================"
