@@ -70,4 +70,7 @@
       interval = 30;
     };
   };
+
+  # Ensure node-exporter port is open for Prometheus scraping
+  networking.firewall.allowedTCPPorts = [ 9100 ];
 }

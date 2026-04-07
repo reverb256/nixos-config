@@ -108,13 +108,17 @@ in
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "xmrig-metrics-scrape" ''
-          ${lib.getExe' pkgs.python3 "python3"} ${xmrigMetricsScript} ${targetArgs}
+          OUT="${textfileDir}/xmrig.prom.tmp"
+          ${lib.getExe' pkgs.python3 "python3"} ${xmrigMetricsScript} ${targetArgs} > "$OUT"
+          # Validate: only keep if all lines are valid prometheus format
+          # (no bare numbers, no JSON fragments)
+          if ! grep -qP '^[^#].*[^ ]$' "$OUT" 2>/dev/null; then
+            # File has only comments or empty lines — miner might be down
+            # Write empty valid prom file
+            echo "# xmrig metrics - no miners responding" > "$OUT"
+          fi
+          mv -f "$OUT" "${textfileDir}/xmrig.prom"
         '';
-        User = "node-exporter";
-        Group = "node-exporter";
-        WorkingDirectory = textfileDir;
-        StandardOutput = "file:${textfileDir}/xmrig.prom";
-        StandardError = "journal";
         TimeoutStartSec = "15";
       };
     };
