@@ -6,7 +6,8 @@
   pkgs,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.services.gaming;
   vrCfg = cfg.vr;
   # Kernel-level deadzone tool for controllers
@@ -21,15 +22,20 @@ with lib; let
       mkdir -p $out/bin
       cp set-evdev-deadzone $out/bin/
     '';
-    nativeBuildInputs = [pkgs.gcc];
+    nativeBuildInputs = [ pkgs.gcc ];
   };
-in {
+in
+{
   options.services.gaming = {
     enable = mkEnableOption "Gaming support (Steam, GameMode, Gamescope)";
     vr = {
       enable = mkEnableOption "VR support (WiVRn, SteamVR, OpenXR)";
       encoder = mkOption {
-        type = types.enum ["nvenc" "x264" "av1"];
+        type = types.enum [
+          "nvenc"
+          "x264"
+          "av1"
+        ];
         default = "nvenc";
         description = "Video encoder for WiVRn streaming";
       };
@@ -48,9 +54,9 @@ in {
   config = mkMerge [
     # Base gaming configuration (always when gaming.enable = true)
     (mkIf cfg.enable {
-      
+
       # ASSERTIONS
-      
+
       assertions = [
         {
           assertion = cfg.vr.enable -> cfg.vr.refreshRate >= 60 && cfg.vr.refreshRate <= 144;
@@ -91,11 +97,13 @@ in {
           '';
         }
       ];
-      
+
       # PROGRAMS - GameMode, Steam, Gamescope, nix-ld
-      
+
       programs = {
         # GameMode - CPU/GPU Optimizations
+        # NOTE: GPU settings are in environment.etc."gamemode.ini" below
+        # because [gpu] section is not allowed in user-level configs (security)
         gamemode = {
           enable = true;
           settings = {
@@ -104,44 +112,26 @@ in {
               use_systemd = true;
               softrealtime = "auto";
               renice = 15;
-              ioprio = 0;
-            };
-            gpu = {
-              apply_gpu_optimisations = "accept-responsibility";
-              nv_powermizer_mode = 1;
-              # Moderate overclock values - balanced stability/performance
-              # Conservative: 50MHz core, 200MHz memory (safer starting point)
-              # Current: 100MHz core, 400MHz memory (balanced)
-              # Aggressive: 150MHz core, 500MHz memory (may cause instability)
-              nv_core_clock_mhz_offset = 100;
-              nv_mem_clock_mhz_offset = 400;
+              ioprio = 1;
             };
             custom = {
               start = "${pkgs.writeShellScript "gamemode-start" ''
                 ${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'
-                KUBECTL="${pkgs.k3s}/bin/kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml"
-                # Scale down K8s GPU miner on the 3090 to free GPU for gaming
-                if $KUBECTL get deploy gpu-miner-zephyr -n mining >/dev/null 2>&1; then
-                  CURRENT_REPLICAS=$($KUBECTL get deploy gpu-miner-zephyr -n mining -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "0")
-                  if [ "$CURRENT_REPLICAS" != "0" ]; then
-                    echo "[$(date '+%Y-%m-%d %H:%M:%S')] GameMode: Scaling down gpu-miner-zephyr ($CURRENT_REPLICAS -> 0)" >> /var/log/gamemode-mining.log
-                    $KUBECTL scale deploy gpu-miner-zephyr -n mining --replicas=0
-                    ${pkgs.libnotify}/bin/notify-send 'GPU mining paused' 'RTX 3090 GPU miner scaled down for gaming'
-                  fi
-                fi
+                # GPU overclocking: RTX 3090 (nvidia GPU index 1) - gaming profile
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GpuPowerMizerMode=1" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUGraphicsClockOffset[4]=100" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUMemoryTransferRateOffset[4]=400" 2>/dev/null || true
+                /etc/nixos/scripts/gpu-profiles/gaming.sh 2>/dev/null || true
+                /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh start 2>/dev/null || true
               ''}";
               end = "${pkgs.writeShellScript "gamemode-end" ''
                 ${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'
-                KUBECTL="${pkgs.k3s}/bin/kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml"
-                # Scale K8s GPU miner back up after gaming
-                if $KUBECTL get deploy gpu-miner-zephyr -n mining >/dev/null 2>&1; then
-                  CURRENT_REPLICAS=$($KUBECTL get deploy gpu-miner-zephyr -n mining -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "0")
-                  if [ "$CURRENT_REPLICAS" = "0" ]; then
-                    echo "[$(date '+%Y-%m-%d %H:%M:%S')] GameMode: Scaling up gpu-miner-zephyr (0 -> 1)" >> /var/log/gamemode-mining.log
-                    $KUBECTL scale deploy gpu-miner-zephyr -n mining --replicas=1
-                    ${pkgs.libnotify}/bin/notify-send 'GPU mining resumed' 'RTX 3090 GPU miner scaled back up'
-                  fi
-                fi
+                # GPU reset: RTX 3090 back to default clocks
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GpuPowerMizerMode=0" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUGraphicsClockOffset[4]=0" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUMemoryTransferRateOffset[4]=0" 2>/dev/null || true
+                /etc/nixos/scripts/gpu-profiles/ai-inference.sh 2>/dev/null || true
+                /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh end 2>/dev/null || true
               ''}";
             };
           };
@@ -161,8 +151,8 @@ in {
             # ];
           ];
           package = pkgs.steam.override {
-            extraLibraries = pkgs:
-              with pkgs; [
+            extraLibraries =
+              pkgs: with pkgs; [
                 freetype
                 fontconfig
                 libpng
@@ -252,15 +242,15 @@ in {
         };
       };
       hardware.steam-hardware.enable = true;
-      
+
       # SYSTEMD - SCX scheduler
-      
+
       # scx_lavd provides better gaming performance than CFS for mixed workloads
       # It prioritizes latency-sensitive tasks (games) over background work
       systemd.services.scx-lavd = {
         description = "SCX lavd scheduler user-space daemon";
-        wantedBy = ["multi-user.target"];
-        after = ["network.target"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "network.target" ];
         serviceConfig = {
           Type = "simple";
           ExecStart = "${pkgs.scx.rustscheds}/bin/scx_lavd --autopilot";
@@ -271,9 +261,9 @@ in {
           IOSchedulingPriority = 7;
         };
       };
-      
+
       # SERVICES - PipeWire, udev rules
-      
+
       services = {
         # PipeWire low-latency configuration
         pipewire.extraConfig = lib.mkForce {
@@ -303,9 +293,9 @@ in {
           # DualShock 4 (PS4) hidraw access
           KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="05c4", MODE="0660", TAG+="uaccess"
           KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", MODE="0660", TAG+="uaccess"
-          
+
           # Kernel-Level Deadzone for DualSense (GLOBAL - affects ALL games)
-          
+
           # TEMPORARILY DISABLED: Build failing (2026-03-27)
           # Sets deadzone at kernel level using EVIOCSABS ioctl
           # This is the ONLY truly global deadzone solution for Linux
@@ -325,18 +315,18 @@ in {
       };
       # Create plugdev group for backwards compatibility
       # Note: TAG+="uaccess" (above) provides the same functionality via systemd-logind
-      users.groups.plugdev = {};
+      users.groups.plugdev = { };
       # Load hid_sony kernel module for DualSense native support
       # Provides: Haptic feedback, gyro, LED, touchpad, adaptive triggers
-      boot.kernelModules = ["hid_sony"];
+      boot.kernelModules = [ "hid_sony" ];
       systemd.tmpfiles.rules = [
         "d /var/cache/nvidia-shader-cache 0755 root root - -"
         # ldconfig is in glibc.bin output, not glibc.out
         "L /sbin/ldconfig - - - - ${lib.getBin pkgs.glibc}/sbin/ldconfig"
       ];
-      
+
       # ENVIRONMENT - Session variables, packages, DualSense config
-      
+
       environment = {
         # Common session variables (gaming + MangoHud defaults)
         sessionVariables = {
@@ -353,6 +343,9 @@ in {
           SDL_JOYSTICK_AXIS_DEADZONE = "30";
           # SDL2 GameControllerDB path for proper DualSense mapping in Wine/Proton
           SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
+          # Force DXVK to use RTX 3090 (GPU1) — fixes dual-dGPU Vulkan rendering bug
+          # Without this, DXVK picks GPU0 (3060 Ti, no monitors) and fails to present
+          DXVK_FILTER_DEVICE_NAME = "NVIDIA GeForce RTX 3090";
           # SDL2 HIDAPI DISABLED for DualSense to use kernel deadzone
           # HIDAPI uses raw hidraw access (bypasses kernel deadzone)
           # SDL_JOYSTICK_HIDAPI = "1";
@@ -440,19 +433,29 @@ in {
             0300000054c00000921000016000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
             0300000054c00000921000000010000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
           '';
+          # GameMode system-level config (required for [gpu] section security)
+          # GPU device=2 for RTX 3090 (gaming GPU, drives displays)
+          # card1 = RTX 3060 Ti (compute/mining), card2 = RTX 3090 (gaming)
+          # gamemode.ini: GPU opts removed - gamemode requires /sys/class/drm/card0 which
+          # doesn't exist on this dual-NVIDIA system. GPU overclocking handled by
+          # the gamemode start/end scripts below using nvidia-settings directly.
+          "gamemode.ini".text = lib.mkForce ''
+            [general]
+            desiredgov = performance
+          '';
         };
       };
-      
+
       # MANGOHUD - Performance overlay
-      
+
       # Note: Configuration is handled via MANGOHUD_CONFIG env var (set in sessionVariables)
       # or ~/.config/MangoHud/MangoHud.conf (can be managed via GOverlay)
     })
     # VR configuration (only when vr.enable = true)
     (mkIf vrCfg.enable {
-      
+
       # SERVICES - Avahi for WiVRn discovery, WiVRn streaming
-      
+
       services = {
         # Avahi - Required for WiVRn server discovery
         avahi = {
@@ -481,8 +484,8 @@ in {
       };
       # VR firewall ports
       networking.firewall = {
-        allowedTCPPorts = [9757];
-        allowedUDPPorts = [
+        allowedTCPPorts = lib.mkOptionDefault [ 9757 ];
+        allowedUDPPorts = lib.mkOptionDefault [
           9757
           5353
           9947
@@ -507,57 +510,61 @@ in {
         libtiff
       ];
       # NOTE: extraPackages32 removed - breaks Wayland on multi-NVIDIA
-      
+
       # ENVIRONMENT - VR session variables and packages
-      
+
       environment = {
         # VR-specific session variables
         sessionVariables = {
           OPENVR_API_PATH = "${pkgs.xrizer}/lib/xrizer";
         };
         # VR-specific packages
-        systemPackages = with pkgs; ([
-            wivrn
-            openxr-loader
-            opencomposite
-            openvr
-            xrizer
-            motoc
-            # VR font/graphics dependencies
-            freetype
-            fontconfig
-            libpng
-            libjpeg
-            libtiff
-            ffmpeg
-          ]
-          # Temporarily disabled nixpkgs-xr packages due to deprecated options
-          # ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
-          #   inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
-          # ]
-          ++ [
-            # GPU profile command (merged here to avoid duplicate assignment)
-            (pkgs.writeShellScriptBin "gpu-profile" ''
-              exec ${./scripts/gpu-profiles/switch-profile} "$@"
-            '')
-          ]);
+        systemPackages =
+          with pkgs;
+          (
+            [
+              wivrn
+              openxr-loader
+              opencomposite
+              openvr
+              xrizer
+              motoc
+              # VR font/graphics dependencies
+              freetype
+              fontconfig
+              libpng
+              libjpeg
+              libtiff
+              ffmpeg
+            ]
+            # Temporarily disabled nixpkgs-xr packages due to deprecated options
+            # ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
+            #   inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
+            # ]
+            ++ [
+              # GPU profile command (merged here to avoid duplicate assignment)
+              (pkgs.writeShellScriptBin "gpu-profile" ''
+                exec ${./scripts/gpu-profiles/switch-profile} "$@"
+              '')
+            ]
+          );
       };
-      
+
       # COMPUTE WORKLOAD MONITOR MODULE
-      
+
       # Automatically detects workload type (gaming/AI/K8s/mining/idle)
       # and switches GPU profiles accordingly
       # Refactored to modular services: gaming-detection + gpu-profile-manager + mining-coordinator
       services.gaming-detection.enable = true;
       services.gpu-profile-manager.enable = true;
-      
+
       # GAMEMODE INTEGRATION
-      
+
       # GameMode provides automatic detection when games start/stop
       # and runs our custom scripts to switch GPU profiles
-      
+
       # GPU PROFILE COMMANDS
-      
+
       # Convenient aliases for manual profile switching
       # NOTE: gpu-profile command merged with VR packages above to avoid duplicate assignment
     })
