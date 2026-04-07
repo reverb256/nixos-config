@@ -7,7 +7,7 @@ A **universal meta-skill** that automatically optimizes ANY Claude Code skill us
 
 **Auto-Generated Test Suites**: The system analyzes skill structure (triggers, workflow, examples) and generates 8-12 comprehensive test cases without manual intervention.
 
-**General-Purpose Architecture**: Works on ANY skill in your `.claude/skills/` directory — nix-rebuild, knowledge-fabric, akash, or custom skills you create.
+**General-Purpose Architecture**: Works on ANY skill in your `.claude/skills/` directory — nix-rebuild, knowledge-fabric, custom skills you create.
 `─────────────────────────────────────────────────`
 
 ## 🎯 What It Does
@@ -225,7 +225,7 @@ $ autoresearch nix-rebuild
 **Examples:**
 - `nix-rebuild` — Clear workflow, good examples
 - `knowledge-fabric` — Strict rules, multiple tools
-- `akash` — Specific procedures
+
 - Custom skills you've created
 
 **Not ideal for:**

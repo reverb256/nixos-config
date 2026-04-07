@@ -322,7 +322,7 @@ Begin with skills that have:
 - Well-defined workflows
 - Existing few-shot examples
 
-**Good candidates:** nix-rebuild, knowledge-fabric, akash
+**Good candidates:** nix-rebuild, knowledge-fabric
 
 ### 2. Review Generated Tests
 Always review auto-generated test suite before starting:
@@ -420,9 +420,8 @@ autoresearch nix-rebuild
 autoresearch knowledge-fabric
 
 # Terminal 3
-autoresearch akash
 
-# Monitor all at http://localhost:8502/?skills=nix-rebuild,knowledge-fabric,akash
+# Monitor all at http://localhost:8502/?skills=nix-rebuild,knowledge-fabric
 ```
 
 ## 📚 Related Skills
