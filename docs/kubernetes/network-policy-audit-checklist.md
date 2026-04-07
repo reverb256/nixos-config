@@ -211,8 +211,8 @@ sleep 2
 curl -s -o /dev/null -w "%{http_code}" http://localhost:7777/ | grep -q "200" && echo "✅ Searxng accessible" || echo "❌ Searxng not accessible"
 kill $PF_PID
 
-# Test 2: Akash provider connectivity
-kubectl logs -n akash-services akash-provider-0 --tail=20 | grep -q "ERROR" && echo "❌ Provider errors" || echo "✅ Provider healthy"
+# Test 2: Provider connectivity
+kubectl logs -n default default-0 --tail=20 | grep -q "ERROR" && echo "❌ Provider errors" || echo "✅ Provider healthy"
 
 # Test 3: Monitoring scraping
 kubectl get --raw /api/v1/namespaces/monitoring/pods | grep -q "prometheus" && echo "✅ Prometheus accessible" || echo "❌ Prometheus not accessible"

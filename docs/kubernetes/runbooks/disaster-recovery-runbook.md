@@ -27,7 +27,7 @@
    kubectl get pods --all-namespaces | grep -E "Error|CrashLoopBackOff"
 
    # Check critical services
-   kubectl get pods -n akash-services | grep provider
+   kubectl get pods -n default | grep provider
    kubectl get svc -n ingress-nginx
    ```
 
@@ -102,7 +102,7 @@ kubectl get nodes
 
 ---
 
-### Scenario 2: Akash Provider Failure
+### Scenario 2: Provider Failure
 
 **Severity**: 🔴 Critical
 **Impact**: No GPU deployments possible
@@ -118,25 +118,24 @@ kubectl get nodes
 
 ```bash
 # 1. Check provider pod status
-kubectl get pods -n akash-services | grep provider
-kubectl describe pod akash-provider-akash-provider-fixed-0 -n akash-services
+kubectl get pods -n default | grep provider
+kubectl describe pod default-default-fixed-0 -n default
 
 # 2. Check PSA issues (most common)
-kubectl get ns akash-services -L pod-security.kubernetes.io/enforce
+kubectl get ns default -L pod-security.kubernetes.io/enforce
 # Should be "privileged"
 
 # 3. If PSA is blocking:
-kubectl label ns akash-services pod-security.kubernetes.io/enforce=privileged --overwrite
+kubectl label ns default pod-security.kubernetes.io/enforce=privileged --overwrite
 
 # 4. Delete pod to trigger recreation
-kubectl delete pod akash-provider-akash-provider-fixed-0 -n akash-services
+kubectl delete pod default-default-fixed-0 -n default
 
 # 5. Wait for recovery
-kubectl wait --for=condition=Ready pod/akash-provider-akash-provider-fixed-0 -n akash-services --timeout=300s
+kubectl wait --for=condition=Ready pod/default-default-fixed-0 -n default --timeout=300s
 
 # 6. Verify wallet address
 curl -sk https://10.0.0.63:8443/status | jq '.address'
-# Should output: akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6
 
 # 7. Verify inventory
 curl -sk https://10.0.0.63:8443/status | jq '.cluster.inventory.available.nodes | length'
@@ -149,19 +148,19 @@ curl -sk https://10.0.0.63:8443/status | jq '.cluster.inventory.available.nodes 
 # If PVC is completely lost:
 
 # 1. Delete PVC
-kubectl delete pvc home-akash-provider-akash-provider-fixed-0 -n akash-services
+kubectl delete pvc home-default-default-fixed-0 -n default
 
 # 2. Recreate PVC
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: home-akash-provider-akash-provider-fixed-0
-  namespace: akash-services
+  name: home-default-default-fixed-0
+  namespace: default
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: akash-provider-akash-provider-fixed-local-storage
+  storageClassName: default-default-fixed-local-storage
   resources:
     requests:
       storage: 10Gi
@@ -169,10 +168,10 @@ EOF
 
 # 3. Provider will auto-recover from mnemonic Secret
 # Delete pod to trigger re-initialization
-kubectl delete pod akash-provider-akash-provider-fixed-0 -n akash-services
+kubectl delete pod default-default-fixed-0 -n default
 
 # 4. Wait and verify (as above)
-kubectl wait --for=condition=Ready pod/akash-provider-akash-provider-fixed-0 -n akash-services
+kubectl wait --for=condition=Ready pod/default-default-fixed-0 -n default
 curl -sk https://10.0.0.63:8443/status | jq '.address'
 ```
 
@@ -329,9 +328,9 @@ just switch
 
 # 3. Reinstall cluster components if needed
 kubectl apply -f kubernetes-manifests/monitoring/
-kubectl apply -f kubernetes-manifests/akash-services/
+kubectl apply -f kubernetes-manifests/default/
 
-# 4. Restore Akash provider from mnemonic
+# 4. Restore Provider from mnemonic
 # See Scenario 2 recovery steps
 
 # 5. Verify all services
@@ -354,10 +353,9 @@ kubectl get nodes
 kubectl get pods -n kube-system
 # Expected: All core pods running
 
-# 3. Akash provider is operational
-kubectl get pods -n akash-services | grep provider
+# 3. Provider is operational
+kubectl get pods -n default | grep provider
 curl -sk https://10.0.0.63:8443/status | jq '.address'
-# Expected: Running, akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6
 
 # 4. Monitoring is working
 kubectl get pods -n monitoring
@@ -393,7 +391,6 @@ kubectl auth can-i list pods --all-namespaces --as=system:anonymous
 ### External Support
 - **NixOS Community**: #nixos on Libera IRC
 - **Kubernetes Documentation**: https://kubernetes.io/docs
-- **Akash Network Discord**: https://discord.gg/akashnetwork
 
 ---
 

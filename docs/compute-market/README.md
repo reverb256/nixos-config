@@ -12,14 +12,13 @@ The GPU Resource Marketplace is a sophisticated auction engine that coordinates 
 
 - **Mining** ($0.10/hr baseline) - Passive income when GPUs are idle
 - **Kubernetes** ($0-5/hr) - AI/ML workloads, inference, training
-- **Akash Network** ($0.05-0.07/hr) - Decentralized compute marketplace
+- **Network** ($0.05-0.07/hr) - Decentralized compute marketplace
 - **Gaming** ($999.99/hr override) - Priority override for actual games
 
 ### Key Features
 
 ✅ **Dynamic Pricing** - Time-based (±10-20%), demand-based (±15%), workload-specific multipliers (+10-30%)
 ✅ **GPU Memory Tracking** - Real-time nvidia-smi monitoring for intelligent bidding
-✅ **Market Intelligence** - Queries Akash API every 5 minutes for competitive pricing
 ✅ **Gaming Detection** - Whitelist-based approach to avoid false positives
 ✅ **Prometheus Metrics** - Comprehensive monitoring at `:9200/metrics`
 
@@ -36,7 +35,6 @@ The GPU Resource Marketplace is a sophisticated auction engine that coordinates 
                 ┌─────────────┼─────────────┐
                 │             │             │
         ┌───────▼──────┐ ┌───▼────┐ ┌────▼─────┐
-        │   Mining     │ │K8s/Akash│ │  Gaming  │
         │  Bidder      │ │ Bidders  │ │ Detector │
         └──────────────┘ └─────────┘ └──────────┘
                 │             │             │
@@ -208,7 +206,7 @@ GAMING_GAMES=".*\\.exe"
 ✅ Cyberpunk2077.exe     → MATCHED (in whitelist)
 → Gaming override activated
 → Mining paused
-→ Akash bidding paused
+→ bidding paused
 → GPU profile applied
 ```
 
@@ -232,13 +230,11 @@ systemd.services.compute-market.environment = {
 };
 ```
 
-### Akash Network Configuration
+### Network Configuration
 
 ```nix
 systemd.services.compute-market.environment = {
-  AKASH_ENABLE = "true";            # Enable Akash bidder
-  AKASH_MARGIN = "0.90";            # Bid at 90% of market rate (10% discount)
-  AKASH_NAMESPACE = "akash-services"; # Monitor active leases
+  # Configure bidder margins as needed
 };
 ```
 
@@ -324,7 +320,6 @@ get_workload_multiplier() {
 ```
 final_bid = base_bid × time_mult × demand_mult × workload_mult × profit_margin
 
-Example: Akash bid at 3pm on 90% utilized GPU for LLM inference
 final_bid = 0.05 × 1.2 × 1.15 × 1.3 × 0.90 = $0.096/hr
 ```
 
@@ -365,12 +360,11 @@ gpu_utilization() {
 
 ## Market Intelligence Module
 
-The **market intelligence service** queries the Akash Network API every 5 minutes for competitive pricing:
+The **market intelligence service** queries the Network API every 5 minutes for competitive pricing:
 
 ```bash
 analyze_market() {
-    # Fetch active leases from Akash API
-    api_url="https://api.akash.network/api/v1/leases"
+    api_url="https://api.network/api/v1/leases"
     market_data=$(curl -s --max-time 10 "$api_url")
 
     # Extract GPU lease prices and calculate percentiles
@@ -395,7 +389,6 @@ analyze_market() {
 
 **Usage**:
 - Stores P50 market rate in `/run/compute-market/market_p50`
-- Scheduler uses this to calculate competitive Akash bids
 - Logs market analysis every 5 minutes
 
 ---
@@ -417,7 +410,6 @@ compute_market_last_auction_timestamp           # Unix timestamp of last auction
 ```
 compute_market_bid_mining{status="..."}         # Mining bid (USD/hr)
 compute_market_bid_kubernetes{status="..."}     # Kubernetes bid (USD/hr)
-compute_market_bid_akash{status="..."}          # Akash bid (USD/hr)
 compute_market_bid_gaming{status="..."}         # Gaming bid (always 999.99)
 ```
 
@@ -439,9 +431,6 @@ compute_market_gpu_memory_used                  # Used GPU memory (MB)
 ### Market Intelligence
 
 ```
-compute_market_akash_market_p50                 # P50 market rate (USD/hr)
-compute_market_akash_market_p75                 # P75 market rate (USD/hr)
-compute_market_akash_market_updated             # Last market update timestamp
 ```
 
 ---
@@ -507,7 +496,6 @@ journalctl -u compute-market -f
 # Look for: "Mining bidder: $0.10/hr"
 ```
 
-### Akash Bids Too Low/High
 
 **Check market intelligence**:
 ```bash
@@ -518,9 +506,7 @@ cat /run/compute-market/market_p50
 **Adjust profit margin**:
 ```nix
 systemd.services.compute-market.environment = {
-  AKASH_MARGIN = "0.90";  # Bid at 90% of market (10% discount)
-  # Increase to 1.0 for full market rate
-  # Decrease to 0.80 for more competitive (20% discount)
+  # Configure bidder margins as needed
 };
 ```
 
@@ -577,7 +563,6 @@ GAMING_GAMES=".*\\.exe"
 GAMING_GAMES="Cyberpunk2077.exe eldenring.exe"
 ```
 
-**Why?**: Gaming override pauses ALL GPU workloads (mining, Akash, Kubernetes). False positives = lost revenue.
 
 ### Mining Credentials
 
@@ -642,10 +627,7 @@ To add new bidders (e.g., Folding@home, BOINC):
     K8S_HOURLY_MAX = "5.00";
     K8S_NAMESPACE = "llm-workloads";
 
-    # Akash Network configuration
-    AKASH_ENABLE = "true";
-    AKASH_MARGIN = "0.90";
-    AKASH_NAMESPACE = "akash-services";
+    # Network configuration
   };
 }
 ```

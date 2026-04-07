@@ -5,7 +5,7 @@
 ### What Happened
 
 **Discovery Time:** 2026-03-21 12:00 UTC
-**Trigger:** Akash audit revealed Sentry hardware-discovery pod stuck in `ContainerCreating`
+**Trigger:** audit revealed Sentry hardware-discovery pod stuck in `ContainerCreating`
 
 ### Root Cause
 
@@ -159,7 +159,7 @@ Status: 0 (Evicted/Failed)
 |------|-------|
 | 11:55 | Cluster health improvements applied |
 | 11:55 | Ingress-nginx RBAC fix applied |
-| 12:00 | Akash audit requested by user |
+| 12:00 | audit requested by user |
 | 12:00 | Discovered 7,020 zombie pods |
 | 12:02 | Sentry hardware-discovery stuck (IP exhaustion) |
 | 12:05 | Other agent began cleanup |
@@ -180,8 +180,7 @@ You have **two** 2-hour recurring jobs:
 
 ### Job 2: `00eaf17c`
 - **Cadence:** Every 2 hours (`*/2 * * * *`)
-- **Prompt:** "please check on the akash status and make sure nothing is broken, and also chec…"
-- **Type:** Akash-specific audit
+- **Prompt:** "please check on the status and make sure nothing is broken, and also chec…"
 - **Status:** Active (session-only)
 
 **Note:** Both are **session-only** - will be lost when Claude Code exits. To make persistent, add to startup script or create Kubernetes CronJobs.

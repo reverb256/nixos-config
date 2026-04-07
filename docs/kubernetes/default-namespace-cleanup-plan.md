@@ -11,7 +11,6 @@
 1. `memory-monitor-29568605-whgrm` → Zephyr
 2. `memory-monitor-29568610-jl7nb` → Zephyr
 3. `memory-monitor-29568615-wf289` → Zephyr
-4. `akash-export-cert-foreg` → Forge
 
 **Problem**: Default namespace should only contain temporary/debugging pods, not production workloads.
 
@@ -43,19 +42,17 @@ helm upgrade memory-monitor <release> --namespace monitoring
 
 ---
 
-### 2. Akash Export Cert (1 pod)
 
 **Current Location**: `default` namespace
-**Target Location**: `akash-services` namespace
+**Target Location**: `default` namespace
 
-**Why**: Certificate export is part of Akash provider operations
+**Why**: Certificate export is part of Provider operations
 
 **Action Required**:
 ```bash
 # Find the DaemonSet source
-kubectl get daemonset akash-export-cert -n default -o yaml
 
-# Update namespace to akash-services
+# Update namespace to default
 # Then redeploy
 ```
 
@@ -83,7 +80,6 @@ kubectl get daemonset akash-export-cert -n default -o yaml
    ```bash
    kubectl get pods -n default  # Should be empty (except system pods)
    kubectl get pods -n monitoring | grep memory-monitor
-   kubectl get pods -n akash-services | grep akash-export-cert
    ```
 
 ---
@@ -96,7 +92,7 @@ kubectl get daemonset akash-export-cert -n default -o yaml
 |-----------|--------|-------|
 | **default** | 4 pods | 0 pods ✅ |
 | **monitoring** | 6 pods | 9 pods (+3 memory monitors) |
-| **akash-services** | 10 pods | 11 pods (+1 export cert) |
+| **default** | 10 pods | 11 pods (+1 export cert) |
 
 ---
 

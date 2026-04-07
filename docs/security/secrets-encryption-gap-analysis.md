@@ -31,7 +31,6 @@ ps aux | grep kube-apiserver | grep 'encryption-provider-config'
 **What's at risk**:
 - All Kubernetes secrets stored in plain text in etcd
 - Service account tokens
-- API keys (Cloudflare, Akash, Zai API keys)
 - Database credentials (GlitchTip PostgreSQL, Redis)
 - Application secrets (SearXNG secret key, AI gateway tokens)
 

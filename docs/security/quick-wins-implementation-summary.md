@@ -30,8 +30,6 @@ Created `kubernetes-manifests/security/quick-wins-pod-security-standards.yaml` w
 ```yaml
 Baseline (enforce) + Restricted (audit/warn):
 - ai-coding (development workloads)
-- akash-cpu-test (GPU testing)
-- akash-provider (blockchain communication)
 - custom-metrics (monitoring)
 - glitchtip (error tracking)
 - lease (coordination)
@@ -73,7 +71,7 @@ Added `automountServiceAccountToken: false` to 6 service accounts that don't nee
 
 **Service Accounts Updated**:
 ```yaml
-1. cloudflared-sa (akash-services)
+1. cloudflared-sa
    - Needs: Secret access (Cloudflare tunnel config)
    - Token: Disabled (uses static secret mount instead)
 

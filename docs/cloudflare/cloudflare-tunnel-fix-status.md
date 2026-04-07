@@ -10,7 +10,7 @@
 ### 1. Identified Root Cause
 **Tunnel ID Mismatch:** Cloudflared was trying to use wrong tunnel ID
 - **Config had:** `e67aedf0-a025-4231-9ee4-3fa6887c2d21` (old/wrong)
-- **Actual tunnel:** `41176fe6-8c17-4353-ad7d-f7cdad353ecd` (akash-provider-k8s-v2)
+- **Actual tunnel:** `41176fe6-8c17-4353-ad7d-f7cdad353ecd` (default-k8s-v2)
 - **Tunnel status:** ✅ **Healthy** with 4 active connections (ord10, ord11, ord12, ord14)
 
 ### 2. Updated Configuration Files
@@ -27,7 +27,7 @@
 
 ### Issue 1: Kubernetes Secret Missing ✅ RESOLVED
 **Solution:** Created new tunnel via Cloudflare API with fresh credentials
-**New Tunnel:** `akash-provider-k8s-v3` (ID: `3ae754bf-6be0-4eb8-82d9-7d9f543ef9b2`)
+**New Tunnel:** `default-k8s-v3` (ID: `3ae754bf-6be0-4eb8-82d9-7d9f543ef9b2`)
 **Status:** Pod running successfully with 4 active connections
 
 ### Issue 2: NixOS Rebuild Failed (etcd) ✅ RESOLVED
@@ -50,7 +50,7 @@
 
 ### Tunnel Status
 ✅ **HEALTHY** - Tunnel is connected with 4 active connections
-- Name: `akash-provider-k8s-v2`
+- Name: `default-k8s-v2`
 - ID: `41176fe6-8c17-4353-ad7d-f7cdad353ecd`
 - Connections: ord10, ord11, ord12, ord14 (all healthy)
 
@@ -77,7 +77,7 @@ Retrying continuously (2s, 4s, 8s, 16s backoff)
 **Search for files containing the correct tunnel credentials:**
 ```bash
 grep -r "41176fe6-8c17-4353-ad7d-f7cdad353ecd" /etc/nixos/secrets/ 2>/dev/null
-grep -r "akash-provider-k8s-v2" ~/.cloudflared 2>/dev/null
+grep -r "default-k8s-v2" ~/.cloudflared 2>/dev/null
 find /root -name "*cloudflared*" -type f 2>/dev/null
 ```
 
@@ -125,8 +125,8 @@ systemctl status cloudflared-tunnel.service
 journalctl -u cloudflared-tunnel -f
 
 # Check Kubernetes pod status
-kubectl get pods -n akash-services -l app=cloudflared-tunnel
-kubectl logs -n akash-services -l app=cloudflared-tunnel --tail=20
+kubectl get pods -n default -l app=cloudflared-tunnel
+kubectl logs -n default -l app=cloudflared-tunnel --tail=20
 
 # Test tunnel connectivity
 curl -I https://provider.reverb256.ca

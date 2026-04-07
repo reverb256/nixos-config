@@ -22,8 +22,8 @@
 ```bash
 ai-inference/grafana-5c8f6744dd-2snc9
 ai-inference/n8n-b87d66945-svlb4
-akash-cpu-test/nginx-test-*
-akash-services/cloudflared-*
+default/nginx-test-*
+default/cloudflared-*
 glitchtip/web-7944656db4-pq6r9
 ingress-nginx/ingress-nginx-controller-f49c7fbdf-rkpjx
 ```
@@ -96,8 +96,8 @@ spec:
 ### Priority Order
 
 1. **HIGH**: Externally exposed services (ingress-nginx, cloudflared, glitchtip)
-2. **MEDIUM**: Internal services (grafana, n8n, akash services)
-3. **LOW**: Test workloads (akash-cpu-test)
+2. **MEDIUM**: Internal services (grafana, n8n, Services)
+3. **LOW**: Test workloads (default)
 
 ### Estimated Effort
 
@@ -127,9 +127,9 @@ ai-inference/n8n-b87d66945-svlb4
 ai-inference/qdrant-0
 ai-inference/redis-5f97c4cd67-5rs7z
 
-# Akash services
-akash-services/akash-node-1-0
-akash-services/cloudflared-*
+# Services
+default/node-1-0
+default/cloudflared-*
 
 # Monitoring
 glitchtip/web-7944656db4-pq6r9
@@ -227,7 +227,7 @@ App hangs/deadlocks → Liveness probe fails → Kubernetes restarts pod → App
    - `ai-inference/n8n` (workflow automation)
 
 3. **LOW**: Internal services
-   - `akash-services/*` (already have some monitoring)
+   - `default/*` (already have some monitoring)
 
 ### Common Health Check Endpoints
 
@@ -375,7 +375,7 @@ Admin drains nexus node → Kubernetes evicts pods one at a time → Ensures 1 p
    - `ai-inference/n8n` (workflows can wait)
 
 3. **LOW**: Internal tools
-   - `akash-cpu-test/nginx-test` (test workloads)
+   - `default/nginx-test` (test workloads)
 
 ### Testing PDBs
 
