@@ -180,6 +180,7 @@ in
         22 # SSH
         10250 # Kubelet API (required for kubectl exec/logs, Calico health checks)
         6443 # Kubernetes API server (CRITICAL: Must be accessible via LAN for cluster communication)
+        9100 # Prometheus node-exporter (all cluster hosts)
       ];
       allowedUDPPorts = lib.mkOptionDefault [
         53 # DNS (Unbound)

@@ -5,10 +5,12 @@
   config,
   lib,
   ...
-}: let
+}:
+let
   cfg = config.services.lm-studio-headless;
   lmsBin = "/home/${cfg.user}/.lmstudio/bin/lms";
-in {
+in
+{
   options.services.lm-studio-headless = {
     enable = lib.mkEnableOption "LM Studio headless service (llmster daemon)";
 
@@ -61,8 +63,13 @@ in {
 
     modelLoadArgs = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [];
-      example = ["--context-length" "262144" "--gpu-split" "auto"];
+      default = [ ];
+      example = [
+        "--context-length"
+        "262144"
+        "--gpu-split"
+        "auto"
+      ];
       description = "Additional arguments for 'lms load' command";
     };
 
@@ -94,7 +101,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     # Open firewall if requested
-    networking.firewall.allowedTCPPorts = lib.optional cfg.openFirewall cfg.port;
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault (lib.optional cfg.openFirewall cfg.port);
 
     # Create models directory with correct permissions
     systemd.tmpfiles.rules = [
@@ -132,78 +139,82 @@ in {
     '';
 
     # Systemd service for LM Studio headless mode with proper daemon lifecycle
-    systemd.services.lm-studio-headless = let
-      # Build CUDA device environment variable (empty string if no GPU specified)
-      gpuEnv = lib.optionalString (cfg.gpuDevice != null) "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
+    systemd.services.lm-studio-headless =
+      let
+        # Build CUDA device environment variable (empty string if no GPU specified)
+        gpuEnv = lib.optionalString (
+          cfg.gpuDevice != null
+        ) "CUDA_VISIBLE_DEVICES=${toString cfg.gpuDevice}";
 
-      # Path to the CUDA setup script
-      cudaSetup = "/etc/lm-studio/cuda-setup.sh";
-    in {
-      description = "LM Studio Headless Service (llmster daemon)";
-      after = ["network.target"];
-      wantedBy = ["multi-user.target"];
+        # Path to the CUDA setup script
+        cudaSetup = "/etc/lm-studio/cuda-setup.sh";
+      in
+      {
+        description = "LM Studio Headless Service (llmster daemon)";
+        after = [ "network.target" ];
+        wantedBy = [ "multi-user.target" ];
 
-      # Build environment
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        # Note: We don't set User= here because we use 'su -' to run commands
-        # This ensures the lms CLI runs in the correct user context with HOME set properly
+        # Build environment
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          # Note: We don't set User= here because we use 'su -' to run commands
+          # This ensures the lms CLI runs in the correct user context with HOME set properly
 
-        # PATH for root (su will set PATH for the target user)
-        Environment = [
-          "PATH=/run/current-system/sw/bin"
-        ];
+          # PATH for root (su will set PATH for the target user)
+          Environment = [
+            "PATH=/run/current-system/sw/bin"
+          ];
 
-        # Daemon lifecycle following official docs:
-        # https://lmstudio.ai/docs/developer/core/headless_llmster
-        #
-        # IMPORTANT: Commands must run as the target user via 'su -'
-        # The lms CLI stores state in the user's home directory (~/.lmstudio/)
-        #
-        # ExecStartPre steps:
-        # 1. lms daemon up - Start the llmster daemon
-        # 2. lms load <model> --yes - Preload model (if configured)
-        #
-        # ExecStart:
-        # lms daemon up && lms server start - Start daemon and HTTP server
-        #
-        # ExecStop:
-        # lms daemon down - Clean shutdown
+          # Daemon lifecycle following official docs:
+          # https://lmstudio.ai/docs/developer/core/headless_llmster
+          #
+          # IMPORTANT: Commands must run as the target user via 'su -'
+          # The lms CLI stores state in the user's home directory (~/.lmstudio/)
+          #
+          # ExecStartPre steps:
+          # 1. lms daemon up - Start the llmster daemon
+          # 2. lms load <model> --yes - Preload model (if configured)
+          #
+          # ExecStart:
+          # lms daemon up && lms server start - Start daemon and HTTP server
+          #
+          # ExecStop:
+          # lms daemon down - Clean shutdown
 
-        ExecStartPre = lib.optionalString (cfg.preloadModel != null) ''
-          /bin/sh -c '. ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} daemon up" &&
-                  . ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} load ${cfg.preloadModel} --yes ${lib.escapeShellArgs cfg.modelLoadArgs}"'
-        '';
+          ExecStartPre = lib.optionalString (cfg.preloadModel != null) ''
+            /bin/sh -c '. ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} daemon up" &&
+                    . ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} load ${cfg.preloadModel} --yes ${lib.escapeShellArgs cfg.modelLoadArgs}"'
+          '';
 
-        ExecStart = ''
-          /bin/sh -c '. ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} daemon up && ${lmsBin} server start --port ${toString cfg.port} --bind ${cfg.host}"'
-        '';
+          ExecStart = ''
+            /bin/sh -c '. ${cudaSetup} && ${gpuEnv} su - ${cfg.user} -c "LD_LIBRARY_PATH=$LD_LIBRARY_PATH ${lmsBin} daemon up && ${lmsBin} server start --port ${toString cfg.port} --bind ${cfg.host}"'
+          '';
 
-        ExecStop = "/bin/sh -c 'su - ${cfg.user} -c \"${lmsBin} daemon down\"'";
+          ExecStop = "/bin/sh -c 'su - ${cfg.user} -c \"${lmsBin} daemon down\"'";
 
-        # Restart on failure
-        Restart = "on-failure";
-        RestartSec = "10s";
+          # Restart on failure
+          Restart = "on-failure";
+          RestartSec = "10s";
 
-        # Timeouts
-        TimeoutStartSec = "300"; # 5 minutes for model loading
-        TimeoutStopSec = "60";
+          # Timeouts
+          TimeoutStartSec = "300"; # 5 minutes for model loading
+          TimeoutStopSec = "60";
 
-        # Security settings
-        NoNewPrivileges = true;
-        PrivateTmp = true;
+          # Security settings
+          NoNewPrivileges = true;
+          PrivateTmp = true;
 
-        # Logging
-        StandardOutput = "journal";
-        StandardError = "journal";
+          # Logging
+          StandardOutput = "journal";
+          StandardError = "journal";
 
-        # Watchdog for health monitoring
-        WatchdogSec = "30s";
+          # Watchdog for health monitoring
+          WatchdogSec = "30s";
+        };
       };
-    };
   };
 
   # Meta information
-  meta.maintainers = with lib.maintainers; [];
+  meta.maintainers = with lib.maintainers; [ ];
 }

@@ -277,7 +277,7 @@ in
     # FIREWALL
     # ========================================================================
     networking.firewall = {
-      allowedTCPPorts = [
+      allowedTCPPorts = lib.mkOptionDefault [
         6443 # Kubernetes API (via HAProxy)
         8404 # HAProxy statistics
         8080 # Health check endpoint

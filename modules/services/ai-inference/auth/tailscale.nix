@@ -4,18 +4,20 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.ai-inference;
   authCfg = config.services.ai-inference.auth;
   inherit (lib) mkIf mkDefault;
-in {
+in
+{
   config = mkIf (cfg.enable && authCfg.mode == "tailscale") {
     # SERVICES CONFIGURATION
     services = {
       # Ensure Tailscale is enabled
       tailscale = {
         enable = true;
-        extraUpFlags = ["--accept-routes"];
+        extraUpFlags = [ "--accept-routes" ];
       };
 
       # Configure gateway to listen on Tailscale IP
@@ -60,15 +62,18 @@ in {
 
     # Open Tailscale firewall
     networking.firewall = {
-      allowedTCPPorts = [41641]; # Tailscale port
-      trustedInterfaces = ["tailscale0"];
+      allowedTCPPorts = lib.mkOptionDefault [ 41641 ]; # Tailscale port
+      trustedInterfaces = [ "tailscale0" ];
     };
 
     # Systemd service to detect Tailscale IP
     systemd.services.ai-inference-tailscale-ip = {
       description = "Detect and configure Tailscale IP for AI inference";
-      after = ["tailscale.service" "network-online.target"];
-      wantedBy = ["multi-user.target"];
+      after = [
+        "tailscale.service"
+        "network-online.target"
+      ];
+      wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         Type = "oneshot";
