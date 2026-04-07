@@ -13,46 +13,37 @@
 # Testing: Run `result/bin/caddy-with-modules list-modules | grep -E '(security|ratelimit|cache)'`
 #
 # See: https://github.com/caddyserver/caddy/wiki/Building-Your-Own for more information
-
 {
   lib,
   buildGoModule,
   fetchFromGitHub,
   go,
 }:
-
 buildGoModule rec {
   pname = "caddy-with-modules";
-  version = "2.11.2";  # Upgraded from 2.8.0 by caddy-security plugin dependencies
-
+  version = "2.11.2"; # Upgraded from 2.8.0 by caddy-security plugin dependencies
   # Use the local source directory with custom main.go and go.mod
   src = ./src;
-
   # Use proxyVendor to avoid go.mod tidy issues
   proxyVendor = true;
-
   # Vendor hash for Go dependencies
   vendorHash = "sha256-yBO71Rp+DGP5RiE1S4bMA5HBiPYCYOsslv2UItEI20o=";
-
   # Install and rename binary
   postInstall = ''
     mkdir -p $out/bin
     mv caddy-custom $out/bin/caddy-with-modules
   '';
-
   # Build flags - use vendor mode to avoid go.mod tidy issues
   buildFlags = [
     "-ldflags=-s -w -X github.com/caddyserver/caddy/v2/cmd.version=${version}"
     "-mod=vendor"
   ];
-
   # Disable Go's module auto-tidy during build
   preBuild = ''
     export GOSUMDB=off
     # Workaround: Go 1.25 checks go.mod version during build
     # We ignore this error since the build actually succeeds
   '';
-
   # Override build phase to ignore go mod tidy errors
   buildPhase = ''
     runHook preBuild
@@ -67,26 +58,21 @@ buildGoModule rec {
     fi
     runHook postBuild
   '';
-
   # Basic validation - verify custom modules are loaded
   # Note: Check disabled because it runs before installPhase
   # Manual testing: result/bin/caddy-with-modules list-modules | grep -E '(security|ratelimit|cache)'
   doCheck = false;
-
   # Meta information
   meta = with lib; {
     description = "Caddy web server with custom modules (security, rate-limit, cache)";
     longDescription = ''
       Caddy is a powerful, enterprise-ready, open source web server with automatic
       HTTPS written in Go. This custom build includes 3 additional modules:
-
       • caddy-security: Advanced security features (JWT, basicauth, IP whitelisting)
       • caddy-rate-limit: Rate limiting with sliding window and token bucket strategies
       • caddy-cache: Response caching with configurable TTL and multiple cache backends
-
       Usage: Replace "caddy" with "caddy-with-modules" in your Caddyfile or
       systemd service. All standard Caddy directives are supported.
-
       Verification: Run `caddy-with-modules list-modules` to see all loaded modules.
     '';
     homepage = "https://caddyserver.com";

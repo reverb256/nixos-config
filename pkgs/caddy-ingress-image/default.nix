@@ -15,23 +15,19 @@
 #
 # Version: 1.0.0
 # Build: dockerTools.buildLayeredImage for efficient layering
-
 {
   caddy-with-modules,
   pkgs,
   lib,
 }:
-
 pkgs.dockerTools.buildLayeredImage {
   name = "caddy-ingress";
   tag = "latest";
-
   # Include Caddy binary and busybox for utilities
   contents = [
     caddy-with-modules
     pkgs.busybox
   ];
-
   # Container configuration
   config = {
     # OCI metadata labels for compliance
@@ -43,7 +39,6 @@ pkgs.dockerTools.buildLayeredImage {
       "org.opencontainers.image.authors" = "j_kro";
       "org.opencontainers.image.source" = "https://github.com/jkro-nixos/cluster";
     };
-
     # Run Caddy with default config location
     Cmd = [
       "/bin/caddy-with-modules"
@@ -53,26 +48,22 @@ pkgs.dockerTools.buildLayeredImage {
       "--config"
       "/etc/caddy/Caddyfile"
     ];
-
     # Expose HTTP, HTTPS, and Admin API ports
     ExposedPorts = {
-      "80/tcp" = {};    # HTTP
-      "443/tcp" = {};   # HTTPS
-      "2019/tcp" = {};  # Admin API
+      "80/tcp" = {}; # HTTP
+      "443/tcp" = {}; # HTTPS
+      "2019/tcp" = {}; # Admin API
     };
-
     # Volume mounts for persistence and runtime data
     Volumes = {
-      "/etc/caddy" = {};                # Configuration files
-      "/data" = {};                     # TLS certificates, Caddy storage
-      "/var/log/caddy" = {};            # Access logs
-      "/tmp/caddy-rate-limit" = {};     # Rate limiting cache
+      "/etc/caddy" = {}; # Configuration files
+      "/data" = {}; # TLS certificates, Caddy storage
+      "/var/log/caddy" = {}; # Access logs
+      "/tmp/caddy-rate-limit" = {}; # Rate limiting cache
     };
-
     # Set working directory
     WorkingDir = "/data";
   };
-
   # Meta information
   meta = with lib; {
     description = "Docker image for Caddy Ingress Controller with custom modules";
@@ -80,20 +71,17 @@ pkgs.dockerTools.buildLayeredImage {
       Caddy Ingress Controller image for Kubernetes deployment. This image
       includes the custom Caddy build with security, rate-limiting, and caching
       modules.
-
       Features:
       • Automatic HTTPS with Let's Encrypt
       • Advanced security (JWT, basicauth, IP whitelisting)
       • Rate limiting (sliding window, token bucket)
       • Response caching with configurable TTL
       • Admin API on port 2019 for metrics and configuration
-
       Volume Mounts:
       • /etc/caddy - Caddyfile configuration
       • /data - TLS certificates and storage
       • /var/log/caddy - Access logs
       • /tmp/caddy-rate-limit - Rate limit cache
-
       Exposed Ports:
       • 80 - HTTP
       • 443 - HTTPS
