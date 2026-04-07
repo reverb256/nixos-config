@@ -23,7 +23,6 @@ in
     # Only install ecosystem packages when Hyprland is enabled
     programs.hyprlock.enable = cfg;
 
-    # ── HYPRLAND-ONLY PACKAGES ────────────────────────────────────────
     environment.systemPackages = lib.mkIf cfg (
       with pkgs;
       [
