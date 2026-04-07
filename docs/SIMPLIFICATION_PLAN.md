@@ -51,7 +51,6 @@ docs/status/2026-03-week-5.md
 
 ```
 docs/plans/2026-03-20-k8s-mining-migration-design.md
-docs/plans/2026-03-21-akash-assistant-skill-design.md
 docs/plans/2026-03-22-caddy-ingress-design.md
 docs/plans/2026-03-22-caddy-ingress-migration.md
 docs/plans/2026-03-22-caddy-ingress-implementation.md

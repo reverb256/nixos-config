@@ -3,13 +3,12 @@
 ## Current Infrastructure
 
 ### Cloudflare Tunnel
-- **Status**: Running (cloudflared pod in akash-services)
+- **Status**: Running (cloudflared pod in default)
 - **Purpose**: Securely expose services without public IP
 - **How it works**: Cloudflare → Tunnel → Your Kubernetes Cluster
 
 ### Existing Subdomains
-- `provider.reverb256.ca` → Akash Provider (port 8443)
-- `*.ingress.provider.reverb256.ca` → Akash Tenant Ingress
+- `provider.reverb256.ca` → Provider (port 8443)
 
 ## Recommended Subdomains for Services
 

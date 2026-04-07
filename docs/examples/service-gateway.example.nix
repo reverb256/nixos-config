@@ -6,10 +6,8 @@ _: {
   # ============================================================================
   services.service-gateway = {
     enable = true;
-
     # Public access (set to true to expose to LAN)
     publicAccess = false;
-
     services = {
       # ============================================================
       # AI & INFERENCE
@@ -19,19 +17,16 @@ _: {
         port = 8080;
         websocket = true;
       };
-
       vllm = {
         description = "vLLM - Local LLM inference backend";
         port = 8000;
         websocket = true;
       };
-
       lm = {
         description = "LM Studio - LLM API server";
         port = 1234;
         websocket = true;
       };
-
       # ============================================================
       # AI COMMAND CENTER
       # ============================================================
@@ -40,7 +35,6 @@ _: {
         port = 3000;
         websocket = true;
       };
-
       # ============================================================
       # FILE & COLLABORATION
       # ============================================================
@@ -48,7 +42,6 @@ _: {
         description = "Nextcloud - File sync & collaboration";
         port = 8080;
       };
-
       # ============================================================
       # MONITORING
       # ============================================================
@@ -56,17 +49,14 @@ _: {
         description = "Grafana - Metrics dashboard";
         port = 3001;
       };
-
       prom = {
         description = "Prometheus - Metrics collector";
         port = 9090;
       };
-
       logs = {
         description = "Loki - Log aggregation";
         port = 3100;
       };
-
       # ============================================================
       # ERROR TRACKING
       # ============================================================
@@ -74,7 +64,6 @@ _: {
         description = "GlitchTip - Error tracking web UI";
         port = 8000;
       };
-
       # ============================================================
       # DEVELOPMENT
       # ============================================================
@@ -84,7 +73,6 @@ _: {
       };
     };
   };
-
   # ============================================================================
   # WHAT YOU GET
   # ============================================================================

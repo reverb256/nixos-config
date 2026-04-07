@@ -1,4 +1,4 @@
-# Cloudflare FREE Tier Optimizations for Akash Provider
+# Cloudflare FREE Tier Optimizations for Provider
 
 **Last Updated:** 2026-03-20
 **Cloudflare Plan:** FREE
@@ -153,10 +153,8 @@ spec:
 
 #### Option 3: Cloudflare Cache Purge (Automated)
 
-The Akash Cloudflare integration already includes cache purging! When tenants deploy:
 
 ```bash
-# From akash-cloudflare-integration.nix
 curl -X POST "https://api.cloudflare.com/client/v4/zones/$zone_id/purge_cache" \
   -H "Authorization: Bearer $token" \
   --data '{"files":["https://tenant.dedicated.ingress.reverb256.ca/*"]}'
@@ -281,7 +279,6 @@ dig *.ingress.reverb256.ca
 
 ### Step 3: Cache Purging (Already Automated!)
 
-The Akash Cloudflare integration purges cache automatically when tenants deploy. No action needed!
 
 ### Step 4: Add Nginx Security Headers (Optional)
 

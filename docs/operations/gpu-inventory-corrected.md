@@ -13,10 +13,10 @@
 
 **Total**: 5 NVIDIA + 3 AMD = **8 Physical GPUs**
 
-### Akash Provider View
+### Provider View
 
 The provider only counts **NVIDIA GPUs** (5 total) because:
-- Akash tenant workloads primarily require NVIDIA GPUs
+- tenant workloads primarily require NVIDIA GPUs
 - AMD GPUs need special tenant configuration
 - Provider uses `nvidia.com/gpu` resource type for inventory
 
@@ -38,7 +38,7 @@ The provider only counts **NVIDIA GPUs** (5 total) because:
 
 ### Kubernetes Resource Types
 
-- **NVIDIA GPUs**: `nvidia.com/gpu` (used by Akash provider)
+- **NVIDIA GPUs**: `nvidia.com/gpu` (used by Provider)
 - **AMD GPUs**: `amd.com/gpu` (available but not used by current deployments)
 
 ### Forge's AMD GPUs
@@ -46,7 +46,6 @@ The provider only counts **NVIDIA GPUs** (5 total) because:
 Forge's 2 AMD GPUs are:
 - **Present in Kubernetes**: ✅ Yes (`amd.com/gpu` allocatable)
 - **Used by mining**: ❌ No (`amd.com/gpu: "0"` in deployments)
-- **Available to Akash**: ❌ No (provider filters to NVIDIA only)
 - **Available for AMD workloads**: ✅ Yes (just need AMD-configured deployments)
 
 ### To Use AMD GPUs
@@ -59,9 +58,8 @@ To actually use Forge's AMD GPUs, you would need:
 ### Summary
 
 - **Total physical GPUs**: 8 (5 NVIDIA + 3 AMD)
-- **Usable by Akash**: 5 NVIDIA (Sentry's 1 is AMD but counted)
 - **Provider reports**: 6 GPUs (NVIDIA only)
 - **Currently available**: 2-3 NVIDIA GPUs (depending on mining)
 - **AMD GPUs available**: 3 (but need AMD-specific workloads)
 
-The system is working correctly - AMD GPUs are available in Kubernetes but not counted by Akash provider since most tenants can't use them.
+The system is working correctly - AMD GPUs are available in Kubernetes but not counted by Provider since most tenants can't use them.

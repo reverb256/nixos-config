@@ -17,7 +17,7 @@ This document maps all Kubernetes storage classes to their underlying provisione
 | **local-path** | rancher.io/local-path | All nodes | Varies | Local SSD/HDD | General purpose, low IOPS |
 | **fast-local-ssd** | rancher.io/local-path | Zephyr | 922GB | NVMe SSD | High IOPS, databases |
 | **large-nfs-storage** | kubernetes.io/no-provisioner | Nexus (via NFS) | 3.6TB | NFS mount | Media, backups, archival |
-| **akash-provider-local-storage** | rancher.io/local-path | Nexus | ~100GB | btrfs | Akash provider data |
+| **default-local-storage** | rancher.io/local-path | Nexus | ~100GB | btrfs | Provider data |
 
 ---
 
@@ -130,23 +130,23 @@ All nodes: /mnt/nfs-shared  (mounted from Zephyr:/run/nixos-shared)
 
 ---
 
-### 4. akash-provider-local-storage (Akash Provider)
+### 4. default-local-storage (Provider)
 
 **Provisioner:** `rancher.io/local-path` (same as local-path)
-**Manifest:** `kubernetes-manifests/storage/akash-provider-pv-nexus.yaml`
+**Manifest:** `kubernetes-manifests/storage/default-pv-nexus.yaml`
 **Special Path:** Pre-provisioned PV on Nexus only
 
 **Node Path (Nexus only):**
 ```yaml
-Nexus: /data/akash-provider  (bcache0, 100GB allocated)
+Nexus: /data/default  (bcache0, 100GB allocated)
 ```
 
 **Capacity:** ~100GB (allocated from Nexus 3.6TB)
 **Performance:** Medium (bcache0 - SSD-backed HDD cache)
 
 **Use Cases:**
-- ✅ Akash provider lease data
-- ✅ Container images for Akash workloads
+- ✅ Provider lease data
+- ✅ Container images for workloads
 - ✅ Temporary deployment storage
 
 **Reclaim Policy:** Retain
@@ -154,7 +154,7 @@ Nexus: /data/akash-provider  (bcache0, 100GB allocated)
 **Node Affinity:** `kubernetes.io/hostname: nexus` (forced)
 
 **Current Users:**
-- `akash-provider/` deployments
+- `default/` deployments
 
 ---
 
@@ -229,13 +229,12 @@ systemd.tmpfiles.rules = [
 | **fast-local-ssd** | ~3 GB/s | ~2.5 GB/s | ~500k | <1ms | Databases, AI models |
 | **local-path** | ~500 MB/s | ~400 MB/s | ~50k | ~2ms | General purpose |
 | **large-nfs-storage** | ~100 MB/s | ~100 MB/s | ~1k | ~10ms | Backups, media |
-| **akash-provider-local-storage** | ~400 MB/s | ~300 MB/s | ~40k | ~3ms | Akash leases |
 
 **Notes:**
 - fast-local-ssd: NVMe SSD on Zephyr (best performance)
 - local-path: Varies by node (Zephyr > Forge > Nexus > Sentry)
 - large-nfs-storage: Limited by 1Gbps network (~125 MB/s theoretical)
-- akash-provider-local-storage: bcache0 on Nexus (SSD cache + HDD storage)
+- default-local-storage: bcache0 on Nexus (SSD cache + HDD storage)
 
 ---
 
@@ -263,9 +262,9 @@ systemd.tmpfiles.rules = [
 - ✅ **Shared data:** ReadWriteMany access required
 - ❌ **Databases:** Too slow, network overhead
 
-**akash-provider-local-storage** (Nexus)
-- ✅ **Akash provider:** Lease data, container images
-- ✅ **GPU workloads:** Temporary storage for Akash deployments
+**default-local-storage** (Nexus)
+- ✅ **Provider:** Lease data, container images
+- ✅ **GPU workloads:** Temporary storage for deployments
 - ❌ **General use:** Node affinity to Nexus required
 
 ---
@@ -280,7 +279,7 @@ systemd.tmpfiles.rules = [
 | **Redis cache** | local-path | Ephemeral, can be recreated |
 | **ML model storage** | fast-local-ssd | Fast loading for inference |
 | **Backups** | large-nfs-storage | Large capacity, archival |
-| **Akash provider** | akash-provider-local-storage | Node affinity to Nexus |
+| **Provider** | default-local-storage | Node affinity to Nexus |
 | **Prometheus metrics** | fast-local-ssd | High write throughput |
 | **Grafana dashboards** | local-path | Low IOPS requirement |
 | **Home Assistant** | fast-local-ssd | Database performance |
@@ -294,7 +293,7 @@ systemd.tmpfiles.rules = [
 **Check 1: Storage Class Exists**
 ```bash
 kubectl get storageclass
-# Should see: fast-local-ssd, local-path, large-nfs-storage, akash-provider-local-storage
+# Should see: fast-local-ssd, local-path, large-nfs-storage, default-local-storage
 ```
 
 **Check 2: PV Available**

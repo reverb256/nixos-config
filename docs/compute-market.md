@@ -10,7 +10,7 @@ The GPU Resource Marketplace is a unified auction engine that coordinates GPU al
 |--------|----------|-------------|----------|
 | **Gaming** | Override | $999.99/hr | Always wins, pauses all GPU workloads |
 | **Kubernetes** | High | $2.50/hr | AI/ML training jobs, inference pods |
-| **Akash** | Medium | Market rate | Decentralized compute marketplace leases |
+
 | **Mining** | Baseline | $0.10/hr | Passive income, yields to higher bids |
 
 ### Key Innovation
@@ -36,7 +36,7 @@ Instead of a fixed priority chain (gaming > AI > builds > mining), the marketpla
          │                    │                    │
          ▼                    ▼                    ▼
 ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│   Mining    │      │  Kubernetes │      │   Akash     │
+│   Mining    │      │  Kubernetes │      │   Cloud     │
 │   Bidder    │      │   Bidder    │      │   Bidder    │
 │             │      │             │      │             │
 │ $0.10/hr    │      │ $2.50/hr    │      │ Market Rate │
@@ -81,11 +81,11 @@ services.compute-market = {
     namespace = "default";
   };
 
-  # Akash bidder
-  bidders.akash = {
+  # Cloud compute bidder
+  bidders.cloud = {
     enable = true;
     profitMargin = 0.90; # 90% of market rate
-    namespace = "akash-services";
+    namespace = "default";
   };
 
   # Gaming override
@@ -132,13 +132,13 @@ services.compute-market = {
 
 ```prometheus
 # Auction winner (label: winner)
-compute_market_auction_winner{winner="mining|kubernetes|akash|gaming|none"}
+compute_market_auction_winner{winner="mining|kubernetes|cloud|gaming|none"}
 
 # Winning bid amount
 compute_market_winning_bid_usd
 
 # Current bids by bidder
-compute_market_bid_current{bidder="mining|kubernetes|akash|gaming"}
+compute_market_bid_current{bidder="mining|kubernetes|cloud|gaming"}
 
 # Gaming active flag
 compute_market_gaming_active
@@ -201,12 +201,12 @@ bid_kubernetes() {
 - Increase `urgencyMultiplier` to prioritize urgent jobs
 - Add custom priority classes for specific job types
 
-### Akash Bidder
+### Cloud Compute Bidder
 
 Returns market rate for active leases:
 
 ```bash
-bid_akash() {
+bid_cloud() {
   for each active lease:
     price = lease.escrowed_payment
     usd_hourly = price * AKT_price * 3600 / blocks / 1_000_000
@@ -219,7 +219,7 @@ bid_akash() {
 **Tuning:**
 - Decrease `profitMargin` to be more competitive (win more bids)
 - Increase `profitMargin` for higher margin per lease
-- Monitor Akash earnings vs. mining revenue
+- Monitor cloud compute earnings vs. mining revenue
 
 ### Gaming Override
 
@@ -270,17 +270,17 @@ sudo -u compute-market kubectl get pods -A \
   -o jsonpath='{range .items[?(@.spec.containers[*].resources.limits.nvidia\.com/gpu)]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}'
 ```
 
-### Akash Bids Not Working
+### Cloud Compute Bids Not Working
 
 ```bash
-# Check Akash provider status
-kubectl get pods -n akash-services
+# Check Provider status
+kubectl get pods -n default
 
 # Check for active leases
-kubectl get leases -n akash-services
+kubectl get leases -n default
 
-# Verify Akash bidder enabled
-grep "AKASH_ENABLE" /var/log/compute-market.log
+# Verify cloud bidder enabled
+grep "CLOUD_ENABLE" /var/log/compute-market.log
 ```
 
 ### Gaming Not Detected
@@ -391,8 +391,8 @@ watch -n 5 'cat /run/compute-market/current_winner'
    - Track actual mining revenue vs. K8s value
    - Auto-tune bid amounts based on historical data
 
-5. **Akash Integration**
-   - Direct Akash bid submission (not just monitoring)
+5. **Cloud Integration**
+   - Direct cloud bid submission (not just monitoring)
    - Lease lifecycle management
 
 ---
@@ -402,7 +402,7 @@ watch -n 5 'cat /run/compute-market/current_winner'
 - **Implementation:** `modules/compute-market/default.nix`
 - **Dashboard:** `modules/compute-market/grafana-dashboard.json`
 - **Compute Monitor:** `modules/system/compute-workload-monitor.nix`
-- **Akash Provider:** `modules/services/akash-provider.nix`
+- **Provider:** `modules/services/default.nix`
 - **ROADMAP:** `/etc/nixos/ROADMAP.md`
 
 ---

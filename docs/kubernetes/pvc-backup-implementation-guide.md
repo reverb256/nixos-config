@@ -1,6 +1,6 @@
 # PVC Backup Implementation Guide
 
-**Purpose**: Automated backup of Akash provider wallet data
+**Purpose**: Automated backup of Provider wallet data
 **Created**: 2026-03-22
 **Status**: ⏳ Ready for deployment
 
@@ -9,8 +9,7 @@
 ## Backup Strategy
 
 ### What's Being Backed Up
-- **PVC**: `home-akash-provider-akash-provider-fixed-0`
-- **Contents**: Wallet keyring data (`/root/.akash/keyring-test/`)
+- **PVC**: `home-default-default-fixed-0`
 - **Location**: `/var/backups/k8s-pvc` on zephyr (control plane)
 - **Frequency**: Daily at 2 AM
 - **Retention**: 30 days
@@ -33,20 +32,19 @@ ls -lh /var/backups/k8s-pvc/
 
 ```bash
 # Create temporary pod to access PVC
-kubectl run backup-pod -n akash-services \
+kubectl run backup-pod -n default \
   --image=ubuntu:22.04 \
   --restart=Never \
-  --overrides='{"spec":{"nodeName":"zephyr","containers":[{"name":"backup","image":"ubuntu:22.04","command":["sleep","3600"],"volumeMounts":[{"name":"pvc","mountPath":"/data"}]}],"volumes":[{"name":"pvc","persistentVolumeClaim":{"claimName":"home-akash-provider-akash-provider-fixed-0"}}]}}'
+  --overrides='{"spec":{"nodeName":"zephyr","containers":[{"name":"backup","image":"ubuntu:22.04","command":["sleep","3600"],"volumeMounts":[{"name":"pvc","mountPath":"/data"}]}],"volumes":[{"name":"pvc","persistentVolumeClaim":{"claimName":"home-default-default-fixed-0"}}]}}'
 
 # Wait for pod to be ready
-kubectl wait --for=condition=Ready pod/backup-pod -n akash-services
+kubectl wait --for=condition=Ready pod/backup-pod -n default
 
 # Create backup
-kubectl exec backup-pod -n akash-services -- tar czf /tmp/wallet-backup.tar.gz -C /data .
-kubectl cp akash-services/backup-pod:/tmp/wallet-backup.tar.gz /var/backups/k8s-pvc/akash-wallet-$(date +%Y%m%d).tar.gz
+kubectl exec backup-pod -n default -- tar czf /tmp/wallet-backup.tar.gz -C /data .
 
 # Clean up
-kubectl delete pod backup-pod -n akash-services
+kubectl delete pod backup-pod -n default
 ```
 
 ---
@@ -119,53 +117,52 @@ ls -lh /var/backups/k8s-pvc/
 
 ```bash
 # Identify backup file
-BACKUP_FILE=$(ls -t /var/backups/k8s-pvc/akash-services-home-*.tar.gz | head -1)
+BACKUP_FILE=$(ls -t /var/backups/k8s-pvc/default-home-*.tar.gz | head -1)
 echo "Using backup: $BACKUP_FILE"
 
 # Delete existing PVC (data will be lost!)
-kubectl delete pvc home-akash-provider-akash-provider-fixed-0 -n akash-services
+kubectl delete pvc home-default-default-fixed-0 -n default
 
 # Recreate PVC
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: home-akash-provider-akash-provider-fixed-0
-  namespace: akash-services
+  name: home-default-default-fixed-0
+  namespace: default
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: akash-provider-akash-provider-fixed-local-storage
+  storageClassName: default-default-fixed-local-storage
   resources:
     requests:
       storage: 10Gi
 EOF
 
 # Create temporary pod to restore data
-kubectl run restore-pod -n akash-services \
+kubectl run restore-pod -n default \
   --image=ubuntu:22.04 \
   --restart=Never \
-  --overrides='{"spec":{"nodeName":"zephyr","containers":[{"name":"restore","image":"ubuntu:22.04","command":["sleep","3600"],"volumeMounts":[{"name":"pvc","mountPath":"/data"}]}],"volumes":[{"name":"pvc","persistentVolumeClaim":{"claimName":"home-akash-provider-akash-provider-fixed-0"}}]}}'
+  --overrides='{"spec":{"nodeName":"zephyr","containers":[{"name":"restore","image":"ubuntu:22.04","command":["sleep","3600"],"volumeMounts":[{"name":"pvc","mountPath":"/data"}]}],"volumes":[{"name":"pvc","persistentVolumeClaim":{"claimName":"home-default-default-fixed-0"}}]}}'
 
 # Wait for pod
-kubectl wait --for=condition=Ready pod/restore-pod -n akash-services
+kubectl wait --for=condition=Ready pod/restore-pod -n default
 
 # Copy backup to pod
-kubectl cp "$BACKUP_FILE" akash-services/restore-pod:/tmp/backup.tar.gz
+kubectl cp "$BACKUP_FILE" default/restore-pod:/tmp/backup.tar.gz
 
 # Extract backup
-kubectl exec restore-pod -n akash-services -- tar xzf /tmp/backup.tar.gz -C /data
+kubectl exec restore-pod -n default -- tar xzf /tmp/backup.tar.gz -C /data
 
 # Clean up
-kubectl delete pod restore-pod -n akash-services
+kubectl delete pod restore-pod -n default
 
 # Restart provider to verify recovery
-kubectl delete pod akash-provider-akash-provider-fixed-0 -n akash-services
-kubectl wait --for=condition=Ready pod/akash-provider-akash-provider-fixed-0 -n akash-services --timeout=120s
+kubectl delete pod default-default-fixed-0 -n default
+kubectl wait --for=condition=Ready pod/default-default-fixed-0 -n default --timeout=120s
 
 # Verify wallet address
 curl -sk https://10.0.0.63:8443/status | jq '.address'
-# Should output: akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6
 ```
 
 ---
@@ -218,7 +215,7 @@ apt-get install awscli
 aws configure
 
 # Sync backups to S3
-aws s3 sync /var/backups/k8s-pvc/ s3://your-bucket/k8s-backups/akash-provider/ \
+aws s3 sync /var/backups/k8s-pvc/ s3://your-bucket/k8s-backups/default/ \
   --storage-class STANDARD_IA \
   --delete
 
@@ -239,8 +236,8 @@ rclone config create s3-backup s3 ...
 rclone config create b2-backup b2 ...
 
 # Sync backups
-rclone sync /var/backups/k8s-pvc/ s3-backup:k8s-backups/akash-provider/ \
-  --backup-dir s3-backup:k8s-backups/.akash-provider-rclone
+rclone sync /var/backups/k8s-pvc/ s3-backup:k8s-backups/default/ \
+  --backup-dir s3-backup:k8s-backups/.default-rclone
 
 # Add to cron for daily sync
 0 3 * * * rclone sync /var/backups/k8s-pvc/ s3-backup:k8s-backups/
@@ -269,7 +266,7 @@ rclone sync /var/backups/k8s-pvc/ s3-backup:k8s-backups/akash-provider/ \
 **Problem**: PVC name or namespace is incorrect
 **Solution**:
 ```bash
-kubectl get pvc -n akash-services
+kubectl get pvc -n default
 # Verify PVC name matches script
 ```
 

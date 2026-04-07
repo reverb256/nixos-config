@@ -92,7 +92,7 @@ It just restarts services automatically.
 **Impact**:
 - All cluster operations failed
 - cloudflared tunnel interrupted
-- Akash provider couldn't lease GPUs
+- Provider couldn't lease GPUs
 - CI/CD pipelines failed
 - Monitoring dashboards went dark
 

@@ -6,34 +6,27 @@ _: {
   # ============================================================================
   services.nextcloud-module = {
     enable = true;
-
     # Basic setup
     hostName = "cloud.zephyr.local"; # Change to your hostname
-
     # Database (automatically created)
     database = {
       create = true;
       name = "nextcloud";
       user = "nextcloud";
     };
-
     # Admin account (password managed by Agenix)
     admin = {
       user = "j_kro"; # Or "admin"
       passwordFile = "/run/agenix/nextcloud-admin";
     };
-
     # Storage
     dataDir = "/var/lib/nextcloud";
     maxUploadSize = "16G"; # For large LLM model files, logs, etc.
-
     # Apps - enable what you need
     apps = {
       enable = true;
-
       # Core file sync
       files = true; # File sync and sharing
-
       # Collaboration
       text = true; # Collaborative Markdown
       deck = true; # Kanban boards (great for agent workflows!)
@@ -41,25 +34,20 @@ _: {
       contacts = true; # CardDAV contacts
       tasks = true; # Task management
       notes = true; # Quick Markdown notes
-
       # Communication
       talk = true; # Video calls, chat, Matrix bridge
-
       # Office suites (pick one)
       onlyoffice = false;
       collabora = false;
     };
-
     # HTTPS
     https = true;
-
     # PHP tuning
     php = {
       memoryLimit = "512M";
       maxExecutionTime = 3600; # For large file uploads
     };
   };
-
   # ============================================================================
   # AGENIX SECRET (for admin password)
   # ============================================================================

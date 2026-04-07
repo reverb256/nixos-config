@@ -20,7 +20,7 @@
 ### ✅ DO: Use Descriptive Names
 
 ```
-✅ akash-provider-status.md          # Always current
+✅ default-status.md          # Always current
 ✅ searxng-troubleshooting.md        # Topic-specific
 ✅ gpu-passthrough-setup.md          # How-to guide
 ✅ CLAUDE.md                          # Reference documentation
@@ -29,7 +29,7 @@
 ### ❌ DON'T: Date-Stamp Reference Docs
 
 ```
-❌ akash-provider-status-2026-03-21.md
+❌ default-status-2026-03-21.md
 ❌ searxng-fix-2026-03-21.md
 ❌ gpu-passthrough-2026-03-21.md
 ```
@@ -240,18 +240,17 @@ Before committing documentation changes:
 ### ❌ Mistake 2: Multiple Status Docs
 
 ```
-❌ akash-provider-status.md
-❌ akash-provider-status-2026-03-21.md
-❌ akash-provider-update-2026-03-21.md
-❌ akash-provider-summary.md
+❌ default-status.md
+❌ default-status-2026-03-21.md
+❌ default-update-2026-03-21.md
+❌ default-summary.md
 ```
 
 **Problem:** Conflicting information, unclear which is authoritative
 
 **Fix:**
 ```
-✅ akash-provider-status.md (single source of truth)
-✅ docs/incidents/2026-03-21/akash-outage.md (incident record)
+✅ default-status.md (single source of truth)
 ```
 
 ---
@@ -260,7 +259,7 @@ Before committing documentation changes:
 
 ```
 ❌ docs/debugging-complete-2026-03-21.md
-❌ docs/akash-provider-audit-issue.md
+❌ docs/default-audit-issue.md
 ❌ docs/ai-inference-gateway-container-issue.md
 ```
 
@@ -269,7 +268,7 @@ Before committing documentation changes:
 **Fix:**
 ```
 ✅ docs/incidents/2026-03-21/debugging-session.md
-✅ docs/incidents/2026-03-21/akash-provider-audit.md
+✅ docs/incidents/2026-03-21/default-audit.md
 ✅ docs/incidents/2026-03-21/gateway-container-issue.md
 ```
 
@@ -317,9 +316,6 @@ Before committing documentation changes:
 ### Bad Documentation (Don't Do This)
 
 **Multiple conflicting status docs:**
-- `akash-status.md` says "operational"
-- `akash-status-2026-03-21.md` says "broken"
-- `akash-summary.md` says "partial degradation"
 
 **Fix:** Keep one canonical status doc, archive old versions via git
 

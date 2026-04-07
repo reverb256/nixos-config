@@ -1,4 +1,4 @@
-# Akash Provider Data Retention & Privacy Policy
+# Provider Data Retention & Privacy Policy
 **Provider**: reverb256.ca
 **Version**: 1.0
 **Effective Date**: 2026-03-21
@@ -8,7 +8,7 @@
 
 ## Policy Overview
 
-This policy governs the retention, deletion, and handling of tenant data on the reverb256.ca Akash provider infrastructure. Our commitment is to **privacy-first** operations with automatic data cleanup and transparent data handling practices.
+This policy governs the retention, deletion, and handling of tenant data on the reverb256.ca Provider infrastructure. Our commitment is to **privacy-first** operations with automatic data cleanup and transparent data handling practices.
 
 ---
 
@@ -59,7 +59,7 @@ Tenants may request extended retention for legitimate purposes:
 ```yaml
 schedule: "0 0 * * *"
 job: volume-cleanup
-namespace: akash-services
+namespace: default
 ```
 
 ### Cleanup Process
@@ -90,7 +90,6 @@ kubectl delete pvc -n <namespace> <pvc-name>
 **Step 4: Audit Log**
 ```bash
 # Log all deletions with timestamp, namespace, PVC, and justification
-echo "$(date) DELETED $namespace/$pvc age=$age_days" >> /var/log/akash/volume-cleanup.log
 ```
 
 ### Cleanup Exclusions
@@ -333,7 +332,6 @@ Provider will notify tenants within 72 hours of discovering:
 
 **Data Protection Officer**: admin@reverb256.ca
 **Security Team**: security@reverb256.ca
-**Provider Address**: akash1c6h804ky08tdpnxrv72vum783xuey09qgzt2p6
 **Provider Domain**: provider.reverb256.ca
 
 **To Exercise Rights**:
