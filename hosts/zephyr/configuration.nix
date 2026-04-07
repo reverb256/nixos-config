@@ -1091,7 +1091,7 @@
   services.agenix-secrets-registry = {
     enable = true;
     aiServices = true; # For autoresearch skill optimization (ANTHROPIC_API_KEY)
-    monitoring = false; # TODO: Re-enable after creating sentry-dsn.age
+    monitoring = true; # Sentry DSN for AI inference gateway error tracking
     storage = true; # Required for backup-to-garage service (S3 API key)
     mining = true;
     cloud = true;

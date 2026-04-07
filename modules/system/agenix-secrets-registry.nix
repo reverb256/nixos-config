@@ -177,13 +177,12 @@ in
           group = "grafana";
         };
         # Sentry DSN for error tracking
-        # DISABLED: secrets/sentry-dsn.age does not exist
-        # sentry-dsn = {
-        #   file = "${inputs.self}/secrets/sentry-dsn.age";
-        #   mode = "440";
-        #   owner = "j_kro";
-        #   group = "users";
-        # };
+        sentry-dsn = {
+          file = "${inputs.self}/secrets/sentry-dsn.age";
+          mode = "440";
+          owner = "j_kro";
+          group = "users";
+        };
       })
       # Storage Secrets (Garage S3 cluster)
       (lib.mkIf config.services.agenix-secrets-registry.storage {
