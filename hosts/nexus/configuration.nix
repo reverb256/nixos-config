@@ -140,6 +140,7 @@
     # All other servers/agents join via VIP: https://10.1.1.100:6443
     k3s-cluster = {
       enable = true;
+      nvidia.enable = true;
       role = "server";
       clusterInit = true;
       nodeName = "nexus";
@@ -147,7 +148,9 @@
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.120";
       nvidia.enable = true;
+      nvidia.enable = true;
       calico.enable = true;
+      nvidia.enable = true;
     };
 
     # Keepalived VIP for HA API server access
