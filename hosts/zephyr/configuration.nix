@@ -219,13 +219,16 @@
     # All servers join via VIP for HA: https://10.1.1.100:6443
     k3s-cluster = {
       enable = true;
+      nvidia.enable = true;
       role = "server";
       nodeName = "zephyr";
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.110";
       nvidia.enable = true;
+      nvidia.enable = true;
       calico.enable = true;
+      nvidia.enable = true;
     };
 
     # Keepalived VIP for HA API server access
