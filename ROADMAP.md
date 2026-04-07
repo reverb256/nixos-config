@@ -635,7 +635,7 @@
 
 **Architecture:**
 - Unified auction engine for GPU resource allocation
-- Bidders: Mining (baseline), Kubernetes (AI workloads), Akash (leases), Gaming (priority override)
+- Bidders: Mining (baseline), Kubernetes (AI workloads), Gaming (priority override)
 - Prometheus metrics on port 9200
 - Auto-scales mining based on cluster demand
 
@@ -647,7 +647,7 @@
 
 ### Immediate (This Week)
 
-1. ✅ **Test storage classes** - PVC creation verified (qdrant, akash-provider operational)
+1. ✅ **Test storage classes** - PVC creation verified (qdrant operational)
 2. ✅ **Complete Phase 3** - GlitchTip PostgreSQL migrated
 3. ✅ **Commit updated documentation** - STATUS.md, ROADMAP.md changes
 

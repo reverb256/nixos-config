@@ -135,15 +135,19 @@
   ];
 
   services = {
-    # KUBERNETES - k3s control plane (joins existing cluster)
+    # KUBERNETES - k3s control plane (cluster bootstrap node)
+    # This is the first server (clusterInit=true, oldest etcd data)
+    # All other servers/agents join via VIP: https://10.1.1.100:6443
     k3s-cluster = {
       enable = true;
       role = "server";
+      clusterInit = true;
       nodeName = "nexus";
-      serverAddr = "https://10.1.1.110:6443";
+      serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.120";
       nvidia.enable = true;
+      calico.enable = true;
     };
 
     # Keepalived VIP for HA API server access
@@ -560,6 +564,7 @@
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
   services.agenix-secrets-registry = {
     enable = true;
+    aiServices = true; # HF_TOKEN for vLLM model downloads
     mining = true; # XMRig API tokens
     storage = true; # Garage S3 cluster (Nexus is a storage node)
     kubernetes = true; # k3s cluster token
