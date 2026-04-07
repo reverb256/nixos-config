@@ -180,13 +180,16 @@ in
           ]
           ++ map (san: "--tls-san=${san}") tlsSans
           ++ lib.optional cfg.calico.enable "--flannel-backend=none"
+          # ++ lib.optional cfg.calico.enable "--kube-proxy-arg=iptables-backend=nft"  # Removed: k3s v1.34+ doesn't support this flag
         )
         # Node labels for GPU scheduling
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
         ++ lib.optional (config.hardware.gpu-compute.rocm.enable or false) "--node-label=gpu=amd";
 
       # NVIDIA containerd runtime configuration
+      # Must include {{ template "base" . }} to preserve k3s defaults
       containerdConfigTemplate = mkIf cfg.nvidia.enable ''
+        {{ template "base" . }}
         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
           runtime_type = "io.containerd.runc.v2"
           [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
@@ -240,6 +243,7 @@ in
       [
         kubernetes # kubectl and other tools
         cri-tools # crictl for CRI debugging
+        iptables # iptables-save/restore for Calico CNI compatibility
       ]
       ++ lib.optional cfg.nvidia.enable nvidia-container-toolkit;
 
@@ -275,3 +279,4 @@ in
     '';
   };
 }
+# Force rebuild Tue 07 Apr 2026 03:12:49 AM CDT
