@@ -7,5 +7,5 @@ spec:
   cidr: 10.244.0.0/16
   ipipMode: Never
   vxlanMode: Always
-  natOutgoing: Enabled
+  natOutgoing: true
   nodeSelector: all()
