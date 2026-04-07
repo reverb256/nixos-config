@@ -6,23 +6,24 @@
 }: {
   name = "llama-server";
   tag = "latest";
-  config = { pkgs, config, ... }: {
+  config = {
+    pkgs,
+    config,
+    ...
+  }: {
     environment.systemPackages = with pkgs; [
       llama-cpp
     ];
-
     users.users.llama-server = {
       isNormalUser = true;
       group = "llama-server";
     };
-
     users.groups.llama-server = {};
-
     systemd.services.llama-server = {
       enable = true;
       description = "llama.cpp LLM inference server";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         User = "llama-server";
         Group = "llama-server";

@@ -4,16 +4,15 @@
 }: let
   # Gateway source code (relative to flake root)
   gatewaySrc = ./../../modules/services/ai-inference/ai_inference_gateway;
-
   # Gateway source package
-  gatewayPkgBase = pkgs.runCommand "ai-inference-gateway-pkg-base" {
-    preferLocalBuild = true;
-  } ''
-    mkdir -p $out/app/ai_inference_gateway
-    cp -r ${gatewaySrc}/* $out/app/ai_inference_gateway/
-    chmod +x $out/app/ai_inference_gateway/main.py
-  '';
-
+  gatewayPkgBase =
+    pkgs.runCommand "ai-inference-gateway-pkg-base" {
+      preferLocalBuild = true;
+    } ''
+      mkdir -p $out/app/ai_inference_gateway
+      cp -r ${gatewaySrc}/* $out/app/ai_inference_gateway/
+      chmod +x $out/app/ai_inference_gateway/main.py
+    '';
   # Python environment with all dependencies
   gatewayPython = pkgs.python3.withPackages (
     ps:
