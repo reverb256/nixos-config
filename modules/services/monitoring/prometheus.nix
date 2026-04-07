@@ -65,13 +65,13 @@ in
 
       # Scrape configurations for cluster nodes
       scrapeConfigs = [
-        # Node exporter for all hosts (zephyr uses localhost due to security-hardening)
+        # Node exporter for all cluster hosts
         {
           job_name = "node";
           static_configs = [
             {
               targets = [
-                "localhost:${toString ports.node-exporter}" # zephyr local (bound to 127.0.0.1)
+                "zephyr:${toString ports.node-exporter}"
                 "nexus:${toString ports.node-exporter}"
                 "forge:${toString ports.node-exporter}"
                 "sentry:${toString ports.node-exporter}"

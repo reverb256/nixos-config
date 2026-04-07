@@ -63,6 +63,7 @@
         3100
         3900
         3901
+        9100 # Prometheus node-exporter
       ]; # SSH + Kubelet API + Loki + Garage (merges with cluster defaults)
       allowedTCPPortRanges = lib.mkOptionDefault [
         {
