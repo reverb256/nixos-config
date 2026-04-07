@@ -31,10 +31,12 @@ in
   "huggingface-token.age".publicKeys = [
     users.j_kro
     hosts.zephyr
+    hosts.nexus
   ];
   "secrets/huggingface-token.age".publicKeys = [
     users.j_kro
     hosts.zephyr
+    hosts.nexus
   ];
   # NVIDIA NIM API key - Free LLM endpoints (100+ models)
   "nvidia-api-key.age".publicKeys = [

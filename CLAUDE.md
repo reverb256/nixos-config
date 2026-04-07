@@ -726,10 +726,8 @@ kubectl apply -f kubernetes-manifests/ai-inference/
 ### Services & Features
 **docs/compute-market.md** — GPU Resource Marketplace
 - Unified auction engine for GPU allocation
-- Bidders: Mining, Kubernetes, Akash, Gaming
+- Bidders: Mining, Kubernetes, Gaming
 - Prometheus metrics and Grafana dashboard
-
-**docs/akash-cloudflare-integration.md** — Akash provider automation
 - 6 automation features (DNS, cache, metrics, health)
 - Complete usage guide and security considerations
 - Time savings: ~200 hours/year for 10 active tenants
@@ -811,9 +809,8 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 - **Key Services**: Caddy Ingress, GlitchTip, SearXNG, n8n, home-assistant
 
 ### Key Features
-- **GPU Marketplace**: Dynamic GPU allocation (mining/K8s/Akash/gaming)
+- **GPU Marketplace**: Dynamic GPU allocation (mining/K8s/gaming)
 - **Gaming Detection**: GameMode + K8s integration with auto-mining pause
-- **Akash Provider**: Cloudflare integration with 6 automation features
 - **Monitoring**: Prometheus + Grafana with Caddy metrics
 - **Storage**: NFS shared storage, local-path provisioner, Garage S3
 
@@ -834,7 +831,6 @@ All CI workflows (`.github/workflows/`) pin actions to immutable commit SHAs ins
 ### Skills Available
 - **kubernetes-specialist** — Day-to-day K8s operations
 - **kubernetes-architect** — Architecture patterns
-- **akash** — Akash Network provider operations
 - **add-service** — systemd service creation
 - **nix-rebuild** — Safe rebuild patterns
 
