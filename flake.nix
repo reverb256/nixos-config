@@ -461,6 +461,7 @@
       apps.x86_64-linux.colmena = {
         type = "app";
         program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
+        meta.description = "Colmena multi-host NixOS deployment";
       };
     };
 }
