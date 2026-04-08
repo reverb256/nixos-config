@@ -84,7 +84,7 @@ in
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = lib.getExe applyScript;
+        ExecStart = toString applyScript;
         RemainAfterExit = true;
         # Retry if K3s isn't fully ready yet
         Restart = "on-failure";

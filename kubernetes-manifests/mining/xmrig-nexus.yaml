@@ -1,6 +1,6 @@
-# XMRig CPU Miner - Nexus (24 cores, 6 threads × 2 replicas = 50%)
+# XMRig CPU Miner - nexus (24 cores, 12 threads = 50%)
 # - privileged for MSR register access
-# - 2 replicas at 25% each = 50% CPU cap
+# - 1 replica at 50% CPU cap
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -12,7 +12,7 @@ metadata:
     host: nexus
     workload: crypto-mining
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -52,7 +52,7 @@ spec:
           - "-u"
           - "nexus-cpu"
           - "--tls=false"
-          - "--threads=6"
+          - "--threads=12"
           - "--donate-level=1"
           - "--http-enabled"
           - "--http-host=0.0.0.0"
@@ -63,11 +63,11 @@ spec:
           protocol: TCP
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "3"
-          limits:
-            memory: "3Gi"
+            memory: "2Gi"
             cpu: "6"
+          limits:
+            memory: "4Gi"
+            cpu: "12"
         securityContext:
           privileged: true
         volumeMounts:
