@@ -33,25 +33,3 @@ spec:
   selector:
     matchLabels:
       app: redis
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: glitchtip-web-pdb
-  namespace: glitchtip
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app: web
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: glitchtip-worker-pdb
-  namespace: glitchtip
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app: worker

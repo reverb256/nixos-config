@@ -345,6 +345,9 @@
   # Moved from hardware-configuration.nix for centralized config
   # Base bootloader settings provided by common-host-defaults.nix:
   # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
+  # NOTE: Using CachyOS kernel — binary cached, x86-64-v3 optimized, BORE scheduler.
+  boot.kernelPackages =
+    inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
   boot.loader.timeout = lib.mkDefault 5;
 
   # Kernel parameters for XMRig RandomX performance (dual-xmrig module)

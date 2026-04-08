@@ -1,5 +1,6 @@
 # Gemma 4 E4B GGUF Q4_K_M on Nexus RTX 3060 Ti (8GB)
 # ~5GB model, tight on 8GB. Preempts gpu-miner-nexus.
+# Mounts NVIDIA driver libs from NixOS /nix/store directly (no runtimeClassName needed).
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -21,7 +22,6 @@ spec:
       labels:
         app: gemma-4-e4b-nexus
     spec:
-      runtimeClassName: nvidia
       priorityClassName: ai-inference-high
       nodeSelector:
         kubernetes.io/hostname: nexus
@@ -41,6 +41,8 @@ spec:
         - --max-num-seqs=4
         - --disable-log-requests
         env:
+        - name: LD_LIBRARY_PATH
+          value: "/nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib:/usr/local/cuda/lib64"
         - name: CUDA_VISIBLE_DEVICES
           value: "0"
         - name: VLLM_WORKER_MULTIPROC_METHOD
@@ -82,10 +84,17 @@ spec:
         - name: models
           mountPath: /models
           readOnly: true
+        - name: nvidia-driver
+          mountPath: /nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib
+          readOnly: true
       volumes:
       - name: models
         hostPath:
           path: /var/lib/vllm-models
+          type: Directory
+      - name: nvidia-driver
+        hostPath:
+          path: /nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib
           type: Directory
       terminationGracePeriodSeconds: 60
 ---
