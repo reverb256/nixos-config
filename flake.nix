@@ -66,6 +66,11 @@
       url = "github:numtide/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # CachyOS kernel - Performance-optimized kernel for gaming/desktop (Zephyr only)
+    # Provides: linux-cachyos-latest-x86_64-v3, sched_ext support, BORE scheduler
+    # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
+    # Do NOT follow nixpkgs — uses its own pinned nixos-unstable-small for kernel builds
+    nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
   };
   outputs =
     inputs@{

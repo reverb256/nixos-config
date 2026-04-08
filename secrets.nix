@@ -142,36 +142,6 @@ in
     users.j_kro
     hosts.zephyr
   ];
-  # Sentry DSN - Error tracking for AI inference gateway
-  "sentry-dsn.age".publicKeys = [
-    users.j_kro
-    hosts.zephyr
-  ];
-  "secrets/sentry-dsn.age".publicKeys = [
-    users.j_kro
-    hosts.zephyr
-  ];
-
-  # GLITCHTIP SECRETS
-
-  # GlitchTip database password
-  "glitchtip-db-password.age".publicKeys = [
-    users.j_kro
-    hosts.zephyr
-  ];
-  "secrets/glitchtip-db-password.age".publicKeys = [
-    users.j_kro
-    hosts.zephyr
-  ];
-  # GlitchTip Django secret key
-  "glitchtip-secret-key.age".publicKeys = [
-    users.j_kro
-    hosts.zephyr
-  ];
-  "secrets/glitchtip-secret-key.age".publicKeys = [
-    users.j_kro
-    hosts.zephyr
-  ];
 
   # NEXTCLOUD SECRETS
 

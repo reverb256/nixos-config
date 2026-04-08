@@ -334,6 +334,8 @@
   # ============================================================================
   # Base bootloader settings provided by common-host-defaults.nix:
   # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
+  # NOTE: Using CachyOS kernel — binary cached, x86-64-v3 optimized, BORE scheduler.
+  boot.kernelPackages = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
 
   # Kernel parameters for IOMMU, device passthrough, and XMRig RandomX performance
   boot.kernelParams = [

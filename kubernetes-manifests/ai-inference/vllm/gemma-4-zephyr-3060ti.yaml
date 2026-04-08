@@ -21,7 +21,6 @@ spec:
       labels:
         app: gemma-4-e2b-zephyr
     spec:
-      runtimeClassName: nvidia
       priorityClassName: ai-inference-high
       tolerations:
       - operator: Exists
@@ -42,6 +41,8 @@ spec:
         - --max-num-seqs=8
         - --disable-log-requests
         env:
+        - name: LD_LIBRARY_PATH
+          value: "/nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib:/usr/local/cuda/lib64"
         - name: CUDA_VISIBLE_DEVICES
           value: "0"
         - name: VLLM_WORKER_MULTIPROC_METHOD
@@ -83,10 +84,17 @@ spec:
         - name: models
           mountPath: /models
           readOnly: true
+        - name: nvidia-driver
+          mountPath: /nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib
+          readOnly: true
       volumes:
       - name: models
         hostPath:
           path: /var/lib/vllm-models
+          type: Directory
+      - name: nvidia-driver
+        hostPath:
+          path: /nix/store/ia20kw8xkfssyfjmk2kanm5nhxablfyz-nvidia-x11-595.45.04-6.18.13/lib
           type: Directory
       terminationGracePeriodSeconds: 60
 ---
