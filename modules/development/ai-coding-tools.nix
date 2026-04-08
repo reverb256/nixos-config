@@ -669,9 +669,16 @@ let
           }
         }
       }' > "/home/${cfg.user}/.pi/agent/models.json"
+    # Build settings.json with model config + declarative packages
     ${pkgs.jq}/bin/jq -n \
-      '{ "model": "zai/glm-5.1", "lastChangelogVersion": "auto", "defaultProvider": "zai" }' \
-      > "/home/${cfg.user}/.pi/agent/settings.json"
+      --argjson packages '${builtins.toJSON cfg.tools.pi.packages}' \
+      '{
+        "model": "zai/glm-5.1",
+        "lastChangelogVersion": "auto",
+        "defaultProvider": "zai",
+        "defaultModel": "glm-5.1",
+        "packages": $packages
+      }' > "/home/${cfg.user}/.pi/agent/settings.json"
     chown -R ${cfg.user}:users "/home/${cfg.user}/.pi/agent"
     chmod 600 "/home/${cfg.user}/.pi/agent/models.json"
     chmod 600 "/home/${cfg.user}/.pi/agent/settings.json"
@@ -877,6 +884,20 @@ in
           type = types.bool;
           default = true;
           description = "Generate Pi Coding Agent config (~/.pi/agent/settings.json, models.json)";
+        };
+        packages = mkOption {
+          type = types.listOf types.str;
+          default = [];
+          example = [
+            "npm:pi-lens@3.8.5"
+            "npm:pi-powerline-footer@0.4.9"
+          ];
+          description = ''
+            Declarative pi packages for global settings (~/.pi/agent/settings.json).
+            These survive NixOS activation. Use `pi install -l <pkg>` for
+            project-scoped packages (written to .pi/settings.json, not touched
+            by this module).
+          '';
         };
       };
       opencode = {
