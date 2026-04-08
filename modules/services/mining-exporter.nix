@@ -5,8 +5,14 @@
   lib,
   pkgs,
   ...
-}: let
-  inherit (lib) mkEnableOption mkOption mkIf types;
+}:
+let
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    types
+    ;
 
   cfg = config.services.mining-exporter;
 
@@ -78,7 +84,8 @@
 
   currentHost = config.networking.hostName;
   hostConfig = hosts.${currentHost} or null;
-in {
+in
+{
   options.services.mining-exporter = {
     enable = mkEnableOption "Mining metrics exporter for Prometheus";
 
@@ -98,8 +105,9 @@ in {
   config = mkIf (cfg.enable && hostConfig != null) {
     systemd.services.prometheus-mining-exporter = {
       description = "Prometheus Mining Metrics Exporter";
-      after = ["network-online.target"];
-      wantedBy = ["multi-user.target"];
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "simple";
         ExecStart = pkgs.writers.writeBash "mining-exporter" ''
@@ -220,7 +228,13 @@ in {
             sleep "$INTERVAL_SECONDS"
           done
         '';
-        Path = [pkgs.curl pkgs.hostname pkgs.jq pkgs.gnused pkgs.coreutils];
+        Path = [
+          pkgs.curl
+          pkgs.hostname
+          pkgs.jq
+          pkgs.gnused
+          pkgs.coreutils
+        ];
         # Security hardening
         StandardError = "journal";
         NoNewPrivileges = true;
@@ -234,7 +248,7 @@ in {
     };
 
     # Use firewall helper to open ports
-    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [cfg.port];
-    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ cfg.port ];
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ cfg.port ];
   };
 }
