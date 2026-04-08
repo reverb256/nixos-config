@@ -38,6 +38,7 @@
     ./system/security-hardening.nix
     ./system/cluster-firewall.nix
     ./system/btrfs-compression.nix
+    ./system/pi-models.nix
     ./system/btrfs-tuning.nix
     # Modular workload monitoring (replaced old compute-workload-monitor monolith)
     ./system/gaming-detection.nix
