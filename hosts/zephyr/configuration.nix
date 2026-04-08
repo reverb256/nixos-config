@@ -1220,7 +1220,7 @@
     localsend # Local network file sharing (AirDrop alternative)
 
     # Deployment
-    inputs.colmena.packages.${system}.colmena
+    inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
     (pkgs.writeShellScriptBin "spacebot" ''
       #!${pkgs.bash}/bin/bash
       # Spacebot CLI wrapper - connects to local Spacebot service
