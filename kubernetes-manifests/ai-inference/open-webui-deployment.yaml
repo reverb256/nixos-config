@@ -122,21 +122,9 @@ spec:
               mountPath: /app/backend/data
       volumes:
         - name: webui-data
-          persistentVolumeClaim:
-            claimName: open-webui-data
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: open-webui-data
-  namespace: ai-inference
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 10Gi
+          hostPath:
+            path: /var/lib/open-webui
+            type: DirectoryOrCreate
 ---
 # Secret for WEBUI_SECRET_KEY
 # Generate with: openssl rand -hex 32
@@ -148,7 +136,7 @@ metadata:
   namespace: ai-inference
 type: Opaque
 stringData:
-  webui-secret-key: "open-webui-dev-key-replace-with-agenix"
+  webui-secret-key: ""
 ---
 # NetworkPolicy - allow Open WebUI to talk to everything it needs
 apiVersion: networking.k8s.io/v1
