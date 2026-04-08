@@ -8,6 +8,7 @@
 {
   lib,
   pkgs,
+  inputs,
   ...
 }:
 {
@@ -337,6 +338,9 @@
 
   # Base bootloader settings provided by common-host-defaults.nix:
   # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
+  # NOTE: Using CachyOS kernel — binary cached, x86-64-v3 optimized, BORE scheduler.
+  boot.kernelPackages =
+    inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
   #
   # Only add Forge-specific kernel parameters here that aren't provided by modules
   boot = {
@@ -767,9 +771,11 @@
 
   # AGENIX SECRETS
 
-  # No Agenix secrets currently configured for Forge.
-  # See modules/system/agenix-secrets-registry.nix for available categories.
-  # CRITICAL: Disable agenix-fixes module - it causes boot loops on hosts without age keys
+  # Centralized registry - see modules/system/agenix-secrets-registry.nix
+  services.agenix-secrets-registry = {
+    enable = true;
+    kubernetes = true; # k3s cluster token
+  };
 
   # Force SDDM to use X11 instead of Wayland - Wayland has DRM issues on this multi-GPU system
   services.xserver = {

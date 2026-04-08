@@ -273,6 +273,13 @@ in
       "L /root/.kube/config - - - - /etc/rancher/k3s/k3s.yaml"
     ];
 
+    # Disable NRI (Node Runtime Interface) to prevent nri-wait hook
+    # from blocking container creation with 30s timeout.
+    # The nri-wait hook expects a Nix build system to publish build
+    # status via ZeroMQ sockets at /nix/var/nixkube/.
+    # Since we don't use Nix builds for containers, disable NRI entirely.
+    systemd.services.k3s.environment.CONTAINERD_NRI_DISABLED = "1";
+
     # Ensure k3s containerd state directories exist
     system.activationScripts.k3s-dirs = ''
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd

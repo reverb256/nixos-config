@@ -19,9 +19,6 @@ resources:
   # Mining workloads (medium priority - interruptible)
   - mining-pdb.yaml
 
-  # Error tracking (medium priority)
-  - glitchtip-pdb.yaml
-
 # Common labels for all PDBs
 commonLabels:
   managed-by: pdb-ha-policy

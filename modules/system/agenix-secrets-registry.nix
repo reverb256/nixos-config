@@ -71,7 +71,7 @@ in
     selfHosting = mkOption {
       type = types.bool;
       default = false;
-      description = "Enable self-hosted service secrets (Nextcloud, Vaultwarden, GlitchTip)";
+      description = "Enable self-hosted service secrets (Nextcloud, Vaultwarden)";
     };
     # Kubernetes-specific secrets
     kubernetes = mkOption {
@@ -176,13 +176,6 @@ in
           owner = "grafana";
           group = "grafana";
         };
-        # Sentry DSN for error tracking
-        sentry-dsn = {
-          file = "${inputs.self}/secrets/sentry-dsn.age";
-          mode = "440";
-          owner = "j_kro";
-          group = "users";
-        };
       })
       # Storage Secrets (Garage S3 cluster)
       (lib.mkIf config.services.agenix-secrets-registry.storage {
@@ -265,20 +258,6 @@ in
           mode = "440";
           owner = "vaultwarden";
           group = "vaultwarden";
-        };
-        # GlitchTip database password
-        glitchtip-db-password = {
-          file = "${inputs.self}/secrets/glitchtip-db-password.age";
-          mode = "440";
-          owner = "glitchtip";
-          group = "glitchtip";
-        };
-        # GlitchTip Django secret key
-        glitchtip-secret-key = {
-          file = "${inputs.self}/secrets/glitchtip-secret-key.age";
-          mode = "440";
-          owner = "glitchtip";
-          group = "glitchtip";
         };
       })
       # Kubernetes/k3s Secrets
