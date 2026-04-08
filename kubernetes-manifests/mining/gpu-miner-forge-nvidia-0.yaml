@@ -10,7 +10,7 @@ metadata:
     host: forge
 spec:
   replicas: 1
-  revisionHistoryLimit: 2
+  revisionHistoryLimit: 1
   selector:
     matchLabels:
       app: gpu-miner-forge
@@ -18,10 +18,7 @@ spec:
       gpu-id: "0"
       host: forge
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
+    type: Recreate
   template:
     metadata:
       labels:
@@ -73,8 +70,8 @@ spec:
           readOnly: true
         resources:
           requests:
-            memory: "4Gi"
-            cpu: "2"
+            memory: "2Gi"
+            cpu: "500m"
             nvidia.com/gpu: "1"
             amd.com/gpu: "0"
           limits:

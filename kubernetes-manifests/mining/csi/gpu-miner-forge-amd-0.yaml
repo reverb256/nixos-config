@@ -8,7 +8,7 @@ metadata:
   namespace: mining
 spec:
   replicas: 1
-  revisionHistoryLimit: 2
+  revisionHistoryLimit: 1
   strategy:
     type: Recreate
   selector:
@@ -109,7 +109,7 @@ spec:
       - name: kfd
         hostPath:
           path: /dev/kfd
-          type: Directory
+          type: CharDevice
       - name: opencl-icd
         hostPath:
           path: /nix/store/6yvx83sa6iwhr6xnjjlfjg56jnki5mdn-clr-7.2.0-icd/etc/OpenCL/vendors
