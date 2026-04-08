@@ -4,9 +4,16 @@
   lib,
   pkgs,
   ...
-}: let
-  inherit (lib) mkOption types mkIf mkDefault;
-in {
+}:
+let
+  inherit (lib)
+    mkOption
+    types
+    mkIf
+    mkDefault
+    ;
+in
+{
   options.services.boot-error-fixes = {
     enable = mkOption {
       type = types.bool;
@@ -19,7 +26,7 @@ in {
     # ============================================================================
     # FIX 1: Create plugdev group for udev rules (PS5 controller support)
     # ============================================================================
-    users.groups.plugdev = {};
+    users.groups.plugdev = { };
 
     # ============================================================================
     # FIX 3: Fix Podman generator (if it's causing issues)
@@ -42,9 +49,12 @@ in {
     # ============================================================================
     systemd.services.boot-error-monitor = {
       description = "Monitor and report boot errors";
-      wantedBy = ["multi-user.target"];
-      after = ["systemd-sysusers.service" "multi-user.target"];
-      wants = ["systemd-sysusers.service"];
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "systemd-sysusers.service"
+        "multi-user.target"
+      ];
+      wants = [ "systemd-sysusers.service" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "boot-error-check" ''
@@ -54,11 +64,6 @@ in {
           # Check if agenix secrets were decrypted
           if [ -z "$(${pkgs.coreutils}/bin/ls /run/agenix.d/*/ 2>/dev/null)" ]; then
             echo "WARNING: No agenix secrets decrypted" | ${pkgs.coreutils}/bin/tee -a /var/log/boot-errors.log
-          fi
-
-          # Check if GlitchTip services are running
-          if ! ${pkgs.systemd}/bin/systemctl is-active --quiet glitchtip-postgres.service; then
-            echo "ERROR: GlitchTip PostgreSQL not running" | ${pkgs.coreutils}/bin/tee -a /var/log/boot-errors.log
           fi
 
           # Check if plugdev group exists

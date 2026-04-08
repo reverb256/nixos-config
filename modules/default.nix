@@ -95,6 +95,7 @@
 
     # Mining
     ./mining/mining.nix
+    ./mining/mining-plasmoid.nix
     ./mining/dual-xmrig.nix
     ./mining/xmrig-proxy.nix
     ./mining/mining-proxy.nix
@@ -119,7 +120,6 @@
     ./services/spacebot.nix # Systemd/Podman deployment (current)
     ./services/spacebot/default.nix # Container module for Kubernetes (optional)
     ./services/podman-auto-update.nix
-    ./services/glitchtip-selfhosted.nix
     ./services/caddy.nix
     ./services/caddy-common.nix
     # caddy-ingress-common.nix removed — was dead code (comments only)

@@ -352,6 +352,12 @@
   # ============================================================================
   # Base bootloader settings provided by common-host-defaults.nix:
   # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
+  # NOTE: Using CachyOS kernel for better sched_ext/scx_lavd support.
+  # Zen kernel lacks CONFIG_SCHED_DEADLINE which breaks scx_lavd core compaction.
+  # CachyOS 6.19.11: BORE scheduler, x86-64-v3 opts, sched_ext integration.
+  # Kernel binary is CACHED (no compilation). Only nvidia module needs building.
+  # Uses the flake input's linuxPackages directly to hit the binary cache.
+  boot.kernelPackages = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
   #
   # Zephyr-specific additions:
   boot = {
@@ -662,6 +668,20 @@
           }
           encode zstd gzip
           reverse_proxy 127.0.0.1:8090
+        }
+
+        # Kubernetes Ingress (proxy to Caddy ingress controller on Nexus)
+        http://search.lan, http://search.cluster.local {
+          encode zstd gzip
+          reverse_proxy nexus.lan:30080
+        }
+        http://ai.lan, http://ai.cluster.local {
+          encode zstd gzip
+          reverse_proxy nexus.lan:30080
+        }
+        http://openwebui.lan, http://openwebui.cluster.local {
+          encode zstd gzip
+          reverse_proxy nexus.lan:30080
         }
       '';
     };
@@ -1091,7 +1111,7 @@
   services.agenix-secrets-registry = {
     enable = true;
     aiServices = true; # For autoresearch skill optimization (ANTHROPIC_API_KEY)
-    monitoring = true; # Sentry DSN for AI inference gateway error tracking
+    monitoring = false; # No monitoring secrets currently needed (sentry-dsn removed with GlitchTip)
     storage = true; # Required for backup-to-garage service (S3 API key)
     mining = true;
     cloud = true;
@@ -1388,6 +1408,32 @@
   # Accessible on localhost for local applications and cluster network
   # Survives NixOS rebuilds without restart (restartIfChanged = false)
   services.unbound-common.enable = true;
+
+  # Resolve K8s ingress hostnames to the cluster VIP (10.1.1.100)
+  # These are served by the K8s Caddy ingress controller on Nexus,
+  # reverse-proxied by zephyr's host Caddy (nexus.lan:30080)
+  # Both unbound (DNS) and /etc/hosts (fallback) are configured.
+  # Inject local-data records via unbound include directive
+  # The NixOS unbound module's RFC42 format generator joins list values
+  # with spaces, breaking local-data records. We use an include file instead.
+  environment.etc."unbound/local-dns.conf".text = lib.concatMapStrings
+    (record: "local-data: \"${record}\"\n") [
+      "search.lan. IN A 10.1.1.100"
+      "search.cluster.local. IN A 10.1.1.100"
+      "ai.lan. IN A 10.1.1.100"
+      "ai.cluster.local. IN A 10.1.1.100"
+      "openwebui.lan. IN A 10.1.1.100"
+      "openwebui.cluster.local. IN A 10.1.1.100"
+    ];
+
+  # Add include directive to unbound config for local DNS records
+  services.unbound.settings.server.include = "/etc/unbound/local-dns.conf";
+
+  networking.extraHosts = lib.mkOptionDefault ''
+    10.1.1.100 search.lan search.cluster.local
+    10.1.1.100 ai.lan ai.cluster.local
+    10.1.1.100 openwebui.lan openwebui.cluster.local
+  '';
 
   # ============================================================================
   # CLAUDE CODE ROUTER - Route Claude Code to Z.AI GLM models
