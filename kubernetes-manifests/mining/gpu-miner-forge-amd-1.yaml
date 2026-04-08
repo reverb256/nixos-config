@@ -46,6 +46,7 @@ spec:
         - "--pass=x"
         - "--tls=1"
         - "--devices=1"
+        - "--pl=110"
         - "--apiport=4071"
         env:
         - name: LD_LIBRARY_PATH
