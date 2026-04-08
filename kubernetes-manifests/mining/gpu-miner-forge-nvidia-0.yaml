@@ -52,7 +52,7 @@ spec:
           - "--tls=1"
           - "--devices=0"
           - "--moff=800"
-          - "--pl=120"
+          - "--pl=90"
           - "--apiport=4069"
         securityContext:
           privileged: true
