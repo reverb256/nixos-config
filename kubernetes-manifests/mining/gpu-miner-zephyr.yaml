@@ -1,7 +1,7 @@
-# GPU Miner Deployment for Zephyr (RTX 3090 GPU 1)
-# - Mines on RTX 3090 only (GPU 1) — RTX 3060 Ti (GPU 0) reserved for AI/gaming
-# - Power limit 250W (mining profile sweet spot for 3090)
-# - GameMode scales replicas 0↔1 via gaming.nix gamemode hooks
+# GPU Miner Deployment for Zephyr (RTX 3070)
+# - Disabled: Zephyr is OOM-constrained (31GB RAM running control plane + AI + gaming)
+# - When enabled: swamp7/lolminer with host NVIDIA driver mounts
+# - Power limit 160W, core 1755 MHz, mem offset +1300
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -13,7 +13,7 @@ metadata:
     host: zephyr
     workload: crypto-mining
 spec:
-  replicas: 1
+  replicas: 0
   revisionHistoryLimit: 1
   selector:
     matchLabels:
@@ -27,10 +27,6 @@ spec:
         app: gpu-miner-zephyr
         host: zephyr
         workload: crypto-mining
-        pod-security.kubernetes.io/enforce: privileged
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "4068"
     spec:
       nodeName: zephyr
       serviceAccountName: gpu-miner-sa
@@ -38,91 +34,59 @@ spec:
       hostNetwork: true
       priorityClassName: mining-low
       tolerations:
-        - key: node-role.kubernetes.io/control-plane
+        - key: workstation
           operator: Exists
-          effect: NoSchedule
-        - key: "workstation"
-          operator: "Equal"
-          value: "true"
-          effect: NoSchedule
-        - key: "interactive"
-          operator: "Equal"
-          value: "true"
-          effect: NoExecute
-        - key: "ram-constrained"
-          operator: "Equal"
-          value: "true"
-          effect: NoSchedule
       containers:
-        - name: lolminer
-          image: docker.io/swamp7/lolminer:latest
-          imagePullPolicy: IfNotPresent
-          args:
-            - "--algo=CR29"
-            - "--pool=xtm-c29-us.kryptex.network:8040"
-            - "--user=krxXVNVMM7.zephyr-gpu"
-            - "--pass=x"
-            - "--tls=1"
-            - "--pool=xtm-c29-eu.kryptex.network:8040"
-            - "--user=krxXVNVMM7.zephyr-gpu"
-            - "--pass=x"
-            - "--tls=1"
-            - "--devices=1"
-            - "--pl=250"
-            - "--apiport=4068"
-          env:
-            - name: LD_LIBRARY_PATH
-              value: "/run/opengl-driver/lib:/nix/store"
-          ports:
-            - containerPort: 4068
-              name: api
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: api
-            initialDelaySeconds: 30
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /
-              port: api
-            initialDelaySeconds: 60
-            periodSeconds: 15
-            timeoutSeconds: 15
-            failureThreshold: 10
-          securityContext:
-            privileged: true
-            capabilities:
-              add:
-                - SYS_ADMIN
-          volumeMounts:
-            - name: nvidia
-              mountPath: /run/opengl-driver/lib
-              readOnly: true
-            - name: dev
-              mountPath: /dev
-            - name: nix-store
-              mountPath: /nix/store
-              readOnly: true
-          resources:
-            requests:
-              memory: "4Gi"
-              cpu: "2"
-              nvidia.com/gpu: "1"
-            limits:
-              memory: "8Gi"
-              cpu: "4"
-              nvidia.com/gpu: "1"
-      volumes:
-        - name: nvidia
-          hostPath:
-            path: /run/opengl-driver/lib
+      - name: lolminer
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        args:
+          - "--algo=CR29"
+          - "--pool=xtm-c29-us.kryptex.network:8040"
+          - "--user=krxXVNVMM7.zephyr-gpu"
+          - "--pass=x"
+          - "--tls=1"
+          - "--pool=xtm-c29-eu.kryptex.network:8040"
+          - "--user=krxXVNVMM7.zephyr-gpu"
+          - "--pass=x"
+          - "--tls=1"
+          - "--devices=0"
+          - "--cclk=1755"
+          - "--moff=1300"
+          - "--pl=160"
+          - "--apiport=4068"
+        ports:
+        - containerPort: 4068
+          name: api
+          protocol: TCP
+        securityContext:
+          privileged: true
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/run/opengl-driver/lib:/usr/local/cuda-12.1/compat"
+        volumeMounts:
         - name: dev
-          hostPath:
-            path: /dev
+          mountPath: /dev
+        - name: nvidia-libs
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
         - name: nix-store
-          hostPath:
-            path: /nix/store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "100m"
+          limits:
+            memory: "8Gi"
+            cpu: "1000m"
+      volumes:
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: nvidia-libs
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: nix-store
+        hostPath:
+          path: /nix/store

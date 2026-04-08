@@ -1,34 +1,39 @@
+# GPU Miner Deployment for Forge NVIDIA GPU 1 (GeForce GTX 1070)
+# - swamp7/lolminer bundles CUDA 12.1 runtime
+# - Host NVIDIA driver libs via /nix/store + /run/opengl-driver/lib mounts
+# - Power limit 120W, mem offset +800 (stable for 1070 GDDR5)
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gpu-miner-forge-nvidia-1
   namespace: mining
   labels:
-    app: gpu-miner-forge
-    gpu-type: nvidia
-    gpu-id: "1"
+    app: gpu-miner-forge-nvidia-1
     host: forge
+    gpu-vendor: nvidia
+    workload: crypto-mining
 spec:
   replicas: 1
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: gpu-miner-forge
-      gpu-type: nvidia
-      gpu-id: "1"
+      app: gpu-miner-forge-nvidia-1
+      gpu-vendor: nvidia
       host: forge
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: gpu-miner-forge
-        gpu-type: nvidia
-        gpu-id: "1"
+        app: gpu-miner-forge-nvidia-1
         host: forge
-        pod-security.kubernetes.io/enforce: privileged
+        gpu-vendor: nvidia
+        workload: crypto-mining
     spec:
       nodeName: forge
+      serviceAccountName: gpu-miner-sa
+      automountServiceAccountToken: false
       hostNetwork: true
       priorityClassName: mining-low
       containers:
@@ -38,54 +43,45 @@ spec:
         args:
           - "--algo=CR29"
           - "--pool=xtm-c29-us.kryptex.network:8040"
-          - "--user=krxXVNVMM7.forge-n1"
+          - "--user=krxXVNVMM7.forge-nv1"
           - "--pass=x"
           - "--tls=1"
           - "--pool=xtm-c29-eu.kryptex.network:8040"
-          - "--user=krxXVNVMM7.forge-n1"
+          - "--user=krxXVNVMM7.forge-nv1"
           - "--pass=x"
           - "--tls=1"
           - "--devices=1"
-          - "--cclk=2350"
-          - "--moff=1100"
-          - "--pl=90"
-          - "--apiport=4069"
-        env:
-        - name: LD_LIBRARY_PATH
-          value: "/run/opengl-driver/lib:/nix/store"
-        ports:
-        - containerPort: 4069
-          name: api
-          protocol: TCP
+          - "--moff=800"
+          - "--pl=120"
+          - "--apiport=4070"
         securityContext:
           privileged: true
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/run/opengl-driver/lib:/usr/local/cuda-12.1/compat"
         volumeMounts:
-        - name: nvidia
-          mountPath: /run/opengl-driver/lib
-          readOnly: true
         - name: dev
           mountPath: /dev
+        - name: nvidia-libs
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
         - name: nix-store
           mountPath: /nix/store
           readOnly: true
         resources:
           requests:
-            memory: "2Gi"
-            cpu: "500m"
-            nvidia.com/gpu: "1"
-            amd.com/gpu: "0"
+            memory: "1Gi"
+            cpu: "100m"
           limits:
-            memory: "8Gi"
-            cpu: "4"
-            nvidia.com/gpu: "1"
-            amd.com/gpu: "0"
+            memory: "2Gi"
+            cpu: "1000m"
       volumes:
-      - name: nvidia
-        hostPath:
-          path: /run/opengl-driver/lib
       - name: dev
         hostPath:
           path: /dev
+      - name: nvidia-libs
+        hostPath:
+          path: /run/opengl-driver/lib
       - name: nix-store
         hostPath:
           path: /nix/store
