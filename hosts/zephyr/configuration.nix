@@ -892,6 +892,18 @@
       enable = true;
       zaiApiKeyFile = config.age.secrets.zai-api-key.path;
       context7ApiKeyFile = "/run/agenix/context7-api-key";
+      tools.pi.packages = [
+        "npm:pi-annotated-reply@0.4.1"
+        "npm:pi-btw@0.2.1"
+        "npm:pi-context@1.1.2"
+        "npm:pi-lens@3.8.5"
+        "npm:pi-powerline-footer@0.4.9"
+        "npm:pi-rewind@0.5.0"
+        "npm:pi-show-diffs@0.2.7"
+        "npm:pi-subagents@0.12.4"
+        "npm:pi-web-access@0.10.6"
+        "npm:pi-worktree@1.3.3"
+      ];
     };
 
     # WEB TESTING - Playwright/Puppeteer system dependencies
