@@ -671,17 +671,18 @@
         }
 
         # Kubernetes Ingress (proxy to Caddy ingress controller on Nexus)
+        # Using IP directly — Caddy's Go resolver ignores /etc/hosts
         http://search.lan, http://search.cluster.local {
           encode zstd gzip
-          reverse_proxy nexus.lan:30080
+          reverse_proxy 10.1.1.120:30080
         }
         http://ai.lan, http://ai.cluster.local {
           encode zstd gzip
-          reverse_proxy nexus.lan:30080
+          reverse_proxy 10.1.1.120:30080
         }
         http://openwebui.lan, http://openwebui.cluster.local {
           encode zstd gzip
-          reverse_proxy nexus.lan:30080
+          reverse_proxy 10.1.1.120:30080
         }
       '';
     };
@@ -1181,6 +1182,9 @@
   programs.systems-intelligence-plasmoid.refreshInterval = 5000;
   programs.systems-intelligence-plasmoid.clusterNodes = "zephyr,nexus,forge,sentry";
 
+  # Pi agent model registry (declarative models.json)
+  # programs.pi-agent.enable = true;  # TODO: option not found — disabled for now
+
   # ============================================================================
   # MONITORING - Full monitoring stack
   # ============================================================================
@@ -1342,6 +1346,11 @@
 
     # Network automation - for switch/modem configuration scripts
     python3Packages.playwright
+
+    # Diagrams & data
+    mermaid-cli # Mermaid → SVG/PNG
+    graphviz # Graphviz (dot) diagrams
+    python312Packages.openpyxl # Excel read/write
   ];
 
   # ============================================================================
@@ -1410,24 +1419,8 @@
   services.unbound-common.enable = true;
 
   # Resolve K8s ingress hostnames to the cluster VIP (10.1.1.100)
-  # These are served by the K8s Caddy ingress controller on Nexus,
-  # reverse-proxied by zephyr's host Caddy (nexus.lan:30080)
-  # Both unbound (DNS) and /etc/hosts (fallback) are configured.
-  # Inject local-data records via unbound include directive
-  # The NixOS unbound module's RFC42 format generator joins list values
-  # with spaces, breaking local-data records. We use an include file instead.
-  environment.etc."unbound/local-dns.conf".text = lib.concatMapStrings
-    (record: "local-data: \"${record}\"\n") [
-      "search.lan. IN A 10.1.1.100"
-      "search.cluster.local. IN A 10.1.1.100"
-      "ai.lan. IN A 10.1.1.100"
-      "ai.cluster.local. IN A 10.1.1.100"
-      "openwebui.lan. IN A 10.1.1.100"
-      "openwebui.cluster.local. IN A 10.1.1.100"
-    ];
-
-  # Add include directive to unbound config for local DNS records
-  services.unbound.settings.server.include = "/etc/unbound/local-dns.conf";
+  # Local DNS records are in modules/services/unbound-common.nix (shared
+  # across all hosts). Fallback /etc/hosts entries below.
 
   networking.extraHosts = lib.mkOptionDefault ''
     10.1.1.100 search.lan search.cluster.local
