@@ -5,9 +5,11 @@
   config,
   pkgs,
   ...
-}: let
+}:
+let
   currentHost = config.networking.hostName or "unknown";
-in {
+in
+{
   nix = {
     distributedBuilds = lib.mkDefault true;
 
@@ -15,80 +17,92 @@ in {
       builders = lib.mkDefault "@/etc/nix/machines";
       builders-use-substitutes = true;
       require-sigs = lib.mkForce false;
-      trusted-users = lib.mkForce ["root" "*" "@wheel"];
+      trusted-users = lib.mkForce [
+        "root"
+        "*"
+        "@wheel"
+      ];
 
       # Binary cache priority - Centralized for all hosts
       # Local cache (Zephyr) has highest priority for cluster builds
       substituters = lib.mkForce (
-        if currentHost == "zephyr"
-        then [
-          # Zephyr: No local cache (it serves the cache)
-          "https://cache.nixos.org"
-          "https://nix-community.cachix.org"
-          "https://cache.garnix.io"
-          "https://reverb-os.cachix.org"
-          "https://ezkea.cachix.org"
-          "https://nix-gaming.cachix.org"
-          # "https://cache.nixos-cuda.org" # Disabled - timeout issues
-        ]
-        else [
-          # Remote hosts: Use public caches (NOT zephyr's local cache - unreachable from remotes)
-          "https://cache.nixos.org"
-          "https://nix-community.cachix.org"
-          "https://cache.garnix.io"
-          "https://reverb-os.cachix.org"
-          "https://ezkea.cachix.org"
-          "https://nix-gaming.cachix.org"
-          # "https://cache.nixos-cuda.org" # Disabled - timeout issues
-        ]
+        if currentHost == "zephyr" then
+          [
+            # Zephyr: No local cache (it serves the cache)
+            "https://cache.nixos.org"
+            "https://nix-community.cachix.org"
+            "https://cache.garnix.io"
+            "https://reverb-os.cachix.org"
+            "https://ezkea.cachix.org"
+            "https://nix-gaming.cachix.org"
+            "https://attic.xuyh0120.win/lantian" # CachyOS kernel binary cache
+            # "https://cache.nixos-cuda.org" # Disabled - timeout issues
+          ]
+        else
+          [
+            # Remote hosts: Use public caches (NOT zephyr's local cache - unreachable from remotes)
+            "https://cache.nixos.org"
+            "https://nix-community.cachix.org"
+            "https://cache.garnix.io"
+            "https://reverb-os.cachix.org"
+            "https://ezkea.cachix.org"
+            "https://nix-gaming.cachix.org"
+            "https://attic.xuyh0120.win/lantian" # CachyOS kernel binary cache
+            # "https://cache.nixos-cuda.org" # Disabled - timeout issues
+          ]
       );
       trusted-public-keys = lib.mkForce (
-        if currentHost == "zephyr"
-        then [
-          # Zephyr: No local cache key (it serves the cache)
-          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-          "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
-          "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
-          "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-          "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-          # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M=" # Disabled - timeout issues
-        ]
-        else [
-          # Remote hosts: Trust Zephyr's local cache
-          # Key will be generated on first nix-serve start
-          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-          "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-          "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
-          "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
-          "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
-          "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
-          # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M=" # Disabled - timeout issues
-        ]
+        if currentHost == "zephyr" then
+          [
+            # Zephyr: No local cache key (it serves the cache)
+            "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+            "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+            "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+            "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
+            "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
+            "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
+            "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc=" # CachyOS kernel cache
+            # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M=" # Disabled - timeout issues
+          ]
+        else
+          [
+            # Remote hosts: Trust Zephyr's local cache
+            # Key will be generated on first nix-serve start
+            "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+            "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+            "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+            "reverb-os.cachix.org-1:dctKtu02bV/4fbsYbGuVVxQo9R7X6lNqUet1qj2jYzI="
+            "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI="
+            "nix-gaming.cachix.org-1:vn/szNT7r/Pc1FbcBjRGHLk7XNk0v2KvMq2v7EwXQ8w="
+            "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc=" # CachyOS kernel cache
+            # "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M=" # Disabled - timeout issues
+          ]
       );
 
       cores = lib.mkForce (
-        if currentHost == "zephyr"
-        then 4
-        else if currentHost == "nexus"
-        then 4
-        else if currentHost == "sentry"
-        then 2
-        else if currentHost == "forge"
-        then 2
-        else 4
+        if currentHost == "zephyr" then
+          4
+        else if currentHost == "nexus" then
+          4
+        else if currentHost == "sentry" then
+          2
+        else if currentHost == "forge" then
+          2
+        else
+          4
       );
 
       max-jobs = lib.mkForce (
-        if currentHost == "zephyr"
-        then 2 # Zephyr: Reduced from 4 to prevent OOM during large builds
-        else if currentHost == "nexus"
-        then 6
-        else if currentHost == "sentry"
-        then 4
-        else if currentHost == "forge"
-        then 2 # Forge: Increased from 1 for kernel builds
-        else 2
+        if currentHost == "zephyr" then
+          2 # Zephyr: Reduced from 4 to prevent OOM during large builds
+        else if currentHost == "nexus" then
+          6
+        else if currentHost == "sentry" then
+          4
+        else if currentHost == "forge" then
+          2 # Forge: Increased from 1 for kernel builds
+        else
+          2
       );
 
       http-connections = 100;
@@ -97,7 +111,10 @@ in {
       keep-build-log = true;
       log-lines = 2000;
       auto-optimise-store = true;
-      extra-sandbox-paths = ["/var/cache/ccache" "/home/j_kro/.steam"];
+      extra-sandbox-paths = [
+        "/var/cache/ccache"
+        "/home/j_kro/.steam"
+      ];
     };
 
     gc = {
@@ -111,9 +128,9 @@ in {
 
   systemd.services.copy-build-ssh-key = {
     description = "Copy SSH key for distributed builds";
-    wantedBy = ["multi-user.target"];
-    after = ["local-fs.target"];
-    before = ["nix-daemon.service"];
+    wantedBy = [ "multi-user.target" ];
+    after = [ "local-fs.target" ];
+    before = [ "nix-daemon.service" ];
     serviceConfig.Type = "oneshot";
     serviceConfig.RemainAfterExit = true;
     script = ''
@@ -142,55 +159,60 @@ in {
           ConnectTimeout 30
       '';
 
-      "nix/machines".text = let
-        # All hosts can be builders (except forge which is compute-only)
-        # IMPORTANT: Builds with "kexec" feature (kernel modules) fall back to local
-        # Remote machines don't support "kexec" → kernel builds stay local
-        allMachines = [
-          {
-            hostName = "zephyr";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "/etc/nixos/ssh/id_ed25519";
-            maxJobs = 0;  # DISABLED as builder (only 31GB RAM, OOMs building large packages like gamescope)
-            speedFactor = 4;
-            # NOTE: "kexec" NOT included → kernel modules won't be sent to zephyr
-            supportedFeatures = ["big-parallel" "kvm"];
-            mandatoryFeatures = [];
-          }
-          {
-            hostName = "nexus";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "/etc/nixos/ssh/id_ed25519";
-            maxJobs = 6;
-            speedFactor = 5;
-            # NOTE: "kexec" NOT included → kernel modules won't be sent to nexus
-            supportedFeatures = ["big-parallel" "kvm"];
-            mandatoryFeatures = [];
-          }
-          {
-            hostName = "sentry";
-            system = "x86_64-linux";
-            sshUser = "j_kro";
-            sshKey = "/etc/nixos/ssh/id_ed25519";
-            maxJobs = 4;
-            speedFactor = 3;
-            # NOTE: "kexec" NOT included → kernel modules won't be sent to sentry
-            supportedFeatures = ["big-parallel"];
-            mandatoryFeatures = [];
-          }
-        ];
-        # Exclude current host from machines list (builds locally via nix-daemon instead)
-        machines = builtins.filter (m: m.hostName != currentHost) allMachines;
-        formatMachine = m: ''
-          ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${
-            if m.sshKey != null
-            then m.sshKey
-            else "-"
-          } ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
-        '';
-      in
+      "nix/machines".text =
+        let
+          # All hosts can be builders (except forge which is compute-only)
+          # IMPORTANT: Builds with "kexec" feature (kernel modules) fall back to local
+          # Remote machines don't support "kexec" → kernel builds stay local
+          allMachines = [
+            {
+              hostName = "zephyr";
+              system = "x86_64-linux";
+              sshUser = "j_kro";
+              sshKey = "/etc/nixos/ssh/id_ed25519";
+              maxJobs = 0; # DISABLED as builder (only 31GB RAM, OOMs building large packages like gamescope)
+              speedFactor = 4;
+              # NOTE: "kexec" NOT included → kernel modules won't be sent to zephyr
+              supportedFeatures = [
+                "big-parallel"
+                "kvm"
+              ];
+              mandatoryFeatures = [ ];
+            }
+            {
+              hostName = "nexus";
+              system = "x86_64-linux";
+              sshUser = "j_kro";
+              sshKey = "/etc/nixos/ssh/id_ed25519";
+              maxJobs = 6;
+              speedFactor = 5;
+              # NOTE: "kexec" NOT included → kernel modules won't be sent to nexus
+              supportedFeatures = [
+                "big-parallel"
+                "kvm"
+              ];
+              mandatoryFeatures = [ ];
+            }
+            {
+              hostName = "sentry";
+              system = "x86_64-linux";
+              sshUser = "j_kro";
+              sshKey = "/etc/nixos/ssh/id_ed25519";
+              maxJobs = 4;
+              speedFactor = 3;
+              # NOTE: "kexec" NOT included → kernel modules won't be sent to sentry
+              supportedFeatures = [ "big-parallel" ];
+              mandatoryFeatures = [ ];
+            }
+          ];
+          # Exclude current host from machines list (builds locally via nix-daemon instead)
+          machines = builtins.filter (m: m.hostName != currentHost) allMachines;
+          formatMachine = m: ''
+            ssh-ng://${m.sshUser}@${m.hostName} ${m.system} ${
+              if m.sshKey != null then m.sshKey else "-"
+            } ${toString m.maxJobs} ${toString m.speedFactor} ${lib.concatStringsSep "," m.supportedFeatures} ${lib.concatStringsSep "," m.mandatoryFeatures}
+          '';
+        in
         lib.concatMapStrings formatMachine machines;
     };
 
@@ -206,7 +228,7 @@ in {
     };
 
     # Ensure ccache is in PATH for all users
-    systemPackages = with pkgs; [ccache];
+    systemPackages = with pkgs; [ ccache ];
   };
 
   # Consolidated tmpfiles rules (SSH keys + ccache directories)

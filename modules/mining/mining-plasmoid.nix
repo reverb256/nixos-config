@@ -42,7 +42,7 @@ in
     # Install plasmoid system-wide so Plasma can discover it
     environment.systemPackages = [
       (pkgs.runCommand "mining-monitor-plasmoid" { } ''
-        mkdir -p $out/share/plasma/plasmoids/${plasmoidName}
+        mkdir -p $out/share/plasma/plasmoids/${plasmoidName}/config
         cp -r ${plasmoidSrc}/* $out/share/plasma/plasmoids/${plasmoidName}/
 
         # Write runtime config with user-supplied values

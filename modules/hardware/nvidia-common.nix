@@ -70,6 +70,17 @@ in
       mount-nvidia-executables = true;
     };
 
+    # Make nvidia-cdi-generator non-fatal during activation.
+    # When the kernel changes, the new userspace libs don't match the running
+    # kernel driver, causing the generator to fail. This blocks activation.
+    # The generator will work correctly after reboot when kernel and driver match.
+    systemd.services.nvidia-container-toolkit-cdi-generator = {
+      unitConfig.OnFailure = "";
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      serviceConfig.SuccessExitStatus = "0 1";
+    };
+
     # ============================================================================
     # GPU OPTIMIZATIONS FOR AI INFERENCE
     # ============================================================================

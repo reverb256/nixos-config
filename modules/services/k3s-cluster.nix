@@ -167,6 +167,7 @@ in
         ++ lib.optionals (isServer && cfg.calico.enable) [
           "flannel"
           "network-policy"
+          "kube-proxy" # Required: K3s kube-proxy uses fib expressions incompatible with Calico's iptables-save
         ];
 
       # Extra flags — server role only
@@ -180,7 +181,6 @@ in
           ]
           ++ map (san: "--tls-san=${san}") tlsSans
           ++ lib.optional cfg.calico.enable "--flannel-backend=none"
-          # ++ lib.optional cfg.calico.enable "--kube-proxy-arg=iptables-backend=nft"  # Removed: k3s v1.34+ doesn't support this flag
         )
         # Node labels for GPU scheduling
         ++ lib.optional config.hardware.nvidia-common.enable "--node-label=accelerator=nvidia-gpu"
