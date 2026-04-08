@@ -1,6 +1,6 @@
-# XMRig CPU Miner - Zephyr (32 cores, 8 threads × 2 replicas = 50%)
+# XMRig CPU Miner - zephyr (32 cores, 16 threads = 50%)
 # - privileged for MSR register access
-# - 2 replicas at 25% each = 50% CPU cap
+# - 1 replica at 50% CPU cap
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -12,7 +12,7 @@ metadata:
     host: zephyr
     workload: crypto-mining
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 2
   selector:
     matchLabels:
@@ -42,6 +42,18 @@ spec:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
+        - key: "workstation"
+          operator: "Equal"
+          value: "true"
+          effect: NoSchedule
+        - key: "interactive"
+          operator: "Equal"
+          value: "true"
+          effect: NoExecute
+        - key: "ram-constrained"
+          operator: "Equal"
+          value: "true"
+          effect: NoSchedule
       containers:
       - name: xmrig
         image: docker.io/library/xmrig-alpine:6.25.0
@@ -52,7 +64,7 @@ spec:
           - "-u"
           - "zephyr-cpu"
           - "--tls=false"
-          - "--threads=8"
+          - "--threads=16"
           - "--donate-level=1"
           - "--http-enabled"
           - "--http-host=0.0.0.0"
@@ -63,11 +75,11 @@ spec:
           protocol: TCP
         resources:
           requests:
-            memory: "1Gi"
-            cpu: "4"
-          limits:
-            memory: "3Gi"
+            memory: "2Gi"
             cpu: "8"
+          limits:
+            memory: "4Gi"
+            cpu: "16"
         securityContext:
           privileged: true
         volumeMounts:
