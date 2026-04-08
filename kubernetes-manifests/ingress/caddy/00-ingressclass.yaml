@@ -9,4 +9,4 @@ metadata:
     app.kubernetes.io/name: caddy-ingress-controller
     app.kubernetes.io/component: controller
 spec:
-  controller: caddy.k8s.io/ingress-controller
+  controller: caddy.ingress.kubernetes.io/controller
