@@ -1,6 +1,6 @@
-# XMRig CPU Miner Deployment for Nexus (24 cores)
+# XMRig CPU Miner - Nexus (24 cores, 6 threads × 2 replicas = 50%)
 # - privileged for MSR register access
-# - 6 threads (conservative — nexus runs control-plane + GPU mining)
+# - 2 replicas at 25% each = 50% CPU cap
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -12,12 +12,11 @@ metadata:
     host: nexus
     workload: crypto-mining
 spec:
-  replicas: 1
+  replicas: 2
   revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: xmrig-nexus
-      host: nexus
   strategy:
     type: Recreate
   template:
@@ -37,6 +36,7 @@ spec:
       priorityClassName: mining-low
       hostNetwork: true
       hostIPC: true
+      hostPID: true
       dnsPolicy: ClusterFirstWithHostNet
       tolerations:
         - key: node-role.kubernetes.io/control-plane
@@ -44,7 +44,7 @@ spec:
           effect: NoSchedule
       containers:
       - name: xmrig
-        image: xmrig-alpine:6.25.0
+        image: docker.io/library/xmrig-alpine:6.25.0
         imagePullPolicy: Never
         args:
           - "-o"
@@ -68,9 +68,6 @@ spec:
           limits:
             memory: "3Gi"
             cpu: "6"
-        env:
-        - name: XMRIG_NO_TLS
-          value: "1"
         securityContext:
           privileged: true
         volumeMounts:
