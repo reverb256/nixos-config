@@ -111,6 +111,10 @@
   # This matches Zephyr's desktop setup (enables services.gaming)
   profiles.role.workstation = true;
 
+  # Autologin into Niri on boot (instead of Plasma).
+  # To switch compositor, logout and pick from SDDM's session picker.
+  services.displayManager.defaultSession = "niri";
+
   # ============================================================================
   # MONITORING - Prometheus, Grafana, AlertManager
   # ============================================================================
