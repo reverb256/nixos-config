@@ -113,6 +113,7 @@
 
   # Autologin into Niri on boot (instead of Plasma).
   # To switch compositor, logout and pick from SDDM's session picker.
+  programs.niri.enable = true;
   services.displayManager.defaultSession = "niri";
 
   # ============================================================================
