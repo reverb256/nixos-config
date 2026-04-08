@@ -381,26 +381,44 @@
   systemd = {
     services = {
       amd-gpu-power-mgmt = {
-        description = "AMD GPU Power Limit (140W for RX 5700 XT)";
-        enable = false; # Disabled: power limit adjustment failing with Invalid argument
+        description = "AMD GPU Power Limit (110W for RX 5700 XT)";
         wantedBy = [ "multi-user.target" ];
-        after = [ "basic.target" ];
+        after = [ "multi-user.target" ];
+        path = [ pkgs.coreutils ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
           ExecStart = pkgs.writeShellScript "amd-power-limit" ''
             #!/usr/bin/env bash
             set -euo pipefail
-            POWER_LIMIT_MICROWATTS=140000000  # 140W in microwatts
+            POWER_LIMIT_MICROWATTS=110000000  # 110W in microwatts
             log() {
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
             }
-            # Wait for GPUs to be ready
-            sleep 5
+            # Wait for AMD GPUs to enumerate hwmon entries
+            for i in $(seq 1 30); do
+              cards=$(ls /sys/class/drm/card*/device/hwmon/hwmon*/power1_cap 2>/dev/null || true)
+              if [[ -n "$cards" ]]; then
+                log "AMD GPU hwmon entries found"
+                break
+              fi
+              log "Waiting for AMD GPU hwmon... ($i/30)"
+              sleep 2
+            done
             # Set power limit for all AMD GPUs via sysfs
             for card in /sys/class/drm/card*/device/hwmon/hwmon*/power1_cap; do
               if [[ -w "$card" ]]; then
                 card_name=$(basename $(dirname $(dirname $(dirname "$card"))))
+                # Validate the requested limit is within hwmon range
+                cap_min=$(cat "$(dirname "$card")/power1_cap_min" 2>/dev/null || echo 0)
+                cap_max=$(cat "$(dirname "$card")/power1_cap_max" 2>/dev/null || echo 0)
+                if (( POWER_LIMIT_MICROWATTS < cap_min )); then
+                  log "AMD GPU $card_name: Requested $((POWER_LIMIT_MICROWATTS/1000000))W below min $((cap_min/1000000))W, using min"
+                  POWER_LIMIT_MICROWATTS=$cap_min
+                elif (( POWER_LIMIT_MICROWATTS > cap_max )); then
+                  log "AMD GPU $card_name: Requested $((POWER_LIMIT_MICROWATTS/1000000))W above max $((cap_max/1000000))W, using max"
+                  POWER_LIMIT_MICROWATTS=$cap_max
+                fi
                 echo "$POWER_LIMIT_MICROWATTS" > "$card"
                 actual=$(cat "$card")
                 watts=$((actual / 1000000))
