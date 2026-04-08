@@ -1,10 +1,14 @@
 # NixOS Cluster Kubernetes Migration Roadmap
 
-**Status:** All 7 Phases Complete (100%) | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-03-25
+**Status:** Migrated to K3s — Post-Migration Hardening (see [K3s Migration Audit](#k3s-migration-audit)) | **Created:** 2026-03-08 | **Owner:** j_kro | **Last Updated:** 2026-04-07
 
 ## Executive Summary
 
-**Objective:** Migrate all containerizable services from NixOS systemd to full Kubernetes (`services.kubernetes`) across a 4-node cluster (Zephyr, Nexus, Forge, Sentry).
+**Objective:** Migrate all containerizable services from NixOS systemd to Kubernetes across a 4-node cluster (Zephyr, Nexus, Forge, Sentry).
+
+**Implementation:** Migration was completed using **K3s** (v1.34.5) via NixOS `services.k3s` module, replacing the original plan to use `services.kubernetes`. K3s was chosen for its simpler operational model (single binary, embedded etcd, auto-TLS) while maintaining full Kubernetes API compatibility.
+
+> **Note:** This document originally described a full `services.kubernetes` deployment. The cluster now runs K3s. See the [K3s Migration Audit](#k3s-migration-audit) section below for the current state and remaining work.
 
 **Goals:**
 1. Simplify operations through declarative Kubernetes manifests
@@ -782,6 +786,56 @@
 
 ---
 
-**Last Updated:** 2026-03-25
-**Status:** All 7 Phases Complete (100%)
-**Next Review:** Migration complete - documentation maintenance only
+## K3s Migration Audit (2026-04-07)
+
+### Current Cluster State
+
+| Component | Status |
+|-----------|--------|
+| K3s version | v1.34.5+k3s1 |
+| Nodes | 4/4 Ready (zephyr, nexus, forge, sentry) |
+| etcd HA | 3-node quorum (nexus=bootstrap, zephyr, sentry) |
+| VIP (Keepalived) | 10.1.1.100 ✅ |
+| CNI | Calico v3.31.4 (nftables mode) — see open issues |
+| Ingress | Caddy (ingress-system namespace) |
+| GPU devices | 5 NVIDIA registered (forge=2, nexus=1, zephyr=2) |
+| Storage | local-path provisioner (default) |
+
+### Completed Fixes (2026-04-07)
+
+| # | Fix | Status |
+|---|-----|--------|
+| 1 | Fixed `oom-protection.nix` dead kubelet reference → protect k3s.service | ✅ |
+| 2 | Fixed `serverAddr` inconsistency — all nodes now use VIP (10.1.1.100) | ✅ (needs deploy) |
+| 3 | Added `clusterInit = true` to nexus (bootstrap node) | ✅ (needs deploy) |
+| 4 | Removed dead Flannel UDP 8472 ports from all node profiles | ✅ (needs deploy) |
+| 5 | Added `iptables` to k3s-cluster systemPackages for Calico compat | ✅ (needs deploy) |
+| 6 | Added `--kube-proxy-arg=iptables-backend=nft` for Calico nft compat | ✅ (needs deploy) |
+| 7 | Deleted orphaned `autoresearch` and `caddy-ingress` namespaces | ✅ |
+| 8 | Applied PSS labels to all user namespaces | ✅ |
+| 9 | Pinned `:latest` image tags to SHA256 digests | ✅ |
+| 10 | Created default-deny network policies (mining, ai-inference, search) | ✅ |
+| 11 | Scaled down gpu-miner-nexus (GPU contention with desktop) | ✅ |
+| 12 | Updated ROADMAP.md to reflect K3s migration | ✅ |
+
+### Open Issues (Require Deploy)
+
+| # | Issue | Resolution |
+|---|-------|----------|
+| 1 | **Calico CNI broken on server nodes** — nftables segfault + nat table conflict | Deploy `k3s-cluster.nix` changes (iptables pkg + kube-proxy-arg). If still broken, switch to Flannel (k3s default). |
+| 2 | **Sentry metrics-server unknown** — depends on Calico fix | Will resolve when CNI is healthy. |
+| 3 | **Nexus GPU contention** — desktop + lolMiner consuming GPU, K8s can't allocate | Decide: mine via K8s only (disable host lolMiner) or accept desktop GPU is unavailable. |
+
+### Future Improvements
+
+- Migrate Prometheus/Grafana from systemd to K8s
+- Add NFS-backed storage classes (fast-local-ssd, large-nfs-storage)
+- Implement GitOps (ArgoCD/Flux) for manifest management
+- Add Velero for backup/restore
+- Deploy resource quotas per namespace
+- Add HPA/VPA for auto-scaling
+
+---
+
+**Last Updated:** 2026-04-07
+**Status:** K3s Migration Complete — Post-Migration Hardening
