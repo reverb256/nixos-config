@@ -1,10 +1,13 @@
-# Caddy Ingress Controller — Example Ingress Resources
+# Caddy Ingress Controller — Ingress Resources
 #
-# Internal cluster services accessible via .lan domains.
-# Caddy auto-provisions self-signed TLS certs for internal domains.
-# For Tailscale domains (.ts.net), Caddy obtains certs via Tailscale DERP.
+# Internal cluster services accessible via .lan/.cluster.local domains.
+# Using acmeCA: internal (ConfigMap) for self-signed TLS.
+# disable-ssl-redirect prevents HTTP→HTTPS redirect so zephyr's
+# host Caddy can proxy HTTP-only to the NodePort.
 #
-# Test with: curl -k https://openwebui.lan:30443
+# Test with:
+#   curl http://openwebui.lan/              (via zephyr Caddy → nexus:30080)
+#   curl -k https://openwebui.lan:30443/    (direct to K8s Caddy)
 
 ---
 # Open WebUI — AI chat interface
@@ -16,7 +19,7 @@ metadata:
   labels:
     app.kubernetes.io/name: openwebui
   annotations:
-    caddy.k8s.io/tls-internal: "true"
+    caddy.ingress.kubernetes.io/disable-ssl-redirect: "true"
 spec:
   ingressClassName: caddy
   rules:
@@ -50,7 +53,7 @@ metadata:
   labels:
     app.kubernetes.io/name: searxng
   annotations:
-    caddy.k8s.io/tls-internal: "true"
+    caddy.ingress.kubernetes.io/disable-ssl-redirect: "true"
 spec:
   ingressClassName: caddy
   rules:
@@ -84,7 +87,7 @@ metadata:
   labels:
     app.kubernetes.io/name: llama-server
   annotations:
-    caddy.k8s.io/tls-internal: "true"
+    caddy.ingress.kubernetes.io/disable-ssl-redirect: "true"
 spec:
   ingressClassName: caddy
   rules:
