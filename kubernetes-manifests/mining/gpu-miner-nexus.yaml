@@ -1,6 +1,8 @@
 # GPU Miner Deployment for Nexus (RTX 3060 Ti)
-# - Power limit 120W (efficient for 3060 Ti compute)
-# - Clock limits: core 1605 MHz, mem offset +1500
+# - swamp7/lolminer bundles CUDA 12.1 runtime
+# - Host NVIDIA driver libs via /nix/store + /run/opengl-driver/lib mounts
+# - LD_LIBRARY_PATH includes host driver path for CUDA compatibility
+# - Power limit 120W, core 1605 MHz, mem offset +1200
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -52,43 +54,41 @@ spec:
           - "--tls=1"
           - "--devices=0"
           - "--cclk=1605"
-          - "--moff=1500"
+          - "--moff=1200"
           - "--pl=120"
           - "--apiport=4068"
-        env:
-        - name: LD_LIBRARY_PATH
-          value: "/run/opengl-driver/lib:/nix/store"
         ports:
         - containerPort: 4068
           name: api
           protocol: TCP
         securityContext:
           privileged: true
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/run/opengl-driver/lib:/usr/local/cuda-12.1/compat"
         volumeMounts:
-        - name: nvidia
-          mountPath: /run/opengl-driver/lib
-          readOnly: true
         - name: dev
           mountPath: /dev
+        - name: nvidia-libs
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
         - name: nix-store
           mountPath: /nix/store
           readOnly: true
         resources:
           requests:
             memory: "4Gi"
-            cpu: "2"
-            nvidia.com/gpu: "1"
+            cpu: "100m"
           limits:
             memory: "8Gi"
-            cpu: "4"
-            nvidia.com/gpu: "1"
+            cpu: "1000m"
       volumes:
-      - name: nvidia
-        hostPath:
-          path: /run/opengl-driver/lib
       - name: dev
         hostPath:
           path: /dev
+      - name: nvidia-libs
+        hostPath:
+          path: /run/opengl-driver/lib
       - name: nix-store
         hostPath:
           path: /nix/store
