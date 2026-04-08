@@ -243,24 +243,25 @@ in
       };
       hardware.steam-hardware.enable = true;
 
-      # SYSTEMD - SCX scheduler
-
-      # scx_lavd provides better gaming performance than CFS for mixed workloads
-      # It prioritizes latency-sensitive tasks (games) over background work
-      systemd.services.scx-lavd = {
-        description = "SCX lavd scheduler user-space daemon";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "network.target" ];
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${pkgs.scx.rustscheds}/bin/scx_lavd --autopilot";
-          Restart = "on-failure";
-          RestartSec = "5s";
-          Nice = -20;
-          IOSchedulingClass = "realtime";
-          IOSchedulingPriority = 7;
-        };
-      };
+      # SYSTEMD - SCX scheduler (DISABLED)
+      # scx_lavd causes 30+ second desktop freezes when its BPF scheduler
+      # stalls on kworker threads. The kernel disables sched_ext and falls
+      # back to CFS, but the freeze is already catastrophic for the desktop.
+      # Re-enable after upstream fix: https://github.com/sched-ext/scx/issues
+      # systemd.services.scx-lavd = {
+      #   description = "SCX lavd scheduler user-space daemon";
+      #   wantedBy = [ "multi-user.target" ];
+      #   after = [ "network.target" ];
+      #   serviceConfig = {
+      #     Type = "simple";
+      #     ExecStart = "${pkgs.scx.rustscheds}/bin/scx_lavd --autopilot";
+      #     Restart = "on-failure";
+      #     RestartSec = "5s";
+      #     Nice = -20;
+      #     IOSchedulingClass = "realtime";
+      #     IOSchedulingPriority = 7;
+      #   };
+      # };
 
       # SERVICES - PipeWire, udev rules
 
