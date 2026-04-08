@@ -1,7 +1,8 @@
-# GPU Miner Deployment for Zephyr (RTX 3070)
-# - Disabled: Zephyr is OOM-constrained (31GB RAM running control plane + AI + gaming)
-# - When enabled: swamp7/lolminer with host NVIDIA driver mounts
-# - Power limit 160W, core 1755 MHz, mem offset +1300
+# GPU Miner Deployment for Zephyr (RTX 3090 GPU 1)
+# - Mines on RTX 3090 only (GPU 1) — RTX 3060 Ti (GPU 0) reserved for AI/gaming
+# - swamp7/lolminer with host NVIDIA driver mounts
+# - Power limit 250W, mem offset +1300 (3090 mining sweet spot)
+# - GameMode scales replicas 0↔1 via gaming.nix gamemode hooks
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -13,7 +14,7 @@ metadata:
     host: zephyr
     workload: crypto-mining
 spec:
-  replicas: 0
+  replicas: 1
   revisionHistoryLimit: 1
   selector:
     matchLabels:
@@ -36,6 +37,11 @@ spec:
       tolerations:
         - key: workstation
           operator: Exists
+        - key: interactive
+          operator: Exists
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
       containers:
       - name: lolminer
         image: docker.io/swamp7/lolminer:latest
@@ -50,15 +56,10 @@ spec:
           - "--user=krxXVNVMM7.zephyr-gpu"
           - "--pass=x"
           - "--tls=1"
-          - "--devices=0"
-          - "--cclk=1755"
+          - "--devices=1"
+          - "--pl=250"
           - "--moff=1300"
-          - "--pl=160"
           - "--apiport=4068"
-        ports:
-        - containerPort: 4068
-          name: api
-          protocol: TCP
         securityContext:
           privileged: true
         env:
