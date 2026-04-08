@@ -9,7 +9,6 @@
 		"npm:pi-subdir-context@1.1.2",
 		"npm:pi-secret-guard@1.2.15",
 		"npm:pi-teams@0.9.14",
-		"npm:hive-agent@0.5.5",
 		"git:github.com/PSU3D0/pi-dcp"
 	],
 	"compaction": {
