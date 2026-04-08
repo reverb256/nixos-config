@@ -1,6 +1,6 @@
-# XMRig CPU Miner Deployment for Sentry (16 cores)
+# XMRig CPU Miner - Sentry (16 cores, 4 threads × 2 replicas = 50%)
 # - privileged for MSR register access
-# - 4 threads (conservative — sentry runs monitoring/logging)
+# - 2 replicas at 25% each = 50% CPU cap
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -12,12 +12,11 @@ metadata:
     host: sentry
     workload: crypto-mining
 spec:
-  replicas: 1
+  replicas: 2
   revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: xmrig-sentry
-      host: sentry
   strategy:
     type: Recreate
   template:
@@ -28,7 +27,7 @@ spec:
         workload: crypto-mining
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8081"
+        prometheus.io/port: "8082"
         prometheus.io/path: "/1/summary"
     spec:
       nodeName: sentry
@@ -37,6 +36,7 @@ spec:
       priorityClassName: mining-low
       hostNetwork: true
       hostIPC: true
+      hostPID: true
       dnsPolicy: ClusterFirstWithHostNet
       tolerations:
         - key: node-role.kubernetes.io/control-plane
@@ -44,7 +44,7 @@ spec:
           effect: NoSchedule
       containers:
       - name: xmrig
-        image: xmrig-alpine:6.25.0
+        image: docker.io/library/xmrig-alpine:6.25.0
         imagePullPolicy: Never
         args:
           - "-o"
@@ -56,21 +56,18 @@ spec:
           - "--donate-level=1"
           - "--http-enabled"
           - "--http-host=0.0.0.0"
-          - "--http-port=8081"
+          - "--http-port=8082"
         ports:
-        - containerPort: 8081
+        - containerPort: 8082
           name: api
           protocol: TCP
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "1"
+            memory: "1Gi"
+            cpu: "2"
           limits:
-            memory: "4Gi"
+            memory: "3Gi"
             cpu: "4"
-        env:
-        - name: XMRIG_NO_TLS
-          value: "1"
         securityContext:
           privileged: true
         volumeMounts:
@@ -88,7 +85,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /1/summary
-            port: 8081
+            port: 8082
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 5
@@ -96,7 +93,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /1/summary
-            port: 8081
+            port: 8082
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 5
