@@ -1,6 +1,7 @@
 # Zen Browser Configuration (Home Manager)
 # Declarative browser configuration with extensions, containers, workspaces, and search engines
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   # Mask Vesktop XDG autostart file to prevent SIGILL crash
   # The XDG autostart uses the wrong Electron binary (unwrapped vs wrapped)
   # We use systemd user service instead for proper autostart
@@ -401,8 +402,22 @@
           container = 5;
           position = 200;
         };
-        "LM Studio" = {
+        "Open WebUI" = {
           id = "pin-ai-002";
+          url = "http://openwebui.lan";
+          workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
+          container = 5;
+          position = 200;
+        };
+        "SearXNG" = {
+          id = "pin-ai-002b";
+          url = "http://search.lan";
+          workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
+          container = 5;
+          position = 201;
+        };
+        "LM Studio" = {
+          id = "pin-ai-003";
           url = "https://lmstudio.ai";
           workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
           container = 5;
@@ -546,13 +561,6 @@
           container = 2;
           position = 620;
         };
-        "AI Gateway" = {
-          id = "pin-sys-005";
-          url = "http://zephyr.lan:8080";
-          workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
-          container = 2;
-          position = 625;
-        };
         "Spacebot" = {
           id = "pin-sys-006";
           url = "http://zephyr.lan:19898";
@@ -616,7 +624,7 @@
           container = 2;
           position = 670;
         };
-        "SearXNG" = {
+        "SearXNG (Cluster)" = {
           id = "pin-sys-015";
           url = "http://search.cluster.local/search";
           workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
@@ -718,7 +726,7 @@
         ];
         engines = {
           google = {
-            urls = [{template = "https://www.google.com/search?q={searchTerms}";}];
+            urls = [ { template = "https://www.google.com/search?q={searchTerms}"; } ];
             icon = "https://www.google.com/favicon.ico";
             definedAliases = [
               "@g"
@@ -726,7 +734,7 @@
             ];
           };
           ddg = {
-            urls = [{template = "https://duckduckgo.com/?q={searchTerms}";}];
+            urls = [ { template = "https://duckduckgo.com/?q={searchTerms}"; } ];
             icon = "https://duckduckgo/favicon.ico";
             definedAliases = [
               "@d"
@@ -734,7 +742,7 @@
             ];
           };
           github = {
-            urls = [{template = "https://github.com/search?q={searchTerms}&type=repositories";}];
+            urls = [ { template = "https://github.com/search?q={searchTerms}&type=repositories"; } ];
             icon = "https://github.com/favicon.ico";
             definedAliases = [
               "@gh"
@@ -786,17 +794,17 @@
             ];
           };
           nixos-wiki = {
-            urls = [{template = "https://nixos.wiki/index.php?search={searchTerms}";}];
+            urls = [ { template = "https://nixos.wiki/index.php?search={searchTerms}"; } ];
             icon = "https://nixos.wiki/favicon.ico";
-            definedAliases = ["@nw"];
+            definedAliases = [ "@nw" ];
           };
           home-manager = {
-            urls = [{template = "https://home-manager-options.extranix.com/?query={searchTerms}";}];
+            urls = [ { template = "https://home-manager-options.extranix.com/?query={searchTerms}"; } ];
             icon = "https://nixos.org/favicon.ico";
-            definedAliases = ["@hm"];
+            definedAliases = [ "@hm" ];
           };
           mynixos = {
-            urls = [{template = "https://mynixos.com/search?q={searchTerms}";}];
+            urls = [ { template = "https://mynixos.com/search?q={searchTerms}"; } ];
             icon = "https://mynixos.com/favicon.ico";
             definedAliases = [
               "@mn"
@@ -804,7 +812,7 @@
             ];
           };
           noogle = {
-            urls = [{template = "https://noogle.dev/q?term={searchTerms}";}];
+            urls = [ { template = "https://noogle.dev/q?term={searchTerms}"; } ];
             icon = "https://nixos.org/favicon.ico";
             definedAliases = [
               "@ng"
@@ -812,7 +820,7 @@
             ];
           };
           huggingface = {
-            urls = [{template = "https://huggingface.co/search?q={searchTerms}";}];
+            urls = [ { template = "https://huggingface.co/search?q={searchTerms}"; } ];
             icon = "https://huggingface.co/favicon.ico";
             definedAliases = [
               "@hf"
@@ -820,12 +828,12 @@
             ];
           };
           pypi = {
-            urls = [{template = "https://pypi.org/search/?q={searchTerms}";}];
+            urls = [ { template = "https://pypi.org/search/?q={searchTerms}"; } ];
             icon = "https://pypi.org/favicon.ico";
-            definedAliases = ["@pypi"];
+            definedAliases = [ "@pypi" ];
           };
           stackoverflow = {
-            urls = [{template = "https://stackoverflow.com/search?q={searchTerms}";}];
+            urls = [ { template = "https://stackoverflow.com/search?q={searchTerms}"; } ];
             icon = "https://stackoverflow.com/favicon.ico";
             definedAliases = [
               "@so"
@@ -833,12 +841,12 @@
             ];
           };
           mdn = {
-            urls = [{template = "https://developer.mozilla.org/en-US/search?q={searchTerms}";}];
+            urls = [ { template = "https://developer.mozilla.org/en-US/search?q={searchTerms}"; } ];
             icon = "https://developer.mozilla.org/favicon.ico";
-            definedAliases = ["@mdn"];
+            definedAliases = [ "@mdn" ];
           };
           searxng = {
-            urls = [{template = "http://search.cluster.local/search?q={searchTerms}";}];
+            urls = [ { template = "http://search.lan/search?q={searchTerms}"; } ];
             icon = "https://searxng.org/static/img/logo_small.svg";
             definedAliases = [
               "@sx"
