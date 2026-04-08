@@ -193,7 +193,7 @@ in
         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
           runtime_type = "io.containerd.runc.v2"
           [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
-            BinaryName = "${pkgs.nvidia-container-toolkit}/bin/nvidia-container-runtime"
+            BinaryName = "${pkgs.nvidia-container-toolkit.tools}/bin/nvidia-container-runtime"
       '';
 
       # Extra kubelet configuration
@@ -244,8 +244,12 @@ in
         kubernetes # kubectl and other tools
         cri-tools # crictl for CRI debugging
         iptables # iptables-save/restore for Calico CNI compatibility
+        runc # nvidia-container-runtime needs runc in PATH
       ]
-      ++ lib.optional cfg.nvidia.enable nvidia-container-toolkit;
+      ++ lib.optionals cfg.nvidia.enable [
+        nvidia-container-toolkit
+        nvidia-container-toolkit.tools
+      ];
 
     # KUBERNETES CLI ALIASES
     programs.bash.shellAliases = {
