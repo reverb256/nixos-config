@@ -167,7 +167,7 @@ in
         ++ lib.optionals (isServer && cfg.calico.enable) [
           "flannel"
           "network-policy"
-          "kube-proxy" # Required: K3s kube-proxy uses fib expressions incompatible with Calico's iptables-save
+          "kube-proxy" # Calico handles service proxy via kube-router
         ];
 
       # Extra flags — server role only

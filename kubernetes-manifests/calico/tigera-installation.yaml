@@ -15,9 +15,6 @@ spec:
   # Generic Kubernetes (NixOS with k3s)
   kubernetesProvider: ""
 
-  cni:
-    type: Calico
-
   calicoNetwork:
     # VXLAN encapsulation — works everywhere, no special kernel/modules needed
     # MTU 1440 = 1500 - 50 (VXLAN 8 + UDP 8 + outer IP 20 + ethernet 14)
@@ -35,3 +32,6 @@ spec:
       encapsulation: VXLAN
       natOutgoing: Enabled
       nodeSelector: all()
+
+  cni:
+    type: Calico

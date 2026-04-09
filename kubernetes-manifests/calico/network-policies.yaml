@@ -17,6 +17,27 @@
 apiVersion: crd.projectcalico.org/v1
 kind: GlobalNetworkPolicy
 metadata:
+  name: allow-pod-to-host
+  annotations:
+    description: |
+      Allow all pod egress traffic. This is evaluated BEFORE default-deny-enforced
+      (order -100 < 1000) and ensures pods can reach external services.
+      Individual namespace NetworkPolicies can still restrict traffic within
+      their namespaces via kube-router enforcement.
+spec:
+  selector: ""
+  order: -100
+  types:
+  - Egress
+  egress:
+  - action: Allow
+    destination:
+      nets:
+      - 0.0.0.0/0
+---
+apiVersion: crd.projectcalico.org/v1
+kind: GlobalNetworkPolicy
+metadata:
   name: default-deny-enforced
   annotations:
     description: |

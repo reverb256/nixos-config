@@ -299,6 +299,11 @@ let
             "id": "lmstudio",
             "name": "LM Studio (Local)",
             "base_url": "http://127.0.0.1:1234/v1"
+          },
+          "llama-cpp": {
+            "id": "llama-cpp",
+            "name": "llama.cpp Server (Nix)",
+            "base_url": "http://127.0.0.1:1235/v1"
           }
         },
         "mcp": {
@@ -429,13 +434,20 @@ let
           },
           "lmstudio": {
             "npm": "@ai-sdk/openai-compatible",
-            "name": "LM Studio (Local Fallback)",
+            "name": "LM Studio (Local)",
             "options": {
               "baseURL": "http://127.0.0.1:1234/v1"
             }
+          },
+          "llama-cpp": {
+            "npm": "@ai-sdk/openai-compatible",
+            "name": "llama.cpp Server (Nix-built)",
+            "options": {
+              "baseURL": "http://127.0.0.1:1235/v1"
+            }
           }
         },
-        "enabled_providers": ["zai-coding-plan", "nvidia-nim", "lmstudio"],
+        "enabled_providers": ["zai-coding-plan", "nvidia-nim", "lmstudio", "llama-cpp"],
         "disabled_providers": ["openai", "anthropic", "google", "cohere"],
         "mcp": {
           "zai-mcp-server": {
@@ -702,6 +714,22 @@ let
                 "input": ["text"],
                 "contextWindow": 262144,
                 "maxTokens": 8192,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              }
+            ]
+          },
+          "llama-cpp": {
+            "baseUrl": "http://127.0.0.1:1235/v1",
+            "api": "openai-completions",
+            "apiKey": "unused",
+            "models": [
+              {
+                "id": "gemma-4-e2b-it",
+                "name": "Gemma 4 E2B Instruct (llama.cpp Nix)",
+                "reasoning": false,
+                "input": ["text"],
+                "contextWindow": 8192,
+                "maxTokens": 4096,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               }
             ]
@@ -1151,6 +1179,7 @@ in
       | K8s AI Gateway | ai-inference-gateway:8080/v1 | None (internal) | OpenCode, Crush, Pi, Droid |
       | NVIDIA NIM | integrate.api.nvidia.com/v1 | agenix | OpenCode, Crush, Pi, Droid |
       | LM Studio | 127.0.0.1:1234/v1 | None (local) | OpenCode, Crush, Pi |
+      | llama.cpp | 127.0.0.1:1235/v1 | None (local) | OpenCode, Pi |
       ## Unified MCP Server Set
       | Server | Type | Purpose | All Tools |
       |--------|------|---------|-----------|
