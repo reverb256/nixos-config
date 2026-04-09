@@ -91,7 +91,7 @@ class ClaudeClient:
     def __init__(
         self,
         openai_client,
-        default_model: str = "qwen3.5-35b-a3b",
+        default_model: str = "qwen3.5-4b",
     ):
         """
         Initialize Claude client.

@@ -18,14 +18,21 @@ in {
     # This module provides supporting configuration
 
     # API key file validation (if configured)
+    # Gateway moved to Kubernetes - removed before dependency
     systemd.services.ai-inference-validate-keys = mkIf (cfg.mode == "api-key" && cfg.apiKeyFile != null) {
       description = "Validate AI inference API keys";
       wantedBy = ["multi-user.target"];
-      before = ["ai-inference-gateway.service"];
+      # Gateway runs in Kubernetes - no before dependency needed
 
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.bash}/bin/bash -c 'if [ ! -f ${cfg.apiKeyFile} ]; then echo \"API key file not found: ${cfg.apiKeyFile}\"; exit 1; fi; echo \"API key file found\"'";
+        ExecStart = pkgs.writeShellScript "ai-inference-validate-keys" ''
+          if [ ! -f ${cfg.apiKeyFile} ]; then
+            echo "API key file not found: ${cfg.apiKeyFile}"
+            exit 1
+          fi
+          echo "API key file found"
+        '';
         User = "root";
       };
     };

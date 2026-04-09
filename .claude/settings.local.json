@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ps -p 3814589 -o pid,etime,stat)",
+      "Bash(just switch:*)",
+      "Bash(pkill -f \"xmrig|nicehash\")",
+      "Bash(curl -s http://127.0.0.1:8080/mcp/servers)",
+      "Bash(curl -s http://127.0.0.1:8080/mcp/tools)",
+      "Bash(systemctl restart:*)",
+      "Bash(systemctl status:*)",
+      "Bash(journalctl -u ai-inference-gateway --since \"2 minutes ago\")",
+      "Bash(systemctl show:*)",
+      "Bash(kubectl get:*)",
+      "mcp__plugin_serena_serena__search_for_pattern",
+      "mcp__plugin_serena_serena__activate_project",
+      "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(curl -s \"http://10.0.0.100:8080/search?q=test&format=json\")",
+      "Bash(python3 -c \"import sys, json; data=json.load\\(sys.stdin\\); print\\(f''''✅ SearXNG responding! Results: {len\\(data.get\\(\"\"results\"\", []\\)\\)}''''\\)\")",
+      "Bash(sudo systemctl:*)",
+      "mcp__plugin_context-mode_context-mode__ctx_execute",
+      "Bash(kubectl logs:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(sudo sed:*)",
+      "Bash(lsattr /etc/nixos/.mcp.json)",
+      "Bash(mount)",
+      "Read(//etc/nixos/**)",
+      "mcp__zai-mcp-server__analyze_image"
+    ],
+    "additionalDirectories": [
+      "/data/@projects/infra/xnm1-upgrade-worktree/"
+    ]
+  },
+  "outputStyle": "Explanatory"
+}

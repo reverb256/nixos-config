@@ -1,0 +1,38 @@
+# Volcano PodGroups for AMD Mining Workloads
+# These allow Volcano to manage and preempt AMD GPU pods
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: gpu-miner-forge-amd-0-group
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-id: "0"
+    gpu-type: amd
+spec:
+  minMember: 1
+  minResources:
+    cpu: "2"
+    memory: "4Gi"
+    amd.com/gpu: "1"
+  priorityClassName: mining-low
+  queue: mining-queue
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: gpu-miner-forge-amd-1-group
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-id: "1"
+    gpu-type: amd
+spec:
+  minMember: 1
+  minResources:
+    cpu: "2"
+    memory: "4Gi"
+    amd.com/gpu: "1"
+  priorityClassName: mining-low
+  queue: mining-queue

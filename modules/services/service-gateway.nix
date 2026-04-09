@@ -5,10 +5,10 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.service-gateway;
-  inherit
-    (lib)
+  inherit (lib)
     mkEnableOption
     mkOption
     types
@@ -23,12 +23,15 @@
   hostname = config.networking.hostName or "localhost";
 
   # Build Caddyfile entries for each service
-  buildCaddyConfig = services:
-    concatMapStringsSep "\n" (name: service:
+  buildCaddyConfig =
+    services:
+    concatMapStringsSep "\n" (
+      name: service:
       let
         fqdn = "${name}.${hostname}";
         backendUrl = "http://${service.backend}:${toString service.port}";
-      in ''
+      in
+      ''
         # ${service.description}
         ${fqdn}:${toString cfg.port} {
           ${lib.optionalString service.https "tls internal"}
@@ -42,8 +45,8 @@
 
             # WebSocket support
             ${lib.optionalString (service.websocket or false) ''
-            header_up Connection {>Connection}
-            header_up Upgrade {>Upgrade}
+              header_up Connection {>Connection}
+              header_up Upgrade {>Upgrade}
             ''}
           }
 
@@ -58,17 +61,9 @@
         }
       ''
     ) (lib.attrValues services);
-
   # Build DNS local-data entries for all services (short format: name.hostname)
-  buildDnsEntries = services:
-    concatStringsSep "\n"
-    (mapAttrsToList (name: service:
-      # Short format: ai.zephyr, cloud.zephyr, etc.
-      ''
-        "${name}.${hostname}. IN A ${cfg.listenAddress}"
-      ''
-    ) services);
-in {
+in
+{
   options.services.service-gateway = {
     enable = mkEnableOption "Service Gateway - simple URLs for self-hosted services (e.g., ai.zephyr)";
 
@@ -100,56 +95,58 @@ in {
     # SERVICE REGISTRY
     # ============================================================================
     services = mkOption {
-      type = types.attrsOf (types.submodule {
-        options = {
-          description = mkOption {
-            type = types.str;
-            description = "Human-readable description of the service";
-          };
+      type = types.attrsOf (
+        types.submodule {
+          options = {
+            description = mkOption {
+              type = types.str;
+              description = "Human-readable description of the service";
+            };
 
-          port = mkOption {
-            type = types.port;
-            description = "Backend service port";
-          };
+            port = mkOption {
+              type = types.port;
+              description = "Backend service port";
+            };
 
-          backend = mkOption {
-            type = types.str;
-            default = "127.0.0.1";
-            description = "Backend service address";
-          };
+            backend = mkOption {
+              type = types.str;
+              default = "127.0.0.1";
+              description = "Backend service address";
+            };
 
-          path = mkOption {
-            type = types.str;
-            default = "/";
-            description = "Path to proxy to on the backend";
-          };
+            path = mkOption {
+              type = types.str;
+              default = "/";
+              description = "Path to proxy to on the backend";
+            };
 
-          https = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable TLS (uses internal CA by default)";
-          };
+            https = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Enable TLS (uses internal CA by default)";
+            };
 
-          websocket = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable WebSocket proxy support";
-          };
+            websocket = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Enable WebSocket proxy support";
+            };
 
-          extraConfig = mkOption {
-            type = types.lines;
-            default = "";
-            description = "Extra Caddy configuration";
-          };
+            extraConfig = mkOption {
+              type = types.lines;
+              default = "";
+              description = "Extra Caddy configuration";
+            };
 
-          frameOptions = mkOption {
-            type = types.str;
-            default = "SAMEORIGIN";
-            description = "X-Frame-Options header value";
+            frameOptions = mkOption {
+              type = types.str;
+              default = "SAMEORIGIN";
+              description = "X-Frame-Options header value";
+            };
           };
-        };
-      });
-      default = {};
+        }
+      );
+      default = { };
       example = literalExpression ''
         {
           ai = {
@@ -167,11 +164,6 @@ in {
   };
 
   config = mkIf cfg.enable {
-    # ============================================================================
-    # DNS SEARCH DOMAIN - enables short URLs like "ai" instead of "ai.zephyr"
-    # ============================================================================
-    # networking.searchDomains = [hostname];  # Deprecated option - removed
-
     # ============================================================================
     # CADDY REVERSE PROXY
     # ============================================================================
@@ -205,21 +197,24 @@ in {
       local-zone = [ "${hostname} static" ];
 
       # Add DNS records for each service (short format)
-      local-data = mapAttrsToList (name: service:
-        "${name}.${hostname}. IN A ${cfg.listenAddress}"
+      local-data = mapAttrsToList (
+        name: _service: "${name}.${hostname}. IN A ${cfg.listenAddress}"
       ) cfg.services;
     };
 
     # Add to /etc/hosts for local resolution (fallback if DNS isn't running)
-    networking.extraHosts = concatStringsSep "\n" (mapAttrsToList (name: service:
-      "${cfg.listenAddress} ${name}.${hostname}"
-    ) cfg.services);
+    networking.extraHosts = concatStringsSep "\n" (
+      mapAttrsToList (name: _service: "${cfg.listenAddress} ${name}.${hostname}") cfg.services
+    );
 
     # ============================================================================
     # FIREWALL
     # ============================================================================
     networking.firewall = mkIf cfg.publicAccess {
-      allowedTCPPorts = [cfg.port cfg.httpsPort];
+      allowedTCPPorts = lib.mkOptionDefault [
+        cfg.port
+        cfg.httpsPort
+      ];
     };
 
     # ============================================================================
@@ -232,19 +227,23 @@ in {
 
         echo "=== Services (${hostname}) ==="
         echo ""
-        ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
-          echo "• ${name}.${hostname}"
-          echo "  → ${service.backend}:${toString service.port}"
-          echo "  ${service.description}"
-          echo ""
-        '') cfg.services)}
+        ${concatStringsSep "\n" (
+          mapAttrsToList (name: service: ''
+            echo "• ${name}.${hostname}"
+            echo "  → ${service.backend}:${toString service.port}"
+            echo "  ${service.description}"
+            echo ""
+          '') cfg.services
+        )}
         echo "Total: ${toString (builtins.attrNames cfg.services)}"
         echo ""
         echo "Type just '${hostname}' is your search domain, so you can use:"
         echo "  http://${hostname}     (this machine)"
-        ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
-        echo "  http://${name}.${hostname}    (${service.description})"
-        '') cfg.services)}
+        ${concatStringsSep "\n" (
+          mapAttrsToList (name: service: ''
+            echo "  http://${name}.${hostname}    (${service.description})"
+          '') cfg.services
+        )}
       '')
     ];
 
@@ -258,9 +257,11 @@ in {
 
       | Service | URL | Backend |
       |---------|-----|---------|
-      ${concatStringsSep "\n" (mapAttrsToList (name: service: ''
-      | ${service.description} | http://${name}.${hostname} | ${service.backend}:${toString service.port} |
-      '') cfg.services)}
+      ${concatStringsSep "\n" (
+        mapAttrsToList (name: service: ''
+          | ${service.description} | http://${name}.${hostname} | ${service.backend}:${toString service.port} |
+        '') cfg.services
+      )}
 
       ## Even Shorter URLs
 

@@ -1,0 +1,211 @@
+# Home Manager Fish Shell Configuration
+# Centralized Fish configuration for j_kro across all cluster nodes
+# This replaces local ~/.config/fish/config.fish files
+{pkgs, ...}: {
+  programs.fish = {
+    enable = true;
+
+    # Interactive shell configuration
+    interactiveShellInit = ''
+      # ============================================================================
+      # ENVIRONMENT VARIABLES
+      # ============================================================================
+      set -gx EDITOR nvim
+      set -gx VISUAL nvim
+
+      # User time zone (system runs UTC, user sees local time)
+      set -gx TZ America/Winnipeg
+
+      # Disable fish greeting
+      set -g fish_greeting
+
+      # ============================================================================
+      # PATH EXTENSIONS
+      # ============================================================================
+      # LM Studio CLI
+      fish_add_path ~/.lmstudio/bin
+
+      # Local bin directory
+      fish_add_path ~/.local/bin
+
+      # ============================================================================
+      # INITIALIZATION
+      # ============================================================================
+      # Initialize zoxide (smart cd)
+      zoxide init fish | source
+
+      # Starship prompt is initialized automatically by Home Manager
+      # at the end of the generated config file
+
+      # ============================================================================
+      # NIXOS MANAGEMENT ALIASES
+      # ============================================================================
+      # Note: These use nixos-rebuild-safe.sh which automatically pauses mining
+      # during builds to maximize performance, then resumes mining afterward.
+
+      # System rebuild commands (with automatic mining pause)
+      alias nswitch "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos"
+      alias nswitchu "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh switch --flake /etc/nixos --upgrade"
+      alias ntest "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh test --flake /etc/nixos"
+      alias nbuild "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh build --flake /etc/nixos"
+      alias ndry "sudo /etc/nixos/scripts/nixos-rebuild-safe.sh dry-activate --flake /etc/nixos"
+
+      # Garbage collection
+      alias nsgc "sudo nix-store --gc"
+      alias ngc "sudo nix-collect-garbage -d"
+      alias ngc7 "sudo nix-collect-garbage --delete-older-than 7d"
+      alias ngc14 "sudo nix-collect-garbage --delete-older-than 14d"
+      alias ngo "sudo nix-collect-garbage --delete-old"
+
+      # Optimization
+      alias noptimise "nix-store --optimise"
+      alias nverify "nix-store --verify"
+      alias nrepair "nix-store --repair"
+
+      # NixOS navigation
+      alias nixos "cd /etc/nixos"
+      alias store "cd /nix/store"
+      alias conf "cd ~/.config"
+
+      # Package management
+      alias nq "nix-env -qaP"
+      alias nsearch "nix search nixpkgs"
+
+      # ============================================================================
+      # DEVELOPMENT TOOLS
+      # ============================================================================
+      alias g lgit          # Lazy git
+      alias g ldocker       # Lazy docker (when using Docker)
+      alias g lpodman       # Lazy podman
+
+      # ============================================================================
+      # COMMON ALIASES
+      # ============================================================================
+      alias ll "eza -lh --group-directories-first --icons=auto"
+      alias la "eza -la --group-directories-first --icons=auto"
+      alias l "eza --group-directories-first --icons=auto"
+      alias lt "eza --tree --level=2 --long --icons"
+      alias cat "bat --paging=never"
+      alias top "btop"
+      alias du "dust"
+      alias df "dufs"
+
+      # ============================================================================
+      # GIT SHORTCUTS
+      # ============================================================================
+      alias gs "git status"
+      alias ga "git add"
+      alias gc "git commit"
+      alias gp "git push"
+      alias gl "git log --oneline --graph --decorate --all"
+      alias gd "git diff"
+      alias gds "git diff --staged"
+
+      # ============================================================================
+      # QUICK CONFIG EDITING
+      # ============================================================================
+      alias nconf "nvim /etc/nixos/flake.nix"
+      alias fconf "nvim ~/.config/fish/config.fish"
+
+      # ============================================================================
+      # SYSTEM INFORMATION
+      # ============================================================================
+      alias sysinfo "fastfetch"
+      alias neofetch "fastfetch"
+
+      # ============================================================================
+      # NAVIGATION
+      # ============================================================================
+      alias .. "cd .."
+      alias ... "cd ../.."
+      alias .... "cd ../../.."
+
+      # ============================================================================
+      # WAYLAND SCREENSHOTS
+      # ============================================================================
+      alias swl "grim - | wl-copy"                      # Full screenshot to clipboard
+      alias swlr 'grim -g (slurp) - | wl-copy'          # Region screenshot to clipboard
+
+      # ============================================================================
+      # PROCESS MANAGEMENT
+      # ============================================================================
+      alias killhypr "pkill Hyprland"
+      alias restartwaybar "pkill waybar && waybar &"
+    '';
+
+    # Abbreviations (shellAbbrs)
+    shellAbbrs = {
+      # NixOS abbreviations
+      nrb = "nixos-rebuild";
+      ns = "nix-shell";
+      nfp = "nix flake show";
+
+      # Development abbreviations
+      gs = "git status";
+      gc = "git commit";
+      gp = "git push";
+
+      # System abbreviations
+      s = "sudo";
+      su = "systemctl user";
+      ss = "systemctl --user";
+
+      # Clipboard abbreviations
+      wclip = "wl-copy";
+      wpaste = "wl-paste";
+    };
+
+    # Functions
+    functions = {
+      # Quick grep with ripgrep
+      rg = {
+        description = "Search with ripgrep";
+        body = ''
+          command ripgrep --color=always $argv
+        '';
+      };
+
+      # Quick find with fd
+      fd = {
+        description = "Find files with fd";
+        body = ''
+          command fd --color=always $argv
+        '';
+      };
+
+      # Region screenshot with file save
+      grim-region = {
+        description = "Capture region to file";
+        body = ''
+          grim -g (slurp) $argv
+        '';
+      };
+    };
+  };
+
+  # Install required packages
+  home.packages = with pkgs; [
+    # Core tools
+    eza
+    bat
+    btop
+    dust
+    dufs
+    fastfetch
+    zoxide
+    ripgrep
+    fd
+    fzf
+    lazygit
+
+    # Prompt
+    starship
+
+    # CLI utilities (migrated from nix profile)
+    jq
+    screen
+    sshpass
+    tmux
+    gh
+  ];
+}

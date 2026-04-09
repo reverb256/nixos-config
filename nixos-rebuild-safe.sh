@@ -1,0 +1,1 @@
+export NIX_BUILD_CORES=0

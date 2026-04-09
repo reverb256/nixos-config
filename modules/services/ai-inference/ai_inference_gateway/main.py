@@ -9,23 +9,102 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 import httpx
 
+# Initialize logger early (needed for import error handling)
+logger = logging.getLogger(__name__)
+
 from ai_inference_gateway.config import GatewayConfig
 from ai_inference_gateway.pipeline import MiddlewarePipeline
 from ai_inference_gateway.utils.redis_client import RedisClient
 from ai_inference_gateway.openai_client import create_openai_client, OpenAIBackendError
+from ai_inference_gateway.utils.tool_utils import (
+    extract_tool_calls_openai,
+    create_tool_result_openai,
+)
 from ai_inference_gateway.router import (
     create_default_router,
     RouteDecision,
-    get_qwen_model_config,
     get_optimal_qwen_params,
 )
 from ai_inference_gateway.mcp_broker import create_mcp_broker_from_config
 from ai_inference_gateway.metrics import ModelMetricsTracker
 from ai_inference_gateway.response_format import transform_request
-from ai_inference_gateway.claude_client import create_claude_client, ClaudeClient, ClaudeRequest
 
-# Initialize logger early (needed for import error handling)
-logger = logging.getLogger(__name__)
+# Import TTS handler
+try:
+    from ai_inference_gateway.tts_handler import (
+        get_tts_handler,
+        close_tts_handler,
+        TTSRequest,
+        TTSResponse,
+        QWEN3_TTS_MODELS,
+        QWEN3_TTS_SPEAKERS,
+        QWEN3_TTS_LANGUAGES,
+        get_content_type,
+        get_audio_extension,
+        POLLINATIONS_TTS_URL,
+    )
+
+    TTS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"TTS handler not available: {e}")
+    TTS_AVAILABLE = False
+    TTSRequest = None
+    TTSResponse = None
+    QWEN3_TTS_MODELS = {}
+    QWEN3_TTS_SPEAKERS = {}
+    QWEN3_TTS_LANGUAGES = []
+    get_audio_extension = None
+    POLLINATIONS_TTS_URL = None
+
+# Import Audio handler (STT - Speech-to-Text)
+try:
+    from ai_inference_gateway.audio_handler import (
+        get_audio_handler,
+        close_audio_handler,
+        TranscriptionRequest,
+        TranscriptionResponse,
+        TranslationRequest,
+        QWEN3_AUDIO_MODELS,
+        read_audio_file,
+        SUPPORTED_AUDIO_FORMATS,
+    )
+
+    AUDIO_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Audio handler not available: {e}")
+    AUDIO_AVAILABLE = False
+    TranscriptionRequest = None
+    TranscriptionResponse = None
+    TranslationRequest = None
+    QWEN3_AUDIO_MODELS = {}
+    read_audio_file = None
+    SUPPORTED_AUDIO_FORMATS = []
+
+# Import Vision handler (Qwen3-VL for image understanding)
+try:
+    from ai_inference_gateway.vision_handler import (
+        get_vision_handler,
+        close_vision_handler,
+        VisionRequest,
+        VisionResponse,
+        VisionMessage,
+        ImageContent,
+        QWEN3_VISION_MODELS,
+        read_image_from_url,
+        encode_image_to_base64,
+    )
+
+    VISION_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Vision handler not available: {e}")
+    VISION_AVAILABLE = False
+    VisionRequest = None
+    VisionResponse = None
+    VisionMessage = None
+    ImageContent = None
+    QWEN3_VISION_MODELS = {}
+    read_image_from_url = None
+    encode_image_to_base64 = None
 
 # Import semantic cache
 try:
@@ -40,6 +119,72 @@ except ImportError as e:
     SEMANTIC_CACHE_AVAILABLE = False
     SemanticCache = None
     CacheConfig = None
+
+# Import SearXNG integration
+try:
+    from ai_inference_gateway.searxng_integration import (
+        SearxngIntegration,
+        get_searxng,
+    )
+
+    SEARXNG_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"SearXNG integration not available: {e}")
+    SEARXNG_AVAILABLE = False
+    SearxngIntegration = None
+
+# Import agent search enhancements
+try:
+    from ai_inference_gateway.agent_search import (
+        AgentSearchEngine,
+        SearchIntent,
+        get_agent_search_engine,
+    )
+
+    AGENT_SEARCH_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Agent search enhancements not available: {e}")
+    AGENT_SEARCH_AVAILABLE = False
+    AgentSearchEngine = None
+    SearchIntent = None
+
+# Import Self-Improvement System (meta-learning from all interactions)
+try:
+    from ai_inference_gateway.self_improvement_api import create_self_improvement_router
+    from ai_inference_gateway.self_improvement import get_self_improvement_engine
+    from ai_inference_gateway.hermes_integration import get_hermes_bridge
+
+    SELF_IMPROVEMENT_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Self-improvement system not available: {e}")
+    SELF_IMPROVEMENT_AVAILABLE = False
+    create_self_improvement_router = None
+
+# Import HTTP-MCP bridge
+try:
+    from ai_inference_gateway.mcp_http_bridge import (
+        HTTPMCPBridge,
+        get_http_mcp_bridge,
+    )
+
+    HTTP_MCP_BRIDGE_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"HTTP-MCP bridge not available: {e}")
+    HTTP_MCP_BRIDGE_AVAILABLE = False
+    HTTPMCPBridge = None
+
+# Import hybrid search (RAG + SearXNG)
+try:
+    from ai_inference_gateway.hybrid_search import (
+        HybridSearchEngine,
+        get_hybrid_search,
+    )
+
+    HYBRID_SEARCH_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Hybrid search not available: {e}")
+    HYBRID_SEARCH_AVAILABLE = False
+    HybridSearchEngine = None
 
 # Import RAG ingestion
 try:
@@ -91,6 +236,9 @@ except ImportError as e:
     ModerationCategory = None
 
 
+# GPU scheduler integration (for signaling workload state)
+from ai_inference_gateway import gpu_scheduler
+
 # RAG imports
 try:
     from ai_inference_gateway.rag import RAGConfig
@@ -104,6 +252,26 @@ except ImportError as e:
     RAG_AVAILABLE = False
     RAGConfig = None
     get_qdrant_manager = None
+
+# Import files module (Garage S3 storage)
+try:
+    from ai_inference_gateway.files import (
+        GarageS3Client,
+        get_garage_client,
+        FileMetadata,
+        FileStorageError,
+        FileNotFoundError,
+        FileUploadError,
+        get_mime_type,
+        generate_file_id,
+    )
+
+    FILES_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Files module not available: {e}")
+    FILES_AVAILABLE = False
+    GarageS3Client = None
+    get_garage_client = None
 
 # Import middleware (placed here after conditional imports)
 from ai_inference_gateway.middleware.observability import ObservabilityMiddleware  # noqa: E402
@@ -142,7 +310,7 @@ async def check_backend_health(
         url: Backend URL
         timeout: Request timeout in seconds
         api_key: Optional API key for authentication
-        backend_type: Type of backend (lm-studio, zai, etc.)
+        backend_type: Type of backend (llama-cpp, zai, pollinations, etc.)
 
     Returns:
         True if backend is healthy, False otherwise
@@ -195,6 +363,8 @@ class GatewayState:
         self.mcp_broker = None
         # RAG ingestion service (initialized if enabled)
         self.rag_ingestion = None
+        # SearXNG integration (initialized if enabled)
+        self.searxng = None
 
 
 def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
@@ -223,16 +393,12 @@ def build_backend_headers(config: GatewayConfig, request_headers: dict) -> dict:
 
     # Only add backend authentication if client didn't provide one
     if "authorization" not in {k.lower() for k in headers.keys()}:
-        if config.backend_type == "lm-studio":
-            api_key = config.get_lm_studio_api_key()
-            # DEBUG: Log what we got
-            logger.info(
-                f"[DEBUG] LM Studio API key: repr={repr(api_key)}, len={len(api_key) if api_key else 0}, auth_mode={os.getenv('AUTH_MODE', 'not-set')}"
-            )
+        if config.backend_type == "zai":
+            api_key = config.get_zai_api_key()
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
-        elif config.backend_type == "zai":
-            api_key = config.get_zai_api_key()
+        elif config.backend_type == "pollinations":
+            api_key = config.get_pollinations_api_key()
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
 
@@ -281,14 +447,16 @@ async def lifespan(app: FastAPI):
                     state.config.sentry.traces_sample_rate,
                 )
             except ImportError:
-                logger.warning("sentry-sdk not available, skipping Sentry initialization")
+                logger.warning(
+                    "sentry-sdk not available, skipping Sentry initialization"
+                )
             except Exception as e:
                 logger.warning(f"Sentry initialization failed: {e}")
         else:
             logger.info("Sentry enabled but no DSN configured")
 
     # Initialize Redis client
-    redis_url = "redis://localhost:6379"
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
     state.redis_client = RedisClient(redis_url=redis_url)
     redis_connected = await state.redis_client.connect()
 
@@ -299,17 +467,17 @@ async def lifespan(app: FastAPI):
 
     # Build middleware pipeline
     state.pipeline = build_middleware_pipeline(state.config, state.redis_client)
-
     logger.info(
         "Middleware pipeline initialized with %d middleware", state.pipeline.count
     )
 
-    # Initialize router with LM Studio API key for health checks
-    lm_studio_key = None
-    if state.config.backend_type == "lm-studio":
-        lm_studio_key = state.config.get_lm_studio_api_key()
-    state.router = create_default_router(lm_studio_api_key=lm_studio_key)
-    logger.info("Router initialized with %d models", len(state.router.models))
+    # Initialize router (no API key needed for llama-cpp)
+    try:
+        state.router = create_default_router()
+        logger.info("Router initialized with %d models", len(state.router.models))
+    except Exception as e:
+        logger.warning(f"Router initialization failed: {e}")
+        state.router = None
 
     # Initialize MCP broker if enabled
     state.mcp_broker = None
@@ -317,16 +485,16 @@ async def lifespan(app: FastAPI):
         state.mcp_broker = await create_mcp_broker_from_config(state.config)
         if state.mcp_broker:
             logger.info("MCP broker initialized")
+        else:
+            logger.warning("MCP broker creation returned None")
     except Exception as e:
-        logger.warning(f"MCP broker initialization failed: {e}")
+        logger.error(f"MCP broker initialization failed: {e}", exc_info=True)
 
     # Initialize RAG if enabled
     state.rag_search = None
     state.rag_config = None
 
     # Check if RAG is enabled via environment variable
-    import os
-
     rag_enabled = os.getenv("RAG_ENABLED", "false").lower() == "true"
 
     if RAG_AVAILABLE and rag_enabled:
@@ -341,6 +509,9 @@ async def lifespan(app: FastAPI):
                 SearchConfig,
                 RerankerConfig,
             )
+            from ai_inference_gateway.rag.qdrant_client import get_qdrant_manager
+            from ai_inference_gateway.rag.embeddings import create_embedding_service
+            from ai_inference_gateway.rag.search import create_search_service
 
             # Get environment variables
             qdrant_url = os.getenv("QDRANT_URL", "http://127.0.0.1:6333")
@@ -356,7 +527,8 @@ async def lifespan(app: FastAPI):
                 enable=True,
                 qdrant_url=qdrant_url,
                 embedding=EmbeddingConfig(
-                    model=embedding_model, device="cuda"  # Use CUDA by default
+                    model=embedding_model,
+                    device="cuda",  # Use CUDA by default
                 ),
                 chunking=ChunkingConfig(
                     chunk_size=chunk_size, chunk_overlap=chunk_overlap
@@ -475,6 +647,76 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("Semantic cache not available (install redis, qdrant-client)")
 
+    # Initialize SearXNG integration if enabled
+    if SEARXNG_AVAILABLE:
+        try:
+            searxng_enabled = os.getenv("SEARXNG_ENABLED", "true").lower() == "true"
+            cache_ttl = int(os.getenv("SEARXNG_CACHE_TTL", "300"))
+
+            if searxng_enabled:
+                logger.info("Initializing SearXNG integration...")
+                state.searxng = get_searxng(cache_ttl=cache_ttl)
+                logger.info(
+                    "SearXNG integration initialized (auto-improving features enabled)"
+                )
+            else:
+                logger.info(
+                    "SearXNG integration disabled (set SEARXNG_ENABLED=true to enable)"
+                )
+        except Exception as e:
+            logger.warning(f"SearXNG initialization failed: {e}")
+            state.searxng = None
+
+    # Initialize GPU scheduler communication
+    try:
+        gpu_scheduler.init_scheduler_comms()
+        logger.info("GPU scheduler communication initialized")
+    except Exception as e:
+        logger.warning(f"GPU scheduler initialization failed: {e}")
+
+    # Startup health validation — check backend reachability
+    backend_healthy = await check_backend_health(
+        state.config.backend_url,
+        timeout=10.0,  # Longer timeout for startup
+        backend_type=state.config.backend_type,
+    )
+    state.backend_health_cache = {
+        "healthy": backend_healthy,
+        "last_check": __import__("time").time(),
+        "ttl": 30,
+    }
+    if backend_healthy:
+        logger.info(
+            "Backend health check PASSED: %s (%s)",
+            state.config.backend_url,
+            state.config.backend_type,
+        )
+    else:
+        logger.warning(
+            "Backend health check FAILED: %s (%s) — entering degraded mode",
+            state.config.backend_url,
+            state.config.backend_type,
+        )
+
+    # Initialize cost tracker (always available — SQLite, zero deps)
+    try:
+        from ai_inference_gateway.services.cost_tracker import CostTracker
+        cost_tracker = CostTracker()
+        app.state.cost_tracker = cost_tracker
+        logger.info("Cost tracker initialized (SQLite)")
+    except Exception as e:
+        logger.warning(f"Cost tracker initialization failed: {e}")
+        app.state.cost_tracker = None
+
+    # Initialize virtual key manager
+    try:
+        from ai_inference_gateway.services.virtual_keys import VirtualKeyManager
+        app.state.virtual_key_manager = VirtualKeyManager()
+        logger.info("Virtual key manager initialized")
+    except Exception as e:
+        logger.warning(f"Virtual key manager initialization failed: {e}")
+        app.state.virtual_key_manager = None
+
     # Startup complete
     logger.info("Gateway startup complete")
 
@@ -482,6 +724,16 @@ async def lifespan(app: FastAPI):
 
     # Shutdown cleanup
     logger.info("Shutting down gateway")
+
+    # Flush self-improvement memory buffers
+    if SELF_IMPROVEMENT_AVAILABLE:
+        try:
+            from ai_inference_gateway.self_improvement import shutdown_self_improvement
+
+            await shutdown_self_improvement()
+            logger.info("Self-improvement engine shutdown complete")
+        except Exception as e:
+            logger.warning(f"Failed to shutdown self-improvement engine: {e}")
 
     if state.redis_client:
         await state.redis_client.close()
@@ -491,6 +743,10 @@ async def lifespan(app: FastAPI):
         await state.semantic_cache.close()
         logger.info("Semantic cache connections closed")
 
+    if state.searxng:
+        await state.searxng.close()
+        logger.info("SearXNG integration closed")
+
     if state.rag_ingestion:
         await state.rag_ingestion.close()
         logger.info("RAG ingestion service closed")
@@ -498,6 +754,34 @@ async def lifespan(app: FastAPI):
     if state.openai_client:
         await state.openai_client.close()
         logger.info("OpenAI clients closed")
+
+    # Close TTS handler
+    if TTS_AVAILABLE:
+        try:
+            await close_tts_handler()
+            logger.info("TTS handler closed")
+        except Exception as e:
+            logger.warning(f"Failed to close TTS handler: {e}")
+
+    # Close Audio handler
+    if AUDIO_AVAILABLE:
+        try:
+            from ai_inference_gateway.audio_handler import close_audio_handler
+
+            await close_audio_handler()
+            logger.info("Audio handler closed")
+        except Exception as e:
+            logger.warning(f"Failed to close audio handler: {e}")
+
+    # Close Vision handler
+    if VISION_AVAILABLE:
+        try:
+            from ai_inference_gateway.vision_handler import close_vision_handler
+
+            await close_vision_handler()
+            logger.info("Vision handler closed")
+        except Exception as e:
+            logger.warning(f"Failed to close vision handler: {e}")
 
     logger.info("Gateway shutdown complete")
 
@@ -517,10 +801,57 @@ def build_middleware_pipeline(
     """
     pipeline = MiddlewarePipeline()
 
+    # DEBUG: Log knowledge fabric config
+    import os
+
+    env_enabled = os.environ.get("MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED", "NOT_SET")
     # Add observability middleware (should always be first)
     if config.middleware.observability.enabled:
         pipeline.add(ObservabilityMiddleware(config.middleware.observability))
         logger.info("Added ObservabilityMiddleware")
+
+    # Add RAG injector middleware (injects knowledge context automatically)
+    # Must come AFTER observability but BEFORE security filter
+    # so we can track RAG usage metrics
+    if config.middleware.RAG_ENABLED:
+        from ai_inference_gateway.middleware.rag_injector import RAGInjectorMiddleware
+
+        # Create RAG middleware with config (search_service injected later via context)
+        rag_middleware = RAGInjectorMiddleware(
+            search_service=None,  # Will be injected from state.rag_search during request
+            enabled=config.middleware.RAG_ENABLED,
+            collection="knowledge-base",
+            min_confidence=0.5,
+            max_chunks=config.middleware.RAG_TOP_K,
+        )
+        pipeline.add(rag_middleware)
+        logger.info("Added RAGInjectorMiddleware (automatic knowledge injection)")
+
+    # Add Knowledge Fabric middleware (unified multi-source retrieval)
+    if config.middleware.knowledge_fabric.enabled:
+        from ai_inference_gateway.middleware.knowledge_fabric import (
+            create_knowledge_fabric,
+        )
+
+        # Prepare knowledge fabric config
+        fabric_config = {
+            "rag_enabled": config.middleware.knowledge_fabric.rag_enabled,
+            "rag_top_k": config.middleware.knowledge_fabric.rag_top_k,
+            "code_search_paths": config.middleware.knowledge_fabric.code_search_paths,
+            "searxng_url": config.middleware.knowledge_fabric.searxng_url,
+            "mcp_url": config.middleware.knowledge_fabric.mcp_url,
+            "web_max_results": config.middleware.knowledge_fabric.web_max_results,
+            "searxng_max_results": config.middleware.knowledge_fabric.searxng_max_results,
+            "code_max_results": config.middleware.knowledge_fabric.code_max_results,
+        }
+
+        fabric_middleware = create_knowledge_fabric(
+            rrf_k=config.middleware.knowledge_fabric.rrf_k,
+            enabled=config.middleware.knowledge_fabric.enabled,
+            config=fabric_config,
+        )
+        pipeline.add(fabric_middleware)
+        logger.info("Added KnowledgeFabricMiddleware (multi-source unified retrieval)")
 
     # Add security filter
     if config.middleware.security.enabled:
@@ -561,8 +892,8 @@ def build_middleware_pipeline(
 def is_reasoning_model(model_id: str) -> bool:
     """Check if a model is a reasoning model that uses reasoning_content field.
 
-    These models have issues with LM Studio's /v1/messages endpoint,
-    so we need to use /v1/chat/completions and translate the response.
+    These models use OpenAI-compatible format (/v1/chat/completions)
+    and require response translation.
     """
     reasoning_indicators = [
         "claude-4.6-opus-reasoning-distilled",
@@ -595,28 +926,21 @@ def translate_openai_to_anthropic(openai_response: dict, original_model: str) ->
 
     # Add thinking block if reasoning_content exists
     if reasoning_content:
-        anthropic_content.append({
-            "type": "thinking",
-            "thinking": reasoning_content
-        })
+        anthropic_content.append({"type": "thinking", "thinking": reasoning_content})
 
     # Add text block if content exists
     if content_text:
-        anthropic_content.append({
-            "type": "text",
-            "text": content_text
-        })
+        anthropic_content.append({"type": "text", "text": content_text})
 
     # If both are empty but we have output_tokens, something went wrong
     # Put a placeholder text
     if not anthropic_content:
         usage = openai_response.get("usage", {})
         if usage.get("completion_tokens", 0) > 0:
-            logger.warning(f"Model {original_model} generated tokens but no content returned")
-            anthropic_content.append({
-                "type": "text",
-                "text": ""
-            })
+            logger.warning(
+                f"Model {original_model} generated tokens but no content returned"
+            )
+            anthropic_content.append({"type": "text", "text": ""})
 
     return {
         "id": openai_response.get("id", f"msg_{openai_response.get('created', '')}"),
@@ -628,10 +952,16 @@ def translate_openai_to_anthropic(openai_response: dict, original_model: str) ->
         "stop_sequence": None,
         "usage": {
             "input_tokens": openai_response.get("usage", {}).get("prompt_tokens", 0),
-            "output_tokens": openai_response.get("usage", {}).get("completion_tokens", 0),
-            "cache_creation_input_tokens": openai_response.get("usage", {}).get("cache_creation_tokens", 0),
-            "cache_read_input_tokens": openai_response.get("usage", {}).get("cache_read_tokens", 0),
-        }
+            "output_tokens": openai_response.get("usage", {}).get(
+                "completion_tokens", 0
+            ),
+            "cache_creation_input_tokens": openai_response.get("usage", {}).get(
+                "cache_creation_tokens", 0
+            ),
+            "cache_read_input_tokens": openai_response.get("usage", {}).get(
+                "cache_read_tokens", 0
+            ),
+        },
     }
 
 
@@ -645,42 +975,37 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     Returns:
         Configured FastAPI application
     """
-    import sys
-    print("[DEBUG] create_app: Starting...", file=sys.stderr, flush=True)
-
     if config is None:
-        print("[DEBUG] create_app: Loading config from environment...", file=sys.stderr, flush=True)
         config = GatewayConfig()
-        print(f"[DEBUG] create_app: Config loaded, backend_url={config.backend_url}", file=sys.stderr, flush=True)
-
     # Initialize gateway state with OpenAI client wrapper
-    print("[DEBUG] create_app: Creating OpenAI client wrapper...", file=sys.stderr, flush=True)
     openai_client = create_openai_client(config)
-    print("[DEBUG] create_app: OpenAI client created", file=sys.stderr, flush=True)
-
-    print("[DEBUG] create_app: Creating GatewayState...", file=sys.stderr, flush=True)
     gateway_state = GatewayState(
         config=config,
         openai_client=openai_client,
     )
-    print("[DEBUG] create_app: GatewayState created", file=sys.stderr, flush=True)
-
     # Create FastAPI app
-    print("[DEBUG] create_app: Creating FastAPI app...", file=sys.stderr, flush=True)
     app = FastAPI(
         title="AI Inference Gateway",
         description="Advanced gateway for AI inference backends with middleware",
         version=GATEWAY_VERSION,
         lifespan=lifespan,
     )
-    print("[DEBUG] create_app: FastAPI app created", file=sys.stderr, flush=True)
-
     # Store gateway state in app
-    print("[DEBUG] create_app: Storing gateway state...", file=sys.stderr, flush=True)
     app.state.gateway = gateway_state
-    print("[DEBUG] create_app: Gateway state stored", file=sys.stderr, flush=True)
 
-    print("[DEBUG] create_app: Adding health endpoint...", file=sys.stderr, flush=True)
+    # Register modular route handlers
+    try:
+        from ai_inference_gateway.routes.admin import router as admin_router
+        app.include_router(admin_router)
+    except ImportError as e:
+        logger.warning(f"Admin routes not available: {e}")
+
+    try:
+        from ai_inference_gateway.routes.virtual_keys import router as vk_router
+        app.include_router(vk_router)
+    except ImportError as e:
+        logger.warning(f"Virtual keys routes not available: {e}")
+
     # Add health endpoint
     @app.get("/health")
     async def health_check():
@@ -704,11 +1029,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         if cache_age > state.backend_health_cache["ttl"]:
             # Cache expired, check actual backend health
-            api_key = (
-                state.config.get_lm_studio_api_key()
-                if state.config.backend_type == "lm-studio"
-                else None
-            )
+            api_key = None  # llama-cpp doesn't require authentication
             is_healthy = await check_backend_health(
                 state.config.backend_url,
                 api_key=api_key,
@@ -747,7 +1068,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 # Get circuit breaker from middleware pipeline
                 for middleware in state.pipeline.middleware:
                     if hasattr(middleware, "_state"):
-
                         state_name = (
                             middleware._state.name
                             if hasattr(middleware._state, "name")
@@ -798,7 +1118,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         return health_response
 
-    print("[DEBUG] create_app: Health endpoint added", file=sys.stderr, flush=True)
     # Add models endpoint
     @app.get("/v1/models")
     async def list_models(request: Request):
@@ -821,7 +1140,127 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 )
 
             # Convert to dict for JSON response
-            return JSONResponse(content=models.model_dump())
+            models_dict = models.model_dump()
+
+            # Add TTS models if TTS is available
+            if TTS_AVAILABLE and QWEN3_TTS_MODELS:
+                tts_models = []
+                for model_key, config in QWEN3_TTS_MODELS.items():
+                    backend = config.get("backend", "local")
+                    if backend == "pollinations":
+                        model_id = model_key  # Use clean model names for Pollinations
+                        owned_by = "pollinations"
+                    else:
+                        model_id = f"qwen3-tts-{model_key}"
+                        owned_by = "qwen"
+
+                    tts_models.append(
+                        {
+                            "id": model_id,
+                            "object": "model",
+                            "created": int(datetime.now().timestamp()),
+                            "owned_by": owned_by,
+                            "permission": [
+                                {
+                                    "id": "model",
+                                    "object": "model_permission",
+                                    "created": int(datetime.now().timestamp()),
+                                }
+                            ],
+                            "root": model_id,
+                            "parent": None,
+                            # TTS-specific metadata
+                            "capabilities": {
+                                "type": "tts",
+                                "audio_formats": ["mp3", "wav", "opus", "aac", "flac"],
+                                "sample_rate": config["sample_rate"],
+                                "languages": config.get("language", "en"),
+                                "quality": config["quality"],
+                                "description": config["description"],
+                                "backend": backend,
+                            },
+                        }
+                    )
+
+                # Add TTS models to the response
+                if "data" in models_dict:
+                    models_dict["data"].extend(tts_models)
+
+            # Add Qwen3-Audio (STT) models if available
+            if AUDIO_AVAILABLE and QWEN3_AUDIO_MODELS:
+                stt_models = []
+                for model_key, config in QWEN3_AUDIO_MODELS.items():
+                    stt_models.append(
+                        {
+                            "id": model_key,
+                            "object": "model",
+                            "created": int(datetime.now().timestamp()),
+                            "owned_by": "qwen",
+                            "permission": [
+                                {
+                                    "id": "model",
+                                    "object": "model_permission",
+                                    "created": int(datetime.now().timestamp()),
+                                }
+                            ],
+                            "root": model_key,
+                            "parent": None,
+                            # STT-specific metadata
+                            "capabilities": {
+                                "type": "stt",
+                                "sample_rate": config["sample_rate"],
+                                "max_duration": config["max_duration"],
+                                "languages": config.get("languages", ["en"]),
+                                "supports_translation": config.get(
+                                    "supports_translation", False
+                                ),
+                                "supports_timestamps": config.get(
+                                    "supports_timestamps", False
+                                ),
+                                "description": config["description"],
+                            },
+                        }
+                    )
+
+                # Add STT models to the response
+                if "data" in models_dict:
+                    models_dict["data"].extend(stt_models)
+
+            # Add Qwen3-Vision models if available
+            if VISION_AVAILABLE and QWEN3_VISION_MODELS:
+                vision_models = []
+                for model_key, config in QWEN3_VISION_MODELS.items():
+                    vision_models.append(
+                        {
+                            "id": model_key,
+                            "object": "model",
+                            "created": int(datetime.now().timestamp()),
+                            "owned_by": "qwen",
+                            "permission": [
+                                {
+                                    "id": "model",
+                                    "object": "model_permission",
+                                    "created": int(datetime.now().timestamp()),
+                                }
+                            ],
+                            "root": model_key,
+                            "parent": None,
+                            # Vision-specific metadata
+                            "capabilities": {
+                                "type": "vision",
+                                "max_tokens": config["max_tokens"],
+                                "max_images": config.get("max_images", 1),
+                                "supports_video": config.get("supports_video", False),
+                                "description": config["description"],
+                            },
+                        }
+                    )
+
+                # Add vision models to the response
+                if "data" in models_dict:
+                    models_dict["data"].extend(vision_models)
+
+            return JSONResponse(content=models_dict)
 
         except OpenAIBackendError as e:
             logger.error(f"Error fetching models: {e}")
@@ -834,9 +1273,66 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 status_code=500, detail=f"Error fetching models: {str(e)}"
             )
 
-    print("[DEBUG] create_app: Models endpoint added", file=sys.stderr, flush=True)
+    # Add system prompts endpoint
+    @app.get("/system-prompts")
+    async def get_system_prompts(request: Request):
+        """
+        Get current system prompts configuration.
+
+        Returns the configured system prompts for different request types.
+        """
+        state: GatewayState = app.state.gateway
+        cfg = state.config.system_prompts
+
+        return JSONResponse(
+            content={
+                "enabled": cfg.enabled,
+                "default": cfg.default,
+                "coding": cfg.coding,
+                "reasoning": cfg.reasoning,
+                "analysis": cfg.analysis,
+                "agentic": cfg.agentic,
+                "fast": cfg.fast,
+                "custom": cfg.custom,
+            }
+        )
+
+    @app.post("/system-prompts")
+    async def update_system_prompts(request: Request):
+        """
+        Update system prompts configuration.
+
+        Accepts JSON with system prompts for different categories.
+        """
+        state: GatewayState = app.state.gateway
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON")
+
+        # Update configuration
+        cfg = state.config.system_prompts
+        if "enabled" in body:
+            cfg.enabled = body["enabled"]
+        if "default" in body:
+            cfg.default = body["default"]
+        if "coding" in body:
+            cfg.coding = body["coding"]
+        if "reasoning" in body:
+            cfg.reasoning = body["reasoning"]
+        if "analysis" in body:
+            cfg.analysis = body["analysis"]
+        if "agentic" in body:
+            cfg.agentic = body["agentic"]
+        if "fast" in body:
+            cfg.fast = body["fast"]
+        if "custom" in body:
+            cfg.custom = body["custom"]
+
+        logger.info("System prompts configuration updated")
+        return JSONResponse(content={"status": "updated"})
+
     # Add chat completions endpoint
-    print("[DEBUG] create_app: Adding chat completions endpoint...", file=sys.stderr, flush=True)
     @app.post("/v1/chat/completions")
     async def chat_completions(request: Request):
         """
@@ -849,13 +1345,16 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         _request_start = time.time()  # noqa: F841
 
+        # Signal GPU scheduler that AI workload is starting
+        gpu_scheduler.notify_ai_starting()
+
         state: GatewayState = app.state.gateway
 
         # Read request body
         body = await request.json()
 
-        # Transform response_format to LM Studio instructions
-        # (OpenAI JSON mode -> LM Studio system prompts)
+        # Transform response_format to backend instructions
+        # (OpenAI JSON mode -> system prompts)
         if "response_format" in body:
             body = await transform_request(body)
             logger.debug(
@@ -868,16 +1367,45 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Get messages for routing
         messages = body.get("messages", [])
 
+        # Extract headers and query params for category-based routing (oh-my-opencode style)
+        headers = dict(request.headers)
+        query_params = dict(request.query_params)
+
         # Use router to select best model
         requested_model = body.get("model", None)
         route_decision: RouteDecision = await state.router.route(
             messages=messages,
             requested_model=requested_model,
             urgency="normal",  # Could be made configurable
+            headers=headers,
+            query_params=query_params,
         )
 
         # Update model in body based on routing decision
         body["model"] = route_decision.model
+
+        # Log routing decision to self-improvement system (non-blocking)
+        if SELF_IMPROVEMENT_AVAILABLE:
+            try:
+                import asyncio
+
+                engine = get_self_improvement_engine()
+                # Don't await - log in background
+                asyncio.create_task(
+                    engine.log_routing_decision(
+                        model_requested=requested_model or "auto",
+                        model_routed=route_decision.model,
+                        routing_reason=route_decision.reason,
+                        token_count=route_decision.estimated_tokens,
+                        task_type=route_decision.specialization.value
+                        if route_decision.specialization
+                        else "general",
+                        latency_ms=0,  # Will be updated after request completes
+                        backend_used=route_decision.backend,
+                    )
+                )
+            except Exception as log_error:
+                logger.warning(f"Failed to log routing decision: {log_error}")
 
         # Detect if this is a vision request
         is_vision_request = False
@@ -911,16 +1439,24 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 if "thinking" in body:
                     thinking = body.get("thinking", {})
                     if isinstance(thinking, dict):
-                        thinking_enabled = thinking.get("type", "disabled") != "disabled"
+                        thinking_enabled = (
+                            thinking.get("type", "disabled") != "disabled"
+                        )
                     elif isinstance(thinking, bool):
                         thinking_enabled = thinking
 
                 # Detect task type from messages for better param selection
                 task_type = "general"
                 messages_text = " ".join([m.get("content", "") for m in messages])
-                if any(keyword in messages_text.lower() for keyword in ["code", "function", "debug", "fix"]):
+                if any(
+                    keyword in messages_text.lower()
+                    for keyword in ["code", "function", "debug", "fix"]
+                ):
                     task_type = "coding"
-                elif any(keyword in messages_text.lower() for keyword in ["tool", "search", "call", "execute"]):
+                elif any(
+                    keyword in messages_text.lower()
+                    for keyword in ["tool", "search", "call", "execute"]
+                ):
                     task_type = "agentic"
                 elif len(messages_text) > 10000:  # Long conversation, prioritize speed
                     task_type = "fast"
@@ -981,12 +1517,19 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         # Create context for middleware
         context = {
+            "request_id": request_id,
+            "start_time": _request_start,  # Track request start for observability
             "request_body": body,
             "request_headers": dict(request.headers),
             "model": route_decision.model,  # Use routed model for concurrency limiter
             "route_decision": route_decision,  # Store routing decision
             "metrics_tracker": metrics_tracker,  # Metrics tracker
         }
+
+        # Inject RAG search service if available (for RAGInjectorMiddleware)
+        if state.rag_search:
+            context["rag_search_service"] = state.rag_search
+            logger.debug("RAG search service available for automatic injection")
 
         # Process request through middleware pipeline
         should_continue, error = await state.pipeline.process_request(request, context)
@@ -997,20 +1540,42 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 raise error
             raise HTTPException(status_code=403, detail="Request blocked by middleware")
 
+        # Check if RAG middleware enhanced the request with knowledge context
+        if "rag_enhanced_body" in context:
+            body = context["rag_enhanced_body"]
+            logger.info("Using RAG-enhanced request body with injected context")
+
+        # Check if tools are requested for agentic workflow
+        has_tools = "tools" in body and body.get("tools")
+
         # Forward to backend using OpenAI SDK
         if stream:
             # Handle streaming response
+            # Use tool-enabled streaming if tools are present
+            stream_func = (
+                stream_backend_response_with_tools
+                if has_tools and state.mcp_broker
+                else stream_backend_response
+            )
+
+            # Prepare kwargs for streaming function
+            stream_kwargs = {
+                "openai_client": state.openai_client,
+                "body": body,
+                "pipeline": state.pipeline,
+                "context": context,
+                "config": state.config,
+                "router": state.router,
+                "request_id": request_id,
+                "metrics_tracker": metrics_tracker,
+            }
+
+            # Add mcp_broker for tool-enabled streaming
+            if has_tools and state.mcp_broker:
+                stream_kwargs["mcp_broker"] = state.mcp_broker
+
             return StreamingResponse(
-                stream_backend_response(
-                    state.openai_client,
-                    body,
-                    state.pipeline,
-                    context,
-                    state.config,
-                    state.router,
-                    request_id,
-                    metrics_tracker,
-                ),
+                stream_func(**stream_kwargs),
                 media_type="text/event-stream",
                 headers={
                     "Cache-Control": "no-cache",
@@ -1032,19 +1597,19 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             finally:
                 # Always clean up request tracking
                 state.router.track_request_end(request_id)
+                # Signal GPU scheduler that AI workload is stopping
+                gpu_scheduler.notify_ai_stopping()
 
-    print("[DEBUG] create_app: Adding /v1/messages endpoint...", file=sys.stderr, flush=True)
     @app.post("/v1/messages")
     async def messages(request: Request):
         """
-        Anthropic Messages API endpoint - proxies to LM Studio's native Anthropic API.
+        Anthropic Messages API endpoint - proxies to llama.cpp backend.
 
-        LM Studio provides native Anthropic compatibility at /v1/messages.
         This endpoint adds:
         - Model selection by Claude model ID (haiku, sonnet, opus variants)
         - Thinking effort levels (low/medium/high) that map to budget_tokens
-        - ZAI fallback when LM Studio unavailable
-        - Extended thinking support through LM Studio's native API
+        - ZAI fallback when llama.cpp unavailable
+        - Extended thinking support
 
         Model mapping (5 Claude options → 3 underlying local models):
         - claude-haiku-4 → qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled
@@ -1061,6 +1626,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         import time
         import uuid
 
+        # Signal GPU scheduler that AI workload is starting
+        gpu_scheduler.notify_ai_starting()
+
         state: GatewayState = app.state.gateway
         _request_start = time.time()
 
@@ -1074,11 +1642,55 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         system = body.get("system", None)
         stream = body.get("stream", False)
 
+        # Apply configured system prompts if no explicit system prompt provided
+        if not system and state.config.system_prompts.enabled:
+            # Determine which system prompt to use based on request type
+            # Check for coding patterns
+            is_coding = any(
+                keyword in str(messages).lower()
+                for keyword in [
+                    "def ",
+                    "class ",
+                    "function",
+                    "import ",
+                    "code",
+                    "function(",
+                    "return ",
+                ]
+            )
+            # Check for reasoning patterns
+            is_reasoning = any(
+                keyword in str(messages).lower()
+                for keyword in ["reason", "think", "step", "explain", "why", "how"]
+            )
+            # Check for agentic patterns
+            is_agentic = any(
+                keyword in str(messages).lower()
+                for keyword in ["agent", "workflow", "multi-step", "plan", "execute"]
+            )
+            # Check for fast response request
+            is_fast = any(
+                keyword in str(messages).lower()
+                for keyword in ["quickly", "asap", "fast", "brief", "short"]
+            )
+
+            if is_coding:
+                system = state.config.system_prompts.get_prompt("coding")
+            elif is_agentic:
+                system = state.config.system_prompts.get_prompt("agentic")
+            elif is_reasoning:
+                system = state.config.system_prompts.get_prompt("reasoning")
+            elif is_fast:
+                system = state.config.system_prompts.get_prompt("fast")
+            else:
+                # Use default system prompt
+                system = state.config.system_prompts.get_prompt("default")
+
         # Extended thinking / thinking intensity parameters
         # Effort levels (low/medium/high) map to budget_tokens, NOT model selection
         thinking_budget = None
         thinking_intensity = None
-        thinking_type = None  # LM Studio expects: "enabled" | "disabled" | "adaptive"
+        thinking_type = None  # Backend expects: "enabled" | "disabled" | "adaptive"
 
         if "thinking" in body:
             thinking = body["thinking"]
@@ -1097,16 +1709,18 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Map effort levels to budget_tokens if not explicitly set
         if thinking_intensity and not thinking_budget:
             effort_budget_map = {
-                "low": 5000,      # Quick responses, minimal reasoning
+                "low": 5000,  # Quick responses, minimal reasoning
                 "medium": 15000,  # Balanced reasoning
-                "high": 50000,    # Deep analysis, extensive reasoning
-                "auto": None,     # Let backend decide
+                "high": 50000,  # Deep analysis, extensive reasoning
+                "auto": None,  # Let backend decide
             }
             thinking_budget = effort_budget_map.get(thinking_intensity)
-            logger.info(f"Thinking intensity '{thinking_intensity}' → budget_tokens={thinking_budget}")
+            logger.info(
+                f"Thinking intensity '{thinking_intensity}' → budget_tokens={thinking_budget}"
+            )
 
-        # Build/update thinking dict in body for LM Studio compatibility
-        # LM Studio expects: {"type": "enabled"|"disabled"|"adaptive", "budget_tokens": int}
+        # Build/update thinking dict in body for backend compatibility
+        # Format: {"type": "enabled"|"disabled"|"adaptive", "budget_tokens": int}
         if thinking_budget is not None or thinking_type:
             if "thinking" not in body or not isinstance(body["thinking"], dict):
                 body["thinking"] = {}
@@ -1119,10 +1733,16 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 body["thinking"]["intensity"] = thinking_intensity
 
         # Use router to determine the best model (based on model name only, not intensity)
+        # Extract headers and query params for category-based routing (oh-my-opencode style)
+        headers = dict(request.headers)
+        query_params = dict(request.query_params)
+
         route_decision: RouteDecision = await state.router.route(
             messages=messages,
             requested_model=model,
             urgency="normal",
+            headers=headers,
+            query_params=query_params,
         )
 
         # Apply prefill optimization limits based on model variant
@@ -1174,136 +1794,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Build headers with authentication
         backend_headers = build_backend_headers(state.config, dict(request.headers))
 
-        # Determine if we should use OpenAI format (for reasoning models)
-        # Reasoning models have issues with /v1/messages but work with /v1/chat/completions
-        use_openai_format = is_reasoning_model(route_decision.model)
-
-        # Try LM Studio backend
-        if route_decision.backend == "lm-studio":
-            try:
-                if use_openai_format:
-                    # Use /v1/chat/completions (OpenAI format) for reasoning models
-                    # This properly returns reasoning_content which we'll translate to Anthropic format
-                    lm_studio_url = f"{state.config.backend_url}/v1/chat/completions"
-                    endpoint_type = "OpenAI-compatible (for reasoning model)"
-
-                    # Translate Anthropic request to OpenAI format
-                    openai_request = {
-                        "model": route_decision.model,
-                        "messages": body.get("messages", []),
-                        "max_tokens": body.get("max_tokens", 4096),
-                        "temperature": body.get("temperature", 1.0),
-                        "stream": stream,
-                    }
-
-                    # Add system prompt if present
-                    if system:
-                        openai_request["messages"] = [
-                            {"role": "system", "content": system}
-                        ] + openai_request["messages"]
-
-                    # Add tools if present
-                    if "tools" in body:
-                        openai_request["tools"] = body["tools"]
-                    if "tool_choice" in body:
-                        openai_request["tool_choice"] = body["tool_choice"]
-
-                    logger.info(f"Using OpenAI format for reasoning model {route_decision.model}")
-
-                else:
-                    # Use /v1/messages (Anthropic format) for non-reasoning models
-                    lm_studio_url = f"{state.config.backend_url}/v1/messages"
-                    endpoint_type = "Anthropic-compatible"
-                    openai_request = None
-
-                async with httpx.AsyncClient(timeout=300.0) as client:
-                    response = await client.post(
-                        lm_studio_url,
-                        json=openai_request if openai_request else body,
-                        headers=backend_headers,
-                    )
-                    response.raise_for_status()
-
-                    if use_openai_format:
-                        # Translate OpenAI response to Anthropic format
-                        openai_response = response.json()
-                        response_data = translate_openai_to_anthropic(openai_response, model)
-                    else:
-                        response_data = response.json()
-
-                    # Add gateway metadata
-                    response_data["gateway_metadata"] = {
-                        "processing_time_ms": (time.time() - _request_start) * 1000,
-                        "router": {
-                            "model": route_decision.model,
-                            "backend": "lm-studio",
-                            "reason": f"LM Studio {endpoint_type}",
-                            "specialization": (
-                                route_decision.specialization.value
-                                if route_decision.specialization
-                                else None
-                            ),
-                        },
-                        "thinking": {
-                            "intensity": thinking_intensity,
-                            "budget_tokens": thinking_budget,
-                        },
-                    }
-
-                    # Record success metrics
-                    usage = response_data.get("usage", {})
-                    metrics_tracker.record_success(
-                        input_tokens=usage.get("input_tokens", 0),
-                        output_tokens=usage.get("output_tokens", 0),
-                        total_tokens=usage.get("total_tokens", 0),
-                        latency_ms=response_data.get("gateway_metadata", {}).get("processing_time_ms", 0),
-                    )
-
-                    state.router.track_request_end(request_id)
-
-                    # Notify circuit breaker of success
-                    if state.config.middleware.circuit_breaker.enabled:
-                        for middleware in state.pipeline.middleware:
-                            if isinstance(middleware, CircuitBreaker):
-                                await middleware.on_success()
-
-                    return JSONResponse(content=response_data, status_code=response.status_code)
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"LM Studio API error: {e.response.status_code} - {e.response.text}")
-
-                # Fall through to ZAI if enabled (check via backend_fallback_urls)
-                fallback_urls = state.config.get_backend_fallback_urls()
-                if fallback_urls:
-                    logger.info("Falling back to ZAI for Anthropic request")
-                    # TODO: Implement ZAI fallback for Anthropic format
-                    # For now, return the error
-                    state.router.track_request_end(request_id)
-                    raise HTTPException(
-                        status_code=e.response.status_code,
-                        detail=f"LM Studio error: {e.response.text}"
-                    )
-                else:
-                    state.router.track_request_end(request_id)
-                    raise
-            except Exception as e:
-                logger.error(f"Error calling LM Studio API: {e}")
-                state.router.track_request_end(request_id)
-                raise HTTPException(status_code=503, detail=f"Backend error: {str(e)}")
-
-        # ZAI backend - would need translation
-        # For now, not implemented for Anthropic format
-        state.router.track_request_end(request_id)
-        raise HTTPException(
-            status_code=501,
-            detail="Anthropic format not yet supported for ZAI backend"
-        )
-
     # ============================================================================
     # MCP Broker Endpoints
     # ============================================================================
-
-    print("[DEBUG] create_app: Adding MCP endpoints...", file=sys.stderr, flush=True)
     @app.get("/mcp/servers")
     async def list_mcp_servers():
         """List all configured MCP servers."""
@@ -1492,7 +1985,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         return {"message": "Cache metrics reset"}
 
-    print("[DEBUG] create_app: Adding RAG ingestion endpoint...", file=sys.stderr, flush=True)
     @app.post("/rag/ingest")
     async def ingest_rag_url(request: Request):
         """
@@ -1824,6 +2316,422 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "healthy": is_healthy,
             "exists": server_name in state.mcp_broker.servers,
         }
+
+    # ============================================================================
+    # SEARXNG SEARCH ENDPOINTS
+    # ============================================================================
+    if SEARXNG_AVAILABLE:
+
+        @app.post("/search")
+        async def searxng_search(request: Request):
+            """
+            Perform web search using SearXNG with auto-improving features.
+
+            Body: {
+                "query": str (required),
+                "category": str (optional, default="general"),
+                "language": str (optional, default="all"),
+                "max_results": int (optional, default=10),
+                "time_range": str (optional, values: day, week, month, year),
+                "use_cache": bool (optional, default=true)
+            }
+
+            Categories: general, images, videos, news, science, it, files, map, music
+            """
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501,
+                    detail="SearXNG integration not enabled. Set SEARXNG_ENABLED=true.",
+                )
+
+            body = await request.json()
+            query = body.get("query", "").strip()
+
+            if not query:
+                raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+            # Extract parameters
+            category = body.get("category", "general")
+            language = body.get("language", "all")
+            max_results = min(body.get("max_results", 10), 50)
+            time_range = body.get("time_range")
+            use_cache = body.get("use_cache", True)
+
+            # Perform search
+            result = await state.searxng.search(
+                query=query,
+                category=category,
+                language=language,
+                max_results=max_results,
+                time_range=time_range,
+                use_cache=use_cache,
+                learning_enabled=True,
+            )
+
+            return result
+
+        @app.get("/search/stats")
+        async def searxng_stats():
+            """Get SearXNG learning statistics and search patterns."""
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            stats = await state.searxng.get_learning_stats()
+            return stats
+
+        @app.post("/search/cache/clear")
+        async def searxng_clear_cache():
+            """Clear SearXNG response cache."""
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            state.searxng.clear_cache()
+            return {"success": True, "message": "SearXNG cache cleared"}
+
+        @app.get("/search/ping")
+        async def searxng_ping():
+            """Check if SearXNG service is accessible."""
+            import httpx
+            import os
+
+            searxng_url = os.getenv(
+                "SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080"
+            )
+
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    response = await client.get(
+                        f"{searxng_url}/search", params={"q": "test"}
+                    )
+                    if response.status_code == 200:
+                        return {
+                            "status": "healthy",
+                            "service": "SearXNG",
+                            "url": searxng_url,
+                        }
+                    else:
+                        return {
+                            "status": "unhealthy",
+                            "service": "SearXNG",
+                            "code": response.status_code,
+                        }
+            except Exception as e:
+                return {"status": "error", "service": "SearXNG", "error": str(e)}
+
+    # ============================================================================
+    # AGENT-OPTIMIZED SEARCH ENDPOINTS
+    # ============================================================================
+    if AGENT_SEARCH_AVAILABLE and SEARXNG_AVAILABLE:
+
+        @app.post("/search/agent")
+        async def agent_search(request: Request):
+            """
+            Agent-optimized search with intent detection and result summarization.
+
+            Body: {
+                "query": str (required),
+                "context": str (optional, conversation context),
+                "intent": str (optional, auto-detected if not provided),
+                "max_results": int (optional, default=10),
+                "use_cache": bool (optional, default=true)
+            }
+
+            Intents: research, code, facts, troubleshooting, discovery
+            """
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            body = await request.json()
+            query = body.get("query", "").strip()
+
+            if not query:
+                raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+            # Get agent search engine
+            agent_engine = get_agent_search_engine(state.searxng)
+
+            # Extract parameters
+            context = body.get("context")
+            intent_str = body.get("intent")
+            max_results = min(body.get("max_results", 10), 50)
+            use_cache = body.get("use_cache", True)
+
+            # Parse intent if provided
+            intent = None
+            if intent_str and SearchIntent:
+                intent_map = {
+                    "research": SearchIntent.RESEARCH,
+                    "code": SearchIntent.CODE,
+                    "facts": SearchIntent.FACTS,
+                    "troubleshooting": SearchIntent.TROUBLESHOOTING,
+                    "discovery": SearchIntent.DISCOVERY,
+                }
+                intent = intent_map.get(intent_str.lower())
+
+            # Perform agent-optimized search
+            result = await agent_engine.search_with_agent_workflow(
+                query=query,
+                context=context,
+                intent=intent,
+                max_results=max_results,
+                use_cache=use_cache,
+            )
+
+            return result
+
+        @app.get("/search/agent/stats")
+        async def agent_search_stats():
+            """Get agent search learning statistics."""
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            agent_engine = get_agent_search_engine(state.searxng)
+            stats = agent_engine.get_learning_stats()
+            return stats
+
+        @app.post("/search/agent/feedback")
+        async def agent_search_feedback(request: Request):
+            """Record feedback for progressive improvement."""
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            body = await request.json()
+            query = body.get("query", "").strip()
+            selected_results = body.get("selected_results", [])
+            rating = body.get("rating")
+
+            if not query:
+                raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+            agent_engine = get_agent_search_engine(state.searxng)
+            await agent_engine.feedback(query, selected_results, rating)
+
+            return {"success": True, "message": "Feedback recorded"}
+
+    # ============================================================================
+    # HTTP-MCP BRIDGE ENDPOINTS
+    # ============================================================================
+    if HTTP_MCP_BRIDGE_AVAILABLE:
+
+        @app.get("/mcp/v1/tools")
+        async def list_mcp_tools(request: Request):
+            """List available MCP tools via HTTP."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(status_code=501, detail="MCP broker not available")
+
+            server_name = request.query_params.get("server")
+            refresh = request.query_params.get("refresh", "false").lower() == "true"
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            tools = await bridge.list_tools(
+                server_name=server_name, refresh_cache=refresh
+            )
+
+            return {"tools": tools}
+
+        @app.post("/mcp/v1/tools/{tool_name}/execute")
+        async def execute_mcp_tool(tool_name: str, request: Request):
+            """Execute an MCP tool via HTTP."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(status_code=501, detail="MCP broker not available")
+
+            body = await request.json()
+            arguments = body.get("arguments", {})
+            server_name = body.get("server_name")
+            timeout = body.get("timeout", 30.0)
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            result = await bridge.call_tool(tool_name, arguments, server_name, timeout)
+
+            return result
+
+        @app.get("/mcp/v1/tools/{tool_name}")
+        async def get_mcp_tool_info(tool_name: str, request: Request):
+            """Get detailed information about a specific MCP tool."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(status_code=501, detail="MCP broker not available")
+
+            server_name = request.query_params.get("server")
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            tool_info = await bridge.get_tool_info(tool_name, server_name)
+
+            return tool_info
+
+        @app.get("/mcp/v1/servers")
+        async def list_mcp_servers(request: Request):
+            """List all available MCP servers."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(status_code=501, detail="MCP broker not available")
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            servers = await bridge.list_servers()
+
+            return {"servers": servers}
+
+        @app.get("/mcp/v1/servers/{server_name}/health")
+        async def get_mcp_server_health(server_name: str, request: Request):
+            """Get health status of an MCP server."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(status_code=501, detail="MCP broker not available")
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            health = await bridge.get_server_health(server_name)
+
+            return health
+
+        @app.post("/mcp/v1/cache/clear")
+        async def clear_mcp_cache(request: Request):
+            """Clear MCP tool cache."""
+            state: GatewayState = app.state.gateway
+
+            if not state.mcp_broker:
+                raise HTTPException(status_code=501, detail="MCP broker not available")
+
+            bridge = get_http_mcp_bridge(state.mcp_broker)
+            bridge.clear_cache()
+
+            return {"success": True, "message": "MCP tool cache cleared"}
+
+    # ============================================================================
+    # HYBRID SEARCH ENDPOINTS (RAG + SearXNG)
+    # ============================================================================
+    if HYBRID_SEARCH_AVAILABLE and SEARXNG_AVAILABLE:
+
+        @app.post("/search/hybrid")
+        async def hybrid_search(request: Request):
+            """
+            Hybrid search combining RAG (local knowledge) and SearXNG (web).
+
+            Body: {
+                "query": str (required),
+                "max_results": int (optional, default=10),
+                "use_rag": bool (optional, default=true),
+                "use_web": bool (optional, default=true),
+                "collection": str (optional, default="default"),
+                "rerank": bool (optional, default=true),
+                "time_range": str (optional, values: day, week, month, year)
+            }
+            """
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            body = await request.json()
+            query = body.get("query", "").strip()
+
+            if not query:
+                raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+            # Extract parameters
+            max_results = min(body.get("max_results", 10), 50)
+            use_rag = body.get("use_rag", True)
+            use_web = body.get("use_web", True)
+            collection = body.get("collection", "default")
+            rerank = body.get("rerank", True)
+            time_range = body.get("time_range")
+
+            # Get RAG search service if available
+            rag_search = state.rag_search if RAG_AVAILABLE and use_rag else None
+
+            # Get hybrid search engine
+            hybrid_engine = get_hybrid_search(state.searxng, rag_search)
+
+            # Perform hybrid search
+            result = await hybrid_engine.search(
+                query=query,
+                max_results=max_results,
+                use_rag=use_rag and rag_search is not None,
+                use_web=use_web,
+                collection=collection,
+                rerank=rerank,
+                time_range=time_range,
+            )
+
+            return result
+
+        @app.post("/search/hybrid/progressive")
+        async def progressive_search(request: Request):
+            """
+            Progressive search with automatic query refinement.
+
+            Keeps refining the query until sufficient results are found.
+
+            Body: {
+                "query": str (required),
+                "max_results": int (optional, default=10),
+                "min_results": int (optional, default=5),
+                "max_iterations": int (optional, default=3)
+            }
+            """
+            state: GatewayState = app.state.gateway
+
+            if not state.searxng:
+                raise HTTPException(
+                    status_code=501, detail="SearXNG integration not enabled"
+                )
+
+            body = await request.json()
+            query = body.get("query", "").strip()
+
+            if not query:
+                raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+            # Extract parameters
+            max_results = min(body.get("max_results", 10), 50)
+            min_results = body.get("min_results", 5)
+            max_iterations = body.get("max_iterations", 3)
+
+            # Get RAG search service if available
+            rag_search = state.rag_search if RAG_AVAILABLE else None
+
+            # Get hybrid search engine
+            hybrid_engine = get_hybrid_search(state.searxng, rag_search)
+
+            # Perform progressive search
+            result = await hybrid_engine.search_with_progressive_refinement(
+                query=query,
+                max_results=max_results,
+                min_results=min_results,
+                max_iterations=max_iterations,
+            )
+
+            return result
 
     # ============================================================================
     # RAG ENDPOINTS
@@ -2240,7 +3148,136 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "details": {
                 "backend": "gateway-proxy",
                 "committed": True,
-                "features": ["ollama-api", "openai-api", "rag", "mcp"],
+                "features": [
+                    "ollama-api",
+                    "openai-api",
+                    "rag",
+                    "mcp",
+                    "category-routing",
+                ],
+            },
+        }
+
+    @app.get("/api/categories")
+    async def get_categories():
+        """
+        Get available task categories for category-based routing (oh-my-opencode style).
+
+        Compatible with: GET /api/categories
+
+        Returns information about all available categories, their descriptions,
+        and which models they route to.
+
+        Categories:
+        - quick: Fast, lightweight tasks
+        - ultrabrain: Deep logical reasoning, architecture decisions
+        - deep: Complex algorithms, business logic
+        - unspecified-high: High uncertainty, high quality needed
+        - unspecified-low: Medium complexity with clear requirements
+        - visual-engineering: UI/UX, design (vision models)
+        - artistry: Creative work
+        - writing: Documentation, prose
+
+        Usage:
+            curl -H "X-Task-Category: ultrabrain" http://gateway:8080/v1/chat/completions
+            curl http://gateway:8080/v1/chat/completions?category=deep
+        """
+        state: GatewayState = app.state.gateway
+
+        # Get category info from router
+        category_info = state.router.get_category_info()
+
+        return {
+            "categories": category_info,
+            "usage": {
+                "header": "X-Task-Category: <category>",
+                "query_param": "?category=<category>",
+                "complexity_header": "X-Task-Complexity: <low|medium|high>",
+                "complexity_param": "?complexity=<low|medium|high>",
+            },
+            "examples": {
+                "quick": "Simple config edits, quick queries",
+                "ultrabrain": "Architecture decisions, strategic planning",
+                "deep": "Complex algorithms, business logic",
+                "unspecified-high": "Complex tasks with high uncertainty",
+                "unspecified-low": "Medium complexity with clear requirements",
+                "visual-engineering": "UI/UX, frontend components",
+                "artistry": "Creative writing, marketing copy",
+                "writing": "Documentation, technical prose",
+            },
+        }
+
+    @app.post("/api/route")
+    async def test_route(request: Request):
+        """
+        Test category-based routing without making a full inference request.
+
+        Compatible with: POST /api/route
+
+        Request body:
+        {
+            "category": "ultrabrain",           // Optional: X-Task-Category
+            "complexity": "high",                // Optional: X-Task-Complexity
+            "content": "my request content...",  // Optional: for auto-detection
+            "messages": [...],                  // Optional: messages for routing
+        }
+
+        Returns the routing decision that would be made for the given request.
+        """
+        state: GatewayState = app.state.gateway
+
+        body = await request.json()
+
+        # Extract routing parameters
+        category = body.get("category")
+        complexity = body.get("complexity")
+        content = body.get("content")
+        messages = body.get("messages")
+
+        # Build headers and query params
+        headers = {}
+        query_params = {}
+
+        if category:
+            headers["X-Task-Category"] = category
+            query_params["category"] = category
+        if complexity:
+            headers["X-Task-Complexity"] = complexity
+            query_params["complexity"] = complexity
+
+        # Get messages for routing
+        if messages:
+            route_messages = messages
+        elif content:
+            route_messages = [{"role": "user", "content": content}]
+        else:
+            route_messages = []
+
+        # Get routing decision
+        route_decision = await state.router.route(
+            messages=route_messages,
+            requested_model=None,
+            urgency="normal",
+            headers=headers,
+            query_params=query_params,
+        )
+
+        return {
+            "decision": {
+                "model": route_decision.model,
+                "backend": route_decision.backend,
+                "confidence": route_decision.confidence,
+                "reason": route_decision.reason,
+                "specialization": route_decision.specialization.value
+                if route_decision.specialization
+                else None,
+                "expected_latency_ms": route_decision.expected_latency_ms,
+            },
+            "input": {
+                "category": category,
+                "complexity": complexity,
+                "has_content": bool(content),
+                "has_messages": bool(messages),
             },
         }
 
@@ -2268,7 +3305,588 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         return {"embedding": embedding}
 
-    print("[DEBUG] create_app: Adding metrics endpoint...", file=sys.stderr, flush=True)
+    # TTS (Text-to-Speech) API endpoints
+    if TTS_AVAILABLE:
+
+        @app.post("/v1/audio/speech")
+        async def create_speech(request: Request):
+            """
+            Generate audio from text using TTS.
+
+            Supports:
+            - Pollinations.ai (free, cloud-based) - Use model: "tts-1", "tts-1-hd", or "pollinations-tts"
+            - OpenAI-compatible voices: alloy, echo, fable, onyx, nova, shimmer
+
+            Compatible with: POST /v1/audio/speech
+            OpenAI-compatible TTS endpoint.
+
+            Request body:
+            {
+                "model": "tts-1",
+                "input": "Hello, world!",
+                "voice": "alloy",
+                "response_format": "mp3",
+                "speed": 1.0
+            }
+
+            Returns: Audio file or JSON with base64 encoded audio
+            """
+            state: GatewayState = app.state.gateway
+
+            # Parse request
+            body = await request.json()
+            try:
+                tts_request = TTSRequest(**body)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid TTS request: {e}")
+
+            # TTS uses Pollinations by default
+            backend_url = POLLINATIONS_TTS_URL
+
+            try:
+                tts_handler = get_tts_handler(backend_url)
+
+                # Generate speech
+                (
+                    audio_data,
+                    content_type,
+                    sample_rate,
+                ) = await tts_handler.generate_speech(
+                    text=tts_request.input,
+                    model=tts_request.model,
+                    voice=tts_request.voice,
+                    speed=tts_request.speed,
+                    response_format=tts_request.response_format,
+                )
+
+                # Return audio file
+                ext = (
+                    get_audio_extension(tts_request.response_format)
+                    if get_audio_extension
+                    else ".mp3"
+                )
+                return Response(
+                    content=audio_data,
+                    media_type=content_type,
+                    headers={
+                        "Content-Disposition": f'attachment; filename="speech_{tts_request.model[:20]}{ext}"',
+                        "X-Sample-Rate": str(sample_rate),
+                    },
+                )
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"TTS generation failed: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"Speech generation failed: {str(e)}"
+                )
+
+    # STT (Speech-to-Text) API endpoints
+    if AUDIO_AVAILABLE:
+
+        @app.post("/v1/audio/transcriptions")
+        async def create_transcription(request: Request):
+            """
+            Transcribe audio using Qwen3-Audio models.
+
+            Compatible with: POST /v1/audio/transcriptions
+            OpenAI-compatible audio transcription endpoint.
+
+            Request body (multipart/form-data):
+            - file: Audio file (mp3, mp4, mpeg, mpga, m4a, wav, webm)
+            - model: Model to use (e.g., "qwen2-audio-7b-instruct")
+            - language: Optional language code
+            - prompt: Optional context to guide transcription
+            - response_format: Response format (json, text, verbose_json, srt)
+            - temperature: Sampling temperature (0-1)
+            - timestamp_granularities: Optional ["word"] for word-level timestamps
+
+            Returns:
+                Transcription with text, language, duration, and timestamps
+            """
+            state: GatewayState = app.state.gateway
+
+            # Parse multipart form data
+            form = await request.form()
+            file_field = form.get("file")
+            model = form.get("model", "qwen2-audio-7b-instruct")
+            language = form.get("language")  # Optional
+            prompt = form.get("prompt")  # Optional
+            response_format = form.get("response_format", "json")  # Optional
+            temperature = float(form.get("temperature", "0.0"))  # Optional
+            timestamp_granularities = form.get("timestamp_granularities")  # Optional
+
+            if not file_field:
+                raise HTTPException(status_code=400, detail="Audio file is required")
+
+            # Convert UploadFile to our expected format
+            class SimpleUploadFile:
+                def __init__(self, filename, content, content_type):
+                    self.filename = filename
+                    self._content = content
+                    self.content_type = content_type
+
+                async def read(self):
+                    return self._content
+
+            audio_handler = get_audio_handler("https://api.openai.com")
+
+            try:
+                # Read audio file
+                audio_data, audio_format = await read_audio_file(file_field)
+
+                # Perform transcription
+                result = await audio_handler.transcribe_audio(
+                    audio_data=audio_data,
+                    audio_format=audio_format,
+                    model=model,
+                    language=language,
+                    prompt=prompt,
+                    temperature=temperature,
+                    response_format=response_format,
+                    timestamp_granularities=[timestamp_granularities]
+                    if timestamp_granularities
+                    else None,
+                )
+
+                # Return based on response format
+                if response_format == "text":
+                    return Response(content=result["text"], media_type="text/plain")
+                elif response_format == "srt":
+                    return Response(
+                        content=_generate_srt(result), media_type="text/plain"
+                    )
+                elif response_format == "verbose_json":
+                    return JSONResponse(content=result)
+                else:  # json
+                    return JSONResponse(content={"text": result["text"]})
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Audio transcription failed: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"Transcription failed: {str(e)}"
+                )
+
+        @app.post("/v1/audio/translations")
+        async def create_translation(request: Request):
+            """
+            Translate audio to English text using Qwen3-Audio models.
+
+            Compatible with: POST /v1/audio/translations
+            OpenAI-compatible audio translation endpoint.
+
+            Request body (multipart/form-data):
+            - file: Audio file
+            - model: Model to use
+            - prompt: Optional context
+            - response_format: Response format
+            - temperature: Sampling temperature
+
+            Returns:
+                Translated text in English
+            """
+            state: GatewayState = app.state.gateway
+
+            # Parse multipart form data
+            form = await request.form()
+            file_field = form.get("file")
+            model = form.get("model", "qwen2-audio-7b-instruct")
+            prompt = form.get("prompt")  # Optional
+            response_format = form.get("response_format", "json")  # Optional
+            temperature = float(form.get("temperature", "0.0"))  # Optional
+
+            if not file_field:
+                raise HTTPException(status_code=400, detail="Audio file is required")
+
+            audio_handler = get_audio_handler("https://api.openai.com")
+
+            try:
+                # Read audio file
+                audio_data, audio_format = await read_audio_file(file_field)
+
+                # Perform transcription (Qwen3-Audio handles translation internally)
+                result = await audio_handler.transcribe_audio(
+                    audio_data=audio_data,
+                    audio_format=audio_format,
+                    model=model,
+                    language="en",  # Target language for translation
+                    prompt=prompt,
+                    temperature=temperature,
+                    response_format=response_format,
+                )
+
+                # Translation result
+                if response_format == "text":
+                    return Response(content=result["text"], media_type="text/plain")
+                else:
+                    return JSONResponse(content={"text": result["text"]})
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Audio translation failed: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"Translation failed: {str(e)}"
+                )
+
+        def _generate_srt(transcription: dict) -> str:
+            """Generate SRT subtitle format from transcription."""
+            if "words" not in transcription:
+                # Simple SRT with full text
+                return f"1\n00:00:00,000 --> 00:00:05,000\n{transcription['text']}\n\n"
+
+            srt_lines = []
+            duration = transcription.get("duration", 0)
+            words = transcription["words"]
+
+            # Group words into subtitle chunks (e.g., 10 words per subtitle)
+            chunk_size = 10
+            for i in range(0, len(words), chunk_size):
+                chunk = words[i : i + chunk_size]
+                start_time = chunk[0]["start"]
+                end_time = chunk[-1]["end"]
+                text = " ".join(w["word"] for w in chunk)
+
+                srt_lines.append(f"{i // chunk_size + 1}")
+                srt_lines.append(
+                    f"{_format_srt_time(start_time)} --> {_format_srt_time(end_time)}"
+                )
+                srt_lines.append(text)
+                srt_lines.append("")
+
+            return "\n".join(srt_lines)
+
+        def _format_srt_time(seconds: float) -> str:
+            """Format seconds to SRT time format (HH:MM:SS,mmm)."""
+            hours = int(seconds // 3600)
+            minutes = int((seconds % 3600) // 60)
+            secs = int(seconds % 60)
+            millis = int((seconds % 1) * 1000)
+            return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+    # Vision API endpoints (Qwen3-VL image understanding)
+    if VISION_AVAILABLE:
+
+        @app.post("/v1/vision/chat")
+        async def vision_chat(request: Request):
+            """
+            Analyze images using Qwen3-VL models.
+
+            Compatible with OpenAI Vision API format.
+
+            Request body:
+            {
+                "model": "qwen2-vl-7b-instruct",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "What's in this image?"},
+                            {"type": "image_url", "image_url": {"url": "https://..."}}
+                        ]
+                    }
+                ],
+                "max_tokens": 2048,
+                "temperature": 0.7
+            }
+
+            Returns:
+                Chat completion with image analysis
+            """
+            state: GatewayState = app.state.gateway
+
+            body = await request.json()
+            try:
+                vision_request = VisionRequest(**body)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid vision request: {e}"
+                )
+
+            vision_handler = get_vision_handler(
+                state.config.backend_url or "https://api.openai.com"
+            )
+
+            try:
+                # Process messages to extract images and text
+                user_message = None
+                images = []
+
+                for msg in vision_request.messages:
+                    if msg.role == "user":
+                        user_message = msg
+                        break
+
+                if not user_message:
+                    raise HTTPException(status_code=400, detail="No user message found")
+
+                # Extract images and text from content
+                content = user_message.content
+                if isinstance(content, str):
+                    text_prompt = content
+                else:
+                    text_prompt = ""
+                    for item in content:
+                        if isinstance(item, str):
+                            text_prompt += item
+                        elif hasattr(item, "type"):
+                            if item.type == "text":
+                                text_prompt += getattr(item, "text", "")
+                            elif item.type == "image_url":
+                                image_url_obj = getattr(item, "image_url", None)
+                                if image_url_obj:
+                                    url = getattr(image_url_obj, "url", "")
+                                    if url:
+                                        # Read image from URL
+                                        (
+                                            image_data,
+                                            image_format,
+                                        ) = await read_image_from_url(url)
+                                        images.append((image_data, image_format))
+
+                if not images:
+                    raise HTTPException(
+                        status_code=400, detail="No images found in request"
+                    )
+
+                # Use the first image for now (Qwen3-VL can handle multiple)
+                image_data, image_format = images[0]
+
+                # Analyze image
+                result = await vision_handler.analyze_image(
+                    image_data=image_data,
+                    image_format=image_format,
+                    prompt=text_prompt or "Describe this image in detail.",
+                    model=vision_request.model,
+                    max_tokens=vision_request.max_tokens,
+                    temperature=vision_request.temperature,
+                )
+
+                return JSONResponse(content=result)
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Vision analysis failed: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"Vision analysis failed: {str(e)}"
+                )
+
+    # Files API endpoints (Garage S3 storage)
+    if FILES_AVAILABLE:
+
+        @app.post("/v1/files")
+        async def upload_file(request: Request):
+            """
+            Upload a file to Garage S3 storage.
+
+            Compatible with Anthropic/OpenAI Files API.
+            Accepts multipart/form-data with file and optional purpose field.
+
+            Returns:
+                File metadata including id, filename, bytes, created_at
+            """
+            state: GatewayState = app.state.gateway
+
+            # Parse multipart form data
+            form = await request.form()
+            file_obj = request._form.get("file")
+
+            if not file_obj:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No file provided. Use multipart/form-data with 'file' field.",
+                )
+
+            # Read file content
+            content = await file_obj.read()
+
+            # Get optional purpose field
+            purpose = form.get("purpose")
+
+            # Generate file ID
+            file_id = generate_file_id()
+
+            # Detect MIME type
+            filename = file_obj.filename
+            mime_type = get_mime_type(filename) or "application/octet-stream"
+
+            # Get Garage client from state (create if not exists)
+            if not hasattr(state, "garage_client") or state.garage_client is None:
+                state.garage_client = get_garage_client()
+
+            try:
+                # Upload to Garage S3 with metadata
+                result = await state.garage_client.put_file(
+                    bucket="ai-gateway-files",
+                    key=file_id,
+                    content=content,
+                    content_type=mime_type,
+                    metadata={
+                        "filename": filename,
+                        "purpose": purpose or "",
+                        "created_at": datetime.utcnow().isoformat() + "Z",
+                    },
+                )
+
+                logger.info(
+                    f"File uploaded: {file_id} ({len(content)} bytes, {filename})"
+                )
+
+                return {
+                    "id": result["id"],
+                    "filename": result["filename"],
+                    "bytes": result["bytes"],
+                    "created_at": result["created_at"],
+                    "object": "file",
+                    "purpose": purpose,
+                }
+
+            except FileUploadError as e:
+                logger.error(f"File upload failed: {e.message}")
+                raise HTTPException(status_code=e.status_code or 500, detail=e.message)
+            except Exception as e:
+                logger.error(f"Unexpected error during file upload: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"File upload failed: {str(e)}"
+                )
+
+        @app.get("/v1/files/{file_id}")
+        async def get_file(file_id: str):
+            """
+            Retrieve file metadata and content by ID.
+
+            Compatible with Anthropic/OpenAI Files API.
+            Returns file content with appropriate Content-Type header.
+
+            Args:
+                file_id: The ID of the file to retrieve
+
+            Returns:
+                File content with metadata headers
+            """
+            state: GatewayState = app.state.gateway
+
+            # Get Garage client from state
+            if not hasattr(state, "garage_client") or state.garage_client is None:
+                state.garage_client = get_garage_client()
+
+            try:
+                # Get file content and metadata from Garage S3
+                content, metadata = await state.garage_client.get_file(
+                    bucket="ai-gateway-files", key=file_id
+                )
+
+                # Extract filename and mime type from metadata
+                filename = metadata.get("filename", file_id)
+                mime_type = metadata.get("mime_type", "application/octet-stream")
+
+                logger.info(
+                    f"File retrieved: {file_id} ({len(content)} bytes, {filename})"
+                )
+
+                # Return file with appropriate headers
+                return Response(
+                    content=content,
+                    media_type=mime_type,
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}"',
+                    },
+                )
+
+            except FileNotFoundError:
+                logger.warning(f"File not found: {file_id}")
+                raise HTTPException(
+                    status_code=404, detail=f"File not found: {file_id}"
+                )
+            except FileStorageError as e:
+                logger.error(f"File retrieval failed: {e.message}")
+                raise HTTPException(status_code=e.status_code or 500, detail=e.message)
+            except Exception as e:
+                logger.error(f"Unexpected error during file retrieval: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"File retrieval failed: {str(e)}"
+                )
+
+        @app.delete("/v1/files/{file_id}")
+        async def delete_file(file_id: str):
+            """
+            Delete a file by ID.
+
+            Compatible with Anthropic/OpenAI Files API.
+
+            Args:
+                file_id: The ID of the file to delete
+
+            Returns:
+                Deletion confirmation
+            """
+            state: GatewayState = app.state.gateway
+
+            # Get Garage client from state
+            if not hasattr(state, "garage_client") or state.garage_client is None:
+                state.garage_client = get_garage_client()
+
+            try:
+                # Delete file from Garage S3
+                await state.garage_client.delete_file(
+                    bucket="ai-gateway-files", key=file_id
+                )
+
+                logger.info(f"File deleted: {file_id}")
+
+                return {
+                    "id": file_id,
+                    "object": "file",
+                    "deleted": True,
+                }
+
+            except FileNotFoundError:
+                # File doesn't exist - consider it already deleted
+                logger.info(f"File already deleted (not found): {file_id}")
+                return {
+                    "id": file_id,
+                    "object": "file",
+                    "deleted": True,
+                }
+            except FileStorageError as e:
+                logger.error(f"File deletion failed: {e.message}")
+                raise HTTPException(status_code=e.status_code or 500, detail=e.message)
+            except Exception as e:
+                logger.error(f"Unexpected error during file deletion: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"File deletion failed: {str(e)}"
+                )
+
+    else:
+
+        @app.post("/v1/files")
+        async def upload_file_disabled():
+            """File upload endpoint not available."""
+            raise HTTPException(
+                status_code=501,
+                detail="Files API not available. Ensure files module is installed.",
+            )
+
+        @app.get("/v1/files/{file_id}")
+        async def get_file_disabled():
+            """File retrieval endpoint not available."""
+            raise HTTPException(
+                status_code=501,
+                detail="Files API not available. Ensure files module is installed.",
+            )
+
+        @app.delete("/v1/files/{file_id}")
+        async def delete_file_disabled():
+            """File deletion endpoint not available."""
+            raise HTTPException(
+                status_code=501,
+                detail="Files API not available. Ensure files module is installed.",
+            )
+
     # Add metrics endpoint for Prometheus
     if PROMETHEUS_AVAILABLE:
 
@@ -2287,7 +3905,23 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 detail="Prometheus metrics not available. Install prometheus-client package.",
             )
 
-    print("[DEBUG] create_app: About to return app", file=sys.stderr, flush=True)
+    # Add self-improvement system endpoints
+    if SELF_IMPROVEMENT_AVAILABLE:
+        try:
+            self_improvement_router = create_self_improvement_router(
+                enabled=True,
+                auto_extract_patterns=True,
+                min_confidence_for_update=0.7,
+            )
+            # Include all routes from self-improvement router
+            for route in self_improvement_router.routes:
+                app.routes.append(route)
+            logger.info("Self-improvement endpoints registered")
+        except Exception as e:
+            import traceback
+
+            logger.warning(f"Failed to initialize self-improvement system: {e}")
+            logger.warning(f"Traceback: {traceback.format_exc()}")
     return app
 
 
@@ -2322,7 +3956,9 @@ async def stream_backend_response(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream"]
+            k: v
+            for k, v in body.items()
+            if k not in ["messages", "model", "stream", "backend"]
         }
 
         # Get backend from route decision if available
@@ -2391,8 +4027,8 @@ async def stream_backend_response(
                 if isinstance(middleware, CircuitBreaker):
                     await middleware.on_failure()
 
-        # Yield error as SSE comment
-        yield f"data: {{'error': '{str(e)}'}}\n\n"
+        # Yield error as SSE event (proper JSON with escaped single quotes)
+        yield f"data: {json.dumps({'error': str(e).replace("'", '&#39;')})}\n\n"
     except Exception as e:
         logger.error(f"Unexpected error in streaming request: {e}")
 
@@ -2405,10 +4041,285 @@ async def stream_backend_response(
                 if isinstance(middleware, CircuitBreaker):
                     await middleware.on_failure()
 
-        yield f"data: {{'error': 'Unexpected error: {str(e)}'}}\n\n"
+        yield f"data: {json.dumps({'error': f'Unexpected error: {str(e)}'})}\n\n"
     finally:
         # Always clean up request tracking
         router.track_request_end(request_id)
+        # Signal GPU scheduler that AI workload is stopping
+        gpu_scheduler.notify_ai_stopping()
+
+
+async def stream_backend_response_with_tools(
+    openai_client,
+    body: dict,
+    pipeline: MiddlewarePipeline,
+    context: dict,
+    config: GatewayConfig,
+    router,
+    request_id: str,
+    metrics_tracker: ModelMetricsTracker,
+    mcp_broker,
+):
+    """
+    Stream backend response with tool calling support using OpenAI SDK.
+
+    Implements an agentic loop that:
+    1. Streams the model response
+    2. Detects when the model requests tool calls
+    3. Executes tools via MCP broker
+    4. Feeds tool results back to the model
+    5. Continues streaming until stop_reason == "end_turn"
+
+    Args:
+        openai_client: OpenAI client wrapper
+        body: Request body
+        pipeline: Middleware pipeline
+        context: Request context (must contain GatewayState with mcp_broker)
+        config: Gateway configuration
+        router: Router instance for tracking requests
+        request_id: Request ID for tracking
+        metrics_tracker: Metrics tracker for this request
+        mcp_broker: MCP broker for tool execution
+
+    Yields:
+        SSE formatted response chunks
+    """
+    try:
+        messages = body.get("messages", [])
+        model = body.get("model", "default")
+        tools = body.get("tools", [])
+        extra_params = {
+            k: v
+            for k, v in body.items()
+            if k not in ["messages", "model", "stream", "tools", "backend"]
+        }
+
+        # Get backend from route decision if available
+        route_decision = context.get("route_decision")
+        backend = route_decision.backend if route_decision else None
+
+        # Agentic loop: continue until model finishes
+        max_iterations = 10  # Prevent infinite loops
+        iteration = 0
+
+        while iteration < max_iterations:
+            iteration += 1
+
+            # Create streaming chat completion
+            stream = await openai_client.chat_completion(
+                messages=messages,
+                model=model,
+                stream=True,
+                backend=backend,
+                tools=tools if tools else None,
+                **extra_params,
+            )
+
+            # Accumulate chunks to detect tool calls
+            chunks_buffer = []
+            has_tool_calls = False
+            tool_calls_chunk = None
+            first_chunk = True
+
+            async for chunk in stream:
+                # Record first token time
+                if first_chunk:
+                    metrics_tracker.record_first_token()
+                    first_chunk = False
+
+                # Buffer chunks for tool call detection
+                chunks_buffer.append(chunk)
+
+                # Check for tool calls in this chunk
+                if hasattr(chunk, "choices") and chunk.choices:
+                    choice = chunk.choices[0]
+                    if hasattr(choice, "delta") and choice.delta:
+                        delta = choice.delta
+                        # Check if tool_calls are present in delta
+                        if hasattr(delta, "tool_calls") and delta.tool_calls:
+                            has_tool_calls = True
+                            tool_calls_chunk = chunk
+
+                # Stream chunk to client immediately for low latency
+                chunk_str = chunk.model_dump_json()
+                yield f"data: {chunk_str}\n\n"
+
+            # After streaming completes, check if we need to execute tools
+            if not has_tool_calls:
+                # No tool calls, we're done
+                break
+
+            # Extract tool calls from the accumulated response
+            # Build a complete response-like object from chunks
+            accumulated_response = {
+                "choices": [{"message": {"tool_calls": []}}],
+                "finish_reason": "tool_calls",
+            }
+
+            # Extract tool calls from the chunk that had them
+            if tool_calls_chunk and hasattr(tool_calls_chunk, "choices"):
+                choice = tool_calls_chunk.choices[0]
+                if hasattr(choice, "delta") and hasattr(choice.delta, "tool_calls"):
+                    accumulated_response["choices"][0]["message"]["tool_calls"] = [
+                        tc.model_dump() for tc in choice.delta.tool_calls
+                    ]
+
+            # Extract tool calls using our utility
+            extracted_calls = extract_tool_calls_openai(accumulated_response)
+
+            if not extracted_calls:
+                # Model signaled tool_calls but we couldn't extract them
+                logger.warning("Tool calls detected but extraction failed")
+                break
+
+            logger.info(
+                f"Executing {len(extracted_calls)} tool calls (iteration {iteration})"
+            )
+
+            # Execute each tool call
+            tool_results = []
+            for tool_call in extracted_calls:
+                tool_id = tool_call.get("id")
+                tool_name = tool_call.get("name")
+                tool_args_str = tool_call.get("arguments", "{}")
+
+                # Parse arguments
+                try:
+                    import json
+
+                    tool_args = (
+                        json.loads(tool_args_str)
+                        if isinstance(tool_args_str, str)
+                        else tool_args
+                    )
+                except json.JSONDecodeError:
+                    logger.error(f"Failed to parse tool arguments: {tool_args_str}")
+                    tool_args = {}
+
+                # Map tool name to MCP server
+                # For now, we'll use a convention: tool_name -> server_name mapping
+                # TODO: Make this configurable or discover from MCP broker
+                server_name = _infer_mcp_server_for_tool(tool_name, mcp_broker)
+
+                if not server_name:
+                    # Try to execute the tool directly via MCP broker
+                    error_msg = f"Tool '{tool_name}' not found in any MCP server"
+                    logger.warning(error_msg)
+                    tool_results.append(
+                        create_tool_result_openai(
+                            tool_call_id=tool_id, result=error_msg, tool_type="error"
+                        )
+                    )
+                    continue
+
+                try:
+                    # Execute tool via MCP broker
+                    result = await mcp_broker.call_tool(
+                        server_name=server_name,
+                        tool_name=tool_name,
+                        arguments=tool_args,
+                    )
+
+                    # Format result as string
+                    if isinstance(result, dict):
+                        result_str = json.dumps(result)
+                    else:
+                        result_str = str(result)
+
+                    logger.info(
+                        f"Tool {tool_name} executed successfully, result length: {len(result_str)}"
+                    )
+
+                    tool_results.append(
+                        create_tool_result_openai(
+                            tool_call_id=tool_id, result=result_str
+                        )
+                    )
+
+                except Exception as e:
+                    logger.error(f"Tool execution failed for {tool_name}: {e}")
+                    tool_results.append(
+                        create_tool_result_openai(
+                            tool_call_id=tool_id, result=f"Error: {str(e)}"
+                        )
+                    )
+
+            # Append tool results as a new user message
+            if tool_results:
+                messages.append({"role": "user", "content": tool_results})
+
+                # Continue the loop to get the model's final response
+                continue
+            else:
+                # No tool results (all failed), break
+                break
+
+        # Record success metrics (agentic loop complete)
+        latency_ms = (time.time() - metrics_tracker.start_time) * 1000
+        metrics_tracker.record_success(
+            input_tokens=0,  # Token tracking in agentic loops needs more work
+            output_tokens=0,
+            total_tokens=0,
+            latency_ms=latency_ms,
+        )
+
+        # Notify circuit breaker of success
+        if config.middleware.circuit_breaker.enabled:
+            for middleware in pipeline.middleware:
+                if isinstance(middleware, CircuitBreaker):
+                    await middleware.on_success()
+
+    except OpenAIBackendError as e:
+        logger.error(f"Backend error in agentic streaming request: {e}")
+        metrics_tracker.record_error("backend_error")
+        yield f"data: {json.dumps({'error': str(e).replace("'", '&#39;')})}\n\n"
+    except Exception as e:
+        logger.error(f"Unexpected error in agentic streaming request: {e}")
+        metrics_tracker.record_error("unexpected_error")
+        yield f"data: {json.dumps({'error': f'Unexpected error: {str(e)}'})}\n\n"
+    finally:
+        router.track_request_end(request_id)
+        gpu_scheduler.notify_ai_stopping()
+
+
+def _infer_mcp_server_for_tool(tool_name: str, mcp_broker) -> Optional[str]:
+    """
+    Infer which MCP server can handle the given tool.
+
+    Uses the MCP broker's list_tools to find the server that provides
+    the tool. Returns None if tool not found.
+
+    Args:
+        tool_name: Name of the tool to locate
+        mcp_broker: MCP broker instance
+
+    Returns:
+        Server name that can execute the tool, or None
+    """
+    try:
+        # Get all available servers and their tools
+        import asyncio
+
+        async def find_server():
+            servers = await mcp_broker.list_servers()
+            for server_name in servers.get("servers", {}):
+                try:
+                    tools_response = await mcp_broker.get_tools(server_name)
+                    tools = tools_response.get("tools", [])
+                    for tool in tools:
+                        if tool.get("name") == tool_name:
+                            return server_name
+                except Exception:
+                    continue
+            return None
+
+        # Run the async find function
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(find_server())
+
+    except Exception as e:
+        logger.warning(f"Failed to infer MCP server for tool {tool_name}: {e}")
+        return None
 
 
 async def try_backends_with_failover(
@@ -2469,8 +4380,8 @@ async def try_backends_with_failover(
 
             # Add authentication for this backend
             if "authorization" not in {k.lower() for k in headers.keys()}:
-                if backend_api_type == "lm-studio":
-                    api_key = config.get_lm_studio_api_key()
+                if backend_api_type == "zai":
+                    api_key = config.get_zai_api_key()
                     if api_key:
                         headers["Authorization"] = f"Bearer {api_key}"
                 elif backend_api_type == "zai":
@@ -2479,6 +4390,14 @@ async def try_backends_with_failover(
                         headers["Authorization"] = f"Bearer {api_key}"
                     else:
                         logger.warning("ZAI API key not found for fallback backend")
+                elif backend_api_type == "pollinations":
+                    api_key = config.get_pollinations_api_key()
+                    if api_key:
+                        headers["Authorization"] = f"Bearer {api_key}"
+                    else:
+                        logger.warning(
+                            "Pollinations API key not found for fallback backend"
+                        )
 
             logger.info(
                 f"Request headers for {backend_type_name} backend: Authorization={'Bearer ' + (headers.get('Authorization', 'NO-AUTH')[:20] + '...' if 'Authorization' in headers else 'NOT SET')}"
@@ -2505,6 +4424,18 @@ async def try_backends_with_failover(
                     )
                     logger.debug(f"ZAI Body model: {content.get('model', 'NO_MODEL')}")
 
+                # Debug logging for Pollinations (only at DEBUG level)
+                if backend_api_type == "pollinations" and logger.isEnabledFor(
+                    logging.DEBUG
+                ):
+                    logger.debug(f"Pollinations URL: {url}")
+                    logger.debug(
+                        f"Pollinations Headers: Authorization={headers.get('Authorization', 'MISSING')[:30]}..."
+                    )
+                    logger.debug(
+                        f"Pollinations Body model: {content.get('model', 'NO_MODEL')}"
+                    )
+
                 if method.upper() == "POST":
                     response = await client.post(
                         url,
@@ -2528,6 +4459,21 @@ async def try_backends_with_failover(
                     if response.status_code != 200:
                         try:
                             logger.debug(f"ZAI Response body: {response.text[:500]}")
+                        except Exception:
+                            pass
+
+                # Debug logging for Pollinations responses (only at DEBUG level)
+                if backend_api_type == "pollinations" and logger.isEnabledFor(
+                    logging.DEBUG
+                ):
+                    logger.debug(
+                        f"Pollinations Response status: {response.status_code}"
+                    )
+                    if response.status_code != 200:
+                        try:
+                            logger.debug(
+                                f"Pollinations Response body: {response.text[:500]}"
+                            )
                         except Exception:
                             pass
 
@@ -2583,7 +4529,9 @@ async def handle_non_streaming_request(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream"]
+            k: v
+            for k, v in body.items()
+            if k not in ["messages", "model", "stream", "backend"]
         }
 
         # Get backend from route decision if available
@@ -2618,6 +4566,22 @@ async def handle_non_streaming_request(
             total_tokens=total_tokens,
             latency_ms=processing_time_ms,
         )
+
+        # Record cost tracking (non-blocking)
+        try:
+            cost_tracker = context.get("cost_tracker")
+            if cost_tracker and total_tokens > 0:
+                import asyncio
+                route_decision_ctx = context.get("route_decision")
+                asyncio.create_task(cost_tracker.record(
+                    model=model,
+                    agent_key=context.get("request_headers", {}).get("x-api-key", ""),
+                    backend=route_decision_ctx.backend if route_decision_ctx else "",
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                ))
+        except Exception as cost_err:
+            logger.debug(f"Cost tracking failed: {cost_err}")
 
         # Add gateway metadata including routing information
         route_decision = context.get("route_decision")
@@ -2715,7 +4679,9 @@ async def stream_anthropic_response(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream"]
+            k: v
+            for k, v in body.items()
+            if k not in ["messages", "model", "stream", "backend"]
         }
 
         route_decision = context.get("route_decision")
@@ -2740,7 +4706,7 @@ async def stream_anthropic_response(
                         "content": [],
                         "model": original_model,
                         "stop_reason": None,
-                    }
+                    },
                 }
                 yield f"event: message_start\ndata: {json.dumps(event_data)}\n\n"
 
@@ -2768,7 +4734,9 @@ async def stream_anthropic_response(
                                 "type": "tool_use",
                                 "id": tool_call.get("id", ""),
                                 "name": tool_call.get("function", {}).get("name", ""),
-                                "input": tool_call.get("function", {}).get("arguments", "{}"),
+                                "input": tool_call.get("function", {}).get(
+                                    "arguments", "{}"
+                                ),
                             },
                         }
                         yield f"event: content_block_delta\ndata: {json.dumps(tool_event)}\n\n"
@@ -2814,7 +4782,7 @@ async def stream_anthropic_response(
             "error": {
                 "type": "api_error",
                 "message": str(e),
-            }
+            },
         }
         yield f"event: error\ndata: {json.dumps(error_event)}\n\n"
 
@@ -2843,7 +4811,9 @@ async def handle_anthropic_non_streaming(
         messages = body.get("messages", [])
         model = body.get("model", "default")
         extra_params = {
-            k: v for k, v in body.items() if k not in ["messages", "model", "stream"]
+            k: v
+            for k, v in body.items()
+            if k not in ["messages", "model", "stream", "backend"]
         }
 
         route_decision = context.get("route_decision")
@@ -2891,20 +4861,19 @@ async def handle_anthropic_non_streaming(
             text_content = message.get("reasoning_content", "")
 
         if text_content:
-            content_blocks.append({
-                "type": "text",
-                "text": text_content
-            })
+            content_blocks.append({"type": "text", "text": text_content})
 
         # Tool calls
         if message.get("tool_calls"):
             for tool_call in message["tool_calls"]:
-                content_blocks.append({
-                    "type": "tool_use",
-                    "id": tool_call.get("id", ""),
-                    "name": tool_call.get("function", {}).get("name", ""),
-                    "input": tool_call.get("function", {}).get("arguments", "{}"),
-                })
+                content_blocks.append(
+                    {
+                        "type": "tool_use",
+                        "id": tool_call.get("id", ""),
+                        "name": tool_call.get("function", {}).get("name", ""),
+                        "input": tool_call.get("function", {}).get("arguments", "{}"),
+                    }
+                )
 
         # Handle extended thinking metadata (for Anthropic compatibility)
         thinking_content = None
@@ -2912,7 +4881,9 @@ async def handle_anthropic_non_streaming(
         if reasoning_text:
             thinking_content = {
                 "thinking": reasoning_text,
-                "tokens": response_data.get("reasoning_tokens", len(reasoning_text) // 4),  # Rough estimate
+                "tokens": response_data.get(
+                    "reasoning_tokens", len(reasoning_text) // 4
+                ),  # Rough estimate
             }
 
         # Build Anthropic response
@@ -2933,19 +4904,27 @@ async def handle_anthropic_non_streaming(
                 "router": {
                     "model": route_decision.model if route_decision else model,
                     "backend": route_decision.backend if route_decision else "unknown",
-                    "reason": route_decision.reason if route_decision else "Anthropic API",
+                    "reason": route_decision.reason
+                    if route_decision
+                    else "Anthropic API",
                     "specialization": (
                         route_decision.specialization.value
                         if route_decision and route_decision.specialization
                         else None
                     ),
-                    "estimated_tokens": route_decision.estimated_tokens if route_decision else 0,
-                    "expected_latency_ms": route_decision.expected_latency_ms if route_decision else 0,
+                    "estimated_tokens": route_decision.estimated_tokens
+                    if route_decision
+                    else 0,
+                    "expected_latency_ms": route_decision.expected_latency_ms
+                    if route_decision
+                    else 0,
                 },
                 "thinking": {
                     "intensity": thinking_intensity,
                     "budget": context.get("thinking_budget"),
-                } if thinking_intensity else None,
+                }
+                if thinking_intensity
+                else None,
             },
         }
 
@@ -2965,6 +4944,26 @@ async def handle_anthropic_non_streaming(
         logger.error(f"Backend error in Anthropic request: {e}")
         metrics_tracker.record_error("backend_error")
 
+        # Log error episode to self-improvement system
+        if SELF_IMPROVEMENT_AVAILABLE:
+            try:
+                engine = get_self_improvement_engine()
+                import asyncio
+
+                asyncio.create_task(
+                    engine.log_error(
+                        error_type="backend_error",
+                        error_message=str(e),
+                        context={
+                            "endpoint": "/v1/messages",
+                            "model": body.get("model"),
+                        },
+                        resolution="circuit_breaker_triggered",
+                    )
+                )
+            except Exception:
+                pass  # Don't fail logging
+
         if config.middleware.circuit_breaker.enabled:
             for middleware in pipeline.middleware:
                 if isinstance(middleware, CircuitBreaker):
@@ -2975,6 +4974,25 @@ async def handle_anthropic_non_streaming(
     except Exception as e:
         logger.error(f"Unexpected error in Anthropic request: {e}")
         metrics_tracker.record_error("unexpected_error")
+
+        # Log error episode to self-improvement system
+        if SELF_IMPROVEMENT_AVAILABLE:
+            try:
+                engine = get_self_improvement_engine()
+                import asyncio
+
+                asyncio.create_task(
+                    engine.log_error(
+                        error_type="unexpected_error",
+                        error_message=str(e),
+                        context={
+                            "endpoint": "/v1/messages",
+                            "model": body.get("model"),
+                        },
+                    )
+                )
+            except Exception:
+                pass  # Don't fail logging
 
         if config.middleware.circuit_breaker.enabled:
             for middleware in pipeline.middleware:
@@ -3006,7 +5024,7 @@ try:
     if app is None:
         raise RuntimeError("Failed to create FastAPI app - check logs for errors")
 except Exception as e:
-    print(f"ERROR: Failed to create app: {e}")
+    logger.error(f"Failed to create app: {e}")
     import traceback
 
     traceback.print_exc()

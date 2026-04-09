@@ -5,9 +5,11 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.hardware.nvidia-common;
-in {
+in
+{
   options.hardware.nvidia-common.enable = lib.mkEnableOption "NVIDIA GPU support";
 
   config = lib.mkIf cfg.enable {
@@ -25,7 +27,7 @@ in {
     };
 
     # Load nvidia driver for Xorg and Wayland
-    services.xserver.videoDrivers = ["nvidia"];
+    services.xserver.videoDrivers = [ "nvidia" ];
 
     hardware.nvidia = {
       # Modesetting is required for Wayland
@@ -38,12 +40,45 @@ in {
       # RTX 30 series (Ampere) is fully supported
       package = config.boot.kernelPackages.nvidiaPackages.beta;
 
-      # Open source kernel module (optional for Turing+)
-      # Set to false for proprietary (recommended for gaming/CUDA)
-      open = false;
+      # Open source kernel module (required for Turing+/RTX 30 series)
+      # Better Wayland/Plasma 6 stability, no kernel taint, better error handling
+      # GSP firmware still runs on GPU (required for Ampere/RTX 30 series)
+      open = true;
 
       # Enable nvidia-settings
       nvidiaSettings = true;
+    };
+
+    # NVIDIA kernel module options via modprobe
+    boot.extraModprobeConfig = ''
+      # Enable GSP firmware (required for Ampere/RTX 30 series)
+      # GSP runs control firmware on the GPU for better performance
+      options nvidia NVreg_EnableGpuFirmware=1
+
+      # Disable DynamicPowerManagement to prevent HDMI brightness fluctuations
+      # DPM=0 prevents GPU from auto-scaling power based on input activity
+      options nvidia NVreg_DynamicPowerManagement=0
+    '';
+
+    # ============================================================================
+    # NVIDIA CONTAINER TOOLKIT (CDI for Kubernetes GPU passthrough)
+    # ============================================================================
+    # Enables CDI (Container Device Interface) specification generation for NixOS
+    # This is required for Kubernetes GPU passthrough to work with /nix/store paths
+    hardware.nvidia-container-toolkit = {
+      enable = true;
+      mount-nvidia-executables = true;
+    };
+
+    # Make nvidia-cdi-generator non-fatal during activation.
+    # When the kernel changes, the new userspace libs don't match the running
+    # kernel driver, causing the generator to fail. This blocks activation.
+    # The generator will work correctly after reboot when kernel and driver match.
+    systemd.services.nvidia-container-toolkit-cdi-generator = {
+      unitConfig.OnFailure = "";
+      serviceConfig.Type = "oneshot";
+      serviceConfig.RemainAfterExit = true;
+      serviceConfig.SuccessExitStatus = "0 1";
     };
 
     # ============================================================================
@@ -66,22 +101,17 @@ in {
     };
 
     # ============================================================================
-    # GPU POWER/PERFORMANCE MODE NOTES
+    # GPU POWER/PERFORMANCE MODE
     # ============================================================================
-    # GPUPowerMizerMode controls dynamic clock scaling:
-    # - 0 = Adaptive (default) - auto-scales based on load
-    # - 1 = Prefer Maximum Performance - always full clocks
-    # - 2 = Auto - same as Adaptive for RTX 30 series
+    # DynamicPowerManagement disabled via NVreg_DynamicPowerManagement=0
+    # in boot.extraModprobeConfig above.
     #
-    # Current: Both GPUs at default (0=Adaptive)
-    # GPU 0 (3060 Ti): 210 MHz idle → 420 MHz max
-    # GPU 1 (3090): 240 MHz idle → 2130 MHz max
-    #
-    # To change mode (requires X/Wayland session):
-    #   nvidia-settings -a [gpu:0]/GPUPowerMizerMode=1  # Max performance
-    #   nvidia-settings -a [gpu:0]/GPUPowerMizerMode=0  # Adaptive (default)
-    #
-    # Note: nvidia-settings requires DISPLAY variable, so this cannot be set
-    # via systemd service at boot. Run manually after login or add to autostart.
+    # This prevents GPU from auto-scaling power based on input activity,
+    # which fixes HDMI TV brightness fluctuations when typing/moving mouse.
+
+    # NOTE: NixOS nvidia-container-toolkit module handles CDI generation.
+    # The default ExecStart (nvidia-cdi-generator) works correctly.
+    # Do NOT add a custom ExecStart override — it appends instead of replacing,
+    # causing the service to run twice and fail on the second ExecStart.
   };
 }

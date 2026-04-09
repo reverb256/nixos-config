@@ -1,0 +1,127 @@
+# XMRig CPU Miner - zephyr (32 cores, 16 threads = 50%)
+# - privileged for MSR register access
+# - 1 replica at 50% CPU cap
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xmrig-zephyr
+  namespace: mining
+  labels:
+    app: xmrig-zephyr
+    host: zephyr
+    workload: crypto-mining
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: xmrig-zephyr
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: xmrig-zephyr
+        host: zephyr
+        workload: crypto-mining
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/1/summary"
+    spec:
+      nodeName: zephyr
+      serviceAccountName: gpu-miner-sa
+      automountServiceAccountToken: false
+      priorityClassName: mining-low
+      hostNetwork: true
+      hostIPC: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: "workstation"
+          operator: "Equal"
+          value: "true"
+          effect: NoSchedule
+        - key: "interactive"
+          operator: "Equal"
+          value: "true"
+          effect: NoExecute
+        - key: "ram-constrained"
+          operator: "Equal"
+          value: "true"
+          effect: NoSchedule
+      containers:
+      - name: xmrig
+        image: docker.io/library/xmrig-alpine:6.25.0
+        imagePullPolicy: Never
+        args:
+          - "-o"
+          - "10.1.1.120:3333"
+          - "-u"
+          - "zephyr-cpu"
+          - "--tls=false"
+          - "--threads=16"
+          - "--donate-level=1"
+          - "--http-enabled"
+          - "--http-host=0.0.0.0"
+          - "--http-port=8082"
+        ports:
+        - containerPort: 8082
+          name: api
+          protocol: TCP
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "8"
+          limits:
+            memory: "4Gi"
+            cpu: "16"
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: msr
+          mountPath: /dev/cpu
+          mountPropagation: HostToContainer
+        - name: hugepages
+          mountPath: /dev/hugepages
+          mountPropagation: HostToContainer
+        - name: sys-module-msr
+          mountPath: /sys/module/msr
+          mountPropagation: HostToContainer
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /1/summary
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /1/summary
+            port: 8082
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: msr
+        hostPath:
+          path: /dev/cpu
+          type: Directory
+      - name: hugepages
+        hostPath:
+          path: /dev/hugepages
+          type: Directory
+      - name: sys-module-msr
+        hostPath:
+          path: /sys/module/msr
+          type: Directory
+      - name: tmp
+        emptyDir: {}

@@ -1,0 +1,37 @@
+# Calico Installation - Tigera Operator
+#
+# Deployed alongside tigera-operator.yaml (official manifest from projectcalico/calico v3.31.4)
+# This CR tells the operator how to configure Calico.
+#
+# Cluster CIDRs (must match k3s --cluster-cidr and --service-cidr):
+#   Pod:      10.244.0.0/16
+#   Service:  10.0.0.0/12
+#   DNS:      10.43.0.10
+apiVersion: operator.tigera.io/v1
+kind: Installation
+metadata:
+  name: default
+spec:
+  # Generic Kubernetes (NixOS with k3s)
+  kubernetesProvider: ""
+
+  cni:
+    type: Calico
+
+  calicoNetwork:
+    # VXLAN encapsulation — works everywhere, no special kernel/modules needed
+    # MTU 1440 = 1500 - 50 (VXLAN 8 + UDP 8 + outer IP 20 + ethernet 14)
+    # Slightly conservative to handle intermediate hops on canReach path
+    mtu: 1440
+
+    nodeAddressAutodetectionV4:
+      # Use canReach to auto-detect the interface with internet access
+      # Works regardless of interface name differences across nodes
+      canReach: 8.8.8.8
+
+    # Pod CIDR — must match k3s --cluster-cidr
+    ipPools:
+    - cidr: 10.244.0.0/16
+      encapsulation: VXLAN
+      natOutgoing: Enabled
+      nodeSelector: all()

@@ -1,0 +1,38 @@
+---
+# PersistentVolumeClaim for llama.cpp model storage
+# Mounts existing model directory from zephyr
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: llama-models-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  local:
+    path: /home/j_kro/.lmstudio/models
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - zephyr
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: llama-models-pvc
+  namespace: ai-inference
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: llama-models-pv
+  resources:
+    requests:
+      storage: 100Gi

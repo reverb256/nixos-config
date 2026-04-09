@@ -1,0 +1,255 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-settings
+  namespace: search
+data:
+  settings.yml: |
+    # SearXNG minimal configuration
+    use_default_settings: true
+    server:
+      secret_key: "${SEARXNG_SECRET}"
+      method: "GET"
+      port: 8080
+
+    # Completely disable limiter and rate limiting
+    limiter: false
+
+    # Disable bot detection
+    bot_detection:
+      enabled: false
+
+    search:
+      formats:
+        - html
+        - json
+        - rss
+        - csv
+      language: en
+      safe_search: 0
+
+    # Disable all access control for cluster use
+    ui:
+      static_use_hash: true
+      default_theme: simple
+
+    # Disable rate limiting completely
+    result_proxy:
+      enabled: false
+
+    engines:
+      # Bot-friendly engines that don't return 403 errors
+      - name: duckduckgo
+        paging: true
+
+      - name: brave
+        paging: true
+
+      - name: startpage
+        paging: true
+
+      - name: wikipedia
+        paging: true
+
+      - name: stackoverflow
+        paging: true
+
+      - name: github
+        paging: true
+
+      - name: reddit
+        paging: true
+
+      - name: wolframalpha
+        paging: true
+
+      # Disabled due to 403 errors - these engines require CAPTCHA
+      # - name: google
+      #   paging: true
+      # - name: bing
+      #   paging: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-limiter
+  namespace: search
+data:
+  limiter.toml: |
+    # Empty limiter config - bot detection is disabled
+    # This file exists to suppress the warning message
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app: searxng
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: searxng
+  template:
+    metadata:
+      labels:
+        app: searxng
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: searxng
+          image: searxng/searxng:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            # CHANGED: Allow writing to cache directory
+            # readOnlyRootFilesystem: false
+          env:
+            - name: SEARXNG_SECRET
+              value: "7b22a3c8f9e4d1a6b5c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1"
+            - name: BASE_URL
+              value: "http://searxng.search.svc.cluster.local:8080"
+            - name: SEARXNG_LIMITER
+              value: "false"
+            # CHANGED: Set cache directory explicitly
+            - name: SEARXNG_CACHE
+              value: "/var/cache/searxng"
+          volumeMounts:
+            # CHANGED: Mount settings.yml to correct path
+            - name: settings
+              mountPath: /etc/searxng
+              readOnly: true
+            - name: limiter
+              mountPath: /etc/searxng/limiter.toml
+              subPath: limiter.toml
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache/searxng
+            # CHANGED: Add run volume for PID files
+            - name: run
+              mountPath: /run/searxng
+          livenessProbe:
+            httpGet:
+              path: /search?q=test
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /search?q=test
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+      volumes:
+        - name: settings
+          configMap:
+            name: searxng-settings
+            # CHANGED: Set proper permissions
+            defaultMode: 0644
+        - name: limiter
+          configMap:
+            name: searxng-limiter
+            defaultMode: 0644
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app: searxng
+spec:
+  type: ClusterIP
+  # FIXED ClusterIP - NEVER CHANGES - Required for MCP configuration
+  clusterIP: 10.0.0.100
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: searxng
+---
+# CHANGED: Add PodDisruptionBudget for stability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: searxng-pdb
+  namespace: search
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: searxng
+---
+# HorizontalPodAutoscaler for elastic scaling
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: searxng-hpa
+  namespace: search
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: searxng
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageValue: 700m
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageValue: 600Mi
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 2
+        periodSeconds: 60

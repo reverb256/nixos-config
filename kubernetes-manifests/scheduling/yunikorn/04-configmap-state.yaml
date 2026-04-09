@@ -1,0 +1,23 @@
+# GPU Scheduler State Management ConfigMap
+# Provides Kubernetes-native IPC for scheduler state
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-scheduler-state
+  namespace: kube-system
+  labels:
+    app: gpu-scheduler
+data:
+  # Current scheduler state
+  ai-state: "IDLE"
+
+  # Active workload information
+  active-workload: "none"
+
+  # Last update timestamp
+  last-update: "{{ date }}"
+
+  # State transitions log
+  state-history: |
+    2026-03-19T17:59:48Z: State=IDLE, Workload=none, Reason=Initial deployment

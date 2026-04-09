@@ -1,19 +1,18 @@
 # NixOS Bluetooth Module
 # Enables Bluetooth support via bluez
-{ config
-, lib
-, pkgs
-, ...
-}:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   cfg = config.networking.bluetooth;
   inherit
     (lib)
     mkEnableOption
     mkIf
     ;
-in
-{
+in {
   options.networking.bluetooth = {
     enable = mkEnableOption "Bluetooth support via BlueZ";
   };
@@ -27,8 +26,8 @@ in
     };
 
     # Add user to bluetooth group for access
-    users.groups.bluetooth = { };
-    users.users.root.extraGroups = [ "bluetooth" ];
+    users.groups.bluetooth = {};
+    users.users.root.extraGroups = ["bluetooth"];
 
     # Add bluez-tools for command-line Bluetooth management
     environment.systemPackages = with pkgs; [

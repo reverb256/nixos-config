@@ -1,0 +1,19 @@
+apiVersion: v2
+name: ai-inference-gateway
+description: AI Inference Gateway — intelligent multi-model routing with RAG, TTS, STT, and Knowledge Fabric
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+maintainers:
+  - name: j_kro
+keywords:
+  - ai
+  - llm
+  - gateway
+  - inference
+  - rag
+  - openai
+  - anthropic
+home: https://github.com/nixos-cluster
+sources:
+  - https://github.com/nixos-cluster/ai-inference-gateway

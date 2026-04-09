@@ -1,0 +1,150 @@
+---
+# Pod Security Standards — Enforce baseline across ALL namespaces
+# Apply with: kubectl apply -f pod-security-standards-cluster.yaml
+#
+# Policy: All namespaces get at minimum 'baseline' enforcement
+# Privileged exceptions only for mining and GPU workloads
+
+---
+# kube-system — enforce restricted (system workloads should be secure)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-system
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+
+---
+# default — enforce baseline (generic workloads)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: default
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+
+---
+# ai-inference — enforce baseline (GPU workloads need hostPath)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-inference
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+    # GPU inference requires hostPath for GPU devices
+    pod-security.kubernetes.io/allow-host-path: "true"
+    pod-security.kubernetes.io/allow-privilege-escalation: "false"
+    pod-security.kubernetes.io/allow-host-network: "false"
+    pod-security.kubernetes.io/allow-host-ipc: "false"
+    pod-security.kubernetes.io/allow-host-pid: "false"
+    pod-security.kubernetes.io/allow-privileged: "false"
+
+---
+# mining — enforce privileged (GPU mining requires full hardware access)
+# This is the most permissive namespace — acceptable because:
+# 1. Mining workloads are non-sensitive (no user data)
+# 2. GPU mining requires direct hardware access
+# 3. Namespace is isolated via NetworkPolicy
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mining
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/warn-version: latest
+    # GPU mining requires full hardware access
+    pod-security.kubernetes.io/allow-host-path: "true"
+    pod-security.kubernetes.io/allow-host-ipc: "true"
+    pod-security.kubernetes.io/allow-host-network: "true"
+    pod-security.kubernetes.io/allow-host-pid: "false"
+    pod-security.kubernetes.io/allow-privilege-escalation: "true"
+    pod-security.kubernetes.io/allow-privileged: "true"
+
+---
+# ingress-system — enforce restricted (ingress controllers should be secure)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-system
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+
+---
+# autoresearch — enforce baseline (research workloads may need flexibility)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: autoresearch
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+
+---
+# search — enforce baseline (already has PSS, adding for completeness)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: search
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+
+---
+# kube-flannel — enforce privileged (CNI requires full network access)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-flannel
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/warn-version: latest
+
+---
+# cert-manager — enforce restricted (certificate management)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest

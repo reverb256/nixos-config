@@ -154,7 +154,7 @@ model_quality_score = Gauge(
 backend_requests_total = Counter(
     "gateway_backend_requests_total",
     "Backend requests",
-    ["backend", "status"],  # backend: lm-studio, zai, vllm
+    ["backend", "status"],  # backend: llama-cpp, zai, vllm
 )
 
 backend_errors_total = Counter(
@@ -229,7 +229,7 @@ class ModelMetricsTracker:
     Helper class to track metrics for a single request.
 
     Usage:
-        tracker = ModelMetricsTracker(model="qwen/qwen3.5-9b", backend="lm-studio")
+        tracker = ModelMetricsTracker(model="qwen/qwen3.5-9b", backend="llama-cpp")
 
         try:
             # ... process request ...

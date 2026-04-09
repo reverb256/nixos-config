@@ -1,0 +1,87 @@
+# GPU Miner Deployment for Forge NVIDIA GPU 0 (GeForce GTX 1070)
+# - swamp7/lolminer bundles CUDA 12.1 runtime
+# - Host NVIDIA driver libs via /nix/store + /run/opengl-driver/lib mounts
+# - Power limit 120W, mem offset +800 (stable for 1070 GDDR5)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-nvidia-0
+  namespace: mining
+  labels:
+    app: gpu-miner-forge-nvidia-0
+    host: forge
+    gpu-vendor: nvidia
+    workload: crypto-mining
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: gpu-miner-forge-nvidia-0
+      gpu-vendor: nvidia
+      host: forge
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge-nvidia-0
+        host: forge
+        gpu-vendor: nvidia
+        workload: crypto-mining
+    spec:
+      nodeName: forge
+      serviceAccountName: gpu-miner-sa
+      automountServiceAccountToken: false
+      hostNetwork: true
+      priorityClassName: mining-low
+      containers:
+      - name: lolminer
+        image: docker.io/swamp7/lolminer:latest
+        imagePullPolicy: IfNotPresent
+        args:
+          - "--algo=CR29"
+          - "--pool=xtm-c29-us.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-nv0"
+          - "--pass=x"
+          - "--tls=1"
+          - "--pool=xtm-c29-eu.kryptex.network:8040"
+          - "--user=krxXVNVMM7.forge-nv0"
+          - "--pass=x"
+          - "--tls=1"
+          - "--devices=0"
+          - "--moff=800"
+          - "--pl=90"
+          - "--apiport=4069"
+        securityContext:
+          privileged: true
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/run/opengl-driver/lib:/usr/local/cuda-12.1/compat"
+        volumeMounts:
+        - name: dev
+          mountPath: /dev
+        - name: nvidia-libs
+          mountPath: /run/opengl-driver/lib
+          readOnly: true
+        - name: nix-store
+          mountPath: /nix/store
+          readOnly: true
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "100m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      volumes:
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: nvidia-libs
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: nix-store
+        hostPath:
+          path: /nix/store

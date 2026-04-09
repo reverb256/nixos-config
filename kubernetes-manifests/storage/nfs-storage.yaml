@@ -1,0 +1,104 @@
+# NFS Storage for Kubernetes
+# Static PersistentVolumes pointing to Nexus NFS exports
+# Dynamic provisioning can be added with NFS subdir provisioner if needed
+
+---
+# StorageClass for NFS storage (using pre-provisioned PVs)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: large-nfs-storage
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: Immediate
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+
+---
+# PV: Shared data from Nexus (/data/shared)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-shared-pv
+spec:
+  capacity:
+    storage: 500Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: large-nfs-storage
+  nfs:
+    server: 10.1.1.120
+    path: /data/shared
+
+---
+# PV: Media from Nexus (/data/media)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-media-pv
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes:
+    - ReadOnlyMany  # Media is read-only on clients
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: large-nfs-storage
+  nfs:
+    server: 10.1.1.120
+    path: /data/media
+
+---
+# PV: Backups from Nexus (/data/backups)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-backups-pv
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadWriteOnce
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: large-nfs-storage
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  nfs:
+    server: 10.1.1.120
+    path: /data/backups
+
+---
+# PV: Home directories from Nexus (/data/home)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-home-pv
+spec:
+  capacity:
+    storage: 500Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: large-nfs-storage
+  nfs:
+    server: 10.1.1.120
+    path: /data/home
+
+---
+# Example PVCs (commented out - uncomment to use)
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: nfs-shared-pvc
+#   namespace: default
+# spec:
+#   storageClassName: large-nfs-storage
+#   accessModes:
+#     - ReadWriteMany
+#   resources:
+#     requests:
+#       storage: 100Gi
+#   volumeName: nfs-shared-pv

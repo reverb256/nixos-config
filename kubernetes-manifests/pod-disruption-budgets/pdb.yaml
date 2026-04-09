@@ -1,0 +1,35 @@
+# Pod Disruption Budgets for critical services
+# Ensures minimum availability during voluntary disruptions (node maintenance, upgrades)
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: grafana-pdb
+  namespace: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: grafana
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: n8n-pdb
+  namespace: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: n8n
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-pdb
+  namespace: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: redis

@@ -16,3 +16,36 @@ secrets/*.plaintext
 # secrets/*.age
 # secrets/secrets.nix
 .serena/
+
+# Node.js/npm artifacts (NixOS config should be declarative, not npm-managed)
+node_modules/
+package-lock.json
+package.json
+.pnpm-debug.log*
+.yarn/*
+.yarn-integrity
+vllm-env/
+ssh/
+.age/
+
+# Git worktrees - isolated development workspaces
+.worktrees/
+# Emergency cleanup additions - 2026-03-19
+# Don't commit temporary analysis files
+tmp/
+# Don't commit git worktrees (they're temporary branches)
+.worktrees/
+# Don't commit upstream vendor documentation
+istio-1.29.1/
+modules/services/secrets/kubernetes/encryption-config.yaml
+
+# Security cleanup - 2026-03-30
+# Don't commit junk files containing leaked API keys
+cat
+echo
+Updated API key file
+.pi/secrets.yaml
+
+# pi agent local state
+.pi/
+.pi-lens/

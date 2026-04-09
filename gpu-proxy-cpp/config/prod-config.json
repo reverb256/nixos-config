@@ -1,0 +1,15 @@
+{
+  "settings": {
+    "listen_port": 3334
+  },
+  "pools": [
+    {
+      "name": "kryptex-tari",
+      "url": "xtm-c29-us.kryptex.network:8040",
+      "wallet": "krxXVNVMM7.zephyr-gpu",
+      "password": "x",
+      "tls": true,
+      "priority": 1
+    }
+  ]
+}
