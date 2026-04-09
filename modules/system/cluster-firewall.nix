@@ -1,5 +1,5 @@
 # Cluster Firewall — Centralized subnet restrictions
-# Restricts sensitive services to cluster LAN (10.1.1.0/24) + Tailscale only
+# Restricts sensitive services to cluster LAN (10.1.1.0/24) + Tailscale + Pod CIDR only
 # Prevents accidental exposure to WAN interfaces
 #
 # Uses NixOS nftables firewall backend (networking.nftables.enable = true).
@@ -13,6 +13,7 @@
 let
   inherit (lib) mkAfter mkDefault;
   clusterSubnet = "10.1.1.0/24";
+  podCidr = "10.244.0.0/16";
 in
 {
   # Enable nftables as the firewall backend.
@@ -25,6 +26,13 @@ in
   # These rules restrict sensitive services to the cluster LAN and Tailscale.
   # Appended to the input-allow chain after default NixOS firewall rules.
   networking.firewall.extraInputRules = mkAfter ''
+    # --- K8s Pod CIDR: allow pods to reach host services ---
+    # Pods (10.244.0.0/16) need access to kubelet (10250),
+    # API server via localhost DNAT (6443), node ports, and DNS.
+    # Without these rules, the NixOS nftables INPUT chain (policy drop)
+    # blocks all pod-to-host traffic.
+    ip saddr { ${podCidr} } accept
+
     # --- K8s API Server (6443) ---
     ip saddr { ${clusterSubnet} } tcp dport 6443 accept
     iifname "tailscale0" tcp dport 6443 accept
