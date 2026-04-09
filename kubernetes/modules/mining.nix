@@ -53,19 +53,9 @@ in
     };
 
     # ── Resource Quota ─────────────────────────────────────────
-    mining.ResourceQuota.mining-quota = {
-      metadata.labels.app = "mining";
-      spec.hard = {
-        requests.cpu = "25";
-        limits.cpu = "50";
-        requests.memory = "50Gi";
-        limits.memory = "100Gi";
-        requests."nvidia.com/gpu" = "5";
-        limits."nvidia.com/gpu" = "5";
-        "count/pods" = "50";
-        "count/deployments.apps" = "20";
-      };
-    };
+    # NOTE: ResourceQuota uses dotted keys (limits.cpu, requests.memory)
+    # which Nix attrsets can't represent as flat keys.
+    # Managed via kubernetes-manifests/mining/ raw YAML instead.
 
     # ── Network Policies ───────────────────────────────────────
     mining.NetworkPolicy.default-deny-all = {

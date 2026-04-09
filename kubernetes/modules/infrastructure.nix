@@ -92,7 +92,9 @@ in
   # and already tested — import rather than hand-convert.
   config.importyaml.nix-csi-driver = {
     src = pkgs.runCommand "nix-csi-driver.yaml" { } ''
-      cp ${../../kubernetes-manifests/storage/nix-csi-driver.yaml} $out
+      # Remove volumeLifecycleModes — field is immutable on existing CSIDriver
+      ${pkgs.yq-go}/bin/yq 'del(.spec.volumeLifecycleModes)' \
+        ${../../kubernetes-manifests/storage/nix-csi-driver.yaml} > $out
     '';
   };
 }

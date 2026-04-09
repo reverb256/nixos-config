@@ -11,10 +11,10 @@
       description = "Low priority for crypto mining workloads";
     };
     PriorityClass.preemptible-mining = {
-      value = -1000;
+      value = -20;
       preemptionPolicy = "PreemptLowerPriority";
       globalDefault = false;
-      description = "Low priority for mining workloads - preempted by AI/gaming workloads";
+      description = "Preemptible priority for mining - evicted by any higher priority workload";
     };
   };
 }

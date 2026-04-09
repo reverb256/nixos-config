@@ -1263,15 +1263,11 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             return JSONResponse(content=models_dict)
 
         except OpenAIBackendError as e:
-            logger.error(f"Error fetching models: {e}")
-            raise HTTPException(
-                status_code=503, detail=f"Backend unavailable: {str(e)}"
-            )
+            logger.warning(f"Backend unavailable for model listing: {e}")
+            return JSONResponse(content={"object": "list", "data": []})
         except Exception as e:
-            logger.error(f"Unexpected error fetching models: {e}")
-            raise HTTPException(
-                status_code=500, detail=f"Error fetching models: {str(e)}"
-            )
+            logger.warning(f"Error fetching models, returning empty list: {e}")
+            return JSONResponse(content={"object": "list", "data": []})
 
     # Add system prompts endpoint
     @app.get("/system-prompts")
@@ -1524,6 +1520,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
             "model": route_decision.model,  # Use routed model for concurrency limiter
             "route_decision": route_decision,  # Store routing decision
             "metrics_tracker": metrics_tracker,  # Metrics tracker
+            "cost_tracker": getattr(app.state, "cost_tracker", None),
         }
 
         # Inject RAG search service if available (for RAGInjectorMiddleware)
@@ -1793,6 +1790,75 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
 
         # Build headers with authentication
         backend_headers = build_backend_headers(state.config, dict(request.headers))
+
+        # Create context for middleware
+        context = {
+            "request_id": request_id,
+            "start_time": _request_start,
+            "request_body": body,
+            "request_headers": dict(request.headers),
+            "model": route_decision.model,
+            "route_decision": route_decision,
+            "metrics_tracker": metrics_tracker,
+            "cost_tracker": getattr(app.state, "cost_tracker", None),
+        }
+
+        # Inject RAG search service if available
+        if state.rag_search:
+            context["rag_search_service"] = state.rag_search
+
+        # Process request through middleware pipeline
+        should_continue, error = await state.pipeline.process_request(request, context)
+        if not should_continue:
+            if error:
+                raise error
+            raise HTTPException(status_code=403, detail="Request blocked by middleware")
+
+        # Check if RAG middleware enhanced the request
+        if "rag_enhanced_body" in context:
+            body = context["rag_enhanced_body"]
+
+        # Dispatch to backend
+        if stream:
+            return StreamingResponse(
+                stream_anthropic_response(
+                    openai_client=state.openai_client,
+                    body=body,
+                    pipeline=state.pipeline,
+                    context=context,
+                    config=state.config,
+                    original_model=model,
+                    thinking_intensity=thinking_intensity,
+                    request_id=request_id,
+                    metrics_tracker=metrics_tracker,
+                ),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+            )
+        else:
+            anthropic_response = await handle_anthropic_non_streaming(
+                openai_client=state.openai_client,
+                body=body,
+                pipeline=state.pipeline,
+                context=context,
+                config=state.config,
+                original_model=model,
+                thinking_intensity=thinking_intensity,
+                metrics_tracker=metrics_tracker,
+            )
+
+            # Record cost if tracker available
+            if hasattr(request.app.state, "cost_tracker") and request.app.state.cost_tracker:
+                usage = anthropic_response.get("usage", {})
+                if usage:
+                    request.app.state.cost_tracker.record_usage(
+                        model=anthropic_response.get("model", route_decision.model),
+                        agent=request.headers.get("x-agent-key", "unknown"),
+                        prompt_tokens=usage.get("input_tokens", 0),
+                        completion_tokens=usage.get("output_tokens", 0),
+                    )
+
+            return JSONResponse(content=anthropic_response, status_code=200)
 
     # ============================================================================
     # MCP Broker Endpoints

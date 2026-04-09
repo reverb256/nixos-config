@@ -172,7 +172,6 @@
     search.Service.searxng = {
       metadata.labels.app = "searxng";
       spec = {
-        type = "NodePort";
         selector.app = "searxng";
         ports = [
           {
@@ -180,7 +179,6 @@
             port = 7777;
             targetPort = 8080;
             protocol = "TCP";
-            nodePort = 30080;
           }
         ];
       };
