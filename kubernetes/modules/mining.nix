@@ -342,7 +342,6 @@ in
                   _namedlist = true;
                   nix = {
                     mountPath = "/nix";
-                    subPath = "nix";
                   };
                   msr = {
                     mountPath = "/dev/cpu";
@@ -362,9 +361,9 @@ in
             volumes = {
               _namedlist = true;
               nix = {
-                csi = {
-                  driver = "nix.csi.store";
-                  volumeAttributes.${pkgs.stdenv.hostPlatform.system} = pkgs.xmrig;
+                hostPath = {
+                  path = "/nix";
+                  type = "Directory";
                 };
               };
               msr = {
@@ -482,7 +481,6 @@ in
                   _namedlist = true;
                   nix = {
                     mountPath = "/nix";
-                    subPath = "nix";
                   };
                   msr = {
                     mountPath = "/dev/cpu";
@@ -502,9 +500,9 @@ in
             volumes = {
               _namedlist = true;
               nix = {
-                csi = {
-                  driver = "nix.csi.store";
-                  volumeAttributes.${pkgs.stdenv.hostPlatform.system} = pkgs.xmrig;
+                hostPath = {
+                  path = "/nix";
+                  type = "Directory";
                 };
               };
               msr = {
@@ -615,7 +613,6 @@ in
                   _namedlist = true;
                   nix = {
                     mountPath = "/nix";
-                    subPath = "nix";
                   };
                   msr = {
                     mountPath = "/dev/cpu";
@@ -635,9 +632,9 @@ in
             volumes = {
               _namedlist = true;
               nix = {
-                csi = {
-                  driver = "nix.csi.store";
-                  volumeAttributes.${pkgs.stdenv.hostPlatform.system} = pkgs.xmrig;
+                hostPath = {
+                  path = "/nix";
+                  type = "Directory";
                 };
               };
               msr = {

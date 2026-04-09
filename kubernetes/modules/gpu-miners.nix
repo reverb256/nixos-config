@@ -24,11 +24,13 @@ let
   # This is host-specific and must match the deployed NixOS system's CLR ICD path
   openclIcd = "/nix/store/6yvx83sa6iwhr6xnjjlfjg56jnki5mdn-clr-7.2.0-icd/etc/OpenCL/vendors";
 
-  # Common CSI volume for lolminer nix store
-  nixCsiVolume = {
-    csi = {
-      driver = "nix.csi.store";
-      volumeAttributes.${pkgs.stdenv.hostPlatform.system} = lolminerPkg;
+  # Host /nix volume — mounts the entire nix store from the host.
+  # Replaces broken nix-csi CSI driver (nixkube v0.5.0 rejects all volume mounts).
+  # Containers reference binaries via their full nix store path (e.g. ${lolminerPkg}/bin/lolminer).
+  nixHostVolume = {
+    hostPath = {
+      path = "/nix";
+      type = "Directory";
     };
   };
 
@@ -36,7 +38,6 @@ let
   baseVolumeMounts = {
     nix = {
       mountPath = "/nix";
-      subPath = "nix";
     };
     opengl-driver = {
       mountPath = "/run/opengl-driver/lib";
@@ -54,7 +55,7 @@ let
 
   # Common NVIDIA volumes (host-side)
   nvidiaVolumes = {
-    nix = nixCsiVolume;
+    nix = nixHostVolume;
     opengl-driver = {
       hostPath.path = "/run/opengl-driver/lib";
     };
@@ -88,7 +89,7 @@ let
 
   # Common AMD volumes (host-side)
   amdVolumes = {
-    nix = nixCsiVolume;
+    nix = nixHostVolume;
     opengl-driver = {
       hostPath.path = "/run/opengl-driver/lib";
     };
