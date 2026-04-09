@@ -194,28 +194,37 @@ class OpenAIClientWrapper:
             # or an application error (should not failover)
             if self._should_failover(error_msg):
                 if self.fallback_client:
-                    # For streaming requests, only try the requested model (no multi-model fallback)
-                    # to avoid connection issues when switching models mid-stream
+                    # For streaming requests, try ZAI models with rotation
                     if stream:
-                        try:
-                            logger.info(
-                                f"Attempting ZAI fallback with requested model: {model}"
-                            )
-                            response = (
-                                await self.fallback_client.chat.completions.create(
-                                    messages=messages,
-                                    model=model,
-                                    stream=stream,
-                                    **kwargs,
+                        last_error = None
+                        for zai_model in [model] + [m for m in self.zai_models if m != model]:
+                            try:
+                                logger.info(
+                                    f"Attempting ZAI streaming fallback with model: {zai_model}"
                                 )
-                            )
-                            logger.info(f"ZAI fallback succeeded with model: {model}")
-                            return response
-                        except Exception as fallback_error:
-                            logger.error(f"ZAI fallback failed: {str(fallback_error)}")
-                            raise OpenAIBackendError(
-                                f"ZAI backend error: {str(fallback_error)}"
-                            )
+                                response = (
+                                    await self.fallback_client.chat.completions.create(
+                                        messages=messages,
+                                        model=zai_model,
+                                        stream=stream,
+                                        **kwargs,
+                                    )
+                                )
+                                logger.info(f"ZAI streaming fallback succeeded with model: {zai_model}")
+                                return response
+                            except Exception as fallback_error:
+                                last_error = fallback_error
+                                model_error_msg = str(fallback_error)
+                                logger.warning(
+                                    f"ZAI streaming model {zai_model} failed: {model_error_msg}"
+                                )
+                                if not self._should_try_next_model(model_error_msg):
+                                    raise OpenAIBackendError(
+                                        f"ZAI backend error: {model_error_msg}"
+                                    )
+                        raise OpenAIBackendError(
+                            f"All ZAI streaming models failed. Last error: {str(last_error)}"
+                        )
                     else:
                         # For non-streaming requests, try multiple ZAI models in sequence
                         last_error = None

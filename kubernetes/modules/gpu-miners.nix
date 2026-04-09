@@ -33,7 +33,7 @@ let
   };
 
   # Common NVIDIA volume mounts
-  nvidiaVolumeMounts = {
+  baseVolumeMounts = {
     nix = {
       mountPath = "/nix";
       subPath = "nix";
@@ -44,6 +44,9 @@ let
     glibc-lib = {
       mountPath = glibcLib;
     };
+  };
+
+  nvidiaVolumeMounts = baseVolumeMounts // {
     dev = {
       mountPath = "/dev";
     };
@@ -70,8 +73,9 @@ let
   };
 
   # Common AMD volume mounts (additional DRI/KFD/OpenCL)
-  amdVolumeMounts = nvidiaVolumeMounts // {
-    dev = {
+  # NOTE: does NOT inherit nvidiaVolumeMounts.dev — AMD volumes don't have /dev
+  amdVolumeMounts = baseVolumeMounts // {
+    dri = {
       mountPath = "/dev/dri";
     };
     kfd = {
@@ -151,14 +155,28 @@ in
 
     # ── Forge NVIDIA GPU 0 ─────────────────────────────────────
     mining.Deployment.gpu-miner-forge-nvidia-0 = {
-      metadata.labels.app = "gpu-miner-forge-nvidia-0";
+      metadata.labels = {
+        app = "gpu-miner-forge-nvidia-0";
+        "gpu-vendor" = "nvidia";
+        host = "forge";
+        workload = "crypto-mining";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
-        selector.matchLabels.app = "gpu-miner-forge-nvidia-0";
+        selector.matchLabels = {
+          app = "gpu-miner-forge-nvidia-0";
+          "gpu-vendor" = "nvidia";
+          host = "forge";
+        };
         strategy.type = "Recreate";
         template = {
-          metadata.labels.app = "gpu-miner-forge-nvidia-0";
+          metadata.labels = {
+            app = "gpu-miner-forge-nvidia-0";
+            "gpu-vendor" = "nvidia";
+            host = "forge";
+            workload = "crypto-mining";
+          };
           spec = {
             nodeName = "forge";
             hostNetwork = true;
@@ -228,14 +246,28 @@ in
 
     # ── Forge NVIDIA GPU 1 ─────────────────────────────────────
     mining.Deployment.gpu-miner-forge-nvidia-1 = {
-      metadata.labels.app = "gpu-miner-forge-nvidia-1";
+      metadata.labels = {
+        app = "gpu-miner-forge-nvidia-1";
+        "gpu-vendor" = "nvidia";
+        host = "forge";
+        workload = "crypto-mining";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
-        selector.matchLabels.app = "gpu-miner-forge-nvidia-1";
+        selector.matchLabels = {
+          app = "gpu-miner-forge-nvidia-1";
+          "gpu-vendor" = "nvidia";
+          host = "forge";
+        };
         strategy.type = "Recreate";
         template = {
-          metadata.labels.app = "gpu-miner-forge-nvidia-1";
+          metadata.labels = {
+            app = "gpu-miner-forge-nvidia-1";
+            "gpu-vendor" = "nvidia";
+            host = "forge";
+            workload = "crypto-mining";
+          };
           spec = {
             nodeName = "forge";
             hostNetwork = true;
@@ -457,14 +489,25 @@ in
 
     # ── Nexus NVIDIA GPU ───────────────────────────────────────
     mining.Deployment.gpu-miner-nexus = {
-      metadata.labels.app = "gpu-miner-nexus";
+      metadata.labels = {
+        app = "gpu-miner-nexus";
+        host = "nexus";
+        workload = "crypto-mining";
+      };
       spec = {
         replicas = 1;
         revisionHistoryLimit = 1;
-        selector.matchLabels.app = "gpu-miner-nexus";
+        selector.matchLabels = {
+          app = "gpu-miner-nexus";
+          host = "nexus";
+        };
         strategy.type = "Recreate";
         template = {
-          metadata.labels.app = "gpu-miner-nexus";
+          metadata.labels = {
+            app = "gpu-miner-nexus";
+            host = "nexus";
+            workload = "crypto-mining";
+          };
           spec = {
             nodeName = "nexus";
             hostNetwork = true;
