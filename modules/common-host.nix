@@ -24,9 +24,6 @@
     # NOTE: Not in default.nix since some hosts might be headless
     ./desktop/desktop.nix
 
-    # Shell configuration
-    ./development/fish-starship.nix
-
     # Tailscale VPN mesh
     # NOTE: Not in default.nix since some hosts might not need it
     ./system/tailscale.nix
@@ -40,10 +37,6 @@
     # Distributed builds across cluster
     # NOTE: Not in default.nix since configuration varies by host
     ./system/distributed-builds.nix
-
-    # Mining-aware build wrapper
-    # NOTE: Not in default.nix since only some hosts mine
-    ./mining/mining-build-wrapper.nix
 
     # Speech-to-text dictation (desktop environments)
     # NOTE: Not in default.nix since only desktop hosts need audio/keyboard injection

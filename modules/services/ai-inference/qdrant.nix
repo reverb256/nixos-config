@@ -4,7 +4,8 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.ai-inference.rag;
   inherit (lib) mkIf optional;
 
@@ -21,13 +22,14 @@
     telemetry:
       disable: true
   '';
-in {
+in
+{
   config = mkIf (cfg.enable && cfg.qdrant.enable) {
     # Qdrant service
     systemd.services.qdrant = {
       description = "Qdrant Vector Database";
-      after = ["network.target"];
-      wantedBy = ["multi-user.target"];
+      after = [ "network.target" ];
+      wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         ExecStart = "${cfg.qdrant.package}/bin/qdrant --config-path ${qdrantConfig}";
@@ -40,7 +42,11 @@ in {
         PrivateTmp = true;
         ProtectSystem = "strict";
         ProtectHome = true;
-        ReadWritePaths = [cfg.qdrant.storagePath "${cfg.qdrant.storagePath}/snapshots" "/tmp"];
+        ReadWritePaths = [
+          cfg.qdrant.storagePath
+          "${cfg.qdrant.storagePath}/snapshots"
+          "/tmp"
+        ];
         MemoryMax = cfg.qdrant.memoryLimit;
         StandardOutput = "journal";
         StandardError = "journal";
@@ -54,7 +60,7 @@ in {
       group = "qdrant";
       description = "Qdrant Vector Database";
     };
-    users.groups.qdrant = {};
+    users.groups.qdrant = { };
 
     # Create storage directory
     systemd.tmpfiles.rules = [
@@ -62,6 +68,8 @@ in {
     ];
 
     # Open firewall for Qdrant (optional, local only by default)
-    networking.firewall.allowedTCPPorts = optional (cfg.qdrant.host != "127.0.0.1") cfg.qdrant.port;
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault (
+      lib.optional (cfg.qdrant.host != "127.0.0.1") cfg.qdrant.port
+    );
   };
 }

@@ -1,0 +1,21 @@
+# Memory Monitor Script ConfigMap
+# Used by memory-monitor CronJob
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: memory-monitor-script
+  namespace: monitoring
+data:
+  check-memory.sh: |
+    #!/bin/bash
+    # Memory monitoring alert script
+    THRESHOLD=75
+    CURRENT=$(free | grep Mem | awk '{printf("%.0f", $3/$2 * 100)}')
+    if [ $CURRENT -gt $THRESHOLD ]; then
+      echo "WARNING: Zephyr memory usage is ${CURRENT}%"
+      echo "Consider moving workloads or scaling up"
+      free -h
+      echo "Top memory consumers:"
+      ps aux --sort=-%mem | head -10
+    fi

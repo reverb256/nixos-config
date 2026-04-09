@@ -1,0 +1,364 @@
+# AI Inference Gateway Deployment (YuniKorn-Integrated)
+# VERSION: 3.1 - Security and Operational Hardening
+#
+# Changes from v3.0:
+# - Added serviceAccountName for least-privilege RBAC
+# - Fixed image tag with semantic versioning
+# - Added topology spread constraints for multi-zone HA
+# - Enhanced lifecycle hooks with timeout handling
+# - Added preStop hook for graceful shutdown
+
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: ai-inference-gateway-group
+  namespace: ai-inference
+  labels:
+    app: ai-inference-gateway
+spec:
+  # Minimum resources for gang scheduling
+  minMember: 1
+  minResources:
+    memory: "2Gi"
+    cpu: "2"
+  # Priority class (high - preempts mining)
+  priorityClassName: high-priority-ai
+  # Queue for AI workloads
+  queue: ai-queue
+  # Timeout for resource allocation
+  minTaskTimeout: 5m
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-gateway-config
+  namespace: ai-inference
+data:
+  # Core Configuration
+  AUTH_MODE: "none"
+  BACKEND_TYPE: "llama-cpp"
+  BACKEND_URL: "http://127.0.0.1:8083"
+  DEFAULT_MODEL: "qwen3.5-4b"
+
+  # RAG Configuration
+  RAG_ENABLED: "true"
+  RAG_TOP_K: "5"
+  CHUNK_SIZE: "512"
+  CHUNK_OVERLAP: "50"
+  EMBEDDING_MODEL: "sentence-transformers/all-MiniLM-L6-v2"
+
+  # Qdrant (vector database)
+  QDRANT_URL: "http://qdrant:6333"
+
+  # Knowledge Fabric Middleware
+  MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED: "true"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K: "60"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED: "true"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K: "5"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED: "true"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_MAX_RESULTS: "5"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED: "true"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS: "5"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL: "http://searxng:7777"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED: "true"
+  MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS: "5"
+
+  # Auto-RAG
+  AUTO_RAG_ENABLED: "true"
+  HYBRID_SEARCH_ENABLED: "true"
+  BM25_WEIGHT: "0.300000"
+
+  # MCP Configuration
+  MCP_ENABLED: "false"  # Disabled for K8s (local MCP servers won't work in pods)
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-inference-gateway
+  namespace: ai-inference
+  labels:
+    app: ai-inference-gateway
+    version: "v3.1"
+    scheduler: yunikorn
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-inference-gateway
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: ai-inference-gateway
+        version: "v3.1"
+        # PodGroup association for gang scheduling
+        scheduling.volcano.sh/pod-group: ai-inference-gateway-group
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9190"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Use YuniKorn scheduler
+      schedulerName: yunikorn
+      # ✅ ADDED: ServiceAccount for least-privilege RBAC
+      serviceAccountName: ai-gateway-sa
+      # High priority (preempts mining)
+      priorityClassName: high-priority-ai
+      # Node selector (keep on Zephyr for local backend dependency)
+      nodeSelector:
+        kubernetes.io/hostname: zephyr
+      # Graceful shutdown for scheduler signaling
+      terminationGracePeriodSeconds: 30
+      # ✅ ADDED: Topology spread constraints for HA
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: ai-inference-gateway
+      containers:
+      - name: gateway
+        # ✅ FIXED: Semantic versioning instead of latest
+        image: ghcr.io/j-kro/ai-inference-gateway:v3.1.0
+        imagePullPolicy: IfNotPresent
+        env:
+        # Core Configuration
+        - name: AUTH_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: AUTH_MODE
+        - name: BACKEND_TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: BACKEND_TYPE
+        - name: BACKEND_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: BACKEND_URL
+        - name: DEFAULT_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: DEFAULT_MODEL
+        # RAG Configuration
+        - name: RAG_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: RAG_ENABLED
+        - name: RAG_TOP_K
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: RAG_TOP_K
+        - name: CHUNK_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: CHUNK_SIZE
+        - name: CHUNK_OVERLAP
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: CHUNK_OVERLAP
+        - name: EMBEDDING_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: EMBEDDING_MODEL
+        # Qdrant
+        - name: QDRANT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: QDRANT_URL
+        # Knowledge Fabric
+        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED
+        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K
+        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED
+        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED
+        - name: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED
+        # Gateway Configuration
+        - name: GATEWAY_HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8080"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        # MCP (disabled in K8s)
+        - name: MCP_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: ai-gateway-config
+              key: MCP_ENABLED
+        # Security
+        - name: MAX_REQUEST_SIZE
+          value: "10485760"
+        # Lifecycle hooks for scheduler signaling
+        - name: GATEWAY_LIFECYCLE_ENABLED
+          value: "true"
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9190
+          protocol: TCP
+        # Health Checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        # Enhanced resource requests for YuniKorn scheduling
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        # Volume mounts for code search (read-only)
+        volumeMounts:
+        - name: nixos-config
+          mountPath: /etc/nixos
+          readOnly: true
+        # ✅ ENHANCED: Lifecycle hooks for GPU scheduler signaling with timeout
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/bash
+              - -c
+              - |
+                # Signal GPU scheduler that AI workload is stopping
+                # Timeout after 5 seconds to prevent hanging shutdown
+                timeout 5 python -c "
+                from modules.services.ai_inference.ai_inference_gateway import gpu_scheduler
+                gpu_scheduler.notify_ai_stopping()
+                " || echo "Failed to signal scheduler (timeout or error)"
+      volumes:
+      - name: nixos-config
+        hostPath:
+          path: /etc/nixos
+          type: Directory
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-inference-gateway
+  namespace: ai-inference
+  labels:
+    app: ai-inference-gateway
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9190"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9190
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: ai-inference-gateway
+---
+# HorizontalPodAutoscaler for AI gateway (based on CPU/memory)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ai-inference-gateway-hpa
+  namespace: ai-inference
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ai-inference-gateway
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 30
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+---
+# PodDisruptionBudget for AI Gateway
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-inference-gateway-pdb
+  namespace: ai-inference
+  labels:
+    app: ai-inference-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-inference-gateway

@@ -1,0 +1,7 @@
+# Calico API Server — enables calicoctl and policy management
+# Optional but recommended for operating Calico
+apiVersion: operator.tigera.io/v1
+kind: APIServer
+metadata:
+  name: default
+spec: {}

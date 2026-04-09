@@ -1,0 +1,16 @@
+# Calico Felix Configuration - Disable all encapsulation
+# This configures Calico to use pure Layer 3 routing without VXLAN/IPIP
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: calico-node-config
+  namespace: kube-system
+data:
+  # Disable VXLAN
+  vxlan_enabled: "false"
+  # Disable IPIP
+  ipip_enabled: "false"
+  # Use pure routing (no encapsulation)
+  route_source: "WorkloadIPs"
+  # Fallback to encapsulation if needed
+  fallback_to_learned_routes: "false"

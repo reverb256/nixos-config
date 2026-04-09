@@ -1,0 +1,591 @@
+# Node Homepage Dashboards for NixOS Kubernetes Cluster
+# One dashboard per cluster node: zephyr.lan, nexus.lan, forge.lan, sentry.lan
+# Serves static HTML with nginx:alpine, pinned to specific node via nodeSelector
+
+---
+# ZEPHYR DASHBOARD - Control Plane, Workstation, Gaming, VR, AI
+# CPU: AMD 5950X (32 cores) | RAM: 31GB | GPUs: RTX 3090 + RTX 3060 Ti
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zephyr-dashboard-html
+  namespace: default
+  labels:
+    app.kubernetes.io/name: zephyr-dashboard
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Zephyr - Cluster Dashboard</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+          --bg-primary: #0a0e1a;
+          --bg-secondary: #111827;
+          --bg-card: #1f2937;
+          --text-primary: #f9fafb;
+          --text-secondary: #9ca3af;
+          --accent: #3b82f6;
+          --success: #10b981;
+          --warning: #f59e0b;
+          --border: #374151;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1f35 100%); color: var(--text-primary); min-height: 100vh; line-height: 1.6; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        h1 { font-size: 2.5rem; font-weight: 700; }
+        .hostname { color: var(--accent); }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 500; }
+        .badge.online { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .badge.role { background: rgba(59, 130, 246, 0.2); color: var(--accent); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); }
+        .card-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-secondary); }
+        .info-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .info-label { color: var(--text-secondary); }
+        .info-value { font-weight: 500; font-family: monospace; }
+        .gpu-list, .service-list { list-style: none; }
+        .gpu-list li, .service-list li { padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-secondary); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .gpu-badge { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .gpu-badge.nvidia { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .service-url { color: var(--accent); text-decoration: none; font-size: 0.875rem; padding: 0.25rem 0.75rem; border-radius: 6px; background: rgba(59, 130, 246, 0.1); }
+        .nav-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .nav-link { display: flex; flex-direction: column; padding: 1rem; background: var(--bg-secondary); border-radius: 8px; text-decoration: none; color: var(--text-primary); border: 1px solid transparent; }
+        .nav-link:hover { border-color: var(--accent); background: rgba(59, 130, 246, 0.1); }
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.875rem; }
+        @media (max-width: 768px) { h1 { font-size: 1.75rem; } .grid { grid-template-columns: 1fr; } }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <header>
+          <div>
+            <h1><span class="hostname">Zephyr</span> Dashboard</h1>
+            <p style="color: var(--text-secondary); margin-top: 0.5rem;">Control Plane • Workstation • Gaming</p>
+          </div>
+          <div><span class="badge online">● Online</span> <span class="badge role">K8s Master</span></div>
+        </header>
+
+        <div class="card" style="margin-bottom: 2rem;">
+          <div class="card-title">Cluster Overview</div>
+          <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+            <div style="display: flex; flex-direction: column;"><span style="font-size: 2rem; font-weight: 700; color: var(--accent);">4</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Nodes</span></div>
+            <div style="display: flex; flex-direction: column;"><span style="font-size: 2rem; font-weight: 700; color: var(--accent);">78</span><span style="font-size: 0.875rem; color: var(--text-secondary);">CPU Cores</span></div>
+            <div style="display: flex; flex-direction: column;"><span style="font-size: 2rem; font-weight: 700; color: var(--accent);">123GB</span><span style="font-size: 0.875rem; color: var(--text-secondary);">RAM</span></div>
+            <div style="display: flex; flex-direction: column;"><span style="font-size: 2rem; font-weight: 700; color: var(--accent);">7</span><span style="font-size: 0.875rem; color: var(--text-secondary);">GPUs</span></div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <div class="card-title">Node Information</div>
+            <div class="info-row"><span class="info-label">Hostname</span><span class="info-value">zephyr</span></div>
+            <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">10.1.1.110</span></div>
+            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.35.0</span></div>
+            <div class="info-row"><span class="info-label">CNI</span><span class="info-value">Flannel VXLAN</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Hardware</div>
+            <div class="info-row"><span class="info-label">CPU</span><span class="info-value">AMD 5950X (32 cores)</span></div>
+            <div class="info-row"><span class="info-label">Memory</span><span class="info-value">31 GB</span></div>
+            <div class="info-row"><span class="info-label">Storage</span><span class="info-value">1.85 TB SSD</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">GPUs</div>
+            <ul class="gpu-list">
+              <li><span>RTX 3090</span> <span class="gpu-badge nvidia">NVIDIA 24GB</span></li>
+              <li><span>RTX 3060 Ti</span> <span class="gpu-badge nvidia">NVIDIA 8GB</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <div class="card-title">Services</div>
+            <ul class="service-list">
+              <li><span>Kubernetes API</span> <span class="service-url">:6443</span></li>
+              <li><span>AI Inference</span> <a href="http://ai.cluster.local" class="service-url">ai.cluster.local</a></li>
+              <li><span>SearXNG</span> <a href="http://search.cluster.local" class="service-url">search.cluster.local</a></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Quick Links</div>
+            <div class="nav-grid">
+              <a href="http://dash.cluster.local" class="nav-link"><span style="font-weight: 600;">Grafana</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Dashboards</span></a>
+              <a href="http://metrics.cluster.local" class="nav-link"><span style="font-weight: 600;">Prometheus</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Metrics</span></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Other Nodes</div>
+          <div class="nav-grid">
+            <a href="http://nexus.lan" class="nav-link"><span style="font-weight: 600;">Nexus</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Storage • 24 cores</span></a>
+            <a href="http://forge.lan" class="nav-link"><span style="font-weight: 600;">Forge</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Multi-GPU • 6 cores</span></a>
+            <a href="http://sentry.lan" class="nav-link"><span style="font-weight: 600;">Sentry</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Monitoring • 16 cores</span></a>
+          </div>
+        </div>
+
+        <footer><p>NixOS Cluster • Kubernetes v1.35.0 • <span id="timestamp"></span></p></footer>
+      </div>
+      <script>document.getElementById('timestamp').textContent = new Date().toLocaleString(); setTimeout(() => location.reload(), 60000);</script>
+    </body>
+    </html>
+
+---
+# NEXUS DASHBOARD - Storage, Build, Gaming
+# CPU: AMD Zen (24 cores) | RAM: 46GB | GPUs: RTX 3060 Ti
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-dashboard-html
+  namespace: default
+  labels:
+    app.kubernetes.io/name: nexus-dashboard
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Nexus - Cluster Dashboard</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --bg-primary: #0a0e1a; --bg-secondary: #111827; --bg-card: #1f2937; --text-primary: #f9fafb; --text-secondary: #9ca3af; --accent: #10b981; --success: #10b981; --border: #374151; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1f35 100%); color: var(--text-primary); min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        h1 { font-size: 2.5rem; font-weight: 700; }
+        .hostname { color: var(--accent); }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; }
+        .badge.online { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); }
+        .card-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-secondary); }
+        .info-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .info-label { color: var(--text-secondary); }
+        .info-value { font-weight: 500; font-family: monospace; }
+        .gpu-list { list-style: none; }
+        .gpu-list li { padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-secondary); border-radius: 8px; display: flex; justify-content: space-between; }
+        .gpu-badge { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .nav-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .nav-link { display: flex; flex-direction: column; padding: 1rem; background: var(--bg-secondary); border-radius: 8px; text-decoration: none; color: var(--text-primary); }
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.875rem; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <header><h1><span class="hostname">Nexus</span> Dashboard</h1><span class="badge online">● Online</span></header>
+        <div class="grid">
+          <div class="card"><div class="card-title">Node Information</div>
+            <div class="info-row"><span class="info-label">Hostname</span><span class="info-value">nexus</span></div>
+            <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">10.1.1.120</span></div>
+            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.35.0</span></div>
+          </div>
+          <div class="card"><div class="card-title">Hardware</div>
+            <div class="info-row"><span class="info-label">CPU</span><span class="info-value">AMD Zen (24 cores)</span></div>
+            <div class="info-row"><span class="info-label">Memory</span><span class="info-value">46 GB</span></div>
+            <div class="info-row"><span class="info-label">Storage</span><span class="info-value">4.7 TB (3.8TB NFS)</span></div>
+          </div>
+          <div class="card"><div class="card-title">GPU</div><ul class="gpu-list"><li><span>RTX 3060 Ti</span> <span class="gpu-badge">NVIDIA 8GB</span></li></ul></div>
+        </div>
+        <div class="card"><div class="card-title">Other Nodes</div>
+          <div class="nav-grid">
+            <a href="http://zephyr.lan" class="nav-link"><span style="font-weight: 600;">Zephyr</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Control Plane</span></a>
+            <a href="http://forge.lan" class="nav-link"><span style="font-weight: 600;">Forge</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Multi-GPU</span></a>
+            <a href="http://sentry.lan" class="nav-link"><span style="font-weight: 600;">Sentry</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Monitoring</span></a>
+          </div>
+        </div>
+        <footer><p>NixOS Cluster • Kubernetes v1.35.0</p></footer>
+      </div>
+    </body>
+    </html>
+
+---
+# FORGE DASHBOARD - Multi-GPU Mining, AI Inference
+# CPU: Intel Skylake (6 cores) | RAM: 15GB | GPUs: 2x RTX 4060 + 2x RX 5700 XT
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: forge-dashboard-html
+  namespace: default
+  labels:
+    app.kubernetes.io/name: forge-dashboard
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Forge - Cluster Dashboard</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --bg-primary: #0a0e1a; --bg-secondary: #111827; --bg-card: #1f2937; --text-primary: #f9fafb; --text-secondary: #9ca3af; --accent: #f59e0b; --success: #10b981; --warning: #f59e0b; --border: #374151; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1f35 100%); color: var(--text-primary); min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        h1 { font-size: 2.5rem; font-weight: 700; }
+        .hostname { color: var(--accent); }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; }
+        .badge.online { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); }
+        .card-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-secondary); }
+        .info-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .info-label { color: var(--text-secondary); }
+        .info-value { font-weight: 500; font-family: monospace; }
+        .gpu-list { list-style: none; }
+        .gpu-list li { padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-secondary); border-radius: 8px; display: flex; justify-content: space-between; }
+        .gpu-badge { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .gpu-badge.nvidia { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .gpu-badge.amd { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .nav-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .nav-link { display: flex; flex-direction: column; padding: 1rem; background: var(--bg-secondary); border-radius: 8px; text-decoration: none; color: var(--text-primary); }
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.875rem; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <header><h1><span class="hostname">Forge</span> Dashboard</h1><span class="badge online">● Online</span></header>
+        <div class="grid">
+          <div class="card"><div class="card-title">Node Information</div>
+            <div class="info-row"><span class="info-label">Hostname</span><span class="info-value">forge</span></div>
+            <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">10.1.1.130</span></div>
+            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.35.0</span></div>
+          </div>
+          <div class="card"><div class="card-title">Hardware</div>
+            <div class="info-row"><span class="info-label">CPU</span><span class="info-value">Intel Skylake (6 cores)</span></div>
+            <div class="info-row"><span class="info-label">Memory</span><span class="info-value">15 GB</span></div>
+            <div class="info-row"><span class="info-label">Storage</span><span class="info-value">446 GB SSD</span></div>
+          </div>
+          <div class="card"><div class="card-title">GPUs (Mixed Vendor)</div>
+            <ul class="gpu-list">
+              <li><span>RTX 4060</span> <span class="gpu-badge nvidia">NVIDIA 8GB</span></li>
+              <li><span>RTX 4060</span> <span class="gpu-badge nvidia">NVIDIA 8GB</span></li>
+              <li><span>RX 5700 XT</span> <span class="gpu-badge amd">AMD 8GB</span></li>
+              <li><span>RX 5700 XT</span> <span class="gpu-badge amd">AMD 8GB</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="card"><div class="card-title">Other Nodes</div>
+          <div class="nav-grid">
+            <a href="http://zephyr.lan" class="nav-link"><span style="font-weight: 600;">Zephyr</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Control Plane</span></a>
+            <a href="http://nexus.lan" class="nav-link"><span style="font-weight: 600;">Nexus</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Storage</span></a>
+            <a href="http://sentry.lan" class="nav-link"><span style="font-weight: 600;">Sentry</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Monitoring</span></a>
+          </div>
+        </div>
+        <footer><p>NixOS Cluster • Kubernetes v1.35.0</p></footer>
+      </div>
+    </body>
+    </html>
+
+---
+# SENTRY DASHBOARD - Monitoring, CPU Mining
+# CPU: AMD Zen (16 cores) | RAM: 31GB | GPUs: RX 5600 XT
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentry-dashboard-html
+  namespace: default
+  labels:
+    app.kubernetes.io/name: sentry-dashboard
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Sentry - Cluster Dashboard</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --bg-primary: #0a0e1a; --bg-secondary: #111827; --bg-card: #1f2937; --text-primary: #f9fafb; --text-secondary: #9ca3af; --accent: #ef4444; --success: #10b981; --warning: #f59e0b; --border: #374151; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1f35 100%); color: var(--text-primary); min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        h1 { font-size: 2.5rem; font-weight: 700; }
+        .hostname { color: var(--accent); }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; }
+        .badge.online { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .card { background: var(--bg-card); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); }
+        .card-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-secondary); }
+        .info-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .info-label { color: var(--text-secondary); }
+        .info-value { font-weight: 500; font-family: monospace; }
+        .gpu-list { list-style: none; }
+        .gpu-list li { padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-secondary); border-radius: 8px; display: flex; justify-content: space-between; }
+        .gpu-badge { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .nav-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .nav-link { display: flex; flex-direction: column; padding: 1rem; background: var(--bg-secondary); border-radius: 8px; text-decoration: none; color: var(--text-primary); }
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; color: var(--text-secondary); font-size: 0.875rem; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <header><h1><span class="hostname">Sentry</span> Dashboard</h1><span class="badge online">● Online</span></header>
+        <div class="grid">
+          <div class="card"><div class="card-title">Node Information</div>
+            <div class="info-row"><span class="info-label">Hostname</span><span class="info-value">sentry</span></div>
+            <div class="info-row"><span class="info-label">IP Address</span><span class="info-value">10.1.1.140</span></div>
+            <div class="info-row"><span class="info-label">K8s Version</span><span class="info-value">v1.35.0</span></div>
+          </div>
+          <div class="card"><div class="card-title">Hardware</div>
+            <div class="info-row"><span class="info-label">CPU</span><span class="info-value">AMD Zen (16 cores)</span></div>
+            <div class="info-row"><span class="info-label">Memory</span><span class="info-value">31 GB</span></div>
+            <div class="info-row"><span class="info-label">Storage</span><span class="info-value">1.23 TB (SSD + HDD)</span></div>
+          </div>
+          <div class="card"><div class="card-title">GPU</div><ul class="gpu-list"><li><span>RX 5600 XT</span> <span class="gpu-badge">AMD 6GB</span></li></ul></div>
+        </div>
+        <div class="card"><div class="card-title">Other Nodes</div>
+          <div class="nav-grid">
+            <a href="http://zephyr.lan" class="nav-link"><span style="font-weight: 600;">Zephyr</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Control Plane</span></a>
+            <a href="http://nexus.lan" class="nav-link"><span style="font-weight: 600;">Nexus</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Storage</span></a>
+            <a href="http://forge.lan" class="nav-link"><span style="font-weight: 600;">Forge</span><span style="font-size: 0.875rem; color: var(--text-secondary);">Multi-GPU</span></a>
+          </div>
+        </div>
+        <footer><p>NixOS Cluster • Kubernetes v1.35.0</p></footer>
+      </div>
+    </body>
+    </html>
+
+---
+# Deployments with nodeSelector
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zephyr-dashboard
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zephyr-dashboard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: zephyr-dashboard
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector:
+        kubernetes.io/hostname: zephyr
+      containers:
+      - name: dashboard
+        image: nginxinc/nginx-unprivileged:alpine
+        ports:
+        - containerPort: 8080
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+          readOnly: true
+        resources:
+          requests: { cpu: 50m, memory: 32Mi }
+          limits: { cpu: 100m, memory: 64Mi }
+      volumes:
+      - name: html
+        configMap:
+          name: zephyr-dashboard-html
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus-dashboard
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nexus-dashboard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nexus-dashboard
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector:
+        kubernetes.io/hostname: nexus
+      containers:
+      - name: dashboard
+        image: nginxinc/nginx-unprivileged:alpine
+        ports:
+        - containerPort: 8080
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+          readOnly: true
+        resources:
+          requests: { cpu: 50m, memory: 32Mi }
+          limits: { cpu: 100m, memory: 64Mi }
+      volumes:
+      - name: html
+        configMap:
+          name: nexus-dashboard-html
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forge-dashboard
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: forge-dashboard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: forge-dashboard
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector:
+        kubernetes.io/hostname: forge
+      containers:
+      - name: dashboard
+        image: nginxinc/nginx-unprivileged:alpine
+        ports:
+        - containerPort: 8080
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+          readOnly: true
+        resources:
+          requests: { cpu: 50m, memory: 32Mi }
+          limits: { cpu: 100m, memory: 64Mi }
+      volumes:
+      - name: html
+        configMap:
+          name: forge-dashboard-html
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-dashboard
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sentry-dashboard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sentry-dashboard
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector:
+        kubernetes.io/hostname: sentry
+      containers:
+      - name: dashboard
+        image: nginxinc/nginx-unprivileged:alpine
+        ports:
+        - containerPort: 8080
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+          readOnly: true
+        resources:
+          requests: { cpu: 50m, memory: 32Mi }
+          limits: { cpu: 100m, memory: 64Mi }
+      volumes:
+      - name: html
+        configMap:
+          name: sentry-dashboard-html
+
+---
+# Services for dashboard access
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zephyr-dashboard
+  namespace: default
+spec:
+  selector:
+    app.kubernetes.io/name: zephyr-dashboard
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-dashboard
+  namespace: default
+spec:
+  selector:
+    app.kubernetes.io/name: nexus-dashboard
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: forge-dashboard
+  namespace: default
+spec:
+  selector:
+    app.kubernetes.io/name: forge-dashboard
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentry-dashboard
+  namespace: default
+spec:
+  selector:
+    app.kubernetes.io/name: sentry-dashboard
+  ports:
+  - port: 80
+    targetPort: 8080

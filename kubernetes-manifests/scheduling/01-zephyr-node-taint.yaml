@@ -1,0 +1,17 @@
+# Zephyr Workstation Node Taint
+# Prevents general workloads from scheduling on zephyr
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: zephyr
+spec:
+  taints:
+  # Taint for workstation-only workloads
+  - key: "workstation"
+    value: "true"
+    effect: NoSchedule
+  # Taint for interactive/low-latency workloads
+  - key: "interactive"
+    value: "true"
+    effect: NoExecute

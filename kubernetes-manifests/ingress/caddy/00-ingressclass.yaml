@@ -1,0 +1,12 @@
+# Caddy Ingress Controller — IngressClass
+# All Ingress resources should specify: ingressClassName: caddy
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: caddy
+  labels:
+    app.kubernetes.io/name: caddy-ingress-controller
+    app.kubernetes.io/component: controller
+spec:
+  controller: caddy.ingress.kubernetes.io/controller

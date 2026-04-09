@@ -35,7 +35,7 @@
         nexus = {
           ip = "10.1.1.120";
           tailscale = "100.86.158.18";
-          description = "Build/AIStor Server - 24 cores, 2x RTX 3060 Ti";
+          description = "Build/AIStor Server - 24 cores, 1x RTX 3060 Ti";
           roles = [
             "desktop"
             "gaming"
@@ -116,9 +116,23 @@
 
         # Monitoring
         prometheus = 9090;
+        alertmanager = 9093;
         grafana = 3001;
         node-exporter = 9100;
         nvidia-exporter = 9400;
+
+        # Kubernetes Ingress (Caddy)
+        caddy-admin = 2019; # Admin API & metrics
+        caddy-http = 80;
+        caddy-https = 443;
+        caddy-nodeport-http = 30080;
+        caddy-nodeport-https = 30443;
+      };
+
+      # Kubernetes HA Virtual IP (via Keepalived VRRP)
+      kubernetes = {
+        vip = "10.1.1.100";
+        apiPort = 6443;
       };
     };
     description = "Cluster network configuration constants";

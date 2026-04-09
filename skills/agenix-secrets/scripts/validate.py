@@ -11,11 +11,29 @@ import re
 from pathlib import Path
 from collections import defaultdict
 
+sys.path.insert(0, os.path.dirname(__file__))
+from common import (
+    ensure_dependencies,
+    get_age_identity_path,
+    get_secrets_nix_path,
+    get_secrets_dir,
+    print_error,
+    print_info,
+    print_warning,
+    print_success,
+)
 
-def parse_secrets_nix(secrets_nix_path="/etc/nixos/secrets.nix"):
+
+def parse_secrets_nix(secrets_nix_path=None):
     """Parse secrets.nix and extract all secret entries."""
-    if not os.path.exists(secrets_nix_path):
-        print(f"✗ secrets.nix not found: {secrets_nix_path}")
+    if secrets_nix_path is None:
+        secrets_nix_path = get_secrets_nix_path()
+
+    if not secrets_nix_path.exists():
+        print_error(
+            f"secrets.nix not found: {secrets_nix_path}",
+            "Run from /etc/nixos directory or set AGENIX_NIXOS_DIR",
+        )
         return None
 
     with open(secrets_nix_path, "r") as f:
@@ -216,9 +234,11 @@ def validate_key_references(secrets_from_nix, verbose=False):
     return issues
 
 
-def test_decrypt_single(secret_name, identity_file="/home/j_kro/.age/key.txt"):
+def test_decrypt_single(secret_name, identity_file=None):
     """Test decrypting a single secret."""
-    secrets_dir = "/etc/nixos/secrets"
+    if identity_file is None:
+        identity_file = str(get_age_identity_path())
+    secrets_dir = str(get_secrets_dir())
     secret_path = os.path.join(secrets_dir, secret_name)
 
     if not os.path.exists(secret_path):
@@ -232,7 +252,7 @@ def test_decrypt_single(secret_name, identity_file="/home/j_kro/.age/key.txt"):
             ["agenix", "-d", secret_path, "-i", identity_file],
             capture_output=True,
             text=True,
-            env={**os.environ, "RULES": "/etc/nixos/secrets.nix"},
+            env={**os.environ, "RULES": str(get_secrets_nix_path())},
             cwd="/etc/nixos",
         )
 
@@ -285,6 +305,9 @@ def validate_decryption(secrets_from_nix, test_one=False, verbose=False):
 def main():
     import argparse
 
+    if not ensure_dependencies(auto_install=True):
+        sys.exit(1)
+
     parser = argparse.ArgumentParser(description="Validate agenix secret configuration")
     parser.add_argument(
         "--verbose",
@@ -304,12 +327,12 @@ def main():
     )
     parser.add_argument(
         "--secrets-nix",
-        default="/etc/nixos/secrets.nix",
+        default=str(get_secrets_nix_path()),
         help="Path to secrets.nix",
     )
     parser.add_argument(
         "--secrets-dir",
-        default="/etc/nixos/secrets",
+        default=str(get_secrets_dir()),
         help="Path to secrets directory",
     )
 

@@ -1,0 +1,31 @@
+---
+# Fix CoreDNS network policy to allow API server access
+# This policy allows CoreDNS pods to connect to the Kubernetes API server
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-coredns-api-server
+  namespace: kube-system
+spec:
+  podSelector:
+    matchLabels:
+      k8s-app: kube-dns
+  policyTypes:
+  - Egress
+  egress:
+  # Allow HTTPS to Kubernetes API server
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/24
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow DNS to external servers (existing rule)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

@@ -1,0 +1,152 @@
+# API Server Monitoring and Alerting Rules
+# Tracks control plane health and availability
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-api-server-rules
+  namespace: monitoring
+data:
+  api-server-alerts.yml: |
+    groups:
+    - name: api-server-health
+      interval: 30s
+      rules:
+      # API Server Down
+      - alert: APIServerDown
+        expr: up{job="kube-apiserver"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: control-plane
+        annotations:
+          summary: "API server is down on {{ $labels.instance }}"
+          description: "API server has been down for more than 1 minute"
+          runbook: "Check kube-apiserver logs: kubectl -n kube-system logs kube-apiserver-<node>"
+
+      # API Server High Error Rate
+      - alert: APIServerHighErrorRate
+        expr: |
+          sum(rate(apiserver_request_total{job="kube-apiserver",code=~"5.."}[5m]))
+          /
+          sum(rate(apiserver_request_total{job="kube-apiserver"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "API server returning high error rate (5%+)"
+          description: "{{ $value | humanizePercentage }} of API requests are failing"
+
+      # API Server High Latency
+      - alert: APIServerHighLatency
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(apiserver_request_latencies_seconds_bucket{job="kube-apiserver"}[5m])) by (le)
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "API server p99 latency exceeds 1 second"
+          description: "99th percentile latency is {{ $value }}s"
+
+      # etcd High Request Duration
+      - alert: EtcdHighRequestDuration
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(etcd_request_duration_seconds_bucket[5m])) by (le)
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "etcd requests experiencing high latency"
+          description: "99th percentile etcd request duration is {{ $value }}s"
+
+      # API Server Restart Detected
+      - alert: APIServerRestart
+        expr: |
+          time() - process_start_time_seconds{job="kube-apiserver"} < 300
+        for: 0m
+        labels:
+          severity: critical
+          component: control-plane
+        annotations:
+          summary: "API server restarted on {{ $labels.instance }}"
+          description: "API server restarted less than 5 minutes ago"
+          runbook: "Check for crashes: kubectl -n kube-system logs --previous kube-apiserver-<node>"
+
+      # API Server Pod Count Mismatch
+      - alert: APIServerPodCountMismatch
+        expr: |
+          count(up{job="kube-apiserver"}) != 3
+        for: 5m
+        labels:
+          severity: critical
+          component: control-plane
+        annotations:
+          summary: "Expected 3 API server pods, found {{ $value }}"
+          description: "API server pod count is abnormal (expected 3 for 3-node cluster)"
+
+      # Control Plane Pod Restart Rate
+      - alert: ControlPlaneHighRestartRate
+        expr: |
+          increase(kube_pod_container_status_restarts_total{namespace="kube-system"}[1h]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "Control plane pod restarting frequently"
+          description: "{{ $labels.pod }} has restarted {{ $value }} times in the last hour"
+
+    - name: api-server-capacity
+      interval: 1m
+      rules:
+      # API Server CPU High
+      - alert: APIServerHighCPU
+        expr: |
+          sum(rate(container_cpu_usage_seconds_total{namespace="kube-system",container=~"kube-apiserver|etcd"}[5m]))
+          /
+          sum(machine_cpu_cores)
+          > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "Control plane using >50% of cluster CPU"
+          description: "Control plane components consuming {{ $value | humanizePercentage }} of CPU"
+
+      # API Server Memory High
+      - alert: APIServerHighMemory
+        expr: |
+          sum(container_memory_working_set_bytes{namespace="kube-system",container=~"kube-apiserver|etcd"})
+          /
+          sum(machine_memory_bytes)
+          > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          component: control-plane
+        annotations:
+          summary: "Control plane using >20% of cluster memory"
+          description: "Control plane components consuming {{ $value | humanizePercentage }} of memory"
+---
+# PrometheusRule requires Prometheus Operator
+# If not available, use ConfigMap and mount to Prometheus
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-api-server-alerts
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: local-path

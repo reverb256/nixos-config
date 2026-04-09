@@ -1,0 +1,66 @@
+# Monitoring Network Policy
+# Allows monitoring services to scrape metrics from all namespaces
+
+---
+# Allow monitoring namespace to access all namespaces for scraping
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-scrape
+  namespace: monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector: {}  # Can scrape all namespaces
+    ports:
+    - protocol: TCP
+      port: 9100  # node-exporter
+    - protocol: TCP
+      port: 9102  # cAdvisor
+    - protocol: TCP
+      port: 9090  # Prometheus
+    - protocol: TCP
+      port: 8080  # Custom metrics
+
+---
+# Allow DNS for monitoring
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Allow ingress to Grafana/Prometheus from anywhere
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: grafana
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector: {}  # Allow from any namespace
+    ports:
+    - protocol: TCP
+      port: 3000  # Grafana

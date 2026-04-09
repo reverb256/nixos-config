@@ -1,0 +1,34 @@
+# Pod Security Exceptions for GPU Workloads
+# These pods require specific exceptions for baseline PodSecurity enforcement
+# GPU access requires hostPath volumes, host namespaces, and elevated privileges
+
+---
+# Mining Namespace - GPU workloads require privileged access
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mining
+  labels:
+    # GPU mining requires hostPath for GPU devices and host namespaces
+    pod-security.kubernetes.io/allow-host-path: "true"
+    pod-security.kubernetes.io/allow-host-ipc: "true"
+    pod-security.kubernetes.io/allow-host-network: "true"
+    pod-security.kubernetes.io/allow-host-pid: "false"
+    pod-security.kubernetes.io/allow-privilege-escalation: "true"
+    pod-security.kubernetes.io/allow-privileged: "true"
+
+---
+# AI Inference Namespace - GPU workloads require elevated access
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-inference
+  labels:
+    # GPU inference requires hostPath for GPU devices and host namespaces
+    pod-security.kubernetes.io/allow-host-path: "true"
+    pod-security.kubernetes.io/allow-host-ipc: "true"
+    pod-security.kubernetes.io/allow-host-network: "false"
+    pod-security.kubernetes.io/allow-host-pid: "false"
+    pod-security.kubernetes.io/allow-privilege-escalation: "false"
+
+

@@ -1,10 +1,6 @@
 # Virtualisation Module
 # Podman, containers, and virtualisation tools from XNM1
-{
-  pkgs,
-  lib,
-  ...
-}: {
+{pkgs, ...}: {
   # ============================================================================
   # PODMAN (Docker alternative)
   # ============================================================================
@@ -13,7 +9,6 @@
 
     # Create a `docker` alias for podman (drop-in replacement)
     dockerCompat = true;
-    dockerSocket.enable = lib.mkForce true; # Override common-base.nix setting
 
     # Required for containers under podman-compose to talk to each other
     defaultNetwork.settings.dns_enabled = true;

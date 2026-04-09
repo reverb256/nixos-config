@@ -1,14 +1,15 @@
 # AI Inference Service - Main Module
-# Integrates with existing LM Studio installation
+# Backend integration for AI inference gateway
 {
   config,
   lib,
   pkgs,
+  inputs,
   ...
-}: let
+}:
+let
   cfg = config.services.ai-inference;
-  inherit
-    (lib)
+  inherit (lib)
     mkEnableOption
     mkOption
     mkIf
@@ -32,7 +33,8 @@
     ps.rank-bm25
     ps.numpy
   ]);
-in {
+in
+{
   options.services.ai-inference = {
     enable = mkEnableOption "AI Inference Service (integrates with LM Studio)";
 
@@ -40,6 +42,7 @@ in {
     package = mkOption {
       type = types.package;
       default = gatewayEnv;
+      defaultText = literalExpression "pkgs.python3.withPackages (ps: [ps.fastapi ps.uvicorn ...])";
       description = "Python environment with gateway dependencies";
       readOnly = true;
     };
@@ -54,30 +57,14 @@ in {
 
       type = mkOption {
         type = types.enum [
-          "lm-studio"
           "vllm"
           "llama-cpp"
           "sglang"
           "zai"
+          "pollinations"
         ];
-        default = "lm-studio";
+        default = "llama-cpp";
         description = "Backend inference engine type";
-      };
-
-      # LM Studio specific configuration
-      lmStudio = {
-        apiKey = mkOption {
-          type = types.str;
-          default = "";
-          description = "LM Studio API token (obtained from LM Studio settings)";
-        };
-
-        apiKeyFile = mkOption {
-          type = types.nullOr types.path;
-          default = null;
-          example = literalExpression "/run/agenix/lm-studio-api-key";
-          description = "Path to file containing LM Studio API token (takes precedence over apiKey)";
-        };
       };
 
       # ZAI-specific configuration
@@ -135,11 +122,20 @@ in {
         models = mkOption {
           type = types.attrs;
           default = {
+            "glm-5.1" = {
+              name = "GLM-5.1 (200K)";
+            };
             "glm-5" = {
               name = "GLM-5 (200K)";
             };
+            "glm-5-turbo" = {
+              name = "GLM-5 Turbo (200K, Agentic)";
+            };
             "glm-4.7" = {
               name = "GLM-4.7 (200K)";
+            };
+            "glm-4.7-flash" = {
+              name = "GLM-4.7 Flash (128K, Vision)";
             };
             "glm-4.6" = {
               name = "GLM-4.6 (256K)";
@@ -151,6 +147,64 @@ in {
           description = "Available ZAI models";
         };
       };
+
+      # Pollinations-specific configuration
+      pollinations = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable Pollinations AI service (free text, image, TTS)";
+        };
+
+        apiKey = mkOption {
+          type = types.str;
+          default = "";
+          description = "Pollinations API key";
+        };
+
+        apiKeyFile = mkOption {
+          type = types.nullOr types.path;
+          default = null;
+          example = literalExpression "/run/agenix/pollinations-api-key";
+          description = "Path to file containing Pollinations API key (takes precedence over apiKey)";
+        };
+
+        baseUrl = mkOption {
+          type = types.str;
+          default = "https://text.pollinations.ai";
+          description = "Pollinations API base URL";
+        };
+
+        # Available models on Pollinations
+        models = mkOption {
+          type = types.attrs;
+          default = {
+            "openai" = {
+              name = "OpenAI-compatible (GPT-4, GPT-4.1, GPT-4o, o1)";
+            };
+            "anthropic" = {
+              name = "Anthropic-compatible (Claude Sonnet, Opus, Haiku)";
+            };
+            "qwen" = {
+              name = "Qwen2.5 72B, 7B";
+            };
+            "flux" = {
+              name = "Flux image generation";
+            };
+            "turbo" = {
+              name = "Fast generation";
+            };
+          };
+          description = "Available Pollinations models";
+        };
+      };
+    };
+
+    # SearXNG integration
+    searxngUrl = mkOption {
+      type = types.str;
+      default = "http://10.0.0.102:8080";
+      description = "SearXNG URL for knowledge fabric integration";
     };
 
     # API Gateway configuration
@@ -163,8 +217,8 @@ in {
 
       host = mkOption {
         type = types.str;
-        default = "0.0.0.0"; # Listen on all interfaces for Spacebot integration
-        description = "Gateway listen address (use 0.0.0.0 for all interfaces or Tailscale IP for network access)";
+        default = "127.0.0.1"; # Bind to localhost by default for security
+        description = "Gateway listen address (use 127.0.0.1 for localhost, or specific IP for network access)";
       };
 
       port = mkOption {
@@ -177,6 +231,13 @@ in {
         type = types.int;
         default = 4;
         description = "Number of uvicorn workers";
+      };
+
+      python = mkOption {
+        type = types.nullOr types.package;
+        default = null;
+        description = "Gateway Python environment (set by gateway.nix)";
+        internal = true;
       };
 
       # Middleware configuration
@@ -198,6 +259,68 @@ in {
             description = "Redis port";
           };
         };
+        knowledgeFabric = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable Knowledge Fabric middleware for synthesized search";
+          };
+          rrf_k = mkOption {
+            type = types.int;
+            default = 60;
+            description = "RRF constant for Reciprocal Rank Fusion";
+          };
+          rag_enabled = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable RAG knowledge source";
+          };
+          code_search_enabled = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable code search source";
+          };
+          searxng_enabled = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable SearXNG knowledge source";
+          };
+          web_search_enabled = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable MCP web search source";
+          };
+          code_search_paths = mkOption {
+            type = types.listOf types.str;
+            default = [ "/etc/nixos" ];
+            description = "Paths to search for code";
+          };
+          rag_top_k = mkOption {
+            type = types.int;
+            default = 5;
+            description = "RAG top-K results";
+          };
+          searxng_url = mkOption {
+            type = types.str;
+            default = "http://searxng.search.svc.cluster.local:8080";
+            description = "SearXNG URL";
+          };
+          searxng_max_results = mkOption {
+            type = types.int;
+            default = 5;
+            description = "SearXNG max results";
+          };
+          code_max_results = mkOption {
+            type = types.int;
+            default = 5;
+            description = "Code search max results";
+          };
+          web_max_results = mkOption {
+            type = types.int;
+            default = 5;
+            description = "Web search max results";
+          };
+        };
       };
     };
 
@@ -214,8 +337,8 @@ in {
         type = types.listOf types.str;
         default = [
           "vllm"
-          "lm-studio"
           "zai"
+          "pollinations"
         ];
         description = "Order of backend fallback on failure";
       };
@@ -292,7 +415,7 @@ in {
       tailscale = {
         aclTags = mkOption {
           type = types.listOf types.str;
-          default = [];
+          default = [ ];
           example = [
             "tag:ai-inference"
             "tag:trusted"
@@ -339,59 +462,133 @@ in {
       };
     };
 
+    # System Prompts Configuration
+    systemPrompts = {
+      enable = mkEnableOption "Custom system prompts for different request types";
+
+      default = mkOption {
+        type = types.str;
+        default = "";
+        description = "Default system prompt applied to all requests (unless overridden)";
+      };
+
+      coding = mkOption {
+        type = types.str;
+        default = "You are an expert coding assistant. Write clean, efficient, and well-documented code.";
+        description = "System prompt for coding-related requests";
+      };
+
+      reasoning = mkOption {
+        type = types.str;
+        default = "You are an expert reasoning assistant. Think step-by-step and provide clear explanations.";
+        description = "System prompt for reasoning-related requests";
+      };
+
+      analysis = mkOption {
+        type = types.str;
+        default = "You are an expert analysis assistant. Provide thorough and structured analysis.";
+        description = "System prompt for analysis-related requests";
+      };
+
+      agentic = mkOption {
+        type = types.str;
+        default = "You are an autonomous agent capable of multi-step planning and execution.";
+        description = "System prompt for agentic/workflow requests";
+      };
+
+      fast = mkOption {
+        type = types.str;
+        default = "You are a fast and efficient assistant. Provide concise, direct answers.";
+        description = "System prompt for fast response requests";
+      };
+
+      custom = mkOption {
+        type = types.attrsOf types.str;
+        default = { };
+        example = literalExpression ''
+          {
+            nixos = "You are a NixOS configuration expert. Always use lib.mkOptionDefault for shared modules.";
+            kubernetes = "You are a Kubernetes expert. Use best practices for manifests and configurations.";
+          }
+        '';
+        description = "Custom system prompts by name";
+      };
+    };
+
     # MCP Broker configuration
     mcp = {
       enable = mkEnableOption "MCP broker for aggregating tools from multiple MCP servers";
 
       servers = mkOption {
         type = types.attrsOf (
-          types.submodule ({config, ...}: {
-            options = {
-              type = mkOption {
-                type = types.enum ["local" "remote"];
-                default = "remote";
-                description = "MCP server type: local (stdio subprocess) or remote (HTTP)";
-              };
+          types.submodule (
+            { config, ... }:
+            {
+              options = {
+                type = mkOption {
+                  type = types.enum [
+                    "local"
+                    "remote"
+                  ];
+                  default = "remote";
+                  description = "MCP server type: local (stdio subprocess) or remote (HTTP)";
+                };
 
-              url = mkOption {
-                type = types.nullOr types.str;
-                default =
-                  if config.type == "remote"
-                  then null
-                  else null;
-                description = "MCP server URL (required for remote type)";
-              };
+                url = mkOption {
+                  type = types.nullOr types.str;
+                  default = if config.type == "remote" then null else null;
+                  description = "MCP server URL (required for remote type)";
+                };
 
-              command = mkOption {
-                type = types.nullOr (types.listOf types.str);
-                default = null;
-                example = literalExpression ''[ "${pkgs.python3}/bin/python3" "/etc/nixos/skills/my-skill/server.py" ]'';
-                description = "Command to run for local MCP servers (required for local type)";
-              };
+                command = mkOption {
+                  type = types.nullOr (types.listOf types.str);
+                  default = null;
+                  example = literalExpression ''[ "${pkgs.python3}/bin/python3" "/etc/nixos/skills/my-skill/server.py" ]'';
+                  description = "Command to run for local MCP servers (required for local type)";
+                };
 
-              environment = mkOption {
-                type = types.attrsOf types.str;
-                default = {};
-                example = {NIX_HOST = "zephyr";};
-                description = "Environment variables for local MCP servers";
-              };
+                environment = mkOption {
+                  type = types.attrsOf types.str;
+                  default = { };
+                  example = {
+                    NIX_HOST = "zephyr";
+                  };
+                  description = "Environment variables for local MCP servers";
+                };
 
-              headers = mkOption {
-                type = types.attrsOf types.str;
-                default = {};
-                example = {Authorization = "Bearer token";};
-                description = "HTTP headers for authentication (remote type only)";
-              };
+                headers = mkOption {
+                  type = types.attrsOf types.str;
+                  default = { };
+                  example = {
+                    Authorization = "Bearer token";
+                  };
+                  description = "HTTP headers for authentication (remote type only)";
+                };
 
-              enabled = mkOption {
-                type = types.bool;
-                default = true;
-                description = "Whether this server is enabled";
+                enabled = mkOption {
+                  type = types.bool;
+                  default = true;
+                  description = "Whether this server is enabled";
+                };
               };
-            };
-          })
+            }
+          )
         );
-        default = {};
+        default = {
+          # SearXNG local MCP server - privacy-respecting metasearch
+          searxng = {
+            type = "local";
+            command = [
+              "${pkgs.python3}/bin/python3"
+              "-m"
+              "ai_inference_gateway.mcp_servers.searxng_server"
+            ];
+            environment = {
+              SEARXNG_URL = "https://search.reverb256.ca";
+              SEARXNG_CACHE_TTL = "300";
+            };
+          };
+        };
         example = literalExpression ''
           {
             # Remote HTTP MCP server
@@ -598,7 +795,11 @@ in {
       };
 
       environment = mkOption {
-        type = types.enum ["development" "staging" "production"];
+        type = types.enum [
+          "development"
+          "staging"
+          "production"
+        ];
         default = "production";
         description = "Sentry environment name";
       };
@@ -608,43 +809,6 @@ in {
         default = 0.1;
         description = "Sample rate for performance tracing (0.0 to 1.0)";
       };
-    };
-
-    # LM Studio headless service (optional)
-    lm-studio-headless = mkOption {
-      type = types.nullOr (
-        types.submodule {
-          options = {
-            enable = mkOption {
-              type = types.bool;
-              default = false;
-              description = "Enable LM Studio headless service";
-            };
-            port = mkOption {
-              type = types.port;
-              default = 1234;
-              description = "Port for LM Studio API server";
-            };
-            host = mkOption {
-              type = types.str;
-              default = "127.0.0.1";
-              description = "Host address to bind to";
-            };
-            user = mkOption {
-              type = types.str;
-              default = "j_kro";
-              description = "User to run LM Studio as";
-            };
-            openFirewall = mkOption {
-              type = types.bool;
-              default = false;
-              description = "Open firewall for the configured port";
-            };
-          };
-        }
-      );
-      default = null;
-      description = "LM Studio headless service configuration (optional)";
     };
   };
 
@@ -659,63 +823,160 @@ in {
   ];
 
   config = mkIf cfg.enable {
+    # ============================================================================
+    # ASSERTIONS
+    # ============================================================================
+    assertions = [
+      {
+        assertion = cfg.backend.url != "";
+        message = ''
+          AI Inference Service requires a backend URL to be configured.
+
+          Current configuration:
+            services.ai-inference.backend.url = "${cfg.backend.url}"
+
+          Configure a backend URL in one of these ways:
+            services.ai-inference.backend.url = "http://127.0.0.1:1234";  # LM Studio
+            services.ai-inference.backend.url = "http://127.0.0.1:8080";  # Gateway
+        '';
+      }
+      {
+        assertion =
+          cfg.backend.zai.enable -> (cfg.backend.zai.apiKey != "" || cfg.backend.zai.apiKeyFile != null);
+        message = ''
+          ZAI backend is enabled but no API key is configured.
+
+          When services.ai-inference.backend.zai.enable is true, you must configure:
+            services.ai-inference.backend.zai.apiKey = "your-api-key";
+            # OR
+            services.ai-inference.backend.zai.apiKeyFile = /run/agenix/zai-api-key;
+
+          Current configuration:
+            zai.enable = ${toString cfg.backend.zai.enable}
+            zai.apiKey = ${if cfg.backend.zai.apiKey != "" then "***" else "(not set)"}
+            zai.apiKeyFile = ${
+              if cfg.backend.zai.apiKeyFile != null then toString cfg.backend.zai.apiKeyFile else "(not set)"
+            }
+        '';
+      }
+      {
+        assertion =
+          cfg.backend.type == "zai" -> (cfg.backend.zai.apiKey != "" || cfg.backend.zai.apiKeyFile != null);
+        message = ''
+          Backend type is "zai" but no ZAI API key is configured.
+
+          When using ZAI backend, configure an API key:
+            services.ai-inference.backend.zai.apiKey = "your-zai-api-key";
+            # OR
+            services.ai-inference.backend.zai.apiKeyFile = /run/agenix/zai-api-key;
+
+          Current configuration:
+            backend.type = "${cfg.backend.type}"
+            zai.apiKey = ${if cfg.backend.zai.apiKey != "" then "***" else "(not set)"}
+            zai.apiKeyFile = ${
+              if cfg.backend.zai.apiKeyFile != null then toString cfg.backend.zai.apiKeyFile else "(not set)"
+            }
+
+          Or change backend type to: vllm, llama-cpp, sglang, pollinations
+        '';
+      }
+      {
+        assertion = cfg.rag.enable -> cfg.rag.qdrant.enable;
+        message = ''
+          RAG is enabled but Qdrant vector database is not enabled.
+
+          When services.ai-inference.rag.enable is true, you must also enable Qdrant:
+            services.ai-inference.rag.qdrant.enable = true;
+
+          Current configuration:
+            rag.enable = ${toString cfg.rag.enable}
+            rag.qdrant.enable = ${toString cfg.rag.qdrant.enable}
+        '';
+      }
+      {
+        assertion = cfg.mcp.enable -> (builtins.length (lib.attrValues cfg.mcp.servers)) > 0;
+        message = ''
+          MCP broker is enabled but no MCP servers are configured.
+
+          Add MCP servers to:
+            services.ai-inference.mcp.servers.<name> = { ... };
+
+          Example:
+            services.ai-inference.mcp.servers.searxng = {
+              type = "local";
+              command = [ "${pkgs.python3}/bin/python3" "-m" "searxng_server" ];
+            };
+
+          Current configuration:
+            mcp.enable = ${toString cfg.mcp.enable}
+            mcp.servers (count) = ${toString (builtins.length (lib.attrValues cfg.mcp.servers))}
+        '';
+      }
+      {
+        assertion = cfg.security.maxRequestSize > 0;
+        message = ''
+          Invalid security.maxRequestSize: must be greater than 0.
+
+          Current value: ${toString cfg.security.maxRequestSize}
+
+          Recommended minimum: 1048576 (1MB)
+          Current default: 10485760 (10MB)
+        '';
+      }
+    ];
     # System packages
     environment.systemPackages = with pkgs; [
       config.services.ai-inference.package
+      inputs.claude-native.packages.x86_64-linux.claude
+      ffmpeg # Required for pydub MP3 conversion in TTS
       (pkgs.writeShellScriptBin "ai-inference-status" ''
         #!/bin/bash
         echo "=== AI Inference Service Status ==="
         echo "Backend: ${cfg.backend.type}"
         echo "Backend URL: ${cfg.backend.url}"
-        echo "Gateway: ${cfg.gateway.host}:${toString cfg.gateway.port}"
         echo ""
         echo "=== Backend Models ==="
         ${pkgs.curl}/bin/curl -s ${cfg.backend.url}/v1/models | ${pkgs.jq}/bin/jq -r '.data[].id' || echo "Backend unavailable"
         echo ""
-        echo "=== Gateway Health ==="
-        ${pkgs.curl}/bin/curl -s http://${cfg.gateway.host}:${toString cfg.gateway.port}/health || echo "Gateway unavailable"
+        echo "=== K8s Gateway Health ==="
+        ${pkgs.curl}/bin/curl -s http://ai-inference-gateway.ai-inference.svc.cluster.local:8080/health || echo "K8s gateway unavailable"
       '')
     ];
 
-    # Open firewall for gateway and metrics
-    networking.firewall.allowedTCPPorts =
-      [
-        cfg.gateway.port
-      ]
-      ++ (lib.optional cfg.monitoring.enable cfg.monitoring.port);
+    # Services configuration
+    services = {
+      # Prometheus scrape configuration — targets the K8s service
+      prometheus.scrapeConfigs = mkIf cfg.monitoring.enable [
+        {
+          job_name = "ai-inference-gateway";
+          static_configs = [
+            {
+              targets = [ "ai-inference-gateway.ai-inference.svc.cluster.local:${toString cfg.monitoring.port}" ];
+              labels = {
+                instance = "ai-inference-gateway";
+                backend = cfg.backend.type;
+              };
+            }
+          ];
+        }
+      ];
 
-    # Prometheus scrape configuration
-    services.prometheus.scrapeConfigs = mkIf cfg.monitoring.enable [
-      {
-        job_name = "ai-inference-${config.networking.hostName}";
-        static_configs = [
-          {
-            targets = ["${cfg.gateway.host}:${toString cfg.monitoring.port}"];
-            labels = {
-              instance = config.networking.hostName;
-              backend = cfg.backend.type;
-            };
-          }
-        ];
-      }
-    ];
-
-    # LM Studio headless service (optional)
-    services.lm-studio-headless =
-      mkIf (cfg.lm-studio-headless != null && cfg.lm-studio-headless.enable)
-      {
-        enable = true;
-        inherit (cfg.lm-studio-headless) port;
-        inherit (cfg.lm-studio-headless) host;
-        inherit (cfg.lm-studio-headless) user;
-        inherit (cfg.lm-studio-headless) openFirewall;
+      # Redis for gateway middleware (caching, rate limiting, circuit breaker)
+      # Using port 6380 to avoid conflict with fwupd-redis on 6379
+      # Note: This is used by the K8s gateway pod via host network or direct connection
+      redis.servers.ai-gateway = {
+        inherit (cfg.gateway.middleware.redis) enable;
+        bind = "127.0.0.1";
+        port = 6380;
       };
-
-    # Redis for gateway middleware (caching, rate limiting, circuit breaker)
-    services.redis.servers.ai-gateway = {
-      inherit (cfg.gateway.middleware.redis) enable;
-      bind = "127.0.0.1";
-      port = 6379;
     };
+
+    # Firewall ports — gateway runs in K8s, no host port needed
+    # Only open Qdrant port if RAG is enabled with non-localhost bind
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault (
+      lib.optional (
+        cfg.rag.enable && cfg.rag.qdrant.enable && cfg.rag.qdrant.host != "127.0.0.1"
+      ) cfg.rag.qdrant.port
+    );
   };
 }

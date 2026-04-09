@@ -1,0 +1,22 @@
+{
+  "CN": "etcd-nexus",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "etcd",
+      "OU": "Server",
+      "L": "Homelab",
+      "ST": "Infrastructure",
+      "C": "US"
+    }
+  ],
+  "hosts": [
+    "nexus",
+    "10.1.1.120",
+    "127.0.0.1",
+    "localhost"
+  ]
+}

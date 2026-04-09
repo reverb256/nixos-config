@@ -74,6 +74,8 @@ class MCPBroker:
         """
         self.servers = {server.name: server for server in servers}
         self.active_connections: Dict[str, Any] = {}
+        # Track MCP server initialization state (MCP protocol requires initialize before tools/call)
+        self._initialized_servers: Dict[str, bool] = {}
 
         # Initialize tool schema cache
         self.enable_cache = enable_cache and CACHE_AVAILABLE
@@ -88,6 +90,116 @@ class MCPBroker:
             logger.info(
                 f"MCP Broker initialized with {len(servers)} servers (cache disabled)"
             )
+
+    async def _ensure_initialized(self, server: MCPServer) -> bool:
+        """
+        Ensure MCP server is initialized (required by MCP protocol).
+
+        Many MCP servers require an initialize handshake before
+        accepting tools/call requests. This method calls initialize if not already done.
+
+        Args:
+            server: MCP server configuration
+
+        Returns:
+            True if initialization succeeded, False otherwise
+        """
+        # Skip initialization for local servers (stdio manages its own handshake)
+        if server.type != MCPServerType.REMOTE or not server.url:
+            return True
+
+        # Check if already initialized
+        if server.name in self._initialized_servers:
+            return self._initialized_servers[server.name]
+
+        try:
+            headers = {"Content-Type": "application/json"}
+            if server.headers:
+                # Process headers - handle file paths for API keys
+                for header_name, header_value in server.headers.items():
+                    if isinstance(header_value, str) and (
+                        "-key" in header_name.lower()
+                        or "_key" in header_name.lower()
+                        or "token" in header_name.lower()
+                    ):
+                        try:
+                            if header_value.startswith("Bearer "):
+                                file_path = header_value.split(" ", 1)[1].strip()
+                                use_bearer = True
+                            else:
+                                file_path = header_value
+                                use_bearer = False
+
+                            with open(file_path, "r") as f:
+                                api_key = f.read().strip()
+                                if use_bearer:
+                                    headers[header_name] = f"Bearer {api_key}"
+                                else:
+                                    headers[header_name] = api_key
+                        except Exception as e:
+                            logger.warning(f"Failed to read API key for init: {e}")
+                            headers[header_name] = header_value
+                    else:
+                        headers[header_name] = header_value
+
+            # MCP initialize request
+            init_request = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {
+                        "name": "ai-inference-gateway",
+                        "version": "2.0.0"
+                    }
+                }
+            }
+
+            headers["Accept"] = "application/json, text/event-stream"
+
+            logger.warning(f"Initializing MCP server: {server.name}")
+
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    server.url, json=init_request, headers=headers
+                )
+
+                if response.status_code == 200:
+                    # Parse SSE response
+                    content_type = response.headers.get("content-type", "")
+                    if "text/event-stream" in content_type:
+                        async for line in response.aiter_lines():
+                            if line.startswith("data:"):
+                                try:
+                                    data = json.loads(line[5:].strip())
+                                    if "result" in data:
+                                        logger.warning(
+                                            f"Successfully initialized {server.name}: {data['result'].get('serverInfo', {})}"
+                                        )
+                                        self._initialized_servers[server.name] = True
+                                        return True
+                                except json.JSONDecodeError:
+                                    continue
+                    else:
+                        # JSON response
+                        result = response.json()
+                        if "result" in result:
+                            logger.warning(
+                                f"Successfully initialized {server.name}: {result['result'].get('serverInfo', {})}"
+                            )
+                            self._initialized_servers[server.name] = True
+                            return True
+
+                logger.warning(f"Failed to initialize {server.name}: HTTP {response.status_code}")
+                self._initialized_servers[server.name] = False
+                return False
+
+        except Exception as e:
+            logger.error(f"Error initializing {server.name}: {e}")
+            self._initialized_servers[server.name] = False
+            return False
 
     async def list_servers(self) -> List[Dict]:
         """
@@ -175,7 +287,7 @@ class MCPBroker:
                 # Use MCP JSON-RPC protocol to list tools
                 mcp_request = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
 
-                # ZAI MCP servers require SSE-capable Accept header
+                # MCP servers require SSE-capable Accept header
                 headers["Accept"] = "application/json, text/event-stream"
 
                 async with httpx.AsyncClient(timeout=10.0) as client:
@@ -208,8 +320,7 @@ class MCPBroker:
 
             except Exception as e:
                 logger.error(f"Error listing tools from {name}: {e}")
-                # Fallback to known tools for ZAI servers
-                return await self._get_fallback_tools(name)
+                return None
 
         else:
             # Local server - use stdio communication
@@ -236,6 +347,7 @@ class MCPBroker:
                                         "name": tool.get("name"),
                                         "description": tool.get("description", ""),
                                         "type": "remote",
+                                        "inputSchema": tool.get("inputSchema", {}),
                                     }
                                 )
                             break  # Got the tools, stop parsing
@@ -270,6 +382,7 @@ class MCPBroker:
                             "name": tool.get("name"),
                             "description": tool.get("description", ""),
                             "type": "remote",
+                            "inputSchema": tool.get("inputSchema", {}),
                         }
                     )
                 return tools
@@ -280,31 +393,6 @@ class MCPBroker:
         except Exception as e:
             logger.error(f"Error parsing JSON response from {server_name}: {e}")
             return None
-
-    async def _get_fallback_tools(self, server_name: str) -> Optional[List[Dict]]:
-        """Get fallback tools for known ZAI servers."""
-        # Known tools for ZAI servers (when MCP endpoint is unavailable)
-        known_tools = {
-            "web-search-prime": [
-                {"name": "web_search", "description": "Web search via ZAI"}
-            ],
-            "web-reader": [{"name": "fetch_url", "description": "Fetch URL content"}],
-            "zread": [
-                {"name": "github_repo", "description": "GitHub repository analysis"},
-                {"name": "github_file", "description": "GitHub file reader"},
-            ],
-            "4-5v-mcp-server": [
-                {"name": "analyze_image", "description": "Image analysis"}
-            ],
-        }
-
-        if server_name in known_tools:
-            logger.info(f"Using fallback tools for {server_name}")
-            return [
-                {"server": server_name, **tool} for tool in known_tools[server_name]
-            ]
-
-        return None
 
     async def invalidate_cache(
         self, server_name: Optional[str] = None
@@ -397,11 +485,7 @@ class MCPBroker:
         self, server: MCPServer, tool_name: str, arguments: Dict
     ) -> Dict:
         """
-        Call a tool on a remote MCP server.
-
-        Uses a hybrid approach:
-        1. First tries direct MCP protocol call (faster, simpler)
-        2. Falls back to Chat API routing for ZAI servers if direct call fails
+        Call a tool on a remote MCP server via direct MCP JSON-RPC protocol.
 
         Args:
             server: MCP server configuration
@@ -411,309 +495,14 @@ class MCPBroker:
         Returns:
             Tool execution result
         """
-        # Try direct MCP protocol first
-        logger.debug(f"Attempting direct MCP call for {server.name}.{tool_name}")
-        direct_result = await self._call_direct_mcp(server, tool_name, arguments)
-
-        # If direct call succeeded, return the result
-        if "error" not in direct_result:
-            return direct_result
-
-        # If direct call failed with 401 and this is a ZAI server, try Chat API fallback
-        if (
-            server.url
-            and "api.z.ai/api/mcp" in server.url
-            and "401" in str(direct_result.get("error", ""))
-        ):
-            logger.info(
-                f"Direct MCP call failed for {server.name}.{tool_name}, trying Chat API fallback"
-            )
-            return await self._call_via_chat_api(server, tool_name, arguments)
-
-        # Otherwise return the direct call error
-        return direct_result
-
-    async def _call_via_chat_api(
-        self, server: MCPServer, tool_name: str, arguments: Dict
-    ) -> Dict:
-        """
-        Call a ZAI MCP tool through the Chat API instead of direct MCP protocol.
-
-        This avoids 401 authentication errors by using ZAI's Chat API which properly
-        handles tool calling with the same API key.
-
-        Args:
-            server: MCP server configuration
-            tool_name: Name of the tool to call
-            arguments: Tool arguments
-
-        Returns:
-            Tool execution result
-        """
-        try:
-            # Map MCP tool names to Chat API function definitions
-            # ZAI Chat API uses standard function calling format
-            tool_mapping = {
-                "webSearchPrime": {
-                    "type": "function",
-                    "function": {
-                        "name": "web_search",
-                        "description": "Search the web for information",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "search_query": {
-                                    "type": "string",
-                                    "description": "The search query",
-                                }
-                            },
-                            "required": ["search_query"],
-                        },
-                    },
-                },
-                "webReader": {
-                    "type": "function",
-                    "function": {
-                        "name": "web_reader",
-                        "description": "Read and extract content from a URL",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "url": {
-                                    "type": "string",
-                                    "description": "The URL to read",
-                                }
-                            },
-                            "required": ["url"],
-                        },
-                    },
-                },
-                "search_doc": {
-                    "type": "function",
-                    "function": {
-                        "name": "github_search",
-                        "description": "Search documentation in a GitHub repository",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "query": {
-                                    "type": "string",
-                                    "description": "Search query",
-                                },
-                                "repo_name": {
-                                    "type": "string",
-                                    "description": "Repository name (e.g., owner/repo)",
-                                },
-                            },
-                            "required": ["query", "repo_name"],
-                        },
-                    },
-                },
-                "read_file": {
-                    "type": "function",
-                    "function": {
-                        "name": "github_file",
-                        "description": "Read a file from a GitHub repository",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "repo_name": {
-                                    "type": "string",
-                                    "description": "Repository name (e.g., owner/repo)",
-                                },
-                                "file_path": {
-                                    "type": "string",
-                                    "description": "Path to the file in the repository",
-                                },
-                            },
-                            "required": ["repo_name", "file_path"],
-                        },
-                    },
-                },
-                "get_repo_structure": {
-                    "type": "function",
-                    "function": {
-                        "name": "github_repo",
-                        "description": "Get the structure of a GitHub repository",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "repo_name": {
-                                    "type": "string",
-                                    "description": "Repository name (e.g., owner/repo)",
-                                },
-                                "dir_path": {
-                                    "type": "string",
-                                    "description": "Directory path (default: /)",
-                                },
-                            },
-                            "required": ["repo_name"],
-                        },
-                    },
-                },
-            }
-
-            if tool_name not in tool_mapping:
-                return {
-                    "error": f"Tool {tool_name} not mapped for Chat API routing",
-                    "server": server.name,
-                    "available_tools": list(tool_mapping.keys()),
-                }
-
-            # Build headers with API key
-            headers = {"Content-Type": "application/json"}
-            if server.headers:
-                # Read API key from file if needed
-                for header_name, header_value in server.headers.items():
-                    if (
-                        isinstance(header_value, str)
-                        and "/run/" in header_value
-                        and "-key" in header_value
-                    ):
-                        try:
-                            if header_value.startswith("Bearer "):
-                                file_path = header_value.split(" ", 1)[1].strip()
-                                use_bearer = True
-                            else:
-                                file_path = header_value
-                                use_bearer = False
-
-                            with open(file_path, "r") as f:
-                                api_key = f.read().strip()
-                                if use_bearer:
-                                    headers[header_name] = f"Bearer {api_key}"
-                                else:
-                                    headers[header_name] = api_key
-                        except Exception as e:
-                            logger.error(f"Failed to read API key: {e}")
-                            return {"error": f"Failed to read API key: {e}"}
-                    else:
-                        headers[header_name] = header_value
-
-            # Use ZAI Coding API endpoint
-            chat_url = "https://api.z.ai/api/coding/paas/v4/chat/completions"
-
-            # Build Chat API request with tool definition
-            tool_def = tool_mapping[tool_name]
-            chat_request = {
-                "model": "glm-4.7",
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": f"Please use the {tool_def['function']['name']} tool with these arguments: {arguments}",
-                    }
-                ],
-                "tools": [tool_def],
-                "tool_choice": {
-                    "type": "function",
-                    "function": {"name": tool_def["function"]["name"]},
-                },
-                "stream": False,
-            }
-
-            logger.debug(f"Calling Chat API for {server.name}.{tool_name}")
-            logger.debug(f"Request URL: {chat_url}")
-            logger.debug(f"Request headers: {headers}")
-            logger.debug(f"Request body: {chat_request}")
-
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    chat_url, json=chat_request, headers=headers
-                )
-                logger.debug(f"Response status: {response.status_code}")
-
-                if response.status_code == 200:
-                    result = response.json()
-
-                    # Log the full response for debugging
-                    logger.info(
-                        f"Chat API response for {server.name}.{tool_name}: {json.dumps(result, indent=2)[:1000]}"
-                    )
-
-                    # Extract tool call result from Chat API response
-                    if "choices" in result and len(result["choices"]) > 0:
-                        choice = result["choices"][0]
-
-                        # Check for tool calls in response
-                        if "message" in choice and "tool_calls" in choice["message"]:
-                            tool_calls = choice["message"]["tool_calls"]
-                            if tool_calls and len(tool_calls) > 0:
-                                tool_call = tool_calls[0]
-
-                                # Check if tool call has function result
-                                if "function" in tool_call:
-                                    func = tool_call["function"]
-                                    # Some APIs return output directly in function
-                                    if "output" in func or "result" in func:
-                                        output = func.get(
-                                            "output", func.get("result", "")
-                                        )
-                                        return {
-                                            "result": output,
-                                            "server": server.name,
-                                            "tool": tool_name,
-                                            "routed_via": "chat_api",
-                                        }
-                                    # Check if arguments contain the result
-                                    if "arguments" in func:
-                                        try:
-                                            args = json.loads(func["arguments"])
-                                            # Some APIs return results in arguments
-                                            if "output" in args or "result" in args:
-                                                output = args.get(
-                                                    "output", args.get("result", "")
-                                                )
-                                                return {
-                                                    "result": output,
-                                                    "server": server.name,
-                                                    "tool": tool_name,
-                                                    "routed_via": "chat_api",
-                                                }
-                                        except json.JSONDecodeError:
-                                            pass
-
-                        # Check if content has the result
-                        if "message" in choice and "content" in choice["message"]:
-                            content = choice["message"]["content"]
-                            if content and content.strip():
-                                return {
-                                    "result": content,
-                                    "server": server.name,
-                                    "tool": tool_name,
-                                    "routed_via": "chat_api",
-                                }
-
-                    return {
-                        "error": "No tool result in Chat API response",
-                        "server": server.name,
-                        "tool": tool_name,
-                        "response": result,
-                    }
-                else:
-                    return {
-                        "error": f"HTTP {response.status_code}: {response.text[:200]}",
-                        "server": server.name,
-                        "tool": tool_name,
-                    }
-
-        except httpx.HTTPError as e:
-            logger.error(
-                f"HTTP error calling Chat API for {tool_name} on {server.name}: {e}"
-            )
-            return {"error": str(e), "server": server.name, "tool": tool_name}
-        except Exception as e:
-            logger.error(f"Unexpected error calling Chat API: {e}")
-            return {
-                "error": f"Unexpected error: {str(e)}",
-                "server": server.name,
-                "tool": tool_name,
-            }
+        # Call direct MCP protocol
+        return await self._call_direct_mcp(server, tool_name, arguments)
 
     async def _call_direct_mcp(
         self, server: MCPServer, tool_name: str, arguments: Dict
     ) -> Dict:
         """
-        Call a tool on a non-ZAI MCP server via direct MCP JSON-RPC protocol.
+        Call a tool on a remote MCP server via direct MCP JSON-RPC protocol.
 
         Args:
             server: MCP server configuration
@@ -723,6 +512,13 @@ class MCPBroker:
         Returns:
             Tool execution result
         """
+        # CRITICAL: Ensure MCP server is initialized before making tool calls
+        # Many MCP servers require initialize handshake before tools/call
+        if not await self._ensure_initialized(server):
+            logger.warning(
+                f"Failed to initialize {server.name}, tool call may fail"
+            )
+
         logger.info(f"=== _call_direct_mcp called for {server.name}.{tool_name} ===")
         logger.info(f"server.headers = {server.headers}")
 
@@ -766,10 +562,16 @@ class MCPBroker:
                             )
                         except Exception as e:
                             logger.error(
-                                f"Failed to read API key from {header_value}: {e}"
+                                f"Failed to read API key from {file_path}: {e}"
                             )
-                            return {"error": f"Failed to read API key: {e}"}
+                            # Fall back to raw value (preserves error context)
+                            logger.warning(
+                                f"Using raw header value as fallback for {server.name}"
+                            )
+                            headers[header_name] = header_value
                     else:
+                        # Not a file path - use value directly
+                        logger.debug(f"Using direct header value for {header_name}")
                         headers[header_name] = header_value
 
             # Use standard MCP JSON-RPC protocol
@@ -781,8 +583,16 @@ class MCPBroker:
                 "params": {"name": tool_name, "arguments": arguments},
             }
 
-            # ZAI MCP servers require SSE-capable Accept header
+            # MCP servers require SSE-capable Accept header
             headers["Accept"] = "application/json, text/event-stream"
+
+            # CRITICAL DEBUG: Log the actual headers being sent
+            logger.warning(f"=== FINAL HEADERS for {server.name}.{tool_name} ===")
+            for k, v in headers.items():
+                if k.lower() == "authorization":
+                    logger.warning(f"  {k}: {v[:30]}...")
+                else:
+                    logger.warning(f"  {k}: {v}")
 
             # Debug logging
             logger.debug(f"Calling MCP tool: {server.name}.{tool_name}")
@@ -796,7 +606,7 @@ class MCPBroker:
                 )
                 logger.debug(f"Response status: {response.status_code}")
 
-                # Handle SSE response from ZAI MCP servers
+                # Handle SSE response from MCP servers
                 if response.status_code == 200:
                     # Check if response is SSE format
                     content_type = response.headers.get("content-type", "")
@@ -814,6 +624,11 @@ class MCPBroker:
                                     if "result" in data:
                                         result = data["result"]
 
+                                        # CRITICAL: Check for MCP error format BEFORE processing content
+                                        # Some MCP servers return errors as: {"result": {"content": [{"text": "MCP error -401..."}], "isError": true}}
+                                        is_error = result.get("isError", False)
+                                        error_message = None
+
                                         # Extract content from MCP result format
                                         # MCP returns: {"content": [{"type": "text", "text": "..."}], "isError": false}
                                         if (
@@ -828,6 +643,23 @@ class MCPBroker:
                                                 and "text" in content_item
                                             ):
                                                 text_content = content_item["text"]
+
+                                                # Check if text content contains an error message
+                                                if "MCP error" in text_content or "Api key not found" in text_content:
+                                                    is_error = True
+                                                    error_message = text_content
+                                                    logger.warning(
+                                                        f"MCP server returned error in content: {text_content[:200]}"
+                                                    )
+
+                                                # If this is an error response, return it with error key
+                                                if is_error:
+                                                    return {
+                                                        "error": error_message or "MCP server returned an error",
+                                                        "server": server.name,
+                                                        "tool": tool_name,
+                                                        "routed_via": "direct_mcp",
+                                                    }
 
                                                 # Try to parse nested JSON (some tools wrap results in JSON strings)
                                                 try:
@@ -850,6 +682,15 @@ class MCPBroker:
                                             # Handle other content types
                                             return {
                                                 "result": content_item,
+                                                "server": server.name,
+                                                "tool": tool_name,
+                                                "routed_via": "direct_mcp",
+                                            }
+
+                                        # If isError flag was set but no content, return error
+                                        if is_error:
+                                            return {
+                                                "error": error_message or "MCP server returned isError=true",
                                                 "server": server.name,
                                                 "tool": tool_name,
                                                 "routed_via": "direct_mcp",
@@ -887,6 +728,31 @@ class MCPBroker:
                                 "server": server.name,
                                 "tool": tool_name,
                             }
+                        # Check for MCP result with isError flag
+                        if "result" in result:
+                            mcp_result = result["result"]
+                            # Check if this is an error response from MCP server
+                            if isinstance(mcp_result, dict):
+                                is_error = mcp_result.get("isError", False)
+                                error_msg = None
+
+                                # Check content for error messages
+                                if "content" in mcp_result and len(mcp_result["content"]) > 0:
+                                    content_item = mcp_result["content"][0]
+                                    if isinstance(content_item, dict):
+                                        text_content = content_item.get("text", "")
+                                        if "MCP error" in text_content or "Api key not found" in text_content:
+                                            is_error = True
+                                            error_msg = text_content
+
+                                if is_error:
+                                    return {
+                                        "error": error_msg or "MCP server returned isError=true",
+                                        "server": server.name,
+                                        "tool": tool_name,
+                                        "routed_via": "direct_mcp",
+                                    }
+
                         # Return the result part of JSON-RPC response
                         return result.get("result", result)
                 else:
@@ -986,11 +852,104 @@ class MCPBroker:
                 import os
 
                 env = os.environ.copy()
-                env.update(server.environment)
+                # Process environment variables - read from file if needed
+                for env_name, env_value in server.environment.items():
+                    # Check if this is an API key file reference (ends with _FILE)
+                    if (
+                        env_name.endswith("_FILE")
+                        and isinstance(env_value, str)
+                        and env_value.startswith("/")
+                    ):
+                        try:
+                            with open(env_value, "r") as f:
+                                file_content = f.read().strip()
+                            # Set the base env name (without _FILE) to the file content
+                            base_env_name = env_name[:-5]  # Remove _FILE suffix
+                            env[base_env_name] = file_content
+                            logger.debug(
+                                f"Loaded {base_env_name} from file {env_value}"
+                            )
+                        except Exception as e:
+                            logger.error(
+                                f"Failed to read {env_name} from {env_value}: {e}"
+                            )
+                            # Fall back to original value
+                            env[env_name] = env_value
+                    else:
+                        env[env_name] = env_value
+
+            # For module-style commands (using -m), add PYTHONPATH to find ai_inference_gateway
+            if server.command and len(server.command) >= 2 and server.command[1] == "-m":
+                # Try to find the gateway package in the system closure
+                print(f"[DEBUG] Spawning MCP server {server.name}, command: {server.command}")
+                try:
+                    import sys
+                    import os
+                    import subprocess
+
+                    # Method 1: Try to find gateway package via Python import system (works in containers)
+                    gateway_pkg = None
+                    gateway_python = None
+
+                    try:
+                        import ai_inference_gateway
+                        gateway_pkg_path = os.path.dirname(ai_inference_gateway.__file__)
+                        # Get the parent directory (should be the site-packages root)
+                        gateway_pkg = os.path.dirname(gateway_pkg_path)
+                        print(f"[DEBUG] [MCP {server.name}] Found gateway_pkg via import: {gateway_pkg}")
+                    except ImportError:
+                        print(f"[DEBUG] [MCP {server.name}] Could not import ai_inference_gateway")
+
+                    # Method 2: Find Python interpreter with mcp installed
+                    # Use sys.executable (current Python) or search for mcp in site-packages
+                    try:
+                        import mcp
+                        # Current Python has mcp, use it
+                        gateway_python = os.path.dirname(sys.executable)
+                        print(f"[DEBUG] [MCP {server.name}] Found gateway_python via sys.executable: {gateway_python}")
+                    except ImportError:
+                        # Try to find mcp in current Python's site-packages
+                        mcp_path = os.path.join(sys.prefix, "lib", f"python{sys.version_info.major}.{sys.version_info.minor}", "site-packages", "mcp")
+                        if os.path.exists(mcp_path):
+                            gateway_python = sys.prefix
+                            print(f"[DEBUG] [MCP {server.name}] Found gateway_python via sys.prefix: {gateway_python}")
+
+                    print(f"[DEBUG] [MCP {server.name}] Final: gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
+                    logger.info(f"[MCP {server.name}] gateway_pkg={gateway_pkg}, gateway_python={gateway_python}")
+
+                    # Build PYTHONPATH with both paths
+                    pythonpath_parts = []
+                    if gateway_pkg:
+                        pythonpath_parts.append(gateway_pkg)
+                    if gateway_python:
+                        pythonpath_parts.append(f"{gateway_python}/lib/python3.13/site-packages")
+
+                    # Build the modified command with gateway Python
+                    modified_command = list(server.command)
+                    if gateway_python and modified_command[0] == "python3":
+                        # Use the gateway Python interpreter which has all the dependencies
+                        modified_command[0] = f"{gateway_python}/bin/python3"
+                        print(f"[DEBUG] [MCP {server.name}] Using gateway Python: {modified_command[0]}")
+
+                    if pythonpath_parts:
+                        existing_pythonpath = env.get("PYTHONPATH", "")
+                        if existing_pythonpath:
+                            pythonpath_parts.append(existing_pythonpath)
+                        env["PYTHONPATH"] = ":".join(pythonpath_parts)
+                        logger.info(f"[MCP {server.name}] Set PYTHONPATH: {env['PYTHONPATH'][:300]}...")
+                        print(f"[DEBUG] PYTHONPATH for {server.name}: {env['PYTHONPATH'][:300]}...")
+                    else:
+                        logger.warning(f"[MCP {server.name}] No gateway paths found, PYTHONPATH not set")
+                        print(f"[DEBUG] No gateway paths found for {server.name}")
+                except Exception as e:
+                    logger.warning(f"Failed to add PYTHONPATH for {server.name}: {e}")
+
+            # Determine the command to use (possibly modified with gateway Python)
+            command_to_use = modified_command if 'modified_command' in locals() else server.command
 
             # Spawn the subprocess
             server.process = await asyncio.create_subprocess_exec(
-                *server.command,
+                *command_to_use,
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -1024,8 +983,16 @@ class MCPBroker:
                 return False
 
         except Exception as e:
+            import traceback
             logger.error(f"Failed to spawn local MCP server {server.name}: {e}")
-            server.process = None
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Clean up process if it was created
+            if server.process:
+                try:
+                    server.process.terminate()
+                except Exception:
+                    pass
+                server.process = None
             return False
 
     async def _send_local_request(
@@ -1266,8 +1233,8 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
 
     # Check if MCP broker is enabled via config
     mcp_enabled = False
-    if hasattr(config, "mcp") and hasattr(config.mcp, "enabled"):
-        mcp_enabled = config.mcp.enabled
+    if hasattr(config, "middleware") and hasattr(config.middleware, "mcp") and hasattr(config.middleware.mcp, "enabled"):
+        mcp_enabled = config.middleware.mcp.enabled
 
     # Also check environment variable for Nix-based configuration
     if os.getenv("MCP_ENABLED"):
@@ -1377,9 +1344,9 @@ async def create_mcp_broker_from_config(config) -> Optional[MCPBroker]:
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse MCP_SERVERS environment variable: {e}")
             return None
-    elif hasattr(config, "mcp") and hasattr(config.mcp, "servers"):
+    elif hasattr(config, "middleware") and hasattr(config.middleware, "mcp") and hasattr(config.middleware.mcp, "servers"):
         # Fallback to config object (Python-based configuration)
-        for server_config in config.mcp.servers:
+        for server_config in config.middleware.mcp.servers:
             server_type = (
                 MCPServerType.LOCAL
                 if server_config.type == "local"

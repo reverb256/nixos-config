@@ -1,0 +1,110 @@
+# vLLM Qwen Inference - Single deployment targeting Nexus (RTX 3060 Ti, 8GB)
+# Priority: ai-inference-high (900) preempts mining-low (100) if needed
+# Image: vllm/vllm-openai:v0.18.0 (Qwen3.5 GGUF support, CUDA 12+)
+# Note: Qwen3.5-0.8B is the 8B param text-only model (non-MoE), not an 8B MoE)
+# Requires --trust-remote-code for custom Qwen3.5 architecture
+#
+# To take over from mining on Forge:
+#   kubectl scale deploy gpu-miner-forge-nvidia-0 gpu-miner-forge-nvidia-1 -n mining --replicas=0
+#   Then patch this deployment to add forge replica or increase replicas
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-qwen
+  namespace: ai-inference
+  labels:
+    app: vllm-qwen
+    component: llm-inference
+    backend: vllm
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: vllm-qwen
+  template:
+    metadata:
+      labels:
+        app: vllm-qwen
+        component: llm-inference
+        backend: vllm
+    spec:
+      runtimeClassName: nvidia
+      schedulerName: default-scheduler
+      priorityClassName: ai-inference-high
+      nodeSelector:
+        kubernetes.io/hostname: nexus
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:v0.18.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - --model=/models/Qwen3.5-0.8B.Q8_0.gguf
+        - --device=cuda
+        - --gpu-memory-utilization=0.85
+        - --max-model-len=8192
+        - --dtype=half
+        - --enable-chunked-prefill
+        - --max-num-seqs=8
+        - --disable-log-requests
+        - --trust-remote-code
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        - name: VLLM_WORKER_MULTIPROC_METHOD
+          value: "fork"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "4"
+            memory: "4Gi"
+            nvidia.com/gpu: "1"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: models
+          mountPath: /models
+          readOnly: true
+      volumes:
+      - name: models
+        hostPath:
+          path: /home/j_kro/.lmstudio/models/Jackrong/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF
+          type: Directory
+      terminationGracePeriodSeconds: 60

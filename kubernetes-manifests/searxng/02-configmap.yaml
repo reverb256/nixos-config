@@ -1,0 +1,25 @@
+---
+# ConfigMap for SearXNG settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-config
+  namespace: search
+data:
+  settings.yml: |
+    server:
+      port: 7777
+      secret_key: "@SEARXNG_SECRET_KEY@"
+      limiter: false
+      image_proxy: true
+    search:
+      formats:
+        - html
+        - json
+        - csv
+        - rss
+    ui:
+      infinite_scroll: false
+      static_use_hash: true
+
+
