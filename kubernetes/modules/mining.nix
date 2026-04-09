@@ -285,8 +285,7 @@ in
             containers = {
               _namedlist = true;
               xmrig = {
-                image = nixCsiScratch;
-                command = [ (lib.getExe pkgs.xmrig) ];
+                image = "docker.io/library/xmrig-alpine:6.25.0";
                 args = [
                   "-o"
                   "10.1.1.120:3333"
@@ -340,9 +339,6 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                  };
                   msr = {
                     mountPath = "/dev/cpu";
                   };
@@ -360,12 +356,6 @@ in
             };
             volumes = {
               _namedlist = true;
-              nix = {
-                hostPath = {
-                  path = "/nix";
-                  type = "Directory";
-                };
-              };
               msr = {
                 hostPath = {
                   path = "/dev/cpu";
@@ -427,8 +417,7 @@ in
             containers = {
               _namedlist = true;
               xmrig = {
-                image = nixCsiScratch;
-                command = [ (lib.getExe pkgs.xmrig) ];
+                image = "docker.io/library/xmrig-alpine:6.25.0";
                 args = [
                   "-o"
                   "10.1.1.120:3333"
@@ -479,9 +468,6 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                  };
                   msr = {
                     mountPath = "/dev/cpu";
                   };
@@ -499,12 +485,6 @@ in
             };
             volumes = {
               _namedlist = true;
-              nix = {
-                hostPath = {
-                  path = "/nix";
-                  type = "Directory";
-                };
-              };
               msr = {
                 hostPath = {
                   path = "/dev/cpu";
@@ -559,8 +539,7 @@ in
             containers = {
               _namedlist = true;
               xmrig = {
-                image = nixCsiScratch;
-                command = [ (lib.getExe pkgs.xmrig) ];
+                image = "docker.io/library/xmrig-alpine:6.25.0";
                 args = [
                   "-o"
                   "10.1.1.120:3333"
@@ -611,9 +590,6 @@ in
                 securityContext.privileged = true;
                 volumeMounts = {
                   _namedlist = true;
-                  nix = {
-                    mountPath = "/nix";
-                  };
                   msr = {
                     mountPath = "/dev/cpu";
                   };
@@ -631,12 +607,6 @@ in
             };
             volumes = {
               _namedlist = true;
-              nix = {
-                hostPath = {
-                  path = "/nix";
-                  type = "Directory";
-                };
-              };
               msr = {
                 hostPath = {
                   path = "/dev/cpu";

@@ -1,7 +1,8 @@
-# GPU miners (lolMiner) — CSI-based deployments for forge/nexus + swamp7 image for zephyr
+# GPU miners (lolMiner) — swamp7/lolminer Docker image for all nodes
 #
-# CSI-based miners use nix-csi scratch image with pkgsWithOverlay.lolminer store path.
-# Zephyr uses the swamp7/lolminer Docker image with host NVIDIA driver mounts.
+# The Nix-built image (docker.io/library/lolminer:1.98a-nixos) uses symlinks to
+# /nix/store paths that don't exist on other nodes (cross-node store mismatch).
+# swamp7/lolminer is self-contained with the binary baked in (1.1 GiB).
 #
 # Converted from: kubernetes-manifests/mining/csi/gpu-miner-forge-*.yaml
 #                 kubernetes-manifests/mining/gpu-miner-nexus.yaml
@@ -14,56 +15,29 @@
   ...
 }:
 let
-  # nix-csi scratch image for CSI-based miners
-  nixCsiScratch = "ghcr.io/lillecarl/nix-csi/scratch:1.0.1";
+  # Self-contained lolminer image (1.1 GiB) — binary baked in, no Nix store deps
+  lolminerImage = "docker.io/swamp7/lolminer:latest";
 
-  # Derive store paths from Nix packages instead of hardcoding
-  lolminerPkg = pkgsWithOverlay.lolminer;
-  glibcLib = "${pkgs.glibc}/lib";
   # AMD OpenCL ICD vendors path — uses host CLR (ROCm) installation on forge
-  # This is host-specific and must match the deployed NixOS system's CLR ICD path
   openclIcd = "/nix/store/6yvx83sa6iwhr6xnjjlfjg56jnki5mdn-clr-7.2.0-icd/etc/OpenCL/vendors";
 
-  # Host /nix volume — mounts the entire nix store from the host.
-  # Replaces broken nix-csi CSI driver (nixkube v0.5.0 rejects all volume mounts).
-  # Containers reference binaries via their full nix store path (e.g. ${lolminerPkg}/bin/lolminer).
-  nixHostVolume = {
-    hostPath = {
-      path = "/nix";
-      type = "Directory";
-    };
-  };
-
-  # Common NVIDIA volume mounts
-  baseVolumeMounts = {
-    nix = {
-      mountPath = "/nix";
-    };
+  # NVIDIA volume mounts (GPU driver from host + Nix store for glibc)
+  nvidiaVolumeMounts = {
     opengl-driver = {
       mountPath = "/run/opengl-driver/lib";
     };
-    glibc-lib = {
-      mountPath = glibcLib;
-    };
-  };
-
-  nvidiaVolumeMounts = baseVolumeMounts // {
     dev = {
       mountPath = "/dev";
     };
+    nix-store = {
+      mountPath = "/nix/store";
+    };
   };
 
-  # Common NVIDIA volumes (host-side)
+  # NVIDIA volumes (host-side)
   nvidiaVolumes = {
-    nix = nixHostVolume;
     opengl-driver = {
       hostPath.path = "/run/opengl-driver/lib";
-    };
-    glibc-lib = {
-      hostPath = {
-        path = glibcLib;
-        type = "DirectoryOrCreate";
-      };
     };
     dev = {
       hostPath = {
@@ -71,11 +45,16 @@ let
         type = "Directory";
       };
     };
+    nix-store = {
+      hostPath.path = "/nix/store";
+    };
   };
 
-  # Common AMD volume mounts (additional DRI/KFD/OpenCL)
-  # NOTE: does NOT inherit nvidiaVolumeMounts.dev — AMD volumes don't have /dev
-  amdVolumeMounts = baseVolumeMounts // {
+  # AMD volume mounts (DRI/KFD/OpenCL + Nix store for glibc)
+  amdVolumeMounts = {
+    opengl-driver = {
+      mountPath = "/run/opengl-driver/lib";
+    };
     dri = {
       mountPath = "/dev/dri";
     };
@@ -85,19 +64,15 @@ let
     opencl-icd = {
       mountPath = "/etc/OpenCL/vendors";
     };
+    nix-store = {
+      mountPath = "/nix/store";
+    };
   };
 
-  # Common AMD volumes (host-side)
+  # AMD volumes (host-side)
   amdVolumes = {
-    nix = nixHostVolume;
     opengl-driver = {
       hostPath.path = "/run/opengl-driver/lib";
-    };
-    glibc-lib = {
-      hostPath = {
-        path = glibcLib;
-        type = "DirectoryOrCreate";
-      };
     };
     dri = {
       hostPath = {
@@ -117,6 +92,9 @@ let
         type = "Directory";
       };
     };
+    nix-store = {
+      hostPath.path = "/nix/store";
+    };
   };
 
   # Common env for NVIDIA miners
@@ -124,7 +102,7 @@ let
     _namedlist = true;
     LD_LIBRARY_PATH = {
       name = "LD_LIBRARY_PATH";
-      value = "${glibcLib}:/run/opengl-driver/lib";
+      value = "/run/opengl-driver/lib";
     };
   };
 
@@ -133,7 +111,7 @@ let
     _namedlist = true;
     LD_LIBRARY_PATH = {
       name = "LD_LIBRARY_PATH";
-      value = "${glibcLib}:/run/opengl-driver/lib";
+      value = "/run/opengl-driver/lib";
     };
     OCL_ICD_VENDORS = {
       name = "OCL_ICD_VENDORS";
@@ -188,8 +166,7 @@ in
             containers = {
               _namedlist = true;
               lolminer = {
-                image = nixCsiScratch;
-                command = [ "${lib.getExe' lolminerPkg "lolMiner"}" ];
+                image = lolminerImage;
                 args = commonArgs ++ [
                   "--user=krxXVNVMM7.forge-n0"
                   "--pass=x"
@@ -279,8 +256,7 @@ in
             containers = {
               _namedlist = true;
               lolminer = {
-                image = nixCsiScratch;
-                command = [ "${lib.getExe' lolminerPkg "lolMiner"}" ];
+                image = lolminerImage;
                 args = commonArgs ++ [
                   "--user=krxXVNVMM7.forge-n1"
                   "--pass=x"
@@ -356,8 +332,7 @@ in
             containers = {
               _namedlist = true;
               lolminer = {
-                image = nixCsiScratch;
-                command = [ "${lib.getExe' lolminerPkg "lolMiner"}" ];
+                image = lolminerImage;
                 args = commonArgs ++ [
                   "--user=krxXVNVMM7.forge-a0"
                   "--pass=x"
@@ -432,8 +407,7 @@ in
             containers = {
               _namedlist = true;
               lolminer = {
-                image = nixCsiScratch;
-                command = [ "${lib.getExe' lolminerPkg "lolMiner"}" ];
+                image = lolminerImage;
                 args = commonArgs ++ [
                   "--user=krxXVNVMM7.forge-a1"
                   "--pass=x"
@@ -526,8 +500,7 @@ in
             containers = {
               _namedlist = true;
               lolminer = {
-                image = nixCsiScratch;
-                command = [ "${lib.getExe' lolminerPkg "lolMiner"}" ];
+                image = lolminerImage;
                 args = commonArgs ++ [
                   "--user=krxXVNVMM7.nexus-gpu"
                   "--pass=x"
@@ -583,7 +556,7 @@ in
       };
     };
 
-    # ── Zephyr GPU (swamp7/lolminer image, not CSI) ────────────
+    # ── Zephyr GPU ────────────────────────────────────────────
     # RTX 3090 GPU 1 only — RTX 3060 Ti (GPU 0) reserved for AI/gaming
     # Power limit 250W, mem offset +1300 (3090 mining sweet spot)
     mining.Deployment.gpu-miner-zephyr = {
@@ -636,7 +609,7 @@ in
             containers = {
               _namedlist = true;
               lolminer = {
-                image = "docker.io/swamp7/lolminer:latest";
+                image = lolminerImage;
                 imagePullPolicy = "IfNotPresent";
                 args = [
                   "--algo=CR29"
