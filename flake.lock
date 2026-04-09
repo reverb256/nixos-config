@@ -202,6 +202,21 @@
         "type": "github"
       }
     },
+    "easykubenix": {
+      "locked": {
+        "lastModified": 1771374020,
+        "narHash": "sha256-JTweNo2EimlhVUQcXUJD/2g+ZTumPcAbIp4EKuSERq0=",
+        "owner": "Lillecarl",
+        "repo": "easykubenix",
+        "rev": "88a025fc04889f25b702f79030c6220c3ec48f9b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Lillecarl",
+        "repo": "easykubenix",
+        "type": "github"
+      }
+    },
     "firefox-addons": {
       "inputs": {
         "nixpkgs": [
@@ -826,6 +841,7 @@
         "agenix": "agenix",
         "claude-native": "claude-native",
         "colmena": "colmena",
+        "easykubenix": "easykubenix",
         "firefox-addons": "firefox-addons",
         "home-manager": "home-manager_2",
         "llm-agents": "llm-agents",
