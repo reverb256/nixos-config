@@ -65,7 +65,7 @@ in
         User = cfg.user;
         ExecStart =
           let
-            llamaServer = "/home/j_kro/llama-cpp/llama-b8724/llama-server";
+            llamaServer = "${pkgs.llama-cpp}/bin/llama-server";
           in
           ''
             ${llamaServer} \
@@ -82,9 +82,9 @@ in
           '';
         Restart = "on-failure";
         RestartSec = "5s";
-        # Use bundled libs first, then NVIDIA driver for CUDA
-        # Must NOT include /run/current-system/sw/lib (host libggml conflicts)
-        Environment = "LD_LIBRARY_PATH=/home/j_kro/llama-cpp/llama-b8724:/run/opengl-driver/lib";
+        # Clear LD_LIBRARY_PATH to prevent host libggml (nixpkgs v8401) from
+        # conflicting with our bundled version (b8724). Nix RPATH finds the right libs.
+        Environment = "LD_LIBRARY_PATH=";
       };
     };
   };
