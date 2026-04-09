@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-server
+  namespace: ai-inference
+  labels:
+    app: llama-cpp
+    purpose: llm-inference
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: llama-cpp
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: llama-cpp
+    spec:
+      nodeName: nexus  # Force scheduling to Nexus (llama-cpp installed)
+      schedulerName: default-scheduler
+      hostNetwork: true  # Use host network for direct port 8080 access
+      containers:
+      - name: llama-server
+        image: alpine:latest  # Placeholder - we'll override command
+        command:
+        - /run/current-system/sw/bin/llama-server
+        args:
+        - --model=/models/Qwen3.5-0.8B.Q8_0.gguf
+        - --host=0.0.0.0
+        - --port=8080
+        - --ctx-size=16384
+        - --threads=16
+        - --metrics
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: ""
+        ports:
+        - name: http
+          containerPort: 8080
+          hostPort: 8080
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "2"
+            memory: "2Gi"
+          limits:
+            cpu: "8"
+            memory: "4Gi"
+        volumeMounts:
+        - name: models
+          mountPath: /models
+          readOnly: true
+        - name: nixos-bin
+          mountPath: /run/current-system/sw/bin
+          readOnly: true
+        - name: nixos-lib
+          mountPath: /run/current-system/sw/lib
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: models
+        hostPath:
+          path: /home/j_kro/.lmstudio/models/Jackrong/Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF
+          type: Directory
+      - name: nixos-bin
+        hostPath:
+          path: /run/current-system/sw/bin
+          type: Directory
+      - name: nixos-lib
+        hostPath:
+          path: /run/current-system/sw/lib
+          type: Directory
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-server
+  namespace: ai-inference
+  labels:
+    app: llama-server
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: llama-server

@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xmrig-sentry-variable
+  namespace: mining
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: xmrig-sentry-variable
+  template:
+    metadata:
+      labels:
+        app: xmrig-sentry-variable
+
+    spec:
+      nodeName: sentry
+      hostNetwork: true
+      hostIPC: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      automountServiceAccountToken: false
+      serviceAccountName: gpu-miner-sa
+      priorityClassName: preemptible-mining
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: xmrig
+        image: gcr.io/distroless/static-debian12@sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838
+        command: ["/nix/store/0fd8d0yx3am8srx0ix2mnm5rypm6q1jv-xmrig-6.25.0/bin/xmrig"]
+        args:
+        - "-o"
+        - "10.1.1.120:3333"
+        - "-u"
+        - "sentry-cpu-var"
+        - "--tls=false"
+        - "--threads=4"
+        - "--donate-level=1"
+        - "--http-enabled"
+        - "--http-host=0.0.0.0"
+        - "--http-port=8083"
+
+
+
+        resources:
+          requests:
+            memory: 1Gi
+            cpu: 2
+          limits:
+            memory: 3072Mi
+            cpu: 4
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: nix
+          mountPath: /nix
+          subPath: nix
+        - name: msr
+          mountPath: /dev/cpu
+        - name: hugepages
+          mountPath: /dev/hugepages
+        - name: sys-module-msr
+          mountPath: /sys/module/msr
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: nix
+        csi:
+          driver: nixkube
+          volumeAttributes:
+            x86_64-linux: /nix/store/0fd8d0yx3am8srx0ix2mnm5rypm6q1jv-xmrig-6.25.0
+      - name: msr
+        hostPath:
+          path: /dev/cpu
+          type: Directory
+      - name: hugepages
+        hostPath:
+          path: /dev/hugepages
+          type: Directory
+      - name: sys-module-msr
+        hostPath:
+          path: /sys/module/msr
+          type: Directory
+      - name: tmp
+        emptyDir: {}

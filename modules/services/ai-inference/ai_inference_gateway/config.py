@@ -10,8 +10,10 @@ This module provides production-grade configuration with:
 - Schema generation
 """
 
+from __future__ import annotations
+
 from typing import Optional, List, Dict
-from pydantic import BaseModel, Field, field_validator, SecretStr
+from pydantic import BaseModel, Field, field_validator, model_validator, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -124,6 +126,46 @@ class ConcurrencyLimiterConfig(BaseModel):
     )
 
 
+class KnowledgeFabricConfig(BaseSettings):
+    """Knowledge Fabric middleware configuration"""
+
+    model_config = SettingsConfigDict(
+        env_prefix="",  # No prefix for env vars
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    enabled: bool = Field(
+        default=False, description="Enable Knowledge Fabric middleware"
+    )
+    rrf_k: int = Field(default=60, ge=1, le=100, description="RRF constant for fusion")
+    rag_enabled: bool = Field(default=False, description="Enable RAG source")
+    code_search_enabled: bool = Field(
+        default=True, description="Enable code search source"
+    )
+    searxng_enabled: bool = Field(default=False, description="Enable SearXNG source")
+    web_search_enabled: bool = Field(
+        default=False, description="Enable MCP web search source"
+    )
+    code_search_paths: List[str] = Field(
+        default_factory=lambda: ["/etc/nixos"], description="Paths to search for code"
+    )
+    rag_top_k: int = Field(default=5, ge=1, le=20, description="RAG top-K results")
+    searxng_url: str = Field(default="http://searxng.search.svc.cluster.local:8080", description="SearXNG URL")
+    mcp_url: str = Field(
+        default="http://127.0.0.1:8080/mcp/call", description="MCP broker URL"
+    )
+    web_max_results: int = Field(
+        default=5, ge=1, le=20, description="Web search max results"
+    )
+    searxng_max_results: int = Field(
+        default=5, ge=1, le=20, description="SearXNG max results"
+    )
+    code_max_results: int = Field(
+        default=5, ge=1, le=20, description="Code search max results"
+    )
+
+
 class MCPServerConfig(BaseModel):
     """Configuration for an MCP server."""
 
@@ -152,6 +194,69 @@ class MCPConfig(BaseModel):
     servers: List[MCPServerConfig] = Field(
         default_factory=list, description="Configured MCP servers"
     )
+    # Exclude servers from env var parsing - we handle it manually in the validator
+    model_config = SettingsConfigDict(extra="ignore")
+
+
+class SystemPromptsConfig(BaseModel):
+    """System prompts configuration for different request types."""
+
+    enabled: bool = Field(default=False, description="Enable custom system prompts")
+    default: str = Field(
+        default="", description="Default system prompt for all requests"
+    )
+    coding: str = Field(
+        default="You are an expert coding assistant. Write clean, efficient, and well-documented code.",
+        description="System prompt for coding-related requests",
+    )
+    reasoning: str = Field(
+        default="You are an expert reasoning assistant. Think step-by-step and provide clear explanations.",
+        description="System prompt for reasoning-related requests",
+    )
+    analysis: str = Field(
+        default="You are an expert analysis assistant. Provide thorough and structured analysis.",
+        description="System prompt for analysis-related requests",
+    )
+    agentic: str = Field(
+        default="You are an autonomous agent capable of multi-step planning and execution.",
+        description="System prompt for agentic/workflow requests",
+    )
+    fast: str = Field(
+        default="You are a fast and efficient assistant. Provide concise, direct answers.",
+        description="System prompt for fast response requests",
+    )
+    custom: Dict[str, str] = Field(
+        default_factory=dict, description="Custom system prompts by name"
+    )
+
+    def get_prompt(self, category: str) -> Optional[str]:
+        """
+        Get system prompt for a specific category.
+
+        Args:
+            category: One of 'default', 'coding', 'reasoning', 'analysis', 'agentic', 'fast', or custom name
+
+        Returns:
+            System prompt string or None if not found
+        """
+        if not self.enabled:
+            return None
+
+        # Check built-in categories
+        if hasattr(self, category):
+            value = getattr(self, category)
+            if value:
+                return value
+
+        # Check custom prompts
+        if category in self.custom and self.custom[category]:
+            return self.custom[category]
+
+        # Fall back to default
+        if self.default:
+            return self.default
+
+        return None
 
 
 class SentryConfig(BaseModel):
@@ -229,8 +334,14 @@ class ObservabilityConfig(BaseModel):
         return v_upper
 
 
-class MiddlewareConfig(BaseModel):
-    """Complete middleware configuration"""
+class MiddlewareConfig(BaseSettings):
+    """Complete middleware configuration - inherits BaseSettings for env var support"""
+
+    model_config = SettingsConfigDict(
+        env_prefix="",  # No prefix for env vars
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     rate_limiting: RateLimitingConfig = Field(
         default_factory=RateLimitingConfig, description="Rate limiting configuration"
@@ -262,6 +373,129 @@ class MiddlewareConfig(BaseModel):
         default_factory=MCPConfig, description="MCP broker configuration"
     )
 
+    knowledge_fabric: KnowledgeFabricConfig = Field(
+        default_factory=KnowledgeFabricConfig,
+        description="Knowledge Fabric middleware configuration",
+    )
+
+    # Override knowledge_fabric using model_validator to parse env vars
+    @model_validator(mode="after")
+    def override_knowledge_fabric_from_env(self):
+        """Parse Knowledge Fabric env vars that use MIDDLEWARE__ prefix"""
+        import os
+        import json
+
+        # Read env vars with MIDDLEWARE__KNOWLEDGE_FABRIC__ prefix
+        enabled = os.environ.get("MIDDLEWARE__KNOWLEDGE_FABRIC__ENABLED", "").lower()
+        rrf_k = os.environ.get("MIDDLEWARE__KNOWLEDGE_FABRIC__RRF_K", "")
+        rag_enabled = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_ENABLED", ""
+        ).lower()
+        searxng_enabled = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_ENABLED", ""
+        ).lower()
+        searxng_url = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080"
+        )
+        code_search_enabled = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_ENABLED", ""
+        ).lower()
+        web_search_enabled = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_SEARCH_ENABLED", ""
+        ).lower()
+        code_search_paths_raw = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_SEARCH_PATHS", '["/etc/nixos"]'
+        )
+        rag_top_k = os.environ.get("MIDDLEWARE__KNOWLEDGE_FABRIC__RAG_TOP_K", "5")
+        searxng_max_results = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__SEARXNG_MAX_RESULTS", "5"
+        )
+        code_max_results = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__CODE_MAX_RESULTS", "5"
+        )
+        web_max_results = os.environ.get(
+            "MIDDLEWARE__KNOWLEDGE_FABRIC__WEB_MAX_RESULTS", "5"
+        )
+
+        # Parse JSON paths
+        try:
+            code_search_paths = json.loads(code_search_paths_raw)
+        except:
+            code_search_paths = ["/etc/nixos"]
+
+        # Override knowledge_fabric fields
+        self.knowledge_fabric.enabled = enabled == "true"
+        self.knowledge_fabric.rrf_k = int(rrf_k) if rrf_k else 60
+        self.knowledge_fabric.rag_enabled = rag_enabled == "true"
+        self.knowledge_fabric.searxng_enabled = searxng_enabled == "true"
+        self.knowledge_fabric.searxng_url = searxng_url
+        self.knowledge_fabric.code_search_enabled = code_search_enabled == "true"
+        self.knowledge_fabric.web_search_enabled = web_search_enabled == "true"
+        self.knowledge_fabric.code_search_paths = code_search_paths
+        self.knowledge_fabric.rag_top_k = int(rag_top_k) if rag_top_k else 5
+        self.knowledge_fabric.searxng_max_results = (
+            int(searxng_max_results) if searxng_max_results else 5
+        )
+        self.knowledge_fabric.code_max_results = (
+            int(code_max_results) if code_max_results else 5
+        )
+        self.knowledge_fabric.web_max_results = (
+            int(web_max_results) if web_max_results else 5
+        )
+
+        return self
+
+    # Override mcp using model_validator to parse env vars
+    @model_validator(mode="after")
+    def override_mcp_from_env(self):
+        """Parse MCP env vars"""
+        import os
+        import json
+
+        # Read MCP_ENABLED env var
+        mcp_enabled = os.environ.get("MCP_ENABLED", "").lower()
+
+        # Override mcp.enabled field
+        if mcp_enabled:
+            self.mcp.enabled = mcp_enabled == "true"
+
+        # Read MCP_SERVERS env var (JSON string)
+        mcp_servers_json = os.environ.get("MCP_SERVERS", "[]")
+        if mcp_servers_json and mcp_servers_json != "[]":
+            try:
+                servers_data = json.loads(mcp_servers_json)
+                # Convert dict to MCPServerConfig objects
+                # The dict key is the server name, value contains the config
+                servers = []
+                for server_name, server_config in servers_data.items():
+                    if not server_config.get("enabled", True):
+                        continue
+
+                    # Extract fields explicitly to avoid unexpected kwargs
+                    server_type = server_config.get("type", "local")
+                    command = server_config.get("command")
+                    url = server_config.get("url")
+                    headers = server_config.get("headers", {})
+                    environment = server_config.get("environment", {})
+
+                    # Create MCPServerConfig with explicit fields
+                    server = MCPServerConfig(
+                        name=server_name,
+                        type=server_type,
+                        command=command,
+                        url=url,
+                        headers=headers,
+                        environment=environment,
+                    )
+                    servers.append(server)
+
+                self.mcp.servers = servers
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to parse MCP_SERVERS JSON: {e}")
+
+        return self
+
     # RAG configuration (optional - loaded from environment variables)
     # These use the exact env var names from gateway.nix for compatibility
     RAG_ENABLED: bool = Field(default=False, description="Enable RAG functionality")
@@ -284,8 +518,7 @@ class GatewayConfig(BaseSettings):
     - GATEWAY_HOST: Gateway listen host
     - GATEWAY_PORT: Gateway listen port
     - BACKEND_URL: Backend service URL
-    - BACKEND_TYPE: Backend type (lm-studio, vllm, llama-cpp, sglang, zai)
-    - LM_STUDIO_API_KEY: LM Studio API key (or LM_STUDIO_API_KEY_FILE)
+    - BACKEND_TYPE: Backend type (llama-cpp, vllm, sglang, zai, pollinations)
     - ZAI_API_KEY: ZAI API key (or ZAI_API_KEY_FILE)
     - LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     - STRUCTURED_LOGGING: Enable structured logging (true/false)
@@ -313,8 +546,8 @@ class GatewayConfig(BaseSettings):
         default="", description="Fallback backend URLs (comma-separated)"
     )
     backend_type: str = Field(
-        default="lm-studio",
-        pattern="^(lm-studio|vllm|llama-cpp|sglang|zai)$",
+        default="llama-cpp",
+        pattern="^(llama-cpp|vllm|sglang|zai|pollinations)$",
         description="Primary backend type",
     )
 
@@ -327,13 +560,6 @@ class GatewayConfig(BaseSettings):
         ]
 
     # API Keys (marked as secrets - won't appear in logs or repr)
-    lm_studio_api_key: Optional[SecretStr] = Field(
-        default=None, repr=False, exclude=True, description="LM Studio API key"
-    )
-    lm_studio_api_key_file: Optional[str] = Field(
-        default=None, description="Path to file containing LM Studio API key"
-    )
-
     zai_api_key: Optional[SecretStr] = Field(
         default=None, repr=False, exclude=True, description="ZAI API key"
     )
@@ -341,14 +567,26 @@ class GatewayConfig(BaseSettings):
         default=None, description="Path to file containing ZAI API key"
     )
 
+    pollinations_api_key: Optional[SecretStr] = Field(
+        default=None, repr=False, exclude=True, description="Pollinations API key"
+    )
+    pollinations_api_key_file: Optional[str] = Field(
+        default=None, description="Path to file containing Pollinations API key"
+    )
+
     # Middleware configuration
     middleware: MiddlewareConfig = Field(
-        default_factory=MiddlewareConfig, description="Middleware configuration"
+        default=MiddlewareConfig(), description="Middleware configuration"
     )
 
     # Sentry error tracking configuration
     sentry: SentryConfig = Field(
         default_factory=SentryConfig, description="Sentry error tracking configuration"
+    )
+
+    # System prompts configuration
+    system_prompts: SystemPromptsConfig = Field(
+        default_factory=SystemPromptsConfig, description="System prompts configuration"
     )
 
     @field_validator("backend_url")
@@ -367,28 +605,6 @@ class GatewayConfig(BaseSettings):
             raise ValueError("gateway_host cannot be empty")
         return v
 
-    def get_lm_studio_api_key(self) -> Optional[str]:
-        """
-        Get LM Studio API key value.
-
-        Priority:
-        1. Environment variable LM_STUDIO_API_KEY
-        2. File specified in LM_STUDIO_API_KEY_FILE
-        """
-        # Try secret field first
-        if self.lm_studio_api_key:
-            return self.lm_studio_api_key.get_secret_value()
-
-        # Try file
-        if self.lm_studio_api_key_file:
-            try:
-                with open(self.lm_studio_api_key_file, "r") as f:
-                    return f.read().strip()
-            except Exception:
-                return None
-
-        return None
-
     def get_zai_api_key(self) -> Optional[str]:
         """
         Get ZAI API key value.
@@ -397,14 +613,40 @@ class GatewayConfig(BaseSettings):
         1. Environment variable ZAI_API_KEY
         2. File specified in ZAI_API_KEY_FILE
         """
-        # Try secret field first
+        # Try secret field first (but not empty strings)
         if self.zai_api_key:
-            return self.zai_api_key.get_secret_value()
+            value = self.zai_api_key.get_secret_value()
+            if value and value.strip():
+                return value
 
         # Try file
         if self.zai_api_key_file:
             try:
                 with open(self.zai_api_key_file, "r") as f:
+                    return f.read().strip()
+            except Exception:
+                return None
+
+        return None
+
+    def get_pollinations_api_key(self) -> Optional[str]:
+        """
+        Get Pollinations API key value.
+
+        Priority:
+        1. Environment variable POLLINATIONS_API_KEY
+        2. File specified in POLLINATIONS_API_KEY_FILE
+        """
+        # Try secret field first (but not empty strings)
+        if self.pollinations_api_key:
+            value = self.pollinations_api_key.get_secret_value()
+            if value and value.strip():
+                return value
+
+        # Try file
+        if self.pollinations_api_key_file:
+            try:
+                with open(self.pollinations_api_key_file, "r") as f:
                     return f.read().strip()
             except Exception:
                 return None

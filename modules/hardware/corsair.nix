@@ -15,6 +15,7 @@ in {
     aio.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Enable Corsair AIO cooler support via liquidctl";
     };
 
@@ -22,6 +23,7 @@ in {
     rgb.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Enable OpenRGB for Corsair RGB control";
     };
 
@@ -32,6 +34,7 @@ in {
       default = [
         "usbhid" # Generic USB HID support
       ];
+      example = ["usbhid" "corsair-cwi"];
       description = "Kernel modules for Corsair devices";
     };
 
@@ -39,6 +42,7 @@ in {
     autoStartRgb = lib.mkOption {
       type = lib.types.bool;
       default = false;
+      example = true;
       description = "Auto-start OpenRGB server at boot (conflicts with liquidctl monitoring)";
     };
   };
@@ -86,8 +90,15 @@ in {
       wantedBy = ["multi-user.target"];
       after = ["graphical-session.target"];
       serviceConfig = {
-        ExecStart = "${pkgs.openrgb}/bin/openrgb --server";
+        ExecStart = lib.getExe pkgs.openrgb + " --server";
         Restart = "on-failure";
+        # Security hardening
+        NoNewPrivileges = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        PrivateTmp = true;
+        RestrictRealtime = true;
+        RestrictAddressFamilies = ["AF_UNIX" "AF_INET"];
       };
     };
 

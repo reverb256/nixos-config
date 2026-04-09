@@ -3,9 +3,23 @@ import subprocess
 import sys
 import os
 
+sys.path.insert(0, os.path.dirname(__file__))
+from common import (
+    ensure_dependencies,
+    get_age_identity_path,
+    get_secrets_nix_path,
+    get_nixos_dir,
+    print_error,
+    print_success,
+    print_info,
+    backup_file,
+)
+
 
 def add_secret(secret_name, secret_value, owner="j_kro", group=None):
     print(f"Creating encrypted secret: {secret_name}")
+
+    identity_path = get_age_identity_path(owner)
 
     result = subprocess.run(
         [
@@ -13,19 +27,22 @@ def add_secret(secret_name, secret_value, owner="j_kro", group=None):
             "-e",
             f"secrets/{secret_name}.age",
             "-i",
-            "/home/j_kro/.age/key.txt",
+            str(identity_path),
         ],
         input=secret_value,
         text=True,
         cwd="/etc/nixos",
-        env={**os.environ, "RULES": "/etc/nixos/secrets.nix"},
+        env={**os.environ, "RULES": str(get_secrets_nix_path())},
     )
 
     if result.returncode != 0:
-        print(f"Error creating encrypted file: {result.stderr}")
+        print_error(
+            f"Failed to create encrypted file",
+            "Ensure agenix is installed: ./skills/agenix-secrets/bootstrap.sh",
+        )
         return False
 
-    print(f"✓ Encrypted file created: secrets/{secret_name}.age")
+    print_success(f"Encrypted file created: secrets/{secret_name}.age")
 
     if os.path.exists(f"/etc/nixos/{secret_name}.age"):
         subprocess.run(
@@ -40,13 +57,17 @@ def add_secret(secret_name, secret_value, owner="j_kro", group=None):
 
 
 def add_to_secrets_nix(secret_name, owner="j_kro"):
-    print(f"Adding to secrets.nix: {secret_name}")
+    print_info(f"Adding to secrets.nix: {secret_name}")
 
-    with open("/etc/nixos/secrets.nix", "r") as f:
+    secrets_nix_path = get_secrets_nix_path()
+
+    backup_file(secrets_nix_path)
+
+    with open(secrets_nix_path, "r") as f:
         content = f.read()
 
     if f'"{secret_name}".publicKeys' in content:
-        print("  Already exists")
+        print_info("  Already exists")
         return True
 
     new_entry = f'  "{secret_name}".publicKeys = [users.{owner}];\n'
@@ -64,12 +85,18 @@ def add_to_secrets_nix(secret_name, owner="j_kro"):
 
 def add_to_config_nix(secret_name, owner="j_kro", group=None, host="zephyr"):
     """Add age.secrets.* declaration to a host's configuration.nix."""
-    print(f"Adding to {host}/configuration.nix: {secret_name}")
+    print_info(f"Adding to {host}/configuration.nix: {secret_name}")
 
-    config_path = f"/etc/nixos/hosts/{host}/configuration.nix"
-    if not os.path.exists(config_path):
-        print(f"  ✗ Configuration file not found: {config_path}")
+    nixos_dir = get_nixos_dir()
+    config_path = nixos_dir / "hosts" / host / "configuration.nix"
+    if not config_path.exists():
+        print_error(
+            f"Configuration file not found: {config_path}",
+            "Ensure host '{host}' exists in hosts/ directory",
+        )
         return False
+
+    backup_file(config_path)
 
     with open(config_path, "r") as f:
         content = f.read()
@@ -117,12 +144,18 @@ def add_to_config_nix(secret_name, owner="j_kro", group=None, host="zephyr"):
         print(f"✓ Added to {host}/configuration.nix")
         return True
 
-    print("  Warning: Could not find age.secrets section")
-    return False
+        print_warning("Could not find age.secrets section")
+        print_info(
+            "  → Add 'age.secrets = {};' to hosts/{host}/configuration.nix first"
+        )
+        return False
 
 
 def main():
     import argparse
+
+    if not ensure_dependencies(auto_install=True):
+        sys.exit(1)
 
     parser = argparse.ArgumentParser(
         description="Add a new secret to your NixOS configuration"

@@ -1,0 +1,113 @@
+# Caddy Ingress Controller — Ingress Resources
+#
+# Internal cluster services accessible via .lan/.cluster.local domains.
+# Using acmeCA: internal (ConfigMap) for self-signed TLS.
+# disable-ssl-redirect prevents HTTP→HTTPS redirect so zephyr's
+# host Caddy can proxy HTTP-only to the NodePort.
+#
+# Test with:
+#   curl http://openwebui.lan/              (via zephyr Caddy → nexus:30080)
+#   curl -k https://openwebui.lan:30443/    (direct to K8s Caddy)
+
+---
+# Open WebUI — AI chat interface
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openwebui
+  namespace: ai-inference
+  labels:
+    app.kubernetes.io/name: openwebui
+  annotations:
+    caddy.ingress.kubernetes.io/disable-ssl-redirect: "true"
+spec:
+  ingressClassName: caddy
+  rules:
+    - host: openwebui.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: open-webui
+                port:
+                  number: 8080
+    - host: openwebui.cluster.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: open-webui
+                port:
+                  number: 8080
+---
+# SearXNG — Privacy search engine
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: searxng
+  namespace: search
+  labels:
+    app.kubernetes.io/name: searxng
+  annotations:
+    caddy.ingress.kubernetes.io/disable-ssl-redirect: "true"
+spec:
+  ingressClassName: caddy
+  rules:
+    - host: search.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: searxng
+                port:
+                  number: 8080
+    - host: search.cluster.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: searxng
+                port:
+                  number: 8080
+---
+# llama-server — AI inference API
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: llama-server
+  namespace: ai-inference
+  labels:
+    app.kubernetes.io/name: llama-server
+  annotations:
+    caddy.ingress.kubernetes.io/disable-ssl-redirect: "true"
+spec:
+  ingressClassName: caddy
+  rules:
+    - host: ai.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: llama-server
+                port:
+                  number: 8080
+    - host: ai.cluster.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: llama-server
+                port:
+                  number: 8080

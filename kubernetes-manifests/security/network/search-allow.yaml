@@ -1,0 +1,81 @@
+# Search Namespace Network Policy (Searxng)
+# Allows web traffic to Searxng and required external API access
+
+---
+# Default-deny for search namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: search
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+
+---
+# Allow ingress from ingress controller (if using) or anywhere for web access
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web-ingress
+  namespace: search
+spec:
+  podSelector:
+    matchLabels:
+      app: searxng
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector: {}  # Allow from any namespace (web traffic)
+    ports:
+    - protocol: TCP
+      port: 7777  # Searxng web port (NodePort: 30080)
+
+---
+# Allow DNS resolution
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: search
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Allow Searxng to reach external search engines and APIs
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-external-apis
+  namespace: search
+spec:
+  podSelector:
+    matchLabels:
+      app: searxng
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8     # Don't allow direct access to internal IPs
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS
+    - protocol: TCP
+      port: 80   # HTTP

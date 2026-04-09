@@ -1,0 +1,22 @@
+{
+  "CN": "etcd-sentry",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "etcd",
+      "OU": "Server",
+      "L": "Homelab",
+      "ST": "Infrastructure",
+      "C": "US"
+    }
+  ],
+  "hosts": [
+    "sentry",
+    "10.1.1.140",
+    "127.0.0.1",
+    "localhost"
+  ]
+}

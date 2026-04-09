@@ -6,18 +6,27 @@
 set -euo pipefail
 
 # Configuration
-API_KEY_FILE="/run/agenix/lm-studio-api-key"
+LM_STUDIO_API_KEY_FILE="/run/agenix/lm-studio-api-key"
+ZAI_API_KEY_FILE="/run/agenix/zai-api-key"
+POLLINATIONS_API_KEY_FILE="/run/agenix/pollinations-api-key"
 USER_ENV_FILE="/home/j_kro/.bashrc.d/opencode-gateway.sh"
 FISH_ENV_FILE="/home/j_kro/.config/fish/conf.d/opencode-gateway.fish"
 
 echo "Setting up OpenCode environment..."
 
-# Check if API key file exists
-if [[ ! -f "$API_KEY_FILE" ]]; then
-    echo "ERROR: API key file not found: $API_KEY_FILE"
-    echo "Please ensure LM Studio API key is configured with agenix"
+# Check if API key file exists (at least one)
+if [[ ! -f "$LM_STUDIO_API_KEY_FILE" ]] && [[ ! -f "$ZAI_API_KEY_FILE" ]]; then
+    echo "ERROR: No API key files found"
+    echo "  Checked: $LM_STUDIO_API_KEY_FILE, $ZAI_API_KEY_FILE"
+    echo "Please ensure at least one API key is configured with agenix"
     exit 1
 fi
+
+# Report available keys
+echo "Available API keys:"
+[[ -f "$LM_STUDIO_API_KEY_FILE" ]] && echo "  ✓ LM Studio API key"
+[[ -f "$ZAI_API_KEY_FILE" ]] && echo "  ✓ ZAI API key"
+[[ -f "$POLLINATIONS_API_KEY_FILE" ]] && echo "  ✓ Pollinations API key"
 
 # Create directory for bash environment snippets
 mkdir -p "$(dirname "$USER_ENV_FILE")"
@@ -32,7 +41,17 @@ if [[ -f /run/agenix/lm-studio-api-key ]]; then
     export LM_STUDIO_API_KEY="$(cat /run/agenix/lm-studio-api-key)"
 fi
 
-# Add gateway health check to PATH
+# Export ZAI API key for OpenCode fallback
+if [[ -f /run/agenix/zai-api-key ]]; then
+    export ZAI_API_KEY="$(cat /run/agenix/zai-api-key)"
+fi
+
+# Export Pollinations API key for OpenCode
+if [[ -f /run/agenix/pollinations-api-key ]]; then
+    export POLLINATIONS_API_KEY="$(cat /run/agenix/pollinations-api-key)"
+fi
+
+# Add gateway scripts to PATH
 if [[ -d /etc/nixos/scripts ]]; then
     export PATH="/etc/nixos/scripts:$PATH"
 fi
@@ -52,7 +71,17 @@ if test -f /run/agenix/lm-studio-api-key
     set -gx LM_STUDIO_API_KEY (cat /run/agenix/lm-studio-api-key)
 end
 
-# Add gateway health check to PATH
+# Export ZAI API key for OpenCode fallback
+if test -f /run/agenix/zai-api-key
+    set -gx ZAI_API_KEY (cat /run/agenix/zai-api-key)
+end
+
+# Export Pollinations API key for OpenCode
+if test -f /run/agenix/pollinations-api-key
+    set -gx POLLINATIONS_API_KEY (cat /run/agenix/pollinations-api-key)
+end
+
+# Add gateway scripts to PATH
 if test -d /etc/nixos/scripts
     set -gx PATH /etc/nixos/scripts $PATH
 end
@@ -70,7 +99,7 @@ fi
 echo
 echo "Environment setup complete!"
 echo
-echo "The LM Studio API key will be automatically loaded:"
+echo "API keys will be automatically loaded:"
 echo "  - For new bash sessions (via .bashrc.d/opencode-gateway.sh)"
 echo "  - For new fish sessions (via conf.d/opencode-gateway.fish)"
 echo
@@ -79,6 +108,7 @@ echo "  source $USER_ENV_FILE"
 echo
 echo "Verify the setup:"
 echo "  echo \$LM_STUDIO_API_KEY | head -c 20"
+echo "  echo \$ZAI_API_KEY | head -c 20"
 echo
 echo "Test the gateway:"
-echo "  opencode-gateway-health check"
+echo "  opencode-status"

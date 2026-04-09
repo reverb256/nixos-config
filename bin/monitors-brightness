@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# Monitor brightness control script for KDE Plasma
+# Controls all DDC/CI compatible monitors via ddcutil
+
+set -euo pipefail
+
+# Monitor bus mappings (from ddcutil detect)
+declare -A MONITORS=(
+    ["asus"]="8"      # /dev/i2c-8 - ASUS VT229 (DP-4)
+    ["zowie"]="9"     # /dev/i2c-9 - ZOWIE RL LCD (DP-5)
+    ["acer"]="10"     # /dev/i2c-10 - Acer X203H (DP-6)
+)
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Print usage
+usage() {
+    echo "Usage: $0 <monitor> <brightness|get|status>"
+    echo ""
+    echo "Monitors:"
+    echo "  asus   - ASUS VT229 (left)"
+    echo "  zowie  - ZOWIE RL LCD (center)"
+    echo "  acer   - Acer X203H (bottom right)"
+    echo ""
+    echo "Commands:"
+    echo "  <0-100>     - Set brightness (0-100%)"
+    echo "  get         - Get current brightness"
+    echo "  status      - Show all monitors status"
+    echo ""
+    echo "Examples:"
+    echo "  $0 acer 50        # Set Acer to 50%"
+    echo "  $0 asus get       # Get ASUS brightness"
+    echo "  $0 status         # Show all monitors"
+}
+
+# Get brightness for a monitor
+get_brightness() {
+    local bus=$1
+    local name=$2
+    local output
+    output=$(ddcutil --bus "$bus" getvcp 10 2>&1)
+    if echo "$output" | grep -q "current value"; then
+        local brightness
+        brightness=$(echo "$output" | grep -oP 'current value\s*=\s*\K\d+')
+        echo -e "${GREEN}$name${NC}: Brightness = ${brightness}%"
+    else
+        echo -e "${RED}$name${NC}: Failed to read brightness"
+        echo "$output" | head -3
+    fi
+}
+
+# Set brightness for a monitor
+set_brightness() {
+    local bus=$1
+    local name=$2
+    local value=$3
+
+    # Validate brightness value
+    if ! [[ "$value" =~ ^[0-9]+$ ]] || [ "$value" -lt 0 ] || [ "$value" -gt 100 ]; then
+        echo -e "${RED}Error: Brightness must be between 0 and 100${NC}"
+        exit 1
+    fi
+
+    echo -e "${YELLOW}Setting $name to $value%...${NC}"
+    ddcutil --bus "$bus" setvcp 10 "$value"
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Done! $name set to $value%${NC}"
+    else
+        echo -e "${RED}Failed to set $name brightness${NC}"
+    fi
+}
+
+# Show status of all monitors
+show_status() {
+    echo -e "${YELLOW}Monitor Brightness Status${NC}"
+    echo "========================"
+    for name in "${!MONITORS[@]}"; do
+        get_brightness "${MONITORS[$name]}" "$name"
+    done
+}
+
+# Main script logic
+main() {
+    # Check if ddcutil is available
+    if ! command -v ddcutil &> /dev/null; then
+        echo -e "${RED}Error: ddcutil not found. Run: sudo nixos-rebuild switch${NC}"
+        exit 1
+    fi
+
+    # Check if user has i2c group access
+    if ! groups | grep -q i2c; then
+        echo -e "${YELLOW}Warning: You're not in the i2c group. Run: sudo nixos-rebuild switch${NC}"
+        echo "Then log out and log back in."
+    fi
+
+    case "${1:-}" in
+        status|"")
+            show_status
+            ;;
+        asus|zowie|acer)
+            local monitor="$1"
+            local bus="${MONITORS[$monitor]}"
+            local action="${2:-}"
+
+            if [ -z "$action" ]; then
+                get_brightness "$bus" "$monitor"
+            elif [ "$action" = "get" ]; then
+                get_brightness "$bus" "$monitor"
+            elif [[ "$action" =~ ^[0-9]+$ ]]; then
+                set_brightness "$bus" "$monitor" "$action"
+            else
+                echo -e "${RED}Error: Invalid action '$action'${NC}"
+                usage
+                exit 1
+            fi
+            ;;
+        -h|--help|help)
+            usage
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown monitor '$1'${NC}"
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

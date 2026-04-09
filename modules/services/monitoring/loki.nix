@@ -5,52 +5,46 @@
   lib,
   ...
 }: let
-  cfg = config.services.loki;
-  inherit
-    (lib)
-    mkEnableOption
-    mkOption
-    types
-    mkIf
-    ;
+  cfg = config.services.monitoring.loki;
 in {
-  options.services.loki = {
-    enable = mkEnableOption "Loki log aggregation server";
+  options.services.monitoring.loki = {
+    enable = lib.mkEnableOption "Loki log aggregation server";
 
-    dataDir = mkOption {
-      type = types.path;
+    dataDir = lib.mkOption {
+      type = lib.types.path;
       default = "/var/lib/loki";
       description = "Directory for Loki data storage";
     };
 
-    retentionPeriod = mkOption {
-      type = types.str;
+    retentionPeriod = lib.mkOption {
+      type = lib.types.str;
       default = "30d";
       description = "Log retention period (e.g., '30d', '168h')";
     };
 
-    listenAddress = mkOption {
-      type = types.str;
+    listenAddress = lib.mkOption {
+      type = lib.types.str;
       default = "127.0.0.1";
       description = "Address to listen on";
     };
 
-    port = mkOption {
-      type = types.port;
+    port = lib.mkOption {
+      type = lib.types.port;
       default = 3100;
       description = "Port for Loki HTTP server";
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     services.loki = {
       enable = true;
       configuration = {
         server.http_listen_port = cfg.port;
         server.http_listen_address = cfg.listenAddress;
 
-        # Data storage
+        # Common storage configuration
         common = {
+          path_prefix = cfg.dataDir;
           storage.filesystem = {
             chunks_directory = "${cfg.dataDir}/chunks";
             rules_directory = "${cfg.dataDir}/rules";
@@ -58,12 +52,12 @@ in {
           replication_factor = 1;
         };
 
-        # Schema configuration
+        # Schema configuration - use boltdb-shipper for compatibility
         schema_config = {
           configs = [
             {
               from = "2024-01-01";
-              store = "tsdb";
+              store = "boltdb-shipper";
               object_store = "filesystem";
               schema = "v13";
               index = {
@@ -74,33 +68,47 @@ in {
           ];
         };
 
+        # Storage configuration wrapper (required for boltdb-shipper)
+        storage_config = {
+          boltdb_shipper = {
+            active_index_directory = "${cfg.dataDir}/boltdb-shipper/index";
+            cache_location = "${cfg.dataDir}/boltdb-shipper/cache";
+          };
+        };
+
         # Retention policy
         limits_config = {
           retention_period = cfg.retentionPeriod;
-          retention_stream_max_age = cfg.retentionPeriod;
           per_stream_rate_limit = "10MB";
           per_stream_rate_limit_burst = "20MB";
+          # Disable structured metadata for boltdb-shipper compatibility
+          allow_structured_metadata = false;
         };
 
         # Ingester configuration
         ingester = {
           chunk_idle_period = "1h";
           max_chunk_age = "2h";
-          target_chunk_size = 1048576; # 1MB
+          lifecycler = {
+            ring = {
+              kvstore = {
+                store = "inmemory";
+              };
+            };
+          };
         };
 
-        # Limits
+        # Compactor configuration
         compactor = {
           working_directory = "${cfg.dataDir}/compactor";
           retention_enabled = true;
           delete_request_cancel_period = "24h";
           compaction_interval = "10m";
+          delete_request_store = "filesystem";
         };
 
         # Ruler for alerting on logs
         ruler = {
-          enable = true;
-          enable_alertmanager = true;
           alertmanager_url = "http://127.0.0.1:9093";
           storage = {
             type = "local";
@@ -142,15 +150,31 @@ in {
           mode = "0750";
         };
       };
+      "${cfg.dataDir}/boltdb-shipper" = {
+        d = {
+          user = "loki";
+          group = "loki";
+          mode = "0750";
+        };
+      };
+      "${cfg.dataDir}/boltdb-shipper/index" = {
+        d = {
+          user = "loki";
+          group = "loki";
+          mode = "0750";
+        };
+      };
+      "${cfg.dataDir}/boltdb-shipper/cache" = {
+        d = {
+          user = "loki";
+          group = "loki";
+          mode = "0750";
+        };
+      };
     };
 
-    # User and group
-    users.users.loki = {
-      isSystemUser = true;
-      group = "loki";
-      description = "Loki log aggregation service";
-    };
-    users.groups.loki = {};
+    # Note: User and group are created by the built-in Loki service
+    # We only need to create the data directories
 
     # Firewall
     networking.firewall.interfaces."tailscale0".allowedTCPPorts = [cfg.port];

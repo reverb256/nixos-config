@@ -1,7 +1,7 @@
 """
 response_format transformation for OpenAI compatibility.
 
-Transforms OpenAI response_format requests into LM Studio-compatible
+Transforms OpenAI response_format requests into backend-compatible
 system prompts that enforce JSON output constraints.
 
 Supported modes:
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class ResponseFormatTransformer:
     """
-    Transform OpenAI response_format to LM Studio instructions.
+    Transform OpenAI response_format to backend instructions.
 
     OpenAI clients may send:
     {
@@ -44,7 +44,7 @@ class ResponseFormatTransformer:
         }
     }
 
-    LM Studio doesn't natively support response_format, so we transform
+    The backend doesn't natively support response_format, so we transform
     these into system prompt instructions that guide the model to produce
     compliant JSON responses.
     """
@@ -95,7 +95,7 @@ Requirements:
 
         if format_type == "json_object":
             self._add_json_object_instructions(body)
-            # Remove response_format as LM Studio doesn't use it
+            # Remove response_format as backend doesn't use it
             del body["response_format"]
 
         elif format_type == "json_schema":

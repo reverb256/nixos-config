@@ -1,0 +1,67 @@
+# Pod Disruption Budgets for Critical Services
+# Ensures high availability during voluntary disruptions (node maintenance, upgrades)
+
+---
+# AI Inference Gateway PDB
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-inference-gateway-pdb
+  namespace: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-inference-gateway
+
+---
+# SearXNG PDB
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: searxng-pdb
+  namespace: search
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: searxng
+
+---
+# Caddy Ingress PDB
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: caddy-ingress-pdb
+  namespace: ingress-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: caddy-ingress
+
+---
+# Qdrant PDB (AI Inference Vector DB)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: qdrant-pdb
+  namespace: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: qdrant
+
+---
+# Yunikorn Scheduler PDB
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: yunikorn-scheduler-pdb
+  namespace: yunikorn
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: yunikorn-scheduler

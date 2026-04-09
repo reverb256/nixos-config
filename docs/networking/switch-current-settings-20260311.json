@@ -1,0 +1,67 @@
+{
+  "timestamp": "2026-03-11T20:27:00Z",
+  "description": "TP-Link Switch Current VLAN and PVID Configuration",
+  "rollback_instructions": "To rollback: access each switch web UI, go to VLAN > 802.1Q VLAN, uncheck 'Enable 802.1Q VLAN', click Apply",
+  "switches": {
+    "sw1-modem": {
+      "ip": "10.1.1.10",
+      "name": "sw1-modem-root",
+      "vlan_enabled": true,
+      "pvids": [1, 1, 1, 1, 1],
+      "vlans": [
+        {"id": 1, "name": "Default", "taggedPorts": [], "untaggedPorts": [1,2,3,4,5]},
+        {"id": 10, "name": "gaming", "taggedPorts": [1,3,4,5], "untaggedPorts": [2]},
+        {"id": 20, "name": "ai", "taggedPorts": [1,2,4,5], "untaggedPorts": []},
+        {"id": 30, "name": "storage", "taggedPorts": [1,2,4], "untaggedPorts": []},
+        {"id": 40, "name": "mining", "taggedPorts": [1,2,4,5], "untaggedPorts": []},
+        {"id": 50, "name": "monitoring", "taggedPorts": [1,2,4,5], "untaggedPorts": []},
+        {"id": 60, "name": "backup", "taggedPorts": [1,2,4], "untaggedPorts": []},
+        {"id": 99, "name": "management", "taggedPorts": [1,2,4,5], "untaggedPorts": []}
+      ]
+    },
+    "sw2-tv": {
+      "ip": "10.1.1.11",
+      "name": "sw2-tv-branch",
+      "vlan_enabled": true,
+      "pvids": [1, 1, 1, 1, 1],
+      "vlans": [
+        {"id": 1, "name": "Default", "taggedPorts": [], "untaggedPorts": [1,2,3,4,5]},
+        {"id": 30, "name": "storage", "taggedPorts": [1,2], "untaggedPorts": []},
+        {"id": 60, "name": "backup", "taggedPorts": [1,2], "untaggedPorts": []},
+        {"id": 99, "name": "management", "taggedPorts": [1,2], "untaggedPorts": []}
+      ]
+    },
+    "sw3-upstairs": {
+      "ip": "10.1.1.12",
+      "name": "sw3-upstairs",
+      "vlan_enabled": true,
+      "pvids": [1, 1, 1, 1, 1],
+      "vlans": [
+        {"id": 1, "name": "Default", "taggedPorts": [], "untaggedPorts": [1,2,3,4,5]},
+        {"id": 10, "name": "gaming", "taggedPorts": [1], "untaggedPorts": []},
+        {"id": 20, "name": "ai", "taggedPorts": [1,5], "untaggedPorts": []},
+        {"id": 30, "name": "storage", "taggedPorts": [1], "untaggedPorts": [2]},
+        {"id": 40, "name": "mining", "taggedPorts": [1,4,5], "untaggedPorts": []},
+        {"id": 50, "name": "monitoring", "taggedPorts": [1,4], "untaggedPorts": []},
+        {"id": 60, "name": "backup", "taggedPorts": [1,4,5], "untaggedPorts": []},
+        {"id": 99, "name": "management", "taggedPorts": [1], "untaggedPorts": [2]}
+      ]
+    },
+    "sw4-zephyr": {
+      "ip": "10.1.1.13",
+      "name": "sw4-zephyr-end",
+      "vlan_enabled": true,
+      "pvids": [1, 1, 1, 1, 1],
+      "vlans": [
+        {"id": 1, "name": "Default", "taggedPorts": [], "untaggedPorts": [1,2,3,4,5]},
+        {"id": 10, "name": "gaming", "taggedPorts": [1,5], "untaggedPorts": []},
+        {"id": 20, "name": "ai", "taggedPorts": [1,5], "untaggedPorts": []},
+        {"id": 30, "name": "storage", "taggedPorts": [1], "untaggedPorts": []},
+        {"id": 40, "name": "mining", "taggedPorts": [1], "untaggedPorts": []},
+        {"id": 50, "name": "monitoring", "taggedPorts": [1], "untaggedPorts": []},
+        {"id": 60, "name": "backup", "taggedPorts": [1], "untaggedPorts": []},
+        {"id": 99, "name": "management", "taggedPorts": [1,5], "untaggedPorts": []}
+      ]
+    }
+  }
+}

@@ -1,13 +1,13 @@
 # modules/profiles/hardware/default.nix --- Hardware profiles
-
-{ lib, ... }:
-
-let
-  inherit (lib) mkEnableOption mkOption types;
-in
-{
+{lib, ...}: let
+  inherit (lib) mkEnableOption;
+in {
   imports = [
     ./implementations.nix
+    # Import GPU modules so options are available for all hosts
+    # Modules only apply when their enable options are set
+    ../../hardware/amdgpu-wayland.nix
+    ../../hardware/nvidia-wayland.nix
   ];
 
   options.hardware.profiles = {

@@ -29,30 +29,35 @@ in {
             owner = lib.mkOption {
               type = lib.types.str;
               default = "root";
+              example = "grafana";
               description = "Owner of the secret file";
             };
 
             group = lib.mkOption {
               type = lib.types.str;
               default = "root";
+              example = "grafana";
               description = "Group of the secret file";
             };
 
             mode = lib.mkOption {
               type = lib.types.str;
               default = "0400";
+              example = "0400";
               description = "File permissions (default: owner read only)";
             };
 
             length = lib.mkOption {
               type = lib.types.int;
               default = 64;
+              example = 32;
               description = "Length of generated password (hex chars, so 64 = 256-bit entropy)";
             };
 
             regenerate = lib.mkOption {
               type = lib.types.bool;
               default = false;
+              example = true;
               description = "Regenerate secret if it already exists (useful for rotation)";
             };
           };

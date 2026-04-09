@@ -1,0 +1,30 @@
+# Storage strategy for AI coding tools
+# We'll use hostPath to mount the actual home directory
+# This preserves all configs, history, and provides seamless experience
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ai-coding-tools-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+  - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /home/j_kro  # Your actual home directory
+    type: Directory
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ai-coding-tools-config
+  namespace: ai-inference
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: ai-coding-tools-pv  # Bind to specific PV

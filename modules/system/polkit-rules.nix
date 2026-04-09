@@ -1,14 +1,10 @@
 # PolKit rules for NixOS
 # Disable password prompts for systemd service management
-{
-  config,
-  lib,
-  ...
-}: {
+_: {
   # Add polkit extra rules for systemd service management
   security.polkit.extraConfig = ''
-    # Allow wheel group to manage systemd services without authentication
-    # This prevents password prompts when using systemctl commands
+    // Allow wheel group to manage systemd services without authentication
+    // This prevents password prompts when using systemctl commands
     polkit.addRule(function(action, subject) {
       if (
         action.id == "org.freedesktop.systemd1.manage-units" &&
@@ -18,7 +14,7 @@
       }
     });
 
-    # Also allow managing user services without authentication
+    // Also allow managing user services without authentication
     polkit.addRule(function(action, subject) {
       if (
         action.id == "org.freedesktop.systemd1.manage-units" &&

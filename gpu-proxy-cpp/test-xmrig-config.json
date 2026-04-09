@@ -1,0 +1,86 @@
+{
+    "api": {
+        "id": null,
+        "worker-id": null
+    },
+    "http": {
+        "enabled": false,
+        "host": "127.0.0.1",
+        "port": 0,
+        "access-token": null,
+        "restricted": true
+    },
+    "autosave": true,
+    "background": false,
+    "colors": true,
+    "title": true,
+    "randomx": {
+        "init": -1,
+        "init-avx2": -1,
+        "mode": "auto",
+        "1gb-pages": false,
+        "rdmsr": true,
+        "wrmsr": true,
+        "cache_qos": false,
+        "numa": true,
+        "scratchpad_prefetch_mode": 1
+    },
+    "cpu": {
+        "enabled": false,
+        "huge-pages": true,
+        "huge-pages-jit": false,
+        "hw-aes": null,
+        "priority": null,
+        "memory-pool": false,
+        "yield": true,
+        "max-threads-hint": 100,
+        "asm": true,
+        "argon2-impl": null
+    },
+    "log-file": null,
+    "donate-level": 1,
+    "donate-over-proxy": 1,
+    "pools": [
+        {
+            "algo": "cn/rwz",
+            "coin": null,
+            "url": "xtm-c29-us.kryptex.network:8040",
+            "user": "krxXVNVMM7.zephyr-gpu",
+            "pass": "x",
+            "rig-id": null,
+            "nicehash": false,
+            "keepalive": true,
+            "enabled": true,
+            "tls": true,
+            "sni": false,
+            "tls-fingerprint": null,
+            "daemon": false,
+            "socks5": null,
+            "self-select": null,
+            "submit-to-origin": false
+        }
+    ],
+    "retries": 5,
+    "retry-pause": 5,
+    "print-time": 60,
+    "dmi": true,
+    "syslog": false,
+    "tls": {
+        "enabled": false,
+        "protocols": null,
+        "cert": null,
+        "cert_key": null,
+        "ciphers": null,
+        "ciphersuites": null,
+        "dhparam": null
+    },
+    "dns": {
+        "ip_version": 0,
+        "ttl": 30
+    },
+    "user-agent": null,
+    "verbose": 1,
+    "watch": true,
+    "pause-on-battery": false,
+    "pause-on-active": false
+}

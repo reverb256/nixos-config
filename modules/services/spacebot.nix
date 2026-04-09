@@ -1,6 +1,6 @@
 # Spacebot AI Agent - Podman Deployment
 # Multi-agent AI system for teams with Discord, Slack, Telegram integration
-# Integrates with existing AI Gateway at http://127.0.0.1:8080
+# Integrates with existing AI Gateway (port 8081 on Zephyr, K8s hostNetwork)
 {
   config,
   lib,
@@ -16,6 +16,15 @@
     types
     literalExpression
     ;
+
+  # Advanced types demonstration (using mkOptionType and types.either/oneOf)
+  # In production, these would be in modules/lib/advanced-types.nix
+  urlOrSocketType = lib.types.oneOf [
+    (lib.types.str // {description = "URL (e.g., https://example.com or postgres://localhost/db)";})
+    (lib.types.path // {description = "Unix socket path (e.g., /run/service.sock)";})
+  ];
+
+  portOrServiceType = lib.types.either lib.types.int lib.types.str;
 in {
   options.services.spacebot = {
     enable = mkEnableOption "Spacebot AI agent service";
@@ -23,8 +32,8 @@ in {
     # Container configuration
     image = mkOption {
       type = types.str;
-      default = "ghcr.io/spacedriveapp/spacebot:latest";
-      description = "Container image to use";
+      default = "ghcr.io/spacedriveapp/spacebot:latest"; # TODO: pin to specific version when available
+      description = "Container image to use (pin to specific version for supply chain security)";
     };
 
     dataDir = mkOption {
@@ -74,6 +83,7 @@ in {
     };
 
     # Provider API Keys (passed as environment variables to container)
+    # Demonstrates advanced type: types.either types.str types.path
     providerKeys = mkOption {
       type = types.attrsOf (types.nullOr (types.either types.str types.path));
       default = {
@@ -100,6 +110,49 @@ in {
 
         Note: Keys can also be managed via Spacebot UI and will persist
         in config.toml across rebuilds.
+      '';
+    };
+
+    # Optional external database (advanced type demonstration)
+    database = mkOption {
+      type = types.nullOr (types.submodule {
+        options = {
+          # Demonstrates types.oneOf - accepts either URL or Unix socket path
+          connection = mkOption {
+            type = urlOrSocketType;
+            default = "sqlite:///data/spacebot.db";
+            example = literalExpression ''
+              postgresql://user:pass@localhost/db
+              postgresql:///db  # Uses Unix socket
+              /run/postgresql/.s.PGSQL.5432  # Direct socket path
+            '';
+            description = ''
+              Database connection string or Unix socket path.
+              Can be:
+              - A URL (e.g., postgresql://user:pass@localhost/db)
+              - An absolute path to a Unix socket (e.g., /run/service.sock)
+            '';
+          };
+
+          # Demonstrates types.either - accepts either port number (int) or service name (str)
+          port = mkOption {
+            type = portOrServiceType;
+            default = 5432;
+            example = literalExpression ''5432  # PostgreSQL default port'';
+            description = ''
+              Database port number or service name.
+              Can be:
+              - An integer port (e.g., 5432, 3306)
+              - A service name string (e.g., "postgresql", "mysql")
+            '';
+          };
+        };
+      });
+      default = null;
+      description = ''
+        Optional external database configuration (advanced types demonstration).
+        Uses types.either and types.oneOf for flexible type validation.
+        If null, uses built-in SQLite database.
       '';
     };
 
@@ -175,6 +228,12 @@ in {
       default = "2";
       description = "CPU quota for the container (e.g., '2' for 2 cores)";
     };
+
+    hideUpdateNotification = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Block GitHub API to hide update notifications in web UI";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -184,11 +243,75 @@ in {
     assertions = [
       {
         assertion = cfg.useGateway || cfg.apiKey != null || cfg.apiKeyFile != null;
-        message = "Spacebot requires either: useGateway=true, apiKey, or apiKeyFile";
+        message = ''
+          Spacebot requires either: useGateway=true, apiKey, or apiKeyFile
+
+          When using AI Gateway for LLM requests (recommended):
+            services.spacebot.useGateway = true;
+            services.spacebot.gatewayUrl = "http://127.0.0.1:8080";
+
+          When using direct API access:
+            services.spacebot.apiKey = "sk-...";
+            # OR
+            services.spacebot.apiKeyFile = /run/agenix/openai-key;
+
+          Current configuration:
+            useGateway = ${toString cfg.useGateway}
+            apiKey = ${if cfg.apiKey != null then "***" else "(not set)"}
+            apiKeyFile = ${if cfg.apiKeyFile != null then toString cfg.apiKeyFile else "(not set)"}
+        '';
       }
       {
         assertion = !cfg.discord.enable || (cfg.discord.token != null || cfg.discord.tokenFile != null);
-        message = "Discord integration requires token or tokenFile";
+        message = ''
+          Discord integration requires token or tokenFile
+
+          Configure Discord bot token:
+            services.spacebot.discord.token = "your-bot-token";
+            # OR
+            services.spacebot.discord.tokenFile = /run/agenix/discord-token;
+
+          Get your bot token from: https://discord.com/developers/applications
+
+          Current configuration:
+            discord.enable = ${toString cfg.discord.enable}
+            discord.token = ${if cfg.discord.token != null then "***" else "(not set)"}
+            discord.tokenFile = ${if cfg.discord.tokenFile != null then toString cfg.discord.tokenFile else "(not set)"}
+        '';
+      }
+      {
+        assertion = cfg.memory != "0";
+        message = ''
+          Spacebot memory limit cannot be "0"
+
+          Current value: ${cfg.memory}
+
+          Set a reasonable memory limit:
+            services.spacebot.memory = "4G";   # Default (4GB)
+            services.spacebot.memory = "2G";   # Minimum (2GB)
+            services.spacebot.memory = "8G";   # Heavy workloads (8GB)
+        '';
+      }
+      {
+        assertion = builtins.substring 0 1 cfg.dataDir == "/";
+        message = ''
+          Spacebot data directory must be an absolute path.
+
+          Current value: ${cfg.dataDir}
+
+          Example valid paths:
+            services.spacebot.dataDir = "/var/lib/spacebot";
+            services.spacebot.dataDir = "/mnt/storage/spacebot";
+        '';
+      }
+      {
+        assertion = cfg.port > 0 && cfg.port < 65536;
+        message = ''
+          Invalid Spacebot port: ${toString cfg.port}
+
+          Port must be between 1 and 65535.
+          Default: 19898
+        '';
       }
     ];
 
@@ -205,30 +328,82 @@ in {
       wantedBy = ["multi-user.target"];
 
       serviceConfig = {
-        Type = "notify";
-        NotifyAccess = "all";
+        Type = "simple";
 
         # Use podman to run the container
         ExecStartPre = pkgs.writeShellScript "spacebot-prep" ''
-                                        # Create data directory
-                                        mkdir -p ${cfg.dataDir}/{data,ingest,skills}
-                                        chmod 700 ${cfg.dataDir}
+          # ============================================================================
+          # DEBUG: Log sanitized configuration
+          # ============================================================================
+          echo "[spacebot] ========================================" >&2
+          echo "[spacebot] Spacebot AI Agent Configuration" >&2
+          echo "[spacebot] ========================================" >&2
+          echo "[spacebot] Image: ${cfg.image}" >&2
+          echo "[spacebot] Memory: ${cfg.memory}" >&2
+          echo "[spacebot] Data Directory: ${cfg.dataDir}" >&2
+          echo "[spacebot] Use Gateway: ${lib.boolToString cfg.useGateway}" >&2
+          ${
+            if cfg.useGateway
+            then "echo \"[spacebot] Gateway URL: ${cfg.gatewayUrl}\" >&2"
+            else ""
+          }
+          echo "[spacebot] API Key Configured: ${
+            if cfg.apiKey != null || cfg.apiKeyFile != null
+            then "Yes (***REDACTED***)"
+            else "No"
+          }" >&2
+          echo "[spacebot] Discord Enabled: ${lib.boolToString cfg.discord.enable}" >&2
+          echo "[spacebot] Slack Enabled: ${lib.boolToString cfg.slack.enable}" >&2
+          echo "[spacebot] Telegram Enabled: ${lib.boolToString cfg.telegram.enable}" >&2
+          ${
+            if cfg.discord.enable
+            then "echo \"[spacebot] Discord Token Configured: ${
+              if cfg.discord.token != null || cfg.discord.tokenFile != null
+              then "Yes (***REDACTED***)"
+              else "No"
+            }\" >&2"
+            else ""
+          }
+          ${
+            if cfg.slack.enable
+            then "echo \"[spacebot] Slack Token Configured: ${
+              if cfg.slack.token != null || cfg.slack.tokenFile != null
+              then "Yes (***REDACTED***)"
+              else "No"
+            }\" >&2"
+            else ""
+          }
+          ${
+            if cfg.telegram.enable
+            then "echo \"[spacebot] Telegram Token Configured: ${
+              if cfg.telegram.token != null || cfg.telegram.tokenFile != null
+              then "Yes (***REDACTED***)"
+              else "No"
+            }\" >&2"
+            else ""
+          }
+          echo "[spacebot] ========================================" >&2
+          echo "" >&2
 
-                                        # Create Podman container storage directories (required for ReadWritePaths)
-                                        mkdir -p /var/lib/containers
-                                        chmod 700 /var/lib/containers
+          # Create data directory
+          mkdir -p ${cfg.dataDir}/{data,ingest,skills}
+          chmod 700 ${cfg.dataDir}
 
-                                        # Create /run/containers for runtime container state
-                                        mkdir -p /run/containers
-                                        chmod 700 /run/containers
+          # Create Podman container storage directories (required for ReadWritePaths)
+          mkdir -p /var/lib/containers
+          chmod 700 /var/lib/containers
 
-                                        # Pull latest image
-                                        ${pkgs.podman}/bin/podman pull ${cfg.image}
+          # Create /run/containers for runtime container state
+          mkdir -p /run/containers
+          chmod 700 /run/containers
+
+          # Pull latest image
+          ${pkgs.podman}/bin/podman pull ${cfg.image}
 
           # Generate config.toml if it doesn't exist
-                                         if [ ! -f ${cfg.dataDir}/config.toml ]; then
-                                           # Build config using Nix string interpolation
-                                           cat > ${cfg.dataDir}/config.toml <<EOF
+          if [ ! -f ${cfg.dataDir}/config.toml ]; then
+            # Build config using Nix string interpolation
+            cat > ${cfg.dataDir}/config.toml <<EOF
           # Spacebot Configuration - Auto-generated by NixOS
           # Modify this file to customize your agent
           ${
@@ -330,7 +505,7 @@ in {
           # API SERVER
           # ============================================================================
           [api]
-          bind = "0.0.0.0"
+          bind = "127.0.0.1"  # Bind to localhost - accessible via reverse proxy
           port = 19898
 
           # ============================================================================
@@ -357,23 +532,30 @@ in {
         ExecStart = pkgs.writeShellScript "spacebot-run" ''
           # Run Spacebot container with Podman
           # Use Podman CLI options to set storage paths within Spacebot's data directory
-          export PATH="${pkgs.podman}/bin:${pkgs.slirp4netns}/bin:$PATH"
+          export PATH="${lib.makeBinPath [pkgs.podman pkgs.slirp4netns]}:$PATH"
+
+          # Try to clean up any existing container (may be stuck/zombie)
+          # Use timeout to avoid hanging on zombie containers
+          ${pkgs.podman}/bin/podman --root ${cfg.dataDir}/podman-storage rm -f spacebot 2>/dev/null || true
 
           exec ${pkgs.podman}/bin/podman run \
             --root ${cfg.dataDir}/podman-storage \
             --runroot ${cfg.dataDir}/podman-run \
             --name spacebot \
             --rm \
-            --replace \
             --cgroup-manager=systemd \
-            --sdnotify=conmon \
+            --cgroupns=host \
             --security-opt label=disable \
             --network slirp4netns:allow_host_loopback=true \
             -p ${cfg.host}:${toString cfg.port}:19898 \
             -v ${cfg.dataDir}:/data:Z \
             -v ${cfg.dataDir}/config.toml:/data/config.toml:Z \
             -v /run/agenix:/run/agenix:ro \
-            -v /var/run/docker.sock:/var/run/docker.sock:Z \
+            -v /var/run/podman/podman.sock:/var/run/docker.sock:Z \
+            -v /proc:/proc:ro \
+            -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+            -e CONTAINER_HOST_ENDPOINT=unix:///var/run/docker.sock \
+            -e DOCKER_HOST=unix:///var/run/docker.sock \
             -e SPACEBOT_DATA_DIR=/data \
             ${
             lib.optionalString (
@@ -389,6 +571,7 @@ in {
             ${lib.optionalString (cfg.discord.token != null) "-e DISCORD_BOT_TOKEN=${cfg.discord.token}"} \
             ${lib.optionalString (cfg.slack.token != null) "-e SLACK_BOT_TOKEN=${cfg.slack.token}"} \
             ${lib.optionalString (cfg.telegram.token != null) "-e TELEGRAM_BOT_TOKEN=${cfg.telegram.token}"} \
+            ${lib.optionalString cfg.hideUpdateNotification "--add-host api.github.com:127.0.0.1"} \
             --memory=${cfg.memory} \
             --cpus=${cfg.cpu} \
             --hostname spacebot \
@@ -411,6 +594,7 @@ in {
           "/var/lib/containers"
           "/run/containers"
           "/etc/containers"
+          "/var/run/podman"
         ];
 
         # Restart policy
@@ -427,19 +611,9 @@ in {
     # ============================================================================
     # FIREWALL
     # ============================================================================
-    networking.firewall.allowedTCPPorts = [
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
       cfg.port
     ];
-
-    # ============================================================================
-    # SPACEBOT CLI WRAPPER
-    # ============================================================================
-    # Note: environment.systemPackages causes conflicts when defined in modules
-    # These packages should be added to the main configuration instead
-    # environment.systemPackages = with pkgs; [
-    #   slirp4netns  # Required for Podman networking
-    #   (pkgs.writeShellScriptBin "spacebot" '' ... '')
-    # ];
 
     # ============================================================================
     # DATA DIRECTORY
@@ -454,19 +628,7 @@ in {
       "d /var/lib/containers 0700 root root - -"
     ];
 
-    # ============================================================================
-    # MONITORING INTEGRATION
-    # ============================================================================
     # Note: Spacebot exposes metrics at /metrics on port 19898
-    # Add to your Prometheus scrapeConfigs manually if needed:
-    # services.monitoring.prometheus.scrapeConfigs = [
-    #   {
-    #     job_name = "spacebot";
-    #     static_configs = [{
-    #       targets = ["${cfg.host}:${toString cfg.port}"];
-    #     }];
-    #     metrics_path = "/metrics";
-    #   }
-    # ];
+    # Add to Prometheus scrapeConfigs if needed
   };
 }

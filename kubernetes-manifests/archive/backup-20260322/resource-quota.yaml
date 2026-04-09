@@ -1,0 +1,34 @@
+# Resource Quota for Mining Namespace
+# Prevents resource exhaustion and limits GPU allocation
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mining-quota
+  namespace: mining
+  labels:
+    app: mining
+spec:
+  hard:
+    # CPU limits - prevent CPU exhaustion
+    requests.cpu: "20"
+    limits.cpu: "40"
+    # Memory limits - prevent OOM
+    requests.memory: "40Gi"
+    limits.memory: "80Gi"
+    # GPU limits - max 5 GPUs across namespace (zephyr: 1, forge: 2, nexus: 1, spare: 1)
+    requests.nvidia.com/gpu: "5"
+    limits.nvidia.com/gpu: "5"
+    # Pod count limit - prevent pod explosion
+    count/pods: "15"
+    # Deployment limit
+    count/deployments.apps: "10"
+---
+# Priority class for preemptible mining workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: preemptible-mining
+value: -1000
+globalDefault: false
+description: "Low priority for mining workloads - preempted by AI/gaming workloads"
+preemptionPolicy: PreemptLowerPriority

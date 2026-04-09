@@ -1,0 +1,16 @@
+# AI Gateway ConfigMap Update for vLLM Backend
+# Switches from llama.cpp to vLLM for improved performance
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-gateway-config
+  namespace: ai-inference
+data:
+  # Backend URL (vLLM service)
+  BACKEND_URL: "http://vllm-qwen.ai-inference.svc.cluster.local:8000"
+  # Backend type (vLLM OpenAI-compatible API)
+  BACKEND_TYPE: "vllm"
+  # Request timeout (vLLM is faster than llama.cpp)
+  REQUEST_TIMEOUT: "30"
+  # Model name for routing
+  DEFAULT_MODEL: "Qwen3.5-0.8B-Claude-4.6-Opus-Reasoning-Distilled-GGUF"

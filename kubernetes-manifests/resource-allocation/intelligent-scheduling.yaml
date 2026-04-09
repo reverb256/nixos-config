@@ -1,0 +1,129 @@
+# Intelligent Scheduling Configuration
+# Uses topology spread constraints and node affinity to optimize placement
+
+---
+# Cluster Overprovisioner - Maintains spare capacity for rapid scaling
+# Uses pause pods that can be evicted immediately when real workloads arrive
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-overprovisioning
+  namespace: kube-system
+spec:
+  replicas: 2  # Maintains 2 spare pods for immediate scaling
+  selector:
+    matchLabels:
+      app: cluster-overprovisioning
+  template:
+    metadata:
+      labels:
+        app: cluster-overprovisioning
+    spec:
+      priorityClassName: system-cluster-critical  # Ensures pause pods can be evicted first
+      affinity:
+        podAntiAffinity:
+          # Spread overprovisioning pods across nodes
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - cluster-overprovisioning
+                topologyKey: kubernetes.io/hostname
+      tolerations:
+        - key: "kubernetes.io/os"
+          operator: "Exists"
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.9
+          resources:
+            requests:
+              cpu: "500m"   # Each spare pod reserves 500m CPU
+              memory: "512Mi"  # Each spare pod reserves 512Mi memory
+          securityContext:
+            readOnlyRootFilesystem: true
+---
+# Scheduler Configuration for Intelligent Pod Placement
+# This would be applied via ConfigMap to kubelet
+---
+# Node-affinity examples for specific workloads
+
+# Zephyr (control-plane + AI workstation): Prefer AI workloads, avoid heavy batch jobs
+# Nexus (storage + GPU): Prefer storage-heavy and GPU workloads
+# Forge (mining): Avoid non-mining workloads when mining is active
+# Sentry (monitoring): Prefer monitoring workloads
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intelligent-deployment-example
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: example
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      affinity:
+        # Spread pods across nodes for HA
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - example
+                topologyKey: kubernetes.io/hostname
+        # Prefer nodes with available memory
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              preference:
+                matchExpressions:
+                  - key: memory
+                    operator: Gt
+                    values:
+                      - "8000000"  # Nodes with >8GB free memory preferred
+---
+# Topology Spread Constraints for system components
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: intelligent-daemonset-example
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: intelligent-daemon
+  template:
+    metadata:
+      labels:
+        app: intelligent-daemon
+    spec:
+      # Ensure one pod per node with intelligent placement
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: intelligent-daemon
+      affinity:
+        # Avoid nodes with high load
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: "node.kubernetes.io/memory-pressure"
+                    operator: DoesNotExist

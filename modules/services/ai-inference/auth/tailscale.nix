@@ -4,67 +4,76 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.ai-inference;
   authCfg = config.services.ai-inference.auth;
   inherit (lib) mkIf mkDefault;
-in {
+in
+{
   config = mkIf (cfg.enable && authCfg.mode == "tailscale") {
-    # Ensure Tailscale is enabled
-    services.tailscale = {
-      enable = true;
-      extraUpFlags = ["--accept-routes"];
-    };
+    # SERVICES CONFIGURATION
+    services = {
+      # Ensure Tailscale is enabled
+      tailscale = {
+        enable = true;
+        extraUpFlags = [ "--accept-routes" ];
+      };
 
-    # Configure gateway to listen on Tailscale IP
-    # Note: The actual IP needs to be configured by the user
-    # as Tailscale IPs are assigned dynamically
-    services.ai-inference.gateway.host = mkDefault "100.64.0.1"; # Example, user should override
+      # Configure gateway to listen on Tailscale IP
+      # Note: The actual IP needs to be configured by the user
+      # as Tailscale IPs are assigned dynamically
+      ai-inference.gateway.host = mkDefault "100.64.0.1"; # Example, user should override
 
-    # Nginx reverse proxy for Tailscale authentication (optional)
-    services.nginx = mkIf (builtins.length authCfg.tailscale.aclTags > 0) {
-      enable = true;
-      virtualHosts."ai-inference-tailscale" = {
-        listen = [
-          {
-            addr = "100.64.0.1";
-            port = 8080;
-          } # Tailscale IP
-        ];
-        locations."/" = {
-          proxyPass = "http://127.0.0.1:${toString cfg.gateway.port}";
-          extraConfig = ''
-            # Only allow Tailscale connections
-            allow 100.64.0.0/10;
-            allow fd7a:115c:a1e0::/48;
-            allow 127.0.0.1;
-            deny all;
+      # Nginx reverse proxy for Tailscale authentication (optional)
+      # DISABLED: Replaced by Caddy (see hosts/zephyr/configuration.nix)
+      nginx = mkIf (builtins.length authCfg.tailscale.aclTags > 0) {
+        enable = false;
+        virtualHosts."ai-inference-tailscale" = {
+          listen = [
+            {
+              addr = "100.64.0.1";
+              port = 8080;
+            } # Tailscale IP
+          ];
+          locations."/" = {
+            proxyPass = "http://127.0.0.1:${toString cfg.gateway.port}";
+            extraConfig = ''
+              # Only allow Tailscale connections
+              allow 100.64.0.0/10;
+              allow fd7a:115c:a1e0::/48;
+              allow 127.0.0.1;
+              deny all;
 
-            # Forward headers
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header Host $host;
+              # Forward headers
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header Host $host;
 
-            # WebSocket support
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-          '';
+              # WebSocket support
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+            '';
+          };
         };
       };
     };
 
     # Open Tailscale firewall
     networking.firewall = {
-      allowedTCPPorts = [41641]; # Tailscale port
-      trustedInterfaces = ["tailscale0"];
+      allowedTCPPorts = lib.mkOptionDefault [ 41641 ]; # Tailscale port
+      trustedInterfaces = [ "tailscale0" ];
     };
 
     # Systemd service to detect Tailscale IP
     systemd.services.ai-inference-tailscale-ip = {
       description = "Detect and configure Tailscale IP for AI inference";
-      after = ["tailscale.service" "network-online.target"];
-      wantedBy = ["multi-user.target"];
+      after = [
+        "tailscale.service"
+        "network-online.target"
+      ];
+      wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         Type = "oneshot";

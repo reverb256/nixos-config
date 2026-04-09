@@ -1,0 +1,22 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-coredns-external-dns
+  namespace: kube-system
+spec:
+  podSelector:
+    matchLabels:
+      k8s-app: kube-dns
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS queries to external DNS servers (8.8.8.8, 1.1.1.1)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

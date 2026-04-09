@@ -1,0 +1,37 @@
+# ValidatingAdmissionPolicy: Block :latest tags in Kubernetes
+# Supply chain security: prevents deploying mutable image references
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: deny-latest-tag
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: supply-chain-security
+    app.kubernetes.io/component: admission-policy
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+  validations:
+    - expression: >-
+        !object.spec.containers.exists(c, c.image.endsWith(":latest")) &&
+        !object.spec.initContainers.or([]).exists(c, c.image.endsWith(":latest"))
+      message: "Supply chain security: Using :latest tag is forbidden. Pin to a specific version (e.g., image:1.2.3-alpine)."
+---
+# Binding: Apply the policy cluster-wide
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: deny-latest-tag-binding
+  namespace: kube-system
+spec:
+  policyName: deny-latest-tag
+  validationActions: [Deny]

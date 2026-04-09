@@ -22,13 +22,11 @@
             pname = "nixos-skills-mcp";
             version = "1.0.0";
             src = self;
-
             # Runtime dependencies
             propagatedBuildInputs = with pkgs.python312Packages; [
               # MCP SDK will be added once available in nixpkgs
               # For now, we'll use a minimal implementation
             ];
-
             # MCP servers
             sources = {
               "nix-rebuild" = ./nix-rebuild-mcp/server.py;

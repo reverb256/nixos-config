@@ -1,0 +1,5 @@
+NAME     STATUS   ROLES           AGE    VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE               KERNEL-VERSION   CONTAINER-RUNTIME
+forge    Ready    <none>          3d9h   v1.35.2   10.1.1.130    <none>        NixOS 26.05 (Yarara)   6.18.13-zen1     containerd://2.2.1
+nexus    Ready    <none>          3d9h   v1.35.2   10.1.1.120    <none>        NixOS 26.05 (Yarara)   6.18.13-zen1     containerd://2.2.1
+sentry   Ready    <none>          3d9h   v1.35.2   10.1.1.140    <none>        NixOS 26.05 (Yarara)   6.18.13-zen1     containerd://2.2.1
+zephyr   Ready    control-plane   3d9h   v1.35.2   10.1.1.110    <none>        NixOS 26.05 (Yarara)   6.18.13-zen1     containerd://2.2.1

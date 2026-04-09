@@ -1,0 +1,136 @@
+---
+# llama.cpp Deployment with GPU support for Qwen3.5
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-cpp-qwen
+  namespace: ai-inference
+  labels:
+    app: llama-cpp-qwen
+    component: llm-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llama-cpp-qwen
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: llama-cpp-qwen
+        component: llm-inference
+    spec:
+      # Node affinity for RTX 3090 on zephyr
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - zephyr
+      volumes:
+        # Model directory from host
+        - name: models
+          persistentVolumeClaim:
+            claimName: llama-models-pvc
+        # Shared memory for performance
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: "4Gi"
+      containers:
+        - name: llama-cpp
+          # Use official llama.cpp image with GPU support
+          image: ghcr.io/ggerganov/llama.cpp:server-cuda
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/llama-server"]
+          args:
+            - "--model"
+            - "/models/unsloth/Qwen3.5-2B-GGUF/Qwen3.5-2B-IQ4_NL.gguf"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "8080"
+            - "--ngl"
+            - "999"
+            - "--ctx-size"
+            - "16384"
+            - "--threads"
+            - "8"
+            - "--batch-size"
+            - "512"
+            - "--ubatch-size"
+            - "512"
+            - "--flash-attn"
+            - "on"
+            - "--cache-type-k"
+            - "bf16"
+            - "--cache-type-v"
+            - "bf16"
+            - "--metrics"
+            - "--port-metrics"
+            - "9090"
+            - "--temp"
+            - "0.7"
+            - "--top-k"
+            - "40"
+            - "--top-p"
+            - "0.9"
+            # OpenAI-compatible API
+            - "--embedding"
+            - "true"
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "8"
+              memory: 8Gi
+              nvidia.com/gpu: "1"
+            requests:
+              cpu: "2"
+              memory: 4Gi
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: models
+              mountPath: /models
+            - name: shm
+              mountPath: /dev/shm
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          env:
+            - name: CUDA_VISIBLE_DEVICES
+              value: "0"
+            - name: GPU_MEMORY_UTILIZATION
+              value: "0.9"
+            - name: LLAMA_CUDA
+              value: "1"
