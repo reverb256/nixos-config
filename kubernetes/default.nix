@@ -27,6 +27,7 @@ let
       # Make pkgsWithOverlay available to modules that need overlay packages (lolminer, etc.)
       { _module.args.pkgsWithOverlay = pkgsWithOverlay; }
       ./modules/common.nix
+      ./modules/infrastructure.nix
       ./modules/mining.nix
       ./modules/gpu-miners.nix
       ./modules/searxng.nix
