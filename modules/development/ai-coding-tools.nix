@@ -550,7 +550,7 @@ let
                 "name": "GLM-5.1 (Z.AI)",
                 "reasoning": true,
                 "input": ["text"],
-                "contextWindow": 131072,
+                "contextWindow": 200000,
                 "maxTokens": 131072,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               },
@@ -559,7 +559,7 @@ let
                 "name": "GLM-5 (Z.AI)",
                 "reasoning": true,
                 "input": ["text"],
-                "contextWindow": 131072,
+                "contextWindow": 200000,
                 "maxTokens": 131072,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               },
@@ -568,26 +568,26 @@ let
                 "name": "GLM-5 Turbo (Z.AI)",
                 "reasoning": true,
                 "input": ["text"],
-                "contextWindow": 131072,
+                "contextWindow": 200000,
                 "maxTokens": 131072,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               },
               {
                 "id": "glm-4.7",
                 "name": "GLM-4.7 (Z.AI)",
-                "reasoning": false,
+                "reasoning": true,
                 "input": ["text"],
-                "contextWindow": 131072,
+                "contextWindow": 200000,
                 "maxTokens": 131072,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               },
               {
                 "id": "glm-4.7-flash",
                 "name": "GLM-4.7 Flash (Z.AI)",
-                "reasoning": false,
+                "reasoning": true,
                 "input": ["text"],
                 "contextWindow": 131072,
-                "maxTokens": 131072,
+                "maxTokens": 8192,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               },
               {
@@ -596,7 +596,7 @@ let
                 "reasoning": false,
                 "input": ["text"],
                 "contextWindow": 131072,
-                "maxTokens": 131072,
+                "maxTokens": 8192,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               }
             ]
@@ -641,12 +641,84 @@ let
             "apiKey": $nvidia_key,
             "models": [
               {
-                "id": "meta/llama-3.1-70b-instruct",
-                "name": "Llama 3.1 70B (NVIDIA NIM)",
-                "reasoning": false,
+                "id": "nvidia/nemotron-3-super-120b-a12b",
+                "name": "Nemotron 3 Super 120B (NVIDIA NIM)",
+                "reasoning": true,
+                "input": ["text"],
+                "contextWindow": 1048576,
+                "maxTokens": 65536,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "nvidia/nemotron-3-nano-30b-a3b",
+                "name": "Nemotron 3 Nano 30B (NVIDIA NIM)",
+                "reasoning": true,
+                "input": ["text"],
+                "contextWindow": 1048576,
+                "maxTokens": 65536,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "deepseek-ai/deepseek-v3.1",
+                "name": "DeepSeek V3.1 (NVIDIA NIM)",
+                "reasoning": true,
                 "input": ["text"],
                 "contextWindow": 131072,
-                "maxTokens": 4096,
+                "maxTokens": 65536,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "moonshotai/kimi-k2.5",
+                "name": "Kimi K2.5 1T (NVIDIA NIM)",
+                "reasoning": true,
+                "input": ["text"],
+                "contextWindow": 262144,
+                "maxTokens": 262144,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "minimaxai/minimax-m2.5",
+                "name": "MiniMax M2.5 230B (NVIDIA NIM)",
+                "reasoning": true,
+                "input": ["text"],
+                "contextWindow": 1048576,
+                "maxTokens": 131072,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "z-ai/glm5",
+                "name": "GLM-5 744B (NVIDIA NIM)",
+                "reasoning": true,
+                "input": ["text"],
+                "contextWindow": 205000,
+                "maxTokens": 131072,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "openai/gpt-oss-120b",
+                "name": "GPT-OSS 120B (NVIDIA NIM)",
+                "reasoning": true,
+                "input": ["text"],
+                "contextWindow": 131072,
+                "maxTokens": 131072,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "openai/gpt-oss-20b",
+                "name": "GPT-OSS 20B (NVIDIA NIM)",
+                "reasoning": true,
+                "input": ["text"],
+                "contextWindow": 131072,
+                "maxTokens": 131072,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "qwen/qwen3-coder-480b-a35b-instruct",
+                "name": "Qwen3 Coder 480B (NVIDIA NIM)",
+                "reasoning": true,
+                "input": ["text"],
+                "contextWindow": 1048576,
+                "maxTokens": 65536,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               }
             ]
@@ -887,7 +959,7 @@ in
         };
         packages = mkOption {
           type = types.listOf types.str;
-          default = [];
+          default = [ ];
           example = [
             "npm:pi-lens@3.8.5"
             "npm:pi-powerline-footer@0.4.9"
