@@ -267,32 +267,31 @@ in
             automountServiceAccountToken = false;
             serviceAccountName = "gpu-miner-sa";
             priorityClassName = "mining-low";
-            tolerations = {
-              _namedlist = true;
-              control-plane = {
+            tolerations = [
+              {
                 key = "node-role.kubernetes.io/control-plane";
                 operator = "Exists";
                 effect = "NoSchedule";
-              };
-              workstation = {
+              }
+              {
                 key = "workstation";
                 operator = "Equal";
                 value = "true";
                 effect = "NoSchedule";
-              };
-              interactive = {
+              }
+              {
                 key = "interactive";
                 operator = "Equal";
                 value = "true";
                 effect = "NoExecute";
-              };
-              ram-constrained = {
+              }
+              {
                 key = "ram-constrained";
                 operator = "Equal";
                 value = "true";
                 effect = "NoSchedule";
-              };
-            };
+              }
+            ];
             containers = {
               _namedlist = true;
               xmrig = {
