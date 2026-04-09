@@ -45,3 +45,7 @@ cat
 echo
 Updated API key file
 .pi/secrets.yaml
+
+# pi agent local state
+.pi/
+.pi-lens/
