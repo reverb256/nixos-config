@@ -4196,9 +4196,7 @@ async def stream_backend_response_with_tools(
                     logger.error(f"Failed to parse tool arguments: {tool_args_str}")
                     tool_args = {}
 
-                # Map tool name to MCP server
-                # For now, we'll use a convention: tool_name -> server_name mapping
-                # TODO: Make this configurable or discover from MCP broker
+                # Discover which MCP server provides this tool via broker
                 server_name = _infer_mcp_server_for_tool(tool_name, mcp_broker)
 
                 if not server_name:

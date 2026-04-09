@@ -77,7 +77,7 @@
     search.Deployment.searxng = {
       metadata.labels.app = "searxng";
       spec = {
-        replicas = 1;
+        replicas = 2;
         selector.matchLabels.app = "searxng";
         strategy.type = "Recreate";
         template = {
