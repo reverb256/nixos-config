@@ -62,7 +62,10 @@ in
     };
     # Distributed builds
     machinesFile = ./machines;
-    specialArgs = { inherit inputs self; };
+    specialArgs = {
+      inherit inputs self;
+      k8sManifestPackage = self.packages.x86_64-linux.k8s-manifests;
+    };
   };
 
   # GENERATE HOST CONFIGURATIONS

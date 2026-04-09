@@ -35,6 +35,20 @@ let
       echo "running"
     fi
   '';
+
+  desktopEntry = pkgs.makeDesktopItem {
+    desktopName = "Toggle 3090 Miner";
+    name = "toggle-3090-miner";
+    comment = "Pause/resume lolMiner on RTX 3090";
+    exec = "${toggleScript}/bin/toggle-3090-miner";
+    icon = "video-display";
+    terminal = false;
+    type = "Application";
+    categories = [
+      "System"
+      "Utility"
+    ];
+  };
 in
 {
   # Only install on zephyr (the machine with the 3090)
@@ -42,20 +56,10 @@ in
     environment.systemPackages = [
       toggleScript
       statusScript
+      desktopEntry
     ];
 
-    # Desktop entry — appears in app launcher
-    xdg.desktopEntries.toggle-3090-miner = {
-      name = "Toggle 3090 Miner";
-      comment = "Pause/resume lolMiner on RTX 3090";
-      exec = toString toggleScript;
-      icon = "video-display";
-      terminal = false;
-      type = "Application";
-      categories = [
-        "System"
-        "Utility"
-      ];
-    };
+    # Install desktop entry system-wide for all users
+    environment.pathsToLink = [ "/share/applications" ];
   };
 }

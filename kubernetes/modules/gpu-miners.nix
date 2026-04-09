@@ -28,7 +28,7 @@ let
   nixCsiVolume = {
     csi = {
       driver = "nix.csi.store";
-      volumeAttributes.${pkgs.system} = lolminerPkg;
+      volumeAttributes.${pkgs.stdenv.hostPlatform.system} = lolminerPkg;
     };
   };
 
