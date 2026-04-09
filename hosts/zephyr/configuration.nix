@@ -687,6 +687,17 @@
           encode zstd gzip
           reverse_proxy 10.1.1.120:30080
         }
+
+        # CivicIntel — Canadian Government Intelligence Dashboard
+        http://civicintel.lan, http://10.1.1.100 {
+          encode zstd gzip
+          handle_path /CivicIntel/* {
+            reverse_proxy 10.1.1.120:30085
+          }
+          handle_path /CivicIntel {
+            redir /CivicIntel/ permanent
+          }
+        }
       '';
     };
 
@@ -1197,6 +1208,9 @@
   programs.systems-intelligence-plasmoid.refreshInterval = 5000;
   programs.systems-intelligence-plasmoid.clusterNodes = "zephyr,nexus,forge,sentry";
 
+  # LM Studio - Local LLM inference with GPU acceleration
+  programs.lm-studio.enable = true;
+
   # Pi agent model registry (declarative models.json)
   # programs.pi-agent.enable = true;  # TODO: option not found — disabled for now
 
@@ -1441,6 +1455,7 @@
     10.1.1.100 search.lan search.cluster.local
     10.1.1.100 ai.lan ai.cluster.local
     10.1.1.100 openwebui.lan openwebui.cluster.local
+    10.1.1.100 civicintel.lan civicintel.cluster.local
   '';
 
   # ============================================================================
