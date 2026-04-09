@@ -304,7 +304,7 @@ in
                   "-u"
                   "zephyr-cpu"
                   "--tls=false"
-                  "--threads=8"
+                  "--threads=16"
                   "--donate-level=1"
                   "--http-enabled"
                   "--http-host=0.0.0.0"

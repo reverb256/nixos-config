@@ -201,8 +201,82 @@ in
     # Install the OpenCode MCP wrapper script to system path
     environment.systemPackages = [ opencodeSearxngMcpWrapper ];
 
-    # Gateway runs in Kubernetes, not as systemd service
-    # See: kubernetes-manifests/ai-inference/gateway-deployment.yaml
+    # Systemd service for running the gateway on the host
+    systemd.services.ai-inference-gateway = {
+      description = "AI Inference Gateway";
+      after = [ "network.target" ];
+      wantedBy = [ "multi-user.target" ];
+
+      environment = {
+        PYTHONPATH = "${modularGatewayPkgBase}:${gatewayPython}/lib/python3.13/site-packages";
+        BACKEND_URL = cfg.backend.url;
+        BACKEND_TYPE = cfg.backend.type;
+        GATEWAY_HOST = cfg.gateway.host;
+        GATEWAY_PORT = toString cfg.gateway.port;
+      }
+      // lib.optionalAttrs cfg.backend.zai.enable {
+        ZAI_API_KEY_FILE =
+          if cfg.backend.zai.apiKeyFile != null then toString cfg.backend.zai.apiKeyFile else "";
+        ZAI_BASE_URL = cfg.backend.zai.baseUrl;
+        BACKEND_FALLBACK_URLS = cfg.backend.zai.baseUrl;
+      }
+      // lib.optionalAttrs cfg.backend.pollinations.enable {
+        POLLINATIONS_API_KEY_FILE =
+          if cfg.backend.pollinations.apiKeyFile != null then
+            toString cfg.backend.pollinations.apiKeyFile
+          else
+            "";
+      };
+
+      serviceConfig = {
+        Type = "simple";
+        ExecStart =
+          let
+            args = [
+              "--host"
+              cfg.gateway.host
+              "--port"
+              (toString cfg.gateway.port)
+              "--workers"
+              (toString cfg.gateway.workers)
+            ];
+          in
+          "${gatewayPython}/bin/python -m uvicorn ai_inference_gateway.main:app ${lib.concatStringsSep " " args}";
+
+        # Allow the gateway to read API keys
+        ReadOnlyPaths =
+          lib.optionals (cfg.backend.zai.apiKeyFile != null) [ cfg.backend.zai.apiKeyFile ]
+          ++ lib.optionals (cfg.backend.pollinations.apiKeyFile != null) [
+            cfg.backend.pollinations.apiKeyFile
+          ];
+
+        # Runtime directories
+        RuntimeDirectory = "ai-inference";
+        RuntimeDirectoryMode = "0755";
+        CacheDirectory = "ai-inference";
+        CacheDirectoryMode = "0755";
+        LogsDirectory = "ai-inference";
+
+        # Security hardening
+        NoNewPrivileges = true;
+        ProtectSystem = "strict";
+        ProtectHome = "read-only";
+        ReadWritePaths = [
+          "/var/cache/ai-inference"
+          "/run/ai-inference"
+          "/tmp"
+        ];
+
+        # Resource limits
+        Restart = "on-failure";
+        RestartSec = 5;
+        LimitNOFILE = 65536;
+        TimeoutStartSec = "300";
+
+        # Need kubectl for GPU scheduler comms
+        Environment = [ "PATH=${gatewayPython}/bin:/run/current-system/sw/bin:/usr/bin:/bin" ];
+      };
+    };
   };
 }
-# force rebuild 4 1773547685
+# force rebuild 5

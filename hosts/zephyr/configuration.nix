@@ -756,10 +756,10 @@
         };
       };
       gateway = {
-        enable = false; # MOVED TO NEXUS (2026-03-23) - See hosts/nexus/ai-inference.nix
-        # host = "0.0.0.0";  # Listen on all interfaces for Kubernetes access
+        enable = true; # Re-enabled 2026-04-09: systemd service on host with failover to K8s
+        host = "0.0.0.0"; # Listen on all interfaces for Kubernetes access
         port = 8080;
-        workers = 4;
+        workers = 1;
         middleware.redis.enable = true;
         middleware.knowledgeFabric = {
           enable = true;
