@@ -17,9 +17,10 @@ in
     nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [ "lmstudio" ];
 
     environment.systemPackages = [
+      pkgs.lmstudio
       (pkgs.writeShellScriptBin "lm-studio" ''
         #!/bin/bash
-        # Stub CPU/Vulkan backends in user dir to prevent extension re-sync workers
+        # Stub CPU/Vulkan backends to prevent idle worker processes
         BACKENDS="$HOME/.lmstudio/extensions/backends"
         for d in "$BACKENDS"/llama.cpp-linux-x86_64-avx2-* \
                  "$BACKENDS"/llama.cpp-linux-x86_64-vulkan-*; do
@@ -44,12 +45,12 @@ in
           fi
         done
 
-        cd /tmp
+        cd "$HOME"
 
-        # Symlink NVIDIA NVML for GPU monitoring
-        NVIDIA_LIB_DIR=$(dirname $(find /nix/store -name "libnvidia-ml.so.1" 2>/dev/null | grep -v "lib32" | head -1))
+        # Symlink NVIDIA NVML for GPU monitoring (use /run path, not nix store scan)
+        NVIDIA_LIB_DIR="/run/opengl-driver/lib"
         CUDA_DIR="$BACKENDS/vendor/linux-llama-cuda12-vendor-v1"
-        if [ -n "$NVIDIA_LIB_DIR" ] && [ -d "$CUDA_DIR" ]; then
+        if [ -d "$CUDA_DIR" ]; then
           for lib in "$NVIDIA_LIB_DIR"/libnvidia-ml.so* "$NVIDIA_LIB_DIR"/libnvidia-ptxjitcompiler.so*; do
             [ -e "$lib" ] && ln -sf "$lib" "$CUDA_DIR"/$(basename "$lib")
           done

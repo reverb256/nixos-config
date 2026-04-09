@@ -90,11 +90,8 @@ in
   # ── Import nix-csi driver YAML directly ─────────────────────
   # The CSI DaemonSet is complex (3 containers, init containers, RBAC)
   # and already tested — import rather than hand-convert.
-  config.importyaml.nix-csi-driver = {
-    src = pkgs.runCommand "nix-csi-driver.yaml" { } ''
-      # Remove volumeLifecycleModes — field is immutable on existing CSIDriver
-      ${pkgs.yq-go}/bin/yq 'del(.spec.volumeLifecycleModes)' \
-        ${../../kubernetes-manifests/storage/nix-csi-driver.yaml} > $out
-    '';
-  };
+  # nix-csi DaemonSet removed — the nixkube namespace has a working nix-node
+  # DaemonSet (4/4 ready) that serves the nix.csi.store CSI driver.
+  # The kube-system DaemonSet was broken (missing nix binary, Lix incompatibility)
+  # and is redundant since nixkube handles all CSI provisioning.
 }

@@ -229,7 +229,9 @@
     };
 
     # Deploy K8s manifests from Nix store on boot (control-plane node)
-    k8s-nix-deploy.enable = true;
+    # DISABLED: easykubenix modules overwrite working mining deployments with
+    # broken nix-csi scratch images. Re-enable when easykubenix modules are fixed.
+    # k8s-nix-deploy.enable = true;
 
     # Keepalived VIP for HA API server access
     keepalived-vip = {

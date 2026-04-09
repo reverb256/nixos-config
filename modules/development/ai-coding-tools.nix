@@ -289,11 +289,6 @@ let
             "base_url": $zai_base,
             "api_key": $zai_key
           },
-          "ai-gateway": {
-            "id": "ai-gateway",
-            "name": "AI Gateway (K8s)",
-            "base_url": $gateway_base
-          },
           "nvidia-nim": {
             "id": "nvidia-nim",
             "name": "NVIDIA NIM",
@@ -303,7 +298,7 @@ let
           "lmstudio": {
             "id": "lmstudio",
             "name": "LM Studio (Local)",
-            "base_url": "http://127.0.0.1:8080/v1"
+            "base_url": "http://127.0.0.1:1234/v1"
           }
         },
         "mcp": {
@@ -382,7 +377,7 @@ let
         "$schema": "https://opencode.ai/config.json",
         "comment": "Harmonized config - managed by NixOS ai-coding-tools module",
         "model": "zai-coding-plan/glm-5.1",
-        "small_model": "ai-gateway/qwen3.5-4b",
+        "small_model": "nvidia-nim/nvidia/nemotron-3-nano-30b-a3b",
         "provider": {
           "zai-coding-plan": {
             "npm": "@ai-sdk/openai-compatible",
@@ -418,28 +413,6 @@ let
               }
             }
           },
-          "ai-gateway": {
-            "npm": "@ai-sdk/openai-compatible",
-            "name": "AI Gateway (Kubernetes llama.cpp/vLLM/SGLang)",
-            "options": {
-              "baseURL": $gateway_base,
-              "apiKey": "k8s-gateway"
-            },
-            "models": {
-              "ai-gateway/qwen3.5-4b": {
-                "name": "Qwen 3.5 4B (via llama.cpp)",
-                "description": "Qwen 3.5 4B model served by llama.cpp in Kubernetes"
-              },
-              "ai-gateway/qwen3.5-32b": {
-                "name": "Qwen 3.5 32B (via vLLM)",
-                "description": "Qwen 3.5 32B model served by vLLM in Kubernetes"
-              },
-              "ai-gateway/deepseek-r1": {
-                "name": "DeepSeek R1 (via SGLang)",
-                "description": "DeepSeek R1 reasoning model served by SGLang"
-              }
-            }
-          },
           "nvidia-nim": {
             "npm": "@ai-sdk/openai-compatible",
             "name": "NVIDIA NIM (100+ Free LLM Models)",
@@ -448,9 +421,9 @@ let
               "apiKey": $nvidia_key
             },
             "models": {
-              "nvidia-nim/llama-3.1-nemotron-70b-instruct": {
-                "name": "Llama 3.1 Nemotron 70B (NVIDIA NIM)",
-                "description": "NVIDIA fine-tuned Llama 3.1 70B instruct model"
+              "nvidia-nim/nvidia/nemotron-3-nano-30b-a3b": {
+                "name": "Nemotron 3 Nano 30B (NVIDIA NIM)",
+                "description": "Lightweight 30B reasoning model, good for small tasks"
               }
             }
           },
@@ -458,11 +431,11 @@ let
             "npm": "@ai-sdk/openai-compatible",
             "name": "LM Studio (Local Fallback)",
             "options": {
-              "baseURL": "http://127.0.0.1:8080/v1"
+              "baseURL": "http://127.0.0.1:1234/v1"
             }
           }
         },
-        "enabled_providers": ["zai-coding-plan", "ai-gateway", "nvidia-nim", "lmstudio"],
+        "enabled_providers": ["zai-coding-plan", "nvidia-nim", "lmstudio"],
         "disabled_providers": ["openai", "anthropic", "google", "cohere"],
         "mcp": {
           "zai-mcp-server": {
@@ -601,40 +574,7 @@ let
               }
             ]
           },
-          "ai-gateway": {
-            "baseUrl": $gateway_base,
-            "api": "openai-completions",
-            "apiKey": "k8s-gateway",
-            "models": [
-              {
-                "id": "qwen3.5-4b",
-                "name": "Qwen3.5 4B (K8s Gateway)",
-                "reasoning": true,
-                "input": ["text"],
-                "contextWindow": 32000,
-                "maxTokens": 8192,
-                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
-              },
-              {
-                "id": "qwen3.5-32b",
-                "name": "Qwen3.5 32B (K8s Gateway)",
-                "reasoning": true,
-                "input": ["text"],
-                "contextWindow": 32000,
-                "maxTokens": 8192,
-                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
-              },
-              {
-                "id": "deepseek-r1",
-                "name": "DeepSeek R1 (K8s Gateway)",
-                "reasoning": true,
-                "input": ["text"],
-                "contextWindow": 64000,
-                "maxTokens": 8192,
-                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
-              }
-            ]
-          },
+
           "nvidia-nim": {
             "baseUrl": $nvidia_base,
             "api": "openai-completions",
@@ -729,11 +669,38 @@ let
             "apiKey": "lmstudio",
             "models": [
               {
-                "id": "qwen3.5-4b",
-                "name": "Qwen3.5 4B (LM Studio)",
-                "reasoning": true,
+                "id": "gemma-4-e2b-it",
+                "name": "Gemma 4 E2B Instruct (LM Studio)",
+                "reasoning": false,
                 "input": ["text"],
-                "contextWindow": 32000,
+                "contextWindow": 131072,
+                "maxTokens": 8192,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "gemma-4-e4b-it",
+                "name": "Gemma 4 E4B Instruct (LM Studio)",
+                "reasoning": false,
+                "input": ["text"],
+                "contextWindow": 131072,
+                "maxTokens": 8192,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "gemma-4-26b-a4b-it",
+                "name": "Gemma 4 26B A4B Instruct (LM Studio)",
+                "reasoning": false,
+                "input": ["text"],
+                "contextWindow": 262144,
+                "maxTokens": 8192,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              },
+              {
+                "id": "gemma-4-31b-it",
+                "name": "Gemma 4 31B Instruct (LM Studio)",
+                "reasoning": false,
+                "input": ["text"],
+                "contextWindow": 262144,
                 "maxTokens": 8192,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               }
@@ -1183,7 +1150,7 @@ in
       | Z.AI (OpenAI) | api.z.ai/api/coding/paas/v4 | agenix | OpenCode, Crush, Pi |
       | K8s AI Gateway | ai-inference-gateway:8080/v1 | None (internal) | OpenCode, Crush, Pi, Droid |
       | NVIDIA NIM | integrate.api.nvidia.com/v1 | agenix | OpenCode, Crush, Pi, Droid |
-      | LM Studio | 127.0.0.1:8080/v1 | None (local) | OpenCode, Crush, Pi |
+      | LM Studio | 127.0.0.1:1234/v1 | None (local) | OpenCode, Crush, Pi |
       ## Unified MCP Server Set
       | Server | Type | Purpose | All Tools |
       |--------|------|---------|-----------|
