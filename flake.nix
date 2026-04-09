@@ -71,6 +71,15 @@
     # Binary cache: attic.xuyh0120.win/lantian (no local compilation needed)
     # Do NOT follow nixpkgs — uses its own pinned nixos-unstable-small for kernel builds
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
+
+    # easykubenix - Nix-native Kubernetes manifests via NixOS module system
+    # Define all K8s resources in Nix, validate against ephemeral apiserver, deploy via kluctl
+    easykubenix.url = "github:Lillecarl/easykubenix";
+
+    # dinix - NixOS module system → dinit container init
+    # Render NixOS module-style service configs into dinit (lightweight PID 1 for containers)
+    # NOTE: dinix has no flake.nix — use via builtins.fetchTree or import directly
+    # dinix.url = "github:Lillecarl/dinix";
   };
   outputs =
     inputs@{
@@ -458,6 +467,26 @@
         config.cudaSupport = true;
         overlays = [ self.overlays.default ];
       };
+      # Kubernetes manifests generated from Nix modules via easykubenix
+      # Build: nix build .#k8s-manifests
+      # Validate: nix run .#k8s-validate
+      # Deploy: nix run .#k8s-deploy
+      kubernetes = import ./kubernetes { inherit pkgs pkgsWithOverlay inputs; };
+
+      packages.x86_64-linux.k8s-manifests = self.kubernetes.manifestYAMLFile;
+
+      apps.x86_64-linux.k8s-validate = {
+        type = "app";
+        program = "${self.kubernetes.validationScript}/bin/kubeval";
+        meta.description = "Validate K8s manifests against ephemeral apiserver";
+      };
+
+      apps.x86_64-linux.k8s-deploy = {
+        type = "app";
+        program = "${self.kubernetes.deploymentScript}/bin/kubenixDeploy";
+        meta.description = "Deploy K8s manifests via kluctl";
+      };
+
       apps.x86_64-linux.colmena = {
         type = "app";
         program = "${colmena.packages.x86_64-linux.colmena}/bin/colmena";
