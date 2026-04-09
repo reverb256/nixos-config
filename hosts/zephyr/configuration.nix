@@ -1213,15 +1213,18 @@
   # LM Studio - Local LLM inference with GPU acceleration
   programs.lm-studio.enable = true;
 
-  # llama.cpp server - OpenAI-compatible API for Gemma 4 E2B (no auth, headless)
+  # llama.cpp server - OpenAI-compatible API (no auth, headless)
+  # Disabled while LM Studio is running — LM Studio uses both GPUs and provides
+  # the same API on port 1234. Re-enable when LM Studio is off.
+  # Note: --device wants "CUDA0" not "0" (use --list-devices to check)
   services.llama-cpp-server = {
-    enable = true;
+    enable = false;
     model = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf";
     alias = "gemma-4-e2b-it";
-    port = 1235;  # 1234 reserved for LM Studio
+    port = 1235;
     contextLength = 8192;
     user = "j_kro";
-    extraArgs = ["--device" "0"];  # Pin to RTX 3090 (device 0), leave 3060 Ti for LM Studio
+    extraArgs = ["--device" "CUDA0"];  # Pin to RTX 3090, leave 3060 Ti for LM Studio
   };
 
   # Pi agent model registry (declarative models.json)
