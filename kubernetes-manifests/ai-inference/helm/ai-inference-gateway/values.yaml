@@ -1,0 +1,163 @@
+# AI Inference Gateway — Helm Values
+# All configuration is driven from this file.
+# Secrets should be set via --set or external secret management (agenix/vault).
+
+replicaCount: 1
+
+image:
+  # Built by NixOS via dockerTools.buildLayeredImage
+  repository: ai-inference-gateway
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Gateway configuration
+gateway:
+  host: "0.0.0.0"
+  port: 8080
+  workers: 4
+  logLevel: "INFO"
+
+# Backend inference engine
+backend:
+  type: "llama-cpp"  # llama-cpp | vllm | sglang | zai | pollinations
+  url: "http://llama-cpp-service.ai-inference.svc.cluster.local:8083"
+
+# ZAI provider (optional cloud fallback)
+zai:
+  enabled: false
+  apiKey: ""
+  apiKeyFile: ""  # Path to mounted secret file (takes precedence)
+  baseUrl: "https://api.z.ai/api/coding/paas/v4"
+
+# NVIDIA NIM provider (optional free-tier models)
+nvidiaNim:
+  enabled: false
+  apiKey: ""
+  apiKeyFile: ""
+  baseUrl: "https://integrate.api.nvidia.com/v1"
+
+# Pollinations provider (optional free text/image/TTS)
+pollinations:
+  enabled: false
+  apiKey: ""
+  apiKeyFile: ""
+  baseUrl: "https://text.pollinations.ai"
+
+# Routing configuration
+routing:
+  enabled: true
+  defaultModel: "qwen3.5-35b-a3b"
+  fallbackChain:
+    - vllm
+    - zai
+    - pollinations
+
+# Middleware toggles
+middleware:
+  redis:
+    enabled: false
+    host: "redis.ai-inference.svc.cluster.local"
+    port: 6379
+  knowledgeFabric:
+    enabled: false
+    rrfK: 60
+    ragEnabled: false
+    searxngEnabled: false
+    webSearchEnabled: false
+    codeSearchEnabled: true
+    codeSearchPaths:
+      - /etc/nixos
+    searxngUrl: "http://searxng.search.svc.cluster.local:8080"
+
+# RAG configuration
+rag:
+  enabled: false
+  qdrantUrl: "http://qdrant.ai-inference.svc.cluster.local:6333"
+  embeddingModel: "BAAI/bge-m3"
+  chunkSize: 512
+  chunkOverlap: 50
+  topK: 5
+  hybridSearch: true
+  reranker:
+    enabled: true
+    model: "BAAI/bge-reranker-v2-m3"
+
+# MCP broker
+mcp:
+  enabled: false
+  servers: {}
+  # Example:
+  # searxng:
+  #   type: local
+  #   command: ["python", "-m", "ai_inference_gateway.mcp_servers.searxng_server"]
+  #   environment:
+  #     SEARXNG_URL: "http://searxng.search.svc.cluster.local:8080"
+
+# Monitoring
+monitoring:
+  enabled: true
+  port: 9190
+
+# Health check
+health:
+  livenessInitialDelay: 60
+  readinessInitialDelay: 30
+  startupFailureThreshold: 10
+  startupPeriodSeconds: 10
+
+# Resource limits
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "4"
+    memory: "8Gi"
+
+# Node scheduling
+nodeSelector: {}
+tolerations: []
+affinity: {}
+# Default: schedule to nexus (per AGENTS.md rules)
+# affinity:
+#   nodeAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         preference:
+#           matchExpressions:
+#             - key: kubernetes.io/hostname
+#               operator: In
+#               values: [nexus]
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+  metricsPort: 9190
+  # nodePort: 30880  # Uncomment for NodePort
+
+# Persistence for model cache
+persistence:
+  enabled: true
+  size: 50Gi
+  storageClass: ""
+  mountPath: /var/cache/ai-inference
+
+# Pod security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# Network policy
+networkPolicy:
+  enabled: true
+
+# Autoscaling
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
