@@ -1218,9 +1218,10 @@
     enable = true;
     model = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf";
     alias = "gemma-4-e2b-it";
-    port = 1234;
+    port = 1235;  # 1234 reserved for LM Studio
     contextLength = 8192;
     user = "j_kro";
+    extraArgs = ["--device" "0"];  # Pin to RTX 3090 (device 0), leave 3060 Ti for LM Studio
   };
 
   # Pi agent model registry (declarative models.json)

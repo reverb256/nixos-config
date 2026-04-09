@@ -29,8 +29,9 @@ in
     # --- K8s Pod CIDR: allow pods to reach host services ---
     # Pods (10.244.0.0/16) need access to kubelet (10250),
     # API server via localhost DNAT (6443), node ports, and DNS.
-    # Without these rules, the NixOS nftables INPUT chain (policy drop)
+    # Without this rule, the NixOS nftables INPUT chain (policy drop)
     # blocks all pod-to-host traffic.
+    # This single rule covers all pod traffic (DNS, API server, etc.).
     ip saddr { ${podCidr} } accept
 
     # --- K8s API Server (6443) ---
