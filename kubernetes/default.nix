@@ -31,6 +31,7 @@ let
       ./modules/ingress.nix
       ./modules/mining.nix
       ./modules/gpu-miners.nix
+      ./modules/ai-inference.nix
       ./modules/searxng.nix
       ./modules/spacebot.nix
     ];
