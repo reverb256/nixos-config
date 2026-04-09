@@ -28,6 +28,7 @@ let
       { _module.args.pkgsWithOverlay = pkgsWithOverlay; }
       ./modules/common.nix
       ./modules/infrastructure.nix
+      ./modules/ingress.nix
       ./modules/mining.nix
       ./modules/gpu-miners.nix
       ./modules/searxng.nix
