@@ -83,8 +83,8 @@ class VirtualKeyManager:
                 )
             """)
 
-    def generate_key(self, name: str, agent: str, **kwargs) -> str:
-        """Generate a new virtual key. Returns the plaintext key (store securely)."""
+    def generate_key(self, name: str, agent: str, **kwargs) -> tuple:
+        """Generate a new virtual key. Returns (plaintext_key, key_hash)."""
         raw_key = f"vgk_{secrets.token_urlsafe(32)}"
         key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
 
@@ -108,6 +108,7 @@ class VirtualKeyManager:
             )
 
         logger.info(f"Generated virtual key for {name} (agent={agent})")
+        return raw_key, key_hash
         return raw_key
 
     def validate_key(self, raw_key: str) -> Optional[VirtualKey]:

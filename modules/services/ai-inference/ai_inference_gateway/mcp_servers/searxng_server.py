@@ -9,7 +9,7 @@ Usage:
     python -m ai_inference_gateway.mcp_servers.searxng_server
 
 Environment Variables:
-    SEARXNG_URL: SearXNG instance URL (default: http://searxng.search.svc.cluster.local:8080)
+    SEARXNG_URL: SearXNG instance URL (default: http://10.4.98.141:7777)
     SEARXNG_CACHE_TTL: Cache TTL in seconds (default: 300)
 
 Configuration for Claude.app/Cursor:
@@ -19,7 +19,7 @@ Configuration for Claude.app/Cursor:
           "command": "python",
           "args": ["-m", "ai_inference_gateway.mcp_servers.searxng_server"],
           "env": {
-            "SEARXNG_URL": "http://searxng.search.svc.cluster.local:8080"
+            "SEARXNG_URL": "http://10.4.98.141:7777"
           }
         }
       }
@@ -56,7 +56,7 @@ SERVER_VERSION = "1.0.0"
 
 # SearXNG configuration
 # Default: Kubernetes service DNS
-SEARXNG_URL = os.getenv("SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080")
+SEARXNG_URL = os.getenv("SEARXNG_URL", "http://10.4.98.141:7777")
 SEARXNG_CACHE_TTL = int(os.getenv("SEARXNG_CACHE_TTL", "300"))
 
 

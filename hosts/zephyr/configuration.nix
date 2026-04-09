@@ -1213,6 +1213,16 @@
   # LM Studio - Local LLM inference with GPU acceleration
   programs.lm-studio.enable = true;
 
+  # llama.cpp server - OpenAI-compatible API for Gemma 4 E2B (no auth, headless)
+  services.llama-cpp-server = {
+    enable = true;
+    model = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf";
+    alias = "gemma-4-e2b-it";
+    port = 1234;
+    contextLength = 8192;
+    user = "j_kro";
+  };
+
   # Pi agent model registry (declarative models.json)
   # programs.pi-agent.enable = true;  # TODO: option not found — disabled for now
 

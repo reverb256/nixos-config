@@ -1836,7 +1836,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
             )
         else:
-            anthropic_response = await handle_anthropic_non_streaming(
+            return await handle_anthropic_non_streaming(
                 openai_client=state.openai_client,
                 body=body,
                 pipeline=state.pipeline,
@@ -1846,19 +1846,6 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
                 thinking_intensity=thinking_intensity,
                 metrics_tracker=metrics_tracker,
             )
-
-            # Record cost if tracker available
-            if hasattr(request.app.state, "cost_tracker") and request.app.state.cost_tracker:
-                usage = anthropic_response.get("usage", {})
-                if usage:
-                    request.app.state.cost_tracker.record_usage(
-                        model=anthropic_response.get("model", route_decision.model),
-                        agent=request.headers.get("x-agent-key", "unknown"),
-                        prompt_tokens=usage.get("input_tokens", 0),
-                        completion_tokens=usage.get("output_tokens", 0),
-                    )
-
-            return JSONResponse(content=anthropic_response, status_code=200)
 
     # ============================================================================
     # MCP Broker Endpoints
@@ -2468,11 +2455,9 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         async def searxng_ping():
             """Check if SearXNG service is accessible."""
             import httpx
-            import os
 
-            searxng_url = os.getenv(
-                "SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080"
-            )
+            state: GatewayState = app.state.gateway
+            searxng_url = state.config.middleware.knowledge_fabric.searxng_url
 
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:

@@ -46,7 +46,7 @@ async def create_key(request: Request):
     if not name:
         raise HTTPException(status_code=400, detail="name is required")
 
-    raw_key = manager.generate_key(
+    raw_key, key_hash = manager.generate_key(
         name=name,
         agent=agent,
         budget_daily=body.get("budget_daily"),
@@ -55,7 +55,7 @@ async def create_key(request: Request):
         allowed_backends=body.get("allowed_backends", ["*"]),
     )
 
-    return {"key": raw_key, "name": name, "agent": agent}
+    return {"key": raw_key, "key_hash": key_hash, "name": name, "agent": agent}
 
 
 @router.post("/admin/keys/validate")
@@ -76,15 +76,27 @@ async def validate_key(request: Request):
 
 
 @router.delete("/admin/keys/{key_hash}")
-async def revoke_key(request: Request, key_hash: str):
+@router.post("/admin/keys/revoke")
+async def revoke_key(request: Request, key_hash: str = ""):
     """Revoke a virtual key by its hash."""
     manager = _get_key_manager(request)
     if not manager:
         raise HTTPException(status_code=501, detail="Virtual keys not enabled")
 
+    # Support both DELETE by hash and POST by plaintext key
+    if request.method == "POST":
+        body = await request.json()
+        raw_key = body.get("key", "")
+        if raw_key:
+            key_hash = __import__("hashlib").sha256(raw_key.encode()).hexdigest()
+        else:
+            raise HTTPException(status_code=400, detail="key is required")
+
     with __import__("sqlite3").connect(manager.db_path) as conn:
-        conn.execute(
+        cursor = conn.execute(
             "UPDATE virtual_keys SET enabled = 0 WHERE key_hash = ?",
             (key_hash,),
         )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Key not found")
     return {"status": "revoked", "key_hash": key_hash}
