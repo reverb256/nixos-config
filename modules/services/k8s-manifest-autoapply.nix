@@ -37,15 +37,22 @@ let
     "ingress"
     "monitoring"
     "health-checks"
-    "calico"
+    #"calico"  # Calico managed manually — DaemonSet patches + static nft binary
   ];
 
   applyScript = pkgs.writeShellScript "k8s-apply-manifests" ''
     set -euo pipefail
 
     echo "[k8s-manifests] Waiting for K3s API to be ready..."
+    WAIT_TIMEOUT=60
+    elapsed=0
     until ${pkgs.kubectl}/bin/kubectl get nodes &>/dev/null; do
       sleep 5
+      elapsed=$((elapsed + 5))
+      if [ $elapsed -ge $WAIT_TIMEOUT ]; then
+        echo "[k8s-manifests] Timed out waiting for API after $WAIT_TIMEOUT seconds"
+        exit 0
+      fi
     done
     echo "[k8s-manifests] API ready."
 
@@ -84,11 +91,12 @@ in
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
+        Environment = "KUBECONFIG=/etc/rancher/k3s/k3s.yaml";
         ExecStart = toString applyScript;
         RemainAfterExit = true;
-        # Retry if K3s isn't fully ready yet
-        Restart = "on-failure";
-        RestartSec = "10";
+        # No restart — oneshot runs once on boot. If K3s isn't ready,
+        # systemd will try again on next boot.
+        # Restart=on-failure causes deadlock with switch-to-configuration.
       };
     };
   };
