@@ -1,7 +1,6 @@
 # modules/services/ai-inference/ai_inference_gateway/main.py
 import logging
 import os
-import sys
 from contextlib import asynccontextmanager
 from typing import Optional
 from datetime import datetime
@@ -18,24 +17,17 @@ from ai_inference_gateway.pipeline import MiddlewarePipeline
 from ai_inference_gateway.utils.redis_client import RedisClient
 from ai_inference_gateway.openai_client import create_openai_client, OpenAIBackendError
 from ai_inference_gateway.utils.tool_utils import (
-    has_tool_calls_openai,
     extract_tool_calls_openai,
     create_tool_result_openai,
 )
 from ai_inference_gateway.router import (
     create_default_router,
     RouteDecision,
-    get_qwen_model_config,
     get_optimal_qwen_params,
 )
 from ai_inference_gateway.mcp_broker import create_mcp_broker_from_config
 from ai_inference_gateway.metrics import ModelMetricsTracker
 from ai_inference_gateway.response_format import transform_request
-from ai_inference_gateway.claude_client import (
-    create_claude_client,
-    ClaudeClient,
-    ClaudeRequest,
-)
 
 # Import TTS handler
 try:
@@ -682,6 +674,40 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"GPU scheduler initialization failed: {e}")
 
+    # Startup health validation — check backend reachability
+    backend_healthy = await check_backend_health(
+        state.config.backend_url,
+        timeout=10.0,  # Longer timeout for startup
+        backend_type=state.config.backend_type,
+    )
+    state.backend_health_cache = {
+        "healthy": backend_healthy,
+        "last_check": __import__("time").time(),
+        "ttl": 30,
+    }
+    if backend_healthy:
+        logger.info(
+            "Backend health check PASSED: %s (%s)",
+            state.config.backend_url,
+            state.config.backend_type,
+        )
+    else:
+        logger.warning(
+            "Backend health check FAILED: %s (%s) — entering degraded mode",
+            state.config.backend_url,
+            state.config.backend_type,
+        )
+
+    # Initialize cost tracker (always available — SQLite, zero deps)
+    try:
+        from ai_inference_gateway.services.cost_tracker import CostTracker
+        cost_tracker = CostTracker()
+        app.state.cost_tracker = cost_tracker
+        logger.info("Cost tracker initialized (SQLite)")
+    except Exception as e:
+        logger.warning(f"Cost tracker initialization failed: {e}")
+        app.state.cost_tracker = None
+
     # Startup complete
     logger.info("Gateway startup complete")
 
@@ -957,6 +983,13 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
     )
     # Store gateway state in app
     app.state.gateway = gateway_state
+
+    # Register modular route handlers
+    try:
+        from ai_inference_gateway.routes.admin import router as admin_router
+        app.include_router(admin_router)
+    except ImportError as e:
+        logger.warning(f"Admin routes not available: {e}")
 
     # Add health endpoint
     @app.get("/health")
@@ -1495,7 +1528,7 @@ def create_app(config: Optional[GatewayConfig] = None) -> FastAPI:
         # Check if RAG middleware enhanced the request with knowledge context
         if "rag_enhanced_body" in context:
             body = context["rag_enhanced_body"]
-            logger.info(f"Using RAG-enhanced request body with injected context")
+            logger.info("Using RAG-enhanced request body with injected context")
 
         # Check if tools are requested for agentic workflow
         has_tools = "tools" in body and body.get("tools")
@@ -4518,6 +4551,22 @@ async def handle_non_streaming_request(
             total_tokens=total_tokens,
             latency_ms=processing_time_ms,
         )
+
+        # Record cost tracking (non-blocking)
+        try:
+            cost_tracker = context.get("cost_tracker")
+            if cost_tracker and total_tokens > 0:
+                import asyncio
+                route_decision_ctx = context.get("route_decision")
+                asyncio.create_task(cost_tracker.record(
+                    model=model,
+                    agent_key=context.get("request_headers", {}).get("x-api-key", ""),
+                    backend=route_decision_ctx.backend if route_decision_ctx else "",
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                ))
+        except Exception as cost_err:
+            logger.debug(f"Cost tracking failed: {cost_err}")
 
         # Add gateway metadata including routing information
         route_decision = context.get("route_decision")
