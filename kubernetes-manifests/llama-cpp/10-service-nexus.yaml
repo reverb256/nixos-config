@@ -1,0 +1,44 @@
+---
+# llama.cpp Service on Nexus (RTX 3060 Ti)
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-cpp-qwen-nexus
+  namespace: ai-inference
+  labels:
+    app: llama-cpp-qwen-nexus
+    component: llm-inference
+    node: nexus
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8083
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+---
+# Endpoints pointing to nexus's llama.cpp service
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: llama-cpp-qwen-nexus
+  namespace: ai-inference
+  labels:
+    app: llama-cpp-qwen-nexus
+    component: llm-inference
+    node: nexus
+subsets:
+  - addresses:
+      - ip: 10.1.1.108  # nexus
+        nodeName: nexus
+    ports:
+      - name: http
+        port: 8083
+        protocol: TCP
+      - name: metrics
+        port: 9090
+        protocol: TCP

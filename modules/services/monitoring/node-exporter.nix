@@ -9,20 +9,14 @@
   cfg = config.services.monitoring.node-exporter;
   # Use centralized network constants
   port = config.networking.cluster.ports.node-exporter;
-  currentHost =
-    config.networking.cluster.hosts.${
-      config.networking.hostName
-    } or {
-      ip = "0.0.0.0";
-    };
 in {
   options.services.monitoring.node-exporter = {
     enable = lib.mkEnableOption "Prometheus node exporter";
 
     listenAddress = lib.mkOption {
       type = lib.types.str;
-      default = currentHost.ip;
-      description = "Address to listen on (defaults to host's cluster IP)";
+      default = "0.0.0.0"; # For cluster Prometheus scraping (protected by firewall - only internal network)
+      description = "Address to listen on (use 127.0.0.1 for localhost-only)";
     };
   };
 
@@ -36,25 +30,26 @@ in {
       enabledCollectors = [
         "cpu"
         "diskstats"
-        "filesystem"
+        # "filesystem"  # Disabled - can hang on NFS mounts (NixOS shared /etc/nixos)
         "loadavg"
         "meminfo"
         "netdev"
-        "stat"
+        # "stat"  # Disabled - can hang on some systems
         "time"
         "uname"
-        "hwmon"
+        # "hwmon"  # Disabled - can hang on some systems
         "netclass"
-        "buddyinfo"
-        "ksmd"
-        "logind"
-        "pressure"
-        "processes"
-        "systemd"
+        # "buddyinfo"  # Disabled - can cause hangs on some systems
+        # "ksmd"  # Disabled - can cause hangs on some systems
+        # "logind"  # Disabled - can hang on some systems
+        # "pressure"  # Disabled - can cause hangs on some systems
+        # "processes"  # Disabled - can hang on some systems
+        # "systemd"  # Disabled - can hang on some systems
         "tcpstat"
         "vmstat"
-        "zfs"
-        "textfile"
+        # "zfs"  # Disabled - no ZFS pools in cluster
+        # "textfile"  # Disabled - configured via extraFlags to avoid duplicate flag
+        # "nfs"  # Disabled - causes metrics endpoint to hang on hosts with NFS mounts
       ];
 
       # Textfile collector directory for custom metrics (e.g., AMD GPU)
@@ -70,8 +65,13 @@ in {
       wants = ["network-online.target"];
     };
 
+    # Ensure textfile directory exists with correct permissions
+    systemd.tmpfiles.rules = [
+      "d /var/lib/prometheus/node-exporter/textfile-collector 0755 root root -"
+    ];
+
     # Open firewall for Prometheus to scrape metrics
-    networking.firewall.allowedTCPPorts = [
+    networking.firewall.allowedTCPPorts = lib.mkOptionDefault [
       port
     ];
   };

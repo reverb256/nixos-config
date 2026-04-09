@@ -1,0 +1,228 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-code
+  namespace: ai-inference
+  labels:
+    app: claude-code
+    component: ai-coding-tool
+spec:
+  replicas: 1  # Managed by HPA
+  selector:
+    matchLabels:
+      app: claude-code
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: claude-code
+        component: ai-coding-tool
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Run on any node
+      tolerations:
+      - operator: Exists
+
+      # Lower priority than mining, higher than default
+      priorityClassName: production-workload-critical
+
+      # Distribute across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - claude-code
+              topologyKey: kubernetes.io/hostname
+
+      volumes:
+      # Mount user's home directory with all configs
+      - name: home-dir
+        hostPath:
+          path: /home/j_kro
+          type: Directory
+
+      # Use existing LM Studio for local models
+      - name: lmstudio-socket
+        hostPath:
+          path: /home/j_kro/.lmstudio  # LM Studio data directory
+          type: Directory
+
+      initContainers:
+      # Ensure config directory exists with proper permissions
+      - name: setup-permissions
+        image: busybox:1.36
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Ensure config directory structure
+          mkdir -p /home/j_kro/.claude/{backups,debug,file-history,paste-cache,plans,plugins,projects}
+          chown -R 1000:100 /home/j_kro/.claude
+          chmod -R 755 /home/j_kro/.claude
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/j_kro
+
+      containers:
+      - name: claude-code
+        # Use NixOS-provided claude-code or container image
+        image: ghcr.io/anthropics/claude-code:latest
+        imagePullPolicy: IfNotPresent  # Use local if available
+
+        # Or use host binary directly:
+        # command: ["/home/j_kro/.nix-profile/bin/claude-code"]
+        # args: ["--server", "--port", "8080"]
+
+        env:
+        - name: HOME
+          value: /home/j_kro
+        - name: USER
+          value: j_kro
+        - name: SHELL
+          value: /run/current-system/sw/bin/fish
+
+        # Path configuration
+        - name: PATH
+          value: /nix/var/nix/profiles/default/bin:/run/current-system/sw/bin:/usr/bin:/bin
+
+        # Claude Code specific env
+        - name: CLAUDE_CONFIG_DIR
+          value: /home/j_kro/.claude
+        - name: CLAUDE_HISTORY_FILE
+          value: /home/j_kro/.claude/history.jsonl
+
+        # MCP Server configuration (inherited from mounted config)
+        - name: Z_AI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-coding-secrets
+              key: zai-api-key
+              optional: true
+
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/j_kro
+          readOnly: false  # Read-write for history
+
+        # Liveness probe - check if process is running
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pgrep -f "claude-code" || exit 1
+          initialDelaySeconds: 30
+          periodSeconds: 30
+
+        # Readiness probe - check if can access config
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -f /home/j_kro/.claude.json && test -f /home/j_kro/.claude/.credentials.json
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+      # Metrics exporter sidecar
+      - name: metrics-exporter
+        image: python:3.11-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install prometheus_client psutil
+          cat <<'EOF' > /app/metrics.py
+          from prometheus_client import start_http_server, Gauge, Counter
+          import psutil
+          import time
+          import subprocess
+          import json
+
+          # Define metrics
+          ACTIVE_SESSIONS = Gauge('claude_active_sessions', 'Number of active Claude sessions')
+          TOTAL_CONVERSATIONS = Gauge('claude_total_conversations', 'Total conversations in history')
+          HISTORY_SIZE_MB = Gauge('claude_history_size_mb', 'History file size in MB')
+          CPU_USAGE = Gauge('claude_cpu_usage_percent', 'CPU usage percent')
+          MEMORY_USAGE = Gauge('claude_memory_usage_bytes', 'Memory usage in bytes')
+
+          def get_history_stats():
+              try:
+                  with open('/home/j_kro/.claude/history.jsonl', 'r') as f:
+                      lines = f.readlines()
+                      return len(lines), len(json.dumps(lines).encode('utf-8')) / (1024*1024)
+              except:
+                  return 0, 0
+
+          def get_active_sessions():
+              try:
+                  result = subprocess.run(['pgrep', '-c', '-f', 'claude-code'], capture_output=True, text=True)
+                  return int(result.stdout.strip() or 0)
+              except:
+                  return 0
+
+          if __name__ == '__main__':
+              start_http_server(9090)
+              while True:
+                  conversations, size_mb = get_history_stats()
+                  ACTIVE_SESSIONS.set(get_active_sessions())
+                  TOTAL_CONVERSATIONS.set(conversations)
+                  HISTORY_SIZE_MB.set(size_mb)
+
+                  # Process metrics
+                  CPU_USAGE.set(psutil.cpu_percent(interval=1))
+                  MEMORY_USAGE.set(psutil.virtual_memory().used)
+
+                  time.sleep(10)
+          EOF
+
+          python3 /app/metrics.py
+
+        env:
+        - name: HOME
+          value: /home/j_kro
+
+        ports:
+        - name: metrics
+          containerPort: 9090
+
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/j_kro
+          readOnly: true  # Metrics only needs to read history
+
+      terminationGracePeriodSeconds: 60

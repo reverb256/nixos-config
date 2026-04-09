@@ -1,0 +1,145 @@
+# GPU Miner Deployment for Forge (2x RTX 4060 + 2x RX 5700 XT)
+# NVIDIA and AMD miners in separate containers
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge
+  namespace: mining
+  labels:
+    app: gpu-miner
+    host: forge
+    workload: crypto-mining
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: gpu-miner
+      host: forge
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: gpu-miner
+        host: forge
+        workload: crypto-mining
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4068"
+    spec:
+      nodeName: forge
+      serviceAccountName: gpu-miner-sa
+      automountServiceAccountToken: false
+      hostNetwork: true
+      priorityClassName: preemptible-mining
+      initContainers:
+        - name: gpu-power-limit
+          image: nvidia/cuda:12.4.0-base-ubuntu22.04
+          command:
+            - /bin/sh
+            - -c
+            - |
+              nvidia-smi -i 0 -pl 120
+              nvidia-smi -i 1 -pl 120
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+      containers:
+        - name: lolminer-nvidia
+          image: lolminer:1.98a-nixos
+          imagePullPolicy: Never
+          args:
+            - "--algo=CR29"
+            - "--pool=stratum+tcp://10.1.1.110:3333"
+            - "--user=forge-gpu-nvidia"
+            - "--devices=0,1"
+            - "--apiport=4068"
+            - "--mode=b"
+            - "--tls=1"
+          ports:
+            - containerPort: 4068
+              name: api-nvidia
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: api-nvidia
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: api-nvidia
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+          volumeMounts:
+            - name: nvidia
+              mountPath: /usr/lib/nvidia
+          resources:
+            requests:
+              memory: "4Gi"
+              nvidia.com/gpu: "2"
+            limits:
+              memory: "8Gi"
+              nvidia.com/gpu: "2"
+        - name: lolminer-amd
+          image: lolminer:1.98a-nixos
+          imagePullPolicy: Never
+          args:
+            - "--algo=CR29"
+            - "--pool=stratum+tcp://10.1.1.110:3333"
+            - "--user=forge-gpu-amd"
+            - "--devices=0,1"
+            - "--apiport=4069"
+            - "--mode=b"
+            - "--tls=1"
+          ports:
+            - containerPort: 4069
+              name: api-amd
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: api-amd
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: api-amd
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+          resources:
+            requests:
+              memory: "4Gi"
+            limits:
+              memory: "8Gi"
+      volumes:
+        - name: nvidia
+          hostPath:
+            path: /run/current-system/sw/lib/nvidia

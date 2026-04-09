@@ -1,0 +1,92 @@
+# GPU Miner for Forge - AMD GPU 0 (RX 5700 XT)
+# Uses NixOS-built container image with matching glibc (no hostPath nix/store needed)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-amd-0
+  namespace: mining
+  labels:
+    app: gpu-miner-forge
+    gpu-id: "0"
+    gpu-type: amd
+    host: forge
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gpu-miner-forge-amd-0
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge-amd-0
+    spec:
+      nodeName: forge
+      hostNetwork: true
+      automountServiceAccountToken: false
+      serviceAccountName: gpu-miner-sa
+      priorityClassName: mining-low
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: lolminer
+        image: docker.io/library/lolminer-amd:1.98a-nixos
+        imagePullPolicy: Never
+        command: ["/bin/lolMiner"]
+        args:
+        - "--algo=CR29"
+        - "--pool=xtm-c29-us.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-a0"
+        - "--pass=x"
+        - "--tls=1"
+        - "--pool=xtm-c29-eu.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-a0"
+        - "--pass=x"
+        - "--tls=1"
+        - "--devices=0"
+        - "--pl=110"
+        - "--apiport=4070"
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/lib"
+        - name: OCL_ICD_VENDORS
+          value: "/etc/OpenCL/vendors/"
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 4070
+          name: api
+          protocol: TCP
+        livenessProbe:
+          tcpSocket:
+            port: 4070
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 4070
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "500m"
+            memory: 2Gi
+          limits:
+            cpu: "2"
+            memory: 4Gi
+        volumeMounts:
+        - name: dev
+          mountPath: /dev
+        - name: dri
+          mountPath: /dev/dri
+      volumes:
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: dri
+        hostPath:
+          path: /dev/dri

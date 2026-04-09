@@ -14,18 +14,21 @@ in {
     enable32Bit = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Enable 32-bit graphics support for Steam and games";
     };
 
     opencl = lib.mkOption {
       type = lib.types.bool;
       default = false;
+      example = true;
       description = "Enable OpenCL support via ROCm";
     };
 
     sddmWayland = lib.mkOption {
       type = lib.types.bool;
       default = true;
+      example = false;
       description = "Enable SDDM Wayland support";
     };
   };
@@ -62,7 +65,7 @@ in {
     # ============================================================================
     # DISPLAY MANAGER (SDDM with Wayland)
     # ============================================================================
-    services.displayManager.sddm.wayland.enable = cfg.sddmWayland;
+    services.displayManager.sddm.wayland.enable = lib.mkDefault cfg.sddmWayland;
 
     # ============================================================================
     # ENVIRONMENT VARIABLES (AMD + Wayland)
@@ -92,7 +95,7 @@ in {
       # Display management
       kanshi
 
-      # GPU monitoring (supports AMD)
+      # GPU monitoring (supports AMD, NVIDIA, Intel)
       nvtopPackages.full
     ];
   };

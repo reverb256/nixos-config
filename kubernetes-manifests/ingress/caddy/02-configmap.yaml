@@ -1,0 +1,25 @@
+# Caddy Ingress Controller — ConfigMap
+# Source: caddyserver/ingress chart v1.3.0
+#
+# All services use .lan or Tailscale DNS — no public ACME needed.
+# Caddy auto-generates self-signed certs for internal domains.
+# Prometheus metrics exposed on :9765 for static scrape in prometheus.nix.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-ingress-controller-configmap
+  namespace: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress-controller
+    app.kubernetes.io/component: controller
+data:
+  email: "admin@cluster.local"
+  metrics: "true"
+  debug: "false"
+  onDemandTLS: "false"
+  proxyProtocol: "false"
+  experimentalSmartSort: "false"
+  acmeCA: ""
+  acmeEABKeyId: ""
+  acmeEABMacKey: ""

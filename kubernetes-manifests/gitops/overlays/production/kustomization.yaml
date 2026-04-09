@@ -1,0 +1,69 @@
+# Production Environment Overlay
+# Inherits from base, adds production-specific configurations
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base configuration
+namespace: gpu-scheduler
+resources:
+  - ../../base
+
+# Patches for production
+patches:
+  # Increase replicas for production
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: ai-inference-gateway
+      spec:
+        replicas: 3  # Production: 3 replicas for HA
+    target:
+      kind: Deployment
+      name: ai-inference-gateway
+
+  # Tighten resource limits for production
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: ai-inference-gateway
+      spec:
+        template:
+          spec:
+            containers:
+              - name: gateway
+                resources:
+                  requests:
+                    memory: "2Gi"  # Production: higher requests
+                    cpu: "1000m"
+                  limits:
+                    memory: "4Gi"
+                    cpu: "2000m"
+    target:
+      kind: Deployment
+      name: ai-inference-gateway
+
+# Images (production uses digests for immutability)
+images:
+  - name: ghcr.io/j-kro/ai-inference-gateway
+    newTag: v3.1.0
+    # In production, use digest for guaranteed immutability:
+    # digest: sha256:abc123def456...
+
+# Production-specific values
+configMapGenerator:
+  - name: production-config
+    literals:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO  # Production: INFO, not DEBUG
+      - METRICS_ENABLED=true
+      - ALERTING_ENABLED=true
+
+# Secret generator (production uses External Secrets Operator)
+# secretGenerator:
+#   - name: gpu-scheduler-secrets
+#     envs:
+#     - .env.production
+#     type: Opaque

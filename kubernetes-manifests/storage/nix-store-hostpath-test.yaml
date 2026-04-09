@@ -1,0 +1,84 @@
+# Phase 0 Alternative: Simple hostPath mount for /nix/store access
+# This achieves read-only /nix/store access without CSI driver complexity
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nix-store-hostpath-test
+  namespace: kube-system
+  labels:
+    app: nix-store-test
+    phase: "0"
+  annotations:
+    description: "Phase 0 test - Direct hostPath mount to /nix/store (read-only)"
+spec:
+  serviceAccountName: default
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  containers:
+  - name: test
+    image: alpine:3.19
+    command: ["/bin/sh", "-c"]
+    args:
+    - |
+      echo "=== Phase 0: /nix/store hostPath Test ==="
+      echo "Testing /nix/store mount..."
+      ls -la /nix/store | head -20
+      echo ""
+      echo "Store entries: $(ls /nix/store | wc -l)"
+      echo ""
+      echo "Testing read-only access..."
+      if touch /nix/store/test 2>&1 | grep -q "Read-only"; then
+        echo "✅ Read-only mount verified"
+      else
+        echo "❌ Read-only mount FAILED"
+        exit 1
+      fi
+      echo ""
+      echo "Testing package access..."
+      if [ -d "/nix/store" ]; then
+        echo "✅ /nix/store accessible"
+        echo "Sample packages:"
+        ls /nix/store | grep -E "^[a-z0-9]{32}-" | head -10
+      else
+        echo "❌ /nix/store not accessible"
+        exit 1
+      fi
+      echo ""
+      echo "=== Phase 0 test passed ==="
+      echo "HostPath mount successfully provides /nix/store access"
+      echo "Sleeping for inspection..."
+      sleep 3600
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      capabilities:
+        drop:
+        - ALL
+    volumeMounts:
+    - name: nix-store
+      mountPath: /nix/store
+      readOnly: true
+    - name: tmp
+      mountPath: /tmp
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+  volumes:
+  - name: nix-store
+    hostPath:
+      path: /nix/store
+      type: Directory
+  - name: tmp
+    emptyDir:
+      sizeLimit: 100Mi
+  restartPolicy: Never
+  # Schedule on zephyr where /nix/store exists
+  nodeSelector:
+    kubernetes.io/hostname: zephyr

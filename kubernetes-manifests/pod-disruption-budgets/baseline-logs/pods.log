@@ -1,0 +1,71 @@
+NAMESPACE            NAME                                           READY   STATUS             RESTARTS         AGE
+ai-coding            claude-code-5454d58bdd-2mb9f                   2/2     Running            0                5h44m
+ai-coding            opencode-78985ff89-xvh6r                       2/2     Running            0                5h44m
+ai-inference         n8n-6b7cf9f945-2frmf                           1/1     Running            0                11h
+ai-inference         postgres-n8n-0                                 1/1     Running            0                11h
+ai-inference         prometheus-cbff86bbb-f2qs9                     1/1     Running            0                11h
+ai-inference         qdrant-0                                       1/1     Running            0                3d7h
+ai-inference         redis-85598bdf45-lxv7s                         1/1     Running            1 (170m ago)     11h
+akash-cpu-test       nginx-test-65456dc9b6-ccgjn                    1/1     Running            0                37h
+akash-cpu-test       nginx-test-65456dc9b6-j6b6g                    1/1     Running            0                37h
+akash-services       akash-node-1-0                                 1/1     Running            15 (116m ago)    43h
+akash-services       akash-provider-akash-provider-fixed-0          1/1     Running            0                2m4s
+akash-services       cloudflared-fb4569c65-4tbx2                    1/1     Running            0                3h20m
+akash-services       operator-hostname-769685c76d-q2t6r             1/1     Running            3 (38h ago)      2d2h
+akash-services       operator-inventory-54f4bf6c7f-xj88x            0/1     CrashLoopBackOff   73 (2m26s ago)   5h10m
+akash-services       operator-inventory-hardware-discovery-forge    1/1     Running            0                3m29s
+akash-services       operator-inventory-hardware-discovery-nexus    1/1     Running            0                3m29s
+akash-services       operator-inventory-hardware-discovery-sentry   1/1     Running            0                3m29s
+akash-services       operator-inventory-hardware-discovery-zephyr   1/1     Running            0                3m29s
+akash-services       volume-cleanup-29568960-vf6xx                  0/1     Completed          0                18m
+glitchtip            postgres-0                                     1/1     Running            0                12h
+ingress-nginx        ingress-nginx-admission-create-dgk2m           0/1     Completed          0                42h
+ingress-nginx        ingress-nginx-admission-patch-lfzfq            0/1     Completed          0                42h
+ingress-nginx        ingress-nginx-controller-68b66dcbf5-5ztdb      1/1     Running            0                12h
+istio-system         istiod-cd4667d86-4xxz7                         1/1     Running            0                3d7h
+kube-flannel         kube-flannel-ds-b9hwq                          1/1     Running            0                5h12m
+kube-flannel         kube-flannel-ds-jxk8m                          1/1     Running            0                5h14m
+kube-flannel         kube-flannel-ds-lm4h2                          1/1     Running            0                5h14m
+kube-flannel         kube-flannel-ds-zvnkn                          1/1     Running            0                5h14m
+kube-system          amdgpu-device-plugin-daemonset-8vdd9           1/1     Running            0                13h
+kube-system          amdgpu-device-plugin-daemonset-k68md           1/1     Running            0                13h
+kube-system          amdgpu-device-plugin-daemonset-mkf8w           1/1     Running            0                13h
+kube-system          amdgpu-device-plugin-daemonset-t6gpp           1/1     Running            0                13h
+kube-system          coredns-cf487b964-5v2xl                        1/1     Running            0                12h
+kube-system          metrics-server-75c56668c8-76cs4                1/1     Running            0                6h17m
+kube-system          nvidia-device-plugin-daemonset-5hplw           1/1     Running            7 (37h ago)      37h
+kube-system          nvidia-device-plugin-daemonset-m4cbl           1/1     Running            8 (15h ago)      16h
+kube-system          nvidia-device-plugin-daemonset-svf76           1/1     Running            7 (37h ago)      37h
+local-path-storage   local-path-provisioner-f8dc9bf97-52kbr         1/1     Running            0                3d7h
+mining               gpu-miner-forge-nvidia-0-846fd5fd98-c5thp      1/1     Running            0                12h
+mining               gpu-miner-forge-nvidia-1-54d89fd6f4-vtlvv      1/1     Running            0                12h
+mining               gpu-miner-nexus-78b95d94f7-6mk9v               1/1     Running            0                11h
+mining               gpu-miner-zephyr-dbfdcc44d-2xtpd               1/1     Running            0                12h
+mining               xmrig-nexus-54f5c79d4d-hzcc8                   1/1     Running            0                12h
+mining               xmrig-zephyr-56d8c8b5b8-6wtcf                  1/1     Running            0                12h
+monitoring           grafana-7895fc9c8b-kndsh                       1/1     Running            0                5h22m
+monitoring           memory-monitor-29568965-mgkg7                  0/1     Completed          0                13m
+monitoring           memory-monitor-29568970-w2hng                  0/1     Completed          0                8m27s
+monitoring           memory-monitor-29568975-p2hsk                  0/1     Completed          0                3m27s
+monitoring           node-exporter-6ctgp                            1/1     Running            0                15h
+monitoring           node-exporter-7sl84                            1/1     Running            0                15h
+monitoring           node-exporter-gs99c                            1/1     Running            0                15h
+monitoring           node-exporter-vxw2k                            1/1     Running            0                15h
+monitoring           prometheus-5749489f57-dwnt7                    1/1     Running            0                5h24m
+search               redis-56b74b675c-bngrh                         1/1     Running            0                11h
+search               searxng-bbfb6bc77-28gqw                        1/1     Running            0                146m
+search               searxng-bbfb6bc77-2zd4j                        1/1     Running            0                147m
+search               searxng-bbfb6bc77-9pvn7                        1/1     Running            0                146m
+search               searxng-bbfb6bc77-b9p7h                        1/1     Running            0                149m
+search               searxng-bbfb6bc77-dwh8s                        1/1     Running            0                147m
+search               searxng-bbfb6bc77-lkjc9                        1/1     Running            0                146m
+search               searxng-bbfb6bc77-pfwp7                        1/1     Running            0                149m
+search               searxng-bbfb6bc77-svnpk                        1/1     Running            0                148m
+search               searxng-bbfb6bc77-wm6fw                        1/1     Running            0                147m
+search               searxng-bbfb6bc77-xl7ld                        1/1     Running            0                148m
+secure-workloads     secure-pod-example                             1/1     Running            1 (38m ago)      98m
+volcano-system       volcano-admission-5b7bdbfb86-kf42w             1/1     Running            0                2d1h
+volcano-system       volcano-admission-init-8642k                   0/1     Completed          0                2d1h
+volcano-system       volcano-controllers-f8f4486c7-xllcl            1/1     Running            0                2d1h
+volcano-system       volcano-scheduler-8657d7cc77-bcv9v             1/1     Running            0                16h
+yunikorn             yunikorn-scheduler-7f9478c7f9-wr44v            2/2     Running            0                2d1h

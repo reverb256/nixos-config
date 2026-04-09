@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spacebot-config
+  namespace: spacebot
+data:
+  config.toml: |
+    # Spacebot Configuration - Kubernetes-managed
+    # LLM Provider - Using AI Gateway
+    [llm.provider.ai-gateway]
+    api_type = "openai_completions"
+    base_url = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080"
+    api_key = "dummy-key-for-gateway"
+    name = "AI Gateway"
+
+    # Model Routing - Using gateway model names
+    [defaults.routing]
+    channel = "magnum-opus-35b-a3b-i1"
+    worker = "magnum-opus-35b-a3b-i1"
+
+    [defaults.routing.task_overrides]
+    coding = "magnum-opus-35b-a3b-i1"
+
+    # Agents
+    [[agents]]
+    id = "default"
+    name = "Spacebot"
+    description = "AI agent for teams and communities"
+
+    # Messaging Platforms
+    [messaging.telegram]
+    token = "file:/run/agenix/spacebot-telegram-token"
+
+    [[bindings]]
+    agent_id = "default"
+    channel = "telegram"
+
+    # API Server
+    [api]
+    bind = "0.0.0.0"
+    port = 19898
+
+    # Database
+    [database]
+    path = "/data/spacebot.db"
+
+    [secrets]
+    path = "/data/secrets.redb"
+
+    [memory.lance]
+    path = "/data/lance"
+
+    [ingestion]
+    path = "/data/ingest"
+
+    [skills]
+    path = "/data/skills"

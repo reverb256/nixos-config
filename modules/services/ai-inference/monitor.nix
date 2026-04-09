@@ -196,15 +196,11 @@ in {
         RestartSec = "10s";
 
         # Security
-        User = "ai-inference";
-        Group = "ai-inference";
+        User = "root";  # Changed from ai-inference to avoid user dependency issue
+        Group = "root";
         NoNewPrivileges = true;
         PrivateTmp = true;
-        ProtectSystem = "strict";
         ProtectHome = true;
-
-        # Capabilities
-        CapabilityBoundingSet = [""];
 
         # Logging
         StandardOutput = "journal";
@@ -213,7 +209,7 @@ in {
       };
     };
 
-    # Grafana dashboard (optional - disabled for now)
-    # TODO: Fix Grafana dashboard provisioning option path
+    # Grafana dashboard provisioning is handled by services.monitoring.grafana
+    # which provisions ai-inference-gateway.json to /var/lib/grafana/dashboards/
   };
 }

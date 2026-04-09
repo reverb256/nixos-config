@@ -1,0 +1,57 @@
+# Zephyr Workstation/Gaming Node Taints and Tolerations
+---
+# Taint zephyr to prevent general workloads from scheduling there
+# Only workloads with specific tolerations can run on zephyr
+apiVersion: v1
+kind: Node
+metadata:
+  name: zephyr
+spec:
+  taints:
+  # Taint for workstation-only workloads (gaming, AI inference)
+  - key: "workstation"
+    value: "true"
+    effect: NoSchedule
+  # Taint for interactive workloads (requires low latency)
+  - key: "interactive"
+    value: "true"
+    effect: NoExecute
+---
+# Add tolerations to zephyr's gaming and AI workloads
+# These workloads NEED to run on zephyr and can tolerate the taints
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gaming-placeholder
+  namespace: mining
+spec:
+  template:
+    spec:
+      tolerations:
+      - key: "workstation"
+        operator: "Equal"
+        value: "true"
+        effect: NoSchedule
+      - key: "interactive"
+        operator: "Equal"
+        value: "true"
+        effect: NoExecute
+---
+# AI inference workloads toleration (llama.cpp, Gateway)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-cpp-qwen
+  namespace: ai-inference
+spec:
+  template:
+    spec:
+      tolerations:
+      - key: "workstation"
+        operator: "Equal"
+        value: "true"
+        effect: NoSchedule
+      - key: "interactive"
+        operator: "Equal"
+        value: "true"
+        effect: NoExecute

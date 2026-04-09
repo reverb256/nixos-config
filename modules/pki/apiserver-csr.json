@@ -1,0 +1,33 @@
+{
+  "CN": "kubernetes",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "O": "Kubernetes",
+      "OU": "Control Plane",
+      "L": "Homelab",
+      "ST": "Infrastructure",
+      "C": "US"
+    }
+  ],
+  "hosts": [
+    "10.1.1.100",
+    "10.1.1.110",
+    "10.1.1.120",
+    "10.1.1.140",
+    "10.0.0.1",
+    "127.0.0.1",
+    "localhost",
+    "kubernetes",
+    "kubernetes.default",
+    "kubernetes.default.svc",
+    "kubernetes.default.svc.cluster.local",
+    "kubernetes.cluster.local",
+    "api.zephyr.cluster.local",
+    "api.nexus.cluster.local",
+    "api.sentry.cluster.local"
+  ]
+}

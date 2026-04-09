@@ -1,0 +1,86 @@
+# Fixed RBAC Configuration for GPU Scheduler State Management
+# Replaces invalid node user subjects with ServiceAccount-based approach
+
+---
+# Role for ConfigMap state management (namespace-scoped, least privilege)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gpu-scheduler-state-updater
+  namespace: kube-system
+  labels:
+    app: gpu-scheduler
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["gpu-scheduler-state"]  # Resource-specific: least privilege
+    verbs: ["get", "patch", "update", "watch"]
+---
+# RoleBinding for GPU Scheduler Client ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gpu-scheduler-state-updater-client
+  namespace: kube-system
+  labels:
+    app: gpu-scheduler
+roleRef:
+  kind: Role
+  name: gpu-scheduler-state-updater
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  # ServiceAccount for bare metal hosts (via kubeconfig)
+  - kind: ServiceAccount
+    name: gpu-scheduler-client
+    namespace: kube-system
+---
+# RoleBinding for YuniKorn Scheduler (read-only access)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: yunikorn-state-reader-binding
+  namespace: kube-system
+  labels:
+    app: gpu-scheduler
+roleRef:
+  kind: Role
+  name: gpu-scheduler-state-updater
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: yunikorn-state-reader
+    namespace: yunikorn
+---
+# ClusterRole for bare metal nodes to update ConfigMap
+# (Used by external kubectl commands from bare metal hosts)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gpu-scheduler-state-external-updater
+  labels:
+    app: gpu-scheduler
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["gpu-scheduler-state"]
+    verbs: ["get", "patch", "update"]
+---
+# ClusterRoleBinding for external bare metal access
+# This allows kubectl commands from bare metal hosts with proper certificates
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gpu-scheduler-state-external-updater-binding
+  labels:
+    app: gpu-scheduler
+roleRef:
+  kind: ClusterRole
+  name: gpu-scheduler-state-external-updater
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  # Bind to specific certificate subjects (CN from node certificates)
+  # These subjects must match the CN in your node certificates
+  - kind: User
+    name: "system:admin"  # Replace with actual certificate CN
+  - kind: User
+    name: "kubernetes-admin"  # Replace with actual certificate CN

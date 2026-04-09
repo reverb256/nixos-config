@@ -1,0 +1,105 @@
+# ServiceMonitors for Prometheus Metrics Collection
+# Enables comprehensive monitoring of GPU workloads
+
+---
+# ServiceMonitor for AI Inference Gateway
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ai-inference-gateway
+  namespace: ai-inference
+  labels:
+    app: ai-inference-gateway
+    monitor: gpu-scheduler
+spec:
+  selector:
+    matchLabels:
+      app: ai-inference-gateway
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+# ServiceMonitor for GPU Mining Workloads
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gpu-miner
+  namespace: mining
+  labels:
+    app: gpu-miner
+    monitor: gpu-scheduler
+spec:
+  selector:
+    matchLabels:
+      app: gpu-miner
+  endpoints:
+    - port: api
+      path: /
+      interval: 60s
+      scrapeTimeout: 10s
+      # lolMiner returns JSON metrics, need custom relabeling
+      relabelings:
+        - sourceLabels: [__address__]
+          targetLabel: __param_target
+        - sourceLabels: [__param_target]
+          targetLabel: __address__
+---
+# PrometheusRule for GPU Scheduler Alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: gpu-scheduler-alerts
+  namespace: monitoring
+  labels:
+    app: gpu-scheduler
+    prometheus: kube-prometheus
+spec:
+  groups:
+    - name: gpu-scheduler
+      interval: 30s
+      rules:
+        # Alert if mining pods are down
+        - alert: MiningPodsDown
+          expr: |
+            kube_pod_status_phase{namespace="mining", phase="Running"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Mining pods are not running"
+            description: "No mining pods have been running for 5 minutes"
+
+        # Alert if AI gateway is down
+        - alert: AIGatewayDown
+          expr: |
+            up{job="ai-inference-gateway"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "AI Inference Gateway is down"
+            description: "AI Gateway has been down for 2 minutes"
+
+        # Alert if GPU utilization is low (mining should be running when idle)
+        - alert: LowGPUUtilization
+          expr: |
+            dcgm_gpu_utilization < 20
+          for: 15m
+          labels:
+            severity: info
+          annotations:
+            summary: "Low GPU utilization detected"
+            description: "GPU utilization has been below 20% for 15 minutes"
+
+        # Alert if preemption is happening frequently
+        - alert: FrequentPreemption
+          expr: |
+            rate(kube_pod_status_reason{reason="Preempting"}[5m]) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Frequent pod preemption detected"
+            description: "Pods are being preempted frequently (more than once per 10 minutes)"

@@ -1,0 +1,24 @@
+# Calico BGP Configuration
+# Enables BGP for dynamic pod route advertisement between nodes
+#
+# NOTE: With VXLAN encapsulation, BGP is used for route advertisement
+# but data plane traffic flows through VXLAN tunnels.
+#
+# Service CIDR 10.0.0.0/12 matches k3s --service-cidr flag.
+apiVersion: crd.projectcalico.org/v1
+kind: BGPConfiguration
+metadata:
+  name: default
+spec:
+  logSeverityScreen: Info
+  nodeToNodeMeshEnabled: true
+  asNumber: 64512
+
+  # Advertise service ClusterIPs to BGP peers
+  # Must match k3s --service-cidr
+  serviceClusterIPs:
+  - cidr: 10.0.0.0/12
+
+  # Advertise all ExternalIPs and LoadBalancerIPs
+  serviceExternalIPs: []
+  serviceLoadBalancerIPs: []

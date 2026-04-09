@@ -1,0 +1,46 @@
+---
+# ExternalService for AI Inference Gateway
+# Points to NixOS systemd service running on Zephyr
+# Temporary solution until container image is built and pushed
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-inference-gateway-external
+  namespace: ai-inference
+  labels:
+    app: ai-inference-gateway
+    type: external
+  annotations:
+    description: "External service pointing to NixOS systemd gateway on Zephyr"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9190
+    targetPort: 9190
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: ai-inference-gateway-external
+  namespace: ai-inference
+  labels:
+    app: ai-inference-gateway
+    type: external
+subsets:
+  - addresses:
+    - ip: 10.1.1.110  # Zephyr's IP address
+    ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+    - name: metrics
+      port: 9190
+      protocol: TCP

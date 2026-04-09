@@ -1,0 +1,24 @@
+# Caddy IngressClass for Kubernetes
+# Enables using Caddy as the ingress controller for K8s workloads
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: caddy
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: caddy-labs.ingress-controller/k8s-ingress-controller
+---
+# Alternative: Make nginx non-default
+# apiVersion: networking.k8s.io/v1
+# kind: IngressClass
+# metadata:
+#   name: nginx
+# spec:
+#   controller: k8s.io/ingress-nginx
+#   parameters:
+#     # Custom parameters for nginx
+---
+# Note: The Caddy ingress controller uses a custom CRD approach
+# This IngressClass is for standard Kubernetes Ingress resources
+# For advanced Caddy features, use Caddy's ingress routes (see docs)

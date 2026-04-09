@@ -1,0 +1,8 @@
+# Caddy Ingress Controller Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-system
+  labels:
+    app.kubernetes.io/name: caddy-ingress
+    app.kubernetes.io/component: ingress

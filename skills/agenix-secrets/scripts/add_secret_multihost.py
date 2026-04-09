@@ -9,9 +9,22 @@ import sys
 import os
 import re
 
+sys.path.insert(0, os.path.dirname(__file__))
+from common import (
+    ensure_dependencies,
+    get_age_identity_path,
+    get_secrets_nix_path,
+    print_error,
+    print_success,
+    print_info,
+)
 
-def parse_secrets_nix(secrets_nix_path="/etc/nixos/secrets.nix"):
+
+def parse_secrets_nix(secrets_nix_path=None):
     """Parse secrets.nix to extract users and hosts."""
+    if secrets_nix_path is None:
+        secrets_nix_path = str(get_secrets_nix_path())
+
     if not os.path.exists(secrets_nix_path):
         return {"users": {}, "hosts": {}}
 
@@ -33,7 +46,7 @@ def parse_secrets_nix(secrets_nix_path="/etc/nixos/secrets.nix"):
     return result
 
 
-def get_recipients_for_hosts(hosts_list, secrets_nix_path="/etc/nixos/secrets.nix"):
+def get_recipients_for_hosts(hosts_list, secrets_nix_path=None):
     """
     Get age public keys for specified hosts.
 
@@ -73,30 +86,28 @@ def create_encrypted_file(secret_name, secret_value, recipients, owner="j_kro"):
     """
     print(f"Creating encrypted file: {secret_name}")
 
-    # Build recipients list for agenix
-    # We need to include the owner's key too
-    secrets_nix_path = "/etc/nixos/secrets.nix"
+    secrets_nix_path = str(get_secrets_nix_path())
     keys_data = parse_secrets_nix(secrets_nix_path)
 
     if owner not in keys_data["users"]:
-        print(f"Error: Owner '{owner}' not found in secrets.nix")
+        print_error(f"Owner '{owner}' not found in secrets.nix")
         return False
 
-    # Build AGE_RECIPIENTS environment variable
     recipient_keys = [keys_data["users"][owner]]
     recipient_keys.extend(recipients.values())
     age_recipients = ":".join(recipient_keys)
 
     env = {**os.environ, "RULES": secrets_nix_path, "AGE_RECIPIENTS": age_recipients}
 
-    # Create the encrypted file
+    identity_path = get_age_identity_path(owner)
+
     result = subprocess.run(
         [
             "agenix",
             "-e",
             f"secrets/{secret_name}.age",
             "-i",
-            f"/home/{owner}/.age/key.txt",
+            str(identity_path),
         ],
         input=secret_value,
         text=True,
@@ -123,9 +134,7 @@ def create_encrypted_file(secret_name, secret_value, recipients, owner="j_kro"):
     return True
 
 
-def update_secrets_nix(
-    secret_name, recipients, owner="j_kro", secrets_nix_path="/etc/nixos/secrets.nix"
-):
+def update_secrets_nix(secret_name, recipients, owner="j_kro", secrets_nix_path=None):
     """
     Add secret to secrets.nix with proper recipient keys.
 
@@ -139,6 +148,9 @@ def update_secrets_nix(
         True if successful, False otherwise.
     """
     print(f"Updating secrets.nix: {secret_name}")
+
+    if secrets_nix_path is None:
+        secrets_nix_path = str(get_secrets_nix_path())
 
     with open(secrets_nix_path, "r") as f:
         content = f.read()
@@ -256,6 +268,9 @@ def update_host_configuration(
 
 def main():
     import argparse
+
+    if not ensure_dependencies(auto_install=True):
+        sys.exit(1)
 
     parser = argparse.ArgumentParser(
         description="Add secrets to multiple hosts with proper key management"

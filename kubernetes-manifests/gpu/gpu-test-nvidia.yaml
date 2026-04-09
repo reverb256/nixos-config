@@ -1,0 +1,22 @@
+# NVIDIA GPU Test Pod
+# Usage: kubectl apply -f gpu-test-nvidia.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-test-nvidia
+spec:
+  restartPolicy: OnFailure
+  nodeSelector:
+    # Only run on nodes with NVIDIA GPUs
+    accelerator: nvidia-gpu
+  containers:
+  - name: cuda-vector-add
+    image: ubuntu:22.04
+    command: ["sh", "-c", "ls -la /dev/ | grep nvidia && echo 'NVIDIA GPU devices found' || echo 'No NVIDIA devices'"]
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule

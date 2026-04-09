@@ -1,7 +1,9 @@
 # Zephyr Host Configuration
 # RTX 3090, Quest Pro, 4K HDR TV
 {
+  config,
   pkgs,
+  lib,
   inputs,
   ...
 }:
@@ -15,142 +17,1110 @@
     ./monitoring.nix
     # Hardware configuration (generated)
     ./hardware-configuration.nix
+    # Kubernetes control plane
+    ../../modules/services/k3s-cluster.nix
+    # Keepalived VIP for Kubernetes HA
+    ../../modules/services/keepalived-vip.nix
+    # FIX: Systemd user unit reload timeout (nixos-rebuild switch hang)
+    ../../modules/system/systemd-user-timeout.nix
 
     # All other modules auto-imported via ../../modules/default.nix
     # This includes: system, desktop, shell, gaming, development, services,
     # plus zephyr-specific modules (nvidia-common, gstreamer, spotify, cluster networking)
     ../../modules/default.nix
+
+    # NVIDIA GPU Wayland support (host-dependent)
+    ../../modules/hardware/nvidia-common.nix
+    ../../modules/hardware/nvidia-wayland.nix
+
+    # RGB control for peripherals and components
+    ../../modules/hardware/rgb-control.nix
   ];
 
   # ============================================================================
   # HOST IDENTIFICATION
   # ============================================================================
-  networking.hostName = "zephyr";
+  # Centralized cluster networking (search domains, DNS, firewall basics)
+  # Note: interfaceName provided by node-profiles.zephyr-workstation
+  clusterNetworking = {
+    enable = true;
+    hostName = "zephyr";
+    ipAddress = "10.1.1.110";
+    wireless = {
+      enable = true;
+      ipAddress = "10.1.1.115"; # Static IP for WiFi backup
+    };
+    usbEthernet.enable = true; # Support USB ethernet adapters
+    unbound.listenAddress = "10.1.1.110";
+  };
+
+  # FIX: Disable interface renaming - use actual interface names
+  systemd.network.links = lib.mkForce { };
 
   # ============================================================================
+  # MEMORY OPTIMIZATION - zram compressed swap + kernel tuning
+  # ============================================================================
+  # VM sysctls (vfs_cache_pressure, swappiness, overcommit) handled by
+  # vm-tuning.nix with mkForce — only host-specific overrides here.
+  # Previous vfs_cache_pressure=1000 caused excessive page cache eviction,
+  # forcing more SSD swap. vm-tuning.nix sets 150 (mkForce).
+
+  # ZRAM compressed swap — reduces SSD wear, faster than disk swap
+  # 25% of 31GB ≈ 8GB compressed swap (zstd compression ~2-3x ratio)
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+    memoryPercent = 25;
+    priority = 999; # Prefer zram over disk swap
+  };
+
+  boot.kernel.sysctl = {
+    # Network buffer tuning (frees unused socket buffers)
+    "net.core.rmem_default" = 262144; # 256KB (default: 212992)
+    "net.core.wmem_default" = 262144; # 256KB
+    "net.core.rmem_max" = 16777216; # 16MB max
+    "net.core.wmem_max" = 16777216;
+
+    # CALICO CNI REQUIREMENTS
+    "net.ipv4.conf.all.rp_filter" = 1; # Reverse path filtering for BGP
+  };
+
+  networking = {
+    cluster-hosts = {
+      enable = true;
+      populateLocal = true;
+    };
+    # Zephyr-specific firewall rules (in addition to cluster defaults)
+    firewall = {
+      allowedTCPPorts = [
+        9757 # WiVRn main port
+        18789 # Steam Remote Play
+        18790 # Steam Remote Play (secondary)
+        19898 # Moonlight/GameStream AND Spacebot Web UI
+        3333 # XMRig stratum proxy (for GPU miners)
+        8080 # AI Inference Gateway
+        8083 # Llamafile standalone LLM service
+        53317 # LocalSend (file sharing)
+        8888 # CFSSL CA API server (for worker node certificate generation)
+        3900 # Garage S3 API
+        3901 # Garage RPC
+        50000 # Nix binary cache server
+        6443 # k3s API server
+        2379 # etcd client
+        2380 # etcd peer
+        10250 # Kubelet API
+        179 # Calico BGP
+        5473 # Calico Typha
+        9100 # Prometheus node-exporter
+      ];
+      allowedUDPPorts = [
+        9757 # WiVRn
+        9758 # WiVRn
+        9759 # WiVRn
+        27031 # Steam UDP
+        27036 # Steam UDP
+        9947 # WiVRn
+        53317 # LocalSend (multicast discovery)
+        8472 # VXLAN (Flannel/Calico)
+        4789 # VXLAN (Calico)
+      ];
+      interfaces = {
+        # mDNS restricted to LAN interface only (not 0.0.0.0)
+        "enp38s0".allowedUDPPorts = [5353 111 2049 20048];
+        "tailscale0".allowedTCPPorts = [
+          18789
+          18790
+        ];
+        # NFS server - allow local network only
+        "enp38s0".allowedTCPPorts = [
+          111
+          2049
+          20048
+        ]; # rpcbind, nfs, mountd
+      };
+    };
+  };
+
+  # ============================================================================
+  # NODE PROFILE - Platform-level defaults
+  # ============================================================================
+  # This profile bundles role profiles, Kubernetes config, hardware profiles,
+  # and networking configuration. Eliminates ~100 lines of duplication.
+  profiles.node.zephyr-workstation.enable = true;
+
+  # MONITORING DISABLED - Protect 31GB RAM for gaming/VR/AI workloads
+  # Monitoring stack moved to Nexus (46GB RAM) to prevent OOM on Zephyr
+  # Prometheus/Grafana running on Kubernetes (ai-inference namespace)
+  # AlertManager running on Nexus via monitoring profile
+  profiles.monitoring.enable = lib.mkForce false;
+
+  # ============================================================================
+  # SECURITY AUDIT REMEDIATION
+  # ============================================================================
+  # Enables firewall, Tailscale SSH, and service hardening
+  security.clusterAudit = {
+    enable = true;
+    enableFirewall = true;
+    enableTailscaleSSH = true;
+    bindServicesToLocalhost = true;
+  };
+
+  # Kubernetes security tools for runtime monitoring
+  security.kubernetes.enable = true;
+
+  # Trust Caddy Ingress local CA certificate
+  security.caddyCa.enable = true;
+
+  # ============================================================================
+  # GPU COMPUTE - CUDA + Vulkan support for AI inference
+  # ============================================================================
+  hardware.gpu-compute = {
+    enable = true;
+    cuda.enable = true; # CUDA for NVIDIA RTX 3090 + 3060 Ti
+    vulkan.enable = true; # Vulkan as fallback/universal backend
+  };
+
+  # DDC/CI support for external monitor brightness control
+  # Note: hardware.video.ddcutil module doesn't exist in NixOS
+  # Using ddcutil package + udev rules instead (added to systemPackages)
+  services.udev.extraRules = ''
+    # Give i2c group access to DDC/CI monitors
+    # Allows non-root users to control monitor brightness via ddcutil
+    KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"
+
+    # Allow users to control laptop display brightness
+    SUBSYSTEM=="backlight", KERNEL=="intel_backlight", MODE="0666", RUN+="${pkgs.coreutils}/bin/chown j_kro:j_kro %k/brightness"
+  '';
+
+  # ============================================================================
+  # SYSTEMD - Service overrides
+  # ============================================================================
+  # GameMode daemon - Start at boot for gaming-detection service
+  # The gaming module (programs.gamemode) configures GameMode but the daemon
+  # is D-Bus activated and doesn't start until a game requests it. This
+  # override ensures gamemoded runs at boot so the gaming-detection service
+  # can query gaming state via `gamemoded -s` for cluster-wide coordination.
+  #
+  # Note: GameMode is a D-Bus session service, so we use systemd.user.services
+  # to run it in the user session context, not as a system service.
+  #
+  # FIX: Don't override ExecStart or Type - let gaming module handle those.
+  # Only add wantedBy to start at boot. This prevents duplicate ExecStart lines.
+  systemd.user.services.gamemoded = {
+    wantedBy = [ "default.target" ];
+  };
+
+  # ============================================================================
+  # SERVICES - All service configurations consolidated here
+  # ============================================================================
+  services = {
+    # KUBERNETES - k3s control plane (joins existing cluster)
+    # Bootstrap node: nexus (clusterInit=true, oldest etcd data)
+    # All servers join via VIP for HA: https://10.1.1.100:6443
+    k3s-cluster = {
+      enable = true;
+      nvidia.enable = true;
+      role = "server";
+      nodeName = "zephyr";
+      serverAddr = "https://10.1.1.100:6443";
+      tokenFile = "/run/agenix/k3s-cluster-token";
+      nodeIP = "10.1.1.110";
+      calico.enable = true;
+    };
+
+    # Auto-apply K8s manifests on boot (control-plane node)
+    k8s-manifest-autoapply.enable = true;
+
+    # Keepalived VIP for HA API server access
+    keepalived-vip = {
+      enable = true;
+      vip = "10.1.1.100";
+      interface = "enp38s0";
+      priority = 110;
+    };
+
+    # Crash watchdog - detect and log system crashes
+    # TEMPORARILY DISABLED: Module being fixed (2026-03-23)
+    # crash-watchdog.enable = true;
+
+    # Backup to Garage S3 - automated daily backups
+    backup-to-garage = {
+      enable = true;
+      endpoint = "http://10.1.1.110:3900";
+      region = "garage";
+      bucket = "backups";
+      accessKey = "GKac91d924fc76a30b9bcf6c3e";
+      secretKeyFile = "/run/agenix/garage-s3-secret-key";
+      retentionDays = 30;
+      startAt = "02:00"; # 2 AM daily
+    };
+  };
+
+  # STATUS.md auto-update (hourly from kubectl)
+  services.status-auto-update.enable = true;
+
+  # FIX: Systemd user unit reload timeout (prevents nixos-rebuild switch hang)
+  services.systemd-user-timeout.enable = true;
+
+  # Internal CA for cluster services (trusted certificates)
+  services.cluster-ca.enable = true;
+
+  # ============================================================================
+  # DESKTOP - Wayland compositors (select via SDDM session picker)
+  desktop.uwsm-sessions.enable = true;
+  programs.niri.enable = true;
+  programs.hyprland.enable = true;
+
+  # Autologin into Plasma on boot. To switch compositor, logout
+  # and pick from SDDM's session picker.
+  services.displayManager.autoLogin.enable = true;
+  services.displayManager.autoLogin.user = "j_kro";
+  services.displayManager.defaultSession = "plasma";
+
   # HARDWARE PROFILES
   # ============================================================================
-  hardware.profiles = {
-    amd.zen = true; # Zen CPU optimizations (kernel params)
-    nvidia.enable = true; # NVIDIA GPU support
-    nvidia.multiGpu = true; # Multi-GPU (RTX 3090 + 3060 Ti)
-    corsair.enable = true; # Corsair AIO + RGB
-    monitoring.enable = true; # Hardware monitoring
+  # Base profiles provided by node-profiles.zephyr-workstation:
+  # - amd.zen, nvidia.enable, nvidia.multiGpu, monitoring.enable
+  #
+  # Zephyr-specific hardware overrides/additions:
+  hardware = {
+    profiles = {
+      corsair.enable = true; # Corsair AIO + RGB (not in node profile)
+    };
+
+    # BTRFS compression and deduplication
+    btrfs-compression.enable = true;
+
+    # Hardware monitoring extras (not covered by profile)
+    monitoring = {
+      autoDetect = false; # Skip auto-detect, we know the hardware
+      fanControl = true; # Custom fan curve control
+    };
+
+    # Corsair extras (not covered by profile)
+    corsair = {
+      aio.enable = true; # Corsair H115i AIO control
+      rgb.enable = true; # OpenRGB for RGB control
+      autoStartRgb = false; # Don't auto-start (conflicts with liquidctl)
+    };
+
+    # RGB control for peripherals and components
+    rgb-control = {
+      enable = true;
+      openrgb.enable = true; # Motherboard, GPU, Corsair devices
+      openrazer.enable = true; # Razer Naga Pro mouse
+      temperatureReactive = {
+        enable = true;
+        sensor = "both"; # Monitor both CPU and GPU temps
+        thresholds = {
+          cool = 50;
+          warm = 65;
+          hot = 75;
+        };
+        interval = 5;
+      };
+    };
+
+    # Bluetooth support via BlueZ
+    bluetooth.enable = true;
   };
 
-  # Hardware monitoring extras (not covered by profile)
-  hardware.monitoring.autoDetect = false; # Skip auto-detect, we know the hardware
-  hardware.monitoring.fanControl = true; # Custom fan curve control
-
-  # Corsair extras (not covered by profile)
-  hardware.corsair.aio.enable = true; # Corsair H115i AIO control
-  hardware.corsair.rgb.enable = true; # OpenRGB for RGB control
-  hardware.corsair.autoStartRgb = false; # Don't auto-start (conflicts with liquidctl)
-
-  networking.networkmanager.enable = true;
-  networking.useNetworkd = false; # Disable systemd-networkd (conflicts with NetworkManager)
-
-  # Disable systemd-networkd wait-online service (adds 120s timeout when using NetworkManager)
-  systemd.network.wait-online.enable = false;
-
-  # DNS - Use local unbound resolver for cluster hostnames
-  services.unbound-cluster = {
-    enable = true;
-  };
-
-  # Configure NetworkManager DNS and interface priorities
-  networking.networkmanager-dns = {
-    enable = true;
-    dnsServers = [ "127.0.0.1" ];  # Use local unbound
-    ethernetMetric = 50;   # Primary connection
-    wifiMetric = 100;      # Fallback connection
-  };
-
-  # Cluster hosts - populate /etc/hosts from cluster configuration
-  networking.cluster-hosts = {
-    enable = true;
-    populateLocal = true;
+  # ============================================================================
+  # FILESYSTEM COMPRESSION - Enable zstd on all BTRFS filesystems
+  # ============================================================================
+  # Root and home filesystems lack compression in hardware-configuration.nix
+  # Use mkOptionDefault to add compression without breaking other options
+  fileSystems = {
+    "/".options = lib.mkOptionDefault [
+      "compress=zstd:3"
+      "ssd"
+      "discard=async"
+    ];
+    "/home".options = lib.mkOptionDefault [
+      "compress=zstd:3"
+      "ssd"
+      "discard=async"
+    ];
   };
 
   # ============================================================================
   # WIRELESS HARDWARE
   # ============================================================================
-  # WiFi support via wpa_supplicant (works with NetworkManager)
-  networking.wireless.enable = true;
 
-  # Bluetooth support via BlueZ
-  hardware.bluetooth.enable = true;
-
-  # Timezone and locale
-  time.timeZone = "America/Winnipeg";
+  # Locale (timezone inherits cluster default: UTC)
   i18n.defaultLocale = "en_CA.UTF-8";
 
-  # Bootloader
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  # ============================================================================
+  # BOOT CONFIGURATION
+  # ============================================================================
+  # Base bootloader settings provided by common-host-defaults.nix:
+  # - systemd-boot.enable, efi.canTouchEfiVariables, kernelPackages (linux_zen)
+  # NOTE: Using CachyOS kernel for better sched_ext/scx_lavd support.
+  # Zen kernel lacks CONFIG_SCHED_DEADLINE which breaks scx_lavd core compaction.
+  # CachyOS 6.19.11: BORE scheduler, x86-64-v3 opts, sched_ext integration.
+  # Kernel binary is CACHED (no compilation). Only nvidia module needs building.
+  # Uses the flake input's linuxPackages directly to hit the binary cache.
+  boot.kernelPackages = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linuxPackages-cachyos-latest-x86_64-v3;
+  #
+  # Zephyr-specific additions:
+  boot = {
+    # Multi-GPU kernel modules for RTX 3090 + 3060 Ti
+    # (Note: hardware.profiles.nvidia.enable adds nvidia modules automatically)
+    kernelModules = [
+      "nvidia_uvm" # Unified Memory (CRITICAL for multi-GPU!)
+    ];
 
-  # Use latest kernel
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+    extraModprobeConfig = ''
+      options nvidia NVreg_EnableBacklightHandler=1
+    '';
 
-  # Multi-GPU kernel modules for RTX 3090 + 3060 Ti
-  # (Note: hardware.profiles.nvidia.enable adds nvidia modules automatically)
-  boot.kernelModules = [
-    "nvidia_uvm" # Unified Memory (CRITICAL for multi-GPU!)
-  ];
+    # Blacklist unused kernel modules to reduce memory footprint
+    # Each loaded module consumes memory - disable what we don't use
+    # NOTE: Bluetooth (btusb, bluetooth) and WiFi (iwlmvm, iwlwifi) ARE in use
+    blacklistedKernelModules = [
+      # Audio dummy modules (rarely used on desktop)
+      "snd_seq_dummy"
+      "snd_hrtimer"
 
-  # Zephyr-specific kernel params for gaming
-  # (Note: hardware.profiles.amd.zen adds split_lock_detect, threadirqs, preempt)
-  boot.kernelParams = [
-    "processor.max_cstate=1"
-    "intel_idle.max_cstate=1"
-    "iommu=pt"
-  ];
+      # Filesystems not used (Zephyr uses ext4/btrfs only)
+      "ufs"
+      "hfs"
+      "hfsplus"
+      "reiserfs"
+
+      # Old networking protocols (not used)
+      "appletalk"
+      "ipx"
+      "decnet"
+    ];
+
+    # Zephyr-specific kernel params for gaming
+    # (Note: hardware.profiles.amd.zen adds split_lock_detect, threadirqs, preempt)
+    kernelParams = [
+      "amd_iommu=on" # Enable AMD IOMMU for device passthrough
+      "iommu=pt" # IOMMU passthrough mode (better performance)
+      "processor.max_cstate=1"
+      "intel_idle.max_cstate=1"
+      "hugepagesz=1G" # For XMRig RandomX performance (dual-xmrig module)
+      "hugepages=3"
+      "btrfs.commit_interval=300" # From btrfs-tuning module
+      "nvidia.NVreg_RegistryDwords=EnableBrightnessControl=1" # Enable laptop brightness control
+    ];
+  };
 
   # ============================================================================
   # ROLE PROFILES
   # ============================================================================
-  profiles.role = {
-    workstation = true; # Desktop + development
-    gaming = true; # Steam, Lutris, etc.
-    vr = true; # WiVRn for Quest Pro
-    mining = true; # GPU/CPU mining
-    aiInference = true; # AI inference gateway + MCP + RAG
-  };
+  # Base role profiles provided by node-profiles.zephyr-workstation:
+  # - workstation, gaming, vr, mining, aiInference
+  # Kubernetes and networking also handled by node profile
+  #
+  # No additional role profiles needed - all handled by node profile
 
   # Note: profiles.role.gaming enables services.gaming automatically
-  services.gaming.hdr.enable = true; # HDR for 4K HDR TV
-
-  # Share /etc/nixos via NFS for remote hosts (single-source-of-truth)
-  services.nixos-share = {
-    enable = true;
-    server.enable = true;
-  };
+  # NOTE: Distributed builds configured in modules/system/distributed-builds.nix
+  # Do not override here to avoid conflicts
 
   # ============================================================================
-  # SCOPEBUDDY - Gamescope wrapper
+  # SERVICES - Consolidated service configuration
   # ============================================================================
-  programs.scopebuddy = {
-    enable = true;
-    autoDetect = {
-      resolution = true;
-      hdr = true;
-      vrr = true;
+  # Base Kubernetes configuration provided by node-profiles.zephyr-workstation
+  # (master + node roles, masterAddress, etc.)
+  #
+  # Zephyr-specific service additions:
+  services = {
+    # ============================================================================
+    # Modular Workload Monitoring
+    # ============================================================================
+    # Replaced old compute-workload-monitor monolith with:
+    # - gaming-detection: Pure sensor (GameMode + GPU fallback)
+    # - gpu-profile-manager: GPU power profile actuator (nvidia-smi)
+    # - mining-coordinator: PSI build detection + K8s Volcano preemption
+    gaming-detection = {
+      enable = true;
+      checkInterval = 10;
+    };
+
+    gpu-profile-manager = {
+      enable = true;
+      checkInterval = 10;
+    };
+
+    mining-coordinator = {
+      enable = true;
+      checkInterval = 10;
+      # Use conservative thresholds for memory-constrained system
+      psiCpuBuildThreshold = "5.0";
+      psiCpuIdleThreshold = "2.0";
+    };
+
+    # AI CODING AGENT - OpenCode with Kubernetes gateway
+    opencode.enable = true;
+
+    # NIX BINARY CACHE - Serve pre-built packages to cluster
+    # Eliminates redundant builds across nodes, speeds up deployments
+    # ENABLED: Required for distributed builds (2026-03-24)
+    # Remote nodes need this cache available during builds
+    binary-cache = {
+      enable = true;
+      port = 50000;
+      bindAddress = "10.1.1.110";
+    };
+
+    # GPU Resource Marketplace - Unified auction engine for GPU allocation
+    # Coordinates between mining, Kubernetes, Akash, and gaming workloads
+    # DISABLED: Service broken, blocking rebuild (2026-03-21)
+    compute-market = {
+      enable = false;
+      auctionInterval = 30; # Run auction every 30 seconds
+
+      # Bidders configuration
+      bidders = {
+        # Mining bidder configuration
+        mining = {
+          enable = true;
+          hourlyRevenue = 0.10; # $0.10/hr per GPU (baseline bid)
+          services = [
+            "lolminer-nvidia"
+            "xmrig"
+          ];
+        };
+
+        # Kubernetes bidder configuration
+        kubernetes = {
+          enable = true;
+          baseBid = 2.50; # $2.50/hr base bid for K8s workloads
+          urgencyMultiplier = 2.0; # 2x multiplier for urgent jobs
+          namespace = "default";
+        };
+
+        # Gaming override (always wins)
+        gaming = {
+          enable = true;
+          processes = [
+            "steam"
+            "steamwebhelper"
+            "steamapps"
+            "lutris"
+            "heroic"
+            "Lutris"
+            "HeroicGamesLauncher"
+            "wine"
+            "proton"
+          ];
+        };
+      };
+
+      # Prometheus metrics
+      # MIGRATED TO KUBERNETES (2026-03-18)
+      prometheus = {
+        enable = false;
+        port = 9200;
+      };
+    };
+
+    # Gaming HDR for 4K HDR TV
+    gaming.hdr.enable = true;
+
+    # XMRig Proxy - Centralized stratum proxy for CPU (RandomX) and GPU (CR29) mining
+    xmrig-proxy = {
+      enable = true;
+
+      config = builtins.toJSON {
+        pools = [
+          # CPU Mining Pools (RandomX)
+          {
+            id = "kryptex-rx-primary";
+            algo = "rx/0";
+            url = "xtm-rx-us.kryptex.network:8038";
+            user = "krxXVNVMM7.cpu-proxy";
+            pass = "x";
+            tls = true;
+            keepalive = true;
+            priority = 1;
+          }
+          {
+            id = "kryptex-rx-eu";
+            algo = "rx/0";
+            url = "xtm-rx-eu.kryptex.network:8038";
+            user = "krxXVNVMM7.cpu-proxy";
+            pass = "x";
+            tls = true;
+            keepalive = true;
+            priority = 2;
+          }
+          # GPU Mining Pools (Cuckaroo29/CR29)
+          {
+            id = "kryptex-cr29-us";
+            algo = "cn/cc29";
+            url = "xtm-c29-us.kryptex.network:8040";
+            user = "krxXVNVMM7.gpu-proxy";
+            pass = "x";
+            tls = true;
+            keepalive = true;
+            priority = 1;
+          }
+          {
+            id = "kryptex-cr29-eu";
+            algo = "cn/cc29";
+            url = "xtm-c29-eu.kryptex.network:8040";
+            user = "krxXVNVMM7.gpu-proxy";
+            pass = "x";
+            tls = true;
+            keepalive = true;
+            priority = 2;
+          }
+        ];
+
+        workers = [
+          # CPU Workers
+          {
+            id = "zephyr-cpu";
+            password = "x";
+          }
+          {
+            id = "nexus-cpu";
+            password = "x";
+          }
+          {
+            id = "sentry-cpu";
+            password = "x";
+          }
+          # GPU Workers
+          {
+            id = "zephyr-gpu";
+            password = "x";
+          }
+          {
+            id = "nexus-gpu";
+            password = "x";
+          }
+          {
+            id = "forge-gpu";
+            password = "x";
+          }
+        ];
+
+        api = {
+          port = 8081;
+          restricted = true;
+          tokenFile = "/run/agenix/xmrig-api-token";
+        };
+
+        log = {
+          level = 5;
+        };
+      };
+    };
+
+    # Share /etc/nixos via NFS for remote hosts (single-source-of-truth)
+    nixos-share = {
+      enable = true;
+      server.enable = true;
+    };
+
+    # NFS Client - Mount shared storage from nexus
+    # TEMPORARILY DISABLED: NFS server on Nexus is down, causing hangs/crashes
+    nfs-client = {
+      enable = true;
+      mountShared = false; # DISABLED until Nexus NFS server is fixed
+      mountHome = false; # Zephyr has local home
+      mountMedia = false; # DISABLED until Nexus NFS server is fixed
+    };
+
+    # Caddy reverse proxy - Replace nginx for all services
+    caddy = {
+      enable = true;
+      # Custom Caddyfile for complex configurations (Nextcloud)
+      # NOTE: Global options manually included because configFile overrides globalConfig
+      configFile = pkgs.writeText "Caddyfile" ''
+        # Global options
+        {
+          admin 127.0.0.1:2019
+          default_sni cluster.local
+        }
+
+        # AI Inference Gateway (via Tailscale)
+        ai.zephyr.tigris-ule.ts.net:9002 {
+          header {
+            Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "SAMEORIGIN"
+            Referrer-Policy "strict-origin-when-cross-origin"
+            -Server
+          }
+          encode zstd gzip
+          reverse_proxy 127.0.0.1:8080
+        }
+
+        # Host Dashboard (LAN access - no TLS)
+        http://zephyr.lan {
+          header {
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "SAMEORIGIN"
+            -Server
+          }
+          encode zstd gzip
+          reverse_proxy 127.0.0.1:8090
+        }
+        http://dashboard.zephyr.lan {
+          header {
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "SAMEORIGIN"
+            -Server
+          }
+          encode zstd gzip
+          reverse_proxy 127.0.0.1:8090
+        }
+
+        # Kubernetes Ingress (proxy to Caddy ingress controller on Nexus)
+        # Using IP directly — Caddy's Go resolver ignores /etc/hosts
+        http://search.lan, http://search.cluster.local {
+          encode zstd gzip
+          reverse_proxy 10.1.1.120:30080
+        }
+        http://ai.lan, http://ai.cluster.local {
+          encode zstd gzip
+          reverse_proxy 10.1.1.120:30080
+        }
+        http://openwebui.lan, http://openwebui.cluster.local {
+          encode zstd gzip
+          reverse_proxy 10.1.1.120:30080
+        }
+
+        # CivicIntel — Canadian Government Intelligence Dashboard
+        http://civicintel.lan, http://10.1.1.100 {
+          encode zstd gzip
+          handle_path /CivicIntel/* {
+            reverse_proxy 10.1.1.120:30085
+          }
+          handle_path /CivicIntel {
+            redir /CivicIntel/ permanent
+          }
+        }
+      '';
+    };
+
+    # NOTE: caddy-common NOT enabled because configFile overrides globalConfig
+    # Global options manually included in configFile above
+    # caddy-common = {
+    #   enable = true;
+    #   adminListenAddress = "127.0.0.1";  # Localhost only for systemd
+    # };
+
+    # Spacebot AI agent (integrated with AI Gateway)
+    spacebot = {
+      enable = true;
+      useGateway = true;
+      gatewayUrl = "http://127.0.0.1:8081"; # K8s gateway (hostNetwork, port 8081)
+      host = "127.0.0.1";
+      port = 19898;
+      memory = "4G";
+      cpu = "2";
+      hideUpdateNotification = true;
+      providerKeys = {
+        ZAI_CODING_PLAN_KEY = "/run/agenix/zai-api-key";
+        KILO_API_KEY = "/run/agenix/kilo-api-key";
+      };
+      discord.enable = false;
+      telegram.enable = true;
+      telegram.tokenFile = "/run/agenix/spacebot-telegram-token";
+    };
+
+    # Redis - For gateway rate limiting and caching
+    redis.servers."".enable = true;
+    # Note: redis-ai-gateway.service already provides Redis on port 6380
+
+    # SearXNG - Privacy-respecting metasearch engine
+    # MIGRATED TO KUBERNETES (2026-03-19) - See kubernetes-manifests/searxng/
+
+    # AI Inference Service - Gateway with ALL FEATURES enabled
+    ai-inference = {
+      enable = true;
+      backend = {
+        url = "http://127.0.0.1:8083";
+        type = "llama-cpp";
+        zai = {
+          enable = true;
+          apiKeyFile = "/run/agenix/zai-api-key";
+          baseUrl = "https://api.z.ai/api/coding/paas/v4";
+          enableRetry = true;
+          maxRetries = 3;
+          retryDelay = 1.0;
+          timeout = 300.0;
+        };
+        pollinations = {
+          enable = true;
+          apiKeyFile = "/run/agenix/pollinations-api-key";
+          baseUrl = "https://text.pollinations.ai";
+        };
+      };
+      gateway = {
+        enable = false; # MOVED TO NEXUS (2026-03-23) - See hosts/nexus/ai-inference.nix
+        # host = "0.0.0.0";  # Listen on all interfaces for Kubernetes access
+        port = 8080;
+        workers = 4;
+        middleware.redis.enable = true;
+        middleware.knowledgeFabric = {
+          enable = true;
+          rrf_k = 60;
+          # All knowledge sources enabled
+          rag_enabled = true;
+          searxng_enabled = true;
+          searxng_url = "http://10.1.1.120:30808"; # Nexus NodePort (host-accessible)
+          searxng_max_results = 10;
+          code_search_enabled = true;
+          code_search_paths = [
+            "/etc/nixos"
+            "/home/j_kro"
+          ];
+          code_max_results = 10;
+          web_search_enabled = true;
+          web_max_results = 10;
+          rag_top_k = 10;
+        };
+      };
+      routing = {
+        enable = true;
+        defaultModel = "qwen3.5-35b-a3b";
+        fallbackChain = [
+          "vllm"
+          "zai"
+          "pollinations"
+        ];
+      };
+      auth.mode = "none";
+      monitoring.enable = true;
+      # Enable rate limiting
+      rateLimit.enable = true;
+      rateLimit.requestsPerMinute = 120;
+      # Enable system prompts for different request types
+      systemPrompts = {
+        enable = true;
+        default = "You are a helpful AI assistant with access to comprehensive knowledge sources.";
+        coding = "You are an expert coding assistant. Write clean, efficient, and well-documented code. Use the retrieved knowledge to provide accurate implementations.";
+        reasoning = "You are an expert reasoning assistant. Think step-by-step and provide clear explanations backed by retrieved information.";
+        analysis = "You are an expert analysis assistant. Provide thorough and structured analysis using multiple sources.";
+        agentic = "You are an autonomous agent capable of multi-step planning and execution. Use available tools to complete complex tasks.";
+        fast = "You are a fast and efficient assistant. Provide concise, direct answers.";
+        custom = {
+          nixos = "You are a NixOS configuration expert. Always use lib.mkOptionDefault for shared modules. Reference the cluster documentation.";
+          kubernetes = "You are a Kubernetes expert. Use best practices for manifests, deployments, and troubleshooting.";
+        };
+      };
+      mcp = {
+        enable = true;
+        servers = {
+          nix-rebuild = {
+            type = "local";
+            command = [
+              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "/etc/nixos/skills/nix-rebuild-mcp/server.py"
+            ];
+            environment.NIX_HOST = "zephyr";
+            environment.NIX_ACCEPT_FLAKE_CONFIG = "1";
+            enabled = true;
+          };
+          add-service = {
+            type = "local";
+            command = [
+              "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
+              "/etc/nixos/skills/add-service-mcp/server.py"
+            ];
+            environment = { };
+            enabled = true;
+          };
+          context7 = {
+            type = "local";
+            # Use absolute path for reliable subprocess spawning
+            command = [ "/run/current-system/sw/bin/mcp-context7" ];
+            environment.CONTEXT7_API_KEY_FILE = "/run/agenix/context7-api-key";
+            enabled = true;
+          };
+          searxng = {
+            type = "local";
+            command = [
+              "python3"
+              "-m"
+              "ai_inference_gateway.mcp_servers.searxng_server"
+            ];
+            environment = {
+              SEARXNG_URL = "http://searxng.search.svc.cluster.local:8080"; # Kubernetes service DNS
+              SEARXNG_CACHE_TTL = "300";
+            };
+            enabled = true;
+          };
+        };
+      };
+      # RAG with Qdrant - FULLY ENABLED
+      rag = {
+        enable = true;
+        qdrantUrl = "http://127.0.0.1:6333";
+        embeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
+        chunkSize = 512;
+        chunkOverlap = 50;
+        topK = 10;
+        hybridSearch = {
+          enable = true;
+          vectorWeight = 0.7;
+          bm25Weight = 0.3;
+        };
+        autoRag = {
+          enable = true;
+          threshold = 0.3;
+        };
+        tokenScopedCollections = true;
+        reranker = {
+          enable = true;
+          model = "BAAI/bge-reranker-v2-base";
+        };
+        # Qdrant service - ENABLED locally
+        qdrant = {
+          enable = true;
+          host = "127.0.0.1";
+          port = 6333;
+          grpcPort = 6334;
+          storagePath = "/var/lib/qdrant";
+          memoryLimit = "4G";
+        };
+      };
+      # Security options
+      security = {
+        maxRequestSize = 10485760; # 10MB
+        enableProxy = false; # Disabled for code assistants
+      };
+    };
+
+    # MCP Servers for AI tools
+    mcp-servers = {
+      enable = true;
+      servers.playwright.enable = true;
+      servers.context7.apiKeyFile = "/run/agenix/context7-api-key";
+    };
+
+    # AI Coding Tools - Harmonized MCP configs (Droid, Claude, Crush, OpenCode)
+    ai-coding-tools = {
+      enable = true;
+      zaiApiKeyFile = config.age.secrets.zai-api-key.path;
+      context7ApiKeyFile = "/run/agenix/context7-api-key";
+      tools.pi.packages = [
+        "npm:pi-annotated-reply@0.4.1"
+        "npm:pi-btw@0.2.1"
+        "npm:pi-context@1.1.2"
+        "npm:pi-lens@3.8.5"
+        "npm:pi-powerline-footer@0.4.9"
+        "npm:pi-rewind@0.5.0"
+        "npm:pi-show-diffs@0.2.7"
+        "npm:pi-subagents@0.12.4"
+        "npm:pi-web-access@0.10.6"
+        "npm:pi-worktree@1.3.3"
+      ];
+    };
+
+    # WEB TESTING - Playwright/Puppeteer system dependencies
+    web-testing.enable = true;
+
+    # CI/CD - Self-hosted GitHub Actions runner
+    ci-runner = {
+      enable = false;
+      repo = "username/nixos-config";
+      autoStart = false;
+    };
+
+    # MULTIMEDIA - GStreamer support for Qt/KDE applications
+    multimedia.gstreamer.enable = true;
+
+    # Spotify with SpotX patch (ad-free, premium features)
+    spotify-spotx = {
+      enable = true;
+      forceX11 = true;
+      clearCacheOnPatch = true;
+    };
+
+    # FLATPAK - Flatpak support with Discover and Flathub
+    flatpak-kde = {
+      enable = true;
+      autoUpdate = true;
+    };
+
+    # MINING - GPU Mining (RTX 3090 + RTX 3060 Ti)
+    # Using centralized xmrig-proxy on nexus (10.1.1.120:3333)
+    # DISABLED: K8s version working instead
+    mining = {
+      lolminer = {
+        pool = "stratum+tcp://10.1.1.120:3333"; # Centralized proxy on nexus
+        wallet = "krxXVNVMM7.zephyr-gpu";
+        pools = [
+          {
+            url = "stratum+tcp://10.1.1.120:3333"; # Centralized proxy on nexus
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = false; # No TLS needed for local proxy
+          }
+          {
+            url = "xtm-c29-us.kryptex.network:8040"; # Direct Kryptex US (fallback)
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = true; # TLS required for Kryptex
+          }
+          {
+            url = "xtm-c29-eu.kryptex.network:8040"; # Direct Kryptex EU (fallback)
+            wallet = "krxXVNVMM7.zephyr-gpu";
+            password = "x";
+            tls = true; # TLS required for Kryptex
+          }
+        ];
+      };
+      # NVIDIA GPU mining - MIGRATED TO KUBERNETES
+      # Systemd service disabled in favor of K8s deployment (gpu-miner-zephyr)
+      # Power limits persist via nvidia-gpu-power-limit systemd service at boot
+      lolminer.nvidia = {
+        enable = false; # Disabled - migrated to Kubernetes (gpu-miner-zephyr)
+        autostart = false;
+        devices = "1"; # Only mine on GPU 1 (RTX 3090)
+        perGpuPowerLimits = [
+          0
+          250
+        ]; # GPU0: RTX 3060 Ti no limit (AI/ML), GPU1: RTX 3090 @ 250W
+        apiPort = 4068;
+      };
+      # CPU mining - Dual XMRig setup (always-on + pause-able)
+      # Total when idle: 16 threads (50%) - Total when gaming: 4 threads (12%)
+      # Re-enabled: No K8s migration completed
+      xmrigDual = {
+        enable = true;
+        # Always-on instance - mines even during gaming
+        alwaysOn = {
+          enable = false;
+          threads = 4; # 12% of 32 cores - unintrusive during gaming
+          httpPort = 8081;
+          httpTokenFile = "/run/agenix/xmrig-always-api-token";
+          autostart = false;
+        };
+        # Flexible instance - pauses during gaming/builds
+        flexible = {
+          enable = true;
+          threads = 12; # 38% of 32 cores - extra capacity when idle
+          httpPort = 8082;
+          httpTokenFile = "/run/agenix/xmrig-flexible-api-token";
+          autostart = false;
+        };
+        # Common settings for both instances
+        pool = "10.1.1.110:3333"; # Point to local proxy
+        wallet = "zephyr-cpu"; # Worker ID for proxy
+        password = "x";
+        tls = false; # Disable TLS for local proxy connection
+      };
+    };
+
+    # Vaultwarden - Self-hosted password manager with FIDO2/WebAuthn
+    vaultwarden-module = {
+      enable = true;
+      hostName = "vaultwarden.zephyr.tigris-ule.ts.net"; # Tailscale Magic DNS
+      dataDir = "/var/lib/vaultwarden";
+    };
+
+    # Syncthing P2P file sync for /etc/nixos config sync
+    syncthing-cluster = {
+      enable = true;
+      deviceId = "ZEPHYR-PLACEHOLDER";
+    };
+
+    # Garage S3 disabled - using nexus as primary storage node
+    # Access Garage S3 at: http://10.1.1.120:3900
+    garage-cluster.enable = false;
+
+    # Host Dashboard - Web interface for cluster host status
+    host-dashboard = {
+      enable = true;
+      role = "control-plane + ai-workstation";
+      port = 8090;
+      prometheusUrl = "http://127.0.0.1:9090";
+      featuredServices = [
+        {
+          name = "AI Gateway";
+          url = "http://127.0.0.1:8080";
+        }
+        {
+          name = "Prometheus";
+          url = "http://127.0.0.1:9090";
+        }
+        {
+          name = "Grafana";
+          url = "http://127.0.0.1:3000";
+        }
+        {
+          name = "Home Assistant";
+          url = "http://127.0.0.1:8123";
+        }
+      ];
+      services = [
+        {
+          name = "AI Inference Gateway";
+          active = true;
+        }
+        {
+          name = "Prometheus";
+          active = true;
+        }
+        {
+          name = "Grafana";
+          active = true;
+        }
+        {
+          name = "Loki";
+          active = true;
+        }
+        {
+          name = "Home Assistant";
+          active = true;
+        }
+        {
+          name = "Vaultwarden";
+          active = true;
+        }
+        {
+          name = "GlitchTip";
+          active = true;
+        }
+        {
+          name = "Garage S3";
+          active = true;
+        }
+        {
+          name = "NFS Server";
+          active = true;
+        }
+        {
+          name = "XMRig Proxy";
+          active = true;
+        }
+      ];
     };
   };
 
   # ============================================================================
-  # ANIME GAME LAUNCHERS
+  # PROGRAMS - SCOPEBUDDY, ANIME GAME LAUNCHERS, AI SERVICES
   # ============================================================================
-  programs.anime-game-launcher.enable = true;
-  programs.sleepy-launcher.enable = true;
-  programs.honkers-railway-launcher.enable = true;
-  programs.wavey-launcher.enable = true;
+  programs = {
+    scopebuddy = {
+      enable = true;
+      autoDetect = {
+        resolution = true;
+        hdr = true;
+        vrr = true;
+      };
+    };
 
-  # ============================================================================
-  # AI SERVICES - LM Studio & Stability Matrix
-  # ============================================================================
-  programs.lm-studio.enable = true;
-  programs.stability-matrix.enable = true;
+    # Anime game launchers
+    anime-game-launcher.enable = true;
+    sleepy-launcher.enable = true;
+    honkers-railway-launcher.enable = true;
+    wavey-launcher.enable = true;
+
+    # AI services
+    stability-matrix.enable = true;
+  };
 
   # Podman container runtime (for Spacebot)
   virtualisation.podman = {
@@ -159,382 +1129,100 @@
     dockerSocket.enable = true;
   };
 
-  # Spacebot AI agent (integrated with AI Gateway)
-  services.spacebot = {
+  # ============================================================================
+  # AGENIX SECRETS - Centralized registry (2026-03-16 migration)
+  # ============================================================================
+  # All secrets managed via agenix-secrets-registry module
+  # Categories: aiServices, monitoring, storage, mining, cloud, selfHosting
+  # See: modules/system/agenix-secrets-registry.nix
+  services.agenix-secrets-registry = {
     enable = true;
-    useGateway = true;
-    gatewayUrl = "http://127.0.0.1:8080";
-    host = "127.0.0.1";
-    port = 19898;
-    memory = "4G";
-    cpu = "2";
+    aiServices = true; # For autoresearch skill optimization (ANTHROPIC_API_KEY)
+    monitoring = false; # No monitoring secrets currently needed (sentry-dsn removed with GlitchTip)
+    storage = true; # Required for backup-to-garage service (S3 API key)
+    mining = true;
+    cloud = true;
+    kubernetes = true; # k3s cluster token
+    selfHosting = false; # These services run on other hosts
+  };
 
-    # Provider API keys for LLM backends
-    providerKeys = {
-      ZAI_CODING_PLAN_KEY = "/run/agenix/zai-api-key";
-      KILO_API_KEY = "/run/agenix/kilo-api-key";
+  # Override specific secret permissions (registry defaults can be overridden)
+  age = {
+    identityPaths = [ "/home/j_kro/.age/key.txt" ];
+    secrets.cloudflared-token = lib.mkForce {
+      file = "${inputs.self}/secrets/cloudflared-token.age";
+      mode = "400";
+      owner = "root";
+      group = "root";
     };
-
-    # Discord integration - you need to set up the bot token
-    # TEMPORARILY DISABLED: Secret file not yet created
-    discord.enable = false;
-    # discord.tokenFile = "/run/agenix/spacebot-discord-token";
-    # discord.guildId = "YOUR_GUILD_ID";  # Optional: restrict to specific server
+    # Note: spacebot-telegram-token uses registry default (owner=j_kro)
+    # because the hermes-agent service runs as user=j_kro
   };
-
-  # Agenix secrets for AI services
-  age.identityPaths = [ "/home/j_kro/.age/key.txt" ];
-
-  age.secrets.lm-studio-api-key = {
-    file = "${inputs.self}/secrets/lm-studio-api-key.age";
-    mode = "440";
-    owner = "ai-inference";
-    group = "ai-inference";
-  };
-
-  age.secrets.huggingface-token = {
-    file = "${inputs.self}/secrets/huggingface-token.age";
-    mode = "440";
-    owner = "j_kro";
-    group = "users";
-  };
-
-  age.secrets.zai-api-key = {
-    file = "${inputs.self}/secrets/zai-api-key.age";
-    mode = "440";
-    owner = "j_kro";
-    group = "ai-inference";
-  };
-
-  # Kilo API key - Kilo Code provider for Spacebot
-  age.secrets.kilo-api-key = {
-    file = "${inputs.self}/secrets/kilo-api-key.age";
-    mode = "440";
-    owner = "j_kro";
-    group = "users";
-  };
-
-  # GlitchTip error tracking secrets
-  age.secrets.glitchtip-db-password = {
-    file = "${inputs.self}/secrets/glitchtip-db-password.age";
-    mode = "440";
-    owner = "root";
-    group = "root";
-  };
-
-  age.secrets.glitchtip-secret-key = {
-    file = "${inputs.self}/secrets/glitchtip-secret-key.age";
-    mode = "440";
-    owner = "root";
-    group = "root";
-  };
-
-  # XMRig HTTP API token - For pause/resume via API during builds
-  age.secrets.xmrig-api-token = {
-    file = "${inputs.self}/secrets/xmrig-api-token.age";
-    mode = "440";
-    owner = "mining";
-    group = "mining";
-  };
-
-  # Spacebot Discord bot token
-  # TEMPORARILY DISABLED: Secret file not yet created
-  # age.secrets.spacebot-discord-token = {
-  #   file = "${inputs.self}/secrets/spacebot-discord-token.age";
-  #   mode = "440";
-  #   owner = "root";
-  #   group = "root";
-  # };
-
-  # TODO: Re-enable switch-admin secret after fixing switch-orchestration module
-  # age.secrets.switch-admin = {
-  #   file = "${inputs.self}/secrets/switch-admin.age";
-  #   mode = "440";
-  #   owner = "root";
-  #   group = "wheel";
-  # };
-
-  # ============================================================================
-  # REDIS - For gateway rate limiting and caching
-  # ============================================================================
-  services.redis.servers."".enable = true;
 
   # ============================================================================
   # AI INFERENCE SERVICE - Gateway with authentication and metrics
-  # Gateway routes to LM Studio backend with API token authentication
-  # Backend: LM Studio on port 1234
+  # Gateway routes to various backends (ZAI, vLLM, llama.cpp, etc.)
   # Gateway: OpenAI-compatible API on port 8080
   # ============================================================================
-  services.ai-inference = {
-    enable = true;
-    backend = {
-      url = "http://127.0.0.1:1234"; # LM Studio on port 1234
-      type = "lm-studio";
-      lmStudio.apiKeyFile = "/run/agenix/lm-studio-api-key";
-      # ZAI Coding Plan Max configuration
-      # IMPORTANT: Use the dedicated Coding endpoint for GLM Coding Plan
-      # Coding endpoint: https://api.z.ai/api/coding/paas/v4
-      # General endpoint: https://api.z.ai/api/paas/v4 (billed separately, not Coding Plan)
-      zai = {
-        enable = true;
-        apiKeyFile = "/run/agenix/zai-api-key";
-        # Use coding endpoint for Coding Plan Max quota
-        baseUrl = "https://api.z.ai/api/coding/paas/v4";
-      };
-    };
-    gateway = {
-      enable = true;
-      host = "127.0.0.1";
-      port = 8080;
-      workers = 1; # Single worker for now (multi-worker has import issues)
-    };
-    routing = {
-      enable = true;
-      defaultModel = "qwen3.5-35b-a3b";
-      fallbackChain = [
-        "vllm"
-        "lm-studio"
-        "zai"
-      ];
-    };
-    auth.mode = "none"; # Disabled for testing - change back to "api-key" for production
-    monitoring.enable = true;
-    # Disable security proxy for local development (too aggressive for code)
-    rateLimit.enable = false;
-
-    # MCP Broker configuration for ZAI Coding Plan Max
-    # These match the coding-helper configuration for Claude Code and OpenCode
-    # MCP Endpoint: https://api.z.ai/api/mcp/... (glm_coding_plan_global)
-    # Note: ZAI has separate endpoints for chat API vs MCP servers
-    mcp = {
-      enable = true;
-      servers = {
-        # Web Search MCP - included in Coding Plan Max
-        web-search-prime = {
-          url = "https://api.z.ai/api/mcp/web_search_prime/mcp";
-          headers = {
-            Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-        };
-        # Web Reader MCP - included in Coding Plan Max
-        web-reader = {
-          url = "https://api.z.ai/api/mcp/web_reader/mcp";
-          headers = {
-            Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-        };
-        # Zread MCP - included in Coding Plan Max
-        zread = {
-          url = "https://api.z.ai/api/mcp/zread/mcp";
-          headers = {
-            Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-        };
-        # Vision/Image analysis - available via @z_ai/mcp-server (stdio)
-        # ZAI Coding Plan Max includes Vision Understanding
-        "4-5v-mcp-server" = {
-          url = "https://api.z.ai/api/mcp/4_5v/mcp";
-          headers = {
-            Authorization = "Bearer /run/agenix/zai-api-key";
-          };
-        };
-
-        # ========================================================================
-        # NIXOS SKILLS MCP SERVERS (Local stdio-based)
-        # These convert Claude Code skills to MCP servers for OpenCode integration
-        # ========================================================================
-
-        # nix-rebuild skill - Safe NixOS rebuilding workflow
-        nix-rebuild = {
-          type = "local";
-          command = [
-            "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
-            "/etc/nixos/skills/nix-rebuild-mcp/server.py"
-          ];
-          environment = {
-            NIX_HOST = "zephyr";
-          };
-          enabled = true;
-        };
-
-        # add-service skill - Create systemd service modules
-        add-service = {
-          type = "local";
-          command = [
-            "${(pkgs.python3.withPackages (ps: [ ps.mcp ])).interpreter}"
-            "/etc/nixos/skills/add-service-mcp/server.py"
-          ];
-          environment = { };
-          enabled = true;
-        };
-
-        # ========================================================================
-        # ADDITIONAL LOCAL MCP SERVERS (TEMPORARILY DISABLED)
-        # Module structure needs investigation
-        # ========================================================================
-
-        # # Filesystem MCP server - safe file access to NixOS configuration
-        # filesystem = {
-        #   type = "local";
-        #   command = "npx -y @modelcontextprotocol/server-filesystem /etc/nixos";
-        # };
-
-        # # NixOS MCP server - real-time NixOS package data (prevents hallucinations)
-        # nixos = {
-        #   type = "local";
-        #   command = "nix run --extra-experimental-features 'nix-command flakes' github:utensils/mcp-nixos --";
-        # };
-
-        # # Git MCP server - version control for NixOS configurations
-        # git = {
-        #   type = "local";
-        #   command = "npx -y @modelcontextprotocol/server-git /etc/nixos";
-        # };
-      };
-    };
-
-    # RAG configuration
-    rag = {
-      enable = true;
-      qdrant.enable = true; # Enable Qdrant service
-      qdrant.memoryLimit = "4G";
-    };
-  };
-
-  # LM Studio Headless Service (llmster daemon)
-  # Provides HTTP API on port 1234 for local LLM inference
-  # Based on: https://lmstudio.ai/docs/developer/core/headless_llmster
-  # ============================================================================
-  services.lm-studio-headless = {
-    enable = true;
-    user = "j_kro";
-    port = 1234;
-    host = "127.0.0.1";
-    # GPU configuration - null = use all GPUs (RTX 3090 + 3060 Ti)
-    gpuDevice = null;
-    # Optional: preload a model at startup (JIT loading if not set)
-    # preloadModel = "qwen/qwen3.5-9b-instruct";
-    # modelLoadArgs = ["--context-length" "32768"];
-  };
 
   # ============================================================================
-  # MCP SERVERS - Model Context Protocol servers for AI tools
-  # Provides unified MCP servers for Claude Code, OpenCode, and other AI tools
+  # WEB TESTING - Playwright/Puppeteer system dependencies
+  # Provides GTK libraries and fonts for Chromium-based browsers
   # ============================================================================
-  services.mcp-servers = {
-    enable = true;
-    servers.playwright.enable = true;
-  };
+
+  # ============================================================================
+  # CI/CD - Self-hosted GitHub Actions runner
+  # ============================================================================
+  # SETUP REQUIRED (one-time):
+  #   sudo /etc/nixos/scripts/ci/setup-runner.sh owner/repo
+  # After setup, set enable = true and autoStart = true below
 
   # ============================================================================
   # MINING - GPU Mining (RTX 3090)
   # DISABLED: Mining conflicts with AI inference services (LM Studio)
-  # Re-enable when AI services are not in use
-  # ============================================================================
   # Note: profiles.role.mining enables services.mining automatically
-
-  # ============================================================================
-  # MULTIMEDIA - GStreamer support for Qt/KDE applications
-  # ============================================================================
-  services.multimedia.gstreamer.enable = true;
-
-  # Spotify with SpotX patch (ad-free, premium features)
-  services.spotify-spotx = {
-    enable = true;
-    forceX11 = true; # KWin rules didn't work, using XWayland backend
-    clearCacheOnPatch = true;
-  };
 
   # ============================================================================
   # FLATPAK - Flatpak support with Discover and Flathub
   # ============================================================================
-  services.flatpak-kde = {
-    enable = true;
-    autoUpdate = true;
-  };
-
-  # NVIDIA GPU configuration for RTX 3090 only
-  services.mining.lolminer.nvidia = {
-    enable = true;
-    autostart = false; # Manual control via systemctl
-    devices = "1"; # RTX 3090 only (GPU 1) - 3060 Ti disabled for gaming
-    powerLimit = 250; # Power limit for RTX 3090 (250W recommended for efficiency)
-    apiPort = 4068;
-  };
-
-  # XMRig CPU mining (16 threads)
-  services.mining.xmrig = {
-    enable = true;
-    autostart = false; # Manual control via systemctl
-    threads = 16;
-  };
 
   # ============================================================================
   # PER-GPU POWER LIMITS
   # ============================================================================
-  # RTX 3060 Ti (GPU 0): 130W for efficient mining
-  systemd.services."gpu-0-power-limit" = {
-    description = "Set RTX 3060 Ti power limit to 130W";
-    wantedBy = [ "multi-user.target" ];
-    before = [ "lolminer-nvidia.service" ];
-    requiredBy = [ "lolminer-nvidia.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 0 -pl 130";
-    };
-  };
-
-  # RTX 3090 (GPU 1): 250W for balanced performance/efficiency
-  systemd.services."gpu-1-power-limit" = {
-    description = "Set RTX 3090 power limit to 250W";
-    wantedBy = [ "multi-user.target" ];
-    before = [ "lolminer-nvidia.service" ];
-    requiredBy = [ "lolminer-nvidia.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "/run/current-system/sw/bin/nvidia-smi -i 1 -pl 250";
-    };
-  };
+  # NOTE: Power limits are now managed by the mining.nix module via
+  # nvidia-gpu-power-limit.service using perGpuPowerLimits configuration.
+  # The old gpu-0-power-limit and gpu-1-power-limit services have been
+  # removed to avoid conflicts. Current limits: 3090 @ 250W (3060 Ti disabled).
+  #
+  # See: modules/mining/mining.nix -> nvidia-gpu-power-limit.service
 
   # Mining plasmoid for KDE Plasma
-  #programs.mining-plasmoid.enable = true;  # TODO: Requires plasmoids/mining-monitor
+  programs.mining-plasmoid.enable = true;
+  programs.mining-plasmoid.prometheusUrl = "http://127.0.0.1:9090";
+  programs.mining-plasmoid.refreshInterval = 10000;
+  programs.mining-plasmoid.clusterNodes = "zephyr,nexus,forge,sentry";
+
+  # Systems Intelligence Plasmoid - Cluster monitoring widget
+  programs.systems-intelligence-plasmoid.enable = true;
+  programs.systems-intelligence-plasmoid.prometheusUrl = "http://127.0.0.1:9090";
+  programs.systems-intelligence-plasmoid.refreshInterval = 5000;
+  programs.systems-intelligence-plasmoid.clusterNodes = "zephyr,nexus,forge,sentry";
+
+  # LM Studio - Local LLM inference with GPU acceleration
+  programs.lm-studio.enable = true;
+
+  # Pi agent model registry (declarative models.json)
+  # programs.pi-agent.enable = true;  # TODO: option not found — disabled for now
 
   # ============================================================================
   # MONITORING - Full monitoring stack
   # ============================================================================
-  # Prometheus server - central metrics collection
-  services.monitoring.prometheus.enable = true;
-  services.monitoring.prometheus.retentionDays = 30;
-  services.monitoring.prometheus.scrapeInterval = "15s";
-
-  # Grafana dashboards
-  services.monitoring.grafana.enable = true;
-
-  # GlitchTip error tracking (self-hosted Sentry alternative)
-  services.glitchtip-selfhosted = {
-    enable = true;
-    host = "127.0.0.1";
-    port = 8000;
-    openFirewall = false; # Local access only
-    database.passwordFile = "/run/agenix/glitchtip-db-password";
-    secretKeyFile = "/run/agenix/glitchtip-secret-key";
-    # Automatically configure AI gateway to use GlitchTip
-    enableForGateway = true;
-  };
-
-  # TP-Link Switch Orchestration
-  # networking.switch-orchestration = {
-  #   enable = true;
-  #   credentials.username = "admin";
-  #   credentials.passwordFile = "/run/agenix/switch-admin";
-  # };
 
   # ============================================================================
   # NETWORK PROFILES
   # ============================================================================
-  profiles.network.tailscale.enable = true;
+  # Base Tailscale configuration provided by node-profiles.zephyr-workstation
+  # No additional network profile configuration needed
 
   # ============================================================================
   # ADDITIONAL PACKAGES
@@ -542,7 +1230,6 @@
   environment.systemPackages = with pkgs; [
     # Shell & CLI
     fish
-    starship
     zoxide
     fzf
     eza
@@ -562,7 +1249,7 @@
     localsend # Local network file sharing (AirDrop alternative)
 
     # Deployment
-    inputs.colmena.packages.${system}.colmena
+    inputs.colmena.packages.${pkgs.stdenv.hostPlatform.system}.colmena
     (pkgs.writeShellScriptBin "spacebot" ''
       #!${pkgs.bash}/bin/bash
       # Spacebot CLI wrapper - connects to local Spacebot service
@@ -570,6 +1257,7 @@
     '')
 
     # Hardware monitoring & fan control helpers
+    ddcutil # DDC/CI monitor brightness control
     (pkgs.writeShellScriptBin "fan-set" ''
       #!${pkgs.bash}/bin/bash
       # Set fan speed (0-255) for a specific fan
@@ -675,6 +1363,7 @@
     whisper-cpp
     pipx
     pkgs.python312Packages.huggingface-hub # HF CLI: hf download/upload/login
+    opencode # AI coding agent (terminal-based)
 
     # Mining (manual only, no auto-start)
     xmrig
@@ -682,6 +1371,15 @@
 
     # Desktop
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.twilight
+    telegram-desktop
+
+    # Network automation - for switch/modem configuration scripts
+    python3Packages.playwright
+
+    # Diagrams & data
+    mermaid-cli # Mermaid → SVG/PNG
+    graphviz # Graphviz (dot) diagrams
+    python312Packages.openpyxl # Excel read/write
   ];
 
   # ============================================================================
@@ -701,596 +1399,77 @@
     GGML_CUDA_ENABLE_UNIFIED_MEMORY = "1"; # Critical for heterogeneous GPU support
     GGML_CUDA_GPU_MEMORY_FRACTION = "0.9"; # Use 90% of GPU VRAM (leave headroom)
     LLAMA_GRAPH_POOL_SIZE = "0.2"; # CUDA Graphs pool (20% of VRAM)
-    # KV cache quantization (Q4_0) is configured per-model in LM Studio GUI
+    # KV cache quantization (Q4_0) is configured per-model in backend
   };
 
   # ============================================================================
-  # HOME MANAGER - Zen Browser with Extensions
-  # ============================================================================
-  home-manager = {
-    backupFileExtension = "bak";
-    users.j_kro =
-      { pkgs, ... }:
-      {
-        imports = [
-          inputs.zen-browser.homeModules.twilight
-          inputs.nixcord.homeModules.nixcord
-        ];
-        home.stateVersion = "26.05";
-
-        # systemd user environment for secrets (available in all shells)
-        systemd.user.sessionVariables = {
-          HF_TOKEN = "/run/agenix/huggingface-token";
-        };
-
-        # Mask Vesktop XDG autostart file to prevent SIGILL crash
-        # The XDG autostart uses the wrong Electron binary (unwrapped vs wrapped)
-        # We use systemd user service instead for proper autostart
-        xdg.configFile."autostart/vesktop.desktop".text = ''
-          [Desktop Entry]
-          Hidden=true
-          X-GNOME-Autostart-enabled=false
-          X-KDE-autostart-after-panel=false
-        '';
-
-        programs.zen-browser = {
-          enable = true;
-          suppressXdgMigrationWarning = true;
-
-          # PWA Support - enables installing websites as native applications
-          nativeMessagingHosts = [ pkgs.firefoxpwa ];
-
-          policies = {
-            DisableAppUpdate = true;
-            DisableTelemetry = true;
-            DisableFirefoxStudies = true;
-            DisableFeedbackCommands = true;
-            DisablePocket = true;
-            NoDefaultBookmarks = true;
-            OfferToSaveLogins = false;
-            EnableTrackingProtection = {
-              Value = true;
-              Locked = true;
-              Cryptomining = true;
-              Fingerprinting = true;
-            };
-
-            # Extension Management via Policies
-            # - force_installed: Cannot be disabled by user (essential security)
-            # - normal_installed: User can configure per-site exceptions
-            ExtensionSettings = {
-              # Essential Security (force-installed)
-              "uBlock0@raymondhill.net" = {
-                installation_mode = "force_installed";
-                install_url = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
-              };
-              "{446900e4-71c2-419f-a6a7-df9c091e268b}" = {
-                installation_mode = "force_installed";
-                install_url = "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi";
-              };
-              "jid1-BoFifL9Vbdl2zQ@jetpack" = {
-                installation_mode = "force_installed";
-                install_url = "https://addons.mozilla.org/firefox/downloads/latest/decentraleyes/latest.xpi";
-              };
-              "addon@darkreader.org" = {
-                installation_mode = "force_installed";
-                install_url = "https://addons.mozilla.org/firefox/downloads/latest/darkreader/latest.xpi";
-              };
-
-              # User-Configurable (allows per-site exceptions for sites like Outlook)
-              "jid1-MnnxcxisBPnSXQ@jetpack" = {
-                installation_mode = "normal_installed";
-                install_url = "https://addons.mozilla.org/firefox/downloads/latest/privacy-badger17/latest.xpi";
-              };
-              "{73a6fe31-595d-460b-a920-fcc0f8843232}" = {
-                installation_mode = "normal_installed";
-                install_url = "https://addons.mozilla.org/firefox/downloads/latest/noscript/latest.xpi";
-              };
-              "{74145f27-f039-47ce-a470-a662b129930a}" = {
-                installation_mode = "normal_installed";
-                install_url = "https://addons.mozilla.org/firefox/downloads/latest/clearurls/latest.xpi";
-              };
-              "CookieAutoDelete@kennydo.com" = {
-                installation_mode = "normal_installed";
-                install_url = "https://addons.mozilla.org/firefox/downloads/latest/cookie-autodelete/latest.xpi";
-              };
-              "{48748554-4c01-49e8-94af-79662bf34d50}" = {
-                installation_mode = "normal_installed";
-                install_url = "https://addons.mozilla.org/firefox/downloads/latest/privacy-pass/latest.xpi";
-              };
-            };
-          };
-
-          profiles.default = {
-            id = 0;
-            name = "default";
-            isDefault = true;
-
-            # Prevent manual changes to declarative settings
-            containersForce = true;
-            pinsForce = true;
-            spacesForce = true;
-
-            # Custom about:config preferences
-            extraConfig = ''
-              // Zen-specific preferences
-              user_pref("zen.theme.sidebar", "auto");
-              user_pref("zen.view.compact", true);
-              user_pref("zen.workspaces.vertical", true);
-
-              // Performance optimizations
-              user_pref("gfx.webrender.all", true);
-              user_pref("media.ffmpeg.vaapi.enabled", true);
-              user_pref("widget.dmabuf.force-enabled", true);
-
-              // Privacy enhancements
-              user_pref("privacy.resistFingerprinting", true);
-              user_pref("network.http.referer.spoofSource", true);
-              user_pref("privacy.trackingprotection.enabled", true);
-            '';
-
-            # Declarative Containers (Multi-Account Containers)
-            containers = {
-              "Dev" = {
-                color = "blue";
-                icon = "fingerprint";
-                id = 1;
-              };
-              "Personal" = {
-                color = "green";
-                icon = "briefcase";
-                id = 2;
-              };
-              "Finance" = {
-                color = "orange";
-                icon = "dollar";
-                id = 3;
-              };
-              "Gaming" = {
-                color = "purple";
-                icon = "circle";
-                id = 4;
-              };
-              "AI" = {
-                color = "turquoise";
-                icon = "pet";
-                id = 5;
-              };
-            };
-
-            # Declarative Workspaces (Spaces)
-            spaces = {
-              "Dev" = {
-                id = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
-                icon = "📦";
-                position = 1000;
-                container = 1; # Dev container
-              };
-              "AI" = {
-                id = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
-                icon = "🤖";
-                position = 2000;
-                container = 5; # AI container
-              };
-              "Gaming" = {
-                id = "game-3c7e2b6d-9f5a-4b41-8f77-1e9c5a4d2c03";
-                icon = "🎮";
-                position = 3000;
-                container = 4; # Gaming container
-              };
-              "Personal" = {
-                id = "personal-4d8f3c7e-0a6b-5d52-9f88-2f0d6b5e3d14";
-                icon = "🏠";
-                position = 4000;
-                container = 2; # Personal container
-              };
-              "Mining" = {
-                id = "mining-5e9g4d8f-1b7c-6e63-0a99-3g1e7c6f4e25";
-                icon = "⛏️";
-                position = 5000;
-                container = 3; # Finance container
-              };
-              "System" = {
-                id = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
-                icon = "⚙️";
-                position = 6000;
-                container = 2; # Personal container
-              };
-            };
-
-            # Sidebar Pins (Essential sites)
-            pins = {
-              # Dev Space
-              "GitHub" = {
-                id = "pin-gh-001";
-                url = "https://github.com";
-                workspace = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
-                container = 1;
-                position = 100;
-                isEssential = true;
-              };
-              "NixOS Wiki" = {
-                id = "pin-nw-002";
-                url = "https://nixos.wiki";
-                workspace = "dev-1f8a6f7c-3b59-4d65-9c1f-0a3e9a6f1b01";
-                container = 1;
-                position = 110;
-              };
-
-              # AI Space
-              "Claude" = {
-                id = "pin-ai-001";
-                url = "https://claude.ai";
-                workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
-                container = 5;
-                position = 200;
-                isEssential = true;
-              };
-              "LM Studio" = {
-                id = "pin-ai-002";
-                url = "https://lmstudio.ai";
-                workspace = "ai-2b9d4c41-6a8e-4c9b-9a44-6d1c7f2e8b02";
-                container = 5;
-                position = 210;
-              };
-
-              # Gaming Space
-              "Discord" = {
-                id = "pin-game-001";
-                url = "https://discord.com";
-                workspace = "game-3c7e2b6d-9f5a-4b41-8f77-1e9c5a4d2c03";
-                container = 4;
-                position = 300;
-                isEssential = true;
-              };
-              "Steam" = {
-                id = "pin-game-002";
-                url = "https://store.steampowered.com";
-                workspace = "game-3c7e2b6d-9f5a-4b41-8f77-1e9c5a4d2c03";
-                container = 4;
-                position = 310;
-              };
-
-              # Personal Space
-              "Gmail" = {
-                id = "pin-per-001";
-                url = "https://mail.google.com";
-                workspace = "personal-4d8f3c7e-0a6b-5d52-9f88-2f0d6b5e3d14";
-                container = 2;
-                position = 400;
-              };
-              "Outlook" = {
-                id = "pin-per-003";
-                url = "https://outlook.live.com/mail";
-                workspace = "personal-4d8f3c7e-0a6b-5d52-9f88-2f0d6b5e3d14";
-                container = 2;
-                position = 405;
-              };
-              "Reddit" = {
-                id = "pin-per-002";
-                url = "https://reddit.com";
-                workspace = "personal-4d8f3c7e-0a6b-5d52-9f88-2f0d6b5e3d14";
-                container = 2;
-                position = 410;
-              };
-
-              # Mining Space
-              "NiceHash" = {
-                id = "pin-min-001";
-                url = "https://www.nicehash.com";
-                workspace = "mining-5e9g4d8f-1b7c-6e63-0a99-3g1e7c6f4e25";
-                container = 3;
-                position = 500;
-              };
-              "MiningPoolStats" = {
-                id = "pin-min-002";
-                url = "https://miningpoolstats.stream";
-                workspace = "mining-5e9g4d8f-1b7c-6e63-0a99-3g1e7c6f4e25";
-                container = 3;
-                position = 510;
-              };
-
-              # System Space
-              "Tailscale" = {
-                id = "pin-sys-001";
-                url = "https://login.tailscale.com";
-                workspace = "system-6f0a5e9g-2c8d-7f74-1b00-4h2f8d7g5f36";
-                container = 2;
-                position = 600;
-                isEssential = true;
-              };
-            };
-
-            # Custom Search Engines with Aliases
-            search = {
-              force = true;
-              default = "google";
-              privateDefault = "ddg";
-              order = [
-                "google"
-                "ddg"
-                "github"
-                "nixos-packages"
-                "nixos-options"
-                "nixos-wiki"
-                "home-manager"
-                "mynixos"
-                "noogle"
-                "huggingface"
-                "pypi"
-                "stackoverflow"
-                "mdn"
-              ];
-              engines = {
-                google = {
-                  urls = [ { template = "https://www.google.com/search?q={searchTerms}"; } ];
-                  icon = "https://www.google.com/favicon.ico";
-                  definedAliases = [
-                    "@g"
-                    "@google"
-                  ];
-                };
-                ddg = {
-                  urls = [ { template = "https://duckduckgo.com/?q={searchTerms}"; } ];
-                  icon = "https://duckduckgo.com/favicon.ico";
-                  definedAliases = [
-                    "@d"
-                    "@ddg"
-                  ];
-                };
-                github = {
-                  urls = [ { template = "https://github.com/search?q={searchTerms}&type=repositories"; } ];
-                  icon = "https://github.com/favicon.ico";
-                  definedAliases = [
-                    "@gh"
-                    "@github"
-                  ];
-                };
-                nixos-packages = {
-                  urls = [
-                    {
-                      template = "https://search.nixos.org/packages";
-                      params = [
-                        {
-                          name = "type";
-                          value = "packages";
-                        }
-                        {
-                          name = "query";
-                          value = "{searchTerms}";
-                        }
-                      ];
-                    }
-                  ];
-                  icon = "https://nixos.org/favicon.ico";
-                  definedAliases = [
-                    "@np"
-                    "@nixpkgs"
-                  ];
-                };
-                nixos-options = {
-                  urls = [
-                    {
-                      template = "https://search.nixos.org/options";
-                      params = [
-                        {
-                          name = "type";
-                          value = "packages";
-                        }
-                        {
-                          name = "query";
-                          value = "{searchTerms}";
-                        }
-                      ];
-                    }
-                  ];
-                  icon = "https://nixos.org/favicon.ico";
-                  definedAliases = [
-                    "@no"
-                    "@nixopts"
-                  ];
-                };
-                nixos-wiki = {
-                  urls = [ { template = "https://nixos.wiki/index.php?search={searchTerms}"; } ];
-                  icon = "https://nixos.wiki/favicon.ico";
-                  definedAliases = [ "@nw" ];
-                };
-                home-manager = {
-                  urls = [ { template = "https://home-manager-options.extranix.com/?query={searchTerms}"; } ];
-                  icon = "https://nixos.org/favicon.ico";
-                  definedAliases = [ "@hm" ];
-                };
-                mynixos = {
-                  urls = [ { template = "https://mynixos.com/search?q={searchTerms}"; } ];
-                  icon = "https://mynixos.com/favicon.ico";
-                  definedAliases = [
-                    "@mn"
-                    "@mynixos"
-                  ];
-                };
-                noogle = {
-                  urls = [ { template = "https://noogle.dev/q?term={searchTerms}"; } ];
-                  icon = "https://nixos.org/favicon.ico";
-                  definedAliases = [
-                    "@ng"
-                    "@noogle"
-                  ];
-                };
-                huggingface = {
-                  urls = [ { template = "https://huggingface.co/search?q={searchTerms}"; } ];
-                  icon = "https://huggingface.co/favicon.ico";
-                  definedAliases = [
-                    "@hf"
-                    "@huggingface"
-                  ];
-                };
-                pypi = {
-                  urls = [ { template = "https://pypi.org/search/?q={searchTerms}"; } ];
-                  icon = "https://pypi.org/favicon.ico";
-                  definedAliases = [ "@pypi" ];
-                };
-                stackoverflow = {
-                  urls = [ { template = "https://stackoverflow.com/search?q={searchTerms}"; } ];
-                  icon = "https://stackoverflow.com/favicon.ico";
-                  definedAliases = [
-                    "@so"
-                    "@stack"
-                  ];
-                };
-                mdn = {
-                  urls = [ { template = "https://developer.mozilla.org/en-US/search?q={searchTerms}"; } ];
-                  icon = "https://developer.mozilla.org/favicon.ico";
-                  definedAliases = [ "@mdn" ];
-                };
-              };
-            };
-          };
-        };
-
-        # ============================================================================
-        # NIXCORD - Declarative Discord/Vesktop Configuration
-        # ============================================================================
-        programs.nixcord = {
-          enable = true;
-          discord.enable = false;
-          vesktop.enable = true;
-
-          # Base Vencord/Vesktop settings (plugins, themes, etc.)
-          vesktopConfig = {
-            # Disable Vencord-side tray settings (managed in writable ~/.config/vesktop/settings.json)
-            tray = false;
-            trayIcon = false;
-            openHidden = false;
-
-            plugins = {
-              XSOverlay = {
-                enable = true;
-                dmNotifications = true;
-                groupDmNotifications = true;
-                serverNotifications = true;
-                callNotifications = true;
-                channelPingColor = "#8a2be2";
-                pingColor = "#7289da";
-                timeout = 3;
-                volume = 0.2;
-                opacity = 1.0;
-              };
-              fakeNitro = {
-                enable = true;
-                enableEmojiBypass = true;
-                enableStickerBypass = true;
-                enableStreamBypass = true;
-                emojiSize = 48.0;
-              };
-              USRBG = {
-                enable = true;
-                nitroFirst = true;
-                voiceBackground = true;
-              };
-              ReviewDB = {
-                enable = true;
-              };
-            };
-          };
-
-          # Note: Tray settings (minimizeToTray, trayIcon, etc.) are managed in
-          # ~/.config/vesktop/settings.json (writable), not here. Only plugins
-          # and Vencord settings are managed declaratively via nixcord.
-        };
-
-        # Autostart Vesktop on login with X11 backend for tray icon support
-        # Note: nixcord manages plugins and settings declaratively - no additional service needed
-        systemd.user.services.vesktop-autostart = {
-          Unit = {
-            Description = "Vesktop autostart";
-            After = [
-              "graphical-session-pre.target"
-              "plasma-plasmashell.service"
-            ];
-            PartOf = [ "graphical-session.target" ];
-            Wants = [ "plasma-plasmashell.service" ]; # Ensure plasma tray is ready
-          };
-          Service = {
-            Type = "simple";
-            Environment = [
-              # Force X11 backend for StatusNotifierItem/tray icon support
-              # This is required for KDE Plasma 6 on Wayland
-              "XDG_CURRENT_DESKTOP=KDE"
-              "ELECTRON_OZONE_PLATFORM_HINT=x11"
-            ];
-            # Use XWayland for proper tray icon support on Wayland
-            # --enable-features=UseOzonePlatform --ozone-platform-hint=x11 enables StatusNotifierItem
-            # --start-minimized: tray settings are in ~/.config/vesktop/settings.json (writable)
-            ExecStart = "${pkgs.vesktop}/bin/vesktop --enable-speech-dispatcher --enable-features=UseOzonePlatform --ozone-platform-hint=x11 --start-minimized";
-            Restart = "on-failure";
-            RestartSec = 5;
-          };
-          Install = {
-            WantedBy = [ "graphical-session.target" ];
-          };
-        };
-      };
-  };
 
   # ============================================================================
-  # FIREWALL
+
   # ============================================================================
-  # Note: Many ports are declared here for clarity. Some modules also declare
-  # their own firewall ports (e.g., ai-inference, gpu-exporters).
-  #
-  # Port Reference:
-  # - 9757/9758/9759/9947: WiVRn (VR streaming for Quest Pro)
-  # - 18789/18790: Steam Remote Play
-  # - 19898: Moonlight (NVIDIA GameStream)
-  # - 27031/27036: Steam network ports
-  # - 5353: mDNS (service discovery)
-  #
-  # AI Inference ports (auto-configured by modules):
-  # - 8080: AI inference gateway (ai-inference module)
-  # - 9190: AI inference metrics (ai-inference module)
-  # - 9400: NVIDIA GPU exporter (gpu-exporters module)
-  networking.firewall = {
-    allowedTCPPorts = [
-      9757 # WiVRn main port
-      18789 # Steam Remote Play
-      18790 # Steam Remote Play (secondary)
-      19898 # Moonlight/GameStream AND Spacebot Web UI
-      1234 # LM Studio API server
-      8080 # AI Inference Gateway
-      53317 # LocalSend (file sharing)
-    ];
-    allowedUDPPorts = [
-      9757 # WiVRn
-      9758 # WiVRn
-      9759 # WiVRn
-      27031 # Steam UDP
-      27036 # Steam UDP
-      5353 # mDNS
-      9947 # WiVRn
-      53317 # LocalSend (multicast discovery)
-    ];
-    interfaces."tailscale0".allowedTCPPorts = [
-      18789
-      18790
-    ];
-    # NFS server - allow local network only
-    interfaces."enp38s0".allowedTCPPorts = [
-      111
-      2049
-      20048
-    ]; # rpcbind, nfs, mountd
-    interfaces."enp38s0".allowedUDPPorts = [
-      111
-      2049
-      20048
-    ];
-  };
+
+  # ============================================================================
+
+  # LLAMA-SERVER - Local LLM inference for autoresearch
+  # ============================================================================
+
+  # ============================================================================
+  # SWAP - Using 32GB partition on nvme0n1p1 (configured in hardware-configuration.nix)
+  # ============================================================================
+  # Previous 8GB swapfile removed to use partition instead (2026-03-25)
+  # Partition UUID: b733be92-f327-4613-9530-a5380ed77216
 
   # ============================================================================
   # SYSTEM STATE
-  # Enable LobeHub AI workspace
-  desktop.lobehub.enable = true;
-
   # ============================================================================
   system.stateVersion = "26.05";
+
+  # ============================================================================
+  # CRASH DETECTION
+  # ============================================================================
+  # Enable crash watchdog to detect and log system crashes
+  # Configured in services block above
+
+  # ============================================================================
+  # BACKUP TO GARAGE S3
+  # ============================================================================
+  # Automated daily backups to Garage S3 cluster (runs at 2 AM)
+  # Configured in services block above
+
+  # ============================================================================
+  # NVIDIA CDI GENERATOR FIX
+  # ============================================================================
+  # ============================================================================
+  # UNBOUND DNS WITH DNS-OVER-TLS
+  # ============================================================================
+  # Local recursive DNS resolver with DNS-over-TLS to Cloudflare, Google, Quad9
+  # Accessible on localhost for local applications and cluster network
+  # Survives NixOS rebuilds without restart (restartIfChanged = false)
+  services.unbound-common.enable = true;
+
+  # Resolve K8s ingress hostnames to the cluster VIP (10.1.1.100)
+  # Local DNS records are in modules/services/unbound-common.nix (shared
+  # across all hosts). Fallback /etc/hosts entries below.
+
+  networking.extraHosts = lib.mkOptionDefault ''
+    10.1.1.100 search.lan search.cluster.local
+    10.1.1.100 ai.lan ai.cluster.local
+    10.1.1.100 openwebui.lan openwebui.cluster.local
+    10.1.1.100 civicintel.lan civicintel.cluster.local
+  '';
+
+  # ============================================================================
+  # CLAUDE CODE ROUTER - Route Claude Code to Z.AI GLM models
+  # ============================================================================
+  services.claude-code-router = {
+    enable = true;
+    port = 3456;
+    openFirewall = false; # Localhost only
+    zai = {
+      apiKeyFile = config.age.secrets.zai-api-key.path;
+      defaultModel = "glm-4.7";
+      thinkModel = "glm-4.7";
+    };
+  };
 }
+# Force rebuild - Thu 12 Mar 2026 09:59:02 PM UTC

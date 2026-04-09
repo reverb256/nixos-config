@@ -1,0 +1,19 @@
+# ServiceMonitor for vLLM Prometheus Metrics
+# Integrates with existing Prometheus + Grafana stack
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: vllm-qwen
+  namespace: ai-inference
+  labels:
+    app: vllm-qwen
+    component: llm-inference
+spec:
+  selector:
+    matchLabels:
+      app: vllm-qwen
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s

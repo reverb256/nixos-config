@@ -1,6 +1,11 @@
 # Security Module
 # Comprehensive security hardening with Podman, USBGuard, Fail2Ban, and Firejail
-{pkgs, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}:
+{
   # Install security packages
   environment.systemPackages = with pkgs; [
     # Security tools
@@ -11,6 +16,7 @@
 
     # Audit and analysis
     lynis
+    vulnix # Nix vulnerability scanner
 
     # Network security
     nmap
@@ -19,6 +25,7 @@
 
     # Password management
     pass
+    pass-wayland # Wayland-native pass frontend
 
     # Encryption
     age
@@ -37,49 +44,53 @@
   # NOTE: Podman configuration moved to virtualisation.nix module
 
   # ============================================================================
-  # FAIL2BAN - Intrusion Prevention
-  # Re-enabled with proper cluster IP whitelisting
+  # SERVICES CONFIGURATION
   # ============================================================================
-  services.fail2ban = {
-    enable = true;
-    maxretry = 5;
-    bantime = "1h";
+  services = {
+    # FAIL2BAN - Intrusion Prevention
+    # Re-enabled with proper cluster IP whitelisting
+    fail2ban = {
+      enable = true;
+      maxretry = 3; # Reduced from 5 - faster lockout for attackers
+      bantime = "4h"; # Increased from 1h - longer ban time
 
-    # Whitelist cluster IPs to prevent accidental bans
-    ignoreIP = [
-      "127.0.0.1"
-      "::1"
-      "10.1.1.0/24" # Local network
-      "100.64.0.0/10" # Tailscale CGNAT range
-      # Individual host IPs
-      "10.1.1.110" # zephyr
-      "10.1.1.120" # nexus
-      "10.1.1.130" # forge
-      "10.1.1.140" # sentry
-      # Tailscale IPs
-      "100.81.182.5" # zephyr
-      "100.86.158.18" # nexus
-      "100.95.222.45" # forge
-      "100.82.210.39" # sentry
-    ];
+      # Whitelist cluster IPs to prevent accidental bans
+      ignoreIP = [
+        "127.0.0.1"
+        "::1"
+        "10.1.1.0/24" # Local network
+        "100.64.0.0/10" # Tailscale CGNAT range
+        # Individual host IPs
+        "10.1.1.110" # zephyr
+        "10.1.1.120" # nexus
+        "10.1.1.130" # forge
+        "10.1.1.140" # sentry
+        # Tailscale IPs
+        "100.81.182.5" # zephyr
+        "100.86.158.18" # nexus
+        "100.95.222.45" # forge
+        "100.82.210.39" # sentry
+      ];
 
-    # Jails for common services
-    jails = {
-      sshd = {
-        enabled = true;
+      # Jails for common services
+      jails = {
+        sshd = {
+          enabled = true;
+        };
       };
     };
-  };
 
-  # ============================================================================
-  # USBGUARD - USB Device Authorization
-  # ============================================================================
-  services.usbguard = {
-    enable = true;
-    implicitPolicyTarget = "block";
-    rules = ''
-      allow
-    '';
+    # USBGUARD - USB Device Authorization
+    usbguard = {
+      enable = true;
+      implicitPolicyTarget = "block";
+      rules = ''
+        allow
+      '';
+    };
+
+    # AppArmor D-Bus integration
+    dbus.apparmor = "enabled";
   };
 
   # ============================================================================
@@ -127,16 +138,87 @@
   # Create wrapper profiles for common applications in per-host configs if needed
 
   # ============================================================================
+  # SECURITY CONFIGURATION
+  # ============================================================================
+  security = {
+    # SUDO-RS - Rust-based sudo replacement (memory-safe, simpler)
+    sudo-rs = {
+      enable = true;
+      execWheelOnly = true; # Only wheel group can use sudo-rs
+      wheelNeedsPassword = false; # Passwordless sudo for wheel (CI/CD deployment)
+    };
+    # Disable traditional sudo in favor of sudo-rs (override users.nix)
+    sudo.enable = lib.mkForce false;
+
+    # APPARMOR - Mandatory Access Control
+    apparmor = {
+      enable = true;
+      killUnconfinedConfinables = true; # Kill processes that should be confined
+      packages = with pkgs; [
+        apparmor-utils
+        apparmor-profiles
+      ];
+    };
+
+    # Enable AppArmor in PAM services
+    pam.services = {
+      login.enableAppArmor = true;
+      sshd.enableAppArmor = true;
+      sudo-rs.enableAppArmor = true;
+      su.enableAppArmor = true;
+    };
+  };
+
+  # ============================================================================
+  # ROOT PASSWORD DISABLED
+  # ============================================================================
+  # Root login disabled entirely - use sudo-rs from wheel users
+  users.users.root.hashedPassword = "!";
+
+  # ============================================================================
+  # FIREJAIL EXTENDED WRAPPERS (from XNM1)
+  # ============================================================================
+  programs.firejail.wrappedBinaries = {
+    mpv = {
+      executable = "${pkgs.mpv}/bin/mpv";
+      profile = "${pkgs.firejail}/etc/firejail/mpv.profile";
+    };
+    discord = {
+      executable = "${pkgs.discord}/bin/discord";
+      profile = "${pkgs.firejail}/etc/firejail/discord.profile";
+    };
+    vscodium = {
+      executable = "${pkgs.vscodium}/bin/vscodium";
+      profile = "${pkgs.firejail}/etc/firejail/vscodium.profile";
+    };
+  };
+
+  # ============================================================================
   # SECURITY DAEMONS
   # ============================================================================
 
-  # Audit daemon (using auditd package directly - services.auditd doesn't exist in all versions)
-  # To enable: services.auditd.enable = true (if available)
-  # For now, just installing the package
+  # Automatic security updates (daily, with channel checks)
+  # DISABLED: Built-in system.autoUpgrade doesn't support flakes properly
+  # It runs 'nixos-rebuild switch' without --flake flag, causing failures
+  # Use services.nixos-auto-update instead (modules/services/auto-update.nix)
+  # system.autoUpgrade = {
+  #   enable = true;
+  #   allowReboot = false; # Don't auto-reboot, notify instead
+  #   dates = "daily"; # Check for updates daily
+  #   operation = "switch"; # Apply updates by switching to new generation
+  # };
 
-  # Logwatch for log analysis
-  # services.logwatch.enable = true;
-
-  # Automatic security updates (disabled for stability)
-  # system.autoUpgrade.enable = true;
+  # Rebuild notification when updates available
+  systemd.services.nixos-upgrade-unit = {
+    description = "Notify about available NixOS upgrades";
+    serviceConfig.ExecStart = pkgs.writeShellScript "nixos-upgrade-notify" ''
+      # Only notify if a display session is available
+      if [ -n "''${DISPLAY:-}" ] && command -v ${pkgs.libnotify}/bin/notify-send >/dev/null 2>&1; then
+        ${pkgs.libnotify}/bin/notify-send "NixOS Updates Available" "Run 'sudo nixos-rebuild switch' to update" -i software-update-available
+      fi
+    '';
+    wantedBy = [ "multi-user.target" ];
+    # Don't fail if notify-send isn't available (headless systems)
+    serviceConfig.Type = "oneshot";
+  };
 }
