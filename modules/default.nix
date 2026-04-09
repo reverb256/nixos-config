@@ -97,6 +97,7 @@
     # Mining
     ./mining/mining.nix
     ./mining/mining-plasmoid.nix
+    ./mining/mining-desktop-toggle.nix
     ./mining/dual-xmrig.nix
     ./mining/xmrig-proxy.nix
     ./mining/mining-proxy.nix
@@ -176,7 +177,7 @@
     ./services/supply-chain-cooldowns.nix
     # Container image security scanning
     ./services/container-scanning.nix
-    # Auto-apply Kubernetes manifests on boot
-    ./services/k8s-manifest-autoapply.nix
+    # Deploy K8s manifests from Nix store on boot
+    ./services/k8s-nix-deploy.nix
   ];
 }

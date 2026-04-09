@@ -129,6 +129,7 @@
           # system is auto-detected from stdenv.hostPlatform
           specialArgs = {
             inherit inputs;
+            k8sManifestPackage = self.packages.x86_64-linux.k8s-manifests;
           };
           modules =
             commonModules

@@ -155,8 +155,7 @@
       calico.enable = true;
     };
 
-    # Auto-apply K8s manifests on boot (control-plane node)
-    k8s-manifest-autoapply.enable = true;
+    # K8s manifests deployed from zephyr (control-plane) — no local apply needed
 
     # Keepalived VIP for HA API server access
     keepalived-vip = {

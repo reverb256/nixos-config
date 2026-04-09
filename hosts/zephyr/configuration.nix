@@ -228,8 +228,8 @@
       calico.enable = true;
     };
 
-    # Auto-apply K8s manifests on boot (control-plane node)
-    k8s-manifest-autoapply.enable = true;
+    # Deploy K8s manifests from Nix store on boot (control-plane node)
+    k8s-nix-deploy.enable = true;
 
     # Keepalived VIP for HA API server access
     keepalived-vip = {

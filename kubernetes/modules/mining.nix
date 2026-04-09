@@ -374,7 +374,7 @@ in
               nix = {
                 csi = {
                   driver = "nix.csi.store";
-                  volumeAttributes.${pkgs.system} = pkgs.xmrig;
+                  volumeAttributes.${pkgs.stdenv.hostPlatform.system} = pkgs.xmrig;
                 };
               };
               msr = {
@@ -514,7 +514,7 @@ in
               nix = {
                 csi = {
                   driver = "nix.csi.store";
-                  volumeAttributes.${pkgs.system} = pkgs.xmrig;
+                  volumeAttributes.${pkgs.stdenv.hostPlatform.system} = pkgs.xmrig;
                 };
               };
               msr = {
@@ -647,7 +647,7 @@ in
               nix = {
                 csi = {
                   driver = "nix.csi.store";
-                  volumeAttributes.${pkgs.system} = pkgs.xmrig;
+                  volumeAttributes.${pkgs.stdenv.hostPlatform.system} = pkgs.xmrig;
                 };
               };
               msr = {
