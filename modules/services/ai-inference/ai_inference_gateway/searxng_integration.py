@@ -24,7 +24,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 # SearXNG configuration
-SEARXNG_URL = os.getenv("SEARXNG_URL", "http://searxng.search.svc.cluster.local:8080")  # Kubernetes service DNS
+SEARXNG_URL = os.getenv("SEARXNG_URL", "http://10.4.98.141:7777")  # Kubernetes service DNS
 SEARCH_ENDPOINT = "/search"
 
 # Learning storage

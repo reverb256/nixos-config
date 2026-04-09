@@ -56,6 +56,9 @@ in
           done
         fi
 
+        # Clear LD_LIBRARY_PATH to prevent host libggml from conflicting
+        # with the CUDA backend's bundled libraries inside the bwrap sandbox.
+        unset LD_LIBRARY_PATH
         exec ${pkgs.lmstudio}/bin/lmstudio "$@"
       '')
     ];
