@@ -1,0 +1,20 @@
+{{/*
+AI Inference Gateway — PodMonitor for Prometheus
+*/}}
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "ai-inference-gateway.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ai-inference-gateway.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "ai-inference-gateway.selectorLabels" . | nindent 6 }}
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+{{- end }}

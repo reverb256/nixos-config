@@ -23,10 +23,7 @@
       "command": "mcp-chrome-devtools"
     },
     "playwright": {
-      "command": "mcp-playwright",
-      "env": {
-        "CHROMIUM_PATH": "/etc/nixos/node_modules/playwright-core/.local-browsers/chrome/chrome-linux64/chrome"
-      }
+      "command": "mcp-playwright"
     },
     "nixos": {
       "command": "uvx",
@@ -43,7 +40,7 @@
     "searxng": {
       "command": "/etc/nixos/modules/services/ai-inference/bin/searxng-mcp-wrapper",
       "env": {
-        "SEARXNG_URL": "https://search.reverb256.ca"
+        "SEARXNG_URL": "http://searxng.search.svc.cluster.local:8080"
       }
     }
   }

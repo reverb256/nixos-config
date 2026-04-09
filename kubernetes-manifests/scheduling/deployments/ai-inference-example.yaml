@@ -1,0 +1,85 @@
+# Example AI Inference Deployment with YuniKorn + Volcano
+# Demonstrates priority-based scheduling and gang scheduling
+
+---
+# Single GPU AI Inference (YuniKorn)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-inference-yunikorn
+  namespace: ai-inference
+  labels:
+    app: ai-inference
+    scheduler: yunikorn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-inference
+  template:
+    metadata:
+      labels:
+        app: ai-inference
+    spec:
+      # Use YuniKorn scheduler
+      schedulerName: yunikorn
+      # High priority for AI inference
+      priorityClassName: ai-inference-high
+      containers:
+      - name: ai-inference
+        image: ai-inference:latest
+        resources:
+          requests:
+            nvidia.com/gpu: "1"
+            memory: "8Gi"
+            cpu: "4"
+          limits:
+            nvidia.com/gpu: "1"
+            memory: "8Gi"
+            cpu: "4"
+        env:
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+---
+# Multi-GPU Distributed Training (Volcano with Gang Scheduling)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: distributed-training-volcano
+  namespace: ai-inference
+  labels:
+    app: distributed-training
+    scheduler: volcano
+spec:
+  replicas: 2  # Gang scheduling: 2 pods must run simultaneously
+  selector:
+    matchLabels:
+      app: distributed-training
+  template:
+    metadata:
+      labels:
+        app: distributed-training
+        # PodGroup association for gang scheduling
+        scheduling.volcano.sh/pod-group: ai-distributed-training
+    spec:
+      # Use Volcano scheduler
+      schedulerName: volcano
+      # Critical priority for distributed training
+      priorityClassName: ai-inference-critical
+      containers:
+      - name: training
+        image: distributed-training:latest
+        resources:
+          requests:
+            nvidia.com/gpu: "1"
+            memory: "8Gi"
+            cpu: "4"
+          limits:
+            nvidia.com/gpu: "1"
+            memory: "8Gi"
+            cpu: "4"
+        env:
+        - name: WORLD_SIZE
+          value: "2"  # Total GPUs for distributed training
+        - name: NCCL_DEBUG
+          value: "INFO"

@@ -1,0 +1,23 @@
+# Pre-provisioned PV for Spacebot on Nexus
+# Uses Nexus local storage at /mnt/storage/spacebot
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: spacebot-data-nexus
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: fast-local-ssd
+  local:
+    path: /mnt/storage/spacebot
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - nexus

@@ -1,0 +1,14 @@
+# Endpoints for the kubernetes API server service
+# This enables the service cluster IP (10.0.0.1:443) to work
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: kubernetes
+  namespace: default
+subsets:
+  - addresses:
+    - ip: 10.1.1.100  # Keepalived VIP for HA API server access
+    ports:
+      - port: 6443
+        protocol: TCP
+        name: https

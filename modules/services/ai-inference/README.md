@@ -92,6 +92,28 @@ OpenAI-compatible API gateway with intelligent routing, circuit breaker failover
 | **Reranker** | Advanced model candidate reranking (removed - unused) |
 | **Processing Time Tracking** | Accurate request timing metrics (planned for Phase 2) |
 
+## 📚 Documentation
+
+**Quick Reference:**
+- **[Guides](docs/guides/)** - How-to guides and quick references for daily operations
+  - [Middleware Quick Reference](docs/guides/middleware-quick-reference.md)
+  - [Semantic Cache Guide](docs/guides/semantic-cache.md)
+  - [Tool Calling Guide](docs/guides/tool-calling.md)
+
+**Implementation Details:**
+- **[Implementation Docs](docs/implementation/)** - Technical architecture and design decisions
+  - [Middleware Architecture Complete](docs/implementation/middleware-complete.md)
+  - [Task Completion Summary](docs/implementation/middleware-completion.md)
+  - [Enhanced Routing Implementation](docs/implementation/enhanced-routing.md)
+
+**Historical Records:**
+- **[Archive](docs/archive/)** - Test reports, bug fixes, and historical documentation
+  - [Test Reports](docs/archive/test-reports/) - Integration and validation tests
+  - [Bug Fixes](docs/archive/fixes/) - Resolved issues and fixes
+  - [Historical Docs](docs/archive/historical/) - Older documentation and comparisons
+
+---
+
 ## Implemented Features
 
 ### Core Gateway Features (v2.0)

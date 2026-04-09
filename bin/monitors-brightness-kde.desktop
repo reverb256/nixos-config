@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Monitor Brightness
+Comment=Control DDC/CI monitor brightness
+Exec=/etc/nixos/bin/monitors-brightness status
+Icon=preferences-desktop-display
+Terminal=true
+Categories=System;Settings;
+Keywords=monitor;brightness;display;ddc;
+X-KDE-SubstituteUID=false

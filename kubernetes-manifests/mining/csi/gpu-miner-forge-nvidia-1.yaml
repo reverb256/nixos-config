@@ -1,0 +1,103 @@
+# GPU Miner - gpu-miner-forge-nvidia-1 (nvidia)
+# CSI-based: uses nix-csi for lolMiner binary + host mounts for GPU drivers
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-miner-forge-nvidia-1
+  namespace: mining
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gpu-miner-forge-nvidia-1
+  template:
+    metadata:
+      labels:
+        app: gpu-miner-forge-nvidia-1
+
+    spec:
+      nodeName: forge
+      hostNetwork: true
+      automountServiceAccountToken: false
+      serviceAccountName: gpu-miner-sa
+      priorityClassName: mining-low
+
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: lolminer
+        image: gcr.io/distroless/static-debian12@sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838
+        command: ["/nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a/bin/.lolMiner-wrapped"]
+        args:
+        - "--algo=CR29"
+        - "--pool=xtm-c29-us.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-n1"
+        - "--pass=x"
+        - "--tls=1"
+        - "--pool=xtm-c29-eu.kryptex.network:8040"
+        - "--user=krxXVNVMM7.forge-n1"
+        - "--pass=x"
+        - "--tls=1"
+        - "--devices=1"
+        - "--apiport=4069"
+        - "--cclk=2350 --moff=1100 --pl=90"
+        env:
+        - name: LD_LIBRARY_PATH
+          value: "/nix/store/jms7zxzm7w1whczwny5m3gkgdjghmi2r-glibc-2.42-51/lib:/run/opengl-driver/lib"
+
+        ports:
+        - containerPort: 4069
+          name: api
+          protocol: TCP
+        livenessProbe:
+          tcpSocket:
+            port: 4069
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 4069
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          failureThreshold: 10
+        resources:
+          requests:
+            memory: 4Gi
+            cpu: 2
+          limits:
+            memory: 8Gi
+            cpu: 4
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: nix
+          mountPath: /nix
+          subPath: nix
+        - name: opengl-driver
+          mountPath: /run/opengl-driver/lib
+        - name: glibc-lib
+          mountPath: /nix/store/jms7zxzm7w1whczwny5m3gkgdjghmi2r-glibc-2.42-51/lib
+        - name: dev
+          mountPath: /dev
+      volumes:
+      - name: nix
+        csi:
+          driver: nixkube
+          volumeAttributes:
+            x86_64-linux: /nix/store/mpkgc1sk57hmb62qj3dahvmnjag1l3mc-lolminer-1.98a
+      - name: opengl-driver
+        hostPath:
+          path: /run/opengl-driver/lib
+      - name: glibc-lib
+        hostPath:
+          path: /nix/store/jms7zxzm7w1whczwny5m3gkgdjghmi2r-glibc-2.42-51/lib
+          type: Directory
+          type: DirectoryOrCreate
+      - name: dev
+        hostPath:
+          path: /dev
+          type: Directory

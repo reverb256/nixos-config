@@ -1,0 +1,66 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: claude-code-hpa
+  namespace: ai-inference
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: claude-code
+
+  # Scale between 1 and 10 pods
+  minReplicas: 1
+  maxReplicas: 10
+
+  # Target 70% average resource utilization
+  metrics:
+  # Primary metric: Active conversations (custom metric)
+  - type: Pods
+    pods:
+      metric:
+        name: active_conversations
+      target:
+        type: AverageValue
+        averageValue: "40"  # Scale up when pods avg 40 active conversations
+
+  # Secondary metric: CPU (fallback)
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+  # Tertiary metric: Memory (safety valve)
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+  behavior:
+    scaleUp:
+      # Fast scale up for sudden demand
+      stabilizationWindowSeconds: 30
+      policies:
+      - type: Percent
+        value: 100  # Double pod count
+        periodSeconds: 30
+      - type: Pods
+        value: 2    # Or add 2 pods
+        periodSeconds: 30
+      selectPolicy: Max  # Use the policy that scales more
+
+    scaleDown:
+      # Slow scale down to avoid disrupting conversations
+      stabilizationWindowSeconds: 300  # 5 minutes
+      policies:
+      - type: Percent
+        value: 50   # Reduce by half
+        periodSeconds: 60
+      - type: Pods
+        value: 1     # Or remove 1 pod at a time
+        periodSeconds: 60
+      selectPolicy: Min  # Use the policy that scales less

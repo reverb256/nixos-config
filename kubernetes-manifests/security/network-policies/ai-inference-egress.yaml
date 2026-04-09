@@ -1,0 +1,19 @@
+---
+# Allow ai-inference namespace to reach SearXNG in search namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-searxng-access
+  namespace: ai-inference
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: search
+      ports:
+        - protocol: TCP
+          port: 8080

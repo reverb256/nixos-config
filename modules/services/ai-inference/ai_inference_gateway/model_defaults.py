@@ -318,7 +318,7 @@ def apply_model_defaults(
     is_qwen = "qwen" in model_id.lower()
     thinking_enabled = False
 
-    # Determine thinking mode from request or model default
+    # Determine thinking mode conditionally based on task and model
     if is_qwen:
         # Check if thinking is explicitly requested
         if "thinking" in result:
@@ -328,8 +328,41 @@ def apply_model_defaults(
                 thinking_enabled = thinking_cfg.get("enable_thinking",
                     thinking_cfg.get("type") == "enabled")
         else:
-            # Use model default
-            thinking_enabled = defaults.get("thinking_enabled_default", False)
+            # Conditional thinking: Enable only for complex reasoning tasks on larger models
+            model_size = None
+            if "0.8b" in model_id or "1b" in model_id:
+                model_size = "tiny"
+            elif "2b" in model_id or "3b" in model_id:
+                model_size = "small"
+            elif "4b" in model_id or "6b" in model_id or "7b" in model_id:
+                model_size = "medium"
+            elif "9b" in model_id or "14b" in model_id:
+                model_size = "large"
+            elif "27b" in model_id or "32b" in model_id or "35b" in model_id:
+                model_size = "xlarge"
+
+            # Detect task type from messages
+            messages = result.get("messages", [])
+            task_type = detect_task_type(messages)
+
+            # Enable thinking only for:
+            # 1. Large/XL models on reasoning tasks
+            # 2. Explicit model default (if set to True)
+            model_default_thinking = defaults.get("thinking_enabled_default", False)
+
+            if model_default_thinking:
+                # Model explicitly wants thinking on by default
+                thinking_enabled = True
+            elif model_size in ["large", "xlarge"] and task_type == "reasoning":
+                # Large models doing complex reasoning benefit from thinking
+                thinking_enabled = True
+                logger.debug(
+                    f"Conditionally enabled thinking for {model_id} "
+                    f"(size={model_size}, task={task_type})"
+                )
+            else:
+                # Default: thinking disabled for fast responses
+                thinking_enabled = False
 
     # For vision requests, override temperature to be more conservative
     if is_vision_request:

@@ -1,0 +1,105 @@
+# XMRig CPU Miner Deployment for Sentry (16 cores)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xmrig-sentry
+  namespace: mining
+  labels:
+    app: xmrig
+    host: sentry
+    workload: crypto-mining
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: xmrig
+      host: sentry
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: xmrig
+        host: sentry
+        workload: crypto-mining
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/1/summary"
+    spec:
+      nodeName: sentry
+      serviceAccountName: gpu-miner-sa
+      automountServiceAccountToken: false
+      hostNetwork: true
+      priorityClassName: preemptible-mining
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: xmrig
+        image: docker.io/xmrig/xmrig:6.22.2
+        imagePullPolicy: IfNotPresent
+        args:
+          - "-o"
+          - "10.1.1.110:3333"
+          - "-u"
+          - "sentry-cpu"
+          - "--tls=false"
+          - "--randomx-1gb-pages"
+          - "--threads=2"
+          - "--donate-level=1"
+          - "--http-enabled"
+          - "--http-port=8081"
+        ports:
+        - containerPort: 8081
+          name: api
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /1/summary
+            port: api
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /1/summary
+            port: api
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "1"
+          limits:
+            memory: "2Gi"
+            cpu: "2"
+        env:
+        - name: XMRIG_NO_TLS
+          value: "1"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+            add:
+              - SYS_NICE
+              - IPC_LOCK
+        volumeMounts:
+        - name: hugepages
+          mountPath: /dev/hugepages
+      volumes:
+      - name: hugepages
+        hostPath:
+          path: /dev/hugepages
+          type: Directory

@@ -1,0 +1,37 @@
+# ResourceQuota Configuration for YuniKorn-Managed Namespaces
+#
+# CRITICAL: GPU resources are NOT quota-limited in YuniKorn namespaces
+# because ResourceQuota blocks priority preemption.
+#
+# YuniKorn's queue-based scheduling provides GPU resource management.
+# This quota only limits CPU/memory to prevent runaway resource usage.
+---
+# Modified ResourceQuota for mining namespace
+# Removes GPU limits to allow YuniKorn priority preemption
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mining-quota-yunikorn
+  namespace: mining
+  labels:
+    app: gpu-scheduler
+    scheduler: yunikorn
+spec:
+  hard:
+    # CPU limits to prevent CPU exhaustion
+    requests.cpu: "20"
+    limits.cpu: "32"
+    # Memory limits to prevent memory exhaustion (increased for CPU miners)
+    requests.memory: "20Gi"
+    limits.memory: "48Gi"
+    # Object count limits
+    pods: "20"
+    persistentvolumeclaims: "10"
+    services: "10"
+    # Storage limits
+    requests.ephemeral-storage: "100Gi"
+    limits.ephemeral-storage: "200Gi"
+---
+# NOTE: The original mining-quota with GPU limits should be removed
+# after applying this new quota. This can be done via:
+# kubectl delete resourcequota mining-quota -n mining

@@ -7,6 +7,7 @@ Routes requests to appropriate models based on:
 - Latency tracking and overload detection
 - Model specialization matching
 - Cost tier considerations
+- Category-based routing (inspired by oh-my-opencode)
 """
 
 import logging
@@ -62,7 +63,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-0.8b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 8192,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "ultra_fast",
         "recommended_for": ["fast", "simple_qa"],
@@ -86,7 +87,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-2b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 8192,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "fast",
         "recommended_for": ["fast", "reasoning"],
@@ -105,7 +106,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-4b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 16384,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "fast",
         "recommended_for": ["coding", "reasoning"],
@@ -129,7 +130,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-9b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 16384,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "balanced",
         "recommended_for": ["coding", "complex_reasoning"],
@@ -156,7 +157,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-27b-claude-4.6-opus-reasoning-distilled": {
         "max_tokens": 32768,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "slow",
         "recommended_for": ["complex_reasoning", "agentic"],
@@ -164,7 +165,7 @@ QWEN_MODEL_CONFIG = {
     "qwen3.5-35b-a3b": {
         "max_tokens": 32768,
         "context_length": 262144,
-        "thinking_enabled_default": True,
+        "thinking_enabled_default": False,
         "supports_thinking_toggle": True,
         "speed_tier": "slow",
         "recommended_for": ["complex_reasoning", "agentic", "analysis"],
@@ -174,7 +175,7 @@ QWEN_MODEL_CONFIG = {
 
 # Optimal parameters for Qwen3.5 thinking vs non-thinking modes
 # Based on: https://unsloth.ai/docs/models/qwen3.5
-# Note: Only includes parameters supported by LM Studio's OpenAI-compatible API
+# Note: Only includes parameters supported by llama.cpp's OpenAI-compatible API
 QWEN_OPTIMAL_PARAMS = {
     "thinking": {
         # General purpose with thinking enabled
@@ -292,7 +293,7 @@ class ModelInfo:
     specializations: List[TaskSpecialization] = field(default_factory=list)
     cost_tier: int = 1
     estimated_tokens_per_second: float = 50.0
-    backend: str = "lm-studio"  # lm-studio or zai
+    backend: str = "llama-cpp"  # llama-cpp, zai, etc.
 
 
 @dataclass
@@ -362,7 +363,6 @@ class Router:
         self,
         models: List[ModelInfo],
         latency_tracker: Optional[LatencyTracker] = None,
-        lm_studio_api_key: Optional[str] = None,
     ):
         """
         Initialize router.
@@ -370,32 +370,36 @@ class Router:
         Args:
             models: List of available models
             latency_tracker: Optional latency tracker for performance-based routing
-            lm_studio_api_key: Optional API key for LM Studio health checks
         """
         self.models = {model.id: model for model in models}
         self.latency_tracker = latency_tracker or LatencyTracker()
         self.claude_model_mapping = self._build_claude_mapping()
-        self.lm_studio_api_key = lm_studio_api_key
         # Active request tracking for smart load balancing
         self.active_requests: Dict[str, Dict] = (
             {}
         )  # request_id -> {model, backend, stream, start_time}
-        self.max_concurrent_streams = 1  # LM Studio can handle 1 stream at a time
+        self.max_concurrent_streams = 1  # Backend can handle 1 stream at a time
 
         # Backend health cache
         self._backend_health: Dict[str, bool] = {
-            "lm-studio": True,
+            "llama-cpp": True,
             "zai": True,
         }
         self._backend_health_check_time: Dict[str, float] = {}
         self._health_check_ttl: float = 10.0  # Check health every 10 seconds
+
+    # Backend health check endpoints
+    BACKEND_PORTS = {
+        "llama-cpp": 8083,
+        "llama-server": 8083,
+    }
 
     async def get_backend_load(self, backend: str) -> Dict:
         """
         Get current load on a backend.
 
         Args:
-            backend: Backend name (lm-studio or zai)
+            backend: Backend name (llama-cpp, zai, etc.)
 
         Returns:
             Dict with load information
@@ -437,16 +441,113 @@ class Router:
             del self.active_requests[request_id]
             logger.debug(f"Stopped tracking request {request_id}")
 
+    def route_by_category(
+        self,
+        headers: Dict[str, str],
+        query_params: Dict[str, str],
+        content: Optional[str] = None,
+    ) -> RouteDecision:
+        """
+        Route request using category-based routing (oh-my-opencode style).
+
+        This method is called when X-Task-Category header or category query param
+        is present. It provides intelligent model selection based on task categories.
+
+        Categories:
+        - quick: Fast, lightweight tasks
+        - ultrabrain: Deep logical reasoning, architecture decisions
+        - deep: Complex algorithms, business logic
+        - unspecified-high: High uncertainty, high quality needed
+        - unspecified-low: Medium complexity with clear requirements
+        - visual-engineering: UI/UX, design (vision models)
+        - artistry: Creative work
+        - writing: Documentation, prose
+
+        Args:
+            headers: HTTP headers from request
+            query_params: Query parameters from request
+            content: Request body content for auto-detection
+
+        Returns:
+            RouteDecision with selected model
+        """
+        try:
+            # Lazy import to avoid circular dependency
+            from ai_inference_gateway.category_router import (
+                CategoryRouter,
+                TaskCategory,
+                ComplexityLevel,
+            )
+
+            # Create category router if not exists
+            if not hasattr(self, "_category_router"):
+                models_list = list(self.models.values())
+                self._category_router = CategoryRouter(
+                    models=self.models,
+                    default_category=TaskCategory.UNSPECIFIED_LOW,
+                    enable_auto_detection=True,
+                )
+
+            # Route using category router
+            decision = self._category_router.route(headers, query_params, content)
+
+            # Verify model exists
+            if decision.model not in self.models:
+                logger.warning(f"Category router selected unknown model: {decision.model}")
+                # Fallback to default routing
+                return self.route(
+                    messages=[],
+                    requested_model=None,
+                    headers=headers,
+                )
+
+            return decision
+
+        except Exception as e:
+            logger.error(f"Category routing failed: {e}, falling back to default routing")
+            # Fallback to default routing
+            return self.route(
+                messages=[],
+                requested_model=None,
+                headers=headers,
+            )
+
+    def get_category_info(self) -> Dict[str, dict]:
+        """
+        Get information about available categories.
+
+        Returns:
+            Dictionary mapping category names to their configurations
+        """
+        try:
+            if not hasattr(self, "_category_router"):
+                from ai_inference_gateway.category_router import (
+                    CategoryRouter,
+                    TaskCategory,
+                )
+
+                models_list = list(self.models.values())
+                self._category_router = CategoryRouter(
+                    models=self.models,
+                    default_category=TaskCategory.UNSPECIFIED_LOW,
+                    enable_auto_detection=True,
+                )
+
+            return self._category_router.get_category_info()
+        except Exception as e:
+            logger.error(f"Failed to get category info: {e}")
+            return {}
+
     async def check_backend_health(self, backend: str, force_check: bool = False) -> bool:
         """
         Check if a backend is healthy.
 
         Uses cached health status with TTL to avoid excessive health checks.
-        For lm-studio, we check if the backend is accepting connections.
+        For llama-cpp, we check if the backend is accepting connections.
         For zai, we assume it's healthy (cloud service).
 
         Args:
-            backend: Backend name (lm-studio or zai)
+            backend: Backend name (llama-cpp, zai, etc.)
             force_check: Force a new health check, bypassing cache
 
         Returns:
@@ -458,29 +559,36 @@ class Router:
         if backend == "zai":
             return True
 
-        # Check cache for lm-studio
+        # Determine port for this backend
+        port = self.BACKEND_PORTS.get(backend)
+        if port is None:
+            logger.warning(f"Unknown backend type '{backend}', assuming healthy")
+            return True
+
+        # Check cache for local backends
         now = time.time()
         last_check = self._backend_health_check_time.get(backend, 0)
 
         if not force_check and (now - last_check) < self._health_check_ttl:
             return self._backend_health.get(backend, True)
 
-        # Perform health check for lm-studio
+        # Perform health check for local backends
         try:
             import httpx
 
-            # Try to connect to LM Studio
+            # Try to connect to the backend
             # Use a short timeout to avoid blocking
-            headers = {}
-            if self.lm_studio_api_key:
-                headers["Authorization"] = f"Bearer {self.lm_studio_api_key}"
+            headers = {}  # llama-cpp doesn't require authentication
 
             async with httpx.AsyncClient(timeout=2.0) as client:
                 # Try the health endpoint or models endpoint
                 for endpoint in ["/v1/models", "/health"]:
                     try:
+                        # Use localhost for all backends (Gateway runs on host)
+                        backend_url = f"http://127.0.0.1:{port}"
+
                         response = await client.get(
-                            f"http://127.0.0.1:1234{endpoint}",
+                            f"{backend_url}{endpoint}",
                             headers=headers,
                             timeout=1.0,
                         )
@@ -538,7 +646,7 @@ class Router:
         Note: "1M" context variants map to the same underlying model since Qwen models
         support up to 256K context. The distinction is client-side metadata.
 
-        ZAI fallback chain (when LM Studio down/capacity): glm-5 → glm-4.7 → glm-4.5-air
+        ZAI fallback chain (when Local backend down/capacity): glm-5 → glm-4.7 → glm-4.5-air
         """
         return {
             # Haiku tier → Local 0.8B Opus reasoning distilled (fastest)
@@ -707,6 +815,8 @@ class Router:
         messages: List[Dict],
         requested_model: Optional[str] = None,
         urgency: str = "normal",
+        headers: Optional[Dict[str, str]] = None,
+        query_params: Optional[Dict[str, str]] = None,
     ) -> RouteDecision:
         """
         Route a request to the best model.
@@ -715,16 +825,42 @@ class Router:
             messages: List of messages
             requested_model: Optional model requested by client
             urgency: Urgency level (fast, normal, quality)
+            headers: Optional HTTP headers for category-based routing
+            query_params: Optional query parameters for category-based routing
 
         Returns:
             Routing decision with model and metadata
         """
-        # Check if LM Studio is healthy before routing
-        lm_studio_healthy = await self.check_backend_health("lm-studio")
+        # Initialize headers/params if None
+        headers = headers or {}
+        query_params = query_params or {}
 
-        # If LM Studio is down, route directly to ZAI
-        if not lm_studio_healthy:
-            logger.info("LM Studio is down, auto-failing over to ZAI")
+        # Check for category-based routing hints (oh-my-opencode style)
+        category_hint = headers.get("X-Task-Category") or query_params.get("category")
+        if category_hint:
+            # Combine message content for category detection
+            content = " ".join(
+                msg.get("content", "")
+                for msg in messages
+                if isinstance(msg.get("content", ""), str)
+            )
+            # Use category-based routing
+            try:
+                decision = self.route_by_category(headers, query_params, content)
+                logger.info(
+                    f"Category-based routing selected model: {decision.model} "
+                    f"(category: {category_hint}, confidence: {decision.confidence})"
+                )
+                return decision
+            except Exception as e:
+                logger.warning(f"Category routing failed, falling back to default: {e}")
+
+        # Check if llama.cpp is healthy before routing
+        local_backend_healthy = await self.check_backend_health("llama-cpp")
+
+        # If Local backend (llama-cpp) is down, route directly to ZAI
+        if not local_backend_healthy:
+            logger.info("Local backend (llama-cpp) is down, auto-failing over to ZAI")
             estimated_tokens = self.estimate_tokens(messages)
 
             # Get available ZAI models
@@ -742,7 +878,7 @@ class Router:
                         return RouteDecision(
                             model=mapped_model,
                             confidence=1.0,
-                            reason=f"LM Studio down, using ZAI fallback for {requested_model}",
+                            reason=f"Local backend down, using ZAI fallback for {requested_model}",
                             estimated_tokens=estimated_tokens,
                             backend="zai",
                             specialization=specialization,
@@ -754,7 +890,7 @@ class Router:
                 return RouteDecision(
                     model=best_zai.id,
                     confidence=0.95,
-                    reason="LM Studio down (auto-failover to ZAI)",
+                    reason="Local backend down (auto-failover to ZAI)",
                     estimated_tokens=estimated_tokens,
                     backend="zai",
                     specialization=specialization,
@@ -764,24 +900,24 @@ class Router:
                 )
             else:
                 # No ZAI models available - this is an error condition
-                logger.error("LM Studio down and no ZAI models available!")
+                logger.error("Local backend down and no ZAI models available!")
                 # Return default model anyway (will likely fail)
                 return RouteDecision(
                     model="qwen/qwen3.5-9b",
                     confidence=0.1,
-                    reason="LM Studio down, no ZAI fallback available",
+                    reason="Local backend down, no ZAI fallback available",
                     estimated_tokens=estimated_tokens,
-                    backend="lm-studio",
+                    backend="llama-cpp",
                 )
 
-        # Check if LM Studio is busy with streaming requests
-        lm_studio_load = await self.get_backend_load("lm-studio")
+        # Check if llama.cpp is busy with streaming requests
+        local_backend_load = await self.get_backend_load("llama-cpp")
 
-        # If LM Studio is at capacity (processing streams), route to ZAI
-        if lm_studio_load["at_capacity"] and lm_studio_load["is_streaming"]:
+        # If llama.cpp is at capacity (processing streams), route to ZAI
+        if local_backend_load["at_capacity"] and local_backend_load["is_streaming"]:
             logger.info(
-                f"LM Studio busy ({lm_studio_load['active_requests']} active requests, "
-                f"streaming: {lm_studio_load['is_streaming']}), auto-offloading to ZAI"
+                f"Local backend busy ({local_backend_load['active_requests']} active requests, "
+                f"streaming: {local_backend_load['is_streaming']}), auto-offloading to ZAI"
             )
             # Find best ZAI model for the request
             estimated_tokens = self.estimate_tokens(messages)
@@ -796,7 +932,7 @@ class Router:
                         return RouteDecision(
                             model=mapped_model,
                             confidence=1.0,
-                            reason=f"LM Studio at capacity, using ZAI fallback for {requested_model}",
+                            reason=f"llama.cpp at capacity, using ZAI fallback for {requested_model}",
                             estimated_tokens=estimated_tokens,
                             backend="zai",
                             expected_latency_ms=model_info.estimated_tokens_per_second
@@ -813,7 +949,7 @@ class Router:
                 return RouteDecision(
                     model=best_zai.id,
                     confidence=0.9,
-                    reason="LM Studio at capacity (auto-failover to ZAI)",
+                    reason="llama.cpp at capacity (auto-failover to ZAI)",
                     estimated_tokens=estimated_tokens,
                     backend="zai",
                     specialization=specialization,
@@ -874,16 +1010,28 @@ class Router:
         )
 
         if not ranked_candidates:
-            # Fallback to default model
-            default_model = "qwen3.5-35b-a3b"
-            model_info = self.models[default_model]
-            return RouteDecision(
-                model=default_model,
-                confidence=0.5,
-                reason="No suitable candidates, using default",
-                estimated_tokens=estimated_tokens,
-                backend=model_info.backend,
-            )
+            # Fallback to default model (use fast model for quick responses)
+            default_model = "qwen3.5-4b"
+            model_info = self.models.get(default_model)
+            if model_info:
+                return RouteDecision(
+                    model=default_model,
+                    confidence=0.5,
+                    reason="No suitable candidates, using default",
+                    estimated_tokens=estimated_tokens,
+                    backend=model_info.backend,
+                )
+            else:
+                # Ultimate fallback if even default is unavailable
+                fallback_model = list(self.models.keys())[0]
+                model_info = self.models[fallback_model]
+                return RouteDecision(
+                    model=fallback_model,
+                    confidence=0.3,
+                    reason="Default model unavailable, using fallback",
+                    estimated_tokens=estimated_tokens,
+                    backend=model_info.backend,
+                )
 
         # Select best candidate
         best = ranked_candidates[0]
@@ -974,15 +1122,11 @@ class Router:
         return sorted(candidates, key=lambda c: c.score, reverse=True)
 
 
-def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
-    """Create router with default model configuration.
-
-    Args:
-        lm_studio_api_key: Optional API key for LM Studio health checks
-    """
+def create_default_router() -> Router:
+    """Create router with default model configuration."""
     models = [
         # ========================================================================
-        # LM Studio models - Primary local backends
+        # Local llama.cpp models - Primary backends
         # ========================================================================
         # Qwen 3.5 35B A3B - Largest local model, best for complex tasks
         ModelInfo(
@@ -998,7 +1142,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             ],
             cost_tier=3,
             estimated_tokens_per_second=35.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         # Qwen 3.5 27B - Large context, general purpose
         ModelInfo(
@@ -1013,7 +1157,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             ],
             cost_tier=2,
             estimated_tokens_per_second=45.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         # CROW 9B Opus 4.6 Distill - Claude Opus distilled for reasoning
         ModelInfo(
@@ -1028,7 +1172,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             ],
             cost_tier=2,
             estimated_tokens_per_second=55.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         # Qwen 3.5 9B Claude 4.6 Opus Reasoning Distilled
         ModelInfo(
@@ -1044,7 +1188,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             ],
             cost_tier=2,
             estimated_tokens_per_second=58.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         # Qwen 3.5 9B - Standard base model
         ModelInfo(
@@ -1059,7 +1203,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             ],
             cost_tier=1,
             estimated_tokens_per_second=65.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         # Qwen 3.5 4B Claude 4.6 Opus Distilled (q8_0 - higher quality)
         ModelInfo(
@@ -1074,7 +1218,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             ],
             cost_tier=1,
             estimated_tokens_per_second=70.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         # CROW 4B Opus 4.6 Distill - Small but capable
         ModelInfo(
@@ -1088,7 +1232,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             ],
             cost_tier=1,
             estimated_tokens_per_second=75.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         # Qwen 3.5 4B - Fast general purpose
         ModelInfo(
@@ -1103,7 +1247,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             ],
             cost_tier=1,
             estimated_tokens_per_second=80.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         # Qwen 3.5 2B - Very fast
         ModelInfo(
@@ -1114,7 +1258,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             specializations=[TaskSpecialization.FAST, TaskSpecialization.VISION],  # All Qwen 3.5 support vision
             cost_tier=1,
             estimated_tokens_per_second=90.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         ModelInfo(
             id="qwen3.5-2b",
@@ -1124,7 +1268,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             specializations=[TaskSpecialization.FAST, TaskSpecialization.VISION],  # All Qwen 3.5 support vision
             cost_tier=1,
             estimated_tokens_per_second=95.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         # Qwen 3.5 0.8B - Tiny, fastest
         ModelInfo(
@@ -1135,7 +1279,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             specializations=[TaskSpecialization.FAST, TaskSpecialization.VISION],  # All Qwen 3.5 support vision
             cost_tier=1,
             estimated_tokens_per_second=100.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         ModelInfo(
             id="qwen3.5-0.8b",
@@ -1145,7 +1289,7 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
             specializations=[TaskSpecialization.FAST, TaskSpecialization.VISION],  # All Qwen 3.5 support vision
             cost_tier=1,
             estimated_tokens_per_second=110.0,
-            backend="lm-studio",
+            backend="llama-cpp",
         ),
         # ZAI models - Fallback priority order: glm-5 → glm-4.7 → glm-4.5-air
         ModelInfo(
@@ -1204,4 +1348,4 @@ def create_default_router(lm_studio_api_key: Optional[str] = None) -> Router:
         ),
     ]
 
-    return Router(models=models, lm_studio_api_key=lm_studio_api_key)
+    return Router(models=models)

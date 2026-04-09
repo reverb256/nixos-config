@@ -36,6 +36,11 @@ async def execute_command(
 ) -> Dict[str, Any]:
     """Execute a shell command and return result."""
     try:
+        # Use sudo for nix commands to bypass git ownership issues
+        # ai-inference user doesn't own /etc/nixos, so run as root
+        if command[0] == "nix":
+            command = ["sudo"] + command
+
         process = await asyncio.create_subprocess_exec(
             *command,
             cwd=cwd or PROJECT_ROOT,

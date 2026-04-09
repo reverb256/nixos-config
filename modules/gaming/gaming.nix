@@ -4,20 +4,38 @@
   config,
   lib,
   pkgs,
-  inputs ? null,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.services.gaming;
   vrCfg = cfg.vr;
-in {
+  # Kernel-level deadzone tool for controllers
+  set-evdev-deadzone = pkgs.stdenv.mkDerivation {
+    pname = "set-evdev-deadzone";
+    version = "1.0.0";
+    src = ./files;
+    buildPhase = ''
+      gcc -O2 -Wall -o set-evdev-deadzone set-evdev-deadzone.c
+    '';
+    installPhase = ''
+      mkdir -p $out/bin
+      cp set-evdev-deadzone $out/bin/
+    '';
+    nativeBuildInputs = [ pkgs.gcc ];
+  };
+in
+{
   options.services.gaming = {
     enable = mkEnableOption "Gaming support (Steam, GameMode, Gamescope)";
-
     vr = {
       enable = mkEnableOption "VR support (WiVRn, SteamVR, OpenXR)";
       encoder = mkOption {
-        type = types.enum ["nvenc" "x264" "av1"];
+        type = types.enum [
+          "nvenc"
+          "x264"
+          "av1"
+        ];
         default = "nvenc";
         description = "Video encoder for WiVRn streaming";
       };
@@ -33,358 +51,442 @@ in {
       };
     };
   };
-
   config = mkMerge [
     # Base gaming configuration (always when gaming.enable = true)
     (mkIf cfg.enable {
-      # ============================================================================
-      # GAMEMODE - CPU/GPU Optimizations
-      # ============================================================================
-      programs.gamemode = {
-        enable = true;
-        settings = {
-          general = {
-            desiredgov = "performance";
-            use_systemd = true;
-            softrealtime = "auto";
-            renice = 15;
-            ioprio = 0;
-          };
-          gpu = {
-            apply_gpu_optimisations = "accept-responsibility";
-            nv_powermizer_mode = 1;
-            # Moderate overclock values - balanced stability/performance
-            # Conservative: 50MHz core, 200MHz memory (safer starting point)
-            # Current: 100MHz core, 400MHz memory (balanced)
-            # Aggressive: 150MHz core, 500MHz memory (may cause instability)
-            nv_core_clock_mhz_offset = 100;
-            nv_mem_clock_mhz_offset = 400;
-          };
-          custom = {
-            start = "${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'";
-            end = "${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'";
-          };
-        };
-      };
 
-      # ============================================================================
-      # SCX SCHEDULER - latency-aware (lavd) for gaming workloads
-      # ============================================================================
-      # scx_lavd provides better gaming performance than CFS for mixed workloads
-      # It prioritizes latency-sensitive tasks (games) over background work
-      systemd.services.scx-lavd = {
-        description = "SCX lavd scheduler user-space daemon";
-        wantedBy = ["multi-user.target"];
-        after = ["network.target"];
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${pkgs.scx.full}/bin/scx_lavd --autopilot";
-          Restart = "on-failure";
-          RestartSec = "5s";
-          Nice = -20;
-          IOSchedulingClass = "realtime";
-          IOSchedulingPriority = 7;
-        };
-      };
+      # ASSERTIONS
 
-      # ============================================================================
-      # STEAM
-      # ============================================================================
-      programs.steam = {
-        enable = true;
-        fontPackages = with pkgs; [
-          noto-fonts
-          liberation_ttf
-          dejavu_fonts
-        ];
-        extraCompatPackages = with pkgs;
-          optionals (inputs != null && inputs ? nixpkgs-xr) [
-            inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
-          ];
-        package = pkgs.steam.override {
-          extraLibraries = pkgs:
-            with pkgs; [
-              freetype
-              fontconfig
-              libpng
-              libjpeg
-              libtiff
-              vulkan-loader
-              vulkan-tools
-              libxcursor
-              libxi
-              libxinerama
-              libxscrnsaver
-              libpulseaudio
-              libvorbis
-              stdenv.cc.cc.lib
-              libkrb5
-              keyutils
-              libcap
-              SDL2
-            ];
-          extraProfile = ''
-            # LVRA recommendation for VRChat timezone display
-            unset TZ
-
-            cd $HOME
-
-            # OpenXR/VR support - critical for WiVRn
-            export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
-            export PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/wivrn/comp_ipc
-
-            # Steam container paths
-            export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
-            export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
-            export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
-
-            # OpenVR -> OpenXR translation via xrizer
-            export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
+      assertions = [
+        {
+          assertion = cfg.vr.enable -> cfg.vr.refreshRate >= 60 && cfg.vr.refreshRate <= 144;
+          message = ''
+            Invalid VR refresh rate: ${toString cfg.vr.refreshRate}
+            Refresh rate must be between 60 and 144 Hz.
+            Recommended values:
+              - 72 Hz (entry-level VR)
+              - 90 Hz (balanced performance/quality)
+              - 120 Hz (high-end VR)
+              - 144 Hz (enthusiast-grade VR)
           '';
-        };
-      };
-
-      programs.steam.remotePlay.openFirewall = true;
-      programs.steam.dedicatedServer.openFirewall = true;
-      programs.steam.localNetworkGameTransfers.openFirewall = true;
-
-      # nix-ld for running non-NixOS binaries
-      programs.nix-ld.enable = true;
-      programs.nix-ld.libraries = with pkgs; [
-        freetype
-        fontconfig
-        libpng
-        libjpeg
-        libtiff
-        libpulseaudio
-        libvorbis
-        libkrb5
-        keyutils
-        libxcursor
-        libxi
-        libxinerama
-        libxscrnsaver
-        vulkan-loader
-        vulkan-tools
-        stdenv.cc.cc.lib
-        pkgsi686Linux.stdenv.cc.cc.lib
-        pkgsi686Linux.zlib
-        libgcrypt
-        libgpg-error
-        libusb1
-        udev
-        libusb-compat-0_1
+        }
+        {
+          assertion = cfg.vr.enable -> (builtins.match "^[0-9]+x[0-9]+$" cfg.vr.resolution) != null;
+          message = ''
+            Invalid VR resolution format: "${cfg.vr.resolution}"
+            Resolution must be in format WIDTHxHEIGHT (per-eye).
+            Valid examples:
+              - "2160x2160" (default, Quest 2)
+              - "2880x2880" (Quest 3)
+              - "4096x4096" (high-end)
+            Current value: ${cfg.vr.resolution}
+          '';
+        }
+        {
+          assertion = cfg.vr.enable -> cfg.vr.encoder == "nvenc" -> (config.hardware.nvidia.enabled or false);
+          message = ''
+            VR encoder is set to "nvenc" but NVIDIA support is not enabled.
+            When using nvenc encoder, ensure:
+              hardware.nvidia.enable = true;
+            Or switch to CPU encoders:
+              services.gaming.vr.encoder = "x264";  # CPU-based
+              services.gaming.vr.encoder = "av1";    # CPU-based, newer
+            Current configuration:
+              vr.encoder = "${cfg.vr.encoder}"
+              hardware.nvidia.enable = ${toString (config.hardware.nvidia.enable or false)}
+          '';
+        }
       ];
 
+      # PROGRAMS - GameMode, Steam, Gamescope, nix-ld
+
+      programs = {
+        # GameMode - CPU/GPU Optimizations
+        # NOTE: GPU settings are in environment.etc."gamemode.ini" below
+        # because [gpu] section is not allowed in user-level configs (security)
+        gamemode = {
+          enable = true;
+          settings = {
+            general = {
+              desiredgov = "performance";
+              use_systemd = true;
+              softrealtime = "auto";
+              renice = 15;
+              ioprio = 1;
+            };
+            custom = {
+              start = "${pkgs.writeShellScript "gamemode-start" ''
+                ${pkgs.libnotify}/bin/notify-send 'GameMode activated' 'Performance optimizations enabled'
+                # GPU overclocking: RTX 3090 (nvidia GPU index 1) - gaming profile
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GpuPowerMizerMode=1" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUGraphicsClockOffset[4]=100" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUMemoryTransferRateOffset[4]=400" 2>/dev/null || true
+                /etc/nixos/scripts/gpu-profiles/gaming.sh 2>/dev/null || true
+                /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh start 2>/dev/null || true
+              ''}";
+              end = "${pkgs.writeShellScript "gamemode-end" ''
+                ${pkgs.libnotify}/bin/notify-send 'GameMode deactivated' 'Normal performance restored'
+                # GPU reset: RTX 3090 back to default clocks
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GpuPowerMizerMode=0" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUGraphicsClockOffset[4]=0" 2>/dev/null || true
+                /run/current-system/sw/bin/nvidia-settings -a "[gpu:1]/GPUMemoryTransferRateOffset[4]=0" 2>/dev/null || true
+                /etc/nixos/scripts/gpu-profiles/ai-inference.sh 2>/dev/null || true
+                /etc/nixos/scripts/gpu-profiles/k8s-mining-pause.sh end 2>/dev/null || true
+              ''}";
+            };
+          };
+        };
+        # Steam - Game launcher and Proton manager
+        steam = {
+          enable = true;
+          fontPackages = with pkgs; [
+            noto-fonts
+            liberation_ttf
+            dejavu_fonts
+          ];
+          extraCompatPackages = [
+            # Temporarily disabled nixpkgs-xr packages due to deprecated options
+            # optionals (inputs != null && inputs ? nixpkgs-xr) [
+            #   inputs.nixpkgs-xr.packages."x86_64-linux".proton-ge-rtsp-bin
+            # ];
+          ];
+          package = pkgs.steam.override {
+            extraLibraries =
+              pkgs: with pkgs; [
+                freetype
+                fontconfig
+                libpng
+                libjpeg
+                libtiff
+                vulkan-loader
+                vulkan-tools
+                libxcursor
+                libxi
+                libxinerama
+                libxscrnsaver
+                libpulseaudio
+                libvorbis
+                stdenv.cc.cc.lib
+                libkrb5
+                keyutils
+                libcap
+                SDL2
+              ];
+            extraProfile = ''
+              # LVRA recommendation for VRChat timezone display
+              unset TZ
+              cd $HOME
+              # OpenXR/VR support - critical for WiVRn
+              export PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1
+              export PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/wivrn/comp_ipc
+              # Steam container paths
+              export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
+              export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata"
+              export STEAM_EXTRA_COMPAT_TOOLS_PATHS="$HOME/.local/share/Steam/compatibilitytools.d"
+              # OpenVR -> OpenXR translation via xrizer
+              export OPENVR_API_PATH="${pkgs.xrizer}/lib/xrizer"
+            '';
+          };
+        };
+        # Gamescope - Frame generation/upscaling
+        gamescope = {
+          enable = true;
+          capSysNice = true;
+          env = {
+            __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
+            __GL_SHADER_DISK_CACHE_SIZE = "1073741824";
+            __GL_SHADER_DISK_CACHE_PATH = "/var/cache/nvidia-shader-cache";
+            __GLX_FORCE_MONO = "0";
+            __GL_ALLOW_FXAA_USAGE = "1";
+            # HDR configuration - ENABLE_GAMESCOPE_WSI=1 is the standard value
+            ENABLE_GAMESCOPE_WSI = "1";
+            DXVK_HDR = "1";
+          };
+          args = [
+            "--immediate-flips"
+            "--rt"
+            "--steam"
+            "--xwayland-count 2"
+            "--force-composition"
+            "--expose-wayland"
+          ];
+        };
+        # nix-ld for running non-NixOS binaries
+        nix-ld = {
+          enable = true;
+          libraries = with pkgs; [
+            freetype
+            fontconfig
+            libpng
+            libjpeg
+            libtiff
+            libpulseaudio
+            libvorbis
+            libkrb5
+            keyutils
+            libxcursor
+            libxi
+            libxinerama
+            libxscrnsaver
+            vulkan-loader
+            vulkan-tools
+            stdenv.cc.cc.lib
+            pkgsi686Linux.stdenv.cc.cc.lib
+            pkgsi686Linux.zlib
+            libgcrypt
+            libgpg-error
+            libusb1
+            udev
+            libusb-compat-0_1
+          ];
+        };
+      };
       hardware.steam-hardware.enable = true;
 
-      # Common session variables (gaming + MangoHud defaults)
-      environment.sessionVariables = {
-        PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES = "1";
-        WINE_FULLSCREEN_FAKE_CAPTURE = "1";
-        # Note: SDL_VIDEODRIVER is NOT set - let Steam/Proton auto-detect the best backend
-        # This fixes VRChat and other games that benefit from native Wayland support
-        # MangoHud default configuration (can be overridden per-game)
-        MANGOHUD_CONFIG = "fps,frametime,cpu_stats,gpu_stats,vram,ram,cpu_temp,gpu_temp,core_load,background_alpha=0.5,position=top-left,toggle_hud=Shift_R+F12";
-        # Auto-reload GameMode config when launching games
-        GAMEMODE_AUTO_RELOAD_CONFIG = "1";
-        # SDL2 GameControllerDB path for custom controller mappings and deadzones
-        SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
-      };
+      # SYSTEMD - SCX scheduler (DISABLED)
+      # scx_lavd causes 30+ second desktop freezes when its BPF scheduler
+      # stalls on kworker threads. The kernel disables sched_ext and falls
+      # back to CFS, but the freeze is already catastrophic for the desktop.
+      # Re-enable after upstream fix: https://github.com/sched-ext/scx/issues
+      # systemd.services.scx-lavd = {
+      #   description = "SCX lavd scheduler user-space daemon";
+      #   wantedBy = [ "multi-user.target" ];
+      #   after = [ "network.target" ];
+      #   serviceConfig = {
+      #     Type = "simple";
+      #     ExecStart = "${pkgs.scx.rustscheds}/bin/scx_lavd --autopilot";
+      #     Restart = "on-failure";
+      #     RestartSec = "5s";
+      #     Nice = -20;
+      #     IOSchedulingClass = "realtime";
+      #     IOSchedulingPriority = 7;
+      #   };
+      # };
 
-      # ============================================================================
-      # PIPEWIRE LOW-LATENCY - Lower latency for gaming
-      # ============================================================================
-      services.pipewire.extraConfig = lib.mkForce {
-        pipewire."99-lowlatency"."context.properties" = {
-          "default.clock.min-quantum" = 64;
-          "default.clock.max-quantum" = 2048;
+      # SERVICES - PipeWire, udev rules
+
+      services = {
+        # PipeWire low-latency configuration
+        pipewire.extraConfig = lib.mkForce {
+          pipewire."99-lowlatency"."context.properties" = {
+            "default.clock.min-quantum" = 64;
+            "default.clock.max-quantum" = 2048;
+          };
+          pipewire-pulse."99-lowlatency"."pulse.min.quantum" = "64/48000";
+          client."99-lowlatency"."stream.properties"."node.latency" = "64/48000";
         };
-        pipewire-pulse."99-lowlatency"."pulse.min.quantum" = "64/48000";
-        client."99-lowlatency"."stream.properties"."node.latency" = "64/48000";
-      };
+        # Disable DualSense/DualShock touchpad to prevent drift in games
+        udev.extraRules = ''
+          # Disable DualSense (PS5) touchpad
+          # Multiple matching strategies for maximum reliability
+          # Strategy 1: Exact full device name (most reliable)
+          SUBSYSTEM=="input", ATTRS{name}=="Sony Interactive Entertainment DualSense Wireless Controller Touchpad", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+          # Strategy 2: Partial name match (fallback)
+          SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+          # Strategy 3: DualShock 4 touchpad
+          SUBSYSTEM=="input", ATTRS{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+          # Strategy 4: Match by capability signature (ultimate fallback)
+          SUBSYSTEM=="input", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", ATTRS{capabilities/abs}=="260800000000003", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+          # DualSense (PS5) hidraw access for Wine/Proton controller support
+          KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", MODE="0660", TAG+="uaccess"
+          # DualSense (PS5) over Bluetooth
+          KERNEL=="hidraw*", KERNELS=="*054C:0CE6*", MODE="0660", TAG+="uaccess"
+          # DualShock 4 (PS4) hidraw access
+          KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="05c4", MODE="0660", TAG+="uaccess"
+          KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", MODE="0660", TAG+="uaccess"
 
-      # ============================================================================
-      # GAMESCOPE - Frame generation/upscaling
-      # ============================================================================
-      programs.gamescope = {
-        enable = true;
-        capSysNice = true;
-        env = {
-          __GL_SHADER_DISK_CACHE_SKIP_CLEANUP = "1";
-          __GL_SHADER_DISK_CACHE_SIZE = "1073741824";
-          __GL_SHADER_DISK_CACHE_PATH = "/var/cache/nvidia-shader-cache";
-          __GLX_FORCE_MONO = "0";
-          __GL_ALLOW_FXAA_USAGE = "1";
-          # HDR configuration - ENABLE_GAMESCOPE_WSI=1 is the standard value
-          ENABLE_GAMESCOPE_WSI = "1";
-          DXVK_HDR = "1";
-        };
-        args = [
-          "--immediate-flips"
-          "--rt"
-          "--steam"
-          "--xwayland-count 2"
-          "--force-composition"
-          "--expose-wayland"
-        ];
-      };
+          # Kernel-Level Deadzone for DualSense (GLOBAL - affects ALL games)
 
-      # ============================================================================
-      # MANGOHUD - Performance overlay
-      # ============================================================================
-      # Note: Configuration is handled via MANGOHUD_CONFIG env var (set in sessionVariables)
-      # or ~/.config/MangoHud/MangoHud.conf (can be managed via GOverlay)
-
-      # Common gaming packages
-      environment.systemPackages = with pkgs; [
-        gamescope
-        mangohud
-        goverlay
-        nvtopPackages.full
-        gamemode
-        scx.full
-        (pkgs.writeShellScriptBin "launch-game" ''
-          #!/usr/bin/env bash
-          # launch-game - Wrapper to run games in gaming.slice with GameMode
-          # Usage: launch-game [command] [args...]
+          # TEMPORARILY DISABLED: Build failing (2026-03-27)
+          # Sets deadzone at kernel level using EVIOCSABS ioctl
+          # This is the ONLY truly global deadzone solution for Linux
           #
-          # Examples:
-          #   launch-game steam
-          #   launch-game lutris
-          #   launch-game heroic
-          #   launch-game /path/to/game executable
+          # Deadzone values: Calculated based on axis range (DualSense: 0-255)
+          # For 0-255 range: 20 = ~8%, 25 = ~10%, 38 = ~15%
+          # Axis codes: 0=ABS_X, 1=ABS_Y, 3=ABS_RX, 4=ABS_RY
           #
-          # Per-game configuration via GameMode:
-          # Create ~/.config/gamemode.ini with per-game settings:
-          #   [game/executable-name]
-          #   governor=performance
-          #   gpu_optimisations=1
-
-          set -euo pipefail
-
-          # Validate arguments
-          if [ $# -eq 0 ]; then
-            echo "Usage: launch-game [command] [args...]" >&2
-            echo "Launch a game in gaming.slice with GameMode integration" >&2
-            echo "" >&2
-            echo "Examples:" >&2
-            echo "  launch-game steam" >&2
-            echo "  launch-game lutris game://12345" >&2
-            echo "  launch-game heroic" >&2
-            echo "  launch-game /opt/game/bin/game.exe" >&2
-            echo "" >&2
-            echo "Per-game config: ~/.config/gamemode.ini" >&2
-            exit 1
-          fi
-
-          # Check if gaming.slice exists
-          if ! systemctl show gaming.slice >/dev/null 2>&1; then
-            echo "Warning: gaming.slice not found, running without cgroup isolation" >&2
-            exec "$@"
-          fi
-
-          # Launch the game in gaming.slice with GameMode
-          exec systemd-run --user \
-            --slice=gaming.slice \
-            --property=CPUWeight=1024 \
-            --property=IOWeight=1000 \
-            --property=Nice=-5 \
-            --property=IOSchedulingClass=best-effort \
-            --property=IOSchedulingPriority=4 \
-            --collect \
-            --quiet \
-            -- "$@"
-        '')
-      ];
-
-      # Disable DualSense/DualShock touchpad to prevent drift in games
-      services.udev.extraRules = ''
-        # Disable DualSense (PS5) touchpad
-        # Match by device name from parent (ATTRS) and unique touchpad capabilities
-        # The touchpad has unique ABS capabilities: 260800000000003
-        SUBSYSTEM=="input", ATTRS{name}=="*DualSense*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
-        SUBSYSTEM=="input", ATTRS{name}=="*DualShock*Touchpad*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
-        # Fallback: Match by capability signature if name matching fails
-        SUBSYSTEM=="input", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", ATTRS{capabilities/abs}=="260800000000003", ENV{LIBINPUT_IGNORE_DEVICE}="1"
-
-        # DualSense (PS5) hidraw access for Wine/Proton controller support
-        KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", MODE="0660", GROUP="plugdev", TAG+="uaccess"
-        # DualSense (PS5) over Bluetooth
-        KERNEL=="hidraw*", KERNELS=="*054C:0CE6*", MODE="0660", GROUP="plugdev", TAG+="uaccess"
-        # DualShock 4 (PS4) hidraw access
-        KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="05c4", MODE="0660", GROUP="plugdev", TAG+="uaccess"
-        KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", MODE="0660", GROUP="plugdev", TAG+="uaccess"
-      '';
-
+          # IMPORTANT: RUN+ commands execute when controller is CONNECTED
+          # This applies deadzone globally for all games, Proton, native, everything
+          #
+          # DualSense (USB & Bluetooth) - match joystick event device only
+          # CRITICAL: Must match KERNEL=="event*" AND exclude Touchpad/Motion devices
+          # The joystick device has name ending with "Controller" (not "Controller Touchpad" or "Controller Motion Sensors")
+          #SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*DualSense*Wireless*Controller", ATTRS{name}!="*Touchpad*", ATTRS{name}!="*Motion*", RUN+="${set-evdev-deadzone}/bin/set-evdev-deadzone /dev/input/%k 0:20 1:20 3:20 4:20"
+        '';
+      };
+      # Create plugdev group for backwards compatibility
+      # Note: TAG+="uaccess" (above) provides the same functionality via systemd-logind
+      users.groups.plugdev = { };
+      # Load hid_sony kernel module for DualSense native support
+      # Provides: Haptic feedback, gyro, LED, touchpad, adaptive triggers
+      boot.kernelModules = [ "hid_sony" ];
       systemd.tmpfiles.rules = [
         "d /var/cache/nvidia-shader-cache 0755 root root - -"
         # ldconfig is in glibc.bin output, not glibc.out
         "L /sbin/ldconfig - - - - ${lib.getBin pkgs.glibc}/sbin/ldconfig"
-        # Joystick calibration directory
-        "d /etc/joystick 0755 root root - -"
       ];
 
-      # ============================================================================
-      # DUALSENSE DEADZONE CONFIGURATION
-      # ============================================================================
-      # System-wide minimal deadzone for DualSense controller right stick
-      # Applied via evdev at kernel level - affects all games
+      # ENVIRONMENT - Session variables, packages, DualSense config
 
-      environment.etc."joystick/DualSense Wireless Controller".source = pkgs.writeText "dualsense-deadzone" ''
-        # Sony DualSense Wireless Controller
-        # Left stick: 2% deadzone (movement, maintains sensitivity)
-        # Right stick: 2% horizontal, 5% vertical (camera - vertical only has drift)
+      environment = {
+        # Common session variables (gaming + MangoHud defaults)
+        sessionVariables = {
+          PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES = "1";
+          WINE_FULLSCREEN_FAKE_CAPTURE = "1";
+          # Note: SDL_VIDEODRIVER is NOT set - let Steam/Proton auto-detect the best backend
+          # This fixes VRChat and other games that benefit from native Wayland support
+          # MangoHud default configuration (can be overridden per-game)
+          MANGOHUD_CONFIG = "fps,frametime,cpu_stats,gpu_stats,vram,ram,cpu_temp,gpu_temp,core_load,background_alpha=0.5,position=top-left,toggle_hud=Shift_R+F12";
+          # Auto-reload GameMode config when launching games
+          GAMEMODE_AUTO_RELOAD_CONFIG = "1";
+          # SDL2 joystick deadzone (0-100, default 15) - 30% to fix drift
+          # Massive value because SDL2 HIDAPI bypasses kernel deadzone
+          SDL_JOYSTICK_AXIS_DEADZONE = "30";
+          # SDL2 GameControllerDB path for proper DualSense mapping in Wine/Proton
+          SDL_GAMECONTROLLERDB = "/etc/sdl2-dualsense-db";
+          # Force DXVK to use RTX 3090 (GPU1) — fixes dual-dGPU Vulkan rendering bug
+          # Without this, DXVK picks GPU0 (3060 Ti, no monitors) and fails to present
+          DXVK_FILTER_DEVICE_NAME = "NVIDIA GeForce RTX 3090";
+          # SDL2 HIDAPI DISABLED for DualSense to use kernel deadzone
+          # HIDAPI uses raw hidraw access (bypasses kernel deadzone)
+          # SDL_JOYSTICK_HIDAPI = "1";
+          # SDL_JOYSTICK_HIDAPI_PS5 = "1";
+          # SDL_JOYSTICK_HIDAPI_PS5_RUMBLE = "1";
+          # SDL_JOYSTICK_HIDAPI_PS5_PLAYER_LED = "1";
+          #
+          # Trade-off: Lose haptics/gyro/LED, gain working deadzone
+          # Most games don't use these features anyway
+        };
+        # Common gaming packages
+        systemPackages = with pkgs; [
+          gamescope
+          mangohud
+          goverlay
+          gamemode
+          scx.full
+          # TEMPORARILY DISABLED: Build failing (2026-03-27)
+          # Kernel-level deadzone tool for controllers (GLOBAL solution)
+          # set-evdev-deadzone
+          (pkgs.writeShellScriptBin "launch-game" ''
+            #!/usr/bin/env bash
+            # launch-game - Wrapper to run games in gaming.slice with GameMode
+            # Usage: launch-game [command] [args...]
+            #
+            # Examples:
+            #   launch-game steam
+            #   launch-game lutris
+            #   launch-game heroic
+            #   launch-game /path/to/game executable
+            #
+            # Per-game configuration via GameMode:
+            # Create ~/.config/gamemode.ini with per-game settings:
+            #   [game/executable-name]
+            #   governor=performance
+            #   gpu_optimisations=1
+            set -euo pipefail
+            # Validate arguments
+            if [ $# -eq 0 ]; then
+              echo "Usage: launch-game [command] [args...]" >&2
+              echo "Launch a game in gaming.slice with GameMode integration" >&2
+              echo "" >&2
+              echo "Examples:" >&2
+              echo "  launch-game steam" >&2
+              echo "  launch-game lutris game://12345" >&2
+              echo "  launch-game heroic" >&2
+              echo "  launch-game /opt/game/bin/game.exe" >&2
+              echo "" >&2
+              echo "Per-game config: ~/.config/gamemode.ini" >&2
+              exit 1
+            fi
+            # Check if gaming.slice exists
+            if ! systemctl show gaming.slice >/dev/null 2>&1; then
+              echo "Warning: gaming.slice not found, running without cgroup isolation" >&2
+              exec "$@"
+            fi
+            # Launch the game in gaming.slice with GameMode
+            exec systemd-run --user \
+              --slice=gaming.slice \
+              --property=CPUWeight=1024 \
+              --property=IOWeight=1000 \
+              --property=Nice=-5 \
+              --property=IOSchedulingClass=best-effort \
+              --property=IOSchedulingPriority=4 \
+              --collect \
+              --quiet \
+              -- "$@"
+          '')
+        ];
+        etc = {
+          # SDL2 GameControllerDB for proper DualSense mapping in Wine/Proton games
+          # Required for Genshin Impact, Honkai Star Rail, and other Hoyoverse games
+          # Fixes: Xbox icons appearing, L2/R2 axis misreporting as right stick
+          # Includes: Linux evdev, Proton/Wine XInput variants, Steam Input
+          "sdl2-dualsense-db".text = ''
+            # Sony DualSense Wireless Controller (Comprehensive Mapping)
+            # GUID formats: Linux evdev (USB/BT), Proton/Wine XInput, Steam Input
+            # Platform: Linux
+            #
+            # Linux evdev (USB & Bluetooth)
+            0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,misc1:b1,paddle1:b11,paddle2:b12,paddle3:b13,paddle4:b14,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,Touchpad:b15,x:b2,y:b3,platform:Linux,
+            0500000054c0ce60000000000000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,misc1:b1,paddle1:b11,paddle2:b12,paddle3:b13,paddle4:b14,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,Touchpad:b15,x:b2,y:b3,platform:Linux,
+            # Proton/Wine XInput GUID variants (different firmware/boot modes)
+            0300000054c00000921000000000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
+            0300000054c00000921000016000000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
+            0300000054c00000921000000010000,DualSense Wireless Controller,a:b0,b:b1,back:b4,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b5,leftshoulder:b9,leftstick:b7,lefttrigger:a4,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Linux,
+          '';
+          # GameMode system-level config (required for [gpu] section security)
+          # GPU device=2 for RTX 3090 (gaming GPU, drives displays)
+          # card1 = RTX 3060 Ti (compute/mining), card2 = RTX 3090 (gaming)
+          # gamemode.ini: GPU opts removed - gamemode requires /sys/class/drm/card0 which
+          # doesn't exist on this dual-NVIDIA system. GPU overclocking handled by
+          # the gamemode start/end scripts below using nvidia-settings directly.
+          "gamemode.ini".text = lib.mkForce ''
+            [general]
+            desiredgov = performance
+          '';
+        };
+      };
 
-        # evdev calibration format
-        evdev ABS_X 2   # Left stick X
-        evdev ABS_Y 2   # Left stick Y
-        evdev ABS_RX 2  # Right stick X (horizontal camera) - 2%
-        evdev ABS_RY 5  # Right stick Y (vertical camera) - 5%
-      '';
+      # MANGOHUD - Performance overlay
 
-      # SDL2 GameControllerDB with deadzone hints
-      # Note: SDL2 deadzone is global - right stick gets 5% in evdev layer
-      environment.etc."SDL_gamecontrollerdb".source = pkgs.writeText "sdl2-dualsense-db" ''
-        # SDL2 GameControllerDB entry for DualSense with deadzone hints
-        # Format: SDL_GAMECONTROLLERDB_V2
-        # Deadzone hint format: Deadzone:percentage  (e.g., Deadzone:2 = 2%)
-
-        0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,
-        0300000054c0ce60000000000000000,DualSense Wireless Controller,a:b0:b1:b2:b3:b4:b5:b6:b7:b8:b9:b10:b11:b12:b13:b14:b15:b16:b17:b18:b19:b20:b21:b22:b23:b24,b:255,b:255,b:255,platform:Linux,Deadzone:5,
-      '';
+      # Note: Configuration is handled via MANGOHUD_CONFIG env var (set in sessionVariables)
+      # or ~/.config/MangoHud/MangoHud.conf (can be managed via GOverlay)
     })
-
     # VR configuration (only when vr.enable = true)
     (mkIf vrCfg.enable {
-      # ============================================================================
-      # AVAHI - Required for WiVRn server discovery
-      # ============================================================================
-      services.avahi = {
-        enable = true;
-        nssmdns4 = true;
-        openFirewall = true;
-      };
 
-      # ============================================================================
-      # WIVRN - Wireless VR Streaming for Quest Headsets
-      # ============================================================================
-      services.wivrn = {
-        enable = true;
-        openFirewall = true;
-        defaultRuntime = true;
-        autoStart = true;
-      };
+      # SERVICES - Avahi for WiVRn discovery, WiVRn streaming
 
-      # VR-specific session variables
-      environment.sessionVariables = {
-        OPENVR_API_PATH = "${pkgs.xrizer}/lib/xrizer";
+      services = {
+        # Avahi - Required for WiVRn server discovery
+        avahi = {
+          enable = true;
+          nssmdns4 = true;
+          openFirewall = true;
+        };
+        # WiVRn - Wireless VR Streaming for Quest Headsets
+        wivrn = {
+          enable = true;
+          openFirewall = true;
+          defaultRuntime = true;
+          autoStart = true;
+        };
+        # VR device udev rules
+        udev.extraRules = ''
+          # Oculus Rift
+          SUBSYSTEM=="usb", ATTR{idVendor}=="2833", ATTR{idProduct}=="0181", MODE="0666", TAG+="uaccess"
+          # Valve Index / Vive
+          SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", TAG+="uaccess"
+          SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", TAG+="uaccess"
+          SUBSYSTEM=="hidraw", ATTRS{idVendor}=="28de", ATTRS{idProduct}=="2102", MODE="0666", TAG+="uaccess"
+          # HTC Vive
+          SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", ATTR{idProduct}=="2c87", MODE="0666", TAG+="uaccess"
+        '';
       };
-
       # VR firewall ports
       networking.firewall = {
-        allowedTCPPorts = [9757];
-        allowedUDPPorts = [
+        allowedTCPPorts = lib.mkOptionDefault [ 9757 ];
+        allowedUDPPorts = lib.mkOptionDefault [
           9757
           5353
           9947
@@ -392,47 +494,6 @@ in {
           27031
         ];
       };
-
-      # VR-specific packages
-      environment.systemPackages = with pkgs; ([
-          wivrn
-          openxr-loader
-          opencomposite
-          openvr
-          xrizer
-          motoc
-          # VR font/graphics dependencies
-          freetype
-          fontconfig
-          libpng
-          libjpeg
-          libtiff
-          ffmpeg
-        ]
-        ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
-          inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
-        ]
-        ++ [
-          # GPU profile command (merged here to avoid duplicate assignment)
-          (pkgs.writeShellScriptBin "gpu-profile" ''
-            exec ${./scripts/gpu-profiles/switch-profile} "$@"
-          '')
-        ]);
-
-      # VR device udev rules
-      services.udev.extraRules = ''
-        # Oculus Rift
-        SUBSYSTEM=="usb", ATTR{idVendor}=="2833", ATTR{idProduct}=="0181", MODE="0666", GROUP="plugdev"
-
-        # Valve Index / Vive
-        SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2101", MODE="0666", GROUP="plugdev"
-        SUBSYSTEM=="usb", ATTR{idVendor}=="28de", ATTR{idProduct}=="2102", MODE="0666", GROUP="plugdev"
-        SUBSYSTEM=="hidraw", ATTRS{idVendor}=="28de", ATTRS{idProduct}=="2102", MODE="0666", GROUP="plugdev"
-
-        # HTC Vive
-        SUBSYSTEM=="usb", ATTR{idVendor}=="0bb4", ATTR{idProduct}=="2c87", MODE="0666", GROUP="plugdev"
-      '';
-
       # VR kernel modules
       boot.kernelModules = [
         "usbhid"
@@ -441,7 +502,6 @@ in {
         "hid-sensor-hub"
         "uinput"
       ];
-
       # VR graphics packages
       hardware.graphics.extraPackages = with pkgs; [
         freetype
@@ -452,339 +512,60 @@ in {
       ];
       # NOTE: extraPackages32 removed - breaks Wayland on multi-NVIDIA
 
-      # ============================================================================
-      # AUTONOMOUS GPU WORKLOAD MONITOR
-      # ============================================================================
-      # Automatically detects workload type (gaming/AI/mining/idle)
-      # and switches GPU profiles accordingly
-      # Pauses mining when gaming or AI workloads are detected
+      # ENVIRONMENT - VR session variables and packages
 
-      systemd.services.gpu-workload-monitor = {
-        description = "Autonomous GPU workload monitor and profile manager";
-        after = ["nvidia-persistence-mode.service" "network.target"];
-        wantedBy = ["multi-user.target"];
-        path = with pkgs; [
-          # System utilities
-          procps # pgrep
-          systemd # systemctl
-        ];
-        serviceConfig = {
-          Type = "simple";
-          Environment = "PATH=${lib.makeBinPath (with pkgs; [procps systemd])}:/run/current-system/sw/bin";
-          ExecStart = "${pkgs.writeShellScriptBin "gpu-workload-monitor" ''
-            # Autonomous GPU Workload Monitor
-            # Detects workload type and adjusts GPU profiles automatically
-            # Manages mining pauses when AI/Gaming workloads detected
-
-            set -euo pipefail
-
-            LOG_FILE="/var/log/gpu-workload-monitor.log"
-            MINING_SERVICE="lolminer-nvidia"
-            AI_PROCESSES=("lmstudio" "ollama" "python.*llm" "ai-inference-gateway")
-            GAMING_PROCESSES=("steam" "lutris" "heroic" "wine" "proton")
-
-            log() {
-                echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
-            }
-
-            check_process_running() {
-                local process="$1"
-                pgrep -f "$process" >/dev/null
-            }
-
-            get_workload_type() {
-                # Priority: Gaming > AI > Mining > Idle
-
-                # Check for gaming
-                for proc in "''${GAMING_PROCESSES[@]}"; do
-                    if check_process_running "$proc"; then
-                        echo "gaming"
-                        return
-                    fi
-                done
-
-                # Check for AI workloads
-                for proc in "''${AI_PROCESSES[@]}"; do
-                    if check_process_running "$proc"; then
-                        echo "ai"
-                        return
-                    fi
-                done
-
-                # Check for active mining
-                if systemctl is-active --quiet "$MINING_SERVICE"; then
-                    # Mining is only active if no higher priority workload
-                    echo "mining"
-                    return
-                fi
-
-                echo "idle"
-            }
-
-            # Helper function to get available GPU list
-            get_gpu_list() {
-                nvidia-smi --query-gpu=index --format=csv,noheader,nounits 2>/dev/null || echo ""
-            }
-
-            # Helper function to get GPU name
-            get_gpu_name() {
-                local gpu_id="$1"
-                nvidia-smi -i "$gpu_id" --query-gpu=name --format=csv,noheader 2>/dev/null || echo "Unknown"
-            }
-
-            # Helper to safely apply nvidia-smi command
-            nvidia_safe() {
-                "$@" 2>/dev/null || true
-            }
-
-            apply_gaming_profile() {
-                echo "=== Applying GPU GAMING profile ==="
-
-                local gpus=$(get_gpu_list)
-                local gpu_count=$(echo "$gpus" | wc -l)
-
-                if [ "$gpu_count" -eq 0 ]; then
-                    echo "WARNING: No NVIDIA GPUs detected"
-                    return 0
-                fi
-
-                echo "Detected $gpu_count GPU(s) for gaming profile"
-
-                for gpu_id in $gpus; do
-                    local gpu_name=$(get_gpu_name "$gpu_id")
-                    echo "Configuring GPU $gpu_id ($gpu_name)..."
-
-                    case "$gpu_name" in
-                        *"3060"*)
-                            # 3060 Ti: Max performance
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2100
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7000
-                            echo "  3060 Ti: 2100 MHz GPU, 7000 MHz mem, 200W limit"
-                            ;;
-                        *"3090"*)
-                            # 3090: Aggressive GPU (liquid cooled), conservative VRAM
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 350
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 2050
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7500
-                            echo "  3090: 2050 MHz GPU (liquid-cooled), 7500 MHz mem, 350W limit"
-                            ;;
-                        *)
-                            # Default: Max performance
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 250
-                            nvidia_safe nvidia-smi -i "$gpu_id" -rgc
-                            nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-                            echo "  $gpu_name: Default max performance profile"
-                            ;;
-                    esac
-                done
-
-                echo "GAMING profile applied: Mode: Maximum performance"
-            }
-
-            apply_ai_profile() {
-                echo "=== Applying GPU AI INFERENCE profile ==="
-
-                local gpus=$(get_gpu_list)
-                local gpu_count=$(echo "$gpus" | wc -l)
-
-                if [ "$gpu_count" -eq 0 ]; then
-                    echo "WARNING: No NVIDIA GPUs detected"
-                    return 0
-                fi
-
-                echo "Detected $gpu_count GPU(s) for AI inference profile"
-
-                for gpu_id in $gpus; do
-                    local gpu_name=$(get_gpu_name "$gpu_id")
-                    echo "Configuring GPU $gpu_id ($gpu_name)..."
-
-                    case "$gpu_name" in
-                        *"3060"*)
-                            # 3060 Ti: Balanced
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 110
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1950
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6200
-                            echo "  3060 Ti: 1950 MHz GPU, 6200 MHz mem, 110W limit"
-                            ;;
-                        *"3090"*)
-                            # 3090: Liquid cooled, can push harder
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 300
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1900
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 7000
-                            echo "  3090: 1900 MHz GPU (liquid-cooled), 7000 MHz mem, 300W limit"
-                            ;;
-                        *)
-                            # Default: Balanced
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
-                            nvidia_safe nvidia-smi -i "$gpu_id" -rgc
-                            nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-                            echo "  $gpu_name: Default balanced profile"
-                            ;;
-                    esac
-                done
-
-                echo "AI INFERENCE profile applied: Mode: Balanced performance with thermal safety"
-            }
-
-            apply_mining_profile() {
-                echo "=== Applying GPU MINING profile ==="
-
-                local gpus=$(get_gpu_list)
-                local gpu_count=$(echo "$gpus" | wc -l)
-
-                if [ "$gpu_count" -eq 0 ]; then
-                    echo "WARNING: No NVIDIA GPUs detected"
-                    return 0
-                fi
-
-                echo "Detected $gpu_count GPU(s) for mining profile"
-
-                for gpu_id in $gpus; do
-                    local gpu_name=$(get_gpu_name "$gpu_id")
-                    echo "Configuring GPU $gpu_id ($gpu_name)..."
-
-                    case "$gpu_name" in
-                        *"3060"*)
-                            # 3060 Ti: Efficiency-focused
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 100
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1700
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 5200
-                            echo "  3060 Ti: 1700 MHz GPU, 5200 MHz mem, 100W limit"
-                            ;;
-                        *"3090"*)
-                            # 3090: Efficiency with liquid cooling
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 270
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lgc 1750
-                            nvidia_safe nvidia-smi -i "$gpu_id" -lmc 6500
-                            echo "  3090: 1750 MHz GPU (liquid-cooled), 6500 MHz mem, 270W limit"
-                            ;;
-                        *)
-                            # Default: Efficiency
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
-                            nvidia_safe nvidia-smi -i "$gpu_id" -rgc
-                            nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-                            echo "  $gpu_name: Default efficiency profile"
-                            ;;
-                    esac
-                done
-
-                echo "MINING profile applied: Mode: Efficiency-optimized"
-            }
-
-            apply_idle_profile() {
-                echo "=== Resetting GPUs to DEFAULT/AUTO profile ==="
-
-                local gpus=$(get_gpu_list)
-                local gpu_count=$(echo "$gpus" | wc -l)
-
-                if [ "$gpu_count" -eq 0 ]; then
-                    echo "WARNING: No NVIDIA GPUs detected"
-                    return 0
-                fi
-
-                echo "Detected $gpu_count GPU(s), resetting to defaults"
-
-                for gpu_id in $gpus; do
-                    local gpu_name=$(get_gpu_name "$gpu_id")
-                    echo "Resetting GPU $gpu_id ($gpu_name)..."
-
-                    # Reset power limits based on GPU model
-                    case "$gpu_name" in
-                        *"3060"*)
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 200
-                            ;;
-                        *"3090"*)
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl 350
-                            ;;
-                        *)
-                            # Try to get max power limit
-                            local max_power=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits 2>/dev/null | tr -d '.' || echo "300")
-                            nvidia_safe nvidia-smi -i "$gpu_id" -pl "''${max_power%.*}"
-                            ;;
-                    esac
-
-                    # Reset locked clocks
-                    nvidia_safe nvidia-smi -i "$gpu_id" -rgc
-                    nvidia_safe nvidia-smi -i "$gpu_id" -rmc
-
-                    echo "  GPU $gpu_id: Reset to defaults (adaptive mode)"
-                done
-
-                echo "RESET to defaults applied: Mode: Adaptive (auto)"
-            }
-
-            apply_profile() {
-                local profile="$1"
-                log "Applying profile: $profile"
-
-                case "$profile" in
-                    gaming)
-                        apply_gaming_profile
-                        # Pause mining if running
-                        if systemctl is-active --quiet "$MINING_SERVICE"; then
-                            log "Pausing mining for gaming"
-                            systemctl stop "$MINING_SERVICE"
-                        fi
-                        ;;
-                    ai)
-                        apply_ai_profile
-                        # Pause mining if running
-                        if systemctl is-active --quiet "$MINING_SERVICE"; then
-                            log "Pausing mining for AI inference"
-                            systemctl stop "$MINING_SERVICE"
-                        fi
-                        ;;
-                    mining)
-                        apply_mining_profile
-                        # Start mining if not running
-                        if ! systemctl is-active --quiet "$MINING_SERVICE"; then
-                            log "Starting mining (no other workloads detected)"
-                            systemctl start "$MINING_SERVICE"
-                        fi
-                        ;;
-                    idle)
-                        apply_idle_profile
-                        # Don't auto-start mining, stay idle
-                        log "System idle, GPUs in adaptive mode"
-                        ;;
-                esac
-            }
-
-            # State tracking
-            CURRENT_WORKLOAD="idle"
-            CHECK_INTERVAL=10  # Check every 10 seconds
-
-            log "Starting GPU workload monitor (check interval: ''${CHECK_INTERVAL}s)"
-
-            while true; do
-                new_workload=$(get_workload_type)
-
-                if [ "$new_workload" != "$CURRENT_WORKLOAD" ]; then
-                    log "Workload changed: $CURRENT_WORKLOAD -> $new_workload"
-                    CURRENT_WORKLOAD="$new_workload"
-                    apply_profile "$new_workload"
-                fi
-
-                sleep "$CHECK_INTERVAL"
-            done
-          ''}/bin/gpu-workload-monitor";
-          Restart = "on-failure";
-          RestartSec = "10s";
-          # Allow access to nvidia-smi and systemd
-          AmbientCapabilities = ["CAP_NET_ADMIN"];
+      environment = {
+        # VR-specific session variables
+        sessionVariables = {
+          OPENVR_API_PATH = "${pkgs.xrizer}/lib/xrizer";
         };
+        # VR-specific packages
+        systemPackages =
+          with pkgs;
+          (
+            [
+              wivrn
+              openxr-loader
+              opencomposite
+              openvr
+              xrizer
+              motoc
+              # VR font/graphics dependencies
+              freetype
+              fontconfig
+              libpng
+              libjpeg
+              libtiff
+              ffmpeg
+            ]
+            # Temporarily disabled nixpkgs-xr packages due to deprecated options
+            # ++ optionals (inputs != null && inputs ? nixpkgs-xr) [
+            #   inputs.nixpkgs-xr.packages.${pkgs.stdenv.hostPlatform.system}.oscavmgr
+            # ]
+            ++ [
+              # GPU profile command (merged here to avoid duplicate assignment)
+              (pkgs.writeShellScriptBin "gpu-profile" ''
+                exec ${./scripts/gpu-profiles/switch-profile} "$@"
+              '')
+            ]
+          );
       };
 
-      # ============================================================================
+      # COMPUTE WORKLOAD MONITOR MODULE
+
+      # Automatically detects workload type (gaming/AI/K8s/mining/idle)
+      # and switches GPU profiles accordingly
+      # Refactored to modular services: gaming-detection + gpu-profile-manager + mining-coordinator
+      services.gaming-detection.enable = true;
+      services.gpu-profile-manager.enable = true;
+
       # GAMEMODE INTEGRATION
-      # ============================================================================
+
       # GameMode provides automatic detection when games start/stop
       # and runs our custom scripts to switch GPU profiles
 
-      # ============================================================================
       # GPU PROFILE COMMANDS
-      # ============================================================================
+
       # Convenient aliases for manual profile switching
       # NOTE: gpu-profile command merged with VR packages above to avoid duplicate assignment
     })

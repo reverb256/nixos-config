@@ -33,24 +33,29 @@ for gpu_id in $GPUS; do
 
     echo "Configuring GPU $gpu_id ($gpu_name)..."
 
-    # Set adaptive mode for consistent performance
-    nvidia-settings -a [gpu:${gpu_id}]/GPUPowerMizerMode=0 2>/dev/null || true
-
-    # Set power limit and clocks based on GPU model
+    # Set power limit and clocks based on GPU model (using nvidia-smi only)
     case "$gpu_name" in
         *"3060"*)
             # 3060 Ti: 110W limit (55% of 200W)
             set_power_limit "$gpu_id" 110
-            nvidia-settings -a [gpu:${gpu_id}]/GPUGraphicsClockOffset[3]=100 2>/dev/null || true
-            nvidia-settings -a [gpu:${gpu_id}]/GPUMemoryClockOffset[3]=400 2>/dev/null || true
+            set_clock_offset "$gpu_id" graphics 100
+            set_clock_offset "$gpu_id" memory 400
             echo "  3060 Ti: 100 MHz GPU offset, 400 MHz mem offset, 110W limit"
             ;;
         *"3090"*)
             # 3090: 280W limit (80% of 350W)
             set_power_limit "$gpu_id" 280
-            nvidia-settings -a [gpu:${gpu_id}]/GPUGraphicsClockOffset[3]=80 2>/dev/null || true
-            nvidia-settings -a [gpu:${gpu_id}]/GPUMemoryClockOffset[3]=500 2>/dev/null || true
+            set_clock_offset "$gpu_id" graphics 80
+            set_clock_offset "$gpu_id" memory 500
             echo "  3090: 80 MHz GPU offset, 500 MHz mem offset, 280W limit"
+            ;;
+        *"4060"*)
+            # 4060 (Ada): 90W limit (78% of 115W TDP)
+            # Ada architecture requires conservative power limits for stability
+            set_power_limit "$gpu_id" 90
+            set_clock_offset "$gpu_id" graphics 50
+            set_clock_offset "$gpu_id" memory 200
+            echo "  4060 (Ada): 50 MHz GPU offset, 200 MHz mem offset, 90W limit"
             ;;
         *)
             # Default: 75% of typical power limit

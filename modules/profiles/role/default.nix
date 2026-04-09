@@ -1,11 +1,7 @@
 # modules/profiles/role/default.nix --- Role profiles
-
-{ lib, ... }:
-
-let
+{lib, ...}: let
   inherit (lib) mkEnableOption;
-in
-{
+in {
   imports = [
     ./implementations.nix
   ];
