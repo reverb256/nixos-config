@@ -741,8 +741,16 @@
     ai-inference = {
       enable = true;
       backend = {
-        url = "http://127.0.0.1:8083";
+        url = "http://127.0.0.1:1235";  # Local llama-cpp on 3060 Ti (always-on)
         type = "llama-cpp";
+        local = {
+          url = "http://127.0.0.1:1235";
+          model = "gemma-4-e2b-it";
+        };
+        nvidia-nim = {
+          enable = true;
+          apiKeyFile = "/run/agenix/nvidia-api-key";
+        };
         zai = {
           enable = true;
           apiKeyFile = "/run/agenix/zai-api-key";
