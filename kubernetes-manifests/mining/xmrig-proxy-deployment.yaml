@@ -37,6 +37,12 @@ spec:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
+        - key: workstation
+          operator: Exists
+          effect: NoSchedule
+        - key: interactive
+          operator: Exists
+          effect: NoExecute
 
       containers:
         - name: xmrig-proxy
