@@ -720,23 +720,6 @@ in
     ];
 
     # ==========================================================================
-    # NVIDIA DEBUG OPTIONS
-    # ==========================================================================
-    # These are critical for multi-GPU NVIDIA setups with VT switching:
-    #   - render-drm-device: force niri to render on the 3090 (card2)
-    #     which has all 4 monitors connected
-    #   - ignore-drm-device: ignore the 3060 Ti (card1) which has no
-    #     connected displays, prevents DRM auth errors on VT switch
-    #   - force-disable-connectors-on-resume: after a VT switch back to
-    #     niri, disable and re-enable all connectors to clear stale state
-    #     left by the previous compositor (fixes frozen/corrupted displays)
-    debug = {
-      render-drm-device = "/dev/dri/card2";
-      ignore-drm-device = "/dev/dri/card1";
-      force-disable-connectors-on-resume = true;
-    };
-
-    # ==========================================================================
     # WORKSPACES
     # ==========================================================================
     # Named workspaces for organization (optional)
