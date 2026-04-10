@@ -1,7 +1,8 @@
 # Home Manager Fish Shell Configuration
 # Centralized Fish configuration for j_kro across all cluster nodes
 # This replaces local ~/.config/fish/config.fish files
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   programs.fish = {
     enable = true;
 
@@ -12,6 +13,11 @@
       # ============================================================================
       set -gx EDITOR nvim
       set -gx VISUAL nvim
+
+      # API Keys (from agenix secrets)
+      if test -f /run/agenix/gemini-api-key
+        set -gx GEMINI_API_KEY (cat /run/agenix/gemini-api-key)
+      end
 
       # User time zone (system runs UTC, user sees local time)
       set -gx TZ America/Winnipeg
