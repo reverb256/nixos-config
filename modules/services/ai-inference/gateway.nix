@@ -213,12 +213,22 @@ in
         BACKEND_TYPE = cfg.backend.type;
         GATEWAY_HOST = cfg.gateway.host;
         GATEWAY_PORT = toString cfg.gateway.port;
+        LOCAL_BACKEND_URL = cfg.backend.local.url;
+        LOCAL_BACKEND_MODEL = cfg.backend.local.model;
       }
       // lib.optionalAttrs cfg.backend.zai.enable {
         ZAI_API_KEY_FILE =
           if cfg.backend.zai.apiKeyFile != null then toString cfg.backend.zai.apiKeyFile else "";
         ZAI_BASE_URL = cfg.backend.zai.baseUrl;
         BACKEND_FALLBACK_URLS = cfg.backend.zai.baseUrl;
+      }
+      // lib.optionalAttrs cfg.backend.nvidia-nim.enable {
+        NVIDIA_NIM_API_KEY_FILE =
+          if cfg.backend.nvidia-nim.apiKeyFile != null then
+            toString cfg.backend.nvidia-nim.apiKeyFile
+          else
+            "";
+        NVIDIA_NIM_BASE_URL = cfg.backend.nvidia-nim.baseUrl;
       }
       // lib.optionalAttrs cfg.backend.pollinations.enable {
         POLLINATIONS_API_KEY_FILE =

@@ -148,6 +148,55 @@ in
         };
       };
 
+      # NVIDIA NIM configuration
+      nvidia-nim = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable NVIDIA NIM inference endpoints";
+        };
+
+        baseUrl = mkOption {
+          type = types.str;
+          default = "https://integrate.api.nvidia.com/v1";
+          description = "NVIDIA NIM API base URL";
+        };
+
+        apiKeyFile = mkOption {
+          type = types.nullOr types.path;
+          default = null;
+          description = "Path to NVIDIA NIM API key file";
+        };
+
+        models = mkOption {
+          type = types.attrs;
+          default = {
+            "nvidia/nemotron-3-super-120b-a12b" = { name = "Nemotron 3 Super 120B (1M ctx)"; };
+            "deepseek-ai/deepseek-v3.1" = { name = "DeepSeek V3.1 (131K ctx)"; };
+            "moonshotai/kimi-k2.5" = { name = "Kimi K2.5 1T (262K ctx)"; };
+            "minimaxai/minimax-m2.5" = { name = "MiniMax M2.5 230B (1M ctx)"; };
+            "z-ai/glm5" = { name = "GLM-5 744B (205K ctx)"; };
+            "openai/gpt-oss-120b" = { name = "GPT-OSS 120B (131K ctx)"; };
+            "qwen/qwen3-coder-480b-a35b-instruct" = { name = "Qwen3 Coder 480B (1M ctx)"; };
+          };
+          description = "Available NVIDIA NIM models";
+        };
+      };
+
+      # Local llama-cpp backend
+      local = {
+        url = mkOption {
+          type = types.str;
+          default = "http://127.0.0.1:1235";
+          description = "Local llama-cpp server URL";
+        };
+        model = mkOption {
+          type = types.str;
+          default = "gemma-4-e2b-it";
+          description = "Default model on local llama-cpp server";
+        };
+      };
+
       # Pollinations-specific configuration
       pollinations = {
         enable = mkOption {
