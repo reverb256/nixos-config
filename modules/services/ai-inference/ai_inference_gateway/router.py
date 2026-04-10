@@ -388,10 +388,10 @@ class Router:
         self._backend_health_check_time: Dict[str, float] = {}
         self._health_check_ttl: float = 10.0  # Check health every 10 seconds
 
-    # Backend health check endpoints
+    # Backend health check — uses configured BACKEND_URL from env
     BACKEND_PORTS = {
-        "llama-cpp": 8083,
-        "llama-server": 8083,
+        "llama-cpp": 1235,  # Updated: local llama-cpp on 3060 Ti
+        "llama-server": 1235,
     }
 
     async def get_backend_load(self, backend: str) -> Dict:
@@ -476,7 +476,6 @@ class Router:
             from ai_inference_gateway.category_router import (
                 CategoryRouter,
                 TaskCategory,
-                ComplexityLevel,
             )
 
             # Create category router if not exists
