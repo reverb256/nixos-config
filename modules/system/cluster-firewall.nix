@@ -35,13 +35,12 @@ in
   # This causes networking.firewall.backend to auto-select "nftables".
   networking.nftables.enable = true;
 
-  # Deploy nft wrapper to /run/local/bin/nft and prepend to system PATH.
+  # Deploy nft wrapper via systemd tmpfiles (persists across reboots).
   # This ensures Calico health checks use the safe wrapper instead of the
   # segfault-prone nft binary from CachyOS 6.19.11.
-  boot.postBootCommands = ''
-    mkdir -p /run/local/bin
-    ln -sf ${nft-wrapper-script} /run/local/bin/nft
-  '';
+  systemd.tmpfiles.rules = [
+    "L+ /run/local/bin/nft - - - - ${nft-wrapper-script}"
+  ];
   # Prepend /run/local/bin to PATH so our wrapper shadows the real nft.
   environment.variables.PATH = [ "/run/local/bin" ];
 
