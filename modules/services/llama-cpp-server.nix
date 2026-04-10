@@ -87,7 +87,7 @@ in
         User = cfg.user;
         ExecStart =
           let
-            llamaServer = lib.getExe llama-cpp-cuda;
+            llamaServer = lib.getExe' llama-cpp-cuda "llama-server";
           in
           ''
             ${llamaServer} \
