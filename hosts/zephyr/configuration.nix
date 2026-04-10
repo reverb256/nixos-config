@@ -677,15 +677,16 @@
 
         # Kubernetes Ingress (proxy to Caddy ingress controller on Nexus)
         # Using IP directly — Caddy's Go resolver ignores /etc/hosts
-        http://search.lan, http://search.cluster.local {
+        # TLS via Caddy's internal CA (trusted by zen-browser)
+        https://search.lan, https://search.cluster.local {
           encode zstd gzip
           reverse_proxy 10.1.1.120:30080
         }
-        http://ai.lan, http://ai.cluster.local {
+        https://ai.lan, https://ai.cluster.local {
           encode zstd gzip
           reverse_proxy 10.1.1.120:30080
         }
-        http://openwebui.lan, http://openwebui.cluster.local {
+        https://openwebui.lan, https://openwebui.cluster.local {
           encode zstd gzip
           reverse_proxy 10.1.1.120:30080
         }
