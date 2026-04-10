@@ -255,6 +255,14 @@ in
     hosts.zephyr
   ];
 
+  # GITEA TOKEN
+
+  # Gitea PAT - Mirror push access to gitea.com
+  "secrets/gitea-token.age".publicKeys = [
+    users.j_kro
+    hosts.zephyr
+  ];
+
   # GITHUB CONTAINER REGISTRY TOKENS
 
   # GitHub Container Registry (GHCR) token - For pushing Docker images
