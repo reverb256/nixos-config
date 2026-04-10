@@ -797,9 +797,6 @@
     kubernetes = true; # k3s cluster token
   };
 
-  # Force SDDM to use X11 instead of Wayland - Wayland has DRM issues on this multi-GPU system
-  services.xserver = {
-    displayManager.sddm.wayland.enable = lib.mkForce false;
-    displayManager.sddm.settings.General.DisplayServer = lib.mkForce "x11";
-  };
+  # Use niri (Wayland) — no X11 on this cluster
+  programs.niri.enable = true;
 }
