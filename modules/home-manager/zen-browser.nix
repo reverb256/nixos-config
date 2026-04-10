@@ -57,11 +57,12 @@
         Fingerprinting = true;
       };
 
-      # DNS-over-HTTPS - encrypted DNS queries
+      # DNS-over-HTTPS - DISABLED for cluster compatibility
+      # Cloudflare/Google DoH can't resolve *.lan / *.cluster.local
+      # System DNS (unbound on 127.0.0.1) handles these correctly
       DNSOverHTTPS = {
-        Enabled = true;
+        Enabled = false;
         Locked = true;
-        ProviderURL = "https://security.cloudflare-dns.com/dns-query";
       };
 
       # Install Caddy Local Authority certificate for cluster services
