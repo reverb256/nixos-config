@@ -910,6 +910,7 @@
         "npm:pi-btw@0.2.1"
         "npm:pi-context@1.1.2"
         "npm:pi-lens@3.8.5"
+        "npm:pi-mcp-adapter@2.2.2"
         "npm:pi-powerline-footer@0.4.9"
         "npm:pi-rewind@0.5.0"
         "npm:pi-show-diffs@0.2.7"
