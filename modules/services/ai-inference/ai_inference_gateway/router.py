@@ -1127,6 +1127,20 @@ def create_default_router() -> Router:
         # ========================================================================
         # Local llama.cpp models - Primary backends
         # ========================================================================
+        # Gemma 4 E2B - Always-on fallback on 3060 Ti (port 1235)
+        ModelInfo(
+            id="gemma-4-e2b-it",
+            name="Gemma 4 E2B Instruct",
+            context_length=65536,  # 65K with Q4_0 KV
+            priority=11,  # Highest priority — always available
+            specializations=[
+                TaskSpecialization.FAST,
+                TaskSpecialization.GENERAL,
+            ],
+            cost_tier=0,  # Free, local
+            estimated_tokens_per_second=60.0,
+            backend="llama-cpp",
+        ),
         # Qwen 3.5 35B A3B - Largest local model, best for complex tasks
         ModelInfo(
             id="qwen3.5-35b-a3b",
