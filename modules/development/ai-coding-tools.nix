@@ -691,68 +691,9 @@ let
               }
             ]
           },
-          "lmstudio": {
-            "baseUrl": "http://127.0.0.1:1234/v1",
-            "api": "openai-completions",
-            "apiKey": "lmstudio",
-            "models": [
-              {
-                "id": "gemma-4-e2b-it",
-                "name": "Gemma 4 E2B Instruct (LM Studio)",
-                "reasoning": false,
-                "input": ["text"],
-                "contextWindow": 131072,
-                "maxTokens": 8192,
-                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
-              },
-              {
-                "id": "gemma-4-e4b-it",
-                "name": "Gemma 4 E4B Instruct (LM Studio)",
-                "reasoning": false,
-                "input": ["text"],
-                "contextWindow": 131072,
-                "maxTokens": 8192,
-                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
-              },
-              {
-                "id": "gemma-4-26b-a4b-it",
-                "name": "Gemma 4 26B A4B Instruct (LM Studio)",
-                "reasoning": false,
-                "input": ["text"],
-                "contextWindow": 262144,
-                "maxTokens": 8192,
-                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
-              },
-              {
-                "id": "gemma-4-31b-it",
-                "name": "Gemma 4 31B Instruct (LM Studio)",
-                "reasoning": false,
-                "input": ["text"],
-                "contextWindow": 262144,
-                "maxTokens": 8192,
-                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
-              }
-            ]
-          },
-          "llama-cpp": {
-            "baseUrl": "http://127.0.0.1:1235/v1",
-            "api": "openai-completions",
-            "apiKey": "unused",
-            "models": [
-              {
-                "id": "gemma-4-e2b-it",
-                "name": "Gemma 4 E2B Instruct (llama.cpp Nix)",
-                "reasoning": false,
-                "input": ["text"],
-                "contextWindow": 65536,
-                "maxTokens": 8192,
-                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
-              }
-            ]
-          }
         }
       }' > "/home/${cfg.user}/.pi/agent/models.json"
-    # Build settings.json with model config + declarative packages
+    # Build settings.json with model config + declarative packages + extensions config
     ${pkgs.jq}/bin/jq -n \
       --argjson packages '${builtins.toJSON cfg.tools.pi.packages}' \
       '{
@@ -760,7 +701,41 @@ let
         "lastChangelogVersion": "auto",
         "defaultProvider": "zai",
         "defaultModel": "glm-5.1",
-        "packages": $packages
+        "packages": $packages,
+        "selfLearning": {
+          "enabled": true,
+          "autoAfterTask": true,
+          "storage": {
+            "mode": "global",
+            "projectPath": "brain/self-learning",
+            "globalPath": "~/brain"
+          },
+          "git": {
+            "enabled": true,
+            "autoCommit": true
+          },
+          "context": {
+            "enabled": true,
+            "includeCore": true,
+            "includeLatestMonthly": false,
+            "includeLastNDaily": 0,
+            "maxChars": 12000,
+            "instructionMode": "strict"
+          },
+          "model": {
+            "provider": "zai",
+            "id": "glm-5-turbo"
+          }
+        },
+        "localModelDiscovery": {
+          "providers": {
+            "lmstudio": { "port": 1234, "apiKey": "lmstudio" },
+            "llama-cpp": { "port": 1235, "apiKey": "unused" }
+          },
+          "excludePatterns": ["text-embedding-*"],
+          "defaultContextWindow": 131072,
+          "defaultMaxTokens": 8192
+        }
       }' > "/home/${cfg.user}/.pi/agent/settings.json"
     chown -R ${cfg.user}:users "/home/${cfg.user}/.pi/agent"
     chmod 600 "/home/${cfg.user}/.pi/agent/models.json"

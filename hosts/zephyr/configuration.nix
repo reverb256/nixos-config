@@ -225,7 +225,7 @@
       serverAddr = "https://10.1.1.100:6443";
       tokenFile = "/run/agenix/k3s-cluster-token";
       nodeIP = "10.1.1.110";
-      calico.enable = true;
+      calico.enable = false; # Flannel + kube-proxy (nft segfaults on CachyOS 6.19.11)
     };
 
     # Deploy K8s manifests from Nix store on boot (control-plane node)
@@ -745,7 +745,7 @@
         type = "llama-cpp";
         local = {
           url = "http://127.0.0.1:1235";
-          model = "gemma-4-e2b-it";
+          model = "gemma-4-e4b-it";
         };
         nvidia-nim = {
           enable = true;
@@ -926,6 +926,7 @@
         "npm:pi-subagents@0.12.4"
         "npm:pi-web-access@0.10.6"
         "npm:pi-worktree@1.3.3"
+"npm:pi-self-learning"
       ];
     };
 
@@ -1223,19 +1224,25 @@
   # LM Studio - Local LLM inference with GPU acceleration
   programs.lm-studio.enable = true;
 
-  # llama.cpp server - Cluster-local fallback model on 3060 Ti
-  # Gemma 4 E2B Q4_K_M, GPU-only via --override-tensor, 65K context with Q4_0 KV
+  # llama.cpp server - Multimodal model on 3060 Ti (8GB VRAM)
+  # Gemma 4 E4B Q4_K_M + mmproj (vision-capable) on 3060 Ti (8GB VRAM)
+  # No override-tensor — scheduler splits model across GPU+CPU, keeping compute on GPU
+  # 128K context with Q4_0 KV: only 4 non-SWA layers store full context (~587MB)
   # Available to all cluster nodes at zephyr:1235
+  # Vision: send image_url in messages, model processes via mmproj encoder
   services.llama-cpp-server = {
     enable = true;
-    model = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E2B-it-GGUF/gemma-4-E2B-it-Q4_K_M.gguf";
-    alias = "gemma-4-e2b-it";
+    model = "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/gemma-4-E4B-it-Q4_K_M.gguf";
+    alias = "gemma-4-e4b-it";
     host = "0.0.0.0";
     port = 1235;
-    contextLength = 65536;
-    gpuDevice = 1;  # 3060 Ti (nvidia-smi index 0 = 3060 Ti, CUDA index 1 = 3060 Ti)
+    contextLength = 131072;  # Full 128K — shared KV keeps Q4_0 cache ~587MB
+    gpuDevice = 1;  # 3060 Ti (CUDA device 1 = nvidia-smi GPU 0 = 3060 Ti, 8GB)
     cacheType = "q4_0";
+    parallel = 1;  # Single slot — maximizes VRAM for compute
+    overrideTensor = false;  # Scheduler-managed placement avoids CPU compute spill
     user = "j_kro";
+    extraArgs = [ "--mmproj" "/home/j_kro/.lmstudio/models/lmstudio-community/gemma-4-E4B-it-GGUF/mmproj-gemma-4-E4B-it-BF16.gguf" ];
   };
 
   # Pi agent model registry (declarative models.json)
