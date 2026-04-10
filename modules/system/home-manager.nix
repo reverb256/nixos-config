@@ -38,6 +38,7 @@ in
           ../../modules/home-manager/nixcord-config.nix
           ../../modules/home-manager/caprine.nix
           ../../modules/home-manager/niri-config.nix
+          ../../modules/home-manager/obsidian.nix
         ];
 
         # Enable vesktop and caprine only on Zephyr
