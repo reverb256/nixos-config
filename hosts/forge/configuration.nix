@@ -790,6 +790,8 @@
   # AGENIX SECRETS
 
   # Centralized registry - see modules/system/agenix-secrets-registry.nix
+  services.unbound-common.enable = true;
+
   services.agenix-secrets-registry = {
     enable = true;
     kubernetes = true; # k3s cluster token
