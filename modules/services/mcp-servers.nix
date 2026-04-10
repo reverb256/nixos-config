@@ -270,6 +270,16 @@ in
           default = false;
         };
       };
+      lightpanda = {
+        enable = lib.mkEnableOption "LightPanda headless browser MCP server (9x faster than Chrome)" // {
+          default = true;
+        };
+        obeyRobots = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Respect robots.txt when crawling";
+        };
+      };
     };
   };
   config = lib.mkIf cfg.enable {
@@ -411,7 +421,17 @@ in
         (pkgs.writeShellScriptBin "mcp-gateway-bridge" ''
           exec ${pkgs.python3}/bin/python3 /etc/nixos/scripts/mcp-gateway-bridge "$@"
         '')
-      ];
+        # LightPanda - headless browser MCP server (9x faster than Chrome, 16x less memory)
+        # Static binary from https://github.com/lightpanda-io/browser nightly builds
+        # Provides web scraping, JS execution, navigation via native MCP over stdio
+      ]
+      ++ lib.optional cfg.servers.lightpanda.enable (
+        pkgs.writeShellScriptBin "mcp-lightpanda" ''
+          exec /opt/lightpanda/lightpanda mcp \
+            ${lib.optionalString cfg.servers.lightpanda.obeyRobots "--obey-robots"} \
+            "$@"
+        ''
+      );
     # Note: playwright-mcp from nixpkgs is already wrapped with proper
     # PLAYWRIGHT_BROWSERS_PATH and browser binaries from playwright-driver.browsers.
     # No activation script needed - browsers are in the Nix store.
@@ -450,6 +470,7 @@ in
         | chrome-devtools | `mcp-chrome-devtools` | Chrome debugging |
         | github | `mcp-github` | GitHub integration |
         | **gateway** | `mcp-gateway-bridge` | **Bridge to AI Inference Gateway (all tools)** |
+       | **lightpanda** | `mcp-lightpanda` | **Headless browser (9x faster than Chrome)** |
        ## MCP Gateway Bridge
        The `mcp-gateway-bridge` command provides a stdio-to-HTTP proxy, enabling stdio-based
        MCP clients (Claude Code, LM Studio, OpenCode) to access all AI Inference Gateway tools:

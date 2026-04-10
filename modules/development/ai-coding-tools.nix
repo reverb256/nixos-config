@@ -89,6 +89,9 @@ let
     playwright = {
       command = "mcp-playwright";
     };
+    lightpanda = {
+      command = "mcp-lightpanda";
+    };
     context7 = {
       command = "mcp-context7";
       env.CONTEXT7_API_KEY = context7ApiKeyRef;
@@ -174,6 +177,10 @@ let
             "command": "mcp-playwright",
             "disabled": false
           },
+          "lightpanda": {
+            "command": "mcp-lightpanda",
+            "disabled": false
+          },
           "context7": {
             "command": "mcp-context7",
             "env": { "CONTEXT7_API_KEY": "$CONTEXT7_API_KEY" },
@@ -242,6 +249,9 @@ let
           },
           "playwright": {
             "command": "mcp-playwright"
+          },
+          "lightpanda": {
+            "command": "mcp-lightpanda"
           },
           "context7": {
             "command": "mcp-context7",
@@ -343,6 +353,9 @@ let
           },
           "playwright": {
             "command": "mcp-playwright"
+          },
+          "lightpanda": {
+            "command": "mcp-lightpanda"
           },
           "context7": {
             "command": "mcp-context7",
@@ -486,6 +499,9 @@ let
           },
           "playwright": {
             "command": "mcp-playwright"
+          },
+          "lightpanda": {
+            "command": "mcp-lightpanda"
           },
           "context7": {
             "command": "mcp-context7",
@@ -1156,7 +1172,7 @@ in
         done
         echo ""
         echo "MCP wrapper commands:"
-        for cmd in mcp-filesystem mcp-git mcp-fetch mcp-playwright mcp-context7 mcp-gateway-bridge; do
+        for cmd in mcp-filesystem mcp-git mcp-fetch mcp-playwright mcp-lightpanda mcp-context7 mcp-gateway-bridge; do
           if command -v "$cmd" &>/dev/null; then
             echo "  ✓ $cmd"
           else
