@@ -1,4 +1,5 @@
-{lib, ...}: {
+{ lib, ... }:
+{
   # ============================================================================
   # VM TUNING - Memory pressure defense and OOM prevention
   # ============================================================================
@@ -106,4 +107,12 @@
     # 512MB = comfortable buffer for desktop workloads
     "vm.extra_free_kbytes" = lib.mkForce 524288; # 512MB extra free
   };
+
+  # ============================================================================
+  # CORE DUMP DISABLE - Prevent nft segfault I/O storms
+  # ============================================================================
+  # nftables 1.1.6 null deref with Calico BPF maps causes repeated segfaults.
+  # systemd-coredump catches each one, zstd compresses, fills disk, crashes node.
+  # Route all core dumps to /dev/null to break the crash chain.
+  boot.kernel.sysctl."kernel.core_pattern" = "/dev/null";
 }
