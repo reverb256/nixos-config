@@ -43,7 +43,6 @@
           ./wayland-tools.nix
           ./zen-browser.nix
           ./nixcord-config.nix
-          ./obsidian.nix
           {
             # Force manage mimeapps.list to prevent clobber errors
             # This makes the configuration idempotent
