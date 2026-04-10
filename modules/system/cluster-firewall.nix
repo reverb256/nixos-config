@@ -22,8 +22,14 @@ let
   # reboots (softlockup_panic=1 nmi_watchdog=1 in kernel params).
   # We deploy a wrapper script and create a symlink in /run/local/bin
   # which is prepended to PATH via boot.postBootCommands.
+  #
+  # IMPORTANT: Only intercept "list" + "map|calico" queries (read-only).
+  # All other nft calls (add, delete, flush, create) MUST pass through
+  # to the real binary — intercepting them prevents Calico from
+  # initializing its dataplane (tables/chains), causing infinite retries
+  # and cascading nft segfaults.
   nft-wrapper-script = pkgs.writeShellScript "nft-wrapper" ''
-    if [[ "$1" == "list" ]] && echo "$@" | grep -qE "(map|calico)"; then
+    if [[ "$1" == "list" ]] && echo "''${@:2}" | grep -qE "(map|calico)"; then
       echo "{}"
       exit 0
     fi
@@ -34,6 +40,19 @@ in
   # Enable nftables as the firewall backend.
   # This causes networking.firewall.backend to auto-select "nftables".
   networking.nftables.enable = true;
+
+  # Disable br_netfilter — it intercepts bridge traffic through iptables,
+  # causing conflicts with both iptables-legacy and iptables-nft loaded.
+  # This breaks K8s pod networking (TCP/UDP forwarded traffic silently dropped).
+  # K3s/Calico handle their own packet filtering via iptables-nft.
+  boot.blacklistedKernelModules = [
+    "br_netfilter"
+    "ip_tables"
+    "iptable_filter"
+    "iptable_nat"
+    "iptable_mangle"
+    "iptable_raw"
+  ];
 
   # Deploy nft wrapper via systemd tmpfiles (persists across reboots).
   # This ensures Calico health checks use the safe wrapper instead of the
