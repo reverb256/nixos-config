@@ -29,7 +29,13 @@ let
   # initializing its dataplane (tables/chains), causing infinite retries
   # and cascading nft segfaults.
   nft-wrapper-script = pkgs.writeShellScript "nft-wrapper" ''
-    if [[ "$1" == "list" ]] && echo "''${@:2}" | grep -qE "(map|calico)"; then
+    # Only intercept list operations involving maps or calico tables.
+    # "list" may appear as $1 or after flags (e.g., "--json list maps ip"),
+    # so we grep across all args rather than checking $1 alone.
+    # All other nft calls (add, delete, flush, create) MUST pass through
+    # to the real binary — intercepting them prevents Calico from
+    # initializing its dataplane (tables/chains).
+    if echo "$@" | grep -qE "(^|[[:space:]])(list)" && echo "$@" | grep -qE "(map|calico)"; then
       echo "{}"
       exit 0
     fi
@@ -62,6 +68,29 @@ in
   ];
   # Prepend /run/local/bin to PATH so our wrapper shadows the real nft.
   environment.variables.PATH = [ "/run/local/bin" ];
+
+  # ============================================================================
+  # NFT COREDUMP CLEANUP
+  # ============================================================================
+  # CachyOS 6.19.11 kernel bug: nft segfaults (null pointer deref) when
+  # listing BPF maps inside Calico's container-internal /usr/sbin/nft.
+  # The Tigera operator prevents injecting a wrapper into the container,
+  # so segfaults cannot be fully stopped without a kernel update.
+  #
+  # Each coredump is ~345KB compressed at ~3-4/min. This timer cleans them
+  # every 10 minutes to prevent disk exhaustion.
+  systemd.services.nft-coredump-cleanup = {
+    description = "Clean nft coredumps (CachyOS kernel bug workaround)";
+    script = ''
+      find /var/lib/systemd/coredump -name 'core.nft.*' -mmin +1 -delete 2>/dev/null
+    '';
+    serviceConfig.Type = "oneshot";
+  };
+  systemd.timers.nft-coredump-cleanup = {
+    wantedBy = [ "timers.target" ];
+    timerConfig.OnCalendar = "*:0/10:00";
+    timerConfig.Persistent = false;
+  };
 
   # ============================================================================
   # CLUSTER SUBNET FIREWALL RULES (nftables syntax)
