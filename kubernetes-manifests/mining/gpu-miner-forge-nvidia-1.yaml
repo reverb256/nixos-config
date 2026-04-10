@@ -70,11 +70,11 @@ spec:
           readOnly: true
         resources:
           requests:
-            memory: "1Gi"
+            memory: "256Mi"
             cpu: "100m"
           limits:
-            memory: "2Gi"
-            cpu: "1000m"
+            memory: "512Mi"
+            cpu: "500m"
       volumes:
       - name: dev
         hostPath:

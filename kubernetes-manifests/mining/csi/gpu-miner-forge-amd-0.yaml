@@ -42,6 +42,7 @@ spec:
         - "--pass=x"
         - "--tls=1"
         - "--devices=0"
+        - "--no-cuda"
         - "--apiport=4070"
 
         env:

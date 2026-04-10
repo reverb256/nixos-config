@@ -46,8 +46,8 @@ spec:
         - "--pass=x"
         - "--tls=1"
         - "--devices=0"
-        - "--pl=110"
         - "--apiport=4070"
+        - "--pl=110"
         env:
         - name: LD_LIBRARY_PATH
           value: "/lib"
@@ -56,37 +56,24 @@ spec:
         securityContext:
           privileged: true
         ports:
-        - containerPort: 4070
-          name: api
-          protocol: TCP
-        livenessProbe:
-          tcpSocket:
-            port: 4070
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          failureThreshold: 3
-        readinessProbe:
-          tcpSocket:
-            port: 4070
-          initialDelaySeconds: 15
-          periodSeconds: 10
-          failureThreshold: 3
         resources:
           requests:
             cpu: "500m"
-            memory: 2Gi
+            memory: 256Mi
           limits:
-            cpu: "2"
-            memory: 4Gi
+            cpu: "500m"
+            memory: 512Mi
         volumeMounts:
-        - name: dev
-          mountPath: /dev
         - name: dri
           mountPath: /dev/dri
+        - name: kfd
+          mountPath: /dev/kfd
       volumes:
-      - name: dev
-        hostPath:
-          path: /dev
       - name: dri
         hostPath:
           path: /dev/dri
+          type: Directory
+      - name: kfd
+        hostPath:
+          path: /dev/kfd
+          type: CharDevice

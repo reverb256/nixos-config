@@ -1,4 +1,4 @@
-# GPU Miner for Forge - AMD GPU 1 (RX 5700 XT)
+# GPU Miner for Forge - AMD GPU 0 (RX 5700 XT)
 # Uses NixOS-built container image with matching glibc (no hostPath nix/store needed)
 ---
 apiVersion: apps/v1
@@ -8,7 +8,7 @@ metadata:
   namespace: mining
   labels:
     app: gpu-miner-forge
-    gpu-id: "1"
+    gpu-id: "0"
     gpu-type: amd
     host: forge
 spec:
@@ -46,8 +46,8 @@ spec:
         - "--pass=x"
         - "--tls=1"
         - "--devices=1"
-        - "--pl=110"
         - "--apiport=4071"
+        - "--pl=110"
         env:
         - name: LD_LIBRARY_PATH
           value: "/lib"
@@ -56,7 +56,7 @@ spec:
         securityContext:
           privileged: true
         ports:
-        - containerPort: 4071
+        - containerPort: 4070
           name: api
           protocol: TCP
         livenessProbe:
@@ -74,19 +74,21 @@ spec:
         resources:
           requests:
             cpu: "500m"
-            memory: 2Gi
+            memory: 256Mi
           limits:
-            cpu: "2"
-            memory: 4Gi
+            cpu: "500m"
+            memory: 512Mi
         volumeMounts:
-        - name: dev
-          mountPath: /dev
         - name: dri
           mountPath: /dev/dri
+        - name: kfd
+          mountPath: /dev/kfd
       volumes:
-      - name: dev
-        hostPath:
-          path: /dev
       - name: dri
         hostPath:
           path: /dev/dri
+          type: Directory
+      - name: kfd
+        hostPath:
+          path: /dev/kfd
+          type: CharDevice
