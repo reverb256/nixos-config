@@ -41,6 +41,20 @@ let
     fi
     exec ${pkgs.nftables}/bin/nft "$@"
   '';
+
+  # Workaround for CachyOS 6.19.11 nft segfault triggered by kube-router.
+  # kube-router calls `iptables` which resolves to iptables-nft (xtables-nft-multi),
+  # which internally calls the `nft` binary. On CachyOS 6.19.11, `nft` segfaults
+  # on null pointer deref, generating coredumps that fill disk and freeze the node.
+  #
+  # Fix: redirect iptables/ip6tables to iptables-legacy which uses the kernel's
+  # legacy iptables code directly without touching nft.
+  iptables-legacy-wrapper = pkgs.writeShellScript "iptables-legacy-wrapper" ''
+    exec ${pkgs.iptables}/bin/iptables-legacy "$@"
+  '';
+  ip6tables-legacy-wrapper = pkgs.writeShellScript "ip6tables-legacy-wrapper" ''
+    exec ${pkgs.iptables}/bin/ip6tables-legacy "$@"
+  '';
 in
 {
   # Enable nftables as the firewall backend.
@@ -53,11 +67,11 @@ in
   # K3s/Calico handle their own packet filtering via iptables-nft.
   boot.blacklistedKernelModules = [ "br_netfilter" ];
 
-  # Deploy nft wrapper via systemd tmpfiles (persists across reboots).
-  # This ensures Calico health checks use the safe wrapper instead of the
-  # segfault-prone nft binary from CachyOS 6.19.11.
+  # Deploy wrappers via systemd tmpfiles (persists across reboots).
   systemd.tmpfiles.rules = [
     "L+ /run/local/bin/nft - - - - ${nft-wrapper-script}"
+    "L+ /run/local/bin/iptables - - - - ${iptables-legacy-wrapper}"
+    "L+ /run/local/bin/ip6tables - - - - ${ip6tables-legacy-wrapper}"
   ];
   # Prepend /run/local/bin to PATH so our wrapper shadows the real nft.
   environment.variables.PATH = [ "/run/local/bin" ];
