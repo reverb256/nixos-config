@@ -434,7 +434,6 @@ in
     (mkIf config.profiles.node.forge-mining.enable {
       profiles.role = {
         mining = true;
-        aiInference = true;
       };
     })
 
