@@ -547,8 +547,30 @@ class GatewayConfig(BaseSettings):
     )
     backend_type: str = Field(
         default="llama-cpp",
-        pattern="^(llama-cpp|vllm|sglang|zai|pollinations)$",
+        pattern="^(llama-cpp|vllm|sglang|zai|pollinations|nvidia-nim)$",
         description="Primary backend type",
+    )
+
+    # Local backend (always-on llama-cpp)
+    local_backend_url: str = Field(
+        default="http://127.0.0.1:1235",
+        description="Local llama-cpp backend URL"
+    )
+    local_backend_model: str = Field(
+        default="gemma-4-e2b-it",
+        description="Default model on local backend"
+    )
+
+    # NVIDIA NIM backend
+    nvidia_nim_base_url: str = Field(
+        default="https://integrate.api.nvidia.com/v1",
+        description="NVIDIA NIM API base URL"
+    )
+    nvidia_nim_api_key: Optional[SecretStr] = Field(
+        default=None, repr=False, exclude=True, description="NVIDIA NIM API key"
+    )
+    nvidia_nim_api_key_file: Optional[str] = Field(
+        default=None, description="Path to file containing NVIDIA NIM API key"
     )
 
     def get_backend_fallback_urls(self) -> list[str]:
@@ -558,6 +580,18 @@ class GatewayConfig(BaseSettings):
         return [
             url.strip() for url in self.backend_fallback_urls.split(",") if url.strip()
         ]
+
+    def get_nvidia_nim_api_key(self) -> Optional[str]:
+        """Get NVIDIA NIM API key from file or direct value."""
+        if self.nvidia_nim_api_key_file:
+            try:
+                with open(self.nvidia_nim_api_key_file) as f:
+                    return f.read().strip()
+            except Exception:
+                return None
+        if self.nvidia_nim_api_key:
+            return self.nvidia_nim_api_key.get_secret_value()
+        return None
 
     # API Keys (marked as secrets - won't appear in logs or repr)
     zai_api_key: Optional[SecretStr] = Field(
