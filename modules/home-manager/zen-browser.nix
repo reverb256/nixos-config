@@ -94,6 +94,12 @@
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/darkreader/latest.xpi";
         };
 
+        # Knowledge Management
+        "clipper@obsidian.md" = {
+          installation_mode = "normal_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/web-clipper-obsidian/latest.xpi";
+        };
+
         # User-Configurable (allows per-site exceptions for sites like Outlook)
         "jid1-MnnxcxisBPnSXQ@jetpack" = {
           installation_mode = "normal_installed";
