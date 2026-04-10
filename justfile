@@ -77,6 +77,10 @@ nfs-status:
 
 # Deploy to all hosts or specific host
 # Note: No sync needed - all remote hosts use NFS mount /run/nixos-shared
+#
+# IMPORTANT: Zephyr has targetHost=null (local-only), so `colmena apply --on zephyr`
+# silently skips it. For zephyr, use `colmena apply-local --sudo` instead.
+# This recipe handles the routing automatically.
 deploy target *args:
     #!/usr/bin/env bash
     set -e
@@ -89,7 +93,13 @@ deploy target *args:
 
     if [ "{{target}}" = "all" ] || [ -z "{{target}}" ]; then
         echo "▸ Deploying to all hosts (NFS-based, no sync needed)..."
-        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --verbose {{args}}
+        # Deploy remote hosts first, then local
+        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on nexus,forge,sentry --verbose {{args}}
+        echo "▸ Deploying zephyr locally..."
+        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose {{args}}
+    elif [ "{{target}}" = "zephyr" ]; then
+        echo "▸ Deploying zephyr locally (apply-local)..."
+        cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose {{args}}
     else
         echo "▸ Deploying to {{target}} (uses NFS mount /run/nixos-shared)..."
         cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply --on {{target}} --verbose {{args}}
@@ -120,12 +130,12 @@ check:
 #  LOCAL OPERATIONS
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Apply to current host
+# Apply to current host (uses colmena apply-local for correct HM integration)
 switch:
     #!/usr/bin/env bash
     set -e
-    echo "▸ Switching $(hostname -s)..."
-    cd {{FLAKE}} && sudo nixos-rebuild switch --flake .#$(hostname -s)
+    echo "▸ Switching $(hostname -s) via colmena apply-local..."
+    cd {{FLAKE}} && nix run .#apps.x86_64-linux.colmena -- apply-local --sudo --verbose
 
 # Build without applying (local host only)
 build:
