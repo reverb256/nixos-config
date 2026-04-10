@@ -51,14 +51,7 @@ in
   # causing conflicts with both iptables-legacy and iptables-nft loaded.
   # This breaks K8s pod networking (TCP/UDP forwarded traffic silently dropped).
   # K3s/Calico handle their own packet filtering via iptables-nft.
-  boot.blacklistedKernelModules = [
-    "br_netfilter"
-    "ip_tables"
-    "iptable_filter"
-    "iptable_nat"
-    "iptable_mangle"
-    "iptable_raw"
-  ];
+  boot.blacklistedKernelModules = [ "br_netfilter" ];
 
   # Deploy nft wrapper via systemd tmpfiles (persists across reboots).
   # This ensures Calico health checks use the safe wrapper instead of the

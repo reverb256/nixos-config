@@ -492,12 +492,13 @@ in
                 RemainAfterExit = true;
               };
             };
-        # AMD GPU power limit service (runs before lolminer)
-        amd-gpu-power-limit = mkIf cfg.lolminer.amd.enable {
+        # AMD GPU power limit service (runs at boot, independent of lolminer)
+        # This ensures power limits persist when mining runs via Kubernetes pods
+        amd-gpu-power-limit = mkIf (cfg.lolminer.amd.powerLimit != null) {
           description = "Set AMD GPU Power Limit for Mining";
           wantedBy = [ "multi-user.target" ];
-          before = [ "lolminer-amd.service" ];
-          requiredBy = [ "lolminer-amd.service" ];
+          before = lib.optionals cfg.lolminer.amd.enable [ "lolminer-amd.service" ];
+          requiredBy = lib.optionals cfg.lolminer.amd.enable [ "lolminer-amd.service" ];
           serviceConfig = {
             Type = "oneshot";
             ExecStart = amdGpuPowerLimitScript;
