@@ -744,8 +744,8 @@ let
                 "name": "Gemma 4 E2B Instruct (llama.cpp Nix)",
                 "reasoning": false,
                 "input": ["text"],
-                "contextWindow": 8192,
-                "maxTokens": 4096,
+                "contextWindow": 65536,
+                "maxTokens": 8192,
                 "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
               }
             ]
