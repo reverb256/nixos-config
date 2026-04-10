@@ -67,6 +67,18 @@ in
       description = "Alias for the model (used as model ID in API)";
     };
 
+    parallel = lib.mkOption {
+      type = lib.types.int;
+      default = 4;
+      description = "Number of parallel inference slots";
+    };
+
+    overrideTensor = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Whether to force all tensors to GPU via --override-tensor. Disable for models where compute graph needs scheduler-managed placement.";
+    };
+
     extraArgs = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
@@ -95,11 +107,11 @@ in
               --host ${cfg.host} \
               --port ${toString cfg.port} \
               --n-gpu-layers -1 \
-              --override-tensor ".*=CUDA0" \
+              ${lib.optionalString cfg.overrideTensor "--override-tensor '.*=CUDA0'"} \
               --ctx-size ${toString cfg.contextLength} \
               --cache-type-k ${cfg.cacheType} \
               --cache-type-v ${cfg.cacheType} \
-              --parallel 4 \
+              --parallel ${toString cfg.parallel} \
               --cont-batching \
               --metrics \
               ${lib.optionalString (cfg.alias != null) "--alias ${cfg.alias}"} \

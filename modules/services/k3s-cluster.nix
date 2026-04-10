@@ -288,6 +288,35 @@ in
     system.activationScripts.k3s-dirs = ''
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
     '';
+
+    # Workaround: k3s host-gw mode doesn't clear NetworkUnavailable condition
+    # The kubelet sets NetworkUnavailable=True on startup, but k3s's embedded
+    # cloud-controller-manager doesn't set it to False for host-gw backend.
+    # This timer patches the condition and removes the taint every 30s.
+    # See: k3s-io/k3s#2808
+    systemd.services.k3s-network-taint-fix = lib.mkIf isServer {
+      description = "Fix NetworkUnavailable taint for host-gw flannel";
+      path = [ pkgs.kubectl ];
+      serviceConfig.Type = "oneshot";
+      serviceConfig.ExecStart = pkgs.writeShellScript "fix-network-taint" ''
+        export KUBECONFIG="/etc/rancher/k3s/k3s.yaml"
+        for node in $(kubectl get nodes -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+          kubectl patch node "$node" --type=merge \
+            -p '{"status":{"conditions":[{"type":"NetworkUnavailable","status":"False","reason":"FlannelHostGWIsUp","message":"Flannel host-gw routes active"}]}}' \
+            --subresource=status 2>/dev/null || true
+          kubectl taint nodes "$node" node.kubernetes.io/network-unavailable:NoSchedule- 2>/dev/null || true
+        done
+      '';
+    };
+    systemd.timers.k3s-network-taint-fix = lib.mkIf isServer {
+      description = "Periodically fix NetworkUnavailable taint";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "30s";
+        OnUnitActiveSec = "30s";
+        AccuracySec = "10s";
+      };
+    };
   };
 }
 # Force rebuild Tue 07 Apr 2026 03:12:49 AM CDT
