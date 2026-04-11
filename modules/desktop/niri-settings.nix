@@ -23,7 +23,7 @@ let
     ++ (lib.splitString " " cmd);
 in
 {
-  programs.niri.settings = {
+  programs.niri.settings = lib.mkIf (config.programs.niri.enable or false) {
     # ==========================================================================
     # GENERAL SETTINGS
     # ==========================================================================
@@ -220,22 +220,22 @@ in
       # --------------------------------------------------------------------------
       # SPAWN APPLICATIONS
       # --------------------------------------------------------------------------
-      "${mod}+Return" = {
-        spawn = [ "${pkgs.kdePackages.konsole}/bin/konsole" ];
+      "Super+Return" = {
+        spawn = [ "ghostty" ];
       };
-      "${mod}+D" = {
+      "Super+D" = {
         spawn = noctalia "launcher toggle";
       };
-      "${mod}+Space" = {
+      "Super+Space" = {
         spawn = noctalia "launcher toggle";
       };
-      "${mod}+E" = {
-        spawn = [ "${pkgs.dolphin}/bin/dolphin" ];
+      "Super+E" = {
+        spawn = [ "${pkgs.kdePackages.dolphin}/bin/dolphin" ];
       };
-      "${mod}+B" = {
-        spawn = [ "${pkgs.firefox}/bin/firefox" ];
+      "Super+B" = {
+        spawn = [ "zen-twilight" ];
       };
-      "${mod}+Print" = {
+      "Super+Print" = {
         spawn = [
           "${pkgs.grim}/bin/grim"
           "-g"
@@ -243,94 +243,94 @@ in
           "- | ${pkgs.wl-clipboard}/bin/wl-copy"
         ];
       };
-      "${mod}+Shift+Print" = {
+      "Super+Shift+Print" = {
         spawn = [
           "${pkgs.grim}/bin/grim"
           "- | ${pkgs.wl-clipboard}/bin/wl-copy"
         ];
       };
-      "${mod}+Shift+E" = {
-        spawn = [ "${pkgs.code}/bin/code" ];
+      "Super+Shift+E" = {
+        spawn = [ "${pkgs.vscode}/bin/code" ];
       };
 
       # --------------------------------------------------------------------------
       # WINDOW MANAGEMENT
       # --------------------------------------------------------------------------
       # Close focused window
-      "${mod}+Q" = {
+      "Super+Q" = {
         close-window = [ ];
       };
 
       # Focus windows (arrow keys)
-      "${mod}+Left" = {
+      "Super+Left" = {
         focus-column-left = [ ];
       };
-      "${mod}+Right" = {
+      "Super+Right" = {
         focus-column-right = [ ];
       };
-      "${mod}+Up" = {
+      "Super+Up" = {
         focus-window-up = [ ];
       };
-      "${mod}+Down" = {
+      "Super+Down" = {
         focus-window-down = [ ];
       };
 
       # Move windows (arrow keys)
-      "${mod}+Shift+Left" = {
+      "Super+Shift+Left" = {
         move-column-left = [ ];
       };
-      "${mod}+Shift+Right" = {
+      "Super+Shift+Right" = {
         move-column-right = [ ];
       };
-      "${mod}+Shift+Up" = {
+      "Super+Shift+Up" = {
         move-window-up = [ ];
       };
-      "${mod}+Shift+Down" = {
+      "Super+Shift+Down" = {
         move-window-down = [ ];
       };
 
       # Column width adjustment
-      "${mod}+Comma" = {
+      "Super+Comma" = {
         consume-window-into-column = [ ];
       };
-      "${mod}+Period" = {
+      "Super+Period" = {
         expel-window-from-column = [ ];
       };
-      "${mod}+R" = {
+      "Super+R" = {
         switch-preset-column-width = [ ];
       };
-      "${mod}+Shift+R" = {
+      "Super+Shift+R" = {
         reset-window-height = [ ];
       };
-      "${mod}+Minus" = {
+      "Super+Minus" = {
         set-column-width = "-10%";
       };
-      "${mod}+Equal" = {
+      "Super+Equal" = {
         set-column-width = "+10%";
       };
-      "${mod}+Shift+Minus" = {
+      "Super+Shift+Minus" = {
         set-window-height = "-10%";
       };
-      "${mod}+Shift+Equal" = {
+      "Super+Shift+Equal" = {
         set-window-height = "+10%";
       };
 
       # Center focused column
-      "${mod}+C" = {
+      "Super+C" = {
         center-column = [ ];
       };
 
       # Focus and move to monitor edges
-      "${mod}+Home" = {
+      "Super+Home" = {
         focus-column-first = [ ];
       };
-      "${mod}+End" = {
+      "Super+End" = {
         focus-column-last = [ ];
       };
-      "${mod}+Shift+Home" = {
+      "Super+Shift+Home" = {
         move-column-to-first = [ ];
       };
-      "${mod}+Shift+End" = {
+      "Super+Shift+End" = {
         move-column-to-last = [ ];
       };
 
@@ -338,86 +338,86 @@ in
       # WORKSPACE MANAGEMENT
       # --------------------------------------------------------------------------
       # Switch to workspace 1-10
-      "${mod}+1" = {
+      "Super+1" = {
         focus-workspace = 1;
       };
-      "${mod}+2" = {
+      "Super+2" = {
         focus-workspace = 2;
       };
-      "${mod}+3" = {
+      "Super+3" = {
         focus-workspace = 3;
       };
-      "${mod}+4" = {
+      "Super+4" = {
         focus-workspace = 4;
       };
-      "${mod}+5" = {
+      "Super+5" = {
         focus-workspace = 5;
       };
-      "${mod}+6" = {
+      "Super+6" = {
         focus-workspace = 6;
       };
-      "${mod}+7" = {
+      "Super+7" = {
         focus-workspace = 7;
       };
-      "${mod}+8" = {
+      "Super+8" = {
         focus-workspace = 8;
       };
-      "${mod}+9" = {
+      "Super+9" = {
         focus-workspace = 9;
       };
-      "${mod}+0" = {
+      "Super+0" = {
         focus-workspace = 10;
       };
 
       # Move window to workspace 1-10
-      "${mod}+Shift+1" = {
+      "Super+Shift+1" = {
         move-column-to-workspace = 1;
       };
-      "${mod}+Shift+2" = {
+      "Super+Shift+2" = {
         move-column-to-workspace = 2;
       };
-      "${mod}+Shift+3" = {
+      "Super+Shift+3" = {
         move-column-to-workspace = 3;
       };
-      "${mod}+Shift+4" = {
+      "Super+Shift+4" = {
         move-column-to-workspace = 4;
       };
-      "${mod}+Shift+5" = {
+      "Super+Shift+5" = {
         move-column-to-workspace = 5;
       };
-      "${mod}+Shift+6" = {
+      "Super+Shift+6" = {
         move-column-to-workspace = 6;
       };
-      "${mod}+Shift+7" = {
+      "Super+Shift+7" = {
         move-column-to-workspace = 7;
       };
-      "${mod}+Shift+8" = {
+      "Super+Shift+8" = {
         move-column-to-workspace = 8;
       };
-      "${mod}+Shift+9" = {
+      "Super+Shift+9" = {
         move-column-to-workspace = 9;
       };
-      "${mod}+Shift+0" = {
+      "Super+Shift+0" = {
         move-column-to-workspace = 10;
       };
 
       # Workspace navigation
-      "${mod}+Page_Down" = {
+      "Super+Page_Down" = {
         focus-workspace-down = [ ];
       };
-      "${mod}+Page_Up" = {
+      "Super+Page_Up" = {
         focus-workspace-up = [ ];
       };
-      "${mod}+Shift+Page_Down" = {
+      "Super+Shift+Page_Down" = {
         move-column-to-workspace-down = [ ];
       };
-      "${mod}+Shift+Page_Up" = {
+      "Super+Shift+Page_Up" = {
         move-column-to-workspace-up = [ ];
       };
-      "${mod}+BracketLeft" = {
+      "Super+BracketLeft" = {
         focus-workspace-down = [ ];
       }; # Alt-Tab style
-      "${mod}+BracketRight" = {
+      "Super+BracketRight" = {
         focus-workspace-up = [ ];
       };
 
@@ -425,30 +425,30 @@ in
       # MONITOR/OUTPUT MANAGEMENT
       # --------------------------------------------------------------------------
       # Focus monitor
-      "${mod}+Ctrl+Left" = {
+      "Super+Ctrl+Left" = {
         focus-monitor-left = [ ];
       };
-      "${mod}+Ctrl+Right" = {
+      "Super+Ctrl+Right" = {
         focus-monitor-right = [ ];
       };
-      "${mod}+Ctrl+Up" = {
+      "Super+Ctrl+Up" = {
         focus-monitor-up = [ ];
       };
-      "${mod}+Ctrl+Down" = {
+      "Super+Ctrl+Down" = {
         focus-monitor-down = [ ];
       };
 
       # Move window to monitor
-      "${mod}+Ctrl+Shift+Left" = {
+      "Super+Ctrl+Shift+Left" = {
         move-column-to-monitor-left = [ ];
       };
-      "${mod}+Ctrl+Shift+Right" = {
+      "Super+Ctrl+Shift+Right" = {
         move-column-to-monitor-right = [ ];
       };
-      "${mod}+Ctrl+Shift+Up" = {
+      "Super+Ctrl+Shift+Up" = {
         move-column-to-monitor-up = [ ];
       };
-      "${mod}+Ctrl+Shift+Down" = {
+      "Super+Ctrl+Shift+Down" = {
         move-column-to-monitor-down = [ ];
       };
 
@@ -456,23 +456,23 @@ in
       # WINDOW STATE
       # --------------------------------------------------------------------------
       # Toggle fullscreen
-      "${mod}+F" = {
+      "Super+F" = {
         fullscreen-window = [ ];
       };
-      "${mod}+Shift+F" = {
+      "Super+Shift+F" = {
         toggle-windowed-fullscreen = [ ];
       };
 
       # Toggle floating
-      "${mod}+V" = {
+      "Super+V" = {
         toggle-window-floating = [ ];
       };
-      "${mod}+Shift+V" = {
+      "Super+Shift+V" = {
         switch-focus-between-floating-and-tiling = [ ];
       };
 
       # Pin window (show on all workspaces)
-      "${mod}+P" = {
+      "Super+P" = {
         toggle-window-rule = "floating";
       };
 
@@ -480,17 +480,17 @@ in
       # LAYOUT ACTIONS
       # --------------------------------------------------------------------------
       # Switch layout (scrollable-tiling only)
-      "${mod}+Tab" = {
+      "Super+Tab" = {
         focus-workspace-down = [ ];
       };
-      "${mod}+Shift+Tab" = {
+      "Super+Shift+Tab" = {
         focus-workspace-up = [ ];
       };
 
       # --------------------------------------------------------------------------
       # CLIPBOARD
       # --------------------------------------------------------------------------
-      "${mod}+Shift+V" = {
+      "Super+Shift+V" = {
         spawn = noctalia "launcher toggle";
       };
 
@@ -532,22 +532,22 @@ in
       # SYSTEM ACTIONS
       # --------------------------------------------------------------------------
       # Quit niri (logout)
-      "${mod}+Shift+Escape" = {
+      "Super+Shift+Escape" = {
         quit = [ ];
       };
 
       # Lock screen
-      "${mod}+Escape" = {
+      "Super+Escape" = {
         spawn = [ "${pkgs.swaylock}/bin/swaylock" ];
       };
 
       # Power menu (noctalia session menu)
-      "${mod}+Shift+P" = {
+      "Super+Shift+P" = {
         spawn = noctalia "sessionMenu toggle";
       };
 
       # Suspend
-      "${mod}+Ctrl+Escape" = {
+      "Super+Ctrl+Escape" = {
         spawn = [
           "systemctl"
           "suspend"
@@ -558,22 +558,22 @@ in
       # NIRI ACTIONS
       # --------------------------------------------------------------------------
       # Toggle keyboard focus
-      "${mod}+Ctrl+Space" = {
+      "Super+Ctrl+Space" = {
         toggle-keyboard-focus = [ ];
       };
 
       # Debug toggle
-      "${mod}+Shift+D" = {
+      "Super+Shift+D" = {
         toggle-debug-tint = [ ];
       };
 
-      # Reload config (if supported)
-      "${mod}+Shift+C" = {
-        reload-config = [ ];
+      # Reload config
+      "Super+Shift+C" = {
+        load-config-file = [ ];
       };
 
       # Show hotkey overlay
-      "${mod}+Slash" = {
+      "Super+Slash" = {
         show-hotkey-overlay = [ ];
       };
     };
@@ -620,6 +620,7 @@ in
       {
         matches = [
           { app-id = "firefox"; }
+          { app-id = "zen-twilight"; }
           { app-id = "librewolf"; }
           { app-id = "chromium"; }
           { app-id = "brave"; }
@@ -636,7 +637,7 @@ in
           { app-id = "kitty"; }
           { app-id = "foot"; }
           { app-id = "gnome-terminal"; }
-          { app-id = "konsole"; }
+          { app-id = "com.mitchellh.ghostty"; }
         ];
         default-column-width = {
           proportion = 0.5;
@@ -732,5 +733,5 @@ in
     #   "4-media" = { };
     #   "5-gaming" = { };
     # };
-  };
+  }; # mkIf
 }
