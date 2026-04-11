@@ -3,8 +3,16 @@
 #
 # This module is NOT a NixOS module — it's a plain Nix function
 # that returns shared data and the mkMcpServersJson helper.
+#
+# Local stdio servers are derived from the shared registry at
+# modules/services/mcp-server-registry.nix to keep server definitions
+# in sync between coding tools (JSON generation) and service modules
+# (wrapper script generation).
 { lib }:
 let
+  # Import shared server registry (single source of truth)
+  registry = import ../../services/mcp-server-registry.nix { inherit lib; };
+
   context7ApiKeyRef = "$CONTEXT7_API_KEY";
 
   # Z.AI HTTP MCP servers (identical across all tools)
@@ -39,7 +47,16 @@ let
     };
   };
 
-  localStdioServers = {
+  # Build local stdio servers from the shared registry.
+  # This ensures the server names/commands in JSON configs match the
+  # wrapper scripts installed by mcp-servers.nix.
+  mkLocalServer = name: _def: {
+    command = registry.mkCommand name;
+  };
+
+  # Servers with additional config beyond bare command
+  localStdioServers = (lib.mapAttrs mkLocalServer registry.servers) // {
+    # Override: filesystem needs args for allowed paths
     filesystem = {
       command = "mcp-filesystem";
       args = [
@@ -47,31 +64,18 @@ let
         "/home/j_kro"
       ];
     };
-    git = {
-      command = "mcp-git";
-    };
-    fetch = {
-      command = "mcp-fetch";
-    };
-    playwright = {
-      command = "mcp-playwright";
-    };
-    lightpanda = {
-      command = "mcp-lightpanda";
-    };
+    # Override: context7 needs API key env var
     context7 = {
       command = "mcp-context7";
       env.CONTEXT7_API_KEY = context7ApiKeyRef;
     };
+    # Override: chrome-devtools uses npx directly (not mcp- wrapper)
     chrome-devtools = {
       command = "npx";
       args = [
         "-y"
         "chrome-devtools-mcp@latest"
       ];
-    };
-    gateway = {
-      command = "mcp-gateway-bridge";
     };
   };
 
