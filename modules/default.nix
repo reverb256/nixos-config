@@ -126,7 +126,6 @@
     ./services/podman-auto-update.nix
     ./services/caddy.nix
     ./services/caddy-common.nix
-    # caddy-ingress-common.nix removed — was dead code (comments only)
     ./services/nextcloud.nix
     ./services/service-gateway.nix
     ./services/host-dashboard.nix
@@ -148,8 +147,6 @@
 
     # Monitoring
     ./services/monitoring/default.nix
-    ./services/monitoring/node-exporter.nix
-    # Crash detection and diagnostics
     # Exporters
     ./services/gpu-exporters.nix
     ./services/mining-exporter.nix
@@ -166,9 +163,6 @@
     # Profile system
     ./profiles/default.nix
     ./profiles/node-profiles.nix
-    # Hardware modules
-    ./hardware/corsair.nix
-    ./hardware/gpu-compute.nix
 
     # Network modules
     ./network/cluster-hosts.nix
