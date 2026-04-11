@@ -12,8 +12,6 @@
     ./common/environment-variables.nix
     ./common/firewall-ports.nix
 
-    # Helper libraries (DRY enforcement)
-
     # Network configuration
     ./network-constants.nix
 
@@ -40,7 +38,7 @@
     ./system/btrfs-compression.nix
     ./system/pi-models.nix
     ./system/btrfs-tuning.nix
-    # Modular workload monitoring (replaced old compute-workload-monitor monolith)
+    # Modular workload monitoring
     ./system/gaming-detection.nix
     ./system/gpu-profile-manager.nix
     ./system/mining-coordinator.nix
@@ -102,7 +100,6 @@
     ./mining/dual-xmrig.nix
     ./mining/xmrig-proxy.nix
     ./mining/mining-proxy.nix
-    # Note: Python gpu-proxy removed - replaced by gpu-proxy-cpp (centralized on Forge)
     ./mining/gpu-proxy-cpp.nix
 
     # GPU Resource Marketplace
@@ -121,8 +118,8 @@
     ./services/stability-matrix.nix
     ./services/ai-inference/default.nix
     ./services/nixos-share.nix
-    ./services/spacebot.nix # Systemd/Podman deployment (current)
-    ./services/spacebot/default.nix # Container module for Kubernetes (optional)
+    ./services/spacebot.nix
+    ./services/spacebot/default.nix
     ./services/podman-auto-update.nix
     ./services/caddy.nix
     ./services/caddy-common.nix
@@ -134,13 +131,13 @@
     ./services/auto-update.nix
     ./services/whisper-dictation.nix
     ./services/cloudflared.nix
-    ./services/cluster-ca.nix # Internal CA for cluster services
-    ./services/unbound-common.nix # Unified Unbound DNS-over-TLS for all hosts
+    ./services/cluster-ca.nix
+    ./services/unbound-common.nix
     ./services/syncthing.nix
-    ./services/garage.nix # S3-compatible distributed object storage
-    ./services/backup-to-garage.nix # Automated backups to Garage S3
-    ./services/binary-cache.nix # Nix binary cache server for cluster
-    ./services/rclone.nix # Cloud storage sync (70+ providers)
+    ./services/garage.nix
+    ./services/backup-to-garage.nix
+    ./services/binary-cache.nix
+    ./services/rclone.nix
     ./services/n8n.nix
     ./services/vaultwarden.nix
     ./services/self-healing-alerts.nix
