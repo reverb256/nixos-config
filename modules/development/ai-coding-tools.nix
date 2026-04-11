@@ -18,29 +18,22 @@ let
     mkIf
     types
     optionalString
-    concatStringsSep
-    escapeJSON
     ;
-  # Read API key from agenix at runtime
-  readSecret = path: "$(cat ${path} 2>/dev/null || echo '')";
-  # Z.AI API base URL and key references
-  zaiApiKeyRef = "$ZAI_API_KEY";
+
+  # ---------------------------------------------------------------------------
+  # Constants
+  # ---------------------------------------------------------------------------
   zaiApiBaseUrl = "https://api.z.ai/api/anthropic";
   zaiCodingBaseUrl = "https://api.z.ai/api/coding/paas/v4";
   zaiMcpBearer = "Bearer $ZAI_API_KEY";
-  # SearXNG URL (internal cluster service)
-  searxngUrl = "https://search.reverb256.ca";
-  # AI Gateway URL (Kubernetes service)
   gatewayUrl = "http://ai-inference-gateway.ai-inference.svc.cluster.local:8080";
-  # NVIDIA NIM API base URL
   nvidiaNimBaseUrl = "https://integrate.api.nvidia.com/v1";
-  # Context7 API key reference
   context7ApiKeyRef = "$CONTEXT7_API_KEY";
+
   # ---------------------------------------------------------------------------
   # Shared MCP server definitions (tool-agnostic)
   # These map to mcp-* wrapper scripts installed by modules/services/mcp-servers.nix
   # ---------------------------------------------------------------------------
-  # Z.AI HTTP MCP servers (identical across all tools)
   zaiHttpServers = {
     web-search-prime = {
       type = "http";
@@ -58,7 +51,7 @@ let
       headers.Authorization = zaiMcpBearer;
     };
   };
-  # Z.AI stdio MCP server
+
   zaiStdioServer = {
     type = "stdio";
     command = "npx";
@@ -68,10 +61,10 @@ let
     ];
     env = {
       Z_AI_MODE = "ZAI";
-      Z_AI_API_KEY = zaiApiKeyRef;
+      Z_AI_API_KEY = "$ZAI_API_KEY";
     };
   };
-  # Local stdio MCP servers (use mcp-* wrappers from mcp-servers.nix)
+
   localStdioServers = {
     filesystem = {
       command = "mcp-filesystem";
@@ -106,12 +99,8 @@ let
     gateway = {
       command = "mcp-gateway-bridge";
     };
-    searxng = {
-      command = "mcp-fetch";
-      # SearXNG via fetch wrapper with custom URL
-      # Note: If a dedicated searxng MCP wrapper exists, replace this
-    };
   };
+
   # Full MCP set: Z.AI stdio + Z.AI HTTP + local stdio
   fullMcpSet =
     localStdioServers
@@ -119,88 +108,149 @@ let
       "zai-mcp-server" = zaiStdioServer;
     }
     // zaiHttpServers;
+
+  # ---------------------------------------------------------------------------
+  # Shared MCP JSON generation function
+  #
+  # This replaces the duplicated jq-based JSON generation across all 5 tools.
+  # Instead of maintaining 5 nearly-identical jq scripts, each tool calls
+  # mkMcpServersJson with tool-specific parameters.
+  #
+  # Parameters:
+  #   keyMode:      "env" (Droid/OpenCode — $VAR references in output)
+  #                 "resolved" (Claude/Crush — keys resolved from files)
+  #   extraServers: additional servers beyond fullMcpSet (e.g., nixos for Claude)
+  #   disabled:     whether to add "disabled": false to each server (Droid)
+  # ---------------------------------------------------------------------------
+  mkMcpServersJson =
+    {
+      keyMode ? "resolved",
+      extraServers ? { },
+      disabled ? false,
+    }:
+    let
+      # For env mode, keep $ZAI_API_KEY references; for resolved mode, use $zai_key
+      resolveAuth = keyMode == "env";
+      zaiKey = if resolveAuth then "$ZAI_API_KEY" else "$zai_key";
+      ctx7Key = if resolveAuth then context7ApiKeyRef else "$ctx7_key";
+
+      # Build server entries: merge fullMcpSet with extraServers
+      allServers = fullMcpSet // extraServers;
+
+      # Generate a single server's jq fragment
+      mkServerFragment =
+        name: server:
+        let
+          # Determine if this is an HTTP server (has type + url)
+          isHttp = server.type or null == "http";
+          # Check if this is the Z.AI stdio server (needs key)
+          isZaiStdio = name == "zai-mcp-server";
+          # Check if this is context7 (needs key)
+          isContext7 = name == "context7";
+
+          # Build env block
+          envBlock =
+            if server.env != null then
+              let
+                envEntries = lib.mapAttrsToList (
+                  k: v:
+                  if isZaiStdio && k == "Z_AI_API_KEY" then
+                    "\"${k}\": \"${zaiKey}\""
+                  else if isContext7 && k == "CONTEXT7_API_KEY" then
+                    "\"${k}\": \"${ctx7Key}\""
+                  else
+                    "\"${k}\": \"${v}\""
+                ) server.env;
+              in
+              ''
+                , "env": { ${lib.concatStringsSep ", " envEntries} }
+              ''
+            else
+              "";
+
+          # Build args block
+          argsBlock =
+            if server.args != null then
+              ''
+                , "args": [${lib.concatStringsSep ", " (map (a: "\"${a}\"") server.args)}]
+              ''
+            else
+              "";
+
+          # Build headers block for HTTP servers
+          headersBlock =
+            if isHttp && server.headers != null then
+              let
+                headerEntries = lib.mapAttrsToList (
+                  k: v:
+                  if k == "Authorization" then
+                    if resolveAuth then "\"${k}\": \"${v}\"" else "\"${k}\": (\"Bearer \" + $zai_key)"
+                  else
+                    "\"${k}\": \"${v}\""
+                ) server.headers;
+              in
+              ''
+                , "headers": { ${lib.concatStringsSep ", " headerEntries} }
+              ''
+            else
+              "";
+
+          # Build disabled block
+          disabledBlock = lib.optionalString disabled ''
+            , "disabled": false
+          '';
+
+          # Build command block
+          commandBlock =
+            if server.command != null then
+              ''
+                , "command": "${server.command}"
+              ''
+            else
+              "";
+
+          # Build type block (only for HTTP servers)
+          typeBlock =
+            if isHttp then
+              ''
+                , "type": "http"
+                , "url": "${server.url}"
+              ''
+            else
+              "";
+        in
+        ''
+          "${name}": {${typeBlock}${commandBlock}${argsBlock}${envBlock}${headersBlock}${disabledBlock}}
+        '';
+
+      # Build all server fragments
+      serverFragments = lib.mapAttrsToList mkServerFragment allServers;
+    in
+    lib.concatStringsSep "," serverFragments;
+
   # ---------------------------------------------------------------------------
   # Config generators per tool
   # ---------------------------------------------------------------------------
+
   # Factory Droid: ~/.factory/mcp.json
   # Droid supports ${VAR} interpolation in mcp.json, so we use env var references
-  # instead of resolving the key at generation time. This keeps the key out of the
-  # generated file and allows Droid to read it from the environment at runtime.
   mkDroidMcpJson = pkgs.writeShellScript "generate-droid-mcp" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
     ${pkgs.jq}/bin/jq -n \
       '{
         "mcpServers": {
-          "zai-mcp-server": {
-            "type": "stdio",
-            "command": "npx",
-            "args": ["-y", "@z_ai/mcp-server"],
-            "env": {
-              "Z_AI_MODE": "ZAI",
-              "Z_AI_API_KEY": "$ZAI_API_KEY"
-            },
-            "disabled": false
-          },
-          "web-search-prime": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-            "headers": { "Authorization": ("Bearer $ZAI_API_KEY") },
-            "disabled": false
-          },
-          "web-reader": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/web_reader/mcp",
-            "headers": { "Authorization": ("Bearer $ZAI_API_KEY") },
-            "disabled": false
-          },
-          "zread": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/zread/mcp",
-            "headers": { "Authorization": ("Bearer $ZAI_API_KEY") },
-            "disabled": false
-          },
-          "filesystem": {
-            "command": "mcp-filesystem",
-            "args": ["/etc/nixos", "/home/${cfg.user}"],
-            "disabled": false
-          },
-          "git": {
-            "command": "mcp-git",
-            "disabled": false
-          },
-          "fetch": {
-            "command": "mcp-fetch",
-            "disabled": false
-          },
-          "playwright": {
-            "command": "mcp-playwright",
-            "disabled": false
-          },
-          "lightpanda": {
-            "command": "mcp-lightpanda",
-            "disabled": false
-          },
-          "context7": {
-            "command": "mcp-context7",
-            "env": { "CONTEXT7_API_KEY": "$CONTEXT7_API_KEY" },
-            "disabled": false
-          },
-          "chrome-devtools": {
-            "command": "npx",
-            "args": ["-y", "chrome-devtools-mcp@latest"],
-            "disabled": false
-          },
-          "gateway": {
-            "command": "mcp-gateway-bridge",
-            "disabled": false
-          }
+          ${mkMcpServersJson {
+            keyMode = "env";
+            disabled = true;
+          }}
         }
       }' > "/home/${cfg.user}/.factory/mcp.json"
     chown ${cfg.user}:users "/home/${cfg.user}/.factory/mcp.json"
     chmod 600 "/home/${cfg.user}/.factory/mcp.json"
     echo "[ai-coding-tools] Droid MCP config generated with env var references"
   '';
+
   # Claude Code: ~/.config/claude/mcp.json
   mkClaudeMcpJson = pkgs.writeShellScript "generate-claude-mcp" ''
     #!${pkgs.bash}/bin/bash
@@ -214,66 +264,22 @@ let
       --arg ctx7_key "$CONTEXT7_API_KEY" \
       '{
         "mcpServers": {
-          "zai-mcp-server": {
-            "command": "npx",
-            "args": ["-y", "@z_ai/mcp-server"],
-            "env": {
-              "Z_AI_MODE": "ZAI",
-              "Z_AI_API_KEY": $zai_key
-            }
-          },
-          "web-search-prime": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-            "headers": { "Authorization": ("Bearer " + $zai_key) }
-          },
-          "web-reader": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/web_reader/mcp",
-            "headers": { "Authorization": ("Bearer " + $zai_key) }
-          },
-          "zread": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/zread/mcp",
-            "headers": { "Authorization": ("Bearer " + $zai_key) }
-          },
-          "filesystem": {
-            "command": "mcp-filesystem",
-            "args": ["/etc/nixos", "/home/j_kro"]
-          },
-          "git": {
-            "command": "mcp-git"
-          },
-          "fetch": {
-            "command": "mcp-fetch"
-          },
-          "playwright": {
-            "command": "mcp-playwright"
-          },
-          "lightpanda": {
-            "command": "mcp-lightpanda"
-          },
-          "context7": {
-            "command": "mcp-context7",
-            "env": { "CONTEXT7_API_KEY": $ctx7_key }
-          },
-          "chrome-devtools": {
-            "command": "npx",
-            "args": ["-y", "chrome-devtools-mcp@latest"]
-          },
-          "gateway": {
-            "command": "mcp-gateway-bridge"
-          },
-          "nixos": {
-            "command": "uvx",
-            "args": ["mcp-nixos"]
-          }
+          ${mkMcpServersJson {
+            keyMode = "resolved";
+            extraServers = {
+              nixos = {
+                command = "uvx";
+                args = [ "mcp-nixos" ];
+              };
+            };
+          }}
         }
       }' > "/home/${cfg.user}/.config/claude/mcp.json"
     chown ${cfg.user}:users "/home/${cfg.user}/.config/claude/mcp.json"
     chmod 644 "/home/${cfg.user}/.config/claude/mcp.json"
     echo "[ai-coding-tools] Claude Code MCP config generated"
   '';
+
   # Crush: ~/.config/crush/crush.json
   mkCrushConfig = pkgs.writeShellScript "generate-crush-config" ''
     #!${pkgs.bash}/bin/bash
@@ -317,64 +323,15 @@ let
           }
         },
         "mcp": {
-          "zai-mcp-server": {
-            "type": "stdio",
-            "command": "npx",
-            "args": ["-y", "@z_ai/mcp-server"],
-            "env": {
-              "Z_AI_MODE": "ZAI",
-              "Z_AI_API_KEY": $zai_key
-            }
-          },
-          "web-search-prime": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-            "headers": { "Authorization": ("Bearer " + $zai_key) }
-          },
-          "web-reader": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/web_reader/mcp",
-            "headers": { "Authorization": ("Bearer " + $zai_key) }
-          },
-          "zread": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/zread/mcp",
-            "headers": { "Authorization": ("Bearer " + $zai_key) }
-          },
-          "filesystem": {
-            "command": "mcp-filesystem",
-            "args": ["/etc/nixos", "/home/j_kro"]
-          },
-          "git": {
-            "command": "mcp-git"
-          },
-          "fetch": {
-            "command": "mcp-fetch"
-          },
-          "playwright": {
-            "command": "mcp-playwright"
-          },
-          "lightpanda": {
-            "command": "mcp-lightpanda"
-          },
-          "context7": {
-            "command": "mcp-context7",
-            "env": { "CONTEXT7_API_KEY": $ctx7_key }
-          },
-          "chrome-devtools": {
-            "command": "npx",
-            "args": ["-y", "chrome-devtools-mcp@latest"]
-          },
-          "gateway": {
-            "command": "mcp-gateway-bridge"
-          }
+          ${mkMcpServersJson { keyMode = "resolved"; }}
         }
       }' > "/home/${cfg.user}/.config/crush/crush.json"
     chown ${cfg.user}:users "/home/${cfg.user}/.config/crush/crush.json"
     chmod 600 "/home/${cfg.user}/.config/crush/crush.json"
     echo "[ai-coding-tools] Crush config generated"
   '';
-  # OpenCode: ~/.opencode/config.json (adds MCP servers to existing provider config)
+
+  # OpenCode: ~/.opencode/config.json
   mkOpencodeConfig = pkgs.writeShellScript "generate-opencode-config" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
@@ -463,57 +420,7 @@ let
         "enabled_providers": ["zai-coding-plan", "nvidia-nim", "lmstudio", "llama-cpp"],
         "disabled_providers": ["openai", "anthropic", "google", "cohere"],
         "mcp": {
-          "zai-mcp-server": {
-            "type": "stdio",
-            "command": "npx",
-            "args": ["-y", "@z_ai/mcp-server"],
-            "env": {
-              "Z_AI_MODE": "ZAI",
-              "Z_AI_API_KEY": "''${ZAI_API_KEY}"
-            }
-          },
-          "web-search-prime": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-            "headers": { "Authorization": "Bearer ''${ZAI_API_KEY}" }
-          },
-          "web-reader": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/web_reader/mcp",
-            "headers": { "Authorization": "Bearer ''${ZAI_API_KEY}" }
-          },
-          "zread": {
-            "type": "http",
-            "url": "https://api.z.ai/api/mcp/zread/mcp",
-            "headers": { "Authorization": "Bearer ''${ZAI_API_KEY}" }
-          },
-          "filesystem": {
-            "command": "mcp-filesystem",
-            "args": ["/etc/nixos", "/home/j_kro"]
-          },
-          "git": {
-            "command": "mcp-git"
-          },
-          "fetch": {
-            "command": "mcp-fetch"
-          },
-          "playwright": {
-            "command": "mcp-playwright"
-          },
-          "lightpanda": {
-            "command": "mcp-lightpanda"
-          },
-          "context7": {
-            "command": "mcp-context7",
-            "env": { "CONTEXT7_API_KEY": $ctx7_key }
-          },
-          "chrome-devtools": {
-            "command": "npx",
-            "args": ["-y", "chrome-devtools-mcp@latest"]
-          },
-          "gateway": {
-            "command": "mcp-gateway-bridge"
-          }
+          ${mkMcpServersJson { keyMode = "env"; }}
         },
         "default_agent": "build",
         "logLevel": "INFO",
@@ -525,6 +432,7 @@ let
     chmod 644 "/home/${cfg.user}/.opencode/config.json"
     echo "[ai-coding-tools] OpenCode config generated"
   '';
+
   # Pi Coding Agent: ~/.pi/agent/settings.json + models.json
   mkPiConfig = pkgs.writeShellScript "generate-pi-config" ''
     #!${pkgs.bash}/bin/bash
@@ -759,9 +667,8 @@ let
     chmod 600 "/home/${cfg.user}/.pi/agent/settings.json"
     echo "[ai-coding-tools] Pi config generated"
   '';
+
   # Factory Droid: ~/.factory/settings.json
-  # Droid supports ${VAR} interpolation in settings.json, so we use env var references
-  # instead of resolving keys at generation time.
   mkDroidSettings = pkgs.writeShellScript "generate-droid-settings" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
@@ -983,7 +890,6 @@ in
         };
       };
     };
-    # Environment variables for Z.AI API (used by Claude Code env, shell sessions)
     enableShellEnv = mkOption {
       type = types.bool;
       default = true;
@@ -1000,8 +906,6 @@ in
     # Ensure required directories exist
     systemd.tmpfiles.rules = [
       "d /home/${cfg.user}/.factory 0700 ${cfg.user} users -"
-      # Note: .factory/mcp.json is created as a FILE by the activation script,
-      # NOT as a directory. Do NOT add a 'd' tmpfiles rule for it.
       "d /home/${cfg.user}/.config/claude 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.config/crush 0755 ${cfg.user} users -"
       "d /home/${cfg.user}/.config/crush/commands 0755 ${cfg.user} users -"
@@ -1033,7 +937,6 @@ in
         User = "root";
         Group = "root";
         RemainAfterExit = true;
-        # Security
         NoNewPrivileges = true;
         PrivateTmp = true;
         ProtectSystem = "strict";
@@ -1046,49 +949,49 @@ in
           "/home/${cfg.user}/.pi"
         ];
         ExecStart = pkgs.writeShellScript "ai-coding-tools-generate" ''
-                set -euo pipefail
-                # Wait for secrets to be available
-                for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile}; do
-                  for i in {1..30}; do
-                    if [ -f "$secret" ] && [ -s "$secret" ]; then
-                      break
-                    fi
-                    if [ "$i" -eq 30 ]; then
-                      echo "[ai-coding-tools] WARNING: Secret not available: $secret"
-                    fi
-                    sleep 1
-                  done
-                done
-                export ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
+          set -euo pipefail
+          # Wait for secrets to be available
+          for secret in ${cfg.zaiApiKeyFile} ${cfg.context7ApiKeyFile} ${cfg.nvidiaNimApiKeyFile}; do
+            for i in {1..30}; do
+              if [ -f "$secret" ] && [ -s "$secret" ]; then
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "[ai-coding-tools] WARNING: Secret not available: $secret"
+              fi
+              sleep 1
+            done
+          done
+          export ZAI_KEY_PATH="${cfg.zaiApiKeyFile}"
           ZAI_API_KEY="$(cat $ZAI_KEY_PATH 2>/dev/null || echo)"
-                export CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
+          export CTX7_KEY_PATH="${cfg.context7ApiKeyFile}"
           CONTEXT7_API_KEY="$(cat $CTX7_KEY_PATH 2>/dev/null || echo)"
-                export NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
+          export NVIDIA_NIM_KEY_PATH="${cfg.nvidiaNimApiKeyFile}"
           NVIDIA_NIM_API_KEY="$(cat $NVIDIA_NIM_KEY_PATH 2>/dev/null || echo)"
-                echo "[ai-coding-tools] Generating harmonized MCP configs..."
-                ${optionalString cfg.tools.droid.enable ''
-                  echo "[ai-coding-tools] Generating Droid settings..."
-                  ${mkDroidSettings}
-                  echo "[ai-coding-tools] Generating Droid MCP config..."
-                  ${mkDroidMcpJson}
-                ''}
-                ${optionalString cfg.tools.claude.enable ''
-                  echo "[ai-coding-tools] Generating Claude Code config..."
-                  ${mkClaudeMcpJson}
-                ''}
-                ${optionalString cfg.tools.crush.enable ''
-                  echo "[ai-coding-tools] Generating Crush config..."
-                  ${mkCrushConfig}
-                ''}
-                ${optionalString cfg.tools.opencode.enable ''
-                  echo "[ai-coding-tools] Generating OpenCode config..."
-                  ${mkOpencodeConfig}
-                ''}
-                ${optionalString cfg.tools.pi.enable ''
-                  echo "[ai-coding-tools] Generating Pi config..."
-                  ${mkPiConfig}
-                ''}
-                echo "[ai-coding-tools] All configs generated successfully"
+          echo "[ai-coding-tools] Generating harmonized MCP configs..."
+          ${optionalString cfg.tools.droid.enable ''
+            echo "[ai-coding-tools] Generating Droid settings..."
+            ${mkDroidSettings}
+            echo "[ai-coding-tools] Generating Droid MCP config..."
+            ${mkDroidMcpJson}
+          ''}
+          ${optionalString cfg.tools.claude.enable ''
+            echo "[ai-coding-tools] Generating Claude Code config..."
+            ${mkClaudeMcpJson}
+          ''}
+          ${optionalString cfg.tools.crush.enable ''
+            echo "[ai-coding-tools] Generating Crush config..."
+            ${mkCrushConfig}
+          ''}
+          ${optionalString cfg.tools.opencode.enable ''
+            echo "[ai-coding-tools] Generating OpenCode config..."
+            ${mkOpencodeConfig}
+          ''}
+          ${optionalString cfg.tools.pi.enable ''
+            echo "[ai-coding-tools] Generating Pi config..."
+            ${mkPiConfig}
+          ''}
+          echo "[ai-coding-tools] All configs generated successfully"
         '';
       };
     };
@@ -1116,13 +1019,11 @@ in
     '';
     # CLI helper for manual regeneration
     environment.systemPackages = [
-      # Crush wrapper - npm package @charmland/crush
       (pkgs.writeShellScriptBin "crush" ''
         export PATH="${pkgs.nodejs_22}/bin:$PATH"
         export npm_config_cache="/var/cache/ai-inference/npm"
         exec ${pkgs.nodejs_22}/bin/npx -y @charmland/crush@latest "$@"
       '')
-      # Pi wrapper - exec cached binary directly, persistent jiti + V8 compile cache
       (pkgs.writeShellScriptBin "pi" ''
         export PATH="${pkgs.nodejs_22}/bin:$PATH"
         export npm_config_cache="/var/cache/ai-inference/npm"
@@ -1143,13 +1044,11 @@ in
         exec ${pkgs.nodejs_22}/bin/npx -y @mariozechner/pi-coding-agent@latest --version
       '')
       (pkgs.writeShellScriptBin "ai-tools-regenerate" ''
-        #!/bin/bash
         echo "Regenerating all AI coding tool MCP configs..."
         sudo systemctl restart ai-coding-tools-config.service
         journalctl -u ai-coding-tools-config.service -n 20 --no-pager
       '')
       (pkgs.writeShellScriptBin "ai-tools-status" ''
-        #!/bin/bash
         echo "=== AI Coding Tools Status ==="
         echo ""
         echo "Config files:"
@@ -1220,7 +1119,7 @@ in
       ## Tool Config Locations
       | Tool | Config Path | Format |
       |------|------------|--------|
-       | Droid (Factory) | ~/.factory/mcp.json | MCP servers only |
+      | Droid (Factory) | ~/.factory/mcp.json | MCP servers only |
       | Claude Code | ~/.config/claude/mcp.json | MCP servers only |
       | Crush | ~/.config/crush/crush.json | Provider + MCP |
       | OpenCode | ~/.opencode/config.json | Provider + MCP |
