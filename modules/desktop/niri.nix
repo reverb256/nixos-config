@@ -9,6 +9,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
@@ -34,10 +35,15 @@ in
     # Default: niri available but not active
     { programs.niri.enable = lib.mkOptionDefault false; }
 
+    # Use patched niri with SDR brightness support (NV_PLANE_DEGAMMA_MULTIPLIER)
+    # mkForce needed to override the niri-flake's own package assignment
+    (mkIf niriEnabled {
+      programs.niri.package = lib.mkForce inputs.niri-hdr.packages.${pkgs.system}.default;
+    })
+
     # Companion config only when niri is ACTUALLY ENABLED
     (mkIf niriEnabled (
       lib.mkMerge [
-
         # ── BINARY CACHES ──────────────────────────────────────────────
 
         {
@@ -120,6 +126,17 @@ in
             text = ''
               # Niri-specific: disable client-side decorations (Niri draws its own)
               export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+
+              # GStreamer plugin path for noctalia-shell (video-wallpaper plugin)
+              # Without this, fakesink/coreelements are missing → segfault in QMediaPlayer
+              export GST_PLUGIN_PATH=${
+                lib.concatStringsSep ":" [
+                  "${lib.getLib pkgs.gst_all_1.gstreamer}/lib/gstreamer-1.0"
+                  "${pkgs.gst_all_1.gst-plugins-base}/lib/gstreamer-1.0"
+                  "${pkgs.gst_all_1.gst-plugins-bad}/lib/gstreamer-1.0"
+                  "${pkgs.gst_all_1.gst-plugins-good}/lib/gstreamer-1.0"
+                ]
+              }
             '';
           };
         }
@@ -139,12 +156,37 @@ in
               description = "Polkit Authentication Agent (Niri)";
               wantedBy = [ "graphical-session.target" ];
               after = [ "graphical-session.target" ];
+              requisite = [ "graphical-session.target" ];
+              partOf = [ "graphical-session.target" ];
               serviceConfig = {
                 Type = "simple";
-                # Only start when XDG_CURRENT_DESKTOP contains "niri"
                 ExecCondition = "${pkgs.systemd}/lib/systemd/systemd-xdg-autostart-condition niri ''";
                 ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
                 Restart = "on-failure";
+                Slice = "session-graphical.slice";
+              };
+            };
+
+            # Idle management — DISABLED (Noctalia shell handles idle via its own settings)
+            # Re-enable by removing the mkIf false wrapper if Noctalia idle is removed
+            niri-idle = lib.mkIf false {
+              description = "Idle management for Niri (swayidle)";
+              wantedBy = [ "graphical-session.target" ];
+              after = [ "graphical-session.target" ];
+              requisite = [ "graphical-session.target" ];
+              partOf = [ "graphical-session.target" ];
+              serviceConfig = {
+                Type = "simple";
+                ExecCondition = "${pkgs.systemd}/lib/systemd/systemd-xdg-autostart-condition niri ''";
+                ExecStart =
+                  "${pkgs.swayidle}/bin/swayidle -w"
+                  + " timeout 300 '${pkgs.swaylock}/bin/swaylock'"
+                  + " timeout 600 'niri msg action power-off-monitors'"
+                  + " resume 'niri msg action power-on-monitors'"
+                  + " lock '${pkgs.swaylock}/bin/swaylock'"
+                  + " before-sleep '${pkgs.swaylock}/bin/swaylock'";
+                Restart = "on-failure";
+                RestartSec = 5;
                 Slice = "session-graphical.slice";
               };
             };

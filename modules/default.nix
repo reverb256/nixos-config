@@ -74,6 +74,7 @@
     ./desktop/uwsm-sessions.nix
     ./desktop/systems-intelligence-plasmoid.nix
     ./desktop/niri.nix
+    ./desktop/noctalia-sdr-brightness.nix
 
     # Shell configuration
     # Fish system-level (PATH, packages): ./shell/fish.nix
