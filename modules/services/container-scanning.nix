@@ -1,16 +1,32 @@
 # Container Image Vulnerability Scanning
 # Uses Trivy to scan all Podman images weekly for HIGH/CRITICAL CVEs
+#
+# Auto-enables on hosts with Podman configured for supply chain security.
+# Can be explicitly disabled with services.container-scanning.enable = false.
 {
   config,
   pkgs,
   lib,
   ...
-}: let
+}:
+let
   cfg = config.services.container-scanning;
-  inherit (lib) mkEnableOption mkIf mkOption types;
-in {
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    mkOption
+    types
+    mkDefault
+    ;
+in
+{
   options.services.container-scanning = {
-    enable = mkEnableOption "Container vulnerability scanning with Trivy";
+    enable = mkOption {
+      type = types.bool;
+      default = config.virtualisation.podman.enable or false;
+      defaultText = "config.virtualisation.podman.enable";
+      description = "Container vulnerability scanning with Trivy. Auto-enabled when Podman is present.";
+    };
 
     severity = mkOption {
       type = types.str;
@@ -26,12 +42,15 @@ in {
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = with pkgs; [trivy];
+    environment.systemPackages = with pkgs; [ trivy ];
 
     systemd.services.trivy-scan = {
       description = "Scan all container images for vulnerabilities";
-      after = ["network-online.target" "podman.service"];
-      wants = ["network-online.target"];
+      after = [
+        "network-online.target"
+        "podman.service"
+      ];
+      wants = [ "network-online.target" ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "trivy-scan" ''
@@ -66,14 +85,17 @@ in {
         ProtectSystem = "strict";
         ProtectHome = true;
         RestrictRealtime = true;
-        RestrictAddressFamilies = ["AF_UNIX" "AF_INET"];
-        ReadWritePaths = ["/tmp"];
+        RestrictAddressFamilies = [
+          "AF_UNIX"
+          "AF_INET"
+        ];
+        ReadWritePaths = [ "/tmp" ];
       };
     };
 
     systemd.timers.trivy-scan = {
       description = "Weekly container vulnerability scan timer";
-      wantedBy = ["timers.target"];
+      wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = cfg.schedule;
         Persistent = true;
