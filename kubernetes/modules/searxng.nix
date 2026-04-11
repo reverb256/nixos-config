@@ -95,7 +95,7 @@
             containers = {
               _namedlist = true;
               searxng = {
-                image = "searxng/searxng:latest";
+                image = "searxng/searxng:2026.4.5-474b0a55b";
                 imagePullPolicy = "IfNotPresent";
                 securityContext = {
                   allowPrivilegeEscalation = false;
