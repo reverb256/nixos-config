@@ -9,7 +9,12 @@
 #
 # API keys are injected from agenix-decrypted secrets via systemd service
 # that reads /run/agenix/* after agenix activation.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.programs.pi-agent;
@@ -89,7 +94,10 @@ let
       id = "qwen/qwen3.5-122b-a10b";
       name = "Qwen 3.5 122B (NVIDIA NIM)";
       reasoning = true;
-      input = [ "text" "image" ];
+      input = [
+        "text"
+        "image"
+      ];
       contextWindow = 262144;
       maxTokens = 32768;
     }
@@ -105,7 +113,10 @@ let
       id = "google/gemma-4-31b-it";
       name = "Gemma 4 31B IT (NVIDIA NIM)";
       reasoning = true;
-      input = [ "text" "image" ];
+      input = [
+        "text"
+        "image"
+      ];
       contextWindow = 262144;
       maxTokens = 16384;
     }
@@ -113,7 +124,11 @@ let
       id = "moonshotai/kimi-k2.5";
       name = "Kimi K2.5 (NVIDIA NIM)";
       reasoning = true;
-      input = [ "text" "image" "video" ];
+      input = [
+        "text"
+        "image"
+        "video"
+      ];
       contextWindow = 262144;
       maxTokens = 16384;
     }
@@ -175,8 +190,36 @@ let
     }
   ];
 
+  # Local llama.cpp — always-on on zephyr 3060 Ti
+  llamaCppModels = [
+    {
+      id = "gemma-4-e4b-it";
+      name = "Gemma 4 E4B IT (llama.cpp local)";
+      reasoning = false;
+      input = [
+        "text"
+        "image"
+      ];
+      contextWindow = 131072;
+      maxTokens = 8192;
+    }
+  ];
+
   # Add zero-cost to each model
-  withCost = models: map (m: m // { cost = { input = 0; output = 0; cacheRead = 0; cacheWrite = 0; }; }) models;
+  withCost =
+    models:
+    map (
+      m:
+      m
+      // {
+        cost = {
+          input = 0;
+          output = 0;
+          cacheRead = 0;
+          cacheWrite = 0;
+        };
+      }
+    ) models;
 
   # JSON with placeholder tokens for API keys
   modelsJsonTemplate = builtins.toJSON {
@@ -204,6 +247,12 @@ let
         api = "openai-completions";
         apiKey = "lmstudio";
         models = withCost lmStudioModels;
+      };
+      "llama-cpp" = {
+        baseUrl = "http://127.0.0.1:1235/v1";
+        api = "openai-completions";
+        apiKey = "unused";
+        models = withCost llamaCppModels;
       };
     };
   };
