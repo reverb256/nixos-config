@@ -691,6 +691,23 @@ let
               }
             ]
           },
+
+          "llama-cpp": {
+            "baseUrl": "http://127.0.0.1:1235/v1",
+            "api": "openai-completions",
+            "apiKey": "unused",
+            "models": [
+              {
+                "id": "gemma-4-e4b-it",
+                "name": "Gemma 4 E4B IT (llama.cpp local)",
+                "reasoning": false,
+                "input": ["text", "image"],
+                "contextWindow": 131072,
+                "maxTokens": 8192,
+                "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
+              }
+            ]
+          }
         }
       }' > "/home/${cfg.user}/.pi/agent/models.json"
     # Build settings.json with model config + declarative packages + extensions config
@@ -1105,11 +1122,25 @@ in
         export npm_config_cache="/var/cache/ai-inference/npm"
         exec ${pkgs.nodejs_22}/bin/npx -y @charmland/crush@latest "$@"
       '')
-      # Pi wrapper - npm package @mariozechner/pi-coding-agent
+      # Pi wrapper - exec cached binary directly, persistent jiti + V8 compile cache
       (pkgs.writeShellScriptBin "pi" ''
         export PATH="${pkgs.nodejs_22}/bin:$PATH"
         export npm_config_cache="/var/cache/ai-inference/npm"
-        exec ${pkgs.nodejs_22}/bin/npx -y @mariozechner/pi-coding-agent@latest "$@"
+        mkdir -p /home/${cfg.user}/.cache/pi/jiti /home/${cfg.user}/.cache/pi/v8
+        export TMPDIR=/home/${cfg.user}/.cache/pi
+        export NODE_COMPILE_CACHE=/home/${cfg.user}/.cache/pi/v8
+        PI_BIN=$(find "$npm_config_cache/_npx" -path '*/node_modules/.bin/pi' -type l 2>/dev/null | head -1)
+        if [ -n "$PI_BIN" ]; then
+          exec node "$PI_BIN" "$@"
+        else
+          exec ${pkgs.nodejs_22}/bin/npx -y @mariozechner/pi-coding-agent@latest "$@"
+        fi
+      '')
+      (pkgs.writeShellScriptBin "pi-update" ''
+        echo "Updating pi via npx (checks npm registry)..."
+        export PATH="${pkgs.nodejs_22}/bin:$PATH"
+        export npm_config_cache="/var/cache/ai-inference/npm"
+        exec ${pkgs.nodejs_22}/bin/npx -y @mariozechner/pi-coding-agent@latest --version
       '')
       (pkgs.writeShellScriptBin "ai-tools-regenerate" ''
         #!/bin/bash
