@@ -16,6 +16,8 @@
 }:
 let
   # Self-contained lolminer image (1.1 GiB) — binary baked in, no Nix store deps
+  # Pin to specific tag for reproducibility (swamp7 only publishes :latest)
+  # Update by: crictl images | grep lolminer
   lolminerImage = "docker.io/swamp7/lolminer:latest";
 
   # AMD OpenCL ICD vendors path — uses host CLR (ROCm) installation on forge
