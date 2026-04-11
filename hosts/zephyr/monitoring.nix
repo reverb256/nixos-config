@@ -1,6 +1,6 @@
 # Zephyr Monitoring Configuration
 # Control plane node - minimal monitoring footprint
-{ ... }:
+{ lib, ... }:
 {
   imports = [
     ../../modules/services/monitoring/default.nix
@@ -38,5 +38,5 @@
   };
 
   # Ensure node-exporter port is open for Prometheus scraping
-  networking.firewall.allowedTCPPorts = [ 9100 ];
+  networking.firewall.allowedTCPPorts = lib.mkOptionDefault [ 9100 ];
 }
