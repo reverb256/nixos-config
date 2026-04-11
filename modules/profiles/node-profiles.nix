@@ -8,11 +8,9 @@
 # This replaces manual profile declaration:
 #   OLD: profiles.role = { gaming = true; mining = true; };
 #   NEW: profiles.node.gaming-mining.enable = true;
-{
-  config,
-  lib,
-  ...
-}:
+#
+# Networking config generation is delegated to networking.nix (mkNetworkingConfig).
+{ config, lib, ... }:
 let
   inherit (lib)
     mkEnableOption
@@ -22,40 +20,19 @@ let
     mkMerge
     ;
 
+  # Import the reusable networking config generator
+  networkingHelper = import ./networking.nix { inherit lib; };
+  mkNetworkingConfig = networkingHelper.mkNetworkingConfig;
+
   # Helper function to create profile config
+  # Uses mkNetworkingConfig for networking and applies hardware/role profiles
   mkProfileConfig =
     _profileName: profileCfg:
     mkIf profileCfg.enable (
-      let
-        # Extract networking config - handle both nested and direct formats
-        networkingCfgBase =
-          profileCfg.networking or {
-            ipAddress = profileCfg.ipAddress or null;
-            interfaceName = profileCfg.interfaceName or null;
-            unboundListenAddress = profileCfg.unboundListenAddress or null;
-            wireless = profileCfg.wireless or { enable = false; };
-          };
-        # Ensure wireless has a default value
-        networkingCfg = networkingCfgBase // {
-          wireless = networkingCfgBase.wireless or { enable = false; };
-        };
-      in
-      {
-        # Apply networking configuration (only if ipAddress is set)
-        clusterNetworking = mkIf (networkingCfg.ipAddress != null) {
-          enable = true;
-          inherit (networkingCfg) ipAddress;
-          inherit (networkingCfg) interfaceName;
-          wireless = lib.mkDefault networkingCfg.wireless;
-          unbound = {
-            enable = true;
-            listenAddress = networkingCfg.unboundListenAddress;
-          };
-        };
-
+      (mkNetworkingConfig profileCfg)
+      // {
         # Kubernetes is configured per-host via services.k3s-cluster
         # Node profiles no longer set kubernetes-module (replaced by k3s-cluster)
-        # GPU, hardware, and firewall settings are still applied below
 
         # Apply hardware profiles
         hardware.profiles = {
@@ -68,19 +45,6 @@ let
 
         # Apply network profiles
         profiles.network.tailscale.enable = true;
-
-        # Networking configuration
-        networking = {
-          # Disable DHCP if requested
-          dhcpcd.enable = mkIf (profileCfg.disableDHCP or false) (lib.mkForce false);
-
-          # Apply extra firewall rules
-          firewall = {
-            allowedTCPPorts = lib.mkOptionDefault (profileCfg.firewallExtraTCPPorts or [ ]);
-            allowedTCPPortRanges = lib.mkOptionDefault (profileCfg.firewallExtraTCPPortRanges or [ ]);
-            allowedUDPPorts = lib.mkOptionDefault (profileCfg.firewallExtraUDPPorts or [ ]);
-          };
-        };
       }
     );
 in
@@ -94,7 +58,6 @@ in
     zephyr-workstation = {
       enable = mkEnableOption "Zephyr workstation profile (control plane + gaming + VR + mining + AI)";
 
-      # Hardware-specific
       nvidia = mkOption {
         type = types.attrs;
         default = {
@@ -104,30 +67,28 @@ in
         description = "NVIDIA GPU configuration";
       };
 
-      # Networking
       networking = mkOption {
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.110";
-          interfaceName = "enp38s0"; # Native hardware interface name
+          interfaceName = "enp38s0";
           unboundListenAddress = "10.1.1.110";
           wireless.enable = true;
         };
         description = "Networking configuration";
       };
 
-      # Firewall ports (beyond cluster defaults)
       firewallExtraTCPPorts = mkOption {
         type = types.listOf types.port;
         default = [
-          9757 # WiVRn main port
-          18789 # Steam Remote Play
-          18790 # Steam Remote Play (secondary)
-          19898 # Moonlight/GameStream + Spacebot Web UI
-          1234 # LM Studio API server
-          8080 # AI Inference Gateway
-          53317 # LocalSend (file sharing)
-          8888 # CFSSL CA API server
+          9757
+          18789
+          18790
+          19898
+          1234
+          8080
+          53317
+          8888
         ];
         description = "Extra TCP ports";
       };
@@ -137,12 +98,12 @@ in
         default = [
           9757
           9758
-          9759 # WiVRn
+          9759
           27031
-          27036 # Steam UDP
-          5353 # mDNS
-          9947 # WiVRn
-          53317 # LocalSend (multicast)
+          27036
+          5353
+          9947
+          53317
         ];
         description = "Extra UDP ports";
       };
@@ -164,7 +125,7 @@ in
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.120";
-          interfaceName = "enp7s0"; # Native hardware interface name
+          interfaceName = "enp7s0";
           unboundListenAddress = "10.1.1.120";
           wireless.enable = true;
         };
@@ -227,7 +188,7 @@ in
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.130";
-          interfaceName = "enp0s31f6"; # Native hardware interface name
+          interfaceName = "enp0s31f6";
           unboundListenAddress = "10.1.1.130";
           wireless.enable = false;
         };
@@ -287,7 +248,7 @@ in
         type = types.attrs;
         default = {
           ipAddress = "10.1.1.140";
-          interfaceName = "enp7s0"; # Native hardware interface name
+          interfaceName = "enp7s0";
           unboundListenAddress = "10.1.1.140";
           wireless.enable = false;
         };
@@ -329,8 +290,6 @@ in
     # GENERIC PROFILES (for custom nodes)
     # ============================================================================
 
-    # Legacy generic profiles kept for backwards compatibility
-    # Kubernetes is now configured per-host via services.k3s-cluster
     kubernetes-control-plane = {
       enable = mkEnableOption "Kubernetes control plane node (legacy — use k3s-cluster instead)";
 
@@ -405,8 +364,6 @@ in
 
     # ============================================================================
     # ROLE PROFILE ASSIGNMENTS
-    # ============================================================================
-    # Each node profile assigns its corresponding role profiles
     # ============================================================================
 
     # Zephyr workstation role profiles
