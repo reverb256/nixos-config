@@ -72,6 +72,9 @@ in
           "search.cluster.local. IN A 10.1.1.100"
           "ai.cluster.local. IN A 10.1.1.100"
           "openwebui.cluster.local. IN A 10.1.1.100"
+          # Haven chat (direct nexus, hostNetwork)
+          "haven.lan. IN A 10.1.1.120"
+          "haven.cluster.local. IN A 10.1.1.120"
         ];
 
     networking.firewall.allowedUDPPorts = lib.mkOptionDefault [ 53 ];
