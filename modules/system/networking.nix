@@ -14,13 +14,17 @@
     # NetworkManager handles both wired and wireless connections
     # (wpa_supplicant wireless is not used - it conflicts with NetworkManager)
     # Use mkDefault so cluster-networking can override for systemd-networkd
-    networkmanager.enable = lib.mkDefault true;
+    networkmanager = {
+      enable = lib.mkDefault true;
+      # Prepend local unbound so .lan domains resolve first
+      insertNameservers = [ "127.0.0.1" "::1" ];
+    };
     useDHCP = false;
 
     # CLUSTER HOSTS ENTRIES (Shared across all nodes)
     hosts = {
       "10.1.1.110" = [ "zephyr" ];
-      "10.1.1.120" = [ "nexus" ];
+      "10.1.1.120" = [ "nexus" "haven.lan" "haven.cluster.local" ];
       "10.1.1.130" = [ "forge" ];
       "10.1.1.140" = [ "sentry" ];
     };
