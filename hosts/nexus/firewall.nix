@@ -3,16 +3,14 @@
 { lib, ... }:
 {
   networking = {
-    # Nexus-specific firewall rules (in addition to cluster defaults)
     firewall = {
-      allowedTCPPorts = lib.mkOptionDefault [
-        10250 # Kubelet API
-        3900 # Garage S3 API
-        3901 # Garage RPC
-        8080 # llama-server for autoresearch LLM evaluation
-        3000 # Haven chat server
-        9100 # Prometheus node-exporter
-      ];
+      # Nexus-specific firewall rules (merge with cluster defaults)
+      # NOTE: allowedTCPPorts with mkOptionDefault inside mkMerge blocks
+      # has a known merge issue. Use extraInputRules for reliable access.
+      extraInputRules = lib.mkAfter ''
+        # Haven chat server
+        tcp dport 3000 accept
+      '';
       allowedTCPPortRanges = [
         {
           from = 30000;
