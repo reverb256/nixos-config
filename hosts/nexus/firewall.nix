@@ -10,6 +10,7 @@
         3900 # Garage S3 API
         3901 # Garage RPC
         8080 # llama-server for autoresearch LLM evaluation
+        3000 # Haven chat server
         9100 # Prometheus node-exporter
       ];
       allowedTCPPortRanges = [
