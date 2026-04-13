@@ -36,9 +36,15 @@ in
     { programs.niri.enable = lib.mkOptionDefault false; }
 
     # Use patched niri with SDR brightness support (NV_PLANE_DEGAMMA_MULTIPLIER)
-    # mkForce needed to override the niri-flake's own package assignment
+    # Applies local patch to niri-flake package via override
     (mkIf niriEnabled {
-      programs.niri.package = lib.mkForce inputs.niri-hdr.packages.${pkgs.system}.default;
+      programs.niri.package = lib.mkForce (
+        inputs.niri.packages.${pkgs.system}.niri-unstable.overrideAttrs (old: {
+          patches = (old.patches or []) ++ [
+            ./patches/niri-hdr-sdr-brightness.patch
+          ];
+        })
+      );
     })
 
     # Companion config only when niri is ACTUALLY ENABLED
@@ -141,17 +147,31 @@ in
           };
         }
 
-        # ── SYSTEMD USER SERVICES ──────────────────────────────────────
-        # Pattern from UWSM example-units/waybar.service:
-        #   - WantedBy=graphical-session.target (standard session target)
-        #   - ExecCondition filters by XDG_CURRENT_DESKTOP to scope per-compositor
-        #   - After=graphical-session.target for proper ordering
-        # This avoids hardcoding systemd unit template names like
-        #   wayland-session@niri.desktop.target
-        # which change if the desktop entry ID changes.
+        # ── SYSTEMD USER SERVICE DROP-INS ──────────────────────────────
+        # Fix ordering of dbus-activated services that start before niri
+        # creates the Wayland socket, causing spawned apps to crash with
+        # "no DISPLAY environment variable specified".
+        #
+        # Ref: sodiboo/niri-flake#509 (open, no upstream fix)
+        # The fix: add xdg-desktop-autostart.target to After= for portal
+        # backends and polkit, which ensures they only start after niri
+        # and uwsm have set up WAYLAND_DISPLAY / DISPLAY.
 
         {
           systemd.user.services = {
+            xdg-desktop-portal = {
+              after = [ "xdg-desktop-autostart.target" ];
+            };
+            xdg-desktop-portal-gnome = {
+              after = [ "xdg-desktop-autostart.target" ];
+            };
+            xdg-desktop-portal-gtk = {
+              after = [ "xdg-desktop-autostart.target" ];
+            };
+            niri-flake-polkit = {
+              after = [ "xdg-desktop-autostart.target" ];
+            };
+
             polkit-gnome-authentication-agent-1 = {
               description = "Polkit Authentication Agent (Niri)";
               wantedBy = [ "graphical-session.target" ];

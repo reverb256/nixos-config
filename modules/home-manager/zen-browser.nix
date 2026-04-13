@@ -32,6 +32,10 @@
     "x-scheme-handler/webcal" = "zen-twilight.desktop";
     "x-scheme-handler/mailto" = "zen-twilight.desktop"; # For web email
     "x-scheme-handler/irc" = "zen-twilight.desktop"; # For web IRC clients
+
+    # File manager — required for "Open in File Explorer" / xdg-open on directories
+    "inode/directory" = "org.kde.dolphin.desktop";
+    "application/x-gnome-saved-search" = "org.kde.dolphin.desktop";
   };
 
   programs.zen-browser = {
