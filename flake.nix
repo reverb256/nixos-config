@@ -72,6 +72,12 @@
     # Do NOT follow nixpkgs — uses its own pinned nixos-unstable-small for kernel builds
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
 
+    # Stylix - Declarative theming for NixOS (colors, fonts, wallpaper across 90+ apps)
+    stylix = {
+      url = "github:nix-community/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # easykubenix - Nix-native Kubernetes manifests via NixOS module system
     # Define all K8s resources in Nix, validate against ephemeral apiserver, deploy via kluctl
     easykubenix.url = "github:Lillecarl/easykubenix";
